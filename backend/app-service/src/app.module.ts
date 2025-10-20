@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { AppsModule } from './apps/apps.module';
 import { MinioModule } from './minio/minio.module';
+import { ApkModule } from './apk/apk.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -30,6 +31,7 @@ import { HealthController } from './health.controller';
     AuthModule,
     AppsModule,
     MinioModule,
+    ApkModule,
   ],
   controllers: [HealthController],
 })

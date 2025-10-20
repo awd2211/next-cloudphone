@@ -103,6 +103,14 @@ export class MinioService {
     });
   }
 
+  async getFileStream(objectName: string): Promise<NodeJS.ReadableStream> {
+    try {
+      return await this.minioClient.getObject(this.bucketName, objectName);
+    } catch (error) {
+      throw new InternalServerErrorException(`获取文件流失败: ${error.message}`);
+    }
+  }
+
   getBucketName(): string {
     return this.bucketName;
   }

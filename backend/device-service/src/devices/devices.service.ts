@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Device, DeviceStatus } from '../entities/device.entity';
 import { DockerService } from '../docker/docker.service';
+import { AdbService } from '../adb/adb.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 
@@ -17,6 +18,7 @@ export class DevicesService {
     @InjectRepository(Device)
     private devicesRepository: Repository<Device>,
     private dockerService: DockerService,
+    private adbService: AdbService,
     private configService: ConfigService,
   ) {}
 
@@ -130,7 +132,18 @@ export class DevicesService {
     device.status = DeviceStatus.RUNNING;
     device.lastActiveAt = new Date();
 
-    return await this.devicesRepository.save(device);
+    const savedDevice = await this.devicesRepository.save(device);
+
+    // 建立 ADB 连接
+    if (device.adbHost && device.adbPort) {
+      try {
+        await this.adbService.connectToDevice(id, device.adbHost, device.adbPort);
+      } catch (error) {
+        console.error(`Failed to connect ADB for device ${id}:`, error);
+      }
+    }
+
+    return savedDevice;
   }
 
   async stop(id: string): Promise<Device> {
@@ -139,6 +152,9 @@ export class DevicesService {
     if (!device.containerId) {
       throw new BadRequestException('设备没有关联的容器');
     }
+
+    // 断开 ADB 连接
+    await this.adbService.disconnectFromDevice(id);
 
     await this.dockerService.stopContainer(device.containerId);
 
@@ -189,5 +205,59 @@ export class DevicesService {
     }
 
     return await this.dockerService.getContainerStats(device.containerId);
+  }
+
+  // ADB 相关方法
+
+  async executeShellCommand(id: string, command: string, timeout?: number): Promise<string> {
+    await this.findOne(id); // 验证设备存在
+    return await this.adbService.executeShellCommand(id, command, timeout);
+  }
+
+  async takeScreenshot(id: string): Promise<string> {
+    await this.findOne(id);
+    const outputDir = this.configService.get('SCREENSHOT_DIR', '/tmp/screenshots');
+    const outputPath = `${outputDir}/${id}_${Date.now()}.png`;
+    return await this.adbService.takeScreenshot(id, outputPath);
+  }
+
+  async pushFile(id: string, localPath: string, remotePath: string): Promise<boolean> {
+    await this.findOne(id);
+    return await this.adbService.pushFile(id, localPath, remotePath);
+  }
+
+  async pullFile(id: string, remotePath: string, localPath: string): Promise<boolean> {
+    await this.findOne(id);
+    return await this.adbService.pullFile(id, remotePath, localPath);
+  }
+
+  async installApk(id: string, apkPath: string, reinstall?: boolean): Promise<boolean> {
+    await this.findOne(id);
+    return await this.adbService.installApk(id, apkPath, reinstall);
+  }
+
+  async uninstallApp(id: string, packageName: string): Promise<boolean> {
+    await this.findOne(id);
+    return await this.adbService.uninstallApp(id, packageName);
+  }
+
+  async getInstalledPackages(id: string): Promise<string[]> {
+    await this.findOne(id);
+    return await this.adbService.getInstalledPackages(id);
+  }
+
+  async readLogcat(id: string, filter?: string, lines?: number): Promise<string> {
+    await this.findOne(id);
+    return await this.adbService.readLogcat(id, { filter, lines });
+  }
+
+  async clearLogcat(id: string): Promise<void> {
+    await this.findOne(id);
+    return await this.adbService.clearLogcat(id);
+  }
+
+  async getDeviceProperties(id: string): Promise<any> {
+    await this.findOne(id);
+    return await this.adbService.getDeviceProperties(id);
   }
 }

@@ -68,6 +68,35 @@ export class BillingController {
     return this.billingService.getUserOrders(userId);
   }
 
+  @Post('orders/:orderId/cancel')
+  @RequirePermission('billing.update')
+  @ApiOperation({ summary: '取消订单', description: '取消待支付的订单' })
+  @ApiParam({ name: 'orderId', description: '订单 ID' })
+  @ApiBody({
+    description: '取消原因（可选）',
+    schema: {
+      type: 'object',
+      properties: {
+        reason: { type: 'string', description: '取消原因' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: '订单已取消' })
+  @ApiResponse({ status: 400, description: '订单状态不允许取消' })
+  @ApiResponse({ status: 404, description: '订单不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async cancelOrder(
+    @Param('orderId') orderId: string,
+    @Body() body: { reason?: string },
+  ) {
+    const order = await this.billingService.cancelOrder(orderId, body.reason);
+    return {
+      success: true,
+      data: order,
+      message: '订单已取消',
+    };
+  }
+
   @Get('usage/:userId')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取用户使用记录', description: '获取指定时间范围内的使用记录' })

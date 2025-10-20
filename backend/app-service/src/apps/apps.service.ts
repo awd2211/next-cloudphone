@@ -7,13 +7,14 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as AdmZip from 'adm-zip';
-import axios from 'axios';
+import { firstValueFrom } from 'rxjs';
 import { Application, AppStatus } from '../entities/application.entity';
 import { DeviceApplication, InstallStatus } from '../entities/device-application.entity';
 import { MinioService } from '../minio/minio.service';
+import { ApkParserService } from '../apk/apk-parser.service';
 import { CreateAppDto } from './dto/create-app.dto';
 import { UpdateAppDto } from './dto/update-app.dto';
 
@@ -25,6 +26,8 @@ export class AppsService {
     @InjectRepository(DeviceApplication)
     private deviceAppsRepository: Repository<DeviceApplication>,
     private minioService: MinioService,
+    private apkParserService: ApkParserService,
+    private httpService: HttpService,
     private configService: ConfigService,
   ) {}
 
@@ -86,33 +89,8 @@ export class AppsService {
   }
 
   private async parseApk(filePath: string): Promise<any> {
-    try {
-      const zip = new AdmZip(filePath);
-      const manifestEntry = zip.getEntry('AndroidManifest.xml');
-
-      if (!manifestEntry) {
-        throw new BadRequestException('无效的 APK 文件：找不到 AndroidManifest.xml');
-      }
-
-      // 简化的 APK 解析（实际生产环境应使用专业的 APK 解析库）
-      // 这里返回模拟数据
-      const packageName = `com.cloudphone.app${Date.now()}`;
-
-      return {
-        packageName: packageName,
-        appName: path.basename(filePath, '.apk'),
-        versionName: '1.0.0',
-        versionCode: 1,
-        minSdkVersion: 21,
-        targetSdkVersion: 33,
-        permissions: [
-          'android.permission.INTERNET',
-          'android.permission.ACCESS_NETWORK_STATE',
-        ],
-      };
-    } catch (error) {
-      throw new BadRequestException(`APK 解析失败: ${error.message}`);
-    }
+    // 使用真实的 APK 解析服务
+    return await this.apkParserService.parseApk(filePath);
   }
 
   async findAll(
@@ -213,16 +191,35 @@ export class AppsService {
   ): Promise<void> {
     try {
       // 调用设备服务安装应用（通过 HTTP）
-      const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:3002';
+      const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:30002';
 
-      // 这里应该调用设备服务的 ADB 安装接口
-      // await axios.post(`${deviceServiceUrl}/devices/${deviceId}/install`, {
-      //   downloadUrl: app.downloadUrl,
-      //   packageName: app.packageName,
-      // });
+      // 下载 APK 到临时文件
+      const tempApkPath = `/tmp/apk_${app.id}_${Date.now()}.apk`;
 
-      // 模拟安装过程
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // 从 MinIO 下载 APK
+      if (app.objectKey) {
+        const fileStream = await this.minioService.getFileStream(app.objectKey);
+        const writeStream = fs.createWriteStream(tempApkPath);
+
+        await new Promise((resolve, reject) => {
+          fileStream.pipe(writeStream);
+          fileStream.on('end', resolve);
+          fileStream.on('error', reject);
+        });
+      }
+
+      // 调用设备服务的 ADB 安装接口
+      const response = await firstValueFrom(
+        this.httpService.post(`${deviceServiceUrl}/devices/${deviceId}/install`, {
+          apkPath: tempApkPath,
+          reinstall: false,
+        })
+      );
+
+      // 清理临时文件
+      if (fs.existsSync(tempApkPath)) {
+        fs.unlinkSync(tempApkPath);
+      }
 
       // 更新安装状态
       await this.updateInstallStatus(deviceAppId, InstallStatus.INSTALLED);
@@ -230,6 +227,11 @@ export class AppsService {
       // 增加安装次数
       await this.appsRepository.increment({ id: app.id }, 'installCount', 1);
     } catch (error) {
+      // 清理临时文件
+      const tempApkPath = `/tmp/apk_${app.id}_${Date.now()}.apk`;
+      if (fs.existsSync(tempApkPath)) {
+        fs.unlinkSync(tempApkPath);
+      }
       throw error;
     }
   }
@@ -265,13 +267,13 @@ export class AppsService {
       const app = await this.findOne(applicationId);
 
       // 调用设备服务卸载应用
-      // const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL');
-      // await axios.post(`${deviceServiceUrl}/devices/${deviceId}/uninstall`, {
-      //   packageName: app.packageName,
-      // });
+      const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:30002';
 
-      // 模拟卸载过程
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await firstValueFrom(
+        this.httpService.post(`${deviceServiceUrl}/devices/${deviceId}/uninstall`, {
+          packageName: app.packageName,
+        })
+      );
 
       await this.updateInstallStatus(deviceAppId, InstallStatus.UNINSTALLED);
     } catch (error) {

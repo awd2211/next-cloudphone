@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { DevicesModule } from './devices/devices.module';
 import { DockerModule } from './docker/docker.module';
+import { AdbModule } from './adb/adb.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -32,6 +33,7 @@ import { HealthController } from './health.controller';
     AuthModule,
     DevicesModule,
     DockerModule,
+    AdbModule,
   ],
   controllers: [HealthController],
 })

@@ -26,6 +26,9 @@ dependencies:
   '@nestjs/typeorm':
     specifier: ^10.0.0
     version: 10.0.2(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(reflect-metadata@0.1.14)(rxjs@7.8.2)(typeorm@0.3.27)
+  adbkit:
+    specifier: ^2.11.1
+    version: 2.11.1
   axios:
     specifier: ^1.6.0
     version: 1.12.2
@@ -1703,6 +1706,34 @@ packages:
     hasBin: true
     dev: true
 
+  /adbkit-logcat@1.1.0:
+    resolution: {integrity: sha512-57iYRLdjmhI1fnc890KyflzWpnIb/aq5ET3fbn3axdyyeyKeP4Ji/GhnfBNguG1Tw7SQRL2eBnA+hvbwIsTtNg==}
+    engines: {node: '>= 0.10.4'}
+    dev: false
+
+  /adbkit-monkey@1.0.1:
+    resolution: {integrity: sha512-uU8p+p4sv7gLsjO/At4iPufoPD3R16kVbzDVecdIerR9RzhEK6PcyAJghdOXwrYKbhm7SmPQWsxVRloDBMINDA==}
+    engines: {node: '>= 0.10.4'}
+    dependencies:
+      async: 0.2.10
+    dev: false
+
+  /adbkit@2.11.1:
+    resolution: {integrity: sha512-hDTiRg9NX3HQt7WoDAPCplUpvzr4ZzQa2lq7BdTTJ/iOZ6O7YNAs6UYD8sFAiBEcYHDRIyq3cm9sZP6uZnhvXw==}
+    engines: {node: '>= 0.10.4'}
+    hasBin: true
+    dependencies:
+      adbkit-logcat: 1.1.0
+      adbkit-monkey: 1.0.1
+      bluebird: 2.9.34
+      commander: 2.20.3
+      debug: 2.6.9
+      node-forge: 0.7.6
+      split: 0.3.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
   /ajv-formats@2.1.1(ajv@8.12.0):
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
     peerDependencies:
@@ -1852,6 +1883,10 @@ packages:
       safer-buffer: 2.1.2
     dev: false
 
+  /async@0.2.10:
+    resolution: {integrity: sha512-eAkdoKxU6/LkKDBzLpT+t6Ff5EtfSF4wx1WfJiPEEV7WNLnDaRXk0oVysiEPm262roaachGexwUv94WhSgN5TQ==}
+    dev: false
+
   /asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
     dev: false
@@ -1976,6 +2011,10 @@ packages:
       buffer: 5.7.1
       inherits: 2.0.4
       readable-stream: 3.6.2
+
+  /bluebird@2.9.34:
+    resolution: {integrity: sha512-ZDzCb87X7/IP1uzQ5eJZB+WoQRGTnKL5DHWvPw6kkMbQseouiQIrEi3P1UGE0D1k0N5/+aP/5GMCyHZ1xYJyHQ==}
+    dev: false
 
   /body-parser@1.20.3:
     resolution: {integrity: sha512-7rAxByjUMqQ3/bHJy7D6OGXvx/MMc4IqBn/X0fcM1QUcAItpZrBEYhWGem+tzXH90c+G01ypMcYJBO9Y30203g==}
@@ -2248,7 +2287,6 @@ packages:
 
   /commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
-    dev: true
 
   /commander@4.1.1:
     resolution: {integrity: sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==}
@@ -4226,6 +4264,10 @@ packages:
     dependencies:
       whatwg-url: 5.0.0
 
+  /node-forge@0.7.6:
+    resolution: {integrity: sha512-sol30LUpz1jQFBjOKwbjxijiE3b6pjd74YwfD0fJOKPjF+fONKb2Yg8rYgS6+bK6VDl+/wfr4IYpC7jDzLUIfw==}
+    dev: false
+
   /node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
     dev: true
@@ -4945,6 +4987,12 @@ packages:
     engines: {node: '>= 10.x'}
     dev: false
 
+  /split@0.3.3:
+    resolution: {integrity: sha512-wD2AeVmxXRBoX44wAycgjVpMhvbwdI2aZjCkvfNcH1YqHQvJVa1duWc73OyVGJUc05fhFaTZeQ/PYsrmyH0JVA==}
+    dependencies:
+      through: 2.3.8
+    dev: false
+
   /sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
     dev: true
@@ -5172,7 +5220,6 @@ packages:
 
   /through@2.3.8:
     resolution: {integrity: sha512-w89qg7PI8wAdvX60bMDP+bFoD5Dvhm9oLheFp5O4a2QF0cSBGsBX4qZmadPMvVqlLJBBci+WqGGOAPvcDeNSVg==}
-    dev: true
 
   /tmp@0.0.33:
     resolution: {integrity: sha512-jRCJlojKnZ3addtTOjdIqoRuPEKBvNXcGYqzO6zWZX8KfKEpnGY5jfggJQ3EjKuu8D4bJRr0y+cYJFmYbImXGw==}

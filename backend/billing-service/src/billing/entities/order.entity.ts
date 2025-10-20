@@ -87,6 +87,15 @@ export class Order {
   @Column({ type: 'timestamp', nullable: true })
   refundedAt: Date;
 
+  @Column({ type: 'timestamp', nullable: true })
+  expiresAt: Date;
+
+  @Column({ type: 'text', nullable: true })
+  cancelReason: string;
+
+  @Column({ type: 'text', nullable: true })
+  refundReason: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

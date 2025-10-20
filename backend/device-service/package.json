@@ -21,6 +21,7 @@
     "@nestjs/schedule": "^4.0.0",
     "@nestjs/swagger": "^11.2.1",
     "@nestjs/typeorm": "^10.0.0",
+    "adbkit": "^2.11.1",
     "axios": "^1.6.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",

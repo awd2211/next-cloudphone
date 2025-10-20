@@ -8,15 +8,21 @@ import {
   Delete,
   Query,
   UseGuards,
+  UploadedFile,
+  UseInterceptors,
+  Res,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 import { DeviceStatus } from '../entities/device.entity';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { ShellCommandDto, PushFileDto, PullFileDto, InstallApkDto, UninstallApkDto } from '../adb/dto/shell-command.dto';
 
 @ApiTags('devices')
 @ApiBearerAuth()
@@ -190,6 +196,179 @@ export class DevicesController {
     return {
       success: true,
       message: '设备删除成功',
+    };
+  }
+
+  // ADB 相关接口
+
+  @Post(':id/shell')
+  @RequirePermission('devices.control')
+  @ApiOperation({ summary: '执行 Shell 命令', description: '在设备上执行 ADB shell 命令' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiBody({ type: ShellCommandDto })
+  @ApiResponse({ status: 200, description: '命令执行成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async executeShell(@Param('id') id: string, @Body() dto: ShellCommandDto) {
+    const output = await this.devicesService.executeShellCommand(id, dto.command, dto.timeout);
+    return {
+      success: true,
+      data: { output },
+      message: '命令执行成功',
+    };
+  }
+
+  @Post(':id/screenshot')
+  @RequirePermission('devices.control')
+  @ApiOperation({ summary: '设备截图', description: '获取设备当前屏幕截图' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '截图成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async takeScreenshot(@Param('id') id: string, @Res() res: Response) {
+    const imagePath = await this.devicesService.takeScreenshot(id);
+    res.sendFile(imagePath);
+  }
+
+  @Post(':id/push')
+  @RequirePermission('devices.control')
+  @ApiOperation({ summary: '推送文件', description: '从本地推送文件到设备' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        targetPath: { type: 'string', example: '/sdcard/Download/file.txt' },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiResponse({ status: 200, description: '推送成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async pushFile(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: PushFileDto,
+  ) {
+    await this.devicesService.pushFile(id, file.path, dto.targetPath);
+    return {
+      success: true,
+      message: '文件推送成功',
+    };
+  }
+
+  @Post(':id/pull')
+  @RequirePermission('devices.control')
+  @ApiOperation({ summary: '拉取文件', description: '从设备拉取文件到本地' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiBody({ type: PullFileDto })
+  @ApiResponse({ status: 200, description: '拉取成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async pullFile(@Param('id') id: string, @Body() dto: PullFileDto, @Res() res: Response) {
+    const localPath = `/tmp/${id}_${Date.now()}_${dto.sourcePath.split('/').pop()}`;
+    await this.devicesService.pullFile(id, dto.sourcePath, localPath);
+    res.download(localPath);
+  }
+
+  @Post(':id/install')
+  @RequirePermission('devices.control')
+  @ApiOperation({ summary: '安装应用', description: '在设备上安装 APK 应用' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiBody({ type: InstallApkDto })
+  @ApiResponse({ status: 200, description: '安装成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async installApk(@Param('id') id: string, @Body() dto: InstallApkDto) {
+    await this.devicesService.installApk(id, dto.apkPath, dto.reinstall);
+    return {
+      success: true,
+      message: 'APK 安装成功',
+    };
+  }
+
+  @Post(':id/uninstall')
+  @RequirePermission('devices.control')
+  @ApiOperation({ summary: '卸载应用', description: '从设备卸载应用' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiBody({ type: UninstallApkDto })
+  @ApiResponse({ status: 200, description: '卸载成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async uninstallApp(@Param('id') id: string, @Body() dto: UninstallApkDto) {
+    await this.devicesService.uninstallApp(id, dto.packageName);
+    return {
+      success: true,
+      message: '应用卸载成功',
+    };
+  }
+
+  @Get(':id/packages')
+  @RequirePermission('devices.read')
+  @ApiOperation({ summary: '获取已安装应用', description: '获取设备上已安装的应用列表' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getInstalledPackages(@Param('id') id: string) {
+    const packages = await this.devicesService.getInstalledPackages(id);
+    return {
+      success: true,
+      data: { packages, count: packages.length },
+    };
+  }
+
+  @Get(':id/logcat')
+  @RequirePermission('devices.read')
+  @ApiOperation({ summary: '读取日志', description: '读取设备 logcat 日志' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiQuery({ name: 'filter', required: false, description: '日志过滤关键词' })
+  @ApiQuery({ name: 'lines', required: false, description: '读取行数', example: 100 })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async readLogcat(
+    @Param('id') id: string,
+    @Query('filter') filter?: string,
+    @Query('lines') lines?: string,
+  ) {
+    const logs = await this.devicesService.readLogcat(id, filter, lines ? parseInt(lines) : undefined);
+    return {
+      success: true,
+      data: { logs },
+    };
+  }
+
+  @Post(':id/logcat/clear')
+  @RequirePermission('devices.control')
+  @ApiOperation({ summary: '清空日志', description: '清空设备 logcat 日志' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '清空成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async clearLogcat(@Param('id') id: string) {
+    await this.devicesService.clearLogcat(id);
+    return {
+      success: true,
+      message: '日志清空成功',
+    };
+  }
+
+  @Get(':id/properties')
+  @RequirePermission('devices.read')
+  @ApiOperation({ summary: '获取设备属性', description: '获取设备的系统属性信息' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getDeviceProperties(@Param('id') id: string) {
+    const properties = await this.devicesService.getDeviceProperties(id);
+    return {
+      success: true,
+      data: properties,
     };
   }
 }
