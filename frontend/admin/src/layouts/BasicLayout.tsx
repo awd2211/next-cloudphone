@@ -7,6 +7,10 @@ import {
   UserOutlined,
   AppstoreOutlined,
   LogoutOutlined,
+  ShoppingOutlined,
+  GoldOutlined,
+  BarChartOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -40,6 +44,36 @@ const BasicLayout = () => {
       icon: <AppstoreOutlined />,
       label: '应用管理',
       onClick: () => navigate('/apps'),
+    },
+    {
+      key: '/orders',
+      icon: <ShoppingOutlined />,
+      label: '订单管理',
+      onClick: () => navigate('/orders'),
+    },
+    {
+      key: '/plans',
+      icon: <GoldOutlined />,
+      label: '套餐管理',
+      onClick: () => navigate('/plans'),
+    },
+    {
+      key: 'reports',
+      icon: <BarChartOutlined />,
+      label: '报表中心',
+      children: [
+        {
+          key: '/reports/revenue',
+          label: '收入统计',
+          onClick: () => navigate('/reports/revenue'),
+        },
+      ],
+    },
+    {
+      key: '/usage',
+      icon: <ClockCircleOutlined />,
+      label: '使用记录',
+      onClick: () => navigate('/usage'),
     },
   ];
 
