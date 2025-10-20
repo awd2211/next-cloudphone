@@ -93,7 +93,7 @@ services:
       - "30000:30000"
     volumes:
       - ./backend/api-gateway:/app
-      - /app/node_modules
+      - api_gateway_node_modules:/app/node_modules
     depends_on:
       - postgres
       - redis
@@ -135,7 +135,7 @@ services:
       - "30001:30001"
     volumes:
       - ./backend/user-service:/app
-      - /app/node_modules
+      - user_service_node_modules:/app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -175,7 +175,7 @@ services:
       - "30002:30002"
     volumes:
       - ./backend/device-service:/app
-      - /app/node_modules
+      - device_service_node_modules:/app/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
@@ -183,11 +183,11 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:30002/health"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:30002/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\""]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 90s
     networks:
       - cloudphone-network
     command: pnpm run dev
@@ -221,7 +221,7 @@ services:
       - "30003:30003"
     volumes:
       - ./backend/app-service:/app
-      - /app/node_modules
+      - app_service_node_modules:/app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -230,11 +230,11 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:30003/health"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:30003/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\""]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 90s
     networks:
       - cloudphone-network
     command: pnpm run dev
@@ -300,18 +300,18 @@ services:
       - "30005:30005"
     volumes:
       - ./backend/billing-service:/app
-      - /app/node_modules
+      - billing_service_node_modules:/app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:30005/health"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:30005/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\""]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 90s
     networks:
       - cloudphone-network
     command: pnpm run dev
@@ -357,7 +357,7 @@ services:
       - "5173:5173"
     volumes:
       - ./frontend/admin:/app
-      - /app/node_modules
+      - admin_frontend_node_modules:/app/node_modules
     networks:
       - cloudphone-network
     command: pnpm run dev
@@ -377,7 +377,7 @@ services:
       - "5174:5174"
     volumes:
       - ./frontend/user:/app
-      - /app/node_modules
+      - user_frontend_node_modules:/app/node_modules
     networks:
       - cloudphone-network
     command: pnpm run dev
@@ -389,9 +389,26 @@ networks:
 
 # 数据卷配置
 volumes:
+  # 基础设施数据卷
   postgres_data:
     driver: local
   redis_data:
     driver: local
   minio_data:
+    driver: local
+  # 后端服务 node_modules
+  api_gateway_node_modules:
+    driver: local
+  user_service_node_modules:
+    driver: local
+  device_service_node_modules:
+    driver: local
+  app_service_node_modules:
+    driver: local
+  billing_service_node_modules:
+    driver: local
+  # 前端应用 node_modules
+  admin_frontend_node_modules:
+    driver: local
+  user_frontend_node_modules:
     driver: local

@@ -13,6 +13,10 @@ from models import (
     SchedulingStats,
 )
 from scheduler import DeviceScheduler
+from logger import get_logger
+
+# 创建 logger
+logger = get_logger(__name__, service="scheduler-service")
 
 # 初始化数据库
 init_db()
@@ -36,9 +40,12 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """启动事件"""
-    print(f"🚀 Scheduler Service is starting...")
-    print(f"📊 Scheduling Strategy: {settings.SCHEDULING_ALGORITHM}")
-    print(f"🔧 Environment: {settings.ENVIRONMENT}")
+    logger.info(
+        "scheduler_service_starting",
+        scheduling_algorithm=settings.SCHEDULING_ALGORITHM,
+        environment=settings.ENVIRONMENT,
+        log_level=os.getenv("LOG_LEVEL", "DEBUG"),
+    )
 
 
 @app.get("/health")
@@ -59,12 +66,22 @@ async def get_available_devices(db: Session = Depends(get_db)):
         scheduler = DeviceScheduler(db)
         devices = await scheduler.get_available_devices()
 
+        logger.info(
+            "get_available_devices",
+            total_devices=len(devices),
+        )
+
         return {
             "success": True,
             "data": devices,
             "total": len(devices),
         }
     except Exception as e:
+        logger.error(
+            "get_available_devices_failed",
+            error=str(e),
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -78,14 +95,33 @@ async def allocate_device(
         scheduler = DeviceScheduler(db)
         allocation = await scheduler.allocate_device(request)
 
+        logger.info(
+            "device_allocated",
+            device_id=allocation.device_id,
+            user_id=request.user_id,
+            tenant_id=request.tenant_id,
+            duration_minutes=request.duration_minutes,
+        )
+
         return {
             "success": True,
             "data": allocation.dict(),
             "message": "设备分配成功",
         }
     except ValueError as e:
+        logger.warning(
+            "device_allocation_failed",
+            user_id=request.user_id,
+            reason=str(e),
+        )
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error(
+            "device_allocation_error",
+            user_id=request.user_id,
+            error=str(e),
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -99,14 +135,34 @@ async def release_device(
         scheduler = DeviceScheduler(db)
         result = await scheduler.release_device(request.device_id, request.user_id)
 
+        logger.info(
+            "device_released",
+            device_id=request.device_id,
+            user_id=request.user_id,
+            duration_seconds=result.get("duration_seconds"),
+        )
+
         return {
             "success": True,
             "data": result,
             "message": "设备释放成功",
         }
     except ValueError as e:
+        logger.warning(
+            "device_release_failed",
+            device_id=request.device_id,
+            user_id=request.user_id,
+            reason=str(e),
+        )
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        logger.error(
+            "device_release_error",
+            device_id=request.device_id,
+            user_id=request.user_id,
+            error=str(e),
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 

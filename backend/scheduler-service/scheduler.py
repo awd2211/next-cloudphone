@@ -6,6 +6,10 @@ from database import DeviceAllocation, NodeResource
 from models import AllocationRequest, AllocationResponse, DeviceInfo, SchedulingStrategy
 from config import settings
 import uuid
+from logger import get_logger
+
+# 创建 logger
+logger = get_logger(__name__, component="scheduler")
 
 
 class DeviceScheduler:
@@ -18,17 +22,48 @@ class DeviceScheduler:
 
     async def allocate_device(self, request: AllocationRequest) -> AllocationResponse:
         """分配设备"""
+        logger.debug(
+            "allocate_device_start",
+            user_id=request.user_id,
+            tenant_id=request.tenant_id,
+            duration_minutes=request.duration_minutes,
+        )
+
         # 获取可用设备列表
         available_devices = await self.get_available_devices()
 
         if not available_devices:
+            logger.warning(
+                "no_available_devices",
+                user_id=request.user_id,
+                tenant_id=request.tenant_id,
+            )
             raise ValueError("没有可用设备")
+
+        logger.debug(
+            "available_devices_found",
+            count=len(available_devices),
+            user_id=request.user_id,
+        )
 
         # 根据策略选择设备
         selected_device = self.select_device(available_devices, request)
 
         if not selected_device:
+            logger.warning(
+                "no_suitable_device",
+                available_count=len(available_devices),
+                user_id=request.user_id,
+                strategy=self.strategy,
+            )
             raise ValueError("无法找到合适的设备")
+
+        logger.info(
+            "device_selected",
+            device_id=selected_device['id'],
+            strategy=self.strategy,
+            user_id=request.user_id,
+        )
 
         # 创建分配记录
         allocation = DeviceAllocation(
@@ -46,6 +81,14 @@ class DeviceScheduler:
         # 计算过期时间
         expires_at = datetime.utcnow() + timedelta(minutes=request.duration_minutes)
 
+        logger.info(
+            "device_allocation_completed",
+            allocation_id=allocation.id,
+            device_id=selected_device['id'],
+            user_id=request.user_id,
+            expires_at=expires_at.isoformat(),
+        )
+
         return AllocationResponse(
             device_id=selected_device['id'],
             status="allocated",
@@ -59,6 +102,12 @@ class DeviceScheduler:
 
     async def release_device(self, device_id: str, user_id: Optional[str] = None) -> dict:
         """释放设备"""
+        logger.debug(
+            "release_device_start",
+            device_id=device_id,
+            user_id=user_id,
+        )
+
         # 查找分配记录
         query = self.db.query(DeviceAllocation).filter(
             DeviceAllocation.device_id == device_id,
@@ -71,6 +120,11 @@ class DeviceScheduler:
         allocation = query.first()
 
         if not allocation:
+            logger.warning(
+                "allocation_not_found",
+                device_id=device_id,
+                user_id=user_id,
+            )
             raise ValueError("设备未被分配或分配记录不存在")
 
         # 更新分配记录
@@ -79,6 +133,14 @@ class DeviceScheduler:
         allocation.duration_seconds = int((allocation.released_at - allocation.allocated_at).total_seconds())
 
         self.db.commit()
+
+        logger.info(
+            "device_release_completed",
+            allocation_id=allocation.id,
+            device_id=device_id,
+            user_id=allocation.user_id,
+            duration_seconds=allocation.duration_seconds,
+        )
 
         return {
             "device_id": device_id,
@@ -103,11 +165,28 @@ class DeviceScheduler:
                     allocated_device_ids = self.get_allocated_device_ids()
                     available = [d for d in devices if d['id'] not in allocated_device_ids]
 
+                    logger.debug(
+                        "devices_fetched",
+                        total_devices=len(devices),
+                        allocated_devices=len(allocated_device_ids),
+                        available_devices=len(available),
+                    )
+
                     return available
                 else:
+                    logger.warning(
+                        "device_service_error",
+                        status_code=response.status_code,
+                        url=self.device_service_url,
+                    )
                     return []
         except Exception as e:
-            print(f"Error fetching devices: {e}")
+            logger.error(
+                "fetch_devices_failed",
+                error=str(e),
+                url=self.device_service_url,
+                exc_info=True,
+            )
             return []
 
     def get_allocated_device_ids(self) -> set:
@@ -122,6 +201,12 @@ class DeviceScheduler:
         """根据策略选择设备"""
         if not devices:
             return None
+
+        logger.debug(
+            "selecting_device",
+            strategy=self.strategy,
+            candidate_count=len(devices),
+        )
 
         if self.strategy == SchedulingStrategy.ROUND_ROBIN:
             return self._round_robin(devices)

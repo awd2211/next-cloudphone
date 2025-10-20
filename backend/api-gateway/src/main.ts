@@ -1,15 +1,23 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { WINSTON_MODULE_NEST_PROVIDER, WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const logger = new Logger('Bootstrap');
 
-  // 启用全局异常过滤器
-  app.useGlobalFilters(new AllExceptionsFilter());
+  // 使用 Winston 作为应用的 Logger
+  const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
+  app.useLogger(logger);
+
+  // 启用全局异常过滤器（使用Winston）
+  app.useGlobalFilters(new AllExceptionsFilter(app.get(WINSTON_MODULE_PROVIDER)));
+
+  // 启用全局日志拦截器
+  app.useGlobalInterceptors(new LoggingInterceptor(app.get(WINSTON_MODULE_PROVIDER)));
 
   // 启用全局验证管道
   app.useGlobalPipes(
@@ -64,11 +72,11 @@ async function bootstrap() {
   const port = process.env.PORT || 30000;
   await app.listen(port);
 
-  logger.log(`🚀 API Gateway is running on: http://localhost:${port}`);
-  logger.log(`📡 API prefix: /api`);
-  logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
-  logger.log(`🌐 CORS enabled for: ${corsOrigins.join(', ')}`);
-  logger.log(`✅ Health check: http://localhost:${port}/api/health`);
+  console.log(`🚀 API Gateway is running on: http://localhost:${port}`);
+  console.log(`📡 API prefix: /api`);
+  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  console.log(`🌐 CORS enabled for: ${corsOrigins.join(', ')}`);
+  console.log(`✅ Health check: http://localhost:${port}/api/health`);
 }
 
 bootstrap();

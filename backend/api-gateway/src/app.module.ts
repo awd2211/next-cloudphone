@@ -2,6 +2,7 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { WinstonModule } from 'nest-winston';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
@@ -9,6 +10,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProxyModule } from './proxy/proxy.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { winstonConfig } from './config/winston.config';
 
 @Module({
   imports: [
@@ -17,6 +19,9 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
       isGlobal: true,
       envFilePath: '.env',
     }),
+
+    // Winston 日志模块
+    WinstonModule.forRoot(winstonConfig),
 
     // 限流模块 - 防止 DDoS 攻击
     ThrottlerModule.forRoot([
