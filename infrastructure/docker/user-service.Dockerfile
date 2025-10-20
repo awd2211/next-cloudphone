@@ -1,7 +1,8 @@
 # User Service Dockerfile
 
 # ===== 开发环境 =====
-FROM node:20-alpine AS development
+# 使用标准镜像而非alpine，以避免bcrypt原生模块问题
+FROM node:20-slim AS development
 
 # 安装 pnpm
 RUN npm install -g pnpm
@@ -24,7 +25,7 @@ EXPOSE 3001
 CMD ["pnpm", "run", "dev"]
 
 # ===== 构建阶段 =====
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -44,7 +45,8 @@ COPY backend/user-service/ ./
 RUN pnpm build
 
 # 生产阶段
-FROM node:18-alpine
+# 使用标准镜像而非alpine，以避免bcrypt原生模块问题
+FROM node:20-slim
 
 WORKDIR /app
 
@@ -55,7 +57,7 @@ RUN npm install -g pnpm
 COPY backend/user-service/package.json backend/user-service/pnpm-lock.yaml* ./
 
 # 只安装生产依赖
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod
 
 # 从构建阶段复制编译后的文件
 COPY --from=builder /app/dist ./dist

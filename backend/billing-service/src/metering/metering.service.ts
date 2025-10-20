@@ -66,7 +66,7 @@ export class MeteringService {
       const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL', 'http://localhost:30002');
 
       const response = await firstValueFrom(
-        this.httpService.get(`${deviceServiceUrl}/devices?status=running`)
+        this.httpService.get<{ data: any[] }>(`${deviceServiceUrl}/devices?status=running`)
       );
 
       return response.data.data || [];
@@ -85,13 +85,13 @@ export class MeteringService {
 
       // 获取设备详情
       const deviceResponse = await firstValueFrom(
-        this.httpService.get(`${deviceServiceUrl}/devices/${deviceId}`)
+        this.httpService.get<{ data: any }>(`${deviceServiceUrl}/devices/${deviceId}`)
       );
       const device = deviceResponse.data.data;
 
       // 获取设备统计数据
       const statsResponse = await firstValueFrom(
-        this.httpService.get(`${deviceServiceUrl}/devices/${deviceId}/stats`)
+        this.httpService.get<{ data: any }>(`${deviceServiceUrl}/devices/${deviceId}/stats`)
       );
       const stats = statsResponse.data.data;
 
@@ -140,22 +140,22 @@ export class MeteringService {
     const whereClause: any = { userId };
 
     if (startDate && endDate) {
-      whereClause.recordedAt = Between(startDate, endDate);
+      whereClause.startTime = Between(startDate, endDate);
     } else if (startDate) {
-      whereClause.recordedAt = MoreThan(startDate);
+      whereClause.startTime = MoreThan(startDate);
     }
 
     const records = await this.usageRecordRepository.find({
       where: whereClause,
-      order: { recordedAt: 'DESC' },
+      order: { startTime: 'DESC' },
     });
 
-    // 计算总计
-    const totalCpuHours = records.reduce((sum, r) => sum + (r.cpuHours || 0), 0);
-    const totalMemoryGB = records.reduce((sum, r) => sum + (r.memoryGB || 0), 0);
-    const totalStorageGB = records.reduce((sum, r) => sum + (r.storageGB || 0), 0);
-    const totalNetworkGB = records.reduce((sum, r) => sum + (r.networkGB || 0), 0);
-    const totalDuration = records.reduce((sum, r) => sum + (r.duration || 0), 0);
+    // 计算总计（使用实际字段）
+    const totalCpuHours = records.reduce((sum, r) => sum + (r.durationSeconds / 3600), 0);
+    const totalMemoryGB = records.reduce((sum, r) => sum + Number(r.quantity || 0), 0);
+    const totalStorageGB = 0; // UsageRecord 没有此字段
+    const totalNetworkGB = 0; // UsageRecord 没有此字段
+    const totalDuration = records.reduce((sum, r) => sum + r.durationSeconds, 0);
 
     return {
       records,
@@ -177,23 +177,23 @@ export class MeteringService {
     const whereClause: any = { deviceId };
 
     if (startDate && endDate) {
-      whereClause.recordedAt = Between(startDate, endDate);
+      whereClause.startTime = Between(startDate, endDate);
     } else if (startDate) {
-      whereClause.recordedAt = MoreThan(startDate);
+      whereClause.startTime = MoreThan(startDate);
     }
 
     const records = await this.usageRecordRepository.find({
       where: whereClause,
-      order: { recordedAt: 'DESC' },
+      order: { startTime: 'DESC' },
     });
 
     // 计算平均值
     const avgCpuUsage = records.length > 0
-      ? records.reduce((sum, r) => sum + (r.cpuHours || 0), 0) / records.length
+      ? records.reduce((sum, r) => sum + (r.durationSeconds / 3600), 0) / records.length
       : 0;
 
     const avgMemoryUsage = records.length > 0
-      ? records.reduce((sum, r) => sum + (r.memoryGB || 0), 0) / records.length
+      ? records.reduce((sum, r) => sum + Number(r.quantity || 0), 0) / records.length
       : 0;
 
     return {
@@ -213,28 +213,28 @@ export class MeteringService {
     const whereClause: any = { tenantId };
 
     if (startDate && endDate) {
-      whereClause.recordedAt = Between(startDate, endDate);
+      whereClause.startTime = Between(startDate, endDate);
     } else if (startDate) {
-      whereClause.recordedAt = MoreThan(startDate);
+      whereClause.startTime = MoreThan(startDate);
     }
 
     const records = await this.usageRecordRepository.find({
       where: whereClause,
-      order: { recordedAt: 'DESC' },
+      order: { startTime: 'DESC' },
     });
 
     // 按用户分组统计
     const userStats = new Map<string, number>();
     records.forEach(record => {
       const current = userStats.get(record.userId) || 0;
-      userStats.set(record.userId, current + (record.duration || 0));
+      userStats.set(record.userId, current + record.durationSeconds);
     });
 
     // 按设备分组统计
     const deviceStats = new Map<string, number>();
     records.forEach(record => {
       const current = deviceStats.get(record.deviceId) || 0;
-      deviceStats.set(record.deviceId, current + (record.duration || 0));
+      deviceStats.set(record.deviceId, current + record.durationSeconds);
     });
 
     return {

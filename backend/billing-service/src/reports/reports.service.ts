@@ -6,7 +6,7 @@ import * as ExcelJS from 'exceljs';
 import { createObjectCsvWriter } from 'csv-writer';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Order } from '../billing/entities/order.entity';
+import { Order, OrderStatus } from '../billing/entities/order.entity';
 import { UsageRecord } from '../billing/entities/usage-record.entity';
 import { Plan } from '../billing/entities/plan.entity';
 
@@ -55,15 +55,15 @@ export class ReportsService {
     const usageRecords = await this.usageRecordRepository.find({
       where: {
         userId,
-        recordedAt: Between(startDate, endDate),
+        startTime: Between(startDate, endDate),
       },
-      order: { recordedAt: 'DESC' },
+      order: { startTime: 'DESC' },
     });
 
     // 计算总计
     const totalAmount = orders.reduce((sum, order) => sum + order.amount, 0);
-    const totalCpuHours = usageRecords.reduce((sum, r) => sum + (r.cpuHours || 0), 0);
-    const totalDuration = usageRecords.reduce((sum, r) => sum + (r.duration || 0), 0);
+    const totalCpuHours = usageRecords.reduce((sum, r) => sum + (r.durationSeconds / 3600), 0);
+    const totalDuration = usageRecords.reduce((sum, r) => sum + r.durationSeconds, 0);
 
     return {
       userId,
@@ -176,7 +176,7 @@ export class ReportsService {
 
     const usageRecords = await this.usageRecordRepository.find({
       where: whereClause,
-      order: { recordedAt: 'ASC' },
+      order: { startTime: 'ASC' },
     });
 
     // 按日期分组
@@ -187,12 +187,14 @@ export class ReportsService {
     }>();
 
     usageRecords.forEach(record => {
-      const date = record.recordedAt.toISOString().split('T')[0];
+      const date = record.startTime.toISOString().split('T')[0];
       const current = dailyUsage.get(date) || { cpuHours: 0, memoryGB: 0, duration: 0 };
+      // 使用 durationSeconds 计算小时数，quantity 作为资源使用量
+      const durationHours = record.durationSeconds / 3600;
       dailyUsage.set(date, {
-        cpuHours: current.cpuHours + (record.cpuHours || 0),
-        memoryGB: current.memoryGB + (record.memoryGB || 0),
-        duration: current.duration + (record.duration || 0),
+        cpuHours: current.cpuHours + durationHours,
+        memoryGB: current.memoryGB + Number(record.quantity || 0),
+        duration: current.duration + record.durationSeconds,
       });
     });
 
@@ -310,7 +312,7 @@ export class ReportsService {
       });
 
       const paidOrders = await this.orderRepository.find({
-        where: { planId: plan.id, status: 'paid' },
+        where: { planId: plan.id, status: OrderStatus.PAID },
       });
 
       const totalRevenue = paidOrders.reduce((sum, order) => sum + order.amount, 0);

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, message, Row, Col } from 'antd';
+import { Form, Input, Button, Card, message, Row, Col, Modal } from 'antd';
 import { UserOutlined, LockOutlined, SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { login, getCaptcha } from '@/services/auth';
+import { verify2FA } from '@/services/twoFactor';
 import './index.css';
 
 interface LoginForm {
@@ -18,6 +19,9 @@ const Login = () => {
   const [captchaSvg, setCaptchaSvg] = useState('');
   const [loading, setLoading] = useState(false);
   const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [twoFactorModalVisible, setTwoFactorModalVisible] = useState(false);
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [loginCredentials, setLoginCredentials] = useState<any>(null);
 
   // 获取验证码
   const fetchCaptcha = async () => {
@@ -41,10 +45,21 @@ const Login = () => {
   const handleSubmit = async (values: LoginForm) => {
     setLoading(true);
     try {
-      const data = await login({
+      const data: any = await login({
         ...values,
         captchaId,
       });
+
+      // 检查是否需要2FA验证
+      if (data.requiresTwoFactor) {
+        message.info(data.message || '请输入双因素认证代码');
+        setLoginCredentials({ ...values, captchaId });
+        setTwoFactorModalVisible(true);
+        setLoading(false);
+        return;
+      }
+
+      // 正常登录流程
       localStorage.setItem('token', data.token);
       message.success('登录成功');
       navigate('/');
@@ -53,6 +68,32 @@ const Login = () => {
       // 登录失败后刷新验证码
       fetchCaptcha();
       form.setFieldValue('captcha', '');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 处理2FA验证
+  const handle2FAVerify = async () => {
+    if (!twoFactorToken || twoFactorToken.length !== 6) {
+      message.error('请输入6位验证码');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await verify2FA({
+        ...loginCredentials,
+        twoFactorToken,
+      });
+
+      localStorage.setItem('token', result.token);
+      message.success('登录成功');
+      setTwoFactorModalVisible(false);
+      setTwoFactorToken('');
+      navigate('/');
+    } catch (error: any) {
+      message.error(error.response?.data?.message || '验证码错误');
     } finally {
       setLoading(false);
     }
@@ -122,6 +163,37 @@ const Login = () => {
           </Form.Item>
         </Form>
       </Card>
+
+      {/* 2FA验证Modal */}
+      <Modal
+        title="双因素认证"
+        open={twoFactorModalVisible}
+        onCancel={() => {
+          setTwoFactorModalVisible(false);
+          setTwoFactorToken('');
+          setLoginCredentials(null);
+        }}
+        onOk={handle2FAVerify}
+        okText="验证"
+        cancelText="取消"
+        okButtonProps={{ loading }}
+      >
+        <div style={{ padding: '20px 0' }}>
+          <p style={{ marginBottom: 16, color: '#666' }}>
+            请输入验证器应用中显示的6位验证码
+          </p>
+          <Input
+            placeholder="请输入6位验证码"
+            value={twoFactorToken}
+            onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, ''))}
+            maxLength={6}
+            size="large"
+            prefix={<SafetyOutlined />}
+            autoFocus
+            onPressEnter={handle2FAVerify}
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

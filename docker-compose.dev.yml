@@ -104,7 +104,7 @@ services:
       - billing-service
       - media-service
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:30000/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:30000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -142,7 +142,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:30001/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:30001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -169,6 +169,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DOCKER_HOST: unix:///var/run/docker.sock
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_EXPIRES_IN: 24h
     ports:
       - "30002:30002"
     volumes:
@@ -213,6 +215,8 @@ services:
       MINIO_SECRET_KEY: minioadmin
       MINIO_USE_SSL: false
       DEVICE_SERVICE_URL: http://device-service:30002
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_EXPIRES_IN: 24h
     ports:
       - "30003:30003"
     volumes:

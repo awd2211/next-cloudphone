@@ -40,8 +40,8 @@ export class WeChatPayProvider {
           appid: this.config.appId,
           mchid: this.config.mchId,
           serial_no: this.config.serialNo,
-          publicKey: this.config.publicKey,
-          privateKey: this.config.privateKey,
+          publicKey: this.config.publicKey ? Buffer.from(this.config.publicKey) : undefined,
+          privateKey: Buffer.from(this.config.privateKey),
           key: this.config.apiV3Key,
         });
         this.logger.log('WeChat Pay initialized successfully');

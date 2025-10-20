@@ -17,6 +17,7 @@ import PermissionList from '@/pages/Permission/List';
 import Settings from '@/pages/Settings';
 import AuditLogList from '@/pages/Logs/Audit';
 import NotificationCenter from '@/pages/Notifications';
+import Profile from '@/pages/Profile';
 
 export const router = createBrowserRouter([
   {
@@ -90,6 +91,10 @@ export const router = createBrowserRouter([
       {
         path: 'notifications',
         element: <NotificationCenter />,
+      },
+      {
+        path: 'profile',
+        element: <Profile />,
       },
     ],
   },
