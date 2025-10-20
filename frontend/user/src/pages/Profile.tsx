@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Card, Descriptions, Button, Form, Input, Modal, message, Row, Col, Statistic } from 'antd';
-import { EditOutlined, LockOutlined, DollarOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Button, Form, Input, Modal, message, Row, Col, Statistic, Space } from 'antd';
+import { EditOutlined, LockOutlined, DollarOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from '@/services/auth';
 import { updateProfile, changePassword, getBalance } from '@/services/user';
 import type { User } from '@/types';
 import dayjs from 'dayjs';
 
 const Profile = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -94,14 +96,21 @@ const Profile = () => {
               prefix="¥"
               valueStyle={{ color: '#3f8600' }}
             />
-            <Button
-              type="primary"
-              icon={<DollarOutlined />}
-              style={{ marginTop: 16 }}
-              onClick={() => message.info('充值功能开发中')}
-            >
-              充值
-            </Button>
+            <Space style={{ marginTop: 16 }}>
+              <Button
+                type="primary"
+                icon={<DollarOutlined />}
+                onClick={() => navigate('/recharge')}
+              >
+                充值
+              </Button>
+              <Button
+                icon={<ClockCircleOutlined />}
+                onClick={() => navigate('/usage')}
+              >
+                使用记录
+              </Button>
+            </Space>
           </Card>
         </Col>
         <Col span={12}>

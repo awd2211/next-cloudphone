@@ -42,3 +42,8 @@ export const queryPaymentStatus = (paymentNo: string) => {
 export const getPayment = (id: string) => {
   return request.get<Payment>(`/payments/${id}`);
 };
+
+// 获取使用记录
+export const getUsageRecords = (params?: PaginationParams & { startDate?: string; endDate?: string }) => {
+  return request.get<PaginatedResponse<any>>('/billing/usage/my', { params });
+};

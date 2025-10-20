@@ -5,9 +5,11 @@ import {
   HomeOutlined,
   MobileOutlined,
   ShoppingOutlined,
+  AppstoreOutlined,
   UserOutlined,
   LogoutOutlined,
   LoginOutlined,
+  DollarOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -35,6 +37,12 @@ const MainLayout = () => {
       onClick: () => navigate('/devices'),
     },
     {
+      key: '/apps',
+      icon: <AppstoreOutlined />,
+      label: '应用市场',
+      onClick: () => navigate('/apps'),
+    },
+    {
       key: '/orders',
       icon: <ShoppingOutlined />,
       label: '我的订单',
@@ -48,6 +56,12 @@ const MainLayout = () => {
       icon: <UserOutlined />,
       label: '个人中心',
       onClick: () => navigate('/profile'),
+    },
+    {
+      key: 'recharge',
+      icon: <DollarOutlined />,
+      label: '账户充值',
+      onClick: () => navigate('/recharge'),
     },
     {
       type: 'divider',

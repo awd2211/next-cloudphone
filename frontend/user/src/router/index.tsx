@@ -4,8 +4,12 @@ import Login from '@/pages/Login';
 import Home from '@/pages/Home';
 import PlanPurchase from '@/pages/PlanPurchase';
 import MyDevices from '@/pages/MyDevices';
+import DeviceDetail from '@/pages/DeviceDetail';
 import MyOrders from '@/pages/MyOrders';
 import Profile from '@/pages/Profile';
+import AppMarket from '@/pages/AppMarket';
+import Recharge from '@/pages/Recharge';
+import UsageRecords from '@/pages/UsageRecords';
 
 export const router = createBrowserRouter([
   {
@@ -29,12 +33,28 @@ export const router = createBrowserRouter([
         element: <MyDevices />,
       },
       {
+        path: 'devices/:id',
+        element: <DeviceDetail />,
+      },
+      {
         path: 'orders',
         element: <MyOrders />,
       },
       {
         path: 'profile',
         element: <Profile />,
+      },
+      {
+        path: 'apps',
+        element: <AppMarket />,
+      },
+      {
+        path: 'recharge',
+        element: <Recharge />,
+      },
+      {
+        path: 'usage',
+        element: <UsageRecords />,
       },
     ],
   },
