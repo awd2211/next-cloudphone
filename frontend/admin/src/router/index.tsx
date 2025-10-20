@@ -3,6 +3,7 @@ import Layout from '@/layouts/BasicLayout';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import DeviceList from '@/pages/Device/List';
+import DeviceDetail from '@/pages/Device/Detail';
 import UserList from '@/pages/User/List';
 import AppList from '@/pages/App/List';
 import OrderList from '@/pages/Order/List';
@@ -29,6 +30,10 @@ export const router = createBrowserRouter([
       {
         path: 'devices',
         element: <DeviceList />,
+      },
+      {
+        path: 'devices/:id',
+        element: <DeviceDetail />,
       },
       {
         path: 'users',

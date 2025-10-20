@@ -85,8 +85,14 @@ export const pullFile = (id: string, remotePath: string, localPath: string) => {
 };
 
 // ADB 操作 - 安装应用
-export const installApp = (id: string, apkPath: string) => {
-  return request.post(`/devices/${id}/install`, { apkPath });
+export const installApp = (id: string, file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request.post(`/devices/${id}/install`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 };
 
 // ADB 操作 - 卸载应用
