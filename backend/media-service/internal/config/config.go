@@ -41,11 +41,11 @@ type TURNServer struct {
 
 func Load() *Config {
 	cfg := &Config{
-		Port:     getEnv("PORT", "3006"),
+		Port:     getEnv("PORT", "30006"),
 		GinMode:  getEnv("GIN_MODE", "debug"),
 		LogLevel: getEnv("LOG_LEVEL", "info"),
 
-		DeviceServiceURL: getEnv("DEVICE_SERVICE_URL", "http://localhost:3002"),
+		DeviceServiceURL: getEnv("DEVICE_SERVICE_URL", "http://localhost:30002"),
 
 		VideoCodec:   getEnv("VIDEO_CODEC", "VP8"),
 		AudioCodec:   getEnv("AUDIO_CODEC", "opus"),

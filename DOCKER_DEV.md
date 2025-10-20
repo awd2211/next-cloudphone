@@ -67,7 +67,7 @@ chmod +x start-dev.sh stop-dev.sh
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
-| API 网关 | http://localhost:3000 | 统一入口 |
+| API 网关 | http://localhost:30000 | 统一入口 |
 | 管理后台 | http://localhost:5173 | React 前端 |
 | 用户端 | http://localhost:5174 | React 前端 |
 | MinIO Console | http://localhost:9001 | 对象存储管理 |
@@ -90,13 +90,13 @@ chmod +x start-dev.sh stop-dev.sh
 ```
 ┌─────────────────────────────────────────┐
 │          Nginx / API Gateway            │
-│            localhost:3000               │
+│            localhost:30000              │
 └────────┬──────────────────────┬─────────┘
          │                      │
     ┌────▼─────┐          ┌────▼─────┐
     │ Frontend │          │ Backend  │
     │  React   │          │Services  │
-    │5173/5174 │          │3001-3006 │
+    │5173/5174 │          │30001-30006│
     └──────────┘          └────┬─────┘
                                │
          ┌─────────────────────┼─────────────────────┐
@@ -131,38 +131,38 @@ chmod +x start-dev.sh stop-dev.sh
 
 ### 后端微服务
 
-1. **API Gateway** (NestJS) - 端口 3000
+1. **API Gateway** (NestJS) - 端口 30000
    - 统一入口和路由
    - JWT 认证
    - 请求限流
    - 健康检查
 
-2. **User Service** (NestJS) - 端口 3001
+2. **User Service** (NestJS) - 端口 30001
    - 用户管理
    - 角色权限
    - 认证授权
 
-3. **Device Service** (NestJS) - 端口 3002
+3. **Device Service** (NestJS) - 端口 30002
    - 云手机设备管理
    - Docker 容器管理
    - Redroid 集成
 
-4. **App Service** (NestJS) - 端口 3003
+4. **App Service** (NestJS) - 端口 30003
    - APK 应用管理
    - MinIO 集成
    - 应用安装/卸载
 
-5. **Scheduler Service** (Python) - 端口 3004
+5. **Scheduler Service** (Python) - 端口 30004
    - 设备调度
    - 负载均衡
    - 自动扩缩容
 
-6. **Billing Service** (NestJS) - 端口 3005
+6. **Billing Service** (NestJS) - 端口 30005
    - 订单管理
    - 套餐管理
    - 使用记录
 
-7. **Media Service** (Go) - 端口 3006
+7. **Media Service** (Go) - 端口 30006
    - WebRTC 流媒体
    - 视频传输
    - 远程控制

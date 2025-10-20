@@ -26,7 +26,7 @@ app = FastAPI(
 # 配置 CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001", "http://localhost:3002"],
+    allow_origins=["http://localhost:30001", "http://localhost:30002"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -187,7 +187,7 @@ async def get_config():
 if __name__ == "__main__":
     import uvicorn
 
-    port = int(os.getenv("PORT", "3005"))
+    port = int(os.getenv("PORT", "30004"))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",

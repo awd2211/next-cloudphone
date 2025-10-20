@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AuthModule } from './auth/auth.module';
 import { DevicesModule } from './devices/devices.module';
 import { DockerModule } from './docker/docker.module';
 import { HealthController } from './health.controller';
@@ -28,6 +29,7 @@ import { HealthController } from './health.controller';
       inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
+    AuthModule,
     DevicesModule,
     DockerModule,
   ],

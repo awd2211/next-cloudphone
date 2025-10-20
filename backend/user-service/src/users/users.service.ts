@@ -239,4 +239,60 @@ export class UsersService {
     await this.resetLoginAttempts(id);
     return false;
   }
+
+  async getStats(tenantId?: string) {
+    const where: any = {};
+    if (tenantId) {
+      where.tenantId = tenantId;
+    }
+
+    // 总用户数
+    const totalUsers = await this.usersRepository.count({ where });
+
+    // 活跃用户数（状态为 ACTIVE）
+    const activeUsers = await this.usersRepository.count({
+      where: { ...where, status: UserStatus.ACTIVE },
+    });
+
+    // 停用用户数
+    const inactiveUsers = await this.usersRepository.count({
+      where: { ...where, status: UserStatus.INACTIVE },
+    });
+
+    // 7天内新增用户
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const newUsersLast7Days = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.createdAt >= :date', { date: sevenDaysAgo })
+      .andWhere(tenantId ? 'user.tenantId = :tenantId' : '1=1', { tenantId })
+      .getCount();
+
+    // 30天内新增用户
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const newUsersLast30Days = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.createdAt >= :date', { date: thirtyDaysAgo })
+      .andWhere(tenantId ? 'user.tenantId = :tenantId' : '1=1', { tenantId })
+      .getCount();
+
+    // 最近登录的用户数（7天内有登录记录）
+    const recentlyActiveUsers = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.lastLoginAt >= :date', { date: sevenDaysAgo })
+      .andWhere(tenantId ? 'user.tenantId = :tenantId' : '1=1', { tenantId })
+      .getCount();
+
+    return {
+      totalUsers,
+      activeUsers,
+      inactiveUsers,
+      newUsersLast7Days,
+      newUsersLast30Days,
+      recentlyActiveUsers,
+      activeRate: totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(2) + '%' : '0%',
+      timestamp: new Date().toISOString(),
+    };
+  }
 }

@@ -1,5 +1,30 @@
 # User Service Dockerfile
-FROM node:18-alpine AS builder
+
+# ===== 开发环境 =====
+FROM node:20-alpine AS development
+
+# 安装 pnpm
+RUN npm install -g pnpm
+
+WORKDIR /app
+
+# 复制 package 文件
+COPY package.json pnpm-lock.yaml* ./
+
+# 安装依赖
+RUN pnpm install
+
+# 复制源代码
+COPY . .
+
+# 暴露端口
+EXPOSE 3001
+
+# 开发模式启动
+CMD ["pnpm", "run", "dev"]
+
+# ===== 构建阶段 =====
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 

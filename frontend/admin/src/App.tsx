@@ -8,6 +8,21 @@ function App() {
 
   return (
     <>
+      <div style={{
+        position: 'fixed',
+        top: '10px',
+        right: '10px',
+        padding: '8px 16px',
+        backgroundColor: '#1976d2',
+        color: 'white',
+        borderRadius: '6px',
+        fontWeight: 'bold',
+        fontSize: '14px',
+        zIndex: 9999,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+      }}>
+        📊 管理后台 (Admin) - Port 5173
+      </div>
       <div>
         <a href="https://vite.dev" target="_blank">
           <img src={viteLogo} className="logo" alt="Vite logo" />

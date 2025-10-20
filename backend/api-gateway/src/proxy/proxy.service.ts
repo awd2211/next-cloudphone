@@ -26,7 +26,7 @@ export class ProxyService {
         'users',
         {
           name: 'User Service',
-          url: this.configService.get('USER_SERVICE_URL') || 'http://localhost:3001',
+          url: this.configService.get('USER_SERVICE_URL') || 'http://localhost:30001',
           healthCheck: '/health',
           timeout: 10000,
         },
@@ -35,7 +35,7 @@ export class ProxyService {
         'devices',
         {
           name: 'Device Service',
-          url: this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:3002',
+          url: this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:30002',
           healthCheck: '/health',
           timeout: 10000,
         },
@@ -44,7 +44,7 @@ export class ProxyService {
         'apps',
         {
           name: 'App Service',
-          url: this.configService.get('APP_SERVICE_URL') || 'http://localhost:3003',
+          url: this.configService.get('APP_SERVICE_URL') || 'http://localhost:30003',
           healthCheck: '/health',
           timeout: 30000, // APK 上传可能需要更长时间
         },
@@ -53,7 +53,7 @@ export class ProxyService {
         'scheduler',
         {
           name: 'Scheduler Service',
-          url: this.configService.get('SCHEDULER_SERVICE_URL') || 'http://localhost:3004',
+          url: this.configService.get('SCHEDULER_SERVICE_URL') || 'http://localhost:30004',
           healthCheck: '/health',
           timeout: 10000,
         },
@@ -62,7 +62,7 @@ export class ProxyService {
         'billing',
         {
           name: 'Billing Service',
-          url: this.configService.get('BILLING_SERVICE_URL') || 'http://localhost:3005',
+          url: this.configService.get('BILLING_SERVICE_URL') || 'http://localhost:30005',
           healthCheck: '/health',
           timeout: 10000,
         },
@@ -71,7 +71,7 @@ export class ProxyService {
         'media',
         {
           name: 'Media Service',
-          url: this.configService.get('MEDIA_SERVICE_URL') || 'http://localhost:3006',
+          url: this.configService.get('MEDIA_SERVICE_URL') || 'http://localhost:30006',
           healthCheck: '/health',
           timeout: 5000,
         },

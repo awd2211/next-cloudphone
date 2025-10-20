@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BillingModule } from './billing/billing.module';
@@ -22,6 +23,7 @@ import { BillingModule } from './billing/billing.module';
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV === 'development',
     }),
+    AuthModule,
     BillingModule,
   ],
   controllers: [AppController],

@@ -10,16 +10,29 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
+@ApiTags('users')
+@ApiBearerAuth()
 @Controller('users')
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @RequirePermission('users.create')
+  @ApiOperation({ summary: '创建用户', description: '创建新用户账号' })
+  @ApiResponse({ status: 201, description: '用户创建成功' })
+  @ApiResponse({ status: 400, description: '请求参数错误' })
+  @ApiResponse({ status: 403, description: '权限不足' })
   async create(@Body() createUserDto: CreateUserDto) {
     const user = await this.usersService.create(createUserDto);
     delete user.password;
@@ -30,7 +43,29 @@ export class UsersController {
     };
   }
 
+  @Get('stats')
+  @RequirePermission('users.read')
+  @ApiOperation({ summary: '获取用户统计', description: '获取用户数量统计信息' })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getStats(@Query('tenantId') tenantId?: string) {
+    const stats = await this.usersService.getStats(tenantId);
+    return {
+      success: true,
+      data: stats,
+      message: '用户统计获取成功',
+    };
+  }
+
   @Get()
+  @RequirePermission('users.read')
+  @ApiOperation({ summary: '获取用户列表', description: '分页获取用户列表' })
+  @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
   async findAll(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
@@ -48,6 +83,12 @@ export class UsersController {
   }
 
   @Get(':id')
+  @RequirePermission('users.read')
+  @ApiOperation({ summary: '获取用户详情', description: '根据 ID 获取用户详细信息' })
+  @ApiParam({ name: 'id', description: '用户 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
   async findOne(@Param('id') id: string) {
     const user = await this.usersService.findOne(id);
     return {
@@ -57,6 +98,12 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @RequirePermission('users.update')
+  @ApiOperation({ summary: '更新用户', description: '更新用户信息' })
+  @ApiParam({ name: 'id', description: '用户 ID' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     const user = await this.usersService.update(id, updateUserDto);
     delete user.password;
@@ -68,6 +115,12 @@ export class UsersController {
   }
 
   @Post(':id/change-password')
+  @RequirePermission('users.update')
+  @ApiOperation({ summary: '修改密码', description: '修改用户密码' })
+  @ApiParam({ name: 'id', description: '用户 ID' })
+  @ApiResponse({ status: 200, description: '密码修改成功' })
+  @ApiResponse({ status: 400, description: '原密码错误' })
+  @ApiResponse({ status: 403, description: '权限不足' })
   async changePassword(
     @Param('id') id: string,
     @Body() changePasswordDto: ChangePasswordDto,
@@ -80,6 +133,12 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @RequirePermission('users.delete')
+  @ApiOperation({ summary: '删除用户', description: '删除用户账号' })
+  @ApiParam({ name: 'id', description: '用户 ID' })
+  @ApiResponse({ status: 200, description: '删除成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
   async remove(@Param('id') id: string) {
     await this.usersService.remove(id);
     return {

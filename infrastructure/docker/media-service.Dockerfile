@@ -1,4 +1,22 @@
 # Media Service Dockerfile (Go)
+# Media Service Dockerfile
+
+# ===== 开发环境 =====
+FROM golang:1.21-alpine AS development
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+
+RUN go mod download
+
+COPY . .
+
+EXPOSE 3006
+EXPOSE 50000-50100/udp
+
+CMD ["go", "run", "main.go"]
+
 FROM golang:1.21-alpine AS builder
 
 WORKDIR /app

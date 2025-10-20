@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module';
 import { AppsModule } from './apps/apps.module';
 import { MinioModule } from './minio/minio.module';
 import { HealthController } from './health.controller';
@@ -26,6 +27,7 @@ import { HealthController } from './health.controller';
       }),
       inject: [ConfigService],
     }),
+    AuthModule,
     AppsModule,
     MinioModule,
   ],

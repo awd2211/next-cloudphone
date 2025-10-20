@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Order } from './entities/order.entity';
 import { Plan } from './entities/plan.entity';
-import { UsageRecord } from './entities/usage-record.entity';
+import { UsageRecord, UsageType } from './entities/usage-record.entity';
 
 @Injectable()
 export class BillingService {
@@ -44,7 +44,7 @@ export class BillingService {
       order: { createdAt: 'DESC' },
     });
 
-    const totalDuration = records.reduce((sum, record) => sum + record.duration, 0);
+    const totalDuration = records.reduce((sum, record) => sum + record.durationSeconds, 0);
     const totalCost = records.reduce((sum, record) => sum + Number(record.cost), 0);
 
     return {
@@ -57,11 +57,15 @@ export class BillingService {
     };
   }
 
-  async startUsage(data: { userId: string; deviceId: string; tenantId: string }) {
+  async startUsage(data: { userId: string; deviceId: string; tenantId: string; usageType?: UsageType }) {
     const record = this.usageRecordRepository.create({
-      ...data,
+      userId: data.userId,
+      deviceId: data.deviceId,
+      tenantId: data.tenantId,
+      usageType: data.usageType || UsageType.DEVICE_USAGE,
       startTime: new Date(),
-      status: 'active',
+      quantity: 0,
+      cost: 0,
     });
     return this.usageRecordRepository.save(record);
   }
@@ -80,10 +84,89 @@ export class BillingService {
     const cost = (duration / 3600) * 1;
 
     record.endTime = endTime;
-    record.duration = duration;
+    record.durationSeconds = duration;
     record.cost = cost;
-    record.status = 'completed';
+    record.isBilled = false;
 
     return this.usageRecordRepository.save(record);
+  }
+
+  async getStats(tenantId?: string) {
+    const where: any = {};
+    if (tenantId) {
+      where.tenantId = tenantId;
+    }
+
+    // 总订单数
+    const totalOrders = await this.orderRepository.count({ where });
+
+    // 待支付订单数
+    const pendingOrders = await this.orderRepository.count({
+      where: { ...where, status: 'pending' },
+    });
+
+    // 已完成订单数
+    const completedOrders = await this.orderRepository.count({
+      where: { ...where, status: 'completed' },
+    });
+
+    // 总收入
+    const ordersRevenue = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('SUM(order.totalAmount)', 'total')
+      .where('order.status = :status', { status: 'completed' })
+      .andWhere(tenantId ? 'order.tenantId = :tenantId' : '1=1', { tenantId })
+      .getRawOne();
+
+    // 套餐统计
+    const totalPlans = await this.planRepository.count({ where: { isActive: true } });
+
+    // 本月新增订单
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const newOrdersThisMonth = await this.orderRepository
+      .createQueryBuilder('order')
+      .where('order.createdAt >= :date', { date: firstDayOfMonth })
+      .andWhere(tenantId ? 'order.tenantId = :tenantId' : '1=1', { tenantId })
+      .getCount();
+
+    // 本月收入
+    const monthRevenue = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('SUM(order.totalAmount)', 'total')
+      .where('order.createdAt >= :date', { date: firstDayOfMonth })
+      .andWhere('order.status = :status', { status: 'completed' })
+      .andWhere(tenantId ? 'order.tenantId = :tenantId' : '1=1', { tenantId })
+      .getRawOne();
+
+    // 使用记录统计
+    const totalUsageRecords = await this.usageRecordRepository.count({ where });
+
+    const totalUsageCost = await this.usageRecordRepository
+      .createQueryBuilder('usage')
+      .select('SUM(usage.cost)', 'total')
+      .where(tenantId ? 'usage.tenantId = :tenantId' : '1=1', { tenantId })
+      .getRawOne();
+
+    return {
+      orders: {
+        total: totalOrders,
+        pending: pendingOrders,
+        completed: completedOrders,
+        newThisMonth: newOrdersThisMonth,
+      },
+      revenue: {
+        total: parseFloat(ordersRevenue?.total || '0'),
+        thisMonth: parseFloat(monthRevenue?.total || '0'),
+      },
+      usage: {
+        totalRecords: totalUsageRecords,
+        totalCost: parseFloat(totalUsageCost?.total || '0'),
+      },
+      plans: {
+        total: totalPlans,
+      },
+      timestamp: new Date().toISOString(),
+    };
   }
 }
