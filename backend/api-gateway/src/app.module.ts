@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProxyModule } from './proxy/proxy.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -54,7 +55,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     AuthModule,
     ProxyModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [
     AppService,
     {

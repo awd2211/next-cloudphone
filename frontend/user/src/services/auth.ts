@@ -1,5 +1,10 @@
 import request from '@/utils/request';
-import type { User, LoginDto, RegisterDto } from '@/types';
+import type { User, LoginDto, RegisterDto, CaptchaResponse } from '@/types';
+
+// 获取验证码
+export const getCaptcha = () => {
+  return request.get<CaptchaResponse>('/auth/captcha');
+};
 
 // 用户注册
 export const register = (data: RegisterDto) => {

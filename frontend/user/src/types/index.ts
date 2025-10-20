@@ -26,6 +26,13 @@ export interface User {
 export interface LoginDto {
   username: string;
   password: string;
+  captcha: string;
+  captchaId: string;
+}
+
+export interface CaptchaResponse {
+  id: string;
+  svg: string;
 }
 
 export interface RegisterDto {

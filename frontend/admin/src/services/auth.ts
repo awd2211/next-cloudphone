@@ -3,6 +3,8 @@ import request from '@/utils/request';
 export interface LoginParams {
   username: string;
   password: string;
+  captcha: string;
+  captchaId: string;
 }
 
 export interface LoginResponse {
@@ -14,6 +16,15 @@ export interface LoginResponse {
     role: string;
   };
 }
+
+export interface CaptchaResponse {
+  id: string;
+  svg: string;
+}
+
+export const getCaptcha = () => {
+  return request.get<any, CaptchaResponse>('/auth/captcha');
+};
 
 export const login = (params: LoginParams) => {
   return request.post<any, LoginResponse>('/auth/login', params);
