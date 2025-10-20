@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Table, Space, Button, Modal, Form, Input, message, Popconfirm, Transfer, Tag } from 'antd';
+import { Table, Space, Button, Modal, Form, Input, message, Popconfirm, Transfer, Tag, Tree, Tabs } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import type { DataNode } from 'antd/es/tree';
 import { getRoles, createRole, updateRole, deleteRole, getPermissions, assignPermissionsToRole } from '@/services/role';
 import type { Role, Permission } from '@/types';
 import dayjs from 'dayjs';
@@ -191,6 +192,28 @@ const RoleList = () => {
     description: p.description,
   }));
 
+  // 将权限转换为树形结构
+  const permissionsToTree = (): DataNode[] => {
+    const grouped = permissions.reduce((acc, permission) => {
+      if (!acc[permission.resource]) {
+        acc[permission.resource] = [];
+      }
+      acc[permission.resource].push(permission);
+      return acc;
+    }, {} as Record<string, Permission[]>);
+
+    return Object.entries(grouped).map(([resource, perms]) => ({
+      title: resource,
+      key: resource,
+      children: perms.map(p => ({
+        title: `${p.action} (${p.description || '无描述'})`,
+        key: p.id,
+      })),
+    }));
+  };
+
+  const treeData = permissionsToTree();
+
   return (
     <div>
       <h2>角色管理</h2>
@@ -262,20 +285,56 @@ const RoleList = () => {
         onOk={handleAssignPermissions}
         width={800}
       >
-        <Transfer
-          dataSource={transferDataSource}
-          titles={['可用权限', '已分配权限']}
-          targetKeys={selectedPermissions}
-          onChange={setSelectedPermissions}
-          render={(item) => item.title}
-          listStyle={{
-            width: 350,
-            height: 400,
-          }}
-          showSearch
-          filterOption={(inputValue, option) =>
-            option.title.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
-          }
+        <Tabs
+          items={[
+            {
+              key: 'tree',
+              label: '树形视图',
+              children: (
+                <div>
+                  <p style={{ marginBottom: 16, color: '#666' }}>
+                    已选择 <strong>{selectedPermissions.length}</strong> 个权限
+                  </p>
+                  <Tree
+                    checkable
+                    defaultExpandAll
+                    treeData={treeData}
+                    checkedKeys={selectedPermissions}
+                    onCheck={(checkedKeys) => {
+                      // 只保留叶子节点（实际权限ID）
+                      const keys = Array.isArray(checkedKeys) ? checkedKeys : checkedKeys.checked;
+                      const leafKeys = keys.filter(key =>
+                        permissions.some(p => p.id === key)
+                      );
+                      setSelectedPermissions(leafKeys as string[]);
+                    }}
+                    style={{ maxHeight: 400, overflow: 'auto', border: '1px solid #d9d9d9', padding: 16, borderRadius: 4 }}
+                  />
+                </div>
+              ),
+            },
+            {
+              key: 'transfer',
+              label: '列表视图',
+              children: (
+                <Transfer
+                  dataSource={transferDataSource}
+                  titles={['可用权限', '已分配权限']}
+                  targetKeys={selectedPermissions}
+                  onChange={setSelectedPermissions}
+                  render={(item) => item.title}
+                  listStyle={{
+                    width: 350,
+                    height: 400,
+                  }}
+                  showSearch
+                  filterOption={(inputValue, option) =>
+                    option.title.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+                  }
+                />
+              ),
+            },
+          ]}
         />
       </Modal>
     </div>

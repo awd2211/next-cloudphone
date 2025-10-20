@@ -33,6 +33,11 @@ export const cancelOrder = (id: string, reason?: string) => {
   return request.post(`/billing/orders/${id}/cancel`, { reason });
 };
 
+// 批量取消订单
+export const batchCancelOrders = (ids: string[], reason?: string) => {
+  return request.post('/billing/orders/batch/cancel', { ids, reason });
+};
+
 // 订单统计
 export const getOrderStats = () => {
   return request.get<{
@@ -69,6 +74,11 @@ export const queryPaymentStatus = (paymentNo: string) => {
 // 申请退款
 export const refundPayment = (id: string, amount: number, reason: string) => {
   return request.post(`/payments/${id}/refund`, { amount, reason });
+};
+
+// 订单退款
+export const refundOrder = (orderId: string, amount: number, reason: string) => {
+  return request.post(`/billing/orders/${orderId}/refund`, { amount, reason });
 };
 
 // ========== 使用记录相关 ==========

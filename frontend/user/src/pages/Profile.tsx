@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/services/auth';
 import { updateProfile, changePassword, getBalance } from '@/services/user';
 import type { User } from '@/types';
 import dayjs from 'dayjs';
+import TwoFactorSettings from '@/components/TwoFactorSettings';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -143,7 +144,7 @@ const Profile = () => {
           <Descriptions.Item label="用户名">{user.username}</Descriptions.Item>
           <Descriptions.Item label="邮箱">{user.email}</Descriptions.Item>
           <Descriptions.Item label="手机号">{user.phone || '未设置'}</Descriptions.Item>
-          <Descriptions.Item label="余额">¥{user.balance.toFixed(2)}</Descriptions.Item>
+          <Descriptions.Item label="余额">¥{balance.toFixed(2)}</Descriptions.Item>
           <Descriptions.Item label="注册时间">
             {dayjs(user.createdAt).format('YYYY-MM-DD HH:mm')}
           </Descriptions.Item>
@@ -151,13 +152,28 @@ const Profile = () => {
       </Card>
 
       <Card title="安全设置" style={{ marginTop: 24 }}>
-        <Button
-          icon={<LockOutlined />}
-          onClick={() => setPasswordModalVisible(true)}
-        >
-          修改密码
-        </Button>
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <div>
+            <h4>修改密码</h4>
+            <Button
+              icon={<LockOutlined />}
+              onClick={() => setPasswordModalVisible(true)}
+            >
+              修改密码
+            </Button>
+          </div>
+        </Space>
       </Card>
+
+      {/* 2FA设置 */}
+      <div style={{ marginTop: 24 }}>
+        <TwoFactorSettings
+          isEnabled={user?.twoFactorEnabled || false}
+          onStatusChange={() => {
+            loadUser();
+          }}
+        />
+      </div>
 
       {/* 编辑信息对话框 */}
       <Modal

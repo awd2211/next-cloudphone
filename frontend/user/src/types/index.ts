@@ -20,6 +20,7 @@ export interface User {
   balance: number;
   avatar?: string;
   status: 'active' | 'inactive' | 'banned';
+  twoFactorEnabled?: boolean;
   createdAt: string;
 }
 

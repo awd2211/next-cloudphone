@@ -29,6 +29,12 @@ export class User {
   @Column({ nullable: true })
   tenantId: string; // 租户 ID，用于多租户隔离
 
+  @Column({ default: false })
+  twoFactorEnabled: boolean; // 是否启用2FA
+
+  @Column({ nullable: true })
+  twoFactorSecret: string; // TOTP密钥（加密存储）
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Table, Tag, Space, Button, Modal, message, Input, Select, DatePicker } from 'antd';
-import { EyeOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Table, Tag, Space, Button, Modal, message, Input, Select, DatePicker, Card, Row, Col, Dropdown, Popconfirm, Form, InputNumber } from 'antd';
+import { EyeOutlined, CloseCircleOutlined, SearchOutlined, DownloadOutlined, DownOutlined, DollarOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { getOrders, cancelOrder } from '@/services/billing';
+import type { MenuProps } from 'antd';
+import { getOrders, cancelOrder, batchCancelOrders, refundOrder } from '@/services/billing';
 import type { Order } from '@/types';
 import dayjs from 'dayjs';
+import { exportToExcel, exportToCSV } from '@/utils/export';
 
 const { Search } = Input;
 const { RangePicker } = DatePicker;
@@ -16,15 +18,30 @@ const OrderList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string | undefined>();
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [dateRange, setDateRange] = useState<[string, string] | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [refundModalVisible, setRefundModalVisible] = useState(false);
+  const [refundAmount, setRefundAmount] = useState(0);
+  const [refundReason, setRefundReason] = useState('');
 
   const loadOrders = async () => {
     setLoading(true);
     try {
-      const res = await getOrders({ page, pageSize, status: statusFilter });
+      const params: any = { page, pageSize };
+      if (statusFilter) params.status = statusFilter;
+      if (paymentMethodFilter) params.paymentMethod = paymentMethodFilter;
+      if (searchKeyword) params.search = searchKeyword;
+      if (dateRange) {
+        params.startDate = dateRange[0];
+        params.endDate = dateRange[1];
+      }
+      const res = await getOrders(params);
       setOrders(res.data);
       setTotal(res.total);
     } catch (error) {
@@ -36,7 +53,7 @@ const OrderList = () => {
 
   useEffect(() => {
     loadOrders();
-  }, [page, pageSize, statusFilter]);
+  }, [page, pageSize, statusFilter, paymentMethodFilter, searchKeyword, dateRange]);
 
   const handleCancelOrder = async () => {
     if (!selectedOrder) return;
@@ -51,6 +68,100 @@ const OrderList = () => {
     }
   };
 
+  // 批量取消订单
+  const handleBatchCancel = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请选择要取消的订单');
+      return;
+    }
+    try {
+      await batchCancelOrders(selectedRowKeys as string[], '批量取消');
+      message.success(`成功取消 ${selectedRowKeys.length} 个订单`);
+      setSelectedRowKeys([]);
+      loadOrders();
+    } catch (error) {
+      message.error('批量取消失败');
+    }
+  };
+
+  // 批量选择配置
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (selectedRowKeys: React.Key[]) => {
+      setSelectedRowKeys(selectedRowKeys);
+    },
+    getCheckboxProps: (record: Order) => ({
+      disabled: record.status !== 'pending', // 只有待支付的订单可以批量取消
+    }),
+  };
+
+  // 导出Excel
+  const handleExportExcel = () => {
+    const exportData = orders.map(order => ({
+      '订单号': order.orderNo,
+      '用户': order.user?.username || '-',
+      '套餐': order.plan?.name || '-',
+      '金额': order.amount,
+      '支付方式': order.paymentMethod === 'wechat' ? '微信支付' : order.paymentMethod === 'alipay' ? '支付宝' : order.paymentMethod === 'balance' ? '余额支付' : '-',
+      '状态': order.status === 'pending' ? '待支付' : order.status === 'paid' ? '已支付' : order.status === 'cancelled' ? '已取消' : order.status === 'refunded' ? '已退款' : '已过期',
+      '创建时间': dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+      '支付时间': order.paidAt ? dayjs(order.paidAt).format('YYYY-MM-DD HH:mm:ss') : '-',
+    }));
+    exportToExcel(exportData, `订单列表_${dayjs().format('YYYYMMDD_HHmmss')}`, '订单列表');
+    message.success('导出成功');
+  };
+
+  // 导出CSV
+  const handleExportCSV = () => {
+    const exportData = orders.map(order => ({
+      '订单号': order.orderNo,
+      '用户': order.user?.username || '-',
+      '套餐': order.plan?.name || '-',
+      '金额': order.amount,
+      '支付方式': order.paymentMethod === 'wechat' ? '微信支付' : order.paymentMethod === 'alipay' ? '支付宝' : order.paymentMethod === 'balance' ? '余额支付' : '-',
+      '状态': order.status === 'pending' ? '待支付' : order.status === 'paid' ? '已支付' : order.status === 'cancelled' ? '已取消' : order.status === 'refunded' ? '已退款' : '已过期',
+      '创建时间': dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+      '支付时间': order.paidAt ? dayjs(order.paidAt).format('YYYY-MM-DD HH:mm:ss') : '-',
+    }));
+    exportToCSV(exportData, `订单列表_${dayjs().format('YYYYMMDD_HHmmss')}`);
+    message.success('导出成功');
+  };
+
+  // 导出菜单
+  const exportMenuItems: MenuProps['items'] = [
+    {
+      key: 'excel',
+      label: '导出为Excel',
+      icon: <DownloadOutlined />,
+      onClick: handleExportExcel,
+    },
+    {
+      key: 'csv',
+      label: '导出为CSV',
+      icon: <DownloadOutlined />,
+      onClick: handleExportCSV,
+    },
+  ];
+
+  // 处理退款
+  const handleRefund = async () => {
+    if (!selectedOrder) return;
+    if (refundAmount <= 0 || refundAmount > selectedOrder.amount) {
+      message.error('退款金额无效');
+      return;
+    }
+    try {
+      await refundOrder(selectedOrder.id, refundAmount, refundReason);
+      message.success('退款申请已提交');
+      setRefundModalVisible(false);
+      setRefundAmount(0);
+      setRefundReason('');
+      loadOrders();
+    } catch (error) {
+      message.error('退款申请失败');
+    }
+  };
+
   const columns: ColumnsType<Order> = [
     {
       title: '订单号',
@@ -58,29 +169,34 @@ const OrderList = () => {
       key: 'orderNo',
       width: 180,
       fixed: 'left',
+      sorter: (a, b) => a.orderNo.localeCompare(b.orderNo),
     },
     {
       title: '用户',
       dataIndex: 'user',
       key: 'user',
+      sorter: (a, b) => (a.user?.username || '').localeCompare(b.user?.username || ''),
       render: (user: any) => user?.username || '-',
     },
     {
       title: '套餐',
       dataIndex: 'plan',
       key: 'plan',
+      sorter: (a, b) => (a.plan?.name || '').localeCompare(b.plan?.name || ''),
       render: (plan: any) => plan?.name || '-',
     },
     {
       title: '金额',
       dataIndex: 'amount',
       key: 'amount',
+      sorter: (a, b) => a.amount - b.amount,
       render: (amount: number) => `¥${amount.toFixed(2)}`,
     },
     {
       title: '支付方式',
       dataIndex: 'paymentMethod',
       key: 'paymentMethod',
+      sorter: (a, b) => (a.paymentMethod || '').localeCompare(b.paymentMethod || ''),
       render: (method: string) => {
         const methodMap: Record<string, string> = {
           wechat: '微信支付',
@@ -94,6 +210,7 @@ const OrderList = () => {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      sorter: (a, b) => a.status.localeCompare(b.status),
       render: (status: string) => {
         const statusMap: Record<string, { color: string; text: string }> = {
           pending: { color: 'orange', text: '待支付' },
@@ -110,18 +227,24 @@ const OrderList = () => {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
     },
     {
       title: '支付时间',
       dataIndex: 'paidAt',
       key: 'paidAt',
+      sorter: (a, b) => {
+        const timeA = a.paidAt ? new Date(a.paidAt).getTime() : 0;
+        const timeB = b.paidAt ? new Date(b.paidAt).getTime() : 0;
+        return timeA - timeB;
+      },
       render: (date: string) => date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-',
     },
     {
       title: '操作',
       key: 'action',
-      width: 150,
+      width: 200,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
@@ -150,6 +273,20 @@ const OrderList = () => {
               取消
             </Button>
           )}
+          {record.status === 'paid' && (
+            <Button
+              type="link"
+              size="small"
+              icon={<DollarOutlined />}
+              onClick={() => {
+                setSelectedOrder(record);
+                setRefundAmount(record.amount);
+                setRefundModalVisible(true);
+              }}
+            >
+              退款
+            </Button>
+          )}
         </Space>
       ),
     },
@@ -159,19 +296,92 @@ const OrderList = () => {
     <div>
       <h2>订单管理</h2>
 
-      <div style={{ marginBottom: 16, display: 'flex', gap: 16 }}>
-        <Select
-          placeholder="订单状态"
-          style={{ width: 150 }}
-          allowClear
-          onChange={(value) => setStatusFilter(value)}
-        >
-          <Select.Option value="pending">待支付</Select.Option>
-          <Select.Option value="paid">已支付</Select.Option>
-          <Select.Option value="cancelled">已取消</Select.Option>
-          <Select.Option value="refunded">已退款</Select.Option>
-          <Select.Option value="expired">已过期</Select.Option>
-        </Select>
+      {/* 搜索和筛选 */}
+      <Card style={{ marginBottom: 16 }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8}>
+            <Search
+              placeholder="搜索订单号/用户名"
+              allowClear
+              enterButton={<SearchOutlined />}
+              onSearch={(value) => {
+                setSearchKeyword(value);
+                setPage(1);
+              }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={4}>
+            <Select
+              placeholder="订单状态"
+              style={{ width: '100%' }}
+              allowClear
+              onChange={(value) => {
+                setStatusFilter(value);
+                setPage(1);
+              }}
+            >
+              <Select.Option value="pending">待支付</Select.Option>
+              <Select.Option value="paid">已支付</Select.Option>
+              <Select.Option value="cancelled">已取消</Select.Option>
+              <Select.Option value="refunded">已退款</Select.Option>
+              <Select.Option value="expired">已过期</Select.Option>
+            </Select>
+          </Col>
+          <Col xs={12} sm={6} md={4}>
+            <Select
+              placeholder="支付方式"
+              style={{ width: '100%' }}
+              allowClear
+              onChange={(value) => {
+                setPaymentMethodFilter(value);
+                setPage(1);
+              }}
+            >
+              <Select.Option value="wechat">微信支付</Select.Option>
+              <Select.Option value="alipay">支付宝</Select.Option>
+              <Select.Option value="balance">余额支付</Select.Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <RangePicker
+              style={{ width: '100%' }}
+              placeholder={['开始日期', '结束日期']}
+              onChange={(dates) => {
+                if (dates) {
+                  setDateRange([
+                    dates[0]!.format('YYYY-MM-DD'),
+                    dates[1]!.format('YYYY-MM-DD'),
+                  ]);
+                } else {
+                  setDateRange(null);
+                }
+                setPage(1);
+              }}
+            />
+          </Col>
+        </Row>
+      </Card>
+
+      <div style={{ marginBottom: 16 }}>
+        <Space>
+          <Dropdown menu={{ items: exportMenuItems }} placement="bottomLeft">
+            <Button icon={<DownloadOutlined />}>
+              导出数据 <DownOutlined />
+            </Button>
+          </Dropdown>
+          {selectedRowKeys.length > 0 && (
+            <Popconfirm
+              title={`确定要取消选中的 ${selectedRowKeys.length} 个订单吗？`}
+              onConfirm={handleBatchCancel}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button danger icon={<CloseCircleOutlined />}>
+                批量取消 ({selectedRowKeys.length})
+              </Button>
+            </Popconfirm>
+          )}
+        </Space>
       </div>
 
       <Table
@@ -179,6 +389,7 @@ const OrderList = () => {
         dataSource={orders}
         rowKey="id"
         loading={loading}
+        rowSelection={rowSelection}
         pagination={{
           current: page,
           pageSize,
@@ -240,6 +451,54 @@ const OrderList = () => {
           onChange={(e) => setCancelReason(e.target.value)}
           rows={3}
         />
+      </Modal>
+
+      {/* 退款对话框 */}
+      <Modal
+        title="订单退款"
+        open={refundModalVisible}
+        onCancel={() => {
+          setRefundModalVisible(false);
+          setRefundAmount(0);
+          setRefundReason('');
+        }}
+        onOk={handleRefund}
+      >
+        <Form layout="vertical">
+          <Form.Item label="订单信息">
+            <div>
+              <p><strong>订单号：</strong>{selectedOrder?.orderNo}</p>
+              <p><strong>订单金额：</strong>¥{selectedOrder?.amount.toFixed(2)}</p>
+              <p><strong>支付方式：</strong>
+                {selectedOrder?.paymentMethod === 'wechat' ? '微信支付' :
+                 selectedOrder?.paymentMethod === 'alipay' ? '支付宝' :
+                 selectedOrder?.paymentMethod === 'balance' ? '余额支付' : '-'}
+              </p>
+            </div>
+          </Form.Item>
+          <Form.Item label="退款金额" required>
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0.01}
+              max={selectedOrder?.amount || 0}
+              precision={2}
+              value={refundAmount}
+              onChange={(value) => setRefundAmount(value || 0)}
+              prefix="¥"
+            />
+            <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+              最多可退款 ¥{selectedOrder?.amount.toFixed(2)}
+            </div>
+          </Form.Item>
+          <Form.Item label="退款原因" required>
+            <Input.TextArea
+              placeholder="请输入退款原因"
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              rows={4}
+            />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

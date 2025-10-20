@@ -9,10 +9,14 @@ import AppList from '@/pages/App/List';
 import OrderList from '@/pages/Order/List';
 import PlanList from '@/pages/Plan/List';
 import RevenueReport from '@/pages/Report/Revenue';
+import Analytics from '@/pages/Report/Analytics';
 import UsageList from '@/pages/Usage/List';
 import PaymentList from '@/pages/Payment/List';
 import RoleList from '@/pages/Role/List';
 import PermissionList from '@/pages/Permission/List';
+import Settings from '@/pages/Settings';
+import AuditLogList from '@/pages/Logs/Audit';
+import NotificationCenter from '@/pages/Notifications';
 
 export const router = createBrowserRouter([
   {
@@ -56,6 +60,10 @@ export const router = createBrowserRouter([
         element: <RevenueReport />,
       },
       {
+        path: 'reports/analytics',
+        element: <Analytics />,
+      },
+      {
         path: 'usage',
         element: <UsageList />,
       },
@@ -70,6 +78,18 @@ export const router = createBrowserRouter([
       {
         path: 'permissions',
         element: <PermissionList />,
+      },
+      {
+        path: 'settings',
+        element: <Settings />,
+      },
+      {
+        path: 'logs/audit',
+        element: <AuditLogList />,
+      },
+      {
+        path: 'notifications',
+        element: <NotificationCenter />,
       },
     ],
   },

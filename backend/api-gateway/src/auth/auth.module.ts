@@ -10,6 +10,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { CaptchaService } from './services/captcha.service';
+import { TwoFactorService } from './services/two-factor.service';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { CaptchaService } from './services/captcha.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, CaptchaService, JwtStrategy, RolesGuard, PermissionsGuard],
-  exports: [JwtStrategy, PassportModule, RolesGuard, PermissionsGuard, AuthService, CaptchaService],
+  providers: [AuthService, CaptchaService, TwoFactorService, JwtStrategy, RolesGuard, PermissionsGuard],
+  exports: [JwtStrategy, PassportModule, RolesGuard, PermissionsGuard, AuthService, CaptchaService, TwoFactorService],
 })
 export class AuthModule {}

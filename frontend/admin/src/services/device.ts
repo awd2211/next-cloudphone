@@ -119,3 +119,23 @@ export const clearLogcat = (id: string) => {
 export const getDeviceProperties = (id: string) => {
   return request.get<DeviceProperties>(`/devices/${id}/properties`);
 };
+
+// 批量操作 - 批量启动设备
+export const batchStartDevices = (ids: string[]) => {
+  return request.post('/devices/batch/start', { ids });
+};
+
+// 批量操作 - 批量停止设备
+export const batchStopDevices = (ids: string[]) => {
+  return request.post('/devices/batch/stop', { ids });
+};
+
+// 批量操作 - 批量重启设备
+export const batchRebootDevices = (ids: string[]) => {
+  return request.post('/devices/batch/reboot', { ids });
+};
+
+// 批量操作 - 批量删除设备
+export const batchDeleteDevices = (ids: string[]) => {
+  return request.post('/devices/batch/delete', { ids });
+};

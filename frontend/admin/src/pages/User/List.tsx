@@ -88,12 +88,12 @@ const UserList = () => {
 
   const columns: ColumnsType<User> = [
     { title: '用户 ID', dataIndex: 'id', key: 'id', width: 100, ellipsis: true },
-    { title: '用户名', dataIndex: 'username', key: 'username' },
-    { title: '邮箱', dataIndex: 'email', key: 'email' },
-    { title: '手机号', dataIndex: 'phone', key: 'phone' },
-    { title: '余额', dataIndex: 'balance', key: 'balance', render: (balance: number) => `¥${balance.toFixed(2)}` },
+    { title: '用户名', dataIndex: 'username', key: 'username', sorter: (a, b) => a.username.localeCompare(b.username) },
+    { title: '邮箱', dataIndex: 'email', key: 'email', sorter: (a, b) => (a.email || '').localeCompare(b.email || '') },
+    { title: '手机号', dataIndex: 'phone', key: 'phone', sorter: (a, b) => (a.phone || '').localeCompare(b.phone || '') },
+    { title: '余额', dataIndex: 'balance', key: 'balance', sorter: (a, b) => a.balance - b.balance, render: (balance: number) => `¥${balance.toFixed(2)}` },
     { title: '角色', dataIndex: 'roles', key: 'roles', render: (roles: any[]) => <>{roles?.map((role) => <Tag key={role.id} color="blue">{role.name}</Tag>)}</> },
-    { title: '状态', dataIndex: 'status', key: 'status', render: (status: string) => {
+    { title: '状态', dataIndex: 'status', key: 'status', sorter: (a, b) => a.status.localeCompare(b.status), render: (status: string) => {
       const statusMap: Record<string, { color: string; text: string }> = {
         active: { color: 'green', text: '正常' },
         inactive: { color: 'default', text: '未激活' },
@@ -102,7 +102,7 @@ const UserList = () => {
       const config = statusMap[status] || { color: 'default', text: status };
       return <Tag color={config.color}>{config.text}</Tag>;
     }},
-    { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm') },
+    { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(), render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm') },
     { title: '操作', key: 'action', width: 250, fixed: 'right', render: (_, record) => (
       <Space size="small">
         <Button type="link" size="small" icon={<DollarOutlined />} onClick={() => { setSelectedUser(record); setBalanceType('recharge'); setBalanceModalVisible(true); }}>充值</Button>

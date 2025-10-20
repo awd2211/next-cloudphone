@@ -16,7 +16,10 @@ const Home = () => {
       const data = await getActivePlans();
       setPlans(data);
     } catch (error) {
-      message.error('加载套餐失败');
+      console.error('加载套餐失败:', error);
+      // 暂时不显示错误，因为 billing-service 可能未启动
+      // message.error('加载套餐失败');
+      setPlans([]); // 设置为空数组
     } finally {
       setLoading(false);
     }
