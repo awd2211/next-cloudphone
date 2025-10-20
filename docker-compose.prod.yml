@@ -1,0 +1,531 @@
+version: '3.8'
+
+# 云手机平台 - 生产环境 Docker Compose 配置
+
+services:
+  # ==================== 基础设施服务 ====================
+
+  postgres:
+    image: postgres:14-alpine
+    container_name: cloudphone-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-cloudphone}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-database.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - cloudphone-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  redis:
+    image: redis:7-alpine
+    container_name: cloudphone-redis
+    restart: always
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - cloudphone-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: cloudphone-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "15672:15672"
+    networks:
+      - cloudphone-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  minio:
+    image: minio/minio:latest
+    container_name: cloudphone-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "9001:9001"
+    networks:
+      - cloudphone-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # ==================== 后端微服务 ====================
+
+  api-gateway:
+    image: cloudphone/api-gateway:${VERSION:-latest}
+    container_name: cloudphone-api-gateway
+    restart: always
+    build:
+      context: ./backend/api-gateway
+      dockerfile: ../../infrastructure/docker/api-gateway.Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+    ports:
+      - "${API_GATEWAY_PORT:-3000}:3000"
+    networks:
+      - cloudphone-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  user-service:
+    image: cloudphone/user-service:${VERSION:-latest}
+    container_name: cloudphone-user-service
+    restart: always
+    build:
+      context: ./backend/user-service
+      dockerfile: ../../infrastructure/docker/user-service.Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+    networks:
+      - cloudphone-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  device-service:
+    image: cloudphone/device-service:${VERSION:-latest}
+    container_name: cloudphone-device-service
+    restart: always
+    build:
+      context: ./backend/device-service
+      dockerfile: ../../infrastructure/docker/device-service.Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - cloudphone-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  app-service:
+    image: cloudphone/app-service:${VERSION:-latest}
+    container_name: cloudphone-app-service
+    restart: always
+    build:
+      context: ./backend/app-service
+      dockerfile: ../../infrastructure/docker/app-service.Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      MINIO_ENDPOINT: minio
+    volumes:
+      - app_uploads:/tmp/apk-uploads
+    networks:
+      - cloudphone-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  media-service:
+    image: cloudphone/media-service:${VERSION:-latest}
+    container_name: cloudphone-media-service
+    restart: always
+    build:
+      context: ./backend/media-service
+      dockerfile: ../../infrastructure/docker/media-service.Dockerfile
+    env_file:
+      - .env
+    environment:
+      ENVIRONMENT: production
+      PORT: 3004
+      REDIS_HOST: redis
+    ports:
+      - "${MEDIA_SERVICE_PORT:-3004}:3004"
+      - "10000-20000:10000-20000/udp"  # ICE ports
+    networks:
+      - cloudphone-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+
+  scheduler-service:
+    image: cloudphone/scheduler-service:${VERSION:-latest}
+    container_name: cloudphone-scheduler-service
+    restart: always
+    build:
+      context: ./backend/scheduler-service
+      dockerfile: ../../infrastructure/docker/scheduler-service.Dockerfile
+    env_file:
+      - .env
+    environment:
+      ENVIRONMENT: production
+      PORT: 3005
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+    networks:
+      - cloudphone-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  billing-service:
+    image: cloudphone/billing-service:${VERSION:-latest}
+    container_name: cloudphone-billing-service
+    restart: always
+    build:
+      context: ./backend/billing-service
+      dockerfile: ../../infrastructure/docker/billing-service.Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+    networks:
+      - cloudphone-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # ==================== 前端服务 ====================
+
+  admin-frontend:
+    image: cloudphone/admin-frontend:${VERSION:-latest}
+    container_name: cloudphone-admin-frontend
+    restart: always
+    build:
+      context: ./frontend/admin
+      dockerfile: ../../infrastructure/docker/admin-frontend.Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000/api}
+    ports:
+      - "${ADMIN_PORT:-8001}:80"
+    networks:
+      - cloudphone-network
+    depends_on:
+      - api-gateway
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  user-frontend:
+    image: cloudphone/user-frontend:${VERSION:-latest}
+    container_name: cloudphone-user-frontend
+    restart: always
+    build:
+      context: ./frontend/user
+      dockerfile: ../../infrastructure/docker/user-frontend.Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000/api}
+    ports:
+      - "${USER_PORT:-8002}:80"
+    networks:
+      - cloudphone-network
+    depends_on:
+      - api-gateway
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # ==================== 监控服务 ====================
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cloudphone-prometheus
+    restart: always
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - cloudphone-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cloudphone-grafana
+    restart: always
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3000}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infrastructure/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    networks:
+      - cloudphone-network
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ==================== Nginx 反向代理 ====================
+
+  nginx:
+    image: nginx:alpine
+    container_name: cloudphone-nginx
+    restart: always
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - cloudphone-network
+    depends_on:
+      - api-gateway
+      - admin-frontend
+      - user-frontend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+networks:
+  cloudphone-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  minio_data:
+    driver: local
+  app_uploads:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  nginx_logs:
+    driver: local
