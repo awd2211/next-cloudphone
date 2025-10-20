@@ -63,7 +63,7 @@ export class ProxyService {
         {
           name: 'Billing Service',
           url: this.configService.get('BILLING_SERVICE_URL') || 'http://localhost:30005',
-          healthCheck: '/health',
+          healthCheck: '/api/health',
           timeout: 10000,
         },
       ],

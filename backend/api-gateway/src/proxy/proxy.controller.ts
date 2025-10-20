@@ -22,7 +22,7 @@ export class ProxyController {
   constructor(private readonly proxyService: ProxyService) {}
 
   /**
-   * 健康检查端点（公开访问）
+   * 健康检查端点（公开访问）- 聚合所有微服务健康状态
    */
   @Public()
   @All('health')
@@ -32,9 +32,31 @@ export class ProxyController {
       (s: any) => s.status === 'healthy',
     );
 
+    const os = await import('os');
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const usedMemory = totalMemory - freeMemory;
+
     return {
       status: allHealthy ? 'ok' : 'degraded',
+      service: 'api-gateway',
+      version: '1.0.0',
       timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      system: {
+        hostname: os.hostname(),
+        platform: os.platform(),
+        memory: {
+          total: Math.floor(totalMemory / 1024 / 1024), // MB
+          free: Math.floor(freeMemory / 1024 / 1024), // MB
+          used: Math.floor(usedMemory / 1024 / 1024), // MB
+          usagePercent: Math.floor((usedMemory / totalMemory) * 100),
+        },
+        cpu: {
+          cores: os.cpus().length,
+          model: os.cpus()[0]?.model || 'unknown',
+        },
+      },
       services,
     };
   }
