@@ -1,10 +1,12 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/cloudphone/media-service/internal/logger"
+	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -74,8 +76,14 @@ func Load() *Config {
 		}
 	}
 
-	log.Printf("Config loaded: Port=%s, STUN=%v, ICE Ports=%d-%d",
-		cfg.Port, cfg.STUNServers, cfg.ICEPortMin, cfg.ICEPortMax)
+	logger.Info("config_loaded",
+		zap.String("port", cfg.Port),
+		zap.Strings("stun_servers", cfg.STUNServers),
+		zap.Uint16("ice_port_min", cfg.ICEPortMin),
+		zap.Uint16("ice_port_max", cfg.ICEPortMax),
+		zap.String("video_codec", cfg.VideoCodec),
+		zap.Int("max_bitrate", cfg.MaxBitrate),
+	)
 
 	return cfg
 }

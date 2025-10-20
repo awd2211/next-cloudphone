@@ -1,15 +1,16 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 
+	"github.com/cloudphone/media-service/internal/logger"
 	"github.com/cloudphone/media-service/internal/models"
 	"github.com/cloudphone/media-service/internal/webrtc"
 	"github.com/cloudphone/media-service/internal/websocket"
 	"github.com/gin-gonic/gin"
 	wsLib "github.com/gorilla/websocket"
 	pionWebRTC "github.com/pion/webrtc/v3"
+	"go.uber.org/zap"
 )
 
 var upgrader = wsLib.Upgrader{
@@ -58,7 +59,11 @@ func (h *Handler) HandleCreateSession(c *gin.Context) {
 	// 创建会话
 	session, err := h.webrtcManager.CreateSession(req.DeviceID, req.UserID)
 	if err != nil {
-		log.Printf("Failed to create session: %v", err)
+		logger.Error("failed_to_create_session",
+			zap.String("device_id", req.DeviceID),
+			zap.String("user_id", req.UserID),
+			zap.Error(err),
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
 		return
 	}
@@ -66,10 +71,19 @@ func (h *Handler) HandleCreateSession(c *gin.Context) {
 	// 创建 offer
 	offer, err := h.webrtcManager.CreateOffer(session.ID)
 	if err != nil {
-		log.Printf("Failed to create offer: %v", err)
+		logger.Error("failed_to_create_offer",
+			zap.String("session_id", session.ID),
+			zap.Error(err),
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create offer"})
 		return
 	}
+
+	logger.Info("session_created",
+		zap.String("session_id", session.ID),
+		zap.String("device_id", req.DeviceID),
+		zap.String("user_id", req.UserID),
+	)
 
 	c.JSON(http.StatusOK, CreateSessionResponse{
 		SessionID: session.ID,
@@ -92,10 +106,17 @@ func (h *Handler) HandleSetAnswer(c *gin.Context) {
 	}
 
 	if err := h.webrtcManager.HandleAnswer(req.SessionID, req.Answer); err != nil {
-		log.Printf("Failed to handle answer: %v", err)
+		logger.Error("failed_to_handle_answer",
+			zap.String("session_id", req.SessionID),
+			zap.Error(err),
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to handle answer"})
 		return
 	}
+
+	logger.Info("answer_handled",
+		zap.String("session_id", req.SessionID),
+	)
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
@@ -115,10 +136,17 @@ func (h *Handler) HandleAddICECandidate(c *gin.Context) {
 	}
 
 	if err := h.webrtcManager.AddICECandidate(req.SessionID, req.Candidate); err != nil {
-		log.Printf("Failed to add ICE candidate: %v", err)
+		logger.Warn("failed_to_add_ice_candidate",
+			zap.String("session_id", req.SessionID),
+			zap.Error(err),
+		)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to add ICE candidate"})
 		return
 	}
+
+	logger.Debug("ice_candidate_added",
+		zap.String("session_id", req.SessionID),
+	)
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
@@ -128,10 +156,17 @@ func (h *Handler) HandleCloseSession(c *gin.Context) {
 	sessionID := c.Param("id")
 
 	if err := h.webrtcManager.CloseSession(sessionID); err != nil {
-		log.Printf("Failed to close session: %v", err)
+		logger.Warn("failed_to_close_session",
+			zap.String("session_id", sessionID),
+			zap.Error(err),
+		)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
 		return
 	}
+
+	logger.Info("session_closed",
+		zap.String("session_id", sessionID),
+	)
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
@@ -190,9 +225,18 @@ func (h *Handler) HandleWebSocket(c *gin.Context) {
 
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		log.Printf("Failed to upgrade WebSocket: %v", err)
+		logger.Error("failed_to_upgrade_websocket",
+			zap.String("user_id", userID),
+			zap.String("device_id", deviceID),
+			zap.Error(err),
+		)
 		return
 	}
+
+	logger.Info("websocket_connected",
+		zap.String("user_id", userID),
+		zap.String("device_id", deviceID),
+	)
 
 	websocket.ServeWs(h.wsHub, conn, userID, deviceID)
 }

@@ -1,18 +1,23 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"github.com/cloudphone/media-service/internal/config"
 	"github.com/cloudphone/media-service/internal/handlers"
+	"github.com/cloudphone/media-service/internal/logger"
 	"github.com/cloudphone/media-service/internal/webrtc"
 	"github.com/cloudphone/media-service/internal/websocket"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 func main() {
+	// 初始化日志系统
+	logger.Init()
+	defer logger.Sync()
+
 	// 加载配置
 	cfg := config.Load()
 
@@ -39,8 +44,12 @@ func main() {
 	// 创建 HTTP 处理器
 	handler := handlers.New(webrtcManager, wsHub)
 
-	// 创建 Gin 路由
-	router := gin.Default()
+	// 创建 Gin 路由（不使用 Default，手动添加中间件）
+	router := gin.New()
+
+	// 添加日志和恢复中间件
+	router.Use(logger.GinRecovery())
+	router.Use(logger.GinLogger())
 
 	// CORS 配置
 	router.Use(cors.New(cors.Config{
@@ -74,13 +83,15 @@ func main() {
 	}
 
 	// 启动服务器
-	log.Printf("🎬 Media Service is running on: http://localhost:%s", cfg.Port)
-	log.Printf("📡 WebRTC Manager initialized")
-	log.Printf("🌐 WebSocket Hub started")
-	log.Printf("🔧 STUN Servers: %v", cfg.STUNServers)
-	log.Printf("✅ Health check: http://localhost:%s/health", cfg.Port)
+	logger.Info("media_service_starting",
+		zap.String("port", cfg.Port),
+		zap.String("gin_mode", cfg.GinMode),
+		zap.Strings("stun_servers", cfg.STUNServers),
+		zap.Uint16("ice_port_min", cfg.ICEPortMin),
+		zap.Uint16("ice_port_max", cfg.ICEPortMax),
+	)
 
 	if err := router.Run(":" + cfg.Port); err != nil {
-		log.Fatal("Failed to start server:", err)
+		logger.Fatal("failed_to_start_server", zap.Error(err))
 	}
 }
