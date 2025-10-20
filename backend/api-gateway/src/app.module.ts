@@ -1,9 +1,14 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { ProxyModule } from './proxy/proxy.module';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
   imports: [
@@ -12,6 +17,25 @@ import { AuthModule } from './auth/auth.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+
+    // 限流模块 - 防止 DDoS 攻击
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000, // 1 秒
+        limit: 10, // 每秒最多 10 个请求
+      },
+      {
+        name: 'medium',
+        ttl: 10000, // 10 秒
+        limit: 100, // 每 10 秒最多 100 个请求
+      },
+      {
+        name: 'long',
+        ttl: 60000, // 1 分钟
+        limit: 500, // 每分钟最多 500 个请求
+      },
+    ]),
 
     // 数据库模块
     TypeOrmModule.forRoot({
@@ -22,14 +46,26 @@ import { AuthModule } from './auth/auth.module';
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'cloudphone',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: process.env.NODE_ENV !== 'production', // 生产环境应该关闭
+      synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV === 'development',
     }),
 
     // 业务模块
     AuthModule,
+    ProxyModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // 对所有路由应用日志中间件
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+  }
+}
