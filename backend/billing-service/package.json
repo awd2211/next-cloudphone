@@ -1,0 +1,15 @@
+{
+  "name": "billing-service",
+  "version": "1.0.0",
+  "description": "云手机平台 - 计费服务",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main",
+    "dev": "nodemon --watch src --exec ts-node src/main.ts",
+    "start:prod": "NODE_ENV=production node dist/main"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

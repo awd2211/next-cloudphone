@@ -1,0 +1,26 @@
+apiVersion: v2
+name: cloudphone
+description: A Helm chart for Cloud Phone Platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - cloudphone
+  - android
+  - remote-control
+  - webrtc
+
+maintainers:
+  - name: Cloud Phone Team
+    email: dev@cloudphone.com
+
+dependencies:
+  - name: postgresql
+    version: 12.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 17.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

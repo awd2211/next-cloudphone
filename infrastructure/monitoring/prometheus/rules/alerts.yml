@@ -1,0 +1,128 @@
+groups:
+  # 服务可用性告警
+  - name: service_availability
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~"api-gateway|media-service|scheduler-service|billing-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "服务 {{ $labels.job }} 宕机"
+          description: "{{ $labels.job }} 在过去 2 分钟内无法访问"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} 错误率过高"
+          description: "{{ $labels.job }} 的错误率超过 5%"
+
+  # 资源使用告警
+  - name: resource_usage
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "容器 {{ $labels.container_name }} CPU 使用率过高"
+          description: "CPU 使用率 {{ $value | humanizePercentage }}"
+
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "容器 {{ $labels.container_name }} 内存使用率过高"
+          description: "内存使用率 {{ $value | humanizePercentage }}"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "节点 {{ $labels.instance }} 磁盘空间不足"
+          description: "可用磁盘空间仅剩 {{ $value | humanizePercentage }}"
+
+  # 数据库告警
+  - name: database
+    interval: 30s
+    rules:
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL 数据库宕机"
+          description: "PostgreSQL 在过去 1 分钟内无法连接"
+
+      - alert: PostgreSQLTooManyConnections
+        expr: sum(pg_stat_activity_count) > (pg_settings_max_connections * 0.8)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL 连接数过多"
+          description: "当前连接数: {{ $value }}"
+
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis 服务宕机"
+          description: "Redis 在过去 1 分钟内无法连接"
+
+  # 业务指标告警
+  - name: business_metrics
+    interval: 30s
+    rules:
+      - alert: HighDeviceErrorRate
+        expr: rate(device_errors_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "设备错误率过高"
+          description: "过去 5 分钟内设备错误率: {{ $value }}/s"
+
+      - alert: LowDeviceAvailability
+        expr: (available_devices / total_devices) < 0.2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "可用设备数量不足"
+          description: "可用设备率仅为 {{ $value | humanizePercentage }}"
+
+  # 响应时间告警
+  - name: latency
+    interval: 30s
+    rules:
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} P95 响应时间过长"
+          description: "P95 响应时间: {{ $value }}s"
+
+      - alert: VeryHighResponseTime
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} P99 响应时间过长"
+          description: "P99 响应时间: {{ $value }}s"
