@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import AlipaySdk from 'alipay-sdk';
+const AlipaySdk = require('alipay-sdk');
 import * as crypto from 'crypto';
 
 export interface AlipayConfig {
@@ -21,7 +21,7 @@ export interface AlipayResult {
 @Injectable()
 export class AlipayProvider {
   private readonly logger = new Logger(AlipayProvider.name);
-  private alipaySdk: AlipaySdk | null = null;
+  private alipaySdk: any = null;
   private config: AlipayConfig;
 
   constructor(private configService: ConfigService) {

@@ -122,12 +122,20 @@ export class MeteringService {
       deviceId: usageData.deviceId,
       userId: usageData.userId,
       tenantId: usageData.tenantId,
-      cpuHours: (usageData.cpuUsage * usageData.duration) / 3600, // CPU 小时数
-      memoryGB: usageData.memoryUsage / 1024, // 转换为 GB
-      storageGB: usageData.storageUsage / 1024,
-      networkGB: usageData.networkTraffic / 1024,
-      duration: usageData.duration,
-      recordedAt: new Date(),
+      usageType: 'device_usage' as any,
+      quantity: usageData.memoryUsage / 1024, // 内存使用量(GB)
+      unit: 'GB',
+      cost: 0, // 成本计算可以后续添加
+      startTime: new Date(Date.now() - usageData.duration * 1000),
+      endTime: new Date(),
+      durationSeconds: usageData.duration,
+      isBilled: false,
+      metadata: {
+        cpuUsage: usageData.cpuUsage,
+        memoryUsage: usageData.memoryUsage,
+        storageUsage: usageData.storageUsage,
+        networkTraffic: usageData.networkTraffic,
+      },
     });
 
     return await this.usageRecordRepository.save(record);

@@ -293,6 +293,9 @@ services:
       DB_DATABASE: cloudphone
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_EXPIRES_IN: 24h
+      DEVICE_SERVICE_URL: http://device-service:30002
     ports:
       - "30005:30005"
     volumes:
