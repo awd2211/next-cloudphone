@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { CaptchaService } from './services/captcha.service';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +20,7 @@ export class AuthService {
     private userRepository: Repository<User>,
     private jwtService: JwtService,
     private httpService: HttpService,
+    private captchaService: CaptchaService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -60,24 +62,33 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const { username, password } = loginDto;
+    const { username, password, captcha, captchaId } = loginDto;
 
-    // 查找用户
+    // 1. 验证验证码
+    const isCaptchaValid = await this.captchaService.verifyCaptcha(captchaId, captcha);
+    if (!isCaptchaValid) {
+      this.logger.warn(`Invalid captcha for user: ${username}`);
+      throw new UnauthorizedException('验证码错误或已过期');
+    }
+
+    // 2. 查找用户
     const user = await this.userRepository.findOne({ where: { username } });
 
     if (!user) {
       throw new UnauthorizedException('用户名或密码错误');
     }
 
-    // 验证密码
+    // 3. 验证密码
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('用户名或密码错误');
     }
 
-    // 生成 JWT token
+    // 4. 生成 JWT token
     const token = this.jwtService.sign({ sub: user.id, username: user.username });
+
+    this.logger.log(`User logged in successfully: ${username}`);
 
     return {
       token,

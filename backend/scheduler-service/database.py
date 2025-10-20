@@ -24,7 +24,7 @@ class DeviceAllocation(Base):
     allocated_at = Column(DateTime, default=datetime.utcnow)
     released_at = Column(DateTime, nullable=True)
     duration_seconds = Column(Integer, default=0)
-    metadata = Column(String, nullable=True)  # JSON string
+    extra_metadata = Column(String, nullable=True)  # JSON string - 避免与 SQLAlchemy 的 metadata 冲突
 
     def __repr__(self):
         return f"<DeviceAllocation(device_id={self.device_id}, user_id={self.user_id})>"

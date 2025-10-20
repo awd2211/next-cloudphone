@@ -115,16 +115,19 @@ const DeviceList = () => {
       key: 'id',
       width: 100,
       ellipsis: true,
+      fixed: 'left',
     },
     {
       title: '设备名称',
       dataIndex: 'name',
       key: 'name',
+      width: 150,
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 100,
       render: (status: string) => {
         const statusMap: Record<string, { color: string; text: string }> = {
           idle: { color: 'default', text: '空闲' },
@@ -140,28 +143,38 @@ const DeviceList = () => {
       title: '安卓版本',
       dataIndex: 'androidVersion',
       key: 'androidVersion',
+      width: 100,
+      responsive: ['md'],
     },
     {
       title: 'CPU',
       dataIndex: 'cpuCores',
       key: 'cpuCores',
+      width: 80,
+      responsive: ['lg'],
       render: (cores: number) => `${cores} 核`,
     },
     {
       title: '内存',
       dataIndex: 'memoryMB',
       key: 'memoryMB',
+      width: 100,
+      responsive: ['lg'],
       render: (memory: number) => `${(memory / 1024).toFixed(1)} GB`,
     },
     {
       title: 'IP 地址',
       dataIndex: 'ipAddress',
       key: 'ipAddress',
+      width: 130,
+      responsive: ['xl'],
     },
     {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: 150,
+      responsive: ['md'],
       render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
     },
     {
@@ -228,23 +241,23 @@ const DeviceList = () => {
 
       {/* 统计卡片 */}
       {stats && (
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={6}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={12} sm={12} md={6}>
             <Card>
               <Statistic title="总设备数" value={stats.total} />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col xs={12} sm={12} md={6}>
             <Card>
               <Statistic title="运行中" value={stats.running} valueStyle={{ color: '#3f8600' }} />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col xs={12} sm={12} md={6}>
             <Card>
               <Statistic title="空闲" value={stats.idle} valueStyle={{ color: '#1890ff' }} />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col xs={12} sm={12} md={6}>
             <Card>
               <Statistic title="已停止" value={stats.stopped} valueStyle={{ color: '#cf1322' }} />
             </Card>

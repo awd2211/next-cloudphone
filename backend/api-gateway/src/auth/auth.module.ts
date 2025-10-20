@@ -9,6 +9,7 @@ import { User } from './entities/user.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
+import { CaptchaService } from './services/captcha.service';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard, PermissionsGuard],
-  exports: [JwtStrategy, PassportModule, RolesGuard, PermissionsGuard, AuthService],
+  providers: [AuthService, CaptchaService, JwtStrategy, RolesGuard, PermissionsGuard],
+  exports: [JwtStrategy, PassportModule, RolesGuard, PermissionsGuard, AuthService, CaptchaService],
 })
 export class AuthModule {}

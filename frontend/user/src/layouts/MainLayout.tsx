@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Button, Space } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Button, Space, Drawer } from 'antd';
 import {
   HomeOutlined,
   MobileOutlined,
@@ -10,6 +10,7 @@ import {
   LogoutOutlined,
   LoginOutlined,
   DollarOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -19,10 +20,23 @@ const { Header, Content, Footer } = Layout;
 const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isMobile, setIsMobile] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const [user] = useState(() => {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   });
+
+  // 检测屏幕尺寸
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const menuItems: MenuProps['items'] = [
     {
@@ -91,57 +105,92 @@ const MainLayout = () => {
           alignItems: 'center',
           background: '#fff',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+          padding: isMobile ? '0 16px' : '0 50px',
         }}
       >
         <div
           style={{
             fontWeight: 'bold',
-            fontSize: 20,
-            marginRight: 48,
+            fontSize: isMobile ? 18 : 20,
+            marginRight: isMobile ? 16 : 48,
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
           }}
           onClick={() => navigate('/')}
         >
-          云手机平台
+          {isMobile ? '云手机' : '云手机平台'}
         </div>
 
-        <Menu
-          theme="light"
-          mode="horizontal"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          style={{ flex: 1, minWidth: 0, border: 'none' }}
-        />
-
-        {user ? (
-          <Space size="large">
-            <NotificationCenter />
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
-                <span>{user.username}</span>
-              </div>
-            </Dropdown>
-          </Space>
-        ) : (
-          <Button
-            type="primary"
-            icon={<LoginOutlined />}
-            onClick={() => navigate('/login')}
-          >
-            登录/注册
-          </Button>
+        {/* 桌面端菜单 */}
+        {!isMobile && (
+          <Menu
+            theme="light"
+            mode="horizontal"
+            selectedKeys={[location.pathname]}
+            items={menuItems}
+            style={{ flex: 1, minWidth: 0, border: 'none' }}
+          />
         )}
+
+        {/* 移动端菜单按钮 */}
+        {isMobile && <div style={{ flex: 1 }} />}
+
+        <Space size={isMobile ? 'middle' : 'large'}>
+          {user ? (
+            <>
+              {!isMobile && <NotificationCenter />}
+              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+                <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  <Avatar icon={<UserOutlined />} style={{ marginRight: isMobile ? 0 : 8 }} />
+                  {!isMobile && <span>{user.username}</span>}
+                </div>
+              </Dropdown>
+            </>
+          ) : (
+            <Button
+              type="primary"
+              icon={<LoginOutlined />}
+              onClick={() => navigate('/login')}
+              size={isMobile ? 'small' : 'middle'}
+            >
+              {isMobile ? '登录' : '登录/注册'}
+            </Button>
+          )}
+
+          {isMobile && (
+            <MenuOutlined
+              style={{ fontSize: 20, cursor: 'pointer' }}
+              onClick={() => setDrawerVisible(true)}
+            />
+          )}
+        </Space>
       </Header>
 
-      <Content style={{ padding: '24px 50px' }}>
+      {/* 移动端抽屉菜单 */}
+      {isMobile && (
+        <Drawer
+          title="菜单"
+          placement="right"
+          onClose={() => setDrawerVisible(false)}
+          open={drawerVisible}
+        >
+          <Menu
+            mode="vertical"
+            selectedKeys={[location.pathname]}
+            items={menuItems}
+            onClick={() => setDrawerVisible(false)}
+          />
+        </Drawer>
+      )}
+
+      <Content style={{ padding: isMobile ? '16px' : '24px 50px' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           <Outlet />
         </div>
       </Content>
 
-      <Footer style={{ textAlign: 'center', background: '#f0f2f5' }}>
-        云手机平台 ©{new Date().getFullYear()} Created by Your Company
+      <Footer style={{ textAlign: 'center', background: '#f0f2f5', padding: isMobile ? '12px' : '24px 50px' }}>
+        云手机平台 ©{new Date().getFullYear()}
       </Footer>
     </Layout>
   );
