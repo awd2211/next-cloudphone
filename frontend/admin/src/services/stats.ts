@@ -53,3 +53,21 @@ export const getRevenueTrend = (days: number = 30) => {
     orders: number;
   }[]>('/stats/revenue/trend', { params: { days } });
 };
+
+// 用户增长统计
+export const getUserGrowthStats = (days: number = 30) => {
+  return request.get<{
+    date: string;
+    newUsers: number;
+    totalUsers: number;
+  }[]>('/stats/users/growth', { params: { days } });
+};
+
+// 套餐分布统计
+export const getPlanDistributionStats = () => {
+  return request.get<{
+    planName: string;
+    userCount: number;
+    revenue: number;
+  }[]>('/stats/plans/distribution');
+};

@@ -8,6 +8,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { getDevice, startDevice, stopDevice, rebootDevice } from '@/services/device';
+import WebRTCPlayer from '@/components/WebRTCPlayer';
 import type { Device } from '@/types';
 import dayjs from 'dayjs';
 
@@ -193,31 +194,13 @@ const DeviceDetail = () => {
         </div>
       </Card>
 
-      {device.status === 'running' && (
-        <Card title="设备屏幕">
-          <div
-            style={{
-              background: '#000',
-              borderRadius: 8,
-              padding: 16,
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ color: '#fff', padding: '100px 0' }}>
-              <p style={{ fontSize: 18, marginBottom: 16 }}>设备正在运行中</p>
-              <p style={{ color: '#999' }}>
-                WebRTC 实时投屏功能即将上线，敬请期待！
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {device.status !== 'running' && (
-        <Card>
+      {device.status === 'running' ? (
+        <WebRTCPlayer deviceId={device.id} />
+      ) : (
+        <Card title="设备画面">
           <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
             <p style={{ fontSize: 18, marginBottom: 16 }}>设备未运行</p>
-            <p>请先启动设备后再进行操作</p>
+            <p>请先启动设备后再查看画面</p>
           </div>
         </Card>
       )}

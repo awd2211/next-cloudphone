@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic } from 'antd';
 import { MobileOutlined, UserOutlined, AppstoreOutlined, CloudServerOutlined, DollarOutlined, ShoppingOutlined } from '@ant-design/icons';
-import { getDashboardStats } from '@/services/stats';
+import { getDashboardStats, getUserGrowthStats, getPlanDistributionStats } from '@/services/stats';
 import { getRevenueStats } from '@/services/billing';
 import { getDeviceStats } from '@/services/device';
 import type { DashboardStats } from '@/types';
 import RevenueChart from '@/components/RevenueChart';
 import DeviceStatusChart from '@/components/DeviceStatusChart';
+import UserGrowthChart from '@/components/UserGrowthChart';
+import PlanDistributionChart from '@/components/PlanDistributionChart';
 import dayjs from 'dayjs';
 
 const Dashboard = () => {
@@ -14,6 +16,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [deviceStatusData, setDeviceStatusData] = useState<any[]>([]);
+  const [userGrowthData, setUserGrowthData] = useState<any[]>([]);
+  const [planDistributionData, setPlanDistributionData] = useState<any[]>([]);
   const [chartsLoading, setChartsLoading] = useState(false);
 
   const loadStats = async () => {
@@ -45,6 +49,14 @@ const Dashboard = () => {
         { status: 'stopped', count: deviceRes.stopped || 0 },
       ].filter(item => item.count > 0);
       setDeviceStatusData(statusData);
+
+      // 加载用户增长数据（近30天）
+      const userGrowthRes = await getUserGrowthStats(30);
+      setUserGrowthData(userGrowthRes || []);
+
+      // 加载套餐分布数据
+      const planDistRes = await getPlanDistributionStats();
+      setPlanDistributionData(planDistRes || []);
     } catch (error) {
       console.error('加载图表数据失败', error);
     } finally {
@@ -114,6 +126,19 @@ const Dashboard = () => {
         <Col xs={24} lg={8}>
           <Card title="设备状态分布">
             <DeviceStatusChart data={deviceStatusData} loading={chartsLoading} />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+        <Col xs={24} lg={16}>
+          <Card title="近30天用户增长">
+            <UserGrowthChart data={userGrowthData} loading={chartsLoading} />
+          </Card>
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card title="套餐用户分布">
+            <PlanDistributionChart data={planDistributionData} loading={chartsLoading} />
           </Card>
         </Col>
       </Row>

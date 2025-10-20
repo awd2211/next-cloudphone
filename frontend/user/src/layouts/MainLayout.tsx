@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Button } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Button, Space } from 'antd';
 import {
   HomeOutlined,
   MobileOutlined,
@@ -12,6 +12,7 @@ import {
   DollarOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
+import NotificationCenter from '@/components/NotificationCenter';
 
 const { Header, Content, Footer } = Layout;
 
@@ -113,12 +114,15 @@ const MainLayout = () => {
         />
 
         {user ? (
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-              <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
-              <span>{user.username}</span>
-            </div>
-          </Dropdown>
+          <Space size="large">
+            <NotificationCenter />
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
+                <span>{user.username}</span>
+              </div>
+            </Dropdown>
+          </Space>
         ) : (
           <Button
             type="primary"
