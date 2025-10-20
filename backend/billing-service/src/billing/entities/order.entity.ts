@@ -4,7 +4,23 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
+
+export enum OrderStatus {
+  PENDING = 'pending',
+  PAID = 'paid',
+  CANCELLED = 'cancelled',
+  REFUNDED = 'refunded',
+  FAILED = 'failed',
+}
+
+export enum PaymentMethod {
+  WECHAT = 'wechat',
+  ALIPAY = 'alipay',
+  STRIPE = 'stripe',
+  BALANCE = 'balance',
+}
 
 @Entity('orders')
 export class Order {
@@ -12,25 +28,64 @@ export class Order {
   id: string;
 
   @Column()
+  @Index()
   userId: string;
 
-  @Column()
+  @Column({ nullable: true })
+  @Index()
   tenantId: string;
+
+  @Column()
+  @Index()
+  orderNumber: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount: number;
 
-  @Column({ default: 'pending' })
-  status: string; // 'pending' | 'paid' | 'cancelled' | 'refunded'
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  discountAmount: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  finalAmount: number;
+
+  @Column({
+    type: 'enum',
+    enum: OrderStatus,
+    default: OrderStatus.PENDING,
+  })
+  @Index()
+  status: OrderStatus;
+
+  @Column({
+    type: 'enum',
+    enum: PaymentMethod,
+    nullable: true,
+  })
+  paymentMethod: PaymentMethod;
 
   @Column({ nullable: true })
   planId: string;
 
+  @Column({ nullable: true })
+  deviceId: string;
+
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
   @Column({ type: 'jsonb', nullable: true })
-  metadata: any;
+  metadata: Record<string, any>;
 
   @Column({ nullable: true })
+  transactionId: string;
+
+  @Column({ type: 'timestamp', nullable: true })
   paidAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  cancelledAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  refundedAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;
