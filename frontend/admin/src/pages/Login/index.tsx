@@ -41,7 +41,7 @@ const Login = () => {
   const handleSubmit = async (values: LoginForm) => {
     setLoading(true);
     try {
-      const { data } = await login({
+      const data = await login({
         ...values,
         captchaId,
       });

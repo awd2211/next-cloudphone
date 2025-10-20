@@ -6,6 +6,15 @@ __pycache__/
 *.pyo
 *.pyd
 
+# pnpm
+.pnpm-store/
+**/.pnpm-store/
+.pnpm-debug.log
+
+# Lock files (keep only pnpm-lock.yaml)
+package-lock.json
+yarn.lock
+
 # Build outputs
 dist/
 build/
@@ -50,6 +59,10 @@ out/
 *.temp
 .cache/
 .parcel-cache/
+.vite/
+.turbo/
+.eslintcache
+*.tsbuildinfo
 
 # Database
 *.db
