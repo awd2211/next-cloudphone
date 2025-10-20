@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+*.js
+*.js.map
+*.d.ts
+
+# Environment files
+.env
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Keep TypeScript source files
+!*.ts
+
+# Keep configuration files
+!tsconfig.json
