@@ -31,6 +31,7 @@
     "class-validator": "^0.14.2",
     "http-proxy-middleware": "^3.0.5",
     "ioredis": "^5.8.1",
+    "nest-winston": "^1.10.2",
     "opossum": "^9.0.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -42,7 +43,8 @@
     "svg-captcha": "^1.4.0",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.27",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "winston": "^3.18.3"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",

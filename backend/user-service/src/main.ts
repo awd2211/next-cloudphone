@@ -2,12 +2,24 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { WINSTON_MODULE_NEST_PROVIDER, WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { AppModule } from './app.module';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
+
+  // 使用 Winston 作为应用的 Logger
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
+
+  // 全局异常过滤器
+  app.useGlobalFilters(new AllExceptionsFilter(app.get(WINSTON_MODULE_PROVIDER)));
+
+  // 全局日志拦截器
+  app.useGlobalInterceptors(new LoggingInterceptor(app.get(WINSTON_MODULE_PROVIDER)));
 
   // 全局验证管道
   app.useGlobalPipes(

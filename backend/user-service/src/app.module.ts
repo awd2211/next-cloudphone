@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { WinstonModule } from 'nest-winston';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health.controller';
+import { winstonConfig } from './config/winston.config';
 
 @Module({
   imports: [
@@ -13,6 +15,7 @@ import { HealthController } from './health.controller';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    WinstonModule.forRoot(winstonConfig),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
