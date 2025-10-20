@@ -11,6 +11,9 @@ import { BillingModule } from './billing/billing.module';
 import { MeteringModule } from './metering/metering.module';
 import { ReportsModule } from './reports/reports.module';
 import { PaymentsModule } from './payments/payments.module';
+import { BalanceModule } from './balance/balance.module';
+import { InvoicesModule } from './invoices/invoices.module';
+import { BillingRulesModule } from './billing-rules/billing-rules.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -44,6 +47,9 @@ import { HealthController } from './health.controller';
     MeteringModule,
     ReportsModule,
     PaymentsModule,
+    BalanceModule,
+    InvoicesModule,
+    BillingRulesModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

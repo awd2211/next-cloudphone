@@ -8,19 +8,17 @@ import { AuthModule } from './auth/auth.module';
 import { DevicesModule } from './devices/devices.module';
 import { DockerModule } from './docker/docker.module';
 import { AdbModule } from './adb/adb.module';
+import { GpuModule } from './gpu/gpu.module';
+import { TemplatesModule } from './templates/templates.module';
+import { SnapshotsModule } from './snapshots/snapshots.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 import { HealthController } from './health.controller';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
       isGlobal: true,
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
       envFilePath: '.env',
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
     }),
     // Winston 日志模块
     WinstonModule.forRoot(winstonConfig),
@@ -44,6 +42,10 @@ import { HealthController } from './health.controller';
     DevicesModule,
     DockerModule,
     AdbModule,
+    GpuModule,
+    TemplatesModule,
+    SnapshotsModule,
+    SchedulerModule,
   ],
   controllers: [HealthController],
 })

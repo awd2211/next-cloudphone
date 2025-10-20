@@ -2,10 +2,15 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WinstonModule } from 'nest-winston';
+import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { AuthModule } from './auth/auth.module';
+import { QuotasModule } from './quotas/quotas.module';
+import { TicketsModule } from './tickets/tickets.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
 import { HealthController } from './health.controller';
 import { MetricsController } from './metrics.controller';
 import { winstonConfig } from './config/winston.config';
@@ -18,6 +23,7 @@ import { PrometheusMiddleware } from './common/middleware/prometheus.middleware'
       envFilePath: '.env',
     }),
     WinstonModule.forRoot(winstonConfig),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -37,6 +43,10 @@ import { PrometheusMiddleware } from './common/middleware/prometheus.middleware'
     RolesModule,
     PermissionsModule,
     AuthModule,
+    QuotasModule,
+    TicketsModule,
+    AuditLogsModule,
+    ApiKeysModule,
   ],
   controllers: [HealthController, MetricsController],
 })
