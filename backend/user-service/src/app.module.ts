@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WinstonModule } from 'nest-winston';
@@ -7,7 +7,9 @@ import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health.controller';
+import { MetricsController } from './metrics.controller';
 import { winstonConfig } from './config/winston.config';
+import { PrometheusMiddleware } from './common/middleware/prometheus.middleware';
 
 @Module({
   imports: [
@@ -36,6 +38,10 @@ import { winstonConfig } from './config/winston.config';
     PermissionsModule,
     AuthModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, MetricsController],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(PrometheusMiddleware).forRoutes('*');
+  }
+}
