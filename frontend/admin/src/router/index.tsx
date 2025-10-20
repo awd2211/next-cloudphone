@@ -9,6 +9,9 @@ import OrderList from '@/pages/Order/List';
 import PlanList from '@/pages/Plan/List';
 import RevenueReport from '@/pages/Report/Revenue';
 import UsageList from '@/pages/Usage/List';
+import PaymentList from '@/pages/Payment/List';
+import RoleList from '@/pages/Role/List';
+import PermissionList from '@/pages/Permission/List';
 
 export const router = createBrowserRouter([
   {
@@ -50,6 +53,18 @@ export const router = createBrowserRouter([
       {
         path: 'usage',
         element: <UsageList />,
+      },
+      {
+        path: 'payments',
+        element: <PaymentList />,
+      },
+      {
+        path: 'roles',
+        element: <RoleList />,
+      },
+      {
+        path: 'permissions',
+        element: <PermissionList />,
       },
     ],
   },

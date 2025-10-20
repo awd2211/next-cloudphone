@@ -11,6 +11,9 @@ import {
   GoldOutlined,
   BarChartOutlined,
   ClockCircleOutlined,
+  CreditCardOutlined,
+  SafetyOutlined,
+  KeyOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -74,6 +77,30 @@ const BasicLayout = () => {
       icon: <ClockCircleOutlined />,
       label: '使用记录',
       onClick: () => navigate('/usage'),
+    },
+    {
+      key: '/payments',
+      icon: <CreditCardOutlined />,
+      label: '支付管理',
+      onClick: () => navigate('/payments'),
+    },
+    {
+      key: 'system',
+      icon: <SafetyOutlined />,
+      label: '系统管理',
+      children: [
+        {
+          key: '/roles',
+          icon: <KeyOutlined />,
+          label: '角色管理',
+          onClick: () => navigate('/roles'),
+        },
+        {
+          key: '/permissions',
+          label: '权限管理',
+          onClick: () => navigate('/permissions'),
+        },
+      ],
     },
   ];
 

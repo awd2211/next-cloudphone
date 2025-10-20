@@ -37,6 +37,8 @@ export interface Role {
   name: string;
   description?: string;
   permissions: Permission[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Permission {
@@ -44,6 +46,8 @@ export interface Permission {
   resource: string;
   action: string;
   description?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateUserDto {
