@@ -28,7 +28,7 @@ RUN npm install -g pnpm
 COPY frontend/admin/package.json frontend/admin/pnpm-lock.yaml* ./
 
 # 安装依赖
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # 复制源代码
 COPY frontend/admin/ ./

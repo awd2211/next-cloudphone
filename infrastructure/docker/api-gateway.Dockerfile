@@ -28,7 +28,7 @@ RUN npm install -g pnpm
 COPY backend/api-gateway/package.json backend/api-gateway/pnpm-lock.yaml* ./
 
 # 安装依赖
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # 复制源代码
 COPY backend/api-gateway/ ./
@@ -48,7 +48,7 @@ RUN npm install -g pnpm
 COPY backend/api-gateway/package.json backend/api-gateway/pnpm-lock.yaml* ./
 
 # 只安装生产依赖
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --no-frozen-lockfile
 
 # 从构建阶段复制编译后的文件
 COPY --from=builder /app/dist ./dist
