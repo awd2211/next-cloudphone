@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, Table, Tag, Button, Space, Input, Select, Badge, Tooltip } from 'antd';
 import { PlusOutlined, SearchOutlined, EyeOutlined, MessageOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -123,7 +123,8 @@ const TicketList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  const getCategoryTag = (category: Ticket['category']) => {
+  // 使用 useCallback 优化渲染函数
+  const getCategoryTag = useCallback((category: Ticket['category']) => {
     const categoryConfig = {
       technical: { color: 'blue', text: '技术问题' },
       billing: { color: 'orange', text: '账单问题' },
@@ -132,9 +133,9 @@ const TicketList: React.FC = () => {
     };
     const config = categoryConfig[category];
     return <Tag color={config.color}>{config.text}</Tag>;
-  };
+  }, []);
 
-  const getPriorityTag = (priority: Ticket['priority']) => {
+  const getPriorityTag = useCallback((priority: Ticket['priority']) => {
     const priorityConfig = {
       low: { color: 'default', text: '低' },
       medium: { color: 'blue', text: '中' },
@@ -143,9 +144,9 @@ const TicketList: React.FC = () => {
     };
     const config = priorityConfig[priority];
     return <Tag color={config.color}>{config.text}</Tag>;
-  };
+  }, []);
 
-  const getStatusBadge = (status: Ticket['status']) => {
+  const getStatusBadge = useCallback((status: Ticket['status']) => {
     const statusConfig = {
       open: { status: 'error', text: '待处理' },
       in_progress: { status: 'processing', text: '处理中' },
@@ -155,13 +156,14 @@ const TicketList: React.FC = () => {
     };
     const config = statusConfig[status] as any;
     return <Badge status={config.status} text={config.text} />;
-  };
+  }, []);
 
-  const handleViewDetail = (ticket: Ticket) => {
+  const handleViewDetail = useCallback((ticket: Ticket) => {
     navigate(`/tickets/${ticket.id}`);
-  };
+  }, [navigate]);
 
-  const columns: ColumnsType<Ticket> = [
+  // 使用 useMemo 缓存 columns 配置
+  const columns: ColumnsType<Ticket> = useMemo(() => [
     {
       title: '工单编号',
       dataIndex: 'ticketNo',
@@ -263,17 +265,17 @@ const TicketList: React.FC = () => {
         </Space>
       ),
     },
-  ];
+  ], [getCategoryTag, getPriorityTag, getStatusBadge, handleViewDetail]);
 
-  // 过滤数据
-  const filteredTickets = tickets.filter(ticket => {
+  // 使用 useMemo 缓存过滤后的数据
+  const filteredTickets = useMemo(() => tickets.filter(ticket => {
     if (categoryFilter !== 'all' && ticket.category !== categoryFilter) return false;
     if (statusFilter !== 'all' && ticket.status !== statusFilter) return false;
     if (priorityFilter !== 'all' && ticket.priority !== priorityFilter) return false;
     if (searchText && !ticket.title.toLowerCase().includes(searchText.toLowerCase()) &&
         !ticket.ticketNo.toLowerCase().includes(searchText.toLowerCase())) return false;
     return true;
-  });
+  }), [tickets, categoryFilter, statusFilter, priorityFilter, searchText]);
 
   return (
     <Card
@@ -347,4 +349,5 @@ const TicketList: React.FC = () => {
   );
 };
 
-export default TicketList;
+// 使用 React.memo 包裹组件以优化性能
+export default React.memo(TicketList);

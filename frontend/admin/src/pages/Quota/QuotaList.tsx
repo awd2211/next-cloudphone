@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, Table, Tag, Progress, Button, Space } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
@@ -26,7 +26,21 @@ const QuotaList: React.FC = () => {
   const [quotas, setQuotas] = useState<Quota[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const columns = [
+  // 使用 useCallback 优化按钮点击处理
+  const handleCreateQuota = useCallback(() => {
+    console.log('创建配额');
+  }, []);
+
+  const handleEdit = useCallback((record: Quota) => {
+    console.log('编辑配额:', record);
+  }, []);
+
+  const handleViewDetail = useCallback((record: Quota) => {
+    console.log('查看详情:', record);
+  }, []);
+
+  // 使用 useMemo 缓存 columns 配置
+  const columns = useMemo(() => [
     {
       title: '用户',
       dataIndex: 'userName',
@@ -85,17 +99,17 @@ const QuotaList: React.FC = () => {
     {
       title: '操作',
       key: 'actions',
-      render: () => (
+      render: (record: Quota) => (
         <Space>
-          <Button type="link" size="small">编辑</Button>
-          <Button type="link" size="small">详情</Button>
+          <Button type="link" size="small" onClick={() => handleEdit(record)}>编辑</Button>
+          <Button type="link" size="small" onClick={() => handleViewDetail(record)}>详情</Button>
         </Space>
       ),
     },
-  ];
+  ], [handleEdit, handleViewDetail]);
 
-  // 配额使用率饼图
-  const getUsageChartOption = () => ({
+  // 使用 useMemo 缓存图表配置
+  const usageChartOption = useMemo(() => ({
     title: { text: '配额使用率分布', left: 'center' },
     tooltip: { trigger: 'item' },
     legend: { orient: 'vertical', left: 'left' },
@@ -112,14 +126,14 @@ const QuotaList: React.FC = () => {
         ],
       },
     ],
-  });
+  }), []);
 
   return (
     <div>
       <Card
         title="配额管理"
         extra={
-          <Button type="primary" icon={<PlusOutlined />}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateQuota}>
             创建配额
           </Button>
         }
@@ -134,10 +148,11 @@ const QuotaList: React.FC = () => {
       </Card>
 
       <Card title="配额使用分析" style={{ marginTop: 16 }}>
-        <ReactECharts option={getUsageChartOption()} style={{ height: 400 }} />
+        <ReactECharts option={usageChartOption} style={{ height: 400 }} />
       </Card>
     </div>
   );
 };
 
-export default QuotaList;
+// 使用 React.memo 包裹组件以优化性能
+export default React.memo(QuotaList);
