@@ -120,7 +120,7 @@ export class CircuitBreakerService {
       throw new Error(`熔断器 ${name} 不存在`);
     }
 
-    return breaker.fire(...args);
+    return breaker.fire(...args) as Promise<T>;
   }
 
   /**
@@ -194,14 +194,15 @@ export class CircuitBreakerService {
   }
 
   /**
-   * 清除熔断器统计数据
+   * 重置熔断器（通过重新创建实现统计清除）
    */
   clearStats(name: string): void {
     const breaker = this.breakers.get(name);
 
     if (breaker) {
-      breaker.stats.clear();
-      this.logger.log(`🧹 清除熔断器统计: ${name}`);
+      // opossum 没有直接的 clear 方法，通过重置熔断器实现
+      this.breakers.delete(name);
+      this.logger.log(`🧹 清除熔断器统计: ${name}（熔断器已删除，需重新创建）`);
     }
   }
 

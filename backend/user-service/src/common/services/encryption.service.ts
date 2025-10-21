@@ -287,25 +287,25 @@ export class EncryptionService {
     obj: T,
     fieldMasks: Record<keyof T, 'phone' | 'email' | 'idCard' | 'bankCard' | 'name'>,
   ): T {
-    const result = { ...obj };
+    const result: any = { ...obj };
 
     for (const [field, maskType] of Object.entries(fieldMasks)) {
       if (result[field] && typeof result[field] === 'string') {
         switch (maskType) {
           case 'phone':
-            result[field] = this.maskPhone(result[field] as string) as any;
+            result[field] = this.maskPhone(result[field] as string);
             break;
           case 'email':
-            result[field] = this.maskEmail(result[field] as string) as any;
+            result[field] = this.maskEmail(result[field] as string);
             break;
           case 'idCard':
-            result[field] = this.maskIdCard(result[field] as string) as any;
+            result[field] = this.maskIdCard(result[field] as string);
             break;
           case 'bankCard':
-            result[field] = this.maskBankCard(result[field] as string) as any;
+            result[field] = this.maskBankCard(result[field] as string);
             break;
           case 'name':
-            result[field] = this.maskName(result[field] as string) as any;
+            result[field] = this.maskName(result[field] as string);
             break;
         }
       }

@@ -263,7 +263,7 @@ export class OrderService {
       // 1. 检查设备可用性（device-service 熔断器）
       const device = await this.deviceServiceClient.getDevice(deviceId);
 
-      if (device.status === 'unknown') {
+      if ((device as any).status === 'unknown') {
         // 设备服务降级，使用默认逻辑
         console.log('Device service degraded, using fallback logic');
       }

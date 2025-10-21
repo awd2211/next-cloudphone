@@ -11,3 +11,8 @@ export const ROLES_KEY = 'roles';
  * async getUsers() {}
  */
 export const RequireRole = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+
+/**
+ * Roles 装饰器 - RequireRole 的别名
+ */
+export const Roles = RequireRole;

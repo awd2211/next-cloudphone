@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../entities/user.entity';
+import { User, UserStatus } from '../../entities/user.entity';
 import { CacheService, CacheLayer } from '../cache.service';
 import { Cacheable, CacheEvict, CachePut } from '../decorators/cacheable.decorator';
 
@@ -141,7 +141,7 @@ export class CachedUserServiceExample {
 
     // 查询数据库
     const users = await this.userRepository.find({
-      where: { status: 'active' },
+      where: { status: UserStatus.ACTIVE },
       take: 100,
     });
 

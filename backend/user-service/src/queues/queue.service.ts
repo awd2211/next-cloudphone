@@ -267,7 +267,6 @@ export class QueueService {
         completed: number;
         failed: number;
         delayed: number;
-        paused: number;
       };
     }>
   > {

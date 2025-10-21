@@ -99,7 +99,7 @@ export class QueueController {
       data: job.data,
       opts: job.opts,
       progress: job.progress(),
-      delay: job.delay,
+      delay: job.opts?.delay || 0,
       timestamp: job.timestamp,
       attemptsMade: job.attemptsMade,
       failedReason: job.failedReason,
