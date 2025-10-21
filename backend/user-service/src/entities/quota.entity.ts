@@ -71,6 +71,10 @@ export interface QuotaUsage {
 }
 
 @Entity('quotas')
+// 复合索引 - 优化常见查询场景
+@Index('idx_quotas_user_status', ['userId', 'status'])
+@Index('idx_quotas_plan_status', ['planId', 'status'])
+@Index('idx_quotas_valid_period', ['validFrom', 'validUntil'])
 export class Quota {
   @PrimaryGeneratedColumn('uuid')
   id: string;

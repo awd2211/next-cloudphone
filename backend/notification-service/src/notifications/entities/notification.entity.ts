@@ -49,6 +49,11 @@ export enum NotificationStatus {
 }
 
 @Entity('notifications')
+// 复合索引 - 优化常见查询场景
+@Index('idx_notifications_user_status', ['userId', 'status', 'createdAt'])
+@Index('idx_notifications_type_status', ['type', 'status'])
+@Index('idx_notifications_resource', ['resourceType', 'resourceId'])
+@Index('idx_notifications_user_read', ['userId', 'readAt', 'createdAt'])
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;

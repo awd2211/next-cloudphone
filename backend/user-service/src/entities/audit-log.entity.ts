@@ -59,6 +59,10 @@ export enum AuditLevel {
 }
 
 @Entity('audit_logs')
+// 复合索引 - 优化常见查询场景
+@Index('idx_audit_resource', ['resourceType', 'resourceId', 'createdAt'])
+@Index('idx_audit_user_action', ['userId', 'action', 'createdAt'])
+@Index('idx_audit_level_time', ['level', 'createdAt'])
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -36,6 +36,11 @@ export enum TicketCategory {
 }
 
 @Entity('tickets')
+// 复合索引 - 优化常见查询场景
+@Index('idx_tickets_status_priority', ['status', 'priority', 'createdAt'])
+@Index('idx_tickets_assigned', ['assignedTo', 'status'])
+@Index('idx_tickets_user_status', ['userId', 'status', 'createdAt'])
+@Index('idx_tickets_category_status', ['category', 'status'])
 export class Ticket {
   @PrimaryGeneratedColumn('uuid')
   id: string;
