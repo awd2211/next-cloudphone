@@ -1,34 +1,59 @@
+import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
+import { Spin } from 'antd';
+
+// Layout 和 Login 保持同步导入(首屏必需)
 import Layout from '@/layouts/BasicLayout';
 import Login from '@/pages/Login';
-import Dashboard from '@/pages/Dashboard';
-import DeviceList from '@/pages/Device/List';
-import DeviceDetail from '@/pages/Device/Detail';
-import UserList from '@/pages/User/List';
-import AppList from '@/pages/App/List';
-import OrderList from '@/pages/Order/List';
-import PlanList from '@/pages/Plan/List';
-import RevenueReport from '@/pages/Report/Revenue';
-import Analytics from '@/pages/Report/Analytics';
-import UsageList from '@/pages/Usage/List';
-import PaymentList from '@/pages/Payment/List';
-import RoleList from '@/pages/Role/List';
-import PermissionList from '@/pages/Permission/List';
-import Settings from '@/pages/Settings';
-import AuditLogList from '@/pages/Logs/Audit';
-import NotificationCenter from '@/pages/Notifications';
-import Profile from '@/pages/Profile';
 
-// 新增页面导入
-import QuotaList from '@/pages/Quota/QuotaList';
-import AnalyticsDashboard from '@/pages/Analytics/Dashboard';
-import BalanceOverview from '@/pages/Billing/BalanceOverview';
-import TransactionHistory from '@/pages/Billing/TransactionHistory';
-import InvoiceList from '@/pages/Billing/InvoiceList';
-import TicketList from '@/pages/Ticket/TicketList';
-import TicketDetail from '@/pages/Ticket/TicketDetail';
-import AuditLog from '@/pages/Audit/AuditLogList';
-import ApiKeyList from '@/pages/ApiKey/ApiKeyList';
+// 使用 React.lazy 懒加载所有页面组件
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const DeviceList = lazy(() => import('@/pages/Device/List'));
+const DeviceDetail = lazy(() => import('@/pages/Device/Detail'));
+const UserList = lazy(() => import('@/pages/User/List'));
+const AppList = lazy(() => import('@/pages/App/List'));
+const OrderList = lazy(() => import('@/pages/Order/List'));
+const PlanList = lazy(() => import('@/pages/Plan/List'));
+const RevenueReport = lazy(() => import('@/pages/Report/Revenue'));
+const Analytics = lazy(() => import('@/pages/Report/Analytics'));
+const UsageList = lazy(() => import('@/pages/Usage/List'));
+const PaymentList = lazy(() => import('@/pages/Payment/List'));
+const RoleList = lazy(() => import('@/pages/Role/List'));
+const PermissionList = lazy(() => import('@/pages/Permission/List'));
+const Settings = lazy(() => import('@/pages/Settings'));
+const AuditLogList = lazy(() => import('@/pages/Logs/Audit'));
+const NotificationCenter = lazy(() => import('@/pages/Notifications'));
+const Profile = lazy(() => import('@/pages/Profile'));
+
+// 新增页面 - 懒加载
+const QuotaList = lazy(() => import('@/pages/Quota/QuotaList'));
+const AnalyticsDashboard = lazy(() => import('@/pages/Analytics/Dashboard'));
+const BalanceOverview = lazy(() => import('@/pages/Billing/BalanceOverview'));
+const TransactionHistory = lazy(() => import('@/pages/Billing/TransactionHistory'));
+const InvoiceList = lazy(() => import('@/pages/Billing/InvoiceList'));
+const TicketList = lazy(() => import('@/pages/Ticket/TicketList'));
+const TicketDetail = lazy(() => import('@/pages/Ticket/TicketDetail'));
+const AuditLog = lazy(() => import('@/pages/Audit/AuditLogList'));
+const ApiKeyList = lazy(() => import('@/pages/ApiKey/ApiKeyList'));
+
+// Loading 组件
+const PageLoading = () => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh'
+  }}>
+    <Spin size="large" tip="加载中..." />
+  </div>
+);
+
+// Suspense 包裹组件
+const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => (
+  <Suspense fallback={<PageLoading />}>
+    <Component />
+  </Suspense>
+);
 
 export const router = createBrowserRouter([
   {
@@ -41,113 +66,113 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Dashboard />,
+        element: withSuspense(Dashboard),
       },
       {
         path: 'devices',
-        element: <DeviceList />,
+        element: withSuspense(DeviceList),
       },
       {
         path: 'devices/:id',
-        element: <DeviceDetail />,
+        element: withSuspense(DeviceDetail),
       },
       {
         path: 'users',
-        element: <UserList />,
+        element: withSuspense(UserList),
       },
       {
         path: 'apps',
-        element: <AppList />,
+        element: withSuspense(AppList),
       },
       {
         path: 'orders',
-        element: <OrderList />,
+        element: withSuspense(OrderList),
       },
       {
         path: 'plans',
-        element: <PlanList />,
+        element: withSuspense(PlanList),
       },
       {
         path: 'reports/revenue',
-        element: <RevenueReport />,
+        element: withSuspense(RevenueReport),
       },
       {
         path: 'reports/analytics',
-        element: <Analytics />,
+        element: withSuspense(Analytics),
       },
       {
         path: 'usage',
-        element: <UsageList />,
+        element: withSuspense(UsageList),
       },
       {
         path: 'payments',
-        element: <PaymentList />,
+        element: withSuspense(PaymentList),
       },
       {
         path: 'roles',
-        element: <RoleList />,
+        element: withSuspense(RoleList),
       },
       {
         path: 'permissions',
-        element: <PermissionList />,
+        element: withSuspense(PermissionList),
       },
       {
         path: 'settings',
-        element: <Settings />,
+        element: withSuspense(Settings),
       },
       {
         path: 'logs/audit',
-        element: <AuditLogList />,
+        element: withSuspense(AuditLogList),
       },
       {
         path: 'notifications',
-        element: <NotificationCenter />,
+        element: withSuspense(NotificationCenter),
       },
       {
         path: 'profile',
-        element: <Profile />,
+        element: withSuspense(Profile),
       },
       // 配额管理
       {
         path: 'quotas',
-        element: <QuotaList />,
+        element: withSuspense(QuotaList),
       },
       // 数据分析
       {
         path: 'analytics',
-        element: <AnalyticsDashboard />,
+        element: withSuspense(AnalyticsDashboard),
       },
       // 账单管理
       {
         path: 'billing/balance',
-        element: <BalanceOverview />,
+        element: withSuspense(BalanceOverview),
       },
       {
         path: 'billing/transactions',
-        element: <TransactionHistory />,
+        element: withSuspense(TransactionHistory),
       },
       {
         path: 'billing/invoices',
-        element: <InvoiceList />,
+        element: withSuspense(InvoiceList),
       },
       // 工单系统
       {
         path: 'tickets',
-        element: <TicketList />,
+        element: withSuspense(TicketList),
       },
       {
         path: 'tickets/:id',
-        element: <TicketDetail />,
+        element: withSuspense(TicketDetail),
       },
       // 审计日志（新路径）
       {
         path: 'audit-logs',
-        element: <AuditLog />,
+        element: withSuspense(AuditLog),
       },
       // API 密钥管理
       {
         path: 'api-keys',
-        element: <ApiKeyList />,
+        element: withSuspense(ApiKeyList),
       },
     ],
   },

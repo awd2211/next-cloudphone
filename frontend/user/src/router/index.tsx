@@ -1,26 +1,51 @@
+import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
+import { Spin } from 'antd';
+
+// Layout 和 Login 保持同步导入(首屏必需)
 import MainLayout from '@/layouts/MainLayout';
 import Login from '@/pages/Login';
-import Home from '@/pages/Home';
-import PlanPurchase from '@/pages/PlanPurchase';
-import MyDevices from '@/pages/MyDevices';
-import DeviceDetail from '@/pages/DeviceDetail';
-import MyOrders from '@/pages/MyOrders';
-import Profile from '@/pages/Profile';
-import AppMarket from '@/pages/AppMarket';
-import Recharge from '@/pages/Recharge';
-import UsageRecords from '@/pages/UsageRecords';
-import TicketList from '@/pages/Tickets/TicketList';
-import TicketDetail from '@/pages/Tickets/TicketDetail';
-import MessageList from '@/pages/Messages/MessageList';
-import MessageSettings from '@/pages/Messages/MessageSettings';
-import HelpCenter from '@/pages/Help/HelpCenter';
-import FAQList from '@/pages/Help/FAQList';
-import TutorialList from '@/pages/Help/TutorialList';
-import TutorialDetail from '@/pages/Help/TutorialDetail';
-import ExportCenter from '@/pages/DataExport/ExportCenter';
-import BillList from '@/pages/Billing/BillList';
-import BillDetail from '@/pages/Billing/BillDetail';
+
+// 使用 React.lazy 懒加载所有页面组件
+const Home = lazy(() => import('@/pages/Home'));
+const PlanPurchase = lazy(() => import('@/pages/PlanPurchase'));
+const MyDevices = lazy(() => import('@/pages/MyDevices'));
+const DeviceDetail = lazy(() => import('@/pages/DeviceDetail'));
+const MyOrders = lazy(() => import('@/pages/MyOrders'));
+const Profile = lazy(() => import('@/pages/Profile'));
+const AppMarket = lazy(() => import('@/pages/AppMarket'));
+const Recharge = lazy(() => import('@/pages/Recharge'));
+const UsageRecords = lazy(() => import('@/pages/UsageRecords'));
+const TicketList = lazy(() => import('@/pages/Tickets/TicketList'));
+const TicketDetail = lazy(() => import('@/pages/Tickets/TicketDetail'));
+const MessageList = lazy(() => import('@/pages/Messages/MessageList'));
+const MessageSettings = lazy(() => import('@/pages/Messages/MessageSettings'));
+const HelpCenter = lazy(() => import('@/pages/Help/HelpCenter'));
+const FAQList = lazy(() => import('@/pages/Help/FAQList'));
+const TutorialList = lazy(() => import('@/pages/Help/TutorialList'));
+const TutorialDetail = lazy(() => import('@/pages/Help/TutorialDetail'));
+const ExportCenter = lazy(() => import('@/pages/DataExport/ExportCenter'));
+const BillList = lazy(() => import('@/pages/Billing/BillList'));
+const BillDetail = lazy(() => import('@/pages/Billing/BillDetail'));
+
+// Loading 组件
+const PageLoading = () => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '400px'
+  }}>
+    <Spin size="large" tip="加载中..." />
+  </div>
+);
+
+// Suspense 包裹组件
+const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => (
+  <Suspense fallback={<PageLoading />}>
+    <Component />
+  </Suspense>
+);
 
 export const router = createBrowserRouter([
   {
@@ -33,83 +58,83 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Home />,
+        element: withSuspense(Home),
       },
       {
         path: 'plans/:id/purchase',
-        element: <PlanPurchase />,
+        element: withSuspense(PlanPurchase),
       },
       {
         path: 'devices',
-        element: <MyDevices />,
+        element: withSuspense(MyDevices),
       },
       {
         path: 'devices/:id',
-        element: <DeviceDetail />,
+        element: withSuspense(DeviceDetail),
       },
       {
         path: 'orders',
-        element: <MyOrders />,
+        element: withSuspense(MyOrders),
       },
       {
         path: 'profile',
-        element: <Profile />,
+        element: withSuspense(Profile),
       },
       {
         path: 'apps',
-        element: <AppMarket />,
+        element: withSuspense(AppMarket),
       },
       {
         path: 'recharge',
-        element: <Recharge />,
+        element: withSuspense(Recharge),
       },
       {
         path: 'usage',
-        element: <UsageRecords />,
+        element: withSuspense(UsageRecords),
       },
       {
         path: 'tickets',
-        element: <TicketList />,
+        element: withSuspense(TicketList),
       },
       {
         path: 'tickets/:id',
-        element: <TicketDetail />,
+        element: withSuspense(TicketDetail),
       },
       {
         path: 'messages',
-        element: <MessageList />,
+        element: withSuspense(MessageList),
       },
       {
         path: 'messages/settings',
-        element: <MessageSettings />,
+        element: withSuspense(MessageSettings),
       },
       {
         path: 'help',
-        element: <HelpCenter />,
+        element: withSuspense(HelpCenter),
       },
       {
         path: 'help/faqs',
-        element: <FAQList />,
+        element: withSuspense(FAQList),
       },
       {
         path: 'help/tutorials',
-        element: <TutorialList />,
+        element: withSuspense(TutorialList),
       },
       {
         path: 'help/tutorials/:id',
-        element: <TutorialDetail />,
+        element: withSuspense(TutorialDetail),
       },
       {
         path: 'export',
-        element: <ExportCenter />,
+        element: withSuspense(ExportCenter),
       },
       {
         path: 'billing',
-        element: <BillList />,
+        element: withSuspense(BillList),
       },
       {
         path: 'billing/:id',
-        element: <BillDetail />,
+        element: withSuspense(BillDetail),
       },
     ],
   },
