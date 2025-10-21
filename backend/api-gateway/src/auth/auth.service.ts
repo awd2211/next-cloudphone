@@ -120,20 +120,36 @@ export class AuthService {
 
   async validateUser(userId: string) {
     try {
-      // 首先从本地数据库获取基本用户信息
-      const user = await this.userRepository.findOne({ where: { id: userId } });
+      this.logger.debug(`Validating user: ${userId}`);
+
+      // 从本地数据库获取用户信息（eager loading 会自动加载 roles）
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+
       if (!user) {
+        this.logger.warn(`User not found: ${userId}`);
         return null;
       }
 
-      // 调用 User Service 获取完整的用户信息（包括角色和权限）
-      const fullUserInfo = await this.getUserWithPermissions(userId);
+      this.logger.debug(`User found: ${user.username}, roles: ${user.roles?.map((r: any) => r.name).join(', ') || 'none'}`);
 
-      return fullUserInfo;
+      // 返回用户信息（JWT 验证时使用本地数据库，避免与 user-service 的循环依赖）
+      const result = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        status: user.status,
+        tenantId: user.tenantId,
+        roles: user.roles?.map((role: any) => role.name) || [],
+        isSuperAdmin: user.isSuperAdmin,
+      };
+
+      this.logger.debug(`Returning user info: ${JSON.stringify(result)}`);
+      return result;
     } catch (error) {
       this.logger.error(`Failed to validate user ${userId}:`, error);
-      // 如果调用 User Service 失败，返回基本用户信息
-      return this.userRepository.findOne({ where: { id: userId } });
+      return null;
     }
   }
 

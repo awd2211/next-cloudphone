@@ -278,7 +278,8 @@ export class ProxyController {
           // 注入用户信息（从 JWT 中提取）
           'x-user-id': (req as any).user?.id,
           'x-user-tenant': (req as any).user?.tenantId,
-          'x-user-roles': JSON.stringify((req as any).user?.roles || []),
+          // Base64 编码角色数组，避免 HTTP 头中的非法字符
+          'x-user-roles': Buffer.from(JSON.stringify((req as any).user?.roles || [])).toString('base64'),
         },
         req.query,
       );
