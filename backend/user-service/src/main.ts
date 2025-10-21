@@ -2,15 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { WINSTON_MODULE_NEST_PROVIDER, WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   const configService = app.get(ConfigService);
 
@@ -35,16 +33,11 @@ async function bootstrap() {
   // Cookie Parser
   app.use(cookieParser());
 
-  // ========== 日志和异常处理 ==========
+  // ========== 日志配置 ==========
 
-  // 使用 Winston 作为应用的 Logger
-  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
-
-  // 全局异常过滤器
-  app.useGlobalFilters(new AllExceptionsFilter(app.get(WINSTON_MODULE_PROVIDER)));
-
-  // 全局日志拦截器
-  app.useGlobalInterceptors(new LoggingInterceptor(app.get(WINSTON_MODULE_PROVIDER)));
+  // 使用 Pino 作为应用的 Logger
+  app.useLogger(app.get(Logger));
+  app.flushLogs();
 
   // ========== 验证和转换 ==========
 

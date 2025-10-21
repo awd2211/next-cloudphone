@@ -9,6 +9,8 @@ import {
 
 export enum DeviceStatus {
   CREATING = 'creating',
+  IDLE = 'idle',
+  ALLOCATED = 'allocated',
   RUNNING = 'running',
   STOPPED = 'stopped',
   PAUSED = 'paused',
@@ -50,7 +52,14 @@ export class Device {
 
   @Column({ nullable: true })
   @Index()
-  userId: string;
+  userId: string; // 逻辑外键 → user-service
+  
+  // ========== 冗余字段（从 user-service 同步，避免跨服务查询） ==========
+  @Column({ nullable: true })
+  userName: string; // 用户名
+  
+  @Column({ nullable: true })
+  userEmail: string; // 用户邮箱
 
   @Column({ nullable: true })
   @Index()

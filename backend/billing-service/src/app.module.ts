@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WinstonModule } from 'nest-winston';
-import { winstonConfig } from './config/winston.config';
+import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
@@ -16,6 +15,8 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { BillingRulesModule } from './billing-rules/billing-rules.module';
 import { StatsModule } from './stats/stats.module';
 import { HealthController } from './health.controller';
+import { EventsModule } from './events/events.module';
+import { ConsulModule, EventBusModule } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -23,17 +24,36 @@ import { HealthController } from './health.controller';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
+    // Pino 日志模块
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+        transport: process.env.NODE_ENV !== 'production' ? {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
+            ignore: 'pid,hostname',
+          },
+        } : undefined,
+        customProps: () => ({
+          service: 'billing-service',
+          environment: process.env.NODE_ENV || 'development',
+        }),
+        autoLogging: {
+          ignore: (req) => req.url === '/health',
+        },
+      },
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT) || 5432,
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'cloudphone',
+      database: process.env.DB_DATABASE || 'cloudphone_billing',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: process.env.NODE_ENV !== 'production',
+      synchronize: false, // 使用 Atlas 管理迁移
       logging: process.env.NODE_ENV === 'development',
     }),
     ScheduleModule.forRoot(),
@@ -46,6 +66,9 @@ import { HealthController } from './health.controller';
     BalanceModule,
     InvoicesModule,
     BillingRulesModule,
+    EventsModule, // 事件处理模块
+    ConsulModule,
+    EventBusModule, // ✅ 启用事件总线
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

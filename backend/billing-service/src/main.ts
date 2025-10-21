@@ -1,19 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { WINSTON_MODULE_NEST_PROVIDER, WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { Logger } from 'nestjs-pino';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { ConsulService } from '@cloudphone/shared';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  // 使用 Winston 作为应用的 Logger
-  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
-  // 启用全局异常过滤器（使用Winston）
-  app.useGlobalFilters(new AllExceptionsFilter(app.get(WINSTON_MODULE_PROVIDER)));
-  // 启用全局日志拦截器
-  app.useGlobalInterceptors(new LoggingInterceptor(app.get(WINSTON_MODULE_PROVIDER)));
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // 使用 Pino 作为应用的 Logger
+  app.useLogger(app.get(Logger));
+  app.flushLogs();
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
@@ -45,11 +41,22 @@ async function bootstrap() {
     },
   });
 
-  const port = process.env.PORT || 30005;
+  const port = parseInt(process.env.PORT) || 30005;
   await app.listen(port);
+
+  // 注册到 Consul
+  try {
+    const consulService = app.get(ConsulService);
+    await consulService.registerService('billing-service', port, ['v1', 'billing']);
+    console.log(`✅ Service registered to Consul`);
+  } catch (error) {
+    console.warn(`⚠️  Failed to register to Consul: ${error.message}`);
+  }
 
   console.log(`🚀 Billing Service is running on: http://localhost:${port}`);
   console.log(`📚 API Documentation: http://localhost:${port}/docs`);
+  console.log(`🔗 RabbitMQ: ${process.env.RABBITMQ_URL || 'amqp://localhost:5672'}`);
+  console.log(`🔗 Consul: http://${process.env.CONSUL_HOST || 'localhost'}:${process.env.CONSUL_PORT || 8500}`);
 }
 
 bootstrap();

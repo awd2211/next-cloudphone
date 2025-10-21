@@ -299,4 +299,64 @@ export class MeteringService {
       this.logger.error('Failed to cleanup old records:', error);
     }
   }
+
+  /**
+   * 开始使用追踪（响应设备启动事件）
+   */
+  async startUsageTracking(data: {
+    deviceId: string;
+    userId: string;
+    tenantId?: string;
+  }): Promise<any> {
+    const record = this.usageRecordRepository.create({
+      userId: data.userId,
+      tenantId: data.tenantId,
+      deviceId: data.deviceId,
+      usageType: 'device_usage' as any,
+      startTime: new Date(),
+      isBilled: false,
+    });
+
+    return await this.usageRecordRepository.save(record);
+  }
+
+  /**
+   * 停止使用追踪（响应设备停止事件）
+   */
+  async stopUsageTracking(
+    deviceId: string,
+    duration: number,
+  ): Promise<void> {
+    // 查找未结束的使用记录
+    const record = await this.usageRecordRepository.findOne({
+      where: {
+        deviceId,
+        endTime: null as any,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+
+    if (!record) {
+      this.logger.warn(`No active usage record found for device ${deviceId}`);
+      return;
+    }
+
+    // 更新使用记录
+    record.endTime = new Date();
+    record.durationSeconds = duration;
+    
+    // 简单计费：按小时计费，每小时 1 元
+    const hours = Math.ceil(duration / 3600);
+    record.quantity = hours;
+    record.cost = hours * 1.0;
+    record.unit = 'hour';
+
+    await this.usageRecordRepository.save(record);
+    
+    this.logger.log(
+      `Usage tracking stopped for device ${deviceId}. Duration: ${duration}s, Cost: ${record.cost}`,
+    );
+  }
 }

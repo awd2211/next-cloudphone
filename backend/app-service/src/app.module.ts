@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WinstonModule } from 'nest-winston';
-import { winstonConfig } from './config/winston.config';
+import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './auth/auth.module';
 import { AppsModule } from './apps/apps.module';
 import { MinioModule } from './minio/minio.module';
 import { ApkModule } from './apk/apk.module';
 import { HealthController } from './health.controller';
+import { ConsulModule } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -15,8 +15,27 @@ import { HealthController } from './health.controller';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
+    // Pino 日志模块
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+        transport: process.env.NODE_ENV !== 'production' ? {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
+            ignore: 'pid,hostname',
+          },
+        } : undefined,
+        customProps: () => ({
+          service: 'app-service',
+          environment: process.env.NODE_ENV || 'development',
+        }),
+        autoLogging: {
+          ignore: (req) => req.url === '/health',
+        },
+      },
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -25,9 +44,9 @@ import { HealthController } from './health.controller';
         port: +configService.get('DB_PORT'),
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
-        database: configService.get('DB_DATABASE'),
+        database: configService.get('DB_DATABASE') || 'cloudphone_app',
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development',
+        synchronize: true, // 临时启用在新库中创建表
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
@@ -36,6 +55,7 @@ import { HealthController } from './health.controller';
     AppsModule,
     MinioModule,
     ApkModule,
+    ConsulModule,
   ],
   controllers: [HealthController],
 })

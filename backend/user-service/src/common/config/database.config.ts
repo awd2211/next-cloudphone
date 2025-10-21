@@ -22,11 +22,12 @@ export const getDatabaseConfig = (
     port: +configService.get('DB_PORT', 5432),
     username: configService.get('DB_USERNAME', 'postgres'),
     password: configService.get('DB_PASSWORD', 'postgres'),
-    database: configService.get('DB_DATABASE', 'cloudphone'),
+    database: configService.get('DB_DATABASE', 'cloudphone_user'),
 
     // 实体配置
     entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-    synchronize: isDevelopment, // 生产环境禁用自动同步
+    // ⚠️ 临时启用 synchronize 在新数据库中创建表
+    synchronize: true,
     logging: isDevelopment ? 'all' : ['error', 'warn', 'schema'],
 
     // ========================================================================
@@ -142,7 +143,7 @@ export const getDatabaseConfig = (
     // ========================================================================
     dropSchema: false, // 永远不要在生产环境删除 schema
     migrationsRun: false, // 通过 CLI 手动运行迁移
-    keepConnectionAlive: true, // 应用重启时保持连接
+    // keepConnectionAlive 已在新版 TypeORM 中移除
 
     // ========================================================================
     // 日志配置

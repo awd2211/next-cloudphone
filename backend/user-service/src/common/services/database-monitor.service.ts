@@ -2,8 +2,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger as WinstonLogger } from 'winston';
+import { PinoLogger } from 'nestjs-pino';
 import {
   connectionPoolHealthConfig,
   ConnectionPoolMetrics,
@@ -55,7 +54,7 @@ export class DatabaseMonitorService {
 
   constructor(
     @InjectDataSource() private dataSource: DataSource,
-    @Inject(WINSTON_MODULE_PROVIDER) private winstonLogger: WinstonLogger,
+    private pinoLogger: PinoLogger,
   ) {
     this.setupQueryLogging();
   }
@@ -92,7 +91,7 @@ export class DatabaseMonitorService {
           acquisitionTime >
           connectionPoolHealthConfig.CONNECTION_ACQUISITION_CRITICAL_THRESHOLD
         ) {
-          this.winstonLogger.error({
+          this.pinoLogger.error({
             type: 'slow_connection_acquisition',
             acquisitionTime,
             threshold:
@@ -107,7 +106,7 @@ export class DatabaseMonitorService {
     this.dataSource.driver['pool']?.on?.('error', (err: Error, client: any) => {
       this.stats.connectionErrorCount++;
 
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'database_connection_error',
         error: err.message,
         stack: err.stack,
@@ -126,7 +125,7 @@ export class DatabaseMonitorService {
     if (error) {
       this.stats.errorCount++;
 
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'database_query_error',
         query: this.sanitizeQuery(query),
         duration,
@@ -160,7 +159,7 @@ export class DatabaseMonitorService {
           ? 'error'
           : 'warn';
 
-      this.winstonLogger[level]({
+      this.pinoLogger[level]({
         type: 'slow_query',
         query: slowQueryRecord.query,
         duration,
@@ -291,21 +290,21 @@ export class DatabaseMonitorService {
     const metrics = await this.getConnectionPoolMetrics();
 
     // 记录连接池状态
-    this.winstonLogger.info({
+    this.pinoLogger.info({
       type: 'connection_pool_health_check',
       metrics,
     });
 
     // 检查告警条件
     if (metrics.usage.isCritical) {
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'connection_pool_critical',
         usage: metrics.usage.percentage,
         threshold: connectionPoolHealthConfig.POOL_USAGE_CRITICAL_THRESHOLD * 100,
         message: `🚨 连接池使用率严重告警: ${metrics.usage.percentage}%`,
       });
     } else if (metrics.usage.isWarning) {
-      this.winstonLogger.warn({
+      this.pinoLogger.warn({
         type: 'connection_pool_warning',
         usage: metrics.usage.percentage,
         threshold: connectionPoolHealthConfig.POOL_USAGE_WARNING_THRESHOLD * 100,
@@ -315,7 +314,7 @@ export class DatabaseMonitorService {
 
     // 检查等待连接数
     if (metrics.connections.waiting > 5) {
-      this.winstonLogger.warn({
+      this.pinoLogger.warn({
         type: 'connection_pool_waiting',
         waiting: metrics.connections.waiting,
         message: `⚠️ 等待连接数过多: ${metrics.connections.waiting}`,
@@ -343,7 +342,7 @@ export class DatabaseMonitorService {
       ) {
         leakedConnections.push(connectionId);
 
-        this.winstonLogger.error({
+        this.pinoLogger.error({
           type: 'connection_leak_detected',
           connectionId,
           activeTime,

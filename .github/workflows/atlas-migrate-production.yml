@@ -1,0 +1,123 @@
+name: Atlas Production Migrations (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to migrate'
+        required: true
+        type: choice
+        options:
+          - user-service
+          - device-service
+          - billing-service
+          - app-service
+          - notification-service
+          - all
+      dry-run:
+        description: 'Dry run (preview changes without applying)'
+        required: false
+        type: boolean
+        default: true
+      confirm:
+        description: 'Type "MIGRATE" to confirm production migration'
+        required: true
+        type: string
+
+jobs:
+  validate-input:
+    name: Validate Input
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "MIGRATE" ]; then
+            echo "❌ Confirmation failed. Please type 'MIGRATE' to proceed."
+            exit 1
+          fi
+          echo "✅ Confirmation received"
+
+  apply-production:
+    name: Apply Production Migrations
+    runs-on: ubuntu-latest
+    needs: validate-input
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Atlas CLI
+        uses: ariga/setup-atlas@v0
+        with:
+          cloud-token: ${{ secrets.ATLAS_CLOUD_TOKEN }}
+
+      - name: Backup notification
+        run: |
+          echo "🔔 IMPORTANT: Ensure database backup is completed before migration"
+          echo "Service: ${{ github.event.inputs.service }}"
+          echo "Dry Run: ${{ github.event.inputs.dry-run }}"
+
+      - name: Apply migrations to production
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          SERVICES="${{ github.event.inputs.service }}"
+          DRY_RUN="${{ github.event.inputs.dry-run }}"
+          
+          if [ "$SERVICES" = "all" ]; then
+            SERVICES="user-service device-service billing-service app-service notification-service"
+          fi
+          
+          for service in $SERVICES; do
+            echo "=========================================="
+            echo "Processing: $service"
+            echo "=========================================="
+            
+            cd backend/$service
+            
+            if [ ! -d "migrations" ] || [ -z "$(ls -A migrations 2>/dev/null)" ]; then
+              echo "⚠️  No migrations found for $service, skipping..."
+              cd ../..
+              continue
+            fi
+            
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "🔍 DRY RUN MODE - Previewing changes..."
+              atlas migrate status \
+                --url "${DATABASE_URL}" \
+                --dir "file://migrations"
+            else
+              echo "🚀 APPLYING MIGRATIONS TO PRODUCTION..."
+              atlas migrate apply \
+                --url "${DATABASE_URL}" \
+                --dir "file://migrations" \
+                --baseline "$(atlas migrate status --url ${DATABASE_URL} --dir file://migrations | grep 'Current Version' | awk '{print $3}')"
+              
+              echo "✅ Migration completed for $service"
+            fi
+            
+            cd ../..
+          done
+          
+          if [ "$DRY_RUN" = "true" ]; then
+            echo ""
+            echo "=========================================="
+            echo "⚠️  DRY RUN COMPLETED"
+            echo "No changes were applied to the database."
+            echo "Review the output above, then run again with dry-run=false to apply changes."
+            echo "=========================================="
+          else
+            echo ""
+            echo "=========================================="
+            echo "✅ PRODUCTION MIGRATION COMPLETED"
+            echo "=========================================="
+          fi
+
+      - name: Notify completion
+        if: always()
+        run: |
+          echo "Migration job completed"
+          echo "Status: ${{ job.status }}"
+          # Here you can add Slack/Discord/Email notification
+

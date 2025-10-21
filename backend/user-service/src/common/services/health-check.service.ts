@@ -1,8 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger as WinstonLogger } from 'winston';
+import { PinoLogger } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
 
 /**
@@ -66,7 +65,7 @@ export class HealthCheckService {
 
   constructor(
     @InjectDataSource() private dataSource: DataSource,
-    @Inject(WINSTON_MODULE_PROVIDER) private winstonLogger: WinstonLogger,
+    private pinoLogger: PinoLogger,
     private configService: ConfigService,
   ) {}
 
@@ -185,7 +184,7 @@ export class HealthCheckService {
         },
       };
     } catch (error) {
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'health_check_failed',
         dependency: 'database',
         error: error.message,
@@ -233,7 +232,7 @@ export class HealthCheckService {
         },
       };
     } catch (error) {
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'health_check_failed',
         dependency: 'redis',
         error: error.message,

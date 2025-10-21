@@ -1,8 +1,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger, Inject } from '@nestjs/common';
 import { Job } from 'bull';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger as WinstonLogger } from 'winston';
+import { PinoLogger } from 'nestjs-pino';
 import { QueueName } from '../../common/config/queue.config';
 
 /**
@@ -37,9 +36,10 @@ export class EmailProcessor {
   private readonly logger = new Logger(EmailProcessor.name);
 
   constructor(
-    @Inject(WINSTON_MODULE_PROVIDER)
-    private readonly winstonLogger: WinstonLogger,
-  ) {}
+    private readonly pinoLogger: PinoLogger,
+  ) {
+    this.pinoLogger.setContext(EmailProcessor.name);
+  }
 
   /**
    * 处理单个邮件发送任务
@@ -48,7 +48,7 @@ export class EmailProcessor {
   async handleSendEmail(job: Job<EmailJobData>): Promise<void> {
     const { id, data, attemptsMade } = job;
 
-    this.winstonLogger.info({
+    this.pinoLogger.info({
       type: 'queue_job_start',
       queue: QueueName.EMAIL,
       jobId: id,
@@ -75,7 +75,7 @@ export class EmailProcessor {
       // 记录发送成功
       await job.progress(100);
 
-      this.winstonLogger.info({
+      this.pinoLogger.info({
         type: 'queue_job_complete',
         queue: QueueName.EMAIL,
         jobId: id,
@@ -83,7 +83,7 @@ export class EmailProcessor {
         message: `✅ Email sent successfully to ${data.to}`,
       });
     } catch (error) {
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'queue_job_failed',
         queue: QueueName.EMAIL,
         jobId: id,
@@ -133,7 +133,7 @@ export class EmailProcessor {
       }
     }
 
-    this.winstonLogger.info({
+    this.pinoLogger.info({
       type: 'queue_batch_job_complete',
       queue: QueueName.EMAIL,
       jobId: id,
@@ -246,7 +246,7 @@ export class EmailProcessor {
       //   metadata: { error: error.message, attempts: attemptsMade }
       // });
 
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'email_send_failure_alert',
         recipient: jobData.to,
         subject: jobData.subject,

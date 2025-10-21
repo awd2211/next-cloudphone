@@ -1,0 +1,33 @@
+{
+  "name": "@cloudphone/shared",
+  "version": "1.0.0",
+  "description": "Shared modules for Cloud Phone Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@golevelup/nestjs-rabbitmq": "^6.0.2",
+    "@nestjs/axios": "^4.0.1",
+    "@nestjs/common": "^11.1.7",
+    "@nestjs/config": "^4.0.2",
+    "@types/amqplib": "^0.10.7",
+    "@types/consul": "^2.0.0",
+    "@types/express": "^5.0.3",
+    "amqplib": "^0.10.9",
+    "axios": "^1.12.2",
+    "consul": "^2.0.1",
+    "opossum": "^9.0.0",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0"
+  }
+}

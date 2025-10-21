@@ -97,7 +97,7 @@ export class MinioService {
       const files: Minio.BucketItem[] = [];
       const stream = this.minioClient.listObjects(this.bucketName, prefix, true);
 
-      stream.on('data', (obj) => files.push(obj));
+      stream.on('data', (obj) => files.push(obj as any));
       stream.on('error', (err) => reject(err));
       stream.on('end', () => resolve(files));
     });

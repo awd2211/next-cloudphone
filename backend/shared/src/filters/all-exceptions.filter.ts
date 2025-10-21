@@ -1,13 +1,11 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 
+/**
+ * 全局异常过滤器
+ * 
+ * 捕获所有未被其他过滤器处理的异常
+ */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
@@ -17,71 +15,43 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    let status: number;
-    let message: string | any;
-    let errorName: string;
-    let stack: string | undefined;
+    // 确定 HTTP 状态码
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    // 提取错误消息
+    let message: string | string[] = 'Internal server error';
+    let error = 'InternalServerError';
 
     if (exception instanceof HttpException) {
-      status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      message =
-        typeof exceptionResponse === 'object'
-          ? (exceptionResponse as any).message || exception.message
-          : exceptionResponse;
-      errorName = exception.name;
+      message = typeof exceptionResponse === 'string'
+        ? exceptionResponse
+        : (exceptionResponse as any).message || exception.message;
+      error = exception.name;
     } else if (exception instanceof Error) {
-      status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = exception.message;
-      errorName = exception.name;
-      stack = exception.stack;
-    } else {
-      status = HttpStatus.INTERNAL_SERVER_ERROR;
-      message = 'Internal server error';
-      errorName = 'UnknownError';
+      error = exception.name;
     }
 
+    // 构建错误响应
     const errorResponse = {
-      success: false,
       statusCode: status,
-      errorCode: this.getErrorCode(status),
       message: Array.isArray(message) ? message : [message],
-      error: errorName,
+      error,
       timestamp: new Date().toISOString(),
       path: request.url,
       method: request.method,
     };
 
-    // 记录错误日志
-    if (status >= 500) {
-      this.logger.error(
-        `[${request.method}] ${request.url} - ${status} - ${JSON.stringify(message)}`,
-        stack,
-      );
-    } else {
-      this.logger.warn(
-        `[${request.method}] ${request.url} - ${status} - ${JSON.stringify(message)}`,
-      );
-    }
+    // 记录详细的错误日志
+    this.logger.error(
+      `${request.method} ${request.url} - ${status}`,
+      exception instanceof Error ? exception.stack : JSON.stringify(exception),
+    );
 
     response.status(status).json(errorResponse);
-  }
-
-  private getErrorCode(status: number): string {
-    const errorCodes: { [key: number]: string } = {
-      400: 'BAD_REQUEST',
-      401: 'UNAUTHORIZED',
-      403: 'FORBIDDEN',
-      404: 'NOT_FOUND',
-      409: 'CONFLICT',
-      422: 'UNPROCESSABLE_ENTITY',
-      429: 'TOO_MANY_REQUESTS',
-      500: 'INTERNAL_SERVER_ERROR',
-      502: 'BAD_GATEWAY',
-      503: 'SERVICE_UNAVAILABLE',
-      504: 'GATEWAY_TIMEOUT',
-    };
-
-    return errorCodes[status] || 'UNKNOWN_ERROR';
   }
 }

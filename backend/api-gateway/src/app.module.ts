@@ -1,16 +1,16 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { WinstonModule } from 'nest-winston';
+import { LoggerModule } from 'nestjs-pino';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProxyModule } from './proxy/proxy.module';
-import { LoggerMiddleware } from './common/middleware/logger.middleware';
-import { winstonConfig } from './config/winston.config';
+import { ConsulModule } from '@cloudphone/shared';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -20,8 +20,27 @@ import { winstonConfig } from './config/winston.config';
       envFilePath: '.env',
     }),
 
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
+    // Pino 日志模块
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+        transport: process.env.NODE_ENV !== 'production' ? {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
+            ignore: 'pid,hostname',
+          },
+        } : undefined,
+        customProps: () => ({
+          service: 'api-gateway',
+          environment: process.env.NODE_ENV || 'development',
+        }),
+        autoLogging: {
+          ignore: (req) => req.url === '/health',
+        },
+      },
+    }),
 
     // 限流模块 - 防止 DDoS 攻击
     ThrottlerModule.forRoot([
@@ -49,17 +68,20 @@ import { winstonConfig } from './config/winston.config';
       port: parseInt(process.env.DB_PORT) || 5432,
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'cloudphone',
+      database: process.env.DB_DATABASE || 'cloudphone_auth',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: process.env.NODE_ENV !== 'production',
+      synchronize: true, // 临时启用在新库中创建表
       logging: process.env.NODE_ENV === 'development',
     }),
 
     // 业务模块
     AuthModule,
     ProxyModule,
+    
+    // Consul 服务发现
+    ConsulModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [
     AppService,
     {
@@ -68,9 +90,4 @@ import { winstonConfig } from './config/winston.config';
     },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    // 对所有路由应用日志中间件
-    consumer.apply(LoggerMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

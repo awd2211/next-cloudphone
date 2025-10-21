@@ -1,8 +1,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger, Inject } from '@nestjs/common';
 import { Job } from 'bull';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger as WinstonLogger } from 'winston';
+import { PinoLogger } from 'nestjs-pino';
 import { QueueName } from '../../common/config/queue.config';
 import { SmsService } from '../../common/services/sms/sms.service';
 
@@ -38,10 +37,11 @@ export class SmsProcessor {
   private readonly MAX_SMS_PER_MINUTE = 10; // 每分钟最多10条
 
   constructor(
-    @Inject(WINSTON_MODULE_PROVIDER)
-    private readonly winstonLogger: WinstonLogger,
+    private readonly pinoLogger: PinoLogger,
     private readonly smsService: SmsService,
-  ) {}
+  ) {
+    this.pinoLogger.setContext(SmsProcessor.name);
+  }
 
   /**
    * 处理单条短信发送
@@ -50,7 +50,7 @@ export class SmsProcessor {
   async handleSendSms(job: Job<SmsJobData>): Promise<void> {
     const { id, data, attemptsMade } = job;
 
-    this.winstonLogger.info({
+    this.pinoLogger.info({
       type: 'queue_job_start',
       queue: QueueName.SMS,
       jobId: id,
@@ -79,14 +79,14 @@ export class SmsProcessor {
       // 记录发送成功
       await job.progress(100);
 
-      this.winstonLogger.info({
+      this.pinoLogger.info({
         type: 'queue_job_complete',
         queue: QueueName.SMS,
         jobId: id,
         message: `✅ SMS sent successfully to ${data.phone}`,
       });
     } catch (error) {
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'queue_job_failed',
         queue: QueueName.SMS,
         jobId: id,
@@ -131,7 +131,7 @@ export class SmsProcessor {
       }
     }
 
-    this.winstonLogger.info({
+    this.pinoLogger.info({
       type: 'queue_batch_job_complete',
       queue: QueueName.SMS,
       jobId: id,

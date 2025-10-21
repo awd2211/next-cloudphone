@@ -1,36 +1,31 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export interface Response<T> {
   success: boolean;
   data: T;
-  message?: string;
   timestamp: string;
+  path: string;
 }
 
+/**
+ * 统一响应转换拦截器
+ * 
+ * 将所有成功的响应转换为统一格式
+ */
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<Response<T>> {
-    return next.handle().pipe(
-      map((data) => {
-        // 如果响应已经是标准格式，直接返回
-        if (data && typeof data === 'object' && 'success' in data) {
-          return data;
-        }
+    const request = context.switchToHttp().getRequest();
 
-        // 否则包装成标准格式
-        return {
-          success: true,
-          data,
-          timestamp: new Date().toISOString(),
-        };
-      }),
+    return next.handle().pipe(
+      map((data) => ({
+        success: true,
+        data,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      })),
     );
   }
 }

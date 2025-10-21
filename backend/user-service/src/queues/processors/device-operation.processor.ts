@@ -1,8 +1,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger, Inject } from '@nestjs/common';
 import { Job } from 'bull';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger as WinstonLogger } from 'winston';
+import { PinoLogger } from 'nestjs-pino';
 import { QueueName } from '../../common/config/queue.config';
 
 /**
@@ -29,9 +28,10 @@ export class DeviceOperationProcessor {
   private readonly logger = new Logger(DeviceOperationProcessor.name);
 
   constructor(
-    @Inject(WINSTON_MODULE_PROVIDER)
-    private readonly winstonLogger: WinstonLogger,
-  ) {}
+    private readonly pinoLogger: PinoLogger,
+  ) {
+    this.pinoLogger.setContext(DeviceOperationProcessor.name);
+  }
 
   /**
    * 处理设备启动操作
@@ -40,7 +40,7 @@ export class DeviceOperationProcessor {
   async handleStartDevice(job: Job<DeviceOperationJobData>): Promise<void> {
     const { id, data } = job;
 
-    this.winstonLogger.info({
+    this.pinoLogger.info({
       type: 'queue_job_start',
       queue: QueueName.DEVICE_OPERATION,
       jobId: id,
@@ -72,14 +72,14 @@ export class DeviceOperationProcessor {
 
       await job.progress(100);
 
-      this.winstonLogger.info({
+      this.pinoLogger.info({
         type: 'queue_job_complete',
         queue: QueueName.DEVICE_OPERATION,
         jobId: id,
         message: `✅ Device ${data.deviceId} started successfully`,
       });
     } catch (error) {
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'queue_job_failed',
         queue: QueueName.DEVICE_OPERATION,
         jobId: id,

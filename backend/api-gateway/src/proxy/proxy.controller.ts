@@ -65,7 +65,7 @@ export class ProxyController {
    * 用户服务路由
    */
   @UseGuards(JwtAuthGuard)
-  @All('users/*')
+  @All('users/*path')
   async proxyUsers(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('users', req, res);
   }
@@ -74,7 +74,7 @@ export class ProxyController {
    * 角色服务路由
    */
   @UseGuards(JwtAuthGuard)
-  @All('roles/*')
+  @All('roles/*path')
   async proxyRoles(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('users', req, res);
   }
@@ -83,7 +83,7 @@ export class ProxyController {
    * 权限服务路由
    */
   @UseGuards(JwtAuthGuard)
-  @All('permissions/*')
+  @All('permissions/*path')
   async proxyPermissions(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('users', req, res);
   }
@@ -101,7 +101,7 @@ export class ProxyController {
    * 数据权限服务路由（通配符）
    */
   @UseGuards(JwtAuthGuard)
-  @All('data-scopes/*')
+  @All('data-scopes/*path')
   async proxyDataScopes(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('users', req, res);
   }
@@ -119,7 +119,7 @@ export class ProxyController {
    * 字段权限服务路由（通配符）
    */
   @UseGuards(JwtAuthGuard)
-  @All('field-permissions/*')
+  @All('field-permissions/*path')
   async proxyFieldPermissions(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('users', req, res);
   }
@@ -137,7 +137,7 @@ export class ProxyController {
    * 菜单权限服务路由（通配符）
    */
   @UseGuards(JwtAuthGuard)
-  @All('menu-permissions/*')
+  @All('menu-permissions/*path')
   async proxyMenuPermissions(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('users', req, res);
   }
@@ -155,7 +155,7 @@ export class ProxyController {
    * 通知服务路由（通配符）
    */
   @UseGuards(JwtAuthGuard)
-  @All('notifications/*')
+  @All('notifications/*path')
   async proxyNotifications(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('notifications', req, res);
   }
@@ -164,7 +164,7 @@ export class ProxyController {
    * 设备服务路由
    */
   @UseGuards(JwtAuthGuard)
-  @All('devices/*')
+  @All('devices/*path')
   async proxyDevices(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('devices', req, res);
   }
@@ -173,7 +173,7 @@ export class ProxyController {
    * 应用服务路由
    */
   @UseGuards(JwtAuthGuard)
-  @All('apps/*')
+  @All('apps/*path')
   async proxyApps(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('apps', req, res);
   }
@@ -182,7 +182,7 @@ export class ProxyController {
    * 调度服务路由
    */
   @UseGuards(JwtAuthGuard)
-  @All('scheduler/*')
+  @All('scheduler/*path')
   async proxyScheduler(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('scheduler', req, res);
   }
@@ -191,7 +191,7 @@ export class ProxyController {
    * 计费服务路由
    */
   @UseGuards(JwtAuthGuard)
-  @All('billing/*')
+  @All('billing/*path')
   async proxyBilling(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('billing', req, res);
   }
@@ -200,7 +200,7 @@ export class ProxyController {
    * 流媒体服务路由（WebRTC 相关）
    */
   @UseGuards(JwtAuthGuard)
-  @All('media/*')
+  @All('media/*path')
   async proxyMedia(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('media', req, res);
   }
@@ -209,7 +209,7 @@ export class ProxyController {
    * 统计服务路由
    */
   @UseGuards(JwtAuthGuard)
-  @All('stats/*')
+  @All('stats/*path')
   async proxyStats(@Req() req: Request, @Res() res: Response) {
     // Stats are aggregated from multiple services, route to billing service for now
     return this.handleProxy('billing', req, res);
@@ -219,7 +219,7 @@ export class ProxyController {
    * 报表服务路由
    */
   @UseGuards(JwtAuthGuard)
-  @All('reports/*')
+  @All('reports/*path')
   async proxyReports(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('billing', req, res);
   }

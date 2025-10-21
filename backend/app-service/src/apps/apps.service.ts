@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  Logger,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -17,9 +19,12 @@ import { MinioService } from '../minio/minio.service';
 import { ApkParserService } from '../apk/apk-parser.service';
 import { CreateAppDto } from './dto/create-app.dto';
 import { UpdateAppDto } from './dto/update-app.dto';
+import { EventBusService } from '@cloudphone/shared';
 
 @Injectable()
 export class AppsService {
+  private readonly logger = new Logger(AppsService.name);
+
   constructor(
     @InjectRepository(Application)
     private appsRepository: Repository<Application>,
@@ -29,6 +34,7 @@ export class AppsService {
     private apkParserService: ApkParserService,
     private httpService: HttpService,
     private configService: ConfigService,
+    @Optional() private eventBus: EventBusService,
   ) {}
 
   async uploadApp(
@@ -166,20 +172,28 @@ export class AppsService {
       throw new BadRequestException('应用已安装在该设备上');
     }
 
-    // 创建安装记录
+    // 创建安装记录（状态：pending）
     const deviceApp = this.deviceAppsRepository.create({
       deviceId,
       applicationId,
-      status: InstallStatus.INSTALLING,
+      status: InstallStatus.PENDING,
     });
 
     const saved = await this.deviceAppsRepository.save(deviceApp);
 
-    // 异步安装应用
-    this.performInstall(saved.id, app, deviceId).catch((error) => {
-      console.error(`Failed to install app ${app.id} on device ${deviceId}:`, error);
-      this.updateInstallStatus(saved.id, InstallStatus.FAILED, error.message);
+    // 发布应用安装请求事件到 RabbitMQ
+    await this.eventBus.publishAppEvent('install.requested', {
+      installationId: saved.id,
+      deviceId,
+      appId: app.id,
+      downloadUrl: app.downloadUrl,
+      userId: null, // 从请求上下文获取
+      timestamp: new Date().toISOString(),
     });
+
+    this.logger.log(
+      `App install request published: ${app.id} for device ${deviceId}, installationId: ${saved.id}`,
+    );
 
     return saved;
   }
@@ -249,13 +263,24 @@ export class AppsService {
       throw new NotFoundException('应用未安装在该设备上');
     }
 
+    const app = await this.findOne(applicationId);
+
+    // 更新状态为卸载中
     deviceApp.status = InstallStatus.UNINSTALLING;
     await this.deviceAppsRepository.save(deviceApp);
 
-    // 异步卸载
-    this.performUninstall(deviceApp.id, deviceId, applicationId).catch((error) => {
-      console.error(`Failed to uninstall app ${applicationId} from device ${deviceId}:`, error);
+    // 发布应用卸载请求事件
+    await this.eventBus.publishAppEvent('uninstall.requested', {
+      deviceId,
+      appId: app.id,
+      packageName: app.packageName,
+      userId: null, // 从请求上下文获取
+      timestamp: new Date().toISOString(),
     });
+
+    this.logger.log(
+      `App uninstall request published: ${app.packageName} from device ${deviceId}`,
+    );
   }
 
   private async performUninstall(

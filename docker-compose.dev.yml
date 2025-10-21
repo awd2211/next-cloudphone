@@ -60,6 +60,45 @@ services:
     networks:
       - cloudphone-network
 
+  # RabbitMQ 消息队列
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: cloudphone-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_DEFAULT_VHOST: cloudphone
+    ports:
+      - "5672:5672"    # AMQP 端口
+      - "15672:15672"  # 管理界面端口
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - cloudphone-network
+
+  # Consul 服务注册发现
+  consul:
+    image: hashicorp/consul:1.18
+    container_name: cloudphone-consul
+    command: agent -server -ui -bootstrap-expect=1 -client=0.0.0.0 -bind=0.0.0.0
+    ports:
+      - "8500:8500"      # HTTP API 和 Web UI
+      - "8600:8600/udp"  # DNS 服务
+    volumes:
+      - consul_data:/consul/data
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - cloudphone-network
+
   # ===== 微服务（开发模式 - 本地代码挂载） =====
 
   # API 网关
@@ -76,7 +115,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
-      DB_DATABASE: cloudphone
+      DB_DATABASE: cloudphone_core
       REDIS_HOST: redis
       REDIS_PORT: 6379
       USER_SERVICE_URL: http://user-service:30001
@@ -88,6 +127,9 @@ services:
       MEDIA_SERVICE_URL: http://media-service:30007
       JWT_SECRET: dev-secret-key-change-in-production
       JWT_EXPIRES_IN: 24h
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      USE_CONSUL: "true"
     ports:
       - "30000:30000"
     volumes:
@@ -96,6 +138,8 @@ services:
     depends_on:
       - postgres
       - redis
+      - rabbitmq
+      - consul
       - user-service
       - device-service
       - app-service
@@ -126,7 +170,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
-      DB_DATABASE: cloudphone
+      DB_DATABASE: cloudphone_core
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: dev-secret-key-change-in-production
@@ -164,12 +208,15 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
-      DB_DATABASE: cloudphone
+      DB_DATABASE: cloudphone_core
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DOCKER_HOST: unix:///var/run/docker.sock
       JWT_SECRET: dev-secret-key-change-in-production
       JWT_EXPIRES_IN: 24h
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672/cloudphone
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     ports:
       - "30002:30002"
     volumes:
@@ -180,6 +227,10 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:30002/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\""]
@@ -205,7 +256,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
-      DB_DATABASE: cloudphone
+      DB_DATABASE: cloudphone_core
       REDIS_HOST: redis
       REDIS_PORT: 6379
       MINIO_ENDPOINT: minio
@@ -216,6 +267,9 @@ services:
       DEVICE_SERVICE_URL: http://device-service:30002
       JWT_SECRET: dev-secret-key-change-in-production
       JWT_EXPIRES_IN: 24h
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672/cloudphone
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     ports:
       - "30003:30003"
     volumes:
@@ -227,6 +281,10 @@ services:
       redis:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:30003/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\""]
@@ -252,7 +310,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
-      DB_DATABASE: cloudphone
+      DB_DATABASE: cloudphone_core
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DEVICE_SERVICE_URL: http://device-service:30002
@@ -289,12 +347,15 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
-      DB_DATABASE: cloudphone
+      DB_DATABASE: cloudphone_billing
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: dev-secret-key-change-in-production
       JWT_EXPIRES_IN: 24h
       DEVICE_SERVICE_URL: http://device-service:30002
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672/cloudphone
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     ports:
       - "30005:30005"
     volumes:
@@ -305,8 +366,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:30005/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\""]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:30005/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\""]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -329,7 +394,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
-      DB_DATABASE: cloudphone
+      DB_DATABASE: cloudphone_core
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: dev-secret-key-change-in-production
@@ -402,7 +467,6 @@ services:
     environment:
       VITE_API_BASE_URL: http://localhost:30000/api
       VITE_WS_URL: ws://localhost:30000
-      VITE_NOTIFICATION_WS_URL: http://localhost:30006/notifications
     ports:
       - "5173:5173"
     volumes:
@@ -422,8 +486,6 @@ services:
     environment:
       VITE_API_BASE_URL: http://localhost:30000/api
       VITE_WS_URL: ws://localhost:30000
-      VITE_NOTIFICATION_WS_URL: http://localhost:30006/notifications
-      VITE_MEDIA_URL: http://localhost:30007
     ports:
       - "5174:5174"
     volumes:
@@ -446,6 +508,10 @@ volumes:
   redis_data:
     driver: local
   minio_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  consul_data:
     driver: local
   # 后端服务 node_modules
   api_gateway_node_modules:

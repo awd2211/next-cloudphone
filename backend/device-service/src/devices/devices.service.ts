@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -14,6 +15,7 @@ import { AdbService } from '../adb/adb.service';
 import { PortManagerService } from '../port-manager/port-manager.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
+import { EventBusService } from '@cloudphone/shared';
 
 @Injectable()
 export class DevicesService {
@@ -26,6 +28,7 @@ export class DevicesService {
     private adbService: AdbService,
     private portManager: PortManagerService,
     private configService: ConfigService,
+    @Optional() private eventBus: EventBusService,
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
@@ -494,6 +497,14 @@ export class DevicesService {
       }
     }
 
+    // 发布设备启动事件
+    await this.eventBus.publishDeviceEvent('started', {
+      deviceId: id,
+      userId: device.userId,
+      tenantId: device.tenantId,
+      startedAt: new Date(),
+    });
+
     return savedDevice;
   }
 
@@ -504,6 +515,9 @@ export class DevicesService {
       throw new BadRequestException('设备没有关联的容器');
     }
 
+    const startTime = device.lastActiveAt || device.createdAt;
+    const duration = Math.floor((Date.now() - startTime.getTime()) / 1000);
+
     // 断开 ADB 连接
     await this.adbService.disconnectFromDevice(id);
 
@@ -511,7 +525,17 @@ export class DevicesService {
 
     device.status = DeviceStatus.STOPPED;
 
-    return await this.devicesRepository.save(device);
+    const savedDevice = await this.devicesRepository.save(device);
+
+    // 发布设备停止事件
+    await this.eventBus.publishDeviceEvent('stopped', {
+      deviceId: id,
+      userId: device.userId,
+      stoppedAt: new Date(),
+      duration, // 运行时长（秒）
+    });
+
+    return savedDevice;
   }
 
   async restart(id: string): Promise<Device> {
@@ -610,5 +634,77 @@ export class DevicesService {
   async getDeviceProperties(id: string): Promise<any> {
     await this.findOne(id);
     return await this.adbService.getDeviceProperties(id);
+  }
+
+  // ========== 事件发布方法 ==========
+
+  /**
+   * 发布应用安装完成事件
+   */
+  async publishAppInstallCompleted(event: any): Promise<void> {
+    await this.eventBus.publishAppEvent('install.completed', event);
+  }
+
+  /**
+   * 发布应用安装失败事件
+   */
+  async publishAppInstallFailed(event: any): Promise<void> {
+    await this.eventBus.publishAppEvent('install.failed', event);
+  }
+
+  /**
+   * 发布应用卸载完成事件
+   */
+  async publishAppUninstallCompleted(event: any): Promise<void> {
+    await this.eventBus.publishAppEvent('uninstall.completed', event);
+  }
+
+  /**
+   * 发布设备分配事件
+   */
+  async publishDeviceAllocated(event: any): Promise<void> {
+    await this.eventBus.publishDeviceEvent(`allocate.${event.sagaId}`, event);
+  }
+
+  /**
+   * 分配设备（用于 Saga）
+   */
+  async allocateDevice(userId: string, planId: string): Promise<Device> {
+    // 查找一个可用的设备
+    const device = await this.devicesRepository.findOne({
+      where: {
+        status: DeviceStatus.IDLE,
+      },
+    });
+
+    if (!device) {
+      throw new BadRequestException('No available devices');
+    }
+
+    // 分配给用户
+    device.userId = userId;
+    device.status = DeviceStatus.ALLOCATED;
+    await this.devicesRepository.save(device);
+
+    return device;
+  }
+
+  /**
+   * 释放设备
+   */
+  async releaseDevice(deviceId: string, reason?: string): Promise<void> {
+    const device = await this.findOne(deviceId);
+    
+    // 停止设备
+    if (device.status === DeviceStatus.RUNNING) {
+      await this.stop(deviceId);
+    }
+
+    // 重置状态
+    device.userId = null;
+    device.status = DeviceStatus.IDLE;
+    await this.devicesRepository.save(device);
+
+    this.logger.log(`Device ${deviceId} released. Reason: ${reason || 'N/A'}`);
   }
 }

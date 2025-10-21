@@ -1,8 +1,7 @@
 import { Injectable, Logger, OnApplicationShutdown, Inject } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger as WinstonLogger } from 'winston';
+import { PinoLogger } from 'nestjs-pino';
 
 /**
  * 优雅关闭服务
@@ -36,7 +35,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
 
   constructor(
     @InjectDataSource() private dataSource: DataSource,
-    @Inject(WINSTON_MODULE_PROVIDER) private winstonLogger: WinstonLogger,
+    private pinoLogger: PinoLogger,
   ) {
     this.setupSignalHandlers();
   }
@@ -59,7 +58,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
 
     // 未捕获的异常
     process.on('uncaughtException', (error: Error) => {
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'uncaught_exception',
         error: error.message,
         stack: error.stack,
@@ -74,7 +73,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
 
     // 未处理的 Promise 拒绝
     process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-      this.winstonLogger.error({
+      this.pinoLogger.error({
         type: 'unhandled_rejection',
         reason: reason?.message || reason,
         stack: reason?.stack,
@@ -94,7 +93,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
 
     this.isShuttingDown = true;
 
-    this.winstonLogger.info({
+    this.pinoLogger.info({
       type: 'graceful_shutdown_start',
       signal,
       activeRequests: this.activeRequests,
@@ -123,7 +122,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
       // 第5步: 清理其他资源
       await this.cleanupResources();
 
-      this.winstonLogger.info({
+      this.pinoLogger.info({
         type: 'graceful_shutdown_complete',
         signal,
         message: '✅ Graceful shutdown completed',

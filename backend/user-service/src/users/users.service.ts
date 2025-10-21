@@ -13,6 +13,8 @@ import { Role } from '../entities/role.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { EventBusService } from '@cloudphone/shared';
+import { Optional } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
@@ -21,6 +23,7 @@ export class UsersService {
     private usersRepository: Repository<User>,
     @InjectRepository(Role)
     private rolesRepository: Repository<Role>,
+    @Optional() private eventBus: EventBusService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -156,7 +159,20 @@ export class UsersService {
     }
 
     Object.assign(user, updateUserDto);
-    return await this.usersRepository.save(user);
+    const savedUser = await this.usersRepository.save(user);
+    
+    // 发布用户更新事件（同步到其他服务的冗余字段）
+    if (this.eventBus) {
+      await this.eventBus.publish('user.updated', {
+        userId: savedUser.id,
+        username: savedUser.username,
+        email: savedUser.email,
+        tenantId: savedUser.tenantId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
+    return savedUser;
   }
 
   async changePassword(

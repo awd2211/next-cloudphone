@@ -1,8 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger } from 'winston';
+import { PinoLogger } from 'nestjs-pino';
 import { AuditLog as AuditLogEntity, AuditAction, AuditLevel } from '../../entities/audit-log.entity';
 import { AlertService, AlertLevel } from './alert/alert.service';
 
@@ -99,11 +98,12 @@ export class AuditLogService {
   private readonly CLEANUP_INTERVAL = 10 * 60 * 1000; // 10分钟清理一次
 
   constructor(
-    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    private readonly pinoLogger: PinoLogger,
     @InjectRepository(AuditLogEntity)
     private readonly auditLogRepository: Repository<AuditLogEntity>,
     private readonly alertService: AlertService,
   ) {
+    this.pinoLogger.setContext(AuditLogService.name);
     // 定期清理过期数据
     setInterval(() => this.cleanupExpiredRecords(), this.CLEANUP_INTERVAL);
   }
@@ -122,15 +122,15 @@ export class AuditLogService {
     // 根据严重级别选择日志级别
     const logMethod = this.getLogMethod(log.severity);
 
-    // 记录到 Winston
-    this.logger[logMethod]({
+    // 记录到 Pino
+    this.pinoLogger[logMethod]({
       type: 'audit_log',
       ...auditLog,
     });
 
     // 存储到数据库（异步，不阻塞主流程）
     this.saveToDatabase(auditLog).catch((error) => {
-      this.logger.error({
+      this.pinoLogger.error({
         type: 'audit_log_db_save_failed',
         error: error.message,
         auditLog,
@@ -465,7 +465,7 @@ export class AuditLogService {
     }
 
     if (cleaned > 0) {
-      this.logger.debug({
+      this.pinoLogger.debug({
         type: 'audit_cleanup',
         message: `清理了 ${cleaned} 条过期的异常检测记录`,
       });
@@ -516,7 +516,7 @@ export class AuditLogService {
    * 关键安全事件触发告警
    */
   private triggerAlert(log: AuditLog): void {
-    this.logger.error({
+    this.pinoLogger.error({
       type: 'security_alert',
       ...log,
       message: `🚨 关键安全事件: ${log.eventType}`,
@@ -547,7 +547,7 @@ export class AuditLogService {
         },
       })
       .catch((error) => {
-        this.logger.error({
+        this.pinoLogger.error({
           type: 'alert_send_failed',
           error: error.message,
           auditLog: log,
@@ -565,7 +565,7 @@ export class AuditLogService {
       await this.auditLogRepository.save(entity);
     } catch (error) {
       // 记录错误但不抛出，避免影响主流程
-      this.logger.error({
+      this.pinoLogger.error({
         type: 'audit_log_save_error',
         error: error.message,
         stack: error.stack,

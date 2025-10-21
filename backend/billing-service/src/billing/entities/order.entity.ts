@@ -29,7 +29,14 @@ export class Order {
 
   @Column()
   @Index()
-  userId: string;
+  userId: string; // 逻辑外键 → user-service
+  
+  // ========== 冗余字段（从 user-service 同步） ==========
+  @Column({ nullable: true })
+  userName: string; // 用户名
+  
+  @Column({ nullable: true })
+  userEmail: string; // 用户邮箱
 
   @Column({ nullable: true })
   @Index()
@@ -67,7 +74,11 @@ export class Order {
   planId: string;
 
   @Column({ nullable: true })
-  deviceId: string;
+  deviceId: string; // 逻辑外键 → device-service
+  
+  // ========== 冗余字段（从 device-service 同步） ==========
+  @Column({ nullable: true })
+  deviceName: string; // 设备名称
 
   @Column({ type: 'text', nullable: true })
   description: string;

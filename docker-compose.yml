@@ -70,6 +70,84 @@ services:
       timeout: 5s
       retries: 5
 
+  # Atlas 数据库迁移 - User Service
+  atlas-migrate-user:
+    image: arigaio/atlas:latest
+    container_name: cloudphone-atlas-user
+    command: migrate apply --url "postgres://postgres:postgres@postgres:5432/cloudphone?sslmode=disable" --dir "file://migrations"
+    working_dir: /app
+    volumes:
+      - ./backend/user-service/migrations:/app/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # Atlas 数据库迁移 - Device Service
+  atlas-migrate-device:
+    image: arigaio/atlas:latest
+    container_name: cloudphone-atlas-device
+    command: migrate apply --url "postgres://postgres:postgres@postgres:5432/cloudphone?sslmode=disable" --dir "file://migrations"
+    working_dir: /app
+    volumes:
+      - ./backend/device-service/migrations:/app/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # Atlas 数据库迁移 - Billing Service
+  atlas-migrate-billing:
+    image: arigaio/atlas:latest
+    container_name: cloudphone-atlas-billing
+    command: migrate apply --url "postgres://postgres:postgres@postgres:5432/cloudphone?sslmode=disable" --dir "file://migrations"
+    working_dir: /app
+    volumes:
+      - ./backend/billing-service/migrations:/app/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # Atlas 数据库迁移 - App Service
+  atlas-migrate-app:
+    image: arigaio/atlas:latest
+    container_name: cloudphone-atlas-app
+    command: migrate apply --url "postgres://postgres:postgres@postgres:5432/cloudphone?sslmode=disable" --dir "file://migrations"
+    working_dir: /app
+    volumes:
+      - ./backend/app-service/migrations:/app/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # Atlas 数据库迁移 - Notification Service
+  atlas-migrate-notification:
+    image: arigaio/atlas:latest
+    container_name: cloudphone-atlas-notification
+    command: migrate apply --url "postgres://postgres:postgres@postgres:5432/cloudphone?sslmode=disable" --dir "file://migrations"
+    working_dir: /app
+    volumes:
+      - ./backend/notification-service/migrations:/app/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # Atlas 数据库迁移 - API Gateway
+  atlas-migrate-api-gateway:
+    image: arigaio/atlas:latest
+    container_name: cloudphone-atlas-api-gateway
+    command: migrate apply --url "postgres://postgres:postgres@postgres:5432/cloudphone?sslmode=disable" --dir "file://migrations"
+    working_dir: /app
+    volumes:
+      - ./backend/api-gateway/migrations:/app/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
 volumes:
   postgres_data:
   redis_data:

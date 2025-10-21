@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 
 export enum InstallStatus {
+  PENDING = 'pending',
   INSTALLING = 'installing',
   INSTALLED = 'installed',
   FAILED = 'failed',
