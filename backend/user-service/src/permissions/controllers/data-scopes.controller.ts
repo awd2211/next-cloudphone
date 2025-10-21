@@ -13,9 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth }
 import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('data-scopes')
-@ApiBearerAuth()
 @Controller('data-scopes')
-@UseGuards(AuthGuard('jwt'))
 export class DataScopesController {
   @Get()
   @ApiOperation({ summary: '获取数据权限列表', description: '获取数据权限列表' })

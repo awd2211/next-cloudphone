@@ -17,6 +17,7 @@ import { EnhancedPermissionsGuard } from '../guards/enhanced-permissions.guard';
 import { AuditPermissionInterceptor } from '../interceptors/audit-permission.interceptor';
 import {
   RequirePermissions,
+  SkipPermission,
   AuditCreate,
   AuditUpdate,
   AuditDelete,
@@ -63,17 +64,34 @@ export class DataScopeController {
   ) {}
 
   /**
+   * 获取可用的范围类型（元数据，无需权限）
+   */
+  @Get('meta/scope-types')
+  @SkipPermission()
+  getScopeTypes() {
+    return {
+      success: true,
+      data: Object.values(ScopeType).map((type) => ({
+        value: type,
+        label: this.getScopeTypeLabel(type),
+      })),
+    };
+  }
+
+  /**
    * 获取所有数据范围配置
    */
   @Get()
-  @RequirePermissions('permission:dataScope:list')
+  @SkipPermission() // 允许所有登录用户查询
   async findAll(
     @Query('roleId') roleId?: string,
     @Query('resourceType') resourceType?: string,
+    @Query('isActive') isActive?: string,
   ) {
     const where: any = {};
     if (roleId) where.roleId = roleId;
     if (resourceType) where.resourceType = resourceType;
+    if (isActive !== undefined) where.isActive = isActive === 'true';
 
     const scopes = await this.dataScopeRepository.find({
       where,
@@ -278,21 +296,6 @@ export class DataScopeController {
       success: true,
       message: `数据范围配置已${scope.isActive ? '启用' : '禁用'}`,
       data: scope,
-    };
-  }
-
-  /**
-   * 获取可用的范围类型
-   */
-  @Get('meta/scope-types')
-  @RequirePermissions('permission:dataScope:list')
-  getScopeTypes() {
-    return {
-      success: true,
-      data: Object.values(ScopeType).map((type) => ({
-        value: type,
-        label: this.getScopeTypeLabel(type),
-      })),
     };
   }
 

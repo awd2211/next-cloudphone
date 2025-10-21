@@ -18,14 +18,14 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 
 @ApiTags('roles')
-@ApiBearerAuth()
 @Controller('roles')
-@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @Post()
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
   @RequirePermission('roles.create')
+  @ApiBearerAuth()
   @ApiOperation({ summary: '创建角色', description: '创建新角色' })
   @ApiResponse({ status: 201, description: '角色创建成功' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
@@ -40,13 +40,12 @@ export class RolesController {
   }
 
   @Get()
-  @RequirePermission('roles.read')
   @ApiOperation({ summary: '获取角色列表', description: '分页获取角色列表' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 10 })
   @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
   @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
-  @ApiResponse({ status: 403, description: '权限不足' })
   async findAll(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',

@@ -11,7 +11,7 @@ import { Role } from '../entities/role.entity';
 // Controllers
 import { PermissionsController } from './permissions.controller';
 import { DataScopeController } from './controllers/data-scope.controller';
-import { DataScopesController } from './controllers/data-scopes.controller';
+// import { DataScopesController } from './controllers/data-scopes.controller'; // 简化版，已弃用
 import { FieldPermissionController } from './controllers/field-permission.controller';
 import { MenuPermissionController } from './controllers/menu-permission.controller';
 
@@ -49,7 +49,7 @@ import { MenuPermissionService } from './menu-permission.service';
   controllers: [
     PermissionsController,
     DataScopeController,
-    DataScopesController,
+    // DataScopesController, // 简化版，已弃用
     FieldPermissionController,
     MenuPermissionController,
   ],
