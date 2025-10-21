@@ -81,3 +81,6 @@ Thumbs.db
 *.pem
 *.crt
 secrets/
+
+# Database backups
+database/backups/*.sql
