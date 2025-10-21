@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import * as os from 'os';
+import { PublicThrottle } from './common/decorators/throttler.decorator';
 
 interface HealthCheckResult {
   status: 'ok' | 'degraded';
@@ -40,6 +41,7 @@ export class HealthController {
   constructor(@InjectDataSource() private dataSource: DataSource) {}
 
   @Get()
+  @PublicThrottle() // 健康检查接口使用宽松限流（500次/分钟）
   async check(): Promise<HealthCheckResult> {
     const dependencies: HealthCheckResult['dependencies'] = {};
 
