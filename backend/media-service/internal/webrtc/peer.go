@@ -1,12 +1,14 @@
 package webrtc
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/cloudphone/media-service/internal/adb"
 	"github.com/cloudphone/media-service/internal/config"
 	"github.com/cloudphone/media-service/internal/models"
 	"github.com/google/uuid"
@@ -16,16 +18,18 @@ import (
 
 // Manager 管理所有 WebRTC 会话
 type Manager struct {
-	config   *config.Config
-	sessions map[string]*models.Session
-	mu       sync.RWMutex
+	config     *config.Config
+	sessions   map[string]*models.Session
+	adbService *adb.Service
+	mu         sync.RWMutex
 }
 
 // NewManager 创建 WebRTC 管理器
 func NewManager(cfg *config.Config) *Manager {
 	return &Manager{
-		config:   cfg,
-		sessions: make(map[string]*models.Session),
+		config:     cfg,
+		sessions:   make(map[string]*models.Session),
+		adbService: adb.NewService(""), // 使用默认 adb 路径
 	}
 }
 
@@ -265,14 +269,108 @@ func (m *Manager) setupDataChannelHandlers(session *models.Session, dc *webrtc.D
 	})
 
 	dc.OnMessage(func(msg webrtc.DataChannelMessage) {
-		log.Printf("Received data channel message (session: %s): %s",
-			session.ID, string(msg.Data))
-		// TODO: 处理控制消息（触摸、按键等）
+		if err := m.handleControlMessage(session, msg.Data); err != nil {
+			log.Printf("Error handling control message (session: %s): %v", session.ID, err)
+		}
 	})
 
 	dc.OnError(func(err error) {
 		log.Printf("Data channel error (session: %s): %v", session.ID, err)
 	})
+}
+
+// 处理控制消息
+func (m *Manager) handleControlMessage(session *models.Session, data []byte) error {
+	var ctrlMsg models.ControlMessage
+	if err := json.Unmarshal(data, &ctrlMsg); err != nil {
+		return fmt.Errorf("failed to parse control message: %w", err)
+	}
+
+	log.Printf("Control message received (session: %s, type: %s, action: %s)",
+		session.ID, ctrlMsg.Type, ctrlMsg.Action)
+
+	// 验证设备ID匹配
+	if ctrlMsg.DeviceID != session.DeviceID {
+		return fmt.Errorf("device ID mismatch: expected %s, got %s",
+			session.DeviceID, ctrlMsg.DeviceID)
+	}
+
+	// 根据控制消息类型分发处理
+	switch ctrlMsg.Type {
+	case "touch":
+		return m.handleTouchEvent(session, &ctrlMsg)
+	case "key":
+		return m.handleKeyEvent(session, &ctrlMsg)
+	case "text":
+		return m.handleTextInput(session, &ctrlMsg)
+	default:
+		return fmt.Errorf("unknown control message type: %s", ctrlMsg.Type)
+	}
+}
+
+// 处理触摸事件
+func (m *Manager) handleTouchEvent(session *models.Session, msg *models.ControlMessage) error {
+	switch msg.Action {
+	case "down":
+		// 触摸按下事件
+		log.Printf("Touch down at (%.0f, %.0f) on device %s", msg.X, msg.Y, session.DeviceID)
+		if err := m.adbService.SendTouchDown(session.DeviceID, msg.X, msg.Y); err != nil {
+			return fmt.Errorf("failed to send touch down: %w", err)
+		}
+	case "move":
+		// 触摸移动事件
+		log.Printf("Touch move to (%.0f, %.0f) on device %s", msg.X, msg.Y, session.DeviceID)
+		if err := m.adbService.SendTouchMove(session.DeviceID, msg.X, msg.Y); err != nil {
+			return fmt.Errorf("failed to send touch move: %w", err)
+		}
+	case "up":
+		// 触摸释放事件
+		log.Printf("Touch up at (%.0f, %.0f) on device %s", msg.X, msg.Y, session.DeviceID)
+		if err := m.adbService.SendTouchUp(session.DeviceID, msg.X, msg.Y); err != nil {
+			return fmt.Errorf("failed to send touch up: %w", err)
+		}
+	case "tap":
+		// 单击事件（简化版）
+		log.Printf("Tap at (%.0f, %.0f) on device %s", msg.X, msg.Y, session.DeviceID)
+		if err := m.adbService.SendTap(session.DeviceID, msg.X, msg.Y); err != nil {
+			return fmt.Errorf("failed to send tap: %w", err)
+		}
+	default:
+		return fmt.Errorf("unknown touch action: %s", msg.Action)
+	}
+	return nil
+}
+
+// 处理按键事件
+func (m *Manager) handleKeyEvent(session *models.Session, msg *models.ControlMessage) error {
+	switch msg.Action {
+	case "press":
+		log.Printf("Key press: %d on device %s", msg.KeyCode, session.DeviceID)
+		if err := m.adbService.SendKeyEvent(session.DeviceID, msg.KeyCode); err != nil {
+			return fmt.Errorf("failed to send key event: %w", err)
+		}
+	case "longpress":
+		log.Printf("Key long press: %d on device %s", msg.KeyCode, session.DeviceID)
+		if err := m.adbService.SendLongPress(session.DeviceID, msg.KeyCode); err != nil {
+			return fmt.Errorf("failed to send long press: %w", err)
+		}
+	default:
+		return fmt.Errorf("unknown key action: %s", msg.Action)
+	}
+	return nil
+}
+
+// 处理文本输入
+func (m *Manager) handleTextInput(session *models.Session, msg *models.ControlMessage) error {
+	if msg.Text == "" {
+		return fmt.Errorf("text input is empty")
+	}
+
+	log.Printf("Text input: '%s' on device %s", msg.Text, session.DeviceID)
+	if err := m.adbService.SendText(session.DeviceID, msg.Text); err != nil {
+		return fmt.Errorf("failed to send text input: %w", err)
+	}
+	return nil
 }
 
 // 构建 ICE 服务器配置

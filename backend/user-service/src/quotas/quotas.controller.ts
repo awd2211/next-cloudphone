@@ -139,14 +139,11 @@ export class QuotasController {
    * 获取配额告警列表
    */
   @Get('alerts')
-  @ApiOperation({ summary: '获取配额告警列表' })
+  @Roles('admin')
+  @ApiOperation({ summary: '获取配额告警列表（管理员）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getQuotaAlerts(@Query('threshold') threshold: number = 80) {
-    // 该功能需要扫描所有配额，仅管理员可访问
-    // 返回使用率超过阈值的配额列表
-    return {
-      message: '配额告警功能待实现',
-      threshold,
-    };
+    this.logger.log(`获取配额告警 - 阈值: ${threshold}%`);
+    return await this.quotasService.getQuotaAlerts(threshold);
   }
 }

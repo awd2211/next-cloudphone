@@ -20,6 +20,8 @@ const UsageList = lazy(() => import('@/pages/Usage/List'));
 const PaymentList = lazy(() => import('@/pages/Payment/List'));
 const RoleList = lazy(() => import('@/pages/Role/List'));
 const PermissionList = lazy(() => import('@/pages/Permission/List'));
+const DataScopeConfig = lazy(() => import('@/pages/Permission/DataScope'));
+const FieldPermissionConfig = lazy(() => import('@/pages/Permission/FieldPermission'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const AuditLogList = lazy(() => import('@/pages/Logs/Audit'));
 const NotificationCenter = lazy(() => import('@/pages/Notifications'));
@@ -115,6 +117,14 @@ export const router = createBrowserRouter([
       {
         path: 'permissions',
         element: withSuspense(PermissionList),
+      },
+      {
+        path: 'permissions/data-scope',
+        element: withSuspense(DataScopeConfig),
+      },
+      {
+        path: 'permissions/field-permission',
+        element: withSuspense(FieldPermissionConfig),
       },
       {
         path: 'settings',

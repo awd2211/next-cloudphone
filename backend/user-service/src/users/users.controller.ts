@@ -19,13 +19,17 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { RolesService } from '../roles/roles.service';
 
 @ApiTags('users')
 @ApiBearerAuth()
 @Controller('users')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly rolesService: RolesService,
+  ) {}
 
   @Post()
   @RequirePermission('users.create')
@@ -40,6 +44,33 @@ export class UsersController {
       success: true,
       data: user,
       message: '用户创建成功',
+    };
+  }
+
+  @Get('roles')
+  @RequirePermission('roles.read')
+  @ApiOperation({ summary: '获取角色列表', description: '获取所有角色列表（用于用户管理）' })
+  @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 100 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量（兼容参数）', example: 100 })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getRoles(
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize?: string,
+    @Query('limit') limit?: string,
+    @Query('tenantId') tenantId?: string,
+  ) {
+    const itemsPerPage = pageSize || limit || '100';
+    const result = await this.rolesService.findAll(
+      parseInt(page),
+      parseInt(itemsPerPage),
+      tenantId,
+    );
+    return {
+      success: true,
+      ...result,
     };
   }
 

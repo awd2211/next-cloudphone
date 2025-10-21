@@ -6,6 +6,7 @@ import { QueueController } from './queue.controller';
 import { EmailProcessor } from './processors/email.processor';
 import { SmsProcessor } from './processors/sms.processor';
 import { DeviceOperationProcessor } from './processors/device-operation.processor';
+import { SmsModule } from '../common/services/sms/sms.module';
 
 /**
  * 队列模块
@@ -28,6 +29,9 @@ import { DeviceOperationProcessor } from './processors/device-operation.processo
       { name: QueueName.IMAGE_PROCESSING },
       { name: QueueName.LOG_PROCESSING },
     ),
+
+    // 导入短信服务模块
+    SmsModule,
   ],
   controllers: [QueueController],
   providers: [

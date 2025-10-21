@@ -180,6 +180,7 @@ export class Quota {
     memory: number;
     storage: number;
     traffic: number;
+    hours: number;
   } {
     return {
       devices:
@@ -202,6 +203,10 @@ export class Quota {
         this.limits.monthlyTrafficGB > 0
           ? (this.usage.monthlyTrafficUsedGB / this.limits.monthlyTrafficGB) *
             100
+          : 0,
+      hours:
+        this.limits.maxUsageHoursPerMonth > 0
+          ? (this.usage.monthlyUsageHours / this.limits.maxUsageHoursPerMonth) * 100
           : 0,
     };
   }

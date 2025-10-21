@@ -6,13 +6,16 @@ FROM golang:1.21-alpine AS development
 
 WORKDIR /app
 
+# 安装健康检查工具
+RUN apk add --no-cache wget
+
 COPY go.mod go.sum ./
 
 RUN go mod download
 
 COPY . .
 
-EXPOSE 3006
+EXPOSE 30007
 EXPOSE 50000-50100/udp
 
 CMD ["go", "run", "main.go"]
@@ -41,8 +44,8 @@ FROM alpine:latest
 
 WORKDIR /app
 
-# 安装运行时依赖
-RUN apk add --no-cache ca-certificates tzdata
+# 安装运行时依赖（包括健康检查工具）
+RUN apk add --no-cache ca-certificates tzdata wget
 
 # 创建非 root 用户
 RUN addgroup -g 1001 -S appuser && \
@@ -57,10 +60,10 @@ ENV TZ=Asia/Shanghai
 # 切换到非 root 用户
 USER appuser
 
-EXPOSE 3004
-EXPOSE 10000-20000/udp
+EXPOSE 30007
+EXPOSE 50000-50100/udp
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3004/health || exit 1
+  CMD wget --no-verbose --tries=1 -O /dev/null http://localhost:30007/health || exit 1
 
 CMD ["./media-service"]

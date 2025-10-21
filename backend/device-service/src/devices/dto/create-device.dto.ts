@@ -104,4 +104,11 @@ export class CreateDeviceDto {
   @IsArray()
   @IsOptional()
   tags?: string[];
+
+  @ApiPropertyOptional({
+    description: '元数据',
+    example: {},
+  })
+  @IsOptional()
+  metadata?: Record<string, any>;
 }

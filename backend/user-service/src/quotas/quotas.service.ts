@@ -574,4 +574,93 @@ export class QuotasService {
         return 0;
     }
   }
+
+  /**
+   * 获取配额告警列表
+   */
+  async getQuotaAlerts(threshold: number = 80): Promise<{
+    total: number;
+    alerts: Array<{
+      userId: string;
+      quotaId: string;
+      planName: string;
+      percentage: ReturnType<Quota['getUsagePercentage']>;
+      warnings: string[];
+      severity: 'warning' | 'critical';
+    }>;
+  }> {
+    const quotas = await this.quotaRepository.find({
+      where: { status: QuotaStatus.ACTIVE },
+      relations: ['user'],
+    });
+
+    const alerts = [];
+
+    for (const quota of quotas) {
+      const percentage = quota.getUsagePercentage();
+      const warnings: string[] = [];
+      let maxPercentage = 0;
+
+      if (percentage.devices >= threshold) {
+        warnings.push(`设备配额使用率 ${percentage.devices.toFixed(1)}%`);
+        maxPercentage = Math.max(maxPercentage, percentage.devices);
+      }
+      if (percentage.cpu >= threshold) {
+        warnings.push(`CPU 配额使用率 ${percentage.cpu.toFixed(1)}%`);
+        maxPercentage = Math.max(maxPercentage, percentage.cpu);
+      }
+      if (percentage.memory >= threshold) {
+        warnings.push(`内存配额使用率 ${percentage.memory.toFixed(1)}%`);
+        maxPercentage = Math.max(maxPercentage, percentage.memory);
+      }
+      if (percentage.storage >= threshold) {
+        warnings.push(`存储配额使用率 ${percentage.storage.toFixed(1)}%`);
+        maxPercentage = Math.max(maxPercentage, percentage.storage);
+      }
+      if (percentage.traffic >= threshold) {
+        warnings.push(`流量配额使用率 ${percentage.traffic.toFixed(1)}%`);
+        maxPercentage = Math.max(maxPercentage, percentage.traffic);
+      }
+
+      // 检查使用时长配额
+      if (percentage.hours >= threshold) {
+        warnings.push(`时长配额使用率 ${percentage.hours.toFixed(1)}%`);
+        maxPercentage = Math.max(maxPercentage, percentage.hours);
+      }
+
+      if (warnings.length > 0) {
+        alerts.push({
+          userId: quota.userId,
+          quotaId: quota.id,
+          planName: quota.planName || '未知套餐',
+          percentage,
+          warnings,
+          severity: maxPercentage >= 95 ? 'critical' : 'warning',
+        });
+      }
+    }
+
+    alerts.sort((a, b) => {
+      const maxA = Math.max(
+        a.percentage.devices,
+        a.percentage.cpu,
+        a.percentage.memory,
+        a.percentage.storage,
+        a.percentage.traffic,
+      );
+      const maxB = Math.max(
+        b.percentage.devices,
+        b.percentage.cpu,
+        b.percentage.memory,
+        b.percentage.storage,
+        b.percentage.traffic,
+      );
+      return maxB - maxA;
+    });
+
+    return {
+      total: alerts.length,
+      alerts,
+    };
+  }
 }

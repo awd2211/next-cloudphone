@@ -2,7 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Node, NodeStatus } from '../entities/node.entity';
-import { Device } from '../entities/device.entity';
+import { Device, DeviceStatus } from '../entities/device.entity';
 
 export interface ScheduleRequest {
   cpuCores: number;
@@ -325,7 +325,7 @@ export class SchedulerService {
     for (const overloadedNode of overloadedNodes) {
       // 获取该节点上的设备
       const devices = await this.deviceRepository.find({
-        where: { status: 'running' },
+        where: { status: DeviceStatus.RUNNING },
         order: { cpuCores: 'ASC' }, // 优先迁移小设备
         take: 5, // 限制迁移数量
       });

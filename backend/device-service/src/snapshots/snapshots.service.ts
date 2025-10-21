@@ -7,11 +7,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DeviceSnapshot, SnapshotStatus } from '../entities/device-snapshot.entity';
-import { Device } from '../entities/device.entity';
+import { Device, DeviceStatus } from '../entities/device.entity';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { RestoreSnapshotDto } from './dto/restore-snapshot.dto';
 import { DockerService } from '../docker/docker.service';
 import { DevicesService } from '../devices/devices.service';
+import { PortManagerService } from '../port-manager/port-manager.service';
 import * as Docker from 'dockerode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -32,6 +33,7 @@ export class SnapshotsService {
     private deviceRepository: Repository<Device>,
     private dockerService: DockerService,
     private devicesService: DevicesService,
+    private portManagerService: PortManagerService,
   ) {
     // 确保快照目录存在
     if (!fs.existsSync(this.snapshotDir)) {
@@ -207,7 +209,7 @@ export class SnapshotsService {
 
         // 更新设备信息
         snapshot.device.containerId = container.id;
-        snapshot.device.status = 'running';
+        snapshot.device.status = DeviceStatus.RUNNING;
         device = await this.deviceRepository.save(snapshot.device);
       } else {
         // 创建新设备
@@ -228,13 +230,12 @@ export class SnapshotsService {
         device = this.deviceRepository.create({
           name: deviceName,
           containerId: container.id,
-          status: 'running',
+          status: DeviceStatus.RUNNING,
           adbPort: adbPort,
           cpuCores: snapshot.metadata.cpuCores,
           memoryMB: snapshot.metadata.memoryMB,
           resolution: snapshot.metadata.resolution,
           androidVersion: snapshot.metadata.androidVersion,
-          groupName: restoreDto.groupName,
         });
 
         device = await this.deviceRepository.save(device);
@@ -456,21 +457,11 @@ export class SnapshotsService {
   }
 
   /**
-   * 分配可用端口（简化版，实际应该使用 PortManagerService）
+   * 分配可用端口
    */
   private async allocatePort(): Promise<number> {
-    // TODO: 集成 PortManagerService
-    // 临时实现：查找最大端口号 + 1
-    const devices = await this.deviceRepository.find({
-      order: { adbPort: 'DESC' },
-      take: 1,
-    });
-
-    if (devices.length === 0) {
-      return 5555;
-    }
-
-    return devices[0].adbPort + 1;
+    const ports = await this.portManagerService.allocatePorts();
+    return ports.adbPort;
   }
 
   /**

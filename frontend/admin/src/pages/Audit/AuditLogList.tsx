@@ -282,8 +282,37 @@ const AuditLogList: React.FC = () => {
   }, [resourceTypeFilter, statusFilter, methodFilter, searchText, logs]);
 
   const handleExport = () => {
-    console.log('导出审计日志');
-    // TODO: 实现导出功能
+    // 将审计日志导出为 CSV 文件
+    const headers = ['ID', '用户名', '操作', '资源', '资源类型', 'IP地址', '方法', '状态', '详情', '创建时间'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredLogs.map(log => [
+        log.id,
+        log.userName,
+        log.action,
+        log.resource,
+        log.resourceType,
+        log.ipAddress,
+        log.method,
+        log.status,
+        `"${(log.details || '').replace(/"/g, '""')}"`, // 转义 CSV 中的引号
+        dayjs(log.createdAt).format('YYYY-MM-DD HH:mm:ss')
+      ].join(','))
+    ].join('\n');
+
+    // 添加 UTF-8 BOM 以支持中文
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `audit_logs_${dayjs().format('YYYY-MM-DD_HH-mm-ss')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleReset = () => {

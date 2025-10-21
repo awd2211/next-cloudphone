@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Tabs, Form, Input, InputNumber, Button, message, Switch, Select, Space } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
+import request from '../../utils/request';
 
 const Settings = () => {
   const [basicForm] = Form.useForm();
@@ -12,17 +13,38 @@ const Settings = () => {
 
   // 加载设置
   const loadSettings = async () => {
-    // TODO: 从后端API加载设置
     try {
-      // 模拟数据
-      basicForm.setFieldsValue({
-        siteName: '云手机管理平台',
-        siteUrl: 'https://cloudphone.example.com',
-        icp: '京ICP备12345678号',
-        copyright: '© 2024 CloudPhone Inc.',
-      });
+      // 从后端 API 加载设置
+      const response = await request.get('/settings');
+      const settings = response.data;
+
+      // 设置基本配置
+      if (settings.basic) {
+        basicForm.setFieldsValue(settings.basic);
+      }
+
+      // 设置邮件配置
+      if (settings.email) {
+        emailForm.setFieldsValue(settings.email);
+      }
+
+      // 设置短信配置
+      if (settings.sms) {
+        smsForm.setFieldsValue(settings.sms);
+      }
+
+      // 设置支付配置
+      if (settings.payment) {
+        paymentForm.setFieldsValue(settings.payment);
+      }
+
+      // 设置存储配置
+      if (settings.storage) {
+        storageForm.setFieldsValue(settings.storage);
+      }
     } catch (error) {
       message.error('加载设置失败');
+      console.error('Failed to load settings:', error);
     }
   };
 
@@ -34,11 +56,12 @@ const Settings = () => {
   const handleSaveBasic = async (values: any) => {
     setLoading(true);
     try {
-      // TODO: 调用后端API保存
-      console.log('保存基本设置:', values);
-      message.success('保存成功');
+      // 调用后端 API 保存基本设置
+      await request.put('/settings/basic', values);
+      message.success('基本设置保存成功');
     } catch (error) {
-      message.error('保存失败');
+      message.error('保存基本设置失败');
+      console.error('Failed to save basic settings:', error);
     } finally {
       setLoading(false);
     }
@@ -48,10 +71,11 @@ const Settings = () => {
   const handleSaveEmail = async (values: any) => {
     setLoading(true);
     try {
-      console.log('保存邮件设置:', values);
-      message.success('保存成功');
+      await request.put('/settings/email', values);
+      message.success('邮件设置保存成功');
     } catch (error) {
-      message.error('保存失败');
+      message.error('保存邮件设置失败');
+      console.error('Failed to save email settings:', error);
     } finally {
       setLoading(false);
     }
@@ -61,10 +85,11 @@ const Settings = () => {
   const handleSaveSms = async (values: any) => {
     setLoading(true);
     try {
-      console.log('保存短信设置:', values);
-      message.success('保存成功');
+      await request.put('/settings/sms', values);
+      message.success('短信设置保存成功');
     } catch (error) {
-      message.error('保存失败');
+      message.error('保存短信设置失败');
+      console.error('Failed to save SMS settings:', error);
     } finally {
       setLoading(false);
     }
@@ -74,10 +99,11 @@ const Settings = () => {
   const handleSavePayment = async (values: any) => {
     setLoading(true);
     try {
-      console.log('保存支付设置:', values);
-      message.success('保存成功');
+      await request.put('/settings/payment', values);
+      message.success('支付设置保存成功');
     } catch (error) {
-      message.error('保存失败');
+      message.error('保存支付设置失败');
+      console.error('Failed to save payment settings:', error);
     } finally {
       setLoading(false);
     }
@@ -87,10 +113,11 @@ const Settings = () => {
   const handleSaveStorage = async (values: any) => {
     setLoading(true);
     try {
-      console.log('保存存储设置:', values);
-      message.success('保存成功');
+      await request.put('/settings/storage', values);
+      message.success('存储设置保存成功');
     } catch (error) {
-      message.error('保存失败');
+      message.error('保存存储设置失败');
+      console.error('Failed to save storage settings:', error);
     } finally {
       setLoading(false);
     }

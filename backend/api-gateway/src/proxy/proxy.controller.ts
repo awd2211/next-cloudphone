@@ -89,6 +89,42 @@ export class ProxyController {
   }
 
   /**
+   * 数据权限服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('data-scopes')
+  async proxyDataScopesExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * 数据权限服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('data-scopes/*')
+  async proxyDataScopes(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * 通知服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('notifications')
+  async proxyNotificationsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  /**
+   * 通知服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('notifications/*')
+  async proxyNotifications(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  /**
    * 设备服务路由
    */
   @UseGuards(JwtAuthGuard)
@@ -134,6 +170,25 @@ export class ProxyController {
   }
 
   /**
+   * 统计服务路由
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('stats/*')
+  async proxyStats(@Req() req: Request, @Res() res: Response) {
+    // Stats are aggregated from multiple services, route to billing service for now
+    return this.handleProxy('billing', req, res);
+  }
+
+  /**
+   * 报表服务路由
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('reports/*')
+  async proxyReports(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  /**
    * 通用代理处理方法
    */
   private async handleProxy(
@@ -158,7 +213,7 @@ export class ProxyController {
       } else {
         // 对于其他服务，保留服务名后的路径
         const serviceIndex = pathParts.findIndex((p) =>
-          ['devices', 'apps', 'scheduler', 'billing', 'media', 'roles', 'permissions'].includes(p),
+          ['devices', 'apps', 'scheduler', 'billing', 'media', 'roles', 'permissions', 'data-scopes', 'notifications', 'stats', 'reports'].includes(p),
         );
         if (serviceIndex !== -1) {
           targetPath = '/' + pathParts.slice(serviceIndex).join('/');

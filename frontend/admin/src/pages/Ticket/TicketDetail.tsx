@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, Descriptions, Tag, Badge, Button, Space, Divider, List, Avatar, Input, Select, Modal, message } from 'antd';
 import { ArrowLeftOutlined, UserOutlined, ClockCircleOutlined, SendOutlined, CloseOutlined, CheckOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
+import request from '../../utils/request';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -149,22 +150,28 @@ const TicketDetail: React.FC = () => {
 
     setSubmitting(true);
     try {
-      // TODO: 调用 API 提交回复
-      const newReply: TicketReply = {
-        id: `reply-${Date.now()}`,
-        userId: 'admin-current',
-        userName: '当前管理员',
-        userType: 'admin',
+      // 调用后端 API 提交回复
+      const response = await request.post(`/tickets/${ticketId}/replies`, {
         content: replyContent,
-        createdAt: new Date().toLocaleString('zh-CN'),
         isInternal: isInternalNote,
+        newStatus: newStatus,
+      });
+
+      const newReply: TicketReply = {
+        id: response.data.id,
+        userId: response.data.userId,
+        userName: response.data.userName,
+        userType: 'admin',
+        content: response.data.content,
+        createdAt: response.data.createdAt,
+        isInternal: response.data.isInternal,
       };
 
       setTicket({
         ...ticket,
         replies: [...ticket.replies, newReply],
-        status: newStatus,
-        updatedAt: new Date().toLocaleString('zh-CN'),
+        status: response.data.ticketStatus || newStatus,
+        updatedAt: response.data.updatedAt || new Date().toLocaleString('zh-CN'),
       });
 
       setReplyContent('');

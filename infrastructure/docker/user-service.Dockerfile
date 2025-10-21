@@ -4,6 +4,9 @@
 # 使用标准镜像而非alpine，以避免bcrypt原生模块问题
 FROM node:20-slim AS development
 
+# 安装系统依赖（procps 提供 ps 命令，watch 模式需要）
+RUN apt-get update && apt-get install -y procps && rm -rf /var/lib/apt/lists/*
+
 # 安装 pnpm
 RUN npm install -g pnpm
 

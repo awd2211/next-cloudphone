@@ -14,19 +14,14 @@ import { PaymentsModule } from './payments/payments.module';
 import { BalanceModule } from './balance/balance.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { BillingRulesModule } from './billing-rules/billing-rules.module';
+import { StatsModule } from './stats/stats.module';
 import { HealthController } from './health.controller';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
       isGlobal: true,
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
       envFilePath: '.env',
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
     }),
     // Winston 日志模块
     WinstonModule.forRoot(winstonConfig),
@@ -46,6 +41,7 @@ import { HealthController } from './health.controller';
     BillingModule,
     MeteringModule,
     ReportsModule,
+    StatsModule,
     PaymentsModule,
     BalanceModule,
     InvoicesModule,

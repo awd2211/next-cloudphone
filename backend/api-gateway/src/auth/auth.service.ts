@@ -59,7 +59,7 @@ export class AuthService {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role,
+        roles: user.roles?.map(r => r.name) || [],
       },
     };
   }
@@ -108,7 +108,7 @@ export class AuthService {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role,
+        roles: user.roles?.map(r => r.name) || [],
         twoFactorEnabled: user.twoFactorEnabled,
       },
     };
@@ -311,7 +311,7 @@ export class AuthService {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role,
+        roles: user.roles?.map(r => r.name) || [],
         twoFactorEnabled: user.twoFactorEnabled,
       },
     };

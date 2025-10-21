@@ -3,6 +3,7 @@ import { Card, Descriptions, Button, Form, Input, Modal, message, Row, Col, Spac
 import { EditOutlined, LockOutlined, UserOutlined, MailOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import TwoFactorSettings from '@/components/TwoFactorSettings';
+import request from '@/utils/request';
 
 interface User {
   id: string;
@@ -41,16 +42,28 @@ const Profile = () => {
 
   const handleChangePassword = async (values: { oldPassword: string; newPassword: string }) => {
     try {
-      // TODO: 调用修改密码API
+      // 调用后端 API 修改密码
+      await request.put('/users/change-password', {
+        oldPassword: values.oldPassword,
+        newPassword: values.newPassword,
+      });
+
       message.success('密码修改成功，请重新登录');
       setPasswordModalVisible(false);
       passwordForm.resetFields();
-      // 退出登录
+
+      // 清除本地存储并退出登录
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      localStorage.removeItem('userId');
+
+      // 延迟跳转到登录页
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1000);
     } catch (error) {
-      message.error('密码修改失败');
+      message.error('密码修改失败，请检查原密码是否正确');
+      console.error('Failed to change password:', error);
     }
   };
 

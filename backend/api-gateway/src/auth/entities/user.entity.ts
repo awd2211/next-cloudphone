@@ -4,7 +4,18 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToMany,
+  JoinTable,
+  Index,
 } from 'typeorm';
+import { Role } from './role.entity';
+
+export enum UserStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
+  DELETED = 'deleted',
+}
 
 @Entity('users')
 export class User {
@@ -12,28 +23,78 @@ export class User {
   id: string;
 
   @Column({ unique: true })
+  @Index()
   username: string;
 
   @Column({ unique: true })
+  @Index()
   email: string;
 
   @Column()
   password: string;
 
-  @Column({ default: 'user' })
-  role: string; // 'admin' | 'user'
-
-  @Column({ default: 'active' })
-  status: string; // 'active' | 'inactive'
+  @Column({ nullable: true })
+  fullName: string;
 
   @Column({ nullable: true })
-  tenantId: string; // 租户 ID，用于多租户隔离
+  avatar: string;
+
+  @Column({ nullable: true })
+  phone: string;
+
+  @Column({
+    type: 'enum',
+    enum: UserStatus,
+    default: UserStatus.ACTIVE,
+  })
+  status: UserStatus;
+
+  @Column({ nullable: true })
+  @Index()
+  tenantId: string;
+
+  @Column({ nullable: true })
+  @Index()
+  departmentId: string;
+
+  @Column({
+    type: 'varchar',
+    length: 50,
+    default: 'tenant',
+  })
+  dataScope: 'all' | 'tenant' | 'department' | 'self';
 
   @Column({ default: false })
-  twoFactorEnabled: boolean; // 是否启用2FA
+  isSuperAdmin: boolean;
+
+  @Column({ type: 'jsonb', nullable: true })
+  metadata: Record<string, any>;
+
+  @Column({ type: 'int', default: 0 })
+  loginAttempts: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lockedUntil: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastLoginAt: Date;
 
   @Column({ nullable: true })
-  twoFactorSecret: string; // TOTP密钥（加密存储）
+  lastLoginIp: string;
+
+  @Column({ default: false })
+  twoFactorEnabled: boolean;
+
+  @Column({ nullable: true })
+  twoFactorSecret: string;
+
+  @ManyToMany(() => Role, (role) => role.users, { eager: true })
+  @JoinTable({
+    name: 'user_roles',
+    joinColumn: { name: 'user_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
+  })
+  roles: Role[];
 
   @CreateDateColumn()
   createdAt: Date;

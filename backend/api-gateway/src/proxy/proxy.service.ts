@@ -68,10 +68,19 @@ export class ProxyService {
         },
       ],
       [
+        'notifications',
+        {
+          name: 'Notification Service',
+          url: this.configService.get('NOTIFICATION_SERVICE_URL') || 'http://localhost:30006',
+          healthCheck: '/health',
+          timeout: 10000,
+        },
+      ],
+      [
         'media',
         {
           name: 'Media Service',
-          url: this.configService.get('MEDIA_SERVICE_URL') || 'http://localhost:30006',
+          url: this.configService.get('MEDIA_SERVICE_URL') || 'http://localhost:30007',
           healthCheck: '/health',
           timeout: 5000,
         },

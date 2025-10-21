@@ -343,7 +343,7 @@ const TutorialDetail: React.FC = () => {
           {isLastStep && !completed && (
             <Alert
               message="即将完成"
-              description="完成本步骤后，点击"完成教程"按钮即可完成整个教程"
+              description="完成本步骤后，点击「完成教程」按钮即可完成整个教程"
               type="info"
               showIcon
               style={{ marginTop: 16 }}

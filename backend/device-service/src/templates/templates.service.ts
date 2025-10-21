@@ -157,9 +157,8 @@ export class TemplatesService {
       resolution: template.resolution,
       dpi: template.dpi,
       androidVersion: template.androidVersion,
-      enableGpu: dto.enableGpu ?? template.enableGpu,
-      enableAudio: template.enableAudio,
-      groupName: dto.groupName,
+      // Note: enableGpu, enableAudio, groupName not supported in CreateDeviceDto
+      // These can be set via metadata or device update after creation
     };
 
     // 创建设备
@@ -205,15 +204,20 @@ export class TemplatesService {
       enableGpu: dto.enableGpu ?? template.enableGpu,
       enableAudio: template.enableAudio,
       groupName: dto.groupName,
-      maxConcurrency: dto.maxConcurrency || 10,
+      // Note: maxConcurrency is handled internally by batch-operations.service
     };
 
     // 批量创建设备
     const result = await this.batchOperationsService.batchCreate(batchCreateDto);
 
     // 对成功创建的设备执行模板初始化（异步）
-    if (result.successful.length > 0) {
-      this.batchExecuteTemplateInit(result.successful, template).catch((error) => {
+    // 从 results 中提取成功的设备ID
+    const successfulDeviceIds = Object.values(result.results)
+      .filter((r) => r.success && r.data?.id)
+      .map((r) => r.data.id);
+
+    if (successfulDeviceIds.length > 0) {
+      this.batchExecuteTemplateInit(successfulDeviceIds, template).catch((error) => {
         this.logger.error(
           `Batch template initialization failed: ${error.message}`,
         );
@@ -289,12 +293,12 @@ export class TemplatesService {
     if (template.preInstalledApps && template.preInstalledApps.length > 0) {
       for (const app of template.preInstalledApps) {
         try {
-          await this.devicesService.installApp(deviceId, app.apkPath);
+          await this.devicesService.installApk(deviceId, app.apkPath);
           this.logger.log(`Installed app: ${app.packageName} on device ${deviceId}`);
 
           // 自动启动应用
           if (app.autoStart) {
-            await this.devicesService.executeCommand(
+            await this.devicesService.executeShellCommand(
               deviceId,
               `am start -n ${app.packageName}/.MainActivity`,
             );
@@ -311,7 +315,7 @@ export class TemplatesService {
     if (template.initCommands && template.initCommands.length > 0) {
       for (const command of template.initCommands) {
         try {
-          await this.devicesService.executeCommand(deviceId, command);
+          await this.devicesService.executeShellCommand(deviceId, command);
           this.logger.log(`Executed command on device ${deviceId}: ${command}`);
         } catch (error) {
           this.logger.error(`Failed to execute command: ${error.message}`);

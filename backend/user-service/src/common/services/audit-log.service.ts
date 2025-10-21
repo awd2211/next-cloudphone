@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+import { AuditLog as AuditLogEntity, AuditAction, AuditLevel } from '../../entities/audit-log.entity';
+import { AlertService, AlertLevel } from './alert/alert.service';
 
 /**
  * 审计事件类型
@@ -65,8 +67,14 @@ export interface AuditLog {
   ip?: string;
   userAgent?: string;
   resource?: string;
+  resourceType?: string;
+  resourceId?: string;
   action?: string;
+  description?: string;
   details?: any;
+  metadata?: Record<string, any>;
+  oldValue?: Record<string, any>;
+  newValue?: Record<string, any>;
   success: boolean;
   errorMessage?: string;
   timestamp: Date;
@@ -83,9 +91,22 @@ export interface AuditLog {
  */
 @Injectable()
 export class AuditLogService {
+  // 异常检测缓存（生产环境应使用 Redis）
+  private failedLoginAttempts: Map<string, { count: number; firstAttempt: number }> = new Map();
+  private suspiciousIPs: Set<string> = new Set();
+  private readonly BRUTE_FORCE_THRESHOLD = 5; // 5次失败尝试
+  private readonly BRUTE_FORCE_WINDOW = 5 * 60 * 1000; // 5分钟窗口
+  private readonly CLEANUP_INTERVAL = 10 * 60 * 1000; // 10分钟清理一次
+
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
-  ) {}
+    @InjectRepository(AuditLogEntity)
+    private readonly auditLogRepository: Repository<AuditLogEntity>,
+    private readonly alertService: AlertService,
+  ) {
+    // 定期清理过期数据
+    setInterval(() => this.cleanupExpiredRecords(), this.CLEANUP_INTERVAL);
+  }
 
   /**
    * 记录审计日志
@@ -107,8 +128,14 @@ export class AuditLogService {
       ...auditLog,
     });
 
-    // TODO: 存储到数据库（可选）
-    // await this.saveToDatabase(auditLog);
+    // 存储到数据库（异步，不阻塞主流程）
+    this.saveToDatabase(auditLog).catch((error) => {
+      this.logger.error({
+        type: 'audit_log_db_save_failed',
+        error: error.message,
+        auditLog,
+      });
+    });
 
     // 关键事件触发告警
     if (log.severity === AuditSeverity.CRITICAL) {
@@ -362,27 +389,131 @@ export class AuditLogService {
 
   /**
    * 检测暴力破解
-   *
-   * 简单实现：如果短时间内失败次数过多，记录暴力破解尝试
-   * TODO: 实现更复杂的检测逻辑（使用 Redis 计数）
+   * 基于滑动窗口的失败登录计数
    */
   private async detectBruteForce(ip: string, username: string): Promise<void> {
-    // 这里应该实现基于 Redis 的计数器
-    // 如果 5 分钟内失败次数超过 5 次，记录暴力破解尝试
-    // 简化实现，仅记录日志
-    this.logger.warn({
-      type: 'potential_brute_force',
-      ip,
-      username,
-      message: '检测到潜在的暴力破解尝试',
-    });
+    const key = `${ip}:${username}`;
+    const now = Date.now();
+
+    // 获取或创建记录
+    let record = this.failedLoginAttempts.get(key);
+
+    if (!record) {
+      // 首次失败尝试
+      this.failedLoginAttempts.set(key, {
+        count: 1,
+        firstAttempt: now,
+      });
+      return;
+    }
+
+    // 检查是否在时间窗口内
+    const elapsed = now - record.firstAttempt;
+
+    if (elapsed > this.BRUTE_FORCE_WINDOW) {
+      // 超过时间窗口，重置计数
+      this.failedLoginAttempts.set(key, {
+        count: 1,
+        firstAttempt: now,
+      });
+      return;
+    }
+
+    // 增加失败计数
+    record.count++;
+    this.failedLoginAttempts.set(key, record);
+
+    // 检查是否达到阈值
+    if (record.count >= this.BRUTE_FORCE_THRESHOLD) {
+      // 标记为可疑 IP
+      this.suspiciousIPs.add(ip);
+
+      // 记录暴力破解尝试
+      await this.log({
+        eventType: AuditEventType.BRUTE_FORCE_ATTEMPT,
+        severity: AuditSeverity.CRITICAL,
+        userId: 'system',
+        username,
+        ip,
+        description: `检测到暴力破解尝试：${record.count} 次失败登录（${Math.floor(elapsed / 1000)}秒内）`,
+        metadata: {
+          failedAttempts: record.count,
+          timeWindowSeconds: Math.floor(elapsed / 1000),
+          threshold: this.BRUTE_FORCE_THRESHOLD,
+        },
+        success: false,
+      });
+
+      // 清除记录，避免重复告警
+      this.failedLoginAttempts.delete(key);
+    }
+  }
+
+  /**
+   * 清理过期的检测记录
+   */
+  private cleanupExpiredRecords(): void {
+    const now = Date.now();
+    let cleaned = 0;
+
+    // 清理过期的失败登录记录
+    for (const [key, record] of this.failedLoginAttempts.entries()) {
+      if (now - record.firstAttempt > this.BRUTE_FORCE_WINDOW) {
+        this.failedLoginAttempts.delete(key);
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      this.logger.debug({
+        type: 'audit_cleanup',
+        message: `清理了 ${cleaned} 条过期的异常检测记录`,
+      });
+    }
+  }
+
+  /**
+   * 检查 IP 是否可疑
+   */
+  isIPSuspicious(ip: string): boolean {
+    return this.suspiciousIPs.has(ip);
+  }
+
+  /**
+   * 移除可疑 IP 标记
+   */
+  clearSuspiciousIP(ip: string): void {
+    this.suspiciousIPs.delete(ip);
+  }
+
+  /**
+   * 获取异常检测统计
+   */
+  getAnomalyStats(): {
+    suspiciousIPs: number;
+    activeMonitoring: number;
+    failedAttempts: Array<{ key: string; count: number; elapsed: number }>;
+  } {
+    const now = Date.now();
+    const failedAttempts = Array.from(this.failedLoginAttempts.entries()).map(
+      ([key, record]) => ({
+        key,
+        count: record.count,
+        elapsed: Math.floor((now - record.firstAttempt) / 1000),
+      }),
+    );
+
+    return {
+      suspiciousIPs: this.suspiciousIPs.size,
+      activeMonitoring: this.failedLoginAttempts.size,
+      failedAttempts,
+    };
   }
 
   /**
    * 触发告警
    *
    * 关键安全事件触发告警
-   * TODO: 集成告警系统（邮件、短信、钉钉等）
    */
   private triggerAlert(log: AuditLog): void {
     this.logger.error({
@@ -391,18 +522,136 @@ export class AuditLogService {
       message: `🚨 关键安全事件: ${log.eventType}`,
     });
 
-    // TODO: 发送告警通知
-    // - 发送邮件给安全团队
-    // - 发送短信给管理员
-    // - 推送到监控平台
+    // 映射审计严重级别到告警级别
+    const alertLevel =
+      log.severity === AuditSeverity.CRITICAL
+        ? AlertLevel.CRITICAL
+        : log.severity === AuditSeverity.ERROR
+          ? AlertLevel.ERROR
+          : AlertLevel.WARNING;
+
+    // 发送告警通知
+    this.alertService
+      .sendAlert({
+        level: alertLevel,
+        title: `安全告警: ${log.eventType}`,
+        content: log.description,
+        metadata: {
+          用户: log.username || log.userId || 'unknown',
+          IP地址: log.ip || 'unknown',
+          事件类型: log.eventType,
+          严重级别: log.severity,
+          资源类型: log.resourceType,
+          资源ID: log.resourceId,
+          ...log.metadata,
+        },
+      })
+      .catch((error) => {
+        this.logger.error({
+          type: 'alert_send_failed',
+          error: error.message,
+          auditLog: log,
+        });
+      });
   }
 
   /**
-   * 保存到数据库（可选）
-   *
-   * TODO: 如果需要持久化审计日志到数据库
+   * 保存审计日志到数据库
    */
-  // private async saveToDatabase(log: AuditLog): Promise<void> {
-  //   await this.auditLogRepository.save(log);
-  // }
+  private async saveToDatabase(log: AuditLog): Promise<void> {
+    try {
+      // 将审计日志接口映射到数据库实体
+      const entity = this.mapToEntity(log);
+      await this.auditLogRepository.save(entity);
+    } catch (error) {
+      // 记录错误但不抛出，避免影响主流程
+      this.logger.error({
+        type: 'audit_log_save_error',
+        error: error.message,
+        stack: error.stack,
+      });
+    }
+  }
+
+  /**
+   * 将审计日志映射到数据库实体
+   */
+  private mapToEntity(log: AuditLog): Partial<AuditLogEntity> {
+    // 映射事件类型到数据库 Action
+    const actionMap: Record<string, AuditAction> = {
+      [AuditEventType.LOGIN_SUCCESS]: AuditAction.USER_LOGIN,
+      [AuditEventType.LOGIN_FAILED]: AuditAction.USER_LOGIN,
+      [AuditEventType.LOGOUT]: AuditAction.USER_LOGOUT,
+      [AuditEventType.PASSWORD_CHANGED]: AuditAction.PASSWORD_CHANGE,
+      [AuditEventType.PASSWORD_RESET]: AuditAction.PASSWORD_RESET,
+      [AuditEventType.USER_CREATED]: AuditAction.USER_REGISTER,
+      [AuditEventType.USER_UPDATED]: AuditAction.USER_UPDATE,
+      [AuditEventType.USER_DELETED]: AuditAction.USER_DELETE,
+      [AuditEventType.USER_ROLE_CHANGED]: AuditAction.ROLE_ASSIGN,
+      [AuditEventType.PERMISSION_GRANTED]: AuditAction.PERMISSION_GRANT,
+      [AuditEventType.PERMISSION_REVOKED]: AuditAction.PERMISSION_REVOKE,
+      [AuditEventType.CONFIG_CHANGED]: AuditAction.CONFIG_UPDATE,
+    };
+
+    // 映射严重级别
+    const levelMap: Record<string, AuditLevel> = {
+      [AuditSeverity.INFO]: AuditLevel.INFO,
+      [AuditSeverity.WARNING]: AuditLevel.WARNING,
+      [AuditSeverity.ERROR]: AuditLevel.ERROR,
+      [AuditSeverity.CRITICAL]: AuditLevel.CRITICAL,
+    };
+
+    return {
+      userId: log.userId || 'system',
+      action: actionMap[log.eventType] || AuditAction.SYSTEM_MAINTENANCE,
+      level: levelMap[log.severity] || AuditLevel.INFO,
+      resourceType: log.resourceType || 'unknown',
+      resourceId: log.resourceId,
+      description: log.description || log.eventType,
+      oldValue: log.oldValue,
+      newValue: log.newValue,
+      metadata: log.metadata || {},
+      ipAddress: log.ip,
+      userAgent: log.userAgent,
+      requestId: log.metadata?.requestId,
+      success: log.severity !== AuditSeverity.ERROR && log.severity !== AuditSeverity.CRITICAL,
+      errorMessage: log.severity === AuditSeverity.ERROR || log.severity === AuditSeverity.CRITICAL
+        ? log.description
+        : undefined,
+    };
+  }
+
+  /**
+   * 查询审计日志（新增功能）
+   */
+  async findAuditLogs(options: {
+    userId?: string;
+    action?: AuditAction;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<AuditLogEntity[]> {
+    const query = this.auditLogRepository.createQueryBuilder('audit');
+
+    if (options.userId) {
+      query.andWhere('audit.userId = :userId', { userId: options.userId });
+    }
+
+    if (options.action) {
+      query.andWhere('audit.action = :action', { action: options.action });
+    }
+
+    if (options.startDate) {
+      query.andWhere('audit.createdAt >= :startDate', { startDate: options.startDate });
+    }
+
+    if (options.endDate) {
+      query.andWhere('audit.createdAt <= :endDate', { endDate: options.endDate });
+    }
+
+    query.orderBy('audit.createdAt', 'DESC');
+    query.limit(options.limit || 100);
+
+    return await query.getMany();
+  }
 }

@@ -26,8 +26,6 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.setGlobalPrefix('api');
-
   // Swagger API 文档配置
   const config = new DocumentBuilder()
     .setTitle('Billing Service API')
@@ -41,7 +39,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
+  SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -51,7 +49,7 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log(`🚀 Billing Service is running on: http://localhost:${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  console.log(`📚 API Documentation: http://localhost:${port}/docs`);
 }
 
 bootstrap();

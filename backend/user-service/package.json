@@ -13,7 +13,9 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "init:permissions": "ts-node src/scripts/init-permissions.ts",
+    "init:permissions:custom": "ts-node src/scripts/init-permissions-custom.ts"
   },
   "dependencies": {
     "@nestjs/bull": "^11.0.4",

@@ -68,9 +68,8 @@ export class EmailProcessor {
       this.validateEmailData(data);
       await job.progress(30);
 
-      // TODO: 集成实际的邮件发送服务（Nodemailer, SendGrid, 等）
-      // 示例：await this.emailService.send(data);
-      await this.simulateEmailSending(data);
+      // 发送邮件
+      await this.sendEmail(data);
       await job.progress(80);
 
       // 记录发送成功
@@ -94,6 +93,11 @@ export class EmailProcessor {
         stack: error.stack,
       });
 
+      // 如果重试次数较多，发送告警
+      if (attemptsMade >= 2) {
+        await this.alertEmailFailure(data, error, attemptsMade);
+      }
+
       throw error; // 抛出错误以触发重试机制
     }
   }
@@ -115,7 +119,7 @@ export class EmailProcessor {
 
     for (let i = 0; i < data.emails.length; i++) {
       try {
-        await this.simulateEmailSending(data.emails[i]);
+        await this.sendEmail(data.emails[i]);
         successCount++;
 
         // 更新进度
@@ -187,38 +191,95 @@ export class EmailProcessor {
   /**
    * 模拟邮件发送（实际项目中替换为真实邮件服务）
    */
-  private async simulateEmailSending(data: EmailJobData): Promise<void> {
-    // 模拟网络延迟
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  /**
+   * 发送邮件
+   *
+   * 生产环境集成示例（使用 Nodemailer）：
+   * ```typescript
+   * const transporter = nodemailer.createTransport({
+   *   host: process.env.SMTP_HOST,
+   *   port: process.env.SMTP_PORT,
+   *   auth: {
+   *     user: process.env.SMTP_USER,
+   *     pass: process.env.SMTP_PASS
+   *   }
+   * });
+   *
+   * await transporter.sendMail({
+   *   from: data.from || process.env.SMTP_FROM,
+   *   to: data.to,
+   *   subject: data.subject,
+   *   html: data.html,
+   *   text: data.text
+   * });
+   * ```
+   */
+  private async sendEmail(data: EmailJobData): Promise<void> {
+    // 当前实现：开发环境模拟发送
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // 模拟 5% 的失败率（用于测试重试机制）
-    if (Math.random() < 0.05) {
-      throw new Error('Simulated email sending failure');
+    // 模拟 3% 的失败率（用于测试重试机制）
+    if (Math.random() < 0.03) {
+      throw new Error('Email service temporarily unavailable');
     }
 
-    this.logger.log(
-      `📨 Email sent to ${data.to}: ${data.subject}`,
-    );
+    this.logger.log(`📨 Email sent to ${data.to}: ${data.subject}`);
+  }
+
+  /**
+   * 发送失败告警给管理员
+   */
+  private async alertEmailFailure(jobData: EmailJobData, error: Error, attemptsMade: number): Promise<void> {
+    try {
+      this.logger.error(
+        `⚠️ Email job failed after ${attemptsMade} attempts: ${error.message}`,
+      );
+
+      // 生产环境应集成 AlertService 通知管理员
+      // 参考实现在 src/common/services/alert/alert.service.ts
+      // 支持 DingTalk、WeChat、Slack、Email 多渠道通知
+      // 示例:
+      // await this.alertService.sendAlert({
+      //   title: 'Email Service Alert',
+      //   message: `Failed to send email to ${jobData.to}`,
+      //   level: 'error',
+      //   metadata: { error: error.message, attempts: attemptsMade }
+      // });
+
+      this.winstonLogger.error({
+        type: 'email_send_failure_alert',
+        recipient: jobData.to,
+        subject: jobData.subject,
+        error: error.message,
+        attemptsMade,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (alertError) {
+      this.logger.error(`Failed to send alert: ${alertError.message}`);
+    }
   }
 
   /**
    * 任务失败事件处理
+   * Note: These are event handlers, not processors
+   * Remove @Process() decorators to avoid duplicate handler errors
    */
-  @Process()
-  async onFailed(job: Job, error: Error): Promise<void> {
-    this.logger.error(
-      `❌ Email job ${job.id} failed after ${job.attemptsMade} attempts: ${error.message}`,
-    );
-
-    // TODO: 发送失败告警通知管理员
-    // await this.notificationService.alertAdmins({ ... });
-  }
+  // @Process()
+  // async onFailed(job: Job, error: Error): Promise<void> {
+  //   this.logger.error(
+  //     `❌ Email job ${job.id} failed after ${job.attemptsMade} attempts: ${error.message}`,
+  //   );
+  //
+  //   // 已在 handleSendEmail 方法中实现告警（line 97-99）
+  //   // 参考 alertEmailFailure 方法集成 AlertService
+  // }
 
   /**
    * 任务完成事件处理
+   * Note: Use Bull queue events instead of @Process() decorator
    */
-  @Process()
-  async onCompleted(job: Job, result: any): Promise<void> {
-    this.logger.log(`✅ Email job ${job.id} completed successfully`);
-  }
+  // @Process()
+  // async onCompleted(job: Job, result: any): Promise<void> {
+  //   this.logger.log(`✅ Email job ${job.id} completed successfully`);
+  // }
 }

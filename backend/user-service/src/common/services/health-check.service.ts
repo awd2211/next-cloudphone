@@ -202,17 +202,24 @@ export class HealthCheckService {
 
   /**
    * 检查 Redis 健康状况
+   * 使用 TCP 连接测试或 HTTP 探针
    */
   private async checkRedis(): Promise<DependencyHealth> {
     const startTime = Date.now();
+    const host = this.configService.get('REDIS_HOST', 'localhost');
+    const port = this.configService.get('REDIS_PORT', 6379);
 
     try {
-      // TODO: 实现实际的 Redis 健康检查
-      // const redis = app.get(Redis);
-      // await redis.ping();
+      // 方法1: 如果有 Redis 客户端，使用 ping 命令
+      // 如果项目中已经配置了 Redis (例如通过 BullQueue)，可以使用：
+      // const Redis = require('ioredis');
+      // const redis = new Redis({ host, port, connectTimeout: 3000 });
+      // const result = await redis.ping();
+      // redis.disconnect();
+      // if (result !== 'PONG') throw new Error('Redis PING failed');
 
-      // 模拟检查
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // 方法2: TCP 端口检查（备用方案）
+      await this.checkTcpConnection(host, port, 3000);
       const responseTime = Date.now() - startTime;
 
       return {
@@ -220,8 +227,9 @@ export class HealthCheckService {
         status: 'healthy',
         responseTime,
         details: {
-          host: this.configService.get('REDIS_HOST', 'localhost'),
-          port: this.configService.get('REDIS_PORT', 6379),
+          host,
+          port,
+          method: 'tcp-check',
         },
       };
     } catch (error) {
@@ -236,8 +244,45 @@ export class HealthCheckService {
         status: 'unhealthy',
         responseTime: Date.now() - startTime,
         message: error.message,
+        details: {
+          host,
+          port,
+        },
       };
     }
+  }
+
+  /**
+   * TCP 连接检查（用于检查服务端口是否可达）
+   */
+  private async checkTcpConnection(
+    host: string,
+    port: number,
+    timeout: number = 3000,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const net = require('net');
+      const socket = new net.Socket();
+
+      const onError = (err: Error) => {
+        socket.destroy();
+        reject(new Error(`TCP connection failed: ${err.message}`));
+      };
+
+      const onTimeout = () => {
+        socket.destroy();
+        reject(new Error(`TCP connection timeout after ${timeout}ms`));
+      };
+
+      socket.setTimeout(timeout);
+      socket.once('error', onError);
+      socket.once('timeout', onTimeout);
+
+      socket.connect(port, host, () => {
+        socket.end();
+        resolve();
+      });
+    });
   }
 
   /**
@@ -247,24 +292,112 @@ export class HealthCheckService {
     const startTime = Date.now();
 
     try {
-      // TODO: 检查其他微服务（device-service, app-service等）
-      // 这里可以使用 Circuit Breaker 的状态来判断
+      // 定义需要检查的微服务列表
+      const services = [
+        {
+          name: 'device-service',
+          url: this.configService.get('DEVICE_SERVICE_URL', 'http://localhost:30002'),
+        },
+        {
+          name: 'app-service',
+          url: this.configService.get('APP_SERVICE_URL', 'http://localhost:30003'),
+        },
+        {
+          name: 'billing-service',
+          url: this.configService.get('BILLING_SERVICE_URL', 'http://localhost:30005'),
+        },
+        {
+          name: 'scheduler-service',
+          url: this.configService.get('SCHEDULER_SERVICE_URL', 'http://localhost:30004'),
+        },
+      ];
+
+      // 并发检查所有微服务
+      const results = await Promise.allSettled(
+        services.map((service) => this.checkMicroservice(service.name, service.url)),
+      );
+
+      // 统计健康状态
+      const serviceStatuses = results.map((result, index) => {
+        if (result.status === 'fulfilled') {
+          return {
+            name: services[index].name,
+            status: result.value.status,
+            responseTime: result.value.responseTime,
+          };
+        } else {
+          return {
+            name: services[index].name,
+            status: 'unhealthy' as const,
+            error: result.reason?.message || 'Unknown error',
+          };
+        }
+      });
+
+      const healthyCount = serviceStatuses.filter((s) => s.status === 'healthy').length;
+      const totalCount = serviceStatuses.length;
+
+      // 确定整体状态
+      let overallStatus: 'healthy' | 'degraded' | 'unhealthy';
+      if (healthyCount === totalCount) {
+        overallStatus = 'healthy';
+      } else if (healthyCount > 0) {
+        overallStatus = 'degraded';
+      } else {
+        overallStatus = 'unhealthy';
+      }
 
       return {
         name: 'external_services',
-        status: 'healthy',
+        status: overallStatus,
         responseTime: Date.now() - startTime,
         details: {
-          services: ['device-service', 'app-service'],
+          total: totalCount,
+          healthy: healthyCount,
+          degraded: totalCount - healthyCount,
+          services: serviceStatuses,
         },
       };
     } catch (error) {
       return {
         name: 'external_services',
-        status: 'degraded',
+        status: 'unhealthy',
         responseTime: Date.now() - startTime,
         message: error.message,
       };
+    }
+  }
+
+  /**
+   * 检查单个微服务健康状态
+   */
+  private async checkMicroservice(
+    serviceName: string,
+    baseUrl: string,
+  ): Promise<{ status: 'healthy' | 'unhealthy'; responseTime: number }> {
+    const startTime = Date.now();
+
+    try {
+      // 尝试访问 /health 端点
+      const response = await fetch(`${baseUrl}/health`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(5000), // 5秒超时
+      });
+
+      const responseTime = Date.now() - startTime;
+
+      if (response.ok) {
+        return { status: 'healthy', responseTime };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      this.logger.warn(
+        `Microservice ${serviceName} health check failed: ${error.message}`,
+      );
+      return { status: 'unhealthy', responseTime };
     }
   }
 

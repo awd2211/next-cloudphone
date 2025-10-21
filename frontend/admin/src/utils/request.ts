@@ -1,4 +1,5 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios from 'axios';
+import type { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { message } from 'antd';
 
 // 生成唯一请求 ID
@@ -10,7 +11,7 @@ class RequestLogger {
   /**
    * 记录请求日志
    */
-  static logRequest(config: AxiosRequestConfig & { requestId?: string }) {
+  static logRequest(config: InternalAxiosRequestConfig & { requestId?: string }) {
     const log = {
       type: 'api_request',
       requestId: config.requestId,

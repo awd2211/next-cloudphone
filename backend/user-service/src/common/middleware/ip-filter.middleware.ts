@@ -1,4 +1,4 @@
-import { Injectable, NestMiddleware, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, NestMiddleware, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { ipBlacklist } from '../config/throttler.config';
 
@@ -12,6 +12,7 @@ import { ipBlacklist } from '../config/throttler.config';
  */
 @Injectable()
 export class IpFilterMiddleware implements NestMiddleware {
+  private readonly logger = new Logger(IpFilterMiddleware.name);
   use(req: Request, res: Response, next: NextFunction) {
     const clientIp = this.getClientIp(req);
 
@@ -46,19 +47,51 @@ export class IpFilterMiddleware implements NestMiddleware {
   }
 
   /**
-   * 检查 IP 是否在黑名单中
+   * 检查 IP 是否在黑名单中（支持 CIDR 格式）
    */
   private isBlacklisted(ip: string): boolean {
-    return ipBlacklist.includes(ip);
+    for (const entry of ipBlacklist) {
+      // 检查是否是 CIDR 格式
+      if (entry.includes('/')) {
+        if (this.isInCidrRange(ip, entry)) {
+          return true;
+        }
+      } else {
+        // 精确匹配
+        if (ip === entry) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
-   * TODO: 扩展功能 - 支持 CIDR 格式
-   * 例如：192.168.1.0/24
+   * 检查 IP 是否在 CIDR 范围内
+   * 支持 IPv4 CIDR 格式，例如：192.168.1.0/24
    */
   private isInCidrRange(ip: string, cidr: string): boolean {
-    // 实现 CIDR 匹配逻辑
-    // 可以使用 ipaddr.js 或 ip-range-check 库
-    return false;
+    try {
+      const [range, bits] = cidr.split('/');
+      const mask = ~(2 ** (32 - parseInt(bits, 10)) - 1);
+
+      const ipNum = this.ipToNumber(ip);
+      const rangeNum = this.ipToNumber(range);
+
+      return (ipNum & mask) === (rangeNum & mask);
+    } catch (error) {
+      this.logger.error(`Invalid CIDR format: ${cidr}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 将 IPv4 地址转换为数字
+   */
+  private ipToNumber(ip: string): number {
+    const parts = ip.split('.').map((part) => parseInt(part, 10));
+    return (
+      (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]
+    ) >>> 0;
   }
 }

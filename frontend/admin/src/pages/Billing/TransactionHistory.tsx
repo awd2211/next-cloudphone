@@ -212,8 +212,48 @@ const TransactionHistory: React.FC = () => {
   }, [typeFilter, statusFilter, searchText, transactions]);
 
   const handleExport = () => {
-    console.log('导出交易记录');
-    // TODO: 实现导出功能
+    // 将交易记录导出为 CSV 文件
+    const headers = ['交易ID', '类型', '金额', '余额', '状态', '描述', '交易时间'];
+    const typeMap: Record<string, string> = {
+      recharge: '充值',
+      consumption: '消费',
+      refund: '退款',
+      freeze: '冻结',
+      unfreeze: '解冻',
+    };
+    const statusMap: Record<string, string> = {
+      success: '成功',
+      pending: '处理中',
+      failed: '失败',
+      cancelled: '已取消',
+    };
+
+    const csvContent = [
+      headers.join(','),
+      ...filteredTransactions.map(tx => [
+        tx.id,
+        typeMap[tx.type] || tx.type,
+        tx.amount,
+        tx.balance,
+        statusMap[tx.status] || tx.status,
+        `"${(tx.description || '').replace(/"/g, '""')}"`, // 转义 CSV 中的引号
+        dayjs(tx.createdAt).format('YYYY-MM-DD HH:mm:ss')
+      ].join(','))
+    ].join('\n');
+
+    // 添加 UTF-8 BOM 以支持中文
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `transactions_${dayjs().format('YYYY-MM-DD_HH-mm-ss')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleReset = () => {

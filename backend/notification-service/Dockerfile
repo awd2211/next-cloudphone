@@ -1,4 +1,28 @@
 # Multi-stage build for Node.js service
+
+# ===== 开发环境 =====
+FROM node:20-alpine AS development
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package*.json ./
+COPY pnpm-lock.yaml* ./
+
+# Install all dependencies (including devDependencies)
+RUN pnpm install --no-frozen-lockfile
+
+# Copy source code
+COPY . .
+
+EXPOSE 30006
+
+CMD ["pnpm", "run", "dev"]
+
+# ===== 构建阶段 =====
 FROM node:20-alpine AS builder
 
 # Set working directory
@@ -20,7 +44,7 @@ COPY . .
 # Build the application
 RUN pnpm build
 
-# Production stage
+# ===== 生产阶段 =====
 FROM node:20-alpine
 
 WORKDIR /app

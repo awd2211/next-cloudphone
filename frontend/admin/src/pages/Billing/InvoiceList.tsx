@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Card, Table, Tag, Button, Space, Modal, Descriptions, Divider } from 'antd';
+import { Card, Table, Tag, Button, Space, Modal, Descriptions, Divider, message } from 'antd';
 import { DownloadOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import request from '../../utils/request';
 
 interface Invoice {
   id: string;
@@ -92,9 +93,33 @@ const InvoiceList: React.FC = () => {
     setDetailModalVisible(true);
   };
 
-  const handleDownload = (invoice: Invoice) => {
-    console.log('下载账单:', invoice.invoiceNo);
-    // TODO: 实现下载功能
+  const handleDownload = async (invoice: Invoice) => {
+    try {
+      // 调用后端 API 下载发票 PDF
+      const response = await request.get(`/invoices/${invoice.id}/download`, {
+        responseType: 'blob', // 关键：告诉 axios 响应类型是 blob
+      });
+
+      // 创建 Blob 对象
+      const blob = new Blob([response], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+
+      // 创建下载链接
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice_${invoice.invoiceNo}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+
+      // 清理
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      message.success('发票下载成功');
+    } catch (error) {
+      message.error('发票下载失败');
+      console.error('Failed to download invoice:', error);
+    }
   };
 
   const columns: ColumnsType<Invoice> = [

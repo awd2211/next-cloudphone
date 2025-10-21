@@ -33,7 +33,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.setGlobalPrefix('api');
+  // 移除 global prefix 以与其他微服务保持一致
+  // app.setGlobalPrefix('api');
 
   // Swagger API 文档配置
   const config = new DocumentBuilder()

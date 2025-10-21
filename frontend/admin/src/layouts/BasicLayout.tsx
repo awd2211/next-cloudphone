@@ -157,9 +157,25 @@ const BasicLayout = () => {
           onClick: () => navigate('/roles'),
         },
         {
-          key: '/permissions',
+          key: 'permissions',
           label: '权限管理',
-          onClick: () => navigate('/permissions'),
+          children: [
+            {
+              key: '/permissions',
+              label: '权限列表',
+              onClick: () => navigate('/permissions'),
+            },
+            {
+              key: '/permissions/data-scope',
+              label: '数据范围配置',
+              onClick: () => navigate('/permissions/data-scope'),
+            },
+            {
+              key: '/permissions/field-permission',
+              label: '字段权限配置',
+              onClick: () => navigate('/permissions/field-permission'),
+            },
+          ],
         },
         {
           key: '/audit-logs',

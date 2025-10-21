@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Node, NodeStatus, ResourceUsage } from '../entities/node.entity';
-import { Device } from '../entities/device.entity';
+import { Device, DeviceStatus } from '../entities/device.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as os from 'os';
 import * as Docker from 'dockerode';
@@ -65,7 +65,7 @@ export class ResourceMonitorService {
     try {
       // 获取该节点上的所有设备
       const devices = await this.deviceRepository.find({
-        where: { status: 'running' },
+        where: { status: DeviceStatus.RUNNING },
       });
 
       // 计算资源使用情况

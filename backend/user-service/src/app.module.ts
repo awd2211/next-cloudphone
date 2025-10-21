@@ -16,6 +16,10 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
 import { QueueModule } from './queues/queue.module';
 import { HealthController } from './health.controller';
 import { MetricsController } from './metrics.controller';
+// 通知功能已迁移到独立的 notification-service
+// import { NotificationsController } from './common/controllers/notifications.controller';
+// import { NotificationService } from './common/services/notification.service';
+// import { Notification } from './entities/notification.entity';
 import { winstonConfig } from './config/winston.config';
 import { PrometheusMiddleware } from './common/middleware/prometheus.middleware';
 import { IpFilterMiddleware } from './common/middleware/ip-filter.middleware';
@@ -27,6 +31,7 @@ import { EncryptionService } from './common/services/encryption.service';
 import { DatabaseMonitorService } from './common/services/database-monitor.service';
 import { GracefulShutdownService } from './common/services/graceful-shutdown.service';
 import { HealthCheckService } from './common/services/health-check.service';
+import { AlertService } from './common/services/alert/alert.service';
 import { RequestTrackerMiddleware } from './common/middleware/request-tracker.middleware';
 import { getDatabaseConfig } from './common/config/database.config';
 
@@ -45,6 +50,11 @@ import { getDatabaseConfig } from './common/config/database.config';
       useFactory: getDatabaseConfig,
       inject: [ConfigService],
     }),
+    // 为全局服务提供实体访问
+    TypeOrmModule.forFeature([
+      require('./entities/audit-log.entity').AuditLog,
+      // Notification 已迁移到 notification-service
+    ]),
     UsersModule,
     RolesModule,
     PermissionsModule,
@@ -69,6 +79,8 @@ import { getDatabaseConfig } from './common/config/database.config';
     DatabaseMonitorService,
     GracefulShutdownService,
     HealthCheckService,
+    AlertService,
+    // NotificationService 已迁移到 notification-service
   ],
 })
 export class AppModule implements NestModule {

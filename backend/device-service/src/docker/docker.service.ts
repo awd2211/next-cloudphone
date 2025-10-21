@@ -49,6 +49,11 @@ export class DockerService {
     // 解析分辨率
     const [width, height] = config.resolution.split('x').map(Number);
 
+    // GPU 配置（需要先初始化，因为下面的 env 需要用到）
+    let gpuConfig: GpuConfig;
+    let gpuEnv: string[] = [];
+    let gpuDevices: any[] = [];
+
     // 构建环境变量
     const env = [
       `WIDTH=${width}`,
@@ -56,11 +61,6 @@ export class DockerService {
       `DPI=${config.dpi}`,
       `fps=60`, // 帧率
     ];
-
-    // 添加 GPU 环境变量
-    if (gpuEnv && gpuEnv.length > 0) {
-      env.push(...gpuEnv);
-    }
 
     // 音频配置
     if (config.enableAudio) {
@@ -75,11 +75,6 @@ export class DockerService {
     if (config.webrtcPort) {
       portBindings['8080/tcp'] = [{ HostPort: String(config.webrtcPort) }];
     }
-
-    // GPU 配置
-    let gpuConfig: GpuConfig;
-    let gpuEnv: string[] = [];
-    let gpuDevices: any[] = [];
 
     if (config.enableGpu) {
       if (config.gpuConfig) {
@@ -101,6 +96,10 @@ export class DockerService {
       if (gpuConfig.enabled) {
         gpuDevices = this.gpuManager.getDockerDeviceConfig(gpuConfig);
         gpuEnv = this.gpuManager.getGpuEnvironment(gpuConfig);
+        // 添加 GPU 环境变量到 env
+        if (gpuEnv && gpuEnv.length > 0) {
+          env.push(...gpuEnv);
+        }
         this.logger.log(`GPU enabled: ${gpuConfig.driver}, devices: ${gpuDevices.length}`);
       }
     }

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Device } from '../entities/device.entity';
+import { Device, DeviceStatus } from '../entities/device.entity';
 
 export interface PortAllocation {
   adbPort: number;
@@ -40,9 +40,9 @@ export class PortManagerService {
     try {
       const devices = await this.devicesRepository.find({
         where: [
-          { status: 'running' },
-          { status: 'stopped' },
-          { status: 'paused' },
+          { status: DeviceStatus.RUNNING },
+          { status: DeviceStatus.STOPPED },
+          { status: DeviceStatus.PAUSED },
         ],
       });
 

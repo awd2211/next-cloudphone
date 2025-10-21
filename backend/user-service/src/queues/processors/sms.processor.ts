@@ -4,6 +4,7 @@ import { Job } from 'bull';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger as WinstonLogger } from 'winston';
 import { QueueName } from '../../common/config/queue.config';
+import { SmsService } from '../../common/services/sms/sms.service';
 
 /**
  * 短信任务数据接口
@@ -12,6 +13,8 @@ export interface SmsJobData {
   phone: string | string[];
   message: string;
   template?: string;
+  templateCode?: string;
+  templateParams?: Record<string, any>;
   variables?: Record<string, any>;
   provider?: 'aliyun' | 'tencent' | 'twilio';
 }
@@ -37,6 +40,7 @@ export class SmsProcessor {
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER)
     private readonly winstonLogger: WinstonLogger,
+    private readonly smsService: SmsService,
   ) {}
 
   /**
@@ -231,38 +235,25 @@ export class SmsProcessor {
     provider: string,
     data: SmsJobData,
   ): Promise<void> {
-    // TODO: 集成实际的短信服务
-    // 示例：
-    // switch (provider) {
-    //   case 'aliyun':
-    //     return this.aliyunSmsService.send(data);
-    //   case 'tencent':
-    //     return this.tencentSmsService.send(data);
-    //   case 'twilio':
-    //     return this.twilioSmsService.send(data);
-    // }
+    // 准备短信数据
+    const phoneNumber = Array.isArray(data.phone) ? data.phone[0] : data.phone;
 
-    // 模拟发送
-    await this.simulateSmsSending(provider, data);
-  }
+    const smsData = {
+      phone: phoneNumber,
+      message: data.message,
+      templateCode: data.templateCode || data.template,
+      templateParams: data.templateParams || data.variables,
+    };
 
-  /**
-   * 模拟短信发送
-   */
-  private async simulateSmsSending(
-    provider: string,
-    data: SmsJobData,
-  ): Promise<void> {
-    // 模拟网络延迟
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // 发送短信
+    const result = await this.smsService.sendWithProvider(provider, smsData);
 
-    // 模拟 3% 的失败率
-    if (Math.random() < 0.03) {
-      throw new Error(`SMS provider ${provider} temporarily unavailable`);
+    if (!result.success) {
+      throw new Error(`SMS send failed: ${result.error}`);
     }
 
     this.logger.log(
-      `📲 SMS sent via ${provider} to ${data.phone}: ${data.message?.substring(0, 50)}...`,
+      `📲 SMS sent via ${provider} to ${phoneNumber} (messageId: ${result.messageId})`,
     );
   }
 }

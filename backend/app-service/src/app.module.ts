@@ -12,14 +12,8 @@ import { HealthController } from './health.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
       isGlobal: true,
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
       envFilePath: '.env',
-    // Winston 日志模块
-    WinstonModule.forRoot(winstonConfig),
     }),
     // Winston 日志模块
     WinstonModule.forRoot(winstonConfig),

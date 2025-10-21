@@ -158,7 +158,7 @@ export class BatchOperationResult {
   @ApiProperty({ description: '失败数' })
   failed: number;
 
-  @ApiProperty({ description: '详细结果', type: 'object' })
+  @ApiProperty({ description: '详细结果' })
   results: Record<string, { success: boolean; message?: string; data?: any }>;
 
   @ApiProperty({ description: '执行时长(ms)' })

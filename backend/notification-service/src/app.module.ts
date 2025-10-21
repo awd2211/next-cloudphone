@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { EmailModule } from './email/email.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -31,5 +32,6 @@ import { EmailModule } from './email/email.module';
     WebsocketModule,
     EmailModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}

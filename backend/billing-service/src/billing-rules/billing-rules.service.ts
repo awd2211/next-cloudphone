@@ -6,14 +6,14 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BillingRule, RuleType, ResourceType } from './entities/billing-rule.entity';
+import { BillingRule, RuleType, ResourceType, BillingUnit } from './entities/billing-rule.entity';
 
 export interface CreateBillingRuleDto {
   name: string;
   description?: string;
   ruleType: RuleType;
   resourceType: ResourceType;
-  billingUnit: string;
+  billingUnit: BillingUnit;
   fixedPrice?: number;
   unitPrice?: number;
   tiers?: any[];

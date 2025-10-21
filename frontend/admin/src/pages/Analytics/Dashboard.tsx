@@ -89,7 +89,7 @@ const AnalyticsDashboard: React.FC = () => {
           <Card>
             <Statistic
               title="本月收入"
-              value={¥82450}
+              value={82450}
               precision={2}
               prefix={<DollarOutlined />}
               valueStyle={{ color: '#3f8600' }}

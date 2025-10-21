@@ -7,6 +7,7 @@ import { Device } from '../entities/device.entity';
 import { DockerModule } from '../docker/docker.module';
 import { DevicesModule } from '../devices/devices.module';
 import { AuthModule } from '../auth/auth.module';
+import { PortManagerModule } from '../port-manager/port-manager.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { AuthModule } from '../auth/auth.module';
     DockerModule,
     DevicesModule,
     AuthModule,
+    PortManagerModule,
   ],
   controllers: [SnapshotsController],
   providers: [SnapshotsService],

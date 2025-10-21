@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, Table, Tag, Button, Space, Modal, Form, Input, Select, message, Switch, Tooltip, Typography } from 'antd';
 import { PlusOutlined, CopyOutlined, DeleteOutlined, EyeOutlined, EyeInvisibleOutlined, KeyOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import request from '../../utils/request';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -128,19 +129,26 @@ const ApiKeyList: React.FC = () => {
   const handleCreateApiKey = async (values: any) => {
     setLoading(true);
     try {
-      // TODO: 调用 API 创建密钥
-      const newKey: ApiKey = {
-        id: `key-${Date.now()}`,
+      // 调用后端 API 创建密钥
+      const response = await request.post('/api-keys', {
         name: values.name,
-        key: `ak_${values.environment}_${Math.random().toString(36).substr(2, 16)}`,
-        secret: `sk_${values.environment}_${Math.random().toString(36).substr(2, 32)}`,
         scopes: values.scopes,
-        status: 'active',
-        usageCount: 0,
         expiresAt: values.expiresAt,
-        createdAt: new Date().toLocaleString('zh-CN'),
-        createdBy: '当前管理员',
         description: values.description,
+      });
+
+      const newKey: ApiKey = {
+        id: response.data.id,
+        name: response.data.name,
+        key: response.data.key,
+        secret: response.data.secret,
+        scopes: response.data.scopes,
+        status: response.data.status || 'active',
+        usageCount: response.data.usageCount || 0,
+        expiresAt: response.data.expiresAt,
+        createdAt: response.data.createdAt,
+        createdBy: response.data.createdBy,
+        description: response.data.description,
       };
 
       setApiKeys([newKey, ...apiKeys]);

@@ -220,8 +220,22 @@ const MyCoupons = () => {
                 block
                 onClick={(e) => {
                   e.stopPropagation();
-                  // TODO: 实现使用优惠券逻辑
-                  message.info('请在购买套餐或充值时使用优惠券');
+                  // 使用优惠券逻辑：根据优惠券类型跳转到相应页面
+                  const couponType = coupon.type;
+
+                  if (couponType === 'discount' || couponType === 'full_discount') {
+                    // 折扣券：跳转到套餐购买页面
+                    navigate('/plans', { state: { selectedCoupon: coupon.id } });
+                    message.success('已选择优惠券，请选择套餐完成购买');
+                  } else if (couponType === 'cash') {
+                    // 代金券：跳转到充值页面
+                    navigate('/billing/recharge', { state: { selectedCoupon: coupon.id } });
+                    message.success('已选择优惠券，请完成充值');
+                  } else {
+                    // 其他类型：跳转到套餐页面
+                    navigate('/plans', { state: { selectedCoupon: coupon.id } });
+                    message.info('请选择套餐使用优惠券');
+                  }
                 }}
               >
                 立即使用

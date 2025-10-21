@@ -53,6 +53,32 @@ export class User {
   @Index()
   tenantId: string;
 
+  /**
+   * 部门ID
+   * 支持组织层级结构，用于部门级数据权限控制
+   */
+  @Column({ nullable: true })
+  @Index()
+  departmentId: string;
+
+  /**
+   * 默认数据权限范围
+   * 用户的默认数据可见范围，可被角色权限覆盖
+   */
+  @Column({
+    type: 'enum',
+    enum: ['all', 'tenant', 'department', 'self'],
+    default: 'tenant',
+  })
+  dataScope: 'all' | 'tenant' | 'department' | 'self';
+
+  /**
+   * 是否为平台超级管理员
+   * 超级管理员拥有跨租户访问权限和所有权限
+   */
+  @Column({ default: false })
+  isSuperAdmin: boolean;
+
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;
 
