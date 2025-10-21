@@ -19,6 +19,17 @@ import AuditLogList from '@/pages/Logs/Audit';
 import NotificationCenter from '@/pages/Notifications';
 import Profile from '@/pages/Profile';
 
+// 新增页面导入
+import QuotaList from '@/pages/Quota/QuotaList';
+import AnalyticsDashboard from '@/pages/Analytics/Dashboard';
+import BalanceOverview from '@/pages/Billing/BalanceOverview';
+import TransactionHistory from '@/pages/Billing/TransactionHistory';
+import InvoiceList from '@/pages/Billing/InvoiceList';
+import TicketList from '@/pages/Ticket/TicketList';
+import TicketDetail from '@/pages/Ticket/TicketDetail';
+import AuditLog from '@/pages/Audit/AuditLogList';
+import ApiKeyList from '@/pages/ApiKey/ApiKeyList';
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -95,6 +106,48 @@ export const router = createBrowserRouter([
       {
         path: 'profile',
         element: <Profile />,
+      },
+      // 配额管理
+      {
+        path: 'quotas',
+        element: <QuotaList />,
+      },
+      // 数据分析
+      {
+        path: 'analytics',
+        element: <AnalyticsDashboard />,
+      },
+      // 账单管理
+      {
+        path: 'billing/balance',
+        element: <BalanceOverview />,
+      },
+      {
+        path: 'billing/transactions',
+        element: <TransactionHistory />,
+      },
+      {
+        path: 'billing/invoices',
+        element: <InvoiceList />,
+      },
+      // 工单系统
+      {
+        path: 'tickets',
+        element: <TicketList />,
+      },
+      {
+        path: 'tickets/:id',
+        element: <TicketDetail />,
+      },
+      // 审计日志（新路径）
+      {
+        path: 'audit-logs',
+        element: <AuditLog />,
+      },
+      // API 密钥管理
+      {
+        path: 'api-keys',
+        element: <ApiKeyList />,
       },
     ],
   },

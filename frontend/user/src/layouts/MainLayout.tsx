@@ -11,9 +11,15 @@ import {
   LoginOutlined,
   DollarOutlined,
   MenuOutlined,
+  CustomerServiceOutlined,
+  MessageOutlined,
+  QuestionCircleOutlined,
+  ExportOutlined,
+  AccountBookOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import NotificationCenter from '@/components/NotificationCenter';
+import LiveChatWidget from '@/components/LiveChatWidget';
 
 const { Header, Content, Footer } = Layout;
 
@@ -63,6 +69,24 @@ const MainLayout = () => {
       label: '我的订单',
       onClick: () => navigate('/orders'),
     },
+    {
+      key: '/tickets',
+      icon: <CustomerServiceOutlined />,
+      label: '我的工单',
+      onClick: () => navigate('/tickets'),
+    },
+    {
+      key: '/messages',
+      icon: <MessageOutlined />,
+      label: '消息中心',
+      onClick: () => navigate('/messages'),
+    },
+    {
+      key: '/help',
+      icon: <QuestionCircleOutlined />,
+      label: '帮助中心',
+      onClick: () => navigate('/help'),
+    },
   ];
 
   const userMenuItems: MenuProps['items'] = [
@@ -77,6 +101,18 @@ const MainLayout = () => {
       icon: <DollarOutlined />,
       label: '账户充值',
       onClick: () => navigate('/recharge'),
+    },
+    {
+      key: 'billing',
+      icon: <AccountBookOutlined />,
+      label: '账单管理',
+      onClick: () => navigate('/billing'),
+    },
+    {
+      key: 'export',
+      icon: <ExportOutlined />,
+      label: '数据导出',
+      onClick: () => navigate('/export'),
     },
     {
       type: 'divider',
@@ -192,6 +228,9 @@ const MainLayout = () => {
       <Footer style={{ textAlign: 'center', background: '#f0f2f5', padding: isMobile ? '12px' : '24px 50px' }}>
         云手机平台 ©{new Date().getFullYear()}
       </Footer>
+
+      {/* 在线客服浮动按钮 */}
+      {user && <LiveChatWidget />}
     </Layout>
   );
 };

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Layout, Menu, Avatar, Dropdown, Drawer } from 'antd';
+import NotificationCenter from '@/components/NotificationCenter';
 import {
   DashboardOutlined,
   MobileOutlined,
@@ -15,6 +16,12 @@ import {
   SafetyOutlined,
   KeyOutlined,
   MenuOutlined,
+  WalletOutlined,
+  CustomerServiceOutlined,
+  AuditOutlined,
+  ApiOutlined,
+  PieChartOutlined,
+  DashboardFilled,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -45,6 +52,12 @@ const BasicLayout = () => {
       onClick: () => navigate('/'),
     },
     {
+      key: '/analytics',
+      icon: <PieChartOutlined />,
+      label: '数据分析',
+      onClick: () => navigate('/analytics'),
+    },
+    {
       key: '/devices',
       icon: <MobileOutlined />,
       label: '设备管理',
@@ -55,6 +68,12 @@ const BasicLayout = () => {
       icon: <UserOutlined />,
       label: '用户管理',
       onClick: () => navigate('/users'),
+    },
+    {
+      key: '/quotas',
+      icon: <DashboardFilled />,
+      label: '配额管理',
+      onClick: () => navigate('/quotas'),
     },
     {
       key: '/apps',
@@ -73,6 +92,34 @@ const BasicLayout = () => {
       icon: <GoldOutlined />,
       label: '套餐管理',
       onClick: () => navigate('/plans'),
+    },
+    {
+      key: 'billing',
+      icon: <WalletOutlined />,
+      label: '账单管理',
+      children: [
+        {
+          key: '/billing/balance',
+          label: '余额概览',
+          onClick: () => navigate('/billing/balance'),
+        },
+        {
+          key: '/billing/transactions',
+          label: '交易记录',
+          onClick: () => navigate('/billing/transactions'),
+        },
+        {
+          key: '/billing/invoices',
+          label: '账单列表',
+          onClick: () => navigate('/billing/invoices'),
+        },
+      ],
+    },
+    {
+      key: '/tickets',
+      icon: <CustomerServiceOutlined />,
+      label: '工单系统',
+      onClick: () => navigate('/tickets'),
     },
     {
       key: 'reports',
@@ -113,6 +160,16 @@ const BasicLayout = () => {
           key: '/permissions',
           label: '权限管理',
           onClick: () => navigate('/permissions'),
+        },
+        {
+          key: '/audit-logs',
+          label: '审计日志',
+          onClick: () => navigate('/audit-logs'),
+        },
+        {
+          key: '/api-keys',
+          label: 'API 密钥',
+          onClick: () => navigate('/api-keys'),
         },
       ],
     },
@@ -214,9 +271,12 @@ const BasicLayout = () => {
             />
           )}
           <div style={{ flex: 1 }} />
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <Avatar icon={<UserOutlined />} style={{ cursor: 'pointer' }} />
-          </Dropdown>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <NotificationCenter />
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <Avatar icon={<UserOutlined />} style={{ cursor: 'pointer' }} />
+            </Dropdown>
+          </div>
         </Header>
         <Content
           style={{

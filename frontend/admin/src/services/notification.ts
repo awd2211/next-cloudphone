@@ -1,5 +1,8 @@
 import request from '@/utils/request';
 import type { PaginationParams, PaginatedResponse } from '@/types';
+import { io, Socket } from 'socket.io-client';
+
+const WEBSOCKET_URL = 'http://localhost:30006/notifications';
 
 export interface Notification {
   id: string;
@@ -10,6 +13,9 @@ export interface Notification {
   userId?: string;
   createdAt: string;
   readAt?: string;
+  resourceType?: string;
+  resourceId?: string;
+  actionUrl?: string;
 }
 
 export interface CreateNotificationDto {
@@ -54,3 +60,61 @@ export const deleteNotification = (id: string) => {
 export const batchDeleteNotifications = (ids: string[]) => {
   return request.post('/notifications/batch/delete', { ids });
 };
+
+// WebSocket 通知服务
+class NotificationWebSocket {
+  private socket: Socket | null = null;
+  private listeners: Map<string, Function[]> = new Map();
+
+  connect(userId: string) {
+    if (this.socket?.connected) return;
+
+    this.socket = io(WEBSOCKET_URL, {
+      query: { userId },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+    });
+
+    this.socket.on('connect', () => {
+      console.log('✅ WebSocket connected');
+      this.emit('connected', true);
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log('❌ WebSocket disconnected');
+      this.emit('connected', false);
+    });
+
+    this.socket.on('notification', (notification: Notification) => {
+      console.log('🔔 New notification:', notification);
+      this.emit('notification', notification);
+    });
+  }
+
+  disconnect() {
+    this.socket?.disconnect();
+    this.socket = null;
+  }
+
+  on(event: string, callback: Function) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
+    }
+    this.listeners.get(event)!.push(callback);
+  }
+
+  off(event: string, callback: Function) {
+    const callbacks = this.listeners.get(event);
+    if (callbacks) {
+      const index = callbacks.indexOf(callback);
+      if (index > -1) callbacks.splice(index, 1);
+    }
+  }
+
+  private emit(event: string, data: any) {
+    const callbacks = this.listeners.get(event);
+    callbacks?.forEach(cb => cb(data));
+  }
+}
+
+export const notificationWS = new NotificationWebSocket();

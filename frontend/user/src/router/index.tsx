@@ -10,6 +10,17 @@ import Profile from '@/pages/Profile';
 import AppMarket from '@/pages/AppMarket';
 import Recharge from '@/pages/Recharge';
 import UsageRecords from '@/pages/UsageRecords';
+import TicketList from '@/pages/Tickets/TicketList';
+import TicketDetail from '@/pages/Tickets/TicketDetail';
+import MessageList from '@/pages/Messages/MessageList';
+import MessageSettings from '@/pages/Messages/MessageSettings';
+import HelpCenter from '@/pages/Help/HelpCenter';
+import FAQList from '@/pages/Help/FAQList';
+import TutorialList from '@/pages/Help/TutorialList';
+import TutorialDetail from '@/pages/Help/TutorialDetail';
+import ExportCenter from '@/pages/DataExport/ExportCenter';
+import BillList from '@/pages/Billing/BillList';
+import BillDetail from '@/pages/Billing/BillDetail';
 
 export const router = createBrowserRouter([
   {
@@ -55,6 +66,50 @@ export const router = createBrowserRouter([
       {
         path: 'usage',
         element: <UsageRecords />,
+      },
+      {
+        path: 'tickets',
+        element: <TicketList />,
+      },
+      {
+        path: 'tickets/:id',
+        element: <TicketDetail />,
+      },
+      {
+        path: 'messages',
+        element: <MessageList />,
+      },
+      {
+        path: 'messages/settings',
+        element: <MessageSettings />,
+      },
+      {
+        path: 'help',
+        element: <HelpCenter />,
+      },
+      {
+        path: 'help/faqs',
+        element: <FAQList />,
+      },
+      {
+        path: 'help/tutorials',
+        element: <TutorialList />,
+      },
+      {
+        path: 'help/tutorials/:id',
+        element: <TutorialDetail />,
+      },
+      {
+        path: 'export',
+        element: <ExportCenter />,
+      },
+      {
+        path: 'billing',
+        element: <BillList />,
+      },
+      {
+        path: 'billing/:id',
+        element: <BillDetail />,
       },
     ],
   },
