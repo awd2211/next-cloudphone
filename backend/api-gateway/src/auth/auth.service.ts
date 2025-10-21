@@ -67,8 +67,12 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const { username, password, captcha, captchaId } = loginDto;
 
-    // 1. 验证验证码
-    const isCaptchaValid = await this.captchaService.verifyCaptcha(captchaId, captcha);
+    // 1. 验证验证码（开发环境可跳过）
+    const isDev = process.env.NODE_ENV === 'development';
+    const isCaptchaValid = isDev
+      ? true  // 开发环境跳过验证码检查
+      : await this.captchaService.verifyCaptcha(captchaId, captcha);
+
     if (!isCaptchaValid) {
       this.logger.warn(`Invalid captcha for user: ${username}`);
       throw new UnauthorizedException('验证码错误或已过期');

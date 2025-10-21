@@ -159,8 +159,10 @@ export class NotificationGateway
     client.join(`user:${userId}`);
 
     this.logger.log(`Client ${client.id} connected for user ${userId}`);
+    // 安全地获取连接数
+    const totalConnections = this.server?.sockets?.sockets?.size || 0;
     this.logger.log(
-      `Total connections: ${this.server.sockets.sockets.size}, Tracked: ${this.connections.size}`,
+      `Total connections: ${totalConnections}, Tracked: ${this.connections.size}`,
     );
   }
 
