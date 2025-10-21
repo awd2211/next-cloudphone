@@ -46,7 +46,7 @@ import { ConsulModule } from '@cloudphone/shared';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE') || 'cloudphone_app',
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // 临时启用在新库中创建表
+        synchronize: false, // ✅ 使用 Atlas 管理数据库迁移
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],

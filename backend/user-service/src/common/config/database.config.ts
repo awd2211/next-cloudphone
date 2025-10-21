@@ -26,8 +26,8 @@ export const getDatabaseConfig = (
 
     // 实体配置
     entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-    // ⚠️ 临时启用 synchronize 在新数据库中创建表
-    synchronize: true,
+    // ✅ 使用 Atlas 管理数据库迁移，禁用 synchronize
+    synchronize: false,
     logging: isDevelopment ? 'all' : ['error', 'warn', 'schema'],
 
     // ========================================================================

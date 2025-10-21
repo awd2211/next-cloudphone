@@ -42,7 +42,7 @@ import { HealthController } from './health.controller';
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'cloudphone_notification',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // 临时启用在新库中创建表
+      synchronize: false, // ✅ 使用 Atlas 管理数据库迁移
       logging: process.env.NODE_ENV === 'development',
     }),
     ScheduleModule.forRoot(),
