@@ -27,6 +27,11 @@ const TutorialDetail = lazy(() => import('@/pages/Help/TutorialDetail'));
 const ExportCenter = lazy(() => import('@/pages/DataExport/ExportCenter'));
 const BillList = lazy(() => import('@/pages/Billing/BillList'));
 const BillDetail = lazy(() => import('@/pages/Billing/BillDetail'));
+const ActivityCenter = lazy(() => import('@/pages/Activities/ActivityCenter'));
+const ActivityDetail = lazy(() => import('@/pages/Activities/ActivityDetail'));
+const MyCoupons = lazy(() => import('@/pages/Activities/MyCoupons'));
+const ReferralCenter = lazy(() => import('@/pages/Referral/ReferralCenter'));
+const ReferralRecords = lazy(() => import('@/pages/Referral/ReferralRecords'));
 
 // Loading 组件
 const PageLoading = () => (
@@ -135,6 +140,26 @@ export const router = createBrowserRouter([
       {
         path: 'billing/:id',
         element: withSuspense(BillDetail),
+      },
+      {
+        path: 'activities',
+        element: withSuspense(ActivityCenter),
+      },
+      {
+        path: 'activities/:id',
+        element: withSuspense(ActivityDetail),
+      },
+      {
+        path: 'activities/coupons',
+        element: withSuspense(MyCoupons),
+      },
+      {
+        path: 'referral',
+        element: withSuspense(ReferralCenter),
+      },
+      {
+        path: 'referral/records',
+        element: withSuspense(ReferralRecords),
       },
     ],
   },

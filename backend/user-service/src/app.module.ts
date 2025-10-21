@@ -13,6 +13,7 @@ import { QuotasModule } from './quotas/quotas.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
+import { QueueModule } from './queues/queue.module';
 import { HealthController } from './health.controller';
 import { MetricsController } from './metrics.controller';
 import { winstonConfig } from './config/winston.config';
@@ -20,6 +21,14 @@ import { PrometheusMiddleware } from './common/middleware/prometheus.middleware'
 import { IpFilterMiddleware } from './common/middleware/ip-filter.middleware';
 import { throttlerConfig } from './common/config/throttler.config';
 import { CustomThrottlerGuard } from './common/guards/throttler.guard';
+import { CircuitBreakerService } from './common/services/circuit-breaker.service';
+import { AuditLogService } from './common/services/audit-log.service';
+import { EncryptionService } from './common/services/encryption.service';
+import { DatabaseMonitorService } from './common/services/database-monitor.service';
+import { GracefulShutdownService } from './common/services/graceful-shutdown.service';
+import { HealthCheckService } from './common/services/health-check.service';
+import { RequestTrackerMiddleware } from './common/middleware/request-tracker.middleware';
+import { getDatabaseConfig } from './common/config/database.config';
 
 @Module({
   imports: [
@@ -33,17 +42,7 @@ import { CustomThrottlerGuard } from './common/guards/throttler.guard';
     ThrottlerModule.forRoot(throttlerConfig),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('DB_HOST'),
-        port: +configService.get('DB_PORT'),
-        username: configService.get('DB_USERNAME'),
-        password: configService.get('DB_PASSWORD'),
-        database: configService.get('DB_DATABASE'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development',
-        logging: configService.get('NODE_ENV') === 'development',
-      }),
+      useFactory: getDatabaseConfig,
       inject: [ConfigService],
     }),
     UsersModule,
@@ -54,6 +53,7 @@ import { CustomThrottlerGuard } from './common/guards/throttler.guard';
     TicketsModule,
     AuditLogsModule,
     ApiKeysModule,
+    QueueModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [
@@ -62,11 +62,20 @@ import { CustomThrottlerGuard } from './common/guards/throttler.guard';
       provide: APP_GUARD,
       useClass: CustomThrottlerGuard,
     },
+    // 全局服务
+    CircuitBreakerService,
+    AuditLogService,
+    EncryptionService,
+    DatabaseMonitorService,
+    GracefulShutdownService,
+    HealthCheckService,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // IP 黑名单过滤（最先执行）
+    // 请求追踪（优雅关闭支持）
+    consumer.apply(RequestTrackerMiddleware).forRoutes('*');
+    // IP 黑名单过滤
     consumer.apply(IpFilterMiddleware).forRoutes('*');
     // Prometheus 指标收集
     consumer.apply(PrometheusMiddleware).forRoutes('*');

@@ -16,6 +16,8 @@ import {
   QuestionCircleOutlined,
   ExportOutlined,
   AccountBookOutlined,
+  GiftOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -80,6 +82,18 @@ const MainLayout = () => {
       icon: <MessageOutlined />,
       label: '消息中心',
       onClick: () => navigate('/messages'),
+    },
+    {
+      key: '/activities',
+      icon: <GiftOutlined />,
+      label: '活动中心',
+      onClick: () => navigate('/activities'),
+    },
+    {
+      key: '/referral',
+      icon: <TeamOutlined />,
+      label: '邀请返利',
+      onClick: () => navigate('/referral'),
     },
     {
       key: '/help',

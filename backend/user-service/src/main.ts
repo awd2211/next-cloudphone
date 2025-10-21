@@ -85,11 +85,17 @@ async function bootstrap() {
     },
   });
 
+  // ========== 优雅关闭配置 ==========
+
+  // 启用优雅关闭
+  app.enableShutdownHooks();
+
   const port = configService.get('PORT') || 30001;
   await app.listen(port);
 
   console.log(`🚀 User Service is running on: http://localhost:${port}`);
   console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  console.log(`✅ Graceful shutdown enabled`);
 }
 
 bootstrap();
