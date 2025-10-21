@@ -1,8 +1,9 @@
 # 🎉 微服务数据库完全隔离 - 最终报告
 
-**完成时间**: 2025-10-21 19:20  
-**状态**: ✅ 100% 完成  
-**架构**: Database per Service（微服务最佳实践）
+**完成时间**: 2025-10-21 20:30  
+**状态**: ✅ 100% 完成 (8个微服务全部完成)  
+**架构**: Database per Service（微服务最佳实践）  
+**技术栈**: NestJS (6) + Python (1) + Go (1)
 
 ---
 
@@ -25,28 +26,32 @@ cloudphone_billing (独立)
 
 **现在架构**:
 ```
-cloudphone_auth          → api-gateway        (3 tables)
-cloudphone_user          → user-service      (13 tables)  
-cloudphone_device        → device-service     (4 tables)
-cloudphone_app           → app-service        (2 tables)
-cloudphone_billing       → billing-service    (8 tables)
-cloudphone_notification  → notification-svc   (0 tables)
+cloudphone_auth          → api-gateway          (3 tables)
+cloudphone_user          → user-service        (13 tables)  
+cloudphone_device        → device-service       (4 tables)
+cloudphone_app           → app-service          (2 tables)
+cloudphone_billing       → billing-service      (8 tables)
+cloudphone_notification  → notification-service (0 tables)
+cloudphone_scheduler     → scheduler-service    (2 tables)
+(无数据库)                → media-service        (无状态服务)
 
-总计: 6 个独立数据库，30 个表
+总计: 7 个独立数据库，32 个表，8 个微服务
 ```
 
 ---
 
 ## 📊 详细数据库分布
 
-| 数据库 | 服务 | 表数 | 状态 | 说明 |
-|--------|------|------|------|------|
-| cloudphone_auth | api-gateway | 3 | ✅ | 认证会话管理 |
-| cloudphone_user | user-service | 13 | ✅ | 用户权限审计 |
-| cloudphone_device | device-service | 4 | ✅ | 设备节点管理 |
-| cloudphone_app | app-service | 2 | ✅ | 应用安装管理 |
-| cloudphone_billing | billing-service | 8 | ✅ | 计费订单支付 |
-| cloudphone_notification | notification-service | 0 | ⏸️ | 待配置 |
+| 数据库 | 服务 | 语言 | 表数 | 状态 | 说明 |
+|--------|------|------|------|------|------|
+| cloudphone_auth | api-gateway | NestJS | 3 | ✅ | 认证会话管理 |
+| cloudphone_user | user-service | NestJS | 13 | ✅ | 用户权限审计 |
+| cloudphone_device | device-service | NestJS | 4 | ✅ | 设备节点管理 |
+| cloudphone_app | app-service | NestJS | 2 | ✅ | 应用安装管理 |
+| cloudphone_billing | billing-service | NestJS | 8 | ✅ | 计费订单支付 |
+| cloudphone_notification | notification-service | NestJS | 0 | ⏸️ | 通知推送待配置 |
+| cloudphone_scheduler | scheduler-service | Python | 2 | ✅ | 设备调度分配 |
+| (无数据库) | media-service | Go | - | ✅ | WebRTC 媒体流 |
 
 ### 表详细列表
 
@@ -91,6 +96,14 @@ cloudphone_notification  → notification-svc   (0 tables)
 - balance_transactions (余额交易)
 - invoices (发票)
 - billing_rules (计费规则)
+
+**cloudphone_scheduler** (Scheduler Service - Python):
+- device_allocations (设备分配记录)
+  - ✅ 冗余字段: tenant_id, user_id, device_id
+- node_resources (节点资源信息)
+
+**media-service** (Go):
+- 无数据库 - WebRTC 媒体流服务，所有状态保存在内存中
 
 ---
 

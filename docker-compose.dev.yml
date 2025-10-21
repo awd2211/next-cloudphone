@@ -14,6 +14,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -310,7 +311,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
-      DB_DATABASE: cloudphone_core
+      DB_DATABASE: cloudphone_scheduler
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DEVICE_SERVICE_URL: http://device-service:30002

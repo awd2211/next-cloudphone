@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     DB_PORT: int = 5432
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "postgres"
-    DB_NAME: str = "cloudphone"
+    DB_NAME: str = "cloudphone_scheduler"  # 独立的调度服务数据库
 
     # Redis 配置
     REDIS_HOST: str = "localhost"
