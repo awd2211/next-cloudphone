@@ -107,6 +107,42 @@ export class ProxyController {
   }
 
   /**
+   * 字段权限服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('field-permissions')
+  async proxyFieldPermissionsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * 字段权限服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('field-permissions/*')
+  async proxyFieldPermissions(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * 菜单权限服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('menu-permissions')
+  async proxyMenuPermissionsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * 菜单权限服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('menu-permissions/*')
+  async proxyMenuPermissions(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
    * 通知服务路由（精确匹配）
    */
   @UseGuards(JwtAuthGuard)
@@ -213,7 +249,7 @@ export class ProxyController {
       } else {
         // 对于其他服务，保留服务名后的路径
         const serviceIndex = pathParts.findIndex((p) =>
-          ['devices', 'apps', 'scheduler', 'billing', 'media', 'roles', 'permissions', 'data-scopes', 'notifications', 'stats', 'reports'].includes(p),
+          ['devices', 'apps', 'scheduler', 'billing', 'media', 'roles', 'permissions', 'data-scopes', 'field-permissions', 'menu-permissions', 'notifications', 'stats', 'reports'].includes(p),
         );
         if (serviceIndex !== -1) {
           targetPath = '/' + pathParts.slice(serviceIndex).join('/');
