@@ -54,7 +54,22 @@ async function bootstrap() {
   // ========== CORS 配置 ==========
 
   app.enableCors({
-    origin: configService.get('CORS_ORIGINS')?.split(',') || '*',
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      // 允许所有 localhost 和配置的域名
+      const allowedOrigins = configService.get('CORS_ORIGINS')?.split(',') || [];
+      
+      // 开发环境：允许所有 localhost 端口
+      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        callback(null, true);
+      } else if (allowedOrigins.length > 0 && allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else if (process.env.NODE_ENV === 'development') {
+        // 开发环境允许所有来源
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
