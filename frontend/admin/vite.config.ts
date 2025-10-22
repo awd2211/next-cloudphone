@@ -13,6 +13,32 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // 核心框架
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          // UI 组件库
+          'antd-vendor': ['antd', '@ant-design/icons', '@ant-design/pro-components'],
+          // 图表库
+          'charts-vendor': ['echarts', 'echarts-for-react'],
+          // 工具库
+          'utils-vendor': ['axios', 'dayjs', 'zustand'],
+        },
+      },
+    },
+    // 代码分割阈值
+    chunkSizeWarningLimit: 1000,
+    // 压缩配置
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // 生产环境移除 console
+        drop_debugger: true,
+      },
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

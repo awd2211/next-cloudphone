@@ -44,3 +44,7 @@ export * from './config/redis.config';
 // ========== 缓存模块 ==========
 export { AppCacheModule } from './cache/cache.module';
 
+// ========== 健康检查 ==========
+export { HealthCheckService } from './health/health-check.service';
+export type { HealthCheckResult, ComponentHealth } from './health/health-check.service';
+
