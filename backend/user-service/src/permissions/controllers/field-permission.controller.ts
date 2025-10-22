@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -63,7 +64,7 @@ class UpdateFieldPermissionDto {
  * 管理角色对资源字段的访问权限
  */
 @Controller('field-permissions')
-@UseGuards(EnhancedPermissionsGuard)
+@UseGuards(AuthGuard('jwt'), EnhancedPermissionsGuard)
 @UseInterceptors(AuditPermissionInterceptor)
 export class FieldPermissionController {
   constructor(
