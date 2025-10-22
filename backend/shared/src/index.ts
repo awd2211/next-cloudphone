@@ -41,3 +41,6 @@ export * from './config/database.config';
 // ========== Redis 配置工厂 ==========
 export * from './config/redis.config';
 
+// ========== 缓存模块 ==========
+export { AppCacheModule } from './cache/cache.module';
+

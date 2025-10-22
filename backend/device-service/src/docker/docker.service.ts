@@ -214,7 +214,7 @@ export class DockerService {
     try {
       await this.docker.getImage(imageTag).inspect();
     } catch (error) {
-      console.log(`Pulling image ${imageTag}...`);
+      this.logger.log(`Pulling image ${imageTag}...`);
       await new Promise((resolve, reject) => {
         this.docker.pull(imageTag, (err: any, stream: any) => {
           if (err) return reject(err);
