@@ -5,7 +5,7 @@ import { DataScope, ScopeType } from '../entities/data-scope.entity';
 import { FieldPermission, FieldAccessLevel, OperationType } from '../entities/field-permission.entity';
 import { User } from '../entities/user.entity';
 import { DataScopeType } from '../entities/permission.entity';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 /**
  * 权限初始化脚本

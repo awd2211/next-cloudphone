@@ -44,7 +44,6 @@
     "csv-writer": "^1.6.0",
     "exceljs": "^4.4.0",
     "helmet": "^8.1.0",
-    "nest-winston": "^1.10.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.16.3",
@@ -53,8 +52,7 @@
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.27",
     "uuid": "^13.0.0",
-    "wechatpay-node-v3": "^2.2.1",
-    "winston": "^3.18.3"
+    "wechatpay-node-v3": "^2.2.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",

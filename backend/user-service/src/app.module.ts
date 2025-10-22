@@ -33,6 +33,7 @@ import { HealthCheckService } from './common/services/health-check.service';
 import { AlertService } from './common/services/alert/alert.service';
 import { RequestTrackerMiddleware } from './common/middleware/request-tracker.middleware';
 import { getDatabaseConfig } from './common/config/database.config';
+import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -40,26 +41,8 @@ import { getDatabaseConfig } from './common/config/database.config';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    LoggerModule.forRoot({
-      pinoHttp: {
-        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
-        transport: process.env.NODE_ENV !== 'production' ? {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
-            ignore: 'pid,hostname',
-          },
-        } : undefined,
-        customProps: () => ({
-          service: 'user-service',
-          environment: process.env.NODE_ENV || 'development',
-        }),
-        autoLogging: {
-          ignore: (req) => req.url === '/health',
-        },
-      },
-    }),
+    // Pino 日志模块 - 使用统一的增强配置
+    LoggerModule.forRoot(createLoggerConfig('user-service')),
     // Throttler 限流模块
     ThrottlerModule.forRoot(throttlerConfig),
     TypeOrmModule.forRootAsync({
@@ -81,6 +64,7 @@ import { getDatabaseConfig } from './common/config/database.config';
     AuditLogsModule,
     ApiKeysModule,
     QueueModule,
+    ConsulModule,
     // ScheduleModule 放在最后，避免依赖问题
     ScheduleModule.forRoot(),
   ],

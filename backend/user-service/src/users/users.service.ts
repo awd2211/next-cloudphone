@@ -163,7 +163,7 @@ export class UsersService {
     
     // 发布用户更新事件（同步到其他服务的冗余字段）
     if (this.eventBus) {
-      await this.eventBus.publish('user.updated', {
+      await this.eventBus.publish('events', 'user.updated', {
         userId: savedUser.id,
         username: savedUser.username,
         email: savedUser.email,

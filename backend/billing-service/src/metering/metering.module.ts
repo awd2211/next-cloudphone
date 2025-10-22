@@ -11,10 +11,10 @@ import { EventBusModule } from '@cloudphone/shared';
   imports: [
     TypeOrmModule.forFeature([UsageRecord]),
     HttpModule,
-    // EventBusModule,  // 暂时禁用，等RabbitMQ配置完成后再启用
+    EventBusModule,
   ],
   controllers: [MeteringController],
-  providers: [MeteringService], // MeteringConsumer 暂时禁用
+  providers: [MeteringService, MeteringConsumer],
   exports: [MeteringService],
 })
 export class MeteringModule {}

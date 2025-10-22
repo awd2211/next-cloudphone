@@ -2,6 +2,7 @@ import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder, Brackets } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { Tenant } from '../entities/tenant.entity';
 
 /**
  * 租户上下文
@@ -27,6 +28,8 @@ export class TenantIsolationService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Tenant)
+    private tenantRepository: Repository<Tenant>,
   ) {}
 
   /**
@@ -377,9 +380,10 @@ export class TenantIsolationService {
 
     // 超级管理员可以访问所有租户
     if (user.isSuperAdmin) {
-      // TODO: 返回所有租户列表
-      // 这需要一个 Tenant 实体和仓库
-      return [];
+      const tenants = await this.tenantRepository.find({
+        where: { status: 'active' as any },
+      });
+      return tenants.map(t => t.id);
     }
 
     // 普通用户只能访问自己的租户

@@ -62,6 +62,18 @@ export class AlertService {
   }
 
   /**
+   * 发送关键告警（快捷方法）
+   */
+  async sendCriticalAlert(data: { title: string; message: string; details?: any }): Promise<void> {
+    await this.sendAlert({
+      level: AlertLevel.CRITICAL,
+      title: data.title,
+      content: data.message,
+      metadata: data.details,
+    });
+  }
+
+  /**
    * 发送告警
    */
   async sendAlert(message: AlertMessage): Promise<void> {

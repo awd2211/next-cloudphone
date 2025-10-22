@@ -1,0 +1,14 @@
+# Envoy 日志文件
+logs/
+*.log
+
+# 证书文件（生产环境）
+certs/
+*.crt
+*.key
+*.pem
+
+# 临时文件
+*.tmp
+*.bak
+

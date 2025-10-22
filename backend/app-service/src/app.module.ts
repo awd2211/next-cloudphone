@@ -7,7 +7,7 @@ import { AppsModule } from './apps/apps.module';
 import { MinioModule } from './minio/minio.module';
 import { ApkModule } from './apk/apk.module';
 import { HealthController } from './health.controller';
-import { ConsulModule } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -15,27 +15,8 @@ import { ConsulModule } from '@cloudphone/shared';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    // Pino 日志模块
-    LoggerModule.forRoot({
-      pinoHttp: {
-        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
-        transport: process.env.NODE_ENV !== 'production' ? {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
-            ignore: 'pid,hostname',
-          },
-        } : undefined,
-        customProps: () => ({
-          service: 'app-service',
-          environment: process.env.NODE_ENV || 'development',
-        }),
-        autoLogging: {
-          ignore: (req) => req.url === '/health',
-        },
-      },
-    }),
+    // Pino 日志模块 - 使用统一的增强配置
+    LoggerModule.forRoot(createLoggerConfig('app-service')),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

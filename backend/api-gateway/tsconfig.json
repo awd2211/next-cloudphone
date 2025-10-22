@@ -12,10 +12,10 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    // 逐步启用严格模式
-    "strictNullChecks": false,  // TODO: 逐步启用
-    "noImplicitAny": false,      // TODO: 逐步启用
-    "strictBindCallApply": false, // TODO: 逐步启用
+    // 严格模式选项
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
     // 推荐的严格选项
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,

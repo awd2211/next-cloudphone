@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -7,6 +7,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { EmailModule } from './email/email.module';
 import { HealthController } from './health.controller';
+import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -14,41 +15,28 @@ import { HealthController } from './health.controller';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    LoggerModule.forRoot({
-      pinoHttp: {
-        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
-        transport: process.env.NODE_ENV !== 'production' ? {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
-            ignore: 'pid,hostname',
-          },
-        } : undefined,
-        customProps: () => ({
-          service: 'notification-service',
-          environment: process.env.NODE_ENV || 'development',
-        }),
-        autoLogging: {
-          ignore: (req) => req.url === '/health',
-        },
-      },
-    }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT) || 5432,
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'cloudphone_notification',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false, // ✅ 使用 Atlas 管理数据库迁移
-      logging: process.env.NODE_ENV === 'development',
+    // Pino 日志模块 - 使用统一的增强配置
+    LoggerModule.forRoot(createLoggerConfig('notification-service')),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('DB_HOST'),
+        port: +configService.get('DB_PORT'),
+        username: configService.get('DB_USERNAME'),
+        password: configService.get('DB_PASSWORD'),
+        database: configService.get('DB_DATABASE') || 'cloudphone_notification',
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: false,
+        logging: configService.get('NODE_ENV') === 'development',
+      }),
+      inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
     NotificationsModule,
     WebsocketModule,
     EmailModule,
+    ConsulModule,
   ],
   controllers: [HealthController],
 })

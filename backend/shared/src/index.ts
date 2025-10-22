@@ -26,3 +26,12 @@ export * from './filters';
 // ========== 拦截器 ==========
 export * from './interceptors';
 
+// ========== 工具类 ==========
+export { TempFileManagerService } from './utils/temp-file-manager.service';
+
+// ========== 配置验证 ==========
+export * from './config/env.validation';
+
+// ========== 日志配置 ==========
+export * from './config/logger.config';
+

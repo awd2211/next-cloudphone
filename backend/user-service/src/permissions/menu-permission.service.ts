@@ -4,6 +4,7 @@ import { Repository, In } from 'typeorm';
 import { Permission } from '../entities/permission.entity';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
+import { Menu } from '../entities/menu.entity';
 
 /**
  * 菜单项
@@ -215,6 +216,8 @@ export class MenuPermissionService {
     private userRepository: Repository<User>,
     @InjectRepository(Role)
     private roleRepository: Repository<Role>,
+    @InjectRepository(Menu)
+    private menuRepository: Repository<Menu>,
   ) {}
 
   /**
@@ -427,12 +430,62 @@ export class MenuPermissionService {
 
   /**
    * 从数据库加载菜单配置
-   * TODO: 实现从数据库加载菜单配置的功能
    */
   async loadMenusFromDatabase(): Promise<MenuItem[]> {
-    // 这里应该从数据库的 Menu 表加载菜单配置
-    // 目前使用硬编码的菜单
-    return this.ALL_MENUS;
+    const menus = await this.menuRepository.find({
+      where: { isActive: true },
+      order: { sort: 'ASC' },
+    });
+
+    if (menus.length === 0) {
+      // 如果数据库中没有菜单，返回硬编码的默认菜单
+      this.logger.warn('No menus found in database, using hardcoded menus');
+      return this.ALL_MENUS;
+    }
+
+    return this.buildMenuTree(menus);
+  }
+
+  /**
+   * 构建菜单树结构
+   */
+  private buildMenuTree(menus: Menu[]): MenuItem[] {
+    const menuMap = new Map<string, MenuItem>();
+    const rootMenus: MenuItem[] = [];
+
+    // 转换为MenuItem格式
+    menus.forEach(menu => {
+      menuMap.set(menu.id, {
+        id: menu.code,
+        name: menu.name,
+        path: menu.path,
+        icon: menu.icon,
+        permission: menu.permissionCode,
+        children: [],
+        meta: {
+          title: menu.name,
+          hidden: !menu.visible,
+          order: menu.sort,
+          ...menu.metadata,
+        },
+      });
+    });
+
+    // 构建树结构
+    menus.forEach(menu => {
+      const menuItem = menuMap.get(menu.id);
+      if (menu.parentId && menuMap.has(menu.parentId)) {
+        const parent = menuMap.get(menu.parentId);
+        if (!parent.children) {
+          parent.children = [];
+        }
+        parent.children.push(menuItem);
+      } else {
+        rootMenus.push(menuItem);
+      }
+    });
+
+    return rootMenus;
   }
 
   /**

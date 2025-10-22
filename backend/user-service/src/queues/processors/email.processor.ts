@@ -3,6 +3,8 @@ import { Logger, Inject } from '@nestjs/common';
 import { Job } from 'bull';
 import { PinoLogger } from 'nestjs-pino';
 import { QueueName } from '../../common/config/queue.config';
+import * as nodemailer from 'nodemailer';
+import { Transporter } from 'nodemailer';
 
 /**
  * 邮件任务数据接口
@@ -34,10 +36,13 @@ export interface EmailJobData {
 @Processor(QueueName.EMAIL)
 export class EmailProcessor {
   private readonly logger = new Logger(EmailProcessor.name);
+  private transporter: Transporter;
 
   constructor(
     private readonly pinoLogger: PinoLogger,
   ) {
+    // 初始化邮件传输器
+    this.initializeTransporter();
     this.pinoLogger.setContext(EmailProcessor.name);
   }
 
@@ -214,16 +219,58 @@ export class EmailProcessor {
    * });
    * ```
    */
-  private async sendEmail(data: EmailJobData): Promise<void> {
-    // 当前实现：开发环境模拟发送
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  /**
+   * 初始化邮件传输器
+   */
+  private initializeTransporter(): void {
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
 
-    // 模拟 3% 的失败率（用于测试重试机制）
-    if (Math.random() < 0.03) {
-      throw new Error('Email service temporarily unavailable');
+    // 如果配置了SMTP，使用真实邮件服务
+    if (smtpHost && smtpUser && smtpPass) {
+      this.transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+      this.logger.log(`✅ Email transporter initialized: ${smtpHost}:${smtpPort}`);
+    } else {
+      this.logger.warn('⚠️ SMTP not configured, using mock email service');
+      this.transporter = null;
     }
+  }
 
-    this.logger.log(`📨 Email sent to ${data.to}: ${data.subject}`);
+  private async sendEmail(data: EmailJobData): Promise<void> {
+    if (this.transporter) {
+      // 真实SMTP发送
+      await this.transporter.sendMail({
+        from: data.from || process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: data.to,
+        subject: data.subject,
+        html: data.html,
+        text: data.text,
+        cc: data.cc,
+        bcc: data.bcc,
+        attachments: data.attachments,
+      });
+      this.logger.log(`📨 Email sent to ${data.to}: ${data.subject}`);
+    } else {
+      // 开发环境模拟发送
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // 模拟 3% 的失败率（用于测试重试机制）
+      if (Math.random() < 0.03) {
+        throw new Error('Email service temporarily unavailable');
+      }
+
+      this.logger.log(`📨 [MOCK] Email sent to ${data.to}: ${data.subject}`);
+    }
   }
 
   /**

@@ -1,12 +1,16 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { queueConfig, QueueName } from '../common/config/queue.config';
 import { QueueService } from './queue.service';
 import { QueueController } from './queue.controller';
 import { EmailProcessor } from './processors/email.processor';
 import { SmsProcessor } from './processors/sms.processor';
 import { DeviceOperationProcessor } from './processors/device-operation.processor';
+import { NotificationBroadcastProcessor } from './processors/notification-broadcast.processor';
 import { SmsModule } from '../common/services/sms/sms.module';
+import { User } from '../entities/user.entity';
+import { Notification } from '../entities/notification.entity';
 
 /**
  * 队列模块
@@ -30,6 +34,9 @@ import { SmsModule } from '../common/services/sms/sms.module';
       { name: QueueName.LOG_PROCESSING },
     ),
 
+    // TypeORM 实体访问
+    TypeOrmModule.forFeature([User, Notification]),
+
     // 导入短信服务模块
     SmsModule,
   ],
@@ -39,6 +46,7 @@ import { SmsModule } from '../common/services/sms/sms.module';
     EmailProcessor,
     SmsProcessor,
     DeviceOperationProcessor,
+    NotificationBroadcastProcessor,
   ],
   exports: [QueueService, BullModule],
 })

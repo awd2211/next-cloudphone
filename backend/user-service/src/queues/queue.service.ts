@@ -19,6 +19,7 @@ export class QueueService {
     @InjectQueue(QueueName.EMAIL) private emailQueue: Queue,
     @InjectQueue(QueueName.SMS) private smsQueue: Queue,
     @InjectQueue(QueueName.DEVICE_OPERATION) private deviceOperationQueue: Queue,
+    @InjectQueue(QueueName.NOTIFICATION) private notificationQueue: Queue,
   ) {}
 
   // ============================================================================
@@ -402,8 +403,29 @@ export class QueueService {
         return this.smsQueue;
       case QueueName.DEVICE_OPERATION:
         return this.deviceOperationQueue;
+      case QueueName.NOTIFICATION:
+        return this.notificationQueue;
       default:
         throw new Error(`Unknown queue: ${queueName}`);
     }
+  }
+
+  /**
+   * 通用方法：添加任务到指定队列
+   */
+  async addJob(
+    queueName: QueueName,
+    data: any,
+    options?: Partial<JobOptions>,
+  ): Promise<Job> {
+    const queue = this.getQueueByName(queueName);
+    const jobType = data.type || 'default';
+    
+    this.logger.log(`Adding job to ${queueName} queue: ${jobType}`);
+    
+    return queue.add(jobType, data, {
+      priority: JobPriority.NORMAL,
+      ...options,
+    });
   }
 }

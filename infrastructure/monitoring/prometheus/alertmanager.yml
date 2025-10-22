@@ -1,0 +1,82 @@
+# AlertManager 配置
+# 告警路由和通知
+
+global:
+  resolve_timeout: 5m
+  
+  # SMTP 配置（邮件通知）
+  smtp_from: 'cloudphone-alerts@example.com'
+  smtp_smarthost: 'smtp.example.com:587'
+  smtp_auth_username: 'cloudphone-alerts@example.com'
+  smtp_auth_password: 'your-password'
+  smtp_require_tls: true
+
+# 路由配置
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  
+  routes:
+  # 关键告警立即通知
+  - match:
+      severity: critical
+    receiver: 'critical'
+    continue: true
+  
+  # 警告级别告警
+  - match:
+      severity: warning
+    receiver: 'warning'
+
+# 接收器配置
+receivers:
+
+# 默认接收器
+- name: 'default'
+  webhook_configs:
+  - url: 'http://localhost:5001/alerts'
+    send_resolved: true
+
+# 关键告警（多渠道通知）
+- name: 'critical'
+  email_configs:
+  - to: 'ops-team@example.com'
+    headers:
+      Subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+  
+  # Slack 通知（需要配置 Webhook）
+  # slack_configs:
+  # - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+  #   channel: '#cloudphone-alerts'
+  #   title: '🚨 {{ .GroupLabels.alertname }}'
+  
+  # 钉钉通知（需要配置）
+  # webhook_configs:
+  # - url: 'https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN'
+  
+  # 企业微信通知
+  # wechat_configs:
+  # - corp_id: 'YOUR_CORP_ID'
+  #   api_secret: 'YOUR_API_SECRET'
+  #   to_user: '@all'
+
+# 警告级别告警
+- name: 'warning'
+  email_configs:
+  - to: 'dev-team@example.com'
+    headers:
+      Subject: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+
+# 抑制规则
+inhibit_rules:
+# 如果节点下线，抑制该节点的所有其他告警
+- source_match:
+    severity: 'critical'
+  target_match:
+    severity: 'warning'
+  equal: ['instance']
+
+

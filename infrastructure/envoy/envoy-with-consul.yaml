@@ -1,0 +1,457 @@
+# Envoy Proxy 配置 - 集成 Consul 服务发现
+# 版本: Envoy v1.28
+# 功能: Consul 动态服务发现 + 熔断器 + 限流 + 监控
+
+# ==========================================
+# 管理接口配置
+# ==========================================
+admin:
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 9901
+
+# ==========================================
+# 动态资源配置（Consul 集成）
+# ==========================================
+node:
+  cluster: cloudphone-cluster
+  id: envoy-gateway-1
+
+# ==========================================
+# 静态资源配置
+# ==========================================
+static_resources:
+  
+  # ==========================================
+  # 监听器配置
+  # ==========================================
+  listeners:
+  
+  - name: http_listener
+    address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 10000
+    
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          
+          stat_prefix: ingress_http
+          codec_type: AUTO
+          
+          # 生成请求 ID
+          generate_request_id: true
+          
+          # 追踪配置（Jaeger）
+          tracing:
+            provider:
+              name: envoy.tracers.zipkin
+              typed_config:
+                "@type": type.googleapis.com/envoy.config.trace.v3.ZipkinConfig
+                collector_cluster: jaeger
+                collector_endpoint: "/api/v2/spans"
+                collector_endpoint_version: HTTP_JSON
+                shared_span_context: false
+          
+          # 路由配置
+          route_config:
+            name: local_route
+            virtual_hosts:
+            
+            - name: api_gateway
+              domains: ["*"]
+              
+              # CORS 配置
+              cors:
+                allow_origin_string_match:
+                - safe_regex:
+                    regex: \*
+                allow_methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                allow_headers: "Content-Type, Authorization, X-Request-ID, Accept, Origin, X-B3-TraceId, X-B3-SpanId, X-B3-Sampled"
+                expose_headers: "X-Request-ID, X-B3-TraceId"
+                max_age: "86400"
+                allow_credentials: true
+              
+              routes:
+              
+              # User Service
+              - match:
+                  prefix: "/api/users"
+                route:
+                  cluster: user-service
+                  timeout: 10s
+                  retry_policy:
+                    retry_on: "5xx,reset,connect-failure"
+                    num_retries: 3
+                    per_try_timeout: 3s
+                # 开启追踪
+                decorator:
+                  operation: user-service
+              
+              # Device Service
+              - match:
+                  prefix: "/api/devices"
+                route:
+                  cluster: device-service
+                  timeout: 10s
+                  retry_policy:
+                    retry_on: "5xx,reset,connect-failure"
+                    num_retries: 3
+                decorator:
+                  operation: device-service
+              
+              # App Service
+              - match:
+                  prefix: "/api/apps"
+                route:
+                  cluster: app-service
+                  timeout: 30s
+                  retry_policy:
+                    retry_on: "5xx,reset"
+                    num_retries: 2
+                decorator:
+                  operation: app-service
+              
+              # Billing Service
+              - match:
+                  prefix: "/api/billing"
+                route:
+                  cluster: billing-service
+                  timeout: 10s
+                  retry_policy:
+                    retry_on: "5xx,reset"
+                    num_retries: 3
+                decorator:
+                  operation: billing-service
+              
+              # Notification Service
+              - match:
+                  prefix: "/api/notifications"
+                route:
+                  cluster: notification-service
+                  timeout: 5s
+                decorator:
+                  operation: notification-service
+              
+              # Scheduler Service
+              - match:
+                  prefix: "/api/scheduler"
+                route:
+                  cluster: scheduler-service
+                  timeout: 10s
+                decorator:
+                  operation: scheduler-service
+              
+              # Media Service
+              - match:
+                  prefix: "/api/media"
+                route:
+                  cluster: media-service
+                  timeout: 30s
+                  upgrade_configs:
+                  - upgrade_type: websocket
+                decorator:
+                  operation: media-service
+              
+              # 默认路由
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: api-gateway
+                  timeout: 30s
+                decorator:
+                  operation: api-gateway
+          
+          # HTTP 过滤器链
+          http_filters:
+          
+          # CORS 过滤器
+          - name: envoy.filters.http.cors
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+          
+          # 限流过滤器
+          - name: envoy.filters.http.local_ratelimit
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+              stat_prefix: http_local_rate_limiter
+              token_bucket:
+                max_tokens: 1000
+                tokens_per_fill: 1000
+                fill_interval: 1s
+          
+          # 路由过滤器（必需）
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+          
+          # 访问日志（JSON 格式）
+          access_log:
+          - name: envoy.access_loggers.stdout
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+              log_format:
+                json_format:
+                  timestamp: "%START_TIME%"
+                  method: "%REQ(:METHOD)%"
+                  path: "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%"
+                  protocol: "%PROTOCOL%"
+                  response_code: "%RESPONSE_CODE%"
+                  bytes_sent: "%BYTES_SENT%"
+                  bytes_received: "%BYTES_RECEIVED%"
+                  duration: "%DURATION%"
+                  upstream_host: "%UPSTREAM_HOST%"
+                  user_agent: "%REQ(USER-AGENT)%"
+                  request_id: "%REQ(X-REQUEST-ID)%"
+                  trace_id: "%REQ(X-B3-TRACEID)%"
+                  span_id: "%REQ(X-B3-SPANID)%"
+
+  # ==========================================
+  # 集群配置（从 Consul 动态获取）
+  # ==========================================
+  clusters:
+  
+  # ---------- Consul 集群（静态配置）----------
+  - name: consul_cluster
+    connect_timeout: 1s
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: consul_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: consul
+                port_value: 8500
+  
+  # ---------- Jaeger 集群（追踪）----------
+  - name: jaeger
+    connect_timeout: 1s
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: jaeger
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: jaeger
+                port_value: 9411
+  
+  # ---------- API Gateway（从 Consul 发现）----------
+  - name: api-gateway
+    connect_timeout: 5s
+    type: EDS
+    eds_cluster_config:
+      eds_config:
+        resource_api_version: V3
+        api_config_source:
+          api_type: GRPC
+          transport_api_version: V3
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: consul_connect_integration
+    
+    health_checks:
+    - timeout: 3s
+      interval: 10s
+      unhealthy_threshold: 3
+      healthy_threshold: 2
+      http_health_check:
+        path: "/health"
+    
+    circuit_breakers:
+      thresholds:
+      - priority: DEFAULT
+        max_connections: 1024
+        max_requests: 1024
+        max_retries: 3
+    
+    outlier_detection:
+      consecutive_5xx: 5
+      interval: 30s
+      base_ejection_time: 30s
+
+  # ---------- User Service（从 Consul 发现）----------
+  - name: user-service
+    connect_timeout: 5s
+    type: EDS
+    eds_cluster_config:
+      eds_config:
+        resource_api_version: V3
+        api_config_source:
+          api_type: GRPC
+          transport_api_version: V3
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: consul_connect_integration
+    
+    health_checks:
+    - timeout: 2s
+      interval: 10s
+      unhealthy_threshold: 3
+      healthy_threshold: 2
+      http_health_check:
+        path: "/health"
+    
+    circuit_breakers:
+      thresholds:
+      - priority: DEFAULT
+        max_connections: 512
+        max_requests: 512
+        max_retries: 3
+    
+    outlier_detection:
+      consecutive_5xx: 5
+      interval: 30s
+      base_ejection_time: 30s
+
+  # ---------- Device Service（从 Consul 发现）----------
+  - name: device-service
+    connect_timeout: 5s
+    type: EDS
+    eds_cluster_config:
+      eds_config:
+        resource_api_version: V3
+        api_config_source:
+          api_type: GRPC
+          transport_api_version: V3
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: consul_connect_integration
+    
+    health_checks:
+    - timeout: 2s
+      interval: 10s
+      unhealthy_threshold: 3
+      healthy_threshold: 2
+      http_health_check:
+        path: "/health"
+    
+    circuit_breakers:
+      thresholds:
+      - priority: DEFAULT
+        max_connections: 512
+        max_requests: 512
+        max_retries: 3
+
+  # ---------- App Service（从 Consul 发现）----------
+  - name: app-service
+    connect_timeout: 5s
+    type: EDS
+    eds_cluster_config:
+      eds_config:
+        resource_api_version: V3
+        api_config_source:
+          api_type: GRPC
+          transport_api_version: V3
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: consul_connect_integration
+    
+    circuit_breakers:
+      thresholds:
+      - priority: DEFAULT
+        max_connections: 256
+        max_requests: 256
+        max_retries: 2
+
+  # ---------- Billing Service（从 Consul 发现）----------
+  - name: billing-service
+    connect_timeout: 5s
+    type: EDS
+    eds_cluster_config:
+      eds_config:
+        resource_api_version: V3
+        api_config_source:
+          api_type: GRPC
+          transport_api_version: V3
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: consul_connect_integration
+    
+    circuit_breakers:
+      thresholds:
+      - priority: DEFAULT
+        max_connections: 512
+        max_requests: 512
+
+  # ---------- Notification Service（从 Consul 发现）----------
+  - name: notification-service
+    connect_timeout: 3s
+    type: EDS
+    eds_cluster_config:
+      eds_config:
+        resource_api_version: V3
+        api_config_source:
+          api_type: GRPC
+          transport_api_version: V3
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: consul_connect_integration
+
+  # ---------- Scheduler Service（从 Consul 发现）----------
+  - name: scheduler-service
+    connect_timeout: 5s
+    type: EDS
+    eds_cluster_config:
+      eds_config:
+        resource_api_version: V3
+        api_config_source:
+          api_type: GRPC
+          transport_api_version: V3
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: consul_connect_integration
+
+  # ---------- Media Service（从 Consul 发现）----------
+  - name: media-service
+    connect_timeout: 5s
+    type: EDS
+    eds_cluster_config:
+      eds_config:
+        resource_api_version: V3
+        api_config_source:
+          api_type: GRPC
+          transport_api_version: V3
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: consul_connect_integration
+
+  # ---------- Consul Connect 集成集群----------
+  - name: consul_connect_integration
+    connect_timeout: 1s
+    type: STRICT_DNS
+    http2_protocol_options: {}
+    load_assignment:
+      cluster_name: consul_connect_integration
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: consul
+                port_value: 8502  # Consul gRPC 端口
+
+# ==========================================
+# 分层运行时配置
+# ==========================================
+layered_runtime:
+  layers:
+  - name: static_layer
+    static_layer:
+      overload:
+        global_downstream_max_connections: 50000
+      # 启用追踪
+      tracing:
+        random_sampling:
+          value: 100  # 100% 采样率（生产环境建议 1-10）
+
+

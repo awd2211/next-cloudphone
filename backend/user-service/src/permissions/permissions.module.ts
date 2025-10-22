@@ -7,6 +7,10 @@ import { DataScope } from '../entities/data-scope.entity';
 import { FieldPermission } from '../entities/field-permission.entity';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
+import { Menu } from '../entities/menu.entity';
+import { Department } from '../entities/department.entity';
+import { Tenant } from '../entities/tenant.entity';
+import { AuditLog } from '../entities/audit-log.entity';
 
 // Controllers
 import { PermissionsController } from './permissions.controller';
@@ -44,6 +48,10 @@ import { MenuPermissionService } from './menu-permission.service';
       FieldPermission,
       User,
       Role,
+      Menu,
+      Department,
+      Tenant,
+      AuditLog,
     ]),
   ],
   controllers: [

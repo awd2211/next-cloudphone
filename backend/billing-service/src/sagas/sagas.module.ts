@@ -9,9 +9,9 @@ import { EventBusModule } from '@cloudphone/shared';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, Plan]),
-    // EventBusModule,  // 暂时禁用，等RabbitMQ配置完成后再启用
+    EventBusModule,
   ],
-  providers: [PurchasePlanSaga], // SagaConsumer 暂时禁用
+  providers: [PurchasePlanSaga, SagaConsumer],
   exports: [PurchasePlanSaga],
 })
 export class SagasModule {}

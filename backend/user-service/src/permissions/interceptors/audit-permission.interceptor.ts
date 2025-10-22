@@ -9,6 +9,10 @@ import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
 import { of } from 'rxjs';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AuditLog } from '../../entities/audit-log.entity';
+import { AlertService } from '../../common/services/alert/alert.service';
 
 /**
  * 审计元数据键
@@ -66,7 +70,12 @@ export interface AuditLogEntry {
 export class AuditPermissionInterceptor implements NestInterceptor {
   private readonly logger = new Logger(AuditPermissionInterceptor.name);
 
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    @InjectRepository(AuditLog)
+    private auditLogRepository: Repository<AuditLog>,
+    private alertService: AlertService,
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     // 检查是否跳过审计
@@ -164,7 +173,12 @@ export class AuditPermissionInterceptor implements NestInterceptor {
     switch (entry.level) {
       case AuditLevel.CRITICAL:
         this.logger.error(logMessage);
-        // TODO: 发送告警通知
+        // 发送关键告警通知
+        this.alertService.sendCriticalAlert({
+          title: '关键审计事件',
+          message: logMessage,
+          details: entry,
+        }).catch(err => this.logger.error(`Failed to send alert: ${err.message}`));
         break;
       case AuditLevel.ERROR:
         this.logger.error(logMessage);
@@ -176,8 +190,33 @@ export class AuditPermissionInterceptor implements NestInterceptor {
         this.logger.log(logMessage);
     }
 
-    // TODO: 将审计日志持久化到数据库
-    // await this.auditLogRepository.save(entry);
+    // 持久化到数据库（异步，不阻塞主流程）
+    this.saveAuditLog(entry).catch(err => {
+      this.logger.error(`Failed to save audit log: ${err.message}`);
+    });
+  }
+
+  /**
+   * 保存审计日志到数据库
+   */
+  private async saveAuditLog(entry: AuditLogEntry): Promise<void> {
+    await this.auditLogRepository.save({
+      userId: entry.userId,
+      action: entry.action as any,
+      resourceType: entry.resource,
+      resourceId: entry.metadata?.resourceId,
+      level: entry.level as any,
+      ipAddress: entry.ip,
+      userAgent: entry.userAgent,
+      method: entry.method,
+      path: entry.path,
+      requestBody: entry.requestBody,
+      responseStatus: entry.responseStatus,
+      duration: entry.duration,
+      success: entry.success,
+      errorMessage: entry.errorMessage,
+      metadata: entry.metadata,
+    });
   }
 
   /**

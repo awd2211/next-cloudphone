@@ -1,83 +1,52 @@
-# Multi-stage build for Node.js service
-
-# ===== 开发环境 =====
-FROM node:20-alpine AS development
+# 构建阶段
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Install pnpm
+# 安装 pnpm
 RUN npm install -g pnpm
 
-# Copy package files
-COPY package*.json ./
-COPY pnpm-lock.yaml* ./
+# 复制 pnpm workspace 配置
+COPY pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml ./
 
-# Install all dependencies (including devDependencies)
-RUN pnpm install --no-frozen-lockfile
+# 复制 shared 包
+COPY backend/shared ./backend/shared
 
-# Copy source code
-COPY . .
+# 复制 notification-service package.json
+COPY backend/notification-service/package.json ./backend/notification-service/
 
-EXPOSE 30006
+# 安装依赖
+RUN pnpm install --frozen-lockfile
 
-CMD ["pnpm", "run", "dev"]
+# 复制源代码
+COPY backend/notification-service ./backend/notification-service
 
-# ===== 构建阶段 =====
-FROM node:20-alpine AS builder
+# 构建应用
+WORKDIR /app/backend/notification-service
+RUN pnpm run build
 
-# Set working directory
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-COPY pnpm-lock.yaml* ./
-
-# Install pnpm
-RUN npm install -g pnpm
-
-# Install dependencies
-RUN pnpm install --no-frozen-lockfile
-
-# Copy source code
-COPY . .
-
-# Build the application
-RUN pnpm build
-
-# ===== 生产阶段 =====
-FROM node:20-alpine
+# 运行阶段
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY pnpm-lock.yaml* ./
-
-# Install pnpm
+# 安装 pnpm
 RUN npm install -g pnpm
 
-# Install production dependencies only
-RUN pnpm install --prod --no-frozen-lockfile
+# 复制构建产物和依赖
+COPY --from=builder /app/backend/notification-service/dist ./dist
+COPY --from=builder /app/backend/notification-service/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules_root
+COPY --from=builder /app/backend/notification-service/package.json ./
 
-# Copy built artifacts from builder
-COPY --from=builder /app/dist ./dist
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
+  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || '30006') + '/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Create a non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nestjs -u 1001
+# 暴露端口（通过环境变量配置）
+ENV PORT=30006
+EXPOSE ${PORT}
 
-# Change ownership
-RUN chown -R nestjs:nodejs /app
-
-# Switch to non-root user
-USER nestjs
-
-# Expose port
-EXPOSE 30006
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
-  CMD node -e "require('http').get('http://localhost:30006/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
-# Start the application
+# 启动应用
 CMD ["node", "dist/main.js"]

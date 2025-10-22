@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Notification, NotificationType, NotificationChannel, NotificationStatus } from './entities/notification.entity';
 import { NotificationTemplate } from './entities/notification-template.entity';
 import { NotificationGateway } from '../websocket/websocket.gateway';
@@ -83,5 +83,39 @@ export class NotificationsService {
     return this.notificationRepository.count({
       where: { userId, status: NotificationStatus.SENT },
     });
+  }
+
+  /**
+   * 标记所有通知为已读
+   */
+  async markAllAsRead(userId: string): Promise<void> {
+    await this.notificationRepository.update(
+      { userId, status: NotificationStatus.SENT },
+      { status: NotificationStatus.READ, readAt: new Date() }
+    );
+    this.logger.log(`Marked all notifications as read for user ${userId}`);
+  }
+
+  /**
+   * 删除通知
+   */
+  async remove(userId: string, id: string): Promise<void> {
+    const result = await this.notificationRepository.delete({ id, userId });
+    if (result.affected === 0) {
+      this.logger.warn(`Notification ${id} not found for user ${userId}`);
+    } else {
+      this.logger.log(`Deleted notification ${id} for user ${userId}`);
+    }
+  }
+
+  /**
+   * 批量删除通知
+   */
+  async batchDelete(userId: string, ids: string[]): Promise<void> {
+    const result = await this.notificationRepository.delete({
+      id: In(ids),
+      userId,
+    });
+    this.logger.log(`Batch deleted ${result.affected} notifications for user ${userId}`);
   }
 }

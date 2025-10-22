@@ -1,0 +1,58 @@
+# Envoy Proxy - Docker Compose 配置
+# 云手机平台 API Gateway 前端代理
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # Envoy Proxy - 边缘代理
+  # ==========================================
+  envoy:
+    image: envoyproxy/envoy:v1.28-latest
+    container_name: cloudphone-envoy
+    
+    ports:
+      - "10000:10000"  # HTTP 入口（对外暴露）
+      - "9901:9901"    # 管理界面
+    
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./logs:/var/log/envoy
+    
+    networks:
+      - cloudphone-network
+    
+    environment:
+      - ENVOY_UID=0
+      - ENVOY_GID=0
+    
+    command: [
+      "envoy",
+      "-c", "/etc/envoy/envoy.yaml",
+      "--log-level", "info",
+      "--component-log-level", "upstream:debug,connection:info"
+    ]
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9901/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    
+    depends_on:
+      - api-gateway
+      - user-service
+      - device-service
+      - billing-service
+    
+    labels:
+      - "com.cloudphone.service=envoy-proxy"
+      - "com.cloudphone.description=API Gateway Edge Proxy"
+
+networks:
+  cloudphone-network:
+    external: true
+

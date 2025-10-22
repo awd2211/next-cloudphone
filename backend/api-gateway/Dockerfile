@@ -3,34 +3,50 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# 复制 package.json 和 package-lock.json
-COPY package*.json ./
+# 安装 pnpm
+RUN npm install -g pnpm
+
+# 复制 pnpm workspace 配置
+COPY pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml ./
+
+# 复制 shared 包
+COPY backend/shared ./backend/shared
+
+# 复制 api-gateway package.json
+COPY backend/api-gateway/package.json ./backend/api-gateway/
 
 # 安装依赖
-RUN npm ci --only=production
+RUN pnpm install --frozen-lockfile
 
 # 复制源代码
-COPY . .
+COPY backend/api-gateway ./backend/api-gateway
 
 # 构建应用
-RUN npm run build
+WORKDIR /app/backend/api-gateway
+RUN pnpm run build
 
 # 运行阶段
 FROM node:18-alpine
 
 WORKDIR /app
 
-# 复制构建产物和依赖
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY package*.json ./
+# 安装 pnpm
+RUN npm install -g pnpm
 
-# 暴露端口
-EXPOSE 3000
+# 复制构建产物和依赖
+COPY --from=builder /app/backend/api-gateway/dist ./dist
+COPY --from=builder /app/backend/api-gateway/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules_root
+COPY --from=builder /app/backend/api-gateway/package.json ./
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
-  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || '30000') + '/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# 暴露端口（通过环境变量配置）
+ENV PORT=30000
+EXPOSE ${PORT}
 
 # 启动应用
 CMD ["node", "dist/main.js"]

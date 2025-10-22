@@ -17,10 +17,10 @@ import { EventBusModule } from '@cloudphone/shared';
     DockerModule,
     AdbModule,
     PortManagerModule,
-    // EventBusModule,  // 暂时禁用，等RabbitMQ配置完成后再启用
+    EventBusModule,
   ],
   controllers: [DevicesController, BatchOperationsController],
-  providers: [DevicesService, BatchOperationsService], // DevicesConsumer 暂时禁用
+  providers: [DevicesService, BatchOperationsService, DevicesConsumer],
   exports: [DevicesService, BatchOperationsService],
 })
 export class DevicesModule {}

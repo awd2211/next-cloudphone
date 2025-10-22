@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder, Brackets } from 'typeorm';
 import { DataScope, ScopeType } from '../entities/data-scope.entity';
 import { User } from '../entities/user.entity';
+import { Department } from '../entities/department.entity';
 
 /**
  * 数据范围过滤器
@@ -25,6 +26,8 @@ export class DataScopeService {
     private dataScopeRepository: Repository<DataScope>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Department)
+    private departmentRepository: Repository<Department>,
   ) {}
 
   /**
@@ -56,7 +59,7 @@ export class DataScopeService {
       const roleIds = user.roles?.map((r) => r.id) || [];
       if (roleIds.length === 0) {
         // 没有角色，使用用户默认数据范围
-        return this.buildDefaultScopeFilter(user, resourceType);
+        return await this.buildDefaultScopeFilter(user, resourceType);
       }
 
       const dataScopes = await this.dataScopeRepository.find({
@@ -72,12 +75,12 @@ export class DataScopeService {
 
       if (dataScopes.length === 0) {
         // 没有配置，使用默认范围
-        return this.buildDefaultScopeFilter(user, resourceType);
+        return await this.buildDefaultScopeFilter(user, resourceType);
       }
 
       // 使用优先级最高的数据范围
       const primaryScope = dataScopes[0];
-      return this.buildScopeFilter(user, primaryScope, resourceType);
+      return await this.buildScopeFilter(user, primaryScope, resourceType);
     } catch (error) {
       this.logger.error(
         `获取数据范围过滤器失败: ${error.message}`,
@@ -179,19 +182,31 @@ export class DataScopeService {
    * @returns 部门ID列表（包含自身和所有子部门）
    */
   async getDepartmentWithChildren(departmentId: string): Promise<string[]> {
-    // TODO: 实现部门层级查询
-    // 这里需要根据实际的部门表结构实现
-    // 简化实现：仅返回当前部门
-    return [departmentId];
+    const result = [departmentId];
+    
+    try {
+      const children = await this.departmentRepository.find({
+        where: { parentId: departmentId, isActive: true },
+      });
+
+      for (const child of children) {
+        const descendants = await this.getDepartmentWithChildren(child.id);
+        result.push(...descendants);
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to fetch department children: ${error.message}`);
+    }
+
+    return result;
   }
 
   /**
    * 构建默认数据范围过滤器
    */
-  private buildDefaultScopeFilter(
+  private async buildDefaultScopeFilter(
     user: User,
     resourceType: string,
-  ): DataScopeFilter | null {
+  ): Promise<DataScopeFilter | null> {
     const alias = resourceType;
 
     switch (user.dataScope) {
@@ -205,12 +220,8 @@ export class DataScopeService {
         };
 
       case 'department':
-        // 简化实现：仅包含本部门数据
-        // TODO: 实现包含子部门的查询
-        return {
-          whereClause: `${alias}.departmentId = :departmentId`,
-          parameters: { departmentId: user.departmentId },
-        };
+        // 包含本部门及所有子部门数据
+        return await this.buildDepartmentFilterLegacy(user, alias, true);
 
       case 'self':
         return {
@@ -226,11 +237,11 @@ export class DataScopeService {
   /**
    * 构建数据范围过滤器
    */
-  private buildScopeFilter(
+  private async buildScopeFilter(
     user: User,
     dataScope: DataScope,
     resourceType: string,
-  ): DataScopeFilter | null {
+  ): Promise<DataScopeFilter | null> {
     const alias = resourceType;
 
     switch (dataScope.scopeType) {
@@ -245,7 +256,7 @@ export class DataScopeService {
 
       case ScopeType.DEPARTMENT:
       case ScopeType.DEPARTMENT_ONLY:
-        return this.buildDepartmentFilter(user, dataScope, alias);
+        return await this.buildDepartmentFilter(user, dataScope, alias);
 
       case ScopeType.SELF:
         return {
@@ -264,27 +275,78 @@ export class DataScopeService {
   /**
    * 构建部门过滤器
    */
-  private buildDepartmentFilter(
+  private async buildDepartmentFilter(
     user: User,
     dataScope: DataScope,
     alias: string,
-  ): DataScopeFilter {
+  ): Promise<DataScopeFilter> {
     const departmentIds =
       dataScope.departmentIds && dataScope.departmentIds.length > 0
         ? dataScope.departmentIds
         : [user.departmentId];
 
     if (dataScope.includeSubDepartments) {
-      // TODO: 包含子部门的查询需要递归查询部门表
-      // 简化实现：仅查询指定部门
+      // 递归查询所有子部门
+      const allDepartmentIds = await this.getAllSubDepartmentIds(departmentIds);
       return {
         whereClause: `${alias}.departmentId IN (:...departmentIds)`,
-        parameters: { departmentIds },
+        parameters: { departmentIds: allDepartmentIds },
       };
     } else {
       return {
         whereClause: `${alias}.departmentId IN (:...departmentIds)`,
         parameters: { departmentIds },
+      };
+    }
+  }
+
+  /**
+   * 递归获取部门及其所有子部门的ID列表
+   */
+  private async getAllSubDepartmentIds(departmentIds: string[]): Promise<string[]> {
+    const allIds = new Set<string>(departmentIds);
+    const queue = [...departmentIds];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      
+      // 查询当前部门的所有子部门
+      const subDepartments = await this.departmentRepository.find({
+        where: { parentId: currentId },
+        select: ['id'],
+      });
+
+      // 将子部门ID添加到集合和队列中
+      for (const dept of subDepartments) {
+        if (!allIds.has(dept.id)) {
+          allIds.add(dept.id);
+          queue.push(dept.id);
+        }
+      }
+    }
+
+    return Array.from(allIds);
+  }
+
+  /**
+   * 构建部门过滤器（同步版本，用于简单场景）
+   */
+  private async buildDepartmentFilterLegacy(
+    user: User,
+    alias: string,
+    includeSubDepartments: boolean,
+  ): Promise<DataScopeFilter> {
+    if (includeSubDepartments) {
+      // 递归获取所有子部门
+      const allDepartmentIds = await this.getAllSubDepartmentIds([user.departmentId]);
+      return {
+        whereClause: `${alias}.departmentId IN (:...departmentIds)`,
+        parameters: { departmentIds: allDepartmentIds },
+      };
+    } else {
+      return {
+        whereClause: `${alias}.departmentId = :departmentId`,
+        parameters: { departmentId: user.departmentId },
       };
     }
   }

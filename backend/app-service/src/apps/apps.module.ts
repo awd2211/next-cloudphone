@@ -20,10 +20,10 @@ import { EventBusModule } from '@cloudphone/shared';
     HttpModule,
     MinioModule,
     ApkModule,
-    // EventBusModule,  // 暂时禁用，等RabbitMQ配置完成后再启用
+    EventBusModule,
   ],
   controllers: [AppsController],
-  providers: [AppsService], // AppsConsumer 暂时禁用
+  providers: [AppsService, AppsConsumer],
   exports: [AppsService],
 })
 export class AppsModule {}

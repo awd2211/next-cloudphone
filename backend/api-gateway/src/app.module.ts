@@ -9,7 +9,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProxyModule } from './proxy/proxy.module';
-import { ConsulModule } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -20,27 +20,8 @@ import { HealthController } from './health.controller';
       envFilePath: '.env',
     }),
 
-    // Pino 日志模块
-    LoggerModule.forRoot({
-      pinoHttp: {
-        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
-        transport: process.env.NODE_ENV !== 'production' ? {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
-            ignore: 'pid,hostname',
-          },
-        } : undefined,
-        customProps: () => ({
-          service: 'api-gateway',
-          environment: process.env.NODE_ENV || 'development',
-        }),
-        autoLogging: {
-          ignore: (req) => req.url === '/health',
-        },
-      },
-    }),
+    // Pino 日志模块 - 使用统一的增强配置
+    LoggerModule.forRoot(createLoggerConfig('api-gateway')),
 
     // 限流模块 - 防止 DDoS 攻击
     ThrottlerModule.forRoot([
@@ -65,7 +46,7 @@ import { HealthController } from './health.controller';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT) || 5432,
+      port: parseInt(process.env.DB_PORT || '5432'),
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'cloudphone_auth',

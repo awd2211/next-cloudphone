@@ -14,7 +14,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 import { HealthController } from './health.controller';
 import { EventsModule } from './events/events.module';
 
-import { EventBusModule, ConsulModule } from '@cloudphone/shared';
+import { EventBusModule, ConsulModule, createLoggerConfig } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -22,31 +22,12 @@ import { EventBusModule, ConsulModule } from '@cloudphone/shared';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    // Pino 日志模块
-    LoggerModule.forRoot({
-      pinoHttp: {
-        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
-        transport: process.env.NODE_ENV !== 'production' ? {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
-            ignore: 'pid,hostname',
-          },
-        } : undefined,
-        customProps: () => ({
-          service: 'device-service',
-          environment: process.env.NODE_ENV || 'development',
-        }),
-        autoLogging: {
-          ignore: (req) => req.url === '/health',
-        },
-      },
-    }),
+    // Pino 日志模块 - 使用统一的增强配置
+    LoggerModule.forRoot(createLoggerConfig('device-service')),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT) || 5432,
+      port: parseInt(process.env.DB_PORT || '5432'),
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'cloudphone_device',

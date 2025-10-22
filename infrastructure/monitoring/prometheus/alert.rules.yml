@@ -1,0 +1,208 @@
+# Prometheus 告警规则
+# 云手机平台监控告警
+
+groups:
+
+# ==========================================
+# 系统级告警
+# ==========================================
+- name: system_alerts
+  interval: 30s
+  rules:
+  
+  # CPU 使用率过高
+  - alert: HighCPUUsage
+    expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "CPU 使用率过高 (instance {{ $labels.instance }})"
+      description: "CPU 使用率超过 80% 持续 5 分钟\n当前值: {{ $value }}%"
+  
+  # 内存使用率过高
+  - alert: HighMemoryUsage
+    expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "内存使用率过高 (instance {{ $labels.instance }})"
+      description: "内存使用率超过 85%\n当前值: {{ $value }}%"
+  
+  # 磁盘空间不足
+  - alert: DiskSpaceLow
+    expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 80
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "磁盘空间不足 (instance {{ $labels.instance }})"
+      description: "磁盘使用率超过 80%\n当前值: {{ $value }}%"
+
+# ==========================================
+# Envoy 网关告警
+# ==========================================
+- name: envoy_alerts
+  interval: 30s
+  rules:
+  
+  # Envoy 下线
+  - alert: EnvoyDown
+    expr: up{job="envoy"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Envoy 网关下线"
+      description: "Envoy 无法访问，所有流量将中断"
+  
+  # 5xx 错误率过高
+  - alert: High5xxErrorRate
+    expr: sum(rate(envoy_cluster_upstream_rq_xx{envoy_response_code_class="5"}[5m])) by (envoy_cluster_name) / sum(rate(envoy_cluster_upstream_rq_total[5m])) by (envoy_cluster_name) > 0.05
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "5xx 错误率过高 (cluster {{ $labels.envoy_cluster_name }})"
+      description: "5xx 错误率超过 5%\n当前值: {{ $value | humanizePercentage }}"
+  
+  # 熔断器打开
+  - alert: CircuitBreakerOpen
+    expr: increase(envoy_cluster_circuit_breakers_default_rq_open[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "熔断器打开 (cluster {{ $labels.envoy_cluster_name }})"
+      description: "熔断器已打开，服务可能存在问题"
+  
+  # 请求延迟过高
+  - alert: HighRequestLatency
+    expr: histogram_quantile(0.99, sum(rate(envoy_cluster_upstream_rq_time_bucket[5m])) by (envoy_cluster_name, le)) > 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "请求延迟过高 (cluster {{ $labels.envoy_cluster_name }})"
+      description: "P99 延迟超过 1 秒\n当前值: {{ $value }}ms"
+
+# ==========================================
+# 微服务告警
+# ==========================================
+- name: service_alerts
+  interval: 30s
+  rules:
+  
+  # 服务下线
+  - alert: ServiceDown
+    expr: up{job="nestjs-services"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "服务下线 ({{ $labels.service }})"
+      description: "{{ $labels.service }} 无法访问"
+  
+  # API 错误率过高
+  - alert: HighAPIErrorRate
+    expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) > 0.05
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "API 错误率过高 ({{ $labels.service }})"
+      description: "错误率超过 5%"
+
+# ==========================================
+# 数据库告警
+# ==========================================
+- name: database_alerts
+  interval: 30s
+  rules:
+  
+  # PostgreSQL 下线
+  - alert: PostgreSQLDown
+    expr: up{job="postgres"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "PostgreSQL 数据库下线"
+      description: "数据库无法访问，系统将无法正常工作"
+  
+  # 连接数过多
+  - alert: PostgreSQLTooManyConnections
+    expr: sum(pg_stat_activity_count) > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "PostgreSQL 连接数过多"
+      description: "当前连接数: {{ $value }}"
+  
+  # Redis 下线
+  - alert: RedisDown
+    expr: up{job="redis"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Redis 缓存下线"
+      description: "缓存服务不可用"
+
+# ==========================================
+# RabbitMQ 告警
+# ==========================================
+- name: rabbitmq_alerts
+  interval: 30s
+  rules:
+  
+  # RabbitMQ 下线
+  - alert: RabbitMQDown
+    expr: up{job="rabbitmq"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "RabbitMQ 消息队列下线"
+      description: "消息队列不可用，事件驱动功能将失效"
+  
+  # 队列消息堆积
+  - alert: RabbitMQQueueTooManyMessages
+    expr: rabbitmq_queue_messages > 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "RabbitMQ 队列消息堆积 (queue {{ $labels.queue }})"
+      description: "队列中消息超过 1000 条\n当前值: {{ $value }}"
+
+# ==========================================
+# 业务指标告警
+# ==========================================
+- name: business_alerts
+  interval: 1m
+  rules:
+  
+  # 设备创建失败率过高
+  - alert: HighDeviceCreationFailureRate
+    expr: sum(rate(device_creation_failures_total[5m])) / sum(rate(device_creation_attempts_total[5m])) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "设备创建失败率过高"
+      description: "失败率超过 10%"
+  
+  # 订单支付失败率过高
+  - alert: HighPaymentFailureRate
+    expr: sum(rate(payment_failures_total[5m])) / sum(rate(payment_attempts_total[5m])) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "订单支付失败率过高"
+      description: "支付失败率超过 5%，可能影响收入"
+
+

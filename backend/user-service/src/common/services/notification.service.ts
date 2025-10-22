@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Notification, NotificationType } from '../../entities/notification.entity';
+import { QueueService } from '../../queues/queue.service';
+import { QueueName } from '../config/queue.config';
 
 export interface CreateNotificationDto {
   title: string;
@@ -27,6 +29,7 @@ export class NotificationService {
   constructor(
     @InjectRepository(Notification)
     private notificationRepository: Repository<Notification>,
+    private queueService: QueueService,
   ) {}
 
   /**
@@ -92,9 +95,20 @@ export class NotificationService {
     const notifications: Notification[] = [];
 
     if (dto.sendToAll) {
-      // TODO: 实现给所有用户发送通知的逻辑
-      // 这里需要查询所有用户ID，但为了性能考虑，应该使用队列异步处理
-      throw new Error('发送给所有用户的功能需要使用队列实现');
+      // 使用队列异步发送给所有用户
+      await this.queueService.addJob(QueueName.NOTIFICATION, {
+        type: 'broadcast',
+        notification: {
+          title: dto.title,
+          content: dto.content,
+          type: dto.type,
+          resourceType: dto.resourceType,
+          resourceId: dto.resourceId,
+          actionUrl: dto.actionUrl,
+          metadata: dto.metadata,
+        },
+      });
+      return [];
     } else if (dto.userIds && dto.userIds.length > 0) {
       // 为指定用户创建通知
       for (const userId of dto.userIds) {

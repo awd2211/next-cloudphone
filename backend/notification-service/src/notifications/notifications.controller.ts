@@ -82,7 +82,7 @@ export class NotificationsController {
   @Post('read-all')
   @ApiOperation({ summary: '全部标记为已读' })
   async markAllAsRead(@Headers('x-user-id') userId: string) {
-    // TODO: Implement markAllAsRead in service
+    await this.notificationsService.markAllAsRead(userId);
     return {
       success: true,
       message: '全部标记已读成功',
@@ -96,7 +96,7 @@ export class NotificationsController {
     @Headers('x-user-id') userId: string,
     @Param('id') id: string,
   ) {
-    // TODO: Implement remove in service
+    await this.notificationsService.remove(userId, id);
     return {
       success: true,
       message: '删除通知成功',
@@ -109,7 +109,7 @@ export class NotificationsController {
     @Headers('x-user-id') userId: string,
     @Body('ids') ids: string[],
   ) {
-    // TODO: Implement batch delete in service
+    await this.notificationsService.batchDelete(userId, ids);
     return {
       success: true,
       message: '批量删除成功',
