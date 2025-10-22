@@ -44,23 +44,23 @@ export class TasksService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('定时任务已启动：生成每日报告（每24小时）');
   }
 
-  private handleCleanupExpiredNotifications() {
+  private async handleCleanupExpiredNotifications() {
     this.logger.log('执行定时任务：清理过期通知');
-    const count = this.notificationsService.cleanupExpiredNotifications();
+    const count = await this.notificationsService.cleanupExpiredNotifications();
     if (count > 0) {
       this.logger.log(`已清理 ${count} 条过期通知`);
     }
   }
 
-  private handleDailyReport() {
+  private async handleDailyReport() {
     this.logger.log('执行定时任务：生成每日报告');
-    const stats = this.notificationsService.getStats();
+    const stats = await this.notificationsService.getStats();
     this.logger.log(`每日统计: ${JSON.stringify(stats)}`);
   }
 
-  private handleCheckPendingNotifications() {
+  private async handleCheckPendingNotifications() {
     this.logger.debug('执行定时任务：检查待发送通知');
-    const stats = this.notificationsService.getStats();
+    const stats = await this.notificationsService.getStats();
     if (stats.byStatus.pending > 0) {
       this.logger.log(`发现 ${stats.byStatus.pending} 条待发送通知`);
     }

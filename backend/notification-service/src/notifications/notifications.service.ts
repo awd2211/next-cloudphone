@@ -1,57 +1,63 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
-import {
-  Notification,
-  CreateNotificationDto,
-  NotificationStatus,
-} from './notification.interface';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, LessThan } from 'typeorm';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { CreateNotificationDto } from './notification.interface';
+import { Notification, NotificationStatus, NotificationType } from '../entities/notification.entity';
 import { NotificationGateway } from '../gateway/notification.gateway';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
-  private notifications: Map<string, Notification> = new Map();
-  private userNotifications: Map<string, Set<string>> = new Map();
 
-  constructor(private readonly gateway: NotificationGateway) {}
+  constructor(
+    @InjectRepository(Notification)
+    private readonly notificationRepository: Repository<Notification>,
+    private readonly gateway: NotificationGateway,
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache,
+  ) {}
 
   /**
    * 创建并发送通知
    */
   async createAndSend(dto: CreateNotificationDto): Promise<Notification> {
-    const notification: Notification = {
-      id: uuidv4(),
+    // 创建通知记录
+    const notification = this.notificationRepository.create({
       userId: dto.userId,
-      type: dto.type,
+      type: dto.type as NotificationType || NotificationType.SYSTEM,
       status: NotificationStatus.PENDING,
       title: dto.title,
       message: dto.message,
       data: dto.data,
-      createdAt: new Date(),
       expiresAt: dto.expiresAt,
-    };
+      channels: dto.channels || ['websocket'],
+    });
 
-    // 存储通知
-    this.notifications.set(notification.id, notification);
-
-    // 添加到用户通知索引
-    if (!this.userNotifications.has(dto.userId)) {
-      this.userNotifications.set(dto.userId, new Set());
-    }
-    this.userNotifications.get(dto.userId).add(notification.id);
+    // 保存到数据库
+    const savedNotification = await this.notificationRepository.save(notification);
 
     // 通过 WebSocket 发送
     try {
-      this.gateway.sendToUser(dto.userId, notification);
-      notification.status = NotificationStatus.SENT;
-      notification.sentAt = new Date();
-      this.logger.log(`通知已发送: ${notification.id} -> 用户: ${dto.userId}`);
+      this.gateway.sendToUser(dto.userId, savedNotification);
+      savedNotification.status = NotificationStatus.SENT;
+      savedNotification.sentAt = new Date();
+      await this.notificationRepository.save(savedNotification);
+      
+      this.logger.log(`通知已发送: ${savedNotification.id} -> 用户: ${dto.userId}`);
     } catch (error) {
-      notification.status = NotificationStatus.FAILED;
-      this.logger.error(`通知发送失败: ${notification.id}`, error);
+      savedNotification.status = NotificationStatus.FAILED;
+      savedNotification.errorMessage = error.message;
+      await this.notificationRepository.save(savedNotification);
+      
+      this.logger.error(`通知发送失败: ${savedNotification.id}`, error.stack);
     }
 
-    return notification;
+    // 清除用户通知缓存
+    await this.cacheManager.del(`user:${dto.userId}:notifications`);
+
+    return savedNotification;
   }
 
   /**
@@ -71,84 +77,110 @@ export class NotificationsService {
   /**
    * 标记通知为已读
    */
-  markAsRead(notificationId: string): Notification | null {
-    const notification = this.notifications.get(notificationId);
+  async markAsRead(notificationId: string): Promise<Notification | null> {
+    const notification = await this.notificationRepository.findOne({
+      where: { id: notificationId },
+    });
+
     if (!notification) {
       return null;
     }
 
     notification.status = NotificationStatus.READ;
     notification.readAt = new Date();
+    
+    const updated = await this.notificationRepository.save(notification);
     this.logger.log(`通知已标记为已读: ${notificationId}`);
 
-    return notification;
+    // 清除缓存
+    await this.cacheManager.del(`user:${notification.userId}:notifications`);
+
+    return updated;
   }
 
   /**
-   * 获取用户的所有通知
+   * 获取用户的所有通知（分页）
    */
-  getUserNotifications(userId: string): Notification[] {
-    const notificationIds = this.userNotifications.get(userId);
-    if (!notificationIds) {
-      return [];
+  async getUserNotifications(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: Notification[]; total: number }> {
+    // 尝试从缓存获取
+    const cacheKey = `user:${userId}:notifications:${page}:${limit}`;
+    const cached = await this.cacheManager.get<{ data: Notification[]; total: number }>(cacheKey);
+    
+    if (cached) {
+      return cached;
     }
 
-    const notifications: Notification[] = [];
-    notificationIds.forEach(id => {
-      const notification = this.notifications.get(id);
-      if (notification) {
-        notifications.push(notification);
-      }
+    // 从数据库查询
+    const [data, total] = await this.notificationRepository.findAndCount({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    // 按创建时间倒序排列
-    return notifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const result = { data, total };
+
+    // 缓存结果（1分钟）
+    await this.cacheManager.set(cacheKey, result, 60);
+
+    return result;
+  }
+
+  /**
+   * 获取用户未读通知数量
+   */
+  async getUnreadCount(userId: string): Promise<number> {
+    return await this.notificationRepository.count({
+      where: {
+        userId,
+        status: NotificationStatus.SENT,
+      },
+    });
   }
 
   /**
    * 获取用户未读通知
    */
-  getUnreadNotifications(userId: string): Notification[] {
-    return this.getUserNotifications(userId).filter(
-      n => n.status !== NotificationStatus.READ,
-    );
+  async getUnreadNotifications(userId: string): Promise<Notification[]> {
+    return await this.notificationRepository.find({
+      where: {
+        userId,
+        status: NotificationStatus.SENT,
+      },
+      order: { createdAt: 'DESC' },
+      take: 50, // 最多返回50条未读
+    });
   }
 
   /**
    * 删除通知
    */
-  deleteNotification(notificationId: string): boolean {
-    const notification = this.notifications.get(notificationId);
-    if (!notification) {
-      return false;
+  async deleteNotification(notificationId: string): Promise<boolean> {
+    const result = await this.notificationRepository.delete(notificationId);
+    
+    if (result.affected > 0) {
+      this.logger.log(`通知已删除: ${notificationId}`);
+      return true;
     }
 
-    // 从用户通知索引中删除
-    const userNotifs = this.userNotifications.get(notification.userId);
-    if (userNotifs) {
-      userNotifs.delete(notificationId);
-    }
-
-    // 删除通知
-    this.notifications.delete(notificationId);
-    this.logger.log(`通知已删除: ${notificationId}`);
-
-    return true;
+    return false;
   }
 
   /**
-   * 清理过期通知
+   * 清理过期通知（定时任务调用）
    */
-  cleanupExpiredNotifications(): number {
+  async cleanupExpiredNotifications(): Promise<number> {
     const now = new Date();
-    let count = 0;
-
-    this.notifications.forEach((notification, id) => {
-      if (notification.expiresAt && notification.expiresAt < now) {
-        this.deleteNotification(id);
-        count++;
-      }
+    
+    const result = await this.notificationRepository.delete({
+      expiresAt: LessThan(now),
     });
+
+    const count = result.affected || 0;
 
     if (count > 0) {
       this.logger.log(`已清理 ${count} 条过期通知`);
@@ -160,24 +192,31 @@ export class NotificationsService {
   /**
    * 获取统计信息
    */
-  getStats() {
+  async getStats() {
+    const total = await this.notificationRepository.count();
+    const byStatus = await Promise.all([
+      this.notificationRepository.count({ where: { status: NotificationStatus.PENDING } }),
+      this.notificationRepository.count({ where: { status: NotificationStatus.SENT } }),
+      this.notificationRepository.count({ where: { status: NotificationStatus.READ } }),
+      this.notificationRepository.count({ where: { status: NotificationStatus.FAILED } }),
+    ]);
+
+    // 统计最近活跃的用户
+    const activeUsers = await this.notificationRepository
+      .createQueryBuilder('notification')
+      .select('COUNT(DISTINCT notification.userId)', 'count')
+      .where('notification.createdAt > NOW() - INTERVAL \'7 days\'')
+      .getRawOne();
+
     return {
-      totalNotifications: this.notifications.size,
-      totalUsers: this.userNotifications.size,
+      totalNotifications: total,
+      activeUsers: parseInt(activeUsers.count || 0),
       connectedClients: this.gateway.getConnectedClientsCount(),
       byStatus: {
-        pending: Array.from(this.notifications.values()).filter(
-          n => n.status === NotificationStatus.PENDING,
-        ).length,
-        sent: Array.from(this.notifications.values()).filter(
-          n => n.status === NotificationStatus.SENT,
-        ).length,
-        read: Array.from(this.notifications.values()).filter(
-          n => n.status === NotificationStatus.READ,
-        ).length,
-        failed: Array.from(this.notifications.values()).filter(
-          n => n.status === NotificationStatus.FAILED,
-        ).length,
+        pending: byStatus[0],
+        sent: byStatus[1],
+        read: byStatus[2],
+        failed: byStatus[3],
       },
     };
   }
