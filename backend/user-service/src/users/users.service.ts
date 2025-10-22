@@ -64,7 +64,20 @@ export class UsersService {
       roles,
     });
 
-    return await this.usersRepository.save(user);
+    const savedUser = await this.usersRepository.save(user);
+
+    // 发布用户创建事件
+    if (this.eventBus) {
+      await this.eventBus.publishUserEvent('created', {
+        userId: savedUser.id,
+        username: savedUser.username,
+        email: savedUser.email,
+        fullName: savedUser.fullName,
+        tenantId: savedUser.tenantId,
+      });
+    }
+
+    return savedUser;
   }
 
   async findAll(
@@ -210,6 +223,16 @@ export class UsersService {
     // 软删除：更新状态为已删除
     user.status = UserStatus.DELETED;
     await this.usersRepository.save(user);
+
+    // 发布用户删除事件
+    if (this.eventBus) {
+      await this.eventBus.publishUserEvent('deleted', {
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        tenantId: user.tenantId,
+      });
+    }
   }
 
   async updateLoginInfo(id: string, ip: string): Promise<void> {

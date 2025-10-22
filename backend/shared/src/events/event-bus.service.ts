@@ -59,5 +59,38 @@ export class EventBusService {
       ...payload,
     });
   }
+
+  /**
+   * 发布用户相关事件
+   */
+  async publishUserEvent(eventType: string, payload: any): Promise<void> {
+    await this.publish('cloudphone.events', `user.${eventType}`, {
+      type: `user.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    });
+  }
+
+  /**
+   * 发布通知相关事件
+   */
+  async publishNotificationEvent(eventType: string, payload: any): Promise<void> {
+    await this.publish('cloudphone.events', `notification.${eventType}`, {
+      type: `notification.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    });
+  }
+
+  /**
+   * 发布计费相关事件
+   */
+  async publishBillingEvent(eventType: string, payload: any): Promise<void> {
+    await this.publish('cloudphone.events', `billing.${eventType}`, {
+      type: `billing.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    });
+  }
 }
 

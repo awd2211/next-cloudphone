@@ -6,8 +6,9 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { EmailModule } from './email/email.module';
+import { EventsModule } from './events/events.module';
 import { HealthController } from './health.controller';
-import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig, EventBusModule } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -33,9 +34,11 @@ import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
       inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
+    EventBusModule,  // 事件总线
     NotificationsModule,
     WebsocketModule,
     EmailModule,
+    EventsModule,  // 事件处理器
     ConsulModule,
   ],
   controllers: [HealthController],

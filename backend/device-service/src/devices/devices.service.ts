@@ -69,6 +69,17 @@ export class DevicesService {
         await this.updateDeviceStatus(savedDevice.id, DeviceStatus.ERROR);
       });
 
+      // 发布设备创建事件
+      if (this.eventBus) {
+        await this.eventBus.publishDeviceEvent('created', {
+          deviceId: savedDevice.id,
+          userId: savedDevice.userId,
+          deviceName: savedDevice.name,
+          status: savedDevice.status,
+          tenantId: savedDevice.tenantId,
+        });
+      }
+
       return savedDevice;
     } catch (error) {
       // 创建失败，释放端口
@@ -328,6 +339,16 @@ export class DevicesService {
     // 更新设备状态
     device.status = DeviceStatus.DELETED;
     await this.devicesRepository.save(device);
+
+    // 发布设备删除事件
+    if (this.eventBus) {
+      await this.eventBus.publishDeviceEvent('deleted', {
+        deviceId: id,
+        userId: device.userId,
+        deviceName: device.name,
+        tenantId: device.tenantId,
+      });
+    }
 
     this.logger.log(`Device ${id} removed successfully`);
   }
