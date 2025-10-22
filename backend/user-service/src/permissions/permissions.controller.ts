@@ -25,7 +25,7 @@ export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
   @Post()
-  @RequirePermission('permissions.create')
+  @RequirePermission('permission.create')
   @ApiOperation({ summary: '创建权限', description: '创建新权限' })
   @ApiResponse({ status: 201, description: '权限创建成功' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
@@ -42,7 +42,7 @@ export class PermissionsController {
   }
 
   @Post('bulk')
-  @RequirePermission('permissions.create')
+  @RequirePermission('permission.create')
   @ApiOperation({ summary: '批量创建权限', description: '批量创建多个权限' })
   @ApiResponse({ status: 201, description: '批量创建成功' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
@@ -59,7 +59,7 @@ export class PermissionsController {
   }
 
   @Get()
-  @RequirePermission('permissions.read')
+  @RequirePermission('permission.read')
   @ApiOperation({ summary: '获取权限列表', description: '分页获取权限列表' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
   @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
@@ -83,7 +83,7 @@ export class PermissionsController {
   }
 
   @Get('resource/:resource')
-  @RequirePermission('permissions.read')
+  @RequirePermission('permission.read')
   @ApiOperation({ summary: '按资源获取权限', description: '根据资源类型获取相关权限' })
   @ApiParam({ name: 'resource', description: '资源类型' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -97,7 +97,7 @@ export class PermissionsController {
   }
 
   @Get(':id')
-  @RequirePermission('permissions.read')
+  @RequirePermission('permission.read')
   @ApiOperation({ summary: '获取权限详情', description: '根据 ID 获取权限详细信息' })
   @ApiParam({ name: 'id', description: '权限 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -112,7 +112,7 @@ export class PermissionsController {
   }
 
   @Patch(':id')
-  @RequirePermission('permissions.update')
+  @RequirePermission('permission.update')
   @ApiOperation({ summary: '更新权限', description: '更新权限信息' })
   @ApiParam({ name: 'id', description: '权限 ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -134,7 +134,7 @@ export class PermissionsController {
   }
 
   @Delete(':id')
-  @RequirePermission('permissions.delete')
+  @RequirePermission('permission.delete')
   @ApiOperation({ summary: '删除权限', description: '删除权限' })
   @ApiParam({ name: 'id', description: '权限 ID' })
   @ApiResponse({ status: 200, description: '删除成功' })

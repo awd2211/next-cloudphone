@@ -15,6 +15,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { EventBusService } from '@cloudphone/shared';
 import { Optional } from '@nestjs/common';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class UsersService {
@@ -24,6 +25,7 @@ export class UsersService {
     @InjectRepository(Role)
     private rolesRepository: Repository<Role>,
     @Optional() private eventBus: EventBusService,
+    @Optional() private cacheService: CacheService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -107,6 +109,16 @@ export class UsersService {
   }
 
   async findOne(id: string): Promise<User> {
+    // 先从缓存获取
+    const cacheKey = `user:${id}`;
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<User>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // 缓存未命中，查询数据库
     const user = await this.usersRepository.findOne({
       where: { id },
       relations: ['roles', 'roles.permissions'],
@@ -117,6 +129,12 @@ export class UsersService {
     }
 
     const { password, ...userWithoutPassword } = user;
+    
+    // 存入缓存，5分钟过期
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, userWithoutPassword, { ttl: 300 });
+    }
+    
     return userWithoutPassword as User;
   }
 
@@ -174,6 +192,11 @@ export class UsersService {
     Object.assign(user, updateUserDto);
     const savedUser = await this.usersRepository.save(user);
     
+    // 清除缓存
+    if (this.cacheService) {
+      await this.cacheService.del(`user:${id}`);
+    }
+
     // 发布用户更新事件（同步到其他服务的冗余字段）
     if (this.eventBus) {
       await this.eventBus.publish('events', 'user.updated', {

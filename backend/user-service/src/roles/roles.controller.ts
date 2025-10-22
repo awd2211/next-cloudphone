@@ -24,7 +24,7 @@ export class RolesController {
 
   @Post()
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
-  @RequirePermission('roles.create')
+  @RequirePermission('role.create')
   @ApiBearerAuth()
   @ApiOperation({ summary: '创建角色', description: '创建新角色' })
   @ApiResponse({ status: 201, description: '角色创建成功' })
@@ -63,7 +63,7 @@ export class RolesController {
   }
 
   @Get(':id')
-  @RequirePermission('roles.read')
+  @RequirePermission('role.read')
   @ApiOperation({ summary: '获取角色详情', description: '根据 ID 获取角色详细信息' })
   @ApiParam({ name: 'id', description: '角色 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -78,7 +78,7 @@ export class RolesController {
   }
 
   @Patch(':id')
-  @RequirePermission('roles.update')
+  @RequirePermission('role.update')
   @ApiOperation({ summary: '更新角色', description: '更新角色信息' })
   @ApiParam({ name: 'id', description: '角色 ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -94,7 +94,7 @@ export class RolesController {
   }
 
   @Delete(':id')
-  @RequirePermission('roles.delete')
+  @RequirePermission('role.delete')
   @ApiOperation({ summary: '删除角色', description: '删除角色' })
   @ApiParam({ name: 'id', description: '角色 ID' })
   @ApiResponse({ status: 200, description: '删除成功' })
@@ -109,7 +109,7 @@ export class RolesController {
   }
 
   @Post(':id/permissions')
-  @RequirePermission('roles.update')
+  @RequirePermission('role.update')
   @ApiOperation({ summary: '为角色添加权限', description: '为角色分配权限' })
   @ApiParam({ name: 'id', description: '角色 ID' })
   @ApiResponse({ status: 200, description: '权限添加成功' })
@@ -128,7 +128,7 @@ export class RolesController {
   }
 
   @Delete(':id/permissions')
-  @RequirePermission('roles.update')
+  @RequirePermission('role.update')
   @ApiOperation({ summary: '移除角色权限', description: '从角色中移除权限' })
   @ApiParam({ name: 'id', description: '角色 ID' })
   @ApiResponse({ status: 200, description: '权限移除成功' })

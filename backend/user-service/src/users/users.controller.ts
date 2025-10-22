@@ -32,7 +32,7 @@ export class UsersController {
   ) {}
 
   @Post()
-  @RequirePermission('users.create')
+  @RequirePermission('user.create')
   @ApiOperation({ summary: '创建用户', description: '创建新用户账号' })
   @ApiResponse({ status: 201, description: '用户创建成功' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
@@ -75,7 +75,7 @@ export class UsersController {
   }
 
   @Get('stats')
-  @RequirePermission('users.read')
+  @RequirePermission('user.read')
   @ApiOperation({ summary: '获取用户统计', description: '获取用户数量统计信息' })
   @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -90,7 +90,7 @@ export class UsersController {
   }
 
   @Get()
-  @RequirePermission('users.read')
+  @RequirePermission('user.read')
   @ApiOperation({ summary: '获取用户列表', description: '分页获取用户列表' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
   @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
@@ -114,7 +114,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @RequirePermission('users.read')
+  @RequirePermission('user.read')
   @ApiOperation({ summary: '获取用户详情', description: '根据 ID 获取用户详细信息' })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -129,7 +129,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @RequirePermission('users.update')
+  @RequirePermission('user.update')
   @ApiOperation({ summary: '更新用户', description: '更新用户信息' })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -146,7 +146,7 @@ export class UsersController {
   }
 
   @Post(':id/change-password')
-  @RequirePermission('users.update')
+  @RequirePermission('user.update')
   @ApiOperation({ summary: '修改密码', description: '修改用户密码' })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiResponse({ status: 200, description: '密码修改成功' })
@@ -164,7 +164,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @RequirePermission('users.delete')
+  @RequirePermission('user.delete')
   @ApiOperation({ summary: '删除用户', description: '删除用户账号' })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiResponse({ status: 200, description: '删除成功' })

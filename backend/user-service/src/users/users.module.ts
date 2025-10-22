@@ -5,6 +5,7 @@ import { UsersController } from './users.controller';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 import { RolesModule } from '../roles/roles.module';
+import { CacheService } from '../cache/cache.service';
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { RolesModule } from '../roles/roles.module';
     RolesModule,
   ],
   controllers: [UsersController],
-  providers: [UsersService],
+  providers: [UsersService, CacheService],
   exports: [UsersService],
 })
 export class UsersModule {}

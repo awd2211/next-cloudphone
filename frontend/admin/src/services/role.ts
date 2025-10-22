@@ -28,22 +28,22 @@ export const deleteRole = (id: string) => {
 
 // 获取所有权限
 export const getPermissions = () => {
-  return request.get<Permission[]>('/users/permissions');
+  return request.get<Permission[]>('/permissions');
 };
 
 // 创建权限
 export const createPermission = (data: { resource: string; action: string; description?: string }) => {
-  return request.post<Permission>('/users/permissions', data);
+  return request.post<Permission>('/permissions', data);
 };
 
 // 更新权限
 export const updatePermission = (id: string, data: { resource?: string; action?: string; description?: string }) => {
-  return request.patch<Permission>(`/users/permissions/${id}`, data);
+  return request.patch<Permission>(`/permissions/${id}`, data);
 };
 
 // 删除权限
 export const deletePermission = (id: string) => {
-  return request.delete(`/users/permissions/${id}`);
+  return request.delete(`/permissions/${id}`);
 };
 
 // 为角色分配权限

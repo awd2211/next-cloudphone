@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -10,6 +11,7 @@ import { Role } from '../entities/role.entity';
 import { Permission } from '../entities/permission.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class RolesService {
@@ -18,6 +20,7 @@ export class RolesService {
     private rolesRepository: Repository<Role>,
     @InjectRepository(Permission)
     private permissionsRepository: Repository<Permission>,
+    @Optional() private cacheService: CacheService,
   ) {}
 
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
@@ -70,6 +73,16 @@ export class RolesService {
   }
 
   async findOne(id: string): Promise<Role> {
+    // 先从缓存获取
+    const cacheKey = `role:${id}`;
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<Role>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // 缓存未命中，查询数据库
     const role = await this.rolesRepository.findOne({
       where: { id },
       relations: ['permissions', 'users'],
@@ -77,6 +90,11 @@ export class RolesService {
 
     if (!role) {
       throw new NotFoundException(`角色 #${id} 不存在`);
+    }
+
+    // 存入缓存，10分钟过期（角色变化不频繁）
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, role, { ttl: 600 });
     }
 
     return role;

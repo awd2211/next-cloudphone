@@ -36,14 +36,21 @@ export const defaultCacheConfig: CacheConfig = {
     db: parseInt(process.env.REDIS_DB || '1', 10),
   },
   local: {
-    stdTTL: 60, // 1分钟
+    stdTTL: 300, // 5分钟（从60秒增加）
     checkperiod: 120, // 2分钟检查一次
-    maxKeys: 1000,
+    maxKeys: 2000, // 增加到2000（从1000）
     useClones: false, // 性能优化: 不克隆
   },
   strategy: {
-    randomTTLRange: 30, // 0-30秒随机
-    nullValueTTL: 60, // 空值缓存1分钟
-    hotDataPrefixes: ['user:', 'plan:', 'config:'], // 热点数据前缀
+    randomTTLRange: 60, // 0-60秒随机（从30秒增加）
+    nullValueTTL: 120, // 空值缓存2分钟（从60秒增加）
+    hotDataPrefixes: [
+      'user:',       // 用户信息
+      'role:',       // 角色信息
+      'permission:', // 权限信息
+      'plan:',       // 套餐信息
+      'config:',     // 系统配置
+      'device:',     // 设备信息
+    ],
   },
 };

@@ -34,6 +34,8 @@ import { AlertService } from './common/services/alert/alert.service';
 import { RequestTrackerMiddleware } from './common/middleware/request-tracker.middleware';
 import { getDatabaseConfig } from './common/config/database.config';
 import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
+import { CacheWarmupService } from './cache/cache-warmup.service';
+import { CacheService } from './cache/cache.service';
 
 @Module({
   imports: [
@@ -53,6 +55,8 @@ import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
     // 为全局服务提供实体访问
     TypeOrmModule.forFeature([
       require('./entities/audit-log.entity').AuditLog,
+      require('./entities/role.entity').Role,
+      require('./entities/permission.entity').Permission,
       // Notification 已迁移到 notification-service
     ]),
     UsersModule,
@@ -83,6 +87,8 @@ import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
     GracefulShutdownService,
     HealthCheckService,
     AlertService,
+    CacheService,
+    CacheWarmupService,  // 缓存预热
     // NotificationService 已迁移到 notification-service
   ],
 })
