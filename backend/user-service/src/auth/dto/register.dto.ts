@@ -23,5 +23,10 @@ export class RegisterDto {
   @IsString()
   @IsOptional()
   fullName?: string;
+
+  @ApiProperty({ description: '手机号', example: '13800138000', required: false })
+  @IsString()
+  @IsOptional()
+  phone?: string;
 }
 
