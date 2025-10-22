@@ -22,6 +22,7 @@ export interface EmailJobData {
     path?: string;
     content?: Buffer | string;
   }>;
+  scheduledTime?: string | Date;
 }
 
 /**
@@ -36,7 +37,7 @@ export interface EmailJobData {
 @Processor(QueueName.EMAIL)
 export class EmailProcessor {
   private readonly logger = new Logger(EmailProcessor.name);
-  private transporter: Transporter;
+  private transporter: Transporter | null;
 
   constructor(
     private readonly pinoLogger: PinoLogger,
@@ -156,10 +157,12 @@ export class EmailProcessor {
     this.logger.log(`📅 Processing scheduled email job ${job.id}`);
 
     // 检查是否到达预定时间
-    const scheduledTime = new Date(job.data['scheduledTime']);
-    if (scheduledTime > new Date()) {
-      this.logger.log(`Email not due yet, rescheduling...`);
-      throw new Error('Not due yet'); // 触发重试
+    if (job.data.scheduledTime) {
+      const scheduledTime = new Date(job.data.scheduledTime);
+      if (scheduledTime > new Date()) {
+        this.logger.log(`Email not due yet, rescheduling...`);
+        throw new Error('Not due yet'); // 触发重试
+      }
     }
 
     // 发送邮件

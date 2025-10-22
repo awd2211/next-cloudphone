@@ -128,18 +128,22 @@ export class PurchasePlanSaga {
       state.step = 'process_payment';
 
       // 更新订单关联设备
-      await this.orderRepository.update(state.orderId, {
-        deviceId,
-      });
+      if (state.orderId) {
+        await this.orderRepository.update(state.orderId, {
+          deviceId,
+        });
+      }
 
       this.logger.log(`Saga ${sagaId}: Device ${deviceId} allocated, processing payment`);
 
       // Step 4: 处理支付（这里简化为直接标记为已支付）
       // 实际应该调用支付服务
-      await this.orderRepository.update(state.orderId, {
-        status: OrderStatus.PAID,
-        paidAt: new Date(),
-      });
+      if (state.orderId) {
+        await this.orderRepository.update(state.orderId, {
+          status: OrderStatus.PAID,
+          paidAt: new Date(),
+        });
+      }
 
       state.step = 'completed';
       

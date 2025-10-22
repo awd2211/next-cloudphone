@@ -1,39 +1,46 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { AuthService } from '../auth.service';
 
+/**
+ * JWT 验证策略
+ * 
+ * 改造后：
+ * - ✅ 从 Token 中提取用户信息（无需查询数据库）
+ * - ✅ 完全无状态
+ * - ✅ 高性能
+ */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly logger = new Logger(JwtStrategy.name);
 
-  constructor(
-    private authService: AuthService,
-    private configService: ConfigService,
-  ) {
+  constructor(private configService: ConfigService) {
     const secret = configService.get<string>('JWT_SECRET') || 'dev-secret-key-change-in-production';
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: secret,
+      secretOrKey: secret as string,
       ignoreExpiration: false,
     });
 
-    this.logger.log(`JwtStrategy initialized with secret from ConfigService: ${secret.substring(0, 15)}...`);
+    this.logger.log(`JwtStrategy initialized (stateless mode)`);
   }
 
   async validate(payload: any) {
-    this.logger.debug(`JWT validate called with payload: ${JSON.stringify(payload)}`);
+    // 直接从 Token 中提取用户信息，不查询数据库
+    // Token 由 User Service 生成，包含所有必要信息
+    
+    this.logger.debug(`JWT validate: ${payload.username}`);
 
-    const user = await this.authService.validateUser(payload.sub);
-
-    if (!user) {
-      this.logger.warn(`User validation failed for userId: ${payload.sub}`);
-      throw new UnauthorizedException();
-    }
-
-    this.logger.debug(`JWT validation successful for user: ${user.username}`);
-    return user;
+    return {
+      id: payload.sub,
+      username: payload.username,
+      email: payload.email,
+      roles: payload.roles || [],
+      permissions: payload.permissions || [],
+      tenantId: payload.tenantId,
+      isSuperAdmin: payload.isSuperAdmin || false,
+    };
   }
 }

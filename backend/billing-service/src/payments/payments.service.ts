@@ -106,7 +106,7 @@ export class PaymentsService {
           notifyUrl,
         );
         payment.transactionId = wechatResult.prepayId;
-        payment.paymentUrl = wechatResult.codeUrl;
+        payment.paymentUrl = wechatResult.codeUrl || '';
         payment.status = PaymentStatus.PROCESSING;
         break;
 
@@ -118,7 +118,7 @@ export class PaymentsService {
           notifyUrl,
         );
         payment.transactionId = alipayResult.tradeNo;
-        payment.paymentUrl = alipayResult.qrCode;
+        payment.paymentUrl = alipayResult.qrCode || '';
         payment.status = PaymentStatus.PROCESSING;
         break;
 

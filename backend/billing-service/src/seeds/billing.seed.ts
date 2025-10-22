@@ -189,7 +189,7 @@ export async function seedBilling(dataSource: DataSource, userIds: string[]) {
         amount: plan.price,
         finalAmount: plan.price,
         status: i === 0 ? OrderStatus.PAID : OrderStatus.PENDING,
-        paidAt: i === 0 ? new Date() : null,
+        paidAt: i === 0 ? new Date() : (null as any),
         metadata: {
           planName: plan.name,
           billingCycle: plan.billingCycle,

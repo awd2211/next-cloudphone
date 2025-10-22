@@ -62,7 +62,7 @@ export class CachedUserServiceExample {
     keyPrefix: 'user',
     keyGenerator: (userId: string) => userId,
   })
-  async updateUser(userId: string, data: Partial<User>): Promise<User> {
+  async updateUser(userId: string, data: Partial<User>): Promise<User | null> {
     await this.userRepository.update(userId, data);
     return await this.userRepository.findOne({ where: { id: userId } });
   }
@@ -92,7 +92,7 @@ export class CachedUserServiceExample {
   /**
    * 示例 6: 延迟双删 (解决缓存一致性)
    */
-  async updateUserWithConsistency(userId: string, data: Partial<User>): Promise<User> {
+  async updateUserWithConsistency(userId: string, data: Partial<User>): Promise<User | null> {
     const cacheKey = `user:${userId}`;
 
     // 延迟双删策略
@@ -161,7 +161,7 @@ export class CachedUserServiceExample {
     role?: string;
     status?: string;
     keyword?: string;
-  }): Promise<User[]> {
+  }): Promise<User[] | null> {
     // 生成复杂的缓存键
     const cacheKey = `users:search:${JSON.stringify(filters)}`;
 

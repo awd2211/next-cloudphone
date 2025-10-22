@@ -62,6 +62,24 @@ export class ProxyController {
   }
 
   /**
+   * 认证服务路由（公开访问 - 登录、注册等）
+   */
+  @Public()
+  @All('auth/*path')
+  async proxyAuth(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * 认证服务路由（精确匹配）
+   */
+  @Public()
+  @All('auth')
+  async proxyAuthExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
    * 用户服务路由
    */
   @UseGuards(JwtAuthGuard)

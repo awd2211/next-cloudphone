@@ -45,7 +45,7 @@ export class AuditInterceptor implements NestInterceptor {
         // 操作成功，记录审计日志
         await this.auditLogService.log({
           eventType: auditConfig.eventType,
-          severity: auditConfig.severity,
+          severity: auditConfig.severity as any || 'info',
           userId,
           username,
           ip,
@@ -60,7 +60,7 @@ export class AuditInterceptor implements NestInterceptor {
         // 操作失败，也记录审计日志
         await this.auditLogService.log({
           eventType: auditConfig.eventType,
-          severity: auditConfig.severity,
+          severity: auditConfig.severity as any || 'warn',
           userId,
           username,
           ip,

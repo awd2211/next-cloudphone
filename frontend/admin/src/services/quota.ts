@@ -46,7 +46,7 @@ export const getUserQuota = (userId: string) => {
 
 // 更新配额
 export const updateQuota = (id: string, data: UpdateQuotaDto) => {
-  return request.put<Quota>(`/quotas/${id}`, data);
+  return request.patch<Quota>(`/quotas/${id}`, data);
 };
 
 // 创建配额

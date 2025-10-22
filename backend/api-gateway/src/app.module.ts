@@ -42,18 +42,12 @@ import { HealthController } from './health.controller';
       },
     ]),
 
-    // 数据库模块
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'cloudphone_auth',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false, // ✅ 使用 Atlas 管理数据库迁移
-      logging: process.env.NODE_ENV === 'development',
-    }),
+    // ✅ API Gateway 不再需要数据库连接
+    // 认证逻辑已迁移到 User Service
+    // API Gateway 只负责：
+    // 1. JWT Token 验证
+    // 2. 请求路由和代理
+    // 3. 限流和安全控制
 
     // 业务模块
     AuthModule,

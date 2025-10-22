@@ -427,7 +427,7 @@ export class FieldFilterService {
         writableFields: [],
         requiredFields: [],
         fieldAccessMap: {},
-      } as FieldPermission;
+      } as unknown as FieldPermission;
     }
 
     // 使用优先级最高的（第一个）作为基础

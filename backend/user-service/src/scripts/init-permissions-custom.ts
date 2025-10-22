@@ -918,16 +918,16 @@ async function main() {
   console.log('组织架构：扁平化（无部门层级）');
   console.log('数据安全：分级脱敏\n');
 
-  let connection: Connection;
+  let connection: Connection | undefined;
 
   try {
     connection = await createConnection({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USER || 'postgres',
+      username: process.env.DB_USERNAME || process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_NAME || 'cloudphone_core',
+      database: process.env.DB_DATABASE || process.env.DB_NAME || 'cloudphone_user',
       entities: [Permission, Role, DataScope, FieldPermission, User],
       synchronize: false,
     });

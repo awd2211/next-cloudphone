@@ -337,7 +337,7 @@ export class TicketsService {
     }
 
     ticket.rating = rating;
-    ticket.feedback = feedback;
+    ticket.feedback = feedback || '';
 
     const updatedTicket = await this.ticketRepository.save(ticket);
     this.logger.log(`工单已评分 - 编号: ${ticket.ticketNumber}, 评分: ${rating}`);

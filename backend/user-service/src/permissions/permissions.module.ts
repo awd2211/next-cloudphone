@@ -27,6 +27,7 @@ import { FieldFilterService } from './field-filter.service';
 import { TenantIsolationService } from './tenant-isolation.service';
 import { PermissionCacheService } from './permission-cache.service';
 import { MenuPermissionService } from './menu-permission.service';
+import { AlertService } from '../common/services/alert/alert.service';
 
 /**
  * 权限模块
@@ -69,6 +70,7 @@ import { MenuPermissionService } from './menu-permission.service';
     TenantIsolationService,
     PermissionCacheService,
     MenuPermissionService,
+    AlertService,
   ],
   exports: [
     PermissionsService,

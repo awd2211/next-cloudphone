@@ -474,12 +474,16 @@ export class MenuPermissionService {
     // 构建树结构
     menus.forEach(menu => {
       const menuItem = menuMap.get(menu.id);
+      if (!menuItem) return;
+      
       if (menu.parentId && menuMap.has(menu.parentId)) {
         const parent = menuMap.get(menu.parentId);
-        if (!parent.children) {
-          parent.children = [];
+        if (parent) {
+          if (!parent.children) {
+            parent.children = [];
+          }
+          parent.children.push(menuItem);
         }
-        parent.children.push(menuItem);
       } else {
         rootMenus.push(menuItem);
       }

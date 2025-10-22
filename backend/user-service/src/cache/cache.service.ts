@@ -165,7 +165,11 @@ export class CacheService implements OnModuleDestroy {
 
       // L1: 本地缓存
       if (layer === CacheLayer.L1_ONLY || layer === CacheLayer.L1_AND_L2) {
-        this.localCache.set(key, serializedValue, ttl > 0 ? ttl : undefined);
+        if (ttl && ttl > 0) {
+          this.localCache.set(key, serializedValue, ttl);
+        } else {
+          this.localCache.set(key, serializedValue);
+        }
       }
 
       // L2: Redis 缓存

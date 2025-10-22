@@ -594,7 +594,14 @@ export class QuotasService {
       relations: ['user'],
     });
 
-    const alerts = [];
+    const alerts: Array<{
+      userId: string;
+      quotaId: string;
+      planName: string;
+      percentage: ReturnType<Quota['getUsagePercentage']>;
+      warnings: string[];
+      severity: 'warning' | 'critical';
+    }> = [];
 
     for (const quota of quotas) {
       const percentage = quota.getUsagePercentage();

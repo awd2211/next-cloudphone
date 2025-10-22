@@ -64,7 +64,7 @@ export class DatabaseMonitorService {
    */
   private setupQueryLogging(): void {
     // 监听查询开始
-    this.dataSource.driver['pool']?.on?.('acquire', (client: any) => {
+    (this.dataSource.driver as any)['pool']?.on?.('acquire', (client: any) => {
       const connectionId = this.getConnectionId(client);
       const now = Date.now();
 
@@ -77,7 +77,7 @@ export class DatabaseMonitorService {
     });
 
     // 监听查询结束
-    this.dataSource.driver['pool']?.on?.('release', (client: any) => {
+    (this.dataSource.driver as any)['pool']?.on?.('release', (client: any) => {
       const connectionId = this.getConnectionId(client);
       const connectionInfo = this.activeConnections.get(connectionId);
 
@@ -103,7 +103,7 @@ export class DatabaseMonitorService {
     });
 
     // 监听连接错误
-    this.dataSource.driver['pool']?.on?.('error', (err: Error, client: any) => {
+    (this.dataSource.driver as any)['pool']?.on?.('error', (err: Error, client: any) => {
       this.stats.connectionErrorCount++;
 
       this.pinoLogger.error({
@@ -173,7 +173,7 @@ export class DatabaseMonitorService {
    * 获取连接池指标
    */
   async getConnectionPoolMetrics(): Promise<ConnectionPoolMetrics> {
-    const pool = this.dataSource.driver['pool'];
+    const pool = (this.dataSource.driver as any)['pool'];
 
     if (!pool) {
       return this.getEmptyMetrics();

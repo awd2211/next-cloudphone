@@ -7,6 +7,9 @@ import { User } from '../entities/user.entity';
 import { JwtStrategy } from './jwt.strategy';
 import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { CaptchaService } from './services/captcha.service';
 
 @Module({
   imports: [
@@ -14,16 +17,17 @@ import { PermissionsGuard } from './guards/permissions.guard';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get('JWT_SECRET'),
+        secret: configService.get('JWT_SECRET') || 'dev-secret-key-change-in-production',
         signOptions: {
-          expiresIn: configService.get('JWT_EXPIRES_IN') || '24h',
+          expiresIn: configService.get('JWT_EXPIRES_IN') || '7d',
         },
       }),
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([User]),
   ],
-  providers: [JwtStrategy, RolesGuard, PermissionsGuard],
-  exports: [JwtModule, JwtStrategy, PassportModule, RolesGuard, PermissionsGuard],
+  controllers: [AuthController],
+  providers: [AuthService, CaptchaService, JwtStrategy, RolesGuard, PermissionsGuard],
+  exports: [AuthService, JwtModule, JwtStrategy, PassportModule, RolesGuard, PermissionsGuard],
 })
 export class AuthModule {}

@@ -7,10 +7,8 @@ import { QueueController } from './queue.controller';
 import { EmailProcessor } from './processors/email.processor';
 import { SmsProcessor } from './processors/sms.processor';
 import { DeviceOperationProcessor } from './processors/device-operation.processor';
-import { NotificationBroadcastProcessor } from './processors/notification-broadcast.processor';
 import { SmsModule } from '../common/services/sms/sms.module';
 import { User } from '../entities/user.entity';
-import { Notification } from '../entities/notification.entity';
 
 /**
  * 队列模块
@@ -35,7 +33,7 @@ import { Notification } from '../entities/notification.entity';
     ),
 
     // TypeORM 实体访问
-    TypeOrmModule.forFeature([User, Notification]),
+    TypeOrmModule.forFeature([User]),
 
     // 导入短信服务模块
     SmsModule,
@@ -46,7 +44,6 @@ import { Notification } from '../entities/notification.entity';
     EmailProcessor,
     SmsProcessor,
     DeviceOperationProcessor,
-    NotificationBroadcastProcessor,
   ],
   exports: [QueueService, BullModule],
 })

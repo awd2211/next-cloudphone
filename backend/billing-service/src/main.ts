@@ -79,7 +79,7 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
-  const port = parseInt(configService.get('PORT')) || 30005;
+  const port = parseInt(configService.get('PORT') || '30005');
   await app.listen(port);
 
   // ========== 注册到 Consul ==========

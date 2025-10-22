@@ -22,7 +22,7 @@ export const uploadApp = (file: File, onProgress?: (percent: number) => void) =>
   const formData = new FormData();
   formData.append('file', file);
 
-  return request.post<Application>('/apps', formData, {
+  return request.post<Application>('/apps/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -52,7 +52,7 @@ export const uninstallAppFromDevice = (deviceId: string, applicationId: string) 
 
 // 获取设备已安装应用
 export const getDeviceApps = (deviceId: string) => {
-  return request.get<DeviceApplication[]>(`/apps/device/${deviceId}`);
+  return request.get<DeviceApplication[]>(`/apps/devices/${deviceId}/apps`);
 };
 
 // 应用统计

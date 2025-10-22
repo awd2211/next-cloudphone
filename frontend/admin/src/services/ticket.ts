@@ -77,7 +77,7 @@ export const createTicket = (data: CreateTicketDto) => {
 
 // 更新工单
 export const updateTicket = (id: string, data: UpdateTicketDto) => {
-  return request.put<Ticket>(`/tickets/${id}`, data);
+  return request.patch<Ticket>(`/tickets/${id}`, data);
 };
 
 // 关闭工单

@@ -106,8 +106,8 @@ export function createLoggerConfig(serviceName: string): Params {
           return {
             statusCode: res.statusCode,
             headers: {
-              'content-type': res.getHeader('content-type'),
-              'content-length': res.getHeader('content-length'),
+              'content-type': res.getHeader?.('content-type') || res.headers?.['content-type'],
+              'content-length': res.getHeader?.('content-length') || res.headers?.['content-length'],
             },
           };
         },

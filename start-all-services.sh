@@ -68,7 +68,15 @@ cd /home/eric/next-cloudphone/backend/billing-service
 PORT=30005 DB_DATABASE=cloudphone_billing pnpm run dev > /home/eric/next-cloudphone/logs/billing-service.log 2>&1 &
 echo "  Billing Service PID: $!"
 
-sleep 5
+sleep 2
+
+# Start Notification Service (Port 30006)
+echo "Starting Notification Service on port 30006..."
+cd /home/eric/next-cloudphone/backend/notification-service
+PORT=30006 DB_DATABASE=cloudphone_notification pnpm run dev > /home/eric/next-cloudphone/logs/notification-service.log 2>&1 &
+echo "  Notification Service PID: $!"
+
+sleep 3
 
 echo ""
 echo "===== All Backend Services Started ====="
@@ -79,6 +87,7 @@ echo "  User Service:     http://localhost:30001/health"
 echo "  Device Service:   http://localhost:30002/health"
 echo "  App Service:      http://localhost:30003/health"
 echo "  Billing Service:  http://localhost:30005/health"
+echo "  Notification Service: http://localhost:30006/health"
 echo ""
 echo "Logs are available in /home/eric/next-cloudphone/logs/"
 echo ""

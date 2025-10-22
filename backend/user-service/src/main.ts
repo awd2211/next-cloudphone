@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { ConsulService } from '@cloudphone/shared';
 
@@ -85,7 +85,7 @@ async function bootstrap() {
   // 启用优雅关闭
   app.enableShutdownHooks();
 
-  const port = parseInt(configService.get('PORT')) || 30001;
+  const port = parseInt(configService.get('PORT') || '30001');
   await app.listen(port);
 
   // ========== 注册到 Consul ==========

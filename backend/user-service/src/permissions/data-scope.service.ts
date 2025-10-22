@@ -97,7 +97,7 @@ export class DataScopeService {
    * @param resourceType 资源类型
    * @param alias 表别名（默认为资源类型）
    */
-  async applyScopeToQuery<T>(
+  async applyScopeToQuery<T extends Record<string, any>>(
     queryBuilder: SelectQueryBuilder<T>,
     userId: string,
     resourceType: string,

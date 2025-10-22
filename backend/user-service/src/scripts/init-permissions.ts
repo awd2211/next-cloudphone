@@ -631,7 +631,7 @@ async function createDefaultAdmin(
 async function main() {
   console.log('🚀 开始初始化权限系统...\n');
 
-  let connection: Connection;
+  let connection: Connection | undefined;
 
   try {
     // 创建数据库连接
@@ -639,9 +639,9 @@ async function main() {
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USER || 'postgres',
+      username: process.env.DB_USERNAME || process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_NAME || 'cloudphone_core',
+      database: process.env.DB_DATABASE || process.env.DB_NAME || 'cloudphone_user',
       entities: [Permission, Role, DataScope, FieldPermission, User],
       synchronize: false,
     });

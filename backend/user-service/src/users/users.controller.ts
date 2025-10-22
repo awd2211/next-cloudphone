@@ -39,10 +39,10 @@ export class UsersController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async create(@Body() createUserDto: CreateUserDto) {
     const user = await this.usersService.create(createUserDto);
-    delete user.password;
+    const { password, ...userWithoutPassword } = user;
     return {
       success: true,
-      data: user,
+      data: userWithoutPassword,
       message: '用户创建成功',
     };
   }
@@ -137,10 +137,10 @@ export class UsersController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     const user = await this.usersService.update(id, updateUserDto);
-    delete user.password;
+    const { password, ...userWithoutPassword } = user;
     return {
       success: true,
-      data: user,
+      data: userWithoutPassword,
       message: '用户更新成功',
     };
   }

@@ -535,7 +535,7 @@ export class AuditLogService {
       .sendAlert({
         level: alertLevel,
         title: `安全告警: ${log.eventType}`,
-        content: log.description,
+        content: log.description || '',
         metadata: {
           用户: log.username || log.userId || 'unknown',
           IP地址: log.ip || 'unknown',

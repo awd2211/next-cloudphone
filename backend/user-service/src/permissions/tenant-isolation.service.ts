@@ -66,7 +66,7 @@ export class TenantIsolationService {
    * @param tenantField 租户字段名（默认为 'tenantId'）
    * @returns 应用过滤后的查询构建器
    */
-  async applyTenantFilter<T>(
+  async applyTenantFilter<T extends Record<string, any>>(
     queryBuilder: SelectQueryBuilder<T>,
     userId: string,
     alias?: string,

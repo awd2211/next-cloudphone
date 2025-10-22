@@ -194,9 +194,9 @@ export class ApiKeysService {
     const expiredKeys = keys.filter((k) => k.status === ApiKeyStatus.EXPIRED).length;
     const totalUsage = keys.reduce((sum, k) => sum + k.usageCount, 0);
 
-    const mostUsedKey = keys.reduce((max, k) =>
+    const mostUsedKey = keys.length > 0 ? keys.reduce((max, k) =>
       !max || k.usageCount > max.usageCount ? k : max,
-    null);
+    keys[0]) : null;
 
     return {
       totalKeys,

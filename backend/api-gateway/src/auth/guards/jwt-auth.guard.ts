@@ -27,7 +27,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest(err, user, info) {
+  handleRequest(err: any, user: any, info: any) {
     // 如果认证失败，抛出 UnauthorizedException
     if (err || !user) {
       throw err || new UnauthorizedException('未授权访问，请先登录');

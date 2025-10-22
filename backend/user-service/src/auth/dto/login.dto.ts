@@ -7,7 +7,7 @@ export class LoginDto {
   @IsNotEmpty()
   username: string;
 
-  @ApiProperty({ description: '密码', example: '123456' })
+  @ApiProperty({ description: '密码', example: 'admin123' })
   @IsString()
   @IsNotEmpty()
   password: string;
@@ -22,3 +22,4 @@ export class LoginDto {
   @IsNotEmpty()
   captchaId: string;
 }
+

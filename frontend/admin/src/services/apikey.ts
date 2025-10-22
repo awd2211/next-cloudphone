@@ -49,7 +49,7 @@ export const createApiKey = (data: CreateApiKeyDto) => {
 
 // 更新 API 密钥
 export const updateApiKey = (id: string, data: UpdateApiKeyDto) => {
-  return request.put<ApiKey>(`/api-keys/${id}`, data);
+  return request.patch<ApiKey>(`/api-keys/${id}`, data);
 };
 
 // 删除 API 密钥

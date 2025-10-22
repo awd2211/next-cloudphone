@@ -43,11 +43,11 @@ export const getUserStats = () => {
 };
 
 // 充值余额
-export const rechargeBalance = (userId: string, amount: number) => {
-  return request.post(`/users/${userId}/recharge`, { amount });
+export const rechargeBalance = (userId: string, amount: number, reason?: string) => {
+  return request.post(`/balance/recharge`, { userId, amount, reason: reason || '管理员充值' });
 };
 
 // 扣减余额
 export const deductBalance = (userId: string, amount: number, reason: string) => {
-  return request.post(`/users/${userId}/deduct`, { amount, reason });
+  return request.post(`/balance/adjust`, { userId, amount: -amount, reason, type: 'adjustment' });
 };

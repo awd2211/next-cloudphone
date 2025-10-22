@@ -71,7 +71,7 @@ export class UsersService {
     page: number = 1,
     limit: number = 10,
     tenantId?: string,
-  ): Promise<{ data: User[]; total: number; page: number; limit: number }> {
+  ): Promise<{ data: any[]; total: number; page: number; limit: number }> {
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -88,9 +88,9 @@ export class UsersService {
     });
 
     // 移除密码字段
-    data.forEach((user) => delete user.password);
+    const sanitizedData = data.map(({ password, ...user }) => user);
 
-    return { data, total, page, limit };
+    return { data: sanitizedData, total, page, limit };
   }
 
   async findOne(id: string): Promise<User> {
@@ -103,8 +103,8 @@ export class UsersService {
       throw new NotFoundException(`用户 #${id} 不存在`);
     }
 
-    delete user.password;
-    return user;
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword as User;
   }
 
   async findByUsername(username: string): Promise<User> {
@@ -237,7 +237,7 @@ export class UsersService {
   async resetLoginAttempts(id: string): Promise<void> {
     await this.usersRepository.update(id, {
       loginAttempts: 0,
-      lockedUntil: null,
+      lockedUntil: null as any,
     });
   }
 
