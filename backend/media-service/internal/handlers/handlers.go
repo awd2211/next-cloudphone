@@ -24,12 +24,12 @@ var upgrader = wsLib.Upgrader{
 
 // Handler 处理器
 type Handler struct {
-	webrtcManager *webrtc.Manager
+	webrtcManager webrtc.WebRTCManager
 	wsHub         *websocket.Hub
 }
 
 // New 创建新的处理器
-func New(webrtcMgr *webrtc.Manager, hub *websocket.Hub) *Handler {
+func New(webrtcMgr webrtc.WebRTCManager, hub *websocket.Hub) *Handler {
 	return &Handler{
 		webrtcManager: webrtcMgr,
 		wsHub:         hub,

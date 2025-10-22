@@ -2,10 +2,12 @@ package websocket
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/cloudphone/media-service/internal/metrics"
 	"github.com/gorilla/websocket"
 )
 
@@ -21,6 +23,12 @@ const (
 
 	// Maximum message size allowed from peer
 	maxMessageSize = 512 * 1024 // 512 KB
+
+	// Send channel buffer size - 防止内存泄漏
+	sendBufferSize = 256
+
+	// Safe send timeout - 防止阻塞
+	safeSendTimeout = 1 * time.Second
 )
 
 // Client 表示一个 WebSocket 客户端
@@ -59,6 +67,10 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			h.clients[client] = true
 			h.mu.Unlock()
+
+			// 记录 WebSocket 连接指标
+			metrics.RecordWebSocketConnection(1)
+
 			log.Printf("Client registered: user=%s, device=%s, total=%d",
 				client.UserID, client.DeviceID, len(h.clients))
 
@@ -67,6 +79,9 @@ func (h *Hub) Run() {
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.Send)
+
+				// 记录 WebSocket 连接断开指标
+				metrics.RecordWebSocketConnection(-1)
 			}
 			h.mu.Unlock()
 			log.Printf("Client unregistered: user=%s, device=%s, remaining=%d",
@@ -117,6 +132,16 @@ func (h *Hub) GetClients() int {
 	return len(h.clients)
 }
 
+// SafeSend 安全发送消息到客户端（带超时）
+func (c *Client) SafeSend(message []byte) error {
+	select {
+	case c.Send <- message:
+		return nil
+	case <-time.After(safeSendTimeout):
+		return fmt.Errorf("send timeout after %v", safeSendTimeout)
+	}
+}
+
 // readPump 从 WebSocket 连接读取消息
 func (c *Client) readPump() {
 	defer func() {
@@ -139,6 +164,9 @@ func (c *Client) readPump() {
 			}
 			break
 		}
+
+		// 记录接收到的消息指标
+		metrics.RecordWebSocketMessage("control", "inbound", len(message))
 
 		// 处理接收到的消息
 		log.Printf("Received message from client %s: %s", c.UserID, string(message))
@@ -172,11 +200,16 @@ func (c *Client) writePump() {
 			}
 			w.Write(message)
 
+			// 记录发送的消息指标
+			metrics.RecordWebSocketMessage("control", "outbound", len(message))
+
 			// 将队列中的其他消息一起发送
 			n := len(c.Send)
 			for i := 0; i < n; i++ {
 				w.Write([]byte{'\n'})
-				w.Write(<-c.Send)
+				additionalMsg := <-c.Send
+				w.Write(additionalMsg)
+				metrics.RecordWebSocketMessage("control", "outbound", len(additionalMsg))
 			}
 
 			if err := w.Close(); err != nil {
@@ -197,7 +230,7 @@ func ServeWs(hub *Hub, conn *websocket.Conn, userID, deviceID string) {
 	client := &Client{
 		Hub:      hub,
 		Conn:     conn,
-		Send:     make(chan []byte, 256),
+		Send:     make(chan []byte, sendBufferSize),  // 使用常量限制缓冲区大小
 		UserID:   userID,
 		DeviceID: deviceID,
 	}

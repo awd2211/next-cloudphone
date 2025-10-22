@@ -1,15 +1,23 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/cloudphone/media-service/internal/config"
 	"github.com/cloudphone/media-service/internal/handlers"
 	"github.com/cloudphone/media-service/internal/logger"
+	"github.com/cloudphone/media-service/internal/metrics"
+	"github.com/cloudphone/media-service/internal/middleware"
 	"github.com/cloudphone/media-service/internal/webrtc"
 	"github.com/cloudphone/media-service/internal/websocket"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -24,8 +32,8 @@ func main() {
 	// 设置 Gin 模式
 	gin.SetMode(cfg.GinMode)
 
-	// 创建 WebRTC 管理器
-	webrtcManager := webrtc.NewManager(cfg)
+	// 创建 WebRTC 管理器 (使用分片锁优化)
+	webrtcManager := webrtc.NewShardedManager(cfg)
 
 	// 创建 WebSocket Hub
 	wsHub := websocket.NewHub()
@@ -51,6 +59,9 @@ func main() {
 	router.Use(logger.GinRecovery())
 	router.Use(logger.GinLogger())
 
+	// 添加 Prometheus 指标中间件
+	router.Use(middleware.MetricsMiddleware())
+
 	// CORS 配置
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
@@ -63,6 +74,12 @@ func main() {
 
 	// 健康检查
 	router.GET("/health", handler.HandleHealth)
+
+	// Prometheus 指标
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+	// 启动资源监控（每10秒采集一次）
+	metrics.StartResourceMonitor(10 * time.Second)
 
 	// API 路由
 	api := router.Group("/api/media")
@@ -82,16 +99,57 @@ func main() {
 		api.GET("/stats", handler.HandleStats)
 	}
 
-	// 启动服务器
-	logger.Info("media_service_starting",
-		zap.String("port", cfg.Port),
-		zap.String("gin_mode", cfg.GinMode),
-		zap.Strings("stun_servers", cfg.STUNServers),
-		zap.Uint16("ice_port_min", cfg.ICEPortMin),
-		zap.Uint16("ice_port_max", cfg.ICEPortMax),
+	// 创建 HTTP 服务器
+	srv := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: router,
+	}
+
+	// 启动服务器（在 goroutine 中）
+	go func() {
+		logger.Info("media_service_starting",
+			zap.String("port", cfg.Port),
+			zap.String("gin_mode", cfg.GinMode),
+			zap.Strings("stun_servers", cfg.STUNServers),
+			zap.Uint16("ice_port_min", cfg.ICEPortMin),
+			zap.Uint16("ice_port_max", cfg.ICEPortMax),
+		)
+
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("failed_to_start_server", zap.Error(err))
+		}
+	}()
+
+	// 等待中断信号以优雅关闭服务器
+	quit := make(chan os.Signal, 1)
+	// 捕获 SIGINT (Ctrl+C) 和 SIGTERM 信号
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	logger.Info("shutting_down_server",
+		zap.String("reason", "signal_received"),
 	)
 
-	if err := router.Run(":" + cfg.Port); err != nil {
-		logger.Fatal("failed_to_start_server", zap.Error(err))
+	// 设置 30 秒的优雅关闭超时
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// 优雅关闭 HTTP 服务器
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Error("server_shutdown_error", zap.Error(err))
 	}
+
+	// 关闭所有 WebRTC 会话
+	logger.Info("closing_all_sessions")
+	allSessions := webrtcManager.GetAllSessions()
+	for _, session := range allSessions {
+		if err := webrtcManager.CloseSession(session.ID); err != nil {
+			logger.Warn("failed_to_close_session",
+				zap.String("session_id", session.ID),
+				zap.Error(err),
+			)
+		}
+	}
+
+	logger.Info("server_stopped", zap.Int("closed_sessions", len(allSessions)))
 }

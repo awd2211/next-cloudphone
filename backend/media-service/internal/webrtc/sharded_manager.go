@@ -3,6 +3,7 @@ package webrtc
 import (
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"log"
 	"sync"
@@ -17,35 +18,59 @@ import (
 	"github.com/pion/webrtc/v3/pkg/media"
 )
 
-// Manager 管理所有 WebRTC 会话
-type Manager struct {
-	config     *config.Config
-	sessions   map[string]*models.Session
-	adbService *adb.Service
-	mu         sync.RWMutex
+const numShards = 32 // 分片数量 - 2的幂次方，方便位运算优化
+
+// shard 单个分片
+type shard struct {
+	mu       sync.RWMutex
+	sessions map[string]*models.Session
 }
 
-// NewManager 创建 WebRTC 管理器
-func NewManager(cfg *config.Config) *Manager {
-	return &Manager{
+// ShardedManager 分片会话管理器 - 解决全局锁瓶颈
+type ShardedManager struct {
+	config     *config.Config
+	shards     [numShards]shard
+	adbService *adb.Service
+}
+
+// NewShardedManager 创建分片 WebRTC 管理器
+func NewShardedManager(cfg *config.Config) *ShardedManager {
+	m := &ShardedManager{
 		config:     cfg,
-		sessions:   make(map[string]*models.Session),
 		adbService: adb.NewService(""), // 使用默认 adb 路径
 	}
+
+	// 初始化每个分片
+	for i := 0; i < numShards; i++ {
+		m.shards[i].sessions = make(map[string]*models.Session)
+	}
+
+	return m
+}
+
+// getShard 获取 sessionID 对应的分片
+func (m *ShardedManager) getShard(sessionID string) *shard {
+	h := fnv.New32a()
+	h.Write([]byte(sessionID))
+	index := h.Sum32() % numShards
+	return &m.shards[index]
 }
 
 // CreateSession 创建新的 WebRTC 会话
-func (m *Manager) CreateSession(deviceID, userID string) (*models.Session, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+func (m *ShardedManager) CreateSession(deviceID, userID string) (*models.Session, error) {
+	// 生成 session ID
+	sessionID := uuid.New().String()
+
+	// 获取对应的分片
+	shard := m.getShard(sessionID)
 
 	// 创建 WebRTC 配置
 	webrtcConfig := webrtc.Configuration{
-		ICEServers: m.buildICEServers(),
+		ICEServers:   m.buildICEServers(),
 		SDPSemantics: webrtc.SDPSemanticsUnifiedPlan,
 	}
 
-	// 创建设置
+	// 创建设置引擎
 	settingEngine := webrtc.SettingEngine{}
 
 	// 设置 ICE 端口范围
@@ -77,7 +102,6 @@ func (m *Manager) CreateSession(deviceID, userID string) (*models.Session, error
 	}
 
 	// 创建会话
-	sessionID := uuid.New().String()
 	session := &models.Session{
 		ID:             sessionID,
 		DeviceID:       deviceID,
@@ -120,23 +144,35 @@ func (m *Manager) CreateSession(deviceID, userID string) (*models.Session, error
 
 	m.setupDataChannelHandlers(session, dataChannel)
 
-	m.sessions[sessionID] = session
+	// 只锁定对应的分片
+	shard.mu.Lock()
+	shard.sessions[sessionID] = session
+	shard.mu.Unlock()
 
 	// 记录会话创建指标
 	metrics.RecordSessionCreated(deviceID)
 
-	log.Printf("Created WebRTC session: %s for device: %s, user: %s",
-		sessionID, deviceID, userID)
+	log.Printf("Created WebRTC session: %s for device: %s, user: %s (shard: %d)",
+		sessionID, deviceID, userID, m.getShardIndex(sessionID))
 
 	return session, nil
 }
 
-// GetSession 获取会话
-func (m *Manager) GetSession(sessionID string) (*models.Session, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+// getShardIndex 获取分片索引（仅用于日志）
+func (m *ShardedManager) getShardIndex(sessionID string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(sessionID))
+	return h.Sum32() % numShards
+}
 
-	session, ok := m.sessions[sessionID]
+// GetSession 获取会话
+func (m *ShardedManager) GetSession(sessionID string) (*models.Session, error) {
+	shard := m.getShard(sessionID)
+
+	shard.mu.RLock()
+	session, ok := shard.sessions[sessionID]
+	shard.mu.RUnlock()
+
 	if !ok {
 		return nil, fmt.Errorf("session not found: %s", sessionID)
 	}
@@ -145,12 +181,13 @@ func (m *Manager) GetSession(sessionID string) (*models.Session, error) {
 }
 
 // CloseSession 关闭会话
-func (m *Manager) CloseSession(sessionID string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+func (m *ShardedManager) CloseSession(sessionID string) error {
+	shard := m.getShard(sessionID)
 
-	session, ok := m.sessions[sessionID]
+	shard.mu.Lock()
+	session, ok := shard.sessions[sessionID]
 	if !ok {
+		shard.mu.Unlock()
 		return fmt.Errorf("session not found: %s", sessionID)
 	}
 
@@ -165,7 +202,8 @@ func (m *Manager) CloseSession(sessionID string) error {
 	metrics.RecordSessionClosed(session.DeviceID, "normal_close", duration)
 
 	session.UpdateState(models.SessionStateClosed)
-	delete(m.sessions, sessionID)
+	delete(shard.sessions, sessionID)
+	shard.mu.Unlock()
 
 	log.Printf("Closed session: %s", sessionID)
 
@@ -173,7 +211,7 @@ func (m *Manager) CloseSession(sessionID string) error {
 }
 
 // CreateOffer 创建 SDP offer
-func (m *Manager) CreateOffer(sessionID string) (*webrtc.SessionDescription, error) {
+func (m *ShardedManager) CreateOffer(sessionID string) (*webrtc.SessionDescription, error) {
 	session, err := m.GetSession(sessionID)
 	if err != nil {
 		return nil, err
@@ -194,7 +232,7 @@ func (m *Manager) CreateOffer(sessionID string) (*webrtc.SessionDescription, err
 }
 
 // HandleAnswer 处理 SDP answer
-func (m *Manager) HandleAnswer(sessionID string, answer webrtc.SessionDescription) error {
+func (m *ShardedManager) HandleAnswer(sessionID string, answer webrtc.SessionDescription) error {
 	session, err := m.GetSession(sessionID)
 	if err != nil {
 		return err
@@ -208,7 +246,7 @@ func (m *Manager) HandleAnswer(sessionID string, answer webrtc.SessionDescriptio
 }
 
 // AddICECandidate 添加 ICE 候选
-func (m *Manager) AddICECandidate(sessionID string, candidate webrtc.ICECandidateInit) error {
+func (m *ShardedManager) AddICECandidate(sessionID string, candidate webrtc.ICECandidateInit) error {
 	session, err := m.GetSession(sessionID)
 	if err != nil {
 		return err
@@ -231,8 +269,107 @@ func (m *Manager) AddICECandidate(sessionID string, candidate webrtc.ICECandidat
 	return nil
 }
 
-// 设置 PeerConnection 事件处理器
-func (m *Manager) setupPeerConnectionHandlers(session *models.Session) {
+// GetAllSessions 获取所有会话
+func (m *ShardedManager) GetAllSessions() []*models.Session {
+	var sessions []*models.Session
+
+	// 并发读取所有分片
+	var wg sync.WaitGroup
+	sessionsChan := make(chan []*models.Session, numShards)
+
+	for i := 0; i < numShards; i++ {
+		wg.Add(1)
+		go func(shard *shard) {
+			defer wg.Done()
+
+			shard.mu.RLock()
+			shardSessions := make([]*models.Session, 0, len(shard.sessions))
+			for _, session := range shard.sessions {
+				shardSessions = append(shardSessions, session)
+			}
+			shard.mu.RUnlock()
+
+			sessionsChan <- shardSessions
+		}(&m.shards[i])
+	}
+
+	// 等待所有 goroutine 完成
+	go func() {
+		wg.Wait()
+		close(sessionsChan)
+	}()
+
+	// 收集所有会话
+	for shardSessions := range sessionsChan {
+		sessions = append(sessions, shardSessions...)
+	}
+
+	return sessions
+}
+
+// CleanupInactiveSessions 清理不活跃的会话
+func (m *ShardedManager) CleanupInactiveSessions(timeout time.Duration) {
+	now := time.Now()
+
+	// 并发清理每个分片
+	var wg sync.WaitGroup
+
+	for i := 0; i < numShards; i++ {
+		wg.Add(1)
+		go func(shard *shard) {
+			defer wg.Done()
+
+			shard.mu.Lock()
+			defer shard.mu.Unlock()
+
+			for sessionID, session := range shard.sessions {
+				if now.Sub(session.LastActivityAt) > timeout {
+					log.Printf("Cleaning up inactive session: %s", sessionID)
+					if session.PeerConnection != nil {
+						session.PeerConnection.Close()
+					}
+
+					// 记录会话关闭指标 - 因不活跃而关闭
+					duration := time.Since(session.CreatedAt)
+					metrics.RecordSessionClosed(session.DeviceID, "inactive_timeout", duration)
+
+					session.UpdateState(models.SessionStateClosed)
+					delete(shard.sessions, sessionID)
+				}
+			}
+		}(&m.shards[i])
+	}
+
+	wg.Wait()
+}
+
+// WriteVideoFrame 向视频轨道写入帧
+func (m *ShardedManager) WriteVideoFrame(sessionID string, frame []byte, duration time.Duration) error {
+	session, err := m.GetSession(sessionID)
+	if err != nil {
+		return err
+	}
+
+	if session.VideoTrack == nil {
+		return fmt.Errorf("video track not available")
+	}
+
+	sample := &media.Sample{
+		Data:     frame,
+		Duration: duration,
+	}
+
+	if err := session.VideoTrack.WriteSample(*sample); err != nil {
+		if err != io.ErrClosedPipe {
+			return fmt.Errorf("failed to write video frame: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// setupPeerConnectionHandlers 设置 PeerConnection 事件处理器
+func (m *ShardedManager) setupPeerConnectionHandlers(session *models.Session) {
 	pc := session.PeerConnection
 
 	// ICE 连接状态变化
@@ -288,8 +425,8 @@ func (m *Manager) setupPeerConnectionHandlers(session *models.Session) {
 	})
 }
 
-// 设置数据通道处理器
-func (m *Manager) setupDataChannelHandlers(session *models.Session, dc *webrtc.DataChannel) {
+// setupDataChannelHandlers 设置数据通道处理器
+func (m *ShardedManager) setupDataChannelHandlers(session *models.Session, dc *webrtc.DataChannel) {
 	dc.OnOpen(func() {
 		log.Printf("Data channel opened (session: %s)", session.ID)
 	})
@@ -309,8 +446,8 @@ func (m *Manager) setupDataChannelHandlers(session *models.Session, dc *webrtc.D
 	})
 }
 
-// 处理控制消息
-func (m *Manager) handleControlMessage(session *models.Session, data []byte) error {
+// handleControlMessage 处理控制消息
+func (m *ShardedManager) handleControlMessage(session *models.Session, data []byte) error {
 	var ctrlMsg models.ControlMessage
 	if err := json.Unmarshal(data, &ctrlMsg); err != nil {
 		return fmt.Errorf("failed to parse control message: %w", err)
@@ -338,29 +475,25 @@ func (m *Manager) handleControlMessage(session *models.Session, data []byte) err
 	}
 }
 
-// 处理触摸事件
-func (m *Manager) handleTouchEvent(session *models.Session, msg *models.ControlMessage) error {
+// handleTouchEvent 处理触摸事件
+func (m *ShardedManager) handleTouchEvent(session *models.Session, msg *models.ControlMessage) error {
 	switch msg.Action {
 	case "down":
-		// 触摸按下事件
 		log.Printf("Touch down at (%.0f, %.0f) on device %s", msg.X, msg.Y, session.DeviceID)
 		if err := m.adbService.SendTouchDown(session.DeviceID, msg.X, msg.Y); err != nil {
 			return fmt.Errorf("failed to send touch down: %w", err)
 		}
 	case "move":
-		// 触摸移动事件
 		log.Printf("Touch move to (%.0f, %.0f) on device %s", msg.X, msg.Y, session.DeviceID)
 		if err := m.adbService.SendTouchMove(session.DeviceID, msg.X, msg.Y); err != nil {
 			return fmt.Errorf("failed to send touch move: %w", err)
 		}
 	case "up":
-		// 触摸释放事件
 		log.Printf("Touch up at (%.0f, %.0f) on device %s", msg.X, msg.Y, session.DeviceID)
 		if err := m.adbService.SendTouchUp(session.DeviceID, msg.X, msg.Y); err != nil {
 			return fmt.Errorf("failed to send touch up: %w", err)
 		}
 	case "tap":
-		// 单击事件（简化版）
 		log.Printf("Tap at (%.0f, %.0f) on device %s", msg.X, msg.Y, session.DeviceID)
 		if err := m.adbService.SendTap(session.DeviceID, msg.X, msg.Y); err != nil {
 			return fmt.Errorf("failed to send tap: %w", err)
@@ -371,8 +504,8 @@ func (m *Manager) handleTouchEvent(session *models.Session, msg *models.ControlM
 	return nil
 }
 
-// 处理按键事件
-func (m *Manager) handleKeyEvent(session *models.Session, msg *models.ControlMessage) error {
+// handleKeyEvent 处理按键事件
+func (m *ShardedManager) handleKeyEvent(session *models.Session, msg *models.ControlMessage) error {
 	switch msg.Action {
 	case "press":
 		log.Printf("Key press: %d on device %s", msg.KeyCode, session.DeviceID)
@@ -390,8 +523,8 @@ func (m *Manager) handleKeyEvent(session *models.Session, msg *models.ControlMes
 	return nil
 }
 
-// 处理文本输入
-func (m *Manager) handleTextInput(session *models.Session, msg *models.ControlMessage) error {
+// handleTextInput 处理文本输入
+func (m *ShardedManager) handleTextInput(session *models.Session, msg *models.ControlMessage) error {
 	if msg.Text == "" {
 		return fmt.Errorf("text input is empty")
 	}
@@ -403,8 +536,8 @@ func (m *Manager) handleTextInput(session *models.Session, msg *models.ControlMe
 	return nil
 }
 
-// 构建 ICE 服务器配置
-func (m *Manager) buildICEServers() []webrtc.ICEServer {
+// buildICEServers 构建 ICE 服务器配置
+func (m *ShardedManager) buildICEServers() []webrtc.ICEServer {
 	var servers []webrtc.ICEServer
 
 	// 添加 STUN 服务器
@@ -426,8 +559,8 @@ func (m *Manager) buildICEServers() []webrtc.ICEServer {
 	return servers
 }
 
-// 注册编解码器
-func (m *Manager) registerCodecs(mediaEngine *webrtc.MediaEngine) error {
+// registerCodecs 注册编解码器
+func (m *ShardedManager) registerCodecs(mediaEngine *webrtc.MediaEngine) error {
 	// 注册 VP8 视频编解码器
 	if err := mediaEngine.RegisterCodec(webrtc.RTPCodecParameters{
 		RTPCodecCapability: webrtc.RTPCodecCapability{
@@ -453,67 +586,6 @@ func (m *Manager) registerCodecs(mediaEngine *webrtc.MediaEngine) error {
 		PayloadType: 111,
 	}, webrtc.RTPCodecTypeAudio); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-// GetAllSessions 获取所有会话
-func (m *Manager) GetAllSessions() []*models.Session {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	sessions := make([]*models.Session, 0, len(m.sessions))
-	for _, session := range m.sessions {
-		sessions = append(sessions, session)
-	}
-
-	return sessions
-}
-
-// CleanupInactiveSessions 清理不活跃的会话
-func (m *Manager) CleanupInactiveSessions(timeout time.Duration) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	now := time.Now()
-	for sessionID, session := range m.sessions {
-		if now.Sub(session.LastActivityAt) > timeout {
-			log.Printf("Cleaning up inactive session: %s", sessionID)
-			if session.PeerConnection != nil {
-				session.PeerConnection.Close()
-			}
-
-			// 记录会话关闭指标 - 因不活跃而关闭
-			duration := time.Since(session.CreatedAt)
-			metrics.RecordSessionClosed(session.DeviceID, "inactive_timeout", duration)
-
-			session.UpdateState(models.SessionStateClosed)
-			delete(m.sessions, sessionID)
-		}
-	}
-}
-
-// WriteVideoFrame 向视频轨道写入帧
-func (m *Manager) WriteVideoFrame(sessionID string, frame []byte, duration time.Duration) error {
-	session, err := m.GetSession(sessionID)
-	if err != nil {
-		return err
-	}
-
-	if session.VideoTrack == nil {
-		return fmt.Errorf("video track not available")
-	}
-
-	sample := &media.Sample{
-		Data:     frame,
-		Duration: duration,
-	}
-
-	if err := session.VideoTrack.WriteSample(*sample); err != nil {
-		if err != io.ErrClosedPipe {
-			return fmt.Errorf("failed to write video frame: %w", err)
-		}
 	}
 
 	return nil

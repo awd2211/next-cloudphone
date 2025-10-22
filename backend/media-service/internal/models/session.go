@@ -1,10 +1,16 @@
 package models
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/pion/webrtc/v3"
+)
+
+const (
+	// MaxICECandidates ICE 候选最大数量 - 防止内存泄漏
+	MaxICECandidates = 50
 )
 
 // Session 表示一个 WebRTC 会话
@@ -49,11 +55,18 @@ func (s *Session) GetState() SessionState {
 	return s.State
 }
 
-// AddICECandidate 添加 ICE 候选
-func (s *Session) AddICECandidate(candidate webrtc.ICECandidateInit) {
+// AddICECandidate 添加 ICE 候选（带数量限制）
+func (s *Session) AddICECandidate(candidate webrtc.ICECandidateInit) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// 防止 ICE 候选无限增长导致内存泄漏
+	if len(s.ICECandidates) >= MaxICECandidates {
+		return fmt.Errorf("too many ICE candidates (max: %d)", MaxICECandidates)
+	}
+
 	s.ICECandidates = append(s.ICECandidates, candidate)
+	return nil
 }
 
 // SignalingMessage 信令消息
