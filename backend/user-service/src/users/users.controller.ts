@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -20,6 +21,8 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { RolesService } from '../roles/roles.service';
+import { CreateUserCommand, UpdateUserCommand, ChangePasswordCommand, DeleteUserCommand } from './commands/impl';
+import { GetUserQuery, GetUsersQuery, GetUserStatsQuery } from './queries/impl';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -27,7 +30,8 @@ import { RolesService } from '../roles/roles.service';
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class UsersController {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
     private readonly rolesService: RolesService,
   ) {}
 
@@ -38,7 +42,7 @@ export class UsersController {
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async create(@Body() createUserDto: CreateUserDto) {
-    const user = await this.usersService.create(createUserDto);
+    const user = await this.commandBus.execute(new CreateUserCommand(createUserDto));
     const { password, ...userWithoutPassword } = user;
     return {
       success: true,
@@ -81,7 +85,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getStats(@Query('tenantId') tenantId?: string) {
-    const stats = await this.usersService.getStats(tenantId);
+    const stats = await this.queryBus.execute(new GetUserStatsQuery(tenantId));
     return {
       success: true,
       data: stats,
@@ -102,10 +106,8 @@ export class UsersController {
     @Query('limit') limit: string = '10',
     @Query('tenantId') tenantId?: string,
   ) {
-    const result = await this.usersService.findAll(
-      parseInt(page),
-      parseInt(limit),
-      tenantId,
+    const result = await this.queryBus.execute(
+      new GetUsersQuery(parseInt(page), parseInt(limit), tenantId),
     );
     return {
       success: true,
@@ -121,7 +123,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: '用户不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async findOne(@Param('id') id: string) {
-    const user = await this.usersService.findOne(id);
+    const user = await this.queryBus.execute(new GetUserQuery(id));
     return {
       success: true,
       data: user,
@@ -136,7 +138,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: '用户不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    const user = await this.usersService.update(id, updateUserDto);
+    const user = await this.commandBus.execute(new UpdateUserCommand(id, updateUserDto));
     const { password, ...userWithoutPassword } = user;
     return {
       success: true,
@@ -156,7 +158,7 @@ export class UsersController {
     @Param('id') id: string,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    await this.usersService.changePassword(id, changePasswordDto);
+    await this.commandBus.execute(new ChangePasswordCommand(id, changePasswordDto));
     return {
       success: true,
       message: '密码修改成功',
@@ -171,7 +173,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: '用户不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async remove(@Param('id') id: string) {
-    await this.usersService.remove(id);
+    await this.commandBus.execute(new DeleteUserCommand(id));
     return {
       success: true,
       message: '用户删除成功',

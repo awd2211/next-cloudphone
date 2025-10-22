@@ -4,7 +4,6 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Logger,
-  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -34,64 +33,71 @@ export class AppsService {
     private apkParserService: ApkParserService,
     private httpService: HttpService,
     private configService: ConfigService,
-    @Optional() private eventBus: EventBusService,
+    private eventBus: EventBusService,
   ) {}
 
   async uploadApp(
     file: Express.Multer.File,
     createAppDto: CreateAppDto,
   ): Promise<Application> {
-    // 解析 APK 文件
-    const apkInfo = await this.parseApk(file.path);
+    try {
+      // 解析 APK 文件
+      const apkInfo = await this.parseApk(file.path);
 
-    // 检查应用是否已存在
-    const existing = await this.appsRepository.findOne({
-      where: { packageName: apkInfo.packageName },
-    });
+      // 检查应用是否已存在
+      const existing = await this.appsRepository.findOne({
+        where: { packageName: apkInfo.packageName },
+      });
 
-    if (existing) {
-      // 清理临时文件
-      fs.unlinkSync(file.path);
-      throw new BadRequestException(`应用 ${apkInfo.packageName} 已存在`);
-    }
+      if (existing) {
+        throw new BadRequestException(`应用 ${apkInfo.packageName} 已存在`);
+      }
 
-    // 生成对象键
-    const objectKey = `apps/${apkInfo.packageName}/${apkInfo.versionName}_${Date.now()}.apk`;
+      // 生成对象键
+      const objectKey = `apps/${apkInfo.packageName}/${apkInfo.versionName}_${Date.now()}.apk`;
 
-    // 上传到 MinIO
-    const uploadResult = await this.minioService.uploadFile(
-      file.path,
-      objectKey,
-      {
+      // 上传到 MinIO
+      const uploadResult = await this.minioService.uploadFile(
+        file.path,
+        objectKey,
+        {
+          packageName: apkInfo.packageName,
+          versionName: apkInfo.versionName,
+        },
+      );
+
+      // 生成下载 URL
+      const downloadUrl = await this.minioService.getFileUrl(objectKey);
+
+      // 创建应用记录
+      const app = this.appsRepository.create({
+        ...createAppDto,
+        name: createAppDto.name || apkInfo.appName,
         packageName: apkInfo.packageName,
         versionName: apkInfo.versionName,
-      },
-    );
+        versionCode: apkInfo.versionCode,
+        size: file.size,
+        minSdkVersion: apkInfo.minSdkVersion,
+        targetSdkVersion: apkInfo.targetSdkVersion,
+        permissions: apkInfo.permissions,
+        bucketName: this.minioService.getBucketName(),
+        objectKey: objectKey,
+        downloadUrl: downloadUrl,
+        status: AppStatus.AVAILABLE,
+      });
 
-    // 生成下载 URL
-    const downloadUrl = await this.minioService.getFileUrl(objectKey);
-
-    // 创建应用记录
-    const app = this.appsRepository.create({
-      ...createAppDto,
-      name: createAppDto.name || apkInfo.appName,
-      packageName: apkInfo.packageName,
-      versionName: apkInfo.versionName,
-      versionCode: apkInfo.versionCode,
-      size: file.size,
-      minSdkVersion: apkInfo.minSdkVersion,
-      targetSdkVersion: apkInfo.targetSdkVersion,
-      permissions: apkInfo.permissions,
-      bucketName: this.minioService.getBucketName(),
-      objectKey: objectKey,
-      downloadUrl: downloadUrl,
-      status: AppStatus.AVAILABLE,
-    });
-
-    // 清理临时文件
-    fs.unlinkSync(file.path);
-
-    return await this.appsRepository.save(app);
+      return await this.appsRepository.save(app);
+    } finally {
+      // 确保临时文件被清理（无论成功或失败）
+      if (fs.existsSync(file.path)) {
+        try {
+          fs.unlinkSync(file.path);
+          this.logger.debug(`已清理上传临时文件: ${file.path}`);
+        } catch (cleanupError) {
+          this.logger.warn(`清理上传临时文件失败: ${file.path}`, cleanupError.message);
+        }
+      }
+    }
   }
 
   private async parseApk(filePath: string): Promise<any> {
@@ -203,12 +209,12 @@ export class AppsService {
     app: Application,
     deviceId: string,
   ): Promise<void> {
+    // 生成临时文件路径
+    const tempApkPath = `/tmp/apk_${app.id}_${Date.now()}.apk`;
+
     try {
       // 调用设备服务安装应用（通过 HTTP）
       const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:30002';
-
-      // 下载 APK 到临时文件
-      const tempApkPath = `/tmp/apk_${app.id}_${Date.now()}.apk`;
 
       // 从 MinIO 下载 APK
       if (app.objectKey) {
@@ -230,23 +236,24 @@ export class AppsService {
         })
       );
 
-      // 清理临时文件
-      if (fs.existsSync(tempApkPath)) {
-        fs.unlinkSync(tempApkPath);
-      }
-
       // 更新安装状态
       await this.updateInstallStatus(deviceAppId, InstallStatus.INSTALLED);
 
       // 增加安装次数
       await this.appsRepository.increment({ id: app.id }, 'installCount', 1);
     } catch (error) {
-      // 清理临时文件
-      const tempApkPath = `/tmp/apk_${app.id}_${Date.now()}.apk`;
-      if (fs.existsSync(tempApkPath)) {
-        fs.unlinkSync(tempApkPath);
-      }
+      this.logger.error(`安装应用失败: ${error.message}`, error.stack);
       throw error;
+    } finally {
+      // 确保临时文件被清理（无论成功或失败）
+      if (fs.existsSync(tempApkPath)) {
+        try {
+          fs.unlinkSync(tempApkPath);
+          this.logger.debug(`已清理临时文件: ${tempApkPath}`);
+        } catch (cleanupError) {
+          this.logger.warn(`清理临时文件失败: ${tempApkPath}`, cleanupError.message);
+        }
+      }
     }
   }
 

@@ -4,7 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
@@ -24,6 +24,8 @@ import { PrometheusMiddleware } from './common/middleware/prometheus.middleware'
 import { IpFilterMiddleware } from './common/middleware/ip-filter.middleware';
 import { throttlerConfig } from './common/config/throttler.config';
 import { CustomThrottlerGuard } from './common/guards/throttler.guard';
+import { SensitiveDataInterceptor } from './common/interceptors/sensitive-data.interceptor';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CircuitBreakerService } from './common/services/circuit-breaker.service';
 import { AuditLogService } from './common/services/audit-log.service';
 import { EncryptionService } from './common/services/encryption.service';
@@ -36,6 +38,8 @@ import { getDatabaseConfig } from './common/config/database.config';
 import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
 import { CacheWarmupService } from './cache/cache-warmup.service';
 import { CacheService } from './cache/cache.service';
+import { UserMetricsService } from './common/metrics/user-metrics.service';
+import { TracingService } from './common/tracing/tracing.service';
 
 @Module({
   imports: [
@@ -74,10 +78,20 @@ import { CacheService } from './cache/cache.service';
   ],
   controllers: [HealthController, MetricsController],
   providers: [
+    // 全局应用异常过滤器（统一错误处理）
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
     // 全局应用 Throttler 守卫
     {
       provide: APP_GUARD,
       useClass: CustomThrottlerGuard,
+    },
+    // 全局应用敏感数据脱敏拦截器
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SensitiveDataInterceptor,
     },
     // 全局服务
     CircuitBreakerService,
@@ -89,6 +103,8 @@ import { CacheService } from './cache/cache.service';
     AlertService,
     CacheService,
     CacheWarmupService,  // 缓存预热
+    UserMetricsService,  // 用户业务指标
+    TracingService,      // Jaeger 分布式追踪
     // NotificationService 已迁移到 notification-service
   ],
 })

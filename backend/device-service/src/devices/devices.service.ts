@@ -16,6 +16,7 @@ import { PortManagerService } from '../port-manager/port-manager.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 import { EventBusService } from '@cloudphone/shared';
+import { QuotaClientService } from '../quota/quota-client.service';
 
 @Injectable()
 export class DevicesService {
@@ -29,6 +30,7 @@ export class DevicesService {
     private portManager: PortManagerService,
     private configService: ConfigService,
     @Optional() private eventBus: EventBusService,
+    @Optional() private quotaClient: QuotaClientService,
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
@@ -55,7 +57,25 @@ export class DevicesService {
       const savedDevice = await this.devicesRepository.save(device);
       this.logger.log(`Device record created: ${savedDevice.id}`);
 
-      // 3. 异步创建 Docker 容器
+      // 3. 上报用量到配额系统
+      if (this.quotaClient && savedDevice.userId) {
+        await this.quotaClient
+          .reportDeviceUsage(savedDevice.userId, {
+            deviceId: savedDevice.id,
+            cpuCores: savedDevice.cpuCores,
+            memoryGB: savedDevice.memoryMB / 1024,
+            storageGB: savedDevice.storageMB / 1024,
+            operation: 'increment',
+          })
+          .catch((error) => {
+            this.logger.warn(
+              `Failed to report usage for device ${savedDevice.id}`,
+              error.message,
+            );
+          });
+      }
+
+      // 4. 异步创建 Docker 容器
       this.createRedroidContainer(savedDevice).catch(async (error) => {
         this.logger.error(
           `Failed to create container for device ${savedDevice.id}`,
@@ -309,6 +329,24 @@ export class DevicesService {
 
     this.logger.log(`Removing device ${id}`);
 
+    // 上报用量减少到配额系统
+    if (this.quotaClient && device.userId) {
+      await this.quotaClient
+        .reportDeviceUsage(device.userId, {
+          deviceId: device.id,
+          cpuCores: device.cpuCores,
+          memoryGB: device.memoryMB / 1024,
+          storageGB: device.storageMB / 1024,
+          operation: 'decrement',
+        })
+        .catch((error) => {
+          this.logger.warn(
+            `Failed to report usage decrease for device ${id}`,
+            error.message,
+          );
+        });
+    }
+
     // 断开 ADB 连接
     if (device.adbPort) {
       try {
@@ -518,6 +556,13 @@ export class DevicesService {
       }
     }
 
+    // 上报并发设备增加（设备启动）
+    if (this.quotaClient && device.userId) {
+      await this.quotaClient.incrementConcurrentDevices(device.userId).catch((error) => {
+        this.logger.warn(`Failed to increment concurrent devices for user ${device.userId}`, error.message);
+      });
+    }
+
     // 发布设备启动事件
     await this.eventBus.publishDeviceEvent('started', {
       deviceId: id,
@@ -547,6 +592,13 @@ export class DevicesService {
     device.status = DeviceStatus.STOPPED;
 
     const savedDevice = await this.devicesRepository.save(device);
+
+    // 上报并发设备减少（设备停止）
+    if (this.quotaClient && device.userId) {
+      await this.quotaClient.decrementConcurrentDevices(device.userId).catch((error) => {
+        this.logger.warn(`Failed to decrement concurrent devices for user ${device.userId}`, error.message);
+      });
+    }
 
     // 发布设备停止事件
     await this.eventBus.publishDeviceEvent('stopped', {

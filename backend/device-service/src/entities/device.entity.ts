@@ -129,6 +129,23 @@ export class Device {
   @Column({ type: 'timestamp', nullable: true })
   lastActiveAt: Date;
 
+  // 到期时间（用于临时设备或有时限的设备）
+  @Column({ type: 'timestamp', nullable: true })
+  @Index()
+  expiresAt: Date;
+
+  // 是否启用自动备份
+  @Column({ default: false })
+  autoBackupEnabled: boolean;
+
+  // 自动备份间隔（小时）
+  @Column({ type: 'int', nullable: true })
+  backupIntervalHours: number;
+
+  // 最后备份时间
+  @Column({ type: 'timestamp', nullable: true })
+  lastBackupAt: Date;
+
   // 元数据
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;

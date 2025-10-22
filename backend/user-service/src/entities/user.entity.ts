@@ -18,6 +18,11 @@ export enum UserStatus {
 }
 
 @Entity('users')
+@Index('IDX_USER_TENANT_STATUS', ['tenantId', 'status']) // 复合索引：按租户和状态查询
+@Index('IDX_USER_TENANT_CREATED', ['tenantId', 'createdAt']) // 复合索引：租户列表查询和排序
+@Index('IDX_USER_EMAIL_STATUS', ['email', 'status']) // 复合索引：邮箱查找时过滤状态
+@Index('IDX_USER_USERNAME_STATUS', ['username', 'status']) // 复合索引：用户名查找时过滤状态
+@Index('IDX_USER_LAST_LOGIN', ['lastLoginAt']) // 单列索引：用于活跃用户统计
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;

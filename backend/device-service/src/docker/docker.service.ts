@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Dockerode = require('dockerode');
 import { GpuManagerService, GpuConfig } from '../gpu/gpu-manager.service';
+import { Retry, DockerError } from '../common/retry.decorator';
 
 export interface RedroidConfig {
   name: string;
@@ -210,6 +211,7 @@ export class DockerService {
     return imageMap[version] || imageMap['11'];
   }
 
+  @Retry({ maxAttempts: 3, baseDelayMs: 2000, retryableErrors: [DockerError] })
   async pullImageIfNeeded(imageTag: string): Promise<void> {
     try {
       await this.docker.getImage(imageTag).inspect();
@@ -217,9 +219,9 @@ export class DockerService {
       this.logger.log(`Pulling image ${imageTag}...`);
       await new Promise((resolve, reject) => {
         this.docker.pull(imageTag, (err: any, stream: any) => {
-          if (err) return reject(err);
+          if (err) return reject(new DockerError(`Failed to pull image: ${err.message}`));
           this.docker.modem.followProgress(stream, (err: any, output: any) => {
-            if (err) return reject(err);
+            if (err) return reject(new DockerError(`Failed to download image: ${err.message}`));
             resolve(output);
           });
         });
@@ -227,19 +229,34 @@ export class DockerService {
     }
   }
 
+  @Retry({ maxAttempts: 3, baseDelayMs: 1000, retryableErrors: [DockerError] })
   async startContainer(containerId: string): Promise<void> {
-    const container = this.docker.getContainer(containerId);
-    await container.start();
+    try {
+      const container = this.docker.getContainer(containerId);
+      await container.start();
+    } catch (error) {
+      throw new DockerError(`Failed to start container: ${error.message}`);
+    }
   }
 
+  @Retry({ maxAttempts: 2, baseDelayMs: 1000, retryableErrors: [DockerError] })
   async stopContainer(containerId: string): Promise<void> {
-    const container = this.docker.getContainer(containerId);
-    await container.stop();
+    try {
+      const container = this.docker.getContainer(containerId);
+      await container.stop();
+    } catch (error) {
+      throw new DockerError(`Failed to stop container: ${error.message}`);
+    }
   }
 
+  @Retry({ maxAttempts: 2, baseDelayMs: 1000, retryableErrors: [DockerError] })
   async restartContainer(containerId: string): Promise<void> {
-    const container = this.docker.getContainer(containerId);
-    await container.restart();
+    try {
+      const container = this.docker.getContainer(containerId);
+      await container.restart();
+    } catch (error) {
+      throw new DockerError(`Failed to restart container: ${error.message}`);
+    }
   }
 
   async removeContainer(containerId: string): Promise<void> {
@@ -252,10 +269,95 @@ export class DockerService {
     await container.remove();
   }
 
-  async getContainerStats(containerId: string): Promise<any> {
-    const container = this.docker.getContainer(containerId);
-    const stats = await container.stats({ stream: false });
-    return stats;
+  /**
+   * 获取容器资源使用统计（适配 Prometheus）
+   */
+  @Retry({ maxAttempts: 2, baseDelayMs: 500, retryableErrors: [DockerError] })
+  async getContainerStats(containerId: string): Promise<{
+    cpu_percent?: number;
+    memory_usage_mb?: number;
+    memory_limit_mb?: number;
+    memory_percent?: number;
+    network_rx_bytes?: number;
+    network_tx_bytes?: number;
+    block_read_bytes?: number;
+    block_write_bytes?: number;
+  } | null> {
+    try {
+      const container = this.docker.getContainer(containerId);
+      const stats = await container.stats({ stream: false });
+
+      // 计算 CPU 使用率
+      let cpuPercent: number | undefined;
+      if (stats.cpu_stats && stats.precpu_stats) {
+        const cpuDelta = stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage;
+        const systemDelta = stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage;
+        const cpuCount = stats.cpu_stats.online_cpus || 1;
+
+        if (systemDelta > 0 && cpuDelta > 0) {
+          cpuPercent = (cpuDelta / systemDelta) * cpuCount * 100.0;
+        }
+      }
+
+      // 计算内存使用量
+      let memoryUsageMB: number | undefined;
+      let memoryLimitMB: number | undefined;
+      let memoryPercent: number | undefined;
+      if (stats.memory_stats) {
+        const usage = stats.memory_stats.usage || 0;
+        const limit = stats.memory_stats.limit || 0;
+
+        memoryUsageMB = usage / (1024 * 1024); // 转换为 MB
+        memoryLimitMB = limit / (1024 * 1024);
+
+        if (limit > 0) {
+          memoryPercent = (usage / limit) * 100.0;
+        }
+      }
+
+      // 网络流量统计
+      let networkRxBytes: number | undefined;
+      let networkTxBytes: number | undefined;
+      if (stats.networks) {
+        networkRxBytes = 0;
+        networkTxBytes = 0;
+
+        for (const iface of Object.values(stats.networks)) {
+          networkRxBytes += (iface as any).rx_bytes || 0;
+          networkTxBytes += (iface as any).tx_bytes || 0;
+        }
+      }
+
+      // 磁盘 I/O 统计
+      let blockReadBytes: number | undefined;
+      let blockWriteBytes: number | undefined;
+      if (stats.blkio_stats && stats.blkio_stats.io_service_bytes_recursive) {
+        blockReadBytes = 0;
+        blockWriteBytes = 0;
+
+        for (const entry of stats.blkio_stats.io_service_bytes_recursive) {
+          if (entry.op === 'Read') {
+            blockReadBytes += entry.value;
+          } else if (entry.op === 'Write') {
+            blockWriteBytes += entry.value;
+          }
+        }
+      }
+
+      return {
+        cpu_percent: cpuPercent,
+        memory_usage_mb: memoryUsageMB,
+        memory_limit_mb: memoryLimitMB,
+        memory_percent: memoryPercent,
+        network_rx_bytes: networkRxBytes,
+        network_tx_bytes: networkTxBytes,
+        block_read_bytes: blockReadBytes,
+        block_write_bytes: blockWriteBytes,
+      };
+    } catch (error) {
+      this.logger.debug(`Failed to get stats for container ${containerId}: ${error.message}`);
+      return null;
+    }
   }
 
   async getAdbPort(containerId: string): Promise<number> {

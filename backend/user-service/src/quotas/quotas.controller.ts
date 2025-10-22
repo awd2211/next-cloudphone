@@ -107,6 +107,53 @@ export class QuotasController {
   }
 
   /**
+   * 上报设备用量（由 device-service 调用）
+   */
+  @Post('user/:userId/usage')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '上报设备用量',
+    description: '由 device-service 调用，用于增加或减少用户配额使用量',
+  })
+  @ApiResponse({ status: 200, description: '用量已更新' })
+  @ApiResponse({ status: 404, description: '未找到配额' })
+  async reportDeviceUsage(
+    @Param('userId') userId: string,
+    @Body()
+    usageReport: {
+      deviceId: string;
+      cpuCores: number;
+      memoryGB: number;
+      storageGB: number;
+      operation: 'increment' | 'decrement';
+    },
+  ) {
+    this.logger.log(
+      `上报用量 - 用户: ${userId}, 操作: ${usageReport.operation}, 设备: ${usageReport.deviceId}`,
+    );
+
+    if (usageReport.operation === 'increment') {
+      // 设备创建，扣减配额
+      return await this.quotasService.deductQuota({
+        userId,
+        deviceCount: 1,
+        cpuCores: usageReport.cpuCores,
+        memoryGB: usageReport.memoryGB,
+        storageGB: usageReport.storageGB,
+      });
+    } else {
+      // 设备删除，恢复配额
+      return await this.quotasService.restoreQuota({
+        userId,
+        deviceCount: 1,
+        cpuCores: usageReport.cpuCores,
+        memoryGB: usageReport.memoryGB,
+        storageGB: usageReport.storageGB,
+      });
+    }
+  }
+
+  /**
    * 获取用户使用统计
    */
   @Get('usage-stats/:userId')

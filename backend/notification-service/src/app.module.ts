@@ -6,16 +6,16 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import * as redisStore from 'cache-manager-redis-store';
-import { EventBusModule, ConsulModule, createLoggerConfig } from '@cloudphone/shared';
+import { createLoggerConfig } from '@cloudphone/shared';
 import { HealthController } from './health/health.controller';
 import { TasksService } from './tasks/tasks.service';
-import { NotificationGateway } from './gateway/notification.gateway';
-import { NotificationsService } from './notifications/notifications.service';
-import { NotificationsController } from './notifications/notifications.controller';
+import { NotificationsModule } from './notifications/notifications.module';
+import { EmailModule } from './email/email.module';
+import { TemplatesModule } from './templates/templates.module';
+import { NotificationEventsHandler } from './events/notification-events.handler';
+import { CloudphoneRabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { Notification } from './entities/notification.entity';
 import { NotificationTemplate } from './entities/notification-template.entity';
-import { EmailModule } from './email/email.module';
-import { NotificationEventsHandler } from './events/notification-events.handler';
 
 @Module({
   imports: [
@@ -30,7 +30,6 @@ import { NotificationEventsHandler } from './events/notification-events.handler'
 
     // ========== 数据库模块 ==========
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         host: configService.get('DB_HOST', 'localhost'),
@@ -38,21 +37,19 @@ import { NotificationEventsHandler } from './events/notification-events.handler'
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('DB_DATABASE', 'cloudphone_notification'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development',
+        entities: [Notification, NotificationTemplate],
+        synchronize: false, // Disabled to prevent auto schema changes
         logging: configService.get('NODE_ENV') === 'development',
+        autoLoadEntities: false,
       }),
       inject: [ConfigService],
     }),
-
-    // ========== 实体注册 ==========
-    TypeOrmModule.forFeature([Notification, NotificationTemplate]),
 
     // ========== Redis 缓存 ==========
     CacheModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        store: redisStore,
+        store: redisStore as any,
         host: configService.get('REDIS_HOST', 'localhost'),
         port: configService.get('REDIS_PORT', 6379),
         password: configService.get('REDIS_PASSWORD'),
@@ -69,22 +66,22 @@ import { NotificationEventsHandler } from './events/notification-events.handler'
     // ========== 事件发射器 ==========
     EventEmitterModule.forRoot(),
 
-    // ========== 事件总线 ==========
-    EventBusModule,
-
-    // ========== 服务发现 ==========
-    ConsulModule,
-
     // ========== 邮件模块 ==========
     EmailModule,
+
+    // ========== 通知模块 ==========
+    NotificationsModule,
+
+    // ========== 模板模块 ==========
+    TemplatesModule,
+
+    // ========== RabbitMQ 消息队列 ==========
+    CloudphoneRabbitMQModule,
   ],
   controllers: [
     HealthController,
-    NotificationsController,
   ],
   providers: [
-    NotificationGateway,
-    NotificationsService,
     TasksService,
     NotificationEventsHandler,
   ],

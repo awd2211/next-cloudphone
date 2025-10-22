@@ -23,6 +23,7 @@ import { DeviceStatus } from '../entities/device.entity';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { ShellCommandDto, PushFileDto, PullFileDto, InstallApkDto, UninstallApkDto } from '../adb/dto/shell-command.dto';
+import { QuotaGuard, QuotaCheck, QuotaCheckType } from '../quota/quota.guard';
 
 @ApiTags('devices')
 @ApiBearerAuth()
@@ -33,10 +34,12 @@ export class DevicesController {
 
   @Post()
   @RequirePermission('device.create')
-  @ApiOperation({ summary: '创建设备', description: '创建新的云手机设备，自动创建 Docker 容器' })
+  @UseGuards(QuotaGuard)
+  @QuotaCheck(QuotaCheckType.DEVICE_CREATION)
+  @ApiOperation({ summary: '创建设备', description: '创建新的云手机设备，自动创建 Docker 容器（需检查配额）' })
   @ApiResponse({ status: 201, description: '设备创建中' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
-  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 403, description: '权限不足或配额超限' })
   async create(@Body() createDeviceDto: CreateDeviceDto) {
     const device = await this.devicesService.create(createDeviceDto);
     return {

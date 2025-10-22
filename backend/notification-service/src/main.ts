@@ -5,12 +5,15 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { ConsulService } from '@cloudphone/shared';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   const configService = app.get(ConfigService);
+
+  // ========== 日志配置 ==========
+  app.useLogger(app.get(Logger));
+  app.flushLogs();
 
   // ========== 安全配置 ==========
   app.use(
@@ -19,10 +22,6 @@ async function bootstrap() {
       crossOriginEmbedderPolicy: false,
     }),
   );
-
-  // ========== 日志配置 ==========
-  app.useLogger(app.get(Logger));
-  app.flushLogs();
 
   // ========== 验证和转换 ==========
   app.useGlobalPipes(
@@ -67,15 +66,6 @@ async function bootstrap() {
 
   const port = parseInt(configService.get('PORT') || '30006');
   await app.listen(port);
-
-  // ========== 服务注册到 Consul ==========
-  try {
-    const consulService = app.get(ConsulService);
-    await consulService.registerService('notification-service', port, [], '/health');
-  } catch (error) {
-    const logger = app.get(Logger);
-    logger.warn(`Consul registration failed: ${error.message}`);
-  }
 
   const logger = app.get(Logger);
   logger.log(`🚀 Notification Service is running on: http://localhost:${port}`);

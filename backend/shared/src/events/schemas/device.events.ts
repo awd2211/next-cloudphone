@@ -58,3 +58,60 @@ export class DeviceReleaseEvent {
   timestamp: string;
 }
 
+// 备份相关事件
+export class DeviceBackupCreatedEvent {
+  deviceId: string;
+  deviceName: string;
+  userId: string;
+  snapshotId: string;
+  snapshotName: string;
+  timestamp: Date;
+}
+
+export class DeviceBackupCompletedEvent {
+  timestamp: Date;
+  totalDevices: number;
+  successCount: number;
+  failureCount: number;
+  results: Array<{
+    success: boolean;
+    deviceId: string;
+    snapshotId?: string;
+    error?: string;
+  }>;
+}
+
+export class DeviceBackupCleanupCompletedEvent {
+  timestamp: Date;
+  cleanedCount: number;
+}
+
+// 到期提醒事件
+export class DeviceExpirationWarningEvent {
+  deviceId: string;
+  deviceName: string;
+  userId: string;
+  expiresAt: Date;
+  daysRemaining: number;
+  timestamp: Date;
+}
+
+export class DeviceExpiredEvent {
+  deviceId: string;
+  timestamp: Date;
+}
+
+export class SnapshotExpirationWarningEvent {
+  snapshotId: string;
+  snapshotName: string;
+  deviceId: string;
+  expiresAt: Date;
+  daysRemaining: number;
+  timestamp: Date;
+}
+
+export class SnapshotExpiredEvent {
+  snapshotId: string;
+  timestamp: Date;
+}
+

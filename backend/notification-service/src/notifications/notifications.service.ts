@@ -4,7 +4,7 @@ import { Repository, LessThan } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { CreateNotificationDto } from './notification.interface';
-import { Notification, NotificationStatus, NotificationType } from '../entities/notification.entity';
+import { Notification, NotificationStatus, NotificationType, NotificationChannel } from '../entities/notification.entity';
 import { NotificationGateway } from '../gateway/notification.gateway';
 
 @Injectable()
@@ -32,7 +32,7 @@ export class NotificationsService {
       message: dto.message,
       data: dto.data,
       expiresAt: dto.expiresAt,
-      channels: dto.channels || ['websocket'],
+      channels: dto.channels || [NotificationChannel.WEBSOCKET],
     });
 
     // 保存到数据库

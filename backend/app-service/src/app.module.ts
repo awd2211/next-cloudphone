@@ -7,7 +7,7 @@ import { AppsModule } from './apps/apps.module';
 import { MinioModule } from './minio/minio.module';
 import { ApkModule } from './apk/apk.module';
 import { HealthController } from './health.controller';
-import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig, EventBusModule } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -37,6 +37,7 @@ import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
     MinioModule,
     ApkModule,
     ConsulModule,  // ✅ 已修复 DiscoveryService 依赖问题
+    EventBusModule, // ✅ 添加 EventBus 模块支持 RabbitMQ 事件发布
   ],
   controllers: [HealthController],
 })

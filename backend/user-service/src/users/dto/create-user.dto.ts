@@ -1,6 +1,7 @@
 import { IsString, IsEmail, IsNotEmpty, MinLength, IsOptional, IsArray, IsEnum } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserStatus } from '../../entities/user.entity';
+import { IsStrongPassword } from '../../common/decorators/is-strong-password.decorator';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -23,13 +24,13 @@ export class CreateUserDto {
   email: string;
 
   @ApiProperty({
-    description: '密码',
-    example: 'password123',
-    minLength: 6,
+    description: '密码（必须至少8个字符，包含大小写字母、数字和特殊字符）',
+    example: 'Pass@word123',
+    minLength: 8,
   })
   @IsString()
   @IsNotEmpty()
-  @MinLength(6)
+  @IsStrongPassword()
   password: string;
 
   @ApiPropertyOptional({

@@ -154,5 +154,152 @@ export class NotificationEventsHandler {
       },
     });
   }
+
+  /**
+   * 设备备份创建事件
+   */
+  @OnEvent('device.backup_created')
+  async handleDeviceBackupCreated(event: any) {
+    this.logger.log(`收到设备备份创建事件: ${event.snapshotId}`);
+
+    try {
+      await this.notificationsService.createAndSend({
+        userId: event.userId,
+        type: NotificationType.DEVICE,
+        title: '设备备份成功',
+        message: `设备 ${event.deviceName} 的备份已成功创建`,
+        data: {
+          deviceId: event.deviceId,
+          deviceName: event.deviceName,
+          snapshotId: event.snapshotId,
+          snapshotName: event.snapshotName,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`处理设备备份创建事件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 设备到期提醒事件
+   */
+  @OnEvent('device.expiration_warning')
+  async handleDeviceExpirationWarning(event: any) {
+    this.logger.log(
+      `收到设备到期提醒事件: ${event.deviceId}, ${event.daysRemaining} 天后到期`,
+    );
+
+    try {
+      // WebSocket 通知
+      await this.notificationsService.createAndSend({
+        userId: event.userId,
+        type: NotificationType.ALERT,
+        title: '设备即将到期',
+        message: `您的设备 ${event.deviceName} 将在 ${event.daysRemaining} 天后到期，请及时续费或备份数据`,
+        data: {
+          deviceId: event.deviceId,
+          deviceName: event.deviceName,
+          expiresAt: event.expiresAt,
+          daysRemaining: event.daysRemaining,
+        },
+      });
+
+      // 如果剩余天数较少，发送邮件提醒
+      if (event.daysRemaining <= 7 && event.userEmail) {
+        await this.emailService.sendDeviceExpirationWarning(
+          event.userEmail,
+          event.deviceName,
+          event.expiresAt,
+          event.daysRemaining,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`处理设备到期提醒事件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 设备已过期事件
+   */
+  @OnEvent('device.expired')
+  async handleDeviceExpired(event: any) {
+    this.logger.log(`收到设备已过期事件: ${event.deviceId}`);
+
+    try {
+      await this.notificationsService.createAndSend({
+        userId: event.userId,
+        type: NotificationType.ALERT,
+        title: '设备已过期',
+        message: `您的设备已过期，请及时处理或续费`,
+        data: {
+          deviceId: event.deviceId,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`处理设备已过期事件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 快照到期提醒事件
+   */
+  @OnEvent('snapshot.expiration_warning')
+  async handleSnapshotExpirationWarning(event: any) {
+    this.logger.log(
+      `收到快照到期提醒事件: ${event.snapshotId}, ${event.daysRemaining} 天后到期`,
+    );
+
+    try {
+      // 查询设备的用户ID（需要从设备服务获取）
+      // 这里先记录日志，实际应用中需要通过 deviceId 查询用户
+      this.logger.log(
+        `快照 ${event.snapshotName} (设备: ${event.deviceId}) 将在 ${event.daysRemaining} 天后到期`,
+      );
+
+      // 可以通过 API 调用设备服务获取用户信息，然后发送通知
+      // 简化处理：直接记录日志
+    } catch (error) {
+      this.logger.error(`处理快照到期提醒事件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 快照已过期事件
+   */
+  @OnEvent('snapshot.expired')
+  async handleSnapshotExpired(event: any) {
+    this.logger.log(`收到快照已过期事件: ${event.snapshotId}`);
+
+    try {
+      this.logger.log(`快照 ${event.snapshotId} 已过期并将被自动清理`);
+    } catch (error) {
+      this.logger.error(`处理快照已过期事件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 备份任务完成事件
+   */
+  @OnEvent('device.backup_completed')
+  async handleBackupCompleted(event: any) {
+    this.logger.log(
+      `收到备份任务完成事件: 成功 ${event.successCount}/${event.totalDevices}`,
+    );
+
+    // 如果有失败的备份，可以发送管理员通知
+    if (event.failureCount > 0) {
+      this.logger.warn(
+        `备份任务有 ${event.failureCount} 个失败，需要关注`,
+      );
+    }
+  }
+
+  /**
+   * 备份清理完成事件
+   */
+  @OnEvent('device.backup_cleanup_completed')
+  async handleBackupCleanupCompleted(event: any) {
+    this.logger.log(`收到备份清理完成事件: 清理了 ${event.cleanedCount} 个过期备份`);
+  }
 }
 

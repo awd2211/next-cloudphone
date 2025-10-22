@@ -98,4 +98,17 @@ export class DeviceSnapshot {
 
   @Column({ type: 'int', default: 0 })
   restoreCount: number; // 恢复次数
+
+  // 快照保留策略
+  @Column({ type: 'int', nullable: true })
+  retentionDays: number; // 保留天数（null 表示永久保留）
+
+  // 快照到期时间
+  @Column({ type: 'timestamp', nullable: true })
+  @Index()
+  expiresAt: Date;
+
+  // 是否为自动备份
+  @Column({ default: false })
+  isAutoBackup: boolean;
 }

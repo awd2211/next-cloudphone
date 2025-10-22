@@ -11,8 +11,15 @@ import { GpuModule } from './gpu/gpu.module';
 import { TemplatesModule } from './templates/templates.module';
 import { SnapshotsModule } from './snapshots/snapshots.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { MetricsModule } from './metrics/metrics.module';
+import { HealthModule } from './health/health.module';
 import { HealthController } from './health.controller';
 import { EventsModule } from './events/events.module';
+import { QuotaModule } from './quota/quota.module';
+import { LifecycleModule } from './lifecycle/lifecycle.module';
+import { CommonModule } from './common/common.module';
+import { FailoverModule } from './failover/failover.module';
+import { StateRecoveryModule } from './state-recovery/state-recovery.module';
 
 import { EventBusModule, ConsulModule, createLoggerConfig } from '@cloudphone/shared';
 
@@ -42,6 +49,7 @@ import { EventBusModule, ConsulModule, createLoggerConfig } from '@cloudphone/sh
     ScheduleModule.forRoot(),
     EventBusModule,  // ✅ 已修复 DiscoveryService 依赖问题
     ConsulModule,
+    CommonModule, // 通用工具模块（重试、错误处理等）
     AuthModule,
     DevicesModule,
     DockerModule,
@@ -51,6 +59,12 @@ import { EventBusModule, ConsulModule, createLoggerConfig } from '@cloudphone/sh
     SnapshotsModule,
     SchedulerModule,
     EventsModule, // 事件处理模块
+    MetricsModule, // Prometheus 指标采集
+    HealthModule, // 增强健康检查
+    QuotaModule, // 多租户配额管理
+    LifecycleModule, // 生命周期自动化
+    FailoverModule, // 故障转移和自动恢复
+    StateRecoveryModule, // 状态自愈和回滚
   ],
   controllers: [HealthController],
 })
