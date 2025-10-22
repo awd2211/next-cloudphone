@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  NotFoundException,
   UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -22,6 +23,13 @@ import { AppsService } from './apps.service';
 import { CreateAppDto } from './dto/create-app.dto';
 import { UpdateAppDto } from './dto/update-app.dto';
 import { InstallAppDto, UninstallAppDto } from './dto/install-app.dto';
+import {
+  ApproveAppDto,
+  RejectAppDto,
+  RequestChangesDto,
+  SubmitReviewDto,
+  GetAuditRecordsQueryDto,
+} from './dto/audit-app.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 
@@ -152,6 +160,41 @@ export class AppsController {
     };
   }
 
+  @Get('package/:packageName/versions')
+  @RequirePermission('app.read')
+  @ApiOperation({ summary: '获取应用所有版本', description: '获取指定包名的所有可用版本' })
+  @ApiParam({ name: 'packageName', description: '应用包名' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getAppVersions(@Param('packageName') packageName: string) {
+    const versions = await this.appsService.getAppVersions(packageName);
+    return {
+      success: true,
+      data: versions,
+      total: versions.length,
+    };
+  }
+
+  @Get('package/:packageName/latest')
+  @RequirePermission('app.read')
+  @ApiOperation({ summary: '获取应用最新版本', description: '获取指定包名的最新可用版本' })
+  @ApiParam({ name: 'packageName', description: '应用包名' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '应用不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getLatestVersion(@Param('packageName') packageName: string) {
+    const latestVersion = await this.appsService.getLatestVersion(packageName);
+
+    if (!latestVersion) {
+      throw new NotFoundException(`应用 ${packageName} 不存在或无可用版本`);
+    }
+
+    return {
+      success: true,
+      data: latestVersion,
+    };
+  }
+
   @Patch(':id')
   @RequirePermission('app.update')
   @ApiOperation({ summary: '更新应用', description: '更新应用信息' })
@@ -265,6 +308,139 @@ export class AppsController {
     return {
       success: true,
       data: apps,
+    };
+  }
+
+  // ==================== 应用审核相关接口 ====================
+
+  @Post(':id/submit-review')
+  @RequirePermission('app.create')
+  @ApiOperation({ summary: '提交应用审核', description: '将应用提交给审核人员审核' })
+  @ApiParam({ name: 'id', description: '应用 ID' })
+  @ApiResponse({ status: 200, description: '提交成功' })
+  @ApiResponse({ status: 400, description: '应用状态不允许提交审核' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async submitForReview(
+    @Param('id') id: string,
+    @Body() dto: SubmitReviewDto,
+  ) {
+    const app = await this.appsService.submitForReview(id, dto);
+    return {
+      success: true,
+      data: app,
+      message: '应用已提交审核',
+    };
+  }
+
+  @Post(':id/approve')
+  @RequirePermission('app.approve')
+  @ApiOperation({ summary: '批准应用', description: '审核人员批准应用上架' })
+  @ApiParam({ name: 'id', description: '应用 ID' })
+  @ApiResponse({ status: 200, description: '批准成功' })
+  @ApiResponse({ status: 400, description: '应用不在待审核状态' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async approveApp(@Param('id') id: string, @Body() dto: ApproveAppDto) {
+    const app = await this.appsService.approveApp(id, dto);
+    return {
+      success: true,
+      data: app,
+      message: '应用已批准',
+    };
+  }
+
+  @Post(':id/reject')
+  @RequirePermission('app.approve')
+  @ApiOperation({ summary: '拒绝应用', description: '审核人员拒绝应用上架' })
+  @ApiParam({ name: 'id', description: '应用 ID' })
+  @ApiResponse({ status: 200, description: '拒绝成功' })
+  @ApiResponse({ status: 400, description: '应用不在待审核状态' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async rejectApp(@Param('id') id: string, @Body() dto: RejectAppDto) {
+    const app = await this.appsService.rejectApp(id, dto);
+    return {
+      success: true,
+      data: app,
+      message: '应用已拒绝',
+    };
+  }
+
+  @Post(':id/request-changes')
+  @RequirePermission('app.approve')
+  @ApiOperation({ summary: '要求修改', description: '审核人员要求开发者修改应用' })
+  @ApiParam({ name: 'id', description: '应用 ID' })
+  @ApiResponse({ status: 200, description: '要求修改成功' })
+  @ApiResponse({ status: 400, description: '应用不在待审核状态' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async requestChanges(
+    @Param('id') id: string,
+    @Body() dto: RequestChangesDto,
+  ) {
+    const app = await this.appsService.requestChanges(id, dto);
+    return {
+      success: true,
+      data: app,
+      message: '已要求开发者修改',
+    };
+  }
+
+  @Get(':id/audit-records')
+  @RequirePermission('app.read')
+  @ApiOperation({ summary: '获取审核记录', description: '获取指定应用的审核历史记录' })
+  @ApiParam({ name: 'id', description: '应用 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getAppAuditRecords(@Param('id') id: string) {
+    const records = await this.appsService.getAuditRecords(id);
+    return {
+      success: true,
+      data: records,
+    };
+  }
+
+  @Get('pending-review/list')
+  @RequirePermission('app.approve')
+  @ApiOperation({ summary: '获取待审核应用', description: '获取待审核的应用列表' })
+  @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getPendingReviewApps(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    const result = await this.appsService.getPendingReviewApps(
+      parseInt(page),
+      parseInt(limit),
+    );
+    return {
+      success: true,
+      ...result,
+    };
+  }
+
+  @Get('audit-records/all')
+  @RequirePermission('app.approve')
+  @ApiOperation({ summary: '获取所有审核记录', description: '获取所有应用的审核记录（支持筛选）' })
+  @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({ name: 'applicationId', required: false, description: '应用 ID' })
+  @ApiQuery({ name: 'reviewerId', required: false, description: '审核人员 ID' })
+  @ApiQuery({ name: 'action', required: false, description: '审核动作' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getAllAuditRecords(@Query() query: GetAuditRecordsQueryDto) {
+    const result = await this.appsService.getAllAuditRecords(
+      parseInt(query.page?.toString() || '1'),
+      parseInt(query.limit?.toString() || '10'),
+      {
+        applicationId: query.applicationId,
+        reviewerId: query.reviewerId,
+        action: query.action,
+      },
+    );
+    return {
+      success: true,
+      ...result,
     };
   }
 }

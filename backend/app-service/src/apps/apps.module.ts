@@ -7,12 +7,13 @@ import { AppsController } from './apps.controller';
 import { AppsConsumer } from './apps.consumer';
 import { Application } from '../entities/application.entity';
 import { DeviceApplication } from '../entities/device-application.entity';
+import { AppAuditRecord } from '../entities/app-audit-record.entity';
 import { MinioModule } from '../minio/minio.module';
 import { ApkModule } from '../apk/apk.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Application, DeviceApplication]),
+    TypeOrmModule.forFeature([Application, DeviceApplication, AppAuditRecord]),
     MulterModule.register({
       dest: '/tmp/apk-uploads',
     }),

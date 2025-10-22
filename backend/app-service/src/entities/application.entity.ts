@@ -9,7 +9,10 @@ import {
 
 export enum AppStatus {
   UPLOADING = 'uploading',
-  AVAILABLE = 'available',
+  PENDING_REVIEW = 'pending_review',  // 待审核
+  APPROVED = 'approved',               // 已批准（等同于 available）
+  REJECTED = 'rejected',               // 已拒绝
+  AVAILABLE = 'available',             // 可用（向后兼容）
   UNAVAILABLE = 'unavailable',
   DELETED = 'deleted',
 }
@@ -26,6 +29,7 @@ export enum AppCategory {
 }
 
 @Entity('applications')
+@Index(['packageName', 'versionCode'], { unique: true })
 export class Application {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -37,7 +41,7 @@ export class Application {
   @Column({ nullable: true })
   description: string;
 
-  @Column({ unique: true })
+  @Column()
   @Index()
   packageName: string;
 
@@ -45,7 +49,13 @@ export class Application {
   versionName: string;
 
   @Column({ type: 'bigint' })
+  @Index()
   versionCode: number;
+
+  // 标记是否为最新版本
+  @Column({ type: 'boolean', default: false })
+  @Index()
+  isLatest: boolean;
 
   @Column({
     type: 'enum',
