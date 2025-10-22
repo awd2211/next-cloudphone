@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@cloudphone/shared": "workspace:*",
+    "@golevelup/nestjs-discovery": "^5.0.0",
     "@golevelup/nestjs-rabbitmq": "^6.0.2",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.1.7",
@@ -43,6 +44,7 @@
     "crypto-js": "^4.2.0",
     "csv-writer": "^1.6.0",
     "exceljs": "^4.4.0",
+    "express": "^5.1.0",
     "helmet": "^8.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

@@ -1,8 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
-import * as os from 'os';
+import { Controller, Get } from "@nestjs/common";
+import * as os from "os";
 
 interface HealthCheckResult {
-  status: 'ok';
+  status: "ok";
   service: string;
   version: string;
   timestamp: string;
@@ -24,24 +24,24 @@ interface HealthCheckResult {
   };
 }
 
-@Controller('health')
+@Controller("health")
 export class HealthController {
   private readonly startTime: number = Date.now();
 
   @Get()
   check(): HealthCheckResult {
     return {
-      status: 'ok',
-      service: 'api-gateway',
-      version: '1.0.0',
+      status: "ok",
+      service: "api-gateway",
+      version: "1.0.0",
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - this.startTime) / 1000),
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV || "development",
       system: this.getSystemInfo(),
     };
   }
 
-  private getSystemInfo(): HealthCheckResult['system'] {
+  private getSystemInfo(): HealthCheckResult["system"] {
     const totalMemory = os.totalmem();
     const freeMemory = os.freemem();
     const usedMemory = totalMemory - freeMemory;
@@ -57,7 +57,7 @@ export class HealthController {
       },
       cpu: {
         cores: os.cpus().length,
-        model: os.cpus()[0]?.model || 'unknown',
+        model: os.cpus()[0]?.model || "unknown",
       },
     };
   }

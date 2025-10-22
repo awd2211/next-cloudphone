@@ -68,7 +68,7 @@ import { CacheService } from './cache/cache.service';
     AuditLogsModule,
     ApiKeysModule,
     QueueModule,
-    ConsulModule,
+    ConsulModule,  // ✅ 已修复 DiscoveryService 依赖问题
     // ScheduleModule 放在最后，避免依赖问题
     ScheduleModule.forRoot(),
   ],

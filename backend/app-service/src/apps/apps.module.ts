@@ -9,7 +9,6 @@ import { Application } from '../entities/application.entity';
 import { DeviceApplication } from '../entities/device-application.entity';
 import { MinioModule } from '../minio/minio.module';
 import { ApkModule } from '../apk/apk.module';
-import { EventBusModule } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -20,7 +19,7 @@ import { EventBusModule } from '@cloudphone/shared';
     HttpModule,
     MinioModule,
     ApkModule,
-    EventBusModule,
+    // EventBusModule 是全局模块，已在 AppModule 中导入，无需重复导入
   ],
   controllers: [AppsController],
   providers: [AppsService, AppsConsumer],

@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger } from "@nestjs/common";
+import { PassportStrategy } from "@nestjs/passport";
+import { ExtractJwt, Strategy } from "passport-jwt";
+import { ConfigService } from "@nestjs/config";
 
 /**
  * JWT 验证策略
- * 
+ *
  * 改造后：
  * - ✅ 从 Token 中提取用户信息（无需查询数据库）
  * - ✅ 完全无状态
@@ -16,7 +16,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly logger = new Logger(JwtStrategy.name);
 
   constructor(private configService: ConfigService) {
-    const secret = configService.get<string>('JWT_SECRET') || 'dev-secret-key-change-in-production';
+    const secret =
+      configService.get<string>("JWT_SECRET") ||
+      "dev-secret-key-change-in-production";
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -30,7 +32,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: any) {
     // 直接从 Token 中提取用户信息，不查询数据库
     // Token 由 User Service 生成，包含所有必要信息
-    
+
     this.logger.debug(`JWT validate: ${payload.username}`);
 
     return {

@@ -39,7 +39,7 @@ export class AppsController {
   constructor(private readonly appsService: AppsService) {}
 
   @Post('upload')
-  @RequirePermission('apps.create')
+  @RequirePermission('app.create')
   @ApiOperation({ summary: '上传 APK', description: '上传 Android 应用程序包文件' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -97,7 +97,7 @@ export class AppsController {
   }
 
   @Get()
-  @RequirePermission('apps.read')
+  @RequirePermission('app.read')
   @ApiOperation({ summary: '获取应用列表', description: '分页获取应用列表' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
   @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
@@ -124,7 +124,7 @@ export class AppsController {
   }
 
   @Get(':id')
-  @RequirePermission('apps.read')
+  @RequirePermission('app.read')
   @ApiOperation({ summary: '获取应用详情', description: '根据 ID 获取应用详细信息' })
   @ApiParam({ name: 'id', description: '应用 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -139,7 +139,7 @@ export class AppsController {
   }
 
   @Get(':id/devices')
-  @RequirePermission('apps.read')
+  @RequirePermission('app.read')
   @ApiOperation({ summary: '获取应用安装设备', description: '获取已安装该应用的设备列表' })
   @ApiParam({ name: 'id', description: '应用 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -153,7 +153,7 @@ export class AppsController {
   }
 
   @Patch(':id')
-  @RequirePermission('apps.update')
+  @RequirePermission('app.update')
   @ApiOperation({ summary: '更新应用', description: '更新应用信息' })
   @ApiParam({ name: 'id', description: '应用 ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -169,7 +169,7 @@ export class AppsController {
   }
 
   @Delete(':id')
-  @RequirePermission('apps.delete')
+  @RequirePermission('app.delete')
   @ApiOperation({ summary: '删除应用', description: '删除应用及相关文件' })
   @ApiParam({ name: 'id', description: '应用 ID' })
   @ApiResponse({ status: 200, description: '删除成功' })
@@ -184,7 +184,7 @@ export class AppsController {
   }
 
   @Post('install')
-  @RequirePermission('apps.create')
+  @RequirePermission('app.create')
   @ApiOperation({ summary: '安装应用', description: '将应用安装到指定设备' })
   @ApiResponse({ status: 201, description: '安装任务已创建' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
@@ -220,7 +220,7 @@ export class AppsController {
   }
 
   @Post('uninstall')
-  @RequirePermission('apps.delete')
+  @RequirePermission('app.delete')
   @ApiOperation({ summary: '卸载应用', description: '从指定设备卸载应用' })
   @ApiResponse({ status: 200, description: '卸载任务已创建' })
   @ApiResponse({ status: 404, description: '应用未安装' })
@@ -255,7 +255,7 @@ export class AppsController {
   }
 
   @Get('devices/:deviceId/apps')
-  @RequirePermission('apps.read')
+  @RequirePermission('app.read')
   @ApiOperation({ summary: '获取设备应用', description: '获取指定设备上已安装的应用列表' })
   @ApiParam({ name: 'deviceId', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })

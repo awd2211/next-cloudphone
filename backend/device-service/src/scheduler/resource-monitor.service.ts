@@ -5,7 +5,7 @@ import { Node, NodeStatus, ResourceUsage } from '../entities/node.entity';
 import { Device, DeviceStatus } from '../entities/device.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as os from 'os';
-import * as Docker from 'dockerode';
+import Dockerode = require('dockerode');
 
 @Injectable()
 export class ResourceMonitorService {
@@ -35,7 +35,7 @@ export class ResourceMonitorService {
     let totalStorageGB = 500; // 默认 500GB
 
     try {
-      const docker = new Docker();
+      const docker = new Dockerode();
       const info = await docker.info();
       // Docker info 中没有直接的总存储大小，这里使用简化逻辑
       totalStorageGB = 500;

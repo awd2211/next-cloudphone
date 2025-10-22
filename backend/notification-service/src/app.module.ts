@@ -1,46 +1,27 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { LoggerModule } from 'nestjs-pino';
-import { ScheduleModule } from '@nestjs/schedule';
-import { NotificationsModule } from './notifications/notifications.module';
-import { WebsocketModule } from './websocket/websocket.module';
-import { EmailModule } from './email/email.module';
-import { EventsModule } from './events/events.module';
-import { HealthController } from './health.controller';
-import { ConsulModule, createLoggerConfig, EventBusModule } from '@cloudphone/shared';
+import { ConfigModule } from '@nestjs/config';
+import { HealthController } from './health/health.controller';
+import { TasksService } from './tasks/tasks.service';
+import { NotificationGateway } from './gateway/notification.gateway';
+import { NotificationsService } from './notifications/notifications.service';
+import { NotificationsController } from './notifications/notifications.controller';
 
 @Module({
   imports: [
+    // ========== 全局配置 ==========
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
-    // Pino 日志模块 - 使用统一的增强配置
-    LoggerModule.forRoot(createLoggerConfig('notification-service')),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('DB_HOST'),
-        port: +configService.get('DB_PORT'),
-        username: configService.get('DB_USERNAME'),
-        password: configService.get('DB_PASSWORD'),
-        database: configService.get('DB_DATABASE') || 'cloudphone_notification',
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false,
-        logging: configService.get('NODE_ENV') === 'development',
-      }),
-      inject: [ConfigService],
-    }),
-    ScheduleModule.forRoot(),
-    EventBusModule,  // 事件总线
-    NotificationsModule,
-    WebsocketModule,
-    EmailModule,
-    EventsModule,  // 事件处理器
-    ConsulModule,
   ],
-  controllers: [HealthController],
+  controllers: [
+    HealthController,
+    NotificationsController,
+  ],
+  providers: [
+    NotificationGateway,
+    NotificationsService,
+    TasksService,
+  ],
 })
 export class AppModule {}

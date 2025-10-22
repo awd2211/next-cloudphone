@@ -10,17 +10,12 @@
     "dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "migrate:status": "atlas migrate status --env local",
-    "migrate:apply": "atlas migrate apply --env local",
-    "migrate:diff": "atlas migrate diff --env local",
-    "migrate:lint": "atlas migrate lint --env local",
-    "migrate:validate": "atlas migrate validate --env local",
-    "schema:inspect": "atlas schema inspect --url \"postgres://postgres:postgres@localhost:5432/cloudphone?sslmode=disable\" --format '{{ sql . }}' > schema.sql",
-    "schema:apply": "atlas schema apply --env local --auto-approve"
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
   },
   "dependencies": {
     "@cloudphone/shared": "workspace:*",
+    "@golevelup/nestjs-discovery": "^5.0.0",
+    "@golevelup/nestjs-rabbitmq": "^6.0.2",
     "@nestjs/common": "^11.1.7",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.7",
@@ -44,7 +39,8 @@
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
-    "typeorm": "^0.3.27"
+    "typeorm": "^0.3.27",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
@@ -55,6 +51,7 @@
     "@types/node": "^24.9.1",
     "@types/nodemailer": "^7.0.2",
     "@types/passport-jwt": "^4.0.1",
+    "@types/uuid": "^11.0.0",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
     "eslint": "^9.38.0",

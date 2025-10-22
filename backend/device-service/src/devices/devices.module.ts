@@ -9,7 +9,6 @@ import { Device } from '../entities/device.entity';
 import { DockerModule } from '../docker/docker.module';
 import { AdbModule } from '../adb/adb.module';
 import { PortManagerModule } from '../port-manager/port-manager.module';
-import { EventBusModule } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -17,7 +16,7 @@ import { EventBusModule } from '@cloudphone/shared';
     DockerModule,
     AdbModule,
     PortManagerModule,
-    EventBusModule,
+    // EventBusModule 是全局模块，已在 AppModule 中导入，无需重复导入
   ],
   controllers: [DevicesController, BatchOperationsController],
   providers: [DevicesService, BatchOperationsService, DevicesConsumer],

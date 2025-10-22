@@ -1,7 +1,12 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { ROLES_KEY } from "../decorators/roles.decorator";
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 
 /**
  * 角色守卫 - 基于角色的访问控制
@@ -23,10 +28,10 @@ export class RolesGuard implements CanActivate {
     }
 
     // 获取所需的角色
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     // 如果没有设置角色要求，允许通过
     if (!requiredRoles || requiredRoles.length === 0) {
@@ -39,7 +44,7 @@ export class RolesGuard implements CanActivate {
 
     // 用户必须已认证
     if (!user) {
-      throw new ForbiddenException('用户未认证');
+      throw new ForbiddenException("用户未认证");
     }
 
     // 检查用户角色
@@ -48,7 +53,7 @@ export class RolesGuard implements CanActivate {
 
     if (!hasRole) {
       throw new ForbiddenException(
-        `需要以下角色之一: ${requiredRoles.join(', ')}。当前用户角色: ${userRoles.join(', ') || '无'}`,
+        `需要以下角色之一: ${requiredRoles.join(", ")}。当前用户角色: ${userRoles.join(", ") || "无"}`,
       );
     }
 

@@ -5,13 +5,12 @@ import { MeteringService } from './metering.service';
 import { MeteringController } from './metering.controller';
 import { MeteringConsumer } from './metering.consumer';
 import { UsageRecord } from '../billing/entities/usage-record.entity';
-import { EventBusModule } from '@cloudphone/shared';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UsageRecord]),
     HttpModule,
-    EventBusModule,
+    // EventBusModule 是全局模块，已在 AppModule 中导入，无需重复导入
   ],
   controllers: [MeteringController],
   providers: [MeteringService, MeteringConsumer],

@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -21,82 +24,82 @@ export default defineConfig({
       '/api/users': {
         target: 'http://localhost:30001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/users/, '/users')
+        rewrite: (path: string) => path.replace(/^\/api\/users/, '/users')
       },
       '/api/roles': {
         target: 'http://localhost:30001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/roles/, '/roles')
+        rewrite: (path: string) => path.replace(/^\/api\/roles/, '/roles')
       },
       '/api/permissions': {
         target: 'http://localhost:30001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/permissions/, '/permissions')
+        rewrite: (path: string) => path.replace(/^\/api\/permissions/, '/permissions')
       },
       '/api/quotas': {
         target: 'http://localhost:30001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/quotas/, '/quotas')
+        rewrite: (path: string) => path.replace(/^\/api\/quotas/, '/quotas')
       },
       '/api/tickets': {
         target: 'http://localhost:30001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/tickets/, '/tickets')
+        rewrite: (path: string) => path.replace(/^\/api\/tickets/, '/tickets')
       },
       '/api/audit-logs': {
         target: 'http://localhost:30001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/audit-logs/, '/audit-logs')
+        rewrite: (path: string) => path.replace(/^\/api\/audit-logs/, '/audit-logs')
       },
       '/api/api-keys': {
         target: 'http://localhost:30001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/api-keys/, '/api-keys')
+        rewrite: (path: string) => path.replace(/^\/api\/api-keys/, '/api-keys')
       },
       '/api/devices': {
         target: 'http://localhost:30002',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/devices/, '/devices')
+        rewrite: (path: string) => path.replace(/^\/api\/devices/, '/devices')
       },
       '/api/apps': {
         target: 'http://localhost:30003',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/apps/, '/apps')
+        rewrite: (path: string) => path.replace(/^\/api\/apps/, '/apps')
       },
       '/api/billing': {
         target: 'http://localhost:30005',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/billing/, '/billing')
+        rewrite: (path: string) => path.replace(/^\/api\/billing/, '/billing')
       },
       '/api/balance': {
         target: 'http://localhost:30005',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/balance/, '/balance')
+        rewrite: (path: string) => path.replace(/^\/api\/balance/, '/balance')
       },
       '/api/payments': {
         target: 'http://localhost:30005',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/payments/, '/payments')
+        rewrite: (path: string) => path.replace(/^\/api\/payments/, '/payments')
       },
       '/api/reports': {
         target: 'http://localhost:30005',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/reports/, '/reports')
+        rewrite: (path: string) => path.replace(/^\/api\/reports/, '/reports')
       },
       '/api/metering': {
         target: 'http://localhost:30005',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/metering/, '/metering')
+        rewrite: (path: string) => path.replace(/^\/api\/metering/, '/metering')
       },
       '/api/stats': {
         target: 'http://localhost:30005',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/stats/, '/stats')
+        rewrite: (path: string) => path.replace(/^\/api\/stats/, '/stats')
       },
       '/api/notifications': {
         target: 'http://localhost:30006',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/notifications/, '/notifications')
+        rewrite: (path: string) => path.replace(/^\/api\/notifications/, '/notifications')
       },
     },
   },

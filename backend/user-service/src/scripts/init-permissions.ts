@@ -52,7 +52,10 @@ const DEFAULT_PERMISSIONS = [
   { resource: 'order', action: 'export', description: '导出订单数据' },
 
   // 账单管理权限
+  { resource: 'billing', action: 'create', description: '创建账单' },
   { resource: 'billing', action: 'read', description: '查看账单' },
+  { resource: 'billing', action: 'update', description: '更新账单' },
+  { resource: 'billing', action: 'delete', description: '删除账单' },
   { resource: 'billing', action: 'export', description: '导出账单数据' },
 
   // 支付管理权限

@@ -35,3 +35,9 @@ export * from './config/env.validation';
 // ========== 日志配置 ==========
 export * from './config/logger.config';
 
+// ========== 数据库配置工厂 ==========
+export * from './config/database.config';
+
+// ========== Redis 配置工厂 ==========
+export * from './config/redis.config';
+

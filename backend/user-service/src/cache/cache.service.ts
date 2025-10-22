@@ -1,13 +1,34 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import NodeCache from 'node-cache';
 import Redis from 'ioredis';
-import { CacheConfig, defaultCacheConfig } from './cache.config';
 
 // 缓存层级枚举
 export enum CacheLayer {
   L1_ONLY = 'l1',        // 仅本地缓存
   L2_ONLY = 'l2',        // 仅 Redis 缓存
   L1_AND_L2 = 'both',    // 两级缓存
+}
+
+// 缓存配置接口
+export interface CacheConfig {
+  redis: {
+    host: string;
+    port: number;
+    password?: string;
+    db: number;
+  };
+  local: {
+    stdTTL: number;
+    checkperiod: number;
+    maxKeys: number;
+    useClones: boolean;
+  };
+  strategy: {
+    randomTTLRange: number;
+    nullValueTTL: number;
+    hotDataPrefixes: string[];
+  };
 }
 
 // 缓存选项
@@ -40,8 +61,29 @@ export class CacheService implements OnModuleDestroy {
     sets: 0,
   };
 
-  constructor(config?: Partial<CacheConfig>) {
-    this.config = { ...defaultCacheConfig, ...config };
+  constructor(private readonly configService: ConfigService) {
+    // 从 ConfigService 读取配置
+    this.config = {
+      redis: {
+        host: this.configService.get('cache.redis.host', 'localhost'),
+        port: this.configService.get('cache.redis.port', 6379),
+        password: this.configService.get('cache.redis.password'),
+        db: this.configService.get('cache.redis.db', 1),
+      },
+      local: {
+        stdTTL: this.configService.get('cache.local.stdTTL', 300),
+        checkperiod: this.configService.get('cache.local.checkperiod', 120),
+        maxKeys: this.configService.get('cache.local.maxKeys', 2000),
+        useClones: this.configService.get('cache.local.useClones', false),
+      },
+      strategy: {
+        randomTTLRange: this.configService.get('cache.strategy.randomTTLRange', 60),
+        nullValueTTL: this.configService.get('cache.strategy.nullValueTTL', 120),
+        hotDataPrefixes: this.configService.get('cache.strategy.hotDataPrefixes', [
+          'user:', 'role:', 'permission:', 'plan:', 'config:', 'device:',
+        ]),
+      },
+    };
 
     // 初始化本地缓存
     this.localCache = new NodeCache({

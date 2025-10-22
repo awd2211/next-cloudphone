@@ -32,7 +32,7 @@ export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
   @Post()
-  @RequirePermission('devices.create')
+  @RequirePermission('device.create')
   @ApiOperation({ summary: '创建设备', description: '创建新的云手机设备，自动创建 Docker 容器' })
   @ApiResponse({ status: 201, description: '设备创建中' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
@@ -47,7 +47,7 @@ export class DevicesController {
   }
 
   @Get()
-  @RequirePermission('devices.read')
+  @RequirePermission('device.read')
   @ApiOperation({ summary: '获取设备列表', description: '分页获取设备列表，支持多种筛选条件' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
   @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
@@ -77,7 +77,7 @@ export class DevicesController {
   }
 
   @Get(':id')
-  @RequirePermission('devices.read')
+  @RequirePermission('device.read')
   @ApiOperation({ summary: '获取设备详情', description: '根据 ID 获取设备详细信息' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -92,7 +92,7 @@ export class DevicesController {
   }
 
   @Get(':id/stats')
-  @RequirePermission('devices.read')
+  @RequirePermission('device.read')
   @ApiOperation({ summary: '获取设备统计', description: '获取设备的资源使用统计信息' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -107,7 +107,7 @@ export class DevicesController {
   }
 
   @Patch(':id')
-  @RequirePermission('devices.update')
+  @RequirePermission('device.update')
   @ApiOperation({ summary: '更新设备', description: '更新设备配置信息' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -123,7 +123,7 @@ export class DevicesController {
   }
 
   @Post(':id/start')
-  @RequirePermission('devices.update')
+  @RequirePermission('device.update')
   @ApiOperation({ summary: '启动设备', description: '启动已停止的设备容器' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '启动成功' })
@@ -139,7 +139,7 @@ export class DevicesController {
   }
 
   @Post(':id/stop')
-  @RequirePermission('devices.update')
+  @RequirePermission('device.update')
   @ApiOperation({ summary: '停止设备', description: '停止正在运行的设备容器' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '停止成功' })
@@ -155,7 +155,7 @@ export class DevicesController {
   }
 
   @Post(':id/restart')
-  @RequirePermission('devices.update')
+  @RequirePermission('device.update')
   @ApiOperation({ summary: '重启设备', description: '重启设备容器' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '重启成功' })
@@ -171,7 +171,7 @@ export class DevicesController {
   }
 
   @Post(':id/heartbeat')
-  @RequirePermission('devices.update')
+  @RequirePermission('device.update')
   @ApiOperation({ summary: '更新心跳', description: '更新设备心跳和资源使用情况' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '心跳更新成功' })
@@ -185,7 +185,7 @@ export class DevicesController {
   }
 
   @Delete(':id')
-  @RequirePermission('devices.delete')
+  @RequirePermission('device.delete')
   @ApiOperation({ summary: '删除设备', description: '删除设备并清理相关容器' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '删除成功' })
@@ -202,7 +202,7 @@ export class DevicesController {
   // ADB 相关接口
 
   @Post(':id/shell')
-  @RequirePermission('devices.control')
+  @RequirePermission('device.control')
   @ApiOperation({ summary: '执行 Shell 命令', description: '在设备上执行 ADB shell 命令' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiBody({ type: ShellCommandDto })
@@ -219,7 +219,7 @@ export class DevicesController {
   }
 
   @Post(':id/screenshot')
-  @RequirePermission('devices.control')
+  @RequirePermission('device.control')
   @ApiOperation({ summary: '设备截图', description: '获取设备当前屏幕截图' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '截图成功' })
@@ -231,7 +231,7 @@ export class DevicesController {
   }
 
   @Post(':id/push')
-  @RequirePermission('devices.control')
+  @RequirePermission('device.control')
   @ApiOperation({ summary: '推送文件', description: '从本地推送文件到设备' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiConsumes('multipart/form-data')
@@ -261,7 +261,7 @@ export class DevicesController {
   }
 
   @Post(':id/pull')
-  @RequirePermission('devices.control')
+  @RequirePermission('device.control')
   @ApiOperation({ summary: '拉取文件', description: '从设备拉取文件到本地' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiBody({ type: PullFileDto })
@@ -275,7 +275,7 @@ export class DevicesController {
   }
 
   @Post(':id/install')
-  @RequirePermission('devices.control')
+  @RequirePermission('device.control')
   @ApiOperation({ summary: '安装应用', description: '在设备上安装 APK 应用' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiBody({ type: InstallApkDto })
@@ -291,7 +291,7 @@ export class DevicesController {
   }
 
   @Post(':id/uninstall')
-  @RequirePermission('devices.control')
+  @RequirePermission('device.control')
   @ApiOperation({ summary: '卸载应用', description: '从设备卸载应用' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiBody({ type: UninstallApkDto })
@@ -307,7 +307,7 @@ export class DevicesController {
   }
 
   @Get(':id/packages')
-  @RequirePermission('devices.read')
+  @RequirePermission('device.read')
   @ApiOperation({ summary: '获取已安装应用', description: '获取设备上已安装的应用列表' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -322,7 +322,7 @@ export class DevicesController {
   }
 
   @Get(':id/logcat')
-  @RequirePermission('devices.read')
+  @RequirePermission('device.read')
   @ApiOperation({ summary: '读取日志', description: '读取设备 logcat 日志' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiQuery({ name: 'filter', required: false, description: '日志过滤关键词' })
@@ -343,7 +343,7 @@ export class DevicesController {
   }
 
   @Post(':id/logcat/clear')
-  @RequirePermission('devices.control')
+  @RequirePermission('device.control')
   @ApiOperation({ summary: '清空日志', description: '清空设备 logcat 日志' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '清空成功' })
@@ -358,7 +358,7 @@ export class DevicesController {
   }
 
   @Get(':id/properties')
-  @RequirePermission('devices.read')
+  @RequirePermission('device.read')
   @ApiOperation({ summary: '获取设备属性', description: '获取设备的系统属性信息' })
   @ApiParam({ name: 'id', description: '设备 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })

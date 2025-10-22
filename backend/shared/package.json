@@ -9,6 +9,7 @@
     "watch": "tsc --watch"
   },
   "dependencies": {
+    "@golevelup/nestjs-discovery": "^5.0.0",
     "@golevelup/nestjs-rabbitmq": "^6.0.2",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.1.7",
@@ -27,11 +28,15 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@nestjs/typeorm": "^11.0.0",
     "@types/node": "^24.9.1",
+    "typeorm": "^0.3.27",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0"
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/typeorm": "^10.0.0 || ^11.0.0",
+    "typeorm": "^0.3.0"
   }
 }

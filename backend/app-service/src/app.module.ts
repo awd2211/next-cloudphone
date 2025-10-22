@@ -36,7 +36,7 @@ import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
     AppsModule,
     MinioModule,
     ApkModule,
-    ConsulModule,
+    ConsulModule,  // ✅ 已修复 DiscoveryService 依赖问题
   ],
   controllers: [HealthController],
 })

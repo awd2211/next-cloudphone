@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as Docker from 'dockerode';
+import Dockerode = require('dockerode');
 import { GpuManagerService, GpuConfig } from '../gpu/gpu-manager.service';
 
 export interface RedroidConfig {
@@ -21,7 +21,7 @@ export interface RedroidConfig {
 @Injectable()
 export class DockerService {
   private readonly logger = new Logger(DockerService.name);
-  private docker: Docker;
+  private docker: Dockerode;
 
   constructor(
     private configService: ConfigService,
@@ -30,7 +30,7 @@ export class DockerService {
     const dockerHost =
       this.configService.get('DOCKER_HOST') || '/var/run/docker.sock';
 
-    this.docker = new Docker({
+    this.docker = new Dockerode({
       socketPath: dockerHost,
     });
 
@@ -40,7 +40,7 @@ export class DockerService {
   /**
    * 创建 Redroid 容器（增强版）
    */
-  async createContainer(config: RedroidConfig): Promise<Docker.Container> {
+  async createContainer(config: RedroidConfig): Promise<Dockerode.Container> {
     const imageTag = this.getRedroidImage(config.androidVersion);
 
     // 确保镜像存在
@@ -105,7 +105,7 @@ export class DockerService {
     }
 
     // 容器配置
-    const containerConfig: Docker.ContainerCreateOptions = {
+    const containerConfig: Dockerode.ContainerCreateOptions = {
       name: config.name,
       Image: imageTag,
       Env: env,
@@ -268,7 +268,7 @@ export class DockerService {
     return adbPort ? parseInt(adbPort) : null;
   }
 
-  async listContainers(all: boolean = false): Promise<Docker.ContainerInfo[]> {
+  async listContainers(all: boolean = false): Promise<Dockerode.ContainerInfo[]> {
     return await this.docker.listContainers({ all });
   }
 

@@ -48,7 +48,7 @@ export class UsersController {
   }
 
   @Get('roles')
-  @RequirePermission('roles.read')
+  @RequirePermission('role.read')
   @ApiOperation({ summary: '获取角色列表', description: '获取所有角色列表（用于用户管理）' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
   @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 100 })

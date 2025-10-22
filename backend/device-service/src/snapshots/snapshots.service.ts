@@ -13,7 +13,7 @@ import { RestoreSnapshotDto } from './dto/restore-snapshot.dto';
 import { DockerService } from '../docker/docker.service';
 import { DevicesService } from '../devices/devices.service';
 import { PortManagerService } from '../port-manager/port-manager.service';
-import * as Docker from 'dockerode';
+import Dockerode = require('dockerode');
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
@@ -265,10 +265,10 @@ export class SnapshotsService {
     snapshot: DeviceSnapshot,
     deviceName: string,
     adbPort: number,
-  ): Promise<Docker.Container> {
-    const docker: Docker = this.dockerService['docker'];
+  ): Promise<Dockerode.Container> {
+    const docker: Dockerode = this.dockerService['docker'];
 
-    const containerConfig: Docker.ContainerCreateOptions = {
+    const containerConfig: Dockerode.ContainerCreateOptions = {
       name: deviceName,
       Image: snapshot.imageId,
       Hostname: deviceName,

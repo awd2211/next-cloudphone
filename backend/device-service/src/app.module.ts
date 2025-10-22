@@ -24,19 +24,23 @@ import { EventBusModule, ConsulModule, createLoggerConfig } from '@cloudphone/sh
     }),
     // Pino 日志模块 - 使用统一的增强配置
     LoggerModule.forRoot(createLoggerConfig('device-service')),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'cloudphone_device',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false, // ✅ 使用 Atlas 管理数据库迁移
-      logging: process.env.NODE_ENV === 'development',
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres' as const,
+        host: configService.get<string>('DB_HOST', 'localhost'),
+        port: +configService.get<number>('DB_PORT', 5432),
+        username: configService.get<string>('DB_USERNAME', 'postgres'),
+        password: configService.get<string>('DB_PASSWORD', 'postgres'),
+        database: configService.get<string>('DB_DATABASE', 'cloudphone_device'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: false, // ✅ 使用 Atlas 管理数据库迁移
+        logging: configService.get<string>('NODE_ENV') === 'development',
+      }),
+      inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
-    EventBusModule,  // ✅ 已启用 - RabbitMQ 已配置完成
+    EventBusModule,  // ✅ 已修复 DiscoveryService 依赖问题
     ConsulModule,
     AuthModule,
     DevicesModule,

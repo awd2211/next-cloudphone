@@ -64,9 +64,11 @@ const PERMISSIONS = {
 
   // ==================== 账单管理 ====================
   billing: [
+    { action: 'create', description: '创建账单' },
     { action: 'read', description: '查看账单' },
     { action: 'read_all', description: '查看所有用户账单（财务）' },
     { action: 'update', description: '修改账单状态' },
+    { action: 'delete', description: '删除账单' },
     { action: 'export', description: '导出账单数据（不脱敏）' },
   ],
 

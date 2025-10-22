@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -26,16 +26,20 @@ import { ConsulModule, EventBusModule, createLoggerConfig } from '@cloudphone/sh
     }),
     // Pino 日志模块 - 使用统一的增强配置
     LoggerModule.forRoot(createLoggerConfig('billing-service')),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'cloudphone_billing',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false, // 使用 Atlas 管理迁移
-      logging: process.env.NODE_ENV === 'development',
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres' as const,
+        host: configService.get<string>('DB_HOST', 'localhost'),
+        port: +configService.get<number>('DB_PORT', 5432),
+        username: configService.get<string>('DB_USERNAME', 'postgres'),
+        password: configService.get<string>('DB_PASSWORD', 'postgres'),
+        database: configService.get<string>('DB_DATABASE', 'cloudphone_billing'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: false, // 使用 Atlas 管理迁移
+        logging: configService.get<string>('NODE_ENV') === 'development',
+      }),
+      inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
     AuthModule,
@@ -48,8 +52,8 @@ import { ConsulModule, EventBusModule, createLoggerConfig } from '@cloudphone/sh
     InvoicesModule,
     BillingRulesModule,
     EventsModule, // 事件处理模块
-    ConsulModule,
-    EventBusModule, // ✅ 启用事件总线
+    ConsulModule,     // ✅ 已修复 DiscoveryService 依赖问题
+    EventBusModule,   // ✅ 已修复 DiscoveryService 依赖问题
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
