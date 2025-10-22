@@ -134,6 +134,15 @@ export class ProxyController {
   }
 
   /**
+   * 数据权限元数据路由（公开访问，无需认证）
+   */
+  @Public()
+  @All("data-scopes/meta/*path")
+  async proxyDataScopesMetaPublic(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
    * 数据权限服务路由（精确匹配）
    */
   @UseGuards(JwtAuthGuard)
@@ -419,14 +428,16 @@ export class ProxyController {
         }
       }
 
-      // 添加查询参数
-      if (urlParts[1]) {
-        targetPath += `?${urlParts[1]}`;
-      }
+      // 不要拼接查询参数到 path，而是通过 params 传递
+      // if (urlParts[1]) {
+      //   targetPath += `?${urlParts[1]}`;
+      // }
 
-      this.logger.debug(
-        `Routing ${req.method} ${req.url} -> ${serviceName}${targetPath}`,
+      this.logger.log(
+        `🔀 Routing ${req.method} ${req.url} -> ${serviceName}${targetPath}`,
       );
+      this.logger.log(`📋 查询参数: ${JSON.stringify(req.query)}`);
+      this.logger.log(`👤 用户信息: ${(req as any).user?.username} (${(req as any).user?.id})`);
 
       // 转发请求到目标服务
       const result$ = this.proxyService.proxyRequest(

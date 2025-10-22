@@ -208,7 +208,25 @@ request.interceptors.response.use(
       );
     }
 
-    return response.data;
+    // 智能处理后端返回的数据格式
+    const responseData = response.data;
+    
+    // 如果响应包含 success 字段，保留完整响应（供 hooks 使用）
+    if (responseData && typeof responseData === 'object' && 'success' in responseData) {
+      return responseData;
+    }
+    
+    // 如果后端返回 { data: [...], total, page, limit } 格式（分页数据）
+    if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+      // 对于分页数据，保留完整结构
+      if ('total' in responseData || 'page' in responseData) {
+        return responseData;
+      }
+      // 对于单纯的 {data: ...} 格式，只返回 data
+      return responseData.data;
+    }
+
+    return responseData;
   },
   (error: AxiosError) => {
     // 计算请求耗时

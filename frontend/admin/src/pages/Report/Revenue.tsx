@@ -85,7 +85,7 @@ const RevenueReport = () => {
       title: '收入',
       dataIndex: 'revenue',
       key: 'revenue',
-      render: (revenue: number) => `¥${revenue.toFixed(2)}`,
+      render: (revenue: number) => `¥${(revenue || 0).toFixed(2)}`,
       sorter: (a, b) => a.revenue - b.revenue,
     },
     {
@@ -106,7 +106,7 @@ const RevenueReport = () => {
       title: '收入',
       dataIndex: 'revenue',
       key: 'revenue',
-      render: (revenue: number) => `¥${revenue.toFixed(2)}`,
+      render: (revenue: number) => `¥${(revenue || 0).toFixed(2)}`,
       sorter: (a, b) => a.revenue - b.revenue,
     },
     {
@@ -119,7 +119,7 @@ const RevenueReport = () => {
       title: '占比',
       key: 'percentage',
       render: (_, record) => {
-        const percentage = totalRevenue > 0 ? (record.revenue / totalRevenue * 100).toFixed(2) : 0;
+        const percentage = totalRevenue > 0 ? ((record.revenue || 0) / totalRevenue * 100).toFixed(2) : 0;
         return `${percentage}%`;
       },
     },

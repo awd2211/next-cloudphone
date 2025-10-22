@@ -149,17 +149,17 @@ const TransactionHistory: React.FC = () => {
       width: 130,
       render: (amount: number) => (
         <span style={{ color: amount > 0 ? '#52c41a' : '#ff4d4f', fontWeight: 600 }}>
-          {amount > 0 ? '+' : ''}¥{Math.abs(amount).toFixed(2)}
+          {amount > 0 ? '+' : ''}¥{Math.abs(amount || 0).toFixed(2)}
         </span>
       ),
-      sorter: (a, b) => a.amount - b.amount,
+      sorter: (a, b) => (a.amount || 0) - (b.amount || 0),
     },
     {
       title: '账户余额',
       dataIndex: 'balance',
       key: 'balance',
       width: 120,
-      render: (balance: number) => `¥${balance.toFixed(2)}`,
+      render: (balance: number) => `¥${(balance || 0).toFixed(2)}`,
     },
     {
       title: '交易描述',

@@ -204,7 +204,7 @@ const DataScopeConfig = () => {
         const scopeType_ = scopeTypes.find((s) => s.value === scopeType);
         return (
           <div>
-            <Tag color="green">{scopeType_.label || scopeType}</Tag>
+            <Tag color="green">{scopeType_?.label || scopeType}</Tag>
             <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
               {getScopeDescription(record)}
             </div>

@@ -190,7 +190,7 @@ const OrderList = () => {
       dataIndex: 'amount',
       key: 'amount',
       sorter: (a, b) => a.amount - b.amount,
-      render: (amount: number) => `¥${amount.toFixed(2)}`,
+      render: (amount: number) => `¥${(amount || 0).toFixed(2)}`,
     },
     {
       title: '支付方式',

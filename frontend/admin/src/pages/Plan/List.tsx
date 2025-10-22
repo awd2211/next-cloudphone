@@ -107,7 +107,7 @@ const PlanList = () => {
       title: '价格',
       dataIndex: 'price',
       key: 'price',
-      render: (price: number) => `¥${price.toFixed(2)}`,
+      render: (price: number) => `¥${(price || 0).toFixed(2)}`,
     },
     {
       title: '时长(天)',

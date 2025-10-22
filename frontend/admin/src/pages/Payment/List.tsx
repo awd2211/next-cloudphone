@@ -76,7 +76,7 @@ const PaymentList = () => {
       title: '金额',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount: number) => `¥${amount.toFixed(2)}`,
+      render: (amount: number) => `¥${(amount || 0).toFixed(2)}`,
     },
     {
       title: '支付方式',

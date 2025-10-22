@@ -96,25 +96,25 @@ const UsageList = () => {
       title: 'CPU 使用率',
       dataIndex: 'cpuUsage',
       key: 'cpuUsage',
-      render: (usage: number) => usage ? `${usage.toFixed(2)}%` : '-',
+      render: (usage: number) => usage ? `${(usage || 0).toFixed(2)}%` : '-',
     },
     {
       title: '内存使用',
       dataIndex: 'memoryUsage',
       key: 'memoryUsage',
-      render: (usage: number) => usage ? `${(usage / 1024).toFixed(2)} GB` : '-',
+      render: (usage: number) => usage ? `${((usage || 0) / 1024).toFixed(2)} GB` : '-',
     },
     {
       title: '流量使用',
       dataIndex: 'networkUsage',
       key: 'networkUsage',
-      render: (usage: number) => usage ? `${(usage / 1024 / 1024).toFixed(2)} MB` : '-',
+      render: (usage: number) => usage ? `${((usage || 0) / 1024 / 1024).toFixed(2)} MB` : '-',
     },
     {
       title: '费用',
       dataIndex: 'cost',
       key: 'cost',
-      render: (cost: number) => `¥${cost.toFixed(2)}`,
+      render: (cost: number) => `¥${(cost || 0).toFixed(2)}`,
     },
   ];
 

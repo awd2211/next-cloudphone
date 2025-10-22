@@ -127,9 +127,16 @@ export const useDataScope = () => {
         `/data-scopes${queryParams.toString() ? `?${queryParams}` : ''}`,
       );
 
+      console.log('🔍 useDataScope fetchDataScopes 响应:', response);
+      console.log('📊 response.success:', response.success);
+      console.log('📊 response.data:', response.data);
+      console.log('📊 response.data 长度:', response.data?.length);
+
       if (response.success) {
-        setDataScopes(response.data || []);
-        return response.data as DataScope[];
+        const scopesData = response.data || [];
+        console.log('✅ 设置 dataScopes:', scopesData);
+        setDataScopes(scopesData);
+        return scopesData as DataScope[];
       } else {
         throw new Error(response.message || '获取数据范围失败');
       }

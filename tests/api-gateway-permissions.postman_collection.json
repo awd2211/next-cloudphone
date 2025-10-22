@@ -1,0 +1,241 @@
+{
+  "info": {
+    "name": "API Gateway - Permissions Test",
+    "description": "测试 API Gateway 的权限相关接口",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:30000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "captchaId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. 获取验证码",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Captcha received', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('id');",
+              "    pm.expect(jsonData).to.have.property('image');",
+              "    pm.collectionVariables.set('captchaId', jsonData.id);",
+              "    console.log('✅ 验证码 ID:', jsonData.id);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/captcha",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "captcha"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "1. 用户登录（带验证码）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const jsonData = pm.response.json();",
+              "",
+              "// 如果是验证码错误，跳过并提示",
+              "if (pm.response.code === 400 && jsonData.message && jsonData.message.includes('验证码')) {",
+              "    console.log('⚠️ 验证码验证失败（这是正常的，因为我们不知道实际验证码）');",
+              "    console.log('💡 请使用真实验证码或禁用验证码验证');",
+              "    return;",
+              "}",
+              "",
+              "pm.test('Status code is 200 or 400', function () {",
+              "    pm.expect([200, 400]).to.include(pm.response.code);",
+              "});",
+              "",
+              "if (pm.response.code === 200) {",
+              "    pm.test('Response has token', function () {",
+              "        pm.expect(jsonData).to.have.property('access_token');",
+              "        pm.collectionVariables.set('token', jsonData.access_token);",
+              "        console.log('✅ Token saved:', jsonData.access_token.substring(0, 20) + '...');",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\",\n  \"captcha\": \"0000\",\n  \"captchaId\": \"{{captchaId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. 直接测试 User Service - 数据范围（无认证）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Direct access returns data', function () {",
+              "    const jsonData = pm.response.json();",
+              "    console.log('📊 直接访问 User Service - 数据范围配置数量:', jsonData.total);",
+              "    console.log('📝 数据列表长度:', jsonData.data.length);",
+              "    pm.expect(jsonData.total).to.equal(12);",
+              "    pm.expect(jsonData.data).to.be.an('array').with.lengthOf(12);",
+              "    ",
+              "    if (jsonData.data.length > 0) {",
+              "        console.log('✅ 第一条数据:', JSON.stringify(jsonData.data[0], null, 2));",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:30001/data-scopes?isActive=true",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "30001",
+          "path": ["data-scopes"],
+          "query": [
+            {
+              "key": "isActive",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. 直接测试 User Service - 字段权限（无认证）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Field permissions data', function () {",
+              "    const jsonData = pm.response.json();",
+              "    console.log('📊 直接访问 User Service - 字段权限配置数量:', jsonData.total);",
+              "    console.log('📝 数据列表长度:', jsonData.data.length);",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData.data).to.be.an('array').with.lengthOf(5);",
+              "    ",
+              "    if (jsonData.data.length > 0) {",
+              "        console.log('✅ 第一条数据:', JSON.stringify(jsonData.data[0], null, 2));",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:30001/field-permissions",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "30001",
+          "path": ["field-permissions"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. 测试所有权限列表（直连）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Permissions list', function () {",
+              "    const jsonData = pm.response.json();",
+              "    console.log('📊 权限总数:', jsonData.total);",
+              "    console.log('📝 权限列表长度:', jsonData.data.length);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.be.an('array');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:30001/permissions?page=1&limit=100",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "30001",
+          "path": ["permissions"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

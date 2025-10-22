@@ -15,10 +15,29 @@ const PermissionList = () => {
   const loadPermissions = async () => {
     setLoading(true);
     try {
-      const data = await getPermissions();
-      setPermissions(data);
+      const response = await getPermissions();
+      // 智能处理不同的响应格式
+      let data = response;
+      
+      // 如果有 success 字段，提取 data
+      if (response && typeof response === 'object' && 'success' in response) {
+        data = response.data;
+      }
+      
+      // 确保 data 是数组
+      if (Array.isArray(data)) {
+        setPermissions(data);
+      } else if (data && Array.isArray(data.data)) {
+        // 如果返回的是 {data: [...]} 格式
+        setPermissions(data.data);
+      } else {
+        console.error('权限数据格式错误:', response);
+        setPermissions([]);
+      }
     } catch (error) {
+      console.error('加载权限失败:', error);
       message.error('加载权限列表失败');
+      setPermissions([]);
     } finally {
       setLoading(false);
     }
@@ -63,7 +82,7 @@ const PermissionList = () => {
   };
 
   // 按资源分组
-  const groupedPermissions = permissions.reduce((acc, permission) => {
+  const groupedPermissions = (Array.isArray(permissions) ? permissions : []).reduce((acc, permission) => {
     const resource = permission.resource;
     if (!acc[resource]) {
       acc[resource] = [];

@@ -119,9 +119,16 @@ export const useFieldPermission = () => {
         `/field-permissions${queryParams.toString() ? `?${queryParams}` : ''}`,
       );
 
+      console.log('🔍 useFieldPermission fetchFieldPermissions 响应:', response);
+      console.log('📊 response.success:', response.success);
+      console.log('📊 response.data:', response.data);
+      console.log('📊 response.data 长度:', response.data?.length);
+
       if (response.success) {
-        setFieldPermissions(response.data || []);
-        return response.data as FieldPermission[];
+        const permissionsData = response.data || [];
+        console.log('✅ 设置 fieldPermissions:', permissionsData);
+        setFieldPermissions(permissionsData);
+        return permissionsData as FieldPermission[];
       } else {
         throw new Error(response.message || '获取字段权限失败');
       }

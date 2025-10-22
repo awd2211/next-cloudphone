@@ -377,7 +377,7 @@ const DeviceList = () => {
       width: 100,
       responsive: ['lg'],
       sorter: (a, b) => a.memoryMB - b.memoryMB,
-      render: (memory: number) => `${(memory / 1024).toFixed(1)} GB`,
+      render: (memory: number) => `${((memory || 0) / 1024).toFixed(1)} GB`,
     },
     {
       title: 'IP 地址',

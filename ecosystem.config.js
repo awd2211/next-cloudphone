@@ -10,7 +10,7 @@ module.exports = {
       exec_mode: 'cluster',      // 集群模式（零停机重启）
 
       autorestart: true,
-      watch: true,                   // 🔍 监视文件变化自动重启
+      watch: true,                    // 🔍 监视文件变化自动重启
       ignore_watch: ['node_modules', 'logs', 'dist', '*.log', '.git'],
 
       // 资源限制
@@ -20,8 +20,8 @@ module.exports = {
       restart_delay: 4000,       // 重启延迟4秒
 
       // 🔄 优雅重启 - 零停机部署
-      wait_ready: true,          // 等待应用发送ready信号
-      listen_timeout: 10000,     // ready超时10秒
+      // wait_ready: true,          // 等待应用发送ready信号
+      // listen_timeout: 10000,     // ready超时10秒
       kill_timeout: 5000,        // 强制关闭前等待5秒
 
       env: {
@@ -54,7 +54,7 @@ module.exports = {
       exec_mode: 'cluster',
 
       autorestart: true,
-      watch: true,                   // 🔍 监视文件变化自动重启
+      watch: true,                    // 🔍 监视文件变化自动重启
       ignore_watch: ['node_modules', 'logs', 'dist', '*.log', '.git'],
 
       // 资源限制
@@ -64,8 +64,8 @@ module.exports = {
       restart_delay: 4000,
 
       // 🔄 优雅重启
-      wait_ready: true,
-      listen_timeout: 10000,
+      // wait_ready: true,
+      // listen_timeout: 10000,
       kill_timeout: 5000,
 
       env: {
@@ -98,7 +98,7 @@ module.exports = {
       exec_mode: 'fork',
 
       autorestart: true,
-      watch: true,                   // 🔍 监视文件变化自动重启
+      watch: true,                    // 🔍 监视文件变化自动重启
       ignore_watch: ['node_modules', 'logs', 'dist', '*.log', '.git'],
 
       // 资源限制
@@ -133,7 +133,7 @@ module.exports = {
       exec_mode: 'fork',
 
       autorestart: true,
-      watch: true,                   // 🔍 监视文件变化自动重启
+      watch: true,                    // 🔍 监视文件变化自动重启
       ignore_watch: ['node_modules', 'logs', 'dist', '*.log', '.git'],
 
       // 资源限制
@@ -168,7 +168,7 @@ module.exports = {
       exec_mode: 'fork',
 
       autorestart: true,
-      watch: true,                   // 🔍 监视文件变化自动重启
+      watch: true,                    // 🔍 监视文件变化自动重启
       ignore_watch: ['node_modules', 'logs', 'dist', '*.log', '.git'],
 
       // 资源限制
@@ -203,7 +203,7 @@ module.exports = {
       exec_mode: 'fork',
 
       autorestart: true,
-      watch: true,                   // 🔍 监视文件变化自动重启
+      watch: true,                    // 🔍 监视文件变化自动重启
       ignore_watch: ['node_modules', 'logs', 'dist', '*.log', '.git'],
 
       // 资源限制
@@ -225,6 +225,64 @@ module.exports = {
 
       error_file: './logs/notification-service-error.log',
       out_file: './logs/notification-service-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true
+    },
+    {
+      name: 'frontend-admin',
+      script: 'pnpm',
+      args: 'run dev',
+      cwd: './frontend/admin',
+
+      // 🎨 前端开发服务器
+      instances: 1,
+      exec_mode: 'fork',
+
+      autorestart: true,
+      watch: false,
+
+      // 资源限制
+      max_memory_restart: '512M',
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000,
+
+      env: {
+        NODE_ENV: 'development',
+        PORT: 5173
+      },
+
+      error_file: './logs/frontend-admin-error.log',
+      out_file: './logs/frontend-admin-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true
+    },
+    {
+      name: 'frontend-user',
+      script: 'pnpm',
+      args: 'run dev',
+      cwd: './frontend/user',
+
+      // 🎨 前端开发服务器
+      instances: 1,
+      exec_mode: 'fork',
+
+      autorestart: true,
+      watch: false,
+
+      // 资源限制
+      max_memory_restart: '512M',
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000,
+
+      env: {
+        NODE_ENV: 'development',
+        PORT: 5174
+      },
+
+      error_file: './logs/frontend-user-error.log',
+      out_file: './logs/frontend-user-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
       merge_logs: true
     }

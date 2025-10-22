@@ -74,7 +74,7 @@ const AppList = () => {
     { title: '应用名称', dataIndex: 'name', key: 'name' },
     { title: '包名', dataIndex: 'packageName', key: 'packageName', ellipsis: true },
     { title: '版本', dataIndex: 'versionName', key: 'versionName', render: (versionName: string, record) => `${versionName} (${record.versionCode})` },
-    { title: '大小', dataIndex: 'size', key: 'size', render: (size: number) => `${(size / 1024 / 1024).toFixed(2)} MB` },
+    { title: '大小', dataIndex: 'size', key: 'size', render: (size: number) => `${((size || 0) / 1024 / 1024).toFixed(2)} MB` },
     { title: '分类', dataIndex: 'category', key: 'category' },
     { title: '上传时间', dataIndex: 'createdAt', key: 'createdAt', render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm') },
     { title: '操作', key: 'action', width: 150, fixed: 'right', render: (_, record) => (

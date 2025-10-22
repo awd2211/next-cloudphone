@@ -91,7 +91,7 @@ const UserList = () => {
     { title: '用户名', dataIndex: 'username', key: 'username', sorter: (a, b) => a.username.localeCompare(b.username) },
     { title: '邮箱', dataIndex: 'email', key: 'email', sorter: (a, b) => (a.email || '').localeCompare(b.email || '') },
     { title: '手机号', dataIndex: 'phone', key: 'phone', sorter: (a, b) => (a.phone || '').localeCompare(b.phone || '') },
-    { title: '余额', dataIndex: 'balance', key: 'balance', sorter: (a, b) => a.balance - b.balance, render: (balance: number) => `¥${balance.toFixed(2)}` },
+    { title: '余额', dataIndex: 'balance', key: 'balance', sorter: (a, b) => (a.balance || 0) - (b.balance || 0), render: (balance: number) => `¥${(balance || 0).toFixed(2)}` },
     { title: '角色', dataIndex: 'roles', key: 'roles', render: (roles: any[]) => <>{roles?.map((role) => <Tag key={role.id} color="blue">{role.name}</Tag>)}</> },
     { title: '状态', dataIndex: 'status', key: 'status', sorter: (a, b) => a.status.localeCompare(b.status), render: (status: string) => {
       const statusMap: Record<string, { color: string; text: string }> = {
@@ -133,7 +133,7 @@ const UserList = () => {
       </Modal>
       <Modal title={balanceType === 'recharge' ? '充值余额' : '扣减余额'} open={balanceModalVisible} onCancel={() => { setBalanceModalVisible(false); balanceForm.resetFields(); }} onOk={() => balanceForm.submit()}>
         <Form form={balanceForm} onFinish={handleBalanceOperation} layout="vertical">
-          <Form.Item label="当前余额"><Input value={`¥${selectedUser?.balance.toFixed(2) || 0}`} disabled /></Form.Item>
+          <Form.Item label="当前余额"><Input value={`¥${(selectedUser?.balance || 0).toFixed(2)}`} disabled /></Form.Item>
           <Form.Item label="金额" name="amount" rules={[{ required: true, message: '请输入金额' }]}><InputNumber min={0.01} precision={2} style={{ width: '100%' }} placeholder="请输入金额" prefix="¥" /></Form.Item>
           {balanceType === 'deduct' && <Form.Item label="原因" name="reason"><Input.TextArea placeholder="请输入扣减原因" rows={3} /></Form.Item>}
         </Form>

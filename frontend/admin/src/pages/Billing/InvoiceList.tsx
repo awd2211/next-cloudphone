@@ -141,9 +141,9 @@ const InvoiceList: React.FC = () => {
       key: 'amount',
       width: 130,
       render: (amount: number) => (
-        <span style={{ fontWeight: 600 }}>¥{amount.toFixed(2)}</span>
+        <span style={{ fontWeight: 600 }}>¥{(amount || 0).toFixed(2)}</span>
       ),
-      sorter: (a, b) => a.amount - b.amount,
+      sorter: (a, b) => (a.amount || 0) - (b.amount || 0),
     },
     {
       title: '开票日期',
@@ -226,7 +226,7 @@ const InvoiceList: React.FC = () => {
       dataIndex: 'unitPrice',
       key: 'unitPrice',
       width: 120,
-      render: (price: number) => `¥${price.toFixed(2)}`,
+      render: (price: number) => `¥${(price || 0).toFixed(2)}`,
     },
     {
       title: '小计',
@@ -234,7 +234,7 @@ const InvoiceList: React.FC = () => {
       key: 'amount',
       width: 130,
       render: (amount: number) => (
-        <span style={{ fontWeight: 600 }}>¥{amount.toFixed(2)}</span>
+        <span style={{ fontWeight: 600 }}>¥{(amount || 0).toFixed(2)}</span>
       ),
     },
   ];

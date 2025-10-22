@@ -3,32 +3,33 @@ import type { Role, Permission, PaginationParams, PaginatedResponse } from '@/ty
 
 // 角色列表
 export const getRoles = (params?: PaginationParams) => {
-  return request.get<PaginatedResponse<Role>>('/users/roles', { params });
+  return request.get<PaginatedResponse<Role>>('/roles', { params });
 };
 
 // 获取角色详情
 export const getRole = (id: string) => {
-  return request.get<Role>(`/users/roles/${id}`);
+  return request.get<Role>(`/roles/${id}`);
 };
 
 // 创建角色
 export const createRole = (data: { name: string; description?: string; permissionIds: string[] }) => {
-  return request.post<Role>('/users/roles', data);
+  return request.post<Role>('/roles', data);
 };
 
 // 更新角色
 export const updateRole = (id: string, data: { name?: string; description?: string; permissionIds?: string[] }) => {
-  return request.patch<Role>(`/users/roles/${id}`, data);
+  return request.patch<Role>(`/roles/${id}`, data);
 };
 
 // 删除角色
 export const deleteRole = (id: string) => {
-  return request.delete(`/users/roles/${id}`);
+  return request.delete(`/roles/${id}`);
 };
 
 // 获取所有权限
 export const getPermissions = () => {
-  return request.get<Permission[]>('/permissions');
+  // 获取所有权限，设置一个很大的 limit
+  return request.get<Permission[]>('/permissions', { params: { page: 1, limit: 1000 } });
 };
 
 // 创建权限
@@ -48,5 +49,5 @@ export const deletePermission = (id: string) => {
 
 // 为角色分配权限
 export const assignPermissionsToRole = (roleId: string, permissionIds: string[]) => {
-  return request.post(`/users/roles/${roleId}/permissions`, { permissionIds });
+  return request.post(`/roles/${roleId}/permissions`, { permissionIds });
 };

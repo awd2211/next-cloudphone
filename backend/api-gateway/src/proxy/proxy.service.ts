@@ -284,10 +284,12 @@ export class ProxyService {
       config.data = data;
     }
 
-    this.logger.debug(`Proxying ${method} ${url}`);
+    this.logger.log(`📤 Proxying ${method} ${url}`);
+    this.logger.log(`📋 Config: ${JSON.stringify({url: config.url, params: config.params, method: config.method})}`);
 
     try {
       const response = await this.httpService.axiosRef.request(config);
+      this.logger.log(`✅ Response from ${serviceName}: status=${response.status}, data keys=${Object.keys(response.data || {})}`);
       return response.data;
     } catch (error: any) {
       const axiosError = error as AxiosError;

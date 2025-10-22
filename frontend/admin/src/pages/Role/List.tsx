@@ -42,10 +42,29 @@ const RoleList = () => {
 
   const loadPermissions = async () => {
     try {
-      const data = await getPermissions();
-      setPermissions(data);
+      const response = await getPermissions();
+      // 智能处理不同的响应格式
+      let data = response;
+      
+      // 如果有 success 字段，提取 data
+      if (response && typeof response === 'object' && 'success' in response) {
+        data = response.data;
+      }
+      
+      // 确保 data 是数组
+      if (Array.isArray(data)) {
+        setPermissions(data);
+      } else if (data && Array.isArray(data.data)) {
+        // 如果返回的是 {data: [...]} 格式
+        setPermissions(data.data);
+      } else {
+        console.error('权限数据格式错误:', response);
+        setPermissions([]);
+      }
     } catch (error) {
+      console.error('加载权限失败:', error);
       message.error('加载权限列表失败');
+      setPermissions([]);
     }
   };
 
@@ -186,7 +205,7 @@ const RoleList = () => {
     },
   ];
 
-  const transferDataSource: TransferItem[] = permissions.map(p => ({
+  const transferDataSource: TransferItem[] = (Array.isArray(permissions) ? permissions : []).map(p => ({
     key: p.id,
     title: `${p.resource}:${p.action}`,
     description: p.description,
@@ -194,6 +213,10 @@ const RoleList = () => {
 
   // 将权限转换为树形结构
   const permissionsToTree = (): DataNode[] => {
+    if (!Array.isArray(permissions)) {
+      return [];
+    }
+    
     const grouped = permissions.reduce((acc, permission) => {
       if (!acc[permission.resource]) {
         acc[permission.resource] = [];
