@@ -18,6 +18,11 @@ const RevenueReport = lazy(() => import('@/pages/Report/Revenue'));
 const Analytics = lazy(() => import('@/pages/Report/Analytics'));
 const UsageList = lazy(() => import('@/pages/Usage/List'));
 const PaymentList = lazy(() => import('@/pages/Payment/List'));
+const PaymentDashboard = lazy(() => import('@/pages/Payment/Dashboard'));
+const RefundManagement = lazy(() => import('@/pages/Payment/RefundManagement'));
+const PaymentConfig = lazy(() => import('@/pages/Payment/Config'));
+const WebhookLogs = lazy(() => import('@/pages/Payment/WebhookLogs'));
+const ExceptionPayments = lazy(() => import('@/pages/Payment/ExceptionPayments'));
 const RoleList = lazy(() => import('@/pages/Role/List'));
 const PermissionList = lazy(() => import('@/pages/Permission/List'));
 const DataScopeConfig = lazy(() => import('@/pages/Permission/DataScope'));
@@ -109,6 +114,26 @@ export const router = createBrowserRouter([
       {
         path: 'payments',
         element: withSuspense(PaymentList),
+      },
+      {
+        path: 'payments/dashboard',
+        element: withSuspense(PaymentDashboard),
+      },
+      {
+        path: 'payments/refunds',
+        element: withSuspense(RefundManagement),
+      },
+      {
+        path: 'payments/config',
+        element: withSuspense(PaymentConfig),
+      },
+      {
+        path: 'payments/webhooks',
+        element: withSuspense(WebhookLogs),
+      },
+      {
+        path: 'payments/exceptions',
+        element: withSuspense(ExceptionPayments),
       },
       {
         path: 'roles',

@@ -6,7 +6,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import * as redisStore from 'cache-manager-redis-store';
-import { createLoggerConfig } from '@cloudphone/shared';
+import { createLoggerConfig, ConsulModule } from '@cloudphone/shared';
 import { HealthController } from './health/health.controller';
 import { TasksService } from './tasks/tasks.service';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -77,6 +77,9 @@ import { NotificationTemplate } from './entities/notification-template.entity';
 
     // ========== RabbitMQ 消息队列 ==========
     CloudphoneRabbitMQModule,
+
+    // ========== Consul 服务注册 ==========
+    ConsulModule,
   ],
   controllers: [
     HealthController,

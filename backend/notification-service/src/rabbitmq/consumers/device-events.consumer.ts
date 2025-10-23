@@ -10,7 +10,7 @@ import {
   DeviceConnectionLostEvent,
   DeviceDeletedEvent,
   NotificationEventTypes,
-} from '@cloudphone/shared';
+} from '../../types/events';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { EmailService } from '../../email/email.service';
 import { TemplatesService } from '../../templates/templates.service';

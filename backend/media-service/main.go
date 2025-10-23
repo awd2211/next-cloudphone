@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/cloudphone/media-service/internal/config"
+	"github.com/cloudphone/media-service/internal/consul"
 	"github.com/cloudphone/media-service/internal/handlers"
 	"github.com/cloudphone/media-service/internal/logger"
 	"github.com/cloudphone/media-service/internal/metrics"
 	"github.com/cloudphone/media-service/internal/middleware"
+	"github.com/cloudphone/media-service/internal/rabbitmq"
 	"github.com/cloudphone/media-service/internal/webrtc"
 	"github.com/cloudphone/media-service/internal/websocket"
 	"github.com/gin-contrib/cors"
@@ -81,6 +83,47 @@ func main() {
 	// 启动资源监控（每10秒采集一次）
 	metrics.StartResourceMonitor(10 * time.Second)
 
+	// ========== 初始化 RabbitMQ 发布者 ==========
+	var eventPublisher *rabbitmq.Publisher
+	if cfg.RabbitMQEnabled {
+		var err error
+		eventPublisher, err = rabbitmq.NewPublisher(cfg.RabbitMQURL)
+		if err != nil {
+			logger.Warn("rabbitmq_initialization_failed",
+				zap.Error(err),
+				zap.String("note", "continuing without event publishing"),
+			)
+		} else {
+			logger.Info("rabbitmq_publisher_initialized",
+				zap.String("url_masked", "amqp://***:***@***"),
+			)
+		}
+	}
+
+	// ========== 注册到 Consul ==========
+	var consulClient *consul.Client
+	if cfg.ConsulEnabled {
+		var err error
+		consulClient, err = consul.NewClient(cfg)
+		if err != nil {
+			logger.Warn("consul_client_creation_failed",
+				zap.Error(err),
+				zap.String("note", "continuing without service registration"),
+			)
+		} else {
+			err = consulClient.RegisterService()
+			if err != nil {
+				logger.Warn("consul_registration_failed",
+					zap.Error(err),
+				)
+			} else {
+				logger.Info("consul_registration_successful",
+					zap.String("service_name", cfg.ServiceName),
+				)
+			}
+		}
+	}
+
 	// API 路由
 	api := router.Group("/api/media")
 	{
@@ -134,6 +177,15 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// ========== 从 Consul 注销服务 ==========
+	if consulClient != nil {
+		if err := consulClient.DeregisterService(); err != nil {
+			logger.Error("consul_deregistration_failed", zap.Error(err))
+		} else {
+			logger.Info("consul_deregistration_successful")
+		}
+	}
+
 	// 优雅关闭 HTTP 服务器
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("server_shutdown_error", zap.Error(err))
@@ -151,5 +203,16 @@ func main() {
 		}
 	}
 
-	logger.Info("server_stopped", zap.Int("closed_sessions", len(allSessions)))
+	// ========== 关闭 RabbitMQ 连接 ==========
+	if eventPublisher != nil {
+		if err := eventPublisher.Close(); err != nil {
+			logger.Error("rabbitmq_close_failed", zap.Error(err))
+		}
+	}
+
+	logger.Info("server_stopped",
+		zap.Int("closed_sessions", len(allSessions)),
+		zap.Bool("consul_enabled", cfg.ConsulEnabled),
+		zap.Bool("rabbitmq_enabled", cfg.RabbitMQEnabled),
+	)
 }

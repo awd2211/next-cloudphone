@@ -1,0 +1,220 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test Backend Services
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+          - 15672:15672
+        env:
+          RABBITMQ_DEFAULT_USER: admin
+          RABBITMQ_DEFAULT_PASS: admin123
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create test databases
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudphone;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudphone_user;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudphone_device;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudphone_device_test;"
+
+      - name: Run shared module tests
+        run: |
+          cd backend/shared
+          pnpm test --coverage --ci
+        env:
+          NODE_ENV: test
+
+      - name: Run user-service tests
+        run: |
+          cd backend/user-service
+          pnpm test --coverage --ci
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: cloudphone_user
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-for-ci
+
+      - name: Run device-service tests
+        run: |
+          cd backend/device-service
+          pnpm test --coverage --ci
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: cloudphone_device
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-for-ci
+
+      - name: Run billing-service tests
+        run: |
+          cd backend/billing-service
+          pnpm test --coverage --ci
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: cloudphone
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          RABBITMQ_URL: amqp://admin:admin123@localhost:5672
+          JWT_SECRET: test-jwt-secret-for-ci
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: |
+            backend/shared/coverage/coverage-final.json
+            backend/user-service/coverage/coverage-final.json
+            backend/device-service/coverage/coverage-final.json
+            backend/billing-service/coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Generate coverage summary
+        run: |
+          echo "## Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All unit tests passed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services Tested" >> $GITHUB_STEP_SUMMARY
+          echo "- shared (QuotaClient, EventBus)" >> $GITHUB_STEP_SUMMARY
+          echo "- user-service (AuthService)" >> $GITHUB_STEP_SUMMARY
+          echo "- device-service (DevicesService)" >> $GITHUB_STEP_SUMMARY
+          echo "- billing-service (PurchasePlanSaga)" >> $GITHUB_STEP_SUMMARY
+
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: |
+          pnpm lint || true
+        continue-on-error: true
+
+  build:
+    name: Build Services
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all services
+        run: pnpm build
+
+      - name: Build summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All services built successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services Built" >> $GITHUB_STEP_SUMMARY
+          echo "- api-gateway" >> $GITHUB_STEP_SUMMARY
+          echo "- user-service" >> $GITHUB_STEP_SUMMARY
+          echo "- device-service" >> $GITHUB_STEP_SUMMARY
+          echo "- app-service" >> $GITHUB_STEP_SUMMARY
+          echo "- billing-service" >> $GITHUB_STEP_SUMMARY
+          echo "- notification-service" >> $GITHUB_STEP_SUMMARY

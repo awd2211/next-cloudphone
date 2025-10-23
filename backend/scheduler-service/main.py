@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -14,6 +14,10 @@ from models import (
 )
 from scheduler import DeviceScheduler
 from logger import get_logger
+from middleware import PrometheusMiddleware
+from metrics import get_metrics, get_content_type
+from rabbitmq import init_event_bus, close_event_bus, get_event_bus
+from consul_client import init_consul, close_consul
 
 # 创建 logger
 logger = get_logger(__name__, service="scheduler-service")
@@ -25,6 +29,9 @@ app = FastAPI(
     title="云手机平台 - 调度服务",
     description="设备调度、任务编排、负载均衡服务",
     version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
 )
 
 # 配置 CORS
@@ -35,6 +42,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 添加 Prometheus 监控中间件
+app.add_middleware(PrometheusMiddleware)
 
 
 @app.on_event("startup")
@@ -47,8 +57,75 @@ async def startup_event():
         log_level=os.getenv("LOG_LEVEL", "DEBUG"),
     )
 
+    # Initialize RabbitMQ event bus
+    try:
+        await init_event_bus(settings.RABBITMQ_URL)
+        logger.info("event_bus_initialized", url_masked="amqp://***:***@***")
+    except Exception as e:
+        logger.error(
+            "event_bus_initialization_failed",
+            error=str(e),
+            exc_info=True,
+        )
 
-@app.get("/health")
+    # Register service with Consul
+    if settings.CONSUL_ENABLED:
+        try:
+            init_consul(
+                host=settings.CONSUL_HOST,
+                port=settings.CONSUL_PORT,
+                service_name=settings.SERVICE_NAME,
+                service_host=settings.SERVICE_HOST,
+                service_port=settings.SERVICE_PORT,
+            )
+            logger.info(
+                "consul_registration_successful",
+                service_name=settings.SERVICE_NAME,
+            )
+        except Exception as e:
+            logger.error(
+                "consul_registration_failed",
+                error=str(e),
+                exc_info=True,
+            )
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """关闭事件"""
+    logger.info("scheduler_service_shutting_down")
+
+    # Deregister from Consul
+    if settings.CONSUL_ENABLED:
+        try:
+            close_consul()
+            logger.info("consul_deregistration_successful")
+        except Exception as e:
+            logger.error(
+                "consul_deregistration_failed",
+                error=str(e),
+                exc_info=True,
+            )
+
+    # Close RabbitMQ connection
+    try:
+        await close_event_bus()
+        logger.info("event_bus_closed")
+    except Exception as e:
+        logger.error(
+            "event_bus_close_failed",
+            error=str(e),
+            exc_info=True,
+        )
+
+
+@app.get(
+    "/health",
+    tags=["health"],
+    summary="Health Check",
+    description="Check if the service is healthy and running",
+    response_description="Service health status",
+)
 async def health_check():
     """健康检查接口"""
     return {
@@ -59,7 +136,25 @@ async def health_check():
     }
 
 
-@app.get("/api/scheduler/devices/available")
+@app.get(
+    "/metrics",
+    tags=["monitoring"],
+    summary="Prometheus Metrics",
+    description="Get Prometheus metrics for monitoring",
+    response_description="Metrics in Prometheus text format",
+)
+async def metrics():
+    """Prometheus metrics endpoint"""
+    return Response(content=get_metrics(), media_type=get_content_type())
+
+
+@app.get(
+    "/api/scheduler/devices/available",
+    tags=["devices"],
+    summary="Get Available Devices",
+    description="Get list of available devices for allocation",
+    response_description="List of available devices with their status",
+)
 async def get_available_devices(db: Session = Depends(get_db)):
     """获取可用设备列表"""
     try:
@@ -85,7 +180,14 @@ async def get_available_devices(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/scheduler/devices/allocate", response_model=dict)
+@app.post(
+    "/api/scheduler/devices/allocate",
+    response_model=dict,
+    tags=["devices"],
+    summary="Allocate Device",
+    description="Allocate a device to a user based on scheduling strategy",
+    response_description="Allocation details including device info and expiry",
+)
 async def allocate_device(
     request: AllocationRequest,
     db: Session = Depends(get_db),
@@ -125,7 +227,13 @@ async def allocate_device(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/scheduler/devices/release")
+@app.post(
+    "/api/scheduler/devices/release",
+    tags=["devices"],
+    summary="Release Device",
+    description="Release an allocated device and make it available",
+    response_description="Release confirmation with duration",
+)
 async def release_device(
     request: ReleaseRequest,
     db: Session = Depends(get_db),
@@ -166,7 +274,13 @@ async def release_device(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/scheduler/stats")
+@app.get(
+    "/api/scheduler/stats",
+    tags=["statistics"],
+    summary="Get Scheduling Statistics",
+    description="Get allocation statistics and metrics",
+    response_description="Statistics about allocations and strategy",
+)
 async def get_stats(db: Session = Depends(get_db)):
     """获取调度统计信息"""
     try:
@@ -181,7 +295,13 @@ async def get_stats(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/scheduler/allocations")
+@app.get(
+    "/api/scheduler/allocations",
+    tags=["allocations"],
+    summary="Get Allocation Records",
+    description="Get device allocation records with optional filters",
+    response_description="List of allocation records",
+)
 async def get_allocations(
     user_id: str = None,
     status: str = None,
@@ -223,7 +343,13 @@ async def get_allocations(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/scheduler/config")
+@app.get(
+    "/api/scheduler/config",
+    tags=["configuration"],
+    summary="Get Scheduler Configuration",
+    description="Get current scheduler configuration and settings",
+    response_description="Scheduler configuration details",
+)
 async def get_config():
     """获取调度配置信息"""
     return {

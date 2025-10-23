@@ -1,0 +1,137 @@
+version: '3.8'
+
+# E2E Test Environment
+# This compose file creates an isolated environment for running E2E tests
+
+services:
+  # PostgreSQL for E2E tests
+  postgres-e2e:
+    image: postgres:14-alpine
+    container_name: cloudphone-postgres-e2e
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cloudphone_test
+    ports:
+      - "5433:5432"  # Different port to avoid conflict
+    volumes:
+      - postgres-e2e-data:/var/lib/postgresql/data
+      - ../database/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql
+      - ../database/init-permissions.sql:/docker-entrypoint-initdb.d/02-init-permissions.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - e2e-network
+
+  # Redis for E2E tests
+  redis-e2e:
+    image: redis:7-alpine
+    container_name: cloudphone-redis-e2e
+    ports:
+      - "6380:6379"  # Different port to avoid conflict
+    volumes:
+      - redis-e2e-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - e2e-network
+
+  # RabbitMQ for E2E tests
+  rabbitmq-e2e:
+    image: rabbitmq:3-management-alpine
+    container_name: cloudphone-rabbitmq-e2e
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_DEFAULT_VHOST: cloudphone
+    ports:
+      - "5673:5672"   # AMQP port (different from dev)
+      - "15673:15672" # Management UI (different from dev)
+    volumes:
+      - rabbitmq-e2e-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - e2e-network
+
+  # MinIO for E2E tests
+  minio-e2e:
+    image: minio/minio:latest
+    container_name: cloudphone-minio-e2e
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9001:9000"   # API port (different from dev)
+      - "9091:9001"   # Console port (different from dev)
+    volumes:
+      - minio-e2e-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - e2e-network
+
+  # Consul for E2E tests (optional)
+  consul-e2e:
+    image: hashicorp/consul:latest
+    container_name: cloudphone-consul-e2e
+    command: agent -server -ui -bootstrap-expect=1 -client=0.0.0.0
+    environment:
+      CONSUL_BIND_INTERFACE: eth0
+    ports:
+      - "8501:8500"  # HTTP API (different from dev)
+      - "8601:8600"  # DNS (different from dev)
+    volumes:
+      - consul-e2e-data:/consul/data
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - e2e-network
+
+  # Wait for services (helper container)
+  wait-for-services:
+    image: busybox:latest
+    container_name: cloudphone-wait-e2e
+    depends_on:
+      postgres-e2e:
+        condition: service_healthy
+      redis-e2e:
+        condition: service_healthy
+      rabbitmq-e2e:
+        condition: service_healthy
+    command: echo "All services are ready!"
+    networks:
+      - e2e-network
+
+networks:
+  e2e-network:
+    driver: bridge
+    name: cloudphone-e2e-network
+
+volumes:
+  postgres-e2e-data:
+    name: cloudphone-postgres-e2e-data
+  redis-e2e-data:
+    name: cloudphone-redis-e2e-data
+  rabbitmq-e2e-data:
+    name: cloudphone-rabbitmq-e2e-data
+  minio-e2e-data:
+    name: cloudphone-minio-e2e-data
+  consul-e2e-data:
+    name: cloudphone-consul-e2e-data

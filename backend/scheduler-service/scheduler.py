@@ -7,6 +7,20 @@ from models import AllocationRequest, AllocationResponse, DeviceInfo, Scheduling
 from config import settings
 import uuid
 from logger import get_logger
+from rabbitmq import get_event_bus
+from metrics import (
+    device_allocations_total,
+    device_releases_total,
+    active_allocations,
+    allocation_duration_seconds,
+    scheduling_decisions_total,
+    available_devices as available_devices_gauge,
+    allocated_devices as allocated_devices_gauge,
+    errors_total,
+    device_service_calls_total,
+    device_service_call_duration_seconds,
+)
+import time
 
 # 创建 logger
 logger = get_logger(__name__, component="scheduler")
@@ -38,6 +52,24 @@ class DeviceScheduler:
                 user_id=request.user_id,
                 tenant_id=request.tenant_id,
             )
+
+            # 发布调度失败事件
+            event_bus = get_event_bus()
+            if event_bus:
+                try:
+                    await event_bus.publish_scheduling_failed(
+                        user_id=request.user_id,
+                        tenant_id=request.tenant_id,
+                        reason="no_available_devices",
+                        available_devices=0,
+                    )
+                except Exception as e:
+                    logger.error(
+                        "event_publish_failed",
+                        error=str(e),
+                        event_type="scheduling_failed",
+                    )
+
             raise ValueError("没有可用设备")
 
         logger.debug(
@@ -80,6 +112,37 @@ class DeviceScheduler:
 
         # 计算过期时间
         expires_at = datetime.utcnow() + timedelta(minutes=request.duration_minutes)
+
+        # 记录指标
+        device_allocations_total.labels(
+            status="success",
+            tenant_id=request.tenant_id or "unknown"
+        ).inc()
+
+        # 更新活跃分配数
+        active_count = self.db.query(DeviceAllocation).filter(
+            DeviceAllocation.status == "allocated"
+        ).count()
+        active_allocations.set(active_count)
+
+        # 发布事件到 RabbitMQ
+        event_bus = get_event_bus()
+        if event_bus:
+            try:
+                await event_bus.publish_device_allocated(
+                    device_id=selected_device['id'],
+                    user_id=request.user_id,
+                    tenant_id=request.tenant_id,
+                    allocation_id=allocation.id,
+                    allocated_at=allocation.allocated_at.isoformat(),
+                    expires_at=expires_at.isoformat(),
+                )
+            except Exception as e:
+                logger.error(
+                    "event_publish_failed",
+                    error=str(e),
+                    event_type="device_allocated",
+                )
 
         logger.info(
             "device_allocation_completed",
@@ -134,6 +197,34 @@ class DeviceScheduler:
 
         self.db.commit()
 
+        # 记录指标
+        device_releases_total.labels(status="success").inc()
+        allocation_duration_seconds.observe(allocation.duration_seconds)
+
+        # 更新活跃分配数
+        active_count = self.db.query(DeviceAllocation).filter(
+            DeviceAllocation.status == "allocated"
+        ).count()
+        active_allocations.set(active_count)
+
+        # 发布事件到 RabbitMQ
+        event_bus = get_event_bus()
+        if event_bus:
+            try:
+                await event_bus.publish_device_released(
+                    device_id=device_id,
+                    user_id=allocation.user_id,
+                    allocation_id=allocation.id,
+                    released_at=allocation.released_at.isoformat(),
+                    duration_seconds=allocation.duration_seconds,
+                )
+            except Exception as e:
+                logger.error(
+                    "event_publish_failed",
+                    error=str(e),
+                    event_type="device_released",
+                )
+
         logger.info(
             "device_release_completed",
             allocation_id=allocation.id,
@@ -150,6 +241,7 @@ class DeviceScheduler:
 
     async def get_available_devices(self) -> List[dict]:
         """获取可用设备列表"""
+        start_time = time.time()
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
@@ -157,13 +249,22 @@ class DeviceScheduler:
                     params={"status": "running", "limit": 100}
                 )
 
+                # 记录调用时长
+                duration = time.time() - start_time
+                device_service_call_duration_seconds.observe(duration)
+
                 if response.status_code == 200:
+                    device_service_calls_total.labels(status="success").inc()
                     data = response.json()
                     devices = data.get('data', [])
 
                     # 过滤掉已分配的设备
                     allocated_device_ids = self.get_allocated_device_ids()
                     available = [d for d in devices if d['id'] not in allocated_device_ids]
+
+                    # 更新指标
+                    available_devices_gauge.set(len(available))
+                    allocated_devices_gauge.set(len(allocated_device_ids))
 
                     logger.debug(
                         "devices_fetched",
@@ -174,6 +275,7 @@ class DeviceScheduler:
 
                     return available
                 else:
+                    device_service_calls_total.labels(status="error").inc()
                     logger.warning(
                         "device_service_error",
                         status_code=response.status_code,
@@ -181,6 +283,11 @@ class DeviceScheduler:
                     )
                     return []
         except Exception as e:
+            device_service_calls_total.labels(status="exception").inc()
+            errors_total.labels(
+                error_type=type(e).__name__,
+                endpoint="get_available_devices"
+            ).inc()
             logger.error(
                 "fetch_devices_failed",
                 error=str(e),
@@ -208,16 +315,26 @@ class DeviceScheduler:
             candidate_count=len(devices),
         )
 
+        result = None
+
         if self.strategy == SchedulingStrategy.ROUND_ROBIN:
-            return self._round_robin(devices)
+            result = self._round_robin(devices)
         elif self.strategy == SchedulingStrategy.LEAST_CONNECTION:
-            return self._least_connection(devices)
+            result = self._least_connection(devices)
         elif self.strategy == SchedulingStrategy.WEIGHTED_ROUND_ROBIN:
-            return self._weighted_round_robin(devices)
+            result = self._weighted_round_robin(devices)
         elif self.strategy == SchedulingStrategy.RESOURCE_BASED:
-            return self._resource_based(devices)
+            result = self._resource_based(devices)
         else:
-            return devices[0]
+            result = devices[0]
+
+        # 记录调度决策
+        scheduling_decisions_total.labels(
+            strategy=self.strategy,
+            result="success" if result else "failure"
+        ).inc()
+
+        return result
 
     def _round_robin(self, devices: List[dict]) -> dict:
         """轮询策略"""

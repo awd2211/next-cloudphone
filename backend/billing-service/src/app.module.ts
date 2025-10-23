@@ -36,7 +36,7 @@ import { ConsulModule, EventBusModule, createLoggerConfig } from '@cloudphone/sh
         password: configService.get<string>('DB_PASSWORD', 'postgres'),
         database: configService.get<string>('DB_DATABASE', 'cloudphone_billing'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false, // 使用 Atlas 管理迁移
+        synchronize: configService.get<string>('NODE_ENV') === 'development', // 开发环境自动同步表结构
         logging: configService.get<string>('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],

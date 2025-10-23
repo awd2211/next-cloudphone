@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -11,6 +11,9 @@ import { AuthModule } from './auth/auth.module';
 import { ProxyModule } from './proxy/proxy.module';
 import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
 import { HealthController } from './health.controller';
+import { MetricsModule } from './metrics/metrics.module';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { MetricsInterceptor } from './metrics/metrics.interceptor';
 
 @Module({
   imports: [
@@ -52,16 +55,30 @@ import { HealthController } from './health.controller';
     // 业务模块
     AuthModule,
     ProxyModule,
-    
+
     // Consul 服务发现
     ConsulModule,
+
+    // Prometheus 监控
+    MetricsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
     AppService,
+    // 全局守卫
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    // 全局异常过滤器
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+    // 全局指标拦截器
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: MetricsInterceptor,
     },
   ],
 })

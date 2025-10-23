@@ -4,633 +4,522 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**云手机平台 (Cloud Phone Platform)** - An enterprise-grade cloud Android device management platform built with microservices architecture. Supports massive deployment, multi-tenant isolation, and high availability.
+**Cloud Phone Platform (云手机平台)** - An enterprise-grade cloud Android device management platform built on microservices architecture with multi-tenancy support, supporting large-scale deployments with high availability.
 
-Core capabilities:
-- Remote control via WebRTC with low-latency real-time streaming
-- Cloud phone instance lifecycle management (create, allocate, monitor)
-- APK management (upload, install, uninstall, app marketplace)
-- Complete user authentication/authorization with multi-tenant support
-- Flexible billing/metering system
-- Comprehensive monitoring and alerting infrastructure
+**Tech Stack:**
+- Backend: NestJS (TypeScript), Go (Gin), Python (FastAPI)
+- Frontend: React 18 + TypeScript + Ant Design (Pro)
+- Infrastructure: PostgreSQL 14, Redis 7, RabbitMQ 3, MinIO, Consul
+- Containerization: Docker + Redroid (Android containers)
+- Monitoring: Prometheus + Grafana
+- Package Manager: **pnpm** (workspace monorepo)
 
-## Technology Stack
+## Development Environment
 
-### Backend Microservices (Polyglot Architecture)
-- **NestJS/TypeScript** (6 services): API Gateway, User, Device, App, Billing, Notification
-- **Python/FastAPI** (1 service): Scheduler - Resource scheduling and task orchestration
-- **Go/Gin** (1 service): Media Service - WebRTC audio/video streaming
+### Service Management
 
-### Frontend
-- **React 18 + TypeScript + Vite**
-- Admin Portal: Ant Design Pro
-- User Portal: Ant Design
+**This project uses PM2 for process management in the local development environment.**
 
-### Infrastructure
-- **Database**: PostgreSQL 14 (separate DB per microservice)
-- **Cache**: Redis 7 (with shared cache module)
-- **Message Queue**: RabbitMQ 3 (event-driven communication)
-- **Object Storage**: MinIO (for APK files)
-- **Service Discovery**: Consul
-- **Monitoring**: Prometheus + Grafana + Jaeger (distributed tracing)
-- **API Gateway**: Envoy Proxy (circuit breaker, rate limiting, retries)
-- **Containerization**: Docker & Docker Compose (dev), Kubernetes (prod)
-
-## Development Commands
-
-### Quick Start (Docker Compose - Recommended)
-
-Start everything (infrastructure + all services):
+Common PM2 commands:
 ```bash
+# View all services
+pm2 list
+
+# Restart a service
+pm2 restart device-service
+pm2 restart api-gateway
+
+# View logs
+pm2 logs device-service
+pm2 logs device-service --lines 50
+
+# Stop a service
+pm2 stop device-service
+
+# Delete a service from PM2
+pm2 delete device-service
+```
+
+### Build and Run Commands
+
+**Root-level commands (using pnpm workspaces):**
+```bash
+# Install dependencies for all services
+pnpm install
+
+# Build all services
+pnpm build
+
+# Run all services in development mode (parallel)
+pnpm dev
+
+# Run tests for all services
+pnpm test
+```
+
+**Individual NestJS service commands** (in backend/*/):
+```bash
+# Development mode with hot-reload
+pnpm dev
+
+# Build TypeScript to dist/
+pnpm build
+
+# Production start
+pnpm start:prod
+
+# Lint and fix
+pnpm lint
+
+# Run tests
+pnpm test
+```
+
+**Frontend commands** (in frontend/admin/ or frontend/user/):
+```bash
+# Development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Preview production build
+pnpm preview
+```
+
+### Database Operations
+
+**PostgreSQL databases:**
+- `cloudphone` - Main database (shared tables)
+- `cloudphone_user` - User service database
+- `cloudphone_device` - Device service database
+
+**Database migrations:**
+
+Device Service uses **Atlas** for schema migrations:
+```bash
+cd backend/device-service
+
+# Check migration status
+pnpm migrate:status
+
+# Apply migrations
+pnpm migrate:apply
+
+# Generate new migration
+pnpm migrate:diff
+
+# Validate migrations
+pnpm migrate:validate
+```
+
+User Service uses SQL migration files:
+```bash
+# Apply user service migrations
+docker compose -f docker-compose.dev.yml exec -T postgres \
+  psql -U postgres -d cloudphone_user < backend/user-service/migrations/20251022120000_add_user_events_table.sql
+```
+
+### Infrastructure Services
+
+**Start all infrastructure with Docker Compose:**
+```bash
+# Start PostgreSQL, Redis, RabbitMQ, MinIO, Consul
 docker compose -f docker-compose.dev.yml up -d
-```
 
-Check service health:
-```bash
-./check-health.sh
-# Or check individual services:
-curl http://localhost:30000/api/health  # API Gateway
-curl http://localhost:30001/health       # User Service
-```
+# View logs
+docker compose -f docker-compose.dev.yml logs -f
 
-View logs:
-```bash
-docker compose -f docker-compose.dev.yml logs -f [service-name]
-# Example: docker compose -f docker-compose.dev.yml logs -f api-gateway
-```
-
-Stop all services:
-```bash
+# Stop all
 docker compose -f docker-compose.dev.yml down
 ```
 
-### Local Development (Without Docker)
-
-**Prerequisites**: Node.js 18+, Python 3.9+, Go 1.21+, pnpm, PostgreSQL, Redis
-
-Install dependencies (all services):
-```bash
-pnpm install  # Root level - installs all workspaces
-```
-
-Start individual NestJS services:
-```bash
-cd backend/[service-name]
-pnpm run dev  # Hot reload with nest start --watch
-```
-
-Start Python scheduler service:
-```bash
-cd backend/scheduler-service
-source venv/bin/activate  # Create venv first if needed
-pip install -r requirements.txt
-python main.py
-```
-
-Start Go media service:
-```bash
-cd backend/media-service
-go mod download
-go run main.go
-```
-
-Start frontends:
-```bash
-# Admin portal (port 5173)
-cd frontend/admin
-pnpm run dev
-
-# User portal (port 5174)
-cd frontend/user
-pnpm run dev
-```
-
-### Build & Production
-
-Build all services:
-```bash
-pnpm build  # Builds all workspaces
-```
-
-Build individual NestJS service:
-```bash
-cd backend/[service-name]
-pnpm run build  # Uses nest build
-```
-
-Build frontends:
-```bash
-cd frontend/admin  # or frontend/user
-pnpm run build
-```
-
-Production start (NestJS):
-```bash
-pnpm run start:prod  # or: node dist/main
-```
-
-### Testing
-
-Run tests for NestJS services:
-```bash
-cd backend/[service-name]
-pnpm test              # Run once
-pnpm run test:watch    # Watch mode
-pnpm run test:cov      # With coverage
-```
-
-### Linting & Formatting
-
-```bash
-cd backend/[service-name]
-pnpm run lint          # ESLint with auto-fix
-pnpm run format        # Prettier
-```
-
-### Database Migrations
-
-Using Atlas for schema management:
-```bash
-cd backend/user-service  # Or other NestJS service
-pnpm run migrate:status    # Check migration status
-pnpm run migrate:apply     # Apply pending migrations
-pnpm run migrate:diff      # Generate new migration
-pnpm run schema:inspect    # Inspect current schema
-```
-
-Initialize permissions data:
-```bash
-cd backend/user-service
-pnpm run init:permissions  # Initialize RBAC permissions
-```
-
-Seed test data:
-```bash
-./scripts/seed-database.sh
-```
-
-### Consul Service Discovery
-
-Start all services with Consul registration:
-```bash
-./scripts/start-all-with-consul.sh
-```
-
-Check Consul integration:
-```bash
-./scripts/check-consul-integration.sh
-```
-
-Restart services to re-register:
-```bash
-./scripts/restart-services-for-consul.sh
-```
-
-### Monitoring
-
-Start monitoring stack (Prometheus + Grafana + Jaeger + AlertManager):
-```bash
-cd infrastructure/monitoring
-./start-monitoring.sh
-```
-
-Access monitoring UIs:
-- **Jaeger**: http://localhost:16686 (distributed tracing)
-- **Prometheus**: http://localhost:9090 (metrics)
-- **Grafana**: http://localhost:3000 (admin/admin123)
-- **AlertManager**: http://localhost:9093
-
-Start Envoy Proxy:
-```bash
-cd infrastructure/envoy
-./start-envoy.sh
-```
-
-Envoy admin interface: http://localhost:9901
-
-## Architecture & Code Organization
-
-### Microservices Port Allocation
-
-| Service | Port | Database | Language |
-|---------|------|----------|----------|
-| API Gateway | 30000 | cloudphone_core | NestJS/TypeScript |
-| User Service | 30001 | cloudphone_core | NestJS/TypeScript |
-| Device Service | 30002 | cloudphone_core | NestJS/TypeScript |
-| App Service | 30003 | cloudphone_core | NestJS/TypeScript |
-| Scheduler Service | 30004 | cloudphone_scheduler | Python/FastAPI |
-| Billing Service | 30005 | cloudphone_billing | NestJS/TypeScript |
-| Notification Service | 30006 | cloudphone_core | NestJS/TypeScript |
-| Media Service | 30007 | - | Go/Gin |
-
-Frontend:
-- Admin Portal: http://localhost:5173
-- User Portal: http://localhost:5174
-
-Infrastructure:
+**Service ports:**
 - PostgreSQL: 5432
 - Redis: 6379
 - RabbitMQ: 5672 (AMQP), 15672 (Management UI)
 - MinIO: 9000 (API), 9001 (Console)
 - Consul: 8500 (HTTP/UI), 8600 (DNS)
-- Envoy Proxy: 10000 (HTTP), 9901 (Admin)
 
-### Database per Service Pattern
+## Microservices Architecture
 
-Each microservice owns its database following microservices best practices:
-- `cloudphone_core`: Shared by User, Device, App, Notification services (transitioning)
-- `cloudphone_billing`: Billing service (independent)
-- `cloudphone_scheduler`: Scheduler service (independent)
+### Service Responsibilities
 
-Database initialization script: `database/init-databases.sql`
+**Backend Services:**
 
-**Important**: Services should never directly query another service's database. Use REST APIs or RabbitMQ events for inter-service communication.
+1. **api-gateway** (Port 30000) - Unified entry point
+   - Routes requests to backend services
+   - JWT authentication
+   - Rate limiting
+   - CORS handling
 
-### Shared Code Module
+2. **user-service** (Port 30001) - User & Auth
+   - User CRUD with CQRS + Event Sourcing
+   - Authentication (JWT)
+   - Role-based permissions (RBAC)
+   - Multi-tenant quotas
+   - Event Store with snapshots
 
-`backend/shared/` - Workspace package `@cloudphone/shared` containing:
-- `config/`: Configuration utilities (JWT, database, Redis, RabbitMQ)
-- `consul/`: Consul service registration and health checks
-- `cache/`: Redis cache abstraction with decorators
-- `events/`: RabbitMQ event schemas and publishers/consumers
-- `health/`: Health check infrastructure
-- `http/`: HTTP client utilities with circuit breakers (Opossum)
-- `interceptors/`: Common NestJS interceptors (logging, timeout, transform)
-- `filters/`: Global exception filters
-- `exceptions/`: Custom exception classes
-- `utils/`: Shared utilities
+3. **device-service** (Port 30002) - Cloud Phone Management
+   - Docker container lifecycle management (Redroid)
+   - ADB integration for Android control
+   - Device monitoring with Prometheus metrics
+   - Lifecycle automation (cleanup, autoscaling, backup)
+   - Fault tolerance (retry, failover, state recovery)
+   - Quota enforcement via QuotaGuard
 
-Import in services: `import { ... } from '@cloudphone/shared'`
+4. **app-service** (Port 30003) - APK Management
+   - APK upload/download (MinIO integration)
+   - App installation/uninstallation via ADB
+   - App marketplace
 
-### Event-Driven Communication
+5. **billing-service** (Port 30005) - Billing & Metering
+   - Usage metering (device time, resources)
+   - Balance management
+   - Plan subscriptions
+   - Invoice generation
 
-RabbitMQ exchanges and event patterns (see `backend/shared/src/events/schemas/`):
-- `device.created`, `device.updated`, `device.deleted`
-- `user.created`, `user.updated`, `user.deleted`
-- `app.installed`, `app.uninstalled`
-- `billing.usage.recorded`, `billing.payment.completed`
-- `notification.email.send`, `notification.sms.send`
+6. **notification-service** (Port 30006) - Multi-channel Notifications
+   - WebSocket real-time notifications
+   - Email notifications (with Handlebars templates)
+   - SMS support (placeholder)
+   - RabbitMQ event consumers with DLX
+   - Template management system
 
-Event publishing pattern:
+7. **scheduler-service** (Port 30004) - Python/FastAPI
+   - Resource scheduling and orchestration
+   - Cron job management
+
+8. **media-service** - Go/Gin (Port TBD)
+   - WebRTC streaming for device screens
+   - Screen recording
+
+**Frontend Applications:**
+
+- **admin** (Port 5173) - Admin dashboard (Ant Design Pro)
+- **user** (Port 5174) - User portal (Ant Design)
+
+### Shared Module (@cloudphone/shared)
+
+Located in `backend/shared/`, provides common utilities:
+
+- **EventBusService** - RabbitMQ event publishing
+  - Methods: `publish()`, `publishDeviceEvent()`, `publishUserEvent()`, `publishBillingEvent()`
+  - Exchange: `cloudphone.events`
+
+- **ConsulModule** - Service registration and discovery
+
+- **Event Schemas** - Typed event definitions
+  - `app.events.ts` - App installation/uninstallation events
+  - `notification.events.ts` - System-wide notification events
+
+- **Logger Config** - Unified Pino logger setup with `createLoggerConfig()`
+
+**Usage in services:**
 ```typescript
-import { EventPublisher } from '@cloudphone/shared';
-
-constructor(private eventPublisher: EventPublisher) {}
-
-await this.eventPublisher.publish('device.created', {
-  deviceId: '123',
-  userId: 'user-456',
-  // ... event payload
-});
+import { EventBusService, ConsulModule, createLoggerConfig } from '@cloudphone/shared';
 ```
 
-### NestJS Service Structure
+## Key Architectural Patterns
 
-Standard NestJS module organization in each service:
+### Event-Driven Architecture
+
+**RabbitMQ Exchange:** `cloudphone.events` (topic exchange)
+
+**Event Flow Example:**
 ```
-src/
-├── main.ts                    # Bootstrap application
-├── app.module.ts              # Root module
-├── entities/                  # TypeORM entities
-│   └── *.entity.ts
-├── [feature]/                 # Feature modules
-│   ├── [feature].module.ts
-│   ├── [feature].controller.ts
-│   ├── [feature].service.ts
-│   └── dto/                   # Data Transfer Objects
-│       ├── create-*.dto.ts
-│       └── update-*.dto.ts
-├── guards/                    # Route guards (auth, roles)
-├── decorators/                # Custom decorators
-└── config/                    # Service-specific config
+device-service → publish('cloudphone.events', 'device.created', payload)
+                    ↓
+            RabbitMQ Exchange
+                    ↓
+    ┌───────────────┼───────────────┐
+    ↓               ↓               ↓
+billing-service  notification   user-service
+(meter usage)    (send alert)   (update quota)
 ```
 
-### Authentication & Authorization
+**Event Naming Convention:**
+- Pattern: `{service}.{entity}.{action}`
+- Examples: `device.started`, `app.installed`, `user.registered`, `billing.payment_success`
 
-JWT-based authentication flow:
-1. User logs in via `POST /api/auth/login` (API Gateway → User Service)
-2. User Service validates credentials and returns JWT token
-3. Subsequent requests include `Authorization: Bearer <token>` header
-4. API Gateway validates JWT and forwards to backend services
-5. Backend services trust the validated token (no re-verification needed)
+### CQRS + Event Sourcing (User Service)
 
-RBAC implementation:
-- Roles: `SUPER_ADMIN`, `ADMIN`, `USER` (defined in User Service)
-- Permissions: Resource-action pairs (e.g., `device:create`, `user:read`)
-- Guards: `@Roles()`, `@RequirePermissions()` decorators
+User service implements full event sourcing:
 
-### Caching Strategy
+**Command Handlers** (`backend/user-service/src/users/commands/handlers/`):
+- `CreateUserHandler` → emits `UserCreatedEvent`
+- `UpdateUserHandler` → emits `UserUpdatedEvent`
+- `ChangePasswordHandler` → emits `PasswordChangedEvent`
 
-Redis caching patterns (using `@cloudphone/shared/cache`):
+**Query Handlers** (`backend/user-service/src/users/queries/handlers/`):
+- `GetUserHandler` - Fetch user by ID
+- `GetUsersHandler` - List users with pagination
+
+**Event Store:**
+- All events persisted in `user_events` table
+- Snapshots in `user_snapshots` table (every 10 events)
+- Replay capability via `EventReplayService`
+
+**Testing event sourcing:**
+```bash
+cd backend/user-service
+./scripts/test-event-sourcing.sh
+```
+
+### Multi-Tenancy & Quotas
+
+**Quota Enforcement Flow:**
+```
+User creates device → @QuotaCheck decorator → QuotaGuard
+                                                  ↓
+                                         GET /quotas/user/:userId
+                                                  ↓
+                                      Check: devices < maxDevices?
+                                                  ↓
+                              Yes: Allow creation | No: Throw ForbiddenException
+```
+
+**Quota Usage Reporting:**
 ```typescript
-import { Cacheable, CacheEvict } from '@cloudphone/shared';
-
-@Cacheable('user', 3600) // Cache for 1 hour
-async getUser(id: string) { ... }
-
-@CacheEvict('user') // Invalidate cache
-async updateUser(id: string, data: UpdateUserDto) { ... }
-```
-
-Common cache keys:
-- `user:{id}` - User data
-- `device:{id}` - Device details
-- `plan:{id}` - Billing plans
-- `captcha:{id}` - Login captchas (TTL: 5min)
-
-### Monitoring & Observability
-
-All NestJS services expose:
-- `/health` - Health check endpoint (Consul uses this)
-- `/metrics` - Prometheus metrics (prom-client)
-- Swagger docs at `/api/docs` (Swagger UI)
-
-Jaeger distributed tracing:
-- Enabled in API Gateway and propagates trace context
-- Use `X-B3-Sampled: 1` header to force trace sampling
-- View traces at http://localhost:16686
-
-Structured logging (Winston/Pino):
-- Log levels: error, warn, info, debug
-- JSON format for log aggregation
-- Includes trace IDs, service name, timestamps
-
-### Circuit Breaker Pattern
-
-HTTP calls between services use Opossum circuit breakers (configured in `@cloudphone/shared/http`):
-- Timeout: 10s
-- Error threshold: 50%
-- Reset timeout: 30s
-- Protects against cascading failures
-
-### Error Handling
-
-Centralized exception handling via NestJS filters:
-- `HttpExceptionFilter`: Transforms exceptions to consistent response format
-- `AllExceptionsFilter`: Catches unexpected errors
-- Custom exceptions: `BusinessException`, `ResourceNotFoundException`, etc.
-
-Standard error response:
-```json
+// Device service reports usage to user service
+POST /quotas/user/:userId/usage
 {
-  "statusCode": 400,
-  "message": "Error description",
-  "error": "Bad Request",
-  "timestamp": "2025-10-22T...",
-  "path": "/api/..."
+  "deviceId": "...",
+  "action": "create" | "delete",
+  "usageData": { cpuCores: 2, memoryMB: 4096 }
 }
 ```
 
-## Important Patterns & Conventions
+### Device Service Architecture
+
+**Core Modules:**
+- `devices/` - CRUD operations, port management
+- `docker/` - Dockerode wrapper for container management
+- `adb/` - adbkit wrapper for Android control
+- `snapshots/` - Device backup/restore
+- `metrics/` - Prometheus metrics collection
+- `health/` - Enhanced health checks
+- `lifecycle/` - Automation (cleanup, autoscaling, backup)
+- `failover/` - Fault detection and recovery
+- `state-recovery/` - State healing and rollback
+- `quota/` - Quota client and guard
+- `common/` - Retry decorator with exponential backoff
+
+**Important Decorators:**
+```typescript
+// Retry with backoff (common/retry.decorator.ts)
+@Retry({ maxAttempts: 3, baseDelayMs: 1000, retryableErrors: [DockerError] })
+async startContainer(id: string) { ... }
+
+// Quota check (quota/quota.guard.ts)
+@QuotaCheck(QuotaCheckType.DEVICE_CREATION)
+async createDevice(@Body() dto: CreateDeviceDto) { ... }
+```
+
+**Scheduled Jobs (Cron):**
+- Every hour: Auto backup, cleanup idle/error/stopped devices
+- Every 5 min: Autoscaling, fault detection
+- Every 30 min: State consistency check
+- Daily 9AM: Expiration warnings
+- Daily 2AM: Cleanup old backups
+
+### Notification Service
+
+**Multi-channel support:**
+- WebSocket (real-time)
+- Email (SMTP with Handlebars templates)
+- SMS (placeholder)
+
+**RabbitMQ Consumers** (`backend/notification-service/src/rabbitmq/consumers/`):
+- `device-events.consumer.ts` - device.* events
+- `user-events.consumer.ts` - user.* events
+- `billing-events.consumer.ts` - billing.* events
+- `app-events.consumer.ts` - app.* events
+- `dlx.consumer.ts` - Dead Letter Exchange handler
+
+**Template System:**
+```bash
+# Initialize templates
+cd backend/notification-service
+psql -U postgres -d cloudphone < init-templates.sql
+
+# Test templates
+./test-templates.sh
+```
+
+## Testing
+
+### Health Checks
+
+**All services expose `/health` endpoints:**
+```bash
+# Device service
+curl http://localhost:30002/health
+
+# User service
+curl http://localhost:30001/health
+
+# Check all services
+./scripts/check-health.sh
+```
+
+**Device service detailed health:**
+```bash
+curl http://localhost:30002/health/detailed
+# Returns: database, Docker, ADB, Redis, RabbitMQ status
+```
+
+### Feature Testing Scripts
+
+```bash
+# Device service features
+./scripts/test-device-service-features.sh --token <JWT>
+
+# User service event sourcing
+cd backend/user-service && ./scripts/test-event-sourcing.sh
+
+# Notification templates
+cd backend/notification-service && ./test-templates.sh
+```
+
+### Monitoring
+
+**Prometheus metrics:**
+```bash
+# Device service metrics
+curl http://localhost:30002/metrics
+
+# Grafana dashboards
+# Import: infrastructure/monitoring/grafana/dashboards/device-overview.json
+```
+
+**Start monitoring stack:**
+```bash
+cd infrastructure/monitoring
+./start-monitoring.sh
+# Access Grafana: http://localhost:3000 (admin/admin)
+```
+
+## Common Development Workflows
+
+### Adding a New NestJS Service
+
+1. Create service directory under `backend/`
+2. Initialize with NestJS CLI or copy structure from existing service
+3. Add to `pnpm-workspace.yaml` if using workspace dependencies
+4. Configure database (add to `database/init-databases.sql`)
+5. Register with Consul (import `ConsulModule` from `@cloudphone/shared`)
+6. Add to PM2 ecosystem or docker-compose
+
+### Publishing Events
+
+```typescript
+import { EventBusService } from '@cloudphone/shared';
+
+constructor(private eventBus: EventBusService) {}
+
+// Publish device event
+await this.eventBus.publishDeviceEvent('created', {
+  deviceId: device.id,
+  userId: device.userId,
+  // ... payload
+});
+
+// Or use generic publish
+await this.eventBus.publish('cloudphone.events', 'custom.event', payload);
+```
+
+### Consuming Events
+
+```typescript
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+
+@RabbitSubscribe({
+  exchange: 'cloudphone.events',
+  routingKey: 'device.created',
+  queue: 'my-service.device-created',
+})
+async handleDeviceCreated(event: DeviceCreatedEvent) {
+  // Handle event
+}
+```
+
+### Accessing Shared Database Tables
+
+Some tables are in the main `cloudphone` database:
+- `roles` - System roles
+- `permissions` - Permission definitions
+- `role_permissions` - Role-permission mappings
+
+When services need shared data, query the `cloudphone` database directly.
 
 ### Environment Variables
 
-Each service has `.env.example` with all required variables. Key variables:
-- `NODE_ENV`: development/production
-- `PORT`: Service port (3000x range)
-- `DB_HOST`, `DB_PORT`, `DB_DATABASE`: PostgreSQL connection
-- `REDIS_HOST`, `REDIS_PORT`: Redis connection
-- `RABBITMQ_URL`: RabbitMQ connection string
-- `JWT_SECRET`: Secret for JWT signing (MUST change in production)
-- `CONSUL_HOST`, `CONSUL_PORT`: Consul connection
-- `USE_CONSUL`: Enable/disable Consul registration
+**Each service has `.env.example` with all required variables.**
 
-Validate environment config:
-```bash
-./scripts/validate-env.sh [service-name]
-# Or: node scripts/check-env.js [service-name]
-```
+Key variables:
+- `NODE_ENV` - development/production
+- `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`
+- `REDIS_HOST`, `REDIS_PORT`
+- `RABBITMQ_URL` - amqp://admin:admin123@localhost:5672/cloudphone
+- `JWT_SECRET` - Must be same across all services
+- `CONSUL_HOST`, `CONSUL_PORT`
 
-### TypeORM Entities
-
-- Use `@Entity()` decorator
-- Primary keys: UUID (via `@PrimaryGeneratedColumn('uuid')`)
-- Timestamps: `@CreateDateColumn()`, `@UpdateDateColumn()`
-- Soft deletes: `@DeleteDateColumn()`
-- Relations: Always specify `cascade` and `onDelete` behavior
-
-### DTO Validation
-
-Use class-validator decorators in DTOs:
-```typescript
-export class CreateUserDto {
-  @IsString()
-  @IsNotEmpty()
-  username: string;
-
-  @IsEmail()
-  email: string;
-
-  @IsStrongPassword()
-  password: string;
-}
-```
-
-Validation is automatic via `ValidationPipe` (configured globally).
-
-### API Response Format
-
-Consistent response wrapper (configured via interceptors):
-```json
-{
-  "code": 200,
-  "message": "Success",
-  "data": { ... },
-  "timestamp": "2025-10-22T..."
-}
-```
-
-Pagination response:
-```json
-{
-  "data": [...],
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 100,
-    "totalPages": 5
-  }
-}
-```
-
-### Dependency Injection Best Practices
-
-**Critical**: All NestJS services must properly inject dependencies through constructors. Do NOT use direct imports of service instances.
-
-Correct pattern:
-```typescript
-@Injectable()
-export class UserService {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    private readonly roleService: RoleService,  // ✅ Injected
-  ) {}
-}
-```
-
-Common DI issues:
-- Missing `@Injectable()` decorator
-- Circular dependencies (use `forwardRef()`)
-- Missing provider in module's `providers` array
-- Importing concrete classes instead of interfaces
-
-Check for DI issues:
-```bash
-./scripts/check-all-services-di.sh
-./scripts/scan-di-issues.sh
-```
-
-## Development Workflow
-
-### Starting Development
-
-1. Start infrastructure:
-   ```bash
-   docker compose -f docker-compose.dev.yml up -d postgres redis rabbitmq minio consul
-   ```
-
-2. Start backend services (choose one method):
-   - Docker (easiest): `docker compose -f docker-compose.dev.yml up -d`
-   - Local (for debugging): See "Local Development" commands above
-
-3. Start frontends:
-   ```bash
-   cd frontend/admin && pnpm run dev  # Terminal 1
-   cd frontend/user && pnpm run dev   # Terminal 2
-   ```
-
-4. Verify health:
-   ```bash
-   ./check-health.sh
-   ```
-
-### Making Changes
-
-**Backend (NestJS)**:
-- Hot reload is enabled via `nest start --watch`
-- Changes to `.ts` files trigger automatic restart
-- Database schema changes require migrations
-
-**Frontend**:
-- Vite HMR (Hot Module Replacement) updates instantly
-- No restart needed for most changes
-
-**Python/Go services**:
-- Manual restart required (no hot reload in dev)
-
-### Testing API Endpoints
-
-Use the provided test script:
-```bash
-./test-api.sh
-```
-
-Or use Swagger UI:
-- API Gateway: http://localhost:30000/api/docs
-
-Sample accounts (see `TEST_ACCOUNTS.md`):
-- Admin: `admin` / `admin123`
-- User: `testuser` / `user123`
-
-### Common Tasks
-
-**Add a new NestJS endpoint**:
-1. Create DTO in `dto/` folder
-2. Add method to service
-3. Add route to controller with decorators (`@Get`, `@Post`, etc.)
-4. Add Swagger annotations (`@ApiOperation`, `@ApiResponse`)
-
-**Add a new database table**:
-1. Create entity file in `entities/`
-2. Add to module's `TypeOrmModule.forFeature([NewEntity])`
-3. Generate migration: `pnpm run migrate:diff`
-4. Review and apply: `pnpm run migrate:apply`
-
-**Add a new event**:
-1. Define schema in `backend/shared/src/events/schemas/`
-2. Use `EventPublisher.publish()` to emit
-3. Use `@RabbitSubscribe()` decorator to consume
-
-**Debugging Docker services**:
-```bash
-# View logs
-docker compose -f docker-compose.dev.yml logs -f [service-name]
-
-# Execute commands in container
-docker compose -f docker-compose.dev.yml exec [service-name] sh
-
-# Restart single service
-docker compose -f docker-compose.dev.yml restart [service-name]
-
-# Rebuild service
-docker compose -f docker-compose.dev.yml build [service-name]
-docker compose -f docker-compose.dev.yml up -d [service-name]
-```
-
-## Production Deployment
-
-**Docker images**:
-- Multi-stage Dockerfiles in `infrastructure/docker/`
-- Build: `docker build -f infrastructure/docker/[service].Dockerfile -t cloudphone/[service]:latest backend/[service]`
-
-**Kubernetes**:
-- Manifests in `infrastructure/k8s/`
-- Apply: `kubectl apply -f infrastructure/k8s/`
-
-**Key production considerations**:
-- Change `JWT_SECRET` to strong random value (64+ chars)
-- Use managed PostgreSQL, Redis, RabbitMQ
-- Configure horizontal pod autoscaling
-- Set up persistent volumes for data
-- Enable TLS/HTTPS in Envoy
-- Configure AlertManager webhooks (email/Slack)
-- Reduce Jaeger sampling to 10% (from 100%)
+**Device service specific:**
+- `DOCKER_HOST` - Unix socket path
+- `ADB_PORT_START`, `ADB_PORT_END` - Port range for Android devices
+- Lifecycle automation flags (see `backend/device-service/.env.example`)
 
 ## Troubleshooting
 
-**Service won't start**:
-- Check logs: `docker compose logs [service-name]`
-- Verify environment variables
-- Check database connection
-- Ensure dependencies are started (postgres, redis)
+### Service Won't Start
 
-**Consul registration failing**:
-- Check health endpoint returns 200
-- Verify `USE_CONSUL=true` in env
-- Check database is healthy (required for health check)
-- View Consul UI: http://localhost:8500
+1. Check PM2 logs: `pm2 logs <service-name>`
+2. Verify dependencies installed: `pnpm install`
+3. Check if port is in use: `lsof -i :<port>` or `ss -tlnp | grep <port>`
+4. Rebuild if needed: `pnpm build`
 
-**Database errors**:
-- Verify database exists: `psql -U postgres -l`
-- Check connection string in .env
-- Run migrations: `pnpm run migrate:apply`
+### Database Connection Errors
 
-**TypeScript compilation errors**:
-- Clear dist folder: `rm -rf dist/`
-- Reinstall dependencies: `pnpm install`
-- Check TypeScript version matches across services
+1. Verify PostgreSQL is running: `docker compose -f docker-compose.dev.yml ps postgres`
+2. Check database exists:
+   ```bash
+   docker compose -f docker-compose.dev.yml exec postgres \
+     psql -U postgres -c "\l"
+   ```
+3. Verify credentials match `.env`
 
-**RabbitMQ connection issues**:
-- Check RabbitMQ is running: `docker ps | grep rabbitmq`
-- Verify RABBITMQ_URL format: `amqp://user:pass@host:port/vhost`
-- Check virtual host exists: http://localhost:15672 (admin/admin123)
+### RabbitMQ Issues
 
-## Documentation
+1. Check RabbitMQ status: `docker compose -f docker-compose.dev.yml ps rabbitmq`
+2. Access management UI: http://localhost:15672 (admin/admin123)
+3. Check queues and exchanges are created
+4. Verify vhost `cloudphone` exists
 
-Key documentation files:
-- `COMPLETE_INTEGRATION_GUIDE.md` - Envoy/Consul/Monitoring integration overview
-- `MONITORING_INTEGRATION_COMPLETE.md` - Monitoring setup details
-- `LOGGING_SYSTEM.md` - Logging configuration and usage
-- `CACHE_USAGE_GUIDE.md` - Redis caching patterns
-- `EVENT_STATUS.md` - RabbitMQ event architecture
-- `TEST_ACCOUNTS.md` - Test user credentials
-- `docs/ENVIRONMENT_VARIABLES.md` - All environment variable documentation
-- `infrastructure/envoy/README.md` - Envoy configuration (500+ lines)
-- `infrastructure/monitoring/README.md` - Monitoring stack guide (500+ lines)
+### Device Service Issues
 
-## Contact & Resources
+1. Check Docker socket permissions: `ls -la /var/run/docker.sock`
+2. Verify ADB connection: `adb devices`
+3. Check container logs: `docker logs <container-name>`
+4. Run feature tests: `./scripts/test-device-service-features.sh`
 
-- **GitHub Issues**: Report bugs and request features
-- **README.md**: High-level project overview
-- **Architecture Docs**: See `ARCHITECTURE_*.md` files for design decisions
+### TypeScript Build Errors
+
+**Shared module changes:**
+If you modify `@cloudphone/shared`, rebuild it first:
+```bash
+cd backend/shared
+pnpm build
+```
+
+Then rebuild dependent services.
+
+## Important Notes
+
+- **Always use pnpm**, not npm or yarn
+- **Database migrations**: Device service uses Atlas, others use SQL files
+- **JWT_SECRET must be identical** across all services for auth to work
+- **PM2 is used in development**, Kubernetes/Docker in production
+- **Event naming**: Follow `{service}.{entity}.{action}` pattern
+- **Shared code**: Put common utilities in `@cloudphone/shared`
+- **Port conflicts**: Services have fixed ports (30000-30006), ensure they're free

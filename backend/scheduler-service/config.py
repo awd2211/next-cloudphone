@@ -50,9 +50,32 @@ class Settings(BaseSettings):
     # 设备服务地址
     DEVICE_SERVICE_URL: str = "http://localhost:3002"
 
+    # RabbitMQ 配置
+    RABBITMQ_HOST: str = "localhost"
+    RABBITMQ_PORT: int = 5672
+    RABBITMQ_USER: str = "admin"
+    RABBITMQ_PASSWORD: str = "admin123"
+    RABBITMQ_VHOST: str = "cloudphone"
+    RABBITMQ_URL: Optional[str] = None
+
+    # Consul 配置
+    CONSUL_HOST: str = "localhost"
+    CONSUL_PORT: int = 8500
+    CONSUL_ENABLED: bool = False
+    SERVICE_NAME: str = "scheduler-service"
+    SERVICE_HOST: str = "localhost"
+    SERVICE_PORT: int = 30004
+
     class Config:
         env_file = ".env"
         case_sensitive = True
         extra = "ignore"  # 忽略额外的环境变量
 
 settings = Settings()
+
+# Build RabbitMQ URL if not provided
+if not settings.RABBITMQ_URL:
+    settings.RABBITMQ_URL = (
+        f"amqp://{settings.RABBITMQ_USER}:{settings.RABBITMQ_PASSWORD}@"
+        f"{settings.RABBITMQ_HOST}:{settings.RABBITMQ_PORT}/{settings.RABBITMQ_VHOST}"
+    )

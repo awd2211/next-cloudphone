@@ -1,9 +1,17 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Public } from './auth/decorators/public.decorator';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { MinioService } from './minio/minio.service';
 import * as os from 'os';
+
+interface DependencyStatus {
+  status: 'healthy' | 'unhealthy';
+  responseTime?: number;
+  message?: string;
+  version?: string;
+}
 
 interface HealthCheckResult {
   status: 'ok' | 'degraded';
@@ -13,11 +21,10 @@ interface HealthCheckResult {
   uptime: number;
   environment: string;
   dependencies: {
-    database?: {
-      status: 'healthy' | 'unhealthy';
-      responseTime?: number;
-      message?: string;
-    };
+    database?: DependencyStatus;
+    minio?: DependencyStatus;
+    redis?: DependencyStatus;
+    rabbitmq?: DependencyStatus;
   };
   system: {
     hostname: string;
@@ -40,7 +47,10 @@ interface HealthCheckResult {
 export class HealthController {
   private readonly startTime: number = Date.now();
 
-  constructor(@InjectDataSource() private dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private dataSource: DataSource,
+    private minioService: MinioService,
+  ) {}
 
   @Get()
   @Public()
@@ -49,12 +59,21 @@ export class HealthController {
   async check(): Promise<HealthCheckResult> {
     const dependencies: HealthCheckResult['dependencies'] = {};
 
-    // Check database connection
-    const dbCheck = await this.checkDatabase();
+    // Check all critical dependencies in parallel
+    const [dbCheck, minioCheck] = await Promise.all([
+      this.checkDatabase(),
+      this.checkMinio(),
+    ]);
+
     dependencies.database = dbCheck;
+    dependencies.minio = minioCheck;
 
     // Determine overall status
-    const overallStatus = dbCheck.status === 'unhealthy' ? 'degraded' : 'ok';
+    const hasUnhealthyDependency =
+      dbCheck.status === 'unhealthy' ||
+      minioCheck.status === 'unhealthy';
+
+    const overallStatus = hasUnhealthyDependency ? 'degraded' : 'ok';
 
     return {
       status: overallStatus,
@@ -68,11 +87,7 @@ export class HealthController {
     };
   }
 
-  private async checkDatabase(): Promise<{
-    status: 'healthy' | 'unhealthy';
-    responseTime?: number;
-    message?: string;
-  }> {
+  private async checkDatabase(): Promise<DependencyStatus> {
     try {
       const start = Date.now();
       await this.dataSource.query('SELECT 1');
@@ -86,6 +101,46 @@ export class HealthController {
       return {
         status: 'unhealthy',
         message: error.message,
+      };
+    }
+  }
+
+  /**
+   * Check MinIO connectivity
+   */
+  private async checkMinio(): Promise<DependencyStatus> {
+    try {
+      const start = Date.now();
+      const minioClient = (this.minioService as any).minioClient;
+      const bucketName = (this.minioService as any).bucketName;
+
+      if (!minioClient) {
+        return {
+          status: 'unhealthy',
+          message: 'MinIO client not initialized',
+        };
+      }
+
+      // Check if bucket exists (verifies MinIO connection and permissions)
+      const exists = await minioClient.bucketExists(bucketName);
+      const responseTime = Date.now() - start;
+
+      if (!exists) {
+        return {
+          status: 'unhealthy',
+          message: `Bucket '${bucketName}' does not exist`,
+        };
+      }
+
+      return {
+        status: 'healthy',
+        responseTime,
+        message: `Bucket '${bucketName}' accessible`,
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        message: error.message || 'MinIO connection failed',
       };
     }
   }
@@ -109,5 +164,94 @@ export class HealthController {
         model: os.cpus()[0]?.model || 'unknown',
       },
     };
+  }
+
+  /**
+   * Detailed health check with all dependencies
+   */
+  @Get('detailed')
+  @Public()
+  @ApiOperation({ summary: '详细健康检查' })
+  async detailedCheck() {
+    const basicCheck = await this.check();
+
+    return {
+      ...basicCheck,
+      details: {
+        description: 'App Service - APK Management and Distribution',
+        capabilities: [
+          'APK upload/download to MinIO',
+          'App installation/uninstallation via ADB',
+          'App marketplace management',
+          'Version management',
+          'Multi-tenant app isolation',
+        ],
+      },
+    };
+  }
+
+  /**
+   * Kubernetes liveness probe
+   * Indicates if the service is alive and should not be restarted
+   */
+  @Get('liveness')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Kubernetes 存活探针' })
+  async liveness() {
+    // Basic liveness check - service is running
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor((Date.now() - this.startTime) / 1000),
+    };
+  }
+
+  /**
+   * Kubernetes readiness probe
+   * Indicates if the service is ready to accept traffic
+   */
+  @Get('readiness')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Kubernetes 就绪探针' })
+  async readiness() {
+    try {
+      // Check critical dependencies for readiness
+      const [dbCheck, minioCheck] = await Promise.all([
+        this.checkDatabase(),
+        this.checkMinio(),
+      ]);
+
+      // Service is ready only if all critical dependencies are healthy
+      const isReady =
+        dbCheck.status === 'healthy' &&
+        minioCheck.status === 'healthy';
+
+      if (!isReady) {
+        return {
+          status: 'error',
+          message: 'Service not ready - critical dependencies unhealthy',
+          dependencies: {
+            database: dbCheck.status,
+            minio: minioCheck.status,
+          },
+        };
+      }
+
+      return {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        dependencies: {
+          database: 'healthy',
+          minio: 'healthy',
+        },
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message,
+      };
+    }
   }
 }

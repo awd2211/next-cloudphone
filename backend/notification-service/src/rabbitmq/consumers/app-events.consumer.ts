@@ -6,7 +6,7 @@ import {
   AppInstallFailedEvent,
   AppUpdatedEvent,
   NotificationEventTypes,
-} from '@cloudphone/shared';
+} from '../../types/events';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { TemplatesService } from '../../templates/templates.service';
 import { NotificationType } from '../../entities/notification.entity';

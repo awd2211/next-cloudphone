@@ -13,6 +13,14 @@ export enum PaymentMethod {
   WECHAT = 'wechat',
   ALIPAY = 'alipay',
   BALANCE = 'balance',
+  STRIPE = 'stripe',
+  PAYPAL = 'paypal',
+  PADDLE = 'paddle',
+}
+
+export enum PaymentMode {
+  HOSTED = 'hosted',   // 托管页面（跳转到第三方）
+  CUSTOM = 'custom',   // 自定义UI（嵌入式）
 }
 
 export enum PaymentStatus {
@@ -102,6 +110,35 @@ export class Payment {
   // 过期时间（15分钟后）
   @Column({ type: 'timestamp', name: 'expires_at' })
   expiresAt: Date;
+
+  // 货币类型（支持多货币）
+  @Column({ type: 'varchar', length: 3, default: 'CNY' })
+  currency: string;
+
+  // 支付模式（托管/自定义）
+  @Column({
+    type: 'enum',
+    enum: PaymentMode,
+    nullable: true,
+    name: 'payment_mode',
+  })
+  paymentMode: PaymentMode;
+
+  // 关联的订阅ID（如果是订阅支付）
+  @Column({ name: 'subscription_id', nullable: true })
+  subscriptionId: string;
+
+  // 客户端密钥（用于前端集成，如 Stripe Client Secret）
+  @Column({ name: 'client_secret', nullable: true })
+  clientSecret: string;
+
+  // 支付平台的客户ID（用于保存支付方式）
+  @Column({ name: 'customer_id', nullable: true })
+  customerId: string;
+
+  // 额外元数据（JSON格式，存储平台特定信息）
+  @Column({ type: 'jsonb', nullable: true })
+  metadata: any;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

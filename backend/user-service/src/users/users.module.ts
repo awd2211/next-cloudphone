@@ -16,12 +16,15 @@ import { EventStoreService } from './events/event-store.service';
 import { EventReplayService } from './events/event-replay.service';
 import { SnapshotService } from './events/snapshot.service';
 import { EventsController } from './events/events.controller';
+import { EventBusModule } from '@cloudphone/shared';
+import { UserMetricsService } from '../common/metrics/user-metrics.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Role, UserEvent, UserSnapshot]),
     RolesModule,
     CqrsModule,
+    EventBusModule,
   ],
   controllers: [UsersController, EventsController],
   providers: [
@@ -30,6 +33,7 @@ import { EventsController } from './events/events.controller';
     EventStoreService,
     EventReplayService,
     SnapshotService,
+    UserMetricsService,
     ...CommandHandlers,
     ...QueryHandlers,
     ...EventHandlers,

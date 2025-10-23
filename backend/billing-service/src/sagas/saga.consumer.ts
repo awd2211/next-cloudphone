@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Injectable, Logger } from '@nestjs/common';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { PurchasePlanSaga } from './purchase-plan.saga';

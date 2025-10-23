@@ -33,6 +33,17 @@ type Config struct {
 	MaxFrameRate  int
 	VideoWidth    int
 	VideoHeight   int
+
+	// Consul 配置
+	ConsulHost    string
+	ConsulPort    int
+	ConsulEnabled bool
+	ServiceName   string
+	ServiceHost   string
+
+	// RabbitMQ 配置
+	RabbitMQURL     string
+	RabbitMQEnabled bool
 }
 
 type TURNServer struct {
@@ -58,6 +69,17 @@ func Load() *Config {
 
 		ICEPortMin: uint16(getEnvInt("ICE_PORT_MIN", 50000)),
 		ICEPortMax: uint16(getEnvInt("ICE_PORT_MAX", 50100)),
+
+		// Consul 配置
+		ConsulHost:    getEnv("CONSUL_HOST", "localhost"),
+		ConsulPort:    getEnvInt("CONSUL_PORT", 8500),
+		ConsulEnabled: getEnvBool("CONSUL_ENABLED", true),
+		ServiceName:   getEnv("SERVICE_NAME", "media-service"),
+		ServiceHost:   getEnv("SERVICE_HOST", "localhost"),
+
+		// RabbitMQ 配置
+		RabbitMQURL:     getEnv("RABBITMQ_URL", "amqp://admin:admin123@localhost:5672/cloudphone"),
+		RabbitMQEnabled: getEnvBool("RABBITMQ_ENABLED", true),
 	}
 
 	// 加载 STUN 服务器
@@ -99,6 +121,15 @@ func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
 		}
 	}
 	return defaultValue

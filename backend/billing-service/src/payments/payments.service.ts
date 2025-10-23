@@ -13,6 +13,9 @@ import { Payment, PaymentMethod, PaymentStatus } from './entities/payment.entity
 import { Order, OrderStatus } from '../billing/entities/order.entity';
 import { WeChatPayProvider } from './providers/wechat-pay.provider';
 import { AlipayProvider } from './providers/alipay.provider';
+import { StripeProvider } from './providers/stripe.provider';
+import { PayPalProvider } from './providers/paypal.provider';
+import { PaddleProvider } from './providers/paddle.provider';
 import {
   CreatePaymentDto,
   RefundPaymentDto,
@@ -30,8 +33,33 @@ export class PaymentsService {
     private ordersRepository: Repository<Order>,
     private wechatPayProvider: WeChatPayProvider,
     private alipayProvider: AlipayProvider,
+    private stripeProvider: StripeProvider,
+    private paypalProvider: PayPalProvider,
+    private paddleProvider: PaddleProvider,
     private configService: ConfigService,
   ) {}
+
+  /**
+   * 获取支付提供商
+   */
+  private getPaymentProvider(method: PaymentMethod): any {
+    switch (method) {
+      case PaymentMethod.WECHAT:
+        return this.wechatPayProvider;
+      case PaymentMethod.ALIPAY:
+        return this.alipayProvider;
+      case PaymentMethod.STRIPE:
+        return this.stripeProvider;
+      case PaymentMethod.PAYPAL:
+        return this.paypalProvider;
+      case PaymentMethod.PADDLE:
+        return this.paddleProvider;
+      case PaymentMethod.BALANCE:
+        return null; // 余额支付不需要第三方
+      default:
+        throw new BadRequestException(`Unsupported payment method: ${method}`);
+    }
+  }
 
   /**
    * 创建支付订单
@@ -120,6 +148,29 @@ export class PaymentsService {
         payment.transactionId = alipayResult.tradeNo;
         payment.paymentUrl = alipayResult.qrCode || '';
         payment.status = PaymentStatus.PROCESSING;
+        break;
+
+      case PaymentMethod.STRIPE:
+      case PaymentMethod.PAYPAL:
+      case PaymentMethod.PADDLE:
+        const provider = this.getPaymentProvider(payment.method);
+        const result = await provider.createOneTimePayment({
+          amount: payment.amount,
+          currency: payment.currency || 'USD',
+          description: `订单支付-${order.id}`,
+          paymentNo: payment.paymentNo,
+          notifyUrl,
+          returnUrl: `${this.configService.get('FRONTEND_URL')}/payment/success`,
+          mode: payment.paymentMode,
+          metadata: { orderId: order.id },
+        });
+
+        payment.transactionId = result.transactionId || '';
+        payment.paymentUrl = result.paymentUrl || '';
+        payment.clientSecret = result.clientSecret || '';
+        payment.customerId = result.customerId || '';
+        payment.status = PaymentStatus.PROCESSING;
+        payment.metadata = result.metadata;
         break;
 
       case PaymentMethod.BALANCE:

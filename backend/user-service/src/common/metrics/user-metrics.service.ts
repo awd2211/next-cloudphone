@@ -73,80 +73,70 @@ export class UserMetricsService implements OnModuleInit {
   private readonly lockedUsersGauge: Gauge;
 
   constructor() {
-    // 初始化计数器
-    this.userCreatedCounter = new Counter({
+    // 初始化计数器 - 使用 getSingleMetric 避免重复注册
+    this.userCreatedCounter = this.getOrCreateCounter({
       name: 'user_created_total',
       help: 'Total number of users created',
       labelNames: ['tenant_id', 'status'],
-      registers: [register],
     });
 
-    this.userLoginCounter = new Counter({
+    this.userLoginCounter = this.getOrCreateCounter({
       name: 'user_login_total',
       help: 'Total number of login attempts',
       labelNames: ['tenant_id', 'status', 'reason'],
-      registers: [register],
     });
 
-    this.passwordChangeCounter = new Counter({
+    this.passwordChangeCounter = this.getOrCreateCounter({
       name: 'user_password_change_total',
       help: 'Total number of password changes',
       labelNames: ['tenant_id', 'status'],
-      registers: [register],
     });
 
-    this.accountLockedCounter = new Counter({
+    this.accountLockedCounter = this.getOrCreateCounter({
       name: 'user_account_locked_total',
       help: 'Total number of account lockouts',
       labelNames: ['tenant_id', 'attempts'],
-      registers: [register],
     });
 
-    // 初始化直方图
-    this.loginDurationHistogram = new Histogram({
+    // 初始化直方图 - 使用 getOrCreateHistogram 避免重复注册
+    this.loginDurationHistogram = this.getOrCreateHistogram({
       name: 'user_login_duration_seconds',
       help: 'Login request duration in seconds',
       labelNames: ['tenant_id', 'status'],
       buckets: [0.1, 0.3, 0.5, 1, 2, 5], // 100ms, 300ms, 500ms, 1s, 2s, 5s
-      registers: [register],
     });
 
-    this.userQueryDurationHistogram = new Histogram({
+    this.userQueryDurationHistogram = this.getOrCreateHistogram({
       name: 'user_query_duration_seconds',
       help: 'User query duration in seconds',
       labelNames: ['operation', 'tenant_id'],
       buckets: [0.01, 0.05, 0.1, 0.3, 0.5, 1], // 10ms, 50ms, 100ms, 300ms, 500ms, 1s
-      registers: [register],
     });
 
-    this.statsDurationHistogram = new Histogram({
+    this.statsDurationHistogram = this.getOrCreateHistogram({
       name: 'user_stats_duration_seconds',
       help: 'Statistics query duration in seconds',
       labelNames: ['tenant_id'],
       buckets: [0.05, 0.1, 0.3, 0.5, 1, 2], // 50ms, 100ms, 300ms, 500ms, 1s, 2s
-      registers: [register],
     });
 
-    // 初始化仪表
-    this.activeUsersGauge = new Gauge({
+    // 初始化仪表 - 使用 getOrCreateGauge 避免重复注册
+    this.activeUsersGauge = this.getOrCreateGauge({
       name: 'user_active_count',
       help: 'Number of active users',
       labelNames: ['tenant_id'],
-      registers: [register],
     });
 
-    this.totalUsersGauge = new Gauge({
+    this.totalUsersGauge = this.getOrCreateGauge({
       name: 'user_total_count',
       help: 'Total number of users',
       labelNames: ['tenant_id'],
-      registers: [register],
     });
 
-    this.lockedUsersGauge = new Gauge({
+    this.lockedUsersGauge = this.getOrCreateGauge({
       name: 'user_locked_count',
       help: 'Number of locked users',
       labelNames: ['tenant_id'],
-      registers: [register],
     });
   }
 
@@ -285,6 +275,67 @@ export class UserMetricsService implements OnModuleInit {
   startStatsTimer(tenantId: string) {
     return this.statsDurationHistogram.startTimer({
       tenant_id: tenantId || 'default',
+    });
+  }
+
+  // ========== Helper methods to avoid duplicate metric registration ==========
+
+  /**
+   * Get or create a Counter metric
+   * This prevents "metric already registered" errors in cluster mode
+   */
+  private getOrCreateCounter(config: any): Counter {
+    try {
+      // Try to get existing metric
+      const existingMetric = register.getSingleMetric(config.name);
+      if (existingMetric) {
+        return existingMetric as Counter;
+      }
+    } catch (error) {
+      // Metric doesn't exist, create it
+    }
+
+    return new Counter({
+      ...config,
+      registers: [register],
+    });
+  }
+
+  /**
+   * Get or create a Histogram metric
+   */
+  private getOrCreateHistogram(config: any): Histogram {
+    try {
+      const existingMetric = register.getSingleMetric(config.name);
+      if (existingMetric) {
+        return existingMetric as Histogram;
+      }
+    } catch (error) {
+      // Metric doesn't exist, create it
+    }
+
+    return new Histogram({
+      ...config,
+      registers: [register],
+    });
+  }
+
+  /**
+   * Get or create a Gauge metric
+   */
+  private getOrCreateGauge(config: any): Gauge {
+    try {
+      const existingMetric = register.getSingleMetric(config.name);
+      if (existingMetric) {
+        return existingMetric as Gauge;
+      }
+    } catch (error) {
+      // Metric doesn't exist, create it
+    }
+
+    return new Gauge({
+      ...config,
+      registers: [register],
     });
   }
 }

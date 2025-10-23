@@ -140,10 +140,41 @@ const BasicLayout = () => {
       onClick: () => navigate('/usage'),
     },
     {
-      key: '/payments',
+      key: 'payments',
       icon: <CreditCardOutlined />,
       label: '支付管理',
-      onClick: () => navigate('/payments'),
+      children: [
+        {
+          key: '/payments/dashboard',
+          label: '支付统计',
+          onClick: () => navigate('/payments/dashboard'),
+        },
+        {
+          key: '/payments',
+          label: '支付列表',
+          onClick: () => navigate('/payments'),
+        },
+        {
+          key: '/payments/refunds',
+          label: '退款管理',
+          onClick: () => navigate('/payments/refunds'),
+        },
+        {
+          key: '/payments/exceptions',
+          label: '异常监控',
+          onClick: () => navigate('/payments/exceptions'),
+        },
+        {
+          key: '/payments/webhooks',
+          label: 'Webhook日志',
+          onClick: () => navigate('/payments/webhooks'),
+        },
+        {
+          key: '/payments/config',
+          label: '支付配置',
+          onClick: () => navigate('/payments/config'),
+        },
+      ],
     },
     {
       key: 'system',

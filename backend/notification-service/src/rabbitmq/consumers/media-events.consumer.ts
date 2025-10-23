@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { ConsumeMessage } from 'amqplib';
-import { FileUploadedEvent, NotificationEventTypes } from '@cloudphone/shared';
+import { FileUploadedEvent, NotificationEventTypes } from '../../types/events';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { NotificationType } from '../../entities/notification.entity';
 

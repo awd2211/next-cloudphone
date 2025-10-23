@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run tests for changed services only
+echo "🧪 Running tests for changed services..."
+
+# Get changed files
+CHANGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Check if any backend service files changed
+if echo "$CHANGED_FILES" | grep -q "^backend/shared/"; then
+  echo "📦 Testing shared module..."
+  cd backend/shared && pnpm test --bail --findRelatedTests || exit 1
+  cd ../..
+fi
+
+if echo "$CHANGED_FILES" | grep -q "^backend/user-service/"; then
+  echo "👤 Testing user-service..."
+  cd backend/user-service && pnpm test --bail --findRelatedTests || exit 1
+  cd ../..
+fi
+
+if echo "$CHANGED_FILES" | grep -q "^backend/device-service/"; then
+  echo "📱 Testing device-service..."
+  cd backend/device-service && pnpm test --bail --findRelatedTests || exit 1
+  cd ../..
+fi
+
+if echo "$CHANGED_FILES" | grep -q "^backend/billing-service/"; then
+  echo "💰 Testing billing-service..."
+  cd backend/billing-service && pnpm test --bail --findRelatedTests || exit 1
+  cd ../..
+fi
+
+echo "✅ All tests passed!"

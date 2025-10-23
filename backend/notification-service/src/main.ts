@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { ConsulService } from '@cloudphone/shared';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -67,9 +68,23 @@ async function bootstrap() {
   const port = parseInt(configService.get('PORT') || '30006');
   await app.listen(port);
 
+  // ========== 注册到 Consul ==========
+
+  try {
+    const consulService = app.get(ConsulService);
+    await consulService.registerService('notification-service', port, ['v1', 'notifications']);
+    console.log(`✅ Service registered to Consul`);
+  } catch (error) {
+    console.warn(`⚠️  Failed to register to Consul: ${error.message}`);
+  }
+
+  // ========== 服务启动日志 ==========
+
   const logger = app.get(Logger);
   logger.log(`🚀 Notification Service is running on: http://localhost:${port}`);
   logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  logger.log(`🔗 RabbitMQ: ${configService.get('RABBITMQ_URL', 'amqp://localhost:5672')}`);
+  logger.log(`🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`);
 }
 
 bootstrap();
