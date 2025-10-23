@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import * as os from 'os';
@@ -31,8 +32,13 @@ interface HealthCheckResult {
       model: string;
     };
   };
+  details?: {
+    description: string;
+    capabilities: string[];
+  };
 }
 
+@ApiTags('health')
 @Controller('health')
 export class HealthController {
   private readonly startTime: number = Date.now();
@@ -40,6 +46,8 @@ export class HealthController {
   constructor(@InjectDataSource() private dataSource: DataSource) {}
 
   @Get()
+  @ApiOperation({ summary: '健康检查', description: '检查服务是否正常运行，包括依赖项状态和系统信息' })
+  @ApiResponse({ status: 200, description: '服务正常' })
   async check(): Promise<HealthCheckResult> {
     const dependencies: HealthCheckResult['dependencies'] = {};
 
@@ -101,6 +109,68 @@ export class HealthController {
       cpu: {
         cores: os.cpus().length,
         model: os.cpus()[0]?.model || 'unknown',
+      },
+    };
+  }
+
+  @Get('detailed')
+  @ApiOperation({ summary: '详细健康检查', description: '获取包含服务能力的详细健康信息' })
+  @ApiResponse({ status: 200, description: '详细健康信息' })
+  async detailed(): Promise<HealthCheckResult> {
+    const basicHealth = await this.check();
+
+    return {
+      ...basicHealth,
+      details: {
+        description: 'Billing Service - Payment and Subscription Management',
+        capabilities: [
+          'User balance management',
+          'Payment processing (Alipay, WeChat Pay, PayPal)',
+          'Subscription plan management',
+          'Usage metering and billing',
+          'Invoice generation',
+          'Transaction history tracking',
+          'Automated recurring billing',
+        ],
+      },
+    };
+  }
+
+  @Get('liveness')
+  @ApiOperation({ summary: 'Kubernetes 存活探针', description: '检查服务进程是否存活' })
+  @ApiResponse({ status: 200, description: '服务存活' })
+  async liveness() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor((Date.now() - this.startTime) / 1000),
+    };
+  }
+
+  @Get('readiness')
+  @ApiOperation({ summary: 'Kubernetes 就绪探针', description: '检查服务是否准备好接收流量' })
+  @ApiResponse({ status: 200, description: '服务就绪' })
+  @ApiResponse({ status: 503, description: '服务未就绪' })
+  async readiness() {
+    const dbCheck = await this.checkDatabase();
+
+    const isReady = dbCheck.status === 'healthy';
+
+    if (!isReady) {
+      return {
+        status: 'error',
+        message: 'Service not ready - critical dependencies unhealthy',
+        dependencies: {
+          database: dbCheck.status,
+        },
+      };
+    }
+
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      dependencies: {
+        database: dbCheck.status,
       },
     };
   }

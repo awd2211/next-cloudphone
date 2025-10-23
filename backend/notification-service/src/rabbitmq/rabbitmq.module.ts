@@ -11,6 +11,7 @@ import { SystemEventsConsumer } from './consumers/system-events.consumer';
 import { DlxConsumer } from './consumers/dlx.consumer';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailModule } from '../email/email.module';
+import { TemplatesModule } from '../templates/templates.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { EmailModule } from '../email/email.module';
     }),
     NotificationsModule,
     EmailModule,
+    TemplatesModule,
   ],
   providers: [
     UserEventsConsumer,
