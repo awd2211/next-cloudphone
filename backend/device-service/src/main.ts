@@ -9,6 +9,8 @@ import {
   ConsulService,
   HttpExceptionFilter,
   AllExceptionsFilter,
+  TransformInterceptor,
+  LoggingInterceptor,
 } from '@cloudphone/shared';
 
 async function bootstrap() {
@@ -55,6 +57,27 @@ async function bootstrap() {
   app.useGlobalFilters(
     new AllExceptionsFilter(),      // 兜底所有异常
     new HttpExceptionFilter(),       // HTTP 异常（支持 Request ID 和 BusinessException）
+  );
+
+  // ========== 全局拦截器 ==========
+
+  // 响应转换拦截器 - 统一成功响应格式
+  app.useGlobalInterceptors(new TransformInterceptor());
+
+  // 日志拦截器 - 记录请求和响应（排除健康检查和监控端点）
+  app.useGlobalInterceptors(
+    new LoggingInterceptor({
+      excludePaths: [
+        '/health',
+        '/health/detailed',
+        '/health/liveness',
+        '/health/readiness',
+        '/health/pool',
+        '/health/circuit-breakers',
+        '/metrics',
+        '/favicon.ico',
+      ],
+    }),
   );
 
   // ========== CORS 配置 ==========
