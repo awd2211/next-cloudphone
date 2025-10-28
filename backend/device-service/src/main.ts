@@ -5,7 +5,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { ConsulService } from '@cloudphone/shared';
+import {
+  ConsulService,
+  HttpExceptionFilter,
+  AllExceptionsFilter,
+} from '@cloudphone/shared';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -46,13 +50,26 @@ async function bootstrap() {
     }),
   );
 
+  // ========== 全局异常过滤器 ==========
+
+  app.useGlobalFilters(
+    new AllExceptionsFilter(),      // 兜底所有异常
+    new HttpExceptionFilter(),       // HTTP 异常（支持 Request ID 和 BusinessException）
+  );
+
   // ========== CORS 配置 ==========
 
   app.enableCors({
     origin: configService.get('CORS_ORIGINS')?.split(',') || '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'X-Request-ID',  // 支持 Request ID 追踪
+    ],
+    exposedHeaders: ['X-Request-ID'],  // 允许客户端读取 Request ID
   });
 
   // ========== API 版本控制 ==========

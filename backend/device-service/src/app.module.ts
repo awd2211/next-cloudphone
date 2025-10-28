@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
@@ -21,7 +21,12 @@ import { CommonModule } from './common/common.module';
 import { FailoverModule } from './failover/failover.module';
 import { StateRecoveryModule } from './state-recovery/state-recovery.module';
 
-import { ConsulModule, createLoggerConfig, EventBusService } from '@cloudphone/shared';
+import {
+  ConsulModule,
+  createLoggerConfig,
+  EventBusService,
+  RequestIdMiddleware,
+} from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
 
@@ -72,4 +77,9 @@ import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
   controllers: [HealthController],
   providers: [EventBusService],  // ✅ 提供 EventBusService 供其他模块使用
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // 应用 Request ID 中间件到所有路由
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}
