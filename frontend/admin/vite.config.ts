@@ -7,37 +7,102 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
+    // 目标浏览器
+    target: 'es2015',
+
+    // 启用 CSS 代码分割
+    cssCodeSplit: true,
+
+    // 启用源码映射（开发环境）
+    sourcemap: process.env.NODE_ENV === 'development',
+
     rollupOptions: {
       output: {
-        manualChunks: {
+        // 手动代码分割
+        manualChunks: (id) => {
           // 核心框架
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            return 'react-vendor';
+          }
+          // React Query
+          if (id.includes('@tanstack/react-query')) {
+            return 'react-query-vendor';
+          }
           // UI 组件库
-          'antd-vendor': ['antd', '@ant-design/icons', '@ant-design/pro-components'],
+          if (id.includes('antd') || id.includes('@ant-design')) {
+            return 'antd-vendor';
+          }
           // 图表库
-          'charts-vendor': ['echarts', 'echarts-for-react'],
+          if (id.includes('echarts')) {
+            return 'charts-vendor';
+          }
+          // Socket.IO
+          if (id.includes('socket.io-client')) {
+            return 'socket-vendor';
+          }
           // 工具库
-          'utils-vendor': ['axios', 'dayjs', 'zustand'],
+          if (id.includes('axios') || id.includes('dayjs') || id.includes('zustand')) {
+            return 'utils-vendor';
+          }
+          // node_modules 中的其他依赖
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
+
+        // 输出文件命名
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        assetFileNames: (assetInfo) => {
+          // 根据文件类型分类
+          const info = assetInfo.name?.split('.');
+          const ext = info?.[info.length - 1];
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext || '')) {
+            return `assets/images/[name]-[hash][extname]`;
+          } else if (/woff|woff2/.test(ext || '')) {
+            return `assets/fonts/[name]-[hash][extname]`;
+          } else if (ext === 'css') {
+            return `assets/css/[name]-[hash][extname]`;
+          }
+          return `assets/[name]-[hash][extname]`;
         },
       },
     },
+
     // 代码分割阈值
     chunkSizeWarningLimit: 1000,
+
     // 压缩配置
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // 生产环境移除 console
+        drop_console: process.env.NODE_ENV === 'production', // 生产环境移除 console
         drop_debugger: true,
+        pure_funcs: process.env.NODE_ENV === 'production' ? ['console.log'] : [],
+      },
+      format: {
+        comments: false, // 移除注释
       },
     },
+
+    // Rollup 优化
+    reportCompressedSize: false, // 加快构建速度
+
+    // 输出目录
+    outDir: 'dist',
+    assetsDir: 'assets',
+
+    // 清空输出目录
+    emptyOutDir: true,
   },
   server: {
     host: '0.0.0.0',

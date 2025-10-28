@@ -196,46 +196,153 @@ export class PurchasePlanSaga {
   }
 
   /**
-   * 补偿操作（回滚）
+   * 补偿操作（回滚）- 带重试机制
    */
-  private async compensate(state: PurchasePlanSagaState): Promise<void> {
-    this.logger.log(`Executing compensation for Saga ${state.sagaId}`);
+  private async compensate(state: PurchasePlanSagaState, retryCount = 0): Promise<void> {
+    const maxRetries = 3;
+    this.logger.log(`Executing compensation for Saga ${state.sagaId} (attempt ${retryCount + 1}/${maxRetries + 1})`);
 
     try {
       // 按逆序回滚操作
       if (state.step === 'process_payment' && state.deviceId) {
         // 释放已分配的设备
         this.logger.log(`Compensating: Releasing device ${state.deviceId}`);
-        await this.eventBus.publishDeviceEvent('release', {
-          deviceId: state.deviceId,
-          userId: null,
-          reason: `Saga ${state.sagaId} compensation`,
-          timestamp: new Date().toISOString(),
-        });
+
+        try {
+          await this.eventBus.publishDeviceEvent('release', {
+            deviceId: state.deviceId,
+            userId: null,
+            reason: `Saga ${state.sagaId} compensation`,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          this.logger.error(`Failed to publish device release event:`, error.message);
+
+          // 如果发布失败且还有重试次数，延迟后重试
+          if (retryCount < maxRetries) {
+            const delay = Math.pow(2, retryCount) * 1000; // 指数退避: 1s, 2s, 4s
+            this.logger.warn(`Retrying device release after ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return await this.compensate(state, retryCount + 1);
+          }
+
+          // 重试耗尽，记录到死信队列
+          await this.sendToDeadLetterQueue('device_release_failed', {
+            sagaId: state.sagaId,
+            deviceId: state.deviceId,
+            error: error.message,
+            retries: maxRetries,
+          });
+
+          throw error;
+        }
       }
 
       if (state.orderId) {
         // 取消订单
         this.logger.log(`Compensating: Cancelling order ${state.orderId}`);
-        await this.orderRepository.update(state.orderId, {
-          status: OrderStatus.CANCELLED,
-          cancelReason: `Saga ${state.sagaId} compensation: ${state.error}`,
-          cancelledAt: new Date(),
-        });
-        
-        // 发布订单取消事件
-        await this.eventBus.publishOrderEvent('cancelled', {
-          orderId: state.orderId,
-          userId: null,
-          reason: `Saga compensation: ${state.error}`,
-          cancelledAt: new Date(),
-          timestamp: new Date().toISOString(),
-        });
+
+        try {
+          await this.orderRepository.update(state.orderId, {
+            status: OrderStatus.CANCELLED,
+            cancelReason: `Saga ${state.sagaId} compensation: ${state.error}`,
+            cancelledAt: new Date(),
+          });
+
+          // 发布订单取消事件
+          await this.eventBus.publishOrderEvent('cancelled', {
+            orderId: state.orderId,
+            userId: null,
+            reason: `Saga compensation: ${state.error}`,
+            cancelledAt: new Date(),
+            timestamp: new Date().toISOString(),
+          });
+
+          // 发送通知给用户
+          await this.sendCompensationNotification(state);
+
+        } catch (error) {
+          this.logger.error(`Failed to cancel order:`, error.message);
+
+          // 订单取消失败，记录到死信队列
+          await this.sendToDeadLetterQueue('order_cancellation_failed', {
+            sagaId: state.sagaId,
+            orderId: state.orderId,
+            error: error.message,
+          });
+
+          throw error;
+        }
       }
 
-      this.logger.log(`Compensation completed for Saga ${state.sagaId}`);
+      this.logger.log(`Compensation completed successfully for Saga ${state.sagaId}`);
     } catch (error) {
-      this.logger.error(`Compensation failed for Saga ${state.sagaId}:`, error.message);
+      this.logger.error(`Compensation failed for Saga ${state.sagaId} after ${retryCount + 1} attempts:`, error.message);
+
+      // 发送告警
+      await this.sendCompensationFailureAlert(state, error);
+
+      throw error;
+    }
+  }
+
+  /**
+   * 发送补偿失败通知给用户
+   */
+  private async sendCompensationNotification(state: PurchasePlanSagaState): Promise<void> {
+    try {
+      await this.eventBus.publish('cloudphone.events', 'notification.send', {
+        userId: state.orderId, // 需要从订单获取 userId
+        type: 'order_cancelled',
+        title: '订单已取消',
+        message: `您的订单由于系统原因已被取消，如有疑问请联系客服。原因: ${state.error}`,
+        priority: 'high',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      this.logger.error(`Failed to send compensation notification:`, error.message);
+      // 通知失败不应阻塞补偿流程
+    }
+  }
+
+  /**
+   * 发送到死信队列
+   */
+  private async sendToDeadLetterQueue(type: string, data: any): Promise<void> {
+    try {
+      await this.eventBus.publish('cloudphone.dlx', `saga.compensation.failed.${type}`, {
+        type,
+        data,
+        timestamp: new Date().toISOString(),
+        failedAt: new Date().toISOString(),
+      });
+
+      this.logger.warn(`Sent to Dead Letter Queue: ${type}`, data);
+    } catch (error) {
+      this.logger.error(`Failed to send to DLQ:`, error.message);
+      // DLQ 发送失败，记录到本地日志
+      this.logger.error(`DLQ_RECORD: ${JSON.stringify({ type, data })}`);
+    }
+  }
+
+  /**
+   * 发送补偿失败告警
+   */
+  private async sendCompensationFailureAlert(state: PurchasePlanSagaState, error: Error): Promise<void> {
+    try {
+      // 发送告警通知给运维团队
+      await this.eventBus.publish('cloudphone.events', 'alert.saga.compensation.failed', {
+        sagaId: state.sagaId,
+        orderId: state.orderId,
+        deviceId: state.deviceId,
+        step: state.step,
+        error: error.message,
+        stack: error.stack,
+        severity: 'critical',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      this.logger.error(`Failed to send compensation failure alert:`, err.message);
     }
   }
 
