@@ -1,7 +1,7 @@
 import { Injectable, Logger, HttpException, HttpStatus } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { ConfigService } from "@nestjs/config";
-import { AxiosError, AxiosRequestConfig } from "axios";
+import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { catchError, map, Observable } from "rxjs";
 import { ConsulService } from "@cloudphone/shared";
 
@@ -287,8 +287,12 @@ export class ProxyService {
     this.logger.log(`📤 Proxying ${method} ${url}`);
     this.logger.log(`📋 Config: ${JSON.stringify({url: config.url, params: config.params, method: config.method})}`);
 
+    // 根据请求方法决定是否重试
+    const isIdempotent = ['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE'].includes(method.toUpperCase());
+    const maxRetries = isIdempotent ? 3 : 0; // 非幂等操作（POST, PATCH）不自动重试
+
     try {
-      const response = await this.httpService.axiosRef.request(config);
+      const response = await this.executeWithRetry(config, maxRetries, serviceName);
       this.logger.log(`✅ Response from ${serviceName}: status=${response.status}, data keys=${Object.keys(response.data || {})}`);
       return response.data;
     } catch (error: any) {
@@ -316,6 +320,67 @@ export class ProxyService {
         status,
       );
     }
+  }
+
+  /**
+   * 执行带重试的HTTP请求
+   */
+  private async executeWithRetry(
+    config: AxiosRequestConfig,
+    maxRetries: number,
+    serviceName: string,
+    attempt = 0,
+  ): Promise<AxiosResponse> {
+    try {
+      return await this.httpService.axiosRef.request(config);
+    } catch (error: any) {
+      const axiosError = error as AxiosError;
+
+      // 判断是否应该重试
+      const shouldRetry =
+        attempt < maxRetries &&
+        this.isRetryableError(axiosError);
+
+      if (shouldRetry) {
+        const delay = Math.pow(2, attempt) * 500; // 指数退避: 500ms, 1s, 2s
+        this.logger.warn(
+          `Retry ${attempt + 1}/${maxRetries} for ${serviceName} after ${delay}ms (error: ${axiosError.message})`,
+        );
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.executeWithRetry(config, maxRetries, serviceName, attempt + 1);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * 判断错误是否可重试
+   */
+  private isRetryableError(error: AxiosError): boolean {
+    // 网络错误（没有响应）
+    if (!error.response) {
+      return true;
+    }
+
+    // 5xx 服务器错误
+    if (error.response.status >= 500) {
+      return true;
+    }
+
+    // 429 速率限制（短暂延迟后可能恢复）
+    if (error.response.status === 429) {
+      return true;
+    }
+
+    // 408 请求超时
+    if (error.response.status === 408) {
+      return true;
+    }
+
+    // 其他错误不重试（4xx 客户端错误）
+    return false;
   }
 
   /**
