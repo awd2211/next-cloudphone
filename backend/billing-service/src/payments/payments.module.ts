@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
+import { HttpClientModule } from '@cloudphone/shared';
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
 import { PaymentsAdminController } from './admin/payments-admin.controller';
@@ -15,12 +16,14 @@ import { AlipayProvider } from './providers/alipay.provider';
 import { StripeProvider } from './providers/stripe.provider';
 import { PayPalProvider } from './providers/paypal.provider';
 import { PaddleProvider } from './providers/paddle.provider';
+import { BalanceClientService } from './clients/balance-client.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Payment, Subscription, Order]),
     ConfigModule,
     HttpModule,
+    HttpClientModule,
     CurrencyModule,
   ],
   controllers: [PaymentsController, PaymentsAdminController],
@@ -32,6 +35,7 @@ import { PaddleProvider } from './providers/paddle.provider';
     StripeProvider,
     PayPalProvider,
     PaddleProvider,
+    BalanceClientService,
   ],
   exports: [PaymentsService],
 })

@@ -16,6 +16,7 @@ import { AlipayProvider } from './providers/alipay.provider';
 import { StripeProvider } from './providers/stripe.provider';
 import { PayPalProvider } from './providers/paypal.provider';
 import { PaddleProvider } from './providers/paddle.provider';
+import { BalanceClientService } from './clients/balance-client.service';
 import {
   CreatePaymentDto,
   RefundPaymentDto,
@@ -36,6 +37,7 @@ export class PaymentsService {
     private stripeProvider: StripeProvider,
     private paypalProvider: PayPalProvider,
     private paddleProvider: PaddleProvider,
+    private balanceClient: BalanceClientService,
     private configService: ConfigService,
   ) {}
 
@@ -174,10 +176,55 @@ export class PaymentsService {
         break;
 
       case PaymentMethod.BALANCE:
-        // 余额支付直接标记为成功（需要先扣减余额）
-        payment.status = PaymentStatus.SUCCESS;
-        payment.paidAt = new Date();
-        await this.handlePaymentSuccess(payment);
+        // 余额支付：先检查余额，再扣减
+        try {
+          // 1. 检查余额是否充足
+          const balanceCheck = await this.balanceClient.checkBalance(
+            order.userId,
+            payment.amount,
+          );
+
+          if (!balanceCheck.allowed) {
+            throw new BadRequestException(
+              `余额不足。当前余额: ${balanceCheck.balance}, 需要: ${payment.amount}`,
+            );
+          }
+
+          // 2. 扣减余额（带幂等性保护）
+          const deductResult = await this.balanceClient.deductBalance(
+            order.userId,
+            payment.amount,
+            order.id,
+          );
+
+          // 3. 标记支付成功
+          payment.status = PaymentStatus.SUCCESS;
+          payment.paidAt = new Date();
+          payment.transactionId = deductResult.transactionId;
+          payment.metadata = {
+            ...payment.metadata,
+            newBalance: deductResult.newBalance,
+            deductedAt: new Date().toISOString(),
+          };
+
+          await this.handlePaymentSuccess(payment);
+        } catch (error) {
+          // 余额支付失败，标记为失败状态
+          payment.status = PaymentStatus.FAILED;
+          payment.metadata = {
+            ...payment.metadata,
+            error: error.message,
+            failedAt: new Date().toISOString(),
+          };
+
+          this.logger.error(
+            `Balance payment failed for order ${order.id}: ${error.message}`,
+            error.stack,
+          );
+
+          // 重新抛出异常，让调用方知道支付失败
+          throw error;
+        }
         break;
 
       default:
@@ -378,6 +425,25 @@ export class PaymentsService {
           payment.paymentNo,
           refundDto.amount,
           refundDto.reason,
+        );
+      } else if (payment.method === PaymentMethod.BALANCE) {
+        // 余额退款：退还到用户余额
+        const order = await this.ordersRepository.findOne({
+          where: { id: payment.orderId },
+        });
+
+        if (!order) {
+          throw new NotFoundException(`订单不存在: ${payment.orderId}`);
+        }
+
+        result = await this.balanceClient.refundBalance(
+          order.userId,
+          refundDto.amount,
+          order.id,
+        );
+
+        this.logger.log(
+          `Balance refunded for user ${order.userId}: amount=${refundDto.amount}, newBalance=${result.newBalance}`,
         );
       }
 

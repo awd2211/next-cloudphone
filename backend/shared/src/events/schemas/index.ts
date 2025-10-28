@@ -12,7 +12,11 @@ export * from './app.events';
 // import { NotificationEventTypes, ... } from '@cloudphone/shared/dist/events/schemas/notification.events';
 // export * from './notification.events';
 
-// 旧的事件定义（待整合）
-// export * from './device.events';
-// export * from './order.events';
-// export * from './user.events';
+// 设备事件（用于 Device Allocation Saga）
+export * from './device.events';
+
+// 订单事件（用于 Saga）
+export * from './order.events';
+
+// 用户事件
+export * from './user.events';

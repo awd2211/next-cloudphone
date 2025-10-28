@@ -4,6 +4,7 @@ import { AdbService } from '../adb/adb.service';
 import {
   AppInstallRequestedEvent,
   AppUninstallRequestedEvent,
+  DeviceAllocateRequestedEvent,
 } from '@cloudphone/shared';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -132,58 +133,58 @@ export class DevicesConsumer {
 
   /**
    * 处理设备分配请求（Saga）
-   * TODO: 定义 DeviceAllocateRequestedEvent 事件类型
    */
-  // @RabbitSubscribe({
-  //   exchange: 'cloudphone.events',
-  //   routingKey: 'device.allocate.requested',
-  //   queue: 'device-service.device-allocate',
-  //   queueOptions: {
-  //     durable: true,
-  //   },
-  // })
-  // async handleDeviceAllocate(event: DeviceAllocateRequestedEvent) {
-  //   this.logger.log(
-  //     `Received device allocate request for order ${event.orderId}, sagaId: ${event.sagaId}`,
-  //   );
-  //
-  //   try {
-  //     // 分配一个可用设备
-  //     const device = await this.devicesService.allocateDevice(
-  //       event.userId,
-  //       event.planId,
-  //     );
-  //
-  //     // 发布设备分配成功事件
-  //     await this.devicesService.publishDeviceAllocated({
-  //       sagaId: event.sagaId,
-  //       deviceId: device.id,
-  //       orderId: event.orderId,
-  //       userId: event.userId,
-  //       success: true,
-  //       timestamp: new Date().toISOString(),
-  //     });
-  //
-  //     this.logger.log(
-  //       `Device ${device.id} allocated for order ${event.orderId}`,
-  //     );
-  //   } catch (error) {
-  //     this.logger.error(
-  //       `Failed to allocate device for order ${event.orderId}:`,
-  //       error.message,
-  //     );
-  //
-  //     // 发布设备分配失败事件
-  //     await this.devicesService.publishDeviceAllocated({
-  //       sagaId: event.sagaId,
-  //       deviceId: null,
-  //       orderId: event.orderId,
-  //       userId: event.userId,
-  //       success: false,
-  //       timestamp: new Date().toISOString(),
-  //     });
-  //   }
-  // }
+  @RabbitSubscribe({
+    exchange: 'cloudphone.events',
+    routingKey: 'device.allocate.requested',
+    queue: 'device-service.device-allocate',
+    queueOptions: {
+      durable: true,
+    },
+  })
+  async handleDeviceAllocate(event: DeviceAllocateRequestedEvent) {
+    this.logger.log(
+      `Received device allocate request for order ${event.orderId}, sagaId: ${event.sagaId}`,
+    );
+
+    try {
+      // 分配一个可用设备
+      const device = await this.devicesService.allocateDevice(
+        event.userId,
+        event.planId,
+      );
+
+      // 发布设备分配成功事件
+      await this.devicesService.publishDeviceAllocated({
+        sagaId: event.sagaId,
+        deviceId: device.id,
+        orderId: event.orderId,
+        userId: event.userId,
+        success: true,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(
+        `Device ${device.id} allocated for order ${event.orderId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to allocate device for order ${event.orderId}:`,
+        error.message,
+      );
+
+      // 发布设备分配失败事件
+      await this.devicesService.publishDeviceAllocated({
+        sagaId: event.sagaId,
+        deviceId: null,
+        orderId: event.orderId,
+        userId: event.userId,
+        success: false,
+        timestamp: new Date().toISOString(),
+        error: error.message,
+      });
+    }
+  }
 
   /**
    * 处理设备释放请求
