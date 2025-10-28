@@ -26,6 +26,9 @@ export * from './filters';
 // ========== 拦截器 ==========
 export * from './interceptors';
 
+// ========== 中间件 ==========
+export * from './middlewares';
+
 // ========== 工具类 ==========
 export { TempFileManagerService } from './utils/temp-file-manager.service';
 

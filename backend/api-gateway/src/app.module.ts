@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -9,7 +9,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProxyModule } from './proxy/proxy.module';
-import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig, RequestIdMiddleware } from '@cloudphone/shared';
 import { HealthController } from './health.controller';
 import { MetricsModule } from './metrics/metrics.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -84,4 +84,9 @@ import { validate } from './common/config/env.validation';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // 应用 Request ID 中间件到所有路由
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}

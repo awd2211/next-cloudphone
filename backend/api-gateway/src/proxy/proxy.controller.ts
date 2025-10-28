@@ -464,11 +464,14 @@ export class ProxyController {
       //   targetPath += `?${urlParts[1]}`;
       // }
 
+      // 获取 Request ID
+      const requestId = (req as any).requestId || 'unknown';
+
       this.logger.log(
-        `🔀 Routing ${req.method} ${req.url} -> ${serviceName}${targetPath}`,
+        `[${requestId}] 🔀 Routing ${req.method} ${req.url} -> ${serviceName}${targetPath}`,
       );
-      this.logger.log(`📋 查询参数: ${JSON.stringify(req.query)}`);
-      this.logger.log(`👤 用户信息: ${(req as any).user?.username} (${(req as any).user?.id})`);
+      this.logger.log(`[${requestId}] 📋 查询参数: ${JSON.stringify(req.query)}`);
+      this.logger.log(`[${requestId}] 👤 用户信息: ${(req as any).user?.username} (${(req as any).user?.id})`);
 
       // 转发请求到目标服务
       const result$ = this.proxyService.proxyRequest(
@@ -478,6 +481,8 @@ export class ProxyController {
         req.body,
         {
           ...req.headers,
+          // 注入 Request ID (跨服务追踪)
+          "x-request-id": requestId,
           // 注入用户信息（从 JWT 中提取）
           "x-user-id": (req as any).user?.id,
           "x-user-tenant": (req as any).user?.tenantId,

@@ -41,20 +41,48 @@ export enum BusinessErrorCode {
   FILE_SYSTEM_ERROR = 9004,
 }
 
+export interface BusinessExceptionResponse {
+  success: false;
+  errorCode: BusinessErrorCode;
+  message: string;
+  requestId?: string;
+  timestamp?: string;
+  path?: string;
+  details?: any;
+}
+
 export class BusinessException extends HttpException {
   constructor(
     public readonly errorCode: BusinessErrorCode,
     message: string,
     statusCode: HttpStatus = HttpStatus.BAD_REQUEST,
+    public readonly requestId?: string,
+    public readonly details?: any,
   ) {
-    super(
-      {
-        success: false,
-        errorCode,
-        message,
-      },
-      statusCode,
-    );
+    const response: BusinessExceptionResponse = {
+      success: false,
+      errorCode,
+      message,
+      timestamp: new Date().toISOString(),
+    };
+
+    if (requestId) {
+      response.requestId = requestId;
+    }
+
+    if (details) {
+      response.details = details;
+    }
+
+    super(response, statusCode);
+  }
+
+  /**
+   * 设置请求路径（由过滤器设置）
+   */
+  setPath(path: string): void {
+    const response = this.getResponse() as BusinessExceptionResponse;
+    response.path = path;
   }
 }
 
