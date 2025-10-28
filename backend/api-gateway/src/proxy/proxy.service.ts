@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { catchError, map, Observable } from "rxjs";
 import { ConsulService } from "@cloudphone/shared";
+import CircuitBreaker = require("opossum");
 
 export interface ServiceRoute {
   name: string;
@@ -25,6 +26,7 @@ export class ProxyService {
   private readonly services: Map<string, ServiceRoute>;
   private readonly serviceConfigs: Map<string, ServiceConfig>;
   private readonly useConsul: boolean;
+  private readonly circuitBreakers: Map<string, CircuitBreaker>;
 
   constructor(
     private readonly httpService: HttpService,
@@ -180,6 +182,57 @@ export class ProxyService {
         },
       ],
     ]);
+
+    // 初始化熔断器
+    this.circuitBreakers = new Map();
+    this.initializeCircuitBreakers();
+  }
+
+  /**
+   * 初始化每个服务的熔断器
+   */
+  private initializeCircuitBreakers(): void {
+    // 为每个服务创建独立的熔断器
+    for (const [serviceName, config] of this.serviceConfigs.entries()) {
+      const options: CircuitBreaker.Options = {
+        timeout: config.timeout || 10000, // 请求超时时间
+        errorThresholdPercentage: 50, // 错误率阈值 50%
+        resetTimeout: 30000, // 熔断器半开状态重试时间 30s
+        rollingCountTimeout: 10000, // 滑动窗口时间 10s
+        rollingCountBuckets: 10, // 滑动窗口桶数
+        volumeThreshold: 10, // 最小请求数量阈值
+        capacity: 100, // 信号量容量（并发请求数）
+      };
+
+      // 创建熔断器，包装 HTTP 请求函数
+      const breaker = new CircuitBreaker(
+        async (config: AxiosRequestConfig) => {
+          return await this.httpService.axiosRef.request(config);
+        },
+        options,
+      );
+
+      // 监听熔断器事件
+      breaker.on('open', () => {
+        this.logger.error(`🔴 Circuit breaker OPENED for ${serviceName}`);
+      });
+
+      breaker.on('halfOpen', () => {
+        this.logger.warn(`🟡 Circuit breaker HALF-OPEN for ${serviceName}`);
+      });
+
+      breaker.on('close', () => {
+        this.logger.log(`🟢 Circuit breaker CLOSED for ${serviceName}`);
+      });
+
+      breaker.on('fallback', (result: any) => {
+        this.logger.warn(`⚠️ Circuit breaker FALLBACK triggered for ${serviceName}`);
+      });
+
+      this.circuitBreakers.set(serviceName, breaker);
+    }
+
+    this.logger.log(`✅ Initialized ${this.circuitBreakers.size} circuit breakers`);
   }
 
   /**
@@ -323,7 +376,7 @@ export class ProxyService {
   }
 
   /**
-   * 执行带重试的HTTP请求
+   * 执行带重试和熔断器保护的HTTP请求
    */
   private async executeWithRetry(
     config: AxiosRequestConfig,
@@ -332,7 +385,17 @@ export class ProxyService {
     attempt = 0,
   ): Promise<AxiosResponse> {
     try {
-      return await this.httpService.axiosRef.request(config);
+      // 获取该服务的熔断器
+      const breaker = this.circuitBreakers.get(serviceName);
+
+      if (breaker) {
+        // 使用熔断器执行请求
+        return (await breaker.fire(config)) as AxiosResponse;
+      } else {
+        // 如果没有熔断器（fallback），直接执行
+        this.logger.warn(`No circuit breaker found for ${serviceName}, executing directly`);
+        return await this.httpService.axiosRef.request(config);
+      }
     } catch (error: any) {
       const axiosError = error as AxiosError;
 
@@ -429,6 +492,35 @@ export class ProxyService {
    */
   getAllServices(): Map<string, ServiceRoute> {
     return this.services;
+  }
+
+  /**
+   * 获取熔断器状态（用于监控）
+   */
+  getCircuitBreakerStats(): Record<string, any> {
+    const stats: Record<string, any> = {};
+
+    for (const [serviceName, breaker] of this.circuitBreakers.entries()) {
+      const breakerStats = breaker.stats;
+      stats[serviceName] = {
+        state: breaker.opened ? 'OPEN' : breaker.halfOpen ? 'HALF_OPEN' : 'CLOSED',
+        stats: {
+          fires: breakerStats.fires,
+          successes: breakerStats.successes,
+          failures: breakerStats.failures,
+          rejects: breakerStats.rejects,
+          timeouts: breakerStats.timeouts,
+          cacheHits: breakerStats.cacheHits,
+          cacheMisses: breakerStats.cacheMisses,
+          semaphoreRejections: breakerStats.semaphoreRejections,
+          percentiles: breakerStats.percentiles,
+        },
+        enabled: breaker.enabled,
+        volumeThreshold: breaker.volumeThreshold,
+      };
+    }
+
+    return stats;
   }
 
   /**

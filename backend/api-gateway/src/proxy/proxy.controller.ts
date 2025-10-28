@@ -8,6 +8,7 @@ import {
   Logger,
   HttpException,
   HttpStatus,
+  Get,
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { ProxyService } from "./proxy.service";
@@ -20,6 +21,19 @@ export class ProxyController {
   private readonly logger = new Logger(ProxyController.name);
 
   constructor(private readonly proxyService: ProxyService) {}
+
+  /**
+   * 熔断器状态监控端点（公开访问）
+   */
+  @Public()
+  @Get("circuit-breaker/stats")
+  async getCircuitBreakerStats() {
+    const stats = this.proxyService.getCircuitBreakerStats();
+    return {
+      timestamp: new Date().toISOString(),
+      circuitBreakers: stats,
+    };
+  }
 
   /**
    * 健康检查端点（公开访问）- 聚合所有微服务健康状态
