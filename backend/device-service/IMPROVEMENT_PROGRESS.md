@@ -44,6 +44,93 @@ curl http://localhost:30002/api/v1/devices/non-existent
 
 ## ✅ 已完成任务 (续)
 
+### P0-3: 添加数据库复合索引 (1小时) ✅
+
+**完成时间**: 2025-10-28
+**Commit**: [下一个]
+
+**迁移文件**: `migrations/20251028120000_add_composite_indexes.sql`
+
+**新增索引** (7 个):
+1. **idx_devices_user_status** - 用户设备状态查询 (最常用)
+   ```sql
+   WHERE userId IS NOT NULL
+   -- 查询: SELECT * FROM devices WHERE userId = ? AND status = ?
+   ```
+
+2. **idx_devices_tenant_status** - 租户设备状态查询 (多租户)
+   ```sql
+   WHERE tenantId IS NOT NULL
+   -- 查询: SELECT * FROM devices WHERE tenantId = ? AND status = ?
+   ```
+
+3. **idx_devices_status_expires** - 设备过期检查 (定时任务)
+   ```sql
+   WHERE expiresAt IS NOT NULL
+   -- 查询: SELECT * FROM devices WHERE status = 'running' AND expiresAt < NOW()
+   ```
+
+4. **idx_devices_user_created** - 用户设备列表 (时间排序)
+   ```sql
+   ON devices(userId, createdAt DESC)
+   -- 查询: SELECT * FROM devices WHERE userId = ? ORDER BY createdAt DESC
+   ```
+
+5. **idx_snapshots_device_created** - 设备快照列表
+   ```sql
+   ON device_snapshots(deviceId, createdAt DESC)
+   -- 查询: SELECT * FROM device_snapshots WHERE deviceId = ? ORDER BY createdAt DESC
+   ```
+
+6. **idx_devices_status_heartbeat** - 设备心跳监控 (故障检测)
+   ```sql
+   WHERE status = 'running'
+   -- 查询: SELECT * FROM devices WHERE status = 'running' AND lastHeartbeatAt < ?
+   ```
+
+7. **idx_devices_container** - Docker 容器 ID 快速查找
+   ```sql
+   WHERE containerId IS NOT NULL
+   -- 查询: SELECT * FROM devices WHERE containerId = ?
+   ```
+
+**技术特性**:
+- ✅ 使用 `CREATE INDEX CONCURRENTLY` - 不锁表，零停机时间
+- ✅ 使用 `IF NOT EXISTS` - 幂等性，可重复执行
+- ✅ 部分索引 (`WHERE` 条件) - 减少索引大小和维护成本
+- ✅ 自动 `ANALYZE` - 更新统计信息以优化查询计划
+
+**预期性能提升**:
+- 用户设备列表查询: **5-10x** 更快
+- 租户设备统计: **5-10x** 更快
+- 设备过期检查（定时任务）: **10-20x** 更快
+- 快照列表查询: **3-5x** 更快
+- Docker 容器查找: **20-50x** 更快
+
+**应用迁移**:
+```bash
+# 在生产环境应用
+docker compose -f docker-compose.dev.yml exec -T postgres \
+  psql -U postgres -d cloudphone_device < migrations/20251028120000_add_composite_indexes.sql
+```
+
+**验证**:
+```sql
+-- 查看所有新索引
+SELECT tablename, indexname, indexdef
+FROM pg_indexes
+WHERE tablename IN ('devices', 'device_snapshots')
+  AND indexname LIKE 'idx_%'
+ORDER BY tablename, indexname;
+
+-- 测试查询计划
+EXPLAIN ANALYZE
+SELECT * FROM devices WHERE userId = 'test' AND status = 'running';
+-- 应该显示 "Index Scan using idx_devices_user_status"
+```
+
+---
+
 ### P0-2: 替换原始异常为 BusinessException (3小时) ✅
 
 **完成时间**: 2025-10-28
@@ -279,10 +366,10 @@ app.useGlobalInterceptors(
 ### P0 任务 (必须完成 - 8 小时)
 - ✅ P0-1: 集成中间件和过滤器 (2h) - **已完成**
 - ✅ P0-2: 替换 BusinessException (3h) - **已完成**
-- ⏳ P0-3: 添加复合索引 (1h) - **待开始**
+- ✅ P0-3: 添加复合索引 (1h) - **已完成**
 - ⏳ P0-4: 响应转换拦截器 (2h) - **待开始**
 
-**总进度**: 5/8 小时 (62.5%)
+**总进度**: 6/8 小时 (75%)
 
 ### P1 任务 (质量提升 - 12 小时)
 全部待开始
@@ -299,14 +386,15 @@ app.useGlobalInterceptors(
    - ✅ 实际耗时: 约 1.5 小时
    - ✅ 已完成: 统一错误码、更好的错误信息、新增 25+ 错误码
 
-2. **执行 P0-3**: 添加数据库索引 (下一个任务)
-   - 预计需要: 1 小时
-   - 可立即带来: 5-10x 查询性能提升
-   - 零风险 (使用 CONCURRENTLY 模式)
+2. **✅ 完成 P0-3**: 添加数据库索引 - **已完成**
+   - ✅ 实际耗时: 约 0.5 小时
+   - ✅ 已完成: 7 个复合索引、迁移 SQL、完整文档
+   - ⚠️ 注意: 迁移文件已创建，需要在表存在后应用
 
-3. **执行 P0-4**: 添加响应转换和日志拦截器
+3. **执行 P0-4**: 添加响应转换和日志拦截器 (下一个任务)
    - 预计需要: 2 小时
    - 可立即带来: 统一响应格式、自动日志记录
+   - 这是 P0 任务的最后一项
 
 ### 短期目标 (本周内)
 完成所有 P0 任务,使 Device Service 达到与其他服务一致的基础架构水平。
