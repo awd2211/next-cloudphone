@@ -21,6 +21,8 @@ import {
   BusinessErrorCode,
 } from '@cloudphone/shared';
 import { QuotaClientService } from '../quota/quota-client.service';
+import { CacheService } from '../cache/cache.service';
+import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 @Injectable()
 export class DevicesService {
@@ -35,6 +37,7 @@ export class DevicesService {
     private configService: ConfigService,
     @Optional() private eventBus: EventBusService,
     @Optional() private quotaClient: QuotaClientService,
+    private cacheService: CacheService,
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
@@ -294,6 +297,38 @@ export class DevicesService {
     tenantId?: string,
     status?: DeviceStatus,
   ): Promise<{ data: Device[]; total: number; page: number; limit: number }> {
+    // 生成缓存键
+    let cacheKey: string;
+    if (userId) {
+      cacheKey = CacheKeys.deviceList(userId, status, page, limit);
+    } else if (tenantId) {
+      cacheKey = CacheKeys.tenantDeviceList(tenantId, status, page, limit);
+    } else {
+      // 全局列表不缓存（管理员查询）
+      cacheKey = null;
+    }
+
+    // 如果有缓存键，使用缓存
+    if (cacheKey) {
+      return this.cacheService.wrap(
+        cacheKey,
+        async () => this.queryDeviceList(page, limit, userId, tenantId, status),
+        CacheTTL.DEVICE_LIST, // 1 分钟 TTL
+      );
+    }
+
+    // 无缓存键，直接查询
+    return this.queryDeviceList(page, limit, userId, tenantId, status);
+  }
+
+  // 提取查询逻辑为私有方法
+  private async queryDeviceList(
+    page: number,
+    limit: number,
+    userId?: string,
+    tenantId?: string,
+    status?: DeviceStatus,
+  ): Promise<{ data: Device[]; total: number; page: number; limit: number }> {
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -312,20 +347,32 @@ export class DevicesService {
   }
 
   async findOne(id: string): Promise<Device> {
-    const device = await this.devicesRepository.findOne({ where: { id } });
+    // 使用缓存包装器：先查缓存，未命中则查数据库并缓存
+    return this.cacheService.wrap(
+      CacheKeys.device(id),
+      async () => {
+        const device = await this.devicesRepository.findOne({ where: { id } });
 
-    if (!device) {
-      throw BusinessErrors.deviceNotFound(id);
-    }
+        if (!device) {
+          throw BusinessErrors.deviceNotFound(id);
+        }
 
-    return device;
+        return device;
+      },
+      CacheTTL.DEVICE, // 5 分钟 TTL
+    );
   }
 
   async update(id: string, updateDeviceDto: UpdateDeviceDto): Promise<Device> {
     const device = await this.findOne(id);
 
     Object.assign(device, updateDeviceDto);
-    return await this.devicesRepository.save(device);
+    const updatedDevice = await this.devicesRepository.save(device);
+
+    // 清除缓存
+    await this.invalidateDeviceCache(device);
+
+    return updatedDevice;
   }
 
   async remove(id: string): Promise<void> {
@@ -381,6 +428,9 @@ export class DevicesService {
     // 更新设备状态
     device.status = DeviceStatus.DELETED;
     await this.devicesRepository.save(device);
+
+    // 清除缓存
+    await this.invalidateDeviceCache(device);
 
     // 发布设备删除事件
     if (this.eventBus) {
@@ -869,6 +919,37 @@ export class DevicesService {
     } catch (error) {
       this.logger.error(`Failed to take screenshot for device ${deviceId}: ${error.message}`);
       throw BusinessErrors.adbOperationFailed(`截图失败: ${error.message}`, { deviceId });
+    }
+  }
+
+  /**
+   * 缓存失效辅助方法 - 清除设备相关的所有缓存
+   * @param device 设备实体
+   */
+  private async invalidateDeviceCache(device: Device): Promise<void> {
+    try {
+      // 1. 清除设备详情缓存
+      await this.cacheService.del(CacheKeys.device(device.id));
+
+      // 2. 清除用户设备列表缓存（所有分页）
+      if (device.userId) {
+        await this.cacheService.delPattern(CacheKeys.userListPattern(device.userId));
+      }
+
+      // 3. 清除租户设备列表缓存
+      if (device.tenantId) {
+        await this.cacheService.delPattern(CacheKeys.tenantListPattern(device.tenantId));
+      }
+
+      // 4. 清除容器映射缓存
+      if (device.containerId) {
+        await this.cacheService.del(CacheKeys.deviceByContainer(device.containerId));
+      }
+
+      this.logger.debug(`Cache invalidated for device ${device.id}`);
+    } catch (error) {
+      this.logger.error(`Failed to invalidate cache for device ${device.id}:`, error.message);
+      // 缓存失效失败不应该影响主流程
     }
   }
 }

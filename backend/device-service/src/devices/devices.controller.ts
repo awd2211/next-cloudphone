@@ -374,4 +374,33 @@ export class DevicesController {
       data: properties,
     };
   }
+
+  @Get(':id/stream-info')
+  @RequirePermission('device.read')
+  @ApiOperation({ summary: '获取设备流信息', description: '获取设备屏幕流的连接信息（供 Media Service 使用）' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '设备不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getStreamInfo(@Param('id') id: string) {
+    const streamInfo = await this.devicesService.getStreamInfo(id);
+    return {
+      success: true,
+      data: streamInfo,
+    };
+  }
+
+  @Get(':id/screenshot')
+  @RequirePermission('device.read')
+  @ApiOperation({ summary: '获取设备截图', description: '获取设备当前屏幕截图（PNG 格式）' })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '截图获取成功', content: { 'image/png': {} } })
+  @ApiResponse({ status: 404, description: '设备不存在或未连接' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getScreenshot(@Param('id') id: string, @Res() res: Response) {
+    const screenshot = await this.devicesService.getScreenshot(id);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `attachment; filename="device-${id}-screenshot.png"`);
+    res.send(screenshot);
+  }
 }

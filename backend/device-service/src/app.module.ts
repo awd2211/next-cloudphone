@@ -20,6 +20,7 @@ import { LifecycleModule } from './lifecycle/lifecycle.module';
 import { CommonModule } from './common/common.module';
 import { FailoverModule } from './failover/failover.module';
 import { StateRecoveryModule } from './state-recovery/state-recovery.module';
+import { CacheModule } from './cache/cache.module';
 
 import {
   ConsulModule,
@@ -58,6 +59,7 @@ import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
     EventBusModule,        // ✅ Shared EventBus 模块（包含 RabbitMQ 连接和 EventBusService）
     DeviceRabbitMQModule,  // ✅ 本地 RabbitMQ 模块(包含 Consumer 注册)
     ConsulModule,
+    CacheModule,           // ✅ Redis 缓存模块（全局模块）
     CommonModule, // 通用工具模块（重试、错误处理等）
     AuthModule,
     DevicesModule,

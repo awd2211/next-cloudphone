@@ -220,9 +220,9 @@ export class AdbService {
   }
 
   /**
-   * 截屏
+   * 截屏保存到文件
    */
-  async takeScreenshot(deviceId: string, outputPath: string): Promise<string> {
+  async takeScreenshotToFile(deviceId: string, outputPath: string): Promise<string> {
     try {
       const connection = this.connections.get(deviceId);
       if (!connection) {
@@ -246,6 +246,43 @@ export class AdbService {
     } catch (error) {
       this.logger.error(`Failed to take screenshot on ${deviceId}`, error);
       throw BusinessErrors.adbOperationFailed(`截屏失败: ${error.message}`, { deviceId, outputPath });
+    }
+  }
+
+  /**
+   * 截屏并返回 Buffer（用于 API 响应）
+   */
+  async takeScreenshot(deviceId: string): Promise<Buffer> {
+    try {
+      const connection = this.connections.get(deviceId);
+      if (!connection) {
+        throw BusinessErrors.adbDeviceOffline(deviceId);
+      }
+
+      const screencap = await this.client.screencap(connection.address);
+
+      // 收集数据到 Buffer
+      const chunks: Buffer[] = [];
+
+      return new Promise((resolve, reject) => {
+        screencap.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
+
+        screencap.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          this.logger.log(`Screenshot captured for device ${deviceId}, size: ${buffer.length} bytes`);
+          resolve(buffer);
+        });
+
+        screencap.on('error', (error) => {
+          this.logger.error(`Failed to capture screenshot stream on ${deviceId}`, error);
+          reject(error);
+        });
+      });
+    } catch (error) {
+      this.logger.error(`Failed to take screenshot on ${deviceId}`, error);
+      throw BusinessErrors.adbOperationFailed(`截屏失败: ${error.message}`, { deviceId });
     }
   }
 
