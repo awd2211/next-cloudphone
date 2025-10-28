@@ -24,7 +24,7 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
 import {
   ConsulModule,
   createLoggerConfig,
-  EventBusService,
+  EventBusModule,
   RequestIdMiddleware,
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
@@ -55,6 +55,7 @@ import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
       inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
+    EventBusModule,        // ✅ Shared EventBus 模块（包含 RabbitMQ 连接和 EventBusService）
     DeviceRabbitMQModule,  // ✅ 本地 RabbitMQ 模块(包含 Consumer 注册)
     ConsulModule,
     CommonModule, // 通用工具模块（重试、错误处理等）
@@ -75,7 +76,7 @@ import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
     StateRecoveryModule, // 状态自愈和回滚
   ],
   controllers: [HealthController],
-  providers: [EventBusService],  // ✅ 提供 EventBusService 供其他模块使用
+  providers: [],  // EventBusService 由 EventBusModule 提供
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
