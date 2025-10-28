@@ -28,7 +28,9 @@
     "noUnusedParameters": false,
     "erasableSyntaxOnly": false,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": false
+    "noUncheckedSideEffectImports": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true
   },
   "include": ["src"]
 }

@@ -2,8 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual } from 'typeorm';
 import { Order, OrderStatus } from '../billing/entities/order.entity';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { HttpClientService } from '@cloudphone/shared';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -13,7 +12,7 @@ export class StatsService {
   constructor(
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
-    private readonly httpService: HttpService,
+    private readonly httpClient: HttpClientService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -54,10 +53,12 @@ export class StatsService {
   async getTotalUsersCount(): Promise<number> {
     try {
       const userServiceUrl = this.configService.get('USER_SERVICE_URL', 'http://user-service:30001');
-      const response = await firstValueFrom(
-        this.httpService.get(`${userServiceUrl}/users/count`),
+      const response = await this.httpClient.get<{ count: number }>(
+        `${userServiceUrl}/users/count`,
+        {},
+        { timeout: 5000, retries: 2, circuitBreaker: true },
       );
-      return response.data?.count || 0;
+      return response.count || 0;
     } catch (error) {
       this.logger.warn(`Failed to get total users count: ${error.message}`);
       return 0;
@@ -70,10 +71,12 @@ export class StatsService {
   async getOnlineDevicesCount(): Promise<number> {
     try {
       const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL', 'http://device-service:30002');
-      const response = await firstValueFrom(
-        this.httpService.get(`${deviceServiceUrl}/devices/count?status=running`),
+      const response = await this.httpClient.get<{ count: number }>(
+        `${deviceServiceUrl}/devices/count?status=running`,
+        {},
+        { timeout: 5000, retries: 2, circuitBreaker: true },
       );
-      return response.data?.count || 0;
+      return response.count || 0;
     } catch (error) {
       this.logger.warn(`Failed to get online devices count: ${error.message}`);
       return 0;
@@ -86,10 +89,12 @@ export class StatsService {
   async getDeviceStatusDistribution() {
     try {
       const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL', 'http://device-service:30002');
-      const response = await firstValueFrom(
-        this.httpService.get(`${deviceServiceUrl}/devices/stats/status-distribution`),
+      const response = await this.httpClient.get<any>(
+        `${deviceServiceUrl}/devices/stats/status-distribution`,
+        {},
+        { timeout: 5000, retries: 2, circuitBreaker: true },
       );
-      return response.data || { idle: 0, running: 0, stopped: 0, error: 0 };
+      return response || { idle: 0, running: 0, stopped: 0, error: 0 };
     } catch (error) {
       this.logger.warn(`Failed to get device status distribution: ${error.message}`);
       return { idle: 0, running: 0, stopped: 0, error: 0 };
@@ -105,14 +110,12 @@ export class StatsService {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const response = await firstValueFrom(
-        this.httpService.get(`${userServiceUrl}/users/count`, {
-          params: {
-            createdAfter: today.toISOString(),
-          },
-        }),
+      const response = await this.httpClient.get<{ count: number }>(
+        `${userServiceUrl}/users/count?createdAfter=${today.toISOString()}`,
+        {},
+        { timeout: 5000, retries: 2, circuitBreaker: true },
       );
-      return response.data?.count || 0;
+      return response.count || 0;
     } catch (error) {
       this.logger.warn(`Failed to get today new users count: ${error.message}`);
       return 0;
@@ -125,12 +128,12 @@ export class StatsService {
   async getUserActivityStats(days: number = 7) {
     try {
       const userServiceUrl = this.configService.get('USER_SERVICE_URL', 'http://user-service:30001');
-      const response = await firstValueFrom(
-        this.httpService.get(`${userServiceUrl}/users/stats/activity`, {
-          params: { days },
-        }),
+      const response = await this.httpClient.get<any>(
+        `${userServiceUrl}/users/stats/activity?days=${days}`,
+        {},
+        { timeout: 5000, retries: 2, circuitBreaker: true },
       );
-      return response.data || [];
+      return response || [];
     } catch (error) {
       this.logger.warn(`Failed to get user activity stats: ${error.message}`);
       return [];
@@ -143,12 +146,12 @@ export class StatsService {
   async getUserGrowthStats(days: number = 30) {
     try {
       const userServiceUrl = this.configService.get('USER_SERVICE_URL', 'http://user-service:30001');
-      const response = await firstValueFrom(
-        this.httpService.get(`${userServiceUrl}/users/stats/growth`, {
-          params: { days },
-        }),
+      const response = await this.httpClient.get<any>(
+        `${userServiceUrl}/users/stats/growth?days=${days}`,
+        {},
+        { timeout: 5000, retries: 2, circuitBreaker: true },
       );
-      return response.data || [];
+      return response || [];
     } catch (error) {
       this.logger.warn(`Failed to get user growth stats: ${error.message}`);
       return [];
@@ -254,10 +257,12 @@ export class StatsService {
   async getPlanDistributionStats() {
     try {
       const userServiceUrl = this.configService.get('USER_SERVICE_URL', 'http://user-service:30001');
-      const response = await firstValueFrom(
-        this.httpService.get(`${userServiceUrl}/plans/stats/distribution`),
+      const response = await this.httpClient.get<any>(
+        `${userServiceUrl}/plans/stats/distribution`,
+        {},
+        { timeout: 5000, retries: 2, circuitBreaker: true },
       );
-      return response.data || [];
+      return response || [];
     } catch (error) {
       this.logger.warn(`Failed to get plan distribution stats: ${error.message}`);
       return [];

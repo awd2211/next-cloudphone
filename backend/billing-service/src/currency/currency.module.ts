@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
+import { HttpClientModule } from '@cloudphone/shared';
 import { ConfigModule } from '@nestjs/config';
 import { CurrencyService } from './currency.service';
 
 @Module({
-  imports: [HttpModule, ConfigModule],
+  imports: [HttpClientModule, ConfigModule],
   providers: [CurrencyService],
   exports: [CurrencyService],
 })

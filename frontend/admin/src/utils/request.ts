@@ -183,7 +183,9 @@ axiosInstance.interceptors.request.use(
   (config) => {
     // 生成请求 ID
     const reqId = generateRequestId();
-    config.headers = config.headers || {};
+    if (!config.headers) {
+      config.headers = {} as any;
+    }
     config.headers['X-Request-ID'] = reqId;
     (config as any).requestId = reqId;
     (config as any).requestStartTime = Date.now();

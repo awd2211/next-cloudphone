@@ -1,6 +1,12 @@
 import React from 'react';
-import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
+import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
+
+// react-window 的类型定义
+interface ListChildComponentProps {
+  index: number;
+  style: React.CSSProperties;
+}
 
 /**
  * 虚拟滚动列表组件

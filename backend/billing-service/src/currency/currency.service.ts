@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { HttpClientService } from '@cloudphone/shared';
 
 export interface CurrencyInfo {
   code: string;
@@ -41,7 +40,7 @@ export class CurrencyService {
 
   constructor(
     private configService: ConfigService,
-    private readonly httpService: HttpService,
+    private readonly httpClient: HttpClientService,
   ) {}
 
   /**
@@ -90,14 +89,20 @@ export class CurrencyService {
 
       this.logger.log(`Fetching exchange rates from ${apiUrl.replace(apiKey || '', '***')}`);
 
-      const response = await firstValueFrom(
-        this.httpService.get(apiUrl, { timeout: 5000 }),
+      const response = await this.httpClient.get<{ rates: Record<string, number> }>(
+        apiUrl,
+        {},
+        {
+          timeout: 10000,
+          retries: 3,
+          circuitBreaker: true,
+        },
       );
 
-      if (response.data && response.data.rates) {
+      if (response && response.rates) {
         this.exchangeRates = {
           base: baseCurrency,
-          rates: response.data.rates,
+          rates: response.rates,
           timestamp: now,
         };
         this.lastFetchTime = now;
