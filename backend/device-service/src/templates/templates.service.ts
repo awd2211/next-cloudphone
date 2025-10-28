@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DeviceTemplate, TemplateCategory } from '../entities/device-template.entity';
@@ -9,6 +9,7 @@ import { DevicesService } from '../devices/devices.service';
 import { BatchOperationsService } from '../devices/batch-operations.service';
 import { CreateDeviceDto } from '../devices/dto/create-device.dto';
 import { BatchCreateDeviceDto } from '../devices/dto/batch-operation.dto';
+import { BusinessErrors } from '@cloudphone/shared';
 
 @Injectable()
 export class TemplatesService {
@@ -88,12 +89,12 @@ export class TemplatesService {
     const template = await this.templateRepository.findOne({ where: { id } });
 
     if (!template) {
-      throw new NotFoundException(`Template with ID ${id} not found`);
+      throw BusinessErrors.templateNotFound(id);
     }
 
     // 权限检查：只有公共模板或自己创建的模板才能访问
     if (!template.isPublic && template.createdBy !== userId) {
-      throw new NotFoundException(`Template with ID ${id} not found`);
+      throw BusinessErrors.templateNotFound(id);
     }
 
     return template;
@@ -111,7 +112,7 @@ export class TemplatesService {
 
     // 权限检查：只能更新自己创建的模板
     if (template.createdBy !== userId) {
-      throw new BadRequestException('You can only update your own templates');
+      throw BusinessErrors.templateOperationDenied('您只能更新自己创建的模板');
     }
 
     Object.assign(template, updateTemplateDto);
@@ -126,7 +127,7 @@ export class TemplatesService {
 
     // 权限检查：只能删除自己创建的模板
     if (template.createdBy !== userId) {
-      throw new BadRequestException('You can only delete your own templates');
+      throw BusinessErrors.templateOperationDenied('您只能删除自己创建的模板');
     }
 
     await this.templateRepository.remove(template);

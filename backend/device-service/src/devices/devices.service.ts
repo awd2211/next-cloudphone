@@ -1,9 +1,8 @@
 import {
   Injectable,
-  NotFoundException,
-  BadRequestException,
   Logger,
   Optional,
+  HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -15,7 +14,12 @@ import { AdbService } from '../adb/adb.service';
 import { PortManagerService } from '../port-manager/port-manager.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
-import { EventBusService } from '@cloudphone/shared';
+import {
+  EventBusService,
+  BusinessErrors,
+  BusinessException,
+  BusinessErrorCode,
+} from '@cloudphone/shared';
 import { QuotaClientService } from '../quota/quota-client.service';
 
 @Injectable()
@@ -311,7 +315,7 @@ export class DevicesService {
     const device = await this.devicesRepository.findOne({ where: { id } });
 
     if (!device) {
-      throw new NotFoundException(`设备 #${id} 不存在`);
+      throw BusinessErrors.deviceNotFound(id);
     }
 
     return device;
@@ -537,7 +541,11 @@ export class DevicesService {
     const device = await this.findOne(id);
 
     if (!device.containerId) {
-      throw new BadRequestException('设备没有关联的容器');
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        '设备没有关联的容器',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     await this.dockerService.startContainer(device.containerId);
@@ -578,7 +586,11 @@ export class DevicesService {
     const device = await this.findOne(id);
 
     if (!device.containerId) {
-      throw new BadRequestException('设备没有关联的容器');
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        '设备没有关联的容器',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const startTime = device.lastActiveAt || device.createdAt;
@@ -615,7 +627,11 @@ export class DevicesService {
     const device = await this.findOne(id);
 
     if (!device.containerId) {
-      throw new BadRequestException('设备没有关联的容器');
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        '设备没有关联的容器',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     await this.dockerService.restartContainer(device.containerId);
@@ -649,7 +665,11 @@ export class DevicesService {
     const device = await this.findOne(id);
 
     if (!device.containerId) {
-      throw new BadRequestException('设备没有关联的容器');
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        '设备没有关联的容器',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     return await this.dockerService.getContainerStats(device.containerId);
@@ -751,7 +771,11 @@ export class DevicesService {
     });
 
     if (!device) {
-      throw new BadRequestException('No available devices');
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        '没有可用的设备',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // 分配给用户

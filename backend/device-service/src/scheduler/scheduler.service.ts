@@ -1,8 +1,9 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Node, NodeStatus } from '../entities/node.entity';
 import { Device, DeviceStatus } from '../entities/device.entity';
+import { BusinessErrors } from '@cloudphone/shared';
 
 export interface ScheduleRequest {
   cpuCores: number;
@@ -59,7 +60,7 @@ export class SchedulerService {
     const candidateNodes = await this.getCandidateNodes();
 
     if (candidateNodes.length === 0) {
-      throw new BadRequestException('No available nodes for scheduling');
+      throw BusinessErrors.noAvailableNodes();
     }
 
     // 2. 过滤不满足资源需求的节点
@@ -68,9 +69,7 @@ export class SchedulerService {
     );
 
     if (feasibleNodes.length === 0) {
-      throw new BadRequestException(
-        'No nodes have sufficient resources for this device',
-      );
+      throw BusinessErrors.noAvailableNodes();
     }
 
     // 3. 根据策略计算节点得分

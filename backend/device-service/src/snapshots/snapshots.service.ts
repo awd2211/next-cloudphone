@@ -1,8 +1,7 @@
 import {
   Injectable,
   Logger,
-  NotFoundException,
-  BadRequestException,
+  HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,6 +12,7 @@ import { RestoreSnapshotDto } from './dto/restore-snapshot.dto';
 import { DockerService } from '../docker/docker.service';
 import { DevicesService } from '../devices/devices.service';
 import { PortManagerService } from '../port-manager/port-manager.service';
+import { BusinessErrors, BusinessException, BusinessErrorCode } from '@cloudphone/shared';
 import Dockerode = require('dockerode');
 import * as fs from 'fs';
 import * as path from 'path';
@@ -57,12 +57,16 @@ export class SnapshotsService {
     });
 
     if (!device) {
-      throw new NotFoundException(`Device ${deviceId} not found`);
+      throw BusinessErrors.deviceNotFound(deviceId);
     }
 
     // 2. 检查设备是否运行中
     if (device.status !== 'running') {
-      throw new BadRequestException('Device must be running to create snapshot');
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        '设备必须处于运行状态才能创建快照',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // 3. 创建快照记录
@@ -169,18 +173,22 @@ export class SnapshotsService {
     });
 
     if (!snapshot) {
-      throw new NotFoundException(`Snapshot ${snapshotId} not found`);
+      throw BusinessErrors.snapshotNotFound(snapshotId);
     }
 
     if (snapshot.status !== SnapshotStatus.READY) {
-      throw new BadRequestException('Snapshot is not ready for restoration');
+      throw BusinessErrors.snapshotNotReady(snapshotId);
     }
 
     // 2. 验证镜像存在
     try {
       await this.dockerService['docker'].getImage(snapshot.imageId).inspect();
     } catch (error) {
-      throw new BadRequestException('Snapshot image not found in Docker');
+      throw new BusinessException(
+        BusinessErrorCode.SNAPSHOT_RESTORE_FAILED,
+        '快照镜像在 Docker 中不存在',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // 3. 更新快照状态
@@ -316,11 +324,11 @@ export class SnapshotsService {
     });
 
     if (!snapshot) {
-      throw new NotFoundException(`Snapshot ${snapshotId} not found`);
+      throw BusinessErrors.snapshotNotFound(snapshotId);
     }
 
     if (snapshot.status !== SnapshotStatus.READY) {
-      throw new BadRequestException('Can only compress ready snapshots');
+      throw BusinessErrors.snapshotNotReady(snapshotId);
     }
 
     if (snapshot.isCompressed) {
@@ -370,12 +378,16 @@ export class SnapshotsService {
     });
 
     if (!snapshot) {
-      throw new NotFoundException(`Snapshot ${snapshotId} not found`);
+      throw BusinessErrors.snapshotNotFound(snapshotId);
     }
 
     // 权限检查
     if (snapshot.createdBy !== userId) {
-      throw new BadRequestException('You can only delete your own snapshots');
+      throw new BusinessException(
+        BusinessErrorCode.INSUFFICIENT_PERMISSIONS,
+        '您只能删除自己的快照',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     try {
@@ -435,12 +447,12 @@ export class SnapshotsService {
     });
 
     if (!snapshot) {
-      throw new NotFoundException(`Snapshot ${snapshotId} not found`);
+      throw BusinessErrors.snapshotNotFound(snapshotId);
     }
 
     // 权限检查
     if (userId && snapshot.createdBy !== userId) {
-      throw new NotFoundException(`Snapshot ${snapshotId} not found`);
+      throw BusinessErrors.snapshotNotFound(snapshotId);
     }
 
     return snapshot;

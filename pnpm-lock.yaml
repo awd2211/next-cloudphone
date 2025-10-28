@@ -1278,6 +1278,12 @@ importers:
       '@ant-design/icons':
         specifier: ^6.1.0
         version: 6.1.0(react-dom@19.2.0)(react@19.2.0)
+      '@tanstack/react-query':
+        specifier: ^5.90.5
+        version: 5.90.5(react@19.2.0)
+      '@tanstack/react-query-devtools':
+        specifier: ^5.90.2
+        version: 5.90.2(@tanstack/react-query@5.90.5)(react@19.2.0)
       '@types/react-lazy-load-image-component':
         specifier: ^1.6.4
         version: 1.6.4
@@ -1311,6 +1317,9 @@ importers:
       react-window:
         specifier: ^2.2.1
         version: 2.2.1(react-dom@19.2.0)(react@19.2.0)
+      socket.io-client:
+        specifier: ^4.8.1
+        version: 4.8.1
       zustand:
         specifier: ^5.0.8
         version: 5.0.8(@types/react@19.2.2)(react@19.2.0)

@@ -283,4 +283,6 @@ request.interceptors.response.use(
   }
 );
 
+// 导出原始 axios 实例，但添加类型注释
+// 响应拦截器已经将 AxiosResponse<T> 转换为 T
 export default request;

@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
+    "@tanstack/react-query": "^5.90.5",
+    "@tanstack/react-query-devtools": "^5.90.2",
     "@types/react-lazy-load-image-component": "^1.6.4",
     "@types/react-window": "^2.0.0",
     "antd": "^5.27.6",
@@ -22,6 +24,7 @@
     "react-router-dom": "^7.9.4",
     "react-virtualized-auto-sizer": "^1.0.26",
     "react-window": "^2.2.1",
+    "socket.io-client": "^4.8.1",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

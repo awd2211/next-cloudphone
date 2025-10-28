@@ -1,12 +1,12 @@
 import {
   Injectable,
   Logger,
-  NotFoundException,
-  BadRequestException,
+  HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Node, NodeStatus, ResourceCapacity } from '../entities/node.entity';
+import { BusinessErrors } from '@cloudphone/shared';
 
 export interface CreateNodeDto {
   name: string;
@@ -50,7 +50,7 @@ export class NodeManagerService {
     });
 
     if (existing) {
-      throw new BadRequestException(`Node with name ${dto.name} already exists`);
+      throw BusinessErrors.nodeAlreadyExists(dto.name);
     }
 
     const node = this.nodeRepository.create({
@@ -95,13 +95,14 @@ export class NodeManagerService {
     const node = await this.nodeRepository.findOne({ where: { id: nodeId } });
 
     if (!node) {
-      throw new NotFoundException(`Node ${nodeId} not found`);
+      throw BusinessErrors.nodeNotFound(nodeId);
     }
 
     // 检查节点上是否还有运行中的设备
     if (node.usage.activeDevices > 0) {
-      throw new BadRequestException(
-        `Cannot unregister node ${node.name}: ${node.usage.activeDevices} devices are still running`,
+      throw BusinessErrors.nodeNotAvailable(
+        node.name,
+        `节点上还有 ${node.usage.activeDevices} 个设备在运行`,
       );
     }
 
@@ -117,7 +118,7 @@ export class NodeManagerService {
     const node = await this.nodeRepository.findOne({ where: { id: nodeId } });
 
     if (!node) {
-      throw new NotFoundException(`Node ${nodeId} not found`);
+      throw BusinessErrors.nodeNotFound(nodeId);
     }
 
     if (dto.status) {
@@ -170,7 +171,7 @@ export class NodeManagerService {
     const node = await this.nodeRepository.findOne({ where: { id: nodeId } });
 
     if (!node) {
-      throw new NotFoundException(`Node ${nodeId} not found`);
+      throw BusinessErrors.nodeNotFound(nodeId);
     }
 
     return node;
@@ -183,7 +184,7 @@ export class NodeManagerService {
     const node = await this.nodeRepository.findOne({ where: { name } });
 
     if (!node) {
-      throw new NotFoundException(`Node ${name} not found`);
+      throw BusinessErrors.nodeNotFound(name);
     }
 
     return node;

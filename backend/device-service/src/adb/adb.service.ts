@@ -1,8 +1,9 @@
-import { Injectable, Logger, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Adb from 'adbkit';
 import * as fs from 'fs';
 import * as path from 'path';
+import { BusinessErrors, BusinessException, BusinessErrorCode } from '@cloudphone/shared';
 
 @Injectable()
 export class AdbService {
@@ -45,7 +46,7 @@ export class AdbService {
       this.logger.log(`Connected to device ${deviceId} at ${address}`);
     } catch (error) {
       this.logger.error(`Failed to connect to device ${deviceId}`, error);
-      throw new InternalServerErrorException(`ADB 连接失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`连接失败: ${error.message}`, { deviceId, host, port });
     }
   }
 
@@ -80,7 +81,7 @@ export class AdbService {
     try {
       const connection = this.connections.get(deviceId);
       if (!connection) {
-        throw new NotFoundException(`Device ${deviceId} not connected`);
+        throw BusinessErrors.adbDeviceOffline(deviceId);
       }
 
       const output = await this.client
@@ -93,7 +94,7 @@ export class AdbService {
       return output;
     } catch (error) {
       this.logger.error(`Failed to execute command on ${deviceId}`, error);
-      throw new InternalServerErrorException(`命令执行失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`命令执行失败: ${error.message}`, { deviceId, command });
     }
   }
 
@@ -108,12 +109,12 @@ export class AdbService {
     try {
       const connection = this.connections.get(deviceId);
       if (!connection) {
-        throw new NotFoundException(`Device ${deviceId} not connected`);
+        throw BusinessErrors.adbDeviceOffline(deviceId);
       }
 
       // 检查文件是否存在
       if (!fs.existsSync(apkPath)) {
-        throw new NotFoundException(`APK file not found: ${apkPath}`);
+        throw BusinessErrors.adbFileNotFound(apkPath);
       }
 
       // 安装 APK
@@ -125,7 +126,7 @@ export class AdbService {
       return true;
     } catch (error) {
       this.logger.error(`Failed to install APK on ${deviceId}`, error);
-      throw new InternalServerErrorException(`APK 安装失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`APK 安装失败: ${error.message}`, { deviceId, apkPath });
     }
   }
 
@@ -136,7 +137,7 @@ export class AdbService {
     try {
       const connection = this.connections.get(deviceId);
       if (!connection) {
-        throw new NotFoundException(`Device ${deviceId} not connected`);
+        throw BusinessErrors.adbDeviceOffline(deviceId);
       }
 
       await this.client.uninstall(connection.address, packageName);
@@ -145,7 +146,7 @@ export class AdbService {
       return true;
     } catch (error) {
       this.logger.error(`Failed to uninstall app from ${deviceId}`, error);
-      throw new InternalServerErrorException(`应用卸载失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`应用卸载失败: ${error.message}`, { deviceId, packageName });
     }
   }
 
@@ -160,11 +161,11 @@ export class AdbService {
     try {
       const connection = this.connections.get(deviceId);
       if (!connection) {
-        throw new NotFoundException(`Device ${deviceId} not connected`);
+        throw BusinessErrors.adbDeviceOffline(deviceId);
       }
 
       if (!fs.existsSync(localPath)) {
-        throw new NotFoundException(`Local file not found: ${localPath}`);
+        throw BusinessErrors.adbFileNotFound(localPath);
       }
 
       const transfer = await this.client.push(connection.address, localPath, remotePath);
@@ -179,7 +180,7 @@ export class AdbService {
       return true;
     } catch (error) {
       this.logger.error(`Failed to push file to ${deviceId}`, error);
-      throw new InternalServerErrorException(`文件推送失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`文件推送失败: ${error.message}`, { deviceId, localPath, remotePath });
     }
   }
 
@@ -194,7 +195,7 @@ export class AdbService {
     try {
       const connection = this.connections.get(deviceId);
       if (!connection) {
-        throw new NotFoundException(`Device ${deviceId} not connected`);
+        throw BusinessErrors.adbDeviceOffline(deviceId);
       }
 
       const transfer = await this.client.pull(connection.address, remotePath);
@@ -214,7 +215,7 @@ export class AdbService {
       return true;
     } catch (error) {
       this.logger.error(`Failed to pull file from ${deviceId}`, error);
-      throw new InternalServerErrorException(`文件拉取失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`文件拉取失败: ${error.message}`, { deviceId, remotePath, localPath });
     }
   }
 
@@ -225,7 +226,7 @@ export class AdbService {
     try {
       const connection = this.connections.get(deviceId);
       if (!connection) {
-        throw new NotFoundException(`Device ${deviceId} not connected`);
+        throw BusinessErrors.adbDeviceOffline(deviceId);
       }
 
       const screencap = await this.client.screencap(connection.address);
@@ -244,7 +245,7 @@ export class AdbService {
       return outputPath;
     } catch (error) {
       this.logger.error(`Failed to take screenshot on ${deviceId}`, error);
-      throw new InternalServerErrorException(`截屏失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`截屏失败: ${error.message}`, { deviceId, outputPath });
     }
   }
 
@@ -255,14 +256,14 @@ export class AdbService {
     try {
       const connection = this.connections.get(deviceId);
       if (!connection) {
-        throw new NotFoundException(`Device ${deviceId} not connected`);
+        throw BusinessErrors.adbDeviceOffline(deviceId);
       }
 
       const properties = await this.client.getProperties(connection.address);
       return properties;
     } catch (error) {
       this.logger.error(`Failed to get properties for ${deviceId}`, error);
-      throw new InternalServerErrorException(`获取设备属性失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`获取设备属性失败: ${error.message}`, { deviceId });
     }
   }
 
@@ -283,7 +284,7 @@ export class AdbService {
       return packages;
     } catch (error) {
       this.logger.error(`Failed to get installed packages for ${deviceId}`, error);
-      throw new InternalServerErrorException(`获取应用列表失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`获取应用列表失败: ${error.message}`, { deviceId });
     }
   }
 
@@ -305,7 +306,7 @@ export class AdbService {
       return await this.executeShellCommand(deviceId, command, 10000);
     } catch (error) {
       this.logger.error(`Failed to read logcat for ${deviceId}`, error);
-      throw new InternalServerErrorException(`读取日志失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`读取日志失败: ${error.message}`, { deviceId });
     }
   }
 
@@ -318,7 +319,7 @@ export class AdbService {
       this.logger.log(`Logcat cleared for device ${deviceId}`);
     } catch (error) {
       this.logger.error(`Failed to clear logcat for ${deviceId}`, error);
-      throw new InternalServerErrorException(`清空日志失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`清空日志失败: ${error.message}`, { deviceId });
     }
   }
 
@@ -329,7 +330,7 @@ export class AdbService {
     try {
       const connection = this.connections.get(deviceId);
       if (!connection) {
-        throw new NotFoundException(`Device ${deviceId} not connected`);
+        throw BusinessErrors.adbDeviceOffline(deviceId);
       }
 
       await this.client.reboot(connection.address);
@@ -340,7 +341,7 @@ export class AdbService {
       this.logger.log(`Device ${deviceId} rebooted`);
     } catch (error) {
       this.logger.error(`Failed to reboot device ${deviceId}`, error);
-      throw new InternalServerErrorException(`重启设备失败: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`重启设备失败: ${error.message}`, { deviceId });
     }
   }
 
