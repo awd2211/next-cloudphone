@@ -17,12 +17,14 @@ import { StatsModule } from './stats/stats.module';
 import { HealthController } from './health.controller';
 import { EventsModule } from './events/events.module';
 import { ConsulModule, EventBusModule, createLoggerConfig } from '@cloudphone/shared';
+import { validate } from './common/config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate,
     }),
     // Pino 日志模块 - 使用统一的增强配置
     LoggerModule.forRoot(createLoggerConfig('billing-service')),

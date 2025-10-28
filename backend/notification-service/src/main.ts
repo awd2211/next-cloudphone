@@ -52,18 +52,39 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // ========== API 版本控制 ==========
+
+  // 设置全局前缀和版本
+  app.setGlobalPrefix('api/v1', {
+    exclude: [
+      'health',           // 健康检查不需要版本
+      'health/detailed',
+      'health/liveness',
+      'health/readiness',
+      'metrics',          // Prometheus metrics 不需要版本
+    ],
+  });
+
   // ========== Swagger API 文档 ==========
   const config = new DocumentBuilder()
     .setTitle('Notification Service API')
     .setDescription('云手机平台 - 通知服务 API')
-    .setVersion('1.0')
+    .setVersion('1.0.0')
     .addBearerAuth()
     .addTag('notifications', '通知管理')
     .addTag('templates', '模板管理')
+    .addTag('websocket', 'WebSocket 实时通知')
+    .addTag('email', '邮件通知')
+    .addServer('http://localhost:30006', '本地开发环境')
+    .addServer('https://api.cloudphone.com', '生产环境')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/v1/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
   const port = parseInt(configService.get('PORT') || '30006');
   await app.listen(port);
@@ -82,7 +103,8 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
   logger.log(`🚀 Notification Service is running on: http://localhost:${port}`);
-  logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  logger.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
+  logger.log(`🔗 API Base URL: http://localhost:${port}/api/v1`);
   logger.log(`🔗 RabbitMQ: ${configService.get('RABBITMQ_URL', 'amqp://localhost:5672')}`);
   logger.log(`🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`);
 }

@@ -51,6 +51,21 @@ async function bootstrap() {
     }),
   );
 
+  // ========== API 版本控制 ==========
+
+  // 设置全局前缀和版本
+  app.setGlobalPrefix('api/v1', {
+    exclude: [
+      'health',           // 健康检查不需要版本
+      'health/detailed',
+      'health/liveness',
+      'health/readiness',
+      'health/pool',
+      'health/circuit-breakers',
+      'metrics',          // Prometheus metrics 不需要版本
+    ],
+  });
+
   // ========== CORS 配置 ==========
 
   app.enableCors({
@@ -81,15 +96,19 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('User Service API')
     .setDescription('云手机平台 - 用户管理服务 API 文档')
-    .setVersion('1.0')
+    .setVersion('1.0.0')
     .addTag('users', '用户管理')
     .addTag('roles', '角色管理')
     .addTag('permissions', '权限管理')
+    .addTag('auth', '认证授权')
+    .addTag('quotas', '配额管理')
+    .addServer('http://localhost:30001', '本地开发环境')
+    .addServer('https://api.cloudphone.com', '生产环境')
     .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
+  SwaggerModule.setup('api/v1/docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -116,7 +135,8 @@ async function bootstrap() {
   // ========== 服务启动日志 ==========
 
   console.log(`🚀 User Service is running on: http://localhost:${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  console.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
+  console.log(`🔗 API Base URL: http://localhost:${port}/api/v1`);
   console.log(`🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`);
   console.log(`🔒 Helmet security: ENABLED`);
   console.log(`🔄 Graceful shutdown: ENABLED`);

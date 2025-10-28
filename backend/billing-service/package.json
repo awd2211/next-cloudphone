@@ -50,6 +50,7 @@
     "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
+    "joi": "^18.0.1",
     "nestjs-pino": "^4.4.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

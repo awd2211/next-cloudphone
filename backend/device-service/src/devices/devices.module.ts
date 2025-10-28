@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DevicesService } from './devices.service';
 import { DevicesController } from './devices.controller';
-import { DevicesConsumer } from './devices.consumer';
+// import { DevicesConsumer } from './devices.consumer';  // ✅ Consumer 已移至 DeviceRabbitMQModule
 import { BatchOperationsService } from './batch-operations.service';
 import { BatchOperationsController } from './batch-operations.controller';
 import { Device } from '../entities/device.entity';
@@ -21,7 +21,7 @@ import { QuotaModule } from '../quota/quota.module';
     // EventBusModule 是全局模块，已在 AppModule 中导入，无需重复导入
   ],
   controllers: [DevicesController, BatchOperationsController],
-  providers: [DevicesService, BatchOperationsService, DevicesConsumer],
+  providers: [DevicesService, BatchOperationsService],  // ✅ DevicesConsumer 已移至 DeviceRabbitMQModule
   exports: [DevicesService, BatchOperationsService],
 })
 export class DevicesModule {}

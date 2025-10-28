@@ -16,6 +16,7 @@ import { NotificationEventsHandler } from './events/notification-events.handler'
 import { CloudphoneRabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { Notification } from './entities/notification.entity';
 import { NotificationTemplate } from './entities/notification-template.entity';
+import { validate } from './common/config/env.validation';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { NotificationTemplate } from './entities/notification-template.entity';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate, // ✅ 添加环境变量验证
     }),
 
     // ========== 日志模块 ==========

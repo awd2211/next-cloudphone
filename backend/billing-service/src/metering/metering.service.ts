@@ -3,8 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { HttpClientService } from '@cloudphone/shared';
 import { UsageRecord } from '../billing/entities/usage-record.entity';
 
 export interface DeviceUsageData {
@@ -25,7 +24,7 @@ export class MeteringService {
   constructor(
     @InjectRepository(UsageRecord)
     private usageRecordRepository: Repository<UsageRecord>,
-    private httpService: HttpService,
+    private httpClient: HttpClientService,
     private configService: ConfigService,
   ) {}
 
@@ -65,11 +64,17 @@ export class MeteringService {
     try {
       const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL', 'http://localhost:30002');
 
-      const response = await firstValueFrom(
-        this.httpService.get<{ data: any[] }>(`${deviceServiceUrl}/devices?status=running`)
+      const response = await this.httpClient.get<{ data: any[] }>(
+        `${deviceServiceUrl}/devices?status=running`,
+        {},
+        {
+          timeout: 10000,
+          retries: 2,
+          circuitBreaker: true,
+        },
       );
 
-      return response.data.data || [];
+      return response.data || [];
     } catch (error) {
       this.logger.error('Failed to get running devices:', error);
       return [];
@@ -84,16 +89,28 @@ export class MeteringService {
       const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL', 'http://localhost:30002');
 
       // 获取设备详情
-      const deviceResponse = await firstValueFrom(
-        this.httpService.get<{ data: any }>(`${deviceServiceUrl}/devices/${deviceId}`)
+      const deviceResponse = await this.httpClient.get<{ data: any }>(
+        `${deviceServiceUrl}/devices/${deviceId}`,
+        {},
+        {
+          timeout: 8000,
+          retries: 2,
+          circuitBreaker: true,
+        },
       );
-      const device = deviceResponse.data.data;
+      const device = deviceResponse.data;
 
       // 获取设备统计数据
-      const statsResponse = await firstValueFrom(
-        this.httpService.get<{ data: any }>(`${deviceServiceUrl}/devices/${deviceId}/stats`)
+      const statsResponse = await this.httpClient.get<{ data: any }>(
+        `${deviceServiceUrl}/devices/${deviceId}/stats`,
+        {},
+        {
+          timeout: 8000,
+          retries: 2,
+          circuitBreaker: true,
+        },
       );
-      const stats = statsResponse.data.data;
+      const stats = statsResponse.data;
 
       // 计算使用时长（从最后活跃时间到现在）
       const duration = this.calculateDuration(device.lastActiveAt);

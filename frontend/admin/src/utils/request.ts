@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { message } from 'antd';
+import type { ApiResponse } from '../types';
 
 // 生成唯一请求 ID
 let requestId = 0;
@@ -159,13 +160,26 @@ class RequestLogger {
   }
 }
 
-const request = axios.create({
+// 创建一个类型化的 axios 实例
+const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:30000/api',
   timeout: 10000,
 });
 
+// 扩展 axios 实例类型
+interface TypedAxiosInstance {
+  get<T = any>(url: string, config?: any): Promise<T>;
+  post<T = any>(url: string, data?: any, config?: any): Promise<T>;
+  put<T = any>(url: string, data?: any, config?: any): Promise<T>;
+  patch<T = any>(url: string, data?: any, config?: any): Promise<T>;
+  delete<T = any>(url: string, config?: any): Promise<T>;
+  interceptors: typeof axiosInstance.interceptors;
+}
+
+const request = axiosInstance as any as TypedAxiosInstance;
+
 // 请求拦截器
-request.interceptors.request.use(
+axiosInstance.interceptors.request.use(
   (config) => {
     // 生成请求 ID
     const reqId = generateRequestId();
@@ -192,8 +206,8 @@ request.interceptors.request.use(
 );
 
 // 响应拦截器
-request.interceptors.response.use(
-  (response) => {
+axiosInstance.interceptors.response.use(
+  (response: AxiosResponse): ApiResponse<any> | any => {
     // 计算请求耗时
     const duration = Date.now() - ((response.config as any).requestStartTime || 0);
     const requestId = (response.config as any).requestId || 'unknown';
@@ -208,25 +222,8 @@ request.interceptors.response.use(
       );
     }
 
-    // 智能处理后端返回的数据格式
-    const responseData = response.data;
-    
-    // 如果响应包含 success 字段，保留完整响应（供 hooks 使用）
-    if (responseData && typeof responseData === 'object' && 'success' in responseData) {
-      return responseData;
-    }
-    
-    // 如果后端返回 { data: [...], total, page, limit } 格式（分页数据）
-    if (responseData && typeof responseData === 'object' && 'data' in responseData) {
-      // 对于分页数据，保留完整结构
-      if ('total' in responseData || 'page' in responseData) {
-        return responseData;
-      }
-      // 对于单纯的 {data: ...} 格式，只返回 data
-      return responseData.data;
-    }
-
-    return responseData;
+    // 直接返回 response.data，保持后端返回的结构
+    return response.data;
   },
   (error: AxiosError) => {
     // 计算请求耗时

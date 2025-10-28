@@ -21,13 +21,16 @@ import { CommonModule } from './common/common.module';
 import { FailoverModule } from './failover/failover.module';
 import { StateRecoveryModule } from './state-recovery/state-recovery.module';
 
-import { EventBusModule, ConsulModule, createLoggerConfig } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig, EventBusService } from '@cloudphone/shared';
+import { validate } from './common/config/env.validation';
+import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate, // ✅ 添加环境变量验证
     }),
     // Pino 日志模块 - 使用统一的增强配置
     LoggerModule.forRoot(createLoggerConfig('device-service')),
@@ -47,7 +50,7 @@ import { EventBusModule, ConsulModule, createLoggerConfig } from '@cloudphone/sh
       inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
-    EventBusModule,  // ✅ 已修复 DiscoveryService 依赖问题
+    DeviceRabbitMQModule,  // ✅ 本地 RabbitMQ 模块(包含 Consumer 注册)
     ConsulModule,
     CommonModule, // 通用工具模块（重试、错误处理等）
     AuthModule,
@@ -67,5 +70,6 @@ import { EventBusModule, ConsulModule, createLoggerConfig } from '@cloudphone/sh
     StateRecoveryModule, // 状态自愈和回滚
   ],
   controllers: [HealthController],
+  providers: [EventBusService],  // ✅ 提供 EventBusService 供其他模块使用
 })
 export class AppModule {}

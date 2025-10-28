@@ -1,13 +1,12 @@
 import { Module, Global } from '@nestjs/common';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
-import { DiscoveryModule } from '@golevelup/nestjs-discovery';
+// import { DiscoveryModule } from '@golevelup/nestjs-discovery'; // 不需要手动导入
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventBusService } from './event-bus.service';
 
 @Global()
 @Module({
   imports: [
-    DiscoveryModule,  // ✅ 提供 DiscoveryService，支持 @RabbitSubscribe 装饰器
     RabbitMQModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -23,7 +22,7 @@ import { EventBusService } from './event-bus.service';
           wait: false,
           timeout: 5000,  // 5秒超时
         },
-        enableControllerDiscovery: true,  // ✅ 启用控制器发现，配合 DiscoveryModule 使用
+        enableControllerDiscovery: true,  // ✅ 启用控制器发现（会自动处理依赖）
         // 配置重连策略
         connectionManagerOptions: {
           heartbeatIntervalInSeconds: 30,

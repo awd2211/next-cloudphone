@@ -55,19 +55,39 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
+  // ========== API 版本控制 ==========
+
+  // 设置全局前缀和版本
+  app.setGlobalPrefix('api/v1', {
+    exclude: [
+      'health',           // 健康检查不需要版本
+      'health/detailed',
+      'health/liveness',
+      'health/readiness',
+      'health/pool',
+      'health/circuit-breakers',
+      'metrics',          // Prometheus metrics 不需要版本
+    ],
+  });
+
   // ========== Swagger API 文档配置 ==========
 
   const config = new DocumentBuilder()
     .setTitle('Device Service API')
     .setDescription('云手机平台 - 设备管理服务 API 文档')
-    .setVersion('1.0')
+    .setVersion('1.0.0')
     .addTag('devices', '设备管理')
     .addTag('docker', 'Docker 容器管理')
+    .addTag('snapshots', '快照管理')
+    .addTag('lifecycle', '生命周期管理')
+    .addTag('metrics', '指标监控')
+    .addServer('http://localhost:30002', '本地开发环境')
+    .addServer('https://api.cloudphone.com', '生产环境')
     .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
+  SwaggerModule.setup('api/v1/docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -93,7 +113,8 @@ async function bootstrap() {
   // ========== 服务启动日志 ==========
 
   console.log(`🚀 Device Service is running on: http://localhost:${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  console.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
+  console.log(`🔗 API Base URL: http://localhost:${port}/api/v1`);
   console.log(`🔗 RabbitMQ: ${configService.get('RABBITMQ_URL', 'amqp://localhost:5672')}`);
   console.log(`🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`);
   console.log(`🔒 Helmet security: ENABLED`);

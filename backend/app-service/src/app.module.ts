@@ -7,13 +7,16 @@ import { AppsModule } from './apps/apps.module';
 import { MinioModule } from './minio/minio.module';
 import { ApkModule } from './apk/apk.module';
 import { HealthController } from './health.controller';
-import { ConsulModule, createLoggerConfig, EventBusModule } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig, EventBusService } from '@cloudphone/shared';
+import { validate } from './common/config/env.validation';
+import { AppRabbitMQModule } from './rabbitmq/rabbitmq.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate,
     }),
     // Pino 日志模块 - 使用统一的增强配置
     LoggerModule.forRoot(createLoggerConfig('app-service')),
@@ -36,9 +39,10 @@ import { ConsulModule, createLoggerConfig, EventBusModule } from '@cloudphone/sh
     AppsModule,
     MinioModule,
     ApkModule,
-    ConsulModule,  // ✅ 已修复 DiscoveryService 依赖问题
-    EventBusModule, // ✅ 添加 EventBus 模块支持 RabbitMQ 事件发布
+    ConsulModule,
+    AppRabbitMQModule,  // ✅ 本地 RabbitMQ 模块(包含 Consumer 注册)
   ],
   controllers: [HealthController],
+  providers: [EventBusService],  // ✅ 提供 EventBusService 供其他模块使用
 })
 export class AppModule {}

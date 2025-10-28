@@ -40,12 +40,14 @@ import { CacheWarmupService } from './cache/cache-warmup.service';
 import { CacheService } from './cache/cache.service';
 import { UserMetricsService } from './common/metrics/user-metrics.service';
 import { TracingService } from './common/tracing/tracing.service';
+import { validate } from './common/config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate, // ✅ 添加环境变量验证
     }),
     // Pino 日志模块 - 使用统一的增强配置
     LoggerModule.forRoot(createLoggerConfig('user-service')),

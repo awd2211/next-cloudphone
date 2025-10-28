@@ -1,7 +1,6 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { HttpClientService } from '@cloudphone/shared';
 
 /**
  * 配额限制接口（与 user-service 保持一致）
@@ -97,7 +96,7 @@ export class QuotaClientService {
   private readonly userServiceUrl: string;
 
   constructor(
-    private readonly httpService: HttpService,
+    private readonly httpClient: HttpClientService,
     private readonly configService: ConfigService,
   ) {
     this.userServiceUrl =
@@ -112,13 +111,17 @@ export class QuotaClientService {
     try {
       this.logger.debug(`Fetching quota for user ${userId}`);
 
-      const response = await firstValueFrom(
-        this.httpService.get<QuotaResponse>(
-          `${this.userServiceUrl}/api/quotas/user/${userId}`,
-        ),
+      const data = await this.httpClient.get<QuotaResponse>(
+        `${this.userServiceUrl}/api/quotas/user/${userId}`,
+        {},
+        {
+          timeout: 5000,
+          retries: 3,
+          circuitBreaker: true,
+        },
       );
 
-      return response.data;
+      return data;
     } catch (error) {
       this.logger.error(
         `Failed to fetch quota for user ${userId}`,
@@ -129,6 +132,14 @@ export class QuotaClientService {
         throw new HttpException(
           `User quota not found for user ${userId}`,
           HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // 熔断器打开时的降级处理
+      if (error.message?.includes('Circuit breaker is open')) {
+        throw new HttpException(
+          'User service temporarily unavailable',
+          HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
 
@@ -287,11 +298,15 @@ export class QuotaClientService {
         `Reporting usage for user ${userId}: ${JSON.stringify(usageReport)}`,
       );
 
-      await firstValueFrom(
-        this.httpService.post(
-          `${this.userServiceUrl}/api/quotas/user/${userId}/usage`,
-          usageReport,
-        ),
+      await this.httpClient.post(
+        `${this.userServiceUrl}/api/quotas/user/${userId}/usage`,
+        usageReport,
+        {},
+        {
+          timeout: 5000,
+          retries: 3,
+          circuitBreaker: true,
+        },
       );
 
       this.logger.log(`Usage reported successfully for user ${userId}`);
@@ -344,15 +359,19 @@ export class QuotaClientService {
     try {
       this.logger.debug(`Incrementing concurrent devices for user ${userId}`);
 
-      await firstValueFrom(
-        this.httpService.post(
-          `${this.userServiceUrl}/api/quotas/deduct`,
-          {
-            userId,
-            deviceCount: 0, // 不增加总设备数，只增加并发数
-            concurrent: true,
-          },
-        ),
+      await this.httpClient.post(
+        `${this.userServiceUrl}/api/quotas/deduct`,
+        {
+          userId,
+          deviceCount: 0, // 不增加总设备数，只增加并发数
+          concurrent: true,
+        },
+        {},
+        {
+          timeout: 5000,
+          retries: 3,
+          circuitBreaker: true,
+        },
       );
 
       this.logger.log(`Concurrent device count incremented for user ${userId}`);
@@ -371,15 +390,19 @@ export class QuotaClientService {
     try {
       this.logger.debug(`Decrementing concurrent devices for user ${userId}`);
 
-      await firstValueFrom(
-        this.httpService.post(
-          `${this.userServiceUrl}/api/quotas/restore`,
-          {
-            userId,
-            deviceCount: 0, // 不减少总设备数，只减少并发数
-            concurrent: true,
-          },
-        ),
+      await this.httpClient.post(
+        `${this.userServiceUrl}/api/quotas/restore`,
+        {
+          userId,
+          deviceCount: 0, // 不减少总设备数，只减少并发数
+          concurrent: true,
+        },
+        {},
+        {
+          timeout: 5000,
+          retries: 3,
+          circuitBreaker: true,
+        },
       );
 
       this.logger.log(`Concurrent device count decremented for user ${userId}`);

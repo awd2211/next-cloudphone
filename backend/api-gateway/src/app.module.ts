@@ -14,6 +14,7 @@ import { HealthController } from './health.controller';
 import { MetricsModule } from './metrics/metrics.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { MetricsInterceptor } from './metrics/metrics.interceptor';
+import { validate } from './common/config/env.validation';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { MetricsInterceptor } from './metrics/metrics.interceptor';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate,
     }),
 
     // Pino 日志模块 - 使用统一的增强配置

@@ -82,23 +82,37 @@ async function bootstrap() {
     exposedHeaders: ["X-Request-ID"],
   });
 
-  // 设置全局前缀
-  app.setGlobalPrefix("api");
+  // ========== API 版本控制 ==========
+
+  // 设置全局前缀和版本
+  app.setGlobalPrefix("api/v1", {
+    exclude: [
+      'health',           // 健康检查不需要版本
+      'health/detailed',
+      'health/liveness',
+      'health/readiness',
+      'metrics',          // Prometheus metrics 不需要版本
+    ],
+  });
 
   // ========== Swagger API 文档配置 ==========
 
   const config = new DocumentBuilder()
     .setTitle("API Gateway")
     .setDescription("云手机平台 - API 网关统一文档")
-    .setVersion("1.0")
+    .setVersion("1.0.0")
     .addTag("auth", "认证授权")
     .addTag("proxy", "服务代理")
     .addTag("health", "健康检查")
+    .addTag("circuit-breaker", "熔断器")
+    .addTag("rate-limiting", "限流")
+    .addServer("http://localhost:30000", "本地开发环境")
+    .addServer("https://api.cloudphone.com", "生产环境")
     .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api/docs", app, document, {
+  SwaggerModule.setup("api/v1/docs", app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -129,8 +143,8 @@ async function bootstrap() {
   // ========== 服务启动日志 ==========
 
   console.log(`🚀 API Gateway is running on: http://localhost:${port}`);
-  console.log(`📡 API prefix: /api`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  console.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
+  console.log(`🔗 API Base URL: http://localhost:${port}/api/v1`);
   console.log(`✅ Health check: http://localhost:${port}/health`);
   console.log(
     `🔗 Consul: http://${configService.get("CONSUL_HOST", "localhost")}:${configService.get("CONSUL_PORT", 8500)}`,
