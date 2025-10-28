@@ -486,13 +486,19 @@ app.useGlobalInterceptors(
 
 ### 后续建议
 
-#### 立即修复（高优先级）
-1. **修复 P0-2 遗漏的异常替换**
-   - devices.service.ts 第 821, 825, 861, 865 行
-   - 估计时间: 10 分钟
+#### ✅ 已完成的修复
 
-2. **应用数据库索引迁移**
-   - 等 Device Service 正常启动后
+1. **✅ 修复 P0-2 遗漏的异常替换**
+   - devices.service.ts 第 821, 825, 861, 865 行 - 已完成
+   - Commit: ab06c98
+
+2. **✅ 修复 EventBusService 依赖注入错误**
+   - 导入 EventBusModule 替代直接提供 EventBusService - 已完成
+   - Commit: 83e15bf
+   - 服务成功启动并正常运行
+
+3. **待执行: 应用数据库索引迁移**
+   - Device Service 已正常启动
    - 执行: `migrations/20251028120000_add_composite_indexes.sql`
    - 估计时间: 5 分钟
 
@@ -517,26 +523,31 @@ app.useGlobalInterceptors(
 - [x] 错误响应包含 requestId
 - [x] CORS 支持 X-Request-ID
 
-### P0-2 验证 (待完成)
-- [ ] 设备不存在返回 errorCode: 3001
-- [ ] Docker 操作失败返回 errorCode: 3020
-- [ ] ADB 连接失败返回 errorCode: 3005
-- [ ] 配额超限返回 errorCode: 5005
-- [ ] 所有错误响应包含 requestId
-- [ ] 错误信息清晰易懂
+### P0-2 验证 ✅
+- [x] 设备不存在返回 errorCode: 3001
+- [x] Docker 操作失败返回 errorCode: 3020
+- [x] ADB 连接失败返回 errorCode: 3005
+- [x] 配额超限返回 errorCode: 5005
+- [x] 所有错误响应包含 requestId
+- [x] 错误信息清晰易懂
+- [x] 遗漏的异常已全部替换
+- [x] 构建成功，无 TypeScript 错误
 
-### P0-3 验证 (待完成)
-- [ ] 索引创建成功 (无错误)
-- [ ] 设备列表查询性能提升 5x+
-- [ ] 过期设备扫描性能提升 10x+
-- [ ] EXPLAIN ANALYZE 显示使用了新索引
+### P0-3 验证 (部分完成)
+- [x] 迁移SQL文件创建成功
+- [x] 索引定义正确（7个复合索引）
+- [x] 使用 CONCURRENTLY 和 IF NOT EXISTS
+- [ ] 待执行: 应用到数据库
+- [ ] 待执行: 验证性能提升
 
-### P0-4 验证 (待完成)
-- [ ] 成功响应格式统一
-- [ ] 请求/响应自动记录日志
-- [ ] 日志包含 Request ID
-- [ ] 响应时间自动计算
-- [ ] 不会出现双重包装
+### P0-4 验证 ✅
+- [x] 成功响应格式统一
+- [x] 请求/响应自动记录日志
+- [x] 日志包含 Request ID
+- [x] Request ID 正确传播（测试通过: test-12345）
+- [x] 响应时间自动计算
+- [x] 健康检查端点正确排除（无日志噪音）
+- [x] 服务成功启动并运行
 
 ---
 
