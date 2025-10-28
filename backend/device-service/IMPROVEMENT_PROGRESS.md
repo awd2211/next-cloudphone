@@ -110,7 +110,30 @@ app.useGlobalInterceptors(
 - ✅ 健康检查和监控端点不产生日志噪音
 - ✅ 敏感信息不会被记录
 
-**⚠️ 注意**: 构建时发现 devices.service.ts 中仍有 4 处遗漏的异常未替换（P0-2 任务遗留），建议后续修复。
+**⚠️ 注意**: 构建时发现 devices.service.ts 中仍有 4 处遗漏的异常未替换（P0-2 任务遗留），已在后续修复完成。
+
+---
+
+### P0-2 遗漏修复: 修复 devices.service.ts 中遗漏的异常 ✅
+
+**完成时间**: 2025-10-28
+**Commit**: [当前]
+
+**修复内容**:
+1. ✅ 替换 4 处遗漏的异常 (lines 821, 825, 861, 865)
+2. ✅ 修复 getStreamInfo 方法
+   - 移除不存在的 adbSerial 属性
+   - 使用 deviceId 替代 device.adbSerial
+3. ✅ 修复 takeScreenshot 方法
+   - 使用正确的 takeScreenshotToFile 方法签名
+4. ✅ 修复 getScreenshot 方法
+   - 使用单参数的 takeScreenshot 方法
+5. ✅ 移除冗余的 null 检查（findOne 已抛出异常）
+
+**验证结果**:
+- ✅ Device Service 编译成功，无 TypeScript 错误
+- ✅ 所有异常已统一使用 BusinessException
+- ✅ 方法签名全部正确
 
 ---
 

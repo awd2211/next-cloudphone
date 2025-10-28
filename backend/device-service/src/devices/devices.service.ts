@@ -686,7 +686,7 @@ export class DevicesService {
     await this.findOne(id);
     const outputDir = this.configService.get('SCREENSHOT_DIR', '/tmp/screenshots');
     const outputPath = `${outputDir}/${id}_${Date.now()}.png`;
-    return await this.adbService.takeScreenshot(id, outputPath);
+    return await this.adbService.takeScreenshotToFile(id, outputPath);
   }
 
   async pushFile(id: string, localPath: string, remotePath: string): Promise<boolean> {
@@ -791,7 +791,7 @@ export class DevicesService {
    */
   async releaseDevice(deviceId: string, reason?: string): Promise<void> {
     const device = await this.findOne(deviceId);
-    
+
     // 停止设备
     if (device.status === DeviceStatus.RUNNING) {
       await this.stop(deviceId);
@@ -803,5 +803,72 @@ export class DevicesService {
     await this.devicesRepository.save(device);
 
     this.logger.log(`Device ${deviceId} released. Reason: ${reason || 'N/A'}`);
+  }
+
+  /**
+   * 获取设备流信息（供 Media Service 使用）
+   */
+  async getStreamInfo(deviceId: string): Promise<{
+    deviceId: string;
+    containerName: string;
+    adbPort: number;
+    screenResolution: { width: number; height: number };
+  }> {
+    const device = await this.findOne(deviceId);
+
+    if (device.status !== DeviceStatus.RUNNING) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备未运行: ${deviceId}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // 获取屏幕分辨率
+    let screenResolution = { width: 1080, height: 1920 }; // 默认值
+    try {
+      // 通过 adb shell wm size 获取精确分辨率
+      const sizeOutput = await this.adbService.executeShellCommand(deviceId, 'wm size');
+      const match = sizeOutput.match(/Physical size: (\d+)x(\d+)/);
+      if (match) {
+        screenResolution = {
+          width: parseInt(match[1]),
+          height: parseInt(match[2]),
+        };
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to get screen resolution for device ${deviceId}: ${error.message}`);
+    }
+
+    return {
+      deviceId: device.id,
+      containerName: device.containerName,
+      adbPort: device.adbPort,
+      screenResolution,
+    };
+  }
+
+  /**
+   * 获取设备截图
+   */
+  async getScreenshot(deviceId: string): Promise<Buffer> {
+    const device = await this.findOne(deviceId);
+
+    if (device.status !== DeviceStatus.RUNNING) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备未运行: ${deviceId}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // 使用 ADB 截图
+    try {
+      const screenshot = await this.adbService.takeScreenshot(deviceId);
+      return screenshot;
+    } catch (error) {
+      this.logger.error(`Failed to take screenshot for device ${deviceId}: ${error.message}`);
+      throw BusinessErrors.adbOperationFailed(`截图失败: ${error.message}`, { deviceId });
+    }
   }
 }
