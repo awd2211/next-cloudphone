@@ -36,6 +36,23 @@ export class ProxyController {
   }
 
   /**
+   * 清除服务 URL 缓存（公开访问）
+   */
+  @Public()
+  @All("service-cache/clear")
+  async clearServiceCache(@Req() req: Request) {
+    const serviceName = req.query.service as string;
+    this.proxyService.clearServiceUrlCache(serviceName);
+    return {
+      success: true,
+      message: serviceName
+        ? `Cleared cache for service: ${serviceName}`
+        : 'Cleared all service URL caches',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
    * 健康检查端点（公开访问）- 聚合所有微服务健康状态
    */
   @Public()

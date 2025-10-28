@@ -20,6 +20,12 @@ export interface ServiceConfig {
   timeout?: number;
 }
 
+interface ServiceUrlCache {
+  url: string;
+  timestamp: number;
+  ttl: number; // 缓存过期时间 (毫秒)
+}
+
 @Injectable()
 export class ProxyService {
   private readonly logger = new Logger(ProxyService.name);
@@ -27,6 +33,8 @@ export class ProxyService {
   private readonly serviceConfigs: Map<string, ServiceConfig>;
   private readonly useConsul: boolean;
   private readonly circuitBreakers: Map<string, CircuitBreaker>;
+  private readonly serviceUrlCache: Map<string, ServiceUrlCache>;
+  private readonly SERVICE_CACHE_TTL = 60000; // 60 秒缓存
 
   constructor(
     private readonly httpService: HttpService,
@@ -186,6 +194,9 @@ export class ProxyService {
     // 初始化熔断器
     this.circuitBreakers = new Map();
     this.initializeCircuitBreakers();
+
+    // 初始化服务URL缓存
+    this.serviceUrlCache = new Map();
   }
 
   /**
@@ -236,30 +247,72 @@ export class ProxyService {
   }
 
   /**
-   * 获取服务的 URL（支持 Consul 动态发现）
+   * 获取服务的 URL（支持 Consul 动态发现 + 缓存）
    */
   private async getServiceUrl(serviceName: string): Promise<string> {
+    // 1. 检查缓存
+    const cached = this.serviceUrlCache.get(serviceName);
+    if (cached && Date.now() - cached.timestamp < cached.ttl) {
+      this.logger.debug(`Using cached URL for ${serviceName}: ${cached.url}`);
+      return cached.url;
+    }
+
+    // 2. 优先从 Consul 获取（如果启用）
     if (this.useConsul) {
       const serviceConfig = this.serviceConfigs.get(serviceName);
       if (serviceConfig) {
         try {
-          // 从 Consul 获取服务地址
           const url = await this.consulService.getService(
             serviceConfig.consulName,
           );
           this.logger.debug(`Resolved ${serviceName} from Consul: ${url}`);
+
+          // 缓存 Consul 解析的地址
+          this.serviceUrlCache.set(serviceName, {
+            url,
+            timestamp: Date.now(),
+            ttl: this.SERVICE_CACHE_TTL,
+          });
+
           return url;
         } catch (error) {
           this.logger.warn(
-            `Failed to get ${serviceName} from Consul: ${error.message}, using fallback`,
+            `Failed to get ${serviceName} from Consul: ${error.message}`,
           );
+          // Consul 失败时，清除缓存，强制使用 fallback
+          this.serviceUrlCache.delete(serviceName);
         }
       }
     }
 
-    // Fallback 到静态配置
+    // 3. Fallback 到静态配置（环境变量）
     const service = this.services.get(serviceName);
-    return service?.url || "";
+    const fallbackUrl = service?.url || "";
+
+    if (fallbackUrl) {
+      this.logger.debug(`Using fallback URL for ${serviceName}: ${fallbackUrl}`);
+      // 缓存静态配置（较短的 TTL）
+      this.serviceUrlCache.set(serviceName, {
+        url: fallbackUrl,
+        timestamp: Date.now(),
+        ttl: 30000, // 静态配置缓存 30 秒
+      });
+    }
+
+    return fallbackUrl;
+  }
+
+  /**
+   * 清除服务 URL 缓存
+   */
+  clearServiceUrlCache(serviceName?: string): void {
+    if (serviceName) {
+      this.serviceUrlCache.delete(serviceName);
+      this.logger.log(`Cleared URL cache for ${serviceName}`);
+    } else {
+      this.serviceUrlCache.clear();
+      this.logger.log(`Cleared all service URL caches`);
+    }
   }
 
   /**
