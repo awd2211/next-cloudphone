@@ -91,6 +91,30 @@ export { DistributedLockService, Lock } from './lock/distributed-lock.service';
 export type { LockConfig } from './lock/distributed-lock.service';
 export { DistributedLockModule } from './lock/distributed-lock.module';
 
+// ========== 重试机制 ==========
+export {
+  Retry,
+  retryWithBackoff,
+  NetworkError,
+  TimeoutError,
+  TemporaryError,
+  DockerError,
+  AdbError,
+  DatabaseTemporaryError,
+  ServiceUnavailableError,
+  RateLimitError,
+} from './common/retry.decorator';
+export type { RetryOptions } from './common/retry.decorator';
+
+// ========== Saga 编排 ==========
+export { SagaOrchestratorService, SagaModule } from './saga';
+export type { SagaState, SagaStep, SagaDefinition } from './saga';
+export { SagaStatus, SagaType } from './saga';
+
+// ========== 测试工具 ==========
+export { TransactionTestHelper, ConcurrencyTestHelper } from './testing';
+export type { ConcurrencyTestResult, RaceConditionTestResult } from './testing';
+
 // ========== 安全中间件 ==========
 export { RateLimitMiddleware, IPBlacklistMiddleware, AutoBanMiddleware } from './middleware/rate-limit.middleware';
 export { XssProtectionMiddleware, StrictXssProtectionMiddleware, LooseXssProtectionMiddleware } from './middleware/xss-protection.middleware';
