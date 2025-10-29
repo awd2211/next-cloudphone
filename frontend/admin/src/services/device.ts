@@ -139,3 +139,33 @@ export const batchRebootDevices = (ids: string[]) => {
 export const batchDeleteDevices = (ids: string[]) => {
   return request.post('/devices/batch/delete', { ids });
 };
+
+// ========== 多提供商相关 API ==========
+
+// 获取设备连接信息
+export const getDeviceConnectionInfo = (id: string) => {
+  return request.get<any>(`/devices/${id}/connection`);
+};
+
+// 获取 WebRTC 连接令牌
+export const getWebRTCToken = (id: string) => {
+  return request.post<{ token: string; connectionInfo: any }>(`/devices/${id}/webrtc/token`);
+};
+
+// 刷新云设备状态
+export const refreshCloudDevice = (id: string) => {
+  return request.post(`/devices/${id}/cloud/refresh`);
+};
+
+// 物理设备相关
+export const getPhysicalDevices = (params?: { page?: number; pageSize?: number }) => {
+  return request.get('/devices/physical', { params });
+};
+
+export const scanNetworkDevices = (params: { subnet: string }) => {
+  return request.post('/devices/physical/scan', params);
+};
+
+export const registerPhysicalDevice = (data: { serialNumber: string; name?: string }) => {
+  return request.post('/devices/physical/register', data);
+};
