@@ -9,6 +9,9 @@ export { EventBusService } from './events/event-bus.service';
 export { EventBusModule } from './events/event-bus.module';
 export * from './events/schemas';
 
+// ========== Provider 类型定义 ==========
+export * from './types/provider.types';
+
 // ========== 服务发现 ==========
 export { ConsulService } from './consul/consul.service';
 export { ConsulModule } from './consul/consul.module';
@@ -47,7 +50,44 @@ export * from './config/redis.config';
 // ========== 缓存模块 ==========
 export { AppCacheModule } from './cache/cache.module';
 
+// ========== 缓存装饰器 ==========
+export {
+  Cacheable,
+  CacheEvict,
+  CacheWarmup,
+  evictCaches,
+  setCaches,
+} from './decorators/cacheable.decorator';
+export type { CacheableOptions, CacheEvictOptions } from './decorators/cacheable.decorator';
+
 // ========== 健康检查 ==========
 export { HealthCheckService } from './health/health-check.service';
 export type { HealthCheckResult, ComponentHealth } from './health/health-check.service';
+
+// ========== 输入验证和安全 ==========
+export { SanitizationPipe, StrictSanitizationPipe, LooseSanitizationPipe } from './validators/sanitization.pipe';
+export type { SanitizationOptions } from './validators/sanitization.pipe';
+export { SqlInjectionGuard, StrictSqlInjectionGuard, SqlInjectionCheck } from './validators/sql-injection-guard';
+export { SqlInjectionSeverity } from './validators/sql-injection-guard';
+export type { SqlInjectionDetectionResult } from './validators/sql-injection-guard';
+export * from './validators/custom-validators';
+export { ValidationModule, ValidationModuleManual } from './validators/validation.module';
+
+// ========== 查询审计 ==========
+export { QueryAudit, createAuditedQueryBuilder, AuditedQueryBuilder } from './utils/query-audit';
+export type { QueryAuditConfig, QueryAuditResult } from './utils/query-audit';
+
+// ========== 安全中间件 ==========
+export { RateLimitMiddleware, IPBlacklistMiddleware, AutoBanMiddleware } from './middleware/rate-limit.middleware';
+export { XssProtectionMiddleware, StrictXssProtectionMiddleware, LooseXssProtectionMiddleware } from './middleware/xss-protection.middleware';
+export type { XssProtectionConfig } from './middleware/xss-protection.middleware';
+export { CsrfProtectionMiddleware, CsrfProtected, CsrfExempt } from './middleware/csrf-protection.middleware';
+export type { CsrfProtectionConfig } from './middleware/csrf-protection.middleware';
+export {
+  SecurityHeadersMiddleware,
+  DevelopmentSecurityHeadersMiddleware,
+  ProductionSecurityHeadersMiddleware
+} from './middleware/security-headers.middleware';
+export type { SecurityHeadersConfig } from './middleware/security-headers.middleware';
+export { SecurityModule, SecurityModuleManual } from './middleware/security.module';
 
