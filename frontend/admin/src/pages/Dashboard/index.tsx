@@ -5,10 +5,12 @@ import { getDashboardStats, getUserGrowthStats, getPlanDistributionStats } from 
 import { getRevenueStats } from '@/services/billing';
 import { getDeviceStats } from '@/services/device';
 import type { DashboardStats } from '@/types';
-import RevenueChart from '@/components/RevenueChart';
-import DeviceStatusChart from '@/components/DeviceStatusChart';
-import UserGrowthChart from '@/components/UserGrowthChart';
-import PlanDistributionChart from '@/components/PlanDistributionChart';
+import {
+  RevenueChartLazy,
+  DeviceStatusChartLazy,
+  UserGrowthChartLazy,
+  PlanDistributionChartLazy
+} from '@/components/LazyComponents';
 import dayjs from 'dayjs';
 
 const Dashboard = () => {
@@ -120,12 +122,12 @@ const Dashboard = () => {
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} lg={16}>
           <Card title="近7天收入趋势">
-            <RevenueChart data={revenueData} loading={chartsLoading} />
+            <RevenueChartLazy data={revenueData} loading={chartsLoading} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
           <Card title="设备状态分布">
-            <DeviceStatusChart data={deviceStatusData} loading={chartsLoading} />
+            <DeviceStatusChartLazy data={deviceStatusData} loading={chartsLoading} />
           </Card>
         </Col>
       </Row>
@@ -133,12 +135,12 @@ const Dashboard = () => {
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} lg={16}>
           <Card title="近30天用户增长">
-            <UserGrowthChart data={userGrowthData} loading={chartsLoading} />
+            <UserGrowthChartLazy data={userGrowthData} loading={chartsLoading} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
           <Card title="套餐用户分布">
-            <PlanDistributionChart data={planDistributionData} loading={chartsLoading} />
+            <PlanDistributionChartLazy data={planDistributionData} loading={chartsLoading} />
           </Card>
         </Col>
       </Row>

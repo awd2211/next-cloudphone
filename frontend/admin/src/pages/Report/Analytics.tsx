@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, DatePicker, Select, Space, Spin } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, UserOutlined, MobileOutlined, DollarOutlined, ShoppingOutlined } from '@ant-design/icons';
-import ReactECharts from 'echarts-for-react';
+import { EChartsLazy } from '@/components/LazyComponents';
 import dayjs from 'dayjs';
 import { getRevenueStats } from '@/services/billing';
 import { getDashboardStats, getUserGrowthStats, getPlanDistributionStats } from '@/services/stats';
@@ -337,12 +337,12 @@ const Analytics = () => {
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={16}>
             <Card>
-              <ReactECharts option={revenueChartOption} style={{ height: 400 }} />
+              <EChartsLazy option={revenueChartOption} style={{ height: 400 }} />
             </Card>
           </Col>
           <Col xs={24} lg={8}>
             <Card>
-              <ReactECharts option={deviceStatusChartOption} style={{ height: 400 }} />
+              <EChartsLazy option={deviceStatusChartOption} style={{ height: 400 }} />
             </Card>
           </Col>
         </Row>
@@ -350,12 +350,12 @@ const Analytics = () => {
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col xs={24} lg={16}>
             <Card>
-              <ReactECharts option={userGrowthChartOption} style={{ height: 400 }} />
+              <EChartsLazy option={userGrowthChartOption} style={{ height: 400 }} />
             </Card>
           </Col>
           <Col xs={24} lg={8}>
             <Card>
-              <ReactECharts option={planDistributionChartOption} style={{ height: 400 }} />
+              <EChartsLazy option={planDistributionChartOption} style={{ height: 400 }} />
             </Card>
           </Col>
         </Row>
@@ -363,7 +363,7 @@ const Analytics = () => {
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col xs={24}>
             <Card>
-              <ReactECharts option={heatmapOption} style={{ height: 500 }} />
+              <EChartsLazy option={heatmapOption} style={{ height: 500 }} />
             </Card>
           </Col>
         </Row>

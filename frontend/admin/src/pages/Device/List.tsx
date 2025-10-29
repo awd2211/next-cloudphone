@@ -1,24 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Table, Tag, Space, Button, Modal, Form, Input, InputNumber, message, Popconfirm, Card, Statistic, Row, Col, Select, DatePicker, Dropdown, Badge } from 'antd';
 import { PlusOutlined, PlayCircleOutlined, StopOutlined, ReloadOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, DownloadOutlined, DownOutlined, WifiOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
-import { getDevices, createDevice, deleteDevice, startDevice, stopDevice, rebootDevice, getDeviceStats, batchStartDevices, batchStopDevices, batchRebootDevices, batchDeleteDevices } from '@/services/device';
-import type { Device, CreateDeviceDto, DeviceStats } from '@/types';
+import type { Device, CreateDeviceDto } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { exportToExcel, exportToCSV } from '@/utils/export';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
+// ✅ 使用 React Query hooks
+import {
+  useDevices,
+  useDeviceStats,
+  useCreateDevice,
+  useStartDevice,
+  useStopDevice,
+  useRebootDevice,
+  useDeleteDevice,
+} from '@/hooks/useDevices';
+
+// ✅ 导入批量操作服务（暂时保留直接调用，后续可以改造为 hooks）
+import { batchStartDevices, batchStopDevices, batchRebootDevices, batchDeleteDevices } from '@/services/device';
+import { queryClient } from '@/lib/react-query';
+import { deviceKeys } from '@/hooks/useDevices';
+
 const { Search } = Input;
 const { RangePicker } = DatePicker;
 
+/**
+ * 设备列表页面（优化版 - 使用 React Query）
+ *
+ * 优化点：
+ * 1. ✅ 使用 React Query 自动管理状态和缓存
+ * 2. ✅ 使用 useMemo 优化重复计算
+ * 3. ✅ 使用 useCallback 优化事件处理函数
+ * 4. ✅ 自动请求去重和缓存
+ * 5. ✅ 乐观更新支持
+ */
 const DeviceList = () => {
   const navigate = useNavigate();
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [stats, setStats] = useState<DeviceStats>();
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
+
+  // 筛选和分页状态
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -30,142 +53,100 @@ const DeviceList = () => {
   const [realtimeEnabled, setRealtimeEnabled] = useState(true);
   const [form] = Form.useForm();
 
-  // WebSocket实时更新
+  // ✅ 使用 React Query hooks（自动管理 loading、error、data）
+  const params = useMemo(() => {
+    const p: any = { page, pageSize };
+    if (searchKeyword) p.search = searchKeyword;
+    if (statusFilter) p.status = statusFilter;
+    if (androidVersionFilter) p.androidVersion = androidVersionFilter;
+    if (dateRange) {
+      p.startDate = dateRange[0];
+      p.endDate = dateRange[1];
+    }
+    return p;
+  }, [page, pageSize, searchKeyword, statusFilter, androidVersionFilter, dateRange]);
+
+  // ✅ 自动缓存、去重、后台刷新
+  const { data: devicesData, isLoading } = useDevices(params);
+  const { data: stats } = useDeviceStats();
+
+  // ✅ Mutation hooks（自动失效缓存）
+  const createDeviceMutation = useCreateDevice();
+  const startDeviceMutation = useStartDevice();
+  const stopDeviceMutation = useStopDevice();
+  const rebootDeviceMutation = useRebootDevice();
+  const deleteDeviceMutation = useDeleteDevice();
+
+  // 解构数据
+  const devices = devicesData?.data || [];
+  const total = devicesData?.total || 0;
+
+  // WebSocket 实时更新
   const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:30006';
   const { isConnected, lastMessage } = useWebSocket(wsUrl, realtimeEnabled);
 
-  // 加载设备列表
-  const loadDevices = async () => {
-    setLoading(true);
-    try {
-      const params: any = { page, pageSize };
-      if (searchKeyword) params.search = searchKeyword;
-      if (statusFilter) params.status = statusFilter;
-      if (androidVersionFilter) params.androidVersion = androidVersionFilter;
-      if (dateRange) {
-        params.startDate = dateRange[0];
-        params.endDate = dateRange[1];
-      }
-      const res = await getDevices(params);
-      setDevices(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载设备列表失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 加载统计数据
-  const loadStats = async () => {
-    try {
-      const data = await getDeviceStats();
-      setStats(data);
-    } catch (error) {
-      console.error('加载统计数据失败', error);
-    }
-  };
-
-  useEffect(() => {
-    loadDevices();
-    loadStats();
-  }, [page, pageSize, searchKeyword, statusFilter, androidVersionFilter, dateRange]);
-
-  // 处理WebSocket消息
+  // 处理 WebSocket 消息
   useEffect(() => {
     if (lastMessage) {
       const { type, data } = lastMessage;
 
-      // 设备状态更新
+      // 设备状态更新 - 乐观更新 UI
       if (type === 'device:status') {
-        setDevices(prevDevices =>
-          prevDevices.map(device =>
-            device.id === data.deviceId
-              ? { ...device, status: data.status }
-              : device
-          )
+        // ✅ 直接更新缓存中的数据
+        queryClient.setQueryData(
+          deviceKeys.list(params),
+          (old: any) => {
+            if (!old) return old;
+            return {
+              ...old,
+              data: old.data.map((device: Device) =>
+                device.id === data.deviceId
+                  ? { ...device, status: data.status }
+                  : device
+              ),
+            };
+          }
         );
-        // 更新统计数据
-        loadStats();
+        // 失效统计缓存
+        queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
       }
-
-      // 设备创建
+      // 设备创建/删除 - 失效列表缓存
       else if (type === 'device:created') {
         message.info(`新设备已创建: ${data.name}`);
-        loadDevices();
+        queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
       }
-
-      // 设备删除
       else if (type === 'device:deleted') {
         message.warning(`设备已删除: ${data.name}`);
-        loadDevices();
+        queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
       }
     }
-  }, [lastMessage]);
+  }, [lastMessage, params]);
 
-  // 创建设备
-  const handleCreate = async (values: CreateDeviceDto) => {
-    try {
-      await createDevice(values);
-      message.success('创建设备成功');
-      setCreateModalVisible(false);
-      form.resetFields();
-      loadDevices();
-      loadStats();
-    } catch (error) {
-      message.error('创建设备失败');
-    }
-  };
+  // ✅ 使用 useCallback 优化事件处理函数
+  const handleCreate = useCallback(async (values: CreateDeviceDto) => {
+    await createDeviceMutation.mutateAsync(values);
+    setCreateModalVisible(false);
+    form.resetFields();
+  }, [createDeviceMutation, form]);
 
-  // 启动设备
-  const handleStart = async (id: string) => {
-    try {
-      await startDevice(id);
-      message.success('设备启动成功');
-      loadDevices();
-      loadStats();
-    } catch (error) {
-      message.error('启动设备失败');
-    }
-  };
+  const handleStart = useCallback(async (id: string) => {
+    await startDeviceMutation.mutateAsync(id);
+  }, [startDeviceMutation]);
 
-  // 停止设备
-  const handleStop = async (id: string) => {
-    try {
-      await stopDevice(id);
-      message.success('设备停止成功');
-      loadDevices();
-      loadStats();
-    } catch (error) {
-      message.error('停止设备失败');
-    }
-  };
+  const handleStop = useCallback(async (id: string) => {
+    await stopDeviceMutation.mutateAsync(id);
+  }, [stopDeviceMutation]);
 
-  // 重启设备
-  const handleReboot = async (id: string) => {
-    try {
-      await rebootDevice(id);
-      message.success('设备重启中...');
-      setTimeout(() => loadDevices(), 2000);
-    } catch (error) {
-      message.error('重启设备失败');
-    }
-  };
+  const handleReboot = useCallback(async (id: string) => {
+    await rebootDeviceMutation.mutateAsync(id);
+  }, [rebootDeviceMutation]);
 
-  // 删除设备
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteDevice(id);
-      message.success('删除设备成功');
-      loadDevices();
-      loadStats();
-    } catch (error) {
-      message.error('删除设备失败');
-    }
-  };
+  const handleDelete = useCallback(async (id: string) => {
+    await deleteDeviceMutation.mutateAsync(id);
+  }, [deleteDeviceMutation]);
 
-  // 批量启动设备
-  const handleBatchStart = async () => {
+  // 批量操作（暂时保留原有实现）
+  const handleBatchStart = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要启动的设备');
       return;
@@ -174,15 +155,15 @@ const DeviceList = () => {
       await batchStartDevices(selectedRowKeys as string[]);
       message.success(`成功启动 ${selectedRowKeys.length} 台设备`);
       setSelectedRowKeys([]);
-      loadDevices();
-      loadStats();
+      // ✅ 失效缓存触发刷新
+      queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
     } catch (error) {
       message.error('批量启动失败');
     }
-  };
+  }, [selectedRowKeys]);
 
-  // 批量停止设备
-  const handleBatchStop = async () => {
+  const handleBatchStop = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要停止的设备');
       return;
@@ -191,15 +172,14 @@ const DeviceList = () => {
       await batchStopDevices(selectedRowKeys as string[]);
       message.success(`成功停止 ${selectedRowKeys.length} 台设备`);
       setSelectedRowKeys([]);
-      loadDevices();
-      loadStats();
+      queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
     } catch (error) {
       message.error('批量停止失败');
     }
-  };
+  }, [selectedRowKeys]);
 
-  // 批量重启设备
-  const handleBatchReboot = async () => {
+  const handleBatchReboot = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要重启的设备');
       return;
@@ -208,14 +188,15 @@ const DeviceList = () => {
       await batchRebootDevices(selectedRowKeys as string[]);
       message.success(`成功重启 ${selectedRowKeys.length} 台设备`);
       setSelectedRowKeys([]);
-      setTimeout(() => loadDevices(), 2000);
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+      }, 2000);
     } catch (error) {
       message.error('批量重启失败');
     }
-  };
+  }, [selectedRowKeys]);
 
-  // 批量删除设备
-  const handleBatchDelete = async () => {
+  const handleBatchDelete = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要删除的设备');
       return;
@@ -224,184 +205,152 @@ const DeviceList = () => {
       await batchDeleteDevices(selectedRowKeys as string[]);
       message.success(`成功删除 ${selectedRowKeys.length} 台设备`);
       setSelectedRowKeys([]);
-      loadDevices();
-      loadStats();
+      queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
     } catch (error) {
       message.error('批量删除失败');
     }
-  };
+  }, [selectedRowKeys]);
+
+  // ✅ 使用 useMemo 优化状态映射（避免每次渲染都重新创建）
+  const statusMap = useMemo(() => ({
+    idle: { color: 'default', text: '空闲' },
+    running: { color: 'green', text: '运行中' },
+    stopped: { color: 'red', text: '已停止' },
+    error: { color: 'error', text: '错误' },
+  }), []);
+
+  // ✅ 使用 useMemo 优化导出数据转换
+  const exportData = useMemo(() =>
+    devices.map(device => ({
+      '设备ID': device.id,
+      '设备名称': device.name,
+      '状态': statusMap[device.status as keyof typeof statusMap]?.text || device.status,
+      'Android版本': device.androidVersion,
+      'CPU核心数': device.cpuCores,
+      '内存(MB)': device.memoryMB,
+      '存储(MB)': device.storageMB,
+      'IP地址': device.ipAddress || '-',
+      'VNC端口': device.vncPort || '-',
+      '创建时间': dayjs(device.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+    })),
+    [devices, statusMap]
+  );
+
+  // ✅ 使用 useCallback 优化导出函数
+  const handleExportExcel = useCallback(() => {
+    exportToExcel(exportData, '设备列表');
+    message.success('导出成功');
+  }, [exportData]);
+
+  const handleExportCSV = useCallback(() => {
+    exportToCSV(exportData, '设备列表');
+    message.success('导出成功');
+  }, [exportData]);
+
+  const handleExportJSON = useCallback(() => {
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    const exportFileDefaultName = `设备列表_${dayjs().format('YYYYMMDD_HHmmss')}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+
+    message.success('导出成功');
+  }, [exportData]);
+
+  // ✅ 使用 useMemo 优化导出菜单
+  const exportMenuItems: MenuProps['items'] = useMemo(() => [
+    { key: 'excel', label: '导出为 Excel', onClick: handleExportExcel },
+    { key: 'csv', label: '导出为 CSV', onClick: handleExportCSV },
+    { key: 'json', label: '导出为 JSON', onClick: handleExportJSON },
+  ], [handleExportExcel, handleExportCSV, handleExportJSON]);
 
   // 批量选择配置
-  const rowSelection = {
+  const rowSelection = useMemo(() => ({
     selectedRowKeys,
-    onChange: (selectedRowKeys: React.Key[]) => {
-      setSelectedRowKeys(selectedRowKeys);
-    },
-  };
+    onChange: setSelectedRowKeys,
+  }), [selectedRowKeys]);
 
-  // 导出Excel
-  const handleExportExcel = () => {
-    const exportData = devices.map(device => ({
-      '设备ID': device.id,
-      '设备名称': device.name,
-      '状态': device.status === 'idle' ? '空闲' : device.status === 'running' ? '运行中' : device.status === 'stopped' ? '已停止' : device.status,
-      'Android版本': device.androidVersion,
-      'CPU核心数': device.cpuCores,
-      '内存(GB)': (device.memoryMB / 1024).toFixed(1),
-      '存储(GB)': (device.storageMB / 1024).toFixed(1),
-      'IP地址': device.ipAddress || '-',
-      '创建时间': dayjs(device.createdAt).format('YYYY-MM-DD HH:mm:ss'),
-    }));
-    exportToExcel(exportData, `设备列表_${dayjs().format('YYYYMMDD_HHmmss')}`, '设备列表');
-    message.success('导出成功');
-  };
-
-  // 导出CSV
-  const handleExportCSV = () => {
-    const exportData = devices.map(device => ({
-      '设备ID': device.id,
-      '设备名称': device.name,
-      '状态': device.status === 'idle' ? '空闲' : device.status === 'running' ? '运行中' : device.status === 'stopped' ? '已停止' : device.status,
-      'Android版本': device.androidVersion,
-      'CPU核心数': device.cpuCores,
-      '内存(GB)': (device.memoryMB / 1024).toFixed(1),
-      '存储(GB)': (device.storageMB / 1024).toFixed(1),
-      'IP地址': device.ipAddress || '-',
-      '创建时间': dayjs(device.createdAt).format('YYYY-MM-DD HH:mm:ss'),
-    }));
-    exportToCSV(exportData, `设备列表_${dayjs().format('YYYYMMDD_HHmmss')}`);
-    message.success('导出成功');
-  };
-
-  // 导出选中设备
-  const handleExportSelected = () => {
-    const selectedDevices = devices.filter(device => selectedRowKeys.includes(device.id));
-    const exportData = selectedDevices.map(device => ({
-      '设备ID': device.id,
-      '设备名称': device.name,
-      '状态': device.status === 'idle' ? '空闲' : device.status === 'running' ? '运行中' : device.status === 'stopped' ? '已停止' : device.status,
-      'Android版本': device.androidVersion,
-      'CPU核心数': device.cpuCores,
-      '内存(GB)': (device.memoryMB / 1024).toFixed(1),
-      '存储(GB)': (device.storageMB / 1024).toFixed(1),
-      'IP地址': device.ipAddress || '-',
-      '创建时间': dayjs(device.createdAt).format('YYYY-MM-DD HH:mm:ss'),
-    }));
-    exportToExcel(exportData, `选中设备_${dayjs().format('YYYYMMDD_HHmmss')}`, '设备列表');
-    message.success('导出成功');
-  };
-
-  // 导出菜单
-  const exportMenuItems: MenuProps['items'] = [
+  // ✅ 使用 useMemo 优化表格列配置（避免每次渲染都重新创建）
+  const columns: ColumnsType<Device> = useMemo(() => [
     {
-      key: 'excel',
-      label: '导出为Excel',
-      icon: <DownloadOutlined />,
-      onClick: handleExportExcel,
-    },
-    {
-      key: 'csv',
-      label: '导出为CSV',
-      icon: <DownloadOutlined />,
-      onClick: handleExportCSV,
-    },
-    ...(selectedRowKeys.length > 0
-      ? [
-          {
-            type: 'divider' as const,
-          },
-          {
-            key: 'selected',
-            label: `导出选中 (${selectedRowKeys.length})`,
-            icon: <DownloadOutlined />,
-            onClick: handleExportSelected,
-          },
-        ]
-      : []),
-  ];
-
-  const columns: ColumnsType<Device> = [
-    {
-      title: '设备 ID',
+      title: 'ID',
       dataIndex: 'id',
       key: 'id',
-      width: 100,
+      width: 120,
       ellipsis: true,
-      fixed: 'left',
+      render: (id: string) => (
+        <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+          {id.substring(0, 8)}...
+        </span>
+      ),
     },
     {
       title: '设备名称',
       dataIndex: 'name',
       key: 'name',
       width: 150,
-      sorter: (a, b) => a.name.localeCompare(b.name),
+      ellipsis: true,
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      sorter: (a, b) => a.status.localeCompare(b.status),
       render: (status: string) => {
-        const statusMap: Record<string, { color: string; text: string }> = {
-          idle: { color: 'default', text: '空闲' },
-          running: { color: 'green', text: '运行中' },
-          stopped: { color: 'red', text: '已停止' },
-          error: { color: 'error', text: '错误' },
-        };
-        const config = statusMap[status] || { color: 'default', text: status };
+        const config = statusMap[status as keyof typeof statusMap] || { color: 'default', text: status };
         return <Tag color={config.color}>{config.text}</Tag>;
       },
+      responsive: ['md'],
     },
     {
-      title: '安卓版本',
+      title: 'Android版本',
       dataIndex: 'androidVersion',
       key: 'androidVersion',
-      width: 100,
-      responsive: ['md'],
-      sorter: (a, b) => (a.androidVersion || '').localeCompare(b.androidVersion || ''),
+      width: 120,
+      responsive: ['lg'],
     },
     {
       title: 'CPU',
       dataIndex: 'cpuCores',
       key: 'cpuCores',
       width: 80,
+      render: (cores: number) => `${cores}核`,
       responsive: ['lg'],
-      sorter: (a, b) => a.cpuCores - b.cpuCores,
-      render: (cores: number) => `${cores} 核`,
     },
     {
       title: '内存',
       dataIndex: 'memoryMB',
       key: 'memoryMB',
       width: 100,
+      render: (memory: number) => `${(memory / 1024).toFixed(1)}GB`,
       responsive: ['lg'],
-      sorter: (a, b) => a.memoryMB - b.memoryMB,
-      render: (memory: number) => `${((memory || 0) / 1024).toFixed(1)} GB`,
     },
     {
-      title: 'IP 地址',
+      title: 'IP地址',
       dataIndex: 'ipAddress',
       key: 'ipAddress',
       width: 130,
+      ellipsis: true,
       responsive: ['xl'],
-      sorter: (a, b) => (a.ipAddress || '').localeCompare(b.ipAddress || ''),
     },
     {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 150,
-      responsive: ['md'],
-      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
+      width: 160,
+      render: (date: string) => dayjs(date).format('MM-DD HH:mm'),
+      responsive: ['xl'],
     },
     {
       title: '操作',
-      key: 'action',
+      key: 'actions',
       width: 250,
       fixed: 'right',
-      render: (_, record) => (
+      render: (_: any, record: Device) => (
         <Space size="small">
           <Button
             type="link"
@@ -411,12 +360,14 @@ const DeviceList = () => {
           >
             详情
           </Button>
-          {record.status === 'stopped' || record.status === 'idle' ? (
+
+          {record.status !== 'running' ? (
             <Button
               type="link"
               size="small"
               icon={<PlayCircleOutlined />}
               onClick={() => handleStart(record.id)}
+              loading={startDeviceMutation.isPending}
             >
               启动
             </Button>
@@ -426,213 +377,208 @@ const DeviceList = () => {
               size="small"
               icon={<StopOutlined />}
               onClick={() => handleStop(record.id)}
-              danger
+              loading={stopDeviceMutation.isPending}
             >
               停止
             </Button>
           )}
+
           <Button
             type="link"
             size="small"
             icon={<ReloadOutlined />}
             onClick={() => handleReboot(record.id)}
+            loading={rebootDeviceMutation.isPending}
           >
             重启
           </Button>
+
           <Popconfirm
-            title="确定要删除这个设备吗?"
+            title="确定删除该设备？"
             onConfirm={() => handleDelete(record.id)}
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" size="small" icon={<DeleteOutlined />} danger>
+            <Button
+              type="link"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              loading={deleteDeviceMutation.isPending}
+            >
               删除
             </Button>
           </Popconfirm>
         </Space>
       ),
     },
-  ];
+  ], [navigate, handleStart, handleStop, handleReboot, handleDelete, statusMap, startDeviceMutation.isPending, stopDeviceMutation.isPending, rebootDeviceMutation.isPending, deleteDeviceMutation.isPending]);
 
   return (
-    <div>
-      <h2>设备管理</h2>
-
+    <div style={{ padding: '24px' }}>
       {/* 统计卡片 */}
-      {stats && (
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={12} sm={12} md={6}>
-            <Card>
-              <Statistic title="总设备数" value={stats.total} />
-            </Card>
-          </Col>
-          <Col xs={12} sm={12} md={6}>
-            <Card>
-              <Statistic title="运行中" value={stats.running} valueStyle={{ color: '#3f8600' }} />
-            </Card>
-          </Col>
-          <Col xs={12} sm={12} md={6}>
-            <Card>
-              <Statistic title="空闲" value={stats.idle} valueStyle={{ color: '#1890ff' }} />
-            </Card>
-          </Col>
-          <Col xs={12} sm={12} md={6}>
-            <Card>
-              <Statistic title="已停止" value={stats.stopped} valueStyle={{ color: '#cf1322' }} />
-            </Card>
-          </Col>
-        </Row>
-      )}
-
-      {/* 搜索和筛选 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={8}>
-            <Search
-              placeholder="搜索设备名称/ID/IP地址"
-              allowClear
-              enterButton={<SearchOutlined />}
-              onSearch={(value) => {
-                setSearchKeyword(value);
-                setPage(1);
-              }}
+      <Row gutter={16} style={{ marginBottom: '24px' }}>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="设备总数"
+              value={stats?.total || 0}
+              valueStyle={{ color: '#3f8600' }}
             />
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <Select
-              placeholder="设备状态"
-              style={{ width: '100%' }}
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="运行中"
+              value={stats?.running || 0}
+              valueStyle={{ color: '#52c41a' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="空闲"
+              value={stats?.idle || 0}
+              valueStyle={{ color: '#faad14' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="已停止"
+              value={stats?.stopped || 0}
+              valueStyle={{ color: '#ff4d4f' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 筛选和操作栏 */}
+      <Card style={{ marginBottom: '16px' }}>
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          {/* 第一行：搜索和筛选 */}
+          <Space wrap>
+            <Search
+              placeholder="搜索设备名称或ID"
               allowClear
-              onChange={(value) => {
-                setStatusFilter(value);
-                setPage(1);
-              }}
-            >
-              <Select.Option value="idle">空闲</Select.Option>
-              <Select.Option value="running">运行中</Select.Option>
-              <Select.Option value="stopped">已停止</Select.Option>
-              <Select.Option value="error">错误</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={12} sm={6} md={4}>
+              style={{ width: 250 }}
+              onSearch={setSearchKeyword}
+              prefix={<SearchOutlined />}
+            />
+
+            <Select
+              placeholder="状态筛选"
+              allowClear
+              style={{ width: 120 }}
+              onChange={setStatusFilter}
+              options={[
+                { label: '空闲', value: 'idle' },
+                { label: '运行中', value: 'running' },
+                { label: '已停止', value: 'stopped' },
+                { label: '错误', value: 'error' },
+              ]}
+            />
+
             <Select
               placeholder="Android版本"
-              style={{ width: '100%' }}
               allowClear
-              onChange={(value) => {
-                setAndroidVersionFilter(value);
-                setPage(1);
-              }}
-            >
-              <Select.Option value="9">Android 9</Select.Option>
-              <Select.Option value="10">Android 10</Select.Option>
-              <Select.Option value="11">Android 11</Select.Option>
-              <Select.Option value="12">Android 12</Select.Option>
-              <Select.Option value="13">Android 13</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
+              style={{ width: 150 }}
+              onChange={setAndroidVersionFilter}
+              options={[
+                { label: 'Android 12', value: 'android-12' },
+                { label: 'Android 13', value: 'android-13' },
+                { label: 'Android 14', value: 'android-14' },
+              ]}
+            />
+
             <RangePicker
-              style={{ width: '100%' }}
-              placeholder={['开始日期', '结束日期']}
-              onChange={(dates) => {
-                if (dates) {
-                  setDateRange([
-                    dates[0]!.format('YYYY-MM-DD'),
-                    dates[1]!.format('YYYY-MM-DD'),
-                  ]);
-                } else {
-                  setDateRange(null);
-                }
-                setPage(1);
+              onChange={(dates, dateStrings) => {
+                setDateRange(dates ? [dateStrings[0], dateStrings[1]] : null);
               }}
             />
-          </Col>
-        </Row>
+
+            <Badge dot={isConnected} status={isConnected ? 'success' : 'error'}>
+              <Button
+                icon={<WifiOutlined />}
+                onClick={() => setRealtimeEnabled(!realtimeEnabled)}
+                type={realtimeEnabled ? 'primary' : 'default'}
+              >
+                实时更新
+              </Button>
+            </Badge>
+          </Space>
+
+          {/* 第二行：批量操作和导出 */}
+          <Space>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setCreateModalVisible(true)}
+            >
+              创建设备
+            </Button>
+
+            {selectedRowKeys.length > 0 && (
+              <>
+                <Button icon={<PlayCircleOutlined />} onClick={handleBatchStart}>
+                  批量启动 ({selectedRowKeys.length})
+                </Button>
+                <Button icon={<StopOutlined />} onClick={handleBatchStop}>
+                  批量停止
+                </Button>
+                <Button icon={<ReloadOutlined />} onClick={handleBatchReboot}>
+                  批量重启
+                </Button>
+                <Popconfirm
+                  title={`确定删除 ${selectedRowKeys.length} 台设备？`}
+                  onConfirm={handleBatchDelete}
+                  okText="确定"
+                  cancelText="取消"
+                >
+                  <Button danger icon={<DeleteOutlined />}>
+                    批量删除
+                  </Button>
+                </Popconfirm>
+              </>
+            )}
+
+            <Dropdown menu={{ items: exportMenuItems }} placement="bottomRight">
+              <Button icon={<DownloadOutlined />}>
+                导出 <DownOutlined />
+              </Button>
+            </Dropdown>
+          </Space>
+        </Space>
       </Card>
 
-      <div style={{ marginBottom: 16 }}>
-        <Space>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setCreateModalVisible(true)}
-          >
-            创建设备
-          </Button>
-          <Dropdown menu={{ items: exportMenuItems }} placement="bottomLeft">
-            <Button icon={<DownloadOutlined />}>
-              导出数据 <DownOutlined />
-            </Button>
-          </Dropdown>
-          <Badge dot={isConnected} status={isConnected ? 'success' : 'default'}>
-            <Button
-              icon={<WifiOutlined />}
-              onClick={() => setRealtimeEnabled(!realtimeEnabled)}
-            >
-              {realtimeEnabled ? '实时更新已开启' : '实时更新已关闭'}
-            </Button>
-          </Badge>
-          {selectedRowKeys.length > 0 && (
-            <>
-              <Button
-                icon={<PlayCircleOutlined />}
-                onClick={handleBatchStart}
-              >
-                批量启动 ({selectedRowKeys.length})
-              </Button>
-              <Button
-                icon={<StopOutlined />}
-                danger
-                onClick={handleBatchStop}
-              >
-                批量停止 ({selectedRowKeys.length})
-              </Button>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={handleBatchReboot}
-              >
-                批量重启 ({selectedRowKeys.length})
-              </Button>
-              <Popconfirm
-                title={`确定要删除选中的 ${selectedRowKeys.length} 台设备吗？`}
-                onConfirm={handleBatchDelete}
-                okText="确定"
-                cancelText="取消"
-              >
-                <Button
-                  icon={<DeleteOutlined />}
-                  danger
-                >
-                  批量删除 ({selectedRowKeys.length})
-                </Button>
-              </Popconfirm>
-            </>
-          )}
-        </Space>
-      </div>
+      {/* 设备列表表格 */}
+      <Card>
+        <Table<Device>
+          rowKey="id"
+          columns={columns}
+          dataSource={devices}
+          loading={isLoading}
+          rowSelection={rowSelection}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 台设备`,
+            onChange: (page, pageSize) => {
+              setPage(page);
+              setPageSize(pageSize);
+            },
+          }}
+          scroll={{ x: 1200 }}
+        />
+      </Card>
 
-      <Table
-        columns={columns}
-        dataSource={devices}
-        rowKey="id"
-        loading={loading}
-        rowSelection={rowSelection}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`,
-          onChange: (page, pageSize) => {
-            setPage(page);
-            setPageSize(pageSize);
-          },
-        }}
-        scroll={{ x: 1200 }}
-      />
-
-      {/* 创建设备对话框 */}
+      {/* 创建设备弹窗 */}
       <Modal
         title="创建设备"
         open={createModalVisible}
@@ -641,35 +587,62 @@ const DeviceList = () => {
           form.resetFields();
         }}
         onOk={() => form.submit()}
+        confirmLoading={createDeviceMutation.isPending}
         width={600}
       >
-        <Form form={form} onFinish={handleCreate} layout="vertical">
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleCreate}
+        >
           <Form.Item
-            label="用户 ID"
-            name="userId"
-            rules={[{ required: true, message: '请输入用户 ID' }]}
+            label="设备名称"
+            name="name"
+            rules={[{ required: true, message: '请输入设备名称' }]}
           >
-            <Input placeholder="请输入用户 ID" />
+            <Input placeholder="例如: MyDevice-001" />
           </Form.Item>
 
-          <Form.Item label="设备名称" name="name">
-            <Input placeholder="可选，不填则自动生成" />
+          <Form.Item
+            label="模板"
+            name="template"
+            rules={[{ required: true, message: '请选择模板' }]}
+          >
+            <Select
+              placeholder="选择Android版本模板"
+              options={[
+                { label: 'Android 12', value: 'android-12' },
+                { label: 'Android 13', value: 'android-13' },
+                { label: 'Android 14', value: 'android-14' },
+              ]}
+            />
           </Form.Item>
 
-          <Form.Item label="安卓版本" name="androidVersion" initialValue="11">
-            <Input placeholder="例如: 11" />
-          </Form.Item>
-
-          <Form.Item label="CPU 核心数" name="cpuCores" initialValue={4}>
+          <Form.Item
+            label="CPU 核心数"
+            name="cpuCores"
+            initialValue={2}
+            rules={[{ required: true, message: '请输入CPU核心数' }]}
+          >
             <InputNumber min={1} max={16} style={{ width: '100%' }} />
           </Form.Item>
 
-          <Form.Item label="内存 (MB)" name="memoryMB" initialValue={4096}>
-            <InputNumber min={1024} max={16384} step={1024} style={{ width: '100%' }} />
+          <Form.Item
+            label="内存 (MB)"
+            name="memoryMB"
+            initialValue={4096}
+            rules={[{ required: true, message: '请输入内存大小' }]}
+          >
+            <InputNumber min={1024} max={32768} step={1024} style={{ width: '100%' }} />
           </Form.Item>
 
-          <Form.Item label="存储 (MB)" name="storageMB" initialValue={8192}>
-            <InputNumber min={2048} max={65536} step={1024} style={{ width: '100%' }} />
+          <Form.Item
+            label="存储 (MB)"
+            name="storageMB"
+            initialValue={10240}
+            rules={[{ required: true, message: '请输入存储大小' }]}
+          >
+            <InputNumber min={2048} max={102400} step={1024} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

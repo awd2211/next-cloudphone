@@ -1,0 +1,7 @@
+# React Query 安装命令
+
+cd /home/eric/next-cloudphone/frontend/admin
+pnpm add @tanstack/react-query @tanstack/react-query-devtools
+
+cd /home/eric/next-cloudphone/frontend/user
+pnpm add @tanstack/react-query @tanstack/react-query-devtools

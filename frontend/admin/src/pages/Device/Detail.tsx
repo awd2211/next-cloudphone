@@ -37,8 +37,7 @@ import {
 } from '@/services/device';
 import type { Device } from '@/types';
 import dayjs from 'dayjs';
-import WebRTCPlayer from '@/components/WebRTCPlayer';
-import ADBConsole from '@/components/ADBConsole';
+import { WebRTCPlayerLazy, ADBConsoleLazy } from '@/components/LazyComponents';
 
 const DeviceDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -181,7 +180,7 @@ const DeviceDetail = () => {
       children: (
         <Card>
           {device.status === 'running' ? (
-            <WebRTCPlayer deviceId={id!} />
+            <WebRTCPlayerLazy deviceId={id!} />
           ) : (
             <div style={{ textAlign: 'center', padding: '100px 0', color: '#999' }}>
               设备未运行，无法显示屏幕
@@ -195,7 +194,7 @@ const DeviceDetail = () => {
       label: 'ADB 控制台',
       children: (
         <Card>
-          <ADBConsole deviceId={id!} />
+          <ADBConsoleLazy deviceId={id!} />
         </Card>
       ),
     },
