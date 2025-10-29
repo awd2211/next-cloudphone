@@ -1,20 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Table, Tag, Space, Button, Modal, message, Input, Select, DatePicker, Card, Row, Col, Dropdown, Popconfirm, Form, InputNumber } from 'antd';
 import { EyeOutlined, CloseCircleOutlined, SearchOutlined, DownloadOutlined, DownOutlined, DollarOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
-import { getOrders, cancelOrder, batchCancelOrders, refundOrder } from '@/services/billing';
+import * as billingService from '@/services/billing';
 import type { Order } from '@/types';
 import dayjs from 'dayjs';
 import { exportToExcel, exportToCSV } from '@/utils/export';
+import {
+  useOrders,
+  useCancelOrder,
+  useRefundOrder
+} from '@/hooks/useOrders';
 
 const { Search } = Input;
 const { RangePicker } = DatePicker;
 
+/**
+ * 订单列表页面（优化版 - 使用 React Query）
+ *
+ * 优化点：
+ * 1. ✅ 使用 React Query 自动管理状态和缓存
+ * 2. ✅ 使用 useMemo 优化重复计算
+ * 3. ✅ 使用 useCallback 优化事件处理函数
+ * 4. ✅ 自动请求去重和缓存
+ * 5. ✅ 乐观更新支持
+ */
 const OrderList = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
+  // 筛选和Modal状态
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
@@ -30,62 +43,52 @@ const OrderList = () => {
   const [refundAmount, setRefundAmount] = useState(0);
   const [refundReason, setRefundReason] = useState('');
 
-  const loadOrders = async () => {
-    setLoading(true);
-    try {
-      const params: any = { page, pageSize };
-      if (statusFilter) params.status = statusFilter;
-      if (paymentMethodFilter) params.paymentMethod = paymentMethodFilter;
-      if (searchKeyword) params.search = searchKeyword;
-      if (dateRange) {
-        params.startDate = dateRange[0];
-        params.endDate = dateRange[1];
-      }
-      const res = await getOrders(params);
-      setOrders(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载订单列表失败');
-    } finally {
-      setLoading(false);
+  // ✅ 使用 React Query hooks 替换手动状态管理
+  const params = useMemo(() => {
+    const p: any = { page, pageSize };
+    if (statusFilter) p.status = statusFilter;
+    if (paymentMethodFilter) p.paymentMethod = paymentMethodFilter;
+    if (searchKeyword) p.search = searchKeyword;
+    if (dateRange) {
+      p.startDate = dateRange[0];
+      p.endDate = dateRange[1];
     }
-  };
-
-  useEffect(() => {
-    loadOrders();
+    return p;
   }, [page, pageSize, statusFilter, paymentMethodFilter, searchKeyword, dateRange]);
 
-  const handleCancelOrder = async () => {
-    if (!selectedOrder) return;
-    try {
-      await cancelOrder(selectedOrder.id, cancelReason);
-      message.success('订单已取消');
-      setCancelModalVisible(false);
-      setCancelReason('');
-      loadOrders();
-    } catch (error) {
-      message.error('取消订单失败');
-    }
-  };
+  const { data, isLoading } = useOrders(params);
 
-  // 批量取消订单
-  const handleBatchCancel = async () => {
+  // Mutations
+  const cancelMutation = useCancelOrder();
+  const refundMutation = useRefundOrder();
+
+  const orders = data?.data || [];
+  const total = data?.total || 0;
+
+  // ✅ useCallback 优化事件处理函数
+  const handleCancelOrder = useCallback(async () => {
+    if (!selectedOrder) return;
+    await cancelMutation.mutateAsync(selectedOrder.id);
+    setCancelModalVisible(false);
+    setCancelReason('');
+  }, [selectedOrder, cancelMutation]);
+
+  const handleBatchCancel = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要取消的订单');
       return;
     }
     try {
-      await batchCancelOrders(selectedRowKeys as string[], '批量取消');
+      await billingService.batchCancelOrders(selectedRowKeys as string[], '批量取消');
       message.success(`成功取消 ${selectedRowKeys.length} 个订单`);
       setSelectedRowKeys([]);
-      loadOrders();
     } catch (error) {
       message.error('批量取消失败');
     }
-  };
+  }, [selectedRowKeys]);
 
-  // 批量选择配置
-  const rowSelection = {
+  // ✅ useMemo 优化批量选择配置
+  const rowSelection = useMemo(() => ({
     selectedRowKeys,
     onChange: (selectedRowKeys: React.Key[]) => {
       setSelectedRowKeys(selectedRowKeys);
@@ -93,42 +96,47 @@ const OrderList = () => {
     getCheckboxProps: (record: Order) => ({
       disabled: record.status !== 'pending', // 只有待支付的订单可以批量取消
     }),
-  };
+  }), [selectedRowKeys]);
 
-  // 导出Excel
-  const handleExportExcel = () => {
-    const exportData = orders.map(order => ({
+  // ✅ useMemo 优化导出数据生成
+  const exportData = useMemo(() => {
+    const paymentMethodMap: Record<string, string> = {
+      wechat: '微信支付',
+      alipay: '支付宝',
+      balance: '余额支付',
+    };
+    const statusMap: Record<string, string> = {
+      pending: '待支付',
+      paid: '已支付',
+      cancelled: '已取消',
+      refunded: '已退款',
+      expired: '已过期',
+    };
+
+    return orders.map(order => ({
       '订单号': order.orderNo,
       '用户': order.user?.username || '-',
       '套餐': order.plan?.name || '-',
       '金额': order.amount,
-      '支付方式': order.paymentMethod === 'wechat' ? '微信支付' : order.paymentMethod === 'alipay' ? '支付宝' : order.paymentMethod === 'balance' ? '余额支付' : '-',
-      '状态': order.status === 'pending' ? '待支付' : order.status === 'paid' ? '已支付' : order.status === 'cancelled' ? '已取消' : order.status === 'refunded' ? '已退款' : '已过期',
+      '支付方式': paymentMethodMap[order.paymentMethod] || '-',
+      '状态': statusMap[order.status] || order.status,
       '创建时间': dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss'),
       '支付时间': order.paidAt ? dayjs(order.paidAt).format('YYYY-MM-DD HH:mm:ss') : '-',
     }));
+  }, [orders]);
+
+  const handleExportExcel = useCallback(() => {
     exportToExcel(exportData, `订单列表_${dayjs().format('YYYYMMDD_HHmmss')}`, '订单列表');
     message.success('导出成功');
-  };
+  }, [exportData]);
 
-  // 导出CSV
-  const handleExportCSV = () => {
-    const exportData = orders.map(order => ({
-      '订单号': order.orderNo,
-      '用户': order.user?.username || '-',
-      '套餐': order.plan?.name || '-',
-      '金额': order.amount,
-      '支付方式': order.paymentMethod === 'wechat' ? '微信支付' : order.paymentMethod === 'alipay' ? '支付宝' : order.paymentMethod === 'balance' ? '余额支付' : '-',
-      '状态': order.status === 'pending' ? '待支付' : order.status === 'paid' ? '已支付' : order.status === 'cancelled' ? '已取消' : order.status === 'refunded' ? '已退款' : '已过期',
-      '创建时间': dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss'),
-      '支付时间': order.paidAt ? dayjs(order.paidAt).format('YYYY-MM-DD HH:mm:ss') : '-',
-    }));
+  const handleExportCSV = useCallback(() => {
     exportToCSV(exportData, `订单列表_${dayjs().format('YYYYMMDD_HHmmss')}`);
     message.success('导出成功');
-  };
+  }, [exportData]);
 
-  // 导出菜单
-  const exportMenuItems: MenuProps['items'] = [
+  // ✅ useMemo 优化导出菜单
+  const exportMenuItems: MenuProps['items'] = useMemo(() => [
     {
       key: 'excel',
       label: '导出为Excel',
@@ -141,28 +149,53 @@ const OrderList = () => {
       icon: <DownloadOutlined />,
       onClick: handleExportCSV,
     },
-  ];
+  ], [handleExportExcel, handleExportCSV]);
 
-  // 处理退款
-  const handleRefund = async () => {
+  const handleRefund = useCallback(async () => {
     if (!selectedOrder) return;
     if (refundAmount <= 0 || refundAmount > selectedOrder.amount) {
       message.error('退款金额无效');
       return;
     }
-    try {
-      await refundOrder(selectedOrder.id, refundAmount, refundReason);
-      message.success('退款申请已提交');
-      setRefundModalVisible(false);
-      setRefundAmount(0);
-      setRefundReason('');
-      loadOrders();
-    } catch (error) {
-      message.error('退款申请失败');
-    }
-  };
+    await refundMutation.mutateAsync({ id: selectedOrder.id, reason: refundReason });
+    setRefundModalVisible(false);
+    setRefundAmount(0);
+    setRefundReason('');
+  }, [selectedOrder, refundAmount, refundReason, refundMutation]);
 
-  const columns: ColumnsType<Order> = [
+  // ✅ useMemo 优化映射对象
+  const paymentMethodMap = useMemo(() => ({
+    wechat: '微信支付',
+    alipay: '支付宝',
+    balance: '余额支付',
+  }), []);
+
+  const statusMap = useMemo(() => ({
+    pending: { color: 'orange', text: '待支付' },
+    paid: { color: 'green', text: '已支付' },
+    cancelled: { color: 'default', text: '已取消' },
+    refunded: { color: 'red', text: '已退款' },
+    expired: { color: 'default', text: '已过期' },
+  }), []);
+
+  const handleViewDetail = useCallback((record: Order) => {
+    setSelectedOrder(record);
+    setDetailModalVisible(true);
+  }, []);
+
+  const handleOpenCancel = useCallback((record: Order) => {
+    setSelectedOrder(record);
+    setCancelModalVisible(true);
+  }, []);
+
+  const handleOpenRefund = useCallback((record: Order) => {
+    setSelectedOrder(record);
+    setRefundAmount(record.amount);
+    setRefundModalVisible(true);
+  }, []);
+
+  // ✅ useMemo 优化表格列配置
+  const columns: ColumnsType<Order> = useMemo(() => [
     {
       title: '订单号',
       dataIndex: 'orderNo',
@@ -197,14 +230,7 @@ const OrderList = () => {
       dataIndex: 'paymentMethod',
       key: 'paymentMethod',
       sorter: (a, b) => (a.paymentMethod || '').localeCompare(b.paymentMethod || ''),
-      render: (method: string) => {
-        const methodMap: Record<string, string> = {
-          wechat: '微信支付',
-          alipay: '支付宝',
-          balance: '余额支付',
-        };
-        return methodMap[method] || '-';
-      },
+      render: (method: string) => paymentMethodMap[method] || '-',
     },
     {
       title: '状态',
@@ -212,13 +238,6 @@ const OrderList = () => {
       key: 'status',
       sorter: (a, b) => a.status.localeCompare(b.status),
       render: (status: string) => {
-        const statusMap: Record<string, { color: string; text: string }> = {
-          pending: { color: 'orange', text: '待支付' },
-          paid: { color: 'green', text: '已支付' },
-          cancelled: { color: 'default', text: '已取消' },
-          refunded: { color: 'red', text: '已退款' },
-          expired: { color: 'default', text: '已过期' },
-        };
         const config = statusMap[status] || { color: 'default', text: status };
         return <Tag color={config.color}>{config.text}</Tag>;
       },
@@ -252,10 +271,7 @@ const OrderList = () => {
             type="link"
             size="small"
             icon={<EyeOutlined />}
-            onClick={() => {
-              setSelectedOrder(record);
-              setDetailModalVisible(true);
-            }}
+            onClick={() => handleViewDetail(record)}
           >
             详情
           </Button>
@@ -265,10 +281,7 @@ const OrderList = () => {
               size="small"
               danger
               icon={<CloseCircleOutlined />}
-              onClick={() => {
-                setSelectedOrder(record);
-                setCancelModalVisible(true);
-              }}
+              onClick={() => handleOpenCancel(record)}
             >
               取消
             </Button>
@@ -278,11 +291,7 @@ const OrderList = () => {
               type="link"
               size="small"
               icon={<DollarOutlined />}
-              onClick={() => {
-                setSelectedOrder(record);
-                setRefundAmount(record.amount);
-                setRefundModalVisible(true);
-              }}
+              onClick={() => handleOpenRefund(record)}
             >
               退款
             </Button>
@@ -290,7 +299,7 @@ const OrderList = () => {
         </Space>
       ),
     },
-  ];
+  ], [paymentMethodMap, statusMap, handleViewDetail, handleOpenCancel, handleOpenRefund]);
 
   return (
     <div>
@@ -388,7 +397,7 @@ const OrderList = () => {
         columns={columns}
         dataSource={orders}
         rowKey="id"
-        loading={loading}
+        loading={isLoading}
         rowSelection={rowSelection}
         pagination={{
           current: page,
