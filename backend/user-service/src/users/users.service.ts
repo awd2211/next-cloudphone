@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, EntityManager } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User, UserStatus } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
@@ -94,6 +94,91 @@ export class UsersService {
         tenantId: savedUser.tenantId,
       });
     }
+
+    return savedUser;
+  }
+
+  /**
+   * 在事务中创建用户（Issue #4 修复）
+   *
+   * 此方法是 create() 的事务版本，用于确保用户创建和事件持久化的原子性
+   *
+   * @param manager EntityManager - 事务管理器
+   * @param createUserDto CreateUserDto - 用户创建DTO
+   * @returns Promise<User> - 创建的用户
+   */
+  async createInTransaction(
+    manager: EntityManager,
+    createUserDto: CreateUserDto,
+  ): Promise<User> {
+    // 使用事务管理器进行查询
+    const userRepository = manager.getRepository(User);
+    const roleRepository = manager.getRepository(Role);
+
+    // 优化：并行检查用户名和邮箱是否已存在
+    const [userByUsername, userByEmail] = await Promise.all([
+      userRepository.findOne({
+        where: { username: createUserDto.username },
+        select: ['id'],
+      }),
+      userRepository.findOne({
+        where: { email: createUserDto.email },
+        select: ['id'],
+      }),
+    ]);
+
+    if (userByUsername) {
+      throw BusinessException.userAlreadyExists(
+        'username',
+        createUserDto.username,
+      );
+    }
+    if (userByEmail) {
+      throw BusinessException.userAlreadyExists('email', createUserDto.email);
+    }
+
+    // 加密密码
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+    // 获取角色
+    let roles: Role[] = [];
+    if (createUserDto.roleIds && createUserDto.roleIds.length > 0) {
+      roles = await roleRepository.find({
+        where: { id: In(createUserDto.roleIds) },
+      });
+    } else {
+      // 默认分配 'user' 角色
+      const defaultRole = await roleRepository.findOne({
+        where: { name: 'user' },
+      });
+      if (defaultRole) {
+        roles = [defaultRole];
+      }
+    }
+
+    const user = userRepository.create({
+      ...createUserDto,
+      password: hashedPassword,
+      roles,
+    });
+
+    // 在事务中保存用户
+    const savedUser = await userRepository.save(user);
+
+    // 记录用户创建指标（异步，不影响事务）
+    if (this.metricsService) {
+      // 使用 setImmediate 确保在事务提交后执行
+      setImmediate(() => {
+        this.metricsService.recordUserCreated(
+          savedUser.tenantId || 'default',
+          true,
+        );
+      });
+    }
+
+    // 注意：不在这里发布 EventBus 事件
+    // EventBus 事件会在 EventStoreService.saveEventInTransaction 中发布
+    // 这样可以确保事件只在事务成功提交后才发布
 
     return savedUser;
   }

@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { User, UserStatus } from '../entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -19,6 +19,8 @@ export class AuthService {
     private jwtService: JwtService,
     private captchaService: CaptchaService,
     private cacheService: CacheService,
+    @InjectDataSource()
+    private dataSource: DataSource,
   ) {}
 
   /**
@@ -77,6 +79,18 @@ export class AuthService {
 
   /**
    * 用户登录
+   *
+   * Issue #5 修复: 使用事务和悲观锁防止登录失败计数器的竞态条件
+   *
+   * 修复前问题:
+   * - 读取 loginAttempts 和更新 loginAttempts 不在同一事务中
+   * - 并发登录请求可能导致计数器不准确
+   * - 可能导致账号锁定逻辑失效
+   *
+   * 修复后:
+   * - 使用 FOR UPDATE 悲观锁锁定用户记录
+   * - 所有读写操作在同一事务中执行
+   * - 确保 loginAttempts 计数器准确
    */
   async login(loginDto: LoginDto) {
     const { username, password, captcha, captchaId } = loginDto;
@@ -92,87 +106,116 @@ export class AuthService {
       throw new UnauthorizedException('验证码错误或已过期');
     }
 
-    // 2. 查找用户 (使用 QueryBuilder 避免 N+1 查询)
-    const user = await this.userRepository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.roles', 'role')
-      .leftJoinAndSelect('role.permissions', 'permission')
-      .where('user.username = :username', { username })
-      .getOne();
+    // 2. 创建 QueryRunner 用于事务管理
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // 3. 防止时序攻击：无论用户是否存在，都执行密码哈希比较
-    // 如果用户不存在，使用虚拟密码哈希，确保响应时间一致
-    const passwordHash = user?.password || await bcrypt.hash('dummy_password_to_prevent_timing_attack', 10);
-    const isPasswordValid = await bcrypt.compare(password, passwordHash);
+    try {
+      // 3. 使用悲观锁查找用户（FOR UPDATE）
+      // 这将锁定用户记录，防止并发修改
+      const user = await queryRunner.manager
+        .createQueryBuilder(User, 'user')
+        .leftJoinAndSelect('user.roles', 'role')
+        .leftJoinAndSelect('role.permissions', 'permission')
+        .where('user.username = :username', { username })
+        .setLock('pessimistic_write') // 悲观锁
+        .getOne();
 
-    // 4. 统一验证：用户不存在或密码错误都返回相同错误
-    if (!user || !isPasswordValid) {
-      this.logger.warn(`Login failed for username: ${username}`);
+      // 4. 防止时序攻击：无论用户是否存在，都执行密码哈希比较
+      // 如果用户不存在，使用虚拟密码哈希，确保响应时间一致
+      const passwordHash = user?.password || await bcrypt.hash('dummy_password_to_prevent_timing_attack', 10);
+      const isPasswordValid = await bcrypt.compare(password, passwordHash);
 
-      // 如果用户存在但密码错误，增加失败次数
-      if (user && !isPasswordValid) {
-        user.loginAttempts += 1;
+      // 5. 统一验证：用户不存在或密码错误都返回相同错误
+      if (!user || !isPasswordValid) {
+        this.logger.warn(`Login failed for username: ${username}`);
 
-        // 如果失败次数超过5次，锁定账号30分钟
-        if (user.loginAttempts >= 5) {
-          user.lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
-          await this.userRepository.save(user);
-          this.logger.warn(`Account locked due to too many failed attempts: ${username}`);
-          throw new UnauthorizedException('登录失败次数过多，账号已被锁定30分钟');
+        // 如果用户存在但密码错误，增加失败次数
+        if (user && !isPasswordValid) {
+          user.loginAttempts += 1;
+
+          // 如果失败次数超过5次，锁定账号30分钟
+          if (user.loginAttempts >= 5) {
+            user.lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
+            await queryRunner.manager.save(User, user);
+            await queryRunner.commitTransaction();
+
+            this.logger.warn(`Account locked due to too many failed attempts: ${username}`);
+            throw new UnauthorizedException('登录失败次数过多，账号已被锁定30分钟');
+          }
+
+          await queryRunner.manager.save(User, user);
         }
 
-        await this.userRepository.save(user);
+        // 提交事务（如果有更新）
+        await queryRunner.commitTransaction();
+        throw new UnauthorizedException('用户名或密码错误');
       }
 
-      throw new UnauthorizedException('用户名或密码错误');
-    }
+      // 6. 检查用户状态
+      if (user.status !== UserStatus.ACTIVE) {
+        await queryRunner.rollbackTransaction();
+        throw new UnauthorizedException('账号已被禁用或删除');
+      }
 
-    // 5. 检查用户状态
-    if (user.status !== UserStatus.ACTIVE) {
-      throw new UnauthorizedException('账号已被禁用或删除');
-    }
+      // 7. 检查账号锁定
+      if (user.lockedUntil && user.lockedUntil > new Date()) {
+        await queryRunner.rollbackTransaction();
+        const remainingTime = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+        throw new UnauthorizedException(`账号已被锁定，请 ${remainingTime} 分钟后再试`);
+      }
 
-    // 6. 检查账号锁定
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
-      const remainingTime = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
-      throw new UnauthorizedException(`账号已被锁定，请 ${remainingTime} 分钟后再试`);
-    }
+      // 8. 重置登录失败次数和更新登录信息
+      user.loginAttempts = 0;
+      user.lockedUntil = null as any;
+      user.lastLoginAt = new Date();
+      user.lastLoginIp = ''; // 可以从 request 中获取
+      await queryRunner.manager.save(User, user);
 
-    // 7. 重置登录失败次数
-    user.loginAttempts = 0;
-    user.lockedUntil = null as any;
-    user.lastLoginAt = new Date();
-    user.lastLoginIp = ''; // 可以从 request 中获取
-    await this.userRepository.save(user);
+      // 9. 提交事务
+      await queryRunner.commitTransaction();
 
-    // 9. 生成 JWT Token
-    const payload = {
-      sub: user.id,
-      username: user.username,
-      email: user.email,
-      tenantId: user.tenantId,
-      roles: user.roles?.map(r => r.name) || [],
-      permissions: user.roles?.flatMap(r => r.permissions?.map(p => `${p.resource}:${p.action}`)) || [],
-    };
-
-    const token = this.jwtService.sign(payload);
-
-    this.logger.log(`User logged in successfully: ${username}`);
-
-    return {
-      success: true,
-      token,
-      user: {
-        id: user.id,
+      // 10. 生成 JWT Token
+      const payload = {
+        sub: user.id,
         username: user.username,
         email: user.email,
-        fullName: user.fullName,
-        avatar: user.avatar,
-        roles: user.roles?.map(r => r.name) || [],
         tenantId: user.tenantId,
-        isSuperAdmin: user.isSuperAdmin,
-      },
-    };
+        roles: user.roles?.map(r => r.name) || [],
+        permissions: user.roles?.flatMap(r => r.permissions?.map(p => `${p.resource}:${p.action}`)) || [],
+      };
+
+      const token = this.jwtService.sign(payload);
+
+      this.logger.log(`User logged in successfully: ${username}`);
+
+      return {
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName,
+          avatar: user.avatar,
+          roles: user.roles?.map(r => r.name) || [],
+          tenantId: user.tenantId,
+          isSuperAdmin: user.isSuperAdmin,
+        },
+      };
+    } catch (error) {
+      // 发生错误，回滚事务（如果还在事务中）
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
+
+      // 重新抛出错误
+      throw error;
+    } finally {
+      // 释放 QueryRunner
+      await queryRunner.release();
+    }
   }
 
   /**

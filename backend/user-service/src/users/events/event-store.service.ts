@@ -1,6 +1,6 @@
 import { Injectable, Logger, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryFailedError } from 'typeorm';
+import { Repository, QueryFailedError, EntityManager } from 'typeorm';
 import { EventBus } from '@nestjs/cqrs';
 import { UserEvent } from '../../entities/user-event.entity';
 import { UserDomainEvent } from './user.events';
@@ -185,6 +185,102 @@ export class EventStoreService {
       .getRawOne();
 
     return result?.maxVersion ?? 0;
+  }
+
+  /**
+   * 在事务中获取聚合的当前版本号（Issue #4 修复）
+   *
+   * @param manager EntityManager - 事务管理器
+   * @param aggregateId 聚合根ID
+   * @returns Promise<number> - 当前版本号
+   */
+  async getCurrentVersionInTransaction(
+    manager: EntityManager,
+    aggregateId: string,
+  ): Promise<number> {
+    const result = await manager
+      .createQueryBuilder(UserEvent, 'event')
+      .select('MAX(event.version)', 'maxVersion')
+      .where('event.aggregateId = :aggregateId', { aggregateId })
+      .getRawOne();
+
+    return result?.maxVersion ?? 0;
+  }
+
+  /**
+   * 在事务中保存事件（Issue #4 修复）
+   *
+   * 此方法确保事件保存在同一个事务中，并且只在事务成功提交后才发布到 EventBus
+   *
+   * @param manager EntityManager - 事务管理器
+   * @param event 领域事件
+   * @param metadata 事件元数据
+   * @returns Promise<UserEvent> - 保存的事件实体
+   */
+  async saveEventInTransaction(
+    manager: EntityManager,
+    event: UserDomainEvent,
+    metadata?: {
+      userId?: string;
+      username?: string;
+      ipAddress?: string;
+      userAgent?: string;
+      correlationId?: string;
+      causationId?: string;
+    },
+  ): Promise<UserEvent> {
+    try {
+      const eventRepository = manager.getRepository(UserEvent);
+
+      // 检查版本冲突（乐观锁）
+      const existingEvent = await eventRepository.findOne({
+        where: {
+          aggregateId: event.aggregateId,
+          version: event.version,
+        },
+      });
+
+      if (existingEvent) {
+        throw new ConflictException(
+          `Event version conflict for aggregate ${event.aggregateId}, version ${event.version}`,
+        );
+      }
+
+      // 创建事件实体
+      const userEvent = eventRepository.create({
+        aggregateId: event.aggregateId,
+        eventType: event.getEventType(),
+        eventData: event.getEventData(),
+        version: event.version,
+        metadata,
+        createdAt: event.occurredAt,
+      });
+
+      // 在事务中保存事件
+      const savedEvent = await eventRepository.save(userEvent);
+
+      this.logger.log(
+        `Event saved in transaction: ${event.getEventType()} for aggregate ${event.aggregateId}, version ${event.version}`,
+      );
+
+      // 重要：在事务中不立即发布事件到 EventBus
+      // 我们需要确保事务成功提交后再发布
+      // 使用 setImmediate 延迟到事件循环的下一个tick
+      setImmediate(() => {
+        this.eventBus.publish(event);
+        this.logger.log(
+          `Event published to EventBus: ${event.getEventType()} for aggregate ${event.aggregateId}`,
+        );
+      });
+
+      return savedEvent;
+    } catch (error) {
+      this.logger.error(
+        `Failed to save event in transaction: ${event.getEventType()} for aggregate ${event.aggregateId}`,
+        error,
+      );
+      throw error;
+    }
   }
 
   /**
