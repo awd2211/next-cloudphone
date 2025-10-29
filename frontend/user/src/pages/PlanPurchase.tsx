@@ -29,7 +29,7 @@ const PlanPurchase = () => {
   const [payment, setPayment] = useState<Payment | null>(null);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [polling, setPolling] = useState(false);
-  const pollingIntervalRef = useState<NodeJS.Timeout | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   const loadPlan = async () => {
     if (!id) return;
@@ -47,11 +47,11 @@ const PlanPurchase = () => {
   useEffect(() => {
     loadPlan();
     return () => {
-      if (pollingIntervalRef[0]) {
-        clearInterval(pollingIntervalRef[0]);
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
       }
     };
-  }, [id]);
+  }, [id, pollingInterval]);
 
   const handleCreateOrder = async () => {
     if (!id) return;
@@ -95,18 +95,25 @@ const PlanPurchase = () => {
   };
 
   const startPolling = (paymentNo: string) => {
+    // 清理之前的轮询
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+
     setPolling(true);
     const interval = setInterval(async () => {
       try {
         const result = await queryPaymentStatus(paymentNo);
         if (result.status === 'success') {
           clearInterval(interval);
+          setPollingInterval(null);
           setPolling(false);
           setQrModalVisible(false);
           message.success('支付成功');
           setCurrentStep(2);
         } else if (result.status === 'failed' || result.status === 'cancelled') {
           clearInterval(interval);
+          setPollingInterval(null);
           setPolling(false);
           setQrModalVisible(false);
           message.error('支付失败');
@@ -115,7 +122,7 @@ const PlanPurchase = () => {
         // 继续轮询
       }
     }, 3000);
-    pollingIntervalRef[0] = interval;
+    setPollingInterval(interval);
   };
 
   if (!plan) {
@@ -252,8 +259,9 @@ const PlanPurchase = () => {
         open={qrModalVisible}
         onCancel={() => {
           setQrModalVisible(false);
-          if (pollingIntervalRef[0]) {
-            clearInterval(pollingIntervalRef[0]);
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
           }
           setPolling(false);
         }}

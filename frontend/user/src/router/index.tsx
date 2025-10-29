@@ -5,6 +5,7 @@ import { Spin } from 'antd';
 // Layout 和 Login 保持同步导入(首屏必需)
 import MainLayout from '@/layouts/MainLayout';
 import Login from '@/pages/Login';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // 使用 React.lazy 懒加载所有页面组件
 const Home = lazy(() => import('@/pages/Home'));
@@ -27,6 +28,7 @@ const TutorialDetail = lazy(() => import('@/pages/Help/TutorialDetail'));
 const ExportCenter = lazy(() => import('@/pages/DataExport/ExportCenter'));
 const BillList = lazy(() => import('@/pages/Billing/BillList'));
 const BillDetail = lazy(() => import('@/pages/Billing/BillDetail'));
+const InvoiceList = lazy(() => import('@/pages/Invoices/InvoiceList'));
 const ActivityCenter = lazy(() => import('@/pages/Activities/ActivityCenter'));
 const ActivityDetail = lazy(() => import('@/pages/Activities/ActivityDetail'));
 const MyCoupons = lazy(() => import('@/pages/Activities/MyCoupons'));
@@ -45,21 +47,31 @@ const PageLoading = () => (
   </div>
 );
 
-// Suspense 包裹组件
+// Suspense 包裹组件（同时包裹 ErrorBoundary）
 const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => (
-  <Suspense fallback={<PageLoading />}>
-    <Component />
-  </Suspense>
+  <ErrorBoundary>
+    <Suspense fallback={<PageLoading />}>
+      <Component />
+    </Suspense>
+  </ErrorBoundary>
 );
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <Login />,
+    element: (
+      <ErrorBoundary>
+        <Login />
+      </ErrorBoundary>
+    ),
   },
   {
     path: '/',
-    element: <MainLayout />,
+    element: (
+      <ErrorBoundary>
+        <MainLayout />
+      </ErrorBoundary>
+    ),
     children: [
       {
         index: true,
@@ -140,6 +152,10 @@ export const router = createBrowserRouter([
       {
         path: 'billing/:id',
         element: withSuspense(BillDetail),
+      },
+      {
+        path: 'invoices',
+        element: withSuspense(InvoiceList),
       },
       {
         path: 'activities',

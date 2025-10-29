@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Row, Col, Button, InputNumber, message, Steps, Modal, QRCode, Spin } from 'antd';
 import { DollarOutlined, WechatOutlined, AlipayOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { recharge } from '@/services/user';
@@ -13,9 +13,18 @@ const Recharge = () => {
   const [payment, setPayment] = useState<Payment | null>(null);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [polling, setPolling] = useState(false);
-  const pollingIntervalRef = useState<NodeJS.Timeout | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   const quickAmounts = [50, 100, 200, 500, 1000, 2000];
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   const handleNext = () => {
     if (currentStep === 0) {
@@ -49,18 +58,25 @@ const Recharge = () => {
   };
 
   const startPolling = (paymentNo: string) => {
+    // 清理之前的轮询
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+
     setPolling(true);
     const interval = setInterval(async () => {
       try {
         const result = await queryPaymentStatus(paymentNo);
         if (result.status === 'success') {
           clearInterval(interval);
+          setPollingInterval(null);
           setPolling(false);
           setQrModalVisible(false);
           message.success('充值成功');
           setCurrentStep(2);
         } else if (result.status === 'failed' || result.status === 'cancelled') {
           clearInterval(interval);
+          setPollingInterval(null);
           setPolling(false);
           setQrModalVisible(false);
           message.error('支付失败');
@@ -69,7 +85,7 @@ const Recharge = () => {
         // 继续轮询
       }
     }, 3000);
-    pollingIntervalRef[0] = interval;
+    setPollingInterval(interval);
   };
 
   const steps = [
@@ -232,8 +248,9 @@ const Recharge = () => {
         open={qrModalVisible}
         onCancel={() => {
           setQrModalVisible(false);
-          if (pollingIntervalRef[0]) {
-            clearInterval(pollingIntervalRef[0]);
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
           }
           setPolling(false);
         }}

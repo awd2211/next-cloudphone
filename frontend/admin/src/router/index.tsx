@@ -5,6 +5,7 @@ import { Spin } from 'antd';
 // Layout 和 Login 保持同步导入(首屏必需)
 import Layout from '@/layouts/BasicLayout';
 import Login from '@/pages/Login';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // 使用 React.lazy 懒加载所有页面组件
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -43,6 +44,41 @@ const TicketDetail = lazy(() => import('@/pages/Ticket/TicketDetail'));
 const AuditLog = lazy(() => import('@/pages/Audit/AuditLogList'));
 const ApiKeyList = lazy(() => import('@/pages/ApiKey/ApiKeyList'));
 
+// 设备模板和快照
+const TemplateList = lazy(() => import('@/pages/Template/List'));
+const SnapshotList = lazy(() => import('@/pages/Snapshot/List'));
+const PhysicalDeviceList = lazy(() => import('@/pages/PhysicalDevice/List'));
+
+// 应用审核
+const AppReviewList = lazy(() => import('@/pages/AppReview/ReviewList'));
+
+// 计量仪表板
+const MeteringDashboard = lazy(() => import('@/pages/Metering/Dashboard'));
+
+// 计费规则
+const BillingRuleList = lazy(() => import('@/pages/BillingRules/List'));
+
+// 调度器仪表板
+const SchedulerDashboard = lazy(() => import('@/pages/Scheduler/Dashboard'));
+
+// P2 页面 - 生命周期自动化
+const LifecycleDashboard = lazy(() => import('@/pages/DeviceLifecycle/Dashboard'));
+
+// P2 页面 - GPU 资源管理
+const GPUDashboard = lazy(() => import('@/pages/GPU/Dashboard'));
+
+// P2 页面 - 通知模板编辑器
+const NotificationTemplateEditor = lazy(() => import('@/pages/NotificationTemplates/Editor'));
+
+// P2 页面 - 系统管理
+const CacheManagement = lazy(() => import('@/pages/System/CacheManagement'));
+const QueueManagement = lazy(() => import('@/pages/System/QueueManagement'));
+const EventSourcingViewer = lazy(() => import('@/pages/System/EventSourcingViewer'));
+
+// P2 页面 - 设备高级功能
+const DeviceGroupManagement = lazy(() => import('@/pages/DeviceGroups/Management'));
+const NetworkPolicyConfiguration = lazy(() => import('@/pages/NetworkPolicy/Configuration'));
+
 // Loading 组件
 const PageLoading = () => (
   <div style={{
@@ -55,21 +91,31 @@ const PageLoading = () => (
   </div>
 );
 
-// Suspense 包裹组件
+// Suspense 包裹组件（同时包裹 ErrorBoundary）
 const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => (
-  <Suspense fallback={<PageLoading />}>
-    <Component />
-  </Suspense>
+  <ErrorBoundary>
+    <Suspense fallback={<PageLoading />}>
+      <Component />
+    </Suspense>
+  </ErrorBoundary>
 );
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <Login />,
+    element: (
+      <ErrorBoundary>
+        <Login />
+      </ErrorBoundary>
+    ),
   },
   {
     path: '/',
-    element: <Layout />,
+    element: (
+      <ErrorBoundary>
+        <Layout />
+      </ErrorBoundary>
+    ),
     children: [
       {
         index: true,
@@ -84,12 +130,32 @@ export const router = createBrowserRouter([
         element: withSuspense(DeviceDetail),
       },
       {
+        path: 'templates',
+        element: withSuspense(TemplateList),
+      },
+      {
+        path: 'snapshots',
+        element: withSuspense(SnapshotList),
+      },
+      {
+        path: 'physical-devices',
+        element: withSuspense(PhysicalDeviceList),
+      },
+      {
         path: 'users',
         element: withSuspense(UserList),
       },
       {
         path: 'apps',
         element: withSuspense(AppList),
+      },
+      {
+        path: 'app-review',
+        element: withSuspense(AppReviewList),
+      },
+      {
+        path: 'metering',
+        element: withSuspense(MeteringDashboard),
       },
       {
         path: 'orders',
@@ -190,6 +256,10 @@ export const router = createBrowserRouter([
         path: 'billing/invoices',
         element: withSuspense(InvoiceList),
       },
+      {
+        path: 'billing/rules',
+        element: withSuspense(BillingRuleList),
+      },
       // 工单系统
       {
         path: 'tickets',
@@ -208,6 +278,48 @@ export const router = createBrowserRouter([
       {
         path: 'api-keys',
         element: withSuspense(ApiKeyList),
+      },
+      // 调度器管理
+      {
+        path: 'scheduler',
+        element: withSuspense(SchedulerDashboard),
+      },
+      // 生命周期自动化
+      {
+        path: 'devices/lifecycle',
+        element: withSuspense(LifecycleDashboard),
+      },
+      // GPU 资源管理
+      {
+        path: 'resources/gpu',
+        element: withSuspense(GPUDashboard),
+      },
+      // 通知模板编辑器
+      {
+        path: 'notifications/templates',
+        element: withSuspense(NotificationTemplateEditor),
+      },
+      // 系统管理
+      {
+        path: 'system/cache',
+        element: withSuspense(CacheManagement),
+      },
+      {
+        path: 'system/queue',
+        element: withSuspense(QueueManagement),
+      },
+      {
+        path: 'system/events',
+        element: withSuspense(EventSourcingViewer),
+      },
+      // 设备高级功能
+      {
+        path: 'devices/groups',
+        element: withSuspense(DeviceGroupManagement),
+      },
+      {
+        path: 'devices/network-policies',
+        element: withSuspense(NetworkPolicyConfiguration),
       },
     ],
   },

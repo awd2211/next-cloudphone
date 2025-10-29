@@ -12,48 +12,115 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
+  // 重连相关状态
+  const retryCountRef = useRef(0);
+  const maxRetries = 5;
+  const baseDelay = 1000; // 1秒基础延迟
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const shouldReconnectRef = useRef(true);
+
   useEffect(() => {
     const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:30006';
-    const mediaServiceUrl = wsUrl.replace('ws://', '').replace('wss://', '');
 
-    // 创建 WebSocket 连接到 Media Service
-    const ws = new WebSocket(`${wsUrl}/ws/device/${deviceId}`);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      initWebRTC();
-    };
-
-    ws.onmessage = async (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.type === 'offer') {
-        // 收到 SDP offer
-        await handleOffer(data.sdp);
-      } else if (data.type === 'ice-candidate') {
-        // 收到 ICE candidate
-        if (peerConnectionRef.current && data.candidate) {
-          await peerConnectionRef.current.addIceCandidate(
-            new RTCIceCandidate(data.candidate)
-          );
-        }
+    // 创建 WebSocket 连接（带重连逻辑）
+    const connectWebSocket = () => {
+      // 检查是否应该停止重连
+      if (!shouldReconnectRef.current) {
+        return;
       }
+
+      // 检查重连次数
+      if (retryCountRef.current >= maxRetries) {
+        setError(`连接失败（已重试 ${maxRetries} 次），请稍后刷新页面重试`);
+        setLoading(false);
+        message.error('无法连接到流媒体服务，请稍后重试');
+        return;
+      }
+
+      console.log(`Connecting WebSocket (attempt ${retryCountRef.current + 1}/${maxRetries})...`);
+
+      const ws = new WebSocket(`${wsUrl}/ws/device/${deviceId}`);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        retryCountRef.current = 0; // 重置重连计数
+        setError(null);
+        setLoading(true);
+        initWebRTC();
+      };
+
+      ws.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'offer') {
+          // 收到 SDP offer
+          await handleOffer(data.sdp);
+        } else if (data.type === 'ice-candidate') {
+          // 收到 ICE candidate
+          if (peerConnectionRef.current && data.candidate) {
+            await peerConnectionRef.current.addIceCandidate(
+              new RTCIceCandidate(data.candidate)
+            );
+          }
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setError('WebSocket 连接错误');
+        setLoading(false);
+      };
+
+      ws.onclose = (event) => {
+        console.log('WebSocket closed', event.code, event.reason);
+
+        // 清理连接
+        if (wsRef.current === ws) {
+          wsRef.current = null;
+        }
+
+        // 判断是否需要重连
+        if (shouldReconnectRef.current && retryCountRef.current < maxRetries) {
+          // 使用指数退避策略计算延迟
+          const delay = Math.min(
+            baseDelay * Math.pow(2, retryCountRef.current),
+            30000 // 最大30秒
+          );
+
+          console.log(`Will retry in ${delay}ms (attempt ${retryCountRef.current + 1}/${maxRetries})`);
+
+          setError(`连接断开，${delay / 1000}秒后重连...`);
+
+          // 清理之前的重连定时器
+          if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+          }
+
+          // 设置重连定时器
+          retryTimeoutRef.current = setTimeout(() => {
+            retryCountRef.current++;
+            cleanup(false); // 清理但不清除重连状态
+            connectWebSocket();
+          }, delay);
+        }
+      };
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setError('WebSocket 连接失败');
-      setLoading(false);
-      message.error('无法连接到流媒体服务');
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket closed');
-      cleanup();
-    };
+    // 初始化连接
+    shouldReconnectRef.current = true;
+    retryCountRef.current = 0;
+    connectWebSocket();
 
     return () => {
+      // 组件卸载时停止重连并清理
+      shouldReconnectRef.current = false;
+
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+
       cleanup();
     };
   }, [deviceId]);
@@ -146,7 +213,7 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
     }
   };
 
-  const cleanup = () => {
+  const cleanup = (stopReconnect = true) => {
     // 关闭 WebRTC 连接
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
@@ -164,6 +231,15 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach((track) => track.stop());
       videoRef.current.srcObject = null;
+    }
+
+    // 如果需要，停止重连
+    if (stopReconnect) {
+      shouldReconnectRef.current = false;
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
     }
   };
 
