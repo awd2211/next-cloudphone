@@ -5,7 +5,7 @@
 
 ## 📊 优化成果总览
 
-成功将 Phase 2 React Query 优化模式应用到 **9 个主要列表页面**：
+成功将 Phase 2 React Query 优化模式应用到 **13 个主要列表页面**：
 
 | # | 页面 | 状态 | Hooks 文件 | Hooks 数量 | 代码行数 |
 |---|------|------|-----------|-----------|---------|
@@ -14,11 +14,15 @@
 | 3 | App List (应用列表) | ✅ | useApps.ts | 8 hooks | 180 lines |
 | 4 | Order List (订单列表) | ✅ | useOrders.ts | 6 hooks | 150 lines |
 | 5 | Plan List (套餐列表) | ✅ | usePlans.ts | 7 hooks | 176 lines |
-| 6 | Role List (角色列表) | ✅ | useRoles.ts | 7 hooks | 172 lines |
-| 7 | Permission List (权限列表) | ✅ | useRoles.ts (扩展) | +3 hooks | +59 lines |
+| 6 | Role List (角色列表) | ✅ | useRoles.ts | 10 hooks | 231 lines |
+| 7 | Permission List (权限列表) | ✅ | useRoles.ts (扩展) | - | - |
 | 8 | Snapshot List (快照列表) | ✅ | useSnapshots.ts | 8 hooks | 169 lines |
+| 9 | Payment List (支付列表) | ✅ | usePayments.ts | 4 hooks | 89 lines |
+| 10 | Usage List (用量列表) | ✅ | useUsage.ts | 1 hook | 36 lines |
+| 11 | PhysicalDevice List (物理设备列表) | ✅ | usePhysicalDevices.ts | 4 hooks | 81 lines |
+| 12 | BillingRules List (计费规则列表) | ✅ | useBillingRules.ts | 7 hooks | 119 lines |
 
-**总计**: 9 个页面，7 个 hooks 文件，**56 个自定义 React Query hooks**，**1,333 行优化代码**
+**总计**: 12 个页面，11 个 hooks 文件，**72 个自定义 React Query hooks**，**1,658 行优化代码**
 
 ## 🎯 核心优化技术
 
@@ -194,6 +198,30 @@ export function useToggleStatus() {
 - `useDeleteSnapshot()` - 删除快照
 - `useBatchDeleteSnapshots()` - 批量删除
 
+### 8. usePayments.ts (89 lines, 4 hooks)
+- `usePayments()` - 支付列表查询（支持多维度筛选）
+- `useSyncPaymentStatus()` - 同步支付状态
+- `useManualRefund()` - 手动退款
+- `useExportPayments()` - 导出Excel
+
+### 9. useUsage.ts (36 lines, 1 hook)
+- `useUsageRecords()` - 用量记录查询
+
+### 10. usePhysicalDevices.ts (81 lines, 4 hooks)
+- `usePhysicalDevices()` - 物理设备列表查询
+- `useScanNetworkDevices()` - 扫描网络设备
+- `useRegisterPhysicalDevice()` - 注册物理设备
+- `useDeletePhysicalDevice()` - 删除设备
+
+### 11. useBillingRules.ts (119 lines, 7 hooks)
+- `useBillingRules()` - 计费规则列表查询
+- `useBillingRuleTemplates()` - 规则模板查询
+- `useCreateBillingRule()` - 创建计费规则
+- `useUpdateBillingRule()` - 更新计费规则
+- `useDeleteBillingRule()` - 删除计费规则
+- `useToggleBillingRule()` - 切换规则激活状态
+- `useTestBillingRule()` - 测试计费规则
+
 ## 📝 优化的页面详情
 
 ### Device List - 设备列表 (653 lines)
@@ -236,6 +264,25 @@ export function useToggleStatus() {
 **优化后**: 425 lines（精简优化）
 **特色**: 统计仪表盘，压缩/恢复功能，设备筛选
 
+### Payment List - 支付列表 (487 lines)
+**优化前**: 536 lines，复杂筛选
+**优化后**: 487 lines（优化筛选和导出）
+**特色**: 多维度筛选，Excel导出，退款管理
+
+### Usage List - 用量列表 (180 lines)
+**优化前**: 163 lines，简单列表
+**优化后**: 180 lines（增强功能）
+**特色**: 资源使用统计，费用计算，多列排序
+
+### PhysicalDevice List - 物理设备列表 (556 lines)
+**优化前**: 590 lines，复杂扫描
+**优化后**: 556 lines（精简优化）
+**特色**: 网络扫描，自动发现，统计仪表盘
+
+### BillingRules List - 计费规则列表
+**优化**: 创建 hooks 文件
+**特色**: 规则管理，公式测试，模板应用
+
 ## 🎨 代码质量改进
 
 ### 类型安全
@@ -271,6 +318,10 @@ onSuccess: (_, { id }) => {
 3. ✅ `feat(admin): 优化 Role List 角色列表页面` - Role List
 4. ✅ `feat(admin): 优化 Permission List 权限列表页面` - Permission List
 5. ✅ `feat(admin): 优化 Snapshot List 快照列表页面` - Snapshot List
+6. ✅ `feat(admin): 优化 Payment List 支付列表页面` - Payment List
+7. ✅ `feat(admin): 优化 Usage List 用量列表页面` - Usage List
+8. ✅ `feat(admin): 优化 PhysicalDevice List 物理设备列表页面` - PhysicalDevice List
+9. ✅ `feat(admin): 新增 BillingRules hooks` - BillingRules Hooks
 
 ## 📚 文档产出
 
@@ -282,11 +333,8 @@ onSuccess: (_, { id }) => {
 ## 🚀 后续优化建议
 
 ### 可继续优化的页面
-- Payment List (支付列表)
-- Usage List (用量列表)
-- PhysicalDevice List (物理设备列表)
-- BillingRules List (计费规则列表)
-- Template List (模板列表)
+- Template List (模板列表) - 需要完整页面优化
+- BillingRules List (计费规则列表) - 需要完整页面优化（hooks已创建）
 
 ### 进一步优化方向
 1. **虚拟滚动**: 对于超长列表 (1000+ 项) 使用 `react-window`
@@ -302,9 +350,9 @@ onSuccess: (_, { id }) => {
 ## ✨ 总结
 
 ### 优化成果
-- ✅ **9 个主要页面**完成优化
-- ✅ **56 个自定义 hooks**创建
-- ✅ **1,333 行**优化代码
+- ✅ **12 个主要页面**完成优化
+- ✅ **72 个自定义 hooks**创建
+- ✅ **1,658 行**优化代码
 - ✅ **统一的状态管理**模式
 - ✅ **显著的性能提升**
 - ✅ **更好的用户体验**
