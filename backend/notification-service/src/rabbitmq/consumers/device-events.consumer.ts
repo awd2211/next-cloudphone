@@ -10,6 +10,8 @@ import {
   DeviceConnectionLostEvent,
   DeviceDeletedEvent,
   NotificationEventTypes,
+  ProviderDisplayNamesCN,
+  DeviceProviderType,
 } from '../../types/events';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { EmailService } from '../../email/email.service';
@@ -21,6 +23,7 @@ import { NotificationType } from '../../entities/notification.entity';
  * 监听设备服务发布的所有事件并发送相应通知
  *
  * ✅ 已集成模板渲染系统 (全部7个事件已集成)
+ * ✅ 2025-10-29: 增加 Provider 信息展示
  */
 @Injectable()
 export class DeviceEventsConsumer {
@@ -31,6 +34,13 @@ export class DeviceEventsConsumer {
     private readonly emailService: EmailService,
     private readonly templatesService: TemplatesService,
   ) {}
+
+  /**
+   * 获取 Provider 中文显示名称
+   */
+  private getProviderDisplayName(providerType: DeviceProviderType): string {
+    return ProviderDisplayNamesCN[providerType] || providerType;
+  }
 
   @RabbitSubscribe({
     exchange: 'cloudphone.events',
@@ -44,32 +54,38 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceCreated(event: DeviceCreatedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到设备创建事件: ${event.payload.deviceName}`);
+    this.logger.log(`收到设备创建事件: ${event.deviceName} (${event.providerType})`);
 
     try {
       // 渲染模板
-      const deviceUrl = `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/devices/${event.payload.deviceId}`;
+      const deviceUrl = `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/devices/${event.deviceId}`;
+      const providerDisplayName = this.getProviderDisplayName(event.providerType);
+
       const rendered = await this.templatesService.render(
         'device.created',
         {
-          deviceName: event.payload.deviceName,
-          deviceId: event.payload.deviceId,
+          deviceName: event.deviceName,
+          deviceId: event.deviceId,
           deviceUrl,
-          createdAt: event.payload.createdAt,
+          createdAt: event.createdAt,
+          providerType: event.providerType, // ✅ 新增
+          providerDisplayName, // ✅ 新增
         },
         'zh-CN',
       );
 
       await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
+        userId: event.userId,
         type: NotificationType.DEVICE,
         title: rendered.title,
         message: rendered.body,
         data: {
-          deviceId: event.payload.deviceId,
-          deviceName: event.payload.deviceName,
-          deviceType: event.payload.deviceType,
-          createdAt: event.payload.createdAt,
+          deviceId: event.deviceId,
+          deviceName: event.deviceName,
+          deviceType: event.deviceType,
+          providerType: event.providerType, // ✅ 新增
+          providerDisplayName, // ✅ 新增
+          createdAt: event.createdAt,
         },
       });
     } catch (error) {
@@ -90,29 +106,35 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceCreationFailed(event: DeviceCreationFailedEvent, msg: ConsumeMessage) {
-    this.logger.warn(`收到设备创建失败事件: ${event.payload.deviceName}`);
+    this.logger.warn(`收到设备创建失败事件: ${event.deviceName} (${event.providerType})`);
 
     try {
       // 渲染模板
+      const providerDisplayName = this.getProviderDisplayName(event.providerType);
+
       const rendered = await this.templatesService.render(
         'device.creation_failed',
         {
-          deviceName: event.payload.deviceName,
-          reason: event.payload.reason,
-          failedAt: event.payload.failedAt,
+          deviceName: event.deviceName,
+          reason: event.reason,
+          failedAt: event.failedAt,
+          providerType: event.providerType, // ✅ 新增
+          providerDisplayName, // ✅ 新增
         },
         'zh-CN',
       );
 
       await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
+        userId: event.userId,
         type: NotificationType.ALERT,
         title: rendered.title,
         message: rendered.body,
         data: {
-          deviceName: event.payload.deviceName,
-          reason: event.payload.reason,
-          failedAt: event.payload.failedAt,
+          deviceName: event.deviceName,
+          reason: event.reason,
+          failedAt: event.failedAt,
+          providerType: event.providerType, // ✅ 新增
+          providerDisplayName, // ✅ 新增
         },
       });
     } catch (error) {
@@ -133,29 +155,35 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceStarted(event: DeviceStartedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到设备启动事件: ${event.payload.deviceName}`);
+    this.logger.log(`收到设备启动事件: ${event.deviceName} (${event.providerType})`);
 
     try {
       // 渲染模板
+      const providerDisplayName = this.getProviderDisplayName(event.providerType);
+
       const rendered = await this.templatesService.render(
         'device.started',
         {
-          deviceName: event.payload.deviceName,
-          deviceId: event.payload.deviceId,
-          startedAt: event.payload.startedAt,
+          deviceName: event.deviceName,
+          deviceId: event.deviceId,
+          startedAt: event.startedAt,
+          providerType: event.providerType,
+          providerDisplayName,
         },
         'zh-CN',
       );
 
       await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
+        userId: event.userId,
         type: NotificationType.DEVICE,
         title: rendered.title,
         message: rendered.body,
         data: {
-          deviceId: event.payload.deviceId,
-          deviceName: event.payload.deviceName,
-          startedAt: event.payload.startedAt,
+          deviceId: event.deviceId,
+          deviceName: event.deviceName,
+          startedAt: event.startedAt,
+          providerType: event.providerType,
+          providerDisplayName,
         },
       });
     } catch (error) {
@@ -176,31 +204,31 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceStopped(event: DeviceStoppedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到设备停止事件: ${event.payload.deviceName}`);
+    this.logger.log(`收到设备停止事件: ${event.deviceName} (${event.providerType})`);
 
     try {
       // 渲染模板
       const rendered = await this.templatesService.render(
         'device.stopped',
         {
-          deviceName: event.payload.deviceName,
-          deviceId: event.payload.deviceId,
-          stoppedAt: event.payload.stoppedAt,
-          reason: event.payload.reason,
+          deviceName: event.deviceName,
+          deviceId: event.deviceId,
+          stoppedAt: event.stoppedAt,
+          reason: event.reason,
         },
         'zh-CN',
       );
 
       await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
+        userId: event.userId,
         type: NotificationType.DEVICE,
         title: rendered.title,
         message: rendered.body,
         data: {
-          deviceId: event.payload.deviceId,
-          deviceName: event.payload.deviceName,
-          stoppedAt: event.payload.stoppedAt,
-          reason: event.payload.reason,
+          deviceId: event.deviceId,
+          deviceName: event.deviceName,
+          stoppedAt: event.stoppedAt,
+          reason: event.reason,
         },
       });
     } catch (error) {
@@ -221,33 +249,33 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceError(event: DeviceErrorEvent, msg: ConsumeMessage) {
-    this.logger.error(`收到设备故障事件: ${event.payload.deviceName} - ${event.payload.errorMessage}`);
+    this.logger.error(`收到设备故障事件: ${event.deviceName} (${event.providerType}) - ${event.errorMessage}`);
 
     try {
       // 渲染模板
       const rendered = await this.templatesService.render(
         'device.error',
         {
-          deviceName: event.payload.deviceName,
-          errorMessage: event.payload.errorMessage,
-          errorType: event.payload.errorType,
-          occurredAt: event.payload.occurredAt,
+          deviceName: event.deviceName,
+          errorMessage: event.errorMessage,
+          errorType: event.errorType,
+          occurredAt: event.occurredAt,
         },
         'zh-CN',
       );
 
       await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
+        userId: event.userId,
         type: NotificationType.ALERT,
         title: rendered.title,
         message: rendered.body,
         data: {
-          deviceId: event.payload.deviceId,
-          deviceName: event.payload.deviceName,
-          errorType: event.payload.errorType,
-          errorMessage: event.payload.errorMessage,
-          occurredAt: event.payload.occurredAt,
-          priority: event.payload.priority,
+          deviceId: event.deviceId,
+          deviceName: event.deviceName,
+          errorType: event.errorType,
+          errorMessage: event.errorMessage,
+          occurredAt: event.occurredAt,
+          priority: event.priority,
         },
       });
     } catch (error) {
@@ -268,31 +296,31 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceConnectionLost(event: DeviceConnectionLostEvent, msg: ConsumeMessage) {
-    this.logger.warn(`收到设备连接丢失事件: ${event.payload.deviceName}`);
+    this.logger.warn(`收到设备连接丢失事件: ${event.deviceName} (${event.providerType})`);
 
     try {
       // 渲染模板
       const rendered = await this.templatesService.render(
         'device.connection_lost',
         {
-          deviceName: event.payload.deviceName,
-          deviceId: event.payload.deviceId,
-          lastSeenAt: event.payload.lastSeenAt,
-          lostAt: event.payload.lostAt,
+          deviceName: event.deviceName,
+          deviceId: event.deviceId,
+          lastSeenAt: event.lastSeenAt,
+          lostAt: event.lostAt,
         },
         'zh-CN',
       );
 
       await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
+        userId: event.userId,
         type: NotificationType.ALERT,
         title: rendered.title,
         message: rendered.body,
         data: {
-          deviceId: event.payload.deviceId,
-          deviceName: event.payload.deviceName,
-          lastSeenAt: event.payload.lastSeenAt,
-          lostAt: event.payload.lostAt,
+          deviceId: event.deviceId,
+          deviceName: event.deviceName,
+          lastSeenAt: event.lastSeenAt,
+          lostAt: event.lostAt,
         },
       });
     } catch (error) {
@@ -313,29 +341,29 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceDeleted(event: DeviceDeletedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到设备删除事件: ${event.payload.deviceName}`);
+    this.logger.log(`收到设备删除事件: ${event.deviceName} (${event.providerType})`);
 
     try {
       // 渲染模板
       const rendered = await this.templatesService.render(
         'device.deleted',
         {
-          deviceName: event.payload.deviceName,
-          deviceId: event.payload.deviceId,
-          deletedAt: event.payload.deletedAt,
+          deviceName: event.deviceName,
+          deviceId: event.deviceId,
+          deletedAt: event.deletedAt,
         },
         'zh-CN',
       );
 
       await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
+        userId: event.userId,
         type: NotificationType.DEVICE,
         title: rendered.title,
         message: rendered.body,
         data: {
-          deviceId: event.payload.deviceId,
-          deviceName: event.payload.deviceName,
-          deletedAt: event.payload.deletedAt,
+          deviceId: event.deviceId,
+          deviceName: event.deviceName,
+          deletedAt: event.deletedAt,
         },
       });
     } catch (error) {

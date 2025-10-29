@@ -5,12 +5,14 @@ import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import * as redisStore from 'cache-manager-redis-store';
 import { createLoggerConfig, ConsulModule } from '@cloudphone/shared';
 import { HealthController } from './health/health.controller';
 import { TasksService } from './tasks/tasks.service';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmailModule } from './email/email.module';
+import { SmsModule } from './sms/sms.module';
 import { TemplatesModule } from './templates/templates.module';
 import { NotificationEventsHandler } from './events/notification-events.handler';
 import { CloudphoneRabbitMQModule } from './rabbitmq/rabbitmq.module';
@@ -62,6 +64,20 @@ import { validate } from './common/config/env.validation';
       isGlobal: true,
     }),
 
+    // ========== Redis 直接连接 (用于 OTP) ==========
+    RedisModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'single',
+        url: `redis://${configService.get('REDIS_HOST', 'localhost')}:${configService.get('REDIS_PORT', 6379)}`,
+        options: {
+          password: configService.get('REDIS_PASSWORD'),
+          db: configService.get('REDIS_OTP_DB', 2), // 使用独立的 DB 用于 OTP
+        },
+      }),
+      inject: [ConfigService],
+    }),
+
     // ========== 定时任务 ==========
     ScheduleModule.forRoot(),
 
@@ -70,6 +86,9 @@ import { validate } from './common/config/env.validation';
 
     // ========== 邮件模块 ==========
     EmailModule,
+
+    // ========== SMS 短信模块 ==========
+    SmsModule,
 
     // ========== 通知模块 ==========
     NotificationsModule,

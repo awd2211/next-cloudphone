@@ -1,9 +1,38 @@
 /**
  * 重新导出所有通知服务需要的事件类型
- * 这些类型来自共享模块的 notification.events.ts
+ *
+ * ✅ 2025-10-29: 更新为从 @cloudphone/shared 导入设备事件（包含 Provider 字段）
  */
 
 import { BaseEvent } from '@cloudphone/shared';
+
+// ========== 从 Shared 模块导入 Device Events（包含 Provider 信息）==========
+import {
+  DeviceCreatedEvent,
+  DeviceCreationFailedEvent,
+  DeviceStartedEvent,
+  DeviceStoppedEvent,
+  DeviceErrorEvent,
+  DeviceConnectionLostEvent,
+  DeviceDeletedEvent,
+  DeviceProviderType,
+  DeviceType,
+  ProviderDisplayNamesCN,
+} from '@cloudphone/shared';
+
+// 重新导出 Device Events 和相关类型
+export {
+  DeviceCreatedEvent,
+  DeviceCreationFailedEvent,
+  DeviceStartedEvent,
+  DeviceStoppedEvent,
+  DeviceErrorEvent,
+  DeviceConnectionLostEvent,
+  DeviceDeletedEvent,
+  DeviceProviderType,
+  DeviceType,
+  ProviderDisplayNamesCN,
+};
 
 // ========== User Events ==========
 
@@ -67,85 +96,6 @@ export interface ProfileUpdatedEvent extends BaseEvent {
     username: string;
     updatedFields: string[];
     updatedAt: string;
-  };
-}
-
-// ========== Device Events ==========
-
-export interface DeviceCreatedEvent extends BaseEvent {
-  eventType: 'device.created';
-  payload: {
-    deviceId: string;
-    deviceName: string;
-    userId: string;
-    deviceType: string;
-    createdAt: string;
-  };
-}
-
-export interface DeviceCreationFailedEvent extends BaseEvent {
-  eventType: 'device.creation_failed';
-  payload: {
-    deviceId?: string;
-    deviceName: string;
-    userId: string;
-    reason: string;
-    failedAt: string;
-  };
-}
-
-export interface DeviceStartedEvent extends BaseEvent {
-  eventType: 'device.started';
-  payload: {
-    deviceId: string;
-    deviceName: string;
-    userId: string;
-    startedAt: string;
-  };
-}
-
-export interface DeviceStoppedEvent extends BaseEvent {
-  eventType: 'device.stopped';
-  payload: {
-    deviceId: string;
-    deviceName: string;
-    userId: string;
-    stoppedAt: string;
-    reason?: string;
-  };
-}
-
-export interface DeviceErrorEvent extends BaseEvent {
-  eventType: 'device.error';
-  payload: {
-    deviceId: string;
-    deviceName: string;
-    userId: string;
-    errorType: string;
-    errorMessage: string;
-    occurredAt: string;
-    priority?: string;
-  };
-}
-
-export interface DeviceConnectionLostEvent extends BaseEvent {
-  eventType: 'device.connection_lost';
-  payload: {
-    deviceId: string;
-    deviceName: string;
-    userId: string;
-    lastSeenAt: string;
-    lostAt: string;
-  };
-}
-
-export interface DeviceDeletedEvent extends BaseEvent {
-  eventType: 'device.deleted';
-  payload: {
-    deviceId: string;
-    deviceName: string;
-    userId: string;
-    deletedAt: string;
   };
 }
 

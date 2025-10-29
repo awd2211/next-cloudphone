@@ -14,9 +14,11 @@
     "seed:templates": "ts-node src/templates/seeds/seed-templates.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-sns": "^3.918.0",
     "@cloudphone/shared": "workspace:*",
     "@golevelup/nestjs-discovery": "^5.0.0",
     "@golevelup/nestjs-rabbitmq": "^6.0.2",
+    "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/cache-manager": "^2.2.2",
     "@nestjs/common": "^11.1.7",
     "@nestjs/config": "^4.0.2",
@@ -30,6 +32,7 @@
     "@nestjs/swagger": "^11.2.1",
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/websockets": "^11.1.7",
+    "axios": "^1.12.2",
     "cache-manager": "^5.4.0",
     "cache-manager-redis-store": "^3.0.1",
     "class-transformer": "^0.5.1",
@@ -50,6 +53,7 @@
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
+    "twilio": "^5.10.4",
     "typeorm": "0.3.27",
     "uuid": "^13.0.0"
   },
