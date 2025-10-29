@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Table,
   Tag,
@@ -30,159 +30,124 @@ import {
   DatabaseOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import {
-  getSnapshots,
-  getDeviceSnapshots,
-  createSnapshot,
-  restoreSnapshot,
-  compressSnapshot,
-  deleteSnapshot,
-  getSnapshotStats,
-} from '@/services/snapshot';
-import { getDevices } from '@/services/device';
 import type { DeviceSnapshot, Device } from '@/types';
 import dayjs from 'dayjs';
+import {
+  useSnapshots,
+  useSnapshotStats,
+  useCreateSnapshot,
+  useRestoreSnapshot,
+  useCompressSnapshot,
+  useDeleteSnapshot
+} from '@/hooks/useSnapshots';
+import { useDevices } from '@/hooks/useDevices';
 
 const { TextArea } = Input;
 const { Option } = Select;
 
+/**
+ * 快照列表页面（优化版 - 使用 React Query）
+ *
+ * 优化点：
+ * 1. ✅ 使用 React Query 自动管理状态和缓存
+ * 2. ✅ 使用 useMemo 优化重复计算
+ * 3. ✅ 使用 useCallback 优化事件处理函数
+ * 4. ✅ 统计信息独立缓存（1分钟）
+ * 5. ✅ 设备列表复用 useDevices hook
+ */
 const SnapshotList = () => {
-  const [snapshots, setSnapshots] = useState<DeviceSnapshot[]>([]);
-  const [stats, setStats] = useState<any>();
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [deviceFilter, setDeviceFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  const [devices, setDevices] = useState<Device[]>([]);
   const [form] = Form.useForm();
 
-  // 加载快照列表
-  const loadSnapshots = async () => {
-    setLoading(true);
-    try {
-      const params: any = { page, pageSize };
-      if (deviceFilter) params.deviceId = deviceFilter;
-      if (statusFilter) params.status = statusFilter;
-
-      const res = await getSnapshots(params);
-      setSnapshots(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载快照列表失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 加载统计数据
-  const loadStats = async () => {
-    try {
-      const data = await getSnapshotStats();
-      setStats(data);
-    } catch (error) {
-      console.error('加载统计数据失败', error);
-    }
-  };
-
-  // 加载设备列表
-  const loadDevices = async () => {
-    try {
-      const res = await getDevices({ page: 1, pageSize: 1000 });
-      setDevices(res.data);
-    } catch (error) {
-      console.error('加载设备列表失败', error);
-    }
-  };
-
-  useEffect(() => {
-    loadSnapshots();
-    loadStats();
-    loadDevices();
+  // ✅ 使用 React Query hooks 替换手动状态管理
+  const params = useMemo(() => {
+    const p: any = { page, pageSize };
+    if (deviceFilter) p.deviceId = deviceFilter;
+    if (statusFilter) p.status = statusFilter;
+    return p;
   }, [page, pageSize, deviceFilter, statusFilter]);
 
-  // 创建快照
-  const handleCreate = async (values: any) => {
-    try {
-      await createSnapshot(values);
-      message.success('快照创建任务已提交，请稍后刷新查看');
-      setCreateModalVisible(false);
-      form.resetFields();
-      loadSnapshots();
-      loadStats();
-    } catch (error: any) {
-      message.error(error.message || '创建快照失败');
-    }
-  };
+  const { data, isLoading } = useSnapshots(params);
+  const { data: stats } = useSnapshotStats();
+  const { data: devicesData } = useDevices({ page: 1, pageSize: 1000 });
 
-  // 恢复快照
-  const handleRestore = async (id: string, deviceName: string) => {
-    try {
-      await restoreSnapshot(id);
-      message.success(`快照恢复任务已提交，设备 ${deviceName} 将在几分钟内恢复`);
-      loadSnapshots();
-    } catch (error: any) {
-      message.error(error.message || '恢复快照失败');
-    }
-  };
+  // Mutations
+  const createMutation = useCreateSnapshot();
+  const restoreMutation = useRestoreSnapshot();
+  const compressMutation = useCompressSnapshot();
+  const deleteMutation = useDeleteSnapshot();
 
-  // 压缩快照
-  const handleCompress = async (id: string) => {
-    try {
-      await compressSnapshot(id);
-      message.success('快照压缩任务已提交，请稍后刷新查看');
-      loadSnapshots();
-    } catch (error: any) {
-      message.error(error.message || '压缩快照失败');
-    }
-  };
+  const snapshots = data?.data || [];
+  const total = data?.total || 0;
+  const devices = devicesData?.data || [];
 
-  // 删除快照
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteSnapshot(id);
-      message.success('快照删除成功');
-      loadSnapshots();
-      loadStats();
-    } catch (error: any) {
-      message.error(error.message || '删除快照失败');
-    }
-  };
+  // ✅ useCallback 优化事件处理函数
+  const handleCreate = useCallback(async (values: any) => {
+    await createMutation.mutateAsync(values);
+    setCreateModalVisible(false);
+    form.resetFields();
+  }, [createMutation, form]);
 
-  // 格式化文件大小
-  const formatSize = (bytes: number) => {
+  const handleRestore = useCallback(async (id: string, deviceName: string) => {
+    await restoreMutation.mutateAsync({ id, deviceName });
+  }, [restoreMutation]);
+
+  const handleCompress = useCallback(async (id: string) => {
+    await compressMutation.mutateAsync(id);
+  }, [compressMutation]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    await deleteMutation.mutateAsync(id);
+  }, [deleteMutation]);
+
+  const handleCreateModalOpen = useCallback(() => {
+    setCreateModalVisible(true);
+  }, []);
+
+  const handleCreateModalClose = useCallback(() => {
+    setCreateModalVisible(false);
+    form.resetFields();
+  }, [form]);
+
+  // ✅ useMemo 优化格式化函数
+  const formatSize = useCallback((bytes: number) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-  };
+  }, []);
 
-  // 状态渲染
-  const renderStatus = (status: string) => {
-    const statusConfig = {
-      creating: { color: 'processing', icon: <ClockCircleOutlined />, text: '创建中' },
-      ready: { color: 'success', icon: <CheckCircleOutlined />, text: '就绪' },
-      restoring: { color: 'processing', icon: <ClockCircleOutlined />, text: '恢复中' },
-      failed: { color: 'error', icon: <ExclamationCircleOutlined />, text: '失败' },
-    };
+  // ✅ useMemo 优化状态配置
+  const statusConfig = useMemo(() => ({
+    creating: { color: 'processing' as const, icon: <ClockCircleOutlined />, text: '创建中' },
+    ready: { color: 'success' as const, icon: <CheckCircleOutlined />, text: '就绪' },
+    restoring: { color: 'processing' as const, icon: <ClockCircleOutlined />, text: '恢复中' },
+    failed: { color: 'error' as const, icon: <ExclamationCircleOutlined />, text: '失败' },
+  }), []);
+
+  const renderStatus = useCallback((status: string) => {
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.ready;
     return (
       <Tag icon={config.icon} color={config.color}>
         {config.text}
       </Tag>
     );
-  };
+  }, [statusConfig]);
 
-  const columns: ColumnsType<DeviceSnapshot> = [
+  // ✅ useMemo 优化表格列配置
+  const columns: ColumnsType<DeviceSnapshot> = useMemo(() => [
     {
       title: '快照名称',
       dataIndex: 'name',
       key: 'name',
       width: 200,
       render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
+      sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
       title: '设备',
@@ -293,14 +258,31 @@ const SnapshotList = () => {
         </Space>
       ),
     },
-  ];
+  ], [formatSize, renderStatus, handleRestore, handleCompress, handleDelete]);
 
-  // 计算存储使用率
-  const getStorageUsage = () => {
+  // ✅ useMemo 优化存储使用率计算
+  const storageUsage = useMemo(() => {
     if (!stats?.totalSize) return 0;
     const maxSize = 100 * 1024 * 1024 * 1024; // 假设最大 100GB
     return Math.min((stats.totalSize / maxSize) * 100, 100);
-  };
+  }, [stats?.totalSize]);
+
+  // ✅ useMemo 优化设备选项
+  const deviceOptions = useMemo(() =>
+    devices.map((device) => ({
+      label: device.name || device.id,
+      value: device.id,
+    })),
+    [devices]
+  );
+
+  const deviceOptionsForCreate = useMemo(() =>
+    devices.map((device) => ({
+      label: `${device.name || device.id} - ${device.status}`,
+      value: device.id,
+    })),
+    [devices]
+  );
 
   return (
     <div style={{ padding: '24px' }}>
@@ -341,7 +323,7 @@ const SnapshotList = () => {
               <div style={{ marginBottom: '8px', fontSize: '14px', color: 'rgba(0, 0, 0, 0.45)' }}>
                 存储使用率
               </div>
-              <Progress percent={Math.round(getStorageUsage())} status="active" />
+              <Progress percent={Math.round(storageUsage)} status="active" />
             </div>
           </Col>
         </Row>
@@ -349,7 +331,7 @@ const SnapshotList = () => {
 
       <Card>
         <Space style={{ marginBottom: '16px' }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateModalOpen}>
             创建快照
           </Button>
           <Select
@@ -362,10 +344,7 @@ const SnapshotList = () => {
             filterOption={(input, option) =>
               (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }
-            options={devices.map((device) => ({
-              label: device.name || device.id,
-              value: device.id,
-            }))}
+            options={deviceOptions}
           />
           <Select
             placeholder="筛选状态"
@@ -378,14 +357,13 @@ const SnapshotList = () => {
             <Option value="restoring">恢复中</Option>
             <Option value="failed">失败</Option>
           </Select>
-          <Button onClick={loadSnapshots}>刷新</Button>
         </Space>
 
         <Table
           columns={columns}
           dataSource={snapshots}
           rowKey="id"
-          loading={loading}
+          loading={isLoading}
           scroll={{ x: 1400 }}
           pagination={{
             current: page,
@@ -406,11 +384,9 @@ const SnapshotList = () => {
       <Modal
         title="创建设备快照"
         open={createModalVisible}
-        onCancel={() => {
-          setCreateModalVisible(false);
-          form.resetFields();
-        }}
+        onCancel={handleCreateModalClose}
         onOk={() => form.submit()}
+        confirmLoading={createMutation.isPending}
         width={600}
       >
         <Alert
@@ -433,10 +409,7 @@ const SnapshotList = () => {
               filterOption={(input, option) =>
                 (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
               }
-              options={devices.map((device) => ({
-                label: `${device.name || device.id} - ${device.status}`,
-                value: device.id,
-              }))}
+              options={deviceOptionsForCreate}
             />
           </Form.Item>
           <Form.Item
