@@ -16,7 +16,7 @@ import { BillingRulesModule } from './billing-rules/billing-rules.module';
 import { StatsModule } from './stats/stats.module';
 import { HealthController } from './health.controller';
 import { EventsModule } from './events/events.module';
-import { ConsulModule, EventBusModule, createLoggerConfig } from '@cloudphone/shared';
+import { ConsulModule, EventBusModule, createLoggerConfig, SagaModule } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 
 @Module({
@@ -56,6 +56,7 @@ import { validate } from './common/config/env.validation';
     EventsModule, // 事件处理模块
     ConsulModule,     // ✅ 已修复 DiscoveryService 依赖问题
     EventBusModule,   // ✅ 已修复 DiscoveryService 依赖问题
+    SagaModule,       // Saga 编排模块（用于分布式事务）
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

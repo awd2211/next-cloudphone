@@ -5,8 +5,8 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, LessThan, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Payment, PaymentMethod, PaymentStatus } from './entities/payment.entity';
@@ -22,6 +22,12 @@ import {
   RefundPaymentDto,
   QueryPaymentDto,
 } from './dto/create-payment.dto';
+import {
+  SagaOrchestratorService,
+  SagaDefinition,
+  SagaType,
+  SagaStep,
+} from '@cloudphone/shared';
 
 @Injectable()
 export class PaymentsService {
@@ -39,6 +45,9 @@ export class PaymentsService {
     private paddleProvider: PaddleProvider,
     private balanceClient: BalanceClientService,
     private configService: ConfigService,
+    private sagaOrchestrator: SagaOrchestratorService,
+    @InjectDataSource()
+    private dataSource: DataSource,
   ) {}
 
   /**
@@ -382,12 +391,34 @@ export class PaymentsService {
   }
 
   /**
-   * 申请退款
+   * 申请退款 (使用 Saga 模式防止退款卡在 REFUNDING 状态)
+   *
+   * Issue #1 修复: 使用 Saga 分布式事务编排退款流程
+   *
+   * 修复前问题:
+   * - 设置 REFUNDING 状态和调用第三方 API 不在同一事务中
+   * - 如果第三方 API 失败/超时/服务崩溃，支付记录会永久卡在 REFUNDING 状态
+   * - 补偿逻辑（恢复 SUCCESS 状态）可能失败，导致数据不一致
+   *
+   * 修复后:
+   * - 使用 Saga 编排器管理整个退款流程
+   * - 每个步骤都有补偿逻辑（compensation）
+   * - 自动重试机制（最多 3 次）
+   * - 超时检测（5 分钟）
+   * - 崩溃恢复（从 saga_state 表恢复）
+   * - 步骤追踪和状态持久化
+   *
+   * Saga 步骤:
+   * 1. SET_REFUNDING_STATUS - 设置支付状态为 REFUNDING（数据库事务）
+   * 2. CALL_PROVIDER_REFUND - 调用第三方支付平台退款 API
+   * 3. UPDATE_PAYMENT_STATUS - 更新支付状态为 REFUNDED（数据库事务）
+   * 4. UPDATE_ORDER_STATUS - 更新订单状态为 REFUNDED（数据库事务）
    */
   async refundPayment(
     paymentId: string,
     refundDto: RefundPaymentDto,
-  ): Promise<Payment> {
+  ): Promise<{ sagaId: string; payment: Payment }> {
+    // 1. 验证支付记录
     const payment = await this.paymentsRepository.findOne({
       where: { id: paymentId },
     });
@@ -404,70 +435,289 @@ export class PaymentsService {
       throw new BadRequestException(`退款金额不能大于支付金额`);
     }
 
-    // 调用第三方平台退款
-    payment.status = PaymentStatus.REFUNDING;
-    await this.paymentsRepository.save(payment);
+    // 2. 查询订单信息（用于余额退款）
+    const order = await this.ordersRepository.findOne({
+      where: { id: payment.orderId },
+    });
 
-    try {
-      let result: any;
-
-      if (payment.method === PaymentMethod.WECHAT) {
-        const refundNo = this.generatePaymentNo();
-        result = await this.wechatPayProvider.refund(
-          payment.paymentNo,
-          refundNo,
-          payment.amount,
-          refundDto.amount,
-          refundDto.reason,
-        );
-      } else if (payment.method === PaymentMethod.ALIPAY) {
-        result = await this.alipayProvider.refund(
-          payment.paymentNo,
-          refundDto.amount,
-          refundDto.reason,
-        );
-      } else if (payment.method === PaymentMethod.BALANCE) {
-        // 余额退款：退还到用户余额
-        const order = await this.ordersRepository.findOne({
-          where: { id: payment.orderId },
-        });
-
-        if (!order) {
-          throw new NotFoundException(`订单不存在: ${payment.orderId}`);
-        }
-
-        result = await this.balanceClient.refundBalance(
-          order.userId,
-          refundDto.amount,
-          order.id,
-        );
-
-        this.logger.log(
-          `Balance refunded for user ${order.userId}: amount=${refundDto.amount}, newBalance=${result.newBalance}`,
-        );
-      }
-
-      payment.status = PaymentStatus.REFUNDED;
-      payment.refundAmount = refundDto.amount;
-      payment.refundReason = refundDto.reason;
-      payment.refundedAt = new Date();
-      payment.rawResponse = { ...payment.rawResponse, refund: result };
-
-      // 更新订单状态
-      const order = await this.ordersRepository.findOne({
-        where: { id: payment.orderId },
-      });
-      if (order) {
-        order.status = OrderStatus.REFUNDED;
-        await this.ordersRepository.save(order);
-      }
-    } catch (error) {
-      this.logger.error(`Refund failed: ${error.message}`);
-      payment.status = PaymentStatus.SUCCESS; // 恢复为支付成功状态
-      throw new InternalServerErrorException('退款失败');
+    if (!order) {
+      throw new NotFoundException(`订单不存在: ${payment.orderId}`);
     }
 
-    return await this.paymentsRepository.save(payment);
+    // 3. 定义退款 Saga
+    const refundSaga: SagaDefinition = {
+      type: SagaType.PAYMENT_REFUND,
+      timeoutMs: 300000, // 5 分钟超时
+      maxRetries: 3, // 每步最多重试 3 次
+      steps: [
+        // 步骤 1: 设置 REFUNDING 状态（使用数据库事务）
+        {
+          name: 'SET_REFUNDING_STATUS',
+          execute: async (state: any) => {
+            this.logger.log(`Saga step 1: Setting payment ${paymentId} to REFUNDING status`);
+
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              const paymentInTx = await queryRunner.manager.findOne(Payment, {
+                where: { id: paymentId },
+              });
+
+              if (!paymentInTx) {
+                throw new Error(`Payment ${paymentId} not found in transaction`);
+              }
+
+              if (paymentInTx.status !== PaymentStatus.SUCCESS) {
+                throw new Error(`Payment ${paymentId} status is ${paymentInTx.status}, expected SUCCESS`);
+              }
+
+              paymentInTx.status = PaymentStatus.REFUNDING;
+              await queryRunner.manager.save(Payment, paymentInTx);
+              await queryRunner.commitTransaction();
+
+              this.logger.log(`Saga step 1 completed: Payment ${paymentId} status set to REFUNDING`);
+              return { refundingStatusSet: true };
+            } catch (error) {
+              await queryRunner.rollbackTransaction();
+              throw error;
+            } finally {
+              await queryRunner.release();
+            }
+          },
+          compensate: async (state: any) => {
+            this.logger.log(`Saga step 1 compensation: Reverting payment ${paymentId} to SUCCESS status`);
+
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              const paymentInTx = await queryRunner.manager.findOne(Payment, {
+                where: { id: paymentId },
+              });
+
+              if (paymentInTx && paymentInTx.status === PaymentStatus.REFUNDING) {
+                paymentInTx.status = PaymentStatus.SUCCESS;
+                await queryRunner.manager.save(Payment, paymentInTx);
+              }
+
+              await queryRunner.commitTransaction();
+              this.logger.log(`Saga step 1 compensation completed: Payment ${paymentId} reverted to SUCCESS`);
+            } catch (error) {
+              this.logger.error(`Saga step 1 compensation failed: ${error.message}`);
+              await queryRunner.rollbackTransaction();
+              // 不抛出异常，继续补偿其他步骤
+            } finally {
+              await queryRunner.release();
+            }
+          },
+        } as SagaStep,
+
+        // 步骤 2: 调用第三方支付平台退款 API
+        {
+          name: 'CALL_PROVIDER_REFUND',
+          execute: async (state: any) => {
+            this.logger.log(`Saga step 2: Calling provider refund API for payment ${paymentId}`);
+
+            let result: any;
+            const refundNo = this.generatePaymentNo();
+
+            if (payment.method === PaymentMethod.WECHAT) {
+              result = await this.wechatPayProvider.refund(
+                payment.paymentNo,
+                refundNo,
+                payment.amount,
+                refundDto.amount,
+                refundDto.reason,
+              );
+            } else if (payment.method === PaymentMethod.ALIPAY) {
+              result = await this.alipayProvider.refund(
+                payment.paymentNo,
+                refundDto.amount,
+                refundDto.reason,
+              );
+            } else if (payment.method === PaymentMethod.BALANCE) {
+              result = await this.balanceClient.refundBalance(
+                order.userId,
+                refundDto.amount,
+                order.id,
+              );
+
+              this.logger.log(
+                `Balance refunded for user ${order.userId}: amount=${refundDto.amount}, newBalance=${result.newBalance}`,
+              );
+            } else {
+              throw new Error(`Unsupported payment method for refund: ${payment.method}`);
+            }
+
+            this.logger.log(`Saga step 2 completed: Provider refund API call succeeded`);
+            return {
+              providerRefundResult: result,
+              refundNo,
+            };
+          },
+          compensate: async (state: any) => {
+            this.logger.warn(`Saga step 2 compensation: Cannot undo provider refund (manual intervention required)`);
+            // 注意: 大多数支付平台的退款是不可逆的，无法自动补偿
+            // 需要人工介入或记录到补偿队列
+          },
+        } as SagaStep,
+
+        // 步骤 3: 更新支付状态为 REFUNDED（使用数据库事务）
+        {
+          name: 'UPDATE_PAYMENT_STATUS',
+          execute: async (state: any) => {
+            this.logger.log(`Saga step 3: Updating payment ${paymentId} to REFUNDED status`);
+
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              const paymentInTx = await queryRunner.manager.findOne(Payment, {
+                where: { id: paymentId },
+              });
+
+              if (!paymentInTx) {
+                throw new Error(`Payment ${paymentId} not found in transaction`);
+              }
+
+              paymentInTx.status = PaymentStatus.REFUNDED;
+              paymentInTx.refundAmount = refundDto.amount;
+              paymentInTx.refundReason = refundDto.reason;
+              paymentInTx.refundedAt = new Date();
+              paymentInTx.rawResponse = {
+                ...paymentInTx.rawResponse,
+                refund: state.providerRefundResult,
+              };
+
+              await queryRunner.manager.save(Payment, paymentInTx);
+              await queryRunner.commitTransaction();
+
+              this.logger.log(`Saga step 3 completed: Payment ${paymentId} status set to REFUNDED`);
+              return { paymentStatusUpdated: true };
+            } catch (error) {
+              await queryRunner.rollbackTransaction();
+              throw error;
+            } finally {
+              await queryRunner.release();
+            }
+          },
+          compensate: async (state: any) => {
+            this.logger.log(`Saga step 3 compensation: Reverting payment ${paymentId} to REFUNDING status`);
+
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              const paymentInTx = await queryRunner.manager.findOne(Payment, {
+                where: { id: paymentId },
+              });
+
+              if (paymentInTx && paymentInTx.status === PaymentStatus.REFUNDED) {
+                paymentInTx.status = PaymentStatus.REFUNDING;
+                paymentInTx.refundAmount = null as any;
+                paymentInTx.refundReason = null as any;
+                paymentInTx.refundedAt = null as any;
+                await queryRunner.manager.save(Payment, paymentInTx);
+              }
+
+              await queryRunner.commitTransaction();
+              this.logger.log(`Saga step 3 compensation completed`);
+            } catch (error) {
+              this.logger.error(`Saga step 3 compensation failed: ${error.message}`);
+              await queryRunner.rollbackTransaction();
+            } finally {
+              await queryRunner.release();
+            }
+          },
+        } as SagaStep,
+
+        // 步骤 4: 更新订单状态为 REFUNDED（使用数据库事务）
+        {
+          name: 'UPDATE_ORDER_STATUS',
+          execute: async (state: any) => {
+            this.logger.log(`Saga step 4: Updating order ${payment.orderId} to REFUNDED status`);
+
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              const orderInTx = await queryRunner.manager.findOne(Order, {
+                where: { id: payment.orderId },
+              });
+
+              if (orderInTx) {
+                orderInTx.status = OrderStatus.REFUNDED;
+                await queryRunner.manager.save(Order, orderInTx);
+              }
+
+              await queryRunner.commitTransaction();
+              this.logger.log(`Saga step 4 completed: Order ${payment.orderId} status set to REFUNDED`);
+              return { orderStatusUpdated: true };
+            } catch (error) {
+              await queryRunner.rollbackTransaction();
+              throw error;
+            } finally {
+              await queryRunner.release();
+            }
+          },
+          compensate: async (state: any) => {
+            this.logger.log(`Saga step 4 compensation: Reverting order ${payment.orderId} status`);
+
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              const orderInTx = await queryRunner.manager.findOne(Order, {
+                where: { id: payment.orderId },
+              });
+
+              if (orderInTx && orderInTx.status === OrderStatus.REFUNDED) {
+                orderInTx.status = OrderStatus.PAID;
+                await queryRunner.manager.save(Order, orderInTx);
+              }
+
+              await queryRunner.commitTransaction();
+              this.logger.log(`Saga step 4 compensation completed`);
+            } catch (error) {
+              this.logger.error(`Saga step 4 compensation failed: ${error.message}`);
+              await queryRunner.rollbackTransaction();
+            } finally {
+              await queryRunner.release();
+            }
+          },
+        } as SagaStep,
+      ],
+    };
+
+    // 4. 执行 Saga
+    const sagaId = await this.sagaOrchestrator.executeSaga(refundSaga, {
+      paymentId,
+      orderId: payment.orderId,
+      userId: order.userId,
+      amount: refundDto.amount,
+      reason: refundDto.reason,
+      paymentMethod: payment.method,
+      paymentNo: payment.paymentNo,
+    });
+
+    this.logger.log(`Refund saga initiated: ${sagaId}`);
+
+    const updatedPayment = await this.paymentsRepository.findOne({ where: { id: paymentId } });
+    if (!updatedPayment) {
+      throw new NotFoundException(`Payment ${paymentId} not found after saga initiation`);
+    }
+
+    return {
+      sagaId,
+      payment: updatedPayment,
+    };
   }
 
   /**
