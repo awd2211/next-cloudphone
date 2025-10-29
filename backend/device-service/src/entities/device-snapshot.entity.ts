@@ -7,19 +7,19 @@ import {
   Index,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
-import { Device } from './device.entity';
+} from "typeorm";
+import { Device } from "./device.entity";
 
 export enum SnapshotStatus {
-  CREATING = 'creating',
-  READY = 'ready',
-  FAILED = 'failed',
-  RESTORING = 'restoring',
+  CREATING = "creating",
+  READY = "ready",
+  FAILED = "failed",
+  RESTORING = "restoring",
 }
 
-@Entity('device_snapshots')
+@Entity("device_snapshots")
 export class DeviceSnapshot {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column()
@@ -34,13 +34,13 @@ export class DeviceSnapshot {
   @Index()
   deviceId: string;
 
-  @ManyToOne(() => Device, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'deviceId' })
+  @ManyToOne(() => Device, { onDelete: "CASCADE" })
+  @JoinColumn({ name: "deviceId" })
   device: Device;
 
   // 快照状态
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: SnapshotStatus,
     default: SnapshotStatus.CREATING,
   })
@@ -53,15 +53,15 @@ export class DeviceSnapshot {
   @Column()
   imageName: string; // Docker 镜像名称（如 cloudphone-snapshot:xxx）
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   imageSize: number; // 镜像大小（字节）
 
   // 快照元数据
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: "jsonb", nullable: true })
   metadata: Record<string, any>; // 存储设备配置、应用列表等
 
   // 版本信息
-  @Column({ type: 'int', default: 1 })
+  @Column({ type: "int", default: 1 })
   version: number;
 
   @Column({ nullable: true })
@@ -74,11 +74,11 @@ export class DeviceSnapshot {
   @Column({ nullable: true })
   compressedPath: string; // 压缩文件路径
 
-  @Column({ type: 'bigint', nullable: true })
+  @Column({ type: "bigint", nullable: true })
   compressedSize: number; // 压缩后大小（字节）
 
   // 标签
-  @Column({ type: 'jsonb', default: [] })
+  @Column({ type: "jsonb", default: [] })
   tags: string[];
 
   // 创建者
@@ -93,18 +93,18 @@ export class DeviceSnapshot {
   updatedAt: Date;
 
   // 最后恢复时间
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: "timestamp", nullable: true })
   lastRestoredAt: Date;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ type: "int", default: 0 })
   restoreCount: number; // 恢复次数
 
   // 快照保留策略
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: "int", nullable: true })
   retentionDays: number; // 保留天数（null 表示永久保留）
 
   // 快照到期时间
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: "timestamp", nullable: true })
   @Index()
   expiresAt: Date;
 

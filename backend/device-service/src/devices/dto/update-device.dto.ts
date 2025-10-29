@@ -1,5 +1,5 @@
-import { IsString, IsOptional, IsEnum, IsArray } from 'class-validator';
-import { DeviceStatus } from '../../entities/device.entity';
+import { IsString, IsOptional, IsEnum, IsArray } from "class-validator";
+import { DeviceStatus } from "../../entities/device.entity";
 
 export class UpdateDeviceDto {
   @IsString()
