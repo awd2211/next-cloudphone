@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -52,10 +52,12 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '用户登出' })
+  @ApiOperation({ summary: '用户登出', description: '登出并将 Token 加入黑名单' })
   @ApiResponse({ status: 200, description: '登出成功' })
-  async logout(@Req() req: any) {
-    return this.authService.logout(req.user.id);
+  async logout(@Req() req: any, @Headers('authorization') auth?: string) {
+    // 提取 Bearer Token
+    const token = auth?.replace('Bearer ', '');
+    return this.authService.logout(req.user.id, token);
   }
 
   /**

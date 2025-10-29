@@ -10,6 +10,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { CaptchaService } from './services/captcha.service';
+import { CacheModule } from '../cache/cache.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { CaptchaService } from './services/captcha.service';
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([User]),
+    CacheModule, // 导入 CacheModule 用于 Token 黑名单
   ],
   controllers: [AuthController],
   providers: [AuthService, CaptchaService, JwtStrategy, RolesGuard, PermissionsGuard],

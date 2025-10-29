@@ -9,11 +9,23 @@ import {
 /**
  * 用户事件实体
  * 用于事件溯源 (Event Sourcing)，存储所有用户状态变更事件
+ *
+ * 表分区策略（Phase 2 优化）：
+ * - 按月分区（PARTITION BY RANGE(created_at)）
+ * - 自动创建未来 3 个月分区
+ * - 保留 12 个月历史数据
+ * - 使用 create_future_partitions() 函数自动维护
+ *
+ * 注意：主键必须包含 created_at 以支持分区表
  */
 @Entity('user_events')
 @Index('IDX_USER_EVENT_AGGREGATE', ['aggregateId', 'version'])
 @Index('IDX_USER_EVENT_TYPE', ['eventType', 'createdAt'])
 @Index('IDX_USER_EVENT_CREATED', ['createdAt'])
+// 新增: 事件重放优化 - aggregateId + createdAt 复合索引
+@Index('IDX_USER_EVENT_AGGREGATE_TIME', ['aggregateId', 'createdAt'])
+// 新增: 租户查询优化 - tenantId + createdAt 复合索引
+@Index('IDX_USER_EVENT_TENANT_TIME', ['tenantId', 'createdAt'])
 export class UserEvent {
   @PrimaryGeneratedColumn('uuid')
   id: string;

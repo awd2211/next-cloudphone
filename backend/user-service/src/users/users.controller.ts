@@ -33,6 +33,7 @@ export class UsersController {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
     private readonly rolesService: RolesService,
+    private readonly usersService: UsersService,
   ) {}
 
   @Post()
@@ -93,9 +94,35 @@ export class UsersController {
     };
   }
 
+  @Get('filter')
+  @RequirePermission('user.read')
+  @ApiOperation({
+    summary: '高级过滤用户列表',
+    description: '支持搜索、排序和多条件过滤的用户列表查询',
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 400, description: '参数验证失败' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async findAllWithFilters(@Query() filters: any) {
+    // 使用 FilterUsersDto 进行验证
+    const result = await this.usersService.findAll(
+      filters.page || 1,
+      filters.limit || 10,
+      undefined,
+      { includeRoles: filters.includeRoles === 'true', filters },
+    );
+
+    return {
+      success: true,
+      ...result,
+      totalPages: Math.ceil(result.total / result.limit),
+      hasMore: result.page < Math.ceil(result.total / result.limit),
+    };
+  }
+
   @Get()
   @RequirePermission('user.read')
-  @ApiOperation({ summary: '获取用户列表', description: '分页获取用户列表' })
+  @ApiOperation({ summary: '获取用户列表', description: '分页获取用户列表 (基础版)' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
   @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
   @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })

@@ -30,6 +30,7 @@ import { CircuitBreakerService } from './common/services/circuit-breaker.service
 import { AuditLogService } from './common/services/audit-log.service';
 import { EncryptionService } from './common/services/encryption.service';
 import { DatabaseMonitorService } from './common/services/database-monitor.service';
+import { PartitionManagerService } from './common/services/partition-manager.service';
 import { GracefulShutdownService } from './common/services/graceful-shutdown.service';
 import { HealthCheckService } from './common/services/health-check.service';
 import { AlertService } from './common/services/alert/alert.service';
@@ -100,6 +101,7 @@ import { validate } from './common/config/env.validation';
     AuditLogService,
     EncryptionService,
     DatabaseMonitorService,
+    PartitionManagerService,  // 分区管理（Phase 2 优化）
     GracefulShutdownService,
     HealthCheckService,
     AlertService,

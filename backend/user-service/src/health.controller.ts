@@ -5,6 +5,7 @@ import * as os from 'os';
 import { PublicThrottle } from './common/decorators/throttler.decorator';
 import { CircuitBreakerService } from './common/services/circuit-breaker.service';
 import { DatabaseMonitorService } from './common/services/database-monitor.service';
+import { PartitionManagerService } from './common/services/partition-manager.service';
 import { GracefulShutdownService } from './common/services/graceful-shutdown.service';
 import { HealthCheckService } from './common/services/health-check.service';
 import { ConnectionPoolMetrics } from './common/config/database.config';
@@ -59,6 +60,7 @@ export class HealthController {
     @InjectDataSource() private dataSource: DataSource,
     private circuitBreakerService: CircuitBreakerService,
     private databaseMonitorService: DatabaseMonitorService,
+    private partitionManagerService: PartitionManagerService,
     private gracefulShutdownService: GracefulShutdownService,
     private healthCheckService: HealthCheckService,
   ) {}
@@ -253,6 +255,30 @@ export class HealthController {
   async circuitBreakersStatus() {
     return {
       breakers: this.circuitBreakerService.getAllBreakerStatus(),
+    };
+  }
+
+  /**
+   * 分区健康检查（Phase 2 优化）
+   * 检查分区状态、统计信息和潜在问题
+   */
+  @Get('partitions')
+  @PublicThrottle()
+  async partitionsHealth() {
+    const [health, summary, stats] = await Promise.all([
+      this.partitionManagerService.checkPartitionHealth(),
+      this.partitionManagerService.getPartitionSummary(),
+      this.partitionManagerService.getPartitionStats(),
+    ]);
+
+    return {
+      health: {
+        healthy: health.healthy,
+        issues: health.issues,
+        stats: health.stats,
+      },
+      summary,
+      partitions: stats,
     };
   }
 }

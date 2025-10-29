@@ -1,9 +1,10 @@
 import { Injectable, Logger, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, QueryFailedError } from 'typeorm';
 import { EventBus } from '@nestjs/cqrs';
 import { UserEvent } from '../../entities/user-event.entity';
 import { UserDomainEvent } from './user.events';
+import { Retry, DatabaseError } from '../../common/decorators/retry.decorator';
 
 /**
  * 事件存储服务
@@ -25,6 +26,11 @@ export class EventStoreService {
    * @param metadata 事件元数据
    * @returns 保存的事件实体
    */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [QueryFailedError, DatabaseError]
+  })
   async saveEvent(
     event: UserDomainEvent,
     metadata?: {
@@ -82,22 +88,60 @@ export class EventStoreService {
   }
 
   /**
-   * 批量保存事件
+   * 批量保存事件（优化版：使用事务和批量插入）
    * @param events 事件列表
    * @param metadata 元数据
    */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [QueryFailedError, DatabaseError]
+  })
   async saveEvents(
     events: UserDomainEvent[],
     metadata?: any,
   ): Promise<UserEvent[]> {
-    const savedEvents: UserEvent[] = [];
+    if (events.length === 0) return [];
 
-    for (const event of events) {
-      const savedEvent = await this.saveEvent(event, metadata);
-      savedEvents.push(savedEvent);
-    }
+    // 使用事务确保原子性
+    return await this.eventRepository.manager.transaction(async (transactionalEntityManager) => {
+      // 检查版本冲突
+      const aggregateIds = [...new Set(events.map(e => e.aggregateId))];
+      const existingEvents = await transactionalEntityManager.find(UserEvent, {
+        where: aggregateIds.map(aggregateId => ({
+          aggregateId,
+          version: events.find(e => e.aggregateId === aggregateId)?.version,
+        })),
+      });
 
-    return savedEvents;
+      if (existingEvents.length > 0) {
+        throw new ConflictException(
+          `Event version conflict detected for ${existingEvents.length} events`,
+        );
+      }
+
+      // 批量创建事件实体
+      const eventEntities = events.map(event =>
+        this.eventRepository.create({
+          aggregateId: event.aggregateId,
+          eventType: event.getEventType(),
+          eventData: event.getEventData(),
+          version: event.version,
+          metadata,
+          createdAt: event.occurredAt,
+        }),
+      );
+
+      // 批量保存
+      const savedEvents = await transactionalEntityManager.save(UserEvent, eventEntities);
+
+      this.logger.log(`Batch saved ${savedEvents.length} events`);
+
+      // 并行发布事件到 EventBus
+      await Promise.all(events.map(event => this.eventBus.publish(event)));
+
+      return savedEvents;
+    });
   }
 
   /**
