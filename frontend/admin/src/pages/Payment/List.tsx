@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Table,
   Tag,
@@ -8,7 +8,6 @@ import {
   Form,
   Input,
   InputNumber,
-  message,
   Image,
   Card,
   Row,
@@ -26,28 +25,21 @@ import {
   ClearOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { queryPaymentStatus, refundPayment } from '@/services/billing';
 import {
-  getAdminPayments,
-  manualRefund,
-  syncPaymentStatus,
-  downloadExcelFile,
-  type PaymentDetail,
-  type PaymentListParams,
-} from '@/services/payment-admin';
-import type { Payment } from '@/types';
+  usePayments,
+  useSyncPaymentStatus,
+  useManualRefund,
+  useExportPayments,
+} from '@/hooks/usePayments';
+import type { PaymentDetail, PaymentListParams } from '@/services/payment-admin';
 import { usePermission, PermissionGuard } from '@/hooks';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const PaymentList = () => {
   const { hasPermission } = usePermission();
-  const [payments, setPayments] = useState<PaymentDetail[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [exportLoading, setExportLoading] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedPayment, setSelectedPayment] = useState<PaymentDetail | null>(null);
@@ -61,109 +53,122 @@ const PaymentList = () => {
   const [searchValue, setSearchValue] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  const loadPayments = async () => {
-    setLoading(true);
-    try {
-      const params: PaymentListParams = {
-        page,
-        limit: pageSize,
-        ...filters,
-        search: searchValue || undefined,
-      };
-      const res = await getAdminPayments(params);
-      setPayments(res.data.data);
-      setTotal(res.data.pagination.total);
-    } catch (error) {
-      message.error('加载支付列表失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query hooks
+  const params = useMemo(
+    () => ({
+      page,
+      limit: pageSize,
+      ...filters,
+      search: searchValue || undefined,
+    }),
+    [page, pageSize, filters, searchValue]
+  );
 
-  useEffect(() => {
-    loadPayments();
-  }, [page, pageSize, filters]);
+  const { data, isLoading } = usePayments(params);
+  const syncStatusMutation = useSyncPaymentStatus();
+  const refundMutation = useManualRefund();
+  const exportMutation = useExportPayments();
 
-  // 搜索
-  const handleSearch = () => {
+  const payments = data?.data || [];
+  const total = data?.pagination?.total || 0;
+
+  // Event handlers
+  const handleSearch = useCallback(() => {
     setPage(1);
-    loadPayments();
-  };
+  }, []);
 
-  // 清空搜索
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearchValue('');
     setPage(1);
-  };
+  }, []);
 
-  // 应用筛选
-  const handleFilter = (values: any) => {
-    const newFilters: PaymentListParams = {
-      status: values.status,
-      method: values.method,
-      userId: values.userId,
-    };
+  const handleFilter = useCallback(
+    (values: any) => {
+      const newFilters: PaymentListParams = {
+        status: values.status,
+        method: values.method,
+        userId: values.userId,
+      };
 
-    if (values.dateRange && values.dateRange.length === 2) {
-      newFilters.startDate = values.dateRange[0].format('YYYY-MM-DD');
-      newFilters.endDate = values.dateRange[1].format('YYYY-MM-DD');
-    }
+      if (values.dateRange && values.dateRange.length === 2) {
+        newFilters.startDate = values.dateRange[0].format('YYYY-MM-DD');
+        newFilters.endDate = values.dateRange[1].format('YYYY-MM-DD');
+      }
 
-    setFilters(newFilters);
-    setPage(1);
-  };
+      setFilters(newFilters);
+      setPage(1);
+    },
+    []
+  );
 
-  // 清空筛选
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     form.resetFields();
     setFilters({});
     setPage(1);
-  };
+  }, [form]);
 
-  // 导出 Excel
-  const handleExport = async () => {
-    setExportLoading(true);
-    try {
-      await downloadExcelFile({
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        status: filters.status,
-        method: filters.method,
+  const handleExport = useCallback(async () => {
+    await exportMutation.mutateAsync({
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      status: filters.status,
+      method: filters.method,
+    });
+  }, [exportMutation, filters]);
+
+  const handleSyncStatus = useCallback(
+    async (paymentId: string) => {
+      await syncStatusMutation.mutateAsync(paymentId);
+    },
+    [syncStatusMutation]
+  );
+
+  const handleRefund = useCallback(
+    async (values: { amount?: number; reason: string; adminNote?: string }) => {
+      if (!selectedPayment) return;
+      await refundMutation.mutateAsync({
+        paymentId: selectedPayment.id,
+        data: values,
       });
-      message.success('导出成功');
-    } catch (error) {
-      message.error('导出失败');
-    } finally {
-      setExportLoading(false);
-    }
-  };
-
-  // 同步支付状态
-  const handleSyncStatus = async (paymentId: string) => {
-    try {
-      await syncPaymentStatus(paymentId);
-      message.success('同步成功');
-      loadPayments();
-    } catch (error) {
-      message.error('同步失败');
-    }
-  };
-
-  // 手动退款
-  const handleRefund = async (values: { amount?: number; reason: string; adminNote?: string }) => {
-    if (!selectedPayment) return;
-    try {
-      await manualRefund(selectedPayment.id, values);
-      message.success('退款成功');
       setRefundModalVisible(false);
       refundForm.resetFields();
-      loadPayments();
-    } catch (error) {
-      message.error('退款失败');
-    }
-  };
+    },
+    [selectedPayment, refundMutation, refundForm]
+  );
 
-  const columns: ColumnsType<PaymentDetail> = [
+  // Optimized maps
+  const methodMap = useMemo(
+    () => ({
+      wechat: { color: 'green' as const, text: '微信支付' },
+      alipay: { color: 'blue' as const, text: '支付宝' },
+      balance: { color: 'orange' as const, text: '余额支付' },
+      stripe: { color: 'purple' as const, text: 'Stripe' },
+      paypal: { color: 'blue' as const, text: 'PayPal' },
+      paddle: { color: 'cyan' as const, text: 'Paddle' },
+    }),
+    []
+  );
+
+  const statusMap = useMemo(
+    () => ({
+      pending: { color: 'default' as const, text: '待支付' },
+      processing: { color: 'orange' as const, text: '支付中' },
+      success: { color: 'green' as const, text: '支付成功' },
+      failed: { color: 'red' as const, text: '支付失败' },
+      refunding: { color: 'orange' as const, text: '退款中' },
+      refunded: { color: 'purple' as const, text: '已退款' },
+      cancelled: { color: 'default' as const, text: '已取消' },
+    }),
+    []
+  );
+
+  const renderAmount = useCallback((amount: number, record: PaymentDetail) => {
+    const currencySymbol =
+      record.currency === 'CNY' ? '¥' : record.currency === 'USD' ? '$' : record.currency;
+    return `${currencySymbol}${(amount || 0).toFixed(2)}`;
+  }, []);
+
+  const columns: ColumnsType<PaymentDetail> = useMemo(() => [
     {
       title: '支付单号',
       dataIndex: 'paymentNo',
@@ -189,25 +194,18 @@ const PaymentList = () => {
       title: '金额',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount: number, record) => {
-        const currencySymbol = record.currency === 'CNY' ? '¥' : record.currency === 'USD' ? '$' : record.currency;
-        return `${currencySymbol}${(amount || 0).toFixed(2)}`;
-      },
+      render: renderAmount,
+      sorter: (a, b) => a.amount - b.amount,
     },
     {
       title: '支付方式',
       dataIndex: 'method',
       key: 'method',
       render: (method: string) => {
-        const methodMap: Record<string, { color: string; text: string }> = {
-          wechat: { color: 'green', text: '微信支付' },
-          alipay: { color: 'blue', text: '支付宝' },
-          balance: { color: 'orange', text: '余额支付' },
-          stripe: { color: 'purple', text: 'Stripe' },
-          paypal: { color: 'blue', text: 'PayPal' },
-          paddle: { color: 'cyan', text: 'Paddle' },
+        const config = methodMap[method as keyof typeof methodMap] || {
+          color: 'default' as const,
+          text: method,
         };
-        const config = methodMap[method] || { color: 'default', text: method };
         return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
@@ -216,16 +214,10 @@ const PaymentList = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-        const statusMap: Record<string, { color: string; text: string }> = {
-          pending: { color: 'default', text: '待支付' },
-          processing: { color: 'orange', text: '支付中' },
-          success: { color: 'green', text: '支付成功' },
-          failed: { color: 'red', text: '支付失败' },
-          refunding: { color: 'orange', text: '退款中' },
-          refunded: { color: 'purple', text: '已退款' },
-          cancelled: { color: 'default', text: '已取消' },
+        const config = statusMap[status as keyof typeof statusMap] || {
+          color: 'default' as const,
+          text: status,
         };
-        const config = statusMap[status] || { color: 'default', text: status };
         return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
@@ -309,7 +301,7 @@ const PaymentList = () => {
         </Space>
       ),
     },
-  ];
+  ], [methodMap, statusMap, renderAmount, handleSyncStatus, hasPermission, refundForm]);
 
   return (
     <div style={{ padding: '24px' }}>
@@ -331,15 +323,12 @@ const PaymentList = () => {
                 <PermissionGuard permission="payment:list:export">
                   <Button
                     icon={<DownloadOutlined />}
-                    loading={exportLoading}
+                    loading={exportMutation.isPending}
                     onClick={handleExport}
                   >
                     导出 Excel
                   </Button>
                 </PermissionGuard>
-                <Button icon={<ReloadOutlined />} onClick={loadPayments}>
-                  刷新
-                </Button>
               </Space>
             </Col>
           </Row>
@@ -427,7 +416,7 @@ const PaymentList = () => {
             columns={columns}
             dataSource={payments}
             rowKey="id"
-            loading={loading}
+            loading={isLoading}
             pagination={{
               current: page,
               pageSize,
@@ -453,6 +442,7 @@ const PaymentList = () => {
           refundForm.resetFields();
         }}
         onOk={() => refundForm.submit()}
+        confirmLoading={refundMutation.isPending}
       >
         <Form form={refundForm} onFinish={handleRefund} layout="vertical">
           <Form.Item label="支付单号">
