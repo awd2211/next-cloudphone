@@ -63,7 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_device_snapshots_auto_backup
   WHERE is_auto_backup = TRUE;
 
 CREATE INDEX IF NOT EXISTS idx_device_snapshots_device_id_created_at
-  ON device_snapshots(device_id, created_at DESC);
+  ON device_snapshots("deviceId", "createdAt" DESC);
 
 -- 添加注释
 COMMENT ON COLUMN device_snapshots.retention_days IS '快照保留天数（NULL表示永久保留）';

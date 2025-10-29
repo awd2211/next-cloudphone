@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger } from "@nestjs/common";
 
 /**
  * 重试配置接口
@@ -180,7 +180,7 @@ export async function retryWithBackoff<T>(
     onRetry,
   } = options;
 
-  const logger = new Logger('retryWithBackoff');
+  const logger = new Logger("retryWithBackoff");
   let lastError: Error;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -234,34 +234,34 @@ export async function retryWithBackoff<T>(
 export class NetworkError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'NetworkError';
+    this.name = "NetworkError";
   }
 }
 
 export class TimeoutError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'TimeoutError';
+    this.name = "TimeoutError";
   }
 }
 
 export class TemporaryError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'TemporaryError';
+    this.name = "TemporaryError";
   }
 }
 
 export class DockerError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'DockerError';
+    this.name = "DockerError";
   }
 }
 
 export class AdbError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'AdbError';
+    this.name = "AdbError";
   }
 }

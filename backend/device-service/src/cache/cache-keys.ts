@@ -3,7 +3,7 @@
  * 统一管理所有缓存键的命名规则
  */
 export class CacheKeys {
-  private static readonly PREFIX = 'device-service';
+  private static readonly PREFIX = "device-service";
 
   /**
    * 设备详情缓存键
@@ -20,8 +20,13 @@ export class CacheKeys {
    * @param page 页码
    * @param limit 每页数量
    */
-  static deviceList(userId: string, status?: string, page: number = 1, limit: number = 10): string {
-    const statusPart = status || 'all';
+  static deviceList(
+    userId: string,
+    status?: string,
+    page: number = 1,
+    limit: number = 10,
+  ): string {
+    const statusPart = status || "all";
     return `${this.PREFIX}:device:list:${userId}:${statusPart}:${page}:${limit}`;
   }
 
@@ -32,8 +37,13 @@ export class CacheKeys {
    * @param page 页码
    * @param limit 每页数量
    */
-  static tenantDeviceList(tenantId: string, status?: string, page: number = 1, limit: number = 10): string {
-    const statusPart = status || 'all';
+  static tenantDeviceList(
+    tenantId: string,
+    status?: string,
+    page: number = 1,
+    limit: number = 10,
+  ): string {
+    const statusPart = status || "all";
     return `${this.PREFIX}:device:list:tenant:${tenantId}:${statusPart}:${page}:${limit}`;
   }
 

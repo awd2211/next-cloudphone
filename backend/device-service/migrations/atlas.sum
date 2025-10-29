@@ -1,4 +1,5 @@
-h1:YL5TyQTQF1eyhP4lGBYeVdWMDm1s0lTCx+suOcG5sfU=
+h1:3CcC1y50BW/ILEYtOGZ2YTtI+bA0RyYCpUPteUUXn+o=
 20251021164158_baseline.sql h1:nL8aH329yjGsqau/rBtnrPXx5g756hRGPIDJAPUp4M8=
-20251022185800_add_lifecycle_fields.sql h1:gjM4oyExEbPeEieQvlNjr6jhk/JHouz5pI1fSN/xcZE=
-20251028120000_add_composite_indexes.sql h1:e678VmQfMwmU0XwjvY/QkFGHrQlu1AmXMxQnQ2ds5MQ=
+20251022185800_add_lifecycle_fields.sql h1:AqlZ8o/vVcqk8J/uEFgoaW6WcJsuKPbcQY2DPsHnAc8=
+20251028120000_add_composite_indexes.sql h1:UFH9hn3vE3joy4zew1H4QHLrBmglty57itTh5w4S+V0=
+20251028140000_add_provider_fields.sql h1:mP//FiQ44NrYL461ptNfYhw9zY5REyozHmmvtytimk8=
