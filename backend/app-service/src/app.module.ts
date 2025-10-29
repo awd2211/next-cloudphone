@@ -7,7 +7,7 @@ import { AppsModule } from './apps/apps.module';
 import { MinioModule } from './minio/minio.module';
 import { ApkModule } from './apk/apk.module';
 import { HealthController } from './health.controller';
-import { ConsulModule, createLoggerConfig, EventBusService } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig, EventBusService, SagaModule } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 import { AppRabbitMQModule } from './rabbitmq/rabbitmq.module';
 
@@ -41,6 +41,7 @@ import { AppRabbitMQModule } from './rabbitmq/rabbitmq.module';
     ApkModule,
     ConsulModule,
     AppRabbitMQModule,  // ✅ 本地 RabbitMQ 模块(包含 Consumer 注册)
+    SagaModule,         // Saga 编排模块（用于分布式事务）
   ],
   controllers: [HealthController],
   providers: [EventBusService],  // ✅ 提供 EventBusService 供其他模块使用

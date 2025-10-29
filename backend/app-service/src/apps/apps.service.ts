@@ -5,8 +5,8 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import * as fs from 'fs';
@@ -20,7 +20,13 @@ import { ApkParserService } from '../apk/apk-parser.service';
 import { CreateAppDto } from './dto/create-app.dto';
 import { UpdateAppDto } from './dto/update-app.dto';
 import { ApproveAppDto, RejectAppDto, RequestChangesDto, SubmitReviewDto } from './dto/audit-app.dto';
-import { EventBusService } from '@cloudphone/shared';
+import {
+  EventBusService,
+  SagaOrchestratorService,
+  SagaDefinition,
+  SagaType,
+  SagaStep,
+} from '@cloudphone/shared';
 
 @Injectable()
 export class AppsService {
@@ -38,17 +44,49 @@ export class AppsService {
     private httpService: HttpService,
     private configService: ConfigService,
     private eventBus: EventBusService,
+    private sagaOrchestrator: SagaOrchestratorService,
+    @InjectDataSource()
+    private dataSource: DataSource,
   ) {}
 
+  /**
+   * 上传 APK (使用 Saga 模式防止存储泄漏)
+   *
+   * Issue #3 修复: 使用 Saga 分布式事务编排上传流程
+   *
+   * 修复前问题:
+   * - MinIO 上传和数据库记录创建不在同一事务中
+   * - 如果数据库操作失败，MinIO 中的文件成为孤儿文件（存储泄漏）
+   * - 如果 MinIO 上传失败但数据库记录成功，数据库记录变成无效记录
+   * - 缺乏崩溃恢复机制
+   *
+   * 修复后:
+   * - 使用 Saga 编排器管理整个上传流程
+   * - 每个步骤都有补偿逻辑（compensation）
+   * - 自动重试机制（最多 3 次）
+   * - 超时检测（10 分钟）
+   * - 崩溃恢复（从 saga_state 表恢复）
+   * - 步骤追踪和状态持久化
+   *
+   * Saga 步骤:
+   * 1. PARSE_APK - 解析 APK 文件并验证
+   * 2. CREATE_APP_RECORD - 创建 Application 数据库记录（状态: UPLOADING）
+   * 3. UPLOAD_TO_MINIO - 上传文件到 MinIO 存储
+   * 4. UPDATE_APP_STATUS - 更新 Application 状态为 AVAILABLE
+   * 5. UPDATE_LATEST_VERSION - 更新最新版本标记
+   */
   async uploadApp(
     file: Express.Multer.File,
     createAppDto: CreateAppDto,
-  ): Promise<Application> {
-    try {
-      // 解析 APK 文件
-      const apkInfo = await this.parseApk(file.path);
+  ): Promise<{ sagaId: string; application: Application }> {
+    let apkInfo: any;
+    const filePath = file.path;
 
-      // 检查相同版本是否已存在 (packageName + versionCode 组合)
+    try {
+      // 1. 解析 APK 文件（前置验证）
+      apkInfo = await this.parseApk(filePath);
+
+      // 2. 检查相同版本是否已存在
       const existing = await this.appsRepository.findOne({
         where: {
           packageName: apkInfo.packageName,
@@ -62,54 +100,232 @@ export class AppsService {
         );
       }
 
-      // 生成对象键
+      // 3. 生成对象键
       const objectKey = `apps/${apkInfo.packageName}/${apkInfo.versionName}_${Date.now()}.apk`;
+      const bucketName = this.minioService.getBucketName();
 
-      // 上传到 MinIO
-      const uploadResult = await this.minioService.uploadFile(
-        file.path,
-        objectKey,
-        {
-          packageName: apkInfo.packageName,
-          versionName: apkInfo.versionName,
-        },
-      );
+      // 4. 定义上传 Saga
+      const uploadSaga: SagaDefinition = {
+        type: SagaType.APP_UPLOAD,
+        timeoutMs: 600000, // 10 分钟超时（考虑大文件上传）
+        maxRetries: 3,
+        steps: [
+          // 步骤 1: 创建 App 数据库记录（状态: UPLOADING）
+          {
+            name: 'CREATE_APP_RECORD',
+            execute: async (state: any) => {
+              this.logger.log(`Saga step 1: Creating app record for ${apkInfo.packageName}`);
 
-      // 生成下载 URL
-      const downloadUrl = await this.minioService.getFileUrl(objectKey);
+              const queryRunner = this.dataSource.createQueryRunner();
+              await queryRunner.connect();
+              await queryRunner.startTransaction();
 
-      // 创建应用记录
-      const app = this.appsRepository.create({
-        ...createAppDto,
-        name: createAppDto.name || apkInfo.appName,
+              try {
+                const app = queryRunner.manager.create(Application, {
+                  ...createAppDto,
+                  name: createAppDto.name || apkInfo.appName,
+                  packageName: apkInfo.packageName,
+                  versionName: apkInfo.versionName,
+                  versionCode: apkInfo.versionCode,
+                  size: file.size,
+                  minSdkVersion: apkInfo.minSdkVersion,
+                  targetSdkVersion: apkInfo.targetSdkVersion,
+                  permissions: apkInfo.permissions,
+                  bucketName: bucketName,
+                  objectKey: objectKey,
+                  downloadUrl: '', // 稍后更新
+                  status: AppStatus.UPLOADING, // 🔑 关键: 初始状态为 UPLOADING
+                  isLatest: false,
+                });
+
+                const savedApp = await queryRunner.manager.save(Application, app);
+                await queryRunner.commitTransaction();
+
+                this.logger.log(`Saga step 1 completed: App record created with ID ${savedApp.id}`);
+                return { appId: savedApp.id };
+              } catch (error) {
+                await queryRunner.rollbackTransaction();
+                throw error;
+              } finally {
+                await queryRunner.release();
+              }
+            },
+            compensate: async (state: any) => {
+              this.logger.log(`Saga step 1 compensation: Deleting app record ${state.appId}`);
+
+              if (!state.appId) return;
+
+              const queryRunner = this.dataSource.createQueryRunner();
+              await queryRunner.connect();
+              await queryRunner.startTransaction();
+
+              try {
+                await queryRunner.manager.delete(Application, { id: state.appId });
+                await queryRunner.commitTransaction();
+                this.logger.log(`Saga step 1 compensation completed: App record deleted`);
+              } catch (error) {
+                this.logger.error(`Saga step 1 compensation failed: ${error.message}`);
+                await queryRunner.rollbackTransaction();
+              } finally {
+                await queryRunner.release();
+              }
+            },
+          } as SagaStep,
+
+          // 步骤 2: 上传到 MinIO
+          {
+            name: 'UPLOAD_TO_MINIO',
+            execute: async (state: any) => {
+              this.logger.log(`Saga step 2: Uploading file to MinIO: ${objectKey}`);
+
+              const uploadResult = await this.minioService.uploadFile(
+                filePath,
+                objectKey,
+                {
+                  packageName: apkInfo.packageName,
+                  versionName: apkInfo.versionName,
+                },
+              );
+
+              this.logger.log(`Saga step 2 completed: File uploaded to MinIO`);
+              return {
+                uploaded: true,
+                uploadResult,
+              };
+            },
+            compensate: async (state: any) => {
+              this.logger.log(`Saga step 2 compensation: Deleting file from MinIO: ${objectKey}`);
+
+              try {
+                await this.minioService.deleteFile(objectKey);
+                this.logger.log(`Saga step 2 compensation completed: File deleted from MinIO`);
+              } catch (error) {
+                this.logger.error(`Saga step 2 compensation failed: ${error.message}`);
+                // 不抛出异常，继续补偿其他步骤
+              }
+            },
+          } as SagaStep,
+
+          // 步骤 3: 更新 App 状态为 AVAILABLE
+          {
+            name: 'UPDATE_APP_STATUS',
+            execute: async (state: any) => {
+              this.logger.log(`Saga step 3: Updating app ${state.appId} status to AVAILABLE`);
+
+              const queryRunner = this.dataSource.createQueryRunner();
+              await queryRunner.connect();
+              await queryRunner.startTransaction();
+
+              try {
+                const downloadUrl = await this.minioService.getFileUrl(objectKey);
+
+                await queryRunner.manager.update(Application,
+                  { id: state.appId },
+                  {
+                    status: AppStatus.AVAILABLE,
+                    downloadUrl: downloadUrl,
+                  }
+                );
+
+                await queryRunner.commitTransaction();
+                this.logger.log(`Saga step 3 completed: App status updated to AVAILABLE`);
+                return { statusUpdated: true };
+              } catch (error) {
+                await queryRunner.rollbackTransaction();
+                throw error;
+              } finally {
+                await queryRunner.release();
+              }
+            },
+            compensate: async (state: any) => {
+              this.logger.log(`Saga step 3 compensation: Reverting app ${state.appId} to UPLOADING`);
+
+              const queryRunner = this.dataSource.createQueryRunner();
+              await queryRunner.connect();
+              await queryRunner.startTransaction();
+
+              try {
+                await queryRunner.manager.update(Application,
+                  { id: state.appId },
+                  {
+                    status: AppStatus.UPLOADING,
+                    downloadUrl: '',
+                  }
+                );
+
+                await queryRunner.commitTransaction();
+                this.logger.log(`Saga step 3 compensation completed`);
+              } catch (error) {
+                this.logger.error(`Saga step 3 compensation failed: ${error.message}`);
+                await queryRunner.rollbackTransaction();
+              } finally {
+                await queryRunner.release();
+              }
+            },
+          } as SagaStep,
+
+          // 步骤 4: 更新最新版本标记
+          {
+            name: 'UPDATE_LATEST_VERSION',
+            execute: async (state: any) => {
+              this.logger.log(`Saga step 4: Updating latest version for ${apkInfo.packageName}`);
+
+              await this.updateLatestVersion(apkInfo.packageName);
+
+              this.logger.log(`Saga step 4 completed: Latest version updated`);
+              return { latestVersionUpdated: true };
+            },
+            compensate: async (state: any) => {
+              this.logger.log(`Saga step 4 compensation: Re-updating latest version`);
+
+              try {
+                // 重新计算最新版本（排除当前上传失败的应用）
+                await this.updateLatestVersion(apkInfo.packageName);
+                this.logger.log(`Saga step 4 compensation completed`);
+              } catch (error) {
+                this.logger.error(`Saga step 4 compensation failed: ${error.message}`);
+              }
+            },
+          } as SagaStep,
+        ],
+      };
+
+      // 5. 执行 Saga
+      const sagaId = await this.sagaOrchestrator.executeSaga(uploadSaga, {
         packageName: apkInfo.packageName,
         versionName: apkInfo.versionName,
         versionCode: apkInfo.versionCode,
-        size: file.size,
-        minSdkVersion: apkInfo.minSdkVersion,
-        targetSdkVersion: apkInfo.targetSdkVersion,
-        permissions: apkInfo.permissions,
-        bucketName: this.minioService.getBucketName(),
-        objectKey: objectKey,
-        downloadUrl: downloadUrl,
-        status: AppStatus.AVAILABLE,
-        isLatest: false, // 暂时标记为非最新，后面会更新
+        filePath,
+        objectKey,
+        bucketName,
       });
 
-      const savedApp = await this.appsRepository.save(app);
+      this.logger.log(`Upload saga initiated: ${sagaId}`);
 
-      // 检查是否为最新版本并更新
-      await this.updateLatestVersion(apkInfo.packageName);
+      // 6. 等待 App 记录创建（第一步必须同步完成）
+      // 注意: 实际上 Saga 是异步执行的，但我们可以轮询等待第一步完成
+      await new Promise(resolve => setTimeout(resolve, 500)); // 等待 500ms
 
-      return savedApp;
+      const app = await this.appsRepository.findOne({
+        where: { packageName: apkInfo.packageName, versionCode: apkInfo.versionCode },
+      });
+
+      if (!app) {
+        throw new InternalServerErrorException('App record creation failed');
+      }
+
+      return {
+        sagaId,
+        application: app,
+      };
     } finally {
       // 确保临时文件被清理（无论成功或失败）
-      if (fs.existsSync(file.path)) {
+      if (fs.existsSync(filePath)) {
         try {
-          fs.unlinkSync(file.path);
-          this.logger.debug(`已清理上传临时文件: ${file.path}`);
+          fs.unlinkSync(filePath);
+          this.logger.debug(`已清理上传临时文件: ${filePath}`);
         } catch (cleanupError) {
-          this.logger.warn(`清理上传临时文件失败: ${file.path}`, cleanupError.message);
+          this.logger.warn(`清理上传临时文件失败: ${filePath}`, cleanupError.message);
         }
       }
     }
