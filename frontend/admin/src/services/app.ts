@@ -5,6 +5,10 @@ import type {
   InstallAppDto,
   PaginationParams,
   PaginatedResponse,
+  AppReviewRecord,
+  ApproveAppDto,
+  RejectAppDto,
+  RequestChangesDto,
 } from '@/types';
 
 // 应用列表
@@ -61,4 +65,43 @@ export const getAppStats = () => {
     total: number;
     categories: Record<string, number>;
   }>('/apps/stats');
+};
+
+// ========== 应用审核相关 API ==========
+
+// 获取待审核应用列表
+export const getPendingApps = (params?: PaginationParams) => {
+  return request.get<PaginatedResponse<Application>>('/apps', {
+    params: { ...params, reviewStatus: 'pending' },
+  });
+};
+
+// 提交应用审核
+export const submitAppForReview = (id: string) => {
+  return request.post(`/apps/${id}/submit-review`);
+};
+
+// 批准应用
+export const approveApp = (id: string, data?: ApproveAppDto) => {
+  return request.post(`/apps/${id}/approve`, data);
+};
+
+// 拒绝应用
+export const rejectApp = (id: string, data: RejectAppDto) => {
+  return request.post(`/apps/${id}/reject`, data);
+};
+
+// 请求修改
+export const requestAppChanges = (id: string, data: RequestChangesDto) => {
+  return request.post(`/apps/${id}/request-changes`, data);
+};
+
+// 获取审核记录
+export const getAppReviewRecords = (params?: PaginationParams & { applicationId?: string }) => {
+  return request.get<PaginatedResponse<AppReviewRecord>>('/apps/audit-records', { params });
+};
+
+// 获取单个应用的审核记录
+export const getAppReviewHistory = (applicationId: string) => {
+  return request.get<AppReviewRecord[]>(`/apps/${applicationId}/reviews`);
 };

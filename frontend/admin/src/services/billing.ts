@@ -104,6 +104,37 @@ export const getDeviceUsageStats = (deviceId: string, startDate?: string, endDat
   });
 };
 
+// ========== 计量相关 ==========
+
+// 计量概览
+export const getMeteringOverview = () => {
+  return request.get('/metering/overview');
+};
+
+// 用户计量列表
+export const getUserMeterings = (params?: PaginationParams & { startDate?: string; endDate?: string }) => {
+  return request.get('/metering/users', { params });
+};
+
+// 设备计量列表
+export const getDeviceMeterings = (params?: PaginationParams & { startDate?: string; endDate?: string }) => {
+  return request.get('/metering/devices', { params });
+};
+
+// 计量趋势数据
+export const getMeteringTrend = (type: 'daily' | 'weekly' | 'monthly', startDate?: string, endDate?: string) => {
+  return request.get('/metering/trend', {
+    params: { type, startDate, endDate },
+  });
+};
+
+// 资源使用分析
+export const getResourceUsageAnalysis = (resourceType?: 'cpu' | 'memory' | 'storage' | 'bandwidth') => {
+  return request.get('/metering/resource-analysis', {
+    params: { resourceType },
+  });
+};
+
 // ========== 报表相关 ==========
 
 // 用户账单
@@ -152,4 +183,46 @@ export const exportRevenueReport = (startDate: string, endDate: string, format: 
     params: { startDate, endDate, format },
     responseType: 'blob',
   });
+};
+
+// ========== 计费规则相关 ==========
+
+// 获取计费规则列表
+export const getBillingRules = (params?: PaginationParams & { isActive?: boolean }) => {
+  return request.get('/billing/rules', { params });
+};
+
+// 获取计费规则详情
+export const getBillingRule = (id: string) => {
+  return request.get(`/billing/rules/${id}`);
+};
+
+// 创建计费规则
+export const createBillingRule = (data: any) => {
+  return request.post('/billing/rules', data);
+};
+
+// 更新计费规则
+export const updateBillingRule = (id: string, data: any) => {
+  return request.put(`/billing/rules/${id}`, data);
+};
+
+// 删除计费规则
+export const deleteBillingRule = (id: string) => {
+  return request.delete(`/billing/rules/${id}`);
+};
+
+// 激活/停用计费规则
+export const toggleBillingRule = (id: string, isActive: boolean) => {
+  return request.patch(`/billing/rules/${id}/toggle`, { isActive });
+};
+
+// 测试计费规则
+export const testBillingRule = (ruleId: string, testData: any) => {
+  return request.post(`/billing/rules/${ruleId}/test`, testData);
+};
+
+// 获取计费规则模板
+export const getBillingRuleTemplates = () => {
+  return request.get('/billing/rules/templates');
 };
