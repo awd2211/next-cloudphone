@@ -34,6 +34,10 @@ type Config struct {
 	VideoWidth    int
 	VideoHeight   int
 
+	// 采集配置 (新增)
+	CaptureMode     string // "screencap" (PNG) or "screenrecord" (H.264)
+	VideoEncoderType string // "passthrough", "vp8", "vp8-simple", "h264"
+
 	// Consul 配置
 	ConsulHost    string
 	ConsulPort    int
@@ -66,6 +70,10 @@ func Load() *Config {
 		MaxFrameRate: getEnvInt("MAX_FRAME_RATE", 30),
 		VideoWidth:   getEnvInt("VIDEO_WIDTH", 1280),
 		VideoHeight:  getEnvInt("VIDEO_HEIGHT", 720),
+
+		// 采集配置: 默认使用 screenrecord (H.264 硬件编码)
+		CaptureMode:     getEnv("CAPTURE_MODE", "screenrecord"), // screenrecord (推荐) | screencap
+		VideoEncoderType: getEnv("VIDEO_ENCODER_TYPE", "passthrough"), // 自动根据 CaptureMode 选择
 
 		ICEPortMin: uint16(getEnvInt("ICE_PORT_MIN", 50000)),
 		ICEPortMax: uint16(getEnvInt("ICE_PORT_MAX", 50100)),
@@ -105,6 +113,8 @@ func Load() *Config {
 		zap.Uint16("ice_port_max", cfg.ICEPortMax),
 		zap.String("video_codec", cfg.VideoCodec),
 		zap.Int("max_bitrate", cfg.MaxBitrate),
+		zap.String("capture_mode", cfg.CaptureMode),
+		zap.String("video_encoder_type", cfg.VideoEncoderType),
 	)
 
 	return cfg

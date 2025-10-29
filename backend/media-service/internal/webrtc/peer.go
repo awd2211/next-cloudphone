@@ -181,10 +181,14 @@ func (m *Manager) CreateOffer(sessionID string) (*webrtc.SessionDescription, err
 
 	offer, err := session.PeerConnection.CreateOffer(nil)
 	if err != nil {
+		// 修复资源泄漏: CreateOffer 失败时删除 session
+		m.DeleteSession(sessionID)
 		return nil, fmt.Errorf("failed to create offer: %w", err)
 	}
 
 	if err = session.PeerConnection.SetLocalDescription(offer); err != nil {
+		// 修复资源泄漏: SetLocalDescription 失败时删除 session
+		m.DeleteSession(sessionID)
 		return nil, fmt.Errorf("failed to set local description: %w", err)
 	}
 
@@ -428,7 +432,21 @@ func (m *Manager) buildICEServers() []webrtc.ICEServer {
 
 // 注册编解码器
 func (m *Manager) registerCodecs(mediaEngine *webrtc.MediaEngine) error {
-	// 注册 VP8 视频编解码器
+	// 优先注册 H.264 视频编解码器 (硬件加速, 浏览器原生支持)
+	if err := mediaEngine.RegisterCodec(webrtc.RTPCodecParameters{
+		RTPCodecCapability: webrtc.RTPCodecCapability{
+			MimeType:     webrtc.MimeTypeH264,
+			ClockRate:    90000,
+			Channels:     0,
+			SDPFmtpLine:  "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+			RTCPFeedback: nil,
+		},
+		PayloadType: 102,
+	}, webrtc.RTPCodecTypeVideo); err != nil {
+		return err
+	}
+
+	// 注册 VP8 视频编解码器 (降级选项)
 	if err := mediaEngine.RegisterCodec(webrtc.RTPCodecParameters{
 		RTPCodecCapability: webrtc.RTPCodecCapability{
 			MimeType:     webrtc.MimeTypeVP8,

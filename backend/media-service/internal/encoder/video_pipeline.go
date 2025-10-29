@@ -38,16 +38,17 @@ type FrameWriter interface {
 
 // PipelineStats contains statistics about the pipeline
 type PipelineStats struct {
-	FramesProcessed uint64
-	FramesEncoded   uint64
-	FramesDropped   uint64
-	BytesProcessed  uint64
-	BytesEncoded    uint64
-	EncodingErrors  uint64
-	WritingErrors   uint64
-	AverageFPS      float64
-	AverageBitrate  float64
-	Uptime          time.Duration
+	FramesProcessed   uint64
+	FramesEncoded     uint64
+	FramesDropped     uint64
+	BytesProcessed    uint64
+	BytesEncoded      uint64
+	EncodingErrors    uint64
+	WritingErrors     uint64
+	EncodingTimeouts  uint64  // 新增: 编码超时次数
+	AverageFPS        float64
+	AverageBitrate    float64
+	Uptime            time.Duration
 }
 
 // PipelineOptions contains options for video pipeline
@@ -276,26 +277,70 @@ func (p *VideoPipeline) processingLoop(ctx context.Context) {
 
 // processFrame processes a single captured frame
 func (p *VideoPipeline) processFrame(frame *capture.Frame) error {
-	// Encode frame if encoder is available
+	// Encode frame with timeout (修复阻塞问题)
 	var encodedData []byte
 	var err error
 
 	if p.encoder != nil {
-		encodedData, err = p.encoder.Encode(frame)
-		if err != nil {
-			return fmt.Errorf("encoding failed: %w", err)
+		// 创建带超时的编码
+		encodeCtx, encodeCancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+		defer encodeCancel()
+
+		type encodeResult struct {
+			data []byte
+			err  error
 		}
-		atomic.AddUint64(&p.stats.FramesEncoded, 1)
-		atomic.AddUint64(&p.stats.BytesEncoded, uint64(len(encodedData)))
+
+		resultCh := make(chan encodeResult, 1)
+		go func() {
+			data, encodeErr := p.encoder.Encode(frame)
+			resultCh <- encodeResult{data: data, err: encodeErr}
+		}()
+
+		select {
+		case result := <-resultCh:
+			// 编码完成
+			encodedData = result.data
+			err = result.err
+			if err != nil {
+				return fmt.Errorf("encoding failed: %w", err)
+			}
+			atomic.AddUint64(&p.stats.FramesEncoded, 1)
+			atomic.AddUint64(&p.stats.BytesEncoded, uint64(len(encodedData)))
+
+		case <-encodeCtx.Done():
+			// 编码超时,丢帧
+			atomic.AddUint64(&p.stats.EncodingTimeouts, 1)
+			atomic.AddUint64(&p.stats.FramesDropped, 1)
+			p.logger.WithField("frame_timestamp", frame.Timestamp).
+				Warn("Frame encoding timeout, dropping frame")
+			return fmt.Errorf("encoding timeout")
+		}
 	} else {
 		// No encoder, use raw frame data
 		encodedData = frame.Data
 	}
 
-	// Write to WebRTC track
-	if err := p.frameWriter.WriteVideoFrame(p.sessionID, encodedData, frame.Duration); err != nil {
+	// Write to WebRTC track with timeout
+	writeCtx, writeCancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer writeCancel()
+
+	writeDone := make(chan error, 1)
+	go func() {
+		writeDone <- p.frameWriter.WriteVideoFrame(p.sessionID, encodedData, frame.Duration)
+	}()
+
+	select {
+	case writeErr := <-writeDone:
+		if writeErr != nil {
+			atomic.AddUint64(&p.stats.WritingErrors, 1)
+			return fmt.Errorf("failed to write frame: %w", writeErr)
+		}
+	case <-writeCtx.Done():
+		// 写入超时
 		atomic.AddUint64(&p.stats.WritingErrors, 1)
-		return fmt.Errorf("failed to write frame: %w", err)
+		p.logger.Warn("Frame write timeout")
+		return fmt.Errorf("write timeout")
 	}
 
 	return nil

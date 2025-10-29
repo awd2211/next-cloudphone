@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -80,8 +82,30 @@ func main() {
 	// Prometheus 指标
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
+	// pprof 性能分析端点 (用于 Goroutine 泄漏检测和性能调优)
+	debugGroup := router.Group("/debug/pprof")
+	{
+		debugGroup.GET("/", gin.WrapF(pprof.Index))
+		debugGroup.GET("/cmdline", gin.WrapF(pprof.Cmdline))
+		debugGroup.GET("/profile", gin.WrapF(pprof.Profile))
+		debugGroup.POST("/symbol", gin.WrapF(pprof.Symbol))
+		debugGroup.GET("/symbol", gin.WrapF(pprof.Symbol))
+		debugGroup.GET("/trace", gin.WrapF(pprof.Trace))
+		debugGroup.GET("/allocs", gin.WrapH(pprof.Handler("allocs")))
+		debugGroup.GET("/block", gin.WrapH(pprof.Handler("block")))
+		debugGroup.GET("/goroutine", gin.WrapH(pprof.Handler("goroutine")))
+		debugGroup.GET("/heap", gin.WrapH(pprof.Handler("heap")))
+		debugGroup.GET("/mutex", gin.WrapH(pprof.Handler("mutex")))
+		debugGroup.GET("/threadcreate", gin.WrapH(pprof.Handler("threadcreate")))
+	}
+
+	logger.Info("pprof_enabled", zap.String("endpoint", "/debug/pprof"))
+
 	// 启动资源监控（每10秒采集一次）
 	metrics.StartResourceMonitor(10 * time.Second)
+
+	// 启动 Goroutine 监控
+	go monitorGoroutines()
 
 	// ========== 初始化 RabbitMQ 发布者 ==========
 	var eventPublisher *rabbitmq.Publisher
@@ -215,4 +239,45 @@ func main() {
 		zap.Bool("consul_enabled", cfg.ConsulEnabled),
 		zap.Bool("rabbitmq_enabled", cfg.RabbitMQEnabled),
 	)
+}
+
+// monitorGoroutines monitors Goroutine count for leak detection
+func monitorGoroutines() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	var baseline int
+	var baselineSet bool
+
+	for range ticker.C {
+		current := runtime.NumGoroutine()
+
+		// Set baseline on first measurement
+		if !baselineSet {
+			baseline = current
+			baselineSet = true
+			logger.Info("goroutine_baseline_set", zap.Int("count", baseline))
+			continue
+		}
+
+		// Check for significant increase (>20%)
+		increase := float64(current-baseline) / float64(baseline) * 100
+
+		if increase > 20 {
+			logger.Warn("goroutine_count_increased",
+				zap.Int("baseline", baseline),
+				zap.Int("current", current),
+				zap.Float64("increase_percent", increase),
+				zap.String("action", "possible goroutine leak"),
+			)
+		} else {
+			logger.Debug("goroutine_count_normal",
+				zap.Int("count", current),
+				zap.Int("baseline", baseline),
+			)
+		}
+
+		// Update baseline gradually (exponential moving average)
+		baseline = (baseline*9 + current) / 10
+	}
 }

@@ -1,8 +1,10 @@
 package capture
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"image/png"
 	"io"
 	"os/exec"
 	"sync"
@@ -268,13 +270,16 @@ func (c *AndroidScreenCapture) captureFrame() (*Frame, error) {
 		Duration:  c.frameInterval,
 	}
 
-	// Parse PNG dimensions (simple check)
-	if len(output) > 24 {
-		// PNG signature: 89 50 4E 47 0D 0A 1A 0A
-		// IHDR chunk contains width and height
-		// This is a simplified approach - a proper PNG parser would be better
-		frame.Width = int(output[16])<<24 | int(output[17])<<16 | int(output[18])<<8 | int(output[19])
-		frame.Height = int(output[20])<<24 | int(output[21])<<16 | int(output[22])<<8 | int(output[23])
+	// Parse PNG dimensions using standard library (修复手动解析的不健壮问题)
+	if len(output) > 0 {
+		reader := bytes.NewReader(output)
+		config, err := png.DecodeConfig(reader)
+		if err != nil {
+			c.logger.WithError(err).Warn("Failed to decode PNG config, dimensions unknown")
+		} else {
+			frame.Width = config.Width
+			frame.Height = config.Height
+		}
 	}
 
 	return frame, nil
