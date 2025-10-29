@@ -431,6 +431,7 @@ export class UsersService {
         'COUNT(CASE WHEN user.created_at >= :sevenDays THEN 1 END) as new_users_7d',
         'COUNT(CASE WHEN user.created_at >= :thirtyDays THEN 1 END) as new_users_30d',
         'COUNT(CASE WHEN user.last_login_at >= :sevenDays THEN 1 END) as recently_active',
+        'COUNT(CASE WHEN user.locked_until IS NOT NULL AND user.locked_until > NOW() THEN 1 END) as locked_users',
       ])
       .setParameters({
         sevenDays: sevenDaysAgo,
@@ -449,11 +450,13 @@ export class UsersService {
     const newUsersLast7Days = parseInt(rawStats.new_users_7d) || 0;
     const newUsersLast30Days = parseInt(rawStats.new_users_30d) || 0;
     const recentlyActiveUsers = parseInt(rawStats.recently_active) || 0;
+    const lockedUsers = parseInt(rawStats.locked_users) || 0;
 
     const stats = {
       totalUsers,
       activeUsers,
       inactiveUsers,
+      lockedUsers,
       newUsersLast7Days,
       newUsersLast30Days,
       recentlyActiveUsers,
@@ -471,7 +474,7 @@ export class UsersService {
       this.metricsService.updateUserStats(tenantId || 'default', {
         totalUsers,
         activeUsers,
-        lockedUsers: 0, // TODO: 计算锁定用户数
+        lockedUsers,
       });
     }
 

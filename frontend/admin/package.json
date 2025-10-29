@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:analyze": "ANALYZE=true tsc -b && vite build",
+    "build:report": "tsc -b && vite build --mode production && node scripts/build-report.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -27,6 +29,7 @@
     "react-router-dom": "^7.9.4",
     "react-virtualized-auto-sizer": "^1.0.26",
     "react-window": "^2.2.1",
+    "react-window-infinite-loader": "^2.0.0",
     "socket.io-client": "^4.8.1",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.8"
@@ -41,8 +44,10 @@
     "eslint-plugin-react-hooks": "^7.0.0",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.4.0",
+    "rollup-plugin-visualizer": "^6.0.5",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.2",
-    "vite": "^7.1.11"
+    "vite": "^7.1.11",
+    "vite-plugin-compression": "^0.5.1"
   }
 }

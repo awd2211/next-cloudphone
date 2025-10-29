@@ -1,26 +1,51 @@
 import { useEffect, useRef, useState } from 'react';
-import { Card, Button, Space, message, Spin, Alert } from 'antd';
+import { Card, Button, Space, message, Spin, Alert, Statistic, Row, Col, Tag, Badge } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
   ReloadOutlined,
   FullscreenOutlined,
+  DashboardOutlined,
+  SignalFilled,
 } from '@ant-design/icons';
 import { createSession, closeSession } from '@/services/media';
 
 interface WebRTCPlayerProps {
   deviceId: string;
+  showStats?: boolean; // 是否显示统计信息
 }
 
-const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
+interface ConnectionStats {
+  bytesReceived: number;
+  packetsReceived: number;
+  packetsLost: number;
+  jitter: number;
+  rtt: number;
+  bitrate: number;
+  fps: number;
+  resolution: string;
+  codec: string;
+}
+
+type NetworkQuality = 'excellent' | 'good' | 'fair' | 'poor';
+
+const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const statsIntervalRef = useRef<number | null>(null);
+  const lastBytesRef = useRef<number>(0);
+  const reconnectTimeoutRef = useRef<number | null>(null);
 
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<ConnectionStats | null>(null);
+  const [networkQuality, setNetworkQuality] = useState<NetworkQuality>('good');
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [showStatsPanel, setShowStatsPanel] = useState(false);
+  const maxReconnectAttempts = 5;
 
   // ICE 服务器配置
   const iceServers = [
@@ -52,9 +77,20 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
           setIsConnected(true);
           setIsConnecting(false);
           message.success('设备画面连接成功');
-        } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+        } else if (pc.connectionState === 'failed') {
           setIsConnected(false);
-          setError('连接失败，请重试');
+          setIsConnecting(false);
+          setError('连接失败');
+          message.error('WebRTC 连接失败');
+          autoReconnect();
+        } else if (pc.connectionState === 'disconnected') {
+          setIsConnected(false);
+          setIsConnecting(false);
+          message.warning('连接已断开');
+          autoReconnect();
+        } else if (pc.connectionState === 'closed') {
+          setIsConnected(false);
+          setIsConnecting(false);
         }
       };
 
@@ -188,12 +224,136 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
     }
   };
 
+  // 收集统计信息
+  const collectStats = async () => {
+    if (!pcRef.current || !isConnected) return;
+
+    try {
+      const stats = await pcRef.current.getStats();
+      let bytesReceived = 0;
+      let packetsReceived = 0;
+      let packetsLost = 0;
+      let jitter = 0;
+      let rtt = 0;
+      let resolution = '';
+      let codec = '';
+      let fps = 0;
+
+      stats.forEach((report) => {
+        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+          bytesReceived = report.bytesReceived || 0;
+          packetsReceived = report.packetsReceived || 0;
+          packetsLost = report.packetsLost || 0;
+          jitter = report.jitter || 0;
+          codec = report.mimeType || '';
+          fps = report.framesPerSecond || 0;
+
+          // 计算分辨率
+          if (report.frameWidth && report.frameHeight) {
+            resolution = `${report.frameWidth}x${report.frameHeight}`;
+          }
+        }
+
+        // 获取 RTT
+        if (report.type === 'remote-inbound-rtp' && report.kind === 'video') {
+          rtt = report.roundTripTime || 0;
+        }
+      });
+
+      // 计算比特率 (bps)
+      const bytesDiff = bytesReceived - lastBytesRef.current;
+      const bitrate = Math.round((bytesDiff * 8) / 1); // 每秒比特率
+      lastBytesRef.current = bytesReceived;
+
+      // 计算网络质量
+      let quality: NetworkQuality = 'excellent';
+      const packetLossRate = packetsReceived > 0 ? packetsLost / (packetsReceived + packetsLost) : 0;
+
+      if (rtt > 200 || packetLossRate > 0.05 || bitrate < 500000) {
+        quality = 'poor';
+      } else if (rtt > 100 || packetLossRate > 0.02 || bitrate < 1000000) {
+        quality = 'fair';
+      } else if (rtt > 50 || packetLossRate > 0.01 || bitrate < 2000000) {
+        quality = 'good';
+      }
+
+      setNetworkQuality(quality);
+      setStats({
+        bytesReceived,
+        packetsReceived,
+        packetsLost,
+        jitter,
+        rtt: Math.round(rtt * 1000), // 转换为毫秒
+        bitrate,
+        fps,
+        resolution,
+        codec,
+      });
+    } catch (err) {
+      console.error('收集统计信息失败:', err);
+    }
+  };
+
+  // 自动重连
+  const autoReconnect = () => {
+    if (reconnectAttempts >= maxReconnectAttempts) {
+      message.error(`重连失败 ${maxReconnectAttempts} 次，请手动重试`);
+      return;
+    }
+
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // 指数退避，最大 30 秒
+    message.info(`${delay / 1000} 秒后自动重连... (${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+
+    reconnectTimeoutRef.current = window.setTimeout(() => {
+      setReconnectAttempts((prev) => prev + 1);
+      createPeerConnection();
+    }, delay);
+  };
+
+  // 启动统计收集
+  useEffect(() => {
+    if (isConnected) {
+      statsIntervalRef.current = window.setInterval(collectStats, 1000);
+      setReconnectAttempts(0); // 连接成功后重置重连计数
+    } else {
+      if (statsIntervalRef.current) {
+        clearInterval(statsIntervalRef.current);
+        statsIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (statsIntervalRef.current) {
+        clearInterval(statsIntervalRef.current);
+      }
+    };
+  }, [isConnected]);
+
   // 组件卸载时断开连接
   useEffect(() => {
     return () => {
       disconnect();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
   }, []);
+
+  // 获取网络质量颜色和文字
+  const getQualityConfig = (quality: NetworkQuality) => {
+    switch (quality) {
+      case 'excellent':
+        return { color: '#52c41a', text: '优秀', icon: 4 };
+      case 'good':
+        return { color: '#1890ff', text: '良好', icon: 3 };
+      case 'fair':
+        return { color: '#faad14', text: '一般', icon: 2 };
+      case 'poor':
+        return { color: '#ff4d4f', text: '较差', icon: 1 };
+    }
+  };
+
+  const qualityConfig = getQualityConfig(networkQuality);
 
   return (
     <Card
@@ -290,9 +450,100 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
       </div>
 
       {isConnected && (
-        <div style={{ marginTop: 16, color: '#52c41a' }}>
-          ● 已连接 - 实时画面传输中
+        <div style={{ marginTop: 16 }}>
+          <Space split="|">
+            <Badge status="success" text="已连接 - 实时画面传输中" />
+            <Space>
+              <SignalFilled style={{ color: qualityConfig.color }} />
+              <span style={{ color: qualityConfig.color }}>
+                网络质量: {qualityConfig.text}
+              </span>
+            </Space>
+            {showStats && (
+              <Button
+                size="small"
+                icon={<DashboardOutlined />}
+                onClick={() => setShowStatsPanel(!showStatsPanel)}
+              >
+                {showStatsPanel ? '隐藏' : '显示'}统计
+              </Button>
+            )}
+          </Space>
         </div>
+      )}
+
+      {/* 统计信息面板 */}
+      {isConnected && showStatsPanel && stats && (
+        <Card
+          size="small"
+          title="连接统计"
+          style={{ marginTop: 16 }}
+          bodyStyle={{ padding: 16 }}
+        >
+          <Row gutter={[16, 16]}>
+            <Col span={6}>
+              <Statistic
+                title="比特率"
+                value={(stats.bitrate / 1000000).toFixed(2)}
+                suffix="Mbps"
+                precision={2}
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="帧率"
+                value={stats.fps}
+                suffix="FPS"
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="延迟 (RTT)"
+                value={stats.rtt}
+                suffix="ms"
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="抖动"
+                value={(stats.jitter * 1000).toFixed(1)}
+                suffix="ms"
+                precision={1}
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="丢包率"
+                value={
+                  stats.packetsReceived > 0
+                    ? ((stats.packetsLost / (stats.packetsReceived + stats.packetsLost)) * 100).toFixed(2)
+                    : '0.00'
+                }
+                suffix="%"
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="分辨率"
+                value={stats.resolution || 'N/A'}
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="接收数据"
+                value={(stats.bytesReceived / 1024 / 1024).toFixed(2)}
+                suffix="MB"
+                precision={2}
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="编解码器"
+                value={stats.codec.split('/')[1] || 'N/A'}
+              />
+            </Col>
+          </Row>
+        </Card>
       )}
     </Card>
   );
