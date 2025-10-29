@@ -154,16 +154,28 @@ func (e *VP8EncoderFFmpeg) Encode(frame *capture.Frame) ([]byte, error) {
 		return nil, fmt.Errorf("encoder not running")
 	}
 
-	// Convert frame to I420 (YUV420)
-	i420, width, height, err := e.converter.FrameToI420(frame)
+	// Decode frame to image
+	img, err := e.converter.DecodeFrame(frame)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert frame to I420: %w", err)
+		return nil, fmt.Errorf("failed to decode frame: %w", err)
 	}
 
-	// Check if dimensions match
-	if width != e.width || height != e.height {
-		// TODO: Resize image if needed
-		return nil, fmt.Errorf("frame dimensions mismatch: got %dx%d, expected %dx%d", width, height, e.width, e.height)
+	// Resize image if dimensions don't match
+	bounds := img.Bounds()
+	if bounds.Dx() != e.width || bounds.Dy() != e.height {
+		e.logger.WithFields(logrus.Fields{
+			"source_width":  bounds.Dx(),
+			"source_height": bounds.Dy(),
+			"target_width":  e.width,
+			"target_height": e.height,
+		}).Debug("Resizing frame to match encoder dimensions")
+		img = e.converter.ResizeImage(img, e.width, e.height)
+	}
+
+	// Convert to I420 (YUV420)
+	i420, err := e.converter.ImageToI420(img)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert to I420: %w", err)
 	}
 
 	// Write I420 data to FFmpeg stdin
