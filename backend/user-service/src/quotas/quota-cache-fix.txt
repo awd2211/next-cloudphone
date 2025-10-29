@@ -1,0 +1,5 @@
+    quota.validFrom = (data.validFrom ? new Date(data.validFrom) : undefined) as any;
+    quota.validUntil = (data.validUntil ? new Date(data.validUntil) : undefined) as any;
+    quota.autoRenew = data.autoRenew;
+    quota.createdAt = (data.createdAt ? new Date(data.createdAt) : undefined) as any;
+    quota.updatedAt = (data.updatedAt ? new Date(data.updatedAt) : undefined) as any;
