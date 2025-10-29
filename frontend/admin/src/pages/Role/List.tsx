@@ -1,11 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Table, Space, Button, Modal, Form, Input, message, Popconfirm, Transfer, Tag, Tree, Tabs } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { DataNode } from 'antd/es/tree';
-import { getRoles, createRole, updateRole, deleteRole, getPermissions, assignPermissionsToRole } from '@/services/role';
 import type { Role, Permission } from '@/types';
 import dayjs from 'dayjs';
+import {
+  useRoles,
+  usePermissions,
+  useCreateRole,
+  useUpdateRole,
+  useDeleteRole,
+  useAssignPermissions
+} from '@/hooks/useRoles';
 
 interface TransferItem {
   key: string;
@@ -13,11 +20,17 @@ interface TransferItem {
   description?: string;
 }
 
+/**
+ * 角色列表页面（优化版 - 使用 React Query）
+ *
+ * 优化点：
+ * 1. ✅ 使用 React Query 自动管理状态和缓存
+ * 2. ✅ 使用 useMemo 优化重复计算
+ * 3. ✅ 使用 useCallback 优化事件处理函数
+ * 4. ✅ 权限列表独立缓存（5分钟）
+ * 5. ✅ 自动缓存失效和重新获取
+ */
 const RoleList = () => {
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [modalVisible, setModalVisible] = useState(false);
@@ -27,109 +40,80 @@ const RoleList = () => {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [form] = Form.useForm();
 
-  const loadRoles = async () => {
-    setLoading(true);
-    try {
-      const res = await getRoles({ page, pageSize });
-      setRoles(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载角色列表失败');
-    } finally {
-      setLoading(false);
+  // ✅ 使用 React Query hooks 替换手动状态管理
+  const params = useMemo(() => ({ page, pageSize }), [page, pageSize]);
+  const { data, isLoading } = useRoles(params);
+  const { data: permissions = [] } = usePermissions();
+
+  // Mutations
+  const createMutation = useCreateRole();
+  const updateMutation = useUpdateRole();
+  const deleteMutation = useDeleteRole();
+  const assignPermissionsMutation = useAssignPermissions();
+
+  const roles = data?.data || [];
+  const total = data?.total || 0;
+
+  // ✅ useCallback 优化事件处理函数
+  const handleSubmit = useCallback(async (values: { name: string; description?: string }) => {
+    if (editingRole) {
+      await updateMutation.mutateAsync({ id: editingRole.id, data: values });
+    } else {
+      await createMutation.mutateAsync({ ...values, permissionIds: [] });
     }
-  };
+    setModalVisible(false);
+    setEditingRole(null);
+    form.resetFields();
+  }, [editingRole, createMutation, updateMutation, form]);
 
-  const loadPermissions = async () => {
-    try {
-      const response = await getPermissions();
-      // 智能处理不同的响应格式
-      let data = response;
-      
-      // 如果有 success 字段，提取 data
-      if (response && typeof response === 'object' && 'success' in response) {
-        data = response.data;
-      }
-      
-      // 确保 data 是数组
-      if (Array.isArray(data)) {
-        setPermissions(data);
-      } else if (data && Array.isArray(data.data)) {
-        // 如果返回的是 {data: [...]} 格式
-        setPermissions(data.data);
-      } else {
-        console.error('权限数据格式错误:', response);
-        setPermissions([]);
-      }
-    } catch (error) {
-      console.error('加载权限失败:', error);
-      message.error('加载权限列表失败');
-      setPermissions([]);
-    }
-  };
-
-  useEffect(() => {
-    loadRoles();
-    loadPermissions();
-  }, [page, pageSize]);
-
-  const handleSubmit = async (values: { name: string; description?: string }) => {
-    try {
-      if (editingRole) {
-        await updateRole(editingRole.id, values);
-        message.success('更新角色成功');
-      } else {
-        await createRole({ ...values, permissionIds: [] });
-        message.success('创建角色成功');
-      }
-      setModalVisible(false);
-      setEditingRole(null);
-      form.resetFields();
-      loadRoles();
-    } catch (error) {
-      message.error(editingRole ? '更新角色失败' : '创建角色失败');
-    }
-  };
-
-  const handleEdit = (role: Role) => {
+  const handleEdit = useCallback((role: Role) => {
     setEditingRole(role);
     form.setFieldsValue(role);
     setModalVisible(true);
-  };
+  }, [form]);
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteRole(id);
-      message.success('删除角色成功');
-      loadRoles();
-    } catch (error) {
-      message.error('删除角色失败');
-    }
-  };
+  const handleDelete = useCallback(async (id: string) => {
+    await deleteMutation.mutateAsync(id);
+  }, [deleteMutation]);
 
-  const handleManagePermissions = (role: Role) => {
+  const handleManagePermissions = useCallback((role: Role) => {
     setSelectedRole(role);
     setSelectedPermissions(role.permissions?.map(p => p.id) || []);
     setPermissionModalVisible(true);
-  };
+  }, []);
 
-  const handleAssignPermissions = async () => {
+  const handleAssignPermissions = useCallback(async () => {
     if (!selectedRole) return;
-    try {
-      await assignPermissionsToRole(selectedRole.id, selectedPermissions);
-      message.success('权限分配成功');
-      setPermissionModalVisible(false);
-      loadRoles();
-    } catch (error) {
-      message.error('权限分配失败');
-    }
-  };
+    await assignPermissionsMutation.mutateAsync({
+      roleId: selectedRole.id,
+      permissionIds: selectedPermissions
+    });
+    setPermissionModalVisible(false);
+  }, [selectedRole, selectedPermissions, assignPermissionsMutation]);
 
-  const columns: ColumnsType<Role> = [
+  const handleCreate = useCallback(() => {
+    setEditingRole(null);
+    form.resetFields();
+    setModalVisible(true);
+  }, [form]);
+
+  const handleModalCancel = useCallback(() => {
+    setModalVisible(false);
+    setEditingRole(null);
+    form.resetFields();
+  }, [form]);
+
+  const handlePermissionModalCancel = useCallback(() => {
+    setPermissionModalVisible(false);
+  }, []);
+
+  // ✅ useMemo 优化表格列配置
+  const columns: ColumnsType<Role> = useMemo(() => [
     {
       title: '角色名称',
       dataIndex: 'name',
       key: 'name',
+      sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
       title: '描述',
@@ -142,6 +126,7 @@ const RoleList = () => {
       dataIndex: 'permissions',
       key: 'permissions',
       render: (permissions: Permission[]) => permissions?.length || 0,
+      sorter: (a, b) => (a.permissions?.length || 0) - (b.permissions?.length || 0),
     },
     {
       title: '权限',
@@ -166,6 +151,7 @@ const RoleList = () => {
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: string) => date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-',
+      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
       title: '操作',
@@ -203,20 +189,24 @@ const RoleList = () => {
         </Space>
       ),
     },
-  ];
+  ], [handleManagePermissions, handleEdit, handleDelete]);
 
-  const transferDataSource: TransferItem[] = (Array.isArray(permissions) ? permissions : []).map(p => ({
-    key: p.id,
-    title: `${p.resource}:${p.action}`,
-    description: p.description,
-  }));
+  // ✅ useMemo 优化 Transfer 数据源
+  const transferDataSource: TransferItem[] = useMemo(() =>
+    (Array.isArray(permissions) ? permissions : []).map(p => ({
+      key: p.id,
+      title: `${p.resource}:${p.action}`,
+      description: p.description,
+    })),
+    [permissions]
+  );
 
-  // 将权限转换为树形结构
-  const permissionsToTree = (): DataNode[] => {
+  // ✅ useMemo 优化树形数据结构
+  const treeData = useMemo((): DataNode[] => {
     if (!Array.isArray(permissions)) {
       return [];
     }
-    
+
     const grouped = permissions.reduce((acc, permission) => {
       if (!acc[permission.resource]) {
         acc[permission.resource] = [];
@@ -233,9 +223,7 @@ const RoleList = () => {
         key: p.id,
       })),
     }));
-  };
-
-  const treeData = permissionsToTree();
+  }, [permissions]);
 
   return (
     <div>
@@ -245,11 +233,7 @@ const RoleList = () => {
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          onClick={() => {
-            setEditingRole(null);
-            form.resetFields();
-            setModalVisible(true);
-          }}
+          onClick={handleCreate}
         >
           创建角色
         </Button>
@@ -259,7 +243,7 @@ const RoleList = () => {
         columns={columns}
         dataSource={roles}
         rowKey="id"
-        loading={loading}
+        loading={isLoading}
         pagination={{
           current: page,
           pageSize,
@@ -278,12 +262,9 @@ const RoleList = () => {
       <Modal
         title={editingRole ? '编辑角色' : '创建角色'}
         open={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          setEditingRole(null);
-          form.resetFields();
-        }}
+        onCancel={handleModalCancel}
         onOk={() => form.submit()}
+        confirmLoading={createMutation.isPending || updateMutation.isPending}
       >
         <Form form={form} onFinish={handleSubmit} layout="vertical">
           <Form.Item
@@ -304,8 +285,9 @@ const RoleList = () => {
       <Modal
         title={`配置权限 - ${selectedRole?.name}`}
         open={permissionModalVisible}
-        onCancel={() => setPermissionModalVisible(false)}
+        onCancel={handlePermissionModalCancel}
         onOk={handleAssignPermissions}
+        confirmLoading={assignPermissionsMutation.isPending}
         width={800}
       >
         <Tabs
