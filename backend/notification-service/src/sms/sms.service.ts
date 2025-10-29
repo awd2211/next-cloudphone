@@ -4,6 +4,8 @@ import { SmsProvider, SmsOptions, SmsResult } from './sms.interface';
 import { TwilioSmsProvider } from './providers/twilio.provider';
 import { AwsSnsProvider } from './providers/aws-sns.provider';
 import { MessageBirdProvider } from './providers/messagebird.provider';
+import { AliyunSmsProvider } from './providers/aliyun.provider';
+import { TencentSmsProvider } from './providers/tencent.provider';
 
 /**
  * SMS 服务主类
@@ -39,6 +41,8 @@ export class SmsService implements OnModuleInit {
     private twilioProvider: TwilioSmsProvider,
     private awsSnsProvider: AwsSnsProvider,
     private messageBirdProvider: MessageBirdProvider,
+    private aliyunProvider: AliyunSmsProvider,
+    private tencentProvider: TencentSmsProvider,
   ) {
     this.registerProviders();
     this.configureFailover();
@@ -53,9 +57,14 @@ export class SmsService implements OnModuleInit {
    * 注册所有提供商
    */
   private registerProviders(): void {
+    // 国际提供商
     this.providers.set('twilio', this.twilioProvider);
     this.providers.set('aws-sns', this.awsSnsProvider);
     this.providers.set('messagebird', this.messageBirdProvider);
+
+    // 中国本土提供商
+    this.providers.set('aliyun', this.aliyunProvider);
+    this.providers.set('tencent', this.tencentProvider);
   }
 
   /**

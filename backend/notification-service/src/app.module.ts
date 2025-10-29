@@ -18,6 +18,7 @@ import { NotificationEventsHandler } from './events/notification-events.handler'
 import { CloudphoneRabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { Notification } from './entities/notification.entity';
 import { NotificationTemplate } from './entities/notification-template.entity';
+import { NotificationPreference } from './entities/notification-preference.entity';
 import { validate } from './common/config/env.validation';
 
 @Module({
@@ -40,8 +41,8 @@ import { validate } from './common/config/env.validation';
         port: +configService.get('DB_PORT', 5432),
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'postgres'),
-        database: configService.get('DB_DATABASE', 'cloudphone_notification'),
-        entities: [Notification, NotificationTemplate],
+        database: configService.get('DB_DATABASE', 'cloudphone'),
+        entities: [Notification, NotificationTemplate, NotificationPreference],
         synchronize: false, // Disabled to prevent auto schema changes
         logging: configService.get('NODE_ENV') === 'development',
         autoLoadEntities: false,

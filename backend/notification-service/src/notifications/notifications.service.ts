@@ -6,6 +6,10 @@ import { Cache } from 'cache-manager';
 import { CreateNotificationDto } from './notification.interface';
 import { Notification, NotificationStatus, NotificationType, NotificationChannel } from '../entities/notification.entity';
 import { NotificationGateway } from '../gateway/notification.gateway';
+import { NotificationPreferencesService } from './preferences.service';
+import { NotificationChannel as PrefChannel, NotificationType as PrefType } from '../entities/notification-preference.entity';
+import { EmailService } from '../email/email.service';
+import { SmsService } from '../sms/sms.service';
 
 @Injectable()
 export class NotificationsService {
@@ -17,6 +21,9 @@ export class NotificationsService {
     private readonly gateway: NotificationGateway,
     @Inject(CACHE_MANAGER)
     private cacheManager: Cache,
+    private readonly preferencesService: NotificationPreferencesService,
+    private readonly emailService: EmailService,
+    private readonly smsService: SmsService,
   ) {}
 
   /**
@@ -219,5 +226,192 @@ export class NotificationsService {
         failed: byStatus[3],
       },
     };
+  }
+
+  /**
+   * ========== 增强的多渠道通知发送 ==========
+   * 集成用户偏好过滤和多渠道支持
+   */
+
+  /**
+   * 发送多渠道通知（带偏好过滤）
+   *
+   * @param userId - 用户ID
+   * @param type - 通知类型（来自偏好枚举）
+   * @param payload - 通知数据
+   */
+  async sendMultiChannelNotification(
+    userId: string,
+    type: PrefType,
+    payload: {
+      title: string;
+      message: string;
+      data?: any;
+      userEmail?: string;
+      userPhone?: string;
+      template?: string;
+      templateContext?: Record<string, any>;
+    },
+  ): Promise<void> {
+    try {
+      // 获取用户偏好
+      const preference = await this.preferencesService.getUserPreference(userId, type);
+
+      // 检查是否启用
+      if (!preference.enabled) {
+        this.logger.log(`Notification ${type} disabled for user ${userId}`);
+        return;
+      }
+
+      // 获取启用的渠道
+      const channels = preference.enabledChannels;
+      const promises: Promise<any>[] = [];
+
+      // 1. WebSocket 通知（站内信）
+      if (channels.includes(PrefChannel.WEBSOCKET)) {
+        const shouldSend = await this.preferencesService.shouldReceiveNotification(
+          userId,
+          type,
+          PrefChannel.WEBSOCKET,
+        );
+
+        if (shouldSend) {
+          promises.push(this.sendWebSocketNotification(userId, type, payload));
+        }
+      }
+
+      // 2. 邮件通知
+      if (channels.includes(PrefChannel.EMAIL) && payload.userEmail) {
+        const shouldSend = await this.preferencesService.shouldReceiveNotification(
+          userId,
+          type,
+          PrefChannel.EMAIL,
+        );
+
+        if (shouldSend) {
+          promises.push(
+            this.sendEmailNotification(userId, {
+              ...payload,
+              userEmail: payload.userEmail!,
+            }),
+          );
+        }
+      }
+
+      // 3. 短信通知
+      if (channels.includes(PrefChannel.SMS) && payload.userPhone) {
+        const shouldSend = await this.preferencesService.shouldReceiveNotification(
+          userId,
+          type,
+          PrefChannel.SMS,
+        );
+
+        if (shouldSend) {
+          promises.push(
+            this.sendSmsNotification(userId, {
+              ...payload,
+              userPhone: payload.userPhone!,
+            }),
+          );
+        }
+      }
+
+      // 并行发送所有渠道
+      await Promise.allSettled(promises);
+
+      this.logger.log(
+        `Multi-channel notification sent for user ${userId}, type ${type}, channels: ${channels.join(', ')}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send multi-channel notification for user ${userId}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 发送 WebSocket 通知
+   */
+  private async sendWebSocketNotification(
+    userId: string,
+    type: PrefType,
+    payload: {
+      title: string;
+      message: string;
+      data?: any;
+    },
+  ): Promise<void> {
+    const notification = await this.createAndSend({
+      userId,
+      type: this.mapToLegacyType(type) as any,
+      title: payload.title,
+      message: payload.message,
+      data: payload.data,
+    });
+
+    this.logger.log(`WebSocket notification sent: ${notification.id}`);
+  }
+
+  /**
+   * 发送邮件通知
+   */
+  private async sendEmailNotification(
+    userId: string,
+    payload: {
+      title: string;
+      message: string;
+      userEmail: string;
+      template?: string;
+      templateContext?: Record<string, any>;
+    },
+  ): Promise<void> {
+    try {
+      await this.emailService.sendEmail({
+        to: payload.userEmail,
+        subject: payload.title,
+        html: payload.template
+          ? undefined
+          : `<p>${payload.message}</p>`,
+        template: payload.template,
+        context: payload.templateContext || {
+          title: payload.title,
+          message: payload.message,
+        },
+      });
+
+      this.logger.log(`Email notification sent to ${payload.userEmail}`);
+    } catch (error) {
+      this.logger.error(`Email notification failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * 发送短信通知
+   */
+  private async sendSmsNotification(
+    userId: string,
+    payload: {
+      title: string;
+      message: string;
+      userPhone: string;
+    },
+  ): Promise<void> {
+    try {
+      await this.smsService.sendNotification(payload.userPhone, payload.message);
+
+      this.logger.log(`SMS notification sent to ${payload.userPhone}`);
+    } catch (error) {
+      this.logger.error(`SMS notification failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * 映射偏好类型到遗留通知类型
+   * TODO: 统一两个枚举
+   */
+  private mapToLegacyType(type: PrefType): string {
+    return type.replace('.', '_').toUpperCase();
   }
 }

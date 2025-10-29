@@ -23,6 +23,11 @@ export interface SmsResult {
   error?: string;
 
   /**
+   * 提供商名称
+   */
+  provider?: string;
+
+  /**
    * 原始响应（调试用）
    */
   rawResponse?: any;
@@ -114,7 +119,7 @@ export interface SmsProviderConfig {
   /**
    * 提供商类型
    */
-  provider: 'twilio' | 'aws-sns' | 'messagebird' | 'nexmo';
+  provider: 'twilio' | 'aws-sns' | 'messagebird' | 'nexmo' | 'aliyun' | 'tencent';
 
   /**
    * API 密钥
@@ -150,6 +155,26 @@ export interface SmsProviderConfig {
    * AWS Region（AWS SNS）
    */
   region?: string;
+
+  /**
+   * Access Key ID（Aliyun/Tencent - 阿里云/腾讯云）
+   */
+  accessKeyId?: string;
+
+  /**
+   * Access Key Secret（Aliyun - 阿里云）
+   */
+  accessKeySecret?: string;
+
+  /**
+   * Secret ID（Tencent - 腾讯云）
+   */
+  secretId?: string;
+
+  /**
+   * Secret Key（Tencent - 腾讯云）
+   */
+  secretKey?: string;
 
   /**
    * 是否启用

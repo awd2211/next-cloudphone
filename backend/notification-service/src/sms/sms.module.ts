@@ -5,14 +5,22 @@ import { OtpService } from './otp.service';
 import { TwilioSmsProvider } from './providers/twilio.provider';
 import { AwsSnsProvider } from './providers/aws-sns.provider';
 import { MessageBirdProvider } from './providers/messagebird.provider';
+import { AliyunSmsProvider } from './providers/aliyun.provider';
+import { TencentSmsProvider } from './providers/tencent.provider';
 
 /**
  * SMS 模块
  *
- * 集成多个海外短信服务商:
+ * 集成多个短信服务商:
+ *
+ * 国际提供商:
  * - Twilio (全球最流行)
  * - AWS SNS (AWS 生态)
  * - MessageBird (欧洲主流)
+ *
+ * 中国本土提供商:
+ * - 阿里云短信 (Aliyun SMS)
+ * - 腾讯云短信 (Tencent Cloud SMS)
  *
  * 特性:
  * - 自动故障转移
@@ -36,18 +44,23 @@ import { MessageBirdProvider } from './providers/messagebird.provider';
  * ) {}
  *
  * // 发送验证码
- * await this.otpService.sendOtp('+1234567890', OtpType.REGISTRATION);
+ * await this.otpService.sendOtp('+8613800138000', OtpType.REGISTRATION);
  *
  * // 验证验证码
- * const result = await this.otpService.verifyOtp('+1234567890', '123456', OtpType.REGISTRATION);
+ * const result = await this.otpService.verifyOtp('+8613800138000', '123456', OtpType.REGISTRATION);
  * ```
  */
 @Module({
   imports: [ConfigModule],
   providers: [
+    // 国际提供商
     TwilioSmsProvider,
     AwsSnsProvider,
     MessageBirdProvider,
+    // 中国本土提供商
+    AliyunSmsProvider,
+    TencentSmsProvider,
+    // 服务
     SmsService,
     OtpService,
   ],
