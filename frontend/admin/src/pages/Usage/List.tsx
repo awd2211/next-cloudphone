@@ -1,52 +1,58 @@
-import { useState, useEffect } from 'react';
-import { Table, Input, DatePicker, message } from 'antd';
+import { useState, useMemo, useCallback } from 'react';
+import { Table, Input, Card, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { getUsageRecords } from '@/services/billing';
+import { useUsageRecords } from '@/hooks/useUsage';
 import type { UsageRecord } from '@/types';
 import dayjs from 'dayjs';
 
 const { Search } = Input;
-const { RangePicker } = DatePicker;
 
 const UsageList = () => {
-  const [usageRecords, setUsageRecords] = useState<UsageRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [userIdFilter, setUserIdFilter] = useState<string>();
   const [deviceIdFilter, setDeviceIdFilter] = useState<string>();
 
-  const loadUsageRecords = async () => {
-    setLoading(true);
-    try {
-      const res = await getUsageRecords({
-        page,
-        pageSize,
-        userId: userIdFilter,
-        deviceId: deviceIdFilter,
-      });
-      setUsageRecords(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载使用记录失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query hooks
+  const params = useMemo(
+    () => ({
+      page,
+      pageSize,
+      userId: userIdFilter,
+      deviceId: deviceIdFilter,
+    }),
+    [page, pageSize, userIdFilter, deviceIdFilter]
+  );
 
-  useEffect(() => {
-    loadUsageRecords();
-  }, [page, pageSize, userIdFilter, deviceIdFilter]);
+  const { data, isLoading } = useUsageRecords(params);
+  const usageRecords = data?.data || [];
+  const total = data?.total || 0;
 
-  const formatDuration = (seconds: number) => {
+  // Optimized utility functions
+  const formatDuration = useCallback((seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     return `${hours}h ${minutes}m ${secs}s`;
-  };
+  }, []);
 
-  const columns: ColumnsType<UsageRecord> = [
+  const formatMemory = useCallback((usage: number) => {
+    return usage ? `${((usage || 0) / 1024).toFixed(2)} GB` : '-';
+  }, []);
+
+  const formatNetwork = useCallback((usage: number) => {
+    return usage ? `${((usage || 0) / 1024 / 1024).toFixed(2)} MB` : '-';
+  }, []);
+
+  const formatCost = useCallback((cost: number) => {
+    return `¥${(cost || 0).toFixed(2)}`;
+  }, []);
+
+  const formatCpuUsage = useCallback((usage: number) => {
+    return usage ? `${(usage || 0).toFixed(2)}%` : '-';
+  }, []);
+
+  const columns: ColumnsType<UsageRecord> = useMemo(() => [
     {
       title: '记录 ID',
       dataIndex: 'id',
@@ -96,65 +102,77 @@ const UsageList = () => {
       title: 'CPU 使用率',
       dataIndex: 'cpuUsage',
       key: 'cpuUsage',
-      render: (usage: number) => usage ? `${(usage || 0).toFixed(2)}%` : '-',
+      render: formatCpuUsage,
+      sorter: (a, b) => (a.cpuUsage || 0) - (b.cpuUsage || 0),
     },
     {
       title: '内存使用',
       dataIndex: 'memoryUsage',
       key: 'memoryUsage',
-      render: (usage: number) => usage ? `${((usage || 0) / 1024).toFixed(2)} GB` : '-',
+      render: formatMemory,
+      sorter: (a, b) => (a.memoryUsage || 0) - (b.memoryUsage || 0),
     },
     {
       title: '流量使用',
       dataIndex: 'networkUsage',
       key: 'networkUsage',
-      render: (usage: number) => usage ? `${((usage || 0) / 1024 / 1024).toFixed(2)} MB` : '-',
+      render: formatNetwork,
+      sorter: (a, b) => (a.networkUsage || 0) - (b.networkUsage || 0),
     },
     {
       title: '费用',
       dataIndex: 'cost',
       key: 'cost',
-      render: (cost: number) => `¥${(cost || 0).toFixed(2)}`,
+      render: formatCost,
+      sorter: (a, b) => (a.cost || 0) - (b.cost || 0),
     },
-  ];
+  ], [formatDuration, formatCpuUsage, formatMemory, formatNetwork, formatCost]);
 
   return (
-    <div>
-      <h2>使用记录</h2>
+    <div style={{ padding: '24px' }}>
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Card>
+          <h2 style={{ margin: 0 }}>使用记录</h2>
+        </Card>
 
-      <div style={{ marginBottom: 16, display: 'flex', gap: 16 }}>
-        <Search
-          placeholder="用户 ID"
-          style={{ width: 200 }}
-          onSearch={(value) => setUserIdFilter(value || undefined)}
-          allowClear
-        />
-        <Search
-          placeholder="设备 ID"
-          style={{ width: 200 }}
-          onSearch={(value) => setDeviceIdFilter(value || undefined)}
-          allowClear
-        />
-      </div>
+        <Card>
+          <Space size="middle">
+            <Search
+              placeholder="用户 ID"
+              style={{ width: 200 }}
+              onSearch={(value) => setUserIdFilter(value || undefined)}
+              allowClear
+            />
+            <Search
+              placeholder="设备 ID"
+              style={{ width: 200 }}
+              onSearch={(value) => setDeviceIdFilter(value || undefined)}
+              allowClear
+            />
+          </Space>
+        </Card>
 
-      <Table
-        columns={columns}
-        dataSource={usageRecords}
-        rowKey="id"
-        loading={loading}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`,
-          onChange: (page, pageSize) => {
-            setPage(page);
-            setPageSize(pageSize);
-          },
-        }}
-        scroll={{ x: 1600 }}
-      />
+        <Card>
+          <Table
+            columns={columns}
+            dataSource={usageRecords}
+            rowKey="id"
+            loading={isLoading}
+            pagination={{
+              current: page,
+              pageSize,
+              total,
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条`,
+              onChange: (page, pageSize) => {
+                setPage(page);
+                setPageSize(pageSize);
+              },
+            }}
+            scroll={{ x: 1600 }}
+          />
+        </Card>
+      </Space>
     </div>
   );
 };
