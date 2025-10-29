@@ -67,13 +67,13 @@ export class BatchOperationsService {
       promises.push(
         limit(async () => {
           try {
-            const device = await this.devicesService.create(createDto);
+            const { sagaId, device } = await this.devicesService.create(createDto);
             results[deviceName] = {
               success: true,
-              data: { id: device.id, name: device.name },
+              data: { id: device.id, name: device.name, sagaId },
             };
             successCount++;
-            this.logger.debug(`Device ${deviceName} created successfully`);
+            this.logger.debug(`Device ${deviceName} created successfully (Saga: ${sagaId})`);
           } catch (error) {
             results[deviceName] = {
               success: false,

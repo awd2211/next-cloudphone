@@ -29,6 +29,7 @@ import {
   createLoggerConfig,
   EventBusService,
   RequestIdMiddleware,
+  SagaModule,
 } from "@cloudphone/shared";
 import { validate } from "./common/config/env.validation";
 import { DeviceRabbitMQModule } from "./rabbitmq/rabbitmq.module";
@@ -79,6 +80,7 @@ import { DeviceRabbitMQModule } from "./rabbitmq/rabbitmq.module";
     LifecycleModule, // 生命周期自动化
     FailoverModule, // 故障转移和自动恢复
     StateRecoveryModule, // 状态自愈和回滚
+    SagaModule, // Saga 编排模块（用于分布式事务）
   ],
   controllers: [HealthController],
   providers: [], // EventBusService 由 EventBusModule 提供

@@ -172,7 +172,7 @@ export class TemplatesService {
     };
 
     // 创建设备
-    const device = await this.devicesService.create(createDeviceDto);
+    const { sagaId, device } = await this.devicesService.create(createDeviceDto);
 
     // 执行模板初始化（异步）
     this.executeTemplateInit(device.id, template).catch((error) => {
@@ -181,7 +181,7 @@ export class TemplatesService {
       );
     });
 
-    return device;
+    return { sagaId, device };
   }
 
   /**

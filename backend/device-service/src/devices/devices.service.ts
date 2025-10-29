@@ -1,6 +1,6 @@
 import { Injectable, Logger, Optional, HttpStatus, Inject } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { InjectRepository, InjectDataSource } from "@nestjs/typeorm";
+import { Repository, DataSource } from "typeorm";
 import { ConfigService } from "@nestjs/config";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ModuleRef } from "@nestjs/core";
@@ -19,6 +19,10 @@ import {
   BusinessErrors,
   BusinessException,
   BusinessErrorCode,
+  SagaOrchestratorService,
+  SagaDefinition,
+  SagaType,
+  SagaStep,
 } from "@cloudphone/shared";
 import { QuotaClientService } from "../quota/quota-client.service";
 import { CacheService } from "../cache/cache.service";
@@ -46,6 +50,9 @@ export class DevicesService {
     @Optional() private quotaClient: QuotaClientService,
     private cacheService: CacheService,
     private moduleRef: ModuleRef, // ✅ 用于延迟获取服务
+    private sagaOrchestrator: SagaOrchestratorService,
+    @InjectDataSource()
+    private dataSource: DataSource,
   ) {}
 
   // ✅ 延迟获取 DevicePoolService 和 ScrcpyService (避免循环依赖)
@@ -59,159 +66,411 @@ export class DevicesService {
     return this.moduleRef.get(ScrcpyService, { strict: false });
   }
 
-  async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
+  /**
+   * ✅ 创建设备（使用 Saga 模式保证原子性）
+   *
+   * 流程：
+   * 1. ALLOCATE_PORTS - 分配端口（仅 Redroid）
+   * 2. CREATE_PROVIDER_DEVICE - 调用 Provider 创建设备
+   * 3. CREATE_DATABASE_RECORD - 创建数据库记录
+   * 4. REPORT_QUOTA_USAGE - 上报配额使用
+   * 5. START_DEVICE - 启动设备
+   */
+  async create(createDeviceDto: CreateDeviceDto): Promise<{ sagaId: string; device: Device }> {
     this.logger.log(`Creating device for user ${createDeviceDto.userId}`);
 
     // 确定 Provider 类型（默认 Redroid）
-    const providerType =
-      createDeviceDto.providerType || DeviceProviderType.REDROID;
+    const providerType = createDeviceDto.providerType || DeviceProviderType.REDROID;
     const provider = this.providerFactory.getProvider(providerType);
 
     this.logger.debug(`Using provider: ${providerType}`);
 
-    // 1. 分配端口（仅 Redroid 需要）
-    let ports: { adbPort: number; webrtcPort?: number } | null = null;
-    if (providerType === DeviceProviderType.REDROID) {
-      ports = await this.portManager.allocatePorts();
-      this.logger.debug(
-        `Allocated ports: ADB=${ports.adbPort}, WebRTC=${ports.webrtcPort}`,
-      );
-    }
+    // 定义设备创建 Saga
+    const deviceCreationSaga: SagaDefinition = {
+      type: SagaType.DEVICE_CREATION,
+      timeoutMs: 600000, // 10 分钟超时
+      maxRetries: 3,
+      steps: [
+        // ========== Step 1: 分配端口（仅 Redroid） ==========
+        {
+          name: 'ALLOCATE_PORTS',
+          execute: async (state: any) => {
+            if (providerType !== DeviceProviderType.REDROID) {
+              this.logger.debug(`Skipping port allocation for ${providerType}`);
+              return { portsAllocated: false, ports: null };
+            }
+
+            this.logger.log(`[SAGA] Step 1: Allocating ports for Redroid device`);
+
+            const ports = await this.portManager.allocatePorts();
+
+            this.logger.log(
+              `[SAGA] Ports allocated: ADB=${ports.adbPort}, WebRTC=${ports.webrtcPort}`,
+            );
+
+            return { portsAllocated: true, ports };
+          },
+          compensate: async (state: any) => {
+            if (!state.portsAllocated || !state.ports) {
+              return;
+            }
+
+            this.logger.warn(`[SAGA] Compensate: Releasing allocated ports`);
+
+            try {
+              this.portManager.releasePorts(state.ports);
+              this.logger.log(`[SAGA] Ports released: ADB=${state.ports.adbPort}`);
+            } catch (error) {
+              this.logger.error(`[SAGA] Failed to release ports`, error.stack);
+            }
+          },
+        } as SagaStep,
+
+        // ========== Step 2: 调用 Provider 创建设备 ==========
+        {
+          name: 'CREATE_PROVIDER_DEVICE',
+          execute: async (state: any) => {
+            this.logger.log(`[SAGA] Step 2: Creating device via ${providerType} provider`);
+
+            const providerConfig: DeviceCreateConfig = {
+              name: `cloudphone-${createDeviceDto.name}`,
+              userId: createDeviceDto.userId,
+              cpuCores: createDeviceDto.cpuCores || 2,
+              memoryMB: createDeviceDto.memoryMB || 4096,
+              storageMB: createDeviceDto.storageMB || 10240,
+              resolution: createDeviceDto.resolution || "1920x1080",
+              dpi: createDeviceDto.dpi || 240,
+              androidVersion: createDeviceDto.androidVersion || "11",
+              deviceType: createDeviceDto.type === "tablet" ? "tablet" : "phone",
+              // Redroid 特定配置
+              adbPort: state.ports?.adbPort,
+              enableGpu: this.configService.get("REDROID_ENABLE_GPU", "false") === "true",
+              enableAudio: this.configService.get("REDROID_ENABLE_AUDIO", "false") === "true",
+              // Provider 特定配置
+              providerSpecificConfig: createDeviceDto.providerSpecificConfig,
+            };
+
+            const providerDevice = await provider.create(providerConfig);
+
+            this.logger.log(
+              `[SAGA] Provider device created: ${providerDevice.id} (status: ${providerDevice.status})`,
+            );
+
+            return { providerDevice };
+          },
+          compensate: async (state: any) => {
+            if (!state.providerDevice) {
+              return;
+            }
+
+            this.logger.warn(
+              `[SAGA] Compensate: Destroying provider device ${state.providerDevice.id}`,
+            );
+
+            try {
+              // 物理设备：释放回池
+              if (providerType === DeviceProviderType.PHYSICAL) {
+                const poolService = await this.getDevicePoolService();
+                await poolService.releaseDevice(state.providerDevice.id);
+                this.logger.log(`[SAGA] Released physical device back to pool`);
+              }
+              // 其他设备：调用 Provider 销毁
+              else {
+                await provider.destroy(state.providerDevice.id);
+                this.logger.log(`[SAGA] Provider device destroyed`);
+              }
+            } catch (error) {
+              this.logger.error(
+                `[SAGA] Failed to destroy provider device ${state.providerDevice.id}`,
+                error.stack,
+              );
+            }
+          },
+        } as SagaStep,
+
+        // ========== Step 3: 创建数据库记录 ==========
+        {
+          name: 'CREATE_DATABASE_RECORD',
+          execute: async (state: any) => {
+            this.logger.log(`[SAGA] Step 3: Creating database record`);
+
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              const deviceRepository = queryRunner.manager.getRepository(Device);
+
+              const device = deviceRepository.create({
+                ...createDeviceDto,
+                providerType,
+                externalId: state.providerDevice.id,
+                connectionInfo: state.providerDevice.connectionInfo,
+                providerConfig: state.providerDevice.providerConfig,
+                status: DeviceStatus.CREATING, // 初始状态 CREATING
+                // Redroid 兼容字段
+                containerId:
+                  providerType === DeviceProviderType.REDROID
+                    ? state.providerDevice.id
+                    : null,
+                containerName:
+                  providerType === DeviceProviderType.REDROID
+                    ? state.providerDevice.name
+                    : null,
+                adbPort: state.providerDevice.connectionInfo.adb?.port || null,
+                adbHost: state.providerDevice.connectionInfo.adb?.host || null,
+                metadata: {
+                  ...createDeviceDto.metadata,
+                  webrtcPort: state.ports?.webrtcPort,
+                  createdBy: "system",
+                },
+              });
+
+              const savedDevice = await deviceRepository.save(device);
+
+              await queryRunner.commitTransaction();
+
+              this.logger.log(`[SAGA] Database record created: ${savedDevice.id}`);
+
+              return { deviceId: savedDevice.id };
+            } catch (error) {
+              await queryRunner.rollbackTransaction();
+              throw error;
+            } finally {
+              await queryRunner.release();
+            }
+          },
+          compensate: async (state: any) => {
+            if (!state.deviceId) {
+              return;
+            }
+
+            this.logger.warn(`[SAGA] Compensate: Deleting database record ${state.deviceId}`);
+
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              await queryRunner.manager.delete(Device, { id: state.deviceId });
+              await queryRunner.commitTransaction();
+
+              this.logger.log(`[SAGA] Database record deleted`);
+
+              // 清除缓存
+              await this.cacheService.del(CacheKeys.device(state.deviceId));
+            } catch (error) {
+              await queryRunner.rollbackTransaction();
+              this.logger.error(
+                `[SAGA] Failed to delete database record ${state.deviceId}`,
+                error.stack,
+              );
+            } finally {
+              await queryRunner.release();
+            }
+          },
+        } as SagaStep,
+
+        // ========== Step 4: 上报配额使用 ==========
+        {
+          name: 'REPORT_QUOTA_USAGE',
+          execute: async (state: any) => {
+            if (!this.quotaClient || !createDeviceDto.userId) {
+              this.logger.debug(`[SAGA] Skipping quota reporting (no quota client or userId)`);
+              return { quotaReported: false };
+            }
+
+            this.logger.log(`[SAGA] Step 4: Reporting quota usage`);
+
+            await this.quotaClient.reportDeviceUsage(createDeviceDto.userId, {
+              deviceId: state.deviceId,
+              cpuCores: createDeviceDto.cpuCores || 2,
+              memoryGB: (createDeviceDto.memoryMB || 4096) / 1024,
+              storageGB: (createDeviceDto.storageMB || 10240) / 1024,
+              operation: "increment",
+            });
+
+            this.logger.log(`[SAGA] Quota usage reported`);
+
+            return { quotaReported: true };
+          },
+          compensate: async (state: any) => {
+            if (!state.quotaReported || !this.quotaClient || !createDeviceDto.userId) {
+              return;
+            }
+
+            this.logger.warn(`[SAGA] Compensate: Rolling back quota usage`);
+
+            try {
+              await this.quotaClient.reportDeviceUsage(createDeviceDto.userId, {
+                deviceId: state.deviceId,
+                cpuCores: createDeviceDto.cpuCores || 2,
+                memoryGB: (createDeviceDto.memoryMB || 4096) / 1024,
+                storageGB: (createDeviceDto.storageMB || 10240) / 1024,
+                operation: "decrement",
+              });
+
+              this.logger.log(`[SAGA] Quota usage rolled back`);
+            } catch (error) {
+              this.logger.error(`[SAGA] Failed to rollback quota usage`, error.stack);
+            }
+          },
+        } as SagaStep,
+
+        // ========== Step 5: 启动设备 ==========
+        {
+          name: 'START_DEVICE',
+          execute: async (state: any) => {
+            this.logger.log(`[SAGA] Step 5: Starting device ${state.deviceId}`);
+
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              const deviceRepository = queryRunner.manager.getRepository(Device);
+              const device = await deviceRepository.findOne({ where: { id: state.deviceId } });
+
+              if (!device) {
+                throw new Error(`Device ${state.deviceId} not found`);
+              }
+
+              // 启动设备逻辑（异步执行）
+              if (providerType === DeviceProviderType.REDROID) {
+                // Redroid: 异步启动容器
+                this.startDeviceAsync(device, provider).catch(async (error) => {
+                  this.logger.error(
+                    `Failed to start device ${device.id}`,
+                    error.stack,
+                  );
+                  await this.updateDeviceStatus(device.id, DeviceStatus.ERROR);
+                });
+              } else if (providerType === DeviceProviderType.PHYSICAL) {
+                // 物理设备: 启动 SCRCPY 会话
+                this.startPhysicalDeviceAsync(device).catch(async (error) => {
+                  this.logger.error(
+                    `Failed to start SCRCPY for physical device ${device.id}`,
+                    error.stack,
+                  );
+                  await this.updateDeviceStatus(device.id, DeviceStatus.ERROR);
+                });
+              }
+
+              await queryRunner.commitTransaction();
+
+              this.logger.log(`[SAGA] Device ${state.deviceId} start initiated`);
+
+              return { deviceStarted: true };
+            } catch (error) {
+              await queryRunner.rollbackTransaction();
+              throw error;
+            } finally {
+              await queryRunner.release();
+            }
+          },
+          compensate: async (state: any) => {
+            if (!state.deviceStarted || !state.deviceId) {
+              return;
+            }
+
+            this.logger.warn(`[SAGA] Compensate: Stopping device ${state.deviceId}`);
+
+            try {
+              // 尝试停止设备
+              const device = await this.devicesRepository.findOne({
+                where: { id: state.deviceId },
+              });
+
+              if (device && device.externalId) {
+                // 物理设备：停止 SCRCPY 会话
+                if (providerType === DeviceProviderType.PHYSICAL) {
+                  const scrcpyService = await this.getScrcpyService();
+                  await scrcpyService.stopSession(device.id);
+                }
+
+                // 调用 Provider 停止设备
+                await provider.stop(device.externalId);
+
+                this.logger.log(`[SAGA] Device stopped`);
+              }
+
+              // 更新设备状态为 STOPPED
+              await this.devicesRepository.update(state.deviceId, {
+                status: DeviceStatus.STOPPED,
+              });
+            } catch (error) {
+              this.logger.error(
+                `[SAGA] Failed to stop device ${state.deviceId}`,
+                error.stack,
+              );
+            }
+          },
+        } as SagaStep,
+      ],
+    };
+
+    // 执行 Saga
+    const sagaId = await this.sagaOrchestrator.executeSaga(deviceCreationSaga, {
+      createDeviceDto,
+      providerType,
+    });
+
+    this.logger.log(`Device creation Saga initiated: ${sagaId}`);
+
+    // 等待数据库记录创建完成（Step 3）
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // 查询创建的设备（可能还在 CREATING 状态）
+    let device: Device | null = null;
 
     try {
-      // 2. 调用 Provider 创建设备
-      const providerConfig: DeviceCreateConfig = {
-        name: `cloudphone-${createDeviceDto.name}`,
-        userId: createDeviceDto.userId,
-        cpuCores: createDeviceDto.cpuCores || 2,
-        memoryMB: createDeviceDto.memoryMB || 4096,
-        storageMB: createDeviceDto.storageMB || 10240,
-        resolution: createDeviceDto.resolution || "1920x1080",
-        dpi: createDeviceDto.dpi || 240,
-        androidVersion: createDeviceDto.androidVersion || "11",
-        deviceType: createDeviceDto.type === "tablet" ? "tablet" : "phone",
-        // Redroid 特定配置
-        adbPort: ports?.adbPort,
-        enableGpu:
-          this.configService.get("REDROID_ENABLE_GPU", "false") === "true",
-        enableAudio:
-          this.configService.get("REDROID_ENABLE_AUDIO", "false") === "true",
-        // ✅ Provider 特定配置（华为/阿里云等）
-        providerSpecificConfig: createDeviceDto.providerSpecificConfig,
-      };
-
-      const providerDevice = await provider.create(providerConfig);
-
-      // 3. 创建数据库记录
-      const device = this.devicesRepository.create({
-        ...createDeviceDto,
-        providerType, // ✅ 新字段
-        externalId: providerDevice.id, // ✅ Provider 侧 ID
-        connectionInfo: providerDevice.connectionInfo, // ✅ 连接信息
-        providerConfig: providerDevice.providerConfig, // ✅ Provider 配置
-        status: this.mapProviderStatusToDeviceStatus(providerDevice.status),
-        // Redroid 兼容字段
-        containerId:
-          providerType === DeviceProviderType.REDROID
-            ? providerDevice.id
-            : null,
-        containerName:
-          providerType === DeviceProviderType.REDROID
-            ? providerDevice.name
-            : null,
-        adbPort: providerDevice.connectionInfo.adb?.port || null,
-        adbHost: providerDevice.connectionInfo.adb?.host || null,
-        metadata: {
-          ...createDeviceDto.metadata,
-          webrtcPort: ports?.webrtcPort,
-          createdBy: "system",
+      // 尝试通过 externalId 查找（因为 deviceId 在 state 中）
+      device = await this.devicesRepository.findOne({
+        where: {
+          userId: createDeviceDto.userId,
+          name: createDeviceDto.name,
+          status: DeviceStatus.CREATING,
         },
+        order: { createdAt: 'DESC' },
       });
-
-      const savedDevice = await this.devicesRepository.save(device);
-      this.logger.log(
-        `Device created: ${savedDevice.id} (Provider: ${providerType}, External ID: ${providerDevice.id})`,
-      );
-
-      // 4. 上报用量到配额系统
-      if (this.quotaClient && savedDevice.userId) {
-        await this.quotaClient
-          .reportDeviceUsage(savedDevice.userId, {
-            deviceId: savedDevice.id,
-            cpuCores: savedDevice.cpuCores,
-            memoryGB: savedDevice.memoryMB / 1024,
-            storageGB: savedDevice.storageMB / 1024,
-            operation: "increment",
-          })
-          .catch((error) => {
-            this.logger.warn(
-              `Failed to report usage for device ${savedDevice.id}`,
-              error.message,
-            );
-          });
-      }
-
-      // 5. 启动设备（不同 Provider 需要不同处理）
-      if (providerType === DeviceProviderType.REDROID) {
-        // Redroid: 异步启动容器
-        this.startDeviceAsync(savedDevice, provider).catch(async (error) => {
-          this.logger.error(
-            `Failed to start device ${savedDevice.id}`,
-            error.stack,
-          );
-
-          // 释放端口
-          if (ports) {
-            this.portManager.releasePorts(ports);
-          }
-
-          // 更新状态
-          await this.updateDeviceStatus(savedDevice.id, DeviceStatus.ERROR);
-        });
-      } else if (providerType === DeviceProviderType.PHYSICAL) {
-        // ✅ 物理设备: 启动 SCRCPY 会话
-        this.startPhysicalDeviceAsync(savedDevice).catch(async (error) => {
-          this.logger.error(
-            `Failed to start SCRCPY for physical device ${savedDevice.id}`,
-            error.stack,
-          );
-
-          // 释放设备回池
-          try {
-            const poolService = await this.getDevicePoolService();
-            await poolService.releaseDevice(savedDevice.externalId);
-          } catch (releaseError) {
-            this.logger.error(
-              `Failed to release device ${savedDevice.externalId} back to pool`,
-              releaseError,
-            );
-          }
-
-          // 更新状态
-          await this.updateDeviceStatus(savedDevice.id, DeviceStatus.ERROR);
-        });
-      }
-
-      // 6. 发布设备创建事件
-      if (this.eventBus) {
-        await this.eventBus.publishDeviceEvent("created", {
-          deviceId: savedDevice.id,
-          userId: savedDevice.userId,
-          deviceName: savedDevice.name,
-          status: savedDevice.status,
-          tenantId: savedDevice.tenantId,
-          providerType, // ✅ 新字段
-        });
-      }
-
-      return savedDevice;
     } catch (error) {
-      // 创建失败，释放端口
-      if (ports) {
-        this.portManager.releasePorts(ports);
-      }
-      throw error;
+      this.logger.warn(`Failed to find newly created device`, error.message);
     }
+
+    if (!device) {
+      this.logger.warn(`Device not found immediately after Saga initiation, returning placeholder`);
+
+      // 返回一个占位符设备对象
+      device = {
+        id: 'pending',
+        name: createDeviceDto.name,
+        status: DeviceStatus.CREATING,
+        userId: createDeviceDto.userId,
+        tenantId: createDeviceDto.tenantId,
+        providerType,
+      } as any;
+    }
+
+    // 异步发布设备创建事件（在 Saga 成功后）
+    setImmediate(async () => {
+      if (this.eventBus && device && device.id !== 'pending') {
+        try {
+          await this.eventBus.publishDeviceEvent("created", {
+            deviceId: device.id,
+            userId: device.userId,
+            deviceName: device.name,
+            status: device.status,
+            tenantId: device.tenantId,
+            providerType,
+            sagaId,
+          });
+        } catch (error) {
+          this.logger.error(`Failed to publish device created event`, error.stack);
+        }
+      }
+    });
+
+    return { sagaId, device };
   }
 
   /**

@@ -53,17 +53,20 @@ export class DevicesController {
   @QuotaCheck(QuotaCheckType.DEVICE_CREATION)
   @ApiOperation({
     summary: "创建设备",
-    description: "创建新的云手机设备，自动创建 Docker 容器（需检查配额）",
+    description: "创建新的云手机设备，使用 Saga 模式保证原子性（需检查配额）",
   })
-  @ApiResponse({ status: 201, description: "设备创建中" })
+  @ApiResponse({ status: 201, description: "设备创建 Saga 已启动" })
   @ApiResponse({ status: 400, description: "请求参数错误" })
   @ApiResponse({ status: 403, description: "权限不足或配额超限" })
   async create(@Body() createDeviceDto: CreateDeviceDto) {
-    const device = await this.devicesService.create(createDeviceDto);
+    const { sagaId, device } = await this.devicesService.create(createDeviceDto);
     return {
       success: true,
-      data: device,
-      message: "设备创建中，请稍候...",
+      data: {
+        sagaId,
+        device,
+      },
+      message: "设备创建 Saga 已启动，请稍候...",
     };
   }
 
