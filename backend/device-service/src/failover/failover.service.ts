@@ -1,34 +1,37 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, Not } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { ConfigService } from '@nestjs/config';
-import { Device, DeviceStatus } from '../entities/device.entity';
-import { DeviceSnapshot, SnapshotStatus } from '../entities/device-snapshot.entity';
-import { DockerService } from '../docker/docker.service';
-import { SnapshotsService } from '../snapshots/snapshots.service';
-import { PortManagerService } from '../port-manager/port-manager.service';
-import { EventBusService } from '@cloudphone/shared';
-import { RetryService } from '../common/retry.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, In, Not } from "typeorm";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { ConfigService } from "@nestjs/config";
+import { Device, DeviceStatus } from "../entities/device.entity";
+import {
+  DeviceSnapshot,
+  SnapshotStatus,
+} from "../entities/device-snapshot.entity";
+import { DockerService } from "../docker/docker.service";
+import { SnapshotsService } from "../snapshots/snapshots.service";
+import { PortManagerService } from "../port-manager/port-manager.service";
+import { EventBusService } from "@cloudphone/shared";
+import { RetryService } from "../common/retry.service";
 
 /**
  * 故障类型
  */
 export enum FailureType {
-  CONTAINER_DEAD = 'container_dead',
-  CONTAINER_UNHEALTHY = 'container_unhealthy',
-  HEARTBEAT_TIMEOUT = 'heartbeat_timeout',
-  HIGH_ERROR_RATE = 'high_error_rate',
-  RESOURCE_EXHAUSTED = 'resource_exhausted',
+  CONTAINER_DEAD = "container_dead",
+  CONTAINER_UNHEALTHY = "container_unhealthy",
+  HEARTBEAT_TIMEOUT = "heartbeat_timeout",
+  HIGH_ERROR_RATE = "high_error_rate",
+  RESOURCE_EXHAUSTED = "resource_exhausted",
 }
 
 /**
  * 迁移策略
  */
 export enum MigrationStrategy {
-  RECREATE = 'recreate', // 重新创建容器
-  RESTORE_FROM_SNAPSHOT = 'restore_from_snapshot', // 从快照恢复
-  RESTART_CONTAINER = 'restart_container', // 重启容器
+  RECREATE = "recreate", // 重新创建容器
+  RESTORE_FROM_SNAPSHOT = "restore_from_snapshot", // 从快照恢复
+  RESTART_CONTAINER = "restart_container", // 重启容器
 }
 
 /**
@@ -37,7 +40,7 @@ export enum MigrationStrategy {
 export interface FailureDetectionResult {
   deviceId: string;
   failureType: FailureType;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
   details: string;
   timestamp: Date;
   metadata?: Record<string, any>;
@@ -93,34 +96,36 @@ export class FailoverService {
     private configService: ConfigService,
   ) {
     this.config = {
-      enabled: this.configService.get<boolean>('FAILOVER_ENABLED', true),
+      enabled: this.configService.get<boolean>("FAILOVER_ENABLED", true),
       heartbeatTimeoutMinutes: this.configService.get<number>(
-        'FAILOVER_HEARTBEAT_TIMEOUT_MINUTES',
+        "FAILOVER_HEARTBEAT_TIMEOUT_MINUTES",
         10,
       ),
       maxConsecutiveFailures: this.configService.get<number>(
-        'FAILOVER_MAX_CONSECUTIVE_FAILURES',
+        "FAILOVER_MAX_CONSECUTIVE_FAILURES",
         3,
       ),
       autoRecreateEnabled: this.configService.get<boolean>(
-        'FAILOVER_AUTO_RECREATE_ENABLED',
+        "FAILOVER_AUTO_RECREATE_ENABLED",
         true,
       ),
       snapshotRecoveryEnabled: this.configService.get<boolean>(
-        'FAILOVER_SNAPSHOT_RECOVERY_ENABLED',
+        "FAILOVER_SNAPSHOT_RECOVERY_ENABLED",
         true,
       ),
       maxRecoveryAttempts: this.configService.get<number>(
-        'FAILOVER_MAX_RECOVERY_ATTEMPTS',
+        "FAILOVER_MAX_RECOVERY_ATTEMPTS",
         3,
       ),
       cooldownMinutes: this.configService.get<number>(
-        'FAILOVER_COOLDOWN_MINUTES',
+        "FAILOVER_COOLDOWN_MINUTES",
         15,
       ),
     };
 
-    this.logger.log(`FailoverService initialized: ${JSON.stringify(this.config)}`);
+    this.logger.log(
+      `FailoverService initialized: ${JSON.stringify(this.config)}`,
+    );
   }
 
   /**
@@ -132,7 +137,7 @@ export class FailoverService {
       return;
     }
 
-    this.logger.log('Starting failure detection and recovery');
+    this.logger.log("Starting failure detection and recovery");
 
     try {
       // 1. 检测心跳超时的设备
@@ -157,7 +162,9 @@ export class FailoverService {
         await this.handleDeviceFailure(failure);
       }
     } catch (error) {
-      this.logger.error(`Failure detection and recovery failed: ${error.message}`);
+      this.logger.error(
+        `Failure detection and recovery failed: ${error.message}`,
+      );
     }
   }
 
@@ -170,12 +177,12 @@ export class FailoverService {
     );
 
     const devices = await this.deviceRepository
-      .createQueryBuilder('device')
-      .where('device.status IN (:...statuses)', {
+      .createQueryBuilder("device")
+      .where("device.status IN (:...statuses)", {
         statuses: [DeviceStatus.RUNNING, DeviceStatus.ALLOCATED],
       })
       .andWhere(
-        '(device.lastHeartbeatAt IS NULL OR device.lastHeartbeatAt < :threshold)',
+        "(device.lastHeartbeatAt IS NULL OR device.lastHeartbeatAt < :threshold)",
         { threshold: timeoutThreshold },
       )
       .getMany();
@@ -183,7 +190,7 @@ export class FailoverService {
     return devices.map((device) => ({
       deviceId: device.id,
       failureType: FailureType.HEARTBEAT_TIMEOUT,
-      severity: 'high',
+      severity: "high",
       details: `Device heartbeat timeout (last: ${device.lastHeartbeatAt})`,
       timestamp: new Date(),
       metadata: {
@@ -213,11 +220,14 @@ export class FailoverService {
         );
 
         // 检查容器是否已停止
-        if (containerInfo.State.Status === 'exited' || containerInfo.State.Dead) {
+        if (
+          containerInfo.State.Status === "exited" ||
+          containerInfo.State.Dead
+        ) {
           failures.push({
             deviceId: device.id,
             failureType: FailureType.CONTAINER_DEAD,
-            severity: 'critical',
+            severity: "critical",
             details: `Container is ${containerInfo.State.Status}`,
             timestamp: new Date(),
             metadata: {
@@ -229,13 +239,13 @@ export class FailoverService {
         // 检查容器健康状态
         else if (
           containerInfo.State.Health &&
-          containerInfo.State.Health.Status === 'unhealthy'
+          containerInfo.State.Health.Status === "unhealthy"
         ) {
           failures.push({
             deviceId: device.id,
             failureType: FailureType.CONTAINER_UNHEALTHY,
-            severity: 'high',
-            details: 'Container health check failed',
+            severity: "high",
+            details: "Container health check failed",
             timestamp: new Date(),
             metadata: {
               healthLogs: containerInfo.State.Health.Log?.slice(-3),
@@ -250,7 +260,7 @@ export class FailoverService {
         failures.push({
           deviceId: device.id,
           failureType: FailureType.CONTAINER_DEAD,
-          severity: 'critical',
+          severity: "critical",
           details: `Container not found: ${error.message}`,
           timestamp: new Date(),
         });
@@ -271,8 +281,8 @@ export class FailoverService {
     return devices.map((device) => ({
       deviceId: device.id,
       failureType: FailureType.HIGH_ERROR_RATE,
-      severity: 'medium',
-      details: 'Device is in error state',
+      severity: "medium",
+      details: "Device is in error state",
       timestamp: new Date(),
       metadata: {
         deviceName: device.name,
@@ -328,7 +338,7 @@ export class FailoverService {
 
       // 发布事件
       if (migrationResult.success) {
-        this.eventBusService.publishDeviceEvent('recovery_success', {
+        this.eventBusService.publishDeviceEvent("recovery_success", {
           deviceId: failure.deviceId,
           failureType: failure.failureType,
           strategy: migrationResult.strategy,
@@ -339,7 +349,7 @@ export class FailoverService {
         // 清除故障历史
         this.failureHistory.delete(failure.deviceId);
       } else {
-        this.eventBusService.publishDeviceEvent('recovery_failed', {
+        this.eventBusService.publishDeviceEvent("recovery_failed", {
           deviceId: failure.deviceId,
           failureType: failure.failureType,
           strategy: migrationResult.strategy,
@@ -372,7 +382,7 @@ export class FailoverService {
         deviceId: failure.deviceId,
         strategy: MigrationStrategy.RECREATE,
         duration: Date.now() - startTime,
-        error: 'Device not found',
+        error: "Device not found",
         recoveryAttempts: 1,
       };
     }
@@ -448,11 +458,12 @@ export class FailoverService {
 
     try {
       await this.retryService.executeWithRetry(
-        async () => await this.dockerService.restartContainer(device.containerId),
+        async () =>
+          await this.dockerService.restartContainer(device.containerId),
         {
-          operation: 'restartContainer',
+          operation: "restartContainer",
           entityId: device.id,
-          entityType: 'device',
+          entityType: "device",
         },
         { maxAttempts: 3, baseDelayMs: 2000 },
       );
@@ -493,7 +504,7 @@ export class FailoverService {
           deviceId: device.id,
           status: SnapshotStatus.READY,
         },
-        order: { createdAt: 'DESC' },
+        order: { createdAt: "DESC" },
       });
 
       if (!snapshot) {
@@ -569,9 +580,9 @@ export class FailoverService {
             androidVersion: device.androidVersion,
           }),
         {
-          operation: 'recreateDevice',
+          operation: "recreateDevice",
           entityId: device.id,
-          entityType: 'device',
+          entityType: "device",
         },
         { maxAttempts: 3, baseDelayMs: 3000 },
       );
@@ -654,7 +665,7 @@ export class FailoverService {
         { status: DeviceStatus.ERROR },
       );
 
-      this.eventBusService.publishDeviceEvent('permanent_failure', {
+      this.eventBusService.publishDeviceEvent("permanent_failure", {
         deviceId,
         timestamp: new Date(),
       });
@@ -680,8 +691,8 @@ export class FailoverService {
     const failure: FailureDetectionResult = {
       deviceId,
       failureType: FailureType.HIGH_ERROR_RATE,
-      severity: 'medium',
-      details: 'Manual recovery triggered',
+      severity: "medium",
+      details: "Manual recovery triggered",
       timestamp: new Date(),
     };
 
@@ -742,7 +753,9 @@ export class FailoverService {
     const activeFailures = this.failureHistory.size;
 
     const totalMigrations = this.migrationHistory.length;
-    const successfulMigrations = this.migrationHistory.filter((m) => m.success).length;
+    const successfulMigrations = this.migrationHistory.filter(
+      (m) => m.success,
+    ).length;
     const failedMigrations = totalMigrations - successfulMigrations;
 
     const averageRecoveryTime =

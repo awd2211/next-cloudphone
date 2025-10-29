@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Node, NodeStatus } from '../entities/node.entity';
-import { Device, DeviceStatus } from '../entities/device.entity';
-import { BusinessErrors } from '@cloudphone/shared';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Node, NodeStatus } from "../entities/node.entity";
+import { Device, DeviceStatus } from "../entities/device.entity";
+import { BusinessErrors } from "@cloudphone/shared";
 
 export interface ScheduleRequest {
   cpuCores: number;
@@ -22,10 +22,10 @@ export interface ScheduleResult {
 }
 
 export enum SchedulingStrategy {
-  BALANCED = 'balanced', // 均衡策略（默认）
-  BINPACK = 'binpack', // 装箱策略（优先填满节点）
-  SPREAD = 'spread', // 分散策略（尽量分散到不同节点）
-  LEAST_LOADED = 'least_loaded', // 最小负载策略
+  BALANCED = "balanced", // 均衡策略（默认）
+  BINPACK = "binpack", // 装箱策略（优先填满节点）
+  SPREAD = "spread", // 分散策略（尽量分散到不同节点）
+  LEAST_LOADED = "least_loaded", // 最小负载策略
 }
 
 @Injectable()
@@ -124,7 +124,7 @@ export class SchedulerService {
         status: NodeStatus.ONLINE,
       },
       order: {
-        priority: 'DESC', // 优先级高的节点优先
+        priority: "DESC", // 优先级高的节点优先
       },
     });
   }
@@ -151,9 +151,12 @@ export class SchedulerService {
     // 检查污点和容忍度
     if (node.taints && node.taints.length > 0) {
       for (const taint of node.taints) {
-        if (taint.effect === 'NoSchedule') {
+        if (taint.effect === "NoSchedule") {
           // 检查是否有匹配的容忍度
-          if (!request.tolerations || !request.tolerations.includes(taint.key)) {
+          if (
+            !request.tolerations ||
+            !request.tolerations.includes(taint.key)
+          ) {
             return false;
           }
         }
@@ -249,7 +252,8 @@ export class SchedulerService {
    */
   private calculateSpreadScore(node: Node, request: ScheduleRequest): number {
     // 使用率越低，得分越高（优先选择空闲节点）
-    const cpuUsage = (node.usage.usedCpuCores / node.capacity.totalCpuCores) * 100;
+    const cpuUsage =
+      (node.usage.usedCpuCores / node.capacity.totalCpuCores) * 100;
     const memoryUsage =
       (node.usage.usedMemoryMB / node.capacity.totalMemoryMB) * 100;
     const deviceUsage =
@@ -288,7 +292,7 @@ export class SchedulerService {
     migrationsNeeded: number;
     migrationPlan: Array<{ deviceId: string; from: string; to: string }>;
   }> {
-    this.logger.log('Starting cluster rebalancing');
+    this.logger.log("Starting cluster rebalancing");
 
     const nodes = await this.nodeRepository.find({
       where: { status: NodeStatus.ONLINE },
@@ -313,7 +317,7 @@ export class SchedulerService {
     );
 
     if (overloadedNodes.length === 0 || underloadedNodes.length === 0) {
-      this.logger.log('Cluster is already balanced');
+      this.logger.log("Cluster is already balanced");
       return { migrationsNeeded: 0, migrationPlan: [] };
     }
 
@@ -325,7 +329,7 @@ export class SchedulerService {
       // 获取该节点上的设备
       const devices = await this.deviceRepository.find({
         where: { status: DeviceStatus.RUNNING },
-        order: { cpuCores: 'ASC' }, // 优先迁移小设备
+        order: { cpuCores: "ASC" }, // 优先迁移小设备
         take: 5, // 限制迁移数量
       });
 
@@ -351,7 +355,9 @@ export class SchedulerService {
       }
     }
 
-    this.logger.log(`Generated migration plan: ${migrationPlan.length} migrations`);
+    this.logger.log(
+      `Generated migration plan: ${migrationPlan.length} migrations`,
+    );
 
     return {
       migrationsNeeded: migrationPlan.length,

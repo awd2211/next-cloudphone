@@ -1,13 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
-import { DockerService, RedroidConfig } from '../docker.service';
-import { GpuManagerService } from '../../gpu/gpu-manager.service';
-import Dockerode = require('dockerode');
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConfigService } from "@nestjs/config";
+import { DockerService, RedroidConfig } from "../docker.service";
+import { GpuManagerService } from "../../gpu/gpu-manager.service";
+import Dockerode = require("dockerode");
 
 // Mock Dockerode
-jest.mock('dockerode');
+jest.mock("dockerode");
 
-describe('DockerService', () => {
+describe("DockerService", () => {
   let service: DockerService;
   let configService: ConfigService;
   let gpuManager: GpuManagerService;
@@ -25,7 +25,7 @@ describe('DockerService', () => {
 
   // Mock container
   const mockContainer = {
-    id: 'container-123',
+    id: "container-123",
     start: jest.fn(),
     stop: jest.fn(),
     restart: jest.fn(),
@@ -52,7 +52,7 @@ describe('DockerService', () => {
     jest.clearAllMocks();
 
     // Set up default mock implementations
-    mockConfigService.get.mockReturnValue('/var/run/docker.sock');
+    mockConfigService.get.mockReturnValue("/var/run/docker.sock");
     (Dockerode as any).mockImplementation(() => mockDockerClient);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -78,21 +78,21 @@ describe('DockerService', () => {
     jest.clearAllMocks();
   });
 
-  describe('initialization', () => {
-    it('should be defined', () => {
+  describe("initialization", () => {
+    it("should be defined", () => {
       expect(service).toBeDefined();
     });
 
-    it('should initialize Docker client with socket path', () => {
-      expect(mockConfigService.get).toHaveBeenCalledWith('DOCKER_HOST');
+    it("should initialize Docker client with socket path", () => {
+      expect(mockConfigService.get).toHaveBeenCalledWith("DOCKER_HOST");
       expect(Dockerode).toHaveBeenCalledWith({
-        socketPath: '/var/run/docker.sock',
+        socketPath: "/var/run/docker.sock",
       });
     });
 
-    it('should use custom docker host from config', () => {
+    it("should use custom docker host from config", () => {
       // Arrange
-      mockConfigService.get.mockReturnValue('tcp://docker:2375');
+      mockConfigService.get.mockReturnValue("tcp://docker:2375");
 
       // Act
       const newService = new DockerService(
@@ -102,26 +102,26 @@ describe('DockerService', () => {
 
       // Assert
       expect(Dockerode).toHaveBeenCalledWith({
-        socketPath: 'tcp://docker:2375',
+        socketPath: "tcp://docker:2375",
       });
     });
   });
 
-  describe('createContainer', () => {
+  describe("createContainer", () => {
     const config: RedroidConfig = {
-      name: 'test-device',
+      name: "test-device",
       cpuCores: 2,
       memoryMB: 4096,
-      resolution: '1080x1920',
+      resolution: "1080x1920",
       dpi: 320,
       adbPort: 5555,
       webrtcPort: 8080,
-      androidVersion: '11',
+      androidVersion: "11",
       enableGpu: false,
       enableAudio: true,
     };
 
-    it('should successfully create a container with basic config', async () => {
+    it("should successfully create a container with basic config", async () => {
       // Arrange
       mockDockerClient.pull.mockImplementation((tag, callback) => {
         callback(null, {});
@@ -141,27 +141,27 @@ describe('DockerService', () => {
       expect(result).toBe(mockContainer);
       expect(mockDockerClient.createContainer).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'test-device',
+          name: "test-device",
           HostConfig: expect.objectContaining({
             Memory: 4096 * 1024 * 1024,
             NanoCpus: 2 * 1e9,
             PortBindings: {
-              '5555/tcp': [{ HostPort: '5555' }],
-              '8080/tcp': [{ HostPort: '8080' }],
+              "5555/tcp": [{ HostPort: "5555" }],
+              "8080/tcp": [{ HostPort: "8080" }],
             },
             Privileged: true,
           }),
           Env: expect.arrayContaining([
-            'WIDTH=1080',
-            'HEIGHT=1920',
-            'DPI=320',
-            'REDROID_AUDIO=1',
+            "WIDTH=1080",
+            "HEIGHT=1920",
+            "DPI=320",
+            "REDROID_AUDIO=1",
           ]),
         }),
       );
     });
 
-    it('should create container with GPU support when enabled', async () => {
+    it("should create container with GPU support when enabled", async () => {
       // Arrange
       const gpuConfig: RedroidConfig = {
         ...config,
@@ -170,8 +170,8 @@ describe('DockerService', () => {
 
       const mockGpuConf = {
         enabled: true,
-        vendor: 'nvidia' as const,
-        device: '/dev/nvidia0',
+        vendor: "nvidia" as const,
+        device: "/dev/nvidia0",
       };
 
       mockGpuManager.getRecommendedConfig.mockReturnValue(mockGpuConf);
@@ -180,10 +180,10 @@ describe('DockerService', () => {
         errors: [],
       });
       mockGpuManager.getDockerDeviceConfig.mockReturnValue([
-        { PathOnHost: '/dev/nvidia0', PathInContainer: '/dev/nvidia0' },
+        { PathOnHost: "/dev/nvidia0", PathInContainer: "/dev/nvidia0" },
       ]);
       mockGpuManager.getGpuEnvironment.mockReturnValue([
-        'NVIDIA_VISIBLE_DEVICES=all',
+        "NVIDIA_VISIBLE_DEVICES=all",
       ]);
 
       mockDockerClient.pull.mockImplementation((tag, callback) => {
@@ -201,16 +201,16 @@ describe('DockerService', () => {
       // Assert
       expect(result).toBe(mockContainer);
       expect(mockGpuManager.getRecommendedConfig).toHaveBeenCalledWith(
-        'balanced',
+        "balanced",
       );
       expect(mockGpuManager.validateConfig).toHaveBeenCalledWith(mockGpuConf);
       expect(mockDockerClient.createContainer).toHaveBeenCalledWith(
         expect.objectContaining({
-          Env: expect.arrayContaining(['NVIDIA_VISIBLE_DEVICES=all']),
+          Env: expect.arrayContaining(["NVIDIA_VISIBLE_DEVICES=all"]),
           HostConfig: expect.objectContaining({
             Devices: expect.arrayContaining([
               expect.objectContaining({
-                PathOnHost: '/dev/nvidia0',
+                PathOnHost: "/dev/nvidia0",
               }),
             ]),
           }),
@@ -218,7 +218,7 @@ describe('DockerService', () => {
       );
     });
 
-    it('should fallback to software rendering when GPU validation fails', async () => {
+    it("should fallback to software rendering when GPU validation fails", async () => {
       // Arrange
       const gpuConfig: RedroidConfig = {
         ...config,
@@ -227,14 +227,14 @@ describe('DockerService', () => {
 
       const mockGpuConf = {
         enabled: true,
-        vendor: 'nvidia' as const,
-        device: '/dev/nvidia0',
+        vendor: "nvidia" as const,
+        device: "/dev/nvidia0",
       };
 
       mockGpuManager.getRecommendedConfig.mockReturnValue(mockGpuConf);
       mockGpuManager.validateConfig.mockResolvedValue({
         valid: false,
-        errors: ['GPU device not found'],
+        errors: ["GPU device not found"],
       });
 
       mockDockerClient.pull.mockImplementation((tag, callback) => {
@@ -253,12 +253,12 @@ describe('DockerService', () => {
       expect(result).toBe(mockContainer);
       expect(mockDockerClient.createContainer).toHaveBeenCalledWith(
         expect.objectContaining({
-          Env: expect.not.arrayContaining(['NVIDIA_VISIBLE_DEVICES=all']),
+          Env: expect.not.arrayContaining(["NVIDIA_VISIBLE_DEVICES=all"]),
         }),
       );
     });
 
-    it('should pull image if not available', async () => {
+    it("should pull image if not available", async () => {
       // Arrange
       mockDockerClient.pull.mockImplementation((tag, callback) => {
         callback(null, {});
@@ -266,7 +266,7 @@ describe('DockerService', () => {
       });
       mockDockerClient.modem.followProgress.mockImplementation(
         (stream, onFinish) => {
-          onFinish(null, [{ status: 'Downloaded' }]);
+          onFinish(null, [{ status: "Downloaded" }]);
         },
       );
       mockDockerClient.createContainer.mockResolvedValue(mockContainer);
@@ -280,10 +280,10 @@ describe('DockerService', () => {
     });
   });
 
-  describe('startContainer', () => {
-    it('should successfully start a container', async () => {
+  describe("startContainer", () => {
+    it("should successfully start a container", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
       mockContainer.start.mockResolvedValue(undefined);
 
@@ -295,23 +295,25 @@ describe('DockerService', () => {
       expect(mockContainer.start).toHaveBeenCalled();
     });
 
-    it('should handle start failure', async () => {
+    it("should handle start failure", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
-      mockContainer.start.mockRejectedValue(new Error('Container start failed'));
+      mockContainer.start.mockRejectedValue(
+        new Error("Container start failed"),
+      );
 
       // Act & Assert
       await expect(service.startContainer(containerId)).rejects.toThrow(
-        'Container start failed',
+        "Container start failed",
       );
     });
   });
 
-  describe('stopContainer', () => {
-    it('should successfully stop a container', async () => {
+  describe("stopContainer", () => {
+    it("should successfully stop a container", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
       mockContainer.stop.mockResolvedValue(undefined);
 
@@ -323,23 +325,25 @@ describe('DockerService', () => {
       expect(mockContainer.stop).toHaveBeenCalled();
     });
 
-    it('should throw DockerError when stop fails', async () => {
+    it("should throw DockerError when stop fails", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
-      mockContainer.stop.mockRejectedValue(new Error('Container already stopped'));
+      mockContainer.stop.mockRejectedValue(
+        new Error("Container already stopped"),
+      );
 
       // Act & Assert - Should throw DockerError
       await expect(service.stopContainer(containerId)).rejects.toThrow(
-        'Failed to stop container',
+        "Failed to stop container",
       );
     });
   });
 
-  describe('restartContainer', () => {
-    it('should successfully restart a container', async () => {
+  describe("restartContainer", () => {
+    it("should successfully restart a container", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
       mockContainer.restart.mockResolvedValue(undefined);
 
@@ -351,23 +355,23 @@ describe('DockerService', () => {
       expect(mockContainer.restart).toHaveBeenCalled();
     });
 
-    it('should throw DockerError when restart fails', async () => {
+    it("should throw DockerError when restart fails", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
-      mockContainer.restart.mockRejectedValue(new Error('Restart failed'));
+      mockContainer.restart.mockRejectedValue(new Error("Restart failed"));
 
       // Act & Assert
       await expect(service.restartContainer(containerId)).rejects.toThrow(
-        'Failed to restart container',
+        "Failed to restart container",
       );
     });
   });
 
-  describe('removeContainer', () => {
-    it('should successfully remove a container', async () => {
+  describe("removeContainer", () => {
+    it("should successfully remove a container", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
       mockContainer.stop.mockResolvedValue(undefined);
       mockContainer.remove.mockResolvedValue(undefined);
@@ -381,11 +385,13 @@ describe('DockerService', () => {
       expect(mockContainer.remove).toHaveBeenCalled();
     });
 
-    it('should remove container even if stop fails', async () => {
+    it("should remove container even if stop fails", async () => {
       // Arrange
-      const containerId = 'container-already-stopped';
+      const containerId = "container-already-stopped";
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
-      mockContainer.stop.mockRejectedValue(new Error('Container already stopped'));
+      mockContainer.stop.mockRejectedValue(
+        new Error("Container already stopped"),
+      );
       mockContainer.remove.mockResolvedValue(undefined);
 
       // Act
@@ -396,24 +402,24 @@ describe('DockerService', () => {
       expect(mockContainer.remove).toHaveBeenCalled();
     });
 
-    it('should throw error when remove fails', async () => {
+    it("should throw error when remove fails", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
       mockContainer.stop.mockResolvedValue(undefined);
-      mockContainer.remove.mockRejectedValue(new Error('Remove failed'));
+      mockContainer.remove.mockRejectedValue(new Error("Remove failed"));
 
       // Act & Assert
       await expect(service.removeContainer(containerId)).rejects.toThrow(
-        'Remove failed',
+        "Remove failed",
       );
     });
   });
 
-  describe('getContainerStats', () => {
-    it('should successfully get container statistics', async () => {
+  describe("getContainerStats", () => {
+    it("should successfully get container statistics", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       const mockStats = {
         cpu_stats: {
           cpu_usage: { total_usage: 50000000 },
@@ -444,22 +450,22 @@ describe('DockerService', () => {
 
       // Assert
       expect(result).not.toBeNull();
-      expect(result).toHaveProperty('cpu_percent');
-      expect(result).toHaveProperty('memory_usage_mb');
-      expect(result).toHaveProperty('memory_limit_mb');
-      expect(result).toHaveProperty('memory_percent');
-      expect(result).toHaveProperty('network_rx_bytes');
-      expect(result).toHaveProperty('network_tx_bytes');
+      expect(result).toHaveProperty("cpu_percent");
+      expect(result).toHaveProperty("memory_usage_mb");
+      expect(result).toHaveProperty("memory_limit_mb");
+      expect(result).toHaveProperty("memory_percent");
+      expect(result).toHaveProperty("network_rx_bytes");
+      expect(result).toHaveProperty("network_tx_bytes");
       expect(result.memory_usage_mb).toBe(512);
       expect(result.memory_limit_mb).toBe(4096);
       expect(mockContainer.stats).toHaveBeenCalledWith({ stream: false });
     });
 
-    it('should return null on stats retrieval failure', async () => {
+    it("should return null on stats retrieval failure", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
-      mockContainer.stats.mockRejectedValue(new Error('Stats failed'));
+      mockContainer.stats.mockRejectedValue(new Error("Stats failed"));
 
       // Act
       const result = await service.getContainerStats(containerId);
@@ -469,12 +475,12 @@ describe('DockerService', () => {
     });
   });
 
-  describe('listContainers', () => {
-    it('should list all running containers', async () => {
+  describe("listContainers", () => {
+    it("should list all running containers", async () => {
       // Arrange
       const mockContainers = [
-        { Id: 'container-1', Names: ['/device-1'], State: 'running' },
-        { Id: 'container-2', Names: ['/device-2'], State: 'running' },
+        { Id: "container-1", Names: ["/device-1"], State: "running" },
+        { Id: "container-2", Names: ["/device-2"], State: "running" },
       ];
       mockDockerClient.listContainers.mockResolvedValue(mockContainers);
 
@@ -488,11 +494,11 @@ describe('DockerService', () => {
       });
     });
 
-    it('should list all containers including stopped', async () => {
+    it("should list all containers including stopped", async () => {
       // Arrange
       const mockContainers = [
-        { Id: 'container-1', Names: ['/device-1'], State: 'running' },
-        { Id: 'container-2', Names: ['/device-2'], State: 'exited' },
+        { Id: "container-1", Names: ["/device-1"], State: "running" },
+        { Id: "container-2", Names: ["/device-2"], State: "exited" },
       ];
       mockDockerClient.listContainers.mockResolvedValue(mockContainers);
 
@@ -507,17 +513,17 @@ describe('DockerService', () => {
     });
   });
 
-  describe('getContainerInfo', () => {
-    it('should get detailed container information', async () => {
+  describe("getContainerInfo", () => {
+    it("should get detailed container information", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       const mockInfo = {
-        Id: 'container-123',
-        Name: '/device-1',
-        State: { Running: true, Status: 'Up 2 hours' },
+        Id: "container-123",
+        Name: "/device-1",
+        State: { Running: true, Status: "Up 2 hours" },
         NetworkSettings: {
           Ports: {
-            '5555/tcp': [{ HostPort: '5555' }],
+            "5555/tcp": [{ HostPort: "5555" }],
           },
         },
       };
@@ -533,10 +539,10 @@ describe('DockerService', () => {
       expect(mockContainer.inspect).toHaveBeenCalled();
     });
 
-    it('should handle container not found', async () => {
+    it("should handle container not found", async () => {
       // Arrange
-      const containerId = 'container-non-existent';
-      const error: any = new Error('No such container');
+      const containerId = "container-non-existent";
+      const error: any = new Error("No such container");
       error.statusCode = 404;
 
       mockDockerClient.getContainer.mockReturnValue(mockContainer);
@@ -544,20 +550,20 @@ describe('DockerService', () => {
 
       // Act & Assert
       await expect(service.getContainerInfo(containerId)).rejects.toThrow(
-        'No such container',
+        "No such container",
       );
     });
   });
 
-  describe('getAdbPort', () => {
-    it('should extract ADB port from container info', async () => {
+  describe("getAdbPort", () => {
+    it("should extract ADB port from container info", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       const mockInfo = {
         NetworkSettings: {
           Ports: {
-            '5555/tcp': [{ HostPort: '5555' }],
-            '8080/tcp': [{ HostPort: '8080' }],
+            "5555/tcp": [{ HostPort: "5555" }],
+            "8080/tcp": [{ HostPort: "8080" }],
           },
         },
       };
@@ -572,13 +578,13 @@ describe('DockerService', () => {
       expect(result).toBe(5555);
     });
 
-    it('should return null when ADB port not found', async () => {
+    it("should return null when ADB port not found", async () => {
       // Arrange
-      const containerId = 'container-123';
+      const containerId = "container-123";
       const mockInfo = {
         NetworkSettings: {
           Ports: {
-            '8080/tcp': [{ HostPort: '8080' }],
+            "8080/tcp": [{ HostPort: "8080" }],
           },
         },
       };

@@ -5,22 +5,22 @@ import {
   ForbiddenException,
   Logger,
   SetMetadata,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { QuotaClientService } from './quota-client.service';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { QuotaClientService } from "./quota-client.service";
 
 /**
  * 配额守卫装饰器的元数据键
  */
-export const QUOTA_CHECK_KEY = 'quotaCheck';
+export const QUOTA_CHECK_KEY = "quotaCheck";
 
 /**
  * 配额检查类型
  */
 export enum QuotaCheckType {
-  DEVICE_CREATION = 'device_creation', // 设备创建配额检查
-  CONCURRENT_DEVICES = 'concurrent_devices', // 并发设备配额检查
-  SKIP = 'skip', // 跳过配额检查
+  DEVICE_CREATION = "device_creation", // 设备创建配额检查
+  CONCURRENT_DEVICES = "concurrent_devices", // 并发设备配额检查
+  SKIP = "skip", // 跳过配额检查
 }
 
 /**
@@ -60,7 +60,7 @@ export class QuotaGuard implements CanActivate {
     const userId = this.extractUserId(request);
 
     if (!userId) {
-      this.logger.warn('No userId found in request, skipping quota check');
+      this.logger.warn("No userId found in request, skipping quota check");
       return true; // 如果无法获取用户ID，放行（由认证守卫处理）
     }
 
@@ -78,9 +78,7 @@ export class QuotaGuard implements CanActivate {
       }
     } catch (error) {
       this.logger.error(`Quota check failed: ${error.message}`, error.stack);
-      throw new ForbiddenException(
-        `配额检查失败: ${error.message}`,
-      );
+      throw new ForbiddenException(`配额检查失败: ${error.message}`);
     }
   }
 
@@ -132,9 +130,7 @@ export class QuotaGuard implements CanActivate {
       this.logger.warn(
         `Device creation blocked for user ${userId}: ${result.reason}`,
       );
-      throw new ForbiddenException(
-        `设备创建失败: ${result.reason}`,
-      );
+      throw new ForbiddenException(`设备创建失败: ${result.reason}`);
     }
 
     // 将配额检查结果附加到请求对象，供后续使用
@@ -159,9 +155,7 @@ export class QuotaGuard implements CanActivate {
       this.logger.warn(
         `Concurrent device limit reached for user ${userId}: ${result.reason}`,
       );
-      throw new ForbiddenException(
-        `并发设备数已达上限: ${result.reason}`,
-      );
+      throw new ForbiddenException(`并发设备数已达上限: ${result.reason}`);
     }
 
     return true;

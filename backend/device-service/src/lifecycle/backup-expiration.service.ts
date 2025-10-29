@@ -1,12 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThan, IsNull, Not } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { ConfigService } from '@nestjs/config';
-import { Device } from '../entities/device.entity';
-import { DeviceSnapshot } from '../entities/device-snapshot.entity';
-import { SnapshotsService } from '../snapshots/snapshots.service';
-import { EventBusService } from '@cloudphone/shared';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, LessThan, MoreThan, IsNull, Not } from "typeorm";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { ConfigService } from "@nestjs/config";
+import { Device } from "../entities/device.entity";
+import { DeviceSnapshot } from "../entities/device-snapshot.entity";
+import { SnapshotsService } from "../snapshots/snapshots.service";
+import { EventBusService } from "@cloudphone/shared";
 
 export interface BackupResult {
   success: boolean;
@@ -57,10 +57,19 @@ export class BackupExpirationService {
     private configService: ConfigService,
   ) {
     this.config = {
-      enabled: this.configService.get<boolean>('BACKUP_SCHEDULE_ENABLED', true),
-      defaultIntervalHours: this.configService.get<number>('BACKUP_INTERVAL_HOURS', 24),
-      retentionDays: this.configService.get<number>('BACKUP_RETENTION_DAYS', 30),
-      maxBackupsPerDevice: this.configService.get<number>('MAX_BACKUPS_PER_DEVICE', 10),
+      enabled: this.configService.get<boolean>("BACKUP_SCHEDULE_ENABLED", true),
+      defaultIntervalHours: this.configService.get<number>(
+        "BACKUP_INTERVAL_HOURS",
+        24,
+      ),
+      retentionDays: this.configService.get<number>(
+        "BACKUP_RETENTION_DAYS",
+        30,
+      ),
+      maxBackupsPerDevice: this.configService.get<number>(
+        "MAX_BACKUPS_PER_DEVICE",
+        10,
+      ),
       expirationWarningDays: [30, 7, 3, 1], // 提前 30, 7, 3, 1 天警告
     };
 
@@ -78,7 +87,7 @@ export class BackupExpirationService {
       return [];
     }
 
-    this.logger.log('Starting scheduled backup task');
+    this.logger.log("Starting scheduled backup task");
 
     try {
       // 查找需要备份的设备
@@ -112,7 +121,7 @@ export class BackupExpirationService {
 
       // 发布备份完成事件
       if (results.length > 0) {
-        this.eventBusService.publishDeviceEvent('backup_completed', {
+        this.eventBusService.publishDeviceEvent("backup_completed", {
           timestamp: new Date(),
           totalDevices: devicesToBackup.length,
           successCount: results.filter((r) => r.success).length,
@@ -131,9 +140,9 @@ export class BackupExpirationService {
   /**
    * 定时检查到期提醒（每天 9:00 执行）
    */
-  @Cron('0 9 * * *')
+  @Cron("0 9 * * *")
   async checkExpirations(): Promise<ExpirationCheckResult> {
-    this.logger.log('Starting expiration check task');
+    this.logger.log("Starting expiration check task");
 
     try {
       const result: ExpirationCheckResult = {
@@ -179,9 +188,9 @@ export class BackupExpirationService {
   /**
    * 定时清理过期备份（每天凌晨 2:00 执行）
    */
-  @Cron('0 2 * * *')
+  @Cron("0 2 * * *")
   async cleanupOldBackups(): Promise<number> {
-    this.logger.log('Starting old backup cleanup task');
+    this.logger.log("Starting old backup cleanup task");
 
     try {
       let cleanedCount = 0;
@@ -191,14 +200,19 @@ export class BackupExpirationService {
         where: {
           isAutoBackup: true,
           createdAt: LessThan(
-            new Date(Date.now() - this.config.retentionDays * 24 * 60 * 60 * 1000),
+            new Date(
+              Date.now() - this.config.retentionDays * 24 * 60 * 60 * 1000,
+            ),
           ),
         },
       });
 
       for (const snapshot of oldBackups) {
         try {
-          await this.snapshotsService.deleteSnapshot(snapshot.id, snapshot.createdBy);
+          await this.snapshotsService.deleteSnapshot(
+            snapshot.id,
+            snapshot.createdBy,
+          );
           cleanedCount++;
           this.logger.log(`Deleted old auto backup: ${snapshot.id}`);
         } catch (error) {
@@ -216,7 +230,7 @@ export class BackupExpirationService {
       for (const device of devices) {
         const snapshots = await this.snapshotRepository.find({
           where: { deviceId: device.id, isAutoBackup: true },
-          order: { createdAt: 'DESC' },
+          order: { createdAt: "DESC" },
         });
 
         if (snapshots.length > this.config.maxBackupsPerDevice) {
@@ -241,10 +255,12 @@ export class BackupExpirationService {
         }
       }
 
-      this.logger.log(`Old backup cleanup completed: ${cleanedCount} backups deleted`);
+      this.logger.log(
+        `Old backup cleanup completed: ${cleanedCount} backups deleted`,
+      );
 
       // 发布清理完成事件
-      this.eventBusService.publishDeviceEvent('backup_cleanup_completed', {
+      this.eventBusService.publishDeviceEvent("backup_cleanup_completed", {
         timestamp: new Date(),
         cleanedCount,
       });
@@ -264,11 +280,11 @@ export class BackupExpirationService {
 
     // 查找启用了自动备份且满足备份条件的设备
     const devices = await this.deviceRepository
-      .createQueryBuilder('device')
-      .where('device.autoBackupEnabled = :enabled', { enabled: true })
-      .andWhere('device.status = :status', { status: 'running' })
+      .createQueryBuilder("device")
+      .where("device.autoBackupEnabled = :enabled", { enabled: true })
+      .andWhere("device.status = :status", { status: "running" })
       .andWhere(
-        '(device.lastBackupAt IS NULL OR device.lastBackupAt < :backupThreshold)',
+        "(device.lastBackupAt IS NULL OR device.lastBackupAt < :backupThreshold)",
         {
           backupThreshold: new Date(
             now.getTime() - this.config.defaultIntervalHours * 60 * 60 * 1000,
@@ -295,7 +311,7 @@ export class BackupExpirationService {
       {
         name: snapshotName,
         description: `Auto backup created at ${new Date().toISOString()}`,
-        tags: ['auto-backup'],
+        tags: ["auto-backup"],
       },
       device.userId,
     );
@@ -311,7 +327,7 @@ export class BackupExpirationService {
     await this.deviceRepository.save(device);
 
     // 发布备份创建事件
-    this.eventBusService.publishDeviceEvent('backup_created', {
+    this.eventBusService.publishDeviceEvent("backup_created", {
       deviceId: device.id,
       deviceName: device.name,
       userId: device.userId,
@@ -442,7 +458,7 @@ export class BackupExpirationService {
   ): Promise<void> {
     // 发送设备到期提醒
     for (const device of result.devicesExpiring) {
-      this.eventBusService.publishDeviceEvent('expiration_warning', {
+      this.eventBusService.publishDeviceEvent("expiration_warning", {
         deviceId: device.deviceId,
         deviceName: device.deviceName,
         userId: device.userId,
@@ -458,14 +474,18 @@ export class BackupExpirationService {
 
     // 发送快照到期提醒
     for (const snapshot of result.snapshotsExpiring) {
-      this.eventBusService.publish('cloudphone.events', 'snapshot.expiration_warning', {
-        snapshotId: snapshot.snapshotId,
-        snapshotName: snapshot.snapshotName,
-        deviceId: snapshot.deviceId,
-        expiresAt: snapshot.expiresAt,
-        daysRemaining: snapshot.daysRemaining,
-        timestamp: new Date(),
-      });
+      this.eventBusService.publish(
+        "cloudphone.events",
+        "snapshot.expiration_warning",
+        {
+          snapshotId: snapshot.snapshotId,
+          snapshotName: snapshot.snapshotName,
+          deviceId: snapshot.deviceId,
+          expiresAt: snapshot.expiresAt,
+          daysRemaining: snapshot.daysRemaining,
+          timestamp: new Date(),
+        },
+      );
 
       this.logger.log(
         `Sent expiration warning for snapshot ${snapshot.snapshotId}: ${snapshot.daysRemaining} days remaining`,
@@ -474,14 +494,14 @@ export class BackupExpirationService {
 
     // 发送已过期通知
     for (const deviceId of result.devicesExpired) {
-      this.eventBusService.publishDeviceEvent('expired', {
+      this.eventBusService.publishDeviceEvent("expired", {
         deviceId,
         timestamp: new Date(),
       });
     }
 
     for (const snapshotId of result.snapshotsExpired) {
-      this.eventBusService.publish('cloudphone.events', 'snapshot.expired', {
+      this.eventBusService.publish("cloudphone.events", "snapshot.expired", {
         snapshotId,
         timestamp: new Date(),
       });
@@ -496,7 +516,10 @@ export class BackupExpirationService {
   ): Promise<void> {
     for (const snapshot of snapshots) {
       try {
-        await this.snapshotsService.deleteSnapshot(snapshot.id, snapshot.createdBy);
+        await this.snapshotsService.deleteSnapshot(
+          snapshot.id,
+          snapshot.createdBy,
+        );
         this.logger.log(`Deleted expired snapshot: ${snapshot.id}`);
       } catch (error) {
         this.logger.warn(
@@ -509,7 +532,10 @@ export class BackupExpirationService {
   /**
    * 手动触发备份任务
    */
-  async triggerManualBackup(deviceId: string, userId: string): Promise<DeviceSnapshot> {
+  async triggerManualBackup(
+    deviceId: string,
+    userId: string,
+  ): Promise<DeviceSnapshot> {
     const device = await this.deviceRepository.findOne({
       where: { id: deviceId },
     });
@@ -518,8 +544,8 @@ export class BackupExpirationService {
       throw new Error(`Device ${deviceId} not found`);
     }
 
-    if (device.status !== 'running') {
-      throw new Error('Device must be running to create backup');
+    if (device.status !== "running") {
+      throw new Error("Device must be running to create backup");
     }
 
     return await this.createAutoBackup(device);
@@ -559,19 +585,25 @@ export class BackupExpirationService {
   }> {
     const autoBackups = await this.snapshotRepository.find({
       where: { isAutoBackup: true },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
 
     const devicesWithBackup = await this.deviceRepository.count({
       where: { autoBackupEnabled: true },
     });
 
-    const totalSize = autoBackups.reduce((sum, b) => sum + (b.imageSize || 0), 0);
+    const totalSize = autoBackups.reduce(
+      (sum, b) => sum + (b.imageSize || 0),
+      0,
+    );
 
     return {
       totalAutoBackups: autoBackups.length,
       devicesWithAutoBackup: devicesWithBackup,
-      oldestBackup: autoBackups.length > 0 ? autoBackups[autoBackups.length - 1].createdAt : null,
+      oldestBackup:
+        autoBackups.length > 0
+          ? autoBackups[autoBackups.length - 1].createdAt
+          : null,
       newestBackup: autoBackups.length > 0 ? autoBackups[0].createdAt : null,
       totalBackupSize: totalSize,
     };

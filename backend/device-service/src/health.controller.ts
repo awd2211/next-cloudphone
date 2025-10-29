@@ -1,23 +1,23 @@
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
-import { Public } from './auth/decorators/public.decorator';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { DockerService } from './docker/docker.service';
-import { AdbService } from './adb/adb.service';
-import * as os from 'os';
-import { InjectConnection } from '@nestjs/typeorm';
-import { Connection } from 'typeorm';
+import { Controller, Get, HttpCode, HttpStatus } from "@nestjs/common";
+import { InjectDataSource } from "@nestjs/typeorm";
+import { DataSource } from "typeorm";
+import { Public } from "./auth/decorators/public.decorator";
+import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { DockerService } from "./docker/docker.service";
+import { AdbService } from "./adb/adb.service";
+import * as os from "os";
+import { InjectConnection } from "@nestjs/typeorm";
+import { Connection } from "typeorm";
 
 interface DependencyStatus {
-  status: 'healthy' | 'unhealthy';
+  status: "healthy" | "unhealthy";
   responseTime?: number;
   message?: string;
   version?: string;
 }
 
 interface HealthCheckResult {
-  status: 'ok' | 'degraded';
+  status: "ok" | "degraded";
   service: string;
   version: string;
   timestamp: string;
@@ -46,8 +46,8 @@ interface HealthCheckResult {
   };
 }
 
-@ApiTags('health')
-@Controller('health')
+@ApiTags("health")
+@Controller("health")
 export class HealthController {
   private readonly startTime: number = Date.now();
 
@@ -59,10 +59,13 @@ export class HealthController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: '健康检查', description: '检查服务是否正常运行，包括依赖项状态和系统信息' })
-  @ApiResponse({ status: 200, description: '服务正常' })
+  @ApiOperation({
+    summary: "健康检查",
+    description: "检查服务是否正常运行，包括依赖项状态和系统信息",
+  })
+  @ApiResponse({ status: 200, description: "服务正常" })
   async check(): Promise<HealthCheckResult> {
-    const dependencies: HealthCheckResult['dependencies'] = {};
+    const dependencies: HealthCheckResult["dependencies"] = {};
 
     // Check all critical dependencies in parallel
     const [dbCheck, dockerCheck, adbCheck] = await Promise.all([
@@ -77,47 +80,47 @@ export class HealthController {
 
     // Determine overall status
     const hasUnhealthyDependency =
-      dbCheck.status === 'unhealthy' ||
-      dockerCheck.status === 'unhealthy' ||
-      adbCheck.status === 'unhealthy';
+      dbCheck.status === "unhealthy" ||
+      dockerCheck.status === "unhealthy" ||
+      adbCheck.status === "unhealthy";
 
-    const overallStatus = hasUnhealthyDependency ? 'degraded' : 'ok';
+    const overallStatus = hasUnhealthyDependency ? "degraded" : "ok";
 
     return {
       status: overallStatus,
-      service: 'device-service',
-      version: '1.0.0',
+      service: "device-service",
+      version: "1.0.0",
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - this.startTime) / 1000),
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV || "development",
       dependencies,
       system: this.getSystemInfo(),
     };
   }
 
   private async checkDatabase(): Promise<{
-    status: 'healthy' | 'unhealthy';
+    status: "healthy" | "unhealthy";
     responseTime?: number;
     message?: string;
   }> {
     try {
       const start = Date.now();
-      await this.dataSource.query('SELECT 1');
+      await this.dataSource.query("SELECT 1");
       const responseTime = Date.now() - start;
 
       return {
-        status: 'healthy',
+        status: "healthy",
         responseTime,
       };
     } catch (error) {
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         message: error.message,
       };
     }
   }
 
-  private getSystemInfo(): HealthCheckResult['system'] {
+  private getSystemInfo(): HealthCheckResult["system"] {
     const totalMemory = os.totalmem();
     const freeMemory = os.freemem();
     const usedMemory = totalMemory - freeMemory;
@@ -133,7 +136,7 @@ export class HealthController {
       },
       cpu: {
         cores: os.cpus().length,
-        model: os.cpus()[0]?.model || 'unknown',
+        model: os.cpus()[0]?.model || "unknown",
       },
     };
   }
@@ -148,8 +151,8 @@ export class HealthController {
 
       if (!docker) {
         return {
-          status: 'unhealthy',
-          message: 'Docker client not initialized',
+          status: "unhealthy",
+          message: "Docker client not initialized",
         };
       }
 
@@ -159,17 +162,17 @@ export class HealthController {
 
       // Get Docker version
       const info = await docker.version();
-      const version = info.Version || 'unknown';
+      const version = info.Version || "unknown";
 
       return {
-        status: 'healthy',
+        status: "healthy",
         responseTime,
         version,
       };
     } catch (error) {
       return {
-        status: 'unhealthy',
-        message: error.message || 'Docker connection failed',
+        status: "unhealthy",
+        message: error.message || "Docker connection failed",
       };
     }
   }
@@ -184,8 +187,8 @@ export class HealthController {
 
       if (!adbClient) {
         return {
-          status: 'unhealthy',
-          message: 'ADB client not initialized',
+          status: "unhealthy",
+          message: "ADB client not initialized",
         };
       }
 
@@ -194,14 +197,14 @@ export class HealthController {
       const responseTime = Date.now() - start;
 
       return {
-        status: 'healthy',
+        status: "healthy",
         responseTime,
         version: version.toString(),
       };
     } catch (error) {
       return {
-        status: 'unhealthy',
-        message: error.message || 'ADB connection failed',
+        status: "unhealthy",
+        message: error.message || "ADB connection failed",
       };
     }
   }
@@ -209,23 +212,23 @@ export class HealthController {
   /**
    * Detailed health check with all dependencies
    */
-  @Get('detailed')
+  @Get("detailed")
   @Public()
-  @ApiOperation({ summary: '详细健康检查' })
+  @ApiOperation({ summary: "详细健康检查" })
   async detailedCheck() {
     const basicCheck = await this.check();
 
     return {
       ...basicCheck,
       details: {
-        description: 'Device Service - Cloud Android Device Management',
+        description: "Device Service - Cloud Android Device Management",
         capabilities: [
-          'Docker container lifecycle management',
-          'ADB integration for Android control',
-          'Device monitoring and metrics',
-          'Snapshot backup and restore',
-          'Quota enforcement',
-          'Lifecycle automation',
+          "Docker container lifecycle management",
+          "ADB integration for Android control",
+          "Device monitoring and metrics",
+          "Snapshot backup and restore",
+          "Quota enforcement",
+          "Lifecycle automation",
         ],
       },
     };
@@ -235,14 +238,14 @@ export class HealthController {
    * Kubernetes liveness probe
    * Indicates if the service is alive and should not be restarted
    */
-  @Get('liveness')
+  @Get("liveness")
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Kubernetes 存活探针' })
+  @ApiOperation({ summary: "Kubernetes 存活探针" })
   async liveness() {
     // Basic liveness check - service is running
     return {
-      status: 'ok',
+      status: "ok",
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - this.startTime) / 1000),
     };
@@ -252,10 +255,10 @@ export class HealthController {
    * Kubernetes readiness probe
    * Indicates if the service is ready to accept traffic
    */
-  @Get('readiness')
+  @Get("readiness")
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Kubernetes 就绪探针' })
+  @ApiOperation({ summary: "Kubernetes 就绪探针" })
   async readiness() {
     try {
       // Check critical dependencies for readiness
@@ -267,14 +270,14 @@ export class HealthController {
 
       // Service is ready only if all critical dependencies are healthy
       const isReady =
-        dbCheck.status === 'healthy' &&
-        dockerCheck.status === 'healthy' &&
-        adbCheck.status === 'healthy';
+        dbCheck.status === "healthy" &&
+        dockerCheck.status === "healthy" &&
+        adbCheck.status === "healthy";
 
       if (!isReady) {
         return {
-          status: 'error',
-          message: 'Service not ready - critical dependencies unhealthy',
+          status: "error",
+          message: "Service not ready - critical dependencies unhealthy",
           dependencies: {
             database: dbCheck.status,
             docker: dockerCheck.status,
@@ -284,17 +287,17 @@ export class HealthController {
       }
 
       return {
-        status: 'ok',
+        status: "ok",
         timestamp: new Date().toISOString(),
         dependencies: {
-          database: 'healthy',
-          docker: 'healthy',
-          adb: 'healthy',
+          database: "healthy",
+          docker: "healthy",
+          adb: "healthy",
         },
       };
     } catch (error) {
       return {
-        status: 'error',
+        status: "error",
         message: error.message,
       };
     }

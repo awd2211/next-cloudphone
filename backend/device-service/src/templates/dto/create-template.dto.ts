@@ -1,6 +1,16 @@
-import { IsString, IsEnum, IsInt, Min, Max, IsBoolean, IsOptional, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { TemplateCategory } from '../../entities/device-template.entity';
+import {
+  IsString,
+  IsEnum,
+  IsInt,
+  Min,
+  Max,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
+import { TemplateCategory } from "../../entities/device-template.entity";
 
 class PreInstalledAppDto {
   @IsString()

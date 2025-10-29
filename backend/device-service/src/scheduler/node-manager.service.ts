@@ -1,12 +1,8 @@
-import {
-  Injectable,
-  Logger,
-  HttpStatus,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Node, NodeStatus, ResourceCapacity } from '../entities/node.entity';
-import { BusinessErrors } from '@cloudphone/shared';
+import { Injectable, Logger, HttpStatus } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Node, NodeStatus, ResourceCapacity } from "../entities/node.entity";
+import { BusinessErrors } from "@cloudphone/shared";
 
 export interface CreateNodeDto {
   name: string;
@@ -155,12 +151,12 @@ export class NodeManagerService {
     if (status) {
       return await this.nodeRepository.find({
         where: { status },
-        order: { priority: 'DESC', loadScore: 'ASC' },
+        order: { priority: "DESC", loadScore: "ASC" },
       });
     }
 
     return await this.nodeRepository.find({
-      order: { priority: 'DESC', loadScore: 'ASC' },
+      order: { priority: "DESC", loadScore: "ASC" },
     });
   }
 
@@ -195,7 +191,7 @@ export class NodeManagerService {
    */
   async setMaintenance(nodeId: string, enable: boolean): Promise<Node> {
     this.logger.log(
-      `Setting node ${nodeId} maintenance mode: ${enable ? 'ON' : 'OFF'}`,
+      `Setting node ${nodeId} maintenance mode: ${enable ? "ON" : "OFF"}`,
     );
 
     const node = await this.getNode(nodeId);
@@ -229,7 +225,7 @@ export class NodeManagerService {
     nodeId: string,
     key: string,
     value: string,
-    effect: 'NoSchedule' | 'PreferNoSchedule' | 'NoExecute',
+    effect: "NoSchedule" | "PreferNoSchedule" | "NoExecute",
   ): Promise<Node> {
     const node = await this.getNode(nodeId);
 
@@ -353,7 +349,7 @@ export class NodeManagerService {
   async getNodesByRegion(region: string): Promise<Node[]> {
     return await this.nodeRepository.find({
       where: { region, status: NodeStatus.ONLINE },
-      order: { loadScore: 'ASC' },
+      order: { loadScore: "ASC" },
     });
   }
 

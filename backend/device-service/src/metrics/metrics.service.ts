@@ -1,9 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import * as promClient from 'prom-client';
-import { Device, DeviceStatus } from '../entities/device.entity';
-import { DockerService } from '../docker/docker.service';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import * as promClient from "prom-client";
+import { Device, DeviceStatus } from "../entities/device.entity";
+import { DockerService } from "../docker/docker.service";
 
 @Injectable()
 export class MetricsService implements OnModuleInit {
@@ -46,7 +46,7 @@ export class MetricsService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    this.logger.log('MetricsService initialized - starting metrics collection');
+    this.logger.log("MetricsService initialized - starting metrics collection");
 
     // 启动定时采集（每 30 秒更新一次设备指标）
     setInterval(() => this.collectDeviceMetrics(), 30000);
@@ -58,95 +58,95 @@ export class MetricsService implements OnModuleInit {
   private initializeMetrics() {
     // 1. 设备总数指标
     this.deviceTotalGauge = new promClient.Gauge({
-      name: 'cloudphone_devices_total',
-      help: 'Total number of cloud phone devices',
-      labelNames: ['status', 'tenant_id'],
+      name: "cloudphone_devices_total",
+      help: "Total number of cloud phone devices",
+      labelNames: ["status", "tenant_id"],
       registers: [this.register],
     });
 
     // 2. 设备状态指标（按状态分组）
     this.deviceStatusGauge = new promClient.Gauge({
-      name: 'cloudphone_devices_by_status',
-      help: 'Number of devices grouped by status',
-      labelNames: ['status'],
+      name: "cloudphone_devices_by_status",
+      help: "Number of devices grouped by status",
+      labelNames: ["status"],
       registers: [this.register],
     });
 
     // 3. 设备 CPU 使用率
     this.deviceCpuUsageGauge = new promClient.Gauge({
-      name: 'cloudphone_device_cpu_usage_percent',
-      help: 'CPU usage percentage of a device',
-      labelNames: ['device_id', 'user_id', 'tenant_id'],
+      name: "cloudphone_device_cpu_usage_percent",
+      help: "CPU usage percentage of a device",
+      labelNames: ["device_id", "user_id", "tenant_id"],
       registers: [this.register],
     });
 
     // 4. 设备内存使用量（MB）
     this.deviceMemoryUsageGauge = new promClient.Gauge({
-      name: 'cloudphone_device_memory_usage_mb',
-      help: 'Memory usage in MB of a device',
-      labelNames: ['device_id', 'user_id', 'tenant_id'],
+      name: "cloudphone_device_memory_usage_mb",
+      help: "Memory usage in MB of a device",
+      labelNames: ["device_id", "user_id", "tenant_id"],
       registers: [this.register],
     });
 
     // 5. 设备网络接收字节数
     this.deviceNetworkRxBytesCounter = new promClient.Counter({
-      name: 'cloudphone_device_network_rx_bytes_total',
-      help: 'Total network bytes received by device',
-      labelNames: ['device_id', 'user_id'],
+      name: "cloudphone_device_network_rx_bytes_total",
+      help: "Total network bytes received by device",
+      labelNames: ["device_id", "user_id"],
       registers: [this.register],
     });
 
     // 6. 设备网络发送字节数
     this.deviceNetworkTxBytesCounter = new promClient.Counter({
-      name: 'cloudphone_device_network_tx_bytes_total',
-      help: 'Total network bytes transmitted by device',
-      labelNames: ['device_id', 'user_id'],
+      name: "cloudphone_device_network_tx_bytes_total",
+      help: "Total network bytes transmitted by device",
+      labelNames: ["device_id", "user_id"],
       registers: [this.register],
     });
 
     // 7. 操作耗时（Histogram）
     this.operationDurationHistogram = new promClient.Histogram({
-      name: 'cloudphone_operation_duration_seconds',
-      help: 'Duration of device operations in seconds',
-      labelNames: ['operation', 'status'],
+      name: "cloudphone_operation_duration_seconds",
+      help: "Duration of device operations in seconds",
+      labelNames: ["operation", "status"],
       buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60], // 操作耗时分桶
       registers: [this.register],
     });
 
     // 8. 操作错误计数
     this.operationErrorsCounter = new promClient.Counter({
-      name: 'cloudphone_operation_errors_total',
-      help: 'Total number of operation errors',
-      labelNames: ['operation', 'error_type'],
+      name: "cloudphone_operation_errors_total",
+      help: "Total number of operation errors",
+      labelNames: ["operation", "error_type"],
       registers: [this.register],
     });
 
     // 9. ADB 连接数
     this.adbConnectionsGauge = new promClient.Gauge({
-      name: 'cloudphone_adb_connections',
-      help: 'Number of active ADB connections',
+      name: "cloudphone_adb_connections",
+      help: "Number of active ADB connections",
       registers: [this.register],
     });
 
     // 10. 批量操作耗时
     this.batchOperationDurationHistogram = new promClient.Histogram({
-      name: 'cloudphone_batch_operation_duration_seconds',
-      help: 'Duration of batch operations in seconds',
-      labelNames: ['operation_type'],
+      name: "cloudphone_batch_operation_duration_seconds",
+      help: "Duration of batch operations in seconds",
+      labelNames: ["operation_type"],
       buckets: [1, 5, 10, 30, 60, 120, 300], // 批量操作可能较慢
       registers: [this.register],
     });
 
     // 11. 批量操作规模
     this.batchOperationSizeHistogram = new promClient.Histogram({
-      name: 'cloudphone_batch_operation_size',
-      help: 'Number of devices in batch operation',
-      labelNames: ['operation_type'],
+      name: "cloudphone_batch_operation_size",
+      help: "Number of devices in batch operation",
+      labelNames: ["operation_type"],
       buckets: [1, 5, 10, 20, 50, 100],
       registers: [this.register],
     });
 
-    this.logger.log('All Prometheus metrics initialized');
+    this.logger.log("All Prometheus metrics initialized");
   }
 
   /**
@@ -168,7 +168,7 @@ export class MetricsService implements OnModuleInit {
         // 设备总数（按租户和状态）
         this.deviceTotalGauge.inc({
           status: device.status,
-          tenant_id: device.tenantId || 'default',
+          tenant_id: device.tenantId || "default",
         });
 
         // 设备状态计数
@@ -187,7 +187,7 @@ export class MetricsService implements OnModuleInit {
 
       this.logger.debug(`Collected metrics for ${devices.length} devices`);
     } catch (error) {
-      this.logger.error('Failed to collect device metrics', error.stack);
+      this.logger.error("Failed to collect device metrics", error.stack);
     }
   }
 
@@ -204,7 +204,7 @@ export class MetricsService implements OnModuleInit {
         const labels = {
           device_id: device.id,
           user_id: device.userId,
-          tenant_id: device.tenantId || 'default',
+          tenant_id: device.tenantId || "default",
         };
 
         // CPU 使用率
@@ -245,9 +245,12 @@ export class MetricsService implements OnModuleInit {
   recordOperationDuration(
     operation: string,
     durationSeconds: number,
-    status: 'success' | 'failure' = 'success',
+    status: "success" | "failure" = "success",
   ) {
-    this.operationDurationHistogram.observe({ operation, status }, durationSeconds);
+    this.operationDurationHistogram.observe(
+      { operation, status },
+      durationSeconds,
+    );
   }
 
   /**
@@ -265,7 +268,10 @@ export class MetricsService implements OnModuleInit {
     size: number,
     durationSeconds: number,
   ) {
-    this.batchOperationSizeHistogram.observe({ operation_type: operationType }, size);
+    this.batchOperationSizeHistogram.observe(
+      { operation_type: operationType },
+      size,
+    );
     this.batchOperationDurationHistogram.observe(
       { operation_type: operationType },
       durationSeconds,

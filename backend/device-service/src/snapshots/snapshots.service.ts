@@ -1,30 +1,33 @@
+import { Injectable, Logger, HttpStatus } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
 import {
-  Injectable,
-  Logger,
-  HttpStatus,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { DeviceSnapshot, SnapshotStatus } from '../entities/device-snapshot.entity';
-import { Device, DeviceStatus } from '../entities/device.entity';
-import { CreateSnapshotDto } from './dto/create-snapshot.dto';
-import { RestoreSnapshotDto } from './dto/restore-snapshot.dto';
-import { DockerService } from '../docker/docker.service';
-import { DevicesService } from '../devices/devices.service';
-import { PortManagerService } from '../port-manager/port-manager.service';
-import { BusinessErrors, BusinessException, BusinessErrorCode } from '@cloudphone/shared';
-import Dockerode = require('dockerode');
-import * as fs from 'fs';
-import * as path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+  DeviceSnapshot,
+  SnapshotStatus,
+} from "../entities/device-snapshot.entity";
+import { Device, DeviceStatus } from "../entities/device.entity";
+import { CreateSnapshotDto } from "./dto/create-snapshot.dto";
+import { RestoreSnapshotDto } from "./dto/restore-snapshot.dto";
+import { DockerService } from "../docker/docker.service";
+import { DevicesService } from "../devices/devices.service";
+import { PortManagerService } from "../port-manager/port-manager.service";
+import {
+  BusinessErrors,
+  BusinessException,
+  BusinessErrorCode,
+} from "@cloudphone/shared";
+import Dockerode = require("dockerode");
+import * as fs from "fs";
+import * as path from "path";
+import { exec } from "child_process";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
 @Injectable()
 export class SnapshotsService {
   private readonly logger = new Logger(SnapshotsService.name);
-  private readonly snapshotDir = process.env.SNAPSHOT_DIR || '/data/snapshots';
+  private readonly snapshotDir = process.env.SNAPSHOT_DIR || "/data/snapshots";
 
   constructor(
     @InjectRepository(DeviceSnapshot)
@@ -61,10 +64,10 @@ export class SnapshotsService {
     }
 
     // 2. 检查设备是否运行中
-    if (device.status !== 'running') {
+    if (device.status !== "running") {
       throw new BusinessException(
         BusinessErrorCode.DEVICE_NOT_AVAILABLE,
-        '设备必须处于运行状态才能创建快照',
+        "设备必须处于运行状态才能创建快照",
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -91,12 +94,14 @@ export class SnapshotsService {
     const savedSnapshot = await this.snapshotRepository.save(snapshot);
 
     // 4. 异步创建 Docker 快照
-    this.createDockerSnapshot(savedSnapshot.id, device.containerId).catch((error) => {
-      this.logger.error(
-        `Failed to create Docker snapshot for ${savedSnapshot.id}: ${error.message}`,
-      );
-      this.updateSnapshotStatus(savedSnapshot.id, SnapshotStatus.FAILED);
-    });
+    this.createDockerSnapshot(savedSnapshot.id, device.containerId).catch(
+      (error) => {
+        this.logger.error(
+          `Failed to create Docker snapshot for ${savedSnapshot.id}: ${error.message}`,
+        );
+        this.updateSnapshotStatus(savedSnapshot.id, SnapshotStatus.FAILED);
+      },
+    );
 
     return savedSnapshot;
   }
@@ -114,7 +119,7 @@ export class SnapshotsService {
       });
 
       if (!snapshot) {
-        throw new Error('Snapshot not found');
+        throw new Error("Snapshot not found");
       }
 
       // 生成镜像名称
@@ -123,11 +128,12 @@ export class SnapshotsService {
       this.logger.log(`Committing container ${containerId} to ${imageName}`);
 
       // 使用 Docker SDK 创建快照
-      const container = await this.dockerService['docker'].getContainer(containerId);
+      const container =
+        await this.dockerService["docker"].getContainer(containerId);
 
       // Commit 容器为镜像
       const image = await container.commit({
-        repo: 'cloudphone-snapshot',
+        repo: "cloudphone-snapshot",
         tag: snapshotId,
         comment: `Snapshot: ${snapshot.name}`,
         author: snapshot.createdBy,
@@ -137,7 +143,7 @@ export class SnapshotsService {
       this.logger.log(`Docker image created: ${image.Id}`);
 
       // 获取镜像信息
-      const imageInfo = await this.dockerService['docker']
+      const imageInfo = await this.dockerService["docker"]
         .getImage(image.Id)
         .inspect();
 
@@ -169,7 +175,7 @@ export class SnapshotsService {
     // 1. 验证快照存在且可用
     const snapshot = await this.snapshotRepository.findOne({
       where: { id: snapshotId },
-      relations: ['device'],
+      relations: ["device"],
     });
 
     if (!snapshot) {
@@ -182,11 +188,11 @@ export class SnapshotsService {
 
     // 2. 验证镜像存在
     try {
-      await this.dockerService['docker'].getImage(snapshot.imageId).inspect();
+      await this.dockerService["docker"].getImage(snapshot.imageId).inspect();
     } catch (error) {
       throw new BusinessException(
         BusinessErrorCode.SNAPSHOT_RESTORE_FAILED,
-        '快照镜像在 Docker 中不存在',
+        "快照镜像在 Docker 中不存在",
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -274,15 +280,15 @@ export class SnapshotsService {
     deviceName: string,
     adbPort: number,
   ): Promise<Dockerode.Container> {
-    const docker: Dockerode = this.dockerService['docker'];
+    const docker: Dockerode = this.dockerService["docker"];
 
     const containerConfig: Dockerode.ContainerCreateOptions = {
       name: deviceName,
       Image: snapshot.imageId,
       Hostname: deviceName,
       Env: [
-        `WIDTH=${snapshot.metadata.resolution?.split('x')[0] || 1080}`,
-        `HEIGHT=${snapshot.metadata.resolution?.split('x')[1] || 1920}`,
+        `WIDTH=${snapshot.metadata.resolution?.split("x")[0] || 1080}`,
+        `HEIGHT=${snapshot.metadata.resolution?.split("x")[1] || 1920}`,
         `DPI=${snapshot.metadata.dpi || 320}`,
       ],
       HostConfig: {
@@ -291,17 +297,17 @@ export class SnapshotsService {
         MemorySwap: (snapshot.metadata.memoryMB || 4096) * 1024 * 1024,
         NanoCpus: (snapshot.metadata.cpuCores || 2) * 1e9,
         PortBindings: {
-          '5555/tcp': [{ HostPort: String(adbPort) }],
+          "5555/tcp": [{ HostPort: String(adbPort) }],
         },
         RestartPolicy: {
-          Name: 'unless-stopped',
+          Name: "unless-stopped",
           MaximumRetryCount: 3,
         },
       },
       Labels: {
-        'com.cloudphone.managed': 'true',
-        'com.cloudphone.type': 'redroid',
-        'com.cloudphone.snapshot': snapshot.id,
+        "com.cloudphone.managed": "true",
+        "com.cloudphone.type": "redroid",
+        "com.cloudphone.snapshot": snapshot.id,
       },
     };
 
@@ -385,14 +391,14 @@ export class SnapshotsService {
     if (snapshot.createdBy !== userId) {
       throw new BusinessException(
         BusinessErrorCode.INSUFFICIENT_PERMISSIONS,
-        '您只能删除自己的快照',
+        "您只能删除自己的快照",
         HttpStatus.FORBIDDEN,
       );
     }
 
     try {
       // 删除 Docker 镜像
-      const image = this.dockerService['docker'].getImage(snapshot.imageId);
+      const image = this.dockerService["docker"].getImage(snapshot.imageId);
       await image.remove({ force: true });
       this.logger.log(`Docker image deleted: ${snapshot.imageId}`);
     } catch (error) {
@@ -404,7 +410,9 @@ export class SnapshotsService {
       try {
         if (fs.existsSync(snapshot.compressedPath)) {
           fs.unlinkSync(snapshot.compressedPath);
-          this.logger.log(`Compressed file deleted: ${snapshot.compressedPath}`);
+          this.logger.log(
+            `Compressed file deleted: ${snapshot.compressedPath}`,
+          );
         }
       } catch (error) {
         this.logger.warn(`Failed to delete compressed file: ${error.message}`);
@@ -423,7 +431,7 @@ export class SnapshotsService {
   async findByDevice(deviceId: string): Promise<DeviceSnapshot[]> {
     return await this.snapshotRepository.find({
       where: { deviceId },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
   }
 
@@ -433,7 +441,7 @@ export class SnapshotsService {
   async findByUser(userId: string): Promise<DeviceSnapshot[]> {
     return await this.snapshotRepository.find({
       where: { createdBy: userId },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
   }
 
@@ -443,7 +451,7 @@ export class SnapshotsService {
   async findOne(snapshotId: string, userId?: string): Promise<DeviceSnapshot> {
     const snapshot = await this.snapshotRepository.findOne({
       where: { id: snapshotId },
-      relations: ['device'],
+      relations: ["device"],
     });
 
     if (!snapshot) {
@@ -480,34 +488,34 @@ export class SnapshotsService {
    * 获取快照统计信息
    */
   async getStatistics(userId?: string): Promise<any> {
-    const queryBuilder = this.snapshotRepository.createQueryBuilder('snapshot');
+    const queryBuilder = this.snapshotRepository.createQueryBuilder("snapshot");
 
     if (userId) {
-      queryBuilder.where('snapshot.createdBy = :userId', { userId });
+      queryBuilder.where("snapshot.createdBy = :userId", { userId });
     }
 
     const total = await queryBuilder.getCount();
 
     const byStatus = await queryBuilder
-      .select('snapshot.status', 'status')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('snapshot.status')
+      .select("snapshot.status", "status")
+      .addSelect("COUNT(*)", "count")
+      .groupBy("snapshot.status")
       .getRawMany();
 
     const totalSize = await queryBuilder
-      .select('SUM(snapshot.imageSize)', 'totalSize')
+      .select("SUM(snapshot.imageSize)", "totalSize")
       .getRawOne();
 
     const compressedSize = await queryBuilder
-      .select('SUM(snapshot.compressedSize)', 'compressedSize')
-      .where('snapshot.isCompressed = true')
+      .select("SUM(snapshot.compressedSize)", "compressedSize")
+      .where("snapshot.isCompressed = true")
       .getRawOne();
 
     return {
       total,
       byStatus,
-      totalSize: parseInt(totalSize?.totalSize || '0'),
-      compressedSize: parseInt(compressedSize?.compressedSize || '0'),
+      totalSize: parseInt(totalSize?.totalSize || "0"),
+      compressedSize: parseInt(compressedSize?.compressedSize || "0"),
     };
   }
 }

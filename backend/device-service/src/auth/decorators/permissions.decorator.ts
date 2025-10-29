@@ -1,10 +1,10 @@
-import { SetMetadata } from '@nestjs/common';
+import { SetMetadata } from "@nestjs/common";
 
-export const PERMISSIONS_KEY = 'permissions';
+export const PERMISSIONS_KEY = "permissions";
 
 export enum PermissionOperator {
-  AND = 'AND',
-  OR = 'OR',
+  AND = "AND",
+  OR = "OR",
 }
 
 export interface PermissionRequirement {
@@ -19,7 +19,9 @@ export const RequirePermission = (
   permissions: string | string[],
   operator: PermissionOperator = PermissionOperator.AND,
 ) => {
-  const permissionArray = Array.isArray(permissions) ? permissions : [permissions];
+  const permissionArray = Array.isArray(permissions)
+    ? permissions
+    : [permissions];
   const requirement: PermissionRequirement = {
     permissions: permissionArray,
     operator,

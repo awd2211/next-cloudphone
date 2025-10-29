@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Node, NodeStatus, ResourceUsage } from '../entities/node.entity';
-import { Device, DeviceStatus } from '../entities/device.entity';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import * as os from 'os';
-import Dockerode = require('dockerode');
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Node, NodeStatus, ResourceUsage } from "../entities/node.entity";
+import { Device, DeviceStatus } from "../entities/device.entity";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import * as os from "os";
+import Dockerode = require("dockerode");
 
 @Injectable()
 export class ResourceMonitorService {
@@ -91,7 +91,8 @@ export class ResourceMonitorService {
         activeDevices: devices.length,
         cpuUsagePercent,
         memoryUsagePercent,
-        storageUsagePercent: (usedStorageGB / node.capacity.totalStorageGB) * 100,
+        storageUsagePercent:
+          (usedStorageGB / node.capacity.totalStorageGB) * 100,
       };
 
       // 计算负载分数 (0-100)
@@ -118,16 +119,10 @@ export class ResourceMonitorService {
   /**
    * 计算负载分数 (0-100, 100 表示满载)
    */
-  private calculateLoadScore(
-    usage: ResourceUsage,
-    capacity: any,
-  ): number {
-    const cpuScore =
-      (usage.usedCpuCores / capacity.totalCpuCores) * 100;
-    const memoryScore =
-      (usage.usedMemoryMB / capacity.totalMemoryMB) * 100;
-    const deviceScore =
-      (usage.activeDevices / capacity.maxDevices) * 100;
+  private calculateLoadScore(usage: ResourceUsage, capacity: any): number {
+    const cpuScore = (usage.usedCpuCores / capacity.totalCpuCores) * 100;
+    const memoryScore = (usage.usedMemoryMB / capacity.totalMemoryMB) * 100;
+    const deviceScore = (usage.activeDevices / capacity.maxDevices) * 100;
 
     // 加权平均：CPU 30%, Memory 30%, Device Count 40%
     return cpuScore * 0.3 + memoryScore * 0.3 + deviceScore * 0.4;
@@ -144,7 +139,8 @@ export class ResourceMonitorService {
         const endMeasure = this.cpuAverage();
         const idleDifference = endMeasure.idle - startMeasure.idle;
         const totalDifference = endMeasure.total - startMeasure.total;
-        const percentageCPU = 100 - ~~((100 * idleDifference) / totalDifference);
+        const percentageCPU =
+          100 - ~~((100 * idleDifference) / totalDifference);
         resolve(percentageCPU);
       }, 1000);
     });
@@ -177,7 +173,7 @@ export class ResourceMonitorService {
    */
   @Cron(CronExpression.EVERY_30_SECONDS)
   async updateAllNodesUsage(): Promise<void> {
-    this.logger.log('Updating resource usage for all nodes');
+    this.logger.log("Updating resource usage for all nodes");
 
     const nodes = await this.nodeRepository.find({
       where: { status: NodeStatus.ONLINE },
@@ -194,7 +190,7 @@ export class ResourceMonitorService {
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async checkNodesHealth(): Promise<void> {
-    this.logger.log('Checking nodes health');
+    this.logger.log("Checking nodes health");
 
     const nodes = await this.nodeRepository.find();
 
@@ -232,14 +228,14 @@ export class ResourceMonitorService {
   async getClusterStats(): Promise<any> {
     const nodes = await this.nodeRepository.find();
 
-    let totalCapacity = {
+    const totalCapacity = {
       cpuCores: 0,
       memoryMB: 0,
       storageGB: 0,
       maxDevices: 0,
     };
 
-    let totalUsage = {
+    const totalUsage = {
       cpuCores: 0,
       memoryMB: 0,
       storageGB: 0,

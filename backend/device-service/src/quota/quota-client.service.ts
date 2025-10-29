@@ -1,6 +1,6 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { HttpClientService } from '@cloudphone/shared';
+import { Injectable, Logger, HttpException, HttpStatus } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { HttpClientService } from "@cloudphone/shared";
 
 /**
  * 配额限制接口（与 user-service 保持一致）
@@ -40,10 +40,10 @@ export interface QuotaUsage {
  * 配额状态枚举
  */
 export enum QuotaStatus {
-  ACTIVE = 'active',
-  EXCEEDED = 'exceeded',
-  SUSPENDED = 'suspended',
-  EXPIRED = 'expired',
+  ACTIVE = "active",
+  EXCEEDED = "exceeded",
+  SUSPENDED = "suspended",
+  EXPIRED = "expired",
 }
 
 /**
@@ -82,7 +82,7 @@ export interface UsageReport {
   cpuCores: number;
   memoryGB: number;
   storageGB: number;
-  operation: 'increment' | 'decrement'; // 增加或减少
+  operation: "increment" | "decrement"; // 增加或减少
 }
 
 /**
@@ -100,8 +100,8 @@ export class QuotaClientService {
     private readonly configService: ConfigService,
   ) {
     this.userServiceUrl =
-      this.configService.get<string>('USER_SERVICE_URL') ||
-      'http://localhost:30001';
+      this.configService.get<string>("USER_SERVICE_URL") ||
+      "http://localhost:30001";
   }
 
   /**
@@ -136,15 +136,15 @@ export class QuotaClientService {
       }
 
       // 熔断器打开时的降级处理
-      if (error.message?.includes('Circuit breaker is open')) {
+      if (error.message?.includes("Circuit breaker is open")) {
         throw new HttpException(
-          'User service temporarily unavailable',
+          "User service temporarily unavailable",
           HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
 
       throw new HttpException(
-        'Failed to fetch user quota',
+        "Failed to fetch user quota",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -180,7 +180,7 @@ export class QuotaClientService {
       if (quota.validUntil && new Date() > new Date(quota.validUntil)) {
         return {
           allowed: false,
-          reason: 'Quota has expired',
+          reason: "Quota has expired",
         };
       }
 
@@ -261,27 +261,24 @@ export class QuotaClientService {
         remainingStorage,
       };
     } catch (error) {
-      this.logger.error(
-        `Quota check failed for user ${userId}`,
-        error.stack,
-      );
+      this.logger.error(`Quota check failed for user ${userId}`, error.stack);
 
       // 如果配额服务不可用，根据配置决定是否允许创建
       const allowOnError = this.configService.get<boolean>(
-        'QUOTA_ALLOW_ON_ERROR',
+        "QUOTA_ALLOW_ON_ERROR",
         false,
       );
 
       if (allowOnError) {
         this.logger.warn(
-          'Quota service unavailable, allowing operation due to QUOTA_ALLOW_ON_ERROR=true',
+          "Quota service unavailable, allowing operation due to QUOTA_ALLOW_ON_ERROR=true",
         );
         return { allowed: true };
       }
 
       return {
         allowed: false,
-        reason: 'Quota service unavailable',
+        reason: "Quota service unavailable",
       };
     }
   }
@@ -319,7 +316,7 @@ export class QuotaClientService {
       // 用量上报失败不应阻止设备创建，但应该记录告警
       // 可以考虑使用消息队列进行重试
       this.logger.warn(
-        'Usage reporting failed, device created but quota may be inconsistent',
+        "Usage reporting failed, device created but quota may be inconsistent",
       );
     }
   }
@@ -446,8 +443,7 @@ export class QuotaClientService {
           : 0,
       traffic:
         quota.limits.monthlyTrafficGB > 0
-          ? (quota.usage.monthlyTrafficUsedGB /
-              quota.limits.monthlyTrafficGB) *
+          ? (quota.usage.monthlyTrafficUsedGB / quota.limits.monthlyTrafficGB) *
             100
           : 0,
       hours:

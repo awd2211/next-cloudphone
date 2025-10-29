@@ -1,15 +1,21 @@
-import { Injectable, Logger, HttpStatus } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { DeviceTemplate, TemplateCategory } from '../entities/device-template.entity';
-import { CreateTemplateDto } from './dto/create-template.dto';
-import { UpdateTemplateDto } from './dto/update-template.dto';
-import { CreateDeviceFromTemplateDto, BatchCreateFromTemplateDto } from './dto/create-from-template.dto';
-import { DevicesService } from '../devices/devices.service';
-import { BatchOperationsService } from '../devices/batch-operations.service';
-import { CreateDeviceDto } from '../devices/dto/create-device.dto';
-import { BatchCreateDeviceDto } from '../devices/dto/batch-operation.dto';
-import { BusinessErrors } from '@cloudphone/shared';
+import { Injectable, Logger, HttpStatus } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import {
+  DeviceTemplate,
+  TemplateCategory,
+} from "../entities/device-template.entity";
+import { CreateTemplateDto } from "./dto/create-template.dto";
+import { UpdateTemplateDto } from "./dto/update-template.dto";
+import {
+  CreateDeviceFromTemplateDto,
+  BatchCreateFromTemplateDto,
+} from "./dto/create-from-template.dto";
+import { DevicesService } from "../devices/devices.service";
+import { BatchOperationsService } from "../devices/batch-operations.service";
+import { CreateDeviceDto } from "../devices/dto/create-device.dto";
+import { BatchCreateDeviceDto } from "../devices/dto/batch-operation.dto";
+import { BusinessErrors } from "@cloudphone/shared";
 
 @Injectable()
 export class TemplatesService {
@@ -25,15 +31,18 @@ export class TemplatesService {
   /**
    * 创建设备模板
    */
-  async create(createTemplateDto: CreateTemplateDto, userId: string): Promise<DeviceTemplate> {
+  async create(
+    createTemplateDto: CreateTemplateDto,
+    userId: string,
+  ): Promise<DeviceTemplate> {
     this.logger.log(`Creating template: ${createTemplateDto.name}`);
 
     // 设置默认值
     const template = this.templateRepository.create({
       ...createTemplateDto,
-      resolution: createTemplateDto.resolution || '1080x1920',
+      resolution: createTemplateDto.resolution || "1080x1920",
       dpi: createTemplateDto.dpi || 320,
-      androidVersion: createTemplateDto.androidVersion || '11',
+      androidVersion: createTemplateDto.androidVersion || "11",
       enableGpu: createTemplateDto.enableGpu ?? false,
       enableAudio: createTemplateDto.enableAudio ?? false,
       preInstalledApps: createTemplateDto.preInstalledApps || [],
@@ -55,29 +64,29 @@ export class TemplatesService {
     isPublic?: boolean,
     userId?: string,
   ): Promise<DeviceTemplate[]> {
-    const queryBuilder = this.templateRepository.createQueryBuilder('template');
+    const queryBuilder = this.templateRepository.createQueryBuilder("template");
 
     if (category) {
-      queryBuilder.andWhere('template.category = :category', { category });
+      queryBuilder.andWhere("template.category = :category", { category });
     }
 
     if (isPublic !== undefined) {
-      queryBuilder.andWhere('template.isPublic = :isPublic', { isPublic });
+      queryBuilder.andWhere("template.isPublic = :isPublic", { isPublic });
     }
 
     // 如果提供了 userId，返回公共模板或用户自己的模板
     if (userId) {
       queryBuilder.andWhere(
-        '(template.isPublic = true OR template.createdBy = :userId)',
+        "(template.isPublic = true OR template.createdBy = :userId)",
         { userId },
       );
     } else {
       // 否则只返回公共模板
-      queryBuilder.andWhere('template.isPublic = true');
+      queryBuilder.andWhere("template.isPublic = true");
     }
 
-    queryBuilder.orderBy('template.usageCount', 'DESC');
-    queryBuilder.addOrderBy('template.createdAt', 'DESC');
+    queryBuilder.orderBy("template.usageCount", "DESC");
+    queryBuilder.addOrderBy("template.createdAt", "DESC");
 
     return await queryBuilder.getMany();
   }
@@ -112,7 +121,7 @@ export class TemplatesService {
 
     // 权限检查：只能更新自己创建的模板
     if (template.createdBy !== userId) {
-      throw BusinessErrors.templateOperationDenied('您只能更新自己创建的模板');
+      throw BusinessErrors.templateOperationDenied("您只能更新自己创建的模板");
     }
 
     Object.assign(template, updateTemplateDto);
@@ -127,7 +136,7 @@ export class TemplatesService {
 
     // 权限检查：只能删除自己创建的模板
     if (template.createdBy !== userId) {
-      throw BusinessErrors.templateOperationDenied('您只能删除自己创建的模板');
+      throw BusinessErrors.templateOperationDenied("您只能删除自己创建的模板");
     }
 
     await this.templateRepository.remove(template);
@@ -209,7 +218,8 @@ export class TemplatesService {
     };
 
     // 批量创建设备
-    const result = await this.batchOperationsService.batchCreate(batchCreateDto);
+    const result =
+      await this.batchOperationsService.batchCreate(batchCreateDto);
 
     // 对成功创建的设备执行模板初始化（异步）
     // 从 results 中提取成功的设备ID
@@ -218,11 +228,13 @@ export class TemplatesService {
       .map((r) => r.data.id);
 
     if (successfulDeviceIds.length > 0) {
-      this.batchExecuteTemplateInit(successfulDeviceIds, template).catch((error) => {
-        this.logger.error(
-          `Batch template initialization failed: ${error.message}`,
-        );
-      });
+      this.batchExecuteTemplateInit(successfulDeviceIds, template).catch(
+        (error) => {
+          this.logger.error(
+            `Batch template initialization failed: ${error.message}`,
+          );
+        },
+      );
     }
 
     return result;
@@ -234,7 +246,7 @@ export class TemplatesService {
   async getPopularTemplates(limit: number = 10): Promise<DeviceTemplate[]> {
     return await this.templateRepository.find({
       where: { isPublic: true },
-      order: { usageCount: 'DESC', createdAt: 'DESC' },
+      order: { usageCount: "DESC", createdAt: "DESC" },
       take: limit,
     });
   }
@@ -242,24 +254,27 @@ export class TemplatesService {
   /**
    * 搜索模板
    */
-  async searchTemplates(query: string, userId?: string): Promise<DeviceTemplate[]> {
-    const queryBuilder = this.templateRepository.createQueryBuilder('template');
+  async searchTemplates(
+    query: string,
+    userId?: string,
+  ): Promise<DeviceTemplate[]> {
+    const queryBuilder = this.templateRepository.createQueryBuilder("template");
 
     queryBuilder.where(
-      '(template.name ILIKE :query OR template.description ILIKE :query OR :query = ANY(template.tags))',
+      "(template.name ILIKE :query OR template.description ILIKE :query OR :query = ANY(template.tags))",
       { query: `%${query}%` },
     );
 
     if (userId) {
       queryBuilder.andWhere(
-        '(template.isPublic = true OR template.createdBy = :userId)',
+        "(template.isPublic = true OR template.createdBy = :userId)",
         { userId },
       );
     } else {
-      queryBuilder.andWhere('template.isPublic = true');
+      queryBuilder.andWhere("template.isPublic = true");
     }
 
-    queryBuilder.orderBy('template.usageCount', 'DESC');
+    queryBuilder.orderBy("template.usageCount", "DESC");
 
     return await queryBuilder.getMany();
   }
@@ -271,7 +286,11 @@ export class TemplatesService {
     templateId: string,
     count: number = 1,
   ): Promise<void> {
-    await this.templateRepository.increment({ id: templateId }, 'usageCount', count);
+    await this.templateRepository.increment(
+      { id: templateId },
+      "usageCount",
+      count,
+    );
     await this.templateRepository.update(
       { id: templateId },
       { lastUsedAt: new Date() },
@@ -285,7 +304,9 @@ export class TemplatesService {
     deviceId: string,
     template: DeviceTemplate,
   ): Promise<void> {
-    this.logger.log(`Initializing device ${deviceId} from template ${template.name}`);
+    this.logger.log(
+      `Initializing device ${deviceId} from template ${template.name}`,
+    );
 
     // 等待设备就绪
     await this.waitForDeviceReady(deviceId);
@@ -295,7 +316,9 @@ export class TemplatesService {
       for (const app of template.preInstalledApps) {
         try {
           await this.devicesService.installApk(deviceId, app.apkPath);
-          this.logger.log(`Installed app: ${app.packageName} on device ${deviceId}`);
+          this.logger.log(
+            `Installed app: ${app.packageName} on device ${deviceId}`,
+          );
 
           // 自动启动应用
           if (app.autoStart) {
@@ -357,7 +380,7 @@ export class TemplatesService {
     while (Date.now() - startTime < maxWaitTime) {
       try {
         const device = await this.devicesService.findOne(deviceId);
-        if (device.status === 'running') {
+        if (device.status === "running") {
           return;
         }
       } catch (error) {

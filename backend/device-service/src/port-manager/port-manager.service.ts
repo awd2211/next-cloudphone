@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Device, DeviceStatus } from '../entities/device.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Device, DeviceStatus } from "../entities/device.entity";
 
 export interface PortAllocation {
   adbPort: number;
@@ -63,7 +63,7 @@ export class PortManagerService {
         `Port cache initialized: ${this.usedAdbPorts.size} ADB ports, ${this.usedWebrtcPorts.size} WebRTC ports`,
       );
     } catch (error) {
-      this.logger.error('Failed to initialize port cache', error);
+      this.logger.error("Failed to initialize port cache", error);
     }
   }
 
@@ -162,21 +162,21 @@ export class PortManagerService {
   /**
    * 检查端口是否可用
    */
-  isPortAvailable(port: number, type: 'adb' | 'webrtc' | 'scrcpy'): boolean {
+  isPortAvailable(port: number, type: "adb" | "webrtc" | "scrcpy"): boolean {
     switch (type) {
-      case 'adb':
+      case "adb":
         return (
           port >= this.ADB_PORT_START &&
           port <= this.ADB_PORT_END &&
           !this.usedAdbPorts.has(port)
         );
-      case 'webrtc':
+      case "webrtc":
         return (
           port >= this.WEBRTC_PORT_START &&
           port <= this.WEBRTC_PORT_END &&
           !this.usedWebrtcPorts.has(port)
         );
-      case 'scrcpy':
+      case "scrcpy":
         return (
           port >= this.SCRCPY_PORT_START &&
           port <= this.SCRCPY_PORT_END &&

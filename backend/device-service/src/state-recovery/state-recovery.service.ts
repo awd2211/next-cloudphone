@@ -1,21 +1,21 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { ConfigService } from '@nestjs/config';
-import { Device, DeviceStatus } from '../entities/device.entity';
-import { DockerService } from '../docker/docker.service';
-import { EventBusService } from '@cloudphone/shared';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, DataSource } from "typeorm";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { ConfigService } from "@nestjs/config";
+import { Device, DeviceStatus } from "../entities/device.entity";
+import { DockerService } from "../docker/docker.service";
+import { EventBusService } from "@cloudphone/shared";
 
 /**
  * 状态不一致类型
  */
 export enum StateInconsistencyType {
-  DATABASE_DOCKER_MISMATCH = 'database_docker_mismatch', // 数据库和Docker状态不一致
-  ORPHANED_CONTAINER = 'orphaned_container', // 孤儿容器
-  MISSING_CONTAINER = 'missing_container', // 容器丢失
-  STATUS_MISMATCH = 'status_mismatch', // 状态不匹配
-  PORT_CONFLICT = 'port_conflict', // 端口冲突
+  DATABASE_DOCKER_MISMATCH = "database_docker_mismatch", // 数据库和Docker状态不一致
+  ORPHANED_CONTAINER = "orphaned_container", // 孤儿容器
+  MISSING_CONTAINER = "missing_container", // 容器丢失
+  STATUS_MISMATCH = "status_mismatch", // 状态不匹配
+  PORT_CONFLICT = "port_conflict", // 端口冲突
 }
 
 /**
@@ -27,7 +27,7 @@ export interface StateInconsistency {
   containerId?: string;
   expectedState: any;
   actualState: any;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
   details: string;
   timestamp: Date;
   autoFixable: boolean;
@@ -100,21 +100,21 @@ export class StateRecoveryService {
     private dataSource: DataSource,
   ) {
     this.config = {
-      enabled: this.configService.get<boolean>('STATE_RECOVERY_ENABLED', true),
+      enabled: this.configService.get<boolean>("STATE_RECOVERY_ENABLED", true),
       autoHealEnabled: this.configService.get<boolean>(
-        'STATE_RECOVERY_AUTO_HEAL_ENABLED',
+        "STATE_RECOVERY_AUTO_HEAL_ENABLED",
         true,
       ),
       recordOperations: this.configService.get<boolean>(
-        'STATE_RECOVERY_RECORD_OPERATIONS',
+        "STATE_RECOVERY_RECORD_OPERATIONS",
         true,
       ),
       maxOperationHistory: this.configService.get<number>(
-        'STATE_RECOVERY_MAX_OPERATION_HISTORY',
+        "STATE_RECOVERY_MAX_OPERATION_HISTORY",
         1000,
       ),
       checkIntervalMinutes: this.configService.get<number>(
-        'STATE_RECOVERY_CHECK_INTERVAL_MINUTES',
+        "STATE_RECOVERY_CHECK_INTERVAL_MINUTES",
         15,
       ),
     };
@@ -133,12 +133,14 @@ export class StateRecoveryService {
       return;
     }
 
-    this.logger.log('Starting state consistency check');
+    this.logger.log("Starting state consistency check");
 
     try {
       const inconsistencies = await this.detectInconsistencies();
 
-      this.logger.log(`Detected ${inconsistencies.length} state inconsistencies`);
+      this.logger.log(
+        `Detected ${inconsistencies.length} state inconsistencies`,
+      );
 
       // 记录不一致
       for (const inconsistency of inconsistencies) {
@@ -156,11 +158,15 @@ export class StateRecoveryService {
 
       // 发布事件
       if (inconsistencies.length > 0) {
-        this.eventBusService.publish('cloudphone.events', 'state.inconsistencies_detected', {
-          count: inconsistencies.length,
-          types: this.groupByType(inconsistencies),
-          timestamp: new Date(),
-        });
+        this.eventBusService.publish(
+          "cloudphone.events",
+          "state.inconsistencies_detected",
+          {
+            count: inconsistencies.length,
+            types: this.groupByType(inconsistencies),
+            timestamp: new Date(),
+          },
+        );
       }
     } catch (error) {
       this.logger.error(`Consistency check failed: ${error.message}`);
@@ -191,7 +197,9 @@ export class StateRecoveryService {
   /**
    * 检查数据库和Docker状态一致性
    */
-  private async checkDatabaseDockerConsistency(): Promise<StateInconsistency[]> {
+  private async checkDatabaseDockerConsistency(): Promise<
+    StateInconsistency[]
+  > {
     const inconsistencies: StateInconsistency[] = [];
 
     const devices = await this.deviceRepository.find({
@@ -224,7 +232,7 @@ export class StateRecoveryService {
               status: containerInfo.State.Status,
               running: containerRunning,
             },
-            severity: 'high',
+            severity: "high",
             details: `Database says device is running, but container is ${containerInfo.State.Status}`,
             timestamp: new Date(),
             autoFixable: true,
@@ -238,7 +246,7 @@ export class StateRecoveryService {
           containerId: device.containerId,
           expectedState: { containerExists: true },
           actualState: { containerExists: false, error: error.message },
-          severity: 'critical',
+          severity: "critical",
           details: `Container ${device.containerId} not found for device ${device.id}`,
           timestamp: new Date(),
           autoFixable: true,
@@ -260,14 +268,19 @@ export class StateRecoveryService {
 
       // 过滤出cloudphone管理的容器
       const cloudphoneContainers = allContainers.filter((container) => {
-        return container.Labels && container.Labels['com.cloudphone.managed'] === 'true';
+        return (
+          container.Labels &&
+          container.Labels["com.cloudphone.managed"] === "true"
+        );
       });
 
       // 获取所有设备的容器ID
       const devices = await this.deviceRepository.find({
-        select: ['containerId'],
+        select: ["containerId"],
       });
-      const knownContainerIds = new Set(devices.map((d) => d.containerId).filter(Boolean));
+      const knownContainerIds = new Set(
+        devices.map((d) => d.containerId).filter(Boolean),
+      );
 
       // 检查孤儿容器
       for (const container of cloudphoneContainers) {
@@ -277,7 +290,7 @@ export class StateRecoveryService {
             containerId: container.Id,
             expectedState: { inDatabase: true },
             actualState: { inDatabase: false },
-            severity: 'medium',
+            severity: "medium",
             details: `Container ${container.Id} (${container.Names[0]}) exists but has no database record`,
             timestamp: new Date(),
             autoFixable: true,
@@ -285,7 +298,9 @@ export class StateRecoveryService {
         }
       }
     } catch (error) {
-      this.logger.error(`Failed to check orphaned containers: ${error.message}`);
+      this.logger.error(
+        `Failed to check orphaned containers: ${error.message}`,
+      );
     }
 
     return inconsistencies;
@@ -317,7 +332,7 @@ export class StateRecoveryService {
           containerId: device.containerId,
           expectedState: { containerExists: true },
           actualState: { containerExists: false },
-          severity: 'high',
+          severity: "high",
           details: `Container ${device.containerId} missing for device ${device.id}`,
           timestamp: new Date(),
           autoFixable: true,
@@ -331,7 +346,9 @@ export class StateRecoveryService {
   /**
    * 自动修复状态不一致
    */
-  private async autoHeal(inconsistency: StateInconsistency): Promise<SelfHealingResult> {
+  private async autoHeal(
+    inconsistency: StateInconsistency,
+  ): Promise<SelfHealingResult> {
     this.logger.log(
       `Auto-healing inconsistency: ${inconsistency.type} for device ${inconsistency.deviceId}`,
     );
@@ -357,12 +374,16 @@ export class StateRecoveryService {
       }
 
       // 发布自愈成功事件
-      this.eventBusService.publish('cloudphone.events', 'state.self_healing_success', {
-        inconsistency: inconsistency.type,
-        deviceId: inconsistency.deviceId,
-        action,
-        timestamp: new Date(),
-      });
+      this.eventBusService.publish(
+        "cloudphone.events",
+        "state.self_healing_success",
+        {
+          inconsistency: inconsistency.type,
+          deviceId: inconsistency.deviceId,
+          action,
+          timestamp: new Date(),
+        },
+      );
 
       return {
         success: true,
@@ -373,17 +394,21 @@ export class StateRecoveryService {
       this.logger.error(`Auto-healing failed: ${error.message}`);
 
       // 发布自愈失败事件
-      this.eventBusService.publish('cloudphone.events', 'state.self_healing_failed', {
-        inconsistency: inconsistency.type,
-        deviceId: inconsistency.deviceId,
-        error: error.message,
-        timestamp: new Date(),
-      });
+      this.eventBusService.publish(
+        "cloudphone.events",
+        "state.self_healing_failed",
+        {
+          inconsistency: inconsistency.type,
+          deviceId: inconsistency.deviceId,
+          error: error.message,
+          timestamp: new Date(),
+        },
+      );
 
       return {
         success: false,
         inconsistency,
-        action: 'failed',
+        action: "failed",
         error: error.message,
       };
     }
@@ -396,7 +421,7 @@ export class StateRecoveryService {
     inconsistency: StateInconsistency,
   ): Promise<string> {
     if (!inconsistency.deviceId) {
-      throw new Error('Device ID is required');
+      throw new Error("Device ID is required");
     }
 
     const device = await this.deviceRepository.findOne({
@@ -411,7 +436,7 @@ export class StateRecoveryService {
     device.status = DeviceStatus.STOPPED;
     await this.deviceRepository.save(device);
 
-    return 'Updated database status to match container state';
+    return "Updated database status to match container state";
   }
 
   /**
@@ -421,7 +446,7 @@ export class StateRecoveryService {
     inconsistency: StateInconsistency,
   ): Promise<string> {
     if (!inconsistency.deviceId) {
-      throw new Error('Device ID is required');
+      throw new Error("Device ID is required");
     }
 
     const device = await this.deviceRepository.findOne({
@@ -436,12 +461,12 @@ export class StateRecoveryService {
     device.status = DeviceStatus.ERROR;
     device.metadata = {
       ...device.metadata,
-      lastError: 'Container missing',
+      lastError: "Container missing",
       lastErrorAt: new Date().toISOString(),
     };
     await this.deviceRepository.save(device);
 
-    return 'Marked device as ERROR for failover service to handle';
+    return "Marked device as ERROR for failover service to handle";
   }
 
   /**
@@ -451,7 +476,7 @@ export class StateRecoveryService {
     inconsistency: StateInconsistency,
   ): Promise<string> {
     if (!inconsistency.containerId) {
-      throw new Error('Container ID is required');
+      throw new Error("Container ID is required");
     }
 
     // 删除孤儿容器
@@ -463,9 +488,11 @@ export class StateRecoveryService {
   /**
    * 记录操作（用于回滚）
    */
-  recordOperation(operation: Omit<OperationRecord, 'id' | 'timestamp'>): string {
+  recordOperation(
+    operation: Omit<OperationRecord, "id" | "timestamp">,
+  ): string {
     if (!this.config.recordOperations) {
-      return '';
+      return "";
     }
 
     const record: OperationRecord = {
@@ -501,8 +528,8 @@ export class StateRecoveryService {
       return {
         success: false,
         operationId,
-        entityId: '',
-        error: 'Operation not found',
+        entityId: "",
+        error: "Operation not found",
         timestamp: new Date(),
       };
     }
@@ -512,7 +539,7 @@ export class StateRecoveryService {
         success: false,
         operationId,
         entityId: operation.entityId,
-        error: 'Operation already rolled back',
+        error: "Operation already rolled back",
         timestamp: new Date(),
       };
     }
@@ -522,7 +549,7 @@ export class StateRecoveryService {
         success: false,
         operationId,
         entityId: operation.entityId,
-        error: 'Operation is not rollbackable',
+        error: "Operation is not rollbackable",
         timestamp: new Date(),
       };
     }
@@ -534,7 +561,7 @@ export class StateRecoveryService {
       await this.dataSource.transaction(async (manager) => {
         // 根据操作类型执行回滚
         switch (operation.entityType) {
-          case 'device':
+          case "device":
             await this.rollbackDeviceOperation(operation, manager);
             break;
 
@@ -547,12 +574,16 @@ export class StateRecoveryService {
       operation.rolledBack = true;
 
       // 发布回滚成功事件
-      this.eventBusService.publish('cloudphone.events', 'state.rollback_success', {
-        operationId,
-        operationType: operation.operationType,
-        entityId: operation.entityId,
-        timestamp: new Date(),
-      });
+      this.eventBusService.publish(
+        "cloudphone.events",
+        "state.rollback_success",
+        {
+          operationId,
+          operationType: operation.operationType,
+          entityId: operation.entityId,
+          timestamp: new Date(),
+        },
+      );
 
       return {
         success: true,
@@ -583,7 +614,7 @@ export class StateRecoveryService {
     const deviceRepo = manager.getRepository(Device);
 
     switch (operation.operationType) {
-      case 'update':
+      case "update":
         // 恢复到之前的状态
         await deviceRepo.update(
           { id: operation.entityId },
@@ -591,7 +622,7 @@ export class StateRecoveryService {
         );
         break;
 
-      case 'delete':
+      case "delete":
         // 恢复已删除的设备
         const device = deviceRepo.create({
           id: operation.entityId,
@@ -668,7 +699,9 @@ export class StateRecoveryService {
    */
   updateConfig(updates: Partial<StateRecoveryConfig>): void {
     this.config = { ...this.config, ...updates };
-    this.logger.log(`State recovery config updated: ${JSON.stringify(this.config)}`);
+    this.logger.log(
+      `State recovery config updated: ${JSON.stringify(this.config)}`,
+    );
   }
 
   /**

@@ -1,16 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
-import { AdbService } from '../adb/adb.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq";
+import { AdbService } from "../adb/adb.service";
 import {
   AppInstallRequestedEvent,
   AppUninstallRequestedEvent,
   DeviceAllocateRequestedEvent,
-} from '@cloudphone/shared';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import * as https from 'https';
-import * as http from 'http';
-import { DevicesService } from './devices.service';
+} from "@cloudphone/shared";
+import * as fs from "fs/promises";
+import * as path from "path";
+import * as https from "https";
+import * as http from "http";
+import { DevicesService } from "./devices.service";
 
 @Injectable()
 export class DevicesConsumer {
@@ -25,9 +25,9 @@ export class DevicesConsumer {
    * 处理应用安装请求
    */
   @RabbitSubscribe({
-    exchange: 'cloudphone.events',
-    routingKey: 'app.install.requested',
-    queue: 'device-service.app-install',
+    exchange: "cloudphone.events",
+    routingKey: "app.install.requested",
+    queue: "device-service.app-install",
     queueOptions: {
       durable: true,
     },
@@ -39,10 +39,7 @@ export class DevicesConsumer {
 
     try {
       // 1. 下载 APK 到临时文件
-      const apkPath = await this.downloadApk(
-        event.downloadUrl,
-        event.appId,
-      );
+      const apkPath = await this.downloadApk(event.downloadUrl, event.appId);
 
       // 2. 通过 ADB 安装
       await this.adbService.installApk(event.deviceId, apkPath);
@@ -55,7 +52,7 @@ export class DevicesConsumer {
         installationId: event.installationId,
         deviceId: event.deviceId,
         appId: event.appId,
-        status: 'success',
+        status: "success",
         installedAt: new Date(),
         timestamp: new Date().toISOString(),
       });
@@ -74,7 +71,7 @@ export class DevicesConsumer {
         installationId: event.installationId,
         deviceId: event.deviceId,
         appId: event.appId,
-        status: 'failed',
+        status: "failed",
         error: error.message,
         timestamp: new Date().toISOString(),
       });
@@ -85,9 +82,9 @@ export class DevicesConsumer {
    * 处理应用卸载请求
    */
   @RabbitSubscribe({
-    exchange: 'cloudphone.events',
-    routingKey: 'app.uninstall.requested',
-    queue: 'device-service.app-uninstall',
+    exchange: "cloudphone.events",
+    routingKey: "app.uninstall.requested",
+    queue: "device-service.app-uninstall",
     queueOptions: {
       durable: true,
     },
@@ -106,7 +103,7 @@ export class DevicesConsumer {
         deviceId: event.deviceId,
         appId: event.appId,
         packageName: event.packageName,
-        status: 'success',
+        status: "success",
         timestamp: new Date().toISOString(),
       });
 
@@ -124,7 +121,7 @@ export class DevicesConsumer {
         deviceId: event.deviceId,
         appId: event.appId,
         packageName: event.packageName,
-        status: 'failed',
+        status: "failed",
         error: error.message,
         timestamp: new Date().toISOString(),
       });
@@ -135,9 +132,9 @@ export class DevicesConsumer {
    * 处理设备分配请求（Saga）
    */
   @RabbitSubscribe({
-    exchange: 'cloudphone.events',
-    routingKey: 'device.allocate.requested',
-    queue: 'device-service.device-allocate',
+    exchange: "cloudphone.events",
+    routingKey: "device.allocate.requested",
+    queue: "device-service.device-allocate",
     queueOptions: {
       durable: true,
     },
@@ -190,9 +187,9 @@ export class DevicesConsumer {
    * 处理设备释放请求
    */
   @RabbitSubscribe({
-    exchange: 'cloudphone.events',
-    routingKey: 'device.release',
-    queue: 'device-service.device-release',
+    exchange: "cloudphone.events",
+    routingKey: "device.release",
+    queue: "device-service.device-release",
     queueOptions: {
       durable: true,
     },
@@ -215,32 +212,33 @@ export class DevicesConsumer {
    * 下载 APK 文件
    */
   private async downloadApk(url: string, appId: string): Promise<string> {
-    const tmpDir = '/tmp/cloudphone-apks';
+    const tmpDir = "/tmp/cloudphone-apks";
     await fs.mkdir(tmpDir, { recursive: true });
 
     const filePath = path.join(tmpDir, `${appId}-${Date.now()}.apk`);
-    const file = await fs.open(filePath, 'w');
+    const file = await fs.open(filePath, "w");
 
     return new Promise((resolve, reject) => {
-      const protocol = url.startsWith('https') ? https : http;
+      const protocol = url.startsWith("https") ? https : http;
 
-      protocol.get(url, (response) => {
-        const stream = response.pipe(file.createWriteStream());
+      protocol
+        .get(url, (response) => {
+          const stream = response.pipe(file.createWriteStream());
 
-        stream.on('finish', () => {
-          file.close();
-          resolve(filePath);
-        });
+          stream.on("finish", () => {
+            file.close();
+            resolve(filePath);
+          });
 
-        stream.on('error', (error) => {
+          stream.on("error", (error) => {
+            fs.unlink(filePath).catch(() => {});
+            reject(error);
+          });
+        })
+        .on("error", (error) => {
           fs.unlink(filePath).catch(() => {});
           reject(error);
         });
-      }).on('error', (error) => {
-        fs.unlink(filePath).catch(() => {});
-        reject(error);
-      });
     });
   }
 }
-
