@@ -176,3 +176,61 @@ export function useBatchDeleteRoles() {
     },
   });
 }
+
+// ============= Permission CRUD Mutations =============
+
+/**
+ * 创建权限
+ */
+export function useCreatePermission() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { resource: string; action: string; description?: string }) =>
+      roleService.createPermission(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: permissionKeys.lists() });
+      message.success('创建权限成功');
+    },
+    onError: (error: any) => {
+      message.error(`创建失败: ${error.response?.data?.message || error.message}`);
+    },
+  });
+}
+
+/**
+ * 更新权限
+ */
+export function useUpdatePermission() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { resource?: string; action?: string; description?: string } }) =>
+      roleService.updatePermission(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: permissionKeys.lists() });
+      message.success('更新权限成功');
+    },
+    onError: (error: any) => {
+      message.error(`更新失败: ${error.response?.data?.message || error.message}`);
+    },
+  });
+}
+
+/**
+ * 删除权限
+ */
+export function useDeletePermission() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => roleService.deletePermission(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: permissionKeys.lists() });
+      message.success('删除权限成功');
+    },
+    onError: (error: any) => {
+      message.error(`删除失败: ${error.response?.data?.message || error.message}`);
+    },
+  });
+}

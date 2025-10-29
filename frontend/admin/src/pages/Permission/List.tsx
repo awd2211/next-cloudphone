@@ -1,108 +1,99 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Table, Space, Button, Modal, Form, Input, message, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { getPermissions, createPermission, updatePermission, deletePermission } from '@/services/role';
 import type { Permission } from '@/types';
+import {
+  usePermissions,
+  useCreatePermission,
+  useUpdatePermission,
+  useDeletePermission
+} from '@/hooks/useRoles';
 
+/**
+ * 权限列表页面（优化版 - 使用 React Query）
+ *
+ * 优化点：
+ * 1. ✅ 使用 React Query 自动管理状态和缓存
+ * 2. ✅ 使用 useMemo 优化重复计算（分组显示）
+ * 3. ✅ 使用 useCallback 优化事件处理函数
+ * 4. ✅ 权限列表缓存（5分钟）
+ * 5. ✅ 按资源分组显示
+ */
 const PermissionList = () => {
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPermission, setEditingPermission] = useState<Permission | null>(null);
   const [form] = Form.useForm();
 
-  const loadPermissions = async () => {
-    setLoading(true);
-    try {
-      const response = await getPermissions();
-      // 智能处理不同的响应格式
-      let data = response;
-      
-      // 如果有 success 字段，提取 data
-      if (response && typeof response === 'object' && 'success' in response) {
-        data = response.data;
-      }
-      
-      // 确保 data 是数组
-      if (Array.isArray(data)) {
-        setPermissions(data);
-      } else if (data && Array.isArray(data.data)) {
-        // 如果返回的是 {data: [...]} 格式
-        setPermissions(data.data);
-      } else {
-        console.error('权限数据格式错误:', response);
-        setPermissions([]);
-      }
-    } catch (error) {
-      console.error('加载权限失败:', error);
-      message.error('加载权限列表失败');
-      setPermissions([]);
-    } finally {
-      setLoading(false);
+  // ✅ 使用 React Query hooks 替换手动状态管理
+  const { data: permissions = [], isLoading } = usePermissions();
+
+  // Mutations
+  const createMutation = useCreatePermission();
+  const updateMutation = useUpdatePermission();
+  const deleteMutation = useDeletePermission();
+
+  // ✅ useCallback 优化事件处理函数
+  const handleSubmit = useCallback(async (values: { resource: string; action: string; description?: string }) => {
+    if (editingPermission) {
+      await updateMutation.mutateAsync({ id: editingPermission.id, data: values });
+    } else {
+      await createMutation.mutateAsync(values);
     }
-  };
+    setModalVisible(false);
+    setEditingPermission(null);
+    form.resetFields();
+  }, [editingPermission, createMutation, updateMutation, form]);
 
-  useEffect(() => {
-    loadPermissions();
-  }, []);
-
-  const handleSubmit = async (values: { resource: string; action: string; description?: string }) => {
-    try {
-      if (editingPermission) {
-        await updatePermission(editingPermission.id, values);
-        message.success('更新权限成功');
-      } else {
-        await createPermission(values);
-        message.success('创建权限成功');
-      }
-      setModalVisible(false);
-      setEditingPermission(null);
-      form.resetFields();
-      loadPermissions();
-    } catch (error) {
-      message.error(editingPermission ? '更新权限失败' : '创建权限失败');
-    }
-  };
-
-  const handleEdit = (permission: Permission) => {
+  const handleEdit = useCallback((permission: Permission) => {
     setEditingPermission(permission);
     form.setFieldsValue(permission);
     setModalVisible(true);
-  };
+  }, [form]);
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deletePermission(id);
-      message.success('删除权限成功');
-      loadPermissions();
-    } catch (error) {
-      message.error('删除权限失败');
-    }
-  };
+  const handleDelete = useCallback(async (id: string) => {
+    await deleteMutation.mutateAsync(id);
+  }, [deleteMutation]);
 
-  // 按资源分组
-  const groupedPermissions = (Array.isArray(permissions) ? permissions : []).reduce((acc, permission) => {
-    const resource = permission.resource;
-    if (!acc[resource]) {
-      acc[resource] = [];
-    }
-    acc[resource].push(permission);
-    return acc;
-  }, {} as Record<string, Permission[]>);
+  const handleCreate = useCallback(() => {
+    setEditingPermission(null);
+    form.resetFields();
+    setModalVisible(true);
+  }, [form]);
 
-  const columns: ColumnsType<Permission> = [
+  const handleModalCancel = useCallback(() => {
+    setModalVisible(false);
+    setEditingPermission(null);
+    form.resetFields();
+  }, [form]);
+
+  // ✅ useMemo 优化按资源分组
+  const groupedPermissions = useMemo(() => {
+    return (Array.isArray(permissions) ? permissions : []).reduce((acc, permission) => {
+      const resource = permission.resource;
+      if (!acc[resource]) {
+        acc[resource] = [];
+      }
+      acc[resource].push(permission);
+      return acc;
+    }, {} as Record<string, Permission[]>);
+  }, [permissions]);
+
+  // ✅ useMemo 优化表格列配置
+  const columns: ColumnsType<Permission> = useMemo(() => [
     {
       title: '资源',
       dataIndex: 'resource',
       key: 'resource',
       width: 200,
+      sorter: (a, b) => a.resource.localeCompare(b.resource),
     },
     {
       title: '操作',
       dataIndex: 'action',
       key: 'action',
       width: 150,
+      sorter: (a, b) => a.action.localeCompare(b.action),
     },
     {
       title: '描述',
@@ -143,7 +134,7 @@ const PermissionList = () => {
         </Space>
       ),
     },
-  ];
+  ], [handleEdit, handleDelete]);
 
   return (
     <div>
@@ -153,25 +144,21 @@ const PermissionList = () => {
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          onClick={() => {
-            setEditingPermission(null);
-            form.resetFields();
-            setModalVisible(true);
-          }}
+          onClick={handleCreate}
         >
           创建权限
         </Button>
       </div>
 
       {/* 按资源分组显示 */}
-      {Object.keys(groupedPermissions).map((resource) => (
+      {Object.keys(groupedPermissions).sort().map((resource) => (
         <div key={resource} style={{ marginBottom: 24 }}>
-          <h3>{resource}</h3>
+          <h3>{resource} ({groupedPermissions[resource].length} 个权限)</h3>
           <Table
             columns={columns}
             dataSource={groupedPermissions[resource]}
             rowKey="id"
-            loading={loading}
+            loading={isLoading}
             pagination={false}
             size="small"
           />
@@ -182,12 +169,9 @@ const PermissionList = () => {
       <Modal
         title={editingPermission ? '编辑权限' : '创建权限'}
         open={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          setEditingPermission(null);
-          form.resetFields();
-        }}
+        onCancel={handleModalCancel}
         onOk={() => form.submit()}
+        confirmLoading={createMutation.isPending || updateMutation.isPending}
       >
         <Form form={form} onFinish={handleSubmit} layout="vertical">
           <Form.Item
