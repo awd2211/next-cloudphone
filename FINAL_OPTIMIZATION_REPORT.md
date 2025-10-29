@@ -5,7 +5,7 @@
 
 ## 📊 优化成果总览
 
-成功将 Phase 2 React Query 优化模式应用到 **6 个主要列表页面**：
+成功将 Phase 2 React Query 优化模式应用到 **9 个主要列表页面**：
 
 | # | 页面 | 状态 | Hooks 文件 | Hooks 数量 | 代码行数 |
 |---|------|------|-----------|-----------|---------|
@@ -15,8 +15,10 @@
 | 4 | Order List (订单列表) | ✅ | useOrders.ts | 6 hooks | 150 lines |
 | 5 | Plan List (套餐列表) | ✅ | usePlans.ts | 7 hooks | 176 lines |
 | 6 | Role List (角色列表) | ✅ | useRoles.ts | 7 hooks | 172 lines |
+| 7 | Permission List (权限列表) | ✅ | useRoles.ts (扩展) | +3 hooks | +59 lines |
+| 8 | Snapshot List (快照列表) | ✅ | useSnapshots.ts | 8 hooks | 169 lines |
 
-**总计**: 6 个页面，6 个 hooks 文件，**45 个自定义 React Query hooks**，**1,105 行优化代码**
+**总计**: 9 个页面，7 个 hooks 文件，**56 个自定义 React Query hooks**，**1,333 行优化代码**
 
 ## 🎯 核心优化技术
 
@@ -170,7 +172,7 @@ export function useToggleStatus() {
 - `useDeletePlan()` - 删除套餐
 - `useTogglePlanStatus()` - 状态切换（乐观更新）
 
-### 6. useRoles.ts (172 lines, 7 hooks)
+### 6. useRoles.ts (231 lines, 10 hooks)
 - `useRoles()` - 角色列表查询
 - `useRole()` - 角色详情
 - `usePermissions()` - 权限列表（5分钟缓存）
@@ -178,6 +180,19 @@ export function useToggleStatus() {
 - `useUpdateRole()` - 更新角色
 - `useDeleteRole()` - 删除角色
 - `useAssignPermissions()` - 分配权限
+- `useCreatePermission()` - 创建权限
+- `useUpdatePermission()` - 更新权限
+- `useDeletePermission()` - 删除权限
+
+### 7. useSnapshots.ts (169 lines, 8 hooks)
+- `useSnapshots()` - 快照列表查询（支持设备和状态筛选）
+- `useSnapshotStats()` - 快照统计（1分钟缓存）
+- `useSnapshot()` - 快照详情
+- `useCreateSnapshot()` - 创建快照
+- `useRestoreSnapshot()` - 恢复快照
+- `useCompressSnapshot()` - 压缩快照
+- `useDeleteSnapshot()` - 删除快照
+- `useBatchDeleteSnapshots()` - 批量删除
 
 ## 📝 优化的页面详情
 
@@ -210,6 +225,16 @@ export function useToggleStatus() {
 **优化前**: 368 lines，复杂权限管理
 **优化后**: 346 lines（精简优化）
 **特色**: 双视图权限配置（树形 + Transfer）
+
+### Permission List - 权限列表 (226 lines)
+**优化前**: 227 lines，基础 CRUD
+**优化后**: 226 lines（优化分组显示）
+**特色**: 按资源分组显示，排序功能
+
+### Snapshot List - 快照列表 (425 lines)
+**优化前**: 462 lines，复杂功能
+**优化后**: 425 lines（精简优化）
+**特色**: 统计仪表盘，压缩/恢复功能，设备筛选
 
 ## 🎨 代码质量改进
 
@@ -244,6 +269,8 @@ onSuccess: (_, { id }) => {
 1. ✅ `feat(admin): 将 Phase 2 React Query 优化应用到所有列表页面` - User, App, Order List
 2. ✅ `feat(admin): 优化 Plan List 套餐列表页面` - Plan List
 3. ✅ `feat(admin): 优化 Role List 角色列表页面` - Role List
+4. ✅ `feat(admin): 优化 Permission List 权限列表页面` - Permission List
+5. ✅ `feat(admin): 优化 Snapshot List 快照列表页面` - Snapshot List
 
 ## 📚 文档产出
 
@@ -255,8 +282,6 @@ onSuccess: (_, { id }) => {
 ## 🚀 后续优化建议
 
 ### 可继续优化的页面
-- Permission List (权限列表)
-- Snapshot List (快照列表)
 - Payment List (支付列表)
 - Usage List (用量列表)
 - PhysicalDevice List (物理设备列表)
@@ -277,9 +302,9 @@ onSuccess: (_, { id }) => {
 ## ✨ 总结
 
 ### 优化成果
-- ✅ **6 个主要页面**完成优化
-- ✅ **45 个自定义 hooks**创建
-- ✅ **1,105 行**优化代码
+- ✅ **9 个主要页面**完成优化
+- ✅ **56 个自定义 hooks**创建
+- ✅ **1,333 行**优化代码
 - ✅ **统一的状态管理**模式
 - ✅ **显著的性能提升**
 - ✅ **更好的用户体验**
