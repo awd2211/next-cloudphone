@@ -77,6 +77,20 @@ export { ValidationModule, ValidationModuleManual } from './validators/validatio
 export { QueryAudit, createAuditedQueryBuilder, AuditedQueryBuilder } from './utils/query-audit';
 export type { QueryAuditConfig, QueryAuditResult } from './utils/query-audit';
 
+// ========== 数据库工具 ==========
+export {
+  Transaction,
+  Transactional,
+  TransactionWithOptions,
+  TransactionPropagation,
+} from './database/transaction.decorator';
+export type { TransactionOptions } from './database/transaction.decorator';
+
+// ========== 分布式锁 ==========
+export { DistributedLockService, Lock } from './lock/distributed-lock.service';
+export type { LockConfig } from './lock/distributed-lock.service';
+export { DistributedLockModule } from './lock/distributed-lock.module';
+
 // ========== 安全中间件 ==========
 export { RateLimitMiddleware, IPBlacklistMiddleware, AutoBanMiddleware } from './middleware/rate-limit.middleware';
 export { XssProtectionMiddleware, StrictXssProtectionMiddleware, LooseXssProtectionMiddleware } from './middleware/xss-protection.middleware';
