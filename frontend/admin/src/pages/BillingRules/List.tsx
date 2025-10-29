@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Card,
   Table,
@@ -9,7 +9,6 @@ import {
   Input,
   Select,
   Switch,
-  message,
   Tag,
   Descriptions,
   DatePicker,
@@ -32,20 +31,19 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
-  getBillingRules,
-  createBillingRule,
-  updateBillingRule,
-  deleteBillingRule,
-  toggleBillingRule,
-  testBillingRule,
-  getBillingRuleTemplates,
-} from '@/services/billing';
+  useBillingRules,
+  useBillingRuleTemplates,
+  useCreateBillingRule,
+  useUpdateBillingRule,
+  useDeleteBillingRule,
+  useToggleBillingRule,
+  useTestBillingRule,
+} from '@/hooks/useBillingRules';
 import type {
   BillingRule,
   CreateBillingRuleDto,
   UpdateBillingRuleDto,
   BillingRuleTestResult,
-  PaginationParams,
 } from '@/types';
 import dayjs from 'dayjs';
 
@@ -54,9 +52,6 @@ const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
 const BillingRuleList = () => {
-  const [rules, setRules] = useState<BillingRule[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [modalVisible, setModalVisible] = useState(false);
@@ -65,75 +60,59 @@ const BillingRuleList = () => {
   const [editingRule, setEditingRule] = useState<BillingRule | null>(null);
   const [selectedRule, setSelectedRule] = useState<BillingRule | null>(null);
   const [testResult, setTestResult] = useState<BillingRuleTestResult | null>(null);
-  const [templates, setTemplates] = useState<any[]>([]);
   const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
 
   const [form] = Form.useForm();
   const [testForm] = Form.useForm();
 
-  // 加载规则列表
-  const loadRules = async () => {
-    setLoading(true);
-    try {
-      const params: PaginationParams & { isActive?: boolean } = {
-        page,
-        pageSize,
-      };
-      if (filterActive !== undefined) {
-        params.isActive = filterActive;
+  // React Query hooks
+  const params = useMemo(
+    () => ({
+      page,
+      pageSize,
+      ...(filterActive !== undefined && { isActive: filterActive }),
+    }),
+    [page, pageSize, filterActive]
+  );
+
+  const { data, isLoading } = useBillingRules(params);
+  const { data: templates } = useBillingRuleTemplates();
+  const createMutation = useCreateBillingRule();
+  const updateMutation = useUpdateBillingRule();
+  const deleteMutation = useDeleteBillingRule();
+  const toggleMutation = useToggleBillingRule();
+  const testMutation = useTestBillingRule();
+
+  const rules = data?.data || [];
+  const total = data?.total || 0;
+
+  // Event handlers
+  const openModal = useCallback(
+    (rule?: BillingRule) => {
+      if (rule) {
+        setEditingRule(rule);
+        form.setFieldsValue({
+          name: rule.name,
+          description: rule.description,
+          type: rule.type,
+          formula: rule.formula,
+          parameters: JSON.stringify(rule.parameters, null, 2),
+          priority: rule.priority,
+          validRange:
+            rule.validFrom && rule.validUntil
+              ? [dayjs(rule.validFrom), dayjs(rule.validUntil)]
+              : undefined,
+        });
+      } else {
+        setEditingRule(null);
+        form.resetFields();
       }
-      const res = await getBillingRules(params);
-      setRules(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载计费规则失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+      setModalVisible(true);
+    },
+    [form]
+  );
 
-  // 加载模板
-  const loadTemplates = async () => {
-    try {
-      const res = await getBillingRuleTemplates();
-      setTemplates(res);
-    } catch (error) {
-      console.error('加载模板失败', error);
-    }
-  };
-
-  useEffect(() => {
-    loadRules();
-  }, [page, pageSize, filterActive]);
-
-  useEffect(() => {
-    loadTemplates();
-  }, []);
-
-  // 打开创建/编辑模态框
-  const openModal = (rule?: BillingRule) => {
-    if (rule) {
-      setEditingRule(rule);
-      form.setFieldsValue({
-        name: rule.name,
-        description: rule.description,
-        type: rule.type,
-        formula: rule.formula,
-        parameters: JSON.stringify(rule.parameters, null, 2),
-        priority: rule.priority,
-        validRange: rule.validFrom && rule.validUntil
-          ? [dayjs(rule.validFrom), dayjs(rule.validUntil)]
-          : undefined,
-      });
-    } else {
-      setEditingRule(null);
-      form.resetFields();
-    }
-    setModalVisible(true);
-  };
-
-  // 处理创建/更新
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     try {
       const values = await form.validateFields();
       const parameters = values.parameters ? JSON.parse(values.parameters) : {};
@@ -150,87 +129,89 @@ const BillingRuleList = () => {
       };
 
       if (editingRule) {
-        await updateBillingRule(editingRule.id, data);
-        message.success('计费规则更新成功');
+        await updateMutation.mutateAsync({ id: editingRule.id, data });
       } else {
-        await createBillingRule(data as CreateBillingRuleDto);
-        message.success('计费规则创建成功');
+        await createMutation.mutateAsync(data as CreateBillingRuleDto);
       }
 
       setModalVisible(false);
-      loadRules();
     } catch (error: any) {
       if (error.errorFields) {
         return;
       }
-      message.error(error.message || '操作失败');
     }
-  };
+  }, [form, editingRule, createMutation, updateMutation]);
 
-  // 删除规则
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteBillingRule(id);
-      message.success('计费规则删除成功');
-      loadRules();
-    } catch (error) {
-      message.error('删除失败');
-    }
-  };
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteMutation.mutateAsync(id);
+    },
+    [deleteMutation]
+  );
 
-  // 切换激活状态
-  const handleToggleActive = async (id: string, isActive: boolean) => {
-    try {
-      await toggleBillingRule(id, isActive);
-      message.success(`规则已${isActive ? '激活' : '停用'}`);
-      loadRules();
-    } catch (error) {
-      message.error('操作失败');
-    }
-  };
+  const handleToggleActive = useCallback(
+    async (id: string, isActive: boolean) => {
+      await toggleMutation.mutateAsync({ id, isActive });
+    },
+    [toggleMutation]
+  );
 
-  // 打开测试模态框
-  const openTestModal = (rule: BillingRule) => {
-    setSelectedRule(rule);
-    setTestResult(null);
-    testForm.resetFields();
-    setTestModalVisible(true);
-  };
+  const openTestModal = useCallback(
+    (rule: BillingRule) => {
+      setSelectedRule(rule);
+      setTestResult(null);
+      testForm.resetFields();
+      setTestModalVisible(true);
+    },
+    [testForm]
+  );
 
-  // 测试规则
-  const handleTest = async () => {
+  const handleTest = useCallback(async () => {
     try {
       const values = await testForm.validateFields();
-      const result = await testBillingRule(selectedRule!.id, values);
+      const result = await testMutation.mutateAsync({
+        id: selectedRule!.id,
+        data: values,
+      });
       setTestResult(result as BillingRuleTestResult);
-      message.success('测试完成');
     } catch (error: any) {
       if (error.errorFields) {
         return;
       }
-      message.error('测试失败');
     }
-  };
+  }, [testForm, selectedRule, testMutation]);
 
-  // 查看详情
-  const openDetailModal = (rule: BillingRule) => {
+  const openDetailModal = useCallback((rule: BillingRule) => {
     setSelectedRule(rule);
     setDetailModalVisible(true);
-  };
+  }, []);
 
-  // 应用模板
-  const applyTemplate = (template: any) => {
-    form.setFieldsValue({
-      name: template.name,
-      description: template.description,
-      type: template.type,
-      formula: template.formula,
-      parameters: JSON.stringify(template.parameters, null, 2),
-      priority: template.priority || 0,
-    });
-  };
+  const applyTemplate = useCallback(
+    (template: any) => {
+      form.setFieldsValue({
+        name: template.name,
+        description: template.description,
+        type: template.type,
+        formula: template.formula,
+        parameters: JSON.stringify(template.parameters, null, 2),
+        priority: template.priority || 0,
+      });
+    },
+    [form]
+  );
 
-  const columns: ColumnsType<BillingRule> = [
+  // Optimized type map
+  const typeMap = useMemo(
+    () => ({
+      'time-based': { color: 'blue' as const, text: '按时长' },
+      'usage-based': { color: 'green' as const, text: '按用量' },
+      tiered: { color: 'orange' as const, text: '阶梯式' },
+      custom: { color: 'purple' as const, text: '自定义' },
+    }),
+    []
+  );
+
+  const columns: ColumnsType<BillingRule> = useMemo(() => [
     {
       title: '规则名称',
       dataIndex: 'name',
@@ -246,13 +227,8 @@ const BillingRuleList = () => {
       key: 'type',
       width: 120,
       render: (type) => {
-        const typeMap: Record<string, { color: string; text: string }> = {
-          'time-based': { color: 'blue', text: '按时长' },
-          'usage-based': { color: 'green', text: '按用量' },
-          'tiered': { color: 'orange', text: '阶梯式' },
-          'custom': { color: 'purple', text: '自定义' },
-        };
-        return <Tag color={typeMap[type]?.color}>{typeMap[type]?.text}</Tag>;
+        const config = typeMap[type as keyof typeof typeMap];
+        return <Tag color={config?.color}>{config?.text}</Tag>;
       },
     },
     {
@@ -346,7 +322,7 @@ const BillingRuleList = () => {
         </Space>
       ),
     },
-  ];
+  ], [typeMap, openDetailModal, openTestModal, openModal, handleDelete, handleToggleActive]);
 
   return (
     <div style={{ padding: '24px' }}>
@@ -400,7 +376,7 @@ const BillingRuleList = () => {
             columns={columns}
             dataSource={rules}
             rowKey="id"
-            loading={loading}
+            loading={isLoading}
             pagination={{
               current: page,
               pageSize,
