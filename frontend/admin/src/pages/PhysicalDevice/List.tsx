@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Card,
   Table,
@@ -9,7 +9,6 @@ import {
   Form,
   Input,
   Select,
-  message,
   Descriptions,
   Alert,
   Spin,
@@ -33,10 +32,11 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
-  getPhysicalDevices,
-  scanNetworkDevices,
-  registerPhysicalDevice,
-} from '@/services/device';
+  usePhysicalDevices,
+  useScanNetworkDevices,
+  useRegisterPhysicalDevice,
+  useDeletePhysicalDevice,
+} from '@/hooks/usePhysicalDevices';
 import type { PhysicalDevice } from '@/types';
 import dayjs from 'dayjs';
 
@@ -52,11 +52,6 @@ interface ScanResult {
 }
 
 const PhysicalDeviceList = () => {
-  const [devices, setDevices] = useState<PhysicalDevice[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const [registering, setRegistering] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [scanModalVisible, setScanModalVisible] = useState(false);
@@ -66,117 +61,99 @@ const PhysicalDeviceList = () => {
   const [scanForm] = Form.useForm();
   const [registerForm] = Form.useForm();
 
-  // 加载设备列表
-  const loadDevices = async () => {
-    setLoading(true);
-    try {
-      const res = await getPhysicalDevices({ page, pageSize });
-      setDevices(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载设备列表失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query hooks
+  const params = useMemo(() => ({ page, pageSize }), [page, pageSize]);
+  const { data, isLoading } = usePhysicalDevices(params);
+  const scanMutation = useScanNetworkDevices();
+  const registerMutation = useRegisterPhysicalDevice();
+  const deleteMutation = useDeletePhysicalDevice();
 
-  useEffect(() => {
-    loadDevices();
-  }, [page, pageSize]);
+  const devices = data?.data || [];
+  const total = data?.total || 0;
 
-  // 扫描网络设备
-  const handleScan = async (values: { subnet: string }) => {
-    setScanning(true);
-    try {
-      const results = await scanNetworkDevices(values);
+  // Event handlers
+  const handleScan = useCallback(
+    async (values: { subnet: string }) => {
+      const results = await scanMutation.mutateAsync(values);
       setScanResults(results as ScanResult[]);
-      if (results.length === 0) {
-        message.info('未发现任何设备，请检查网络配置');
-      } else {
-        message.success(`发现 ${results.length} 个设备`);
-      }
-    } catch (error: any) {
-      message.error(error.message || '扫描失败');
-    } finally {
-      setScanning(false);
-    }
-  };
+    },
+    [scanMutation]
+  );
 
-  // 注册设备
-  const handleRegister = async (values: any) => {
-    setRegistering(true);
-    try {
-      await registerPhysicalDevice(values);
-      message.success('设备注册成功');
+  const handleRegister = useCallback(
+    async (values: any) => {
+      await registerMutation.mutateAsync(values);
       setRegisterModalVisible(false);
       registerForm.resetFields();
       setSelectedDevice(null);
-      loadDevices();
-    } catch (error: any) {
-      message.error(error.message || '注册设备失败');
-    } finally {
-      setRegistering(false);
-    }
-  };
+    },
+    [registerMutation, registerForm]
+  );
 
-  // 打开注册模态框
-  const openRegisterModal = (device?: ScanResult) => {
-    if (device) {
-      setSelectedDevice(device);
-      registerForm.setFieldsValue({
-        serialNumber: device.serialNumber,
-        connectionType: 'network',
-        ipAddress: device.ipAddress,
-        adbPort: 5555,
-        name: `${device.manufacturer || ''} ${device.model || ''}`.trim() || device.serialNumber,
-      });
-    } else {
-      setSelectedDevice(null);
-      registerForm.resetFields();
-    }
-    setRegisterModalVisible(true);
-  };
+  const openRegisterModal = useCallback(
+    (device?: ScanResult) => {
+      if (device) {
+        setSelectedDevice(device);
+        registerForm.setFieldsValue({
+          serialNumber: device.serialNumber,
+          connectionType: 'network',
+          ipAddress: device.ipAddress,
+          adbPort: 5555,
+          name:
+            `${device.manufacturer || ''} ${device.model || ''}`.trim() || device.serialNumber,
+        });
+      } else {
+        setSelectedDevice(null);
+        registerForm.resetFields();
+      }
+      setRegisterModalVisible(true);
+    },
+    [registerForm]
+  );
 
-  // 删除设备
-  const handleDelete = async (id: string) => {
-    try {
-      // TODO: 实现删除 API
-      message.success('设备删除成功');
-      loadDevices();
-    } catch (error: any) {
-      message.error(error.message || '删除设备失败');
-    }
-  };
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteMutation.mutateAsync(id);
+    },
+    [deleteMutation]
+  );
 
-  // 状态渲染
-  const renderStatus = (status: string) => {
-    const statusConfig = {
+  // Optimized status config
+  const statusConfig = useMemo(
+    () => ({
       online: {
-        color: 'success',
+        color: 'success' as const,
         icon: <CheckCircleOutlined />,
         text: '在线',
       },
       offline: {
-        color: 'default',
+        color: 'default' as const,
         icon: <CloseCircleOutlined />,
         text: '离线',
       },
       unregistered: {
-        color: 'warning',
+        color: 'warning' as const,
         icon: <QuestionCircleOutlined />,
         text: '未注册',
       },
-    };
+    }),
+    []
+  );
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
-    return (
-      <Tag icon={config.icon} color={config.color}>
-        {config.text}
-      </Tag>
-    );
-  };
+  const renderStatus = useCallback(
+    (status: string) => {
+      const config =
+        statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
+      return (
+        <Tag icon={config.icon} color={config.color}>
+          {config.text}
+        </Tag>
+      );
+    },
+    [statusConfig]
+  );
 
-  const columns: ColumnsType<PhysicalDevice> = [
+  const columns: ColumnsType<PhysicalDevice> = useMemo(() => [
     {
       title: '设备名称',
       dataIndex: 'name',
@@ -271,19 +248,16 @@ const PhysicalDeviceList = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" onClick={loadDevices}>
-            刷新
-          </Button>
           <Button type="link" size="small" danger onClick={() => handleDelete(record.id)}>
             移除
           </Button>
         </Space>
       ),
     },
-  ];
+  ], [renderStatus, handleDelete]);
 
-  // 扫描结果列
-  const scanColumns: ColumnsType<ScanResult> = [
+  // Scan results columns
+  const scanColumns: ColumnsType<ScanResult> = useMemo(() => [
     {
       title: '序列号',
       dataIndex: 'serialNumber',
@@ -326,17 +300,23 @@ const PhysicalDeviceList = () => {
         </Button>
       ),
     },
-  ];
+  ], [renderStatus, openRegisterModal]);
 
-  // 统计数据
-  const stats = {
-    total: devices.length,
-    online: devices.filter((d) => d.status === 'online').length,
-    offline: devices.filter((d) => d.status === 'offline').length,
-    networkDevices: devices.filter((d) => d.connectionType === 'network').length,
-  };
+  // Statistics
+  const stats = useMemo(
+    () => ({
+      total: devices.length,
+      online: devices.filter((d) => d.status === 'online').length,
+      offline: devices.filter((d) => d.status === 'offline').length,
+      networkDevices: devices.filter((d) => d.connectionType === 'network').length,
+    }),
+    [devices]
+  );
 
-  const onlineRate = stats.total > 0 ? Math.round((stats.online / stats.total) * 100) : 0;
+  const onlineRate = useMemo(
+    () => (stats.total > 0 ? Math.round((stats.online / stats.total) * 100) : 0),
+    [stats.total, stats.online]
+  );
 
   return (
     <div style={{ padding: '24px' }}>
@@ -400,16 +380,13 @@ const PhysicalDeviceList = () => {
           <Button icon={<PlusOutlined />} onClick={() => openRegisterModal()}>
             手动注册
           </Button>
-          <Button icon={<ReloadOutlined />} onClick={loadDevices}>
-            刷新
-          </Button>
         </Space>
 
         <Table
           columns={columns}
           dataSource={devices}
           rowKey="id"
-          loading={loading}
+          loading={isLoading}
           scroll={{ x: 1400 }}
           pagination={{
             current: page,
@@ -456,19 +433,24 @@ const PhysicalDeviceList = () => {
             <Input placeholder="例如: 192.168.1.0/24" />
           </Form.Item>
           <Form.Item>
-            <Button type="primary" htmlType="submit" icon={<ScanOutlined />} loading={scanning}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              icon={<ScanOutlined />}
+              loading={scanMutation.isPending}
+            >
               开始扫描
             </Button>
           </Form.Item>
         </Form>
 
-        {scanning && (
+        {scanMutation.isPending && (
           <div style={{ textAlign: 'center', padding: '40px' }}>
             <Spin size="large" tip="正在扫描网络设备，请稍候..." />
           </div>
         )}
 
-        {!scanning && scanResults.length > 0 && (
+        {!scanMutation.isPending && scanResults.length > 0 && (
           <Table
             columns={scanColumns}
             dataSource={scanResults}
@@ -478,7 +460,7 @@ const PhysicalDeviceList = () => {
           />
         )}
 
-        {!scanning && scanResults.length === 0 && scanForm.isFieldsTouched() && (
+        {!scanMutation.isPending && scanResults.length === 0 && scanForm.isFieldsTouched() && (
           <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
             <QuestionCircleOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
             <div>未发现任何设备</div>
@@ -496,7 +478,7 @@ const PhysicalDeviceList = () => {
           setSelectedDevice(null);
         }}
         onOk={() => registerForm.submit()}
-        confirmLoading={registering}
+        confirmLoading={registerMutation.isPending}
         width={600}
       >
         {selectedDevice && (
