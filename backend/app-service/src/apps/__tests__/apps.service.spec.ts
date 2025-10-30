@@ -850,4 +850,112 @@ describe('AppsService', () => {
       });
     });
   });
+
+  describe('getAllAuditRecords', () => {
+    it('should return paginated audit records', async () => {
+      const mockRecords = [
+        {
+          id: 'audit-1',
+          applicationId: 'app-123',
+          reviewerId: 'reviewer-1',
+          action: AuditAction.APPROVE,
+          createdAt: new Date(),
+        },
+        {
+          id: 'audit-2',
+          applicationId: 'app-123',
+          reviewerId: 'reviewer-2',
+          action: AuditAction.REQUEST_CHANGES,
+          createdAt: new Date(),
+        },
+      ];
+
+      mockAuditRecordsRepository.findAndCount.mockResolvedValue([mockRecords, 2]);
+
+      const result = await service.getAllAuditRecords(1, 10);
+
+      expect(result.data).toEqual(mockRecords);
+      expect(result.total).toBe(2);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(10);
+      expect(mockAuditRecordsRepository.findAndCount).toHaveBeenCalledWith({
+        where: {},
+        skip: 0,
+        take: 10,
+        order: { createdAt: 'DESC' },
+        relations: ['application'],
+      });
+    });
+
+    it('should filter audit records by applicationId', async () => {
+      const mockRecords = [
+        {
+          id: 'audit-1',
+          applicationId: 'app-123',
+          action: AuditAction.APPROVE,
+        },
+      ];
+
+      mockAuditRecordsRepository.findAndCount.mockResolvedValue([mockRecords, 1]);
+
+      const result = await service.getAllAuditRecords(1, 10, {
+        applicationId: 'app-123',
+      });
+
+      expect(result.data).toEqual(mockRecords);
+      expect(mockAuditRecordsRepository.findAndCount).toHaveBeenCalledWith({
+        where: { applicationId: 'app-123' },
+        skip: 0,
+        take: 10,
+        order: { createdAt: 'DESC' },
+        relations: ['application'],
+      });
+    });
+
+    it('should filter audit records by reviewerId and action', async () => {
+      const mockRecords = [
+        {
+          id: 'audit-1',
+          reviewerId: 'reviewer-1',
+          action: AuditAction.REJECT,
+        },
+      ];
+
+      mockAuditRecordsRepository.findAndCount.mockResolvedValue([mockRecords, 1]);
+
+      const result = await service.getAllAuditRecords(1, 10, {
+        reviewerId: 'reviewer-1',
+        action: AuditAction.REJECT,
+      });
+
+      expect(result.data).toEqual(mockRecords);
+      expect(mockAuditRecordsRepository.findAndCount).toHaveBeenCalledWith({
+        where: {
+          reviewerId: 'reviewer-1',
+          action: AuditAction.REJECT,
+        },
+        skip: 0,
+        take: 10,
+        order: { createdAt: 'DESC' },
+        relations: ['application'],
+      });
+    });
+
+    it('should handle pagination correctly for audit records', async () => {
+      mockAuditRecordsRepository.findAndCount.mockResolvedValue([[], 25]);
+
+      const result = await service.getAllAuditRecords(3, 10);
+
+      expect(result.page).toBe(3);
+      expect(result.limit).toBe(10);
+      expect(result.total).toBe(25);
+      expect(mockAuditRecordsRepository.findAndCount).toHaveBeenCalledWith({
+        where: {},
+        skip: 20, // (3 - 1) * 10
+        take: 10,
+        order: { createdAt: 'DESC' },
+        relations: ['application'],
+      });
+    });
+  });
 });

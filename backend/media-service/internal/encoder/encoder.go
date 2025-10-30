@@ -90,8 +90,16 @@ func (e *PassThroughAudioEncoder) Close() error {
 	return nil
 }
 
-// VP8Encoder encodes frames to VP8 format
-// Note: This is a placeholder. Real VP8 encoding would require a library like libvpx
+// VP8Encoder is a STUB implementation for testing purposes only.
+//
+// ⚠️ WARNING: This encoder does NOT perform actual VP8 encoding.
+// It only returns an error when Encode() is called.
+//
+// For production use, please use one of these implementations instead:
+//   - VP8EncoderFFmpeg: Streaming encoder with persistent FFmpeg process (vp8_encoder.go)
+//   - SimpleVP8Encoder: One-shot encoder for each frame (vp8_encoder.go)
+//
+// Deprecated: Use VP8EncoderFFmpeg or SimpleVP8Encoder from vp8_encoder.go for actual encoding.
 type VP8Encoder struct {
 	bitrate   int
 	frameRate int
@@ -140,8 +148,16 @@ func (e *VP8Encoder) Close() error {
 	return nil
 }
 
-// OpusEncoder encodes audio to Opus format
-// Note: This is a placeholder. Real Opus encoding would require libopus
+// OpusEncoder is a STUB implementation for testing purposes only.
+//
+// ⚠️ WARNING: This encoder does NOT perform actual Opus encoding.
+// It only returns an error when EncodeAudio() is called.
+//
+// For production use, please use one of these implementations instead:
+//   - OpusEncoderFFmpeg: FFmpeg-based Opus encoder (opus_encoder.go)
+//   - StreamingOpusEncoder: Streaming version with persistent process (opus_encoder.go)
+//
+// Deprecated: Use OpusEncoderFFmpeg from opus_encoder.go for actual encoding.
 type OpusEncoder struct {
 	sampleRate int
 	channels   int

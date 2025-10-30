@@ -27,6 +27,7 @@ import {
   SagaDefinition,
   SagaType,
   SagaStep,
+  EventBusService,
 } from '@cloudphone/shared';
 
 @Injectable()
@@ -46,6 +47,7 @@ export class PaymentsService {
     private balanceClient: BalanceClientService,
     private configService: ConfigService,
     private sagaOrchestrator: SagaOrchestratorService,
+    private eventBus: EventBusService,
     @InjectDataSource()
     private dataSource: DataSource,
   ) {}
@@ -124,6 +126,31 @@ export class PaymentsService {
       savedPayment.status = PaymentStatus.FAILED;
       savedPayment.failureReason = error.message;
       await this.paymentsRepository.save(savedPayment);
+
+      // 发布严重错误事件（支付创建失败）
+      try {
+        await this.eventBus.publishSystemError(
+          'high',
+          'PAYMENT_INITIATION_FAILED',
+          `Payment initiation failed: ${error.message} (paymentNo: ${savedPayment.paymentNo}, method: ${savedPayment.method})`,
+          'billing-service',
+          {
+            userMessage: '支付创建失败，请稍后重试',
+            userId,
+            stackTrace: error.stack,
+            metadata: {
+              paymentNo: savedPayment.paymentNo,
+              orderId: orderId,
+              amount: savedPayment.amount,
+              method: savedPayment.method,
+              errorMessage: error.message,
+            },
+          }
+        );
+      } catch (eventError) {
+        this.logger.error('Failed to publish payment initiation failed event', eventError);
+      }
+
       throw new InternalServerErrorException('支付创建失败');
     }
 

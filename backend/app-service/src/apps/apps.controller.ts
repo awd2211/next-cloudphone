@@ -33,6 +33,7 @@ import {
 } from './dto/audit-app.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { CursorPaginationDto } from '@cloudphone/shared';
 
 // 确保上传目录存在
 const uploadDir = '/tmp/apk-uploads';
@@ -129,6 +130,51 @@ export class AppsController {
     const result = await this.appsService.findAll(
       parseInt(page),
       parseInt(limit),
+      tenantId,
+      category,
+    );
+    return {
+      success: true,
+      ...result,
+    };
+  }
+
+  @Get('cursor')
+  @RequirePermission('app.read')
+  @ApiOperation({
+    summary: '获取应用列表 (游标分页)',
+    description: '使用游标分页获取应用列表，性能优化版本',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: '游标（base64编码的时间戳）',
+    example: 'MTY5ODc2NTQzMjAwMA==',
+  })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量 (1-100)', example: 20 })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiQuery({ name: 'category', required: false, description: '应用分类' })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    schema: {
+      example: {
+        success: true,
+        data: [],
+        nextCursor: 'MTY5ODc2NTQzMjAwMA==',
+        hasMore: true,
+        count: 20,
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async findAllCursor(
+    @Query() paginationDto: CursorPaginationDto,
+    @Query('tenantId') tenantId?: string,
+    @Query('category') category?: string,
+  ) {
+    const result = await this.appsService.findAllCursor(
+      paginationDto,
       tenantId,
       category,
     );

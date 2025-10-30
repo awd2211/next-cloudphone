@@ -239,6 +239,132 @@ export class ProxyController {
   }
 
   /**
+   * 配额服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("quotas")
+  async proxyQuotasExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 配额服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("quotas/*path")
+  async proxyQuotas(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 工单服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("tickets")
+  async proxyTicketsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 工单服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("tickets/*path")
+  async proxyTickets(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 审计日志服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("audit-logs")
+  async proxyAuditLogsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 审计日志服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("audit-logs/*path")
+  async proxyAuditLogs(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * API密钥服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("api-keys")
+  async proxyApiKeysExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * API密钥服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("api-keys/*path")
+  async proxyApiKeys(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 缓存管理服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("cache")
+  async proxyCacheExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 缓存管理服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("cache/*path")
+  async proxyCache(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 队列管理服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("queues")
+  async proxyQueuesExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 队列管理服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("queues/*path")
+  async proxyQueues(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 事件溯源服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("events")
+  async proxyEventsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
+   * 事件溯源服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("events/*path")
+  async proxyEvents(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("users", req, res);
+  }
+
+  /**
    * 通知服务路由（精确匹配）
    */
   @UseGuards(JwtAuthGuard)
@@ -432,17 +558,16 @@ export class ProxyController {
       const urlParts = req.url.split("?");
       const pathParts = urlParts[0].split("/").filter((p) => p);
 
-      // 移除 'api' 前缀（如果存在）
-      if (pathParts[0] === "api") {
-        pathParts.shift();
-      }
+      // 不移除 'api' 前缀，保留完整路径给后端服务
+      // 因为后端服务(如 user-service)使用 app.setGlobalPrefix('api/v1')
+      // 它们期望接收 /api/v1/* 的路径
 
       // 对于 users 服务，保留完整路径
       let targetPath: string;
       if (serviceName === "users") {
         targetPath = `/${pathParts.join("/")}`;
       } else {
-        // 对于其他服务，保留服务名后的路径
+        // 对于其他服务，保留服务名后的路径,并添加 /api/v1 前缀
         const serviceIndex = pathParts.findIndex((p) =>
           [
             "devices",
@@ -464,7 +589,8 @@ export class ProxyController {
           ].includes(p),
         );
         if (serviceIndex !== -1) {
-          targetPath = `/${pathParts.slice(serviceIndex).join("/")}`;
+          // 添加 /api/v1 前缀,因为后端服务也使用 setGlobalPrefix('api/v1')
+          targetPath = `/api/v1/${pathParts.slice(serviceIndex).join("/")}`;
         } else {
           targetPath = `/${pathParts.join("/")}`;
         }

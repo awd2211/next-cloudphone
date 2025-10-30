@@ -75,8 +75,8 @@ export class ProxyService {
       [
         "scheduler",
         {
-          name: "Scheduler Service",
-          consulName: "scheduler-service",
+          name: "Scheduler Service (Device Service)",
+          consulName: "device-service", // scheduler now integrated into device-service
           healthCheck: "/health",
           timeout: 10000,
         },
@@ -148,10 +148,10 @@ export class ProxyService {
       [
         "scheduler",
         {
-          name: "Scheduler Service",
+          name: "Scheduler Service (Device Service)",
           url:
             this.configService.get("SCHEDULER_SERVICE_URL") ||
-            "http://localhost:30004",
+            "http://localhost:30002", // Now points to device-service
           healthCheck: "/health",
           timeout: 10000,
         },

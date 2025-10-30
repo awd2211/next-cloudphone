@@ -26,6 +26,9 @@ import {
   SagaDefinition,
   SagaType,
   SagaStep,
+  CursorPagination,
+  CursorPaginationDto,
+  CursorPaginatedResponse,
 } from '@cloudphone/shared';
 
 @Injectable()
@@ -99,6 +102,33 @@ export class AppsService {
           `应用 ${apkInfo.packageName} 版本 ${apkInfo.versionName} (${apkInfo.versionCode}) 已存在`,
         );
       }
+    } catch (error) {
+      // 发布严重错误事件（APK 解析或验证失败）
+      if (this.eventBus) {
+        try {
+          await this.eventBus.publishSystemError(
+            'medium',
+            'APK_UPLOAD_FAILED',
+            `APK upload failed: ${error.message}`,
+            'app-service',
+            {
+              userMessage: 'APK 上传失败，请检查文件格式',
+              stackTrace: error.stack,
+              metadata: {
+                fileName: file.originalname,
+                fileSize: file.size,
+                errorMessage: error.message,
+              },
+            }
+          );
+        } catch (eventError) {
+          this.logger.error('Failed to publish APK upload failed event', eventError);
+        }
+      }
+      throw error;
+    }
+
+    try {
 
       // 3. 生成对象键
       const objectKey = `apps/${apkInfo.packageName}/${apkInfo.versionName}_${Date.now()}.apk`;
@@ -356,6 +386,51 @@ export class AppsService {
     });
 
     return { data, total, page, limit };
+  }
+
+  /**
+   * Cursor-based pagination for efficient large dataset queries
+   *
+   * @param dto - Cursor pagination parameters
+   * @param tenantId - Optional tenant ID filter
+   * @param category - Optional category filter
+   * @returns Cursor paginated response
+   */
+  async findAllCursor(
+    dto: CursorPaginationDto,
+    tenantId?: string,
+    category?: string,
+  ): Promise<CursorPaginatedResponse<Application>> {
+    const { cursor, limit = 20 } = dto;
+
+    const qb = this.appsRepository.createQueryBuilder('app');
+
+    // Always filter by available status
+    qb.andWhere('app.status = :status', { status: AppStatus.AVAILABLE });
+
+    // Apply filters
+    if (tenantId) {
+      qb.andWhere('app.tenantId = :tenantId', { tenantId });
+    }
+    if (category) {
+      qb.andWhere('app.category = :category', { category });
+    }
+
+    // Apply cursor condition
+    if (cursor) {
+      const cursorCondition = CursorPagination.applyCursorCondition(cursor, 'app');
+      if (cursorCondition) {
+        qb.andWhere(cursorCondition.condition, cursorCondition.parameters);
+      }
+    }
+
+    // Order by createdAt DESC and fetch limit + 1
+    qb.orderBy('app.createdAt', 'DESC')
+      .limit(limit + 1);
+
+    const apps = await qb.getMany();
+
+    return CursorPagination.paginate(apps, limit);
   }
 
   async findOne(id: string): Promise<Application> {

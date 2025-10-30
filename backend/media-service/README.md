@@ -126,9 +126,19 @@ MaxFrameRate: 30             // 最大帧率 30 FPS
 ```
 
 **支持的编解码器**:
-- VP8 (默认)
-- VP9
-- H.264
+- **VP8** (默认) - 使用 `VP8EncoderFFmpeg` (生产就绪)
+- **VP9** - 需要 FFmpeg 支持
+- **H.264** - 使用 `H264EncoderFFmpeg` 支持硬件加速 (NVENC/QSV/VAAPI)
+
+⚠️ **编码器实现说明**:
+- **生产环境推荐**:
+  - 视频: `VP8EncoderFFmpeg` 或 `H264EncoderFFmpeg` (支持硬件加速)
+  - 音频: `OpusEncoderFFmpeg`
+- **测试/开发用**:
+  - `PassThroughEncoder` (无编码，直接透传)
+  - `VP8Encoder` / `OpusEncoder` (stub 实现，仅用于接口测试)
+
+详见 `internal/encoder/` 目录中的实现文件。
 
 ### 3. 音频流配置
 
@@ -365,6 +375,84 @@ docker run -d \
 ```
 
 **注意**: 需要开放 UDP 端口范围 (50000-50100) 用于 ICE/RTP 传输
+
+---
+
+## 🎬 编码器选择指南
+
+### 视频编码器对比
+
+| 编码器 | 类型 | 性能 | 质量 | 硬件加速 | 适用场景 | 状态 |
+|--------|------|------|------|----------|---------|------|
+| `H264EncoderFFmpeg` | H.264 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ✅ NVENC/QSV/VAAPI | 生产环境首选 | ✅ 生产就绪 |
+| `VP8EncoderFFmpeg` | VP8 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ❌ | 兼容性好，适合 WebRTC | ✅ 生产就绪 |
+| `SimpleVP8Encoder` | VP8 | ⭐⭐⭐ | ⭐⭐⭐⭐ | ❌ | 每帧独立编码 | ✅ 可用 |
+| `PassThroughEncoder` | 无 | ⭐⭐⭐⭐⭐ | N/A | N/A | 开发测试，无编码 | ⚠️ 测试用 |
+| `VP8Encoder` | VP8 | N/A | N/A | N/A | 接口占位符 | ❌ Stub (已废弃) |
+
+### 音频编码器对比
+
+| 编码器 | 类型 | 性能 | 质量 | 适用场景 | 状态 |
+|--------|------|------|------|---------|------|
+| `OpusEncoderFFmpeg` | Opus | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 生产环境，低延迟音频 | ✅ 生产就绪 |
+| `StreamingOpusEncoder` | Opus | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 持续流式编码 | ✅ 生产就绪 |
+| `PassThroughAudioEncoder` | 无 | ⭐⭐⭐⭐⭐ | N/A | 开发测试，无编码 | ⚠️ 测试用 |
+| `OpusEncoder` | Opus | N/A | N/A | 接口占位符 | ❌ Stub (已废弃) |
+
+### 推荐配置
+
+#### 高性能生产环境 (有 GPU)
+```go
+// 使用 NVIDIA NVENC 硬件加速
+videoEncoder, _ := encoder.NewH264EncoderFFmpeg(encoder.H264EncoderOptions{
+    Width:     1920,
+    Height:    1080,
+    Bitrate:   4000000, // 4 Mbps
+    FrameRate: 60,
+    HWAccel:   encoder.H264EncoderNVENC, // 硬件加速
+    Preset:    "p4",  // NVENC preset
+})
+
+audioEncoder, _ := encoder.NewStreamingOpusEncoder(...)
+```
+
+#### 标准生产环境 (无 GPU)
+```go
+// 使用 VP8 软件编码
+videoEncoder, _ := encoder.NewVP8EncoderFFmpeg(encoder.VP8EncoderOptions{
+    Width:     1280,
+    Height:    720,
+    Bitrate:   2000000, // 2 Mbps
+    FrameRate: 30,
+    Quality:   10,
+})
+
+audioEncoder, _ := encoder.NewOpusEncoderFFmpeg(...)
+```
+
+#### 开发/测试环境
+```go
+// 使用 PassThrough 编码器，无编码开销
+videoEncoder := encoder.NewPassThroughEncoder()
+audioEncoder := encoder.NewPassThroughAudioEncoder()
+```
+
+### ⚠️ 已废弃的编码器
+
+以下编码器是 **stub 实现**，不执行实际编码，仅用于接口兼容性测试：
+
+- `VP8Encoder` (encoder.go) - 调用 `Encode()` 会返回错误
+- `OpusEncoder` (encoder.go) - 调用 `EncodeAudio()` 会返回错误
+
+**请勿在生产环境中使用这些 stub 编码器！**
+
+如果您看到以下错误：
+```
+VP8 encoding not implemented in stub - use VP8EncoderFFmpeg or SimpleVP8Encoder
+Opus encoding not implemented in stub - use OpusEncoderFFmpeg
+```
+
+这说明代码中使用了 stub 编码器，请切换到生产实现。
 
 ---
 
