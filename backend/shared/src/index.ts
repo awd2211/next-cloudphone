@@ -161,3 +161,12 @@ export { ServiceAuthGuard } from './auth/service-auth.guard';
 export { ServiceTokenService } from './auth/service-token.service';
 export type { ServiceTokenPayload } from './auth/service-auth.guard';
 
+// ========== RBAC & Data Scope ==========
+export { UserRole, isAdminRole, hasAdminRole, isSuperAdmin } from './constants/roles';
+export {
+  DataScope,
+  DataScopeType,
+} from './decorators/data-scope.decorator';
+export type { DataScopeConfig } from './decorators/data-scope.decorator';
+export { DataScopeGuard } from './guards/data-scope.guard';
+

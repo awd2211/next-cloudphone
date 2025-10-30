@@ -21,14 +21,14 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { RolesService } from '../roles/roles.service';
-import { CursorPaginationDto } from '@cloudphone/shared';
+import { CursorPaginationDto, DataScopeGuard, DataScope, DataScopeType } from '@cloudphone/shared';
 import { CreateUserCommand, UpdateUserCommand, ChangePasswordCommand, DeleteUserCommand } from './commands/impl';
 import { GetUserQuery, GetUsersQuery, GetUserStatsQuery } from './queries/impl';
 
 @ApiTags('users')
 @ApiBearerAuth()
 @Controller('users')
-@UseGuards(AuthGuard('jwt'), PermissionsGuard)
+@UseGuards(AuthGuard('jwt'), PermissionsGuard, DataScopeGuard)
 export class UsersController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -188,8 +188,20 @@ export class UsersController {
     };
   }
 
+  @Get('me')
+  @ApiOperation({ summary: '获取当前登录用户信息', description: '获取当前登录用户的详细信息' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getMe(@Request() req: any) {
+    const user = await this.queryBus.execute(new GetUserQuery(req.user.id));
+    return {
+      success: true,
+      data: user,
+    };
+  }
+
   @Get(':id')
   @RequirePermission('user.read')
+  @DataScope(DataScopeType.SELF) // 管理员可查看所有，用户只能查看自己
   @ApiOperation({ summary: '获取用户详情', description: '根据 ID 获取用户详细信息' })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -205,6 +217,7 @@ export class UsersController {
 
   @Patch(':id')
   @RequirePermission('user.update')
+  @DataScope(DataScopeType.SELF) // 管理员可更新所有，用户只能更新自己
   @ApiOperation({ summary: '更新用户', description: '更新用户信息' })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -222,6 +235,7 @@ export class UsersController {
 
   @Post(':id/change-password')
   @RequirePermission('user.update')
+  @DataScope(DataScopeType.SELF) // 用户只能修改自己的密码
   @ApiOperation({ summary: '修改密码', description: '修改用户密码' })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiResponse({ status: 200, description: '密码修改成功' })
@@ -240,6 +254,7 @@ export class UsersController {
 
   @Delete(':id')
   @RequirePermission('user.delete')
+  @DataScope(DataScopeType.ALL) // 只有管理员可以删除用户
   @ApiOperation({ summary: '删除用户', description: '删除用户账号' })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiResponse({ status: 200, description: '删除成功' })
