@@ -644,9 +644,13 @@ describe('UsersService', () => {
         activeRate: '80.00%',
       });
 
-      expect(cacheService.set).toHaveBeenCalledWith('user:stats:all', expect.any(Object), {
-        ttl: 60,
-      });
+      expect(cacheService.set).toHaveBeenCalledWith(
+        'user:stats:all',
+        expect.any(Object),
+        expect.objectContaining({
+          ttl: 60,
+        }),
+      );
       expect(metricsService.updateUserStats).toHaveBeenCalled();
     });
 

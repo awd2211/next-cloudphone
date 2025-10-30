@@ -11,18 +11,17 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { CaptchaService } from './services/captcha.service';
 import { CacheModule } from '../cache/cache.module';
+import { createJwtConfig } from '@cloudphone/shared';
 
 @Module({
   imports: [
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get('JWT_SECRET') || 'dev-secret-key-change-in-production',
-        signOptions: {
-          expiresIn: configService.get('JWT_EXPIRES_IN') || '7d',
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        // 🔒 使用 shared 模块的安全 JWT 配置
+        return createJwtConfig(configService);
+      },
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([User]),

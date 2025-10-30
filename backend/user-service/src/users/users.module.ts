@@ -24,7 +24,7 @@ import { UserMetricsService } from '../common/metrics/user-metrics.service';
     TypeOrmModule.forFeature([User, Role, UserEvent, UserSnapshot]),
     RolesModule,
     CqrsModule,
-    EventBusModule,
+    EventBusModule.forRoot(), // ✅ V2: 使用 forRoot() 集成 RabbitMQModule
   ],
   controllers: [UsersController, EventsController],
   providers: [
