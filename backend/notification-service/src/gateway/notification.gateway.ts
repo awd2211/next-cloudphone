@@ -82,7 +82,7 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * 向特定用户发送通知
    */
-  sendToUser(userId: string, notification: any) {
+  sendToUser(userId: string, notification: unknown) {
     this.logger.log(`向用户 ${userId} 发送通知`);
     this.server.to(`user:${userId}`).emit('notification', notification);
   }
@@ -90,7 +90,7 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * 向所有连接的客户端广播通知
    */
-  broadcast(notification: any) {
+  broadcast(notification: unknown) {
     this.logger.log('广播通知到所有客户端');
     this.server.emit('notification', notification);
   }

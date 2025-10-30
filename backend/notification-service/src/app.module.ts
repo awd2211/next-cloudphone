@@ -15,12 +15,21 @@ import { EmailModule } from './email/email.module';
 import { SmsModule } from './sms/sms.module';
 import { TemplatesModule } from './templates/templates.module';
 import { NotificationEventsHandler } from './events/notification-events.handler';
-import { CloudphoneRabbitMQModule } from './rabbitmq/rabbitmq.module';
+// import { CloudphoneRabbitMQModule } from './rabbitmq/rabbitmq.module'; // ❌ V2: 移除独立 RabbitMQ 模块
+import { UserEventsConsumer } from './rabbitmq/consumers/user-events.consumer'; // ✅ V2: 直接导入消费者
+import { DeviceEventsConsumer } from './rabbitmq/consumers/device-events.consumer';
+import { AppEventsConsumer } from './rabbitmq/consumers/app-events.consumer';
+import { BillingEventsConsumer } from './rabbitmq/consumers/billing-events.consumer';
+import { SchedulerEventsConsumer } from './rabbitmq/consumers/scheduler-events.consumer';
+import { MediaEventsConsumer } from './rabbitmq/consumers/media-events.consumer';
+import { SystemEventsConsumer } from './rabbitmq/consumers/system-events.consumer';
+import { DlxConsumer } from './rabbitmq/consumers/dlx.consumer';
 import { AuthModule } from './auth/auth.module';
 import { Notification } from './entities/notification.entity';
 import { NotificationTemplate } from './entities/notification-template.entity';
 import { NotificationPreference } from './entities/notification-preference.entity';
 import { validate } from './common/config/env.validation';
+import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusModule
 
 @Module({
   imports: [
@@ -102,7 +111,7 @@ import { validate } from './common/config/env.validation';
     AuthModule,
 
     // ========== RabbitMQ 消息队列 ==========
-    CloudphoneRabbitMQModule,
+    EventBusModule.forRoot(), // ✅ V2: 统一使用 EventBusModule.forRoot() (替换 CloudphoneRabbitMQModule)
 
     // ========== Consul 服务注册 ==========
     ConsulModule,
@@ -116,6 +125,15 @@ import { validate } from './common/config/env.validation';
   providers: [
     TasksService,
     NotificationEventsHandler,
+    // ✅ V2: 直接注册所有消费者
+    UserEventsConsumer,
+    DeviceEventsConsumer,
+    AppEventsConsumer,
+    BillingEventsConsumer,
+    SchedulerEventsConsumer,
+    MediaEventsConsumer,
+    SystemEventsConsumer,
+    DlxConsumer,
   ],
 })
 export class AppModule {}

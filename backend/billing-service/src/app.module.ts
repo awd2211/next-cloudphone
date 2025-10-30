@@ -15,7 +15,11 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { BillingRulesModule } from './billing-rules/billing-rules.module';
 import { StatsModule } from './stats/stats.module';
 import { HealthController } from './health.controller';
-import { BillingRabbitMQModule } from './rabbitmq/rabbitmq.module';
+// import { BillingRabbitMQModule } from './rabbitmq/rabbitmq.module'; // ❌ V2: 移除独立 RabbitMQ 模块
+import { BillingDeviceEventsHandler } from './events/device-events.handler'; // ✅ V2: 直接导入消费者
+import { BillingUserEventsHandler } from './events/user-events.handler'; // ✅ V2: 直接导入消费者
+import { Order } from './billing/entities/order.entity'; // ✅ V2: 消费者需要的实体
+import { UsageRecord } from './billing/entities/usage-record.entity'; // ✅ V2: 消费者需要的实体
 import { ConsulModule, EventBusModule, createLoggerConfig, SagaModule, SecurityModule } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 
@@ -43,6 +47,7 @@ import { validate } from './common/config/env.validation';
       }),
       inject: [ConfigService],
     }),
+    TypeOrmModule.forFeature([Order, UsageRecord]), // ✅ V2: 消费者需要的仓库
     ScheduleModule.forRoot(),
     AuthModule,
     BillingModule,
@@ -53,13 +58,16 @@ import { validate } from './common/config/env.validation';
     BalanceModule,
     InvoicesModule,
     BillingRulesModule,
-    BillingRabbitMQModule, // ✅ RabbitMQ 消费者模块（监听设备和用户事件）
-    ConsulModule,          // ✅ 已修复 DiscoveryService 依赖问题
-    EventBusModule,        // ✅ 已修复 DiscoveryService 依赖问题
-    SagaModule,            // Saga 编排模块（用于分布式事务）
-    SecurityModule,        // ✅ 统一安全模块（速率限制、IP黑名单、自动封禁、XSS/CSRF防护）
+    ConsulModule,               // ✅ 已修复 DiscoveryService 依赖问题
+    EventBusModule.forRoot(),   // ✅ V2: 统一使用 EventBusModule.forRoot() (替换 BillingRabbitMQModule + EventBusModule)
+    SagaModule,                 // Saga 编排模块（用于分布式事务）
+    SecurityModule,             // ✅ 统一安全模块（速率限制、IP黑名单、自动封禁、XSS/CSRF防护）
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    BillingDeviceEventsHandler, // ✅ V2: 直接注册消费者
+    BillingUserEventsHandler,   // ✅ V2: 直接注册消费者
+  ],
 })
 export class AppModule {}

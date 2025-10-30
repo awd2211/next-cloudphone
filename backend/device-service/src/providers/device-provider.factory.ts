@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, Logger } from "@nestjs/common";
 import {
   IDeviceProvider,
   IDeviceProviderFactory,
@@ -23,6 +23,7 @@ import { DeviceProviderType } from "./provider.types";
  */
 @Injectable()
 export class DeviceProviderFactory implements IDeviceProviderFactory {
+  private readonly logger = new Logger(DeviceProviderFactory.name);
   private providers = new Map<DeviceProviderType, IDeviceProvider>();
 
   /**
@@ -52,13 +53,13 @@ export class DeviceProviderFactory implements IDeviceProviderFactory {
     const type = provider.providerType;
 
     if (this.providers.has(type)) {
-      console.warn(
-        `[DeviceProviderFactory] Provider '${type}' is already registered, overwriting`,
+      this.logger.warn(
+        `Provider '${type}' is already registered, overwriting`,
       );
     }
 
     this.providers.set(type, provider);
-    console.log(`[DeviceProviderFactory] Registered provider: ${type}`);
+    this.logger.log(`Registered provider: ${type}`);
   }
 
   /**
@@ -99,7 +100,7 @@ export class DeviceProviderFactory implements IDeviceProviderFactory {
     const existed = this.providers.has(type);
     if (existed) {
       this.providers.delete(type);
-      console.log(`[DeviceProviderFactory] Unregistered provider: ${type}`);
+      this.logger.log(`Unregistered provider: ${type}`);
     }
     return existed;
   }

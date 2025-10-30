@@ -16,6 +16,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { diskStorage } from 'multer';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -46,8 +47,13 @@ if (!fs.existsSync(uploadDir)) {
 export class AppsController {
   constructor(private readonly appsService: AppsService) {}
 
+  /**
+   * 上传 APK
+   * 🔒 限流: 5分钟内最多20次 (防止上传滥用)
+   */
   @Post('upload')
   @RequirePermission('app.create')
+  @Throttle({ default: { limit: 20, ttl: 300000 } })
   @ApiOperation({ summary: '上传 APK', description: '上传 Android 应用程序包文件' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -66,6 +72,7 @@ export class AppsController {
   @ApiResponse({ status: 201, description: '上传成功' })
   @ApiResponse({ status: 400, description: '文件格式错误或文件过大' })
   @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 429, description: '上传过于频繁，请稍后再试' })
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({

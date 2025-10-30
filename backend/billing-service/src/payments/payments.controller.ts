@@ -11,6 +11,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
 import {
   CreatePaymentDto,
@@ -25,10 +26,16 @@ export class PaymentsController {
 
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  /**
+   * 创建支付订单
+   * 🔒 限流: 5分钟内最多10次 (防止恶意创建订单)
+   */
   @Post()
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 300000 } })
   @ApiOperation({ summary: '创建支付订单' })
   @ApiResponse({ status: 201, description: '支付订单创建成功' })
+  @ApiResponse({ status: 429, description: '创建订单过于频繁，请稍后再试' })
   async create(
     @Body() createPaymentDto: CreatePaymentDto,
     @Headers('user-id') userId: string,
@@ -85,10 +92,16 @@ export class PaymentsController {
     };
   }
 
+  /**
+   * 申请退款
+   * 🔒 限流: 5分钟内最多5次 (防止恶意退款)
+   */
   @Post(':id/refund')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
   @ApiOperation({ summary: '申请退款' })
   @ApiResponse({ status: 200, description: '退款申请成功' })
+  @ApiResponse({ status: 429, description: '退款申请过于频繁，请稍后再试' })
   async refund(
     @Param('id') id: string,
     @Body() refundPaymentDto: RefundPaymentDto,

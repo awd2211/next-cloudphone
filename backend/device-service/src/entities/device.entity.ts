@@ -74,6 +74,7 @@ export class Device {
 
   // ========== Provider 信息（多设备源支持） ==========
   @Column({
+    name: "provider_type",
     type: "enum",
     enum: DeviceProviderType,
     default: DeviceProviderType.REDROID,
@@ -81,20 +82,20 @@ export class Device {
   @Index()
   providerType: DeviceProviderType;
 
-  @Column({ nullable: true })
+  @Column({ name: "external_id", nullable: true })
   @Index()
   externalId: string; // Provider 侧的设备 ID（如 Docker containerId、华为 instanceId、物理设备 MAC）
 
-  @Column({ type: "jsonb", nullable: true })
+  @Column({ name: "provider_config", type: "jsonb", nullable: true })
   providerConfig: Record<string, any>; // Provider 特定配置（创建时的参数）
 
-  @Column({ type: "jsonb", nullable: true })
+  @Column({ name: "connection_info", type: "jsonb", nullable: true })
   connectionInfo: Record<string, any>; // 连接信息（ADB、SCRCPY、WebRTC 等）
 
-  @Column({ nullable: true })
+  @Column({ name: "device_group", nullable: true })
   deviceGroup: string; // 设备分组（物理设备的机架位置、云设备的区域等）
 
-  @Column({ type: "int", default: 100 })
+  @Column({ name: "health_score", type: "int", default: 100 })
   healthScore: number; // 设备健康评分 (0-100)
 
   // Docker 容器信息（仅 Redroid 使用）
@@ -155,27 +156,27 @@ export class Device {
   @Column({ type: "int", default: 0 })
   storageUsage: number;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ name: "last_heartbeat_at", type: "timestamp", nullable: true })
   lastHeartbeatAt: Date;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ name: "last_active_at", type: "timestamp", nullable: true })
   lastActiveAt: Date;
 
   // 到期时间（用于临时设备或有时限的设备）
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ name: "expires_at", type: "timestamp", nullable: true })
   @Index()
   expiresAt: Date;
 
   // 是否启用自动备份
-  @Column({ default: false })
+  @Column({ name: "auto_backup_enabled", default: false })
   autoBackupEnabled: boolean;
 
   // 自动备份间隔（小时）
-  @Column({ type: "int", nullable: true })
+  @Column({ name: "backup_interval_hours", type: "int", nullable: true })
   backupIntervalHours: number;
 
   // 最后备份时间
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ name: "last_backup_at", type: "timestamp", nullable: true })
   lastBackupAt: Date;
 
   // 元数据

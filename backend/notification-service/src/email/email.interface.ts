@@ -7,7 +7,7 @@ export interface EmailOptions {
   text?: string;
   html?: string;
   template?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   from?: string;
   cc?: string | string[];
   bcc?: string | string[];
@@ -42,7 +42,7 @@ export interface EmailResult {
  */
 export interface EmailProviderConfig {
   provider: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

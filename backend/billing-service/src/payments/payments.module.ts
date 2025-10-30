@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
-import { HttpClientModule } from '@cloudphone/shared';
+import { HttpClientModule, SagaModule } from '@cloudphone/shared';
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
 import { PaymentsAdminController } from './admin/payments-admin.controller';
@@ -25,6 +25,7 @@ import { BalanceClientService } from './clients/balance-client.service';
     HttpModule,
     HttpClientModule,
     CurrencyModule,
+    SagaModule,  // ✅ PaymentsService 依赖 SagaOrchestratorService
   ],
   controllers: [PaymentsController, PaymentsAdminController],
   providers: [

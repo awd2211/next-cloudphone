@@ -16,6 +16,7 @@ import { CreateDeviceDto } from "./dto/create-device.dto";
 import { UpdateDeviceDto } from "./dto/update-device.dto";
 import {
   EventBusService,
+  EventOutboxService,
   BusinessErrors,
   BusinessException,
   BusinessErrorCode,
@@ -31,8 +32,46 @@ import { DeviceProviderFactory } from "../providers/device-provider.factory";
 import {
   DeviceCreateConfig,
   DeviceProviderStatus,
+  DeviceMetrics,
 } from "../providers/provider.types";
+import { IDeviceProvider } from "../providers/device-provider.interface";
 import { ScrcpyVideoCodec } from "../scrcpy/scrcpy.types";
+
+/**
+ * 设备创建 Saga State 接口
+ */
+interface DeviceCreationSagaState {
+  userId: string;
+  name: string;
+  providerType: DeviceProviderType;
+  cpuCores?: number;
+  memoryMB?: number;
+  diskSizeGB?: number;
+  allocatedAdbPort?: number;
+  allocatedScrcpyPort?: number;
+  externalId?: string;
+  containerId?: string;
+  providerDeviceId?: string;
+  deviceId?: string;
+  device?: Device;
+  // Step 1 specific
+  portsAllocated?: boolean;
+  ports?: { adbPort: number; scrcpyPort: number; webrtcPort?: number };
+  // Step 2 specific
+  providerDevice?: {
+    id: string;
+    connectionInfo?: {
+      adb?: { port?: number; host?: string };
+    };
+    [key: string]: unknown;
+  };
+  // Step 4 specific
+  quotaReported?: boolean;
+  // Step 5 specific
+  deviceStarted?: boolean;
+  // DTO for internal use
+  createDeviceDto?: CreateDeviceDto;
+}
 
 @Injectable()
 export class DevicesService {
@@ -47,6 +86,7 @@ export class DevicesService {
     private portManager: PortManagerService,
     private configService: ConfigService,
     @Optional() private eventBus: EventBusService,
+    @Optional() private eventOutboxService: EventOutboxService, // ✅ Transactional Outbox
     @Optional() private quotaClient: QuotaClientService,
     private cacheService: CacheService,
     private moduleRef: ModuleRef, // ✅ 用于延迟获取服务
@@ -86,7 +126,7 @@ export class DevicesService {
     this.logger.debug(`Using provider: ${providerType}`);
 
     // 定义设备创建 Saga
-    const deviceCreationSaga: SagaDefinition = {
+    const deviceCreationSaga: SagaDefinition<DeviceCreationSagaState> = {
       type: SagaType.DEVICE_CREATION,
       timeoutMs: 600000, // 10 分钟超时
       maxRetries: 3,
@@ -94,7 +134,7 @@ export class DevicesService {
         // ========== Step 1: 分配端口（仅 Redroid） ==========
         {
           name: 'ALLOCATE_PORTS',
-          execute: async (state: any) => {
+          execute: async (state: DeviceCreationSagaState) => {
             if (providerType !== DeviceProviderType.REDROID) {
               this.logger.debug(`Skipping port allocation for ${providerType}`);
               return { portsAllocated: false, ports: null };
@@ -110,7 +150,7 @@ export class DevicesService {
 
             return { portsAllocated: true, ports };
           },
-          compensate: async (state: any) => {
+          compensate: async (state: DeviceCreationSagaState) => {
             if (!state.portsAllocated || !state.ports) {
               return;
             }
@@ -129,7 +169,7 @@ export class DevicesService {
         // ========== Step 2: 调用 Provider 创建设备 ==========
         {
           name: 'CREATE_PROVIDER_DEVICE',
-          execute: async (state: any) => {
+          execute: async (state: DeviceCreationSagaState) => {
             this.logger.log(`[SAGA] Step 2: Creating device via ${providerType} provider`);
 
             const providerConfig: DeviceCreateConfig = {
@@ -158,7 +198,7 @@ export class DevicesService {
 
             return { providerDevice };
           },
-          compensate: async (state: any) => {
+          compensate: async (state: DeviceCreationSagaState) => {
             if (!state.providerDevice) {
               return;
             }
@@ -191,7 +231,7 @@ export class DevicesService {
         // ========== Step 3: 创建数据库记录 ==========
         {
           name: 'CREATE_DATABASE_RECORD',
-          execute: async (state: any) => {
+          execute: async (state: DeviceCreationSagaState) => {
             this.logger.log(`[SAGA] Step 3: Creating database record`);
 
             const queryRunner = this.dataSource.createQueryRunner();
@@ -204,21 +244,21 @@ export class DevicesService {
               const device = deviceRepository.create({
                 ...createDeviceDto,
                 providerType,
-                externalId: state.providerDevice.id,
-                connectionInfo: state.providerDevice.connectionInfo,
-                providerConfig: state.providerDevice.providerConfig,
+                externalId: state.providerDevice!.id,
+                connectionInfo: state.providerDevice!.connectionInfo as Record<string, unknown>,
+                providerConfig: (state.providerDevice as Record<string, unknown>).providerConfig as Record<string, unknown>,
                 status: DeviceStatus.CREATING, // 初始状态 CREATING
                 // Redroid 兼容字段
                 containerId:
                   providerType === DeviceProviderType.REDROID
-                    ? state.providerDevice.id
+                    ? state.providerDevice!.id
                     : null,
                 containerName:
                   providerType === DeviceProviderType.REDROID
-                    ? state.providerDevice.name
+                    ? (state.providerDevice as Record<string, unknown>).name as string
                     : null,
-                adbPort: state.providerDevice.connectionInfo.adb?.port || null,
-                adbHost: state.providerDevice.connectionInfo.adb?.host || null,
+                adbPort: state.providerDevice!.connectionInfo?.adb?.port || null,
+                adbHost: state.providerDevice!.connectionInfo?.adb?.host || null,
                 metadata: {
                   ...createDeviceDto.metadata,
                   webrtcPort: state.ports?.webrtcPort,
@@ -228,11 +268,32 @@ export class DevicesService {
 
               const savedDevice = await deviceRepository.save(device);
 
+              // ✅ 在同一事务内写入事件到 Outbox
+              if (this.eventOutboxService) {
+                await this.eventOutboxService.writeEvent(
+                  queryRunner,
+                  'device',
+                  savedDevice.id,
+                  'device.created',
+                  {
+                    deviceId: savedDevice.id,
+                    userId: savedDevice.userId,
+                    deviceName: savedDevice.name,
+                    status: savedDevice.status,
+                    tenantId: savedDevice.tenantId,
+                    providerType: savedDevice.providerType,
+                    sagaId,
+                    timestamp: new Date().toISOString(),
+                  },
+                );
+                this.logger.debug(`[SAGA] Event written to outbox: device.created`);
+              }
+
               await queryRunner.commitTransaction();
 
               this.logger.log(`[SAGA] Database record created: ${savedDevice.id}`);
 
-              return { deviceId: savedDevice.id };
+              return { deviceId: savedDevice.id as string };
             } catch (error) {
               await queryRunner.rollbackTransaction();
               throw error;
@@ -240,7 +301,7 @@ export class DevicesService {
               await queryRunner.release();
             }
           },
-          compensate: async (state: any) => {
+          compensate: async (state: DeviceCreationSagaState) => {
             if (!state.deviceId) {
               return;
             }
@@ -274,7 +335,7 @@ export class DevicesService {
         // ========== Step 4: 上报配额使用 ==========
         {
           name: 'REPORT_QUOTA_USAGE',
-          execute: async (state: any) => {
+          execute: async (state: DeviceCreationSagaState) => {
             if (!this.quotaClient || !createDeviceDto.userId) {
               this.logger.debug(`[SAGA] Skipping quota reporting (no quota client or userId)`);
               return { quotaReported: false };
@@ -294,7 +355,7 @@ export class DevicesService {
 
             return { quotaReported: true };
           },
-          compensate: async (state: any) => {
+          compensate: async (state: DeviceCreationSagaState) => {
             if (!state.quotaReported || !this.quotaClient || !createDeviceDto.userId) {
               return;
             }
@@ -320,7 +381,7 @@ export class DevicesService {
         // ========== Step 5: 启动设备 ==========
         {
           name: 'START_DEVICE',
-          execute: async (state: any) => {
+          execute: async (state: DeviceCreationSagaState) => {
             this.logger.log(`[SAGA] Step 5: Starting device ${state.deviceId}`);
 
             const queryRunner = this.dataSource.createQueryRunner();
@@ -368,7 +429,7 @@ export class DevicesService {
               await queryRunner.release();
             }
           },
-          compensate: async (state: any) => {
+          compensate: async (state: DeviceCreationSagaState) => {
             if (!state.deviceStarted || !state.deviceId) {
               return;
             }
@@ -411,8 +472,10 @@ export class DevicesService {
 
     // 执行 Saga
     const sagaId = await this.sagaOrchestrator.executeSaga(deviceCreationSaga, {
-      createDeviceDto,
+      userId: createDeviceDto.userId,
+      name: createDeviceDto.name,
       providerType,
+      createDeviceDto,
     });
 
     this.logger.log(`Device creation Saga initiated: ${sagaId}`);
@@ -448,27 +511,11 @@ export class DevicesService {
         userId: createDeviceDto.userId,
         tenantId: createDeviceDto.tenantId,
         providerType,
-      } as any;
+      } as Partial<Device> as Device;
     }
 
-    // 异步发布设备创建事件（在 Saga 成功后）
-    setImmediate(async () => {
-      if (this.eventBus && device && device.id !== 'pending') {
-        try {
-          await this.eventBus.publishDeviceEvent("created", {
-            deviceId: device.id,
-            userId: device.userId,
-            deviceName: device.name,
-            status: device.status,
-            tenantId: device.tenantId,
-            providerType,
-            sagaId,
-          });
-        } catch (error) {
-          this.logger.error(`Failed to publish device created event`, error.stack);
-        }
-      }
-    });
+    // ✅ 事件已在 Saga Step 3 中通过 Outbox 发布（在数据库事务内）
+    // 不再需要 setImmediate 异步发布，避免事件丢失风险
 
     return { sagaId, device };
   }
@@ -476,7 +523,7 @@ export class DevicesService {
   /**
    * 异步启动设备（用于 Redroid）
    */
-  private async startDeviceAsync(device: Device, provider: any): Promise<void> {
+  private async startDeviceAsync(device: Device, provider: IDeviceProvider): Promise<void> {
     try {
       this.logger.log(`Starting device ${device.id}`);
 
@@ -808,13 +855,13 @@ export class DevicesService {
   ): Promise<{ data: Device[]; total: number; page: number; limit: number }> {
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (userId) where.userId = userId;
     if (tenantId) where.tenantId = tenantId;
     if (status) where.status = status;
 
     const [data, total] = await this.devicesRepository.findAndCount({
-      where,
+      where: where as Parameters<typeof this.devicesRepository.findAndCount>[0]['where'],
       skip,
       take: limit,
       order: { createdAt: "DESC" },
@@ -934,23 +981,46 @@ export class DevicesService {
       this.logger.debug(`Released ports for device ${id}`);
     }
 
-    // 更新设备状态
-    device.status = DeviceStatus.DELETED;
-    await this.devicesRepository.save(device);
+    // ✅ 使用事务更新设备状态并发布事件到 Outbox
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // 清除缓存
-    await this.invalidateDeviceCache(device);
+    try {
+      // 更新设备状态
+      device.status = DeviceStatus.DELETED;
+      await queryRunner.manager.save(Device, device);
 
-    // 发布设备删除事件
-    if (this.eventBus) {
-      await this.eventBus.publishDeviceEvent("deleted", {
-        deviceId: id,
-        userId: device.userId,
-        deviceName: device.name,
-        tenantId: device.tenantId,
-        providerType: device.providerType, // ✅ 新字段
-      });
+      // ✅ 在同一事务内写入事件到 Outbox
+      if (this.eventOutboxService) {
+        await this.eventOutboxService.writeEvent(
+          queryRunner,
+          'device',
+          id,
+          'device.deleted',
+          {
+            deviceId: id,
+            userId: device.userId,
+            deviceName: device.name,
+            tenantId: device.tenantId,
+            providerType: device.providerType,
+            timestamp: new Date().toISOString(),
+          },
+        );
+      }
+
+      await queryRunner.commitTransaction();
+      this.logger.debug(`Device ${id} status updated and event written to outbox`);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`Failed to update device status and write event`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
+
+    // 清除缓存（在事务外，失败不影响主流程）
+    await this.invalidateDeviceCache(device);
 
     this.logger.log(`Device ${id} removed successfully`);
   }
@@ -1192,7 +1262,39 @@ export class DevicesService {
     device.status = DeviceStatus.RUNNING;
     device.lastActiveAt = new Date();
 
-    const savedDevice = await this.devicesRepository.save(device);
+    // ✅ 使用事务保存设备状态并发布事件到 Outbox
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    let savedDevice: Device;
+    try {
+      savedDevice = await queryRunner.manager.save(Device, device);
+
+      // ✅ 在同一事务内写入事件到 Outbox
+      if (this.eventOutboxService) {
+        await this.eventOutboxService.writeEvent(
+          queryRunner,
+          'device',
+          id,
+          'device.started',
+          {
+            deviceId: id,
+            userId: device.userId,
+            tenantId: device.tenantId,
+            startedAt: new Date().toISOString(),
+            providerType: device.providerType,
+          },
+        );
+      }
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
 
     // 建立 ADB 连接（如果支持且非物理设备，因为物理设备在 startPhysicalDeviceAsync 中已连接）
     if (
@@ -1221,17 +1323,6 @@ export class DevicesService {
             error.message,
           );
         });
-    }
-
-    // 发布设备启动事件
-    if (this.eventBus) {
-      await this.eventBus.publishDeviceEvent("started", {
-        deviceId: id,
-        userId: device.userId,
-        tenantId: device.tenantId,
-        startedAt: new Date(),
-        providerType: device.providerType, // ✅ 新字段
-      });
     }
 
     return savedDevice;
@@ -1295,7 +1386,40 @@ export class DevicesService {
 
     device.status = DeviceStatus.STOPPED;
 
-    const savedDevice = await this.devicesRepository.save(device);
+    // ✅ 使用事务保存设备状态并发布事件到 Outbox
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    let savedDevice: Device;
+    try {
+      savedDevice = await queryRunner.manager.save(Device, device);
+
+      // ✅ 在同一事务内写入事件到 Outbox
+      if (this.eventOutboxService) {
+        await this.eventOutboxService.writeEvent(
+          queryRunner,
+          'device',
+          id,
+          'device.stopped',
+          {
+            deviceId: id,
+            userId: device.userId,
+            tenantId: device.tenantId,
+            stoppedAt: new Date().toISOString(),
+            duration, // 运行时长（秒）
+            providerType: device.providerType,
+          },
+        );
+      }
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
 
     // 上报并发设备减少（设备停止）
     if (this.quotaClient && device.userId) {
@@ -1307,18 +1431,6 @@ export class DevicesService {
             error.message,
           );
         });
-    }
-
-    // 发布设备停止事件
-    if (this.eventBus) {
-      await this.eventBus.publishDeviceEvent("stopped", {
-        deviceId: id,
-        userId: device.userId,
-        tenantId: device.tenantId,
-        stoppedAt: new Date(),
-        duration, // 运行时长（秒）
-        providerType: device.providerType, // ✅ 新字段
-      });
     }
 
     return savedDevice;
@@ -1338,8 +1450,9 @@ export class DevicesService {
     if (device.externalId) {
       try {
         // 某些 Provider 可能有 rebootDevice 方法，否则用 stop + start
-        if (typeof (provider as any).rebootDevice === 'function') {
-          await (provider as any).rebootDevice(device.externalId);
+        const providerWithReboot = provider as IDeviceProvider & { rebootDevice?: (id: string) => Promise<void> };
+        if (typeof providerWithReboot.rebootDevice === 'function') {
+          await providerWithReboot.rebootDevice(device.externalId);
         } else {
           await provider.stop(device.externalId);
           await new Promise((resolve) => setTimeout(resolve, 2000)); // 等待2秒
@@ -1367,8 +1480,14 @@ export class DevicesService {
     return await this.devicesRepository.save(device);
   }
 
-  async updateHeartbeat(id: string, stats?: any): Promise<void> {
-    const update: any = {
+  async updateHeartbeat(id: string, stats?: DeviceMetrics): Promise<void> {
+    const update: Partial<Device> & {
+      lastHeartbeatAt: Date;
+      lastActiveAt: Date;
+      cpuUsage?: number;
+      memoryUsage?: number;
+      storageUsage?: number;
+    } = {
       lastHeartbeatAt: new Date(),
       lastActiveAt: new Date(),
     };
@@ -1388,7 +1507,7 @@ export class DevicesService {
     await this.devicesRepository.update(id, { status });
   }
 
-  async getStats(id: string): Promise<any> {
+  async getStats(id: string): Promise<DeviceMetrics & { deviceId: string; providerType: string; timestamp: Date; error?: string; message?: string }> {
     const device = await this.findOne(id);
 
     this.logger.debug(
@@ -1517,7 +1636,7 @@ export class DevicesService {
     return await this.adbService.clearLogcat(id);
   }
 
-  async getDeviceProperties(id: string): Promise<any> {
+  async getDeviceProperties(id: string): Promise<Record<string, string>> {
     await this.findOne(id);
     return await this.adbService.getDeviceProperties(id);
   }
@@ -1527,29 +1646,29 @@ export class DevicesService {
   /**
    * 发布应用安装完成事件
    */
-  async publishAppInstallCompleted(event: any): Promise<void> {
+  async publishAppInstallCompleted(event: Record<string, unknown>): Promise<void> {
     await this.eventBus.publishAppEvent("install.completed", event);
   }
 
   /**
    * 发布应用安装失败事件
    */
-  async publishAppInstallFailed(event: any): Promise<void> {
+  async publishAppInstallFailed(event: Record<string, unknown>): Promise<void> {
     await this.eventBus.publishAppEvent("install.failed", event);
   }
 
   /**
    * 发布应用卸载完成事件
    */
-  async publishAppUninstallCompleted(event: any): Promise<void> {
+  async publishAppUninstallCompleted(event: Record<string, unknown>): Promise<void> {
     await this.eventBus.publishAppEvent("uninstall.completed", event);
   }
 
   /**
    * 发布设备分配事件
    */
-  async publishDeviceAllocated(event: any): Promise<void> {
-    await this.eventBus.publishDeviceEvent(`allocate.${event.sagaId}`, event);
+  async publishDeviceAllocated(event: Record<string, unknown>): Promise<void> {
+    await this.eventBus.publishDeviceEvent(`allocate.${(event as Record<string, string>).sagaId}`, event);
   }
 
   /**

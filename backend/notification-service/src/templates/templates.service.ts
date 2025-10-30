@@ -1,28 +1,79 @@
-import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import * as Handlebars from 'handlebars';
 import { NotificationTemplate } from '../entities/notification-template.entity';
 import { CreateTemplateDto, UpdateTemplateDto, QueryTemplateDto, RenderTemplateDto } from './dto';
 
+/**
+ * 允许的模板变量白名单
+ * 只允许访问这些预定义的字段
+ */
+const ALLOWED_TEMPLATE_VARIABLES = [
+  'userName', 'userEmail', 'userId',
+  'deviceName', 'deviceId', 'deviceStatus',
+  'appName', 'appVersion',
+  'amount', 'planName', 'expireDate', 'orderNo',
+  'title', 'content', 'link', 'time', 'date',
+  'verificationCode', 'code', 'message',
+  'quotaUsed', 'quotaTotal', 'quotaPercent',
+] as const;
+
+/**
+ * 危险的 Handlebars 表达式模式
+ * 这些模式可能导致 SSTI 攻击
+ */
+const DANGEROUS_PATTERNS = [
+  /{{[^}]*constructor[^}]*}}/gi, // 访问 constructor
+  /{{[^}]*prototype[^}]*}}/gi, // 访问 prototype
+  /{{[^}]*__proto__[^}]*}}/gi, // 访问 __proto__
+  /{{[^}]*\[\s*["']/gi, // 方括号访问属性
+  /{{[^}]*process[^}]*}}/gi, // 访问 process 对象
+  /{{[^}]*require[^}]*}}/gi, // require 函数
+  /{{[^}]*import[^}]*}}/gi, // import 语句
+  /{{[^}]*eval[^}]*}}/gi, // eval 函数
+  /{{[^}]*Function[^}]*}}/gi, // Function 构造函数
+  /{{[^}]*globalThis[^}]*}}/gi, // globalThis
+  /{{[^}]*global[^}]*}}/gi, // global 对象
+  /{{[^}]*this\.constructor[^}]*}}/gi, // this.constructor
+] as const;
+
 @Injectable()
 export class TemplatesService {
   private readonly logger = new Logger(TemplatesService.name);
   private compiledTemplates: Map<string, HandlebarsTemplateDelegate> = new Map();
+  private sandboxedHandlebars: typeof Handlebars;
 
   constructor(
     @InjectRepository(NotificationTemplate)
     private templateRepository: Repository<NotificationTemplate>,
   ) {
+    // 🔒 安全初始化：创建独立的沙箱 Handlebars 实例
+    this.sandboxedHandlebars = Handlebars.create();
     this.registerHelpers();
+    this.configureSecurity();
   }
 
   /**
-   * 注册 Handlebars 辅助函数
+   * 🔒 配置 Handlebars 安全策略
+   */
+  private configureSecurity() {
+    // 注意：使用独立的 Handlebars 实例已经提供了基本的隔离
+    // 额外的安全措施在 compileAndRender 中实施：
+    // - 数据白名单过滤
+    // - 模板验证
+    // - 严格模式编译
+
+    this.logger.log('Handlebars security configured: sandboxed instance created with strict mode');
+  }
+
+  /**
+   * 注册 Handlebars 辅助函数（使用沙箱实例）
    */
   private registerHelpers() {
+    // 🔒 使用沙箱实例注册 helpers
     // 格式化日期
-    Handlebars.registerHelper('formatDate', (date: Date, format: string) => {
+    this.sandboxedHandlebars.registerHelper('formatDate', (date: Date, format: string) => {
       if (!date) return '';
       const d = new Date(date);
       // 简单的日期格式化,可以使用 date-fns 等库增强
@@ -30,30 +81,108 @@ export class TemplatesService {
     });
 
     // 条件判断
-    Handlebars.registerHelper('ifEquals', function (arg1, arg2, options) {
+    this.sandboxedHandlebars.registerHelper('ifEquals', function (arg1, arg2, options) {
       return arg1 === arg2 ? options.fn(this) : options.inverse(this);
     });
 
     // 数字格式化
-    Handlebars.registerHelper('formatNumber', (number: number) => {
+    this.sandboxedHandlebars.registerHelper('formatNumber', (number: number) => {
       return new Intl.NumberFormat('zh-CN').format(number);
     });
 
     // 货币格式化
-    Handlebars.registerHelper('formatCurrency', (amount: number) => {
+    this.sandboxedHandlebars.registerHelper('formatCurrency', (amount: number) => {
       return new Intl.NumberFormat('zh-CN', {
         style: 'currency',
         currency: 'CNY',
       }).format(amount);
     });
 
-    this.logger.log('Handlebars helpers registered');
+    this.logger.log('Handlebars helpers registered on sandboxed instance');
+  }
+
+  /**
+   * 🔒 验证模板安全性
+   * 检测是否包含危险的表达式
+   */
+  private validateTemplateSecurity(templateString: string): void {
+    // 检查危险模式
+    for (const pattern of DANGEROUS_PATTERNS) {
+      if (pattern.test(templateString)) {
+        this.logger.error(`Template contains dangerous pattern: ${pattern.source}`);
+        throw new BadRequestException(
+          `模板包含不安全的表达式，请检查后重试`,
+        );
+      }
+    }
+
+    // 提取模板中使用的变量
+    const variablePattern = /{{([^{}]+)}}/g;
+    const matches = templateString.matchAll(variablePattern);
+
+    for (const match of matches) {
+      const expr = match[1].trim();
+
+      // 跳过 helpers（以 # 或 / 开头）
+      if (expr.startsWith('#') || expr.startsWith('/')) {
+        continue;
+      }
+
+      // 提取变量名（去除 helper 调用）
+      const varName = expr.split(/[\s()]/)[0];
+
+      // 检查是否在白名单中（允许内置 helpers）
+      const builtInHelpers = ['formatDate', 'ifEquals', 'formatNumber', 'formatCurrency', 'if', 'unless', 'each', 'with'];
+      const isAllowed = ALLOWED_TEMPLATE_VARIABLES.includes(varName as any) || builtInHelpers.includes(varName);
+
+      if (!isAllowed && !varName.includes('.')) {
+        this.logger.warn(`Template uses non-whitelisted variable: ${varName}`);
+        // 警告但不阻止，给予一定灵活性
+      }
+    }
+  }
+
+  /**
+   * 🔒 清理渲染数据
+   * 只允许白名单中的字段
+   */
+  private sanitizeRenderData(data: Record<string, any>): Record<string, any> {
+    const sanitized: Record<string, any> = {};
+
+    // 只复制白名单中的字段
+    for (const key of ALLOWED_TEMPLATE_VARIABLES) {
+      if (data[key] !== undefined) {
+        // 深度清理：移除危险属性
+        const value = data[key];
+        if (typeof value === 'object' && value !== null) {
+          // 移除 constructor, prototype, __proto__
+          const cleaned = JSON.parse(JSON.stringify(value));
+          sanitized[key] = cleaned;
+        } else {
+          sanitized[key] = value;
+        }
+      }
+    }
+
+    return sanitized;
   }
 
   /**
    * 创建模板
+   *
+   * ⚠️ SECURITY: 验证模板安全性
    */
   async create(createTemplateDto: CreateTemplateDto): Promise<NotificationTemplate> {
+    // 🔒 安全验证：检查模板内容安全性
+    this.validateTemplateSecurity(createTemplateDto.title);
+    this.validateTemplateSecurity(createTemplateDto.body);
+    if (createTemplateDto.emailTemplate) {
+      this.validateTemplateSecurity(createTemplateDto.emailTemplate);
+    }
+    if (createTemplateDto.smsTemplate) {
+      this.validateTemplateSecurity(createTemplateDto.smsTemplate);
+    }
+
     // 检查 code 是否已存在
     const existing = await this.templateRepository.findOne({
       where: { code: createTemplateDto.code },
@@ -154,8 +283,24 @@ export class TemplatesService {
 
   /**
    * 更新模板
+   *
+   * ⚠️ SECURITY: 验证模板安全性
    */
   async update(id: string, updateTemplateDto: UpdateTemplateDto): Promise<NotificationTemplate> {
+    // 🔒 安全验证：检查更新的模板内容安全性
+    if (updateTemplateDto.title) {
+      this.validateTemplateSecurity(updateTemplateDto.title);
+    }
+    if (updateTemplateDto.body) {
+      this.validateTemplateSecurity(updateTemplateDto.body);
+    }
+    if (updateTemplateDto.emailTemplate) {
+      this.validateTemplateSecurity(updateTemplateDto.emailTemplate);
+    }
+    if (updateTemplateDto.smsTemplate) {
+      this.validateTemplateSecurity(updateTemplateDto.smsTemplate);
+    }
+
     const template = await this.findOne(id);
 
     // 如果更新 code,检查是否与其他模板冲突
@@ -272,31 +417,59 @@ export class TemplatesService {
 
   /**
    * 编译并渲染模板字符串
+   *
+   * ⚠️ SECURITY FIX: 使用沙箱实例和数据清理
    */
   private compileAndRender(
     templateString: string,
     data: Record<string, any>,
     cacheKey: string,
   ): string {
+    // 🔒 安全验证：检查模板安全性
+    this.validateTemplateSecurity(templateString);
+
     // 尝试从缓存获取已编译的模板
     let compiled = this.compiledTemplates.get(cacheKey);
 
     if (!compiled) {
-      // 编译模板并缓存
-      compiled = Handlebars.compile(templateString);
+      // 🔒 使用沙箱实例编译模板
+      compiled = this.sandboxedHandlebars.compile(templateString, {
+        noEscape: false, // 启用自动转义
+        strict: true, // 严格模式：undefined 变量会抛出错误
+        preventIndent: true, // 防止缩进注入
+      });
       this.compiledTemplates.set(cacheKey, compiled);
     }
 
+    // 🔒 清理渲染数据：只保留白名单字段
+    const sanitizedData = this.sanitizeRenderData(data);
+
     // 渲染模板
-    return compiled(data);
+    try {
+      return compiled(sanitizedData);
+    } catch (error) {
+      this.logger.error(`Template rendering error: ${error.message}`, error);
+      throw new BadRequestException(`模板渲染失败: ${error.message}`);
+    }
   }
 
   /**
    * 验证模板语法
+   *
+   * ⚠️ SECURITY: 使用沙箱实例和安全验证
    */
   async validateTemplate(templateString: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      Handlebars.compile(templateString);
+      // 🔒 先验证模板安全性
+      this.validateTemplateSecurity(templateString);
+
+      // 🔒 使用沙箱实例编译测试
+      this.sandboxedHandlebars.compile(templateString, {
+        noEscape: false,
+        strict: true,
+        preventIndent: true,
+      });
+
       return { valid: true };
     } catch (error) {
       return {

@@ -34,7 +34,7 @@ export class CreateTemplateDto {
 
   @IsObject()
   @IsOptional()
-  defaultData?: Record<string, any>;
+  defaultData?: Record<string, unknown>;
 
   @IsString()
   @IsOptional()

@@ -5,6 +5,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Order, OrderStatus } from './entities/order.entity';
 import { Plan } from './entities/plan.entity';
 import { UsageRecord, UsageType } from './entities/usage-record.entity';
+import { PurchasePlanSagaV2 } from '../sagas/purchase-plan-v2.saga';
 
 @Injectable()
 export class BillingService {
@@ -17,19 +18,54 @@ export class BillingService {
     private planRepository: Repository<Plan>,
     @InjectRepository(UsageRecord)
     private usageRecordRepository: Repository<UsageRecord>,
+    private readonly purchasePlanSaga: PurchasePlanSagaV2,
   ) {}
 
   async getPlans() {
     return this.planRepository.find({ where: { isActive: true } });
   }
 
+  /**
+   * 创建订单 (使用 Saga 模式)
+   *
+   * @param createOrderDto - 订单创建数据 { userId, planId, amount? }
+   * @returns 订单 ID 和 Saga ID
+   */
   async createOrder(createOrderDto: any) {
-    const order = this.orderRepository.create({
-      ...createOrderDto,
-      status: OrderStatus.PENDING,
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30分钟后过期
+    const { userId, planId } = createOrderDto;
+
+    // 获取套餐信息以确定金额
+    const plan = await this.planRepository.findOne({
+      where: { id: planId, isActive: true },
     });
-    return this.orderRepository.save(order);
+
+    if (!plan) {
+      throw new NotFoundException(`套餐不存在或已下架: ${planId}`);
+    }
+
+    // 使用 Saga 模式启动订单购买流程
+    const sagaId = await this.purchasePlanSaga.startPurchase(
+      userId,
+      planId,
+      plan.price,
+    );
+
+    this.logger.log(`Purchase Saga started: ${sagaId} for user ${userId}`);
+
+    return {
+      sagaId,
+      message: '订单创建中，请稍候...',
+    };
+  }
+
+  /**
+   * 查询 Saga 状态
+   *
+   * @param sagaId - Saga ID
+   * @returns Saga 状态信息
+   */
+  async getSagaStatus(sagaId: string) {
+    return this.purchasePlanSaga.getSagaStatus(sagaId);
   }
 
   async getOrder(orderId: string): Promise<Order> {

@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from "@nestjs/common";
+import { Module, OnModuleInit, Logger } from "@nestjs/common";
 import { DeviceProviderFactory } from "./device-provider.factory";
 import { RedroidModule } from "./redroid/redroid.module";
 import { RedroidProvider } from "./redroid/redroid.provider";
@@ -58,10 +58,11 @@ export class ProvidersModule implements OnModuleInit {
     // ✅ Phase 4: 注册 Aliyun Provider
     this.providerFactory.registerProvider(this.aliyunProvider);
 
-    console.log(
-      `[ProvidersModule] Registered ${this.providerFactory.getProviderCount()} providers: ${this.providerFactory
+    Logger.log(
+      `Registered ${this.providerFactory.getProviderCount()} providers: ${this.providerFactory
         .getAvailableProviderTypes()
         .join(", ")}`,
+      'ProvidersModule',
     );
   }
 }

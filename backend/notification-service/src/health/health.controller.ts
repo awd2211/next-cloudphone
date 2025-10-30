@@ -1,9 +1,9 @@
-import { Controller, Get, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Inject, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 import * as os from 'os';
 
 interface DependencyStatus {
@@ -49,7 +49,7 @@ export class HealthController {
 
   constructor(
     @InjectDataSource() private dataSource: DataSource,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Optional() @InjectRedis() private readonly redis?: Redis,
   ) {}
 
   @Get()
@@ -106,11 +106,24 @@ export class HealthController {
 
   private async checkRedis(): Promise<DependencyStatus> {
     try {
+      if (!this.redis) {
+        return {
+          status: 'unhealthy',
+          message: 'Redis client not available',
+        };
+      }
+
       const start = Date.now();
 
-      // Simple Redis connectivity test - try to get any value
-      // This works with all cache-manager versions
-      await this.cacheManager.get('_health_check_ping');
+      // Use PING command for health check
+      const result = await this.redis.ping();
+
+      if (result !== 'PONG') {
+        return {
+          status: 'unhealthy',
+          message: 'Redis PING failed',
+        };
+      }
 
       const responseTime = Date.now() - start;
 

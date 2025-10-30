@@ -10,6 +10,7 @@ import { DeviceApplication } from '../entities/device-application.entity';
 import { AppAuditRecord } from '../entities/app-audit-record.entity';
 import { MinioModule } from '../minio/minio.module';
 import { ApkModule } from '../apk/apk.module';
+import { SagaModule } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ApkModule } from '../apk/apk.module';
     HttpModule,
     MinioModule,
     ApkModule,
+    SagaModule,  // ✅ AppsService 依赖 SagaOrchestratorService
     // EventBusModule 是全局模块，已在 AppModule 中导入，无需重复导入
   ],
   controllers: [AppsController],

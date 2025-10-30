@@ -29,6 +29,7 @@ import { DevicesService } from "./devices.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
 import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { DeviceStatus } from "../entities/device.entity";
+import { DeviceMetrics } from "../providers/provider.types";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { RequirePermission } from "../auth/decorators/permissions.decorator";
 import {
@@ -225,7 +226,7 @@ export class DevicesController {
   @ApiParam({ name: "id", description: "设备 ID" })
   @ApiResponse({ status: 200, description: "心跳更新成功" })
   @ApiResponse({ status: 403, description: "权限不足" })
-  async heartbeat(@Param("id") id: string, @Body() stats: any) {
+  async heartbeat(@Param("id") id: string, @Body() stats: DeviceMetrics) {
     await this.devicesService.updateHeartbeat(id, stats);
     return {
       success: true,

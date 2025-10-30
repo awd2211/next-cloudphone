@@ -5,7 +5,7 @@ export class RenderTemplateDto {
   templateCode: string;
 
   @IsObject()
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 
   @IsString()
   @IsOptional()

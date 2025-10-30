@@ -9,7 +9,7 @@ export interface EmailOptions {
   text?: string;
   html?: string;
   template?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -87,7 +87,7 @@ export class EmailService {
   /**
    * 渲染 Handlebars 模板
    */
-  private renderTemplate(template: string, context: Record<string, any>): string {
+  private renderTemplate(template: string, context: Record<string, unknown>): string {
     try {
       const compiledTemplate = Handlebars.compile(template);
       return compiledTemplate(context);

@@ -30,7 +30,7 @@ export class NotificationsController {
    */
   @Post('broadcast')
   async broadcast(
-    @Body() body: { title: string; message: string; data?: any },
+    @Body() body: { title: string; message: string; data?: Record<string, unknown> },
   ) {
     await this.notificationsService.broadcast(
       body.title,

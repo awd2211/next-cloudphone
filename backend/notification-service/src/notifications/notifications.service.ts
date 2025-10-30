@@ -70,7 +70,7 @@ export class NotificationsService {
   /**
    * 广播通知到所有用户
    */
-  async broadcast(title: string, message: string, data?: any): Promise<void> {
+  async broadcast(title: string, message: string, data?: Record<string, unknown>): Promise<void> {
     this.logger.log(`广播通知: ${title}`);
     this.gateway.broadcast({
       type: 'system',
@@ -246,11 +246,11 @@ export class NotificationsService {
     payload: {
       title: string;
       message: string;
-      data?: any;
+      data?: Record<string, unknown>;
       userEmail?: string;
       userPhone?: string;
       template?: string;
-      templateContext?: Record<string, any>;
+      templateContext?: Record<string, unknown>;
     },
   ): Promise<void> {
     try {
@@ -265,7 +265,7 @@ export class NotificationsService {
 
       // 获取启用的渠道
       const channels = preference.enabledChannels;
-      const promises: Promise<any>[] = [];
+      const promises: Promise<void>[] = [];
 
       // 1. WebSocket 通知（站内信）
       if (channels.includes(PrefChannel.WEBSOCKET)) {
@@ -340,12 +340,12 @@ export class NotificationsService {
     payload: {
       title: string;
       message: string;
-      data?: any;
+      data?: Record<string, unknown>;
     },
   ): Promise<void> {
     const notification = await this.createAndSend({
       userId,
-      type: this.mapToLegacyType(type) as any,
+      type: this.mapToLegacyType(type) as NotificationType,
       title: payload.title,
       message: payload.message,
       data: payload.data,
@@ -364,7 +364,7 @@ export class NotificationsService {
       message: string;
       userEmail: string;
       template?: string;
-      templateContext?: Record<string, any>;
+      templateContext?: Record<string, unknown>;
     },
   ): Promise<void> {
     try {
