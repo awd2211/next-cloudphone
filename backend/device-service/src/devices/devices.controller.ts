@@ -32,7 +32,7 @@ import { DeviceStatus } from "../entities/device.entity";
 import { DeviceMetrics } from "../providers/provider.types";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { RequirePermission } from "../auth/decorators/permissions.decorator";
-import { CursorPaginationDto } from "@cloudphone/shared";
+import { CursorPaginationDto, DataScopeGuard, DataScope, DataScopeType } from "@cloudphone/shared";
 import {
   ShellCommandDto,
   PushFileDto,
@@ -45,7 +45,7 @@ import { QuotaGuard, QuotaCheck, QuotaCheckType } from "../quota/quota.guard";
 @ApiTags("devices")
 @ApiBearerAuth()
 @Controller("devices")
-@UseGuards(AuthGuard("jwt"), PermissionsGuard)
+@UseGuards(AuthGuard("jwt"), PermissionsGuard, DataScopeGuard)
 export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
