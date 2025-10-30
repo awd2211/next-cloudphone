@@ -2,7 +2,8 @@ import request from '@/utils/request';
 import type { PaginationParams, PaginatedResponse } from '@/types';
 import { io, Socket } from 'socket.io-client';
 
-const WEBSOCKET_URL = 'http://localhost:30006/notifications';
+// Connect to root namespace (Socket.IO default)
+const WEBSOCKET_URL = 'http://localhost:30006';
 
 export interface Notification {
   id: string;
@@ -27,8 +28,10 @@ export interface CreateNotificationDto {
 }
 
 // 获取通知列表
-export const getNotifications = (params?: PaginationParams & { isRead?: boolean; type?: string }) => {
-  return request.get<PaginatedResponse<Notification>>('/notifications', { params });
+export const getNotifications = (params?: PaginationParams & { isRead?: boolean; type?: string; userId?: string }) => {
+  // 如果没有 userId,从 localStorage 获取当前用户 ID
+  const userId = params?.userId || localStorage.getItem('userId') || 'test-user-id';
+  return request.get<PaginatedResponse<Notification>>(`/notifications/user/${userId}`, { params });
 };
 
 // 获取未读通知数量
@@ -47,8 +50,9 @@ export const markAsRead = (id: string) => {
 };
 
 // 批量标记为已读
-export const markAllAsRead = () => {
-  return request.post('/notifications/read-all');
+export const markAllAsRead = (userId?: string) => {
+  const uid = userId || localStorage.getItem('userId') || '';
+  return request.post('/notifications/read-all', { userId: uid });
 };
 
 // 删除通知

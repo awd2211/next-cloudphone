@@ -30,6 +30,7 @@ const RoleList = lazy(() => import('@/pages/Role/List'));
 const PermissionList = lazy(() => import('@/pages/Permission/List'));
 const DataScopeConfig = lazy(() => import('@/pages/Permission/DataScope'));
 const FieldPermissionConfig = lazy(() => import('@/pages/Permission/FieldPermission'));
+const MenuPermissionConfig = lazy(() => import('@/pages/Permission/MenuPermission'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const AuditLogList = lazy(() => import('@/pages/Logs/Audit'));
 const NotificationCenter = lazy(() => import('@/pages/Notifications'));
@@ -89,7 +90,9 @@ const PageLoading = () => (
     alignItems: 'center',
     height: '100vh'
   }}>
-    <Spin size="large" tip="加载中..." />
+    <Spin size="large" tip="加载中...">
+      <div style={{ minHeight: 100 }} />
+    </Spin>
   </div>
 );
 
@@ -220,6 +223,10 @@ export const router = createBrowserRouter([
       {
         path: 'permissions/field-permission',
         element: withSuspense(FieldPermissionConfig),
+      },
+      {
+        path: 'permissions/menu',
+        element: withSuspense(MenuPermissionConfig),
       },
       {
         path: 'settings',

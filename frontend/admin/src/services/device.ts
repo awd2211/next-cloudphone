@@ -6,15 +6,26 @@ import type {
   DeviceStats,
   PaginationParams,
   PaginatedResponse,
+  CursorPaginationParams,
+  CursorPaginatedResponse,
   ShellCommandDto,
   ShellCommandResult,
   DevicePackage,
   DeviceProperties,
 } from '@/types';
 
-// 设备列表
+// 设备列表 (传统偏移分页)
 export const getDevices = (params?: PaginationParams) => {
   return request.get<PaginatedResponse<Device>>('/devices', { params });
+};
+
+// 设备列表 (游标分页 - 高性能)
+export const getDevicesCursor = (params?: CursorPaginationParams & {
+  userId?: string;
+  tenantId?: string;
+  status?: string;
+}) => {
+  return request.get<CursorPaginatedResponse<Device>>('/devices/cursor', { params });
 };
 
 // 获取设备详情

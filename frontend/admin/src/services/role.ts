@@ -51,3 +51,23 @@ export const deletePermission = (id: string) => {
 export const assignPermissionsToRole = (roleId: string, permissionIds: string[]) => {
   return request.post(`/roles/${roleId}/permissions`, { permissionIds });
 };
+
+// 从角色移除权限 (P1 优先级)
+export const removePermissionsFromRole = (roleId: string, permissionIds: string[]) => {
+  return request.delete(`/roles/${roleId}/permissions`, { data: { permissionIds } });
+};
+
+// 获取单个权限详情 (P2 优先级)
+export const getPermission = (id: string) => {
+  return request.get<Permission>(`/permissions/${id}`);
+};
+
+// 按资源获取权限 (P2 优先级)
+export const getPermissionsByResource = (resource: string) => {
+  return request.get<Permission[]>(`/permissions/resource/${resource}`);
+};
+
+// 批量创建权限 (P2 优先级)
+export const bulkCreatePermissions = (data: Array<{ resource: string; action: string; description?: string }>) => {
+  return request.post<Permission[]>('/permissions/bulk', data);
+};

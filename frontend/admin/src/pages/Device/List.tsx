@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { exportToExcel, exportToCSV } from '@/utils/export';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 
 // ✅ 使用 React Query hooks
 import {
@@ -77,13 +78,16 @@ const DeviceList = () => {
   const rebootDeviceMutation = useRebootDevice();
   const deleteDeviceMutation = useDeleteDevice();
 
-  // 解构数据
-  const devices = devicesData?.data || [];
-  const total = devicesData?.total || 0;
+  // 解构数据 (API Gateway包装了两层)
+  const devices = devicesData?.data?.data || [];
+  const total = devicesData?.data?.total || 0;
 
   // WebSocket 实时更新
-  const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:30006';
-  const { isConnected, lastMessage } = useWebSocket(wsUrl, realtimeEnabled);
+  // TODO: Backend uses Socket.IO, not native WebSocket. Need to integrate with notification service instead.
+  // const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:30006';
+  // const { isConnected, lastMessage } = useWebSocket(wsUrl, realtimeEnabled);
+  const isConnected = false;
+  const lastMessage = null;
 
   // 处理 WebSocket 消息
   useEffect(() => {
@@ -145,72 +149,89 @@ const DeviceList = () => {
     await deleteDeviceMutation.mutateAsync(id);
   }, [deleteDeviceMutation]);
 
-  // 批量操作（暂时保留原有实现）
+  // ✅ 批量操作（使用 useAsyncOperation 消除静默失败）
+  const { execute: executeBatchOperation } = useAsyncOperation();
+
   const handleBatchStart = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要启动的设备');
       return;
     }
-    try {
-      await batchStartDevices(selectedRowKeys as string[]);
-      message.success(`成功启动 ${selectedRowKeys.length} 台设备`);
-      setSelectedRowKeys([]);
-      // ✅ 失效缓存触发刷新
-      queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
-    } catch (error) {
-      message.error('批量启动失败');
-    }
-  }, [selectedRowKeys]);
+
+    await executeBatchOperation(
+      () => batchStartDevices(selectedRowKeys as string[]),
+      {
+        successMessage: `成功启动 ${selectedRowKeys.length} 台设备`,
+        errorContext: `批量启动${selectedRowKeys.length}台设备`,
+        onSuccess: () => {
+          setSelectedRowKeys([]);
+          queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+          queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
+        },
+      }
+    );
+  }, [selectedRowKeys, executeBatchOperation]);
 
   const handleBatchStop = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要停止的设备');
       return;
     }
-    try {
-      await batchStopDevices(selectedRowKeys as string[]);
-      message.success(`成功停止 ${selectedRowKeys.length} 台设备`);
-      setSelectedRowKeys([]);
-      queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
-    } catch (error) {
-      message.error('批量停止失败');
-    }
-  }, [selectedRowKeys]);
+
+    await executeBatchOperation(
+      () => batchStopDevices(selectedRowKeys as string[]),
+      {
+        successMessage: `成功停止 ${selectedRowKeys.length} 台设备`,
+        errorContext: `批量停止${selectedRowKeys.length}台设备`,
+        onSuccess: () => {
+          setSelectedRowKeys([]);
+          queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+          queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
+        },
+      }
+    );
+  }, [selectedRowKeys, executeBatchOperation]);
 
   const handleBatchReboot = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要重启的设备');
       return;
     }
-    try {
-      await batchRebootDevices(selectedRowKeys as string[]);
-      message.success(`成功重启 ${selectedRowKeys.length} 台设备`);
-      setSelectedRowKeys([]);
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-      }, 2000);
-    } catch (error) {
-      message.error('批量重启失败');
-    }
-  }, [selectedRowKeys]);
+
+    await executeBatchOperation(
+      () => batchRebootDevices(selectedRowKeys as string[]),
+      {
+        successMessage: `成功重启 ${selectedRowKeys.length} 台设备`,
+        errorContext: `批量重启${selectedRowKeys.length}台设备`,
+        onSuccess: () => {
+          setSelectedRowKeys([]);
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+          }, 2000);
+        },
+      }
+    );
+  }, [selectedRowKeys, executeBatchOperation]);
 
   const handleBatchDelete = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要删除的设备');
       return;
     }
-    try {
-      await batchDeleteDevices(selectedRowKeys as string[]);
-      message.success(`成功删除 ${selectedRowKeys.length} 台设备`);
-      setSelectedRowKeys([]);
-      queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
-    } catch (error) {
-      message.error('批量删除失败');
-    }
-  }, [selectedRowKeys]);
+
+    await executeBatchOperation(
+      () => batchDeleteDevices(selectedRowKeys as string[]),
+      {
+        successMessage: `成功删除 ${selectedRowKeys.length} 台设备`,
+        errorContext: `批量删除${selectedRowKeys.length}台设备`,
+        onSuccess: () => {
+          setSelectedRowKeys([]);
+          queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+          queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
+        },
+      }
+    );
+  }, [selectedRowKeys, executeBatchOperation]);
 
   // ✅ 使用 useMemo 优化状态映射（避免每次渲染都重新创建）
   const statusMap = useMemo(() => ({

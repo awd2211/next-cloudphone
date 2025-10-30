@@ -1,0 +1,77 @@
+/**
+ * VirtualTable 样式
+ *
+ * 与 Ant Design Table 风格保持一致
+ */
+
+.virtual-table-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.virtual-table-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.virtual-table-header-cell {
+  user-select: none;
+}
+
+.virtual-table-row {
+  transition: background-color 0.2s;
+}
+
+.virtual-table-row:hover {
+  background-color: #fafafa;
+}
+
+.virtual-table-row-clickable {
+  cursor: pointer;
+}
+
+.virtual-table-row-clickable:hover {
+  background-color: #f5f5f5;
+}
+
+.virtual-table-cell {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.virtual-table-loading-row {
+  background-color: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.virtual-table-empty {
+  background-color: #fafafa;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 滚动条样式 */
+.virtual-table-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.virtual-table-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.virtual-table-list::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 4px;
+}
+
+.virtual-table-list::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}

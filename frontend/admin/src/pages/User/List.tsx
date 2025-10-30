@@ -12,6 +12,8 @@ import {
   useToggleUserStatus
 } from '@/hooks/useUsers';
 import * as userService from '@/services/user';
+import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { EnhancedErrorAlert, type EnhancedError } from '@/components/EnhancedErrorAlert';
 
 /**
  * 用户列表页面（优化版 - 使用 React Query）
@@ -31,9 +33,13 @@ const UserList = () => {
   const [balanceModalVisible, setBalanceModalVisible] = useState(false);
   const [balanceType, setBalanceType] = useState<'recharge' | 'deduct'>('recharge');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [balanceError, setBalanceError] = useState<EnhancedError | null>(null);
 
   const [form] = Form.useForm();
   const [balanceForm] = Form.useForm();
+
+  // 使用异步操作hook
+  const { execute: executeBalanceOperation } = useAsyncOperation();
 
   // ✅ 使用 React Query hooks 替换手动状态管理
   const params = useMemo(() => ({ page, pageSize }), [page, pageSize]);
@@ -73,24 +79,56 @@ const UserList = () => {
   const handleBalanceOperation = useCallback(async (values: { amount: number; reason?: string }) => {
     if (!selectedUser) return;
 
-    try {
-      if (balanceType === 'recharge') {
-        await userService.rechargeBalance(selectedUser.id, values.amount);
-        message.success('充值成功');
-      } else {
-        await userService.deductBalance(selectedUser.id, values.amount, values.reason || '管理员扣减');
-        message.success('扣减成功');
+    setBalanceError(null);
+
+    await executeBalanceOperation(
+      async () => {
+        if (balanceType === 'recharge') {
+          await userService.rechargeBalance(selectedUser.id, values.amount);
+        } else {
+          await userService.deductBalance(selectedUser.id, values.amount, values.reason || '管理员扣减');
+        }
+      },
+      {
+        successMessage: balanceType === 'recharge' ? '充值成功' : '扣减成功',
+        errorContext: balanceType === 'recharge' ? '余额充值' : '余额扣减',
+        showErrorMessage: false,
+        onSuccess: () => {
+          setBalanceModalVisible(false);
+          balanceForm.resetFields();
+          // 手动失效缓存以刷新数据
+          createMutation.mutate({} as any, {
+            onSuccess: () => {}, // 触发缓存失效
+          });
+        },
+        onError: (error: any) => {
+          const response = error.response?.data;
+          setBalanceError({
+            message: response?.message || '操作失败',
+            userMessage: response?.userMessage || (balanceType === 'recharge' ? '充值失败，请稍后重试' : '扣减失败，请稍后重试'),
+            code: response?.errorCode || error.response?.status?.toString(),
+            requestId: response?.requestId,
+            recoverySuggestions: response?.recoverySuggestions || [
+              {
+                action: '检查余额',
+                description: balanceType === 'deduct' ? '确认用户余额是否充足' : '确认充值金额是否正确',
+              },
+              {
+                action: '重试',
+                description: '稍后重试操作',
+              },
+              {
+                action: '联系技术支持',
+                description: '如果问题持续，请联系技术支持',
+                actionUrl: '/support',
+              },
+            ],
+            retryable: true,
+          });
+        },
       }
-      setBalanceModalVisible(false);
-      balanceForm.resetFields();
-      // 手动失效缓存以刷新数据
-      createMutation.mutate({} as any, {
-        onSuccess: () => {}, // 触发缓存失效
-      });
-    } catch (error) {
-      message.error('操作失败');
-    }
-  }, [selectedUser, balanceType, balanceForm, createMutation]);
+    );
+  }, [selectedUser, balanceType, balanceForm, createMutation, executeBalanceOperation]);
 
   const openRecharge = useCallback((record: User) => {
     setSelectedUser(record);
@@ -310,10 +348,21 @@ const UserList = () => {
         open={balanceModalVisible}
         onCancel={() => {
           setBalanceModalVisible(false);
+          setBalanceError(null);
           balanceForm.resetFields();
         }}
         onOk={() => balanceForm.submit()}
       >
+        {/* 余额操作错误提示 */}
+        {balanceError && (
+          <EnhancedErrorAlert
+            error={balanceError}
+            onClose={() => setBalanceError(null)}
+            onRetry={() => balanceForm.submit()}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
         <Form form={balanceForm} onFinish={handleBalanceOperation} layout="vertical">
           <Form.Item label="当前余额">
             <Input value={`¥${(selectedUser?.balance || 0).toFixed(2)}`} disabled />

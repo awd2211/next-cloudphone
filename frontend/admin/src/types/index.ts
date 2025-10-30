@@ -13,6 +13,19 @@ export interface PaginatedResponse<T> {
   pageSize: number;
 }
 
+// 游标分页类型
+export interface CursorPaginationParams {
+  cursor?: string;
+  limit?: number;
+}
+
+export interface CursorPaginatedResponse<T> {
+  data: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  count: number;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data: T;
@@ -736,4 +749,636 @@ export interface NetworkStats {
   connectionsActive: number;
   bandwidthUsage: number; // Mbps
   timestamp: string;
+}
+
+// 菜单权限相关
+export interface MenuItem {
+  id: string;
+  name: string;
+  path: string;
+  icon?: string;
+  component?: string;
+  permission?: string;
+  children?: MenuItem[];
+  meta?: {
+    title?: string;
+    requiresAuth?: boolean;
+    hidden?: boolean;
+    hideInMenu?: boolean;
+    order?: number;
+    [key: string]: any;
+  };
+}
+
+export interface MenuCacheStats {
+  totalCached: number;
+  activeUsers: number;
+  hitRate: number;
+  missRate: number;
+  avgLoadTime: number;
+  cacheSize: number;
+  lastClearTime?: string;
+  uptime: number;
+}
+
+// 缓存管理相关
+export interface CacheStats {
+  l1Hits: number;
+  l2Hits: number;
+  misses: number;
+  sets: number;
+  totalRequests: number;
+  hitRate: number;
+  missRate: number;
+  l1Size: number;
+  l2Size: number;
+  timestamp: string;
+}
+
+export interface CacheKey {
+  key: string;
+  value?: any;
+  ttl?: number;
+  createdAt?: string;
+}
+
+// 队列管理相关
+export interface QueueStatus {
+  name: string;
+  isPaused: boolean;
+  counts: {
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+    paused: number;
+  };
+}
+
+export interface QueueSummary {
+  totalQueues: number;
+  totalWaiting: number;
+  totalActive: number;
+  totalCompleted: number;
+  totalFailed: number;
+}
+
+export interface QueueJob {
+  id: string;
+  name: string;
+  data: any;
+  progress: number;
+  attemptsMade: number;
+  timestamp: number;
+  processedOn?: number;
+  finishedOn?: number;
+  failedReason?: string;
+}
+
+export interface QueueJobDetail {
+  id: string;
+  name: string;
+  data: any;
+  opts: any;
+  progress: number;
+  delay: number;
+  timestamp: number;
+  attemptsMade: number;
+  failedReason?: string;
+  stacktrace?: string[];
+  returnvalue?: any;
+  finishedOn?: number;
+  processedOn?: number;
+  error?: string;
+}
+
+// 事件溯源相关
+export interface UserEvent {
+  id: string;
+  aggregateId: string; // 用户ID
+  eventType: string;
+  version: number;
+  createdAt: string;
+  eventData: any;
+}
+
+export interface EventHistory {
+  userId: string;
+  events: UserEvent[];
+  totalEvents: number;
+  currentVersion: number;
+}
+
+export interface EventStats {
+  totalEvents: number;
+  eventsByType: Record<string, number>;
+}
+
+// 数据范围权限相关
+export type ScopeType = 'all' | 'tenant' | 'department' | 'department_only' | 'self' | 'custom';
+
+export interface DataScope {
+  id: string;
+  roleId: string;
+  role?: Role;
+  resourceType: string; // 资源类型，如 'user', 'device', 'order'
+  scopeType: ScopeType;
+  filter?: Record<string, any>; // 自定义过滤条件
+  departmentIds?: string[]; // 部门ID列表
+  includeSubDepartments?: boolean; // 是否包含子部门
+  description?: string;
+  isActive: boolean;
+  priority: number; // 优先级，数字越小优先级越高
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDataScopeDto {
+  roleId: string;
+  resourceType: string;
+  scopeType: ScopeType;
+  filter?: Record<string, any>;
+  departmentIds?: string[];
+  includeSubDepartments?: boolean;
+  description?: string;
+  priority?: number;
+}
+
+export interface UpdateDataScopeDto {
+  scopeType?: ScopeType;
+  filter?: Record<string, any>;
+  departmentIds?: string[];
+  includeSubDepartments?: boolean;
+  description?: string;
+  isActive?: boolean;
+  priority?: number;
+}
+
+// ==================== Field Permission Types ====================
+
+export type FieldAccessLevel = 'hidden' | 'read' | 'write' | 'required';
+
+export type OperationType = 'create' | 'update' | 'view' | 'export';
+
+export interface FieldPermission {
+  id: string;
+  roleId: string;
+  role?: Role;
+  resourceType: string;
+  operation: OperationType;
+  hiddenFields?: string[];
+  readOnlyFields?: string[];
+  writableFields?: string[];
+  requiredFields?: string[];
+  fieldAccessMap?: Record<string, FieldAccessLevel>;
+  fieldTransforms?: Record<string, {
+    type: 'mask' | 'hash' | 'encrypt' | 'truncate';
+    config?: Record<string, any>;
+  }>;
+  description?: string;
+  isActive: boolean;
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateFieldPermissionDto {
+  roleId: string;
+  resourceType: string;
+  operation: OperationType;
+  hiddenFields?: string[];
+  readOnlyFields?: string[];
+  writableFields?: string[];
+  requiredFields?: string[];
+  fieldAccessMap?: Record<string, FieldAccessLevel>;
+  fieldTransforms?: Record<string, {
+    type: 'mask' | 'hash' | 'encrypt' | 'truncate';
+    config?: Record<string, any>;
+  }>;
+  description?: string;
+  priority?: number;
+}
+
+export interface UpdateFieldPermissionDto {
+  operation?: OperationType;
+  hiddenFields?: string[];
+  readOnlyFields?: string[];
+  writableFields?: string[];
+  requiredFields?: string[];
+  fieldAccessMap?: Record<string, FieldAccessLevel>;
+  fieldTransforms?: Record<string, {
+    type: 'mask' | 'hash' | 'encrypt' | 'truncate';
+    config?: Record<string, any>;
+  }>;
+  description?: string;
+  isActive?: boolean;
+  priority?: number;
+}
+
+// ==================== Ticket System Types ====================
+
+export type TicketStatus = 'open' | 'in_progress' | 'pending' | 'resolved' | 'closed';
+
+export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type TicketCategory = 'technical' | 'billing' | 'account' | 'feature_request' | 'other';
+
+export type ReplyType = 'user' | 'staff' | 'system';
+
+export interface TicketAttachment {
+  filename: string;
+  url: string;
+  size: number;
+  mimeType: string;
+}
+
+export interface Ticket {
+  id: string;
+  ticketNumber: string;
+  userId: string;
+  user?: User;
+  subject: string;
+  description: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  assignedTo?: string;
+  attachments?: TicketAttachment[];
+  tags?: string[];
+  firstResponseAt?: string;
+  resolvedAt?: string;
+  closedAt?: string;
+  replyCount: number;
+  lastReplyAt?: string;
+  internalNotes?: string;
+  rating?: number;
+  feedback?: string;
+  replies?: TicketReply[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TicketReply {
+  id: string;
+  ticketId: string;
+  ticket?: Ticket;
+  userId: string;
+  user?: User;
+  type: ReplyType;
+  content: string;
+  attachments?: TicketAttachment[];
+  isInternal: boolean;
+  createdAt: string;
+}
+
+export interface CreateTicketDto {
+  userId: string;
+  subject: string;
+  description: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  attachments?: TicketAttachment[];
+  tags?: string[];
+}
+
+export interface UpdateTicketDto {
+  subject?: string;
+  description?: string;
+  category?: TicketCategory;
+  priority?: TicketPriority;
+  status?: TicketStatus;
+  assignedTo?: string;
+  tags?: string[];
+  internalNotes?: string;
+}
+
+export interface CreateReplyDto {
+  ticketId: string;
+  userId: string;
+  type: ReplyType;
+  content: string;
+  attachments?: TicketAttachment[];
+  isInternal?: boolean;
+}
+
+export interface TicketStatistics {
+  total: number;
+  byStatus: {
+    open: number;
+    in_progress: number;
+    pending: number;
+    resolved: number;
+    closed: number;
+  };
+  byPriority: {
+    low: number;
+    medium: number;
+    high: number;
+    urgent: number;
+  };
+  byCategory: {
+    technical: number;
+    billing: number;
+    account: number;
+    feature_request: number;
+    other: number;
+  };
+  avgResponseTime?: number;
+  avgResolutionTime?: number;
+  satisfactionRate?: number;
+}
+
+// ==================== Audit Log Types ====================
+
+export type AuditAction =
+  // 用户操作
+  | 'user_login'
+  | 'user_logout'
+  | 'user_register'
+  | 'user_update'
+  | 'user_delete'
+  | 'password_change'
+  | 'password_reset'
+  // 配额操作
+  | 'quota_create'
+  | 'quota_update'
+  | 'quota_deduct'
+  | 'quota_restore'
+  // 余额操作
+  | 'balance_recharge'
+  | 'balance_consume'
+  | 'balance_adjust'
+  | 'balance_freeze'
+  | 'balance_unfreeze'
+  // 设备操作
+  | 'device_create'
+  | 'device_start'
+  | 'device_stop'
+  | 'device_delete'
+  | 'device_update'
+  // 权限操作
+  | 'role_assign'
+  | 'role_revoke'
+  | 'permission_grant'
+  | 'permission_revoke'
+  // 系统操作
+  | 'config_update'
+  | 'system_maintenance'
+  // API 操作
+  | 'api_key_create'
+  | 'api_key_revoke';
+
+export type AuditLevel = 'info' | 'warning' | 'error' | 'critical';
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  targetUserId?: string;
+  action: AuditAction;
+  level: AuditLevel;
+  resourceType: string;
+  resourceId?: string;
+  description: string;
+  oldValue?: Record<string, any>;
+  newValue?: Record<string, any>;
+  metadata?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  requestId?: string;
+  success: boolean;
+  errorMessage?: string;
+  createdAt: string;
+}
+
+export interface AuditLogStatistics {
+  total: number;
+  byAction: Record<string, number>;
+  byLevel: {
+    info: number;
+    warning: number;
+    error: number;
+    critical: number;
+  };
+  byResourceType: Record<string, number>;
+  successRate: number;
+  recentActivity: {
+    hour: number;
+    day: number;
+    week: number;
+  };
+}
+
+// ==================== API Key Types ====================
+
+export type ApiKeyStatus = 'active' | 'revoked' | 'expired';
+
+export interface ApiKey {
+  id: string;
+  userId: string;
+  user?: User;
+  name: string;
+  key: string; // 哈希后的密钥
+  prefix: string; // 密钥前缀 (如 cp_live_)
+  status: ApiKeyStatus;
+  scopes: string[]; // 权限范围 ['devices:read', 'devices:write']
+  expiresAt?: string;
+  lastUsedAt?: string;
+  usageCount: number;
+  lastUsedIp?: string;
+  description?: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateApiKeyDto {
+  userId: string;
+  name: string;
+  scopes: string[];
+  description?: string;
+  expiresAt?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface UpdateApiKeyDto {
+  name?: string;
+  scopes?: string[];
+  description?: string;
+  expiresAt?: string;
+}
+
+export interface ApiKeyStatistics {
+  total: number;
+  active: number;
+  revoked: number;
+  expired: number;
+  totalUsage: number;
+  byStatus: {
+    active: number;
+    revoked: number;
+    expired: number;
+  };
+  recentUsage: {
+    hour: number;
+    day: number;
+    week: number;
+  };
+  topKeys: Array<{
+    id: string;
+    name: string;
+    usageCount: number;
+  }>;
+}
+
+// ==================== Quota Management Types ====================
+
+export type QuotaStatus = 'active' | 'exceeded' | 'suspended' | 'expired';
+
+export type QuotaType = 'device' | 'cpu' | 'memory' | 'storage' | 'bandwidth' | 'duration';
+
+export interface QuotaLimits {
+  // 设备限制
+  maxDevices: number;
+  maxConcurrentDevices: number;
+
+  // 资源限制
+  maxCpuCoresPerDevice: number;
+  maxMemoryMBPerDevice: number;
+  maxStorageGBPerDevice: number;
+  totalCpuCores: number;
+  totalMemoryGB: number;
+  totalStorageGB: number;
+
+  // 带宽限制
+  maxBandwidthMbps: number;
+  monthlyTrafficGB: number;
+
+  // 时长限制
+  maxUsageHoursPerDay: number;
+  maxUsageHoursPerMonth: number;
+}
+
+export interface QuotaUsage {
+  // 设备使用量
+  currentDevices: number;
+  currentConcurrentDevices: number;
+
+  // 资源使用量
+  usedCpuCores: number;
+  usedMemoryGB: number;
+  usedStorageGB: number;
+
+  // 带宽使用量
+  currentBandwidthMbps: number;
+  monthlyTrafficUsedGB: number;
+
+  // 时长使用量
+  todayUsageHours: number;
+  monthlyUsageHours: number;
+
+  // 最后更新时间
+  lastUpdatedAt: string;
+}
+
+export interface Quota {
+  id: string;
+  userId: string;
+  user?: User;
+  planId?: string;
+  planName?: string;
+  status: QuotaStatus;
+  limits: QuotaLimits;
+  usage: QuotaUsage;
+  validFrom?: string;
+  validUntil?: string;
+  autoRenew: boolean;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateQuotaDto {
+  userId: string;
+  planId?: string;
+  planName?: string;
+  limits: QuotaLimits;
+  validFrom?: string;
+  validUntil?: string;
+  autoRenew?: boolean;
+}
+
+export interface UpdateQuotaDto {
+  planId?: string;
+  planName?: string;
+  limits?: Partial<QuotaLimits>;
+  validFrom?: string;
+  validUntil?: string;
+  autoRenew?: boolean;
+  status?: QuotaStatus;
+}
+
+export interface CheckQuotaRequest {
+  userId: string;
+  quotaType: QuotaType;
+  requestedAmount: number;
+}
+
+export interface DeductQuotaRequest {
+  userId: string;
+  deviceCount?: number;
+  cpuCores?: number;
+  memoryGB?: number;
+  storageGB?: number;
+  bandwidthMbps?: number;
+  trafficGB?: number;
+  usageHours?: number;
+}
+
+export interface RestoreQuotaRequest {
+  userId: string;
+  deviceCount?: number;
+  cpuCores?: number;
+  memoryGB?: number;
+  storageGB?: number;
+  bandwidthMbps?: number;
+  trafficGB?: number;
+  usageHours?: number;
+}
+
+export interface QuotaStatistics {
+  userId: string;
+  quota: Quota;
+  usagePercentages: {
+    devices: number;
+    cpu: number;
+    memory: number;
+    storage: number;
+    bandwidth: number;
+    monthlyTraffic: number;
+    dailyUsageHours: number;
+    monthlyUsageHours: number;
+  };
+  trends: {
+    deviceUsageTrend: 'increasing' | 'stable' | 'decreasing';
+    resourceUsageTrend: 'increasing' | 'stable' | 'decreasing';
+  };
+  predictions: {
+    daysUntilDeviceLimit?: number;
+    daysUntilResourceLimit?: number;
+  };
+}
+
+export interface QuotaAlert {
+  id: string;
+  userId: string;
+  user?: User;
+  quotaType: QuotaType;
+  usagePercent: number;
+  current: number;
+  limit: number;
+  threshold: number;
+  severity: 'warning' | 'critical';
+  message: string;
+  createdAt: string;
 }

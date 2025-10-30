@@ -1,104 +1,98 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
+  Card,
   Table,
-  Space,
   Button,
+  Space,
   Modal,
   Form,
   Input,
-  message,
-  Popconfirm,
   Select,
   Tag,
   Switch,
-  InputNumber,
-  Card,
+  message,
+  Popconfirm,
   Descriptions,
+  Row,
+  Col,
+  Statistic,
   Tabs,
-  Divider,
-  Alert,
-  Collapse,
+  InputNumber,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
-  InfoCircleOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
-import {
-  useFieldPermission,
-  type FieldPermission,
-  type CreateFieldPermissionDto,
+import type {
+  FieldPermission,
   FieldAccessLevel,
   OperationType,
-} from '@/hooks/useFieldPermission';
-import { getRoles } from '@/services/role';
-import type { Role } from '@/types';
-import dayjs from 'dayjs';
+  CreateFieldPermissionDto,
+} from '@/types';
+import {
+  getAllFieldPermissions,
+  getFieldPermissionById,
+  createFieldPermission,
+  updateFieldPermission,
+  deleteFieldPermission,
+  toggleFieldPermission,
+  getAccessLevels,
+  getOperationTypes,
+} from '@/services/fieldPermission';
 
-const { Panel } = Collapse;
+const { TabPane } = Tabs;
 
-/**
- * 字段权限配置页面
- * 管理角色对不同资源字段的访问权限
- */
-const FieldPermissionConfig = () => {
-  const {
-    fieldPermissions,
-    loading: hookLoading,
-    fetchFieldPermissions,
-    createFieldPermission,
-    updateFieldPermission,
-    deleteFieldPermission,
-    toggleFieldPermission,
-    getAccessLevels,
-    getOperationTypes,
-    getTransformExamples,
-  } = useFieldPermission();
-
-  const [roles, setRoles] = useState<Role[]>([]);
+const FieldPermissionManagement: React.FC = () => {
+  const [permissions, setPermissions] = useState<FieldPermission[]>([]);
+  const [accessLevels, setAccessLevels] = useState<Array<{ value: FieldAccessLevel; label: string }>>([]);
+  const [operationTypes, setOperationTypes] = useState<Array<{ value: OperationType; label: string }>>([]);
   const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [editingPermission, setEditingPermission] = useState<FieldPermission | null>(null);
-  const [viewingPermission, setViewingPermission] = useState<FieldPermission | null>(null);
-  const [transformExamples, setTransformExamples] = useState<any>(null);
+  const [detailPermission, setDetailPermission] = useState<FieldPermission | null>(null);
   const [form] = Form.useForm();
+  const [filterRoleId, setFilterRoleId] = useState<string>('');
+  const [filterResourceType, setFilterResourceType] = useState<string>('');
+  const [filterOperation, setFilterOperation] = useState<OperationType | undefined>(undefined);
 
-  // 查询参数
-  const [filterRoleId, setFilterRoleId] = useState<string | undefined>();
-  const [filterResourceType, setFilterResourceType] = useState<string | undefined>();
+  useEffect(() => {
+    loadPermissions();
+    loadMetadata();
+  }, [filterRoleId, filterResourceType, filterOperation]);
 
-  // 资源类型列表
-  const resourceTypes = [
-    { value: 'device', label: '云手机设备' },
-    { value: 'user', label: '用户' },
-    { value: 'app', label: '应用' },
-    { value: 'order', label: '订单' },
-    { value: 'billing', label: '账单' },
-  ];
+  const loadMetadata = async () => {
+    try {
+      const [accessLevelsRes, operationTypesRes] = await Promise.all([
+        getAccessLevels(),
+        getOperationTypes(),
+      ]);
+      if (accessLevelsRes.success) {
+        setAccessLevels(accessLevelsRes.data);
+      }
+      if (operationTypesRes.success) {
+        setOperationTypes(operationTypesRes.data);
+      }
+    } catch (error) {
+      message.error('加载元数据失败');
+    }
+  };
 
-  // 操作类型
-  const operationTypes = [
-    { value: OperationType.CREATE, label: '创建' },
-    { value: OperationType.UPDATE, label: '更新' },
-    { value: OperationType.VIEW, label: '查看' },
-    { value: OperationType.EXPORT, label: '导出' },
-  ];
-
-  /**
-   * 加载数据
-   */
-  const loadData = async () => {
+  const loadPermissions = async () => {
     setLoading(true);
     try {
-      await fetchFieldPermissions({
-        roleId: filterRoleId,
-        resourceType: filterResourceType,
-      });
+      const params: any = {};
+      if (filterRoleId) params.roleId = filterRoleId;
+      if (filterResourceType) params.resourceType = filterResourceType;
+      if (filterOperation) params.operation = filterOperation;
+
+      const res = await getAllFieldPermissions(params);
+      if (res.success) {
+        setPermissions(res.data);
+      }
     } catch (error) {
       message.error('加载字段权限配置失败');
     } finally {
@@ -106,208 +100,193 @@ const FieldPermissionConfig = () => {
     }
   };
 
-  /**
-   * 加载角色列表
-   */
-  const loadRoles = async () => {
-    try {
-      const res = await getRoles({ page: 1, pageSize: 100 });
-      setRoles(res.data);
-    } catch (error) {
-      message.error('加载角色列表失败');
-    }
+  const handleCreate = () => {
+    setEditingPermission(null);
+    form.resetFields();
+    setIsModalVisible(true);
   };
 
-  /**
-   * 加载转换示例
-   */
-  const loadTransformExamples = async () => {
-    try {
-      const examples = await getTransformExamples();
-      setTransformExamples(examples);
-    } catch (error) {
-      console.error('Failed to load transform examples:', error);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-    loadRoles();
-    loadTransformExamples();
-  }, [filterRoleId, filterResourceType]);
-
-  /**
-   * 提交表单
-   */
-  const handleSubmit = async (values: any) => {
-    try {
-      // 解析 JSON 字段
-      const processedValues = { ...values };
-      if (values.fieldAccessMap && typeof values.fieldAccessMap === 'string') {
-        processedValues.fieldAccessMap = JSON.parse(values.fieldAccessMap);
-      }
-      if (values.fieldTransforms && typeof values.fieldTransforms === 'string') {
-        processedValues.fieldTransforms = JSON.parse(values.fieldTransforms);
-      }
-
-      // 将数组字段转换
-      if (values.hiddenFields && typeof values.hiddenFields === 'string') {
-        processedValues.hiddenFields = values.hiddenFields.split(',').map((s: string) => s.trim());
-      }
-      if (values.readOnlyFields && typeof values.readOnlyFields === 'string') {
-        processedValues.readOnlyFields = values.readOnlyFields
-          .split(',')
-          .map((s: string) => s.trim());
-      }
-      if (values.writableFields && typeof values.writableFields === 'string') {
-        processedValues.writableFields = values.writableFields
-          .split(',')
-          .map((s: string) => s.trim());
-      }
-      if (values.requiredFields && typeof values.requiredFields === 'string') {
-        processedValues.requiredFields = values.requiredFields
-          .split(',')
-          .map((s: string) => s.trim());
-      }
-
-      if (editingPermission) {
-        await updateFieldPermission(editingPermission.id, processedValues);
-        message.success('更新字段权限配置成功');
-      } else {
-        await createFieldPermission(processedValues as CreateFieldPermissionDto);
-        message.success('创建字段权限配置成功');
-      }
-      setModalVisible(false);
-      setEditingPermission(null);
-      form.resetFields();
-      loadData();
-    } catch (error: any) {
-      message.error(error.message || (editingPermission ? '更新失败' : '创建失败'));
-    }
-  };
-
-  /**
-   * 编辑
-   */
-  const handleEdit = (permission: FieldPermission) => {
-    setEditingPermission(permission);
+  const handleEdit = (record: FieldPermission) => {
+    setEditingPermission(record);
     form.setFieldsValue({
-      ...permission,
-      hiddenFields: permission.hiddenFields?.join(', ') || '',
-      readOnlyFields: permission.readOnlyFields?.join(', ') || '',
-      writableFields: permission.writableFields?.join(', ') || '',
-      requiredFields: permission.requiredFields?.join(', ') || '',
-      fieldAccessMap: permission.fieldAccessMap
-        ? JSON.stringify(permission.fieldAccessMap, null, 2)
-        : '',
-      fieldTransforms: permission.fieldTransforms
-        ? JSON.stringify(permission.fieldTransforms, null, 2)
-        : '',
-      priority: permission.priority ?? 100,
+      roleId: record.roleId,
+      resourceType: record.resourceType,
+      operation: record.operation,
+      hiddenFields: record.hiddenFields?.join(', '),
+      readOnlyFields: record.readOnlyFields?.join(', '),
+      writableFields: record.writableFields?.join(', '),
+      requiredFields: record.requiredFields?.join(', '),
+      description: record.description,
+      priority: record.priority,
     });
-    setModalVisible(true);
+    setIsModalVisible(true);
   };
 
-  /**
-   * 删除
-   */
   const handleDelete = async (id: string) => {
     try {
-      await deleteFieldPermission(id);
-      message.success('删除字段权限配置成功');
-      loadData();
+      const res = await deleteFieldPermission(id);
+      if (res.success) {
+        message.success(res.message);
+        loadPermissions();
+      }
     } catch (error) {
       message.error('删除字段权限配置失败');
     }
   };
 
-  /**
-   * 切换启用状态
-   */
-  const handleToggle = async (id: string) => {
+  const handleToggle = async (record: FieldPermission) => {
     try {
-      await toggleFieldPermission(id);
-      message.success('切换状态成功');
-      loadData();
+      const res = await toggleFieldPermission(record.id);
+      if (res.success) {
+        message.success(res.message);
+        loadPermissions();
+      }
     } catch (error) {
       message.error('切换状态失败');
     }
   };
 
-  /**
-   * 查看详情
-   */
-  const handleView = (permission: FieldPermission) => {
-    setViewingPermission(permission);
-    setDetailModalVisible(true);
+  const handleViewDetail = async (record: FieldPermission) => {
+    try {
+      const res = await getFieldPermissionById(record.id);
+      if (res.success) {
+        setDetailPermission(res.data);
+        setIsDetailModalVisible(true);
+      }
+    } catch (error) {
+      message.error('获取详情失败');
+    }
   };
 
-  const columns: ColumnsType<FieldPermission> = [
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+
+      const data: CreateFieldPermissionDto = {
+        roleId: values.roleId,
+        resourceType: values.resourceType,
+        operation: values.operation,
+        hiddenFields: values.hiddenFields ? values.hiddenFields.split(',').map((s: string) => s.trim()) : undefined,
+        readOnlyFields: values.readOnlyFields ? values.readOnlyFields.split(',').map((s: string) => s.trim()) : undefined,
+        writableFields: values.writableFields ? values.writableFields.split(',').map((s: string) => s.trim()) : undefined,
+        requiredFields: values.requiredFields ? values.requiredFields.split(',').map((s: string) => s.trim()) : undefined,
+        description: values.description,
+        priority: values.priority,
+      };
+
+      if (editingPermission) {
+        const res = await updateFieldPermission(editingPermission.id, data);
+        if (res.success) {
+          message.success(res.message);
+          setIsModalVisible(false);
+          loadPermissions();
+        }
+      } else {
+        const res = await createFieldPermission(data);
+        if (res.success) {
+          message.success(res.message);
+          setIsModalVisible(false);
+          loadPermissions();
+        }
+      }
+    } catch (error) {
+      message.error(editingPermission ? '更新字段权限配置失败' : '创建字段权限配置失败');
+    }
+  };
+
+  const getOperationColor = (operation: OperationType) => {
+    const colors: Record<OperationType, string> = {
+      create: 'green',
+      update: 'blue',
+      view: 'cyan',
+      export: 'purple',
+    };
+    return colors[operation] || 'default';
+  };
+
+  const getOperationLabel = (operation: OperationType) => {
+    const operationType = operationTypes.find(t => t.value === operation);
+    return operationType?.label || operation;
+  };
+
+  const statistics = {
+    total: permissions.length,
+    active: permissions.filter(p => p.isActive).length,
+    inactive: permissions.filter(p => !p.isActive).length,
+    byOperation: {
+      create: permissions.filter(p => p.operation === 'create').length,
+      update: permissions.filter(p => p.operation === 'update').length,
+      view: permissions.filter(p => p.operation === 'view').length,
+      export: permissions.filter(p => p.operation === 'export').length,
+    },
+  };
+
+  const columns = [
     {
-      title: '角色',
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 100,
+      ellipsis: true,
+    },
+    {
+      title: '角色ID',
       dataIndex: 'roleId',
       key: 'roleId',
-      width: 150,
-      render: (roleId: string) => {
-        const role = roles.find((r) => r.id === roleId);
-        return role?.name || roleId;
-      },
+      width: 120,
+      ellipsis: true,
     },
     {
       title: '资源类型',
       dataIndex: 'resourceType',
       key: 'resourceType',
-      width: 150,
-      render: (resourceType: string) => {
-        const resource = resourceTypes.find((r) => r.value === resourceType);
-        return <Tag color="blue">{resource?.label || resourceType}</Tag>;
-      },
+      width: 120,
     },
     {
       title: '操作类型',
       dataIndex: 'operation',
       key: 'operation',
       width: 100,
-      render: (operation: OperationType) => {
-        const op = operationTypes.find((o) => o.value === operation);
-        return <Tag color="green">{op?.label || operation}</Tag>;
-      },
+      render: (operation: OperationType) => (
+        <Tag color={getOperationColor(operation)}>
+          {getOperationLabel(operation)}
+        </Tag>
+      ),
     },
     {
-      title: '字段规则',
-      key: 'rules',
-      width: 300,
-      render: (_, record: FieldPermission) => (
-        <div>
-          {record.hiddenFields && record.hiddenFields.length > 0 && (
-            <div style={{ marginBottom: 4 }}>
-              <Tag color="red">隐藏 ({record.hiddenFields.length})</Tag>
-              <span style={{ fontSize: 12, color: '#666' }}>
-                {record.hiddenFields.slice(0, 2).join(', ')}
-                {record.hiddenFields.length > 2 && '...'}
-              </span>
-            </div>
-          )}
-          {record.readOnlyFields && record.readOnlyFields.length > 0 && (
-            <div style={{ marginBottom: 4 }}>
-              <Tag color="orange">只读 ({record.readOnlyFields.length})</Tag>
-              <span style={{ fontSize: 12, color: '#666' }}>
-                {record.readOnlyFields.slice(0, 2).join(', ')}
-                {record.readOnlyFields.length > 2 && '...'}
-              </span>
-            </div>
-          )}
-          {record.writableFields && record.writableFields.length > 0 && (
-            <div style={{ marginBottom: 4 }}>
-              <Tag color="green">可写 ({record.writableFields.length})</Tag>
-            </div>
-          )}
-          {record.requiredFields && record.requiredFields.length > 0 && (
-            <div>
-              <Tag color="purple">必填 ({record.requiredFields.length})</Tag>
-            </div>
-          )}
-        </div>
+      title: '隐藏字段',
+      dataIndex: 'hiddenFields',
+      key: 'hiddenFields',
+      width: 150,
+      render: (fields?: string[]) => (
+        <span>{fields?.length || 0} 个</span>
+      ),
+    },
+    {
+      title: '只读字段',
+      dataIndex: 'readOnlyFields',
+      key: 'readOnlyFields',
+      width: 150,
+      render: (fields?: string[]) => (
+        <span>{fields?.length || 0} 个</span>
+      ),
+    },
+    {
+      title: '可写字段',
+      dataIndex: 'writableFields',
+      key: 'writableFields',
+      width: 150,
+      render: (fields?: string[]) => (
+        <span>{fields?.length || 0} 个</span>
+      ),
+    },
+    {
+      title: '必填字段',
+      dataIndex: 'requiredFields',
+      key: 'requiredFields',
+      width: 150,
+      render: (fields?: string[]) => (
+        <span>{fields?.length || 0} 个</span>
       ),
     },
     {
@@ -315,40 +294,34 @@ const FieldPermissionConfig = () => {
       dataIndex: 'priority',
       key: 'priority',
       width: 80,
-      sorter: (a, b) => (a.priority || 100) - (b.priority || 100),
+      sorter: (a: FieldPermission, b: FieldPermission) => a.priority - b.priority,
     },
     {
       title: '状态',
       dataIndex: 'isActive',
       key: 'isActive',
-      width: 100,
+      width: 80,
       render: (isActive: boolean, record: FieldPermission) => (
         <Switch
           checked={isActive}
-          onChange={() => handleToggle(record.id)}
+          onChange={() => handleToggle(record)}
           checkedChildren="启用"
           unCheckedChildren="禁用"
         />
       ),
     },
     {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-    },
-    {
       title: '操作',
-      key: 'actions',
+      key: 'action',
       width: 200,
-      fixed: 'right',
-      render: (_, record) => (
+      fixed: 'right' as const,
+      render: (_: any, record: FieldPermission) => (
         <Space size="small">
           <Button
             type="link"
             size="small"
             icon={<EyeOutlined />}
-            onClick={() => handleView(record)}
+            onClick={() => handleViewDetail(record)}
           >
             详情
           </Button>
@@ -361,12 +334,12 @@ const FieldPermissionConfig = () => {
             编辑
           </Button>
           <Popconfirm
-            title="确定要删除这个配置吗?"
+            title="确定删除此配置吗?"
             onConfirm={() => handleDelete(record.id)}
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" size="small" icon={<DeleteOutlined />} danger>
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
           </Popconfirm>
@@ -376,407 +349,313 @@ const FieldPermissionConfig = () => {
   ];
 
   return (
-    <div>
-      <Card>
-        <h2>字段权限配置</h2>
-        <p style={{ color: '#666', marginBottom: 16 }}>
-          配置不同角色在不同操作下对资源字段的访问权限，支持字段隐藏、只读、可写、必填等精细化控制
-        </p>
+    <div style={{ padding: '24px' }}>
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="总配置数"
+              value={statistics.total}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="启用中"
+              value={statistics.active}
+              valueStyle={{ color: '#52c41a' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="已禁用"
+              value={statistics.inactive}
+              valueStyle={{ color: '#ff4d4f' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="创建操作"
+              value={statistics.byOperation.create}
+              valueStyle={{ color: '#52c41a' }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
-        <Alert
-          message="字段权限说明"
-          description={
-            <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
-              <li>
-                <strong>隐藏字段</strong>：完全不显示给用户
-              </li>
-              <li>
-                <strong>只读字段</strong>：可以查看但不能修改
-              </li>
-              <li>
-                <strong>可写字段</strong>：可以查看和修改
-              </li>
-              <li>
-                <strong>必填字段</strong>：在创建/更新时必须提供
-              </li>
-              <li>
-                <strong>字段转换</strong>：支持数据脱敏（如手机号、邮箱、身份证等）
-              </li>
-            </ul>
-          }
-          type="info"
-          showIcon
-          icon={<InfoCircleOutlined />}
-          closable
-          style={{ marginBottom: 16 }}
-          action={
-            <Button size="small" type="link" onClick={() => setHelpModalVisible(true)}>
-              查看示例
+      <Card
+        title="字段权限管理"
+        extra={
+          <Space>
+            <Input
+              placeholder="角色ID"
+              value={filterRoleId}
+              onChange={e => setFilterRoleId(e.target.value)}
+              style={{ width: 150 }}
+              allowClear
+            />
+            <Input
+              placeholder="资源类型"
+              value={filterResourceType}
+              onChange={e => setFilterResourceType(e.target.value)}
+              style={{ width: 150 }}
+              allowClear
+            />
+            <Select
+              placeholder="操作类型"
+              value={filterOperation}
+              onChange={setFilterOperation}
+              style={{ width: 150 }}
+              allowClear
+              options={operationTypes}
+            />
+            <Button icon={<ReloadOutlined />} onClick={loadPermissions}>
+              刷新
             </Button>
-          }
-        />
-
-        {/* 筛选栏 */}
-        <Space style={{ marginBottom: 16 }} size="middle">
-          <Select
-            placeholder="选择角色筛选"
-            style={{ width: 200 }}
-            allowClear
-            value={filterRoleId}
-            onChange={setFilterRoleId}
-          >
-            {roles.map((role) => (
-              <Select.Option key={role.id} value={role.id}>
-                {role.name}
-              </Select.Option>
-            ))}
-          </Select>
-
-          <Select
-            placeholder="选择资源类型筛选"
-            style={{ width: 200 }}
-            allowClear
-            value={filterResourceType}
-            onChange={setFilterResourceType}
-          >
-            {resourceTypes.map((type) => (
-              <Select.Option key={type.value} value={type.value}>
-                {type.label}
-              </Select.Option>
-            ))}
-          </Select>
-
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingPermission(null);
-              form.resetFields();
-              setModalVisible(true);
-            }}
-          >
-            创建配置
-          </Button>
-        </Space>
-
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              新建配置
+            </Button>
+          </Space>
+        }
+      >
         <Table
           columns={columns}
-          dataSource={fieldPermissions}
+          dataSource={permissions}
           rowKey="id"
-          loading={loading || hookLoading}
+          loading={loading}
+          scroll={{ x: 1500 }}
           pagination={{
             showSizeChanger: true,
+            showQuickJumper: true,
             showTotal: (total) => `共 ${total} 条`,
           }}
-          scroll={{ x: 1600 }}
         />
       </Card>
 
-      {/* 创建/编辑对话框 */}
       <Modal
-        title={editingPermission ? '编辑字段权限配置' : '创建字段权限配置'}
-        open={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          setEditingPermission(null);
-          form.resetFields();
-        }}
-        onOk={() => form.submit()}
-        width={800}
+        title={editingPermission ? '编辑字段权限配置' : '新建字段权限配置'}
+        open={isModalVisible}
+        onOk={handleSubmit}
+        onCancel={() => setIsModalVisible(false)}
+        width={700}
+        okText="确定"
+        cancelText="取消"
       >
-        <Form form={form} onFinish={handleSubmit} layout="vertical">
+        <Form form={form} layout="vertical">
           <Form.Item
-            label="角色"
             name="roleId"
-            rules={[{ required: true, message: '请选择角色' }]}
+            label="角色ID"
+            rules={[{ required: true, message: '请输入角色ID' }]}
           >
-            <Select placeholder="选择角色" disabled={!!editingPermission}>
-              {roles.map((role) => (
-                <Select.Option key={role.id} value={role.id}>
-                  {role.name}
-                </Select.Option>
-              ))}
-            </Select>
+            <Input placeholder="请输入角色ID" disabled={!!editingPermission} />
           </Form.Item>
 
           <Form.Item
-            label="资源类型"
             name="resourceType"
-            rules={[{ required: true, message: '请选择资源类型' }]}
+            label="资源类型"
+            rules={[{ required: true, message: '请输入资源类型' }]}
           >
-            <Select placeholder="选择资源类型" disabled={!!editingPermission}>
-              {resourceTypes.map((type) => (
-                <Select.Option key={type.value} value={type.value}>
-                  {type.label}
-                </Select.Option>
-              ))}
-            </Select>
+            <Input placeholder="如: user, device, app" disabled={!!editingPermission} />
           </Form.Item>
 
           <Form.Item
-            label="操作类型"
             name="operation"
+            label="操作类型"
             rules={[{ required: true, message: '请选择操作类型' }]}
           >
-            <Select placeholder="选择操作类型" disabled={!!editingPermission}>
-              {operationTypes.map((type) => (
-                <Select.Option key={type.value} value={type.value}>
-                  {type.label}
-                </Select.Option>
-              ))}
-            </Select>
+            <Select placeholder="请选择操作类型" options={operationTypes} />
           </Form.Item>
 
-          <Divider />
+          <Tabs defaultActiveKey="basic">
+            <TabPane tab="基础字段配置" key="basic">
+              <Form.Item
+                name="hiddenFields"
+                label="隐藏字段"
+                tooltip="多个字段用逗号分隔"
+              >
+                <Input.TextArea
+                  placeholder="如: password, secret, 多个用逗号分隔"
+                  rows={2}
+                />
+              </Form.Item>
 
-          <Tabs
-            items={[
-              {
-                key: 'simple',
-                label: '简单配置',
-                children: (
-                  <>
-                    <Form.Item
-                      label="隐藏字段"
-                      name="hiddenFields"
-                      tooltip="这些字段将完全不显示给用户，多个字段用逗号分隔"
-                    >
-                      <Input.TextArea placeholder="例如：password, secret" rows={2} />
-                    </Form.Item>
+              <Form.Item
+                name="readOnlyFields"
+                label="只读字段"
+                tooltip="多个字段用逗号分隔"
+              >
+                <Input.TextArea
+                  placeholder="如: id, createdAt, 多个用逗号分隔"
+                  rows={2}
+                />
+              </Form.Item>
 
-                    <Form.Item
-                      label="只读字段"
-                      name="readOnlyFields"
-                      tooltip="这些字段可以查看但不能修改，多个字段用逗号分隔"
-                    >
-                      <Input.TextArea placeholder="例如：id, createdAt, updatedAt" rows={2} />
-                    </Form.Item>
+              <Form.Item
+                name="writableFields"
+                label="可写字段"
+                tooltip="多个字段用逗号分隔"
+              >
+                <Input.TextArea
+                  placeholder="如: name, email, 多个用逗号分隔"
+                  rows={2}
+                />
+              </Form.Item>
 
-                    <Form.Item
-                      label="可写字段"
-                      name="writableFields"
-                      tooltip="这些字段可以查看和修改，多个字段用逗号分隔"
-                    >
-                      <Input.TextArea placeholder="例如：name, email, phone" rows={2} />
-                    </Form.Item>
+              <Form.Item
+                name="requiredFields"
+                label="必填字段"
+                tooltip="多个字段用逗号分隔"
+              >
+                <Input.TextArea
+                  placeholder="如: name, email, 多个用逗号分隔"
+                  rows={2}
+                />
+              </Form.Item>
+            </TabPane>
 
-                    <Form.Item
-                      label="必填字段"
-                      name="requiredFields"
-                      tooltip="在创建/更新时必须提供这些字段，多个字段用逗号分隔"
-                    >
-                      <Input.TextArea placeholder="例如：name, email" rows={2} />
-                    </Form.Item>
-                  </>
-                ),
-              },
-              {
-                key: 'advanced',
-                label: '高级配置',
-                children: (
-                  <>
-                    <Form.Item
-                      label="字段访问映射 (JSON)"
-                      name="fieldAccessMap"
-                      tooltip="使用 JSON 格式精确控制每个字段的访问级别"
-                    >
-                      <Input.TextArea
-                        placeholder='{"phone": "read", "email": "write", "password": "hidden"}'
-                        rows={4}
-                      />
-                    </Form.Item>
+            <TabPane tab="高级配置" key="advanced">
+              <Form.Item
+                name="priority"
+                label="优先级"
+                tooltip="数值越小优先级越高"
+                initialValue={100}
+              >
+                <InputNumber min={1} max={999} style={{ width: '100%' }} />
+              </Form.Item>
 
-                    <Form.Item
-                      label="字段转换规则 (JSON)"
-                      name="fieldTransforms"
-                      tooltip="配置字段数据脱敏规则，支持手机号、邮箱、身份证等脱敏"
-                    >
-                      <Input.TextArea
-                        placeholder='{"phone": {"type": "mask", "pattern": "***-****-{4}"}}'
-                        rows={4}
-                      />
-                    </Form.Item>
-
-                    <Button
-                      type="link"
-                      size="small"
-                      onClick={() => setHelpModalVisible(true)}
-                    >
-                      查看脱敏示例
-                    </Button>
-                  </>
-                ),
-              },
-            ]}
-          />
-
-          <Divider />
-
-          <Form.Item label="优先级" name="priority" initialValue={100}>
-            <InputNumber
-              min={0}
-              max={999}
-              style={{ width: '100%' }}
-              placeholder="数值越小优先级越高"
-            />
-          </Form.Item>
-
-          <Form.Item label="描述" name="description">
-            <Input.TextArea placeholder="配置描述" rows={3} />
-          </Form.Item>
+              <Form.Item name="description" label="描述">
+                <Input.TextArea
+                  placeholder="请输入配置描述"
+                  rows={3}
+                />
+              </Form.Item>
+            </TabPane>
+          </Tabs>
         </Form>
       </Modal>
 
-      {/* 详情对话框 */}
       <Modal
-        title="字段权限配置详情"
-        open={detailModalVisible}
-        onCancel={() => setDetailModalVisible(false)}
+        title="字段权限详情"
+        open={isDetailModalVisible}
+        onCancel={() => setIsDetailModalVisible(false)}
         footer={[
-          <Button key="close" onClick={() => setDetailModalVisible(false)}>
+          <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
             关闭
           </Button>,
         ]}
         width={800}
       >
-        {viewingPermission && (
-          <Descriptions column={1} bordered>
-            <Descriptions.Item label="角色">
-              {roles.find((r) => r.id === viewingPermission.roleId)?.name ||
-                viewingPermission.roleId}
+        {detailPermission && (
+          <Descriptions bordered column={2}>
+            <Descriptions.Item label="ID" span={2}>
+              {detailPermission.id}
+            </Descriptions.Item>
+            <Descriptions.Item label="角色ID">
+              {detailPermission.roleId}
             </Descriptions.Item>
             <Descriptions.Item label="资源类型">
-              {resourceTypes.find((r) => r.value === viewingPermission.resourceType)?.label ||
-                viewingPermission.resourceType}
+              {detailPermission.resourceType}
             </Descriptions.Item>
             <Descriptions.Item label="操作类型">
-              <Tag color="green">
-                {operationTypes.find((o) => o.value === viewingPermission.operation)?.label ||
-                  viewingPermission.operation}
+              <Tag color={getOperationColor(detailPermission.operation)}>
+                {getOperationLabel(detailPermission.operation)}
               </Tag>
             </Descriptions.Item>
-            {viewingPermission.hiddenFields && viewingPermission.hiddenFields.length > 0 && (
-              <Descriptions.Item label="隐藏字段">
-                {viewingPermission.hiddenFields.map((field) => (
-                  <Tag key={field} color="red">
-                    {field}
-                  </Tag>
-                ))}
-              </Descriptions.Item>
-            )}
-            {viewingPermission.readOnlyFields && viewingPermission.readOnlyFields.length > 0 && (
-              <Descriptions.Item label="只读字段">
-                {viewingPermission.readOnlyFields.map((field) => (
-                  <Tag key={field} color="orange">
-                    {field}
-                  </Tag>
-                ))}
-              </Descriptions.Item>
-            )}
-            {viewingPermission.writableFields && viewingPermission.writableFields.length > 0 && (
-              <Descriptions.Item label="可写字段">
-                {viewingPermission.writableFields.map((field) => (
-                  <Tag key={field} color="green">
-                    {field}
-                  </Tag>
-                ))}
-              </Descriptions.Item>
-            )}
-            {viewingPermission.requiredFields && viewingPermission.requiredFields.length > 0 && (
-              <Descriptions.Item label="必填字段">
-                {viewingPermission.requiredFields.map((field) => (
-                  <Tag key={field} color="purple">
-                    {field}
-                  </Tag>
-                ))}
-              </Descriptions.Item>
-            )}
-            {viewingPermission.fieldAccessMap && (
-              <Descriptions.Item label="字段访问映射">
-                <pre style={{ margin: 0, fontSize: 12 }}>
-                  {JSON.stringify(viewingPermission.fieldAccessMap, null, 2)}
-                </pre>
-              </Descriptions.Item>
-            )}
-            {viewingPermission.fieldTransforms && (
-              <Descriptions.Item label="字段转换规则">
-                <pre style={{ margin: 0, fontSize: 12 }}>
-                  {JSON.stringify(viewingPermission.fieldTransforms, null, 2)}
-                </pre>
-              </Descriptions.Item>
-            )}
-            <Descriptions.Item label="优先级">{viewingPermission.priority}</Descriptions.Item>
-            <Descriptions.Item label="状态">
-              <Tag color={viewingPermission.isActive ? 'green' : 'red'}>
-                {viewingPermission.isActive ? '启用' : '禁用'}
+            <Descriptions.Item label="优先级">
+              {detailPermission.priority}
+            </Descriptions.Item>
+            <Descriptions.Item label="状态" span={2}>
+              <Tag color={detailPermission.isActive ? 'success' : 'error'}>
+                {detailPermission.isActive ? '启用' : '禁用'}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="描述">
-              {viewingPermission.description || '-'}
+            <Descriptions.Item label="隐藏字段" span={2}>
+              {detailPermission.hiddenFields?.length ? (
+                <Space wrap>
+                  {detailPermission.hiddenFields.map(field => (
+                    <Tag key={field} color="red">{field}</Tag>
+                  ))}
+                </Space>
+              ) : (
+                <span style={{ color: '#999' }}>无</span>
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label="只读字段" span={2}>
+              {detailPermission.readOnlyFields?.length ? (
+                <Space wrap>
+                  {detailPermission.readOnlyFields.map(field => (
+                    <Tag key={field} color="orange">{field}</Tag>
+                  ))}
+                </Space>
+              ) : (
+                <span style={{ color: '#999' }}>无</span>
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label="可写字段" span={2}>
+              {detailPermission.writableFields?.length ? (
+                <Space wrap>
+                  {detailPermission.writableFields.map(field => (
+                    <Tag key={field} color="blue">{field}</Tag>
+                  ))}
+                </Space>
+              ) : (
+                <span style={{ color: '#999' }}>无</span>
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label="必填字段" span={2}>
+              {detailPermission.requiredFields?.length ? (
+                <Space wrap>
+                  {detailPermission.requiredFields.map(field => (
+                    <Tag key={field} color="purple">{field}</Tag>
+                  ))}
+                </Space>
+              ) : (
+                <span style={{ color: '#999' }}>无</span>
+              )}
+            </Descriptions.Item>
+            {detailPermission.fieldAccessMap && Object.keys(detailPermission.fieldAccessMap).length > 0 && (
+              <Descriptions.Item label="字段访问映射" span={2}>
+                <Space wrap>
+                  {Object.entries(detailPermission.fieldAccessMap).map(([field, level]) => (
+                    <Tag key={field} color="cyan">
+                      {field}: {level}
+                    </Tag>
+                  ))}
+                </Space>
+              </Descriptions.Item>
+            )}
+            {detailPermission.fieldTransforms && Object.keys(detailPermission.fieldTransforms).length > 0 && (
+              <Descriptions.Item label="字段转换规则" span={2}>
+                <Space direction="vertical">
+                  {Object.entries(detailPermission.fieldTransforms).map(([field, transform]) => (
+                    <div key={field}>
+                      <Tag color="geekblue">{field}</Tag>
+                      <span>类型: {transform.type}</span>
+                    </div>
+                  ))}
+                </Space>
+              </Descriptions.Item>
+            )}
+            <Descriptions.Item label="描述" span={2}>
+              {detailPermission.description || <span style={{ color: '#999' }}>无</span>}
+            </Descriptions.Item>
+            <Descriptions.Item label="创建时间">
+              {new Date(detailPermission.createdAt).toLocaleString('zh-CN')}
+            </Descriptions.Item>
+            <Descriptions.Item label="更新时间">
+              {new Date(detailPermission.updatedAt).toLocaleString('zh-CN')}
             </Descriptions.Item>
           </Descriptions>
-        )}
-      </Modal>
-
-      {/* 帮助/示例对话框 */}
-      <Modal
-        title="字段脱敏示例"
-        open={helpModalVisible}
-        onCancel={() => setHelpModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setHelpModalVisible(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={800}
-      >
-        {transformExamples && (
-          <Collapse defaultActiveKey={['mask']}>
-            {Object.entries(transformExamples).map(([key, value]: [string, any]) => (
-              <Panel header={value.description || key} key={key}>
-                {value.examples ? (
-                  <div>
-                    {value.examples.map((ex: any, idx: number) => (
-                      <div key={idx} style={{ marginBottom: 12 }}>
-                        <div>
-                          <strong>字段：</strong>
-                          {ex.field}
-                        </div>
-                        <div>
-                          <strong>配置：</strong>
-                          <pre style={{ margin: '4px 0', fontSize: 12, background: '#f5f5f5', padding: 8 }}>
-                            {JSON.stringify(ex.transform, null, 2)}
-                          </pre>
-                        </div>
-                        <div>
-                          <strong>效果：</strong>
-                          {ex.example}
-                        </div>
-                        {idx < value.examples.length - 1 && <Divider />}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div>
-                    <div>
-                      <strong>配置：</strong>
-                      <pre style={{ margin: '4px 0', fontSize: 12, background: '#f5f5f5', padding: 8 }}>
-                        {JSON.stringify(value.example, null, 2)}
-                      </pre>
-                    </div>
-                    <div>
-                      <strong>效果：</strong>
-                      {value.result}
-                    </div>
-                  </div>
-                )}
-              </Panel>
-            ))}
-          </Collapse>
         )}
       </Modal>
     </div>
   );
 };
 
-export default FieldPermissionConfig;
+export default FieldPermissionManagement;

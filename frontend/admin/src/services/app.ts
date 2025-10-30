@@ -5,15 +5,25 @@ import type {
   InstallAppDto,
   PaginationParams,
   PaginatedResponse,
+  CursorPaginationParams,
+  CursorPaginatedResponse,
   AppReviewRecord,
   ApproveAppDto,
   RejectAppDto,
   RequestChangesDto,
 } from '@/types';
 
-// 应用列表
+// 应用列表 (传统偏移分页)
 export const getApps = (params?: PaginationParams) => {
   return request.get<PaginatedResponse<Application>>('/apps', { params });
+};
+
+// 应用列表 (游标分页 - 高性能)
+export const getAppsCursor = (params?: CursorPaginationParams & {
+  tenantId?: string;
+  category?: string;
+}) => {
+  return request.get<CursorPaginatedResponse<Application>>('/apps/cursor', { params });
 };
 
 // 获取应用详情

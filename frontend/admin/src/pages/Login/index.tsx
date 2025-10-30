@@ -4,6 +4,8 @@ import { UserOutlined, LockOutlined, SafetyOutlined, ReloadOutlined } from '@ant
 import { useNavigate } from 'react-router-dom';
 import { login, getCaptcha } from '@/services/auth';
 import { verify2FA } from '@/services/twoFactor';
+import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { EnhancedErrorAlert, type EnhancedError } from '@/components/EnhancedErrorAlert';
 import './index.css';
 
 interface LoginForm {
@@ -17,24 +19,33 @@ const Login = () => {
   const [form] = Form.useForm();
   const [captchaId, setCaptchaId] = useState('');
   const [captchaSvg, setCaptchaSvg] = useState('');
-  const [loading, setLoading] = useState(false);
   const [captchaLoading, setCaptchaLoading] = useState(false);
   const [twoFactorModalVisible, setTwoFactorModalVisible] = useState(false);
   const [twoFactorToken, setTwoFactorToken] = useState('');
   const [loginCredentials, setLoginCredentials] = useState<any>(null);
+  const [loginError, setLoginError] = useState<EnhancedError | null>(null);
+  const [twoFactorError, setTwoFactorError] = useState<EnhancedError | null>(null);
+
+  const { execute: executeLogin, loading: loginLoading } = useAsyncOperation();
+  const { execute: executeCaptcha } = useAsyncOperation();
+  const { execute: executeTwoFactor, loading: twoFactorLoading } = useAsyncOperation();
 
   // 获取验证码
   const fetchCaptcha = async () => {
     setCaptchaLoading(true);
-    try {
-      const data = await getCaptcha();
-      setCaptchaId(data.id);
-      setCaptchaSvg(data.svg);
-    } catch (error) {
-      message.error('获取验证码失败');
-    } finally {
-      setCaptchaLoading(false);
-    }
+    await executeCaptcha(
+      async () => {
+        const data = await getCaptcha();
+        setCaptchaId(data.id);
+        setCaptchaSvg(data.svg);
+        return data;
+      },
+      {
+        errorContext: '获取验证码',
+        showSuccessMessage: false,
+        onFinally: () => setCaptchaLoading(false),
+      }
+    );
   };
 
   // 页面加载时获取验证码
@@ -43,34 +54,70 @@ const Login = () => {
   }, []);
 
   const handleSubmit = async (values: LoginForm) => {
-    setLoading(true);
-    try {
-      const data: any = await login({
-        ...values,
-        captchaId,
-      });
+    setLoginError(null);
 
-      // 检查是否需要2FA验证
-      if (data.requiresTwoFactor) {
-        message.info(data.message || '请输入双因素认证代码');
-        setLoginCredentials({ ...values, captchaId });
-        setTwoFactorModalVisible(true);
-        setLoading(false);
-        return;
+    const result = await executeLogin(
+      async () => {
+        const data: any = await login({
+          ...values,
+          captchaId,
+        });
+
+        // 检查是否需要2FA验证
+        if (data.requiresTwoFactor) {
+          message.info(data.message || '请输入双因素认证代码');
+          setLoginCredentials({ ...values, captchaId });
+          setTwoFactorModalVisible(true);
+          return { requiresTwoFactor: true };
+        }
+
+        // 正常登录流程
+        localStorage.setItem('token', data.token);
+        if (data.user?.id) {
+          localStorage.setItem('userId', data.user.id);
+        }
+        return data;
+      },
+      {
+        successMessage: '登录成功',
+        errorContext: '登录',
+        showErrorMessage: false, // 使用EnhancedErrorAlert显示
+        onSuccess: (data) => {
+          if (!data.requiresTwoFactor) {
+            navigate('/');
+          }
+        },
+        onError: (error: any) => {
+          // 解析错误信息
+          const response = error.response?.data;
+          setLoginError({
+            message: response?.message || '登录失败',
+            userMessage: response?.userMessage || '登录失败，请检查用户名和密码',
+            code: response?.errorCode || error.response?.status?.toString(),
+            requestId: response?.requestId,
+            recoverySuggestions: response?.recoverySuggestions || [
+              {
+                action: '检查用户名密码',
+                description: '请确认用户名和密码是否正确',
+              },
+              {
+                action: '刷新验证码',
+                description: '验证码可能已过期，请点击验证码图片刷新',
+              },
+              {
+                action: '联系管理员',
+                description: '如果多次尝试失败，请联系系统管理员',
+                actionUrl: '/support',
+              },
+            ],
+            retryable: true,
+          });
+          // 登录失败后刷新验证码
+          fetchCaptcha();
+          form.setFieldValue('captcha', '');
+        },
       }
-
-      // 正常登录流程
-      localStorage.setItem('token', data.token);
-      message.success('登录成功');
-      navigate('/');
-    } catch (error: any) {
-      message.error(error.response?.data?.message || '登录失败');
-      // 登录失败后刷新验证码
-      fetchCaptcha();
-      form.setFieldValue('captcha', '');
-    } finally {
-      setLoading(false);
-    }
+    );
   };
 
   // 处理2FA验证
@@ -80,28 +127,72 @@ const Login = () => {
       return;
     }
 
-    setLoading(true);
-    try {
-      const result = await verify2FA({
-        ...loginCredentials,
-        twoFactorToken,
-      });
+    setTwoFactorError(null);
 
-      localStorage.setItem('token', result.token);
-      message.success('登录成功');
-      setTwoFactorModalVisible(false);
-      setTwoFactorToken('');
-      navigate('/');
-    } catch (error: any) {
-      message.error(error.response?.data?.message || '验证码错误');
-    } finally {
-      setLoading(false);
-    }
+    await executeTwoFactor(
+      async () => {
+        const result = await verify2FA({
+          ...loginCredentials,
+          twoFactorToken,
+        });
+
+        localStorage.setItem('token', result.token);
+        if (result.user?.id) {
+          localStorage.setItem('userId', result.user.id);
+        }
+        return result;
+      },
+      {
+        successMessage: '登录成功',
+        errorContext: '双因素认证',
+        showErrorMessage: false,
+        onSuccess: () => {
+          setTwoFactorModalVisible(false);
+          setTwoFactorToken('');
+          navigate('/');
+        },
+        onError: (error: any) => {
+          const response = error.response?.data;
+          setTwoFactorError({
+            message: response?.message || '验证码错误',
+            userMessage: response?.userMessage || '验证码错误，请检查您的验证器应用',
+            code: response?.errorCode || error.response?.status?.toString(),
+            requestId: response?.requestId,
+            recoverySuggestions: response?.recoverySuggestions || [
+              {
+                action: '重新输入',
+                description: '请确认输入的6位验证码是否正确',
+              },
+              {
+                action: '同步时间',
+                description: '验证器应用依赖设备时间，请确保设备时间准确',
+              },
+              {
+                action: '联系管理员',
+                description: '如无法登录，请联系系统管理员重置双因素认证',
+                actionUrl: '/support',
+              },
+            ],
+            retryable: true,
+          });
+        },
+      }
+    );
   };
 
   return (
     <div className="login-container">
       <Card title="云手机平台 - 管理后台" className="login-card">
+        {/* 登录错误提示 */}
+        {loginError && (
+          <EnhancedErrorAlert
+            error={loginError}
+            onClose={() => setLoginError(null)}
+            onRetry={() => form.submit()}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
         <Form form={form} onFinish={handleSubmit} size="large">
           <Form.Item
             name="username"
@@ -157,7 +248,7 @@ const Login = () => {
             </Row>
           </Form.Item>
           <Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading}>
+            <Button type="primary" htmlType="submit" block loading={loginLoading}>
               登录
             </Button>
           </Form.Item>
@@ -171,14 +262,25 @@ const Login = () => {
         onCancel={() => {
           setTwoFactorModalVisible(false);
           setTwoFactorToken('');
+          setTwoFactorError(null);
           setLoginCredentials(null);
         }}
         onOk={handle2FAVerify}
         okText="验证"
         cancelText="取消"
-        okButtonProps={{ loading }}
+        okButtonProps={{ loading: twoFactorLoading }}
       >
         <div style={{ padding: '20px 0' }}>
+          {/* 2FA错误提示 */}
+          {twoFactorError && (
+            <EnhancedErrorAlert
+              error={twoFactorError}
+              onClose={() => setTwoFactorError(null)}
+              onRetry={handle2FAVerify}
+              style={{ marginBottom: 16 }}
+            />
+          )}
+
           <p style={{ marginBottom: 16, color: '#666' }}>
             请输入验证器应用中显示的6位验证码
           </p>

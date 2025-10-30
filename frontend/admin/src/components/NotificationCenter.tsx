@@ -145,7 +145,7 @@ const NotificationCenter: React.FC = () => {
 
   return (
     <Dropdown
-      dropdownRender={() => dropdownMenu}
+      popupRender={() => dropdownMenu}
       trigger={['click']}
       open={dropdownOpen}
       onOpenChange={setDropdownOpen}

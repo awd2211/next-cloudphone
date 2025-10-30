@@ -20,6 +20,7 @@
     "@types/react-window": "^2.0.0",
     "antd": "^5.27.6",
     "axios": "^1.12.2",
+    "axios-retry": "^4.5.0",
     "dayjs": "^1.11.18",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.2",

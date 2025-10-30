@@ -11,6 +11,8 @@ import {
   useUploadApp,
   useDeleteApp
 } from '@/hooks/useApps';
+import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { EnhancedErrorAlert, type EnhancedError } from '@/components/EnhancedErrorAlert';
 
 /**
  * 应用列表页面（优化版 - 使用 React Query）
@@ -29,6 +31,10 @@ const AppList = () => {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [uploadError, setUploadError] = useState<EnhancedError | null>(null);
+
+  // 使用异步操作hook
+  const { execute: executeUpload } = useAsyncOperation();
 
   // ✅ 使用 React Query hooks 替换手动状态管理
   const params = useMemo(() => ({ page, pageSize }), [page, pageSize]);
@@ -48,21 +54,60 @@ const AppList = () => {
       return;
     }
 
+    setUploadError(null);
     const file = fileList[0] as any;
-    try {
-      await uploadMutation.mutateAsync({
-        file: file.originFileObj,
-        onProgress: (percent) => {
-          setUploadProgress(percent);
-        }
-      });
-      setUploadModalVisible(false);
-      setFileList([]);
-      setUploadProgress(0);
-    } catch (error) {
-      // Error already handled by mutation
-    }
-  }, [fileList, uploadMutation]);
+
+    await executeUpload(
+      async () => {
+        await uploadMutation.mutateAsync({
+          file: file.originFileObj,
+          onProgress: (percent) => {
+            setUploadProgress(percent);
+          }
+        });
+      },
+      {
+        successMessage: 'APK上传成功',
+        errorContext: 'APK上传',
+        showErrorMessage: false,
+        onSuccess: () => {
+          setUploadModalVisible(false);
+          setFileList([]);
+          setUploadProgress(0);
+        },
+        onError: (error: any) => {
+          const response = error.response?.data;
+          setUploadError({
+            message: response?.message || '上传失败',
+            userMessage: response?.userMessage || 'APK上传失败，请稍后重试',
+            code: response?.errorCode || error.response?.status?.toString(),
+            requestId: response?.requestId,
+            recoverySuggestions: response?.recoverySuggestions || [
+              {
+                action: '检查文件',
+                description: '确认APK文件是否有效且未损坏',
+              },
+              {
+                action: '检查文件大小',
+                description: '确认文件大小不超过100MB',
+              },
+              {
+                action: '重新上传',
+                description: '选择正确的APK文件重新上传',
+              },
+              {
+                action: '联系技术支持',
+                description: '如果问题持续，请联系技术支持',
+                actionUrl: '/support',
+              },
+            ],
+            retryable: true,
+          });
+          setUploadProgress(0);
+        },
+      }
+    );
+  }, [fileList, uploadMutation, executeUpload]);
 
   const handleDelete = useCallback(async (id: string) => {
     await deleteMutation.mutateAsync(id);
@@ -72,6 +117,7 @@ const AppList = () => {
     setUploadModalVisible(false);
     setFileList([]);
     setUploadProgress(0);
+    setUploadError(null);
   }, []);
 
   const handleFileListChange = useCallback(({ fileList }: { fileList: UploadFile[] }) => {
@@ -199,6 +245,16 @@ const AppList = () => {
         onOk={handleUpload}
         confirmLoading={uploadMutation.isPending}
       >
+        {/* 上传错误提示 */}
+        {uploadError && (
+          <EnhancedErrorAlert
+            error={uploadError}
+            onClose={() => setUploadError(null)}
+            onRetry={handleUpload}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
         <Upload.Dragger
           fileList={fileList}
           onChange={handleFileListChange}

@@ -13,6 +13,22 @@ export interface ErrorOptions {
   logToConsole?: boolean;
   reportToServer?: boolean;
   customMessage?: string;
+  /**
+   * 错误显示模式
+   */
+  displayMode?: 'notification' | 'modal';
+  /**
+   * 操作上下文（用于日志和错误报告）
+   */
+  context?: string;
+  /**
+   * 是否显示重试按钮
+   */
+  showRetry?: boolean;
+  /**
+   * 重试回调
+   */
+  onRetry?: () => void;
 }
 
 interface ApiError {
@@ -20,6 +36,35 @@ interface ApiError {
   message: string;
   details?: string;
   statusCode?: number;
+  requestId?: string;
+  /**
+   * 用户友好的错误消息
+   */
+  userMessage?: string;
+  /**
+   * 技术详情（仅供开发和调试）
+   */
+  technicalMessage?: string;
+  /**
+   * 恢复建议
+   */
+  recoverySuggestions?: Array<{
+    action: string;
+    description: string;
+    actionUrl?: string;
+  }>;
+  /**
+   * 文档链接
+   */
+  documentationUrl?: string;
+  /**
+   * 支持链接
+   */
+  supportUrl?: string;
+  /**
+   * 是否可重试
+   */
+  retryable?: boolean;
 }
 
 /**
@@ -31,10 +76,17 @@ function parseAxiosError(error: AxiosError): ApiError {
     const errorData = data as any;
 
     return {
-      code: errorData?.code || `HTTP_${status}`,
+      code: errorData?.errorCode || errorData?.code || `HTTP_${status}`,
       message: errorData?.message || error.message,
+      userMessage: errorData?.userMessage,
+      technicalMessage: errorData?.technicalMessage || errorData?.message,
       details: errorData?.details,
       statusCode: status,
+      requestId: errorData?.requestId || error.response?.headers?.['x-request-id'],
+      recoverySuggestions: errorData?.recoverySuggestions,
+      documentationUrl: errorData?.documentationUrl,
+      supportUrl: errorData?.supportUrl,
+      retryable: errorData?.retryable,
     };
   }
 
@@ -42,13 +94,28 @@ function parseAxiosError(error: AxiosError): ApiError {
     return {
       code: 'NETWORK_ERROR',
       message: '网络连接失败，请检查网络设置',
+      userMessage: '网络连接失败',
+      technicalMessage: 'Network request failed - no response received',
       statusCode: 0,
+      retryable: true,
+      recoverySuggestions: [
+        {
+          action: '检查网络连接',
+          description: '请确保您的设备已连接到互联网',
+        },
+        {
+          action: '刷新页面',
+          description: '尝试刷新页面重新加载',
+        },
+      ],
     };
   }
 
   return {
     code: 'UNKNOWN_ERROR',
     message: error.message || '未知错误',
+    userMessage: '发生未知错误',
+    technicalMessage: error.message || 'Unknown error occurred',
   };
 }
 
@@ -87,12 +154,18 @@ function getFriendlyErrorMessage(error: ApiError): string {
  */
 async function reportErrorToServer(error: ApiError, context?: string) {
   try {
+    const userId = localStorage.getItem('userId');
+
     const errorLog = {
       code: error.code,
       message: error.message,
+      userMessage: error.userMessage,
+      technicalMessage: error.technicalMessage,
       details: error.details,
       statusCode: error.statusCode,
+      requestId: error.requestId,
       context,
+      userId,
       userAgent: navigator.userAgent,
       url: window.location.href,
       timestamp: new Date().toISOString(),
@@ -128,25 +201,34 @@ export function useErrorHandler() {
       const {
         showNotification = true,
         showModal = false,
+        displayMode,
         logToConsole = true,
         reportToServer = process.env.NODE_ENV === 'production',
         customMessage,
+        context,
+        showRetry = false,
+        onRetry,
       } = options;
 
       // 解析错误
       let apiError: ApiError;
       if (typeof error === 'string') {
-        apiError = { message: error };
+        apiError = { message: error, userMessage: error };
       } else if ('isAxiosError' in error && error.isAxiosError) {
         apiError = parseAxiosError(error as AxiosError);
       } else {
         apiError = {
           message: (error as Error).message,
+          userMessage: (error as Error).message,
+          technicalMessage: (error as Error).message,
         };
       }
 
-      // 获取友好的错误消息
-      const friendlyMessage = customMessage || getFriendlyErrorMessage(apiError);
+      // 获取友好的错误消息（优先使用userMessage，然后是customMessage，最后是映射的消息）
+      const friendlyMessage =
+        customMessage ||
+        apiError.userMessage ||
+        getFriendlyErrorMessage(apiError);
 
       // 控制台日志
       if (logToConsole) {
@@ -154,48 +236,130 @@ export function useErrorHandler() {
           original: error,
           parsed: apiError,
           friendly: friendlyMessage,
+          context,
+          requestId: apiError.requestId,
         });
       }
 
+      // 根据displayMode决定显示方式
+      const shouldShowModal = displayMode === 'modal' || showModal;
+      const shouldShowNotification = displayMode === 'notification' || (showNotification && !shouldShowModal);
+
       // 显示通知
-      if (showNotification && !showModal) {
+      if (shouldShowNotification) {
+        const messageKey = `error-${Date.now()}`;
+
         message.error({
-          content: friendlyMessage,
+          content: (
+            <div>
+              <div>{friendlyMessage}</div>
+              {apiError.requestId && (
+                <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+                  Request ID: {apiError.requestId}
+                </div>
+              )}
+              {(showRetry || apiError.retryable) && onRetry && (
+                <div style={{ marginTop: 8 }}>
+                  <a onClick={() => {
+                    message.destroy(messageKey);
+                    onRetry();
+                  }}>
+                    点击重试
+                  </a>
+                </div>
+              )}
+            </div>
+          ),
           duration: 5,
+          key: messageKey,
         });
       }
 
       // 显示模态框
-      if (showModal) {
+      if (shouldShowModal) {
         Modal.error({
           title: '操作失败',
           content: (
             <div>
-              <p>{friendlyMessage}</p>
+              <p style={{ fontSize: 14, marginBottom: 16 }}>{friendlyMessage}</p>
+
+              {/* 恢复建议 */}
+              {apiError.recoverySuggestions && apiError.recoverySuggestions.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: 8 }}>解决方案：</div>
+                  <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
+                    {apiError.recoverySuggestions.map((suggestion, index) => (
+                      <li key={index} style={{ marginBottom: 4 }}>
+                        <strong>{suggestion.action}:</strong> {suggestion.description}
+                        {suggestion.actionUrl && (
+                          <span>
+                            {' '}
+                            <a href={suggestion.actionUrl} target="_blank" rel="noopener noreferrer">
+                              前往 →
+                            </a>
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* 技术详情 */}
               {apiError.details && (
-                <details style={{ marginTop: 8 }}>
-                  <summary style={{ cursor: 'pointer', color: '#666' }}>
-                    查看详细信息
+                <details style={{ marginBottom: 8 }}>
+                  <summary style={{ cursor: 'pointer', color: '#666', fontSize: 12 }}>
+                    查看技术详情
                   </summary>
-                  <pre style={{ fontSize: 12, marginTop: 8, overflow: 'auto' }}>
+                  <pre style={{ fontSize: 11, marginTop: 8, overflow: 'auto', background: '#f5f5f5', padding: 8, borderRadius: 4 }}>
                     {apiError.details}
                   </pre>
                 </details>
               )}
+
+              {/* Request ID */}
+              {apiError.requestId && (
+                <p style={{ marginBottom: 4, color: '#999', fontSize: 12 }}>
+                  Request ID: <code>{apiError.requestId}</code>
+                </p>
+              )}
+
+              {/* 错误代码 */}
               {apiError.code && (
-                <p style={{ marginTop: 8, color: '#666', fontSize: 12 }}>
+                <p style={{ marginBottom: 4, color: '#999', fontSize: 12 }}>
                   错误代码: {apiError.code}
                 </p>
               )}
+
+              {/* 文档和支持链接 */}
+              {(apiError.documentationUrl || apiError.supportUrl) && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
+                  {apiError.documentationUrl && (
+                    <a href={apiError.documentationUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: 16 }}>
+                      查看文档
+                    </a>
+                  )}
+                  {apiError.supportUrl && (
+                    <a href={apiError.supportUrl} target="_blank" rel="noopener noreferrer">
+                      联系技术支持
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           ),
-          okText: '我知道了',
+          okText: (showRetry || apiError.retryable) && onRetry ? '重试' : '我知道了',
+          onOk: () => {
+            if ((showRetry || apiError.retryable) && onRetry) {
+              onRetry();
+            }
+          },
         });
       }
 
       // 上报到服务器
       if (reportToServer) {
-        reportErrorToServer(apiError).catch(() => {
+        reportErrorToServer(apiError, context).catch(() => {
           // 静默失败
         });
       }

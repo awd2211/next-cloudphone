@@ -5,11 +5,21 @@ import type {
   UpdateUserDto,
   PaginationParams,
   PaginatedResponse,
+  CursorPaginationParams,
+  CursorPaginatedResponse,
 } from '@/types';
 
-// 用户列表
+// 用户列表 (传统偏移分页)
 export const getUsers = (params?: PaginationParams) => {
   return request.get<PaginatedResponse<User>>('/users', { params });
+};
+
+// 用户列表 (游标分页 - 高性能)
+export const getUsersCursor = (params?: CursorPaginationParams & {
+  tenantId?: string;
+  includeRoles?: boolean;
+}) => {
+  return request.get<CursorPaginatedResponse<User>>('/users/cursor', { params });
 };
 
 // 获取用户详情

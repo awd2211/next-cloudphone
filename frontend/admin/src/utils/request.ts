@@ -178,6 +178,70 @@ interface TypedAxiosInstance {
 
 const request = axiosInstance as any as TypedAxiosInstance;
 
+// ========== 自动重试配置 ==========
+interface RetryConfig {
+  retries: number;
+  retryDelay: number;
+  retryableStatuses: number[];
+  retryableErrors: string[];
+}
+
+const defaultRetryConfig: RetryConfig = {
+  retries: 3,
+  retryDelay: 1000, // 初始延迟 1 秒
+  retryableStatuses: [408, 429, 500, 502, 503, 504],
+  retryableErrors: ['ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 'ENETUNREACH'],
+};
+
+/**
+ * 判断请求是否可以重试
+ */
+function isRetryableRequest(error: AxiosError): boolean {
+  // 不重试幂等性无保证的请求（POST, PATCH, DELETE默认不重试）
+  const method = error.config?.method?.toUpperCase();
+  const idempotentMethods = ['GET', 'HEAD', 'OPTIONS', 'PUT'];
+
+  if (!method || !idempotentMethods.includes(method)) {
+    // POST/PATCH/DELETE 只在特定错误码时重试（网络错误、超时）
+    if (error.code && defaultRetryConfig.retryableErrors.includes(error.code)) {
+      return true;
+    }
+    return false;
+  }
+
+  // 检查状态码
+  if (error.response?.status && defaultRetryConfig.retryableStatuses.includes(error.response.status)) {
+    return true;
+  }
+
+  // 检查错误类型
+  if (error.code && defaultRetryConfig.retryableErrors.includes(error.code)) {
+    return true;
+  }
+
+  // 网络错误
+  if (error.message === 'Network Error') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * 计算重试延迟（指数退避）
+ */
+function getRetryDelay(retryCount: number): number {
+  // 指数退避: 1s, 2s, 4s
+  return Math.min(defaultRetryConfig.retryDelay * Math.pow(2, retryCount - 1), 10000);
+}
+
+/**
+ * 执行延迟
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // 请求拦截器
 axiosInstance.interceptors.request.use(
   (config) => {
@@ -227,12 +291,49 @@ axiosInstance.interceptors.response.use(
     // 直接返回 response.data，保持后端返回的结构
     return response.data;
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
     // 计算请求耗时
     const duration = Date.now() - ((error.config as any)?.requestStartTime || 0);
     const requestId = (error.config as any)?.requestId || 'unknown';
 
-    // 记录错误日志
+    // ========== 自动重试逻辑 ==========
+    const config = error.config as any;
+    if (!config) {
+      return Promise.reject(error);
+    }
+
+    // 初始化重试计数
+    config.retryCount = config.retryCount || 0;
+
+    // 检查是否应该重试
+    const shouldRetry =
+      isRetryableRequest(error) &&
+      config.retryCount < defaultRetryConfig.retries;
+
+    if (shouldRetry) {
+      config.retryCount += 1;
+      const retryDelay = getRetryDelay(config.retryCount);
+
+      console.log(
+        `🔄 重试请求 (${config.retryCount}/${defaultRetryConfig.retries}): ${config.method?.toUpperCase()} ${config.url} - 延迟 ${retryDelay}ms`
+      );
+
+      // 在开发环境显示重试提示
+      if (process.env.NODE_ENV === 'development') {
+        message.loading(
+          `正在重试... (${config.retryCount}/${defaultRetryConfig.retries})`,
+          retryDelay / 1000
+        );
+      }
+
+      // 等待延迟后重试
+      await delay(retryDelay);
+
+      // 重新发送请求
+      return axiosInstance(config);
+    }
+
+    // ========== 不再重试，记录错误日志 ==========
     RequestLogger.logError(error, duration, requestId);
 
     // 处理不同的 HTTP 状态码

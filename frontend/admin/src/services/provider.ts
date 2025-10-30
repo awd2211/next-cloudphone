@@ -8,14 +8,14 @@ import type { DeviceProvider, ProviderSpec, CloudSyncStatus } from '@/types/prov
  * 获取所有提供商规格
  */
 export async function getProviderSpecs() {
-  return request<{ data: ProviderSpec[] }>('/api/v1/devices/providers/specs');
+  return request<{ data: ProviderSpec[] }>('/devices/providers/specs');
 }
 
 /**
  * 获取指定提供商的规格列表
  */
 export async function getProviderSpecsByType(provider: DeviceProvider) {
-  return request<{ data: ProviderSpec[] }>(`/api/v1/devices/providers/${provider}/specs`);
+  return request<{ data: ProviderSpec[] }>(`/devices/providers/${provider}/specs`);
 }
 
 /**
@@ -26,7 +26,7 @@ export async function getCloudSyncStatus(params?: {
   page?: number;
   pageSize?: number;
 }) {
-  return request<{ data: CloudSyncStatus[]; total: number }>('/api/v1/devices/cloud/sync-status', {
+  return request<{ data: CloudSyncStatus[]; total: number }>('/devices/cloud/sync-status', {
     params,
   });
 }
@@ -35,7 +35,7 @@ export async function getCloudSyncStatus(params?: {
  * 手动触发云设备同步
  */
 export async function triggerCloudSync(provider?: DeviceProvider) {
-  return request('/api/v1/devices/cloud/sync', {
+  return request('/devices/cloud/sync', {
     method: 'POST',
     data: { provider },
   });
@@ -52,21 +52,21 @@ export async function getProviderHealth() {
       message?: string;
       lastCheck: string;
     }[];
-  }>('/api/v1/devices/providers/health');
+  }>('/devices/providers/health');
 }
 
 /**
  * 获取提供商配置
  */
 export async function getProviderConfig(provider: DeviceProvider) {
-  return request(`/api/v1/admin/providers/${provider}/config`);
+  return request(`/admin/providers/${provider}/config`);
 }
 
 /**
  * 更新提供商配置
  */
 export async function updateProviderConfig(provider: DeviceProvider, config: any) {
-  return request(`/api/v1/admin/providers/${provider}/config`, {
+  return request(`/admin/providers/${provider}/config`, {
     method: 'PUT',
     data: config,
   });
@@ -76,7 +76,7 @@ export async function updateProviderConfig(provider: DeviceProvider, config: any
  * 测试提供商连接
  */
 export async function testProviderConnection(provider: DeviceProvider) {
-  return request(`/api/v1/admin/providers/${provider}/test`, {
+  return request(`/admin/providers/${provider}/test`, {
     method: 'POST',
   });
 }
@@ -89,7 +89,7 @@ export async function getCloudBilling(params: {
   startDate: string;
   endDate: string;
 }) {
-  return request('/api/v1/admin/billing/cloud-reconciliation', {
+  return request('/admin/billing/cloud-reconciliation', {
     params,
   });
 }
