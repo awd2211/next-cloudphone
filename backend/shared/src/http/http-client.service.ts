@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Observable, throwError, timer } from 'rxjs';
 import { catchError, retry, timeout, tap } from 'rxjs/operators';
-import * as CircuitBreaker from 'opossum';
+import CircuitBreaker from 'opossum';
 
 export interface HttpClientOptions {
   timeout?: number;
@@ -16,7 +16,7 @@ export interface HttpClientOptions {
 @Injectable()
 export class HttpClientService {
   private readonly logger = new Logger(HttpClientService.name);
-  private circuitBreakers: Map<string, CircuitBreaker> = new Map();
+  private circuitBreakers: Map<string, CircuitBreaker<any, any>> = new Map();
 
   constructor(
     private httpService: HttpService,

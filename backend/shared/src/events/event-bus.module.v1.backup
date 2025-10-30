@@ -1,0 +1,34 @@
+import { Module, Global } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { EventBusService } from './event-bus.service';
+
+/**
+ * 事件总线模块 (基于原生 amqplib)
+ *
+ * 重写说明:
+ * - 移除 @golevelup/nestjs-rabbitmq 以解决与 NestJS v11 的兼容性问题
+ * - EventBusService 现在直接管理 RabbitMQ 连接
+ * - ConfigModule 用于注入配置服务
+ *
+ * 使用方法:
+ * ```typescript
+ * // 在其他模块中导入
+ * @Module({
+ *   imports: [EventBusModule],
+ * })
+ * export class MyModule {}
+ *
+ * // 在服务中注入
+ * constructor(private eventBus: EventBusService) {}
+ *
+ * // 发布事件
+ * await this.eventBus.publishDeviceEvent('created', { deviceId: '123' });
+ * ```
+ */
+@Global()
+@Module({
+  imports: [ConfigModule],
+  providers: [EventBusService],
+  exports: [EventBusService],
+})
+export class EventBusModule {}

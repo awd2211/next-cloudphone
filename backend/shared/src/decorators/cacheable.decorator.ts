@@ -21,10 +21,23 @@
  * ```
  */
 
-import { SetMetadata } from '@nestjs/common';
+import { SetMetadata, Logger } from '@nestjs/common';
+
+// 创建共享的 Logger 实例
+const logger = new Logger('CacheDecorator');
 
 export const CACHE_KEY_METADATA = 'cache:key';
 export const CACHE_TTL_METADATA = 'cache:ttl';
+
+/**
+ * 缓存服务接口 (支持 cache-manager 和 ioredis)
+ */
+export interface CacheService {
+  get(key: string): Promise<string | Record<string, unknown> | null | undefined>;
+  set(key: string, value: unknown, ...args: unknown[]): Promise<void | string>;
+  del(key: string): Promise<number | void>;
+  keys?(pattern: string): Promise<string[]>;
+}
 
 export interface CacheableOptions {
   /**
@@ -48,7 +61,7 @@ export interface CacheableOptions {
    * @example
    * condition: (userId) => !!userId
    */
-  condition?: (...args: any[]) => boolean;
+  condition?: (...args: unknown[]) => boolean;
 
   /**
    * 自定义缓存键生成函数 (可选，覆盖 keyTemplate)
@@ -56,7 +69,7 @@ export interface CacheableOptions {
    * @example
    * keyGenerator: (id, status) => `device:${id}:${status}`
    */
-  keyGenerator?: (...args: any[]) => string;
+  keyGenerator?: (...args: unknown[]) => string;
 
   /**
    * 是否记录日志
@@ -77,20 +90,20 @@ export interface CacheableOptions {
  * @param options 缓存配置
  */
 export function Cacheable(options: CacheableOptions): MethodDecorator {
-  return (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
+  return (target: Record<string, unknown>, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
     SetMetadata(CACHE_KEY_METADATA, options)(target, propertyKey, descriptor);
 
     const originalMethod = descriptor.value;
     const enableLogging = options.enableLogging !== false;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (this: Record<string, unknown>, ...args: unknown[]) {
       // 获取缓存服务 (支持多种命名)
-      const cacheService = this.cacheService || this.redis || this.cacheManager;
+      const cacheService = (this.cacheService || this.redis || this.cacheManager) as CacheService | undefined;
 
       if (!cacheService) {
         if (enableLogging) {
-          console.warn(
-            `[Cacheable] Cache service not found in ${target.constructor.name}.${String(propertyKey)}, ` +
+          logger.warn(
+            `Cache service not found in ${target.constructor.name}.${String(propertyKey)}, ` +
             `executing original method without caching`
           );
         }
@@ -109,14 +122,14 @@ export function Cacheable(options: CacheableOptions): MethodDecorator {
           });
         }
       } catch (error) {
-        console.error(`[Cacheable] Failed to generate cache key:`, error);
+        logger.error(`Failed to generate cache key:`, error);
         return originalMethod.apply(this, args);
       }
 
       // 检查条件
       if (options.condition && !options.condition(...args)) {
         if (enableLogging) {
-          console.log(`[Cacheable] Condition not met for key: ${cacheKey}, executing without cache`);
+          logger.debug(`Condition not met for key: ${cacheKey}, executing without cache`);
         }
         return originalMethod.apply(this, args);
       }
@@ -127,7 +140,7 @@ export function Cacheable(options: CacheableOptions): MethodDecorator {
 
         if (cached) {
           if (enableLogging) {
-            console.log(`[Cacheable] ✅ Cache HIT: ${cacheKey}`);
+            logger.debug(`Cache HIT: ${cacheKey}`);
           }
 
           // 处理不同的缓存库返回格式
@@ -142,7 +155,7 @@ export function Cacheable(options: CacheableOptions): MethodDecorator {
         }
 
         if (enableLogging) {
-          console.log(`[Cacheable] ❌ Cache MISS: ${cacheKey}`);
+          logger.debug(`Cache MISS: ${cacheKey}`);
         }
 
         // 2. 执行原方法
@@ -166,23 +179,23 @@ export function Cacheable(options: CacheableOptions): MethodDecorator {
               }
 
               if (enableLogging) {
-                console.log(
-                  `[Cacheable] 💾 Cache SET: ${cacheKey} (TTL: ${options.ttl}s, Query: ${executionTime}ms)`
+                logger.debug(
+                  `Cache SET: ${cacheKey} (TTL: ${options.ttl}s, Query: ${executionTime}ms)`
                 );
               }
             } else {
-              console.warn(`[Cacheable] Cache service does not have a 'set' method`);
+              logger.warn(`Cache service does not have a 'set' method`);
             }
           } catch (cacheError) {
-            console.error(`[Cacheable] Failed to write cache for key ${cacheKey}:`, cacheError);
+            logger.error(`Failed to write cache for key ${cacheKey}:`, cacheError);
             // 缓存失败不影响业务逻辑，继续返回结果
           }
         }
 
         return result;
       } catch (error) {
-        console.error(
-          `[Cacheable] Error in ${target.constructor.name}.${String(propertyKey)}:`,
+        logger.error(
+          `Error in ${target.constructor.name}.${String(propertyKey)}:`,
           error
         );
         // 缓存异常时降级到原方法
@@ -238,21 +251,21 @@ export interface CacheEvictOptions {
  * @param options 缓存失效配置
  */
 export function CacheEvict(options: CacheEvictOptions): MethodDecorator {
-  return (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
+  return (target: Record<string, unknown>, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
     const enableLogging = options.enableLogging !== false;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (this: Record<string, unknown>, ...args: unknown[]) {
       // 执行原方法
       const result = await originalMethod.apply(this, args);
 
       // 获取缓存服务
-      const cacheService = this.cacheService || this.redis || this.cacheManager;
+      const cacheService = (this.cacheService || this.redis || this.cacheManager) as CacheService | undefined;
 
       if (!cacheService) {
         if (enableLogging) {
-          console.warn(
-            `[CacheEvict] Cache service not found in ${target.constructor.name}.${String(propertyKey)}, ` +
+          logger.warn(
+            `Cache service not found in ${target.constructor.name}.${String(propertyKey)}, ` +
             `skipping cache eviction`
           );
         }
@@ -285,7 +298,7 @@ export function CacheEvict(options: CacheEvictOptions): MethodDecorator {
 
           keysToDelete.push(cacheKey);
         } catch (error) {
-          console.error(`[CacheEvict] Failed to generate cache key from template "${keyTemplate}":`, error);
+          logger.error(`Failed to generate cache key from template "${keyTemplate}":`, error);
         }
       }
 
@@ -294,10 +307,10 @@ export function CacheEvict(options: CacheEvictOptions): MethodDecorator {
         try {
           await cacheService.del(key);
           if (enableLogging) {
-            console.log(`[CacheEvict] 🗑️  Deleted cache: ${key}`);
+            logger.debug(`Deleted cache: ${key}`);
           }
         } catch (error) {
-          console.error(`[CacheEvict] Failed to delete cache ${key}:`, error);
+          logger.error(`Failed to delete cache ${key}:`, error);
         }
       }
 
@@ -311,13 +324,13 @@ export function CacheEvict(options: CacheEvictOptions): MethodDecorator {
 
           const matchingKeys = await cacheService.keys(pattern);
           if (matchingKeys && matchingKeys.length > 0) {
-            await Promise.all(matchingKeys.map(key => cacheService.del(key)));
+            await Promise.all(matchingKeys.map((key: string) => cacheService.del(key)));
             if (enableLogging) {
-              console.log(`[CacheEvict] 🗑️  Deleted ${matchingKeys.length} keys matching pattern: ${pattern}`);
+              logger.debug(`Deleted ${matchingKeys.length} keys matching pattern: ${pattern}`);
             }
           }
         } catch (error) {
-          console.error(`[CacheEvict] Failed to delete keys by pattern "${options.pattern}":`, error);
+          logger.error(`Failed to delete keys by pattern "${options.pattern}":`, error);
         }
       }
 
@@ -359,12 +372,12 @@ export function CacheWarmup(options: CacheableOptions): MethodDecorator {
  * ```
  */
 export async function evictCaches(
-  cacheService: any,
+  cacheService: CacheService | null | undefined,
   keys: string[],
   enableLogging = true
 ): Promise<void> {
   if (!cacheService) {
-    console.warn('[evictCaches] Cache service not provided');
+    logger.warn('Cache service not provided');
     return;
   }
 
@@ -372,10 +385,10 @@ export async function evictCaches(
     try {
       await cacheService.del(key);
       if (enableLogging) {
-        console.log(`[evictCaches] 🗑️  Deleted cache: ${key}`);
+        logger.debug(`Deleted cache: ${key}`);
       }
     } catch (error) {
-      console.error(`[evictCaches] Failed to delete cache ${key}:`, error);
+      logger.error(`Failed to delete cache ${key}:`, error);
     }
   }
 }
@@ -392,12 +405,12 @@ export async function evictCaches(
  * ```
  */
 export async function setCaches(
-  cacheService: any,
-  items: Array<{ key: string; value: any; ttl: number }>,
+  cacheService: CacheService | null | undefined,
+  items: Array<{ key: string; value: unknown; ttl: number }>,
   enableLogging = true
 ): Promise<void> {
   if (!cacheService) {
-    console.warn('[setCaches] Cache service not provided');
+    logger.warn('Cache service not provided');
     return;
   }
 
@@ -412,11 +425,11 @@ export async function setCaches(
         }
 
         if (enableLogging) {
-          console.log(`[setCaches] 💾 Set cache: ${key} (TTL: ${ttl}s)`);
+          logger.debug(`Set cache: ${key} (TTL: ${ttl}s)`);
         }
       }
     } catch (error) {
-      console.error(`[setCaches] Failed to set cache ${key}:`, error);
+      logger.error(`Failed to set cache ${key}:`, error);
     }
   }
 }

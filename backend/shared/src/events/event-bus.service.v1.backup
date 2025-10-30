@@ -1,0 +1,327 @@
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { connect, ChannelModel, Channel, Options } from 'amqplib';
+
+/**
+ * 简化的事件接口（用于事件发布）
+ * 可选的 type 和 timestamp 字段，用于增强事件追踪
+ */
+export interface SimpleEvent {
+  type?: string;
+  timestamp?: string | Date;
+  [key: string]: unknown;
+}
+
+/**
+ * 事件发布选项
+ */
+export interface PublishOptions {
+  /** 消息是否持久化（默认 true） */
+  persistent?: boolean;
+  /** 自定义时间戳（默认使用当前时间） */
+  timestamp?: number;
+  /** 消息优先级（0-10，默认无） */
+  priority?: number;
+  /** 消息过期时间（毫秒） */
+  expiration?: string | number;
+}
+
+/**
+ * 事件总线服务 (基于原生 amqplib)
+ *
+ * 重写说明:
+ * - 移除 @golevelup/nestjs-rabbitmq 依赖以解决与 NestJS v11 的兼容性问题
+ * - 使用原生 amqplib 实现,更轻量、更可控
+ * - 保持与原有 API 完全兼容
+ *
+ * 功能特性:
+ * - ✅ 自动重连机制
+ * - ✅ 连接池管理
+ * - ✅ 优雅关闭
+ * - ✅ 错误处理
+ * - ✅ 类型安全
+ */
+@Injectable()
+export class EventBusService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(EventBusService.name);
+  private connection: ChannelModel | null = null;
+  private channel: Channel | null = null;
+  private reconnectTimer: NodeJS.Timeout | null = null;
+  private isConnecting = false;
+  private readonly rabbitmqUrl: string;
+
+  constructor(private readonly configService: ConfigService) {
+    this.rabbitmqUrl = this.configService.get<string>(
+      'RABBITMQ_URL',
+      'amqp://admin:admin123@localhost:5672/cloudphone',
+    );
+  }
+
+  async onModuleInit() {
+    await this.connect();
+  }
+
+  async onModuleDestroy() {
+    await this.disconnect();
+  }
+
+  /**
+   * 建立 RabbitMQ 连接
+   */
+  private async connect(): Promise<void> {
+    if (this.isConnecting || this.connection) {
+      return;
+    }
+
+    this.isConnecting = true;
+
+    try {
+      this.logger.log(`Connecting to RabbitMQ: ${this.maskUrl(this.rabbitmqUrl)}`);
+
+      // 创建连接
+      this.connection = await connect(this.rabbitmqUrl, {
+        heartbeat: 30, // 心跳间隔 30 秒
+      });
+
+      // 监听连接关闭
+      this.connection.on('close', (err) => {
+        this.logger.warn('RabbitMQ connection closed', err);
+        this.connection = null;
+        this.channel = null;
+        this.scheduleReconnect();
+      });
+
+      // 监听连接错误
+      this.connection.on('error', (err) => {
+        this.logger.error('RabbitMQ connection error', err);
+      });
+
+      // 创建通道
+      this.channel = await this.connection.createChannel();
+
+      // 监听通道关闭
+      this.channel.on('close', () => {
+        this.logger.warn('RabbitMQ channel closed');
+        this.channel = null;
+      });
+
+      // 监听通道错误
+      this.channel.on('error', (err) => {
+        this.logger.error('RabbitMQ channel error', err);
+      });
+
+      // 声明默认 exchange
+      await this.channel.assertExchange('cloudphone.events', 'topic', {
+        durable: true,
+      });
+
+      this.logger.log('✅ RabbitMQ connected successfully');
+      this.isConnecting = false;
+    } catch (error) {
+      this.logger.error('Failed to connect to RabbitMQ', error);
+      this.isConnecting = false;
+      this.scheduleReconnect();
+    }
+  }
+
+  /**
+   * 安排重连
+   */
+  private scheduleReconnect(): void {
+    if (this.reconnectTimer) {
+      return;
+    }
+
+    this.logger.log('Scheduling reconnect in 5 seconds...');
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, 5000);
+  }
+
+  /**
+   * 断开连接
+   */
+  private async disconnect(): Promise<void> {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    try {
+      if (this.channel) {
+        await this.channel.close();
+        this.channel = null;
+      }
+
+      if (this.connection) {
+        await this.connection.close();
+        this.connection = null;
+      }
+
+      this.logger.log('RabbitMQ disconnected');
+    } catch (error) {
+      this.logger.error('Error during disconnect', error);
+    }
+  }
+
+  /**
+   * 掩码 URL 中的密码
+   */
+  private maskUrl(url: string): string {
+    return url.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');
+  }
+
+  /**
+   * 发布事件到 RabbitMQ（类型安全版本）
+   * @param exchange 交换机名称
+   * @param routingKey 路由键
+   * @param message 消息内容
+   * @param options 发布选项
+   */
+  async publish<T extends SimpleEvent>(
+    exchange: string,
+    routingKey: string,
+    message: T,
+    options?: PublishOptions,
+  ): Promise<void> {
+    if (!this.channel) {
+      this.logger.warn('Channel not ready, attempting to reconnect...');
+      await this.connect();
+
+      if (!this.channel) {
+        throw new Error('Failed to publish: RabbitMQ channel not available');
+      }
+    }
+
+    try {
+      const content = Buffer.from(JSON.stringify(message));
+
+      const publishOptions: Options.Publish = {
+        persistent: options?.persistent ?? true,
+        timestamp: options?.timestamp ?? Date.now(),
+      };
+
+      if (options?.priority !== undefined) {
+        publishOptions.priority = options.priority;
+      }
+
+      if (options?.expiration !== undefined) {
+        publishOptions.expiration = String(options.expiration);
+      }
+
+      const published = this.channel.publish(
+        exchange,
+        routingKey,
+        content,
+        publishOptions,
+      );
+
+      if (!published) {
+        this.logger.warn(`Message buffer full for ${routingKey}, waiting...`);
+        await new Promise((resolve) => this.channel!.once('drain', resolve));
+      }
+
+      this.logger.debug(`Event published: ${routingKey} to ${exchange}`);
+    } catch (error) {
+      this.logger.error(`Failed to publish event: ${routingKey}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 发布设备相关事件（类型安全）
+   * @param eventType 事件类型（不含前缀）
+   * @param payload 事件负载
+   */
+  async publishDeviceEvent<T extends Record<string, unknown>>(
+    eventType: string,
+    payload: T,
+  ): Promise<void> {
+    await this.publish('cloudphone.events', `device.${eventType}`, {
+      type: `device.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    } as SimpleEvent & T);
+  }
+
+  /**
+   * 发布应用相关事件（类型安全）
+   * @param eventType 事件类型（不含前缀）
+   * @param payload 事件负载
+   */
+  async publishAppEvent<T extends Record<string, unknown>>(
+    eventType: string,
+    payload: T,
+  ): Promise<void> {
+    await this.publish('cloudphone.events', `app.${eventType}`, {
+      type: `app.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    } as SimpleEvent & T);
+  }
+
+  /**
+   * 发布订单相关事件（类型安全）
+   * @param eventType 事件类型（不含前缀）
+   * @param payload 事件负载
+   */
+  async publishOrderEvent<T extends Record<string, unknown>>(
+    eventType: string,
+    payload: T,
+  ): Promise<void> {
+    await this.publish('cloudphone.events', `order.${eventType}`, {
+      type: `order.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    } as SimpleEvent & T);
+  }
+
+  /**
+   * 发布用户相关事件（类型安全）
+   * @param eventType 事件类型（不含前缀）
+   * @param payload 事件负载
+   */
+  async publishUserEvent<T extends Record<string, unknown>>(
+    eventType: string,
+    payload: T,
+  ): Promise<void> {
+    await this.publish('cloudphone.events', `user.${eventType}`, {
+      type: `user.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    } as SimpleEvent & T);
+  }
+
+  /**
+   * 发布通知相关事件（类型安全）
+   * @param eventType 事件类型（不含前缀）
+   * @param payload 事件负载
+   */
+  async publishNotificationEvent<T extends Record<string, unknown>>(
+    eventType: string,
+    payload: T,
+  ): Promise<void> {
+    await this.publish('cloudphone.events', `notification.${eventType}`, {
+      type: `notification.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    } as SimpleEvent & T);
+  }
+
+  /**
+   * 发布计费相关事件（类型安全）
+   * @param eventType 事件类型（不含前缀）
+   * @param payload 事件负载
+   */
+  async publishBillingEvent<T extends Record<string, unknown>>(
+    eventType: string,
+    payload: T,
+  ): Promise<void> {
+    await this.publish('cloudphone.events', `billing.${eventType}`, {
+      type: `billing.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    } as SimpleEvent & T);
+  }
+}

@@ -126,6 +126,10 @@ export { EventOutbox, EventOutboxService, EventOutboxModule } from './outbox';
 export { TransactionTestHelper, ConcurrencyTestHelper } from './testing';
 export type { ConcurrencyTestResult, RaceConditionTestResult } from './testing';
 
+// ========== 测试辅助工具 (Test Helpers & Mock Factories) ==========
+export * from './testing/test-helpers';
+export * from './testing/mock-factories';
+
 // ========== 安全中间件 ==========
 export { RateLimitMiddleware, IPBlacklistMiddleware, AutoBanMiddleware } from './middleware/rate-limit.middleware';
 export { XssProtectionMiddleware, StrictXssProtectionMiddleware, LooseXssProtectionMiddleware } from './middleware/xss-protection.middleware';

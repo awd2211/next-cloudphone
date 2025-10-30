@@ -20,6 +20,7 @@ export enum SagaStatus {
  */
 export enum SagaType {
   PAYMENT_REFUND = 'PAYMENT_REFUND',
+  PAYMENT_PURCHASE = 'PAYMENT_PURCHASE', // ✅ 订单购买流程
   DEVICE_CREATION = 'DEVICE_CREATION',
   APP_UPLOAD = 'APP_UPLOAD',
 }
