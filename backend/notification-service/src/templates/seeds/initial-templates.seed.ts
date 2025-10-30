@@ -1,4 +1,4 @@
-import { NotificationType, NotificationChannel } from '../../entities/notification.entity';
+import { NotificationType, NotificationChannel } from '@cloudphone/shared';
 
 /**
  * 初始通知模板种子数据
@@ -11,7 +11,7 @@ export const initialTemplates = [
   {
     code: 'user.registered',
     name: '用户注册成功',
-    type: NotificationType.SYSTEM,
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
     title: '欢迎加入云手机平台！',
     body: '您好 {{username}}，欢迎注册云手机平台！您的账号已成功创建。',
     emailTemplate: `
@@ -52,7 +52,7 @@ export const initialTemplates = [
   {
     code: 'user.login_failed',
     name: '登录失败警告',
-    type: NotificationType.ALERT,
+    type: NotificationType.SYSTEM_SECURITY_ALERT,
     title: '账号登录失败警告',
     body: '检测到您的账号 {{username}} 在 {{formatDate attemptTime}} 有异常登录尝试，来自 IP：{{ipAddress}}。如非本人操作，请立即修改密码。',
     emailTemplate: `
@@ -98,7 +98,7 @@ export const initialTemplates = [
   {
     code: 'user.password_reset',
     name: '密码重置请求',
-    type: NotificationType.SYSTEM,
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
     title: '密码重置请求',
     body: '您好 {{username}}，我们收到了您的密码重置请求。请点击链接重置密码，链接将在30分钟后失效。',
     emailTemplate: `
@@ -139,7 +139,7 @@ export const initialTemplates = [
   {
     code: 'user.password_changed',
     name: '密码修改成功',
-    type: NotificationType.SYSTEM,
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
     title: '密码修改成功',
     body: '您好 {{username}}，您的账号密码已于 {{formatDate changedAt}} 成功修改。如非本人操作，请立即联系客服。',
     emailTemplate: `
@@ -178,7 +178,7 @@ export const initialTemplates = [
   {
     code: 'user.two_factor_enabled',
     name: '两步验证已启用',
-    type: NotificationType.SYSTEM,
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
     title: '两步验证已启用',
     body: '您好 {{username}}，您的账号已成功启用两步验证，安全性得到提升。',
     emailTemplate: `
@@ -216,7 +216,7 @@ export const initialTemplates = [
   {
     code: 'device.created',
     name: '云手机创建成功',
-    type: NotificationType.SYSTEM,
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
     title: '云手机创建成功',
     body: '您的云手机 {{deviceName}} 已创建成功！设备ID: {{deviceId}}，可以开始使用了。',
     emailTemplate: `
@@ -258,7 +258,7 @@ export const initialTemplates = [
   {
     code: 'device.creation_failed',
     name: '云手机创建失败',
-    type: NotificationType.ALERT,
+    type: NotificationType.SYSTEM_SECURITY_ALERT,
     title: '云手机创建失败',
     body: '抱歉，云手机 {{deviceName}} 创建失败。原因：{{reason}}。请重试或联系客服。',
     emailTemplate: `
@@ -302,7 +302,7 @@ export const initialTemplates = [
   {
     code: 'device.error',
     name: '云手机运行异常',
-    type: NotificationType.ALERT,
+    type: NotificationType.SYSTEM_SECURITY_ALERT,
     title: '云手机运行异常',
     body: '您的云手机 {{deviceName}} 出现异常：{{errorMessage}}。我们正在处理，请稍后查看。',
     emailTemplate: `
@@ -350,7 +350,7 @@ export const initialTemplates = [
   {
     code: 'billing.payment_success',
     name: '支付成功通知',
-    type: NotificationType.SYSTEM,
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
     title: '支付成功',
     body: '您已成功支付 {{formatCurrency amount}}，订单号：{{orderId}}。感谢您的使用！',
     emailTemplate: `
@@ -406,7 +406,7 @@ export const initialTemplates = [
   {
     code: 'billing.payment_failed',
     name: '支付失败通知',
-    type: NotificationType.ALERT,
+    type: NotificationType.SYSTEM_SECURITY_ALERT,
     title: '支付失败',
     body: '您的支付失败，订单号：{{orderId}}，原因：{{reason}}。请重试或更换支付方式。',
     emailTemplate: `
@@ -458,7 +458,7 @@ export const initialTemplates = [
   {
     code: 'billing.low_balance',
     name: '余额不足提醒',
-    type: NotificationType.ALERT,
+    type: NotificationType.SYSTEM_SECURITY_ALERT,
     title: '余额不足提醒',
     body: '您的账户余额仅剩 {{formatCurrency balance}}，为避免服务中断，请及时充值。',
     emailTemplate: `
@@ -497,7 +497,7 @@ export const initialTemplates = [
   {
     code: 'billing.invoice_generated',
     name: '账单生成通知',
-    type: NotificationType.SYSTEM,
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
     title: '账单已生成',
     body: '您的{{month}}月账单已生成，总金额 {{formatCurrency totalAmount}}。',
     emailTemplate: `
@@ -559,7 +559,7 @@ export const initialTemplates = [
   {
     code: 'app.installed',
     name: '应用安装成功',
-    type: NotificationType.SYSTEM,
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
     title: '应用安装成功',
     body: '应用 {{appName}} 已在云手机 {{deviceName}} 上安装成功！',
     emailTemplate: `
@@ -599,7 +599,7 @@ export const initialTemplates = [
   {
     code: 'app.install_failed',
     name: '应用安装失败',
-    type: NotificationType.ALERT,
+    type: NotificationType.SYSTEM_SECURITY_ALERT,
     title: '应用安装失败',
     body: '应用 {{appName}} 在云手机 {{deviceName}} 上安装失败，原因：{{reason}}。',
     emailTemplate: `
@@ -644,7 +644,7 @@ export const initialTemplates = [
   {
     code: 'system.maintenance',
     name: '系统维护通知',
-    type: NotificationType.SYSTEM,
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
     title: '系统维护通知',
     body: '系统将于 {{formatDate startTime}} 进行维护，预计持续 {{duration}} 小时，期间服务可能中断，请提前做好准备。',
     emailTemplate: `

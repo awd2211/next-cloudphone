@@ -1,5 +1,5 @@
 import { IsString, IsEnum, IsOptional, IsBoolean, IsArray, IsObject, Length, MaxLength } from 'class-validator';
-import { NotificationType, NotificationChannel } from '../../entities/notification.entity';
+import { NotificationType, NotificationChannel } from '@cloudphone/shared';
 
 export class CreateTemplateDto {
   @IsString()

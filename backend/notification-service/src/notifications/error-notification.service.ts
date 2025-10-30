@@ -4,6 +4,7 @@ import { Repository, MoreThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationsService } from './notifications.service';
 import { Notification, NotificationCategory, NotificationChannel } from '../entities/notification.entity';
+import { UserServiceClient } from '../clients/user-service.client';
 
 /**
  * 错误严重程度
@@ -248,6 +249,7 @@ export class ErrorNotificationService {
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
     private readonly notificationsService: NotificationsService,
+    private readonly userServiceClient: UserServiceClient,
   ) {}
 
   /**
@@ -469,22 +471,42 @@ export class ErrorNotificationService {
   /**
    * 获取管理员用户ID列表
    *
-   * TODO: 从user-service获取具有admin角色的用户
-   * 目前返回硬编码的管理员ID
+   * 从 user-service 获取具有 admin 或 super_admin 角色的用户
+   * 如果 user-service 不可用，则使用环境变量作为 fallback
    */
   private async getAdminUserIds(): Promise<string[]> {
-    // TODO: 调用user-service API获取管理员列表
-    // const response = await this.httpClient.get('/users?role=admin');
-    // return response.data.map(user => user.id);
+    try {
+      // 调用 user-service 获取管理员列表
+      const adminUserIds = await this.userServiceClient.getAdminUsers();
 
-    // 临时方案：从环境变量读取管理员ID
-    const adminIds = process.env.ADMIN_USER_IDS || '';
-    if (adminIds) {
-      return adminIds.split(',').map(id => id.trim()).filter(Boolean);
+      if (adminUserIds.length > 0) {
+        this.logger.debug(`Retrieved ${adminUserIds.length} admin users from user-service`);
+        return adminUserIds;
+      }
+
+      // 如果没有找到管理员，尝试环境变量 fallback
+      const fallbackIds = process.env.ADMIN_USER_IDS || '';
+      if (fallbackIds) {
+        const ids = fallbackIds.split(',').map(id => id.trim()).filter(Boolean);
+        this.logger.warn(`No admin users from user-service, using ${ids.length} fallback admin IDs from environment`);
+        return ids;
+      }
+
+      this.logger.warn('No admin users found from user-service and no ADMIN_USER_IDS configured');
+      return [];
+    } catch (error) {
+      this.logger.error(`Failed to get admin users: ${error.message}`, error.stack);
+
+      // Fallback: 从环境变量读取
+      const fallbackIds = process.env.ADMIN_USER_IDS || '';
+      if (fallbackIds) {
+        const ids = fallbackIds.split(',').map(id => id.trim()).filter(Boolean);
+        this.logger.warn(`Using ${ids.length} fallback admin IDs from environment due to error`);
+        return ids;
+      }
+
+      return [];
     }
-
-    this.logger.warn('未配置管理员用户ID (ADMIN_USER_IDS)');
-    return [];
   }
 
   /**

@@ -1,6 +1,6 @@
 import { IsOptional, IsEnum, IsBoolean, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { NotificationType } from '../../entities/notification.entity';
+import { NotificationType } from '@cloudphone/shared';
 
 export class QueryTemplateDto {
   @IsOptional()

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
-import { NotificationType } from '../entities/notification.entity';
+import { NotificationCategory } from '../entities/notification.entity';
 
 /**
  * 事件类型定义
@@ -118,7 +118,7 @@ export class NotificationEventsHandler {
       // 发送 WebSocket 通知
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.DEVICE,
+        type: NotificationCategory.DEVICE,
         title: '设备创建成功',
         message: `您的设备 ${event.deviceName} 已成功创建`,
         data: {
@@ -148,7 +148,7 @@ export class NotificationEventsHandler {
 
     await this.notificationsService.createAndSend({
       userId: event.userId,
-      type: NotificationType.ALERT,
+      type: NotificationCategory.ALERT,
       title: '设备创建失败',
       message: `设备 ${event.deviceName} 创建失败：${event.reason || '未知错误'}`,
       data: {
@@ -167,7 +167,7 @@ export class NotificationEventsHandler {
 
     await this.notificationsService.createAndSend({
       userId: event.userId,
-      type: NotificationType.ORDER,
+      type: NotificationCategory.APP,
       title: '支付成功',
       message: `订单 ${event.orderNo} 支付成功，金额 ¥${event.amount}`,
       data: {
@@ -188,7 +188,7 @@ export class NotificationEventsHandler {
     // WebSocket 通知
     await this.notificationsService.createAndSend({
       userId: event.userId,
-      type: NotificationType.ALERT,
+      type: NotificationCategory.ALERT,
       title: '余额不足提醒',
       message: `您的账户余额仅剩 ¥${event.balance}，请及时充值`,
       data: {
@@ -234,7 +234,7 @@ export class NotificationEventsHandler {
 
     await this.notificationsService.createAndSend({
       userId: event.userId,
-      type: NotificationType.BILLING,
+      type: NotificationCategory.BILLING,
       title: '新账单生成',
       message: `您有一张新账单，金额 ¥${event.amount}，请及时支付`,
       data: {
@@ -255,7 +255,7 @@ export class NotificationEventsHandler {
     try {
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.DEVICE,
+        type: NotificationCategory.DEVICE,
         title: '设备备份成功',
         message: `设备 ${event.deviceName} 的备份已成功创建`,
         data: {
@@ -283,7 +283,7 @@ export class NotificationEventsHandler {
       // WebSocket 通知
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.ALERT,
+        type: NotificationCategory.ALERT,
         title: '设备即将到期',
         message: `您的设备 ${event.deviceName} 将在 ${event.daysRemaining} 天后到期，请及时续费或备份数据`,
         data: {
@@ -318,7 +318,7 @@ export class NotificationEventsHandler {
     try {
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.ALERT,
+        type: NotificationCategory.ALERT,
         title: '设备已过期',
         message: `您的设备已过期，请及时处理或续费`,
         data: {

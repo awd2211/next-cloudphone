@@ -9,7 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { CreateNotificationDto, NotificationType } from './notification.interface';
+import { CreateNotificationDto } from './notification.interface';
 
 @Controller('notifications')
 export class NotificationsController {

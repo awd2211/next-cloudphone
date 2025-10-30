@@ -33,7 +33,7 @@ export class NotificationsService {
     // 创建通知记录
     const notification = this.notificationRepository.create({
       userId: dto.userId,
-      type: dto.type as NotificationType || NotificationType.SYSTEM,
+      type: dto.type || NotificationCategory.SYSTEM,
       status: NotificationStatus.PENDING,
       title: dto.title,
       message: dto.message,

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { NotificationsService } from '../notifications.service';
-import { Notification, NotificationStatus, NotificationType, NotificationChannel } from '../../entities/notification.entity';
+import { Notification, NotificationStatus, NotificationCategory, NotificationChannel } from '../../entities/notification.entity';
 import { NotificationGateway } from '../../gateway/notification.gateway';
 import { NotificationPreferencesService } from '../preferences.service';
 import { EmailService } from '../../email/email.service';
@@ -105,7 +105,7 @@ describe('NotificationsService', () => {
   describe('createAndSend', () => {
     const createDto = {
       userId: 'user-123',
-      type: NotificationType.SYSTEM,
+      type: NotificationCategory.SYSTEM,
       title: 'Test Notification',
       message: 'This is a test message',
       data: { key: 'value' },
@@ -127,7 +127,7 @@ describe('NotificationsService', () => {
       expect(mockNotificationRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-123',
-          type: NotificationType.SYSTEM,
+          type: NotificationCategory.SYSTEM,
           title: 'Test Notification',
           message: 'This is a test message',
         }),

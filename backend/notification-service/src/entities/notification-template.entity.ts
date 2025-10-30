@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
-import { NotificationType, NotificationChannel } from './notification.entity';
+import { NotificationType, NotificationChannel } from '@cloudphone/shared';
 
 @Entity('notification_templates')
 @Index(['type', 'isActive'])

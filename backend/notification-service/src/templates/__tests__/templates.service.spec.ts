@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { TemplatesService } from '../templates.service';
 import { NotificationTemplate } from '../../entities/notification-template.entity';
-import { NotificationType, NotificationChannel } from '../../entities/notification.entity';
+import { NotificationType, NotificationChannel } from '@cloudphone/shared';
 import { CreateTemplateDto } from '../dto/create-template.dto';
 import { UpdateTemplateDto } from '../dto/update-template.dto';
 
@@ -17,7 +17,7 @@ describe('TemplatesService', () => {
     id: 'template-123',
     code: 'device-created',
     name: 'Device Created Notification',
-    type: NotificationType.DEVICE,
+    type: NotificationType.DEVICE_CREATED,
     title: 'Device {{deviceName}} Created',
     body: 'Your device {{deviceName}} (ID: {{deviceId}}) has been created successfully.',
     emailTemplate: '<p>Dear {{userName}},</p><p>Device: {{deviceName}}</p>',
@@ -34,7 +34,7 @@ describe('TemplatesService', () => {
   const createTemplateDto: CreateTemplateDto = {
     code: 'device-created',
     name: 'Device Created Notification',
-    type: NotificationType.DEVICE,
+    type: NotificationType.DEVICE_CREATED,
     title: 'Device {{deviceName}} Created',
     body: 'Your device {{deviceName}} has been created.',
     emailTemplate: '<p>Device: {{deviceName}}</p>',
@@ -127,7 +127,7 @@ describe('TemplatesService', () => {
         templateRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
         const result = await service.findAll({
-          type: NotificationType.DEVICE,
+          type: NotificationType.DEVICE_CREATED,
           language: 'zh-CN',
           isActive: true,
           search: 'device',

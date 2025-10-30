@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HttpClientModule, ConsulModule } from '@cloudphone/shared';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { Notification } from '../entities/notification.entity';
@@ -11,6 +12,7 @@ import { NotificationPreferencesController } from './preferences.controller';
 import { EmailModule } from '../email/email.module';
 import { SmsModule } from '../sms/sms.module';
 import { ErrorNotificationService } from './error-notification.service';
+import { UserServiceClient } from '../clients/user-service.client';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { ErrorNotificationService } from './error-notification.service';
       NotificationTemplate,
       NotificationPreference,
     ]),
+    HttpClientModule,
+    ConsulModule,
     EmailModule,
     SmsModule,
   ],
@@ -28,12 +32,14 @@ import { ErrorNotificationService } from './error-notification.service';
     NotificationGateway,
     NotificationPreferencesService,
     ErrorNotificationService,
+    UserServiceClient,
   ],
   exports: [
     NotificationsService,
     NotificationGateway,
     NotificationPreferencesService,
     ErrorNotificationService,
+    UserServiceClient,
   ],
 })
 export class NotificationsModule {}

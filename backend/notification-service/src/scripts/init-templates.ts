@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { NotificationTemplate } from '../entities/notification-template.entity';
-import { NotificationType, NotificationChannel } from '../entities/notification.entity';
+import { NotificationType, NotificationChannel } from '@cloudphone/shared';
 
 /**
  * 初始化通知模板脚本
@@ -10,7 +10,7 @@ const DEFAULT_TEMPLATES = [
   {
     code: 'device_created',
     name: '设备创建成功',
-    type: NotificationType.DEVICE,
+    type: NotificationType.DEVICE_CREATED,
     title: '设备创建成功',
     body: '您的设备 {{deviceName}} 已成功创建',
     emailTemplate: '<h2>设备创建成功</h2><p>您的设备 <strong>{{deviceName}}</strong> 已成功创建。</p>',
@@ -21,7 +21,7 @@ const DEFAULT_TEMPLATES = [
   {
     code: 'device_failed',
     name: '设备创建失败',
-    type: NotificationType.ALERT,
+    type: NotificationType.SYSTEM_SECURITY_ALERT,
     title: '设备创建失败',
     body: '设备 {{deviceName}} 创建失败：{{reason}}',
     channels: [NotificationChannel.WEBSOCKET],
@@ -31,7 +31,7 @@ const DEFAULT_TEMPLATES = [
   {
     code: 'order_paid',
     name: '订单支付成功',
-    type: NotificationType.ORDER,
+    type: NotificationType.BILLING_PAYMENT_SUCCESS,
     title: '支付成功',
     body: '订单 {{orderNo}} 支付成功，金额 ¥{{amount}}',
     channels: [NotificationChannel.WEBSOCKET],
@@ -41,7 +41,7 @@ const DEFAULT_TEMPLATES = [
   {
     code: 'low_balance',
     name: '余额不足告警',
-    type: NotificationType.ALERT,
+    type: NotificationType.SYSTEM_SECURITY_ALERT,
     title: '余额不足提醒',
     body: '您的账户余额仅剩 ¥{{balance}}，请及时充值',
     emailTemplate: '<h2>余额不足提醒</h2><p>您的账户余额仅剩 <strong>¥{{balance}}</strong>，请及时充值。</p>',
@@ -52,7 +52,7 @@ const DEFAULT_TEMPLATES = [
   {
     code: 'invoice_generated',
     name: '账单生成通知',
-    type: NotificationType.BILLING,
+    type: NotificationType.BILLING_LOW_BALANCE,
     title: '新账单生成',
     body: '您有一张新账单，金额 ¥{{amount}}，到期时间 {{dueDate}}',
     channels: [NotificationChannel.WEBSOCKET],
@@ -62,7 +62,7 @@ const DEFAULT_TEMPLATES = [
   {
     code: 'system_maintenance',
     name: '系统维护通知',
-    type: NotificationType.SYSTEM,
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
     title: '系统维护通知',
     body: '系统将于 {{startTime}} 进行维护，预计持续 {{duration}} 分钟',
     channels: [NotificationChannel.WEBSOCKET],
