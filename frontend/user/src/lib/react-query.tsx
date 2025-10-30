@@ -39,8 +39,8 @@ export const queryClient = new QueryClient({
       // 重新连接时重新获取
       refetchOnReconnect: true,
 
-      // 不在挂载时自动重新获取（避免重复请求）
-      refetchOnMount: false,
+      // 挂载时重新获取
+      refetchOnMount: true,
     },
     mutations: {
       // Mutation 失败重试 1 次

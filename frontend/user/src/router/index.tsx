@@ -6,11 +6,13 @@ import { Spin } from 'antd';
 import MainLayout from '@/layouts/MainLayout';
 import Login from '@/pages/Login';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 // 使用 React.lazy 懒加载所有页面组件
 const Home = lazy(() => import('@/pages/Home'));
 const PlanPurchase = lazy(() => import('@/pages/PlanPurchase'));
 const MyDevices = lazy(() => import('@/pages/MyDevices'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
 const DeviceDetail = lazy(() => import('@/pages/DeviceDetail'));
 const MyOrders = lazy(() => import('@/pages/MyOrders'));
 const Profile = lazy(() => import('@/pages/Profile'));
@@ -69,7 +71,9 @@ export const router = createBrowserRouter([
     path: '/',
     element: (
       <ErrorBoundary>
-        <MainLayout />
+        <ProtectedRoute>
+          <MainLayout />
+        </ProtectedRoute>
       </ErrorBoundary>
     ),
     children: [
@@ -178,5 +182,9 @@ export const router = createBrowserRouter([
         element: withSuspense(ReferralRecords),
       },
     ],
+  },
+  {
+    path: '*',
+    element: withSuspense(NotFound),
   },
 ]);
