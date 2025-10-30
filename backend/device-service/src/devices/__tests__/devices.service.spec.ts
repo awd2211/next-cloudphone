@@ -1,7 +1,8 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { Repository, DataSource } from "typeorm";
-import { NotFoundException, BadRequestException } from "@nestjs/common";
+import { BadRequestException } from "@nestjs/common";
+import { BusinessException } from "@cloudphone/shared";
 import { ConfigService } from "@nestjs/config";
 import { ModuleRef } from "@nestjs/core";
 import { DevicesService } from "../devices.service";
@@ -85,7 +86,9 @@ describe("DevicesService", () => {
     get: jest.fn(),
     set: jest.fn(),
     del: jest.fn(),
-    wrap: jest.fn(),
+    delPattern: jest.fn(),
+    // wrap 应该执行回调函数 (缓存未命中场景)
+    wrap: jest.fn((key, fn, ttl) => fn()),
   };
 
   const mockEventOutboxService = {
@@ -103,13 +106,14 @@ describe("DevicesService", () => {
   };
 
   const mockQueryRunner = {
-    connect: jest.fn(),
-    startTransaction: jest.fn(),
-    commitTransaction: jest.fn(),
-    rollbackTransaction: jest.fn(),
-    release: jest.fn(),
+    connect: jest.fn().mockResolvedValue(undefined),
+    startTransaction: jest.fn().mockResolvedValue(undefined),
+    commitTransaction: jest.fn().mockResolvedValue(undefined),
+    rollbackTransaction: jest.fn().mockResolvedValue(undefined),
+    release: jest.fn().mockResolvedValue(undefined),
     manager: {
       getRepository: jest.fn(() => mockDeviceRepository),
+      save: jest.fn((entity, data) => Promise.resolve(data)),
     },
   };
 
@@ -205,148 +209,103 @@ describe("DevicesService", () => {
       dpi: 320,
     };
 
-    it("should successfully create a device with allocated ports", async () => {
+    it("should successfully create a device using Saga orchestration", async () => {
       // Arrange
-      const allocatedPorts = { adbPort: 5555, webrtcPort: 8080 };
-      const savedDevice: Partial<Device> = {
+      const sagaId = "saga-123";
+      const createdDevice: Partial<Device> = {
         id: "device-123",
         ...createDeviceDto,
+        providerType: "redroid" as any,
         status: DeviceStatus.CREATING,
-        adbPort: allocatedPorts.adbPort,
+        adbPort: 5555,
         adbHost: "localhost",
-        metadata: {
-          webrtcPort: allocatedPorts.webrtcPort,
-          createdBy: "system",
-        },
       };
 
-      mockPortManager.allocatePorts.mockResolvedValue(allocatedPorts);
-      mockDeviceRepository.create.mockReturnValue(savedDevice);
-      mockDeviceRepository.save.mockResolvedValue(savedDevice);
-      mockQuotaClient.reportDeviceUsage.mockResolvedValue(undefined);
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
+      mockSagaOrchestrator.executeSaga.mockResolvedValue(sagaId);
+      mockDeviceRepository.findOne.mockResolvedValue(createdDevice as Device);
 
       // Act
       const result = await service.create(createDeviceDto);
 
       // Assert
-      expect(mockPortManager.allocatePorts).toHaveBeenCalled();
-      expect(mockDeviceRepository.create).toHaveBeenCalledWith(
+      expect(result.sagaId).toBe(sagaId);
+      expect(result.device).toBeDefined();
+      expect(mockSagaOrchestrator.executeSaga).toHaveBeenCalledWith(
         expect.objectContaining({
-          ...createDeviceDto,
-          status: DeviceStatus.CREATING,
-          adbPort: allocatedPorts.adbPort,
-          adbHost: "localhost",
+          type: "DEVICE_CREATION",
+          timeoutMs: 600000,
+          maxRetries: 3,
+          steps: expect.arrayContaining([
+            expect.objectContaining({ name: "ALLOCATE_PORTS" }),
+            expect.objectContaining({ name: "CREATE_PROVIDER_DEVICE" }),
+            expect.objectContaining({ name: "CREATE_DATABASE_RECORD" }),
+            expect.objectContaining({ name: "REPORT_QUOTA_USAGE" }),
+            expect.objectContaining({ name: "START_DEVICE" }),
+          ]),
+        }),
+        expect.objectContaining({
+          userId: createDeviceDto.userId,
+          name: createDeviceDto.name,
         }),
       );
-      expect(mockDeviceRepository.save).toHaveBeenCalledWith(savedDevice);
-      expect(result).toEqual(savedDevice);
     });
 
-    it("should report device usage to quota system", async () => {
+    it("should return placeholder device when not found immediately after Saga", async () => {
       // Arrange
-      const allocatedPorts = { adbPort: 5555, webrtcPort: 8080 };
-      const savedDevice: Partial<Device> = {
-        id: "device-123",
-        userId: "user-123",
-        cpuCores: 2,
-        memoryMB: 4096,
-        storageMB: 32768,
-        status: DeviceStatus.CREATING,
-      };
+      const sagaId = "saga-456";
 
-      mockPortManager.allocatePorts.mockResolvedValue(allocatedPorts);
-      mockDeviceRepository.create.mockReturnValue(savedDevice);
-      mockDeviceRepository.save.mockResolvedValue(savedDevice);
-      mockQuotaClient.reportDeviceUsage.mockResolvedValue(undefined);
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
+      mockSagaOrchestrator.executeSaga.mockResolvedValue(sagaId);
+      mockDeviceRepository.findOne.mockResolvedValue(null); // Device not found yet
+
+      // Act
+      const result = await service.create(createDeviceDto);
+
+      // Assert
+      expect(result.sagaId).toBe(sagaId);
+      expect(result.device.id).toBe("pending");
+      expect(result.device.status).toBe(DeviceStatus.CREATING);
+      expect(result.device.name).toBe(createDeviceDto.name);
+    });
+
+    it("should call provider factory with correct provider type", async () => {
+      // Arrange
+      const sagaId = "saga-789";
+
+      mockSagaOrchestrator.executeSaga.mockResolvedValue(sagaId);
+      mockDeviceRepository.findOne.mockResolvedValue(null);
 
       // Act
       await service.create(createDeviceDto);
 
       // Assert
-      expect(mockQuotaClient.reportDeviceUsage).toHaveBeenCalledWith(
-        "user-123",
-        expect.objectContaining({
-          deviceId: "device-123",
-          cpuCores: 2,
-          memoryGB: 4,
-          storageGB: 32,
-          operation: "increment",
-        }),
-      );
+      expect(mockProviderFactory.getProvider).toHaveBeenCalledWith("redroid");
     });
 
-    it("should publish device created event", async () => {
+    it("should use PHYSICAL provider when specified", async () => {
       // Arrange
-      const allocatedPorts = { adbPort: 5555, webrtcPort: 8080 };
-      const savedDevice: Partial<Device> = {
-        id: "device-123",
-        userId: "user-123",
-        tenantId: "tenant-456",
-        name: "Test Device",
-        status: DeviceStatus.CREATING,
-      };
+      const physicalDto = { ...createDeviceDto, providerType: "physical" as any };
+      const sagaId = "saga-physical";
 
-      mockPortManager.allocatePorts.mockResolvedValue(allocatedPorts);
-      mockDeviceRepository.create.mockReturnValue(savedDevice);
-      mockDeviceRepository.save.mockResolvedValue(savedDevice);
-      mockQuotaClient.reportDeviceUsage.mockResolvedValue(undefined);
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
+      mockSagaOrchestrator.executeSaga.mockResolvedValue(sagaId);
+      mockDeviceRepository.findOne.mockResolvedValue(null);
 
       // Act
-      await service.create(createDeviceDto);
+      await service.create(physicalDto);
 
       // Assert
-      expect(mockEventBus.publishDeviceEvent).toHaveBeenCalledWith(
-        "created",
-        expect.objectContaining({
-          deviceId: "device-123",
-          userId: "user-123",
-          deviceName: "Test Device",
-          status: DeviceStatus.CREATING,
-          tenantId: "tenant-456",
-        }),
-      );
+      expect(mockProviderFactory.getProvider).toHaveBeenCalledWith("physical");
     });
 
-    it("should release ports when device creation fails", async () => {
+    it("should handle Saga execution errors", async () => {
       // Arrange
-      const allocatedPorts = { adbPort: 5555, webrtcPort: 8080 };
-
-      mockPortManager.allocatePorts.mockResolvedValue(allocatedPorts);
-      mockDeviceRepository.create.mockImplementation(() => {
-        throw new Error("Database error");
-      });
+      mockSagaOrchestrator.executeSaga.mockRejectedValue(
+        new Error("Saga execution failed"),
+      );
 
       // Act & Assert
       await expect(service.create(createDeviceDto)).rejects.toThrow(
-        "Database error",
+        "Saga execution failed",
       );
-      expect(mockPortManager.releasePorts).toHaveBeenCalledWith(allocatedPorts);
-    });
-
-    it("should not throw when quota reporting fails", async () => {
-      // Arrange
-      const allocatedPorts = { adbPort: 5555, webrtcPort: 8080 };
-      const savedDevice: Partial<Device> = {
-        id: "device-123",
-        userId: "user-123",
-        cpuCores: 2,
-        memoryMB: 4096,
-        storageMB: 32768,
-      };
-
-      mockPortManager.allocatePorts.mockResolvedValue(allocatedPorts);
-      mockDeviceRepository.create.mockReturnValue(savedDevice);
-      mockDeviceRepository.save.mockResolvedValue(savedDevice);
-      mockQuotaClient.reportDeviceUsage.mockRejectedValue(
-        new Error("Quota service unavailable"),
-      );
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
-
-      // Act & Assert
-      await expect(service.create(createDeviceDto)).resolves.toBeDefined();
     });
   });
 
@@ -358,9 +317,9 @@ describe("DevicesService", () => {
         { id: "device-2", name: "Device 2", userId: "user-1" },
       ];
 
-      mockDeviceRepository.findAndCount.mockResolvedValue([devices, 10]);
+      mockDeviceRepository.findAndCount.mockResolvedValue([devices as Device[], 10]);
 
-      // Act
+      // Act - no userId = no cache, direct query
       const result = await service.findAll(1, 10);
 
       // Assert
@@ -382,10 +341,11 @@ describe("DevicesService", () => {
       // Arrange
       mockDeviceRepository.findAndCount.mockResolvedValue([[], 0]);
 
-      // Act
+      // Act - with userId, will use cache.wrap
       await service.findAll(1, 10, "user-123");
 
       // Assert
+      expect(mockCacheService.wrap).toHaveBeenCalled();
       expect(mockDeviceRepository.findAndCount).toHaveBeenCalledWith({
         where: { userId: "user-123" },
         skip: 0,
@@ -433,9 +393,10 @@ describe("DevicesService", () => {
       const device: Partial<Device> = {
         id: "device-123",
         name: "Test Device",
+        providerType: "redroid" as any,
       };
 
-      mockDeviceRepository.findOne.mockResolvedValue(device);
+      mockDeviceRepository.findOne.mockResolvedValue(device as Device);
 
       // Act
       const result = await service.findOne("device-123");
@@ -447,16 +408,16 @@ describe("DevicesService", () => {
       });
     });
 
-    it("should throw NotFoundException when device not found", async () => {
+    it("should throw BusinessException when device not found", async () => {
       // Arrange
       mockDeviceRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
       await expect(service.findOne("non-existent-id")).rejects.toThrow(
-        NotFoundException,
+        BusinessException,
       );
       await expect(service.findOne("non-existent-id")).rejects.toThrow(
-        "设备 #non-existent-id 不存在",
+        "设备不存在: non-existent-id",
       );
     });
   });
@@ -468,14 +429,15 @@ describe("DevicesService", () => {
         id: "device-123",
         name: "Old Name",
         cpuCores: 2,
+        providerType: "redroid" as any,
       };
       const updateDto: UpdateDeviceDto = {
         name: "New Name",
       };
       const updatedDevice = { ...existingDevice, ...updateDto };
 
-      mockDeviceRepository.findOne.mockResolvedValue(existingDevice);
-      mockDeviceRepository.save.mockResolvedValue(updatedDevice);
+      mockDeviceRepository.findOne.mockResolvedValue(existingDevice as Device);
+      mockDeviceRepository.save.mockResolvedValue(updatedDevice as Device);
 
       // Act
       const result = await service.update("device-123", updateDto);
@@ -487,14 +449,14 @@ describe("DevicesService", () => {
       );
     });
 
-    it("should throw NotFoundException when updating non-existent device", async () => {
+    it("should throw BusinessException when updating non-existent device", async () => {
       // Arrange
       mockDeviceRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
       await expect(
         service.update("non-existent-id", { name: "New Name" }),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BusinessException);
     });
   });
 
@@ -504,7 +466,9 @@ describe("DevicesService", () => {
       const device: Partial<Device> = {
         id: "device-123",
         userId: "user-123",
+        providerType: "redroid" as any,
         containerId: "container-123",
+        externalId: "container-123",
         adbPort: 5555,
         cpuCores: 2,
         memoryMB: 4096,
@@ -512,15 +476,15 @@ describe("DevicesService", () => {
         metadata: { webrtcPort: 8080 },
       };
 
-      mockDeviceRepository.findOne.mockResolvedValue(device);
+      mockDeviceRepository.findOne.mockResolvedValue(device as Device);
       mockQuotaClient.reportDeviceUsage.mockResolvedValue(undefined);
       mockAdbService.disconnectFromDevice.mockResolvedValue(undefined);
-      mockDockerService.removeContainer.mockResolvedValue(undefined);
+      mockProvider.destroy.mockResolvedValue(undefined);
       mockDeviceRepository.save.mockResolvedValue({
         ...device,
         status: DeviceStatus.DELETED,
-      });
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
+      } as Device);
+      mockEventOutboxService.writeEvent.mockResolvedValue(undefined);
 
       // Act
       await service.remove("device-123");
@@ -536,15 +500,16 @@ describe("DevicesService", () => {
       expect(mockAdbService.disconnectFromDevice).toHaveBeenCalledWith(
         "device-123",
       );
-      expect(mockDockerService.removeContainer).toHaveBeenCalledWith(
-        "container-123",
-      );
+      expect(mockProvider.destroy).toHaveBeenCalledWith("container-123");
       expect(mockPortManager.releasePorts).toHaveBeenCalledWith({
         adbPort: 5555,
         webrtcPort: 8080,
       });
-      expect(mockEventBus.publishDeviceEvent).toHaveBeenCalledWith(
-        "deleted",
+      expect(mockEventOutboxService.writeEvent).toHaveBeenCalledWith(
+        expect.any(Object), // queryRunner
+        "device",
+        "device-123",
+        "device.deleted",
         expect.objectContaining({
           deviceId: "device-123",
           userId: "user-123",
@@ -557,47 +522,51 @@ describe("DevicesService", () => {
       const device: Partial<Device> = {
         id: "device-123",
         userId: "user-123",
+        providerType: "redroid" as any,
         containerId: "container-123",
+        externalId: "container-123",
         adbPort: 5555,
         cpuCores: 2,
         memoryMB: 4096,
         storageMB: 32768,
       };
 
-      mockDeviceRepository.findOne.mockResolvedValue(device);
+      mockDeviceRepository.findOne.mockResolvedValue(device as Device);
       mockQuotaClient.reportDeviceUsage.mockResolvedValue(undefined);
       mockAdbService.disconnectFromDevice.mockRejectedValue(
         new Error("ADB error"),
       );
-      mockDockerService.removeContainer.mockResolvedValue(undefined);
-      mockDeviceRepository.save.mockResolvedValue(device);
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
+      mockProvider.destroy.mockResolvedValue(undefined);
+      mockDeviceRepository.save.mockResolvedValue(device as Device);
+      mockEventOutboxService.writeEvent.mockResolvedValue(undefined);
 
       // Act & Assert - should not throw
       await expect(service.remove("device-123")).resolves.toBeUndefined();
-      expect(mockDockerService.removeContainer).toHaveBeenCalled();
+      expect(mockProvider.destroy).toHaveBeenCalled();
     });
 
-    it("should continue removal even when container removal fails", async () => {
+    it("should continue removal even when provider destroy fails", async () => {
       // Arrange
       const device: Partial<Device> = {
         id: "device-123",
         userId: "user-123",
+        providerType: "redroid" as any,
         containerId: "container-123",
+        externalId: "container-123",
         adbPort: 5555,
         cpuCores: 2,
         memoryMB: 4096,
         storageMB: 32768,
       };
 
-      mockDeviceRepository.findOne.mockResolvedValue(device);
+      mockDeviceRepository.findOne.mockResolvedValue(device as Device);
       mockQuotaClient.reportDeviceUsage.mockResolvedValue(undefined);
       mockAdbService.disconnectFromDevice.mockResolvedValue(undefined);
-      mockDockerService.removeContainer.mockRejectedValue(
-        new Error("Docker error"),
+      mockProvider.destroy.mockRejectedValue(
+        new Error("Provider error"),
       );
-      mockDeviceRepository.save.mockResolvedValue(device);
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
+      mockDeviceRepository.save.mockResolvedValue(device as Device);
+      mockEventOutboxService.writeEvent.mockResolvedValue(undefined);
 
       // Act & Assert - should not throw
       await expect(service.remove("device-123")).resolves.toBeUndefined();
@@ -612,6 +581,8 @@ describe("DevicesService", () => {
         id: "device-123",
         userId: "user-123",
         tenantId: "tenant-456",
+        providerType: "redroid" as any,
+        externalId: "container-123",
         containerId: "container-123",
         adbHost: "localhost",
         adbPort: 5555,
@@ -624,20 +595,18 @@ describe("DevicesService", () => {
         lastActiveAt: expect.any(Date),
       };
 
-      mockDeviceRepository.findOne.mockResolvedValue(device);
-      mockDockerService.startContainer.mockResolvedValue(undefined);
-      mockDeviceRepository.save.mockResolvedValue(startedDevice);
+      mockDeviceRepository.findOne.mockResolvedValue(device as Device);
+      mockProvider.start.mockResolvedValue(undefined);
+      mockDeviceRepository.save.mockResolvedValue(startedDevice as Device);
       mockAdbService.connectToDevice.mockResolvedValue(undefined);
       mockQuotaClient.incrementConcurrentDevices.mockResolvedValue(undefined);
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
+      mockEventOutboxService.writeEvent.mockResolvedValue(undefined);
 
       // Act
       const result = await service.start("device-123");
 
       // Assert
-      expect(mockDockerService.startContainer).toHaveBeenCalledWith(
-        "container-123",
-      );
+      expect(mockProvider.start).toHaveBeenCalledWith("container-123");
       expect(mockAdbService.connectToDevice).toHaveBeenCalledWith(
         "device-123",
         "localhost",
@@ -646,8 +615,11 @@ describe("DevicesService", () => {
       expect(mockQuotaClient.incrementConcurrentDevices).toHaveBeenCalledWith(
         "user-123",
       );
-      expect(mockEventBus.publishDeviceEvent).toHaveBeenCalledWith(
-        "started",
+      expect(mockEventOutboxService.writeEvent).toHaveBeenCalledWith(
+        expect.any(Object), // queryRunner
+        "device",
+        "device-123",
+        "device.started",
         expect.objectContaining({
           deviceId: "device-123",
           userId: "user-123",
@@ -656,22 +628,32 @@ describe("DevicesService", () => {
       expect(result.status).toBe(DeviceStatus.RUNNING);
     });
 
-    it("should throw BadRequestException when device has no container", async () => {
+    it("should skip provider start when device has no externalId", async () => {
       // Arrange
       const device: Partial<Device> = {
         id: "device-123",
-        containerId: null,
+        userId: "user-123",
+        providerType: "redroid" as any,
+        externalId: null,
+        adbHost: "localhost",
+        adbPort: 5555,
       };
 
-      mockDeviceRepository.findOne.mockResolvedValue(device);
+      mockDeviceRepository.findOne.mockResolvedValue(device as Device);
+      mockDeviceRepository.save.mockResolvedValue({
+        ...device,
+        status: DeviceStatus.RUNNING,
+      } as Device);
+      mockAdbService.connectToDevice.mockResolvedValue(undefined);
+      mockQuotaClient.incrementConcurrentDevices.mockResolvedValue(undefined);
+      mockEventOutboxService.writeEvent.mockResolvedValue(undefined);
 
-      // Act & Assert
-      await expect(service.start("device-123")).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.start("device-123")).rejects.toThrow(
-        "设备没有关联的容器",
-      );
+      // Act
+      const result = await service.start("device-123");
+
+      // Assert - provider.start should NOT be called
+      expect(mockProvider.start).not.toHaveBeenCalled();
+      expect(result.status).toBe(DeviceStatus.RUNNING);
     });
 
     it("should continue even when ADB connection fails", async () => {
@@ -679,19 +661,21 @@ describe("DevicesService", () => {
       const device: Partial<Device> = {
         id: "device-123",
         userId: "user-123",
+        providerType: "redroid" as any,
+        externalId: "container-123",
         containerId: "container-123",
         adbHost: "localhost",
         adbPort: 5555,
       };
 
-      mockDeviceRepository.findOne.mockResolvedValue(device);
-      mockDockerService.startContainer.mockResolvedValue(undefined);
-      mockDeviceRepository.save.mockResolvedValue(device);
+      mockDeviceRepository.findOne.mockResolvedValue(device as Device);
+      mockProvider.start.mockResolvedValue(undefined);
+      mockDeviceRepository.save.mockResolvedValue(device as Device);
       mockAdbService.connectToDevice.mockRejectedValue(
         new Error("ADB connection failed"),
       );
       mockQuotaClient.incrementConcurrentDevices.mockResolvedValue(undefined);
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
+      mockEventOutboxService.writeEvent.mockResolvedValue(undefined);
 
       // Act & Assert - should not throw
       await expect(service.start("device-123")).resolves.toBeDefined();
@@ -704,7 +688,10 @@ describe("DevicesService", () => {
       const device: Partial<Device> = {
         id: "device-123",
         userId: "user-123",
+        providerType: "redroid" as any,
+        externalId: "container-123",
         containerId: "container-123",
+        adbPort: 5555, // ← Add this to trigger ADB disconnect
         status: DeviceStatus.RUNNING,
         createdAt: new Date(Date.now() - 3600000), // 1 hour ago
         lastActiveAt: new Date(Date.now() - 1800000), // 30 minutes ago
@@ -715,12 +702,12 @@ describe("DevicesService", () => {
         status: DeviceStatus.STOPPED,
       };
 
-      mockDeviceRepository.findOne.mockResolvedValue(device);
+      mockDeviceRepository.findOne.mockResolvedValue(device as Device);
       mockAdbService.disconnectFromDevice.mockResolvedValue(undefined);
-      mockDockerService.stopContainer.mockResolvedValue(undefined);
-      mockDeviceRepository.save.mockResolvedValue(stoppedDevice);
+      mockProvider.stop.mockResolvedValue(undefined);
+      mockDeviceRepository.save.mockResolvedValue(stoppedDevice as Device);
       mockQuotaClient.decrementConcurrentDevices.mockResolvedValue(undefined);
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
+      mockEventOutboxService.writeEvent.mockResolvedValue(undefined);
 
       // Act
       const result = await service.stop("device-123");
@@ -729,14 +716,15 @@ describe("DevicesService", () => {
       expect(mockAdbService.disconnectFromDevice).toHaveBeenCalledWith(
         "device-123",
       );
-      expect(mockDockerService.stopContainer).toHaveBeenCalledWith(
-        "container-123",
-      );
+      expect(mockProvider.stop).toHaveBeenCalledWith("container-123");
       expect(mockQuotaClient.decrementConcurrentDevices).toHaveBeenCalledWith(
         "user-123",
       );
-      expect(mockEventBus.publishDeviceEvent).toHaveBeenCalledWith(
-        "stopped",
+      expect(mockEventOutboxService.writeEvent).toHaveBeenCalledWith(
+        expect.any(Object), // queryRunner
+        "device",
+        "device-123",
+        "device.stopped",
         expect.objectContaining({
           deviceId: "device-123",
           userId: "user-123",
@@ -746,22 +734,33 @@ describe("DevicesService", () => {
       expect(result.status).toBe(DeviceStatus.STOPPED);
     });
 
-    it("should throw BadRequestException when device has no container", async () => {
+    it("should skip provider stop when device has no externalId", async () => {
       // Arrange
       const device: Partial<Device> = {
         id: "device-123",
-        containerId: null,
+        userId: "user-123",
+        providerType: "redroid" as any,
+        externalId: null,
+        adbPort: 5555, // ← Add this so ADB disconnect is called
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
       };
 
-      mockDeviceRepository.findOne.mockResolvedValue(device);
+      mockDeviceRepository.findOne.mockResolvedValue(device as Device);
+      mockAdbService.disconnectFromDevice.mockResolvedValue(undefined);
+      mockDeviceRepository.save.mockResolvedValue({
+        ...device,
+        status: DeviceStatus.STOPPED,
+      } as Device);
+      mockQuotaClient.decrementConcurrentDevices.mockResolvedValue(undefined);
+      mockEventOutboxService.writeEvent.mockResolvedValue(undefined);
 
-      // Act & Assert
-      await expect(service.stop("device-123")).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.stop("device-123")).rejects.toThrow(
-        "设备没有关联的容器",
-      );
+      // Act
+      const result = await service.stop("device-123");
+
+      // Assert - provider.stop should NOT be called
+      expect(mockProvider.stop).not.toHaveBeenCalled();
+      expect(result.status).toBe(DeviceStatus.STOPPED);
     });
 
     it("should calculate correct duration", async () => {
@@ -770,31 +769,36 @@ describe("DevicesService", () => {
       const device: Partial<Device> = {
         id: "device-123",
         userId: "user-123",
+        providerType: "redroid" as any,
+        externalId: "container-123",
         containerId: "container-123",
         lastActiveAt: startTime,
         createdAt: new Date(),
       };
 
-      mockDeviceRepository.findOne.mockResolvedValue(device);
+      mockDeviceRepository.findOne.mockResolvedValue(device as Device);
       mockAdbService.disconnectFromDevice.mockResolvedValue(undefined);
-      mockDockerService.stopContainer.mockResolvedValue(undefined);
-      mockDeviceRepository.save.mockResolvedValue(device);
+      mockProvider.stop.mockResolvedValue(undefined);
+      mockDeviceRepository.save.mockResolvedValue(device as Device);
       mockQuotaClient.decrementConcurrentDevices.mockResolvedValue(undefined);
-      mockEventBus.publishDeviceEvent.mockResolvedValue(undefined);
+      mockEventOutboxService.writeEvent.mockResolvedValue(undefined);
 
       // Act
       await service.stop("device-123");
 
       // Assert
-      expect(mockEventBus.publishDeviceEvent).toHaveBeenCalledWith(
-        "stopped",
+      expect(mockEventOutboxService.writeEvent).toHaveBeenCalledWith(
+        expect.any(Object), // queryRunner
+        "device",
+        "device-123",
+        "device.stopped",
         expect.objectContaining({
           duration: expect.any(Number),
         }),
       );
 
-      const call = (mockEventBus.publishDeviceEvent as jest.Mock).mock
-        .calls[0][1];
+      const call = (mockEventOutboxService.writeEvent as jest.Mock).mock
+        .calls[0][4];
       // Duration should be approximately 7200 seconds (2 hours)
       expect(call.duration).toBeGreaterThan(7100);
       expect(call.duration).toBeLessThan(7300);
