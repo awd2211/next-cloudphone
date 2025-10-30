@@ -1,0 +1,211 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: cloudphone
+  labels:
+    app: user-service
+    tier: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 30001
+      targetPort: 30001
+      protocol: TCP
+      name: http
+  selector:
+    app: user-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: cloudphone
+  labels:
+    app: user-service
+    tier: backend
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: user-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: user-service
+        tier: backend
+        version: v1
+    spec:
+      containers:
+      - name: user-service
+        image: cloudphone/user-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 30001
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: NODE_ENV
+        - name: PORT
+          value: "30001"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: DB_PORT
+        - name: DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: db_password
+        - name: DB_DATABASE
+          value: "cloudphone_user"
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: REDIS_PORT
+        - name: RABBITMQ_URL
+          value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD)@$(RABBITMQ_HOST):$(RABBITMQ_PORT)/cloudphone"
+        - name: RABBITMQ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: RABBITMQ_HOST
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: rabbitmq_user
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: rabbitmq_password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: jwt_secret
+        - name: JWT_EXPIRES_IN
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: JWT_EXPIRES_IN
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: JWT_AUDIENCE
+        - name: SERVICE_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: service_jwt_secret
+        - name: CONSUL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: CONSUL_HOST
+        - name: CONSUL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: CONSUL_PORT
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 30001
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 30001
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: user-service-hpa
+  namespace: cloudphone
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: user-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 2
+        periodSeconds: 30
+      selectPolicy: Max

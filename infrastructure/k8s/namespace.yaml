@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudphone
+  labels:
+    name: cloudphone
+    environment: production

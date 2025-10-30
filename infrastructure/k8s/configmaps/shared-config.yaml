@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudphone-shared-config
+  namespace: cloudphone
+  labels:
+    app: cloudphone
+data:
+  # Node Environment
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+
+  # Database Configuration
+  DB_HOST: "postgres-service.cloudphone.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_USERNAME: "postgres"
+
+  # Redis Configuration
+  REDIS_HOST: "redis-service.cloudphone.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+
+  # RabbitMQ Configuration
+  RABBITMQ_HOST: "rabbitmq-service.cloudphone.svc.cluster.local"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_MANAGEMENT_PORT: "15672"
+  RABBITMQ_VHOST: "/cloudphone"
+
+  # Consul Configuration
+  CONSUL_HOST: "consul-service.cloudphone.svc.cluster.local"
+  CONSUL_PORT: "8500"
+
+  # MinIO Configuration
+  MINIO_ENDPOINT: "minio-service.cloudphone.svc.cluster.local"
+  MINIO_PORT: "9000"
+  MINIO_BUCKET: "cloudphone-apps"
+  MINIO_USE_SSL: "false"
+
+  # JWT Configuration
+  JWT_EXPIRES_IN: "24h"
+  JWT_ISSUER: "cloudphone-platform"
+  JWT_AUDIENCE: "cloudphone-users"
+
+  # Service URLs (for API Gateway)
+  USER_SERVICE_URL: "http://user-service.cloudphone.svc.cluster.local:30001"
+  DEVICE_SERVICE_URL: "http://device-service.cloudphone.svc.cluster.local:30002"
+  APP_SERVICE_URL: "http://app-service.cloudphone.svc.cluster.local:30003"
+  SCHEDULER_SERVICE_URL: "http://scheduler-service.cloudphone.svc.cluster.local:30004"
+  BILLING_SERVICE_URL: "http://billing-service.cloudphone.svc.cluster.local:30005"
+  NOTIFICATION_SERVICE_URL: "http://notification-service.cloudphone.svc.cluster.local:30006"
+
+  # CORS Configuration
+  CORS_ORIGIN: "https://admin.cloudphone.example.com,https://app.cloudphone.example.com"
+  CORS_CREDENTIALS: "true"
+
+  # Rate Limiting
+  RATE_LIMIT_TTL: "60"
+  RATE_LIMIT_MAX: "100"
+
+  # Device Service Specific
+  DOCKER_HOST: "/var/run/docker.sock"
+  DOCKER_NETWORK: "cloudphone_network"
+  ADB_PORT_START: "5555"
+  ADB_PORT_END: "6555"
+
+  # Feature Flags
+  ENABLE_LIFECYCLE_AUTOMATION: "true"
+  ENABLE_AUTO_CLEANUP: "true"
+  ENABLE_AUTO_BACKUP: "true"
+  ENABLE_AUTOSCALING: "true"
+  ENABLE_FAULT_DETECTION: "true"

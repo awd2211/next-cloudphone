@@ -1,0 +1,124 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloudphone-ingress
+  namespace: cloudphone
+  labels:
+    app: cloudphone
+  annotations:
+    # NGINX Ingress Controller annotations
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+
+    # CORS (if needed)
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://admin.cloudphone.example.com,https://app.cloudphone.example.com"
+
+    # SSL/TLS
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # If using cert-manager
+
+    # WebSocket support
+    nginx.ingress.kubernetes.io/websocket-services: "notification-service"
+spec:
+  tls:
+  - hosts:
+    - api.cloudphone.example.com
+    - admin.cloudphone.example.com
+    - app.cloudphone.example.com
+    secretName: cloudphone-tls
+  rules:
+  # API Gateway - Main API Endpoint
+  - host: api.cloudphone.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: api-gateway
+            port:
+              number: 80
+
+  # Admin Dashboard Frontend
+  - host: admin.cloudphone.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: admin-frontend
+            port:
+              number: 80
+
+  # User Portal Frontend
+  - host: app.cloudphone.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: user-frontend
+            port:
+              number: 80
+---
+# Optional: Direct service access for debugging (can be removed in production)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloudphone-services-ingress
+  namespace: cloudphone
+  labels:
+    app: cloudphone
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+  - host: services.cloudphone.example.com
+    http:
+      paths:
+      - path: /user(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 30001
+      - path: /device(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: device-service
+            port:
+              number: 30002
+      - path: /app(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: app-service
+            port:
+              number: 30003
+      - path: /billing(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: billing-service
+            port:
+              number: 30005
+      - path: /notification(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: notification-service
+            port:
+              number: 30006

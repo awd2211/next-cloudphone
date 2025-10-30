@@ -1,0 +1,90 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing-service
+  namespace: cloudphone
+  labels:
+    app: billing-service
+    tier: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 30005
+      targetPort: 30005
+      protocol: TCP
+      name: http
+  selector:
+    app: billing-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-service
+  namespace: cloudphone
+  labels:
+    app: billing-service
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: billing-service
+  template:
+    metadata:
+      labels:
+        app: billing-service
+        tier: backend
+    spec:
+      containers:
+      - name: billing-service
+        image: cloudphone/billing-service:latest
+        ports:
+        - containerPort: 30005
+        envFrom:
+        - configMapRef:
+            name: cloudphone-shared-config
+        env:
+        - name: PORT
+          value: "30005"
+        - name: DB_DATABASE
+          value: "cloudphone_billing"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: db_password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: jwt_secret
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: rabbitmq_user
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: rabbitmq_password
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 30005
+          initialDelaySeconds: 60
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 30005
+          initialDelaySeconds: 10
+          periodSeconds: 10

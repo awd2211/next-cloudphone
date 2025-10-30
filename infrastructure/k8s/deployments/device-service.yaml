@@ -1,0 +1,187 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: device-service
+  namespace: cloudphone
+  labels:
+    app: device-service
+    tier: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 30002
+      targetPort: 30002
+      protocol: TCP
+      name: http
+  selector:
+    app: device-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: device-service
+  namespace: cloudphone
+  labels:
+    app: device-service
+    tier: backend
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: device-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: device-service
+        tier: backend
+        version: v1
+    spec:
+      containers:
+      - name: device-service
+        image: cloudphone/device-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 30002
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: NODE_ENV
+        - name: PORT
+          value: "30002"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: DB_PORT
+        - name: DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: db_password
+        - name: DB_DATABASE
+          value: "cloudphone_device"
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: REDIS_PORT
+        - name: RABBITMQ_URL
+          value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD)@$(RABBITMQ_HOST):$(RABBITMQ_PORT)/cloudphone"
+        - name: RABBITMQ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: RABBITMQ_HOST
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: rabbitmq_user
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: rabbitmq_password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: jwt_secret
+        - name: SERVICE_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: cloudphone-secrets
+              key: service_jwt_secret
+        - name: DOCKER_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: DOCKER_HOST
+        - name: USER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: cloudphone-shared-config
+              key: USER_SERVICE_URL
+        volumeMounts:
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1000m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 30002
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 30002
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+          type: Socket
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: device-service-hpa
+  namespace: cloudphone
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: device-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
