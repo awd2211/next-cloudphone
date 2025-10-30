@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { CacheService } from '../cache/cache.service';
+import { JwtConfigFactory } from '@cloudphone/shared';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -15,10 +16,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private userRepository: Repository<User>,
     private cacheService: CacheService,
   ) {
+    // 🔒 使用 shared 模块的安全 JWT 配置
+    const jwtConfig = JwtConfigFactory.getPassportJwtConfig(configService);
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get('JWT_SECRET') || 'dev-secret-key-change-in-production',
+      secretOrKey: jwtConfig.secretOrKey,
+      issuer: jwtConfig.issuer,
+      audience: jwtConfig.audience,
       passReqToCallback: true, // 允许在 validate 方法中访问 request 对象
     });
   }

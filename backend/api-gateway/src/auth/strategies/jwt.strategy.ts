@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
+import { JwtConfigFactory } from "@cloudphone/shared";
 
 /**
  * JWT 验证策略
@@ -10,23 +11,25 @@ import { ConfigService } from "@nestjs/config";
  * - ✅ 从 Token 中提取用户信息（无需查询数据库）
  * - ✅ 完全无状态
  * - ✅ 高性能
+ * - ✅ 使用安全的 JWT 配置
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly logger = new Logger(JwtStrategy.name);
 
   constructor(private configService: ConfigService) {
-    const secret =
-      configService.get<string>("JWT_SECRET") ||
-      "dev-secret-key-change-in-production";
+    // 🔒 使用 shared 模块的安全 JWT 配置
+    const jwtConfig = JwtConfigFactory.getPassportJwtConfig(configService);
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: secret as string,
+      secretOrKey: jwtConfig.secretOrKey,
       ignoreExpiration: false,
+      issuer: jwtConfig.issuer,
+      audience: jwtConfig.audience,
     });
 
-    this.logger.log(`JwtStrategy initialized (stateless mode)`);
+    this.logger.log(`JwtStrategy initialized (stateless mode, secure JWT config)`);
   }
 
   async validate(payload: any) {

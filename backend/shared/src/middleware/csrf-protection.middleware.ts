@@ -1,4 +1,4 @@
-import { Injectable, NestMiddleware, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, NestMiddleware, ForbiddenException, Logger, Optional, Inject } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -190,7 +190,9 @@ export class CsrfProtectionMiddleware implements NestMiddleware {
   private tokenStore: CsrfTokenStore;
 
   constructor(
+    @Optional() @Inject(ConfigService) 
     configService?: ConfigService,
+    @Optional() 
     redis?: any,
   ) {
     this.config = {

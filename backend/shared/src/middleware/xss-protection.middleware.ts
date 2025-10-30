@@ -188,13 +188,25 @@ export class XssProtectionMiddleware implements NestMiddleware {
 
     if (this.config.sanitizeQuery && req.query) {
       const { sanitized, detected } = this.sanitizeObject(req.query);
-      req.query = sanitized;
+      // Use Object.defineProperty to override readonly query property
+      Object.defineProperty(req, 'query', {
+        value: sanitized,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
       xssDetected = xssDetected || detected;
     }
 
     if (this.config.sanitizeParams && req.params) {
       const { sanitized, detected } = this.sanitizeObject(req.params);
-      req.params = sanitized;
+      // Use Object.defineProperty to override readonly params property
+      Object.defineProperty(req, 'params', {
+        value: sanitized,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
       xssDetected = xssDetected || detected;
     }
 
@@ -240,7 +252,8 @@ export class XssProtectionMiddleware implements NestMiddleware {
     if (typeof obj === 'object') {
       const sanitized: any = {};
       for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
+        // Use Object.prototype.hasOwnProperty to handle objects without prototype
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
           const result = this.sanitizeObject(obj[key]);
           if (result.detected) detected = true;
           sanitized[key] = result.sanitized;

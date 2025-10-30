@@ -1,4 +1,4 @@
-import { Injectable, NestMiddleware, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, NestMiddleware, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
@@ -9,6 +9,7 @@ import Redis from 'ioredis';
  */
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {
+  private readonly logger = new Logger(RateLimitMiddleware.name);
   private redis: Redis;
   private readonly enabled: boolean;
   private readonly defaultLimit: number;
@@ -51,7 +52,7 @@ export class RateLimitMiddleware implements NestMiddleware {
       keyPrefix: 'ratelimit:',
       retryStrategy: (times) => {
         if (times > 3) {
-          console.error('Redis rate limit connection failed after 3 retries');
+          this.logger.error('Redis rate limit connection failed after 3 retries');
           return null;
         }
         return Math.min(times * 50, 2000);
@@ -59,7 +60,7 @@ export class RateLimitMiddleware implements NestMiddleware {
     });
 
     this.redis.on('error', (err) => {
-      console.error('Redis rate limit error:', err);
+      this.logger.error('Redis rate limit error:', err);
     });
   }
 
@@ -110,7 +111,7 @@ export class RateLimitMiddleware implements NestMiddleware {
         throw error;
       }
       // Redis 错误不应阻止请求
-      console.error('Rate limit middleware error:', error);
+      this.logger.error('Rate limit middleware error:', error);
       next();
     }
   }
@@ -275,6 +276,7 @@ export class RateLimitMiddleware implements NestMiddleware {
  */
 @Injectable()
 export class IPBlacklistMiddleware implements NestMiddleware {
+  private readonly logger = new Logger(IPBlacklistMiddleware.name);
   private redis: Redis;
   private readonly enabled: boolean;
 
@@ -317,7 +319,7 @@ export class IPBlacklistMiddleware implements NestMiddleware {
         throw error;
       }
       // Redis 错误不应阻止请求
-      console.error('IP blacklist middleware error:', error);
+      this.logger.error('IP blacklist middleware error:', error);
       next();
     }
   }
@@ -366,6 +368,7 @@ export class IPBlacklistMiddleware implements NestMiddleware {
  */
 @Injectable()
 export class AutoBanMiddleware implements NestMiddleware {
+  private readonly logger = new Logger(AutoBanMiddleware.name);
   private redis: Redis;
   private readonly enabled: boolean;
   private readonly maxFailures: number;
@@ -392,23 +395,21 @@ export class AutoBanMiddleware implements NestMiddleware {
     }
 
     const ip = this.getClientIP(req);
+    const middleware = this;
 
-    // 拦截响应以记录失败
-    const originalSend = res.send;
-    res.send = function (data: any) {
+    // Use Express's finish event to record failures after response is sent
+    res.on('finish', () => {
       // 记录 4xx 和 5xx 错误
       if (res.statusCode >= 400) {
         (async () => {
           try {
-            await this.recordFailure(ip);
+            await middleware.recordFailure(ip);
           } catch (err) {
-            console.error('Auto-ban record failure error:', err);
+            middleware.logger.error('Auto-ban record failure error:', err);
           }
         })();
       }
-
-      return originalSend.call(this, data);
-    }.bind(this);
+    });
 
     next();
   }
@@ -434,7 +435,7 @@ export class AutoBanMiddleware implements NestMiddleware {
       await this.redis.sadd('banned', ip);
       await this.redis.expire(`banned:${ip}`, this.banDuration);
 
-      console.warn(`IP ${ip} auto-banned for ${this.banDuration} seconds (${count} failures)`);
+      this.logger.warn(`IP ${ip} auto-banned for ${this.banDuration} seconds (${count} failures)`);
     }
   }
 

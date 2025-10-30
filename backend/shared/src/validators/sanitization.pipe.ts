@@ -3,11 +3,15 @@ import {
   Injectable,
   ArgumentMetadata,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { validate, ValidationError } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import sanitizeHtml from 'sanitize-html';
 import validator from 'validator';
+
+// 创建共享的 Logger 实例
+const logger = new Logger('SanitizationPipe');
 
 /**
  * 输入清理配置
@@ -260,7 +264,7 @@ export class SanitizationPipe implements PipeTransform<any> {
           );
         }
         // 非严格模式下记录日志但不拒绝
-        console.warn('[Security] Potential SQL injection detected:', str);
+        logger.warn('[Security] Potential SQL injection detected:', str);
       }
     }
   }
@@ -276,7 +280,7 @@ export class SanitizationPipe implements PipeTransform<any> {
             '检测到可疑的 NoSQL 注入模式，请求已被拒绝',
           );
         }
-        console.warn('[Security] Potential NoSQL injection detected:', str);
+        logger.warn('[Security] Potential NoSQL injection detected:', str);
       }
     }
   }
@@ -292,7 +296,7 @@ export class SanitizationPipe implements PipeTransform<any> {
             '检测到可疑的 XSS 攻击模式，请求已被拒绝',
           );
         }
-        console.warn('[Security] Potential XSS attack detected:', str);
+        logger.warn('[Security] Potential XSS attack detected:', str);
       }
     }
   }

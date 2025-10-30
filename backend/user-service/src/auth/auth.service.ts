@@ -8,10 +8,15 @@ import { RegisterDto } from './dto/register.dto';
 import { CaptchaService } from './services/captcha.service';
 import { CacheService, CacheLayer } from '../cache/cache.service';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+
+  // 🔒 预生成的虚拟密码哈希，用于防止时序攻击
+  // 当用户不存在时使用这个哈希，确保响应时间与真实哈希比较一致
+  private readonly DUMMY_PASSWORD_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
 
   constructor(
     @InjectRepository(User)
@@ -22,6 +27,63 @@ export class AuthService {
     @InjectDataSource()
     private dataSource: DataSource,
   ) {}
+
+  /**
+   * 🔒 添加随机延迟，防止时序攻击
+   *
+   * 为失败的登录尝试添加200-400ms的随机延迟
+   * 这使得攻击者无法通过响应时间来推断：
+   * - 用户是否存在
+   * - 密码是否正确
+   * - 账号是否被锁定
+   *
+   * @param minMs 最小延迟（毫秒）
+   * @param maxMs 最大延迟（毫秒）
+   */
+  private async addTimingDelay(minMs: number = 200, maxMs: number = 400): Promise<void> {
+    const delay = minMs + Math.floor(Math.random() * (maxMs - minMs));
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+
+  /**
+   * 🔒 常量时间字符串比较（防止时序攻击）
+   *
+   * 注意：bcrypt.compare 已经是常量时间比较，但这里提供通用实现
+   * 用于其他需要常量时间比较的场景（如 captcha）
+   *
+   * @param a 字符串 A
+   * @param b 字符串 B
+   * @returns 是否相等
+   */
+  private constantTimeCompare(a: string, b: string): boolean {
+    if (typeof a !== 'string' || typeof b !== 'string') {
+      return false;
+    }
+
+    // 使用 crypto.timingSafeEqual 进行常量时间比较
+    // 需要确保两个字符串长度一致
+    const bufA = Buffer.from(a, 'utf8');
+    const bufB = Buffer.from(b, 'utf8');
+
+    // 如果长度不同，仍然执行比较但返回 false
+    // 这里使用固定长度比较，避免泄露长度信息
+    if (bufA.length !== bufB.length) {
+      // 创建相同长度的 buffer 进行比较（避免短路）
+      const len = Math.max(bufA.length, bufB.length);
+      const paddedA = Buffer.alloc(len);
+      const paddedB = Buffer.alloc(len);
+      bufA.copy(paddedA);
+      bufB.copy(paddedB);
+      crypto.timingSafeEqual(paddedA, paddedB);
+      return false;
+    }
+
+    try {
+      return crypto.timingSafeEqual(bufA, bufB);
+    } catch {
+      return false;
+    }
+  }
 
   /**
    * 获取验证码
@@ -122,9 +184,9 @@ export class AuthService {
         .setLock('pessimistic_write') // 悲观锁
         .getOne();
 
-      // 4. 防止时序攻击：无论用户是否存在，都执行密码哈希比较
-      // 如果用户不存在，使用虚拟密码哈希，确保响应时间一致
-      const passwordHash = user?.password || await bcrypt.hash('dummy_password_to_prevent_timing_attack', 10);
+      // 4. 🔒 防止时序攻击：无论用户是否存在，都执行密码哈希比较
+      // 使用预生成的虚拟密码哈希（避免每次都生成新哈希，导致不同的响应时间）
+      const passwordHash = user?.password || this.DUMMY_PASSWORD_HASH;
       const isPasswordValid = await bcrypt.compare(password, passwordHash);
 
       // 5. 统一验证：用户不存在或密码错误都返回相同错误
@@ -141,6 +203,9 @@ export class AuthService {
             await queryRunner.manager.save(User, user);
             await queryRunner.commitTransaction();
 
+            // 🔒 添加随机延迟（200-400ms）防止时序攻击
+            await this.addTimingDelay();
+
             this.logger.warn(`Account locked due to too many failed attempts: ${username}`);
             throw new UnauthorizedException('登录失败次数过多，账号已被锁定30分钟');
           }
@@ -150,18 +215,33 @@ export class AuthService {
 
         // 提交事务（如果有更新）
         await queryRunner.commitTransaction();
+
+        // 🔒 添加随机延迟（200-400ms）防止时序攻击
+        // 这使得攻击者无法通过响应时间来判断：
+        // - 用户是否存在
+        // - 密码长度是否接近正确
+        await this.addTimingDelay();
+
         throw new UnauthorizedException('用户名或密码错误');
       }
 
       // 6. 检查用户状态
       if (user.status !== UserStatus.ACTIVE) {
         await queryRunner.rollbackTransaction();
+
+        // 🔒 添加随机延迟防止时序攻击
+        await this.addTimingDelay();
+
         throw new UnauthorizedException('账号已被禁用或删除');
       }
 
       // 7. 检查账号锁定
       if (user.lockedUntil && user.lockedUntil > new Date()) {
         await queryRunner.rollbackTransaction();
+
+        // 🔒 添加随机延迟防止时序攻击
+        await this.addTimingDelay();
+
         const remainingTime = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
         throw new UnauthorizedException(`账号已被锁定，请 ${remainingTime} 分钟后再试`);
       }

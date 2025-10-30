@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { JwtConfigFactory } from "@cloudphone/shared";
 
 export interface JwtPayload {
   sub: string;
@@ -15,10 +16,15 @@ export interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
+    // 🔒 使用 shared 模块的安全 JWT 配置
+    const jwtConfig = JwtConfigFactory.getPassportJwtConfig(configService);
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get('JWT_SECRET') || 'dev-secret-key-change-in-production',
+      secretOrKey: jwtConfig.secretOrKey,
+      issuer: jwtConfig.issuer,
+      audience: jwtConfig.audience,
     });
   }
 

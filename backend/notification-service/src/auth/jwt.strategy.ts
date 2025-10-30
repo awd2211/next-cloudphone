@@ -1,8 +1,8 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { PassportStrategy } from "@nestjs/passport";
-import { ExtractJwt, Strategy } from "passport-jwt";
-import { ConfigService } from "@nestjs/config";
-import { JwtConfigFactory } from "@cloudphone/shared";
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
+import { JwtConfigFactory } from '@cloudphone/shared';
 
 export interface JwtPayload {
   sub: string;
@@ -13,6 +13,11 @@ export interface JwtPayload {
   permissions?: string[];
 }
 
+/**
+ * JWT 验证策略
+ *
+ * 从 JWT Token 中提取用户信息（无需查询数据库）
+ */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
@@ -30,7 +35,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload) {
     if (!payload.sub) {
-      throw new UnauthorizedException("无效的 Token");
+      throw new UnauthorizedException('无效的 Token');
     }
 
     return {
