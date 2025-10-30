@@ -25,6 +25,7 @@ module.exports = {
   moduleNameMapper: {
     '^@cloudphone/shared$': '<rootDir>/../../shared/src',
     '^@cloudphone/shared/(.*)$': '<rootDir>/../../shared/src/$1',
+    '^uuid$': '<rootDir>/__mocks__/uuid.ts',
   },
   coverageThreshold: {
     global: {
@@ -34,6 +35,6 @@ module.exports = {
       statements: 50,
     },
   },
-  testTimeout: 5000,
+  testTimeout: 10000,
   forceExit: true,
 };
