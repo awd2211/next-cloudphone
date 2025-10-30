@@ -43,6 +43,14 @@ describe('AuthService', () => {
     verify: jest.fn(),
   };
 
+  // 创建可复用的 QueryBuilder Mock
+  const mockQueryBuilder = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    setLock: jest.fn().mockReturnThis(),
+    getOne: jest.fn(),
+  };
+
   beforeEach(async () => {
     // 创建 QueryRunner Mock
     mockQueryRunner = {
@@ -54,12 +62,7 @@ describe('AuthService', () => {
       isTransactionActive: true,
       manager: {
         save: jest.fn(),
-        createQueryBuilder: jest.fn(() => ({
-          leftJoinAndSelect: jest.fn().mockReturnThis(),
-          where: jest.fn().mockReturnThis(),
-          setLock: jest.fn().mockReturnThis(),
-          getOne: jest.fn(),
-        })),
+        createQueryBuilder: jest.fn(() => mockQueryBuilder),
       },
     };
 
@@ -111,6 +114,11 @@ describe('AuthService', () => {
     mockQueryRunner.rollbackTransaction.mockClear();
     mockQueryRunner.release.mockClear();
     mockQueryRunner.manager.save.mockClear();
+    mockQueryRunner.manager.createQueryBuilder.mockClear();
+    mockQueryBuilder.leftJoinAndSelect.mockClear();
+    mockQueryBuilder.where.mockClear();
+    mockQueryBuilder.setLock.mockClear();
+    mockQueryBuilder.getOne.mockClear();
     userRepository.findOne.mockClear();
     userRepository.create.mockClear();
     userRepository.save.mockClear();
@@ -287,7 +295,7 @@ describe('AuthService', () => {
   describe('login', () => {
     // TODO: bcrypt.compare mock问题 - 详见 AUTH_SERVICE_TEST_BCRYPT_ISSUE.md
     // 这些测试将通过集成测试覆盖
-    it.skip('应该成功登录并返回 JWT token', async () => {
+    it('应该成功登录并返回 JWT token', async () => {
       // Arrange
       const loginDto = {
         username: 'testuser',
@@ -314,7 +322,7 @@ describe('AuthService', () => {
 
       captchaService.verify.mockResolvedValue(true);
       mockBcrypt.compare.mockResolvedValue(true); // 确保密码验证通过
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(mockUser);
+      mockQueryBuilder.getOne.mockResolvedValue(mockUser);
       mockQueryRunner.manager.save.mockResolvedValue(mockUser);
       jwtService.sign.mockReturnValue('mock-jwt-token');
 
@@ -370,7 +378,7 @@ describe('AuthService', () => {
       };
 
       captchaService.verify.mockResolvedValue(true);
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(null);
+      mockQueryBuilder.getOne.mockResolvedValue(null);
 
       // Act & Assert
       await expect(service.login(loginDto)).rejects.toThrow(
@@ -383,7 +391,7 @@ describe('AuthService', () => {
       expect(mockQueryRunner.release).toHaveBeenCalled();
     });
 
-    it.skip('应该在密码错误时增加失败次数', async () => {
+    it('应该在密码错误时增加失败次数', async () => {
       // Arrange
       const loginDto = {
         username: 'testuser',
@@ -400,7 +408,7 @@ describe('AuthService', () => {
 
       captchaService.verify.mockResolvedValue(true);
       mockBcrypt.compare.mockResolvedValue(false); // 密码错误
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(mockUser);
+      mockQueryBuilder.getOne.mockResolvedValue(mockUser);
       mockQueryRunner.manager.save.mockResolvedValue(mockUser);
 
       // Act & Assert
@@ -413,7 +421,7 @@ describe('AuthService', () => {
       expect(savedUser.loginAttempts).toBe(3);
     });
 
-    it.skip('应该在失败次数达到5次时锁定账号30分钟', async () => {
+    it('应该在失败次数达到5次时锁定账号30分钟', async () => {
       // Arrange
       const loginDto = {
         username: 'testuser',
@@ -430,24 +438,21 @@ describe('AuthService', () => {
 
       captchaService.verify.mockResolvedValue(true);
       mockBcrypt.compare.mockResolvedValue(false); // 密码错误
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(mockUser);
+      // 每次调用 getOne 都返回一个新的用户对象副本
+      mockQueryBuilder.getOne.mockImplementation(() => ({...mockUser}));
       mockQueryRunner.manager.save.mockResolvedValue(mockUser);
 
-      // Act & Assert
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        '登录失败次数过多，账号已被锁定30分钟',
-      );
+      // Act & Assert - 只调用一次
+      await expect(service.login(loginDto)).rejects.toThrow('登录失败次数过多，账号已被锁定30分钟');
 
+      // 验证 loginAttempts 从 4 增加到 5
       const savedUser = mockQueryRunner.manager.save.mock.calls[0][1];
       expect(savedUser.loginAttempts).toBe(5);
       expect(savedUser.lockedUntil).toBeInstanceOf(Date);
       expect(savedUser.lockedUntil.getTime()).toBeGreaterThan(Date.now());
     });
 
-    it.skip('应该在账号被锁定时拒绝登录', async () => {
+    it('应该在账号被锁定时拒绝登录', async () => {
       // Arrange
       const loginDto = {
         username: 'testuser',
@@ -464,7 +469,7 @@ describe('AuthService', () => {
       });
 
       captchaService.verify.mockResolvedValue(true);
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(mockUser);
+      mockQueryBuilder.getOne.mockResolvedValue(mockUser);
 
       // Act & Assert
       await expect(service.login(loginDto)).rejects.toThrow(
@@ -474,7 +479,7 @@ describe('AuthService', () => {
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it.skip('应该在账号状态非 ACTIVE 时拒绝登录', async () => {
+    it('应该在账号状态非 ACTIVE 时拒绝登录', async () => {
       // Arrange
       const loginDto = {
         username: 'testuser',
@@ -490,7 +495,7 @@ describe('AuthService', () => {
       });
 
       captchaService.verify.mockResolvedValue(true);
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(mockUser);
+      mockQueryBuilder.getOne.mockResolvedValue(mockUser);
 
       // Act & Assert
       await expect(service.login(loginDto)).rejects.toThrow(
@@ -502,7 +507,7 @@ describe('AuthService', () => {
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it.skip('应该在登录成功后重置失败次数', async () => {
+    it('应该在登录成功后重置失败次数', async () => {
       // Arrange
       const loginDto = {
         username: 'testuser',
@@ -519,7 +524,7 @@ describe('AuthService', () => {
       });
 
       captchaService.verify.mockResolvedValue(true);
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(mockUser);
+      mockQueryBuilder.getOne.mockResolvedValue(mockUser);
       mockQueryRunner.manager.save.mockResolvedValue(mockUser);
       jwtService.sign.mockReturnValue('mock-jwt-token');
 
@@ -532,7 +537,7 @@ describe('AuthService', () => {
       expect(savedUser.lockedUntil).toBeNull();
     });
 
-    it.skip('应该使用悲观锁防止并发问题', async () => {
+    it('应该使用悲观锁防止并发问题', async () => {
       // Arrange
       const loginDto = {
         username: 'testuser',
@@ -547,7 +552,7 @@ describe('AuthService', () => {
       });
 
       captchaService.verify.mockResolvedValue(true);
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(mockUser);
+      mockQueryBuilder.getOne.mockResolvedValue(mockUser);
       jwtService.sign.mockReturnValue('mock-jwt-token');
 
       // Act
@@ -558,7 +563,7 @@ describe('AuthService', () => {
       expect(queryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
     });
 
-    it.skip('应该在事务中发生错误时回滚', async () => {
+    it('应该在事务中发生错误时回滚', async () => {
       // Arrange
       const loginDto = {
         username: 'testuser',
@@ -568,7 +573,7 @@ describe('AuthService', () => {
       };
 
       captchaService.verify.mockResolvedValue(true);
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockRejectedValue(
+      mockQueryBuilder.getOne.mockRejectedValue(
         new Error('Database error'),
       );
 
@@ -578,7 +583,7 @@ describe('AuthService', () => {
       expect(mockQueryRunner.release).toHaveBeenCalled();
     });
 
-    it.skip('应该生成包含角色和权限的 JWT payload', async () => {
+    it('应该生成包含角色和权限的 JWT payload', async () => {
       // Arrange
       const loginDto = {
         username: 'testuser',
@@ -609,7 +614,7 @@ describe('AuthService', () => {
       });
 
       captchaService.verify.mockResolvedValue(true);
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(mockUser);
+      mockQueryBuilder.getOne.mockResolvedValue(mockUser);
       mockQueryRunner.manager.save.mockResolvedValue(mockUser);
       jwtService.sign.mockReturnValue('mock-jwt-token');
 
@@ -998,7 +1003,7 @@ describe('AuthService', () => {
       expect(mockBcrypt.hash).toHaveBeenCalledWith(password, 10);
     });
 
-    it.skip('应该使用悲观锁防止并发登录攻击', async () => {
+    it('应该使用悲观锁防止并发登录攻击', async () => {
       // Arrange
       const loginDto = {
         username: 'testuser',
@@ -1017,7 +1022,7 @@ describe('AuthService', () => {
       });
 
       captchaService.verify.mockResolvedValue(true);
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(mockUser);
+      mockQueryBuilder.getOne.mockResolvedValue(mockUser);
       mockQueryRunner.manager.save.mockResolvedValue(mockUser);
       jwtService.sign.mockReturnValue('token');
 
@@ -1030,7 +1035,7 @@ describe('AuthService', () => {
       expect(queryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
     });
 
-    it.skip('应该在开发环境跳过验证码检查', async () => {
+    it('应该在开发环境跳过验证码检查', async () => {
       // Arrange
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'development';
@@ -1054,7 +1059,7 @@ describe('AuthService', () => {
       // 重置captcha mock
       captchaService.verify.mockClear();
 
-      mockQueryRunner.manager.createQueryBuilder().getOne.mockResolvedValue(mockUser);
+      mockQueryBuilder.getOne.mockResolvedValue(mockUser);
       mockQueryRunner.manager.save.mockResolvedValue(mockUser);
       jwtService.sign.mockReturnValue('token');
 
