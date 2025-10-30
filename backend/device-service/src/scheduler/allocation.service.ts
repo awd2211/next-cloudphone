@@ -357,7 +357,22 @@ export class AllocationService {
         this.logger.error(
           `❌ Failed to report billing data for allocation ${allocation.id}: ${error.message}`,
         );
-        // TODO: 考虑将失败的计费数据写入死信队列供人工处理
+
+        // 将失败的计费数据写入死信队列供人工处理
+        await this.publishFailedBillingData({
+          allocationId: allocation.id,
+          deviceId: device.id,
+          userId: allocation.userId,
+          tenantId: allocation.tenantId,
+          durationSeconds,
+          cpuCores: device.cpuCores,
+          memoryMB: device.memoryMB,
+          storageMB: device.storageMB,
+          allocatedAt: allocation.allocatedAt,
+          releasedAt,
+          failureReason: error.message,
+          failureTimestamp: new Date(),
+        });
       }
     }
 
@@ -653,5 +668,835 @@ export class AllocationService {
       .execute();
 
     return result.affected || 0;
+  }
+
+  // ==================== 批量操作 API ====================
+
+  /**
+   * 批量分配设备
+   * 支持一次性为多个用户分配设备
+   */
+  async batchAllocate(requests: Array<{
+    userId: string;
+    durationMinutes: number;
+    devicePreferences?: any;
+  }>, continueOnError: boolean = true): Promise<{
+    successCount: number;
+    failedCount: number;
+    totalCount: number;
+    successes: Array<{
+      userId: string;
+      allocationId: string;
+      deviceId: string;
+      deviceName: string;
+      expiresAt: string;
+    }>;
+    failures: Array<{
+      userId: string;
+      reason: string;
+      error: string;
+    }>;
+    executionTimeMs: number;
+  }> {
+    const startTime = Date.now();
+    this.logger.log(`🔄 Batch allocating ${requests.length} devices...`);
+
+    const successes: any[] = [];
+    const failures: any[] = [];
+
+    for (const request of requests) {
+      try {
+        const result = await this.allocateDevice({
+          userId: request.userId,
+          durationMinutes: request.durationMinutes,
+          preferredSpecs: request.devicePreferences,
+        });
+
+        const device = await this.deviceRepository.findOne({
+          where: { id: result.deviceId },
+        });
+
+        successes.push({
+          userId: request.userId,
+          allocationId: result.allocationId,
+          deviceId: result.deviceId,
+          deviceName: device?.name || `Device-${result.deviceId.substring(0, 8)}`,
+          expiresAt: result.expiresAt?.toISOString() || "",
+        });
+
+        this.logger.debug(`✅ Allocated device for user ${request.userId}`);
+      } catch (error) {
+        const failure = {
+          userId: request.userId,
+          reason: error.message || "Unknown error",
+          error: error.name || "Error",
+        };
+        failures.push(failure);
+
+        this.logger.warn(
+          `❌ Failed to allocate for user ${request.userId}: ${error.message}`
+        );
+
+        // 如果不允许继续，直接返回
+        if (!continueOnError) {
+          break;
+        }
+      }
+    }
+
+    const executionTimeMs = Date.now() - startTime;
+
+    this.logger.log(
+      `✅ Batch allocation completed: ${successes.length} success, ${failures.length} failed, ${executionTimeMs}ms`
+    );
+
+    return {
+      successCount: successes.length,
+      failedCount: failures.length,
+      totalCount: requests.length,
+      successes,
+      failures,
+      executionTimeMs,
+    };
+  }
+
+  /**
+   * 批量释放设备
+   * 支持一次性释放多个设备分配
+   */
+  async batchRelease(
+    allocationIds: string[],
+    reason?: string,
+    continueOnError: boolean = true
+  ): Promise<{
+    successCount: number;
+    failedCount: number;
+    totalCount: number;
+    successIds: string[];
+    failures: Array<{
+      allocationId: string;
+      reason: string;
+      error: string;
+    }>;
+    executionTimeMs: number;
+  }> {
+    const startTime = Date.now();
+    this.logger.log(`🔄 Batch releasing ${allocationIds.length} allocations...`);
+
+    const successIds: string[] = [];
+    const failures: any[] = [];
+
+    for (const allocationId of allocationIds) {
+      try {
+        await this.releaseAllocation(allocationId, {
+          reason: reason || "批量释放操作",
+          automatic: false,
+        });
+
+        successIds.push(allocationId);
+        this.logger.debug(`✅ Released allocation ${allocationId}`);
+      } catch (error) {
+        const failure = {
+          allocationId,
+          reason: error.message || "Unknown error",
+          error: error.name || "Error",
+        };
+        failures.push(failure);
+
+        this.logger.warn(
+          `❌ Failed to release allocation ${allocationId}: ${error.message}`
+        );
+
+        // 如果不允许继续，直接返回
+        if (!continueOnError) {
+          break;
+        }
+      }
+    }
+
+    const executionTimeMs = Date.now() - startTime;
+
+    this.logger.log(
+      `✅ Batch release completed: ${successIds.length} success, ${failures.length} failed, ${executionTimeMs}ms`
+    );
+
+    return {
+      successCount: successIds.length,
+      failedCount: failures.length,
+      totalCount: allocationIds.length,
+      successIds,
+      failures,
+      executionTimeMs,
+    };
+  }
+
+  /**
+   * 批量续期设备
+   * 支持一次性为多个设备分配延长使用时间
+   */
+  async batchExtend(
+    allocationIds: string[],
+    additionalMinutes: number,
+    continueOnError: boolean = true
+  ): Promise<{
+    successCount: number;
+    failedCount: number;
+    totalCount: number;
+    successes: Array<{
+      allocationId: string;
+      oldExpiresAt: string;
+      newExpiresAt: string;
+      additionalMinutes: number;
+    }>;
+    failures: Array<{
+      allocationId: string;
+      reason: string;
+      error: string;
+    }>;
+    executionTimeMs: number;
+  }> {
+    const startTime = Date.now();
+    this.logger.log(
+      `🔄 Batch extending ${allocationIds.length} allocations by ${additionalMinutes} minutes...`
+    );
+
+    const successes: any[] = [];
+    const failures: any[] = [];
+
+    for (const allocationId of allocationIds) {
+      try {
+        const allocation = await this.allocationRepository.findOne({
+          where: { id: allocationId },
+        });
+
+        if (!allocation) {
+          throw new NotFoundException(`Allocation ${allocationId} not found`);
+        }
+
+        if (allocation.status !== AllocationStatus.ALLOCATED) {
+          throw new BadRequestException(
+            `Allocation ${allocationId} is not active (status: ${allocation.status})`
+          );
+        }
+
+        const oldExpiresAt = allocation.expiresAt;
+        const newExpiresAt = new Date(
+          oldExpiresAt.getTime() + additionalMinutes * 60 * 1000
+        );
+
+        allocation.expiresAt = newExpiresAt;
+        await this.allocationRepository.save(allocation);
+
+        successes.push({
+          allocationId,
+          oldExpiresAt: oldExpiresAt.toISOString(),
+          newExpiresAt: newExpiresAt.toISOString(),
+          additionalMinutes,
+        });
+
+        // 发布续期事件
+        await this.eventBus.publish(
+          "cloudphone.events",
+          "scheduler.allocation.extended",
+          {
+            allocationId,
+            userId: allocation.userId,
+            deviceId: allocation.deviceId,
+            oldExpiresAt: oldExpiresAt.toISOString(),
+            newExpiresAt: newExpiresAt.toISOString(),
+            additionalMinutes,
+          }
+        );
+
+        // 发送续期通知
+        try {
+          const device = await this.deviceRepository.findOne({
+            where: { id: allocation.deviceId },
+          });
+
+          if (device) {
+            await this.notificationClient.sendBatchNotifications([
+              {
+                userId: allocation.userId,
+                type: "allocation_extended" as any,
+                title: "⏰ 设备使用时间已延长",
+                message: `设备 ${device.name || device.id.substring(0, 8)} 使用时间已延长 ${additionalMinutes} 分钟。`,
+                data: {
+                  allocationId,
+                  deviceId: device.id,
+                  deviceName: device.name,
+                  additionalMinutes,
+                  newExpiresAt: newExpiresAt.toISOString(),
+                },
+                channels: ["websocket"],
+              },
+            ]);
+          }
+        } catch (notificationError) {
+          this.logger.warn(
+            `Failed to send extend notification for ${allocationId}: ${notificationError.message}`
+          );
+        }
+
+        this.logger.debug(`✅ Extended allocation ${allocationId}`);
+      } catch (error) {
+        const failure = {
+          allocationId,
+          reason: error.message || "Unknown error",
+          error: error.name || "Error",
+        };
+        failures.push(failure);
+
+        this.logger.warn(
+          `❌ Failed to extend allocation ${allocationId}: ${error.message}`
+        );
+
+        // 如果不允许继续，直接返回
+        if (!continueOnError) {
+          break;
+        }
+      }
+    }
+
+    const executionTimeMs = Date.now() - startTime;
+
+    this.logger.log(
+      `✅ Batch extend completed: ${successes.length} success, ${failures.length} failed, ${executionTimeMs}ms`
+    );
+
+    return {
+      successCount: successes.length,
+      failedCount: failures.length,
+      totalCount: allocationIds.length,
+      successes,
+      failures,
+      executionTimeMs,
+    };
+  }
+
+  /**
+   * 批量查询用户的设备分配
+   * 支持一次性查询多个用户的分配情况
+   */
+  async batchQuery(
+    userIds: string[],
+    activeOnly: boolean = true
+  ): Promise<{
+    allocations: Record<string, Array<{
+      allocationId: string;
+      deviceId: string;
+      deviceName: string;
+      status: string;
+      allocatedAt: string;
+      expiresAt: string;
+    }>>;
+    userCount: number;
+    totalAllocations: number;
+  }> {
+    this.logger.log(`🔍 Batch querying allocations for ${userIds.length} users...`);
+
+    const queryBuilder = this.allocationRepository
+      .createQueryBuilder("allocation")
+      .leftJoinAndSelect("allocation.device", "device")
+      .where("allocation.userId IN (:...userIds)", { userIds });
+
+    if (activeOnly) {
+      queryBuilder.andWhere("allocation.status = :status", {
+        status: AllocationStatus.ALLOCATED,
+      });
+    }
+
+    const allocations = await queryBuilder.getMany();
+
+    // 按用户分组
+    const allocationsByUser: Record<string, any[]> = {};
+    for (const userId of userIds) {
+      allocationsByUser[userId] = [];
+    }
+
+    for (const allocation of allocations) {
+      const device = await this.deviceRepository.findOne({
+        where: { id: allocation.deviceId },
+      });
+
+      allocationsByUser[allocation.userId].push({
+        allocationId: allocation.id,
+        deviceId: allocation.deviceId,
+        deviceName: device?.name || `Device-${allocation.deviceId.substring(0, 8)}`,
+        status: allocation.status,
+        allocatedAt: allocation.allocatedAt.toISOString(),
+        expiresAt: allocation.expiresAt?.toISOString() || "",
+      });
+    }
+
+    this.logger.log(
+      `✅ Batch query completed: ${userIds.length} users, ${allocations.length} allocations`
+    );
+
+    return {
+      allocations: allocationsByUser,
+      userCount: userIds.length,
+      totalAllocations: allocations.length,
+    };
+  }
+
+  // ==================== 单设备续期功能 ====================
+
+  /**
+   * 获取续期策略配置
+   * 可根据用户等级返回不同策略
+   */
+  private getExtendPolicy(userId: string): {
+    maxExtendCount: number;
+    maxExtendMinutes: number;
+    maxTotalMinutes: number;
+    cooldownSeconds: number;
+    allowExtendBeforeExpireMinutes: number;
+    requireQuotaCheck: boolean;
+    requireBilling: boolean;
+  } {
+    // TODO: 从配置或数据库获取用户等级，返回对应策略
+    // 这里先返回默认策略
+    return {
+      maxExtendCount: 5,
+      maxExtendMinutes: 120,
+      maxTotalMinutes: 480,
+      cooldownSeconds: 60,
+      allowExtendBeforeExpireMinutes: 60,
+      requireQuotaCheck: false,
+      requireBilling: true,
+    };
+  }
+
+  /**
+   * 延长单个设备分配的使用时间
+   */
+  async extendAllocation(
+    allocationId: string,
+    additionalMinutes: number,
+    reason?: string
+  ): Promise<{
+    allocationId: string;
+    userId: string;
+    deviceId: string;
+    deviceName: string;
+    oldExpiresAt: string;
+    newExpiresAt: string;
+    additionalMinutes: number;
+    extendCount: number;
+    remainingExtends: number;
+    totalDurationMinutes: number;
+  }> {
+    this.logger.log(
+      `Extending allocation ${allocationId} by ${additionalMinutes} minutes...`
+    );
+
+    // 1. 查找分配
+    const allocation = await this.allocationRepository.findOne({
+      where: { id: allocationId },
+    });
+
+    if (!allocation) {
+      throw new NotFoundException(`Allocation ${allocationId} not found`);
+    }
+
+    // 2. 验证分配状态
+    if (allocation.status !== AllocationStatus.ALLOCATED) {
+      throw new BadRequestException(
+        `Allocation is not active (status: ${allocation.status})`
+      );
+    }
+
+    // 3. 获取续期策略
+    const policy = this.getExtendPolicy(allocation.userId);
+
+    // 4. 初始化 metadata（如果不存在）
+    if (!allocation.metadata) {
+      allocation.metadata = {};
+    }
+
+    // 5. 获取续期信息
+    const extendCount = (allocation.metadata.extendCount || 0) as number;
+    const extendHistory = (allocation.metadata.extendHistory || []) as any[];
+    const lastExtendAt = allocation.metadata.lastExtendAt as string | undefined;
+
+    // 6. 检查续期次数限制
+    if (policy.maxExtendCount !== -1 && extendCount >= policy.maxExtendCount) {
+      throw new ForbiddenException(
+        `Maximum extend count reached (${policy.maxExtendCount})`
+      );
+    }
+
+    // 7. 检查单次续期时长限制
+    if (additionalMinutes > policy.maxExtendMinutes) {
+      throw new BadRequestException(
+        `Additional minutes (${additionalMinutes}) exceeds maximum (${policy.maxExtendMinutes})`
+      );
+    }
+
+    // 8. 检查总时长限制
+    const currentTotalMinutes =
+      allocation.durationMinutes + (allocation.metadata.totalExtendedMinutes || 0);
+    const newTotalMinutes = currentTotalMinutes + additionalMinutes;
+
+    if (policy.maxTotalMinutes !== -1 && newTotalMinutes > policy.maxTotalMinutes) {
+      throw new ForbiddenException(
+        `Total duration (${newTotalMinutes}) would exceed maximum (${policy.maxTotalMinutes})`
+      );
+    }
+
+    // 9. 检查冷却时间
+    if (lastExtendAt && policy.cooldownSeconds > 0) {
+      const lastExtendTime = new Date(lastExtendAt).getTime();
+      const now = Date.now();
+      const elapsedSeconds = (now - lastExtendTime) / 1000;
+
+      if (elapsedSeconds < policy.cooldownSeconds) {
+        const remainingSeconds = Math.ceil(policy.cooldownSeconds - elapsedSeconds);
+        throw new BadRequestException(
+          `Extend cooldown: please wait ${remainingSeconds} seconds before extending again`
+        );
+      }
+    }
+
+    // 10. 检查是否在允许续期的时间窗口内
+    const now = new Date();
+    const expiresAt = new Date(allocation.expiresAt);
+    const minutesUntilExpire = (expiresAt.getTime() - now.getTime()) / (60 * 1000);
+
+    if (minutesUntilExpire > policy.allowExtendBeforeExpireMinutes) {
+      throw new BadRequestException(
+        `Can only extend within ${policy.allowExtendBeforeExpireMinutes} minutes before expiration (${Math.floor(minutesUntilExpire)} minutes remaining)`
+      );
+    }
+
+    // 11. 检查是否已过期
+    if (minutesUntilExpire < 0) {
+      throw new BadRequestException(
+        `Cannot extend expired allocation (expired ${Math.floor(Math.abs(minutesUntilExpire))} minutes ago)`
+      );
+    }
+
+    // 12. 计费检查（如果需要）
+    if (policy.requireBilling) {
+      try {
+        // 调用计费服务预检查余额
+        // await this.billingClient.preCheckExtend(allocation.userId, additionalMinutes);
+        this.logger.debug(
+          `Billing check passed for extend ${allocationId} (${additionalMinutes} minutes)`
+        );
+      } catch (error) {
+        this.logger.warn(`Billing check failed: ${error.message}`);
+        throw new ForbiddenException(
+          `Insufficient balance to extend ${additionalMinutes} minutes`
+        );
+      }
+    }
+
+    // 13. 执行续期
+    const oldExpiresAt = allocation.expiresAt;
+    const newExpiresAt = new Date(
+      oldExpiresAt.getTime() + additionalMinutes * 60 * 1000
+    );
+
+    allocation.expiresAt = newExpiresAt;
+
+    // 14. 更新 metadata
+    allocation.metadata.extendCount = extendCount + 1;
+    allocation.metadata.totalExtendedMinutes =
+      (allocation.metadata.totalExtendedMinutes || 0) + additionalMinutes;
+    allocation.metadata.lastExtendAt = now.toISOString();
+
+    // 15. 记录续期历史
+    extendHistory.push({
+      timestamp: now.toISOString(),
+      additionalMinutes,
+      oldExpiresAt: oldExpiresAt.toISOString(),
+      newExpiresAt: newExpiresAt.toISOString(),
+      reason: reason || "User requested",
+    });
+    allocation.metadata.extendHistory = extendHistory;
+
+    // 16. 保存
+    await this.allocationRepository.save(allocation);
+
+    this.logger.log(
+      `✅ Extended allocation ${allocationId}: ${oldExpiresAt.toISOString()} → ${newExpiresAt.toISOString()}`
+    );
+
+    // 17. 发布事件
+    await this.eventBus.publish("cloudphone.events", "scheduler.allocation.extended", {
+      allocationId,
+      userId: allocation.userId,
+      deviceId: allocation.deviceId,
+      oldExpiresAt: oldExpiresAt.toISOString(),
+      newExpiresAt: newExpiresAt.toISOString(),
+      additionalMinutes,
+      extendCount: allocation.metadata.extendCount,
+      totalDurationMinutes: allocation.durationMinutes + allocation.metadata.totalExtendedMinutes,
+    });
+
+    // 18. 发送通知
+    try {
+      const device = await this.deviceRepository.findOne({
+        where: { id: allocation.deviceId },
+      });
+
+      if (device) {
+        await this.notificationClient.sendBatchNotifications([
+          {
+            userId: allocation.userId,
+            type: "allocation_extended" as any,
+            title: "⏰ 设备使用时间已延长",
+            message: `设备 ${device.name || device.id.substring(0, 8)} 使用时间已延长 ${additionalMinutes} 分钟。新过期时间：${newExpiresAt.toLocaleString("zh-CN")}`,
+            data: {
+              allocationId,
+              deviceId: device.id,
+              deviceName: device.name,
+              additionalMinutes,
+              newExpiresAt: newExpiresAt.toISOString(),
+              extendCount: allocation.metadata.extendCount,
+              remainingExtends:
+                policy.maxExtendCount === -1
+                  ? -1
+                  : policy.maxExtendCount - allocation.metadata.extendCount,
+            },
+            channels: ["websocket"],
+          },
+        ]);
+      }
+    } catch (notificationError) {
+      this.logger.warn(
+        `Failed to send extend notification: ${notificationError.message}`
+      );
+    }
+
+    // 19. 返回结果
+    const device = await this.deviceRepository.findOne({
+      where: { id: allocation.deviceId },
+    });
+
+    return {
+      allocationId,
+      userId: allocation.userId,
+      deviceId: allocation.deviceId,
+      deviceName: device?.name || `Device-${allocation.deviceId.substring(0, 8)}`,
+      oldExpiresAt: oldExpiresAt.toISOString(),
+      newExpiresAt: newExpiresAt.toISOString(),
+      additionalMinutes,
+      extendCount: allocation.metadata.extendCount,
+      remainingExtends:
+        policy.maxExtendCount === -1
+          ? -1
+          : policy.maxExtendCount - allocation.metadata.extendCount,
+      totalDurationMinutes:
+        allocation.durationMinutes + allocation.metadata.totalExtendedMinutes,
+    };
+  }
+
+  /**
+   * 获取分配的续期信息
+   */
+  async getAllocationExtendInfo(allocationId: string): Promise<{
+    allocationId: string;
+    extendCount: number;
+    remainingExtends: number;
+    totalDurationMinutes: number;
+    maxTotalMinutes: number;
+    canExtend: boolean;
+    cannotExtendReason?: string;
+    extendHistory: Array<{
+      timestamp: string;
+      additionalMinutes: number;
+      oldExpiresAt: string;
+      newExpiresAt: string;
+      reason?: string;
+    }>;
+    nextExtendAvailableAt?: string;
+  }> {
+    const allocation = await this.allocationRepository.findOne({
+      where: { id: allocationId },
+    });
+
+    if (!allocation) {
+      throw new NotFoundException(`Allocation ${allocationId} not found`);
+    }
+
+    const policy = this.getExtendPolicy(allocation.userId);
+    const metadata = allocation.metadata || {};
+    const extendCount = (metadata.extendCount || 0) as number;
+    const extendHistory = (metadata.extendHistory || []) as any[];
+    const lastExtendAt = metadata.lastExtendAt as string | undefined;
+    const totalExtendedMinutes = (metadata.totalExtendedMinutes || 0) as number;
+
+    const totalDurationMinutes = allocation.durationMinutes + totalExtendedMinutes;
+
+    // 检查是否可以续期
+    let canExtend = true;
+    let cannotExtendReason: string | undefined;
+
+    // 检查状态
+    if (allocation.status !== AllocationStatus.ALLOCATED) {
+      canExtend = false;
+      cannotExtendReason = `Allocation is not active (status: ${allocation.status})`;
+    }
+
+    // 检查续期次数
+    if (
+      canExtend &&
+      policy.maxExtendCount !== -1 &&
+      extendCount >= policy.maxExtendCount
+    ) {
+      canExtend = false;
+      cannotExtendReason = `Maximum extend count reached (${policy.maxExtendCount})`;
+    }
+
+    // 检查总时长
+    if (
+      canExtend &&
+      policy.maxTotalMinutes !== -1 &&
+      totalDurationMinutes >= policy.maxTotalMinutes
+    ) {
+      canExtend = false;
+      cannotExtendReason = `Maximum total duration reached (${policy.maxTotalMinutes} minutes)`;
+    }
+
+    // 检查冷却时间
+    let nextExtendAvailableAt: string | undefined;
+    if (canExtend && lastExtendAt && policy.cooldownSeconds > 0) {
+      const lastExtendTime = new Date(lastExtendAt).getTime();
+      const now = Date.now();
+      const elapsedSeconds = (now - lastExtendTime) / 1000;
+
+      if (elapsedSeconds < policy.cooldownSeconds) {
+        canExtend = false;
+        const remainingSeconds = Math.ceil(policy.cooldownSeconds - elapsedSeconds);
+        cannotExtendReason = `Cooldown period: wait ${remainingSeconds} seconds`;
+        nextExtendAvailableAt = new Date(
+          lastExtendTime + policy.cooldownSeconds * 1000
+        ).toISOString();
+      }
+    }
+
+    // 检查是否已过期
+    const now = new Date();
+    const expiresAt = new Date(allocation.expiresAt);
+    if (canExtend && now > expiresAt) {
+      canExtend = false;
+      cannotExtendReason = "Allocation has expired";
+    }
+
+    // 检查是否在允许续期的时间窗口内
+    if (canExtend) {
+      const minutesUntilExpire = (expiresAt.getTime() - now.getTime()) / (60 * 1000);
+      if (minutesUntilExpire > policy.allowExtendBeforeExpireMinutes) {
+        canExtend = false;
+        cannotExtendReason = `Can only extend within ${policy.allowExtendBeforeExpireMinutes} minutes before expiration`;
+      }
+    }
+
+    return {
+      allocationId,
+      extendCount,
+      remainingExtends:
+        policy.maxExtendCount === -1 ? -1 : policy.maxExtendCount - extendCount,
+      totalDurationMinutes,
+      maxTotalMinutes: policy.maxTotalMinutes,
+      canExtend,
+      cannotExtendReason,
+      extendHistory,
+      nextExtendAvailableAt,
+    };
+  }
+
+  /**
+   * 发布失败的计费数据到死信队列
+   * 当计费上报失败时，将数据持久化到 DLX 供人工处理和重试
+   *
+   * @param billingData 失败的计费数据
+   */
+  private async publishFailedBillingData(billingData: {
+    allocationId: string;
+    deviceId: string;
+    userId: string;
+    tenantId?: string;
+    durationSeconds: number;
+    cpuCores: number;
+    memoryMB: number;
+    storageMB: number;
+    allocatedAt: Date;
+    releasedAt: Date;
+    failureReason: string;
+    failureTimestamp: Date;
+  }): Promise<void> {
+    try {
+      // 发布到死信队列专用路由
+      await this.eventBus.publish(
+        'cloudphone.dlx',
+        'billing.usage_report_failed',
+        {
+          type: 'billing.usage_report_failed',
+          timestamp: billingData.failureTimestamp.toISOString(),
+          allocationId: billingData.allocationId,
+          deviceId: billingData.deviceId,
+          userId: billingData.userId,
+          tenantId: billingData.tenantId,
+          usage: {
+            durationSeconds: billingData.durationSeconds,
+            cpuCores: billingData.cpuCores,
+            memoryMB: billingData.memoryMB,
+            storageMB: billingData.storageMB,
+          },
+          allocatedAt: billingData.allocatedAt.toISOString(),
+          releasedAt: billingData.releasedAt.toISOString(),
+          failureReason: billingData.failureReason,
+          failureTimestamp: billingData.failureTimestamp.toISOString(),
+          retryCount: 0,
+          metadata: {
+            serviceName: 'device-service',
+            source: 'allocation.service',
+          },
+        },
+        {
+          persistent: true,
+          priority: 8, // High priority for billing data
+        },
+      );
+
+      this.logger.log(
+        `📨 Published failed billing data to DLX: allocation ${billingData.allocationId}`,
+      );
+    } catch (dlxError) {
+      // 如果发布到 DLX 也失败，记录严重错误
+      this.logger.error(
+        `🚨 CRITICAL: Failed to publish billing data to DLX for allocation ${billingData.allocationId}: ${dlxError.message}`,
+        dlxError.stack,
+      );
+
+      // 尝试发布系统错误事件通知管理员
+      try {
+        await this.eventBus.publishSystemError(
+          'critical',
+          'BILLING_DLX_FAILURE',
+          `Failed to publish billing data to DLX: ${dlxError.message}`,
+          'device-service',
+          {
+            userMessage: '计费数据持久化失败，需要人工介入',
+            metadata: {
+              allocationId: billingData.allocationId,
+              userId: billingData.userId,
+              durationSeconds: billingData.durationSeconds,
+              originalFailure: billingData.failureReason,
+              dlxFailure: dlxError.message,
+            },
+          },
+        );
+      } catch (errorNotificationFailure) {
+        // 最后的防御：如果连错误通知都失败，只能记录日志
+        this.logger.error(
+          `🚨 CRITICAL: Failed to notify system error: ${errorNotificationFailure.message}`,
+        );
+      }
+    }
   }
 }

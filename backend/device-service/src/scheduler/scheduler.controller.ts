@@ -26,6 +26,27 @@ import {
   AllocationRequest,
   SchedulingStrategy as AllocationStrategy,
 } from "./allocation.service";
+import {
+  BatchAllocateDto,
+  BatchReleaseDto,
+  BatchExtendDto,
+  BatchQueryDto,
+} from "./dto/batch-allocation.dto";
+import { ExtendAllocationDto } from "./dto/extend-allocation.dto";
+import {
+  CreateReservationDto,
+  UpdateReservationDto,
+  CancelReservationDto,
+  QueryReservationsDto,
+} from "./dto/reservation.dto";
+import {
+  JoinQueueDto,
+  CancelQueueDto,
+  QueryQueueDto,
+  ProcessQueueBatchDto,
+} from "./dto/queue.dto";
+import { ReservationService } from "./reservation.service";
+import { QueueService } from "./queue.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { NodeStatus } from "../entities/node.entity";
 
@@ -39,6 +60,8 @@ export class SchedulerController {
     private readonly nodeManagerService: NodeManagerService,
     private readonly resourceMonitorService: ResourceMonitorService,
     private readonly allocationService: AllocationService,
+    private readonly reservationService: ReservationService,
+    private readonly queueService: QueueService,
   ) {}
 
   // ==================== 节点管理 API ====================
@@ -426,6 +449,447 @@ export class SchedulerController {
           .getSchedulingStats()
           .then((s) => s.strategy),
       },
+    };
+  }
+
+  // ==================== 批量操作 API (Phase 3) ====================
+
+  /**
+   * 批量分配设备
+   * POST /scheduler/allocations/batch
+   */
+  @Post("allocations/batch")
+  async batchAllocate(@Body() dto: BatchAllocateDto) {
+    this.logger.log(`Batch allocating ${dto.requests.length} devices...`);
+
+    const result = await this.allocationService.batchAllocate(
+      dto.requests,
+      dto.continueOnError
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: `Batch allocation completed: ${result.successCount}/${result.totalCount} succeeded`,
+    };
+  }
+
+  /**
+   * 批量释放设备
+   * POST /scheduler/allocations/batch/release
+   */
+  @Post("allocations/batch/release")
+  async batchRelease(@Body() dto: BatchReleaseDto) {
+    this.logger.log(`Batch releasing ${dto.allocationIds.length} allocations...`);
+
+    const result = await this.allocationService.batchRelease(
+      dto.allocationIds,
+      dto.reason,
+      dto.continueOnError
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: `Batch release completed: ${result.successCount}/${result.totalCount} succeeded`,
+    };
+  }
+
+  /**
+   * 批量续期设备
+   * POST /scheduler/allocations/batch/extend
+   */
+  @Post("allocations/batch/extend")
+  async batchExtend(@Body() dto: BatchExtendDto) {
+    this.logger.log(
+      `Batch extending ${dto.allocationIds.length} allocations by ${dto.additionalMinutes} minutes...`
+    );
+
+    const result = await this.allocationService.batchExtend(
+      dto.allocationIds,
+      dto.additionalMinutes,
+      dto.continueOnError
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: `Batch extend completed: ${result.successCount}/${result.totalCount} succeeded`,
+    };
+  }
+
+  /**
+   * 批量查询用户设备分配
+   * POST /scheduler/allocations/batch/query
+   */
+  @Post("allocations/batch/query")
+  async batchQuery(@Body() dto: BatchQueryDto) {
+    this.logger.log(`Batch querying allocations for ${dto.userIds.length} users...`);
+
+    const result = await this.allocationService.batchQuery(
+      dto.userIds,
+      dto.activeOnly
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: `Found ${result.totalAllocations} allocations for ${result.userCount} users`,
+    };
+  }
+
+  // ==================== 单设备续期 API (Phase 3) ====================
+
+  /**
+   * 延长单个设备分配的使用时间
+   * PUT /scheduler/allocations/:id/extend
+   */
+  @Put("allocations/:id/extend")
+  async extendAllocation(
+    @Param("id") allocationId: string,
+    @Body() dto: ExtendAllocationDto
+  ) {
+    this.logger.log(
+      `Extending allocation ${allocationId} by ${dto.additionalMinutes} minutes...`
+    );
+
+    const result = await this.allocationService.extendAllocation(
+      allocationId,
+      dto.additionalMinutes,
+      dto.reason
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: `Allocation extended by ${dto.additionalMinutes} minutes`,
+    };
+  }
+
+  /**
+   * 获取分配的续期信息
+   * GET /scheduler/allocations/:id/extend-info
+   */
+  @Get("allocations/:id/extend-info")
+  async getAllocationExtendInfo(@Param("id") allocationId: string) {
+    this.logger.log(`Getting extend info for allocation ${allocationId}...`);
+
+    const result = await this.allocationService.getAllocationExtendInfo(
+      allocationId
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: result.canExtend
+        ? "Allocation can be extended"
+        : `Cannot extend: ${result.cannotExtendReason}`,
+    };
+  }
+
+  // ==================== 设备预约 API (Phase 3) ====================
+
+  /**
+   * 创建设备预约
+   * POST /scheduler/reservations
+   */
+  @Post("reservations")
+  async createReservation(
+    @Body() dto: CreateReservationDto,
+    @Query("userId") userId: string,
+    @Query("tenantId") tenantId?: string
+  ) {
+    this.logger.log(
+      `Creating reservation for user ${userId} at ${dto.reservedStartTime}`
+    );
+
+    const result = await this.reservationService.createReservation(
+      userId,
+      tenantId,
+      dto
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: "Reservation created successfully",
+    };
+  }
+
+  /**
+   * 获取预约详情
+   * GET /scheduler/reservations/:id
+   */
+  @Get("reservations/:id")
+  async getReservation(@Param("id") reservationId: string) {
+    this.logger.log(`Getting reservation ${reservationId}`);
+
+    const result = await this.reservationService.getReservation(reservationId);
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * 查询预约列表
+   * GET /scheduler/reservations?userId=xxx&status=pending&page=1&pageSize=10
+   */
+  @Get("reservations")
+  async getReservations(@Query() query: QueryReservationsDto) {
+    this.logger.log(`Querying reservations with filters: ${JSON.stringify(query)}`);
+
+    const result = await this.reservationService.getUserReservations(query);
+
+    return {
+      success: true,
+      data: result,
+      message: `Found ${result.total} reservation(s)`,
+    };
+  }
+
+  /**
+   * 更新预约
+   * PUT /scheduler/reservations/:id
+   */
+  @Put("reservations/:id")
+  async updateReservation(
+    @Param("id") reservationId: string,
+    @Body() dto: UpdateReservationDto
+  ) {
+    this.logger.log(`Updating reservation ${reservationId}`);
+
+    const result = await this.reservationService.updateReservation(
+      reservationId,
+      dto
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: "Reservation updated successfully",
+    };
+  }
+
+  /**
+   * 取消预约
+   * POST /scheduler/reservations/:id/cancel
+   */
+  @Post("reservations/:id/cancel")
+  async cancelReservation(
+    @Param("id") reservationId: string,
+    @Body() dto: CancelReservationDto
+  ) {
+    this.logger.log(`Cancelling reservation ${reservationId}`);
+
+    const result = await this.reservationService.cancelReservation(
+      reservationId,
+      dto
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: "Reservation cancelled successfully",
+    };
+  }
+
+  /**
+   * 检查时间冲突
+   * POST /scheduler/reservations/check-conflict
+   */
+  @Post("reservations/check-conflict")
+  async checkReservationConflict(
+    @Body()
+    body: {
+      userId: string;
+      startTime: string;
+      endTime: string;
+    }
+  ) {
+    this.logger.log(
+      `Checking reservation conflict for user ${body.userId} between ${body.startTime} and ${body.endTime}`
+    );
+
+    const result = await this.reservationService.checkConflict(
+      body.userId,
+      new Date(body.startTime),
+      new Date(body.endTime)
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: result.message,
+    };
+  }
+
+  /**
+   * 获取预约统计信息
+   * GET /scheduler/reservations/stats?userId=xxx
+   */
+  @Get("reservations/stats/summary")
+  async getReservationStatistics(@Query("userId") userId?: string) {
+    this.logger.log(`Getting reservation statistics for user: ${userId || "all"}`);
+
+    const result = await this.reservationService.getReservationStatistics(userId);
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  // ==================== 优先级队列 API (Phase 3) ====================
+
+  /**
+   * 加入队列
+   * POST /scheduler/queue/join
+   */
+  @Post("queue/join")
+  async joinQueue(
+    @Body() dto: JoinQueueDto,
+    @Query("userId") userId: string,
+    @Query("tenantId") tenantId?: string,
+    @Query("userTier") userTier: string = "standard"
+  ) {
+    this.logger.log(`User ${userId} (${userTier}) joining queue`);
+
+    const result = await this.queueService.joinQueue(
+      userId,
+      tenantId,
+      userTier,
+      dto
+    );
+
+    return {
+      success: true,
+      data: result,
+      message: `Joined queue at position ${result.queuePosition}`,
+    };
+  }
+
+  /**
+   * 取消队列条目
+   * POST /scheduler/queue/:id/cancel
+   */
+  @Post("queue/:id/cancel")
+  async cancelQueue(
+    @Param("id") queueId: string,
+    @Body() dto: CancelQueueDto
+  ) {
+    this.logger.log(`Cancelling queue entry ${queueId}`);
+
+    const result = await this.queueService.cancelQueue(queueId, dto);
+
+    return {
+      success: true,
+      data: result,
+      message: "Queue entry cancelled successfully",
+    };
+  }
+
+  /**
+   * 获取队列条目详情
+   * GET /scheduler/queue/:id
+   */
+  @Get("queue/:id")
+  async getQueueEntry(@Param("id") queueId: string) {
+    this.logger.log(`Getting queue entry ${queueId}`);
+
+    const result = await this.queueService.getQueueEntry(queueId);
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * 查询队列列表
+   * GET /scheduler/queue?userId=xxx&status=waiting&page=1&pageSize=10
+   */
+  @Get("queue")
+  async getQueueList(@Query() query: QueryQueueDto) {
+    this.logger.log(`Querying queue with filters: ${JSON.stringify(query)}`);
+
+    const result = await this.queueService.getQueueList(query);
+
+    return {
+      success: true,
+      data: result,
+      message: `Found ${result.total} queue entry(ies)`,
+    };
+  }
+
+  /**
+   * 获取队列位置信息
+   * GET /scheduler/queue/:id/position
+   */
+  @Get("queue/:id/position")
+  async getQueuePosition(@Param("id") queueId: string) {
+    this.logger.log(`Getting position for queue entry ${queueId}`);
+
+    const result = await this.queueService.getQueuePosition(queueId);
+
+    return {
+      success: true,
+      data: result,
+      message: `Currently at position ${result.position}`,
+    };
+  }
+
+  /**
+   * 手动处理下一个队列条目（管理员）
+   * POST /scheduler/queue/process-next
+   */
+  @Post("queue/process-next")
+  async processNextQueueEntry() {
+    this.logger.log("Manually processing next queue entry...");
+
+    const result = await this.queueService.processNextQueueEntry();
+
+    return {
+      success: result,
+      message: result
+        ? "Queue entry processed successfully"
+        : "No queue entries to process or processing failed",
+    };
+  }
+
+  /**
+   * 批量处理队列（管理员）
+   * POST /scheduler/queue/process-batch
+   */
+  @Post("queue/process-batch")
+  async processQueueBatch(@Body() dto: ProcessQueueBatchDto) {
+    this.logger.log(
+      `Batch processing queue (max: ${dto.maxCount || 10} entries)...`
+    );
+
+    const result = await this.queueService.processQueueBatch(dto);
+
+    return {
+      success: true,
+      data: result,
+      message: `Processed ${result.totalProcessed} entries: ${result.successCount} succeeded, ${result.failedCount} failed`,
+    };
+  }
+
+  /**
+   * 获取队列统计信息
+   * GET /scheduler/queue/stats
+   */
+  @Get("queue/stats")
+  async getQueueStatistics() {
+    this.logger.log("Getting queue statistics...");
+
+    const result = await this.queueService.getQueueStatistics();
+
+    return {
+      success: true,
+      data: result,
     };
   }
 }
