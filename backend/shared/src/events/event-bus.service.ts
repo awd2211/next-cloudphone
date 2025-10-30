@@ -178,4 +178,55 @@ export class EventBusService {
       ...payload,
     } as SimpleEvent & T);
   }
+
+  /**
+   * 发布系统错误事件（用于管理员通知）
+   *
+   * @param severity 错误严重程度: critical | high | medium | low
+   * @param errorCode 错误代码
+   * @param errorMessage 错误消息
+   * @param serviceName 服务名称
+   * @param options 可选参数
+   */
+  async publishSystemError(
+    severity: 'critical' | 'high' | 'medium' | 'low',
+    errorCode: string,
+    errorMessage: string,
+    serviceName: string,
+    options?: {
+      userMessage?: string;
+      requestId?: string;
+      userId?: string;
+      stackTrace?: string;
+      metadata?: Record<string, any>;
+    },
+  ): Promise<void> {
+    const routingKey = `system.error.${severity}`;
+
+    await this.publish(
+      'cloudphone.events',
+      routingKey,
+      {
+        type: routingKey,
+        errorCode,
+        errorMessage,
+        userMessage: options?.userMessage,
+        serviceName,
+        requestId: options?.requestId,
+        userId: options?.userId,
+        stackTrace: options?.stackTrace,
+        metadata: options?.metadata,
+        timestamp: new Date(),
+      } as SimpleEvent,
+      {
+        // 严重错误使用高优先级
+        priority: severity === 'critical' ? 10 : severity === 'high' ? 8 : 5,
+        persistent: true,
+      }
+    );
+
+    this.logger.log(
+      `System error published: ${errorCode} (${severity}) - ${serviceName}`
+    );
+  }
 }

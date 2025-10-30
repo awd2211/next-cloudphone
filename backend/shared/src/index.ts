@@ -12,6 +12,9 @@ export * from './events/schemas';
 // ========== Provider 类型定义 ==========
 export * from './types/provider.types';
 
+// ========== 通知类型定义 ==========
+export * from './types/notification.types';
+
 // ========== 服务发现 ==========
 export { ConsulService } from './consul/consul.service';
 export { ConsulModule } from './consul/consul.module';
@@ -94,6 +97,13 @@ export {
 } from './database/transaction.decorator';
 export type { TransactionOptions } from './database/transaction.decorator';
 
+// ========== 分页工具 ==========
+export {
+  CursorPaginationDto,
+  CursorPagination,
+} from './pagination/cursor-pagination';
+export type { CursorPaginatedResponse } from './pagination/cursor-pagination';
+
 // ========== 分布式锁 ==========
 export { DistributedLockService, Lock } from './lock/distributed-lock.service';
 export type { LockConfig } from './lock/distributed-lock.service';
@@ -123,12 +133,14 @@ export { SagaStatus, SagaType } from './saga';
 export { EventOutbox, EventOutboxService, EventOutboxModule } from './outbox';
 
 // ========== 测试工具 ==========
-export { TransactionTestHelper, ConcurrencyTestHelper } from './testing';
-export type { ConcurrencyTestResult, RaceConditionTestResult } from './testing';
+// 注意: 测试工具仅在测试环境中使用,不应在生产代码中导出
+// export { TransactionTestHelper, ConcurrencyTestHelper } from './testing';
+// export type { ConcurrencyTestResult, RaceConditionTestResult } from './testing';
 
 // ========== 测试辅助工具 (Test Helpers & Mock Factories) ==========
-export * from './testing/test-helpers';
-export * from './testing/mock-factories';
+// 注意: Jest mock 工具仅在测试环境中使用,不应在生产代码中导出
+// export * from './testing/test-helpers';
+// export * from './testing/mock-factories';
 
 // ========== 安全中间件 ==========
 export { RateLimitMiddleware, IPBlacklistMiddleware, AutoBanMiddleware } from './middleware/rate-limit.middleware';

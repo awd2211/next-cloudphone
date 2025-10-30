@@ -159,7 +159,7 @@ export class SagaOrchestratorService {
     // 创建 Saga 状态记录
     const timeoutAt = definition.timeoutMs
       ? new Date(Date.now() + definition.timeoutMs)
-      : null;
+      : undefined;
 
     await this.createSagaState({
       sagaId,
@@ -250,7 +250,7 @@ export class SagaOrchestratorService {
     state: T,
     maxRetries: number,
   ): Promise<Partial<T>> {
-    let lastError: Error;
+    let lastError: Error = new Error('Step execution failed');
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {

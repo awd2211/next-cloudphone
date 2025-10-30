@@ -84,8 +84,11 @@ export class SecurityModule implements NestModule {
     consumer
       .apply(CsrfProtectionMiddleware)
       .exclude(
-        { path: 'api/auth/login', method: RequestMethod.POST },
-        { path: 'api/auth/register', method: RequestMethod.POST },
+        { path: 'api/v1/auth/login', method: RequestMethod.POST },
+        { path: 'api/v1/auth/register', method: RequestMethod.POST },
+        { path: 'api/v1/auth/captcha', method: RequestMethod.GET },
+        { path: 'api/auth/login', method: RequestMethod.POST },  // 兼容旧路径
+        { path: 'api/auth/register', method: RequestMethod.POST },  // 兼容旧路径
         { path: 'health', method: RequestMethod.GET },
         { path: 'metrics', method: RequestMethod.GET },
       )

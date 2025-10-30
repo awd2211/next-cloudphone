@@ -39,7 +39,7 @@ export function createRedisConfig(keyPrefix?: string) {
       retryStrategy: (times: number) => {
         // 最多重试 10 次
         if (times > 10) {
-          return null;
+          return undefined;
         }
         // 延迟时间递增: 50ms, 100ms, 200ms...
         return Math.min(times * 50, 2000);
@@ -80,7 +80,7 @@ export function createCustomRedisConfig(options?: {
       retryStrategy: (times: number) => {
         const maxRetries = options?.maxRetries ?? 10;
         if (times > maxRetries) {
-          return null;
+          return undefined;
         }
         return Math.min(times * 50, 2000);
       },

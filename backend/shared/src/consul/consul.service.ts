@@ -51,7 +51,7 @@ export class ConsulService implements OnModuleInit, OnModuleDestroy {
     port: number,
     tags: string[] = [],
     healthPath: string = '/health',
-  ): Promise<string> {
+  ): Promise<string | null> {
     const serviceId = `${name}-${process.env.HOSTNAME || 'dev'}-${Date.now()}`;
     const address = process.env.SERVICE_HOST || '127.0.0.1';
 

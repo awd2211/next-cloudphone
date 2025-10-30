@@ -287,11 +287,11 @@ export function CacheEvict(options: CacheEvictOptions): MethodDecorator {
             .replace(/\{(\w+)\}/g, (_, field) => {
               // 优先从结果对象中取值
               if (result && typeof result === 'object' && field in result) {
-                return String(result[field]);
+                return String((result as Record<string, unknown>)[field]);
               }
               // 降级：从第一个参数中取值 (如果是对象)
               if (args[0] && typeof args[0] === 'object' && field in args[0]) {
-                return String(args[0][field]);
+                return String((args[0] as Record<string, unknown>)[field]);
               }
               return '';
             });

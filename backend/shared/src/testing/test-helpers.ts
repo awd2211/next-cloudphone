@@ -83,16 +83,48 @@ export function createAuthToken(
 
 /**
  * Mock 认证守卫 (允许所有请求通过)
+ * 注意: 仅在测试环境中使用
  */
-export const mockAuthGuard = {
-  canActivate: jest.fn(() => true),
+export const createMockAuthGuard = () => {
+  if (typeof jest === 'undefined') {
+    throw new Error('createMockAuthGuard() can only be used in test environment with Jest');
+  }
+  return {
+    canActivate: jest.fn(() => true),
+  };
 };
 
 /**
  * Mock 角色守卫 (允许所有请求通过)
+ * 注意: 仅在测试环境中使用
  */
-export const mockRolesGuard = {
+export const createMockRolesGuard = () => {
+  if (typeof jest === 'undefined') {
+    throw new Error('createMockRolesGuard() can only be used in test environment with Jest');
+  }
+  return {
+    canActivate: jest.fn(() => true),
+  };
+};
+
+/**
+ * @deprecated Use createMockAuthGuard() instead
+ * This export is kept for backward compatibility but should not be used
+ */
+export const mockAuthGuard = typeof jest !== 'undefined' ? {
   canActivate: jest.fn(() => true),
+} : {
+  canActivate: () => true,
+};
+
+/**
+ * @deprecated Use createMockRolesGuard() instead
+ * This export is kept for backward compatibility but should not be used
+ */
+export const mockRolesGuard = typeof jest !== 'undefined' ? {
+  canActivate: jest.fn(() => true),
+} : {
+  canActivate: () => true,
 };
 
 /**

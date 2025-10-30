@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import {
   DataSource,
   EntityManager,
+  ObjectLiteral,
   QueryRunner,
   SelectQueryBuilder,
 } from 'typeorm';
@@ -466,7 +467,7 @@ export class QueryAudit {
 /**
  * QueryBuilder 包装器，添加审计功能
  */
-export class AuditedQueryBuilder<Entity> {
+export class AuditedQueryBuilder<Entity extends ObjectLiteral> {
   constructor(private queryBuilder: SelectQueryBuilder<Entity>) {}
 
   /**
@@ -513,7 +514,7 @@ export class AuditedQueryBuilder<Entity> {
 /**
  * 创建审计 QueryBuilder
  */
-export function createAuditedQueryBuilder<Entity>(
+export function createAuditedQueryBuilder<Entity extends ObjectLiteral>(
   queryBuilder: SelectQueryBuilder<Entity>,
 ): AuditedQueryBuilder<Entity> {
   return new AuditedQueryBuilder(queryBuilder);
