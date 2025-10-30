@@ -1,15 +1,18 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Repository, DataSource } from "typeorm";
 import { NotFoundException, BadRequestException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { ModuleRef } from "@nestjs/core";
 import { DevicesService } from "../devices.service";
 import { Device, DeviceStatus } from "../../entities/device.entity";
 import { DockerService } from "../../docker/docker.service";
 import { AdbService } from "../../adb/adb.service";
 import { PortManagerService } from "../../port-manager/port-manager.service";
-import { EventBusService } from "@cloudphone/shared";
+import { EventBusService, EventOutboxService, SagaOrchestratorService } from "@cloudphone/shared";
 import { QuotaClientService } from "../../quota/quota-client.service";
+import { CacheService } from "../../cache/cache.service";
+import { DeviceProviderFactory } from "../../providers/device-provider.factory";
 import { CreateDeviceDto } from "../dto/create-device.dto";
 import { UpdateDeviceDto } from "../dto/update-device.dto";
 
@@ -64,6 +67,56 @@ describe("DevicesService", () => {
     get: jest.fn(),
   };
 
+  // Mock provider returned by DeviceProviderFactory
+  const mockProvider = {
+    create: jest.fn(),
+    start: jest.fn(),
+    stop: jest.fn(),
+    destroy: jest.fn(),
+    getStatus: jest.fn(),
+    getMetrics: jest.fn(),
+  };
+
+  const mockProviderFactory = {
+    getProvider: jest.fn(() => mockProvider),
+  };
+
+  const mockCacheService = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    wrap: jest.fn(),
+  };
+
+  const mockEventOutboxService = {
+    writeEvent: jest.fn(),
+  };
+
+  const mockSagaOrchestrator = {
+    executeSaga: jest.fn(),
+    getSagaStatus: jest.fn(),
+    compensateSaga: jest.fn(),
+  };
+
+  const mockModuleRef = {
+    get: jest.fn(),
+  };
+
+  const mockQueryRunner = {
+    connect: jest.fn(),
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    rollbackTransaction: jest.fn(),
+    release: jest.fn(),
+    manager: {
+      getRepository: jest.fn(() => mockDeviceRepository),
+    },
+  };
+
+  const mockDataSource = {
+    createQueryRunner: jest.fn(() => mockQueryRunner),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -71,6 +124,10 @@ describe("DevicesService", () => {
         {
           provide: getRepositoryToken(Device),
           useValue: mockDeviceRepository,
+        },
+        {
+          provide: DeviceProviderFactory,
+          useValue: mockProviderFactory,
         },
         {
           provide: DockerService,
@@ -93,8 +150,28 @@ describe("DevicesService", () => {
           useValue: mockEventBus,
         },
         {
+          provide: EventOutboxService,
+          useValue: mockEventOutboxService,
+        },
+        {
           provide: QuotaClientService,
           useValue: mockQuotaClient,
+        },
+        {
+          provide: CacheService,
+          useValue: mockCacheService,
+        },
+        {
+          provide: ModuleRef,
+          useValue: mockModuleRef,
+        },
+        {
+          provide: SagaOrchestratorService,
+          useValue: mockSagaOrchestrator,
+        },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
         },
       ],
     }).compile();
