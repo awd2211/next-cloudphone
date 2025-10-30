@@ -15,8 +15,8 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { BillingRulesModule } from './billing-rules/billing-rules.module';
 import { StatsModule } from './stats/stats.module';
 import { HealthController } from './health.controller';
-import { EventsModule } from './events/events.module';
-import { ConsulModule, EventBusModule, createLoggerConfig, SagaModule } from '@cloudphone/shared';
+import { BillingRabbitMQModule } from './rabbitmq/rabbitmq.module';
+import { ConsulModule, EventBusModule, createLoggerConfig, SagaModule, SecurityModule } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 
 @Module({
@@ -53,10 +53,11 @@ import { validate } from './common/config/env.validation';
     BalanceModule,
     InvoicesModule,
     BillingRulesModule,
-    EventsModule, // 事件处理模块
-    ConsulModule,     // ✅ 已修复 DiscoveryService 依赖问题
-    EventBusModule,   // ✅ 已修复 DiscoveryService 依赖问题
-    SagaModule,       // Saga 编排模块（用于分布式事务）
+    BillingRabbitMQModule, // ✅ RabbitMQ 消费者模块（监听设备和用户事件）
+    ConsulModule,          // ✅ 已修复 DiscoveryService 依赖问题
+    EventBusModule,        // ✅ 已修复 DiscoveryService 依赖问题
+    SagaModule,            // Saga 编排模块（用于分布式事务）
+    SecurityModule,        // ✅ 统一安全模块（速率限制、IP黑名单、自动封禁、XSS/CSRF防护）
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

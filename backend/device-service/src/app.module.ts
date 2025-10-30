@@ -28,8 +28,10 @@ import {
   ConsulModule,
   createLoggerConfig,
   EventBusService,
+  EventOutbox,
   RequestIdMiddleware,
   SagaModule,
+  SecurityModule,
 } from "@cloudphone/shared";
 import { validate } from "./common/config/env.validation";
 import { DeviceRabbitMQModule } from "./rabbitmq/rabbitmq.module";
@@ -52,7 +54,7 @@ import { DeviceRabbitMQModule } from "./rabbitmq/rabbitmq.module";
         username: configService.get<string>("DB_USERNAME", "postgres"),
         password: configService.get<string>("DB_PASSWORD", "postgres"),
         database: configService.get<string>("DB_DATABASE", "cloudphone_device"),
-        entities: [`${__dirname}/**/*.entity{.ts,.js}`],
+        entities: [`${__dirname}/**/*.entity{.ts,.js}`, EventOutbox],
         synchronize: false, // ✅ 使用 Atlas 管理数据库迁移
         logging: configService.get<string>("NODE_ENV") === "development",
       }),
@@ -81,6 +83,7 @@ import { DeviceRabbitMQModule } from "./rabbitmq/rabbitmq.module";
     FailoverModule, // 故障转移和自动恢复
     StateRecoveryModule, // 状态自愈和回滚
     SagaModule, // Saga 编排模块（用于分布式事务）
+    SecurityModule, // ✅ 已修复 AutoBanMiddleware 上下文绑定问题
   ],
   controllers: [HealthController],
   providers: [], // EventBusService 由 EventBusModule 提供

@@ -7,7 +7,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import * as redisStore from 'cache-manager-redis-store';
-import { createLoggerConfig, ConsulModule } from '@cloudphone/shared';
+import { createLoggerConfig, ConsulModule, SecurityModule } from '@cloudphone/shared';
 import { HealthController } from './health/health.controller';
 import { TasksService } from './tasks/tasks.service';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -16,6 +16,7 @@ import { SmsModule } from './sms/sms.module';
 import { TemplatesModule } from './templates/templates.module';
 import { NotificationEventsHandler } from './events/notification-events.handler';
 import { CloudphoneRabbitMQModule } from './rabbitmq/rabbitmq.module';
+import { AuthModule } from './auth/auth.module';
 import { Notification } from './entities/notification.entity';
 import { NotificationTemplate } from './entities/notification-template.entity';
 import { NotificationPreference } from './entities/notification-preference.entity';
@@ -97,11 +98,17 @@ import { validate } from './common/config/env.validation';
     // ========== 模板模块 ==========
     TemplatesModule,
 
+    // ========== 认证模块 ==========
+    AuthModule,
+
     // ========== RabbitMQ 消息队列 ==========
     CloudphoneRabbitMQModule,
 
     // ========== Consul 服务注册 ==========
     ConsulModule,
+
+    // ========== 安全模块 ==========
+    SecurityModule, // ✅ 统一安全模块（速率限制、IP黑名单、自动封禁、XSS/CSRF防护）
   ],
   controllers: [
     HealthController,

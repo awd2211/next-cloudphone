@@ -37,7 +37,7 @@ import { HealthCheckService } from './common/services/health-check.service';
 import { AlertService } from './common/services/alert/alert.service';
 import { RequestTrackerMiddleware } from './common/middleware/request-tracker.middleware';
 import { getDatabaseConfig } from './common/config/database.config';
-import { ConsulModule, createLoggerConfig } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig, SecurityModule } from '@cloudphone/shared';
 import { CacheWarmupService } from './cache/cache-warmup.service';
 import { CacheService } from './cache/cache.service';
 import { UserMetricsService } from './common/metrics/user-metrics.service';
@@ -77,6 +77,7 @@ import { validate } from './common/config/env.validation';
     ApiKeysModule,
     QueueModule,
     ConsulModule,  // ✅ 已修复 DiscoveryService 依赖问题
+    SecurityModule,  // ✅ 添加统一安全模块（速率限制、IP黑名单、自动封禁、XSS/CSRF防护）
     // ScheduleModule 放在最后，避免依赖问题
     ScheduleModule.forRoot(),
   ],
