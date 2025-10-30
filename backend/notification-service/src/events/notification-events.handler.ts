@@ -5,6 +5,96 @@ import { EmailService } from '../email/email.service';
 import { NotificationType } from '../entities/notification.entity';
 
 /**
+ * 事件类型定义
+ */
+interface DeviceCreatedEventPayload {
+  deviceId: string;
+  deviceName: string;
+  userId: string;
+  userEmail?: string;
+}
+
+interface DeviceCreationFailedEventPayload {
+  deviceId?: string;
+  deviceName: string;
+  userId: string;
+  reason?: string;
+}
+
+interface OrderPaidEventPayload {
+  orderId: string;
+  orderNo: string;
+  userId: string;
+  amount: number;
+}
+
+interface LowBalanceEventPayload {
+  userId: string;
+  balance: number;
+  threshold: number;
+  userEmail?: string;
+}
+
+interface SystemMaintenanceEventPayload {
+  startTime: string;
+  endTime: string;
+  duration: number;
+}
+
+interface InvoiceGeneratedEventPayload {
+  invoiceId: string;
+  userId: string;
+  amount: number;
+  dueDate: string;
+}
+
+interface DeviceBackupCreatedEventPayload {
+  deviceId: string;
+  deviceName: string;
+  userId: string;
+  snapshotId: string;
+  snapshotName: string;
+}
+
+interface DeviceExpirationWarningEventPayload {
+  deviceId: string;
+  deviceName: string;
+  userId: string;
+  expiresAt: string;
+  daysRemaining: number;
+  userEmail?: string;
+}
+
+interface DeviceExpiredEventPayload {
+  deviceId: string;
+  userId: string;
+}
+
+interface SnapshotExpirationWarningEventPayload {
+  snapshotId: string;
+  snapshotName: string;
+  deviceId: string;
+  expiresAt: string;
+  daysRemaining: number;
+}
+
+interface SnapshotExpiredEventPayload {
+  snapshotId: string;
+  snapshotName: string;
+}
+
+interface BackupCompletedEventPayload {
+  totalDevices: number;
+  successCount: number;
+  failureCount: number;
+}
+
+interface BackupCleanupCompletedEventPayload {
+  cleanedCount: number;
+  freedSpaceMB: number;
+}
+
+/**
  * 通知事件处理器
  * 监听业务事件并自动发送通知
  */
@@ -21,7 +111,7 @@ export class NotificationEventsHandler {
    * 设备创建事件
    */
   @OnEvent('device.created')
-  async handleDeviceCreated(event: any) {
+  async handleDeviceCreated(event: DeviceCreatedEventPayload) {
     this.logger.log(`收到设备创建事件: ${event.deviceId}`);
 
     try {
@@ -53,7 +143,7 @@ export class NotificationEventsHandler {
    * 设备创建失败事件
    */
   @OnEvent('device.creation_failed')
-  async handleDeviceCreationFailed(event: any) {
+  async handleDeviceCreationFailed(event: DeviceCreationFailedEventPayload) {
     this.logger.log(`收到设备创建失败事件: ${event.deviceId}`);
 
     await this.notificationsService.createAndSend({
@@ -72,7 +162,7 @@ export class NotificationEventsHandler {
    * 订单支付成功事件
    */
   @OnEvent('order.paid')
-  async handleOrderPaid(event: any) {
+  async handleOrderPaid(event: OrderPaidEventPayload) {
     this.logger.log(`收到订单支付事件: ${event.orderId}`);
 
     await this.notificationsService.createAndSend({
@@ -92,7 +182,7 @@ export class NotificationEventsHandler {
    * 余额不足事件
    */
   @OnEvent('billing.low_balance')
-  async handleLowBalance(event: any) {
+  async handleLowBalance(event: LowBalanceEventPayload) {
     this.logger.log(`收到余额不足事件: 用户 ${event.userId}`);
 
     // WebSocket 通知
@@ -120,7 +210,7 @@ export class NotificationEventsHandler {
    * 系统维护通知
    */
   @OnEvent('system.maintenance')
-  async handleSystemMaintenance(event: any) {
+  async handleSystemMaintenance(event: SystemMaintenanceEventPayload) {
     this.logger.log('收到系统维护通知事件');
 
     // 广播给所有在线用户
@@ -139,7 +229,7 @@ export class NotificationEventsHandler {
    * 账单生成事件
    */
   @OnEvent('billing.invoice_generated')
-  async handleInvoiceGenerated(event: any) {
+  async handleInvoiceGenerated(event: InvoiceGeneratedEventPayload) {
     this.logger.log(`收到账单生成事件: ${event.invoiceId}`);
 
     await this.notificationsService.createAndSend({
@@ -159,7 +249,7 @@ export class NotificationEventsHandler {
    * 设备备份创建事件
    */
   @OnEvent('device.backup_created')
-  async handleDeviceBackupCreated(event: any) {
+  async handleDeviceBackupCreated(event: DeviceBackupCreatedEventPayload) {
     this.logger.log(`收到设备备份创建事件: ${event.snapshotId}`);
 
     try {
@@ -184,7 +274,7 @@ export class NotificationEventsHandler {
    * 设备到期提醒事件
    */
   @OnEvent('device.expiration_warning')
-  async handleDeviceExpirationWarning(event: any) {
+  async handleDeviceExpirationWarning(event: DeviceExpirationWarningEventPayload) {
     this.logger.log(
       `收到设备到期提醒事件: ${event.deviceId}, ${event.daysRemaining} 天后到期`,
     );
@@ -209,7 +299,7 @@ export class NotificationEventsHandler {
         await this.emailService.sendDeviceExpirationWarning(
           event.userEmail,
           event.deviceName,
-          event.expiresAt,
+          new Date(event.expiresAt),
           event.daysRemaining,
         );
       }
@@ -222,7 +312,7 @@ export class NotificationEventsHandler {
    * 设备已过期事件
    */
   @OnEvent('device.expired')
-  async handleDeviceExpired(event: any) {
+  async handleDeviceExpired(event: DeviceExpiredEventPayload) {
     this.logger.log(`收到设备已过期事件: ${event.deviceId}`);
 
     try {
@@ -244,7 +334,7 @@ export class NotificationEventsHandler {
    * 快照到期提醒事件
    */
   @OnEvent('snapshot.expiration_warning')
-  async handleSnapshotExpirationWarning(event: any) {
+  async handleSnapshotExpirationWarning(event: SnapshotExpirationWarningEventPayload) {
     this.logger.log(
       `收到快照到期提醒事件: ${event.snapshotId}, ${event.daysRemaining} 天后到期`,
     );
@@ -267,7 +357,7 @@ export class NotificationEventsHandler {
    * 快照已过期事件
    */
   @OnEvent('snapshot.expired')
-  async handleSnapshotExpired(event: any) {
+  async handleSnapshotExpired(event: SnapshotExpiredEventPayload) {
     this.logger.log(`收到快照已过期事件: ${event.snapshotId}`);
 
     try {
@@ -281,7 +371,7 @@ export class NotificationEventsHandler {
    * 备份任务完成事件
    */
   @OnEvent('device.backup_completed')
-  async handleBackupCompleted(event: any) {
+  async handleBackupCompleted(event: BackupCompletedEventPayload) {
     this.logger.log(
       `收到备份任务完成事件: 成功 ${event.successCount}/${event.totalDevices}`,
     );
@@ -298,7 +388,7 @@ export class NotificationEventsHandler {
    * 备份清理完成事件
    */
   @OnEvent('device.backup_cleanup_completed')
-  async handleBackupCleanupCompleted(event: any) {
+  async handleBackupCleanupCompleted(event: BackupCleanupCompletedEventPayload) {
     this.logger.log(`收到备份清理完成事件: 清理了 ${event.cleanedCount} 个过期备份`);
   }
 }

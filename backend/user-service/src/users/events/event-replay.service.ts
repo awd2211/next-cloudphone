@@ -3,7 +3,7 @@ import { EventStoreService } from './event-store.service';
 import { UserEvent } from '../../entities/user-event.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../entities/user.entity';
+import { User, UserStatus } from '../../entities/user.entity';
 
 /**
  * 事件重放服务
@@ -295,7 +295,7 @@ export class EventReplayService {
   ): Partial<User> {
     return {
       ...state,
-      status: 'DELETED' as any,
+      status: UserStatus.DELETED,
       updatedAt: event.createdAt,
     };
   }

@@ -16,6 +16,17 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { Public } from "../auth/decorators/public.decorator";
 import { lastValueFrom } from "rxjs";
 
+// 扩展 Request 类型以包含 JWT 用户信息和 Request ID
+interface RequestWithUser extends Request {
+  user?: {
+    id: string;
+    username: string;
+    tenantId?: string;
+    roles?: string[];
+  };
+  requestId?: string;
+}
+
 @Controller()
 export class ProxyController {
   private readonly logger = new Logger(ProxyController.name);
@@ -465,13 +476,14 @@ export class ProxyController {
       // }
 
       // 获取 Request ID
-      const requestId = (req as any).requestId || 'unknown';
+      const reqWithUser = req as RequestWithUser;
+      const requestId = reqWithUser.requestId || 'unknown';
 
       this.logger.log(
         `[${requestId}] 🔀 Routing ${req.method} ${req.url} -> ${serviceName}${targetPath}`,
       );
       this.logger.log(`[${requestId}] 📋 查询参数: ${JSON.stringify(req.query)}`);
-      this.logger.log(`[${requestId}] 👤 用户信息: ${(req as any).user?.username} (${(req as any).user?.id})`);
+      this.logger.log(`[${requestId}] 👤 用户信息: ${reqWithUser.user?.username} (${reqWithUser.user?.id})`);
 
       // 转发请求到目标服务
       const result$ = this.proxyService.proxyRequest(
@@ -484,11 +496,11 @@ export class ProxyController {
           // 注入 Request ID (跨服务追踪)
           "x-request-id": requestId,
           // 注入用户信息（从 JWT 中提取）
-          "x-user-id": (req as any).user?.id,
-          "x-user-tenant": (req as any).user?.tenantId,
+          "x-user-id": reqWithUser.user?.id,
+          "x-user-tenant": reqWithUser.user?.tenantId,
           // Base64 编码角色数组，避免 HTTP 头中的非法字符
           "x-user-roles": Buffer.from(
-            JSON.stringify((req as any).user?.roles || []),
+            JSON.stringify(reqWithUser.user?.roles || []),
           ).toString("base64"),
         },
         req.query,

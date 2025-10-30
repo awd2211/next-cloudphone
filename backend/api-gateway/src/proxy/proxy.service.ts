@@ -374,7 +374,7 @@ export class ProxyService {
     const timeout = serviceConfig?.timeout || service?.timeout || 10000;
 
     const config: AxiosRequestConfig = {
-      method: method as any,
+      method: method.toUpperCase() as AxiosRequestConfig['method'],
       url,
       headers: this.sanitizeHeaders(headers),
       timeout,

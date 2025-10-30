@@ -4,6 +4,17 @@ import { ConsumeMessage } from 'amqplib';
 import { NotificationsService } from '../../notifications/notifications.service';
 
 /**
+ * 失败消息类型定义
+ * 所有进入 DLX 的消息都应包含这些基础字段
+ */
+interface FailedMessage {
+  eventId?: string;
+  eventType?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+/**
  * 死信队列消费者
  * 处理所有失败的消息，实现重试逻辑和失败告警
  */
@@ -24,7 +35,7 @@ export class DlxConsumer {
       durable: true,
     },
   })
-  async handleUserEventFailure(msg: any, amqpMsg: ConsumeMessage) {
+  async handleUserEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
     await this.handleFailedMessage('user', msg, amqpMsg);
   }
 
@@ -39,7 +50,7 @@ export class DlxConsumer {
       durable: true,
     },
   })
-  async handleDeviceEventFailure(msg: any, amqpMsg: ConsumeMessage) {
+  async handleDeviceEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
     await this.handleFailedMessage('device', msg, amqpMsg);
   }
 
@@ -54,7 +65,7 @@ export class DlxConsumer {
       durable: true,
     },
   })
-  async handleAppEventFailure(msg: any, amqpMsg: ConsumeMessage) {
+  async handleAppEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
     await this.handleFailedMessage('app', msg, amqpMsg);
   }
 
@@ -69,7 +80,7 @@ export class DlxConsumer {
       durable: true,
     },
   })
-  async handleBillingEventFailure(msg: any, amqpMsg: ConsumeMessage) {
+  async handleBillingEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
     await this.handleFailedMessage('billing', msg, amqpMsg);
   }
 
@@ -78,7 +89,7 @@ export class DlxConsumer {
    */
   private async handleFailedMessage(
     category: string,
-    msg: any,
+    msg: FailedMessage,
     amqpMsg: ConsumeMessage,
   ) {
     const retryCount = this.getRetryCount(amqpMsg);
@@ -130,7 +141,7 @@ export class DlxConsumer {
    */
   private async logFailedMessage(
     category: string,
-    msg: any,
+    msg: FailedMessage,
     amqpMsg: ConsumeMessage,
     retryCount: number,
   ) {
@@ -159,7 +170,7 @@ export class DlxConsumer {
    */
   private async sendFailureAlert(
     category: string,
-    msg: any,
+    msg: FailedMessage,
     amqpMsg: ConsumeMessage,
     retryCount: number,
   ) {
@@ -194,7 +205,7 @@ export class DlxConsumer {
    */
   private async markAsPermanentFailure(
     category: string,
-    msg: any,
+    msg: FailedMessage,
     amqpMsg: ConsumeMessage,
   ) {
     try {
