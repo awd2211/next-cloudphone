@@ -4,10 +4,10 @@ import { Repository, LessThan } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { CreateNotificationDto } from './notification.interface';
-import { Notification, NotificationStatus, NotificationType, NotificationChannel } from '../entities/notification.entity';
+import { Notification, NotificationStatus, NotificationCategory, NotificationChannel } from '../entities/notification.entity';
 import { NotificationGateway } from '../gateway/notification.gateway';
 import { NotificationPreferencesService } from './preferences.service';
-import { NotificationChannel as PrefChannel, NotificationType as PrefType } from '../entities/notification-preference.entity';
+import { NotificationChannel as PrefChannel, NotificationType as PrefType, getNotificationCategory } from '@cloudphone/shared';
 import { EmailService } from '../email/email.service';
 import { SmsService } from '../sms/sms.service';
 
@@ -131,8 +131,8 @@ export class NotificationsService {
 
     const result = { data, total };
 
-    // 缓存结果（1分钟）
-    await this.cacheManager.set(cacheKey, result, 60);
+    // 缓存结果（1分钟 = 60000ms）
+    await this.cacheManager.set(cacheKey, result, 60000);
 
     return result;
   }
@@ -168,13 +168,53 @@ export class NotificationsService {
    */
   async deleteNotification(notificationId: string): Promise<boolean> {
     const result = await this.notificationRepository.delete(notificationId);
-    
-    if (result.affected > 0) {
+
+    if (result.affected && result.affected > 0) {
       this.logger.log(`通知已删除: ${notificationId}`);
       return true;
     }
 
     return false;
+  }
+
+  /**
+   * 标记用户所有通知为已读
+   */
+  async markAllAsRead(userId: string): Promise<{ updated: number }> {
+    const result = await this.notificationRepository.update(
+      {
+        userId,
+        status: NotificationStatus.SENT,
+      },
+      {
+        status: NotificationStatus.READ,
+        readAt: new Date(),
+      },
+    );
+
+    const updated = result.affected || 0;
+    this.logger.log(`用户 ${userId} 的 ${updated} 条通知已标记为已读`);
+
+    // 清除用户通知缓存
+    await this.cacheManager.del(`user:${userId}:notifications`);
+
+    return { updated };
+  }
+
+  /**
+   * 批量删除通知
+   */
+  async batchDelete(ids: string[]): Promise<{ deleted: number }> {
+    if (!ids || ids.length === 0) {
+      return { deleted: 0 };
+    }
+
+    const result = await this.notificationRepository.delete(ids);
+    const deleted = result.affected || 0;
+
+    this.logger.log(`批量删除了 ${deleted} 条通知`);
+
+    return { deleted };
   }
 
   /**
@@ -345,7 +385,7 @@ export class NotificationsService {
   ): Promise<void> {
     const notification = await this.createAndSend({
       userId,
-      type: this.mapToLegacyType(type) as NotificationType,
+      type: getNotificationCategory(type),
       title: payload.title,
       message: payload.message,
       data: payload.data,
@@ -408,10 +448,10 @@ export class NotificationsService {
   }
 
   /**
-   * 映射偏好类型到遗留通知类型
-   * TODO: 统一两个枚举
+   * @deprecated 已替换为 getNotificationCategory() from @cloudphone/shared
+   * 保留以供参考，可以删除
    */
-  private mapToLegacyType(type: PrefType): string {
-    return type.replace('.', '_').toUpperCase();
-  }
+  // private mapToLegacyType(type: PrefType): string {
+  //   return type.replace('.', '_').toUpperCase();
+  // }
 }

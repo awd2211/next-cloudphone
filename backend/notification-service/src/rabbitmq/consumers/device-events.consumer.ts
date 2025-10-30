@@ -16,7 +16,7 @@ import {
 import { NotificationsService } from '../../notifications/notifications.service';
 import { EmailService } from '../../email/email.service';
 import { TemplatesService } from '../../templates/templates.service';
-import { NotificationType } from '../../entities/notification.entity';
+import { NotificationCategory } from '../../entities/notification.entity';
 
 /**
  * Device Service 事件消费者
@@ -76,7 +76,7 @@ export class DeviceEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.DEVICE,
+        type: NotificationCategory.DEVICE,
         title: rendered.title,
         message: rendered.body,
         data: {
@@ -126,7 +126,7 @@ export class DeviceEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.ALERT,
+        type: NotificationCategory.ALERT,
         title: rendered.title,
         message: rendered.body,
         data: {
@@ -175,7 +175,7 @@ export class DeviceEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.DEVICE,
+        type: NotificationCategory.DEVICE,
         title: rendered.title,
         message: rendered.body,
         data: {
@@ -221,7 +221,7 @@ export class DeviceEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.DEVICE,
+        type: NotificationCategory.DEVICE,
         title: rendered.title,
         message: rendered.body,
         data: {
@@ -266,7 +266,7 @@ export class DeviceEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.ALERT,
+        type: NotificationCategory.ALERT,
         title: rendered.title,
         message: rendered.body,
         data: {
@@ -313,7 +313,7 @@ export class DeviceEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.ALERT,
+        type: NotificationCategory.ALERT,
         title: rendered.title,
         message: rendered.body,
         data: {
@@ -357,7 +357,7 @@ export class DeviceEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.userId,
-        type: NotificationType.DEVICE,
+        type: NotificationCategory.DEVICE,
         title: rendered.title,
         message: rendered.body,
         data: {

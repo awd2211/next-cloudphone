@@ -9,7 +9,7 @@ import {
 } from '../../types/events';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { TemplatesService } from '../../templates/templates.service';
-import { NotificationType } from '../../entities/notification.entity';
+import { NotificationCategory } from '../../entities/notification.entity';
 
 /**
  * App Service 事件消费者
@@ -49,7 +49,7 @@ export class AppEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.MESSAGE,
+        type: NotificationCategory.MESSAGE,
         title: rendered.title,
         message: rendered.body,
         data: event.payload,
@@ -84,7 +84,7 @@ export class AppEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.ALERT,
+        type: NotificationCategory.ALERT,
         title: rendered.title,
         message: rendered.body,
         data: event.payload,
@@ -119,7 +119,7 @@ export class AppEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.MESSAGE,
+        type: NotificationCategory.MESSAGE,
         title: rendered.title,
         message: rendered.body,
         data: event.payload,

@@ -6,14 +6,20 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
+import {
+  NotificationStatus,
+  NotificationChannel,
+  NotificationCategory,
+} from '@cloudphone/shared';
 
-export enum NotificationStatus {
-  PENDING = 'pending',
-  SENT = 'sent',
-  READ = 'read',
-  FAILED = 'failed',
-}
-
+/**
+ * @deprecated 使用 NotificationCategory 代替
+ * 保留用于数据库兼容性和向后兼容，新代码请使用 NotificationCategory
+ *
+ * MIGRATION NOTE: This enum is being phased out. All new code should use
+ * NotificationCategory from @cloudphone/shared. This enum will be removed
+ * in a future version after database migration is complete.
+ */
 export enum NotificationType {
   SYSTEM = 'system',
   DEVICE = 'device',
@@ -23,12 +29,14 @@ export enum NotificationType {
   MESSAGE = 'message',
 }
 
-export enum NotificationChannel {
-  WEBSOCKET = 'websocket',
-  EMAIL = 'email',
-  SMS = 'sms',
-  PUSH = 'push',
-}
+// Re-export shared enums for convenience
+export { NotificationStatus, NotificationChannel, NotificationCategory };
+
+/**
+ * Type alias for backward compatibility
+ * Maps deprecated NotificationType to NotificationCategory
+ */
+export type NotificationTypeCompat = NotificationCategory | NotificationType;
 
 @Entity('notifications')
 @Index(['userId', 'status'])
@@ -43,10 +51,10 @@ export class Notification {
 
   @Column({
     type: 'enum',
-    enum: NotificationType,
-    default: NotificationType.SYSTEM,
+    enum: NotificationCategory,
+    default: NotificationCategory.SYSTEM,
   })
-  type: NotificationType;
+  type: NotificationCategory;
 
   @Column({
     type: 'enum',

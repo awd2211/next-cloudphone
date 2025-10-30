@@ -325,8 +325,8 @@ describe('TemplatesService', () => {
       it('should handle optional channels (email/sms undefined)', async () => {
         const minimalTemplate = {
           ...mockTemplate,
-          emailTemplate: null,
-          smsTemplate: null,
+          emailTemplate: '',
+          smsTemplate: '',
         };
 
         templateRepository.findOne.mockResolvedValue(minimalTemplate);
@@ -410,8 +410,8 @@ describe('TemplatesService', () => {
           ...mockTemplate,
           title: 'Simple Title',
           body: 'Created on {{formatDate date "YYYY-MM-DD"}}',
-          emailTemplate: null,
-          smsTemplate: null,
+          emailTemplate: '',
+          smsTemplate: '',
         };
 
         templateRepository.findOne.mockResolvedValue(templateWithDate);
@@ -426,8 +426,8 @@ describe('TemplatesService', () => {
           ...mockTemplate,
           title: 'Simple Title',
           body: 'Used: {{formatNumber quotaUsed}}',
-          emailTemplate: null,
-          smsTemplate: null,
+          emailTemplate: '',
+          smsTemplate: '',
         };
 
         templateRepository.findOne.mockResolvedValue(templateWithNumber);
@@ -442,8 +442,8 @@ describe('TemplatesService', () => {
           ...mockTemplate,
           title: 'Simple Title',
           body: 'Amount: {{formatCurrency amount}}',
-          emailTemplate: null,
-          smsTemplate: null,
+          emailTemplate: '',
+          smsTemplate: '',
         };
 
         templateRepository.findOne.mockResolvedValue(templateWithCurrency);

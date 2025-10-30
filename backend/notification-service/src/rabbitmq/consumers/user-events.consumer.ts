@@ -13,7 +13,7 @@ import {
 import { NotificationsService } from '../../notifications/notifications.service';
 import { EmailService } from '../../email/email.service';
 import { TemplatesService } from '../../templates/templates.service';
-import { NotificationType } from '../../entities/notification.entity';
+import { NotificationCategory } from '../../entities/notification.entity';
 
 /**
  * User Service 事件消费者
@@ -69,7 +69,7 @@ export class UserEventsConsumer {
       // 发送 WebSocket 通知
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.SYSTEM,
+        type: NotificationCategory.SYSTEM,
         title: rendered.title,
         message: rendered.body,
         data: {
@@ -131,7 +131,7 @@ export class UserEventsConsumer {
         // 发送高优先级告警通知
         await this.notificationsService.createAndSend({
           userId: event.payload.userId,
-          type: NotificationType.ALERT,
+          type: NotificationCategory.ALERT,
           title: rendered.title,
           message: rendered.body,
           data: {
@@ -194,7 +194,7 @@ export class UserEventsConsumer {
       // WebSocket 通知
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.SYSTEM,
+        type: NotificationCategory.SYSTEM,
         title: rendered.title,
         message: rendered.body,
         data: {
@@ -244,7 +244,7 @@ export class UserEventsConsumer {
       // WebSocket 通知
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.ALERT,
+        type: NotificationCategory.ALERT,
         title: rendered.title,
         message: rendered.body,
         data: {
@@ -301,7 +301,7 @@ export class UserEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.SYSTEM,
+        type: NotificationCategory.SYSTEM,
         title: rendered.title,
         message: rendered.body,
         data: {
@@ -349,7 +349,7 @@ export class UserEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.SYSTEM,
+        type: NotificationCategory.SYSTEM,
         title: rendered.title,
         message: rendered.body,
         data: {

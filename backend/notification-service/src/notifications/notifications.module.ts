@@ -10,6 +10,7 @@ import { NotificationPreferencesService } from './preferences.service';
 import { NotificationPreferencesController } from './preferences.controller';
 import { EmailModule } from '../email/email.module';
 import { SmsModule } from '../sms/sms.module';
+import { ErrorNotificationService } from './error-notification.service';
 
 @Module({
   imports: [
@@ -26,11 +27,13 @@ import { SmsModule } from '../sms/sms.module';
     NotificationsService,
     NotificationGateway,
     NotificationPreferencesService,
+    ErrorNotificationService,
   ],
   exports: [
     NotificationsService,
     NotificationGateway,
     NotificationPreferencesService,
+    ErrorNotificationService,
   ],
 })
 export class NotificationsModule {}

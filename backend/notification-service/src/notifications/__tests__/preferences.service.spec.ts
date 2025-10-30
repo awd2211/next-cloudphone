@@ -21,7 +21,7 @@ describe('NotificationPreferencesService', () => {
     notificationType: NotificationType.DEVICE_CREATED,
     enabled: true,
     enabledChannels: [NotificationChannel.WEBSOCKET],
-    customSettings: null,
+    customSettings: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

@@ -24,7 +24,7 @@ describe('EmailService', () => {
 
     // Setup default SMTP config
     mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-      const config = {
+      const config: Record<string, string | number> = {
         SMTP_HOST: 'smtp.test.com',
         SMTP_PORT: 587,
         SMTP_SECURE: 'false',

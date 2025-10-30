@@ -179,7 +179,8 @@ describe('NotificationsService', () => {
 
       const result = await service.markAsRead('notif-123');
 
-      expect(result.status).toBe(NotificationStatus.READ);
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(NotificationStatus.READ);
       expect(mockCacheManager.del).toHaveBeenCalledWith('user:user-123:notifications');
     });
 

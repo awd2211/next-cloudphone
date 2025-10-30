@@ -41,6 +41,25 @@ export class NotificationsController {
   }
 
   /**
+   * 获取未读通知数量
+   * GET /notifications/unread/count
+   */
+  @Get('unread/count')
+  async getUnreadCount(@Query('userId') userId?: string) {
+    if (!userId) {
+      return {
+        success: true,
+        data: { count: 0 },
+      };
+    }
+    const notifications = await this.notificationsService.getUnreadNotifications(userId);
+    return {
+      success: true,
+      data: { count: notifications.length },
+    };
+  }
+
+  /**
    * 获取用户的通知列表
    * GET /notifications/user/:userId
    */
@@ -69,6 +88,23 @@ export class NotificationsController {
   }
 
   /**
+   * 标记所有通知为已读
+   * POST /notifications/read-all
+   */
+  @Post('read-all')
+  async markAllAsRead(@Body('userId') userId: string) {
+    if (!userId) {
+      return { success: false, message: '缺少userId参数' };
+    }
+    const result = await this.notificationsService.markAllAsRead(userId);
+    return {
+      success: true,
+      message: `已标记 ${result.updated} 条通知为已读`,
+      data: result,
+    };
+  }
+
+  /**
    * 删除通知
    * DELETE /notifications/:id
    */
@@ -79,6 +115,23 @@ export class NotificationsController {
       return { success: false, message: '通知不存在' };
     }
     return { success: true, message: '通知已删除' };
+  }
+
+  /**
+   * 批量删除通知
+   * POST /notifications/batch/delete
+   */
+  @Post('batch/delete')
+  async batchDelete(@Body('ids') ids: string[]) {
+    if (!ids || ids.length === 0) {
+      return { success: false, message: '请提供要删除的通知ID列表' };
+    }
+    const result = await this.notificationsService.batchDelete(ids);
+    return {
+      success: true,
+      message: `已删除 ${result.deleted} 条通知`,
+      data: result,
+    };
   }
 
   /**

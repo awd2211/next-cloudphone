@@ -15,7 +15,8 @@ import { Logger } from '@nestjs/common';
     origin: '*',
     credentials: true,
   },
-  namespace: '/notifications',
+  // Remove namespace to use root namespace '/'
+  // Clients will connect to http://localhost:30006 instead of http://localhost:30006/notifications
 })
 export class NotificationGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()

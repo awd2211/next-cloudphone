@@ -304,6 +304,7 @@ export class NotificationPreferencesService {
         [NotificationChannel.WEBSOCKET]: 0,
         [NotificationChannel.EMAIL]: 0,
         [NotificationChannel.SMS]: 0,
+        [NotificationChannel.PUSH]: 0, // 预留推送渠道
       },
     };
 

@@ -10,7 +10,7 @@ import {
 import { NotificationsService } from '../../notifications/notifications.service';
 import { EmailService } from '../../email/email.service';
 import { TemplatesService } from '../../templates/templates.service';
-import { NotificationType } from '../../entities/notification.entity';
+import { NotificationCategory } from '../../entities/notification.entity';
 
 /**
  * Billing Service 事件消费者
@@ -50,7 +50,7 @@ export class BillingEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.ALERT,
+        type: NotificationCategory.ALERT,
         title: rendered.title,
         message: rendered.body,
         data: event.payload,
@@ -93,7 +93,7 @@ export class BillingEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.BILLING,
+        type: NotificationCategory.BILLING,
         title: rendered.title,
         message: rendered.body,
         data: event.payload,
@@ -128,7 +128,7 @@ export class BillingEventsConsumer {
 
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.BILLING,
+        type: NotificationCategory.BILLING,
         title: rendered.title,
         message: rendered.body,
         data: event.payload,

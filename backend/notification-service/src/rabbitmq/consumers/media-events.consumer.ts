@@ -3,7 +3,7 @@ import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { ConsumeMessage } from 'amqplib';
 import { FileUploadedEvent, NotificationEventTypes } from '../../types/events';
 import { NotificationsService } from '../../notifications/notifications.service';
-import { NotificationType } from '../../entities/notification.entity';
+import { NotificationCategory } from '../../entities/notification.entity';
 
 @Injectable()
 export class MediaEventsConsumer {
@@ -23,7 +23,7 @@ export class MediaEventsConsumer {
     try {
       await this.notificationsService.createAndSend({
         userId: event.payload.userId,
-        type: NotificationType.MESSAGE,
+        type: NotificationCategory.MESSAGE,
         title: '文件上传完成',
         message: `文件 "${event.payload.fileName}" 已上传完成`,
         data: {

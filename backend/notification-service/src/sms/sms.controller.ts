@@ -7,7 +7,7 @@ import { IsPhoneNumber, IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-v
  * 发送短信 DTO
  */
 export class SendSmsDto {
-  @IsPhoneNumber(null, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
+  @IsPhoneNumber(undefined, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
   phoneNumber: string;
 
   @IsString()
@@ -23,7 +23,7 @@ export class SendSmsDto {
  * 发送验证码 DTO (旧版，保留兼容性)
  */
 export class SendOtpDto {
-  @IsPhoneNumber(null, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
+  @IsPhoneNumber(undefined, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
   phoneNumber: string;
 
   @IsString()
@@ -38,7 +38,7 @@ export class SendOtpDto {
  * 发送 OTP 验证码 DTO (新版)
  */
 export class SendOtpV2Dto {
-  @IsPhoneNumber(null, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
+  @IsPhoneNumber(undefined, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
   phoneNumber: string;
 
   @IsEnum(OtpType, { message: '无效的验证码类型' })
@@ -53,7 +53,7 @@ export class SendOtpV2Dto {
  * 验证 OTP 验证码 DTO
  */
 export class VerifyOtpDto {
-  @IsPhoneNumber(null, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
+  @IsPhoneNumber(undefined, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
   phoneNumber: string;
 
   @IsString()
@@ -68,7 +68,7 @@ export class VerifyOtpDto {
  * 批量发送短信 DTO
  */
 export class SendBatchSmsDto {
-  @IsPhoneNumber(null, { each: true, message: '所有电话号码必须是有效的国际格式' })
+  @IsPhoneNumber(undefined, { each: true, message: '所有电话号码必须是有效的国际格式' })
   phoneNumbers: string[];
 
   @IsString()
