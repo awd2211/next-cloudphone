@@ -6,15 +6,25 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss}\""
   },
   "pnpm": {
     "overrides": {
       "typeorm": "0.3.20"
     },
     "peerDependencyRules": {
-      "ignoreMissing": ["@nestjs/core", "@nestjs/common"],
-      "allowAny": ["@nestjs/*"]
+      "ignoreMissing": [
+        "@nestjs/core",
+        "@nestjs/common"
+      ],
+      "allowAny": [
+        "@nestjs/*"
+      ]
     }
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
   }
 }

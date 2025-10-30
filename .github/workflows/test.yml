@@ -74,6 +74,9 @@ jobs:
           PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudphone_user;"
           PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudphone_device;"
           PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudphone_device_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudphone_billing;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudphone_app;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudphone_notification;"
 
       - name: Run shared module tests
         run: |
@@ -122,11 +125,59 @@ jobs:
           DB_PORT: 5432
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
-          DB_DATABASE: cloudphone
+          DB_DATABASE: cloudphone_billing
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           RABBITMQ_URL: amqp://admin:admin123@localhost:5672
           JWT_SECRET: test-jwt-secret-for-ci
+
+      - name: Run app-service tests
+        run: |
+          cd backend/app-service
+          pnpm test --coverage --ci
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: cloudphone_app
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-for-ci
+
+      - name: Run notification-service tests
+        run: |
+          cd backend/notification-service
+          pnpm test --coverage --ci
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: cloudphone_notification
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          RABBITMQ_URL: amqp://admin:admin123@localhost:5672
+          JWT_SECRET: test-jwt-secret-for-ci
+          SMTP_HOST: localhost
+          SMTP_PORT: 1025
+
+      - name: Run api-gateway tests
+        run: |
+          cd backend/api-gateway
+          pnpm test --coverage --ci
+        env:
+          NODE_ENV: test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-for-ci
+          USER_SERVICE_URL: http://localhost:30001
+          DEVICE_SERVICE_URL: http://localhost:30002
+          APP_SERVICE_URL: http://localhost:30003
+          BILLING_SERVICE_URL: http://localhost:30005
+          NOTIFICATION_SERVICE_URL: http://localhost:30006
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -136,6 +187,9 @@ jobs:
             backend/user-service/coverage/coverage-final.json
             backend/device-service/coverage/coverage-final.json
             backend/billing-service/coverage/coverage-final.json
+            backend/app-service/coverage/coverage-final.json
+            backend/notification-service/coverage/coverage-final.json
+            backend/api-gateway/coverage/coverage-final.json
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
@@ -147,10 +201,13 @@ jobs:
           echo "✅ All unit tests passed!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Services Tested" >> $GITHUB_STEP_SUMMARY
-          echo "- shared (QuotaClient, EventBus)" >> $GITHUB_STEP_SUMMARY
-          echo "- user-service (AuthService)" >> $GITHUB_STEP_SUMMARY
-          echo "- device-service (DevicesService)" >> $GITHUB_STEP_SUMMARY
-          echo "- billing-service (PurchasePlanSaga)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 shared (QuotaClient, EventBus, Testing Utils)" >> $GITHUB_STEP_SUMMARY
+          echo "- 👤 user-service (Auth, CQRS, Event Sourcing)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📱 device-service (Devices, Docker, ADB)" >> $GITHUB_STEP_SUMMARY
+          echo "- 💰 billing-service (Saga, Payments, Metering)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📲 app-service (APK Management)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔔 notification-service (Email, WebSocket, Templates)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🚪 api-gateway (Proxy, Auth)" >> $GITHUB_STEP_SUMMARY
 
   lint:
     name: Lint Code
