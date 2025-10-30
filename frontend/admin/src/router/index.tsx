@@ -7,6 +7,7 @@ import Layout from '@/layouts/BasicLayout';
 import Login from '@/pages/Login';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { AdminRoute } from '@/components/AdminRoute';
 
 // 使用 React.lazy 懒加载所有页面组件
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -105,6 +106,17 @@ const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<a
   </ErrorBoundary>
 );
 
+// 管理员路由包裹（Suspense + AdminRoute）
+const withAdminRoute = (Component: React.LazyExoticComponent<React.ComponentType<any>>, requireSuperAdmin = false) => (
+  <ErrorBoundary>
+    <Suspense fallback={<PageLoading />}>
+      <AdminRoute requireSuperAdmin={requireSuperAdmin} showForbidden>
+        <Component />
+      </AdminRoute>
+    </Suspense>
+  </ErrorBoundary>
+);
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -150,7 +162,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'users',
-        element: withSuspense(UserList),
+        element: withAdminRoute(UserList), // Admin only
       },
       {
         path: 'apps',
@@ -158,7 +170,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'app-review',
-        element: withSuspense(AppReviewList),
+        element: withAdminRoute(AppReviewList), // Admin only
       },
       {
         path: 'metering',
@@ -210,23 +222,23 @@ export const router = createBrowserRouter([
       },
       {
         path: 'roles',
-        element: withSuspense(RoleList),
+        element: withAdminRoute(RoleList), // Admin only
       },
       {
         path: 'permissions',
-        element: withSuspense(PermissionList),
+        element: withAdminRoute(PermissionList), // Admin only
       },
       {
         path: 'permissions/data-scope',
-        element: withSuspense(DataScopeConfig),
+        element: withAdminRoute(DataScopeConfig), // Admin only
       },
       {
         path: 'permissions/field-permission',
-        element: withSuspense(FieldPermissionConfig),
+        element: withAdminRoute(FieldPermissionConfig), // Admin only
       },
       {
         path: 'permissions/menu',
-        element: withSuspense(MenuPermissionConfig),
+        element: withAdminRoute(MenuPermissionConfig), // Admin only
       },
       {
         path: 'settings',
@@ -310,18 +322,18 @@ export const router = createBrowserRouter([
         path: 'notifications/templates',
         element: withSuspense(NotificationTemplateEditor),
       },
-      // 系统管理
+      // 系统管理 - Super Admin only
       {
         path: 'system/cache',
-        element: withSuspense(CacheManagement),
+        element: withAdminRoute(CacheManagement, true), // Super Admin only
       },
       {
         path: 'system/queue',
-        element: withSuspense(QueueManagement),
+        element: withAdminRoute(QueueManagement, true), // Super Admin only
       },
       {
         path: 'system/events',
-        element: withSuspense(EventSourcingViewer),
+        element: withAdminRoute(EventSourcingViewer, true), // Super Admin only
       },
       // 设备高级功能
       {

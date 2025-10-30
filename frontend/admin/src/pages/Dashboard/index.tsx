@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Alert } from 'antd';
+import { Row, Col, Card, Statistic, Alert, Tag } from 'antd';
 import { MobileOutlined, UserOutlined, AppstoreOutlined, CloudServerOutlined, DollarOutlined, ShoppingOutlined } from '@ant-design/icons';
 import { getDashboardStats, getUserGrowthStats, getPlanDistributionStats } from '@/services/stats';
 import { getRevenueStats } from '@/services/billing';
@@ -12,9 +12,12 @@ import {
   PlanDistributionChartLazy
 } from '@/components/LazyComponents';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { useRole } from '@/hooks/useRole';
+import { RoleGuard } from '@/hooks/useRole';
 import dayjs from 'dayjs';
 
 const Dashboard = () => {
+  const { isAdmin, roleDisplayName, roleColor } = useRole();
   const [stats, setStats] = useState<DashboardStats>();
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [deviceStatusData, setDeviceStatusData] = useState<any[]>([]);
@@ -105,7 +108,10 @@ const Dashboard = () => {
 
   return (
     <div>
-      <h2>仪表盘</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ marginBottom: 0 }}>仪表盘</h2>
+        <Tag color={roleColor}>{roleDisplayName}</Tag>
+      </div>
 
       {/* 错误提示 */}
       {hasStatsError && (
@@ -125,46 +131,69 @@ const Dashboard = () => {
       )}
 
       <Row gutter={[16, 16]}>
+        {/* 设备统计 - 所有用户可见 */}
         <Col xs={24} sm={12} lg={6}>
           <Card loading={statsLoading}>
-            <Statistic title="总设备数" value={stats?.totalDevices || 0} prefix={<MobileOutlined />} valueStyle={{ color: '#3f8600' }} />
+            <Statistic
+              title={isAdmin ? "总设备数" : "我的设备"}
+              value={stats?.totalDevices || 0}
+              prefix={<MobileOutlined />}
+              valueStyle={{ color: '#3f8600' }}
+            />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card loading={statsLoading}>
-            <Statistic title="在线设备" value={stats?.onlineDevices || 0} prefix={<CloudServerOutlined />} valueStyle={{ color: '#1890ff' }} />
+            <Statistic
+              title="在线设备"
+              value={stats?.onlineDevices || 0}
+              prefix={<CloudServerOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+            />
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={statsLoading}>
-            <Statistic title="用户总数" value={stats?.totalUsers || 0} prefix={<UserOutlined />} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={statsLoading}>
-            <Statistic title="应用总数" value={stats?.totalApps || 0} prefix={<AppstoreOutlined />} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={statsLoading}>
-            <Statistic title="今日收入" value={stats?.todayRevenue || 0} prefix="¥" precision={2} valueStyle={{ color: '#cf1322' }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={statsLoading}>
-            <Statistic title="本月收入" value={stats?.monthRevenue || 0} prefix="¥" precision={2} valueStyle={{ color: '#cf1322' }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={statsLoading}>
-            <Statistic title="今日订单" value={stats?.todayOrders || 0} prefix={<ShoppingOutlined />} valueStyle={{ color: '#faad14' }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={statsLoading}>
-            <Statistic title="本月订单" value={stats?.monthOrders || 0} prefix={<ShoppingOutlined />} valueStyle={{ color: '#faad14' }} />
-          </Card>
-        </Col>
+
+        {/* 用户统计 - 仅管理员可见 */}
+        <RoleGuard adminOnly>
+          <Col xs={24} sm={12} lg={6}>
+            <Card loading={statsLoading}>
+              <Statistic title="用户总数" value={stats?.totalUsers || 0} prefix={<UserOutlined />} />
+            </Card>
+          </Col>
+        </RoleGuard>
+
+        {/* 应用统计 - 仅管理员可见 */}
+        <RoleGuard adminOnly>
+          <Col xs={24} sm={12} lg={6}>
+            <Card loading={statsLoading}>
+              <Statistic title="应用总数" value={stats?.totalApps || 0} prefix={<AppstoreOutlined />} />
+            </Card>
+          </Col>
+        </RoleGuard>
+
+        {/* 收入统计 - 仅管理员可见 */}
+        <RoleGuard adminOnly>
+          <Col xs={24} sm={12} lg={6}>
+            <Card loading={statsLoading}>
+              <Statistic title="今日收入" value={stats?.todayRevenue || 0} prefix="¥" precision={2} valueStyle={{ color: '#cf1322' }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card loading={statsLoading}>
+              <Statistic title="本月收入" value={stats?.monthRevenue || 0} prefix="¥" precision={2} valueStyle={{ color: '#cf1322' }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card loading={statsLoading}>
+              <Statistic title="今日订单" value={stats?.todayOrders || 0} prefix={<ShoppingOutlined />} valueStyle={{ color: '#faad14' }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card loading={statsLoading}>
+              <Statistic title="本月订单" value={stats?.monthOrders || 0} prefix={<ShoppingOutlined />} valueStyle={{ color: '#faad14' }} />
+            </Card>
+          </Col>
+        </RoleGuard>
       </Row>
 
       {/* 图表错误提示 */}
@@ -185,30 +214,38 @@ const Dashboard = () => {
       )}
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col xs={24} lg={16}>
-          <Card title="近7天收入趋势">
-            <RevenueChartLazy data={revenueData} loading={chartsLoading} />
-          </Card>
-        </Col>
-        <Col xs={24} lg={8}>
+        {/* 收入趋势 - 仅管理员可见 */}
+        <RoleGuard adminOnly>
+          <Col xs={24} lg={16}>
+            <Card title="近7天收入趋势">
+              <RevenueChartLazy data={revenueData} loading={chartsLoading} />
+            </Card>
+          </Col>
+        </RoleGuard>
+
+        {/* 设备状态分布 - 所有用户可见 */}
+        <Col xs={24} lg={isAdmin ? 8 : 24}>
           <Card title="设备状态分布">
             <DeviceStatusChartLazy data={deviceStatusData} loading={chartsLoading} />
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col xs={24} lg={16}>
-          <Card title="近30天用户增长">
-            <UserGrowthChartLazy data={userGrowthData} loading={chartsLoading} />
-          </Card>
-        </Col>
-        <Col xs={24} lg={8}>
-          <Card title="套餐用户分布">
-            <PlanDistributionChartLazy data={planDistributionData} loading={chartsLoading} />
-          </Card>
-        </Col>
-      </Row>
+      {/* 用户增长和套餐分布 - 仅管理员可见 */}
+      <RoleGuard adminOnly>
+        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+          <Col xs={24} lg={16}>
+            <Card title="近30天用户增长">
+              <UserGrowthChartLazy data={userGrowthData} loading={chartsLoading} />
+            </Card>
+          </Col>
+          <Col xs={24} lg={8}>
+            <Card title="套餐用户分布">
+              <PlanDistributionChartLazy data={planDistributionData} loading={chartsLoading} />
+            </Card>
+          </Col>
+        </Row>
+      </RoleGuard>
     </div>
   );
 };

@@ -9,6 +9,8 @@ import dayjs from 'dayjs';
 import { exportToExcel, exportToCSV } from '@/utils/export';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { useRole } from '@/hooks/useRole';
+import { PermissionGuard } from '@/hooks/usePermission';
 
 // ✅ 使用 React Query hooks
 import {
@@ -41,6 +43,7 @@ const { RangePicker } = DatePicker;
  */
 const DeviceList = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useRole();
 
   // 筛选和分页状态
   const [page, setPage] = useState(1);
@@ -82,10 +85,17 @@ const DeviceList = () => {
   const devices = devicesData?.data?.data || [];
   const total = devicesData?.data?.total || 0;
 
-  // WebSocket 实时更新
-  // TODO: Backend uses Socket.IO, not native WebSocket. Need to integrate with notification service instead.
-  // const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:30006';
-  // const { isConnected, lastMessage } = useWebSocket(wsUrl, realtimeEnabled);
+  // Real-time updates via Socket.IO
+  // ✅ Backend uses Socket.IO (notification-service on port 30006)
+  // For Socket.IO integration, install: pnpm add socket.io-client
+  // Then create a useSocketIO hook similar to:
+  //
+  // import { io, Socket } from 'socket.io-client';
+  // const socket = io('http://localhost:30006');
+  // socket.on('notification', (data) => { /* handle device updates */ });
+  // socket.emit('subscribe', { userId: currentUserId });
+  //
+  // For now, using polling via React Query's refetchInterval
   const isConnected = false;
   const lastMessage = null;
 
@@ -414,22 +424,24 @@ const DeviceList = () => {
             重启
           </Button>
 
-          <Popconfirm
-            title="确定删除该设备？"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              loading={deleteDeviceMutation.isPending}
+          <PermissionGuard permission="device.delete">
+            <Popconfirm
+              title="确定删除该设备？"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确定"
+              cancelText="取消"
             >
-              删除
-            </Button>
-          </Popconfirm>
+              <Button
+                type="link"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                loading={deleteDeviceMutation.isPending}
+              >
+                删除
+              </Button>
+            </Popconfirm>
+          </PermissionGuard>
         </Space>
       ),
     },
@@ -553,16 +565,18 @@ const DeviceList = () => {
                 <Button icon={<ReloadOutlined />} onClick={handleBatchReboot}>
                   批量重启
                 </Button>
-                <Popconfirm
-                  title={`确定删除 ${selectedRowKeys.length} 台设备？`}
-                  onConfirm={handleBatchDelete}
-                  okText="确定"
-                  cancelText="取消"
-                >
-                  <Button danger icon={<DeleteOutlined />}>
-                    批量删除
-                  </Button>
-                </Popconfirm>
+                <PermissionGuard permission="device.delete">
+                  <Popconfirm
+                    title={`确定删除 ${selectedRowKeys.length} 台设备？`}
+                    onConfirm={handleBatchDelete}
+                    okText="确定"
+                    cancelText="取消"
+                  >
+                    <Button danger icon={<DeleteOutlined />}>
+                      批量删除
+                    </Button>
+                  </Popconfirm>
+                </PermissionGuard>
               </>
             )}
 

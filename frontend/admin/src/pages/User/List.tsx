@@ -14,6 +14,7 @@ import {
 import * as userService from '@/services/user';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { EnhancedErrorAlert, type EnhancedError } from '@/components/EnhancedErrorAlert';
+import { PermissionGuard } from '@/hooks/usePermission';
 
 /**
  * 用户列表页面（优化版 - 使用 React Query）
@@ -214,51 +215,59 @@ const UserList = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<DollarOutlined />}
-            onClick={() => openRecharge(record)}
-          >
-            充值
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<MinusOutlined />}
-            onClick={() => openDeduct(record)}
-          >
-            扣减
-          </Button>
-          {record.status === 'active' && (
+          <PermissionGuard permission="billing.manage">
             <Button
               type="link"
               size="small"
-              danger
-              onClick={() => handleUpdateStatus(record.id, 'banned')}
+              icon={<DollarOutlined />}
+              onClick={() => openRecharge(record)}
             >
-              封禁
+              充值
             </Button>
-          )}
-          {record.status === 'banned' && (
             <Button
               type="link"
               size="small"
-              onClick={() => handleUpdateStatus(record.id, 'active')}
+              icon={<MinusOutlined />}
+              onClick={() => openDeduct(record)}
             >
-              解封
+              扣减
             </Button>
-          )}
-          <Popconfirm
-            title="确定要删除这个用户吗?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" size="small" danger>
-              删除
-            </Button>
-          </Popconfirm>
+          </PermissionGuard>
+
+          <PermissionGuard permission="user.update">
+            {record.status === 'active' && (
+              <Button
+                type="link"
+                size="small"
+                danger
+                onClick={() => handleUpdateStatus(record.id, 'banned')}
+              >
+                封禁
+              </Button>
+            )}
+            {record.status === 'banned' && (
+              <Button
+                type="link"
+                size="small"
+                onClick={() => handleUpdateStatus(record.id, 'active')}
+              >
+                解封
+              </Button>
+            )}
+          </PermissionGuard>
+
+          <PermissionGuard permission="user.delete">
+            <Popconfirm
+              title="确定要删除这个用户吗?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" size="small" danger>
+                删除
+              </Button>
+            </Popconfirm>
+          </PermissionGuard>
         </Space>
       ),
     },
@@ -269,13 +278,15 @@ const UserList = () => {
       <h2>用户管理</h2>
 
       <div style={{ marginBottom: 16 }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setCreateModalVisible(true)}
-        >
-          创建用户
-        </Button>
+        <PermissionGuard permission="user.create">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateModalVisible(true)}
+          >
+            创建用户
+          </Button>
+        </PermissionGuard>
       </div>
 
       <Table
