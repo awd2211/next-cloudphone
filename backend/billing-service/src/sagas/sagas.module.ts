@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PurchasePlanSaga } from './purchase-plan.saga';
+import { PurchasePlanSagaV2 as PurchasePlanSaga } from './purchase-plan-v2.saga';
 import { SagaConsumer } from './saga.consumer';
 import { Order } from '../billing/entities/order.entity';
 import { Plan } from '../billing/entities/plan.entity';
