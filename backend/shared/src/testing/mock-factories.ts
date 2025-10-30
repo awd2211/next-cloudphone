@@ -138,12 +138,23 @@ export function createMockRole(overrides: Partial<any> = {}) {
  * 创建 Mock 权限
  */
 export function createMockPermission(overrides: Partial<any> = {}) {
-  return {
-    id: randomUUID(),
-    name: `permission_${randomString(8)}`,
-    description: 'Test permission description',
+  // Apply overrides first to get the actual resource and action
+  const merged = {
     resource: 'device',
     action: 'read',
+    ...overrides,
+  };
+
+  // Generate permission code as "resource:action" (e.g., "device:read")
+  const permissionCode = `${merged.resource}:${merged.action}`;
+
+  return {
+    id: randomUUID(),
+    name: merged.name || permissionCode,  // Use code as name if not provided
+    code: permissionCode,  // Add code field for JWT payload
+    description: 'Test permission description',
+    resource: merged.resource,
+    action: merged.action,
     conditions: null,
     scope: 'tenant',
     dataFilter: null,

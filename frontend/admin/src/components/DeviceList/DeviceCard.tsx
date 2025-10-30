@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { Card, Tag, Button, Space, Avatar, Tooltip } from 'antd';
+import React, { memo, useState } from 'react';
+import { Card, Tag, Button, Space, Avatar, Tooltip, message, Modal } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -7,8 +7,10 @@ import {
   DesktopOutlined,
   SyncOutlined,
   CloseCircleOutlined,
+  ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import LazyImage from '../LazyImage';
+import { startDevice, stopDevice, deleteDevice } from '@/services/device';
 
 interface Device {
   id: string;
@@ -28,6 +30,7 @@ interface Device {
 interface DeviceCardProps {
   device: Device;
   onClick: () => void;
+  onDeviceChanged?: () => void;  // Callback for refreshing device list after operations
 }
 
 // Provider 中文名映射
@@ -56,26 +59,61 @@ const statusNames: Record<string, string> = {
   deleting: '删除中',
 };
 
-const DeviceCard: React.FC<DeviceCardProps> = memo(({ device, onClick }) => {
+const DeviceCard: React.FC<DeviceCardProps> = memo(({ device, onClick, onDeviceChanged }) => {
+  const [loading, setLoading] = useState(false);
   const providerName = ProviderDisplayNamesCN[device.providerType] || device.providerType;
   const statusName = statusNames[device.status] || device.status;
 
-  const handleStart = (e: React.MouseEvent) => {
+  const handleStart = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('Start device:', device.id);
-    // TODO: 调用启动设备 API
+    setLoading(true);
+    try {
+      await startDevice(device.id);
+      message.success(`设备 "${device.name}" 启动成功`);
+      // Refresh device list to show updated status
+      onDeviceChanged?.();
+    } catch (error: any) {
+      message.error(`启动设备失败: ${error.response?.data?.message || error.message || '未知错误'}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleStop = (e: React.MouseEvent) => {
+  const handleStop = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('Stop device:', device.id);
-    // TODO: 调用停止设备 API
+    setLoading(true);
+    try {
+      await stopDevice(device.id);
+      message.success(`设备 "${device.name}" 停止成功`);
+      // Refresh device list to show updated status
+      onDeviceChanged?.();
+    } catch (error: any) {
+      message.error(`停止设备失败: ${error.response?.data?.message || error.message || '未知错误'}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('Delete device:', device.id);
-    // TODO: 调用删除设备 API
+    Modal.confirm({
+      title: '确认删除设备',
+      icon: <ExclamationCircleOutlined />,
+      content: `确定要删除设备 "${device.name}" 吗？此操作无法撤销。`,
+      okText: '确认删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deleteDevice(device.id);
+          message.success(`设备 "${device.name}" 删除成功`);
+          // Refresh device list to remove deleted device
+          onDeviceChanged?.();
+        } catch (error: any) {
+          message.error(`删除设备失败: ${error.response?.data?.message || error.message || '未知错误'}`);
+        }
+      },
+    });
   };
 
   return (
@@ -138,6 +176,7 @@ const DeviceCard: React.FC<DeviceCardProps> = memo(({ device, onClick }) => {
               <Button
                 type="text"
                 size="large"
+                loading={loading}
                 icon={<PlayCircleOutlined style={{ fontSize: '18px' }} />}
                 onClick={handleStart}
               />
@@ -148,6 +187,7 @@ const DeviceCard: React.FC<DeviceCardProps> = memo(({ device, onClick }) => {
               <Button
                 type="text"
                 size="large"
+                loading={loading}
                 icon={<PauseCircleOutlined style={{ fontSize: '18px' }} />}
                 onClick={handleStop}
               />
@@ -159,6 +199,7 @@ const DeviceCard: React.FC<DeviceCardProps> = memo(({ device, onClick }) => {
                 type="text"
                 size="large"
                 danger
+                loading={loading}
                 icon={<DeleteOutlined style={{ fontSize: '18px' }} />}
                 onClick={handleDelete}
               />

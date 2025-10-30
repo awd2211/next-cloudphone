@@ -4,6 +4,7 @@ import {
   getPhysicalDevices,
   scanNetworkDevices,
   registerPhysicalDevice,
+  deleteDevice,
 } from '@/services/device';
 
 // Query Keys
@@ -66,15 +67,17 @@ export function useDeletePhysicalDevice() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // TODO: 实现删除 API
-      return Promise.resolve();
+      // Call the unified deleteDevice API (works for both physical and virtual devices)
+      await deleteDevice(id);
     },
     onSuccess: () => {
+      // Invalidate both physical device queries and general device queries
       queryClient.invalidateQueries({ queryKey: physicalDeviceKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
       message.success('设备删除成功');
     },
     onError: (error: any) => {
-      message.error(error.message || '删除设备失败');
+      message.error(error.response?.data?.message || error.message || '删除设备失败');
     },
   });
 }
