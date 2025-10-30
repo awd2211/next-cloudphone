@@ -1,6 +1,6 @@
 import { Injectable, Logger, HttpException, HttpStatus } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { HttpClientService } from "@cloudphone/shared";
+import { HttpClientService, ServiceTokenService } from "@cloudphone/shared";
 
 /**
  * 配额限制接口（与 user-service 保持一致）
@@ -98,6 +98,7 @@ export class QuotaClientService {
   constructor(
     private readonly httpClient: HttpClientService,
     private readonly configService: ConfigService,
+    private readonly serviceTokenService: ServiceTokenService,
   ) {
     this.userServiceUrl =
       this.configService.get<string>("USER_SERVICE_URL") ||
@@ -105,15 +106,27 @@ export class QuotaClientService {
   }
 
   /**
-   * 获取用户配额信息
+   * 生成服务间认证 headers
+   */
+  private async getServiceHeaders(): Promise<Record<string, string>> {
+    const token = await this.serviceTokenService.generateToken("device-service");
+    return {
+      "X-Service-Token": token,
+    };
+  }
+
+  /**
+   * 获取用户配额信息（使用内部 API + 服务 Token）
    */
   async getUserQuota(userId: string): Promise<QuotaResponse> {
     try {
       this.logger.debug(`Fetching quota for user ${userId}`);
 
+      const headers = await this.getServiceHeaders();
+
       const data = await this.httpClient.get<QuotaResponse>(
-        `${this.userServiceUrl}/api/quotas/user/${userId}`,
-        {},
+        `${this.userServiceUrl}/api/internal/quotas/user/${userId}`, // ✅ 使用内部端点
+        { headers }, // ✅ 添加服务 Token
         {
           timeout: 5000,
           retries: 3,
@@ -284,7 +297,7 @@ export class QuotaClientService {
   }
 
   /**
-   * 上报设备用量（创建设备时增加用量）
+   * 上报设备用量（创建设备时增加用量）（使用内部 API + 服务 Token）
    */
   async reportDeviceUsage(
     userId: string,
@@ -295,10 +308,12 @@ export class QuotaClientService {
         `Reporting usage for user ${userId}: ${JSON.stringify(usageReport)}`,
       );
 
+      const headers = await this.getServiceHeaders();
+
       await this.httpClient.post(
-        `${this.userServiceUrl}/api/quotas/user/${userId}/usage`,
+        `${this.userServiceUrl}/api/internal/quotas/user/${userId}/usage`, // ✅ 使用内部端点
         usageReport,
-        {},
+        { headers }, // ✅ 添加服务 Token
         {
           timeout: 5000,
           retries: 3,
@@ -350,20 +365,22 @@ export class QuotaClientService {
   }
 
   /**
-   * 增加并发设备计数（设备启动时调用）
+   * 增加并发设备计数（设备启动时调用）（使用内部 API + 服务 Token）
    */
   async incrementConcurrentDevices(userId: string): Promise<void> {
     try {
       this.logger.debug(`Incrementing concurrent devices for user ${userId}`);
 
+      const headers = await this.getServiceHeaders();
+
       await this.httpClient.post(
-        `${this.userServiceUrl}/api/quotas/deduct`,
+        `${this.userServiceUrl}/api/internal/quotas/deduct`, // ✅ 使用内部端点
         {
           userId,
           deviceCount: 0, // 不增加总设备数，只增加并发数
           concurrent: true,
         },
-        {},
+        { headers }, // ✅ 添加服务 Token
         {
           timeout: 5000,
           retries: 3,
@@ -381,20 +398,22 @@ export class QuotaClientService {
   }
 
   /**
-   * 减少并发设备计数（设备停止时调用）
+   * 减少并发设备计数（设备停止时调用）（使用内部 API + 服务 Token）
    */
   async decrementConcurrentDevices(userId: string): Promise<void> {
     try {
       this.logger.debug(`Decrementing concurrent devices for user ${userId}`);
 
+      const headers = await this.getServiceHeaders();
+
       await this.httpClient.post(
-        `${this.userServiceUrl}/api/quotas/restore`,
+        `${this.userServiceUrl}/api/internal/quotas/restore`, // ✅ 使用内部端点
         {
           userId,
           deviceCount: 0, // 不减少总设备数，只减少并发数
           concurrent: true,
         },
-        {},
+        { headers }, // ✅ 添加服务 Token
         {
           timeout: 5000,
           retries: 3,

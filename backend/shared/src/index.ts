@@ -47,6 +47,14 @@ export * from './config/database.config';
 // ========== Redis 配置工厂 ==========
 export * from './config/redis.config';
 
+// ========== JWT 配置工厂 ==========
+export {
+  JwtConfigFactory,
+  createJwtConfig,
+  generateStrongJwtSecret,
+} from './config/jwt.config';
+export type { JwtConfigOptions } from './config/jwt.config';
+
 // ========== 缓存模块 ==========
 export { AppCacheModule } from './cache/cache.module';
 
@@ -111,6 +119,9 @@ export { SagaOrchestratorService, SagaModule } from './saga';
 export type { SagaState, SagaStep, SagaDefinition } from './saga';
 export { SagaStatus, SagaType } from './saga';
 
+// ========== Transactional Outbox ==========
+export { EventOutbox, EventOutboxService, EventOutboxModule } from './outbox';
+
 // ========== 测试工具 ==========
 export { TransactionTestHelper, ConcurrencyTestHelper } from './testing';
 export type { ConcurrencyTestResult, RaceConditionTestResult } from './testing';
@@ -128,4 +139,9 @@ export {
 } from './middleware/security-headers.middleware';
 export type { SecurityHeadersConfig } from './middleware/security-headers.middleware';
 export { SecurityModule, SecurityModuleManual } from './middleware/security.module';
+
+// ========== Service-to-Service Authentication ==========
+export { ServiceAuthGuard } from './auth/service-auth.guard';
+export { ServiceTokenService } from './auth/service-token.service';
+export type { ServiceTokenPayload } from './auth/service-auth.guard';
 
