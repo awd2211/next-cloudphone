@@ -583,7 +583,7 @@ export class AdbService implements OnModuleInit {
           resolve(buffer);
         });
 
-        screencap.on("error", (error) => {
+        screencap.on("error", (error: Error) => {
           this.logger.error(
             `Failed to capture screenshot stream on ${deviceId}`,
             error,

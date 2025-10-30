@@ -11,6 +11,7 @@ import {
   Request,
   Logger,
 } from "@nestjs/common";
+import { Request as ExpressRequest } from "express";
 import { TemplatesService } from "./templates.service";
 import { CreateTemplateDto } from "./dto/create-template.dto";
 import { UpdateTemplateDto } from "./dto/update-template.dto";
@@ -20,6 +21,13 @@ import {
 } from "./dto/create-from-template.dto";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { TemplateCategory } from "../entities/device-template.entity";
+
+interface AuthenticatedRequest extends ExpressRequest {
+  user?: {
+    userId?: string;
+    sub?: string;
+  };
+}
 
 @Controller("templates")
 @UseGuards(JwtAuthGuard)
@@ -33,8 +41,14 @@ export class TemplatesController {
    * POST /templates
    */
   @Post()
-  async create(@Body() createTemplateDto: CreateTemplateDto, @Request() req) {
+  async create(@Body() createTemplateDto: CreateTemplateDto, @Request() req: AuthenticatedRequest) {
     const userId = req.user?.userId || req.user?.sub;
+
+    // ✅ 验证 userId 必须存在
+    if (!userId) {
+      throw new Error('User authentication required');
+    }
+
     this.logger.log(
       `User ${userId} creating template: ${createTemplateDto.name}`,
     );
@@ -49,9 +63,10 @@ export class TemplatesController {
   async findAll(
     @Query("category") category?: TemplateCategory,
     @Query("isPublic") isPublic?: string,
-    @Request() req?,
+    @Request() req?: AuthenticatedRequest,
   ) {
-    const userId = req.user?.userId || req.user?.sub;
+    // ✅ req 可选链处理
+    const userId = req?.user?.userId || req?.user?.sub;
     const isPublicBool =
       isPublic === "true" ? true : isPublic === "false" ? false : undefined;
 
@@ -73,8 +88,14 @@ export class TemplatesController {
    * GET /templates/search?q=游戏
    */
   @Get("search")
-  async search(@Query("q") query: string, @Request() req) {
+  async search(@Query("q") query: string, @Request() req: AuthenticatedRequest) {
     const userId = req.user?.userId || req.user?.sub;
+
+    // ✅ 验证 userId（搜索操作需要用户上下文）
+    if (!userId) {
+      throw new Error('User authentication required');
+    }
+
     return await this.templatesService.searchTemplates(query, userId);
   }
 
@@ -83,8 +104,10 @@ export class TemplatesController {
    * GET /templates/:id
    */
   @Get(":id")
-  async findOne(@Param("id") id: string, @Request() req) {
+  async findOne(@Param("id") id: string, @Request() req: AuthenticatedRequest) {
     const userId = req.user?.userId || req.user?.sub;
+
+    // ✅ userId 可选（findOne 支持可选 userId）
     return await this.templatesService.findOne(id, userId);
   }
 
@@ -96,9 +119,15 @@ export class TemplatesController {
   async update(
     @Param("id") id: string,
     @Body() updateTemplateDto: UpdateTemplateDto,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
     const userId = req.user?.userId || req.user?.sub;
+
+    // ✅ 验证 userId 必须存在
+    if (!userId) {
+      throw new Error('User authentication required');
+    }
+
     return await this.templatesService.update(id, updateTemplateDto, userId);
   }
 
@@ -107,8 +136,14 @@ export class TemplatesController {
    * DELETE /templates/:id
    */
   @Delete(":id")
-  async remove(@Param("id") id: string, @Request() req) {
+  async remove(@Param("id") id: string, @Request() req: AuthenticatedRequest) {
     const userId = req.user?.userId || req.user?.sub;
+
+    // ✅ 验证 userId 必须存在
+    if (!userId) {
+      throw new Error('User authentication required');
+    }
+
     await this.templatesService.remove(id, userId);
     return { message: "Template deleted successfully" };
   }
@@ -121,9 +156,15 @@ export class TemplatesController {
   async createDevice(
     @Param("id") id: string,
     @Body() dto: CreateDeviceFromTemplateDto,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
     const userId = req.user?.userId || req.user?.sub;
+
+    // ✅ 验证 userId 必须存在
+    if (!userId) {
+      throw new Error('User authentication required');
+    }
+
     this.logger.log(`User ${userId} creating device from template ${id}`);
     return await this.templatesService.createDeviceFromTemplate(
       id,
@@ -140,9 +181,15 @@ export class TemplatesController {
   async batchCreate(
     @Param("id") id: string,
     @Body() dto: BatchCreateFromTemplateDto,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
     const userId = req.user?.userId || req.user?.sub;
+
+    // ✅ 验证 userId 必须存在
+    if (!userId) {
+      throw new Error('User authentication required');
+    }
+
     this.logger.log(
       `User ${userId} batch creating ${dto.count} devices from template ${id}`,
     );

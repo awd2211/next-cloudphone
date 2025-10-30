@@ -269,15 +269,92 @@ export class DeviceDiscoveryService {
   }
 
   /**
-   * mDNS 服务发现（未来实现）
+   * mDNS 服务发现
    *
    * 使用 mDNS (Multicast DNS) 自动发现局域网内的 Android 设备
    * 需要设备运行 mDNS 服务，通常使用 _adb._tcp.local 服务名
-   *
-   * TODO Phase 2B: 实现 mDNS 发现
    */
   async discoverViaMdns(): Promise<PhysicalDeviceInfo[]> {
-    this.logger.warn("mDNS discovery not implemented yet (Phase 2B)");
-    return [];
+    return new Promise((resolve) => {
+      const devices: PhysicalDeviceInfo[] = [];
+      const deviceMap = new Map<string, PhysicalDeviceInfo>();
+
+      try {
+        const Bonjour = require('bonjour-service');
+        const bonjour = new Bonjour();
+
+        this.logger.log('Starting mDNS discovery for ADB services...');
+
+        // 浏览 ADB 服务
+        const browser = bonjour.find({ type: 'adb', protocol: 'tcp' }, (service: any) => {
+          try {
+            // 提取设备信息
+            const address = service.addresses?.[0] || service.host;
+            const port = service.port || 5555;
+
+            // 从 TXT 记录中获取设备 ID（如果有）
+            const deviceId = service.txt?.device_id ||
+                           service.txt?.deviceId ||
+                           `${service.name || 'unknown'}-${address}`;
+
+            const deviceName = service.txt?.name ||
+                             service.txt?.device_name ||
+                             service.name ||
+                             `Android Device (${address})`;
+
+            // 避免重复设备
+            const uniqueKey = `${address}:${port}`;
+            if (!deviceMap.has(uniqueKey)) {
+              const deviceInfo: PhysicalDeviceInfo = {
+                id: deviceId,
+                ipAddress: address,
+                adbPort: port,
+                name: deviceName,
+                discoveryMethod: 'mdns',
+                discoveredAt: new Date(),
+                properties: {
+                  manufacturer: service.txt?.manufacturer,
+                  model: service.txt?.model,
+                  androidVersion: service.txt?.android_version,
+                },
+                lastHeartbeatAt: new Date(),
+              };
+
+              deviceMap.set(uniqueKey, deviceInfo);
+              devices.push(deviceInfo);
+
+              this.logger.log(
+                `Discovered device via mDNS: ${deviceInfo.name} at ${address}:${port}`,
+              );
+            }
+          } catch (error) {
+            this.logger.warn(
+              `Failed to process mDNS service: ${error.message}`,
+            );
+          }
+        });
+
+        // 设置超时
+        setTimeout(() => {
+          try {
+            browser.stop();
+            bonjour.destroy();
+
+            this.logger.log(
+              `mDNS discovery completed. Found ${devices.length} device(s)`,
+            );
+
+            resolve(devices);
+          } catch (error) {
+            this.logger.error('Error stopping mDNS browser', error);
+            resolve(devices);
+          }
+        }, 5000); // 5 秒扫描时间
+
+      } catch (error) {
+        this.logger.error('mDNS discovery failed', error);
+        resolve([]);
+      }
+    });
   }
 }

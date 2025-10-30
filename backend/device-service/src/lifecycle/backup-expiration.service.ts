@@ -313,7 +313,7 @@ export class BackupExpirationService {
         description: `Auto backup created at ${new Date().toISOString()}`,
         tags: ["auto-backup"],
       },
-      device.userId,
+      device.userId || 'system',
     );
 
     // 更新快照为自动备份，并设置到期时间
@@ -371,13 +371,16 @@ export class BackupExpirationService {
       });
 
       for (const device of devices) {
-        result.push({
-          deviceId: device.id,
-          deviceName: device.name,
-          userId: device.userId,
-          expiresAt: device.expiresAt,
-          daysRemaining: days,
-        });
+        // 只添加有完整信息的设备
+        if (device.userId && device.expiresAt) {
+          result.push({
+            deviceId: device.id,
+            deviceName: device.name,
+            userId: device.userId,
+            expiresAt: device.expiresAt,
+            daysRemaining: days,
+          });
+        }
       }
     }
 

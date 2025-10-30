@@ -10,10 +10,18 @@ import {
   Request,
   Logger,
 } from "@nestjs/common";
+import { Request as ExpressRequest } from "express";
 import { SnapshotsService } from "./snapshots.service";
 import { CreateSnapshotDto } from "./dto/create-snapshot.dto";
 import { RestoreSnapshotDto } from "./dto/restore-snapshot.dto";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+
+interface AuthenticatedRequest extends ExpressRequest {
+  user?: {
+    userId?: string;
+    sub?: string;
+  };
+}
 
 @Controller("snapshots")
 @UseGuards(JwtAuthGuard)
@@ -30,9 +38,15 @@ export class SnapshotsController {
   async createSnapshot(
     @Param("deviceId") deviceId: string,
     @Body() createSnapshotDto: CreateSnapshotDto,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
     const userId = req.user?.userId || req.user?.sub;
+
+    // ✅ 验证 userId 必须存在
+    if (!userId) {
+      throw new Error('User authentication required');
+    }
+
     this.logger.log(`User ${userId} creating snapshot for device ${deviceId}`);
     return await this.snapshotsService.createSnapshot(
       deviceId,
@@ -49,9 +63,9 @@ export class SnapshotsController {
   async restoreSnapshot(
     @Param("id") id: string,
     @Body() restoreDto: RestoreSnapshotDto,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.userId || req.user?.sub;
+    const userId = req.user?.userId || req.user?.sub || 'anonymous';
     this.logger.log(`User ${userId} restoring from snapshot ${id}`);
     return await this.snapshotsService.restoreSnapshot(id, restoreDto, userId);
   }
@@ -61,7 +75,7 @@ export class SnapshotsController {
    * POST /snapshots/:id/compress
    */
   @Post(":id/compress")
-  async compressSnapshot(@Param("id") id: string, @Request() req) {
+  async compressSnapshot(@Param("id") id: string, @Request() req: AuthenticatedRequest) {
     const userId = req.user?.userId || req.user?.sub;
     this.logger.log(`User ${userId} compressing snapshot ${id}`);
     return await this.snapshotsService.compressSnapshot(id);
@@ -72,8 +86,8 @@ export class SnapshotsController {
    * DELETE /snapshots/:id
    */
   @Delete(":id")
-  async deleteSnapshot(@Param("id") id: string, @Request() req) {
-    const userId = req.user?.userId || req.user?.sub;
+  async deleteSnapshot(@Param("id") id: string, @Request() req: AuthenticatedRequest) {
+    const userId = req.user?.userId || req.user?.sub || 'anonymous';
     this.logger.log(`User ${userId} deleting snapshot ${id}`);
     await this.snapshotsService.deleteSnapshot(id, userId);
     return { message: "Snapshot deleted successfully" };
@@ -84,8 +98,8 @@ export class SnapshotsController {
    * GET /snapshots/:id
    */
   @Get(":id")
-  async findOne(@Param("id") id: string, @Request() req) {
-    const userId = req.user?.userId || req.user?.sub;
+  async findOne(@Param("id") id: string, @Request() req: AuthenticatedRequest) {
+    const userId = req.user?.userId || req.user?.sub || 'anonymous';
     return await this.snapshotsService.findOne(id, userId);
   }
 
@@ -103,8 +117,8 @@ export class SnapshotsController {
    * GET /snapshots
    */
   @Get()
-  async findByUser(@Request() req) {
-    const userId = req.user?.userId || req.user?.sub;
+  async findByUser(@Request() req: AuthenticatedRequest) {
+    const userId = req.user?.userId || req.user?.sub || 'anonymous';
     return await this.snapshotsService.findByUser(userId);
   }
 
@@ -113,7 +127,7 @@ export class SnapshotsController {
    * GET /snapshots/stats/summary
    */
   @Get("stats/summary")
-  async getStatistics(@Request() req) {
+  async getStatistics(@Request() req: AuthenticatedRequest) {
     const userId = req.user?.userId || req.user?.sub;
     return await this.snapshotsService.getStatistics(userId);
   }

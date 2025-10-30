@@ -40,7 +40,7 @@ export class Device {
   name: string;
 
   @Column({ nullable: true })
-  description: string;
+  description: string | null;
 
   @Column({
     type: "enum",
@@ -59,18 +59,18 @@ export class Device {
 
   @Column({ nullable: true })
   @Index()
-  userId: string; // 逻辑外键 → user-service
+  userId: string | null; // 逻辑外键 → user-service
 
   // ========== 冗余字段（从 user-service 同步，避免跨服务查询） ==========
   @Column({ nullable: true })
-  userName: string; // 用户名
+  userName: string | null; // 用户名
 
   @Column({ nullable: true })
-  userEmail: string; // 用户邮箱
+  userEmail: string | null; // 用户邮箱
 
   @Column({ nullable: true })
   @Index()
-  tenantId: string;
+  tenantId: string | null;
 
   // ========== Provider 信息（多设备源支持） ==========
   @Column({
@@ -84,16 +84,16 @@ export class Device {
 
   @Column({ name: "external_id", nullable: true })
   @Index()
-  externalId: string; // Provider 侧的设备 ID（如 Docker containerId、华为 instanceId、物理设备 MAC）
+  externalId: string | null; // Provider 侧的设备 ID（如 Docker containerId、华为 instanceId、物理设备 MAC）
 
   @Column({ name: "provider_config", type: "jsonb", nullable: true })
-  providerConfig: Record<string, any>; // Provider 特定配置（创建时的参数）
+  providerConfig: Record<string, any> | null; // Provider 特定配置（创建时的参数）
 
   @Column({ name: "connection_info", type: "jsonb", nullable: true })
-  connectionInfo: Record<string, any>; // 连接信息（ADB、SCRCPY、WebRTC 等）
+  connectionInfo: Record<string, any> | null; // 连接信息（ADB、SCRCPY、WebRTC 等）
 
   @Column({ name: "device_group", nullable: true })
-  deviceGroup: string; // 设备分组（物理设备的机架位置、云设备的区域等）
+  deviceGroup: string | null; // 设备分组（物理设备的机架位置、云设备的区域等）
 
   @Column({ name: "health_score", type: "int", default: 100 })
   healthScore: number; // 设备健康评分 (0-100)
@@ -101,20 +101,20 @@ export class Device {
   // Docker 容器信息（仅 Redroid 使用）
   @Column({ nullable: true })
   @Index()
-  containerId: string;
+  containerId: string | null;
 
   @Column({ nullable: true })
-  containerName: string;
+  containerName: string | null;
 
   @Column({ nullable: true })
-  imageTag: string;
+  imageTag: string | null;
 
   // ADB 连接信息
   @Column({ nullable: true })
-  adbHost: string;
+  adbHost: string | null;
 
   @Column({ type: "int", nullable: true })
-  adbPort: number;
+  adbPort: number | null;
 
   // 设备配置
   @Column({ type: "int", default: 2 })
@@ -137,14 +137,14 @@ export class Device {
   androidVersion: string;
 
   @Column({ nullable: true })
-  androidId: string;
+  androidId: string | null;
 
   // 网络配置
   @Column({ nullable: true })
-  ipAddress: string;
+  ipAddress: string | null;
 
   @Column({ nullable: true })
-  macAddress: string;
+  macAddress: string | null;
 
   // 状态信息
   @Column({ type: "int", default: 0 })
@@ -156,16 +156,16 @@ export class Device {
   @Column({ type: "int", default: 0 })
   storageUsage: number;
 
-  @Column({ name: "last_heartbeat_at", type: "timestamp", nullable: true })
-  lastHeartbeatAt: Date;
+  @Column({ type: "timestamp", nullable: true })
+  lastHeartbeatAt: Date | null;
 
-  @Column({ name: "last_active_at", type: "timestamp", nullable: true })
-  lastActiveAt: Date;
+  @Column({ type: "timestamp", nullable: true })
+  lastActiveAt: Date | null;
 
   // 到期时间（用于临时设备或有时限的设备）
   @Column({ name: "expires_at", type: "timestamp", nullable: true })
   @Index()
-  expiresAt: Date;
+  expiresAt: Date | null;
 
   // 是否启用自动备份
   @Column({ name: "auto_backup_enabled", default: false })
@@ -173,18 +173,18 @@ export class Device {
 
   // 自动备份间隔（小时）
   @Column({ name: "backup_interval_hours", type: "int", nullable: true })
-  backupIntervalHours: number;
+  backupIntervalHours: number | null;
 
   // 最后备份时间
   @Column({ name: "last_backup_at", type: "timestamp", nullable: true })
-  lastBackupAt: Date;
+  lastBackupAt: Date | null;
 
   // 元数据
   @Column({ type: "jsonb", nullable: true })
-  metadata: Record<string, any>;
+  metadata: Record<string, any> | null;
 
-  @Column({ type: "jsonb", nullable: true })
-  deviceTags: string[]; // 设备标签（用于过滤和搜索）
+  @Column({ name: "device_tags", type: "jsonb", nullable: true })
+  deviceTags: string[] | null; // 设备标签（用于过滤和搜索）
 
   @CreateDateColumn()
   createdAt: Date;

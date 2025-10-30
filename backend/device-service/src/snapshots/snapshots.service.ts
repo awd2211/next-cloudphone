@@ -94,14 +94,16 @@ export class SnapshotsService {
     const savedSnapshot = await this.snapshotRepository.save(snapshot);
 
     // 4. 异步创建 Docker 快照
-    this.createDockerSnapshot(savedSnapshot.id, device.containerId).catch(
-      (error) => {
-        this.logger.error(
-          `Failed to create Docker snapshot for ${savedSnapshot.id}: ${error.message}`,
-        );
-        this.updateSnapshotStatus(savedSnapshot.id, SnapshotStatus.FAILED);
-      },
-    );
+    if (device.containerId) {
+      this.createDockerSnapshot(savedSnapshot.id, device.containerId).catch(
+        (error) => {
+          this.logger.error(
+            `Failed to create Docker snapshot for ${savedSnapshot.id}: ${error.message}`,
+          );
+          this.updateSnapshotStatus(savedSnapshot.id, SnapshotStatus.FAILED);
+        },
+      );
+    }
 
     return savedSnapshot;
   }
@@ -210,6 +212,14 @@ export class SnapshotsService {
 
         // 停止原设备
         await this.devicesService.stop(snapshot.device.id);
+
+        // ✅ 验证 containerId 和 adbPort 必须存在
+        if (!snapshot.device.containerId || !snapshot.device.adbPort) {
+          throw new BusinessException(
+            BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+            `Device ${snapshot.device.id} missing containerId or adbPort`,
+          );
+        }
 
         // 删除原容器
         await this.dockerService.removeContainer(snapshot.device.containerId);

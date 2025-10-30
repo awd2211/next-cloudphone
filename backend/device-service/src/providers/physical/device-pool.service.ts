@@ -412,27 +412,31 @@ export class DevicePoolService {
     devices: PooledDevice[],
     requirements: DeviceAllocationRequest["requirements"],
   ): PooledDevice[] {
+    if (!requirements) {
+      return devices;
+    }
+
     return devices.filter((device) => {
       // 健康评分
       if (
-        requirements.minHealthScore &&
-        device.healthScore < requirements.minHealthScore
+        requirements!.minHealthScore &&
+        device.healthScore < requirements!.minHealthScore
       ) {
         return false;
       }
 
       // 设备分组
       if (
-        requirements.deviceGroup &&
-        device.deviceGroup !== requirements.deviceGroup
+        requirements!.deviceGroup &&
+        device.deviceGroup !== requirements!.deviceGroup
       ) {
         return false;
       }
 
       // 设备标签
-      if (requirements.tags && requirements.tags.length > 0) {
+      if (requirements!.tags && requirements!.tags.length > 0) {
         const deviceTags = device.tags || [];
-        const hasAllTags = requirements.tags.every((tag) =>
+        const hasAllTags = requirements!.tags.every((tag) =>
           deviceTags.includes(tag),
         );
         if (!hasAllTags) {
@@ -442,8 +446,8 @@ export class DevicePoolService {
 
       // Android 版本
       if (
-        requirements.androidVersion &&
-        device.properties?.androidVersion !== requirements.androidVersion
+        requirements!.androidVersion &&
+        device.properties?.androidVersion !== requirements!.androidVersion
       ) {
         return false;
       }

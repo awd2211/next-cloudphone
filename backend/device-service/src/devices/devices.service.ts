@@ -1,6 +1,6 @@
-import { Injectable, Logger, Optional, HttpStatus, Inject } from "@nestjs/common";
+import { Injectable, Logger, Optional, HttpStatus, Inject, BadRequestException } from "@nestjs/common";
 import { InjectRepository, InjectDataSource } from "@nestjs/typeorm";
-import { Repository, DataSource } from "typeorm";
+import { Repository, DataSource, FindOptionsWhere } from "typeorm";
 import { ConfigService } from "@nestjs/config";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ModuleRef } from "@nestjs/core";
@@ -24,6 +24,9 @@ import {
   SagaDefinition,
   SagaType,
   SagaStep,
+  CursorPagination,
+  CursorPaginationDto,
+  CursorPaginatedResponse,
 } from "@cloudphone/shared";
 import { QuotaClientService } from "../quota/quota-client.service";
 import { CacheService } from "../cache/cache.service";
@@ -117,6 +120,11 @@ export class DevicesService {
    * 5. START_DEVICE - 启动设备
    */
   async create(createDeviceDto: CreateDeviceDto): Promise<{ sagaId: string; device: Device }> {
+    // ✅ 验证 userId 必须存在
+    if (!createDeviceDto.userId) {
+      throw new BadRequestException('userId is required for device creation');
+    }
+
     this.logger.log(`Creating device for user ${createDeviceDto.userId}`);
 
     // 确定 Provider 类型（默认 Redroid）
@@ -174,7 +182,7 @@ export class DevicesService {
 
             const providerConfig: DeviceCreateConfig = {
               name: `cloudphone-${createDeviceDto.name}`,
-              userId: createDeviceDto.userId,
+              userId: createDeviceDto.userId!,  // ✅ Guaranteed by validation
               cpuCores: createDeviceDto.cpuCores || 2,
               memoryMB: createDeviceDto.memoryMB || 4096,
               storageMB: createDeviceDto.storageMB || 10240,
@@ -343,8 +351,8 @@ export class DevicesService {
 
             this.logger.log(`[SAGA] Step 4: Reporting quota usage`);
 
-            await this.quotaClient.reportDeviceUsage(createDeviceDto.userId, {
-              deviceId: state.deviceId,
+            await this.quotaClient.reportDeviceUsage(createDeviceDto.userId!, {  // ✅ Guaranteed by validation
+              deviceId: state.deviceId!,  // ✅ Guaranteed by step 3
               cpuCores: createDeviceDto.cpuCores || 2,
               memoryGB: (createDeviceDto.memoryMB || 4096) / 1024,
               storageGB: (createDeviceDto.storageMB || 10240) / 1024,
@@ -363,8 +371,8 @@ export class DevicesService {
             this.logger.warn(`[SAGA] Compensate: Rolling back quota usage`);
 
             try {
-              await this.quotaClient.reportDeviceUsage(createDeviceDto.userId, {
-                deviceId: state.deviceId,
+              await this.quotaClient.reportDeviceUsage(createDeviceDto.userId!, {  // ✅ Guaranteed by validation
+                deviceId: state.deviceId!,  // ✅ Should exist if we're compensating
                 cpuCores: createDeviceDto.cpuCores || 2,
                 memoryGB: (createDeviceDto.memoryMB || 4096) / 1024,
                 storageGB: (createDeviceDto.storageMB || 10240) / 1024,
@@ -528,6 +536,12 @@ export class DevicesService {
       this.logger.log(`Starting device ${device.id}`);
 
       // 调用 Provider 启动设备
+      if (!device.externalId) {
+        throw new BusinessException(
+          BusinessErrorCode.DEVICE_START_FAILED,
+          `Device ${device.id} has no externalId`,
+        );
+      }
       await provider.start(device.externalId);
 
       // 等待 ADB 连接
@@ -640,6 +654,14 @@ export class DevicesService {
     try {
       this.logger.log(`Creating Redroid container for device ${device.id}`);
 
+      // ✅ 验证 adbPort 存在（Redroid 设备必需）
+      if (!device.adbPort) {
+        throw new BusinessException(
+          BusinessErrorCode.DEVICE_START_FAILED,
+          `Redroid device ${device.id} has no adbPort assigned`,
+        );
+      }
+
       // 构建 Redroid 配置
       const redroidConfig: RedroidConfig = {
         name: `cloudphone-${device.id}`,
@@ -670,6 +692,15 @@ export class DevicesService {
 
       // 建立 ADB 连接
       this.logger.log(`Connecting to device ${device.id} via ADB`);
+
+      // ✅ 验证 ADB 连接信息存在
+      if (!device.adbHost || !device.adbPort) {
+        throw new BusinessException(
+          BusinessErrorCode.DEVICE_START_FAILED,
+          `Device ${device.id} missing ADB connection info (host: ${device.adbHost}, port: ${device.adbPort})`,
+        );
+      }
+
       await this.adbService.connectToDevice(
         device.id,
         device.adbHost,
@@ -822,14 +853,14 @@ export class DevicesService {
     status?: DeviceStatus,
   ): Promise<{ data: Device[]; total: number; page: number; limit: number }> {
     // 生成缓存键
-    let cacheKey: string;
+    let cacheKey: string | undefined;
     if (userId) {
       cacheKey = CacheKeys.deviceList(userId, status, page, limit);
     } else if (tenantId) {
       cacheKey = CacheKeys.tenantDeviceList(tenantId, status, page, limit);
     } else {
       // 全局列表不缓存（管理员查询）
-      cacheKey = null;
+      cacheKey = undefined;
     }
 
     // 如果有缓存键，使用缓存
@@ -855,19 +886,79 @@ export class DevicesService {
   ): Promise<{ data: Device[]; total: number; page: number; limit: number }> {
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {};
+    const where: FindOptionsWhere<Device> = {};
     if (userId) where.userId = userId;
     if (tenantId) where.tenantId = tenantId;
     if (status) where.status = status;
 
     const [data, total] = await this.devicesRepository.findAndCount({
-      where: where as Parameters<typeof this.devicesRepository.findAndCount>[0]['where'],
+      where,
       skip,
       take: limit,
       order: { createdAt: "DESC" },
     });
 
     return { data, total, page, limit };
+  }
+
+  /**
+   * Cursor-based pagination for efficient large dataset queries
+   *
+   * @param dto - Cursor pagination parameters
+   * @param userId - Optional user ID filter
+   * @param tenantId - Optional tenant ID filter
+   * @param status - Optional device status filter
+   * @returns Cursor paginated response with next cursor
+   *
+   * @example
+   * ```typescript
+   * // First page
+   * const page1 = await service.findAllCursor({ limit: 20 });
+   *
+   * // Next page
+   * const page2 = await service.findAllCursor({
+   *   cursor: page1.nextCursor,
+   *   limit: 20
+   * });
+   * ```
+   */
+  async findAllCursor(
+    dto: CursorPaginationDto,
+    userId?: string,
+    tenantId?: string,
+    status?: DeviceStatus,
+  ): Promise<CursorPaginatedResponse<Device>> {
+    const { cursor, limit = 20 } = dto;
+
+    const qb = this.devicesRepository.createQueryBuilder('device');
+
+    // Apply filters
+    if (userId) {
+      qb.andWhere('device.userId = :userId', { userId });
+    }
+    if (tenantId) {
+      qb.andWhere('device.tenantId = :tenantId', { tenantId });
+    }
+    if (status) {
+      qb.andWhere('device.status = :status', { status });
+    }
+
+    // Apply cursor condition if provided
+    if (cursor) {
+      const cursorCondition = CursorPagination.applyCursorCondition(cursor, 'device');
+      if (cursorCondition) {
+        qb.andWhere(cursorCondition.condition, cursorCondition.parameters);
+      }
+    }
+
+    // Order by createdAt DESC and fetch limit + 1 to check if there's more
+    qb.orderBy('device.createdAt', 'DESC')
+      .limit(limit + 1);
+
+    const devices = await qb.getMany();
+
+    // Use CursorPagination utility to paginate results
+    return CursorPagination.paginate(devices, limit);
   }
 
   async findOne(id: string): Promise<Device> {
@@ -975,7 +1066,7 @@ export class DevicesService {
       (device.adbPort || device.metadata?.webrtcPort)
     ) {
       this.portManager.releasePorts({
-        adbPort: device.adbPort,
+        adbPort: device.adbPort ?? undefined,  // Convert null to undefined
         webrtcPort: device.metadata?.webrtcPort,
       });
       this.logger.debug(`Released ports for device ${id}`);
@@ -1233,10 +1324,68 @@ export class DevicesService {
           `Failed to start device via provider ${id}`,
           error.stack,
         );
+
+        // 发布严重错误事件（设备启动失败）
+        if (this.eventBus) {
+          try {
+            // ✅ 使用非空断言，因为已经检查过
+            await this.eventBus!.publishSystemError(
+              'high',
+              'DEVICE_START_FAILED',
+              `Device start failed: ${error.message} (deviceId: ${id}, provider: ${device.providerType})`,
+              'device-service',
+              {
+                userMessage: '设备启动失败，请稍后重试',
+                // ✅ null → undefined 转换
+                userId: device.userId ?? undefined,
+                stackTrace: error.stack,
+                metadata: {
+                  deviceId: id,
+                  deviceName: device.name,
+                  providerType: device.providerType,
+                  errorMessage: error.message,
+                },
+              }
+            );
+          } catch (eventError) {
+            this.logger.error('Failed to publish device start failed event', eventError);
+          }
+        }
+
         throw new BusinessException(
-          BusinessErrorCode.DEVICE_NOT_AVAILABLE,
-          `无法启动设备: ${error.message}`,
+          BusinessErrorCode.DEVICE_START_FAILED,
+          `Failed to start device ${id}: ${error.message}`,
           HttpStatus.INTERNAL_SERVER_ERROR,
+          undefined,
+          {
+            userMessage: '设备启动失败，请稍后重试',
+            technicalMessage: `Device provider failed to start device: ${error.message}`,
+            details: {
+              deviceId: id,
+              providerType: device.providerType,
+              errorMessage: error.message,
+              errorStack: error.stack,
+            },
+            recoverySuggestions: [
+              {
+                action: '重新启动',
+                description: '尝试重新启动设备',
+                actionUrl: `/devices/${id}/start`,
+              },
+              {
+                action: '检查日志',
+                description: '查看设备日志了解具体原因',
+                actionUrl: `/devices/${id}/logs`,
+              },
+              {
+                action: '删除重建',
+                description: '如果问题持续，可以删除设备并重新创建',
+                actionUrl: `/devices/${id}`,
+              },
+            ],
+            documentationUrl: 'https://docs.cloudphone.com/troubleshooting/device-start-failed',
+            retryable: true,
+          },
         );
       }
     }
@@ -1376,6 +1525,34 @@ export class DevicesService {
           `Failed to stop device via provider ${id}`,
           error.stack,
         );
+
+        // 发布严重错误事件（设备停止失败）
+        if (this.eventBus) {
+          try {
+            // ✅ 使用非空断言，因为已经检查过
+            await this.eventBus!.publishSystemError(
+              'high',
+              'DEVICE_STOP_FAILED',
+              `Device stop failed: ${error.message} (deviceId: ${id}, provider: ${device.providerType})`,
+              'device-service',
+              {
+                userMessage: '设备停止失败，请稍后重试',
+                // ✅ null → undefined 转换
+                userId: device.userId ?? undefined,
+                stackTrace: error.stack,
+                metadata: {
+                  deviceId: id,
+                  deviceName: device.name,
+                  providerType: device.providerType,
+                  errorMessage: error.message,
+                },
+              }
+            );
+          } catch (eventError) {
+            this.logger.error('Failed to publish device stop failed event', eventError);
+          }
+        }
+
         throw new BusinessException(
           BusinessErrorCode.DEVICE_NOT_AVAILABLE,
           `无法停止设备: ${error.message}`,
@@ -1733,6 +1910,15 @@ export class DevicesService {
         BusinessErrorCode.DEVICE_NOT_AVAILABLE,
         `设备未运行: ${deviceId}`,
         HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // ✅ 验证流所需的字段存在
+    if (!device.containerName || !device.adbPort) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `Device ${deviceId} missing streaming info (containerName: ${device.containerName}, adbPort: ${device.adbPort})`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 

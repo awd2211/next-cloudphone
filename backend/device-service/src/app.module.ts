@@ -28,6 +28,7 @@ import {
   ConsulModule,
   createLoggerConfig,
   EventBusService,
+  EventBusModule,
   EventOutbox,
   RequestIdMiddleware,
   SagaModule,
@@ -63,6 +64,7 @@ import { DeviceRabbitMQModule } from "./rabbitmq/rabbitmq.module";
     ScheduleModule.forRoot(),
     DeviceRabbitMQModule, // ✅ RabbitMQ 模块（使用 @golevelup/nestjs-rabbitmq）
     ConsulModule,
+    EventBusModule.forRoot(),  // ✅ 事件总线（用于错误通知）
     CacheModule, // ✅ Redis 缓存模块（全局模块）
     CommonModule, // 通用工具模块（重试、错误处理等）
     ProvidersModule, // ✅ 设备 Provider 抽象层（多设备源支持）

@@ -382,7 +382,10 @@ export class DockerService {
     const portBindings = info.NetworkSettings.Ports;
     const adbPort = portBindings["5555/tcp"]?.[0]?.HostPort;
 
-    return adbPort ? parseInt(adbPort) : null;
+    if (!adbPort) {
+      throw new Error(`Container ${containerId} has no ADB port binding`);
+    }
+    return parseInt(adbPort);
   }
 
   async listContainers(

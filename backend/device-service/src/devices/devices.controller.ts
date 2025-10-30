@@ -32,6 +32,7 @@ import { DeviceStatus } from "../entities/device.entity";
 import { DeviceMetrics } from "../providers/provider.types";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { RequirePermission } from "../auth/decorators/permissions.decorator";
+import { CursorPaginationDto } from "@cloudphone/shared";
 import {
   ShellCommandDto,
   PushFileDto,
@@ -71,6 +72,49 @@ export class DevicesController {
     };
   }
 
+  @Get("stats")
+  @RequirePermission("device.read")
+  @ApiOperation({
+    summary: "获取设备统计信息",
+    description: "获取所有设备的状态统计",
+  })
+  @ApiResponse({ status: 200, description: "获取成功" })
+  @ApiResponse({ status: 403, description: "权限不足" })
+  async getOverallStats() {
+    const result = await this.devicesService.findAll(1, 9999);
+    const devices = result.data;
+
+    const stats = {
+      total: devices.length,
+      idle: devices.filter((d) => d.status === DeviceStatus.IDLE).length,
+      running: devices.filter((d) => d.status === DeviceStatus.RUNNING).length,
+      stopped: devices.filter((d) => d.status === DeviceStatus.STOPPED).length,
+      error: devices.filter((d) => d.status === DeviceStatus.ERROR).length,
+    };
+
+    return {
+      success: true,
+      data: stats,
+    };
+  }
+
+  @Get("available")
+  @RequirePermission("device.read")
+  @ApiOperation({
+    summary: "获取可用设备列表",
+    description: "获取所有状态为IDLE的可用设备",
+  })
+  @ApiResponse({ status: 200, description: "获取成功" })
+  @ApiResponse({ status: 403, description: "权限不足" })
+  async getAvailableDevices() {
+    const result = await this.devicesService.findAll(1, 9999, undefined, undefined, DeviceStatus.IDLE);
+    return {
+      success: true,
+      data: result.data,
+      total: result.total,
+    };
+  }
+
   @Get()
   @RequirePermission("device.read")
   @ApiOperation({
@@ -104,6 +148,65 @@ export class DevicesController {
     const result = await this.devicesService.findAll(
       parseInt(page),
       parseInt(limit),
+      userId,
+      tenantId,
+      status,
+    );
+    return {
+      success: true,
+      ...result,
+    };
+  }
+
+  @Get("cursor")
+  @RequirePermission("device.read")
+  @ApiOperation({
+    summary: "获取设备列表 (游标分页)",
+    description:
+      "使用游标分页获取设备列表，性能优化版本。适用于大数据集的高效分页查询（O(1)复杂度）",
+  })
+  @ApiQuery({
+    name: "cursor",
+    required: false,
+    description: "游标（base64编码的时间戳），获取下一页时传入上一页的 nextCursor",
+    example: "MTY5ODc2NTQzMjAwMA==",
+  })
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    description: "每页数量 (1-100)",
+    example: 20,
+  })
+  @ApiQuery({ name: "userId", required: false, description: "用户 ID" })
+  @ApiQuery({ name: "tenantId", required: false, description: "租户 ID" })
+  @ApiQuery({
+    name: "status",
+    required: false,
+    enum: DeviceStatus,
+    description: "设备状态",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "获取成功",
+    schema: {
+      example: {
+        success: true,
+        data: [],
+        nextCursor: "MTY5ODc2NTQzMjAwMA==",
+        hasMore: true,
+        count: 20,
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: "权限不足" })
+  async findAllCursor(
+    @Query() paginationDto: CursorPaginationDto,
+    @Query("userId") userId?: string,
+    @Query("tenantId") tenantId?: string,
+    @Query("status") status?: DeviceStatus,
+  ) {
+    const result = await this.devicesService.findAllCursor(
+      paginationDto,
       userId,
       tenantId,
       status,
@@ -215,6 +318,21 @@ export class DevicesController {
       data: device,
       message: "设备重启成功",
     };
+  }
+
+  /**
+   * reboot别名 - 与前端保持一致
+   */
+  @Post(":id/reboot")
+  @RequirePermission("device.update")
+  @ApiOperation({ summary: "重启设备 (别名)", description: "重启设备容器 - restart的别名" })
+  @ApiParam({ name: "id", description: "设备 ID" })
+  @ApiResponse({ status: 200, description: "重启成功" })
+  @ApiResponse({ status: 400, description: "设备状态不允许此操作" })
+  @ApiResponse({ status: 403, description: "权限不足" })
+  async reboot(@Param("id") id: string) {
+    // 直接调用restart方法
+    return this.restart(id);
   }
 
   @Post(":id/heartbeat")
@@ -488,5 +606,129 @@ export class DevicesController {
       `attachment; filename="device-${id}-screenshot.png"`,
     );
     res.send(screenshot);
+  }
+
+  /**
+   * ========== 批量操作接口 ==========
+   */
+
+  @Post("batch/start")
+  @RequirePermission("device.update")
+  @ApiOperation({
+    summary: "批量启动设备",
+    description: "批量启动多个设备",
+  })
+  @ApiResponse({ status: 200, description: "批量启动成功" })
+  @ApiResponse({ status: 403, description: "权限不足" })
+  async batchStart(@Body("ids") ids: string[]) {
+    if (!ids || ids.length === 0) {
+      return {
+        success: false,
+        message: "请提供要启动的设备ID列表",
+      };
+    }
+
+    const results = await Promise.allSettled(
+      ids.map((id) => this.devicesService.start(id)),
+    );
+
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.filter((r) => r.status === "rejected").length;
+
+    return {
+      success: true,
+      message: `批量启动完成：成功 ${succeeded} 个，失败 ${failed} 个`,
+      data: { succeeded, failed, total: ids.length },
+    };
+  }
+
+  @Post("batch/stop")
+  @RequirePermission("device.update")
+  @ApiOperation({
+    summary: "批量停止设备",
+    description: "批量停止多个设备",
+  })
+  @ApiResponse({ status: 200, description: "批量停止成功" })
+  @ApiResponse({ status: 403, description: "权限不足" })
+  async batchStop(@Body("ids") ids: string[]) {
+    if (!ids || ids.length === 0) {
+      return {
+        success: false,
+        message: "请提供要停止的设备ID列表",
+      };
+    }
+
+    const results = await Promise.allSettled(
+      ids.map((id) => this.devicesService.stop(id)),
+    );
+
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.filter((r) => r.status === "rejected").length;
+
+    return {
+      success: true,
+      message: `批量停止完成：成功 ${succeeded} 个，失败 ${failed} 个`,
+      data: { succeeded, failed, total: ids.length },
+    };
+  }
+
+  @Post("batch/reboot")
+  @RequirePermission("device.update")
+  @ApiOperation({
+    summary: "批量重启设备",
+    description: "批量重启多个设备",
+  })
+  @ApiResponse({ status: 200, description: "批量重启成功" })
+  @ApiResponse({ status: 403, description: "权限不足" })
+  async batchReboot(@Body("ids") ids: string[]) {
+    if (!ids || ids.length === 0) {
+      return {
+        success: false,
+        message: "请提供要重启的设备ID列表",
+      };
+    }
+
+    const results = await Promise.allSettled(
+      ids.map((id) => this.devicesService.restart(id)),
+    );
+
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.filter((r) => r.status === "rejected").length;
+
+    return {
+      success: true,
+      message: `批量重启完成：成功 ${succeeded} 个，失败 ${failed} 个`,
+      data: { succeeded, failed, total: ids.length },
+    };
+  }
+
+  @Post("batch/delete")
+  @RequirePermission("device.delete")
+  @ApiOperation({
+    summary: "批量删除设备",
+    description: "批量删除多个设备",
+  })
+  @ApiResponse({ status: 200, description: "批量删除成功" })
+  @ApiResponse({ status: 403, description: "权限不足" })
+  async batchDelete(@Body("ids") ids: string[]) {
+    if (!ids || ids.length === 0) {
+      return {
+        success: false,
+        message: "请提供要删除的设备ID列表",
+      };
+    }
+
+    const results = await Promise.allSettled(
+      ids.map((id) => this.devicesService.remove(id)),
+    );
+
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.filter((r) => r.status === "rejected").length;
+
+    return {
+      success: true,
+      message: `批量删除完成：成功 ${succeeded} 个，失败 ${failed} 个`,
+      data: { succeeded, failed, total: ids.length },
+    };
   }
 }

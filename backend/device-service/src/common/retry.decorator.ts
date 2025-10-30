@@ -93,7 +93,7 @@ export function Retry(options: RetryOptions = {}) {
     const logger = new Logger(`${target.constructor.name}.${propertyKey}`);
 
     descriptor.value = async function (...args: any[]) {
-      let lastError: Error;
+      let lastError: Error = new Error('Retry failed');
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
@@ -181,7 +181,7 @@ export async function retryWithBackoff<T>(
   } = options;
 
   const logger = new Logger("retryWithBackoff");
-  let lastError: Error;
+  let lastError: Error = new Error('Retry failed');
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {

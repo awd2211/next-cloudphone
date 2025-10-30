@@ -12,10 +12,10 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    // 严格模式选项 - 临时关闭以通过编译
-    "strictNullChecks": false,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
+    // 严格模式选项
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
     // 推荐的严格选项
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
@@ -28,5 +28,5 @@
     "isolatedModules": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.patch.ts"]
+  "exclude": ["node_modules", "dist", "**/*.patch.ts", "**/__tests__/**", "**/*.spec.ts", "**/*.test.ts"]
 }

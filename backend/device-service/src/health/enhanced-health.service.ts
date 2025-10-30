@@ -339,11 +339,13 @@ export class EnhancedHealthService {
         try {
           await this.adbService.disconnectFromDevice(device.id);
           await new Promise((resolve) => setTimeout(resolve, 2000)); // 等待 2 秒
-          await this.adbService.connectToDevice(
-            device.id,
-            device.adbHost,
-            device.adbPort,
-          );
+          if (device.adbHost && device.adbPort) {
+            await this.adbService.connectToDevice(
+              device.id,
+              device.adbHost,
+              device.adbPort,
+            );
+          }
           this.logger.log(`ADB reconnected for device ${device.id}`);
         } catch (error) {
           this.logger.error(

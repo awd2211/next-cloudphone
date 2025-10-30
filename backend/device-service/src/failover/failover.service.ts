@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, In, Not } from "typeorm";
+import { Repository, In, Not, IsNull, FindOptionsWhere } from "typeorm";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ConfigService } from "@nestjs/config";
 import { Device, DeviceStatus } from "../entities/device.entity";
@@ -206,14 +206,19 @@ export class FailoverService {
   private async detectContainerFailures(): Promise<FailureDetectionResult[]> {
     const failures: FailureDetectionResult[] = [];
 
-    const devices = await this.deviceRepository.find({
-      where: {
-        status: In([DeviceStatus.RUNNING, DeviceStatus.ALLOCATED]),
-        containerId: Not(null),
-      },
-    });
+    // ✅ 明确类型标注 FindOptionsWhere
+    const where: FindOptionsWhere<Device> = {
+      status: In([DeviceStatus.RUNNING, DeviceStatus.ALLOCATED]),
+      containerId: Not(IsNull()) as any,
+    };
+
+    const devices = await this.deviceRepository.find({ where });
 
     for (const device of devices) {
+      if (!device.containerId) {
+        continue; // Skip devices without containerId
+      }
+
       try {
         const containerInfo = await this.dockerService.getContainerInfo(
           device.containerId,
@@ -456,10 +461,14 @@ export class FailoverService {
   private async restartContainer(device: Device): Promise<MigrationResult> {
     this.logger.log(`Restarting container for device ${device.id}`);
 
+    if (!device.containerId) {
+      throw new Error(`Device ${device.id} has no containerId`);
+    }
+
     try {
       await this.retryService.executeWithRetry(
         async () =>
-          await this.dockerService.restartContainer(device.containerId),
+          await this.dockerService.restartContainer(device.containerId!),
         {
           operation: "restartContainer",
           entityId: device.id,
@@ -515,11 +524,18 @@ export class FailoverService {
       }
 
       // 停止并删除旧容器
-      try {
-        await this.dockerService.stopContainer(device.containerId);
-        await this.dockerService.removeContainer(device.containerId);
-      } catch (error) {
-        this.logger.warn(`Failed to remove old container: ${error.message}`);
+      if (device.containerId) {
+        try {
+          await this.dockerService.stopContainer(device.containerId);
+          await this.dockerService.removeContainer(device.containerId);
+        } catch (error) {
+          this.logger.warn(`Failed to remove old container: ${error.message}`);
+        }
+      }
+
+      // ✅ 验证 userId（userId 是 string | null，但 restoreSnapshot 需要 string）
+      if (!device.userId) {
+        throw new Error(`Device ${device.id} has no userId for snapshot restoration`);
       }
 
       // 从快照恢复
@@ -529,11 +545,12 @@ export class FailoverService {
         device.userId,
       );
 
+      // ✅ newContainerId 类型转换：string | null → string | undefined
       return {
         success: true,
         deviceId: device.id,
         strategy: MigrationStrategy.RESTORE_FROM_SNAPSHOT,
-        newContainerId: restoredDevice.containerId,
+        newContainerId: restoredDevice.containerId ?? undefined,
         duration: 0,
         recoveryAttempts: 1,
       };
@@ -557,10 +574,12 @@ export class FailoverService {
 
     try {
       // 删除旧容器
-      try {
-        await this.dockerService.removeContainer(device.containerId);
-      } catch (error) {
-        this.logger.warn(`Failed to remove old container: ${error.message}`);
+      if (device.containerId) {
+        try {
+          await this.dockerService.removeContainer(device.containerId);
+        } catch (error) {
+          this.logger.warn(`Failed to remove old container: ${error.message}`);
+        }
       }
 
       // 分配新端口

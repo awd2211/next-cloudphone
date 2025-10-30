@@ -465,7 +465,7 @@ export class AliyunEcpClient {
 
       if (request.instanceIds && request.instanceIds.length > 0) {
         instances = instances.filter((inst) =>
-          request.instanceIds.includes(inst.instanceId),
+          request.instanceIds!.includes(inst.instanceId),
         );
       }
 
@@ -477,7 +477,7 @@ export class AliyunEcpClient {
         instances = instances.filter((inst) =>
           inst.instanceName
             .toLowerCase()
-            .includes(request.instanceName.toLowerCase()),
+            .includes(request.instanceName!.toLowerCase()),
         );
       }
 

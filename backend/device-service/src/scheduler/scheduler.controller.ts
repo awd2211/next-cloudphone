@@ -21,6 +21,11 @@ import {
   UpdateNodeDto,
 } from "./node-manager.service";
 import { ResourceMonitorService } from "./resource-monitor.service";
+import {
+  AllocationService,
+  AllocationRequest,
+  SchedulingStrategy as AllocationStrategy,
+} from "./allocation.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { NodeStatus } from "../entities/node.entity";
 
@@ -33,6 +38,7 @@ export class SchedulerController {
     private readonly schedulerService: SchedulerService,
     private readonly nodeManagerService: NodeManagerService,
     private readonly resourceMonitorService: ResourceMonitorService,
+    private readonly allocationService: AllocationService,
   ) {}
 
   // ==================== 节点管理 API ====================
@@ -276,5 +282,150 @@ export class SchedulerController {
     @Query("value") value?: string,
   ) {
     return await this.nodeManagerService.getNodesByLabel(key, value);
+  }
+
+  // ==================== 设备分配 API (新增) ====================
+
+  /**
+   * 为用户分配设备
+   * POST /scheduler/devices/allocate
+   */
+  @Post("devices/allocate")
+  async allocateDevice(@Body() request: AllocationRequest) {
+    this.logger.log(
+      `Allocating device for user: ${request.userId}, tenant: ${request.tenantId || "default"}`,
+    );
+    const result = await this.allocationService.allocateDevice(request);
+    return {
+      success: true,
+      data: result,
+      message: "Device allocated successfully",
+    };
+  }
+
+  /**
+   * 释放设备
+   * POST /scheduler/devices/release
+   */
+  @Post("devices/release")
+  async releaseDevice(
+    @Body() body: { deviceId: string; userId?: string },
+  ) {
+    this.logger.log(
+      `Releasing device: ${body.deviceId}, user: ${body.userId || "any"}`,
+    );
+    const result = await this.allocationService.releaseDevice(
+      body.deviceId,
+      body.userId,
+    );
+    return {
+      success: true,
+      data: result,
+      message: "Device released successfully",
+    };
+  }
+
+  /**
+   * 获取可用设备列表
+   * GET /scheduler/devices/available
+   */
+  @Get("devices/available")
+  async getAvailableDevices() {
+    const devices = await this.allocationService.getAvailableDevices();
+    return {
+      success: true,
+      data: devices,
+      total: devices.length,
+    };
+  }
+
+  /**
+   * 获取分配统计信息
+   * GET /scheduler/allocations/stats
+   */
+  @Get("allocations/stats")
+  async getAllocationStats() {
+    const stats = await this.allocationService.getAllocationStats();
+    return {
+      success: true,
+      data: stats,
+    };
+  }
+
+  /**
+   * 获取分配记录
+   * GET /scheduler/allocations?userId=xxx&limit=10
+   */
+  @Get("allocations")
+  async getAllocations(
+    @Query("userId") userId?: string,
+    @Query("limit") limit: string = "10",
+  ) {
+    const limitNum = parseInt(limit, 10) || 10;
+
+    if (userId) {
+      const allocations =
+        await this.allocationService.getUserAllocations(userId, limitNum);
+      return {
+        success: true,
+        data: allocations,
+        total: allocations.length,
+      };
+    }
+
+    return {
+      success: true,
+      data: [],
+      total: 0,
+      message: "userId parameter required",
+    };
+  }
+
+  /**
+   * 设置分配调度策略
+   * POST /scheduler/allocations/strategy
+   */
+  @Post("allocations/strategy")
+  async setAllocationStrategy(
+    @Body() body: { strategy: AllocationStrategy },
+  ) {
+    this.allocationService.setStrategy(body.strategy);
+    return {
+      success: true,
+      message: `Allocation strategy set to: ${body.strategy}`,
+      strategy: body.strategy,
+    };
+  }
+
+  /**
+   * 检查并释放过期的分配
+   * POST /scheduler/allocations/release-expired
+   */
+  @Post("allocations/release-expired")
+  async releaseExpiredAllocations() {
+    const count = await this.allocationService.releaseExpiredAllocations();
+    return {
+      success: true,
+      message: `Released ${count} expired allocations`,
+      count,
+    };
+  }
+
+  /**
+   * 获取调度器配置信息
+   * GET /scheduler/config
+   */
+  @Get("config")
+  async getConfig() {
+    const stats = await this.allocationService.getAllocationStats();
+    return {
+      success: true,
+      data: {
+        allocation_strategy: stats.strategy,
+        scheduling_strategy: await this.schedulerService
+          .getSchedulingStats()
+          .then((s) => s.strategy),
+      },
+    };
   }
 }

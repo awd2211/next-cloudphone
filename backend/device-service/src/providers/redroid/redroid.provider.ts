@@ -60,6 +60,18 @@ export class RedroidProvider implements IDeviceProvider {
   ) {}
 
   /**
+   * 确保连接信息包含 ADB 配置（Redroid 设备必需）
+   * @private
+   */
+  private ensureAdbInfo(connectionInfo: ConnectionInfo): asserts connectionInfo is ConnectionInfo & { adb: NonNullable<ConnectionInfo['adb']> } {
+    if (!connectionInfo.adb) {
+      throw new InternalServerErrorException(
+        `Redroid device connection info missing ADB configuration`
+      );
+    }
+  }
+
+  /**
    * 创建 Redroid 设备（Docker 容器）
    */
   async create(config: DeviceCreateConfig): Promise<ProviderDevice> {
@@ -164,6 +176,7 @@ export class RedroidProvider implements IDeviceProvider {
 
       // 等待 ADB 连接可用
       const connectionInfo = await this.getConnectionInfo(deviceId);
+      this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
       await this.waitForAdb(connectionInfo.adb.serial, 30000);
       this.logger.log(`ADB connection ready for device: ${deviceId}`);
     } catch (error) {
@@ -290,6 +303,7 @@ export class RedroidProvider implements IDeviceProvider {
   async getProperties(deviceId: string): Promise<DeviceProperties> {
     try {
       const connectionInfo = await this.getConnectionInfo(deviceId);
+      this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
       const serial = connectionInfo.adb.serial;
 
       // 通过 ADB 获取设备属性
@@ -358,6 +372,13 @@ export class RedroidProvider implements IDeviceProvider {
     try {
       const stats = await this.dockerService.getContainerStats(deviceId);
 
+      // ✅ stats 可能为 null（容器未运行或获取失败）
+      if (!stats) {
+        throw new InternalServerErrorException(
+          `Unable to get container stats for device ${deviceId}`,
+        );
+      }
+
       return {
         cpuUsage: stats.cpu_percent || 0,
         memoryUsage: stats.memory_percent || 0,
@@ -408,6 +429,7 @@ export class RedroidProvider implements IDeviceProvider {
   async sendTouchEvent(deviceId: string, event: TouchEvent): Promise<void> {
     try {
       const connectionInfo = await this.getConnectionInfo(deviceId);
+      this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
       const serial = connectionInfo.adb.serial;
 
       // 使用 ADB input tap 命令
@@ -429,6 +451,7 @@ export class RedroidProvider implements IDeviceProvider {
   async sendSwipeEvent(deviceId: string, event: SwipeEvent): Promise<void> {
     try {
       const connectionInfo = await this.getConnectionInfo(deviceId);
+      this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
       const serial = connectionInfo.adb.serial;
 
       // 使用 ADB input swipe 命令
@@ -454,6 +477,7 @@ export class RedroidProvider implements IDeviceProvider {
   async sendKeyEvent(deviceId: string, event: KeyEvent): Promise<void> {
     try {
       const connectionInfo = await this.getConnectionInfo(deviceId);
+      this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
       const serial = connectionInfo.adb.serial;
 
       // 使用 ADB input keyevent 命令
@@ -476,6 +500,7 @@ export class RedroidProvider implements IDeviceProvider {
   async inputText(deviceId: string, input: TextInput): Promise<void> {
     try {
       const connectionInfo = await this.getConnectionInfo(deviceId);
+      this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
       const serial = connectionInfo.adb.serial;
 
       // 转义特殊字符：空格需要用 %s 表示
@@ -505,9 +530,7 @@ export class RedroidProvider implements IDeviceProvider {
     options: AppInstallOptions,
   ): Promise<string> {
     const connectionInfo = await this.getConnectionInfo(deviceId);
-    if (!connectionInfo.adb) {
-      throw new InternalServerErrorException("ADB connection not available");
-    }
+    this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
 
     // 使用现有的 installApk 方法
     await this.adbService.installApk(
@@ -523,9 +546,7 @@ export class RedroidProvider implements IDeviceProvider {
    */
   async uninstallApp(deviceId: string, packageName: string): Promise<void> {
     const connectionInfo = await this.getConnectionInfo(deviceId);
-    if (!connectionInfo.adb) {
-      throw new InternalServerErrorException("ADB connection not available");
-    }
+    this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
 
     await this.adbService.uninstallApp(connectionInfo.adb.serial, packageName);
   }
@@ -538,9 +559,7 @@ export class RedroidProvider implements IDeviceProvider {
     options: FileTransferOptions,
   ): Promise<void> {
     const connectionInfo = await this.getConnectionInfo(deviceId);
-    if (!connectionInfo.adb) {
-      throw new InternalServerErrorException("ADB connection not available");
-    }
+    this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
 
     await this.adbService.pushFile(
       connectionInfo.adb.serial,
@@ -557,9 +576,7 @@ export class RedroidProvider implements IDeviceProvider {
     options: FileTransferOptions,
   ): Promise<void> {
     const connectionInfo = await this.getConnectionInfo(deviceId);
-    if (!connectionInfo.adb) {
-      throw new InternalServerErrorException("ADB connection not available");
-    }
+    this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
 
     await this.adbService.pullFile(
       connectionInfo.adb.serial,
@@ -574,6 +591,7 @@ export class RedroidProvider implements IDeviceProvider {
   async takeScreenshot(deviceId: string): Promise<Buffer> {
     try {
       const connectionInfo = await this.getConnectionInfo(deviceId);
+      this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
       const serial = connectionInfo.adb.serial;
 
       // 在设备上截图并保存到临时目录
@@ -615,6 +633,7 @@ export class RedroidProvider implements IDeviceProvider {
   async startRecording(deviceId: string, duration?: number): Promise<string> {
     try {
       const connectionInfo = await this.getConnectionInfo(deviceId);
+      this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
       const serial = connectionInfo.adb.serial;
 
       // 生成录屏文件路径
@@ -662,6 +681,7 @@ export class RedroidProvider implements IDeviceProvider {
   async stopRecording(deviceId: string, recordingId: string): Promise<Buffer> {
     try {
       const connectionInfo = await this.getConnectionInfo(deviceId);
+      this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
       const serial = connectionInfo.adb.serial;
 
       // 获取录屏信息
@@ -737,6 +757,7 @@ export class RedroidProvider implements IDeviceProvider {
   ): Promise<void> {
     try {
       const connectionInfo = await this.getConnectionInfo(deviceId);
+      this.ensureAdbInfo(connectionInfo);  // ✅ 类型断言
       const serial = connectionInfo.adb.serial;
 
       // 方法 1: 使用 adb emu geo fix (需要模拟器支持)

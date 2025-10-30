@@ -154,8 +154,9 @@ export class ResourceMonitorService {
     let totalIdle = 0;
     let totalTick = 0;
 
+    // ✅ 明确类型标注以避免索引签名错误
     for (const cpu of cpus) {
-      for (const type in cpu.times) {
+      for (const type of Object.keys(cpu.times) as Array<keyof typeof cpu.times>) {
         totalTick += cpu.times[type];
       }
       totalIdle += cpu.times.idle;

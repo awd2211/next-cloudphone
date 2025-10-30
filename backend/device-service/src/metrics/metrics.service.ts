@@ -203,7 +203,7 @@ export class MetricsService implements OnModuleInit {
       if (stats) {
         const labels = {
           device_id: device.id,
-          user_id: device.userId,
+          user_id: device.userId || "unknown",
           tenant_id: device.tenantId || "default",
         };
 
@@ -220,14 +220,14 @@ export class MetricsService implements OnModuleInit {
         // 网络流量（累计）
         if (stats.network_rx_bytes !== undefined) {
           this.deviceNetworkRxBytesCounter.inc(
-            { device_id: device.id, user_id: device.userId },
+            { device_id: device.id, user_id: device.userId || "unknown" },
             stats.network_rx_bytes,
           );
         }
 
         if (stats.network_tx_bytes !== undefined) {
           this.deviceNetworkTxBytesCounter.inc(
-            { device_id: device.id, user_id: device.userId },
+            { device_id: device.id, user_id: device.userId || "unknown" },
             stats.network_tx_bytes,
           );
         }

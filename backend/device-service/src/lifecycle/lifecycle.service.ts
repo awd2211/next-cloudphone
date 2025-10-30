@@ -405,23 +405,25 @@ export class LifecycleService {
 
       if (info.State.Running) {
         // 尝试 ADB 连接
-        try {
-          await this.adbService.connectToDevice(
-            device.id,
-            device.adbHost,
-            device.adbPort,
-          );
+        if (device.adbHost && device.adbPort) {
+          try {
+            await this.adbService.connectToDevice(
+              device.id,
+              device.adbHost,
+              device.adbPort,
+            );
 
-          // 恢复成功，更新状态
-          device.status = DeviceStatus.RUNNING;
-          device.lastActiveAt = new Date();
-          await this.deviceRepository.save(device);
+            // 恢复成功，更新状态
+            device.status = DeviceStatus.RUNNING;
+            device.lastActiveAt = new Date();
+            await this.deviceRepository.save(device);
 
-          this.logger.log(`设备恢复成功: ${device.id}`);
-          return true;
-        } catch (adbError) {
-          this.logger.warn(`ADB 连接失败: ${adbError.message}`);
-          return false;
+            this.logger.log(`设备恢复成功: ${device.id}`);
+            return true;
+          } catch (adbError) {
+            this.logger.warn(`ADB 连接失败: ${adbError.message}`);
+            return false;
+          }
         }
       }
 
@@ -480,7 +482,7 @@ export class LifecycleService {
     // 释放端口
     if (device.adbPort || device.metadata?.webrtcPort) {
       this.portManager.releasePorts({
-        adbPort: device.adbPort,
+        adbPort: device.adbPort || undefined,
         webrtcPort: device.metadata?.webrtcPort,
       });
     }

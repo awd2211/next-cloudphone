@@ -72,7 +72,7 @@ export class RetryService {
     const baseDelayMs = options?.baseDelayMs || 1000;
     const strategy = options?.strategy || RetryStrategy.EXPONENTIAL_BACKOFF;
 
-    let lastError: Error;
+    let lastError: Error = new Error('Retry failed');
     let attempts = 0;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
