@@ -21,6 +21,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { RolesService } from '../roles/roles.service';
+import { CursorPaginationDto } from '@cloudphone/shared';
 import { CreateUserCommand, UpdateUserCommand, ChangePasswordCommand, DeleteUserCommand } from './commands/impl';
 import { GetUserQuery, GetUsersQuery, GetUserStatsQuery } from './queries/impl';
 
@@ -135,6 +136,51 @@ export class UsersController {
   ) {
     const result = await this.queryBus.execute(
       new GetUsersQuery(parseInt(page), parseInt(limit), tenantId),
+    );
+    return {
+      success: true,
+      ...result,
+    };
+  }
+
+  @Get('cursor')
+  @RequirePermission('user.read')
+  @ApiOperation({
+    summary: '获取用户列表 (游标分页)',
+    description: '使用游标分页获取用户列表，性能优化版本',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: '游标（base64编码的时间戳）',
+    example: 'MTY5ODc2NTQzMjAwMA==',
+  })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量 (1-100)', example: 20 })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiQuery({ name: 'includeRoles', required: false, description: '是否包含角色信息', example: 'true' })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    schema: {
+      example: {
+        success: true,
+        data: [],
+        nextCursor: 'MTY5ODc2NTQzMjAwMA==',
+        hasMore: true,
+        count: 20,
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async findAllCursor(
+    @Query() paginationDto: CursorPaginationDto,
+    @Query('tenantId') tenantId?: string,
+    @Query('includeRoles') includeRoles?: string,
+  ) {
+    const result = await this.usersService.findAllCursor(
+      paginationDto,
+      tenantId,
+      { includeRoles: includeRoles === 'true' },
     );
     return {
       success: true,

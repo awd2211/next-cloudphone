@@ -7,6 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { CaptchaService } from './services/captcha.service';
 import { CacheService, CacheLayer } from '../cache/cache.service';
+import { EventBusService } from '@cloudphone/shared';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 
@@ -26,6 +27,7 @@ export class AuthService {
     private cacheService: CacheService,
     @InjectDataSource()
     private dataSource: DataSource,
+    private eventBus: EventBusService,
   ) {}
 
   /**
@@ -174,15 +176,23 @@ export class AuthService {
     await queryRunner.startTransaction();
 
     try {
-      // 3. 使用悲观锁查找用户（FOR UPDATE）
-      // 这将锁定用户记录，防止并发修改
+      // 3. 查找用户及其角色和权限
+      // 注意：PostgreSQL 不支持对 LEFT JOIN 使用 FOR UPDATE，所以先查用户，再锁定
       const user = await queryRunner.manager
         .createQueryBuilder(User, 'user')
         .leftJoinAndSelect('user.roles', 'role')
         .leftJoinAndSelect('role.permissions', 'permission')
         .where('user.username = :username', { username })
-        .setLock('pessimistic_write') // 悲观锁
         .getOne();
+
+      // 如果用户存在，锁定用户记录以防止并发修改
+      if (user) {
+        await queryRunner.manager
+          .createQueryBuilder(User, 'user')
+          .where('user.id = :id', { id: user.id })
+          .setLock('pessimistic_write')
+          .getOne();
+      }
 
       // 4. 🔒 防止时序攻击：无论用户是否存在，都执行密码哈希比较
       // 使用预生成的虚拟密码哈希（避免每次都生成新哈希，导致不同的响应时间）
@@ -207,6 +217,28 @@ export class AuthService {
             await this.addTimingDelay();
 
             this.logger.warn(`Account locked due to too many failed attempts: ${username}`);
+
+            // 发布系统错误事件（通知管理员账号被锁定）
+            try {
+              await this.eventBus.publishSystemError(
+                'medium',
+                'ACCOUNT_LOCKED',
+                `Account locked due to multiple failed login attempts: ${username}`,
+                'user-service',
+                {
+                  userMessage: '登录失败次数过多，账号已被锁定30分钟',
+                  userId: user.id,
+                  metadata: {
+                    username,
+                    loginAttempts: user.loginAttempts,
+                    lockedUntil: user.lockedUntil.toISOString(),
+                  },
+                }
+              );
+            } catch (eventError) {
+              this.logger.error('Failed to publish account locked event', eventError);
+            }
+
             throw new UnauthorizedException('登录失败次数过多，账号已被锁定30分钟');
           }
 
@@ -263,7 +295,7 @@ export class AuthService {
         email: user.email,
         tenantId: user.tenantId,
         roles: user.roles?.map(r => r.name) || [],
-        permissions: user.roles?.flatMap(r => r.permissions?.map(p => `${p.resource}:${p.action}`)) || [],
+        permissions: user.roles?.flatMap(r => r.permissions?.map(p => p.name)) || [],
       };
 
       const token = this.jwtService.sign(payload);
@@ -288,6 +320,31 @@ export class AuthService {
       // 发生错误，回滚事务（如果还在事务中）
       if (queryRunner.isTransactionActive) {
         await queryRunner.rollbackTransaction();
+      }
+
+      // 检查是否是数据库连接错误
+      if (error.code === 'ECONNREFUSED' || error.code === '57P03' || error.message?.includes('Connection')) {
+        this.logger.error(`Database connection error during login: ${error.message}`);
+
+        // 发布严重错误事件（数据库连接失败）
+        try {
+          await this.eventBus.publishSystemError(
+            'critical',
+            'DATABASE_CONNECTION_FAILED',
+            `Database connection failed during login: ${error.message}`,
+            'user-service',
+            {
+              userMessage: '数据库连接失败，服务暂时不可用',
+              stackTrace: error.stack,
+              metadata: {
+                errorCode: error.code,
+                username,
+              },
+            }
+          );
+        } catch (eventError) {
+          this.logger.error('Failed to publish database error event', eventError);
+        }
       }
 
       // 重新抛出错误

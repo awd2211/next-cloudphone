@@ -13,7 +13,12 @@ import { Role } from '../entities/role.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { EventBusService } from '@cloudphone/shared';
+import {
+  EventBusService,
+  CursorPagination,
+  CursorPaginationDto,
+  CursorPaginatedResponse,
+} from '@cloudphone/shared';
 import { Optional } from '@nestjs/common';
 import { CacheService, CacheLayer } from '../cache/cache.service';
 import { UserMetricsService } from '../common/metrics/user-metrics.service';
@@ -236,6 +241,68 @@ export class UsersService {
     });
 
     return { data, total, page, limit };
+  }
+
+  /**
+   * Cursor-based pagination for efficient large dataset queries
+   *
+   * @param dto - Cursor pagination parameters
+   * @param tenantId - Optional tenant ID filter
+   * @param options - Query options (includeRoles)
+   * @returns Cursor paginated response
+   */
+  async findAllCursor(
+    dto: CursorPaginationDto,
+    tenantId?: string,
+    options?: { includeRoles?: boolean },
+  ): Promise<CursorPaginatedResponse<User>> {
+    const { cursor, limit = 20 } = dto;
+
+    const qb = this.usersRepository
+      .createQueryBuilder('user')
+      .select([
+        'user.id',
+        'user.username',
+        'user.email',
+        'user.fullName',
+        'user.avatar',
+        'user.phone',
+        'user.status',
+        'user.tenantId',
+        'user.departmentId',
+        'user.isSuperAdmin',
+        'user.lastLoginAt',
+        'user.lastLoginIp',
+        'user.createdAt',
+        'user.updatedAt',
+      ]);
+
+    // Apply tenant filter
+    if (tenantId) {
+      qb.andWhere('user.tenantId = :tenantId', { tenantId });
+    }
+
+    // Include roles if requested
+    if (options?.includeRoles) {
+      qb.leftJoinAndSelect('user.roles', 'role')
+        .addSelect(['role.id', 'role.name', 'role.displayName']);
+    }
+
+    // Apply cursor condition
+    if (cursor) {
+      const cursorCondition = CursorPagination.applyCursorCondition(cursor, 'user');
+      if (cursorCondition) {
+        qb.andWhere(cursorCondition.condition, cursorCondition.parameters);
+      }
+    }
+
+    // Order by createdAt DESC and fetch limit + 1
+    qb.orderBy('user.createdAt', 'DESC')
+      .limit(limit + 1);
+
+    const users = await qb.getMany();
+
+    return CursorPagination.paginate(users, limit);
   }
 
   /**

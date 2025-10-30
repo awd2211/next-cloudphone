@@ -62,7 +62,7 @@ export const getDatabaseConfig = (
 
     // 实体配置
     entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-    // ✅ 使用 Atlas 管理数据库迁移，禁用 synchronize
+    // ✅ 使用迁移脚本管理数据库架构，禁用 synchronize
     synchronize: false,
     logging: isDevelopment ? 'all' : ['error', 'warn', 'schema'],
 

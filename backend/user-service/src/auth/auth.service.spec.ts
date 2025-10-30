@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
 import { User, UserStatus } from '../entities/user.entity';
 import { CaptchaService } from './services/captcha.service';
 import { CacheService } from '../cache/cache.service';
+import { EventBusService } from '@cloudphone/shared';
 import {
   createMockRepository,
   createMockUser,
@@ -41,6 +42,14 @@ describe('AuthService', () => {
   const mockCaptchaService = {
     generate: jest.fn(),
     verify: jest.fn(),
+  };
+
+  const mockEventBus = {
+    publish: jest.fn().mockResolvedValue(undefined),
+    publishUserEvent: jest.fn().mockResolvedValue(undefined),
+    publishDeviceEvent: jest.fn().mockResolvedValue(undefined),
+    publishBillingEvent: jest.fn().mockResolvedValue(undefined),
+    publishSystemError: jest.fn().mockResolvedValue(undefined),
   };
 
   // 创建可复用的 QueryBuilder Mock
@@ -97,6 +106,10 @@ describe('AuthService', () => {
         {
           provide: getDataSourceToken(),
           useValue: mockDataSource,
+        },
+        {
+          provide: EventBusService,
+          useValue: mockEventBus,
         },
       ],
     }).compile();

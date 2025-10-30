@@ -1,7 +1,8 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import NodeCache from 'node-cache';
 import Redis from 'ioredis';
+import { EventBusService } from '@cloudphone/shared';
 
 // 缓存层级枚举
 export enum CacheLayer {
@@ -61,7 +62,10 @@ export class CacheService implements OnModuleDestroy {
     sets: 0,
   };
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional() private readonly eventBus: EventBusService,
+  ) {
     // 从 ConfigService 读取配置
     this.config = {
       redis: {
@@ -107,6 +111,28 @@ export class CacheService implements OnModuleDestroy {
 
     this.redis.on('error', (err) => {
       this.logger.error(`Redis error: ${err.message}`);
+
+      // 发布严重错误事件（Redis 连接失败）
+      if (this.eventBus) {
+        this.eventBus.publishSystemError(
+          'high',
+          'REDIS_CONNECTION_FAILED',
+          `Redis connection error: ${err.message}`,
+          'user-service',
+          {
+            userMessage: 'Redis 缓存服务连接失败',
+            stackTrace: err.stack,
+            metadata: {
+              host: this.config.redis.host,
+              port: this.config.redis.port,
+              db: this.config.redis.db,
+              errorMessage: err.message,
+            },
+          }
+        ).catch(eventError => {
+          this.logger.error('Failed to publish Redis error event', eventError);
+        });
+      }
     });
 
     this.redis.on('connect', () => {

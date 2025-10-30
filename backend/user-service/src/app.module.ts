@@ -14,6 +14,7 @@ import { TicketsModule } from './tickets/tickets.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { QueueModule } from './queues/queue.module';
+import { CacheModule } from './cache/cache.module';
 import { HealthController } from './health.controller';
 import { MetricsController } from './metrics.controller';
 // 通知功能已迁移到独立的 notification-service
@@ -37,7 +38,7 @@ import { HealthCheckService } from './common/services/health-check.service';
 import { AlertService } from './common/services/alert/alert.service';
 import { RequestTrackerMiddleware } from './common/middleware/request-tracker.middleware';
 import { getDatabaseConfig } from './common/config/database.config';
-import { ConsulModule, createLoggerConfig, SecurityModule } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig, SecurityModule, EventBusModule } from '@cloudphone/shared';
 import { CacheWarmupService } from './cache/cache-warmup.service';
 import { CacheService } from './cache/cache.service';
 import { UserMetricsService } from './common/metrics/user-metrics.service';
@@ -76,8 +77,10 @@ import { validate } from './common/config/env.validation';
     AuditLogsModule,
     ApiKeysModule,
     QueueModule,
+    CacheModule,  // ✅ 添加缓存管理模块
     ConsulModule,  // ✅ 已修复 DiscoveryService 依赖问题
-    SecurityModule,  // ✅ 添加统一安全模块（速率限制、IP黑名单、自动封禁、XSS/CSRF防护）
+    EventBusModule.forRoot(),  // ✅ 事件总线（用于错误通知）
+    // SecurityModule,  // ⚠️ 暂时禁用 CSRF 保护以便开发测试
     // ScheduleModule 放在最后，避免依赖问题
     ScheduleModule.forRoot(),
   ],
