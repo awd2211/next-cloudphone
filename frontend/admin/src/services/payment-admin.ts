@@ -106,7 +106,7 @@ export interface PaymentConfig {
  * 获取支付统计数据
  */
 export const getPaymentStatistics = (startDate?: string, endDate?: string) => {
-  return request.get<PaymentStatistics>('/api/v1/admin/payments/statistics', {
+  return request.get<PaymentStatistics>('/admin/payments/statistics', {
     params: { startDate, endDate },
   });
 };
@@ -115,7 +115,7 @@ export const getPaymentStatistics = (startDate?: string, endDate?: string) => {
  * 获取支付方式统计
  */
 export const getPaymentMethodsStats = (startDate?: string, endDate?: string) => {
-  return request.get<PaymentMethodStat[]>('/api/v1/admin/payments/statistics/payment-methods', {
+  return request.get<PaymentMethodStat[]>('/admin/payments/statistics/payment-methods', {
     params: { startDate, endDate },
   });
 };
@@ -124,7 +124,7 @@ export const getPaymentMethodsStats = (startDate?: string, endDate?: string) => 
  * 获取每日统计
  */
 export const getDailyStatistics = (days: number = 30) => {
-  return request.get<DailyStat[]>('/api/v1/admin/payments/statistics/daily', {
+  return request.get<DailyStat[]>('/admin/payments/statistics/daily', {
     params: { days },
   });
 };
@@ -133,49 +133,49 @@ export const getDailyStatistics = (days: number = 30) => {
  * 获取所有支付记录（管理员）
  */
 export const getAdminPayments = (params: PaymentListParams) => {
-  return request.get<PaginatedResponse<PaymentDetail>>('/api/v1/admin/payments', { params });
+  return request.get<PaginatedResponse<PaymentDetail>>('/admin/payments', { params });
 };
 
 /**
  * 获取支付详情（管理员）
  */
 export const getAdminPaymentDetail = (id: string) => {
-  return request.get<PaymentDetail>(`/api/v1/admin/payments/${id}`);
+  return request.get<PaymentDetail>(`/admin/payments/${id}`);
 };
 
 /**
  * 手动发起退款
  */
 export const manualRefund = (paymentId: string, data: RefundRequest) => {
-  return request.post(`/api/v1/admin/payments/${paymentId}/refund`, data);
+  return request.post(`/admin/payments/${paymentId}/refund`, data);
 };
 
 /**
  * 获取待审核退款列表
  */
 export const getPendingRefunds = () => {
-  return request.get<PaymentDetail[]>('/api/v1/admin/payments/refunds/pending');
+  return request.get<PaymentDetail[]>('/admin/payments/refunds/pending');
 };
 
 /**
  * 批准退款
  */
 export const approveRefund = (paymentId: string, adminNote?: string) => {
-  return request.post(`/api/v1/admin/payments/refunds/${paymentId}/approve`, { adminNote });
+  return request.post(`/admin/payments/refunds/${paymentId}/approve`, { adminNote });
 };
 
 /**
  * 拒绝退款
  */
 export const rejectRefund = (paymentId: string, reason: string, adminNote?: string) => {
-  return request.post(`/api/v1/admin/payments/refunds/${paymentId}/reject`, { reason, adminNote });
+  return request.post(`/admin/payments/refunds/${paymentId}/reject`, { reason, adminNote });
 };
 
 /**
  * 获取异常支付列表
  */
 export const getExceptionPayments = (page: number = 1, limit: number = 20) => {
-  return request.get<PaginatedResponse<PaymentDetail>>('/api/v1/admin/payments/exceptions/list', {
+  return request.get<PaginatedResponse<PaymentDetail>>('/admin/payments/exceptions/list', {
     params: { page, limit },
   });
 };
@@ -184,7 +184,7 @@ export const getExceptionPayments = (page: number = 1, limit: number = 20) => {
  * 手动同步支付状态
  */
 export const syncPaymentStatus = (paymentId: string) => {
-  return request.post(`/api/v1/admin/payments/${paymentId}/sync`);
+  return request.post(`/admin/payments/${paymentId}/sync`);
 };
 
 /**
@@ -196,7 +196,7 @@ export const exportPaymentsToExcel = (params: {
   status?: string;
   method?: string;
 }) => {
-  return request.get('/api/v1/admin/payments/export/excel', {
+  return request.get('/admin/payments/export/excel', {
     params,
     responseType: 'blob',
   });
@@ -206,21 +206,21 @@ export const exportPaymentsToExcel = (params: {
  * 获取支付配置
  */
 export const getPaymentConfig = () => {
-  return request.get<PaymentConfig>('/api/v1/admin/payments/config/all');
+  return request.get<PaymentConfig>('/admin/payments/config/all');
 };
 
 /**
  * 更新支付配置
  */
 export const updatePaymentConfig = (config: Partial<PaymentConfig>) => {
-  return request.put('/api/v1/admin/payments/config', config);
+  return request.put('/admin/payments/config', config);
 };
 
 /**
  * 测试支付提供商连接
  */
 export const testProviderConnection = (provider: string) => {
-  return request.post(`/api/v1/admin/payments/config/test/${provider}`);
+  return request.post(`/admin/payments/config/test/${provider}`);
 };
 
 /**
@@ -231,7 +231,7 @@ export const getWebhookLogs = (params: {
   limit?: number;
   provider?: string;
 }) => {
-  return request.get('/api/v1/admin/payments/webhooks/logs', { params });
+  return request.get('/admin/payments/webhooks/logs', { params });
 };
 
 /**
