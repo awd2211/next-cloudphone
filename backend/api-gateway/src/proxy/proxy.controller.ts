@@ -464,6 +464,24 @@ export class ProxyController {
   }
 
   /**
+   * 支付管理服务路由（精确匹配）- 管理员专用
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("admin/payments")
+  async proxyAdminPaymentsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("billing", req, res);
+  }
+
+  /**
+   * 支付管理服务路由（通配符）- 管理员专用
+   */
+  @UseGuards(JwtAuthGuard)
+  @All("admin/payments/*path")
+  async proxyAdminPayments(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy("billing", req, res);
+  }
+
+  /**
    * 计量服务路由（精确匹配）
    */
   @UseGuards(JwtAuthGuard)

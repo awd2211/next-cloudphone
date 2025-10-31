@@ -319,6 +319,7 @@ export class BatchQueryResult {
   @ApiProperty({
     description: "用户分配映射",
     type: "object",
+    additionalProperties: true,
     example: {
       "user-1": [{ allocationId: "alloc-1", deviceId: "device-1", expiresAt: "2025-10-30T12:00:00Z" }],
       "user-2": [{ allocationId: "alloc-2", deviceId: "device-2", expiresAt: "2025-10-30T13:00:00Z" }],

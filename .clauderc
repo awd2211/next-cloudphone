@@ -1,0 +1,53 @@
+{
+  "autoApprove": [
+    "Bash(*)",
+    "Read(*)",
+    "Write(*)",
+    "Edit(*)",
+    "Glob(*)",
+    "Grep(*)",
+    "Task(*)"
+  ],
+  "mcp": {
+    "servers": {
+      "skill-seeker": {
+        "disabled": false
+      },
+      "invideo": {
+        "disabled": false
+      },
+      "postgres-main": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-postgres",
+          "postgresql://postgres:postgres@localhost:5432/cloudphone"
+        ]
+      },
+      "postgres-user": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-postgres",
+          "postgresql://postgres:postgres@localhost:5432/cloudphone_user"
+        ]
+      },
+      "postgres-device": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-postgres",
+          "postgresql://postgres:postgres@localhost:5432/cloudphone_device"
+        ]
+      },
+      "fetch": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-fetch"]
+      },
+      "memory": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-memory"]
+      }
+    }
+  }
+}

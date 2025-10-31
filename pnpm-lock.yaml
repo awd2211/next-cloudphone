@@ -1312,7 +1312,7 @@ importers:
         specifier: ^1.0.26
         version: 1.0.26(react-dom@19.2.0)(react@19.2.0)
       react-window:
-        specifier: ^2.2.2
+        specifier: ^2.2.1
         version: 2.2.2(react-dom@19.2.0)(react@19.2.0)
       react-window-infinite-loader:
         specifier: ^2.0.0

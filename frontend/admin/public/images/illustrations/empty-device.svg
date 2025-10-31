@@ -1,0 +1,27 @@
+<svg width="300" height="200" viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cloud background -->
+  <ellipse cx="150" cy="180" rx="100" ry="15" fill="#F0F0F0"/>
+
+  <!-- Main phone -->
+  <rect x="115" y="40" width="70" height="120" rx="8" fill="#FFF" stroke="#D9D9D9" stroke-width="2"/>
+  <rect x="120" y="50" width="60" height="90" rx="2" fill="#F5F5F5"/>
+
+  <!-- Phone screen with cloud icon -->
+  <g opacity="0.5">
+    <!-- Cloud -->
+    <path d="M150 80C150 80 147 75 142 75C137 75 134 78 134 83C134 83 131 83 131 86C131 89 134 91 137 91H153C153 91 157 91 157 87C157 83 153 83 153 83C153 78 150 80 150 80Z" fill="#1890FF"/>
+
+    <!-- Question mark -->
+    <text x="150" y="115" font-family="Arial, sans-serif" font-size="24" fill="#BFBFBF" text-anchor="middle">?</text>
+  </g>
+
+  <!-- Phone button -->
+  <circle cx="150" cy="150" r="6" fill="#D9D9D9"/>
+
+  <!-- Small phones (left and right) -->
+  <rect x="60" y="70" width="40" height="70" rx="4" fill="#FFF" stroke="#E8E8E8" stroke-width="1.5" opacity="0.6"/>
+  <rect x="200" y="70" width="40" height="70" rx="4" fill="#FFF" stroke="#E8E8E8" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Text -->
+  <text x="150" y="195" font-family="Arial, sans-serif" font-size="14" fill="#8C8C8C" text-anchor="middle">暂无设备</text>
+</svg>

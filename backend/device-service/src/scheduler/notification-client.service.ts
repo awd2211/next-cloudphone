@@ -11,6 +11,19 @@ export enum NotificationType {
   ALLOCATION_EXPIRED = "allocation_expired",
   ALLOCATION_EXPIRING_SOON = "allocation_expiring_soon",
   DEVICE_RELEASED = "device_released",
+  // Queue notifications
+  QUEUE_JOINED = "queue_joined",
+  QUEUE_FULFILLED = "queue_fulfilled",
+  QUEUE_EXPIRED = "queue_expired",
+  QUEUE_CANCELLED = "queue_cancelled",
+  // Reservation notifications
+  RESERVATION_CREATED = "reservation_created",
+  RESERVATION_SUCCESS = "reservation_success",
+  RESERVATION_FAILED = "reservation_failed",
+  RESERVATION_EXPIRED = "reservation_expired",
+  RESERVATION_CANCELLED = "reservation_cancelled",
+  RESERVATION_REMINDER = "reservation_reminder",
+  RESERVATION_EXECUTED = "reservation_executed",
 }
 
 /**
@@ -223,7 +236,7 @@ export class NotificationClientService {
         deviceId: data.deviceId,
         deviceName: data.deviceName,
         allocationId: data.allocationId,
-        expiresAt: data.expiresAt,
+        expiredAt: data.expiredAt,
         remainingMinutes: data.remainingMinutes,
       },
       channels: ["websocket"], // 提醒通知只发 WebSocket

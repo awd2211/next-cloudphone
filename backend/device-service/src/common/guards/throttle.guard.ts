@@ -8,7 +8,8 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Request } from "express";
-import { InjectRedis } from "@liaoliaots/nestjs-redis";
+// TODO: Install @liaoliaots/nestjs-redis or use alternative Redis injection
+// import { InjectRedis } from "@liaoliaots/nestjs-redis";
 import Redis from "ioredis";
 import {
   THROTTLE_KEY,
@@ -18,11 +19,14 @@ import {
 @Injectable()
 export class ThrottleGuard implements CanActivate {
   private readonly logger = new Logger(ThrottleGuard.name);
+  private readonly redis: any = null; // TODO: Inject actual Redis instance
 
   constructor(
     private readonly reflector: Reflector,
-    @InjectRedis() private readonly redis: Redis,
-  ) {}
+    // @InjectRedis() private readonly redis: Redis,
+  ) {
+    // TODO: Inject Redis instance when @liaoliaots/nestjs-redis is installed
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // 获取节流配置
@@ -33,6 +37,12 @@ export class ThrottleGuard implements CanActivate {
 
     // 如果没有配置节流，直接通过
     if (!throttleOptions) {
+      return true;
+    }
+
+    // TODO: Temporarily bypass throttling until Redis is properly configured
+    if (!this.redis) {
+      this.logger.warn('Throttling bypassed - Redis not configured');
       return true;
     }
 

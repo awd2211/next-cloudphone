@@ -76,6 +76,10 @@ const Login = () => {
         if (data.user?.id) {
           localStorage.setItem('userId', data.user.id);
         }
+        // 保存完整的用户信息（包括 roles 和 isSuperAdmin）
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
         return data;
       },
       {
@@ -139,6 +143,10 @@ const Login = () => {
         localStorage.setItem('token', result.token);
         if (result.user?.id) {
           localStorage.setItem('userId', result.user.id);
+        }
+        // 保存完整的用户信息（包括 roles 和 isSuperAdmin）
+        if (result.user) {
+          localStorage.setItem('user', JSON.stringify(result.user));
         }
         return result;
       },

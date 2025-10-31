@@ -26,7 +26,7 @@ import {
 } from "./dto/queue.dto";
 import { AllocationService } from "./allocation.service";
 import { EventBusService } from "@cloudphone/shared";
-import { NotificationClient } from "../notifications/notification.client";
+import { NotificationClientService, NotificationType } from "./notification-client.service";
 
 @Injectable()
 export class QueueService {
@@ -40,7 +40,7 @@ export class QueueService {
     private readonly queueRepository: Repository<AllocationQueue>,
     private readonly allocationService: AllocationService,
     private readonly eventBus: EventBusService,
-    private readonly notificationClient: NotificationClient,
+    private readonly notificationClient: NotificationClientService,
   ) {}
 
   /**
@@ -115,14 +115,18 @@ export class QueueService {
       where: { id: queueEntry.id },
     });
 
+    if (!updatedEntry) {
+      throw new NotFoundException(`Queue entry not found: ${queueEntry.id}`);
+    }
+
     await this.notificationClient.sendBatchNotifications([
       {
         userId: queueEntry.userId,
-        type: "queue_joined",
+        type: NotificationType.QUEUE_JOINED,
         title: "🔄 已加入设备分配队列",
         message: `您当前排在第 ${updatedEntry.queuePosition} 位，预计等待 ${updatedEntry.estimatedWaitMinutes} 分钟`,
         channels: ["websocket"],
-        metadata: {
+        data: {
           queueId: queueEntry.id,
           position: updatedEntry.queuePosition,
           estimatedWaitMinutes: updatedEntry.estimatedWaitMinutes,
@@ -365,11 +369,11 @@ export class QueueService {
       await this.notificationClient.sendBatchNotifications([
         {
           userId: queueEntry.userId,
-          type: "queue_fulfilled",
+          type: NotificationType.QUEUE_FULFILLED,
           title: "✅ 设备已分配",
           message: `排队成功！设备 ${allocationResult.deviceName} 已为您准备好`,
           channels: ["websocket", "email"],
-          metadata: {
+          data: {
             queueId: queueEntry.id,
             deviceId: allocationResult.deviceId,
             deviceName: allocationResult.deviceName,
@@ -403,11 +407,11 @@ export class QueueService {
         await this.notificationClient.sendBatchNotifications([
           {
             userId: queueEntry.userId,
-            type: "queue_expired",
+            type: NotificationType.QUEUE_EXPIRED,
             title: "❌ 设备分配失败",
             message: `很抱歉，多次尝试后仍无法为您分配设备。请稍后重试。`,
             channels: ["websocket", "email"],
-            metadata: {
+            data: {
               queueId: queueEntry.id,
               reason: queueEntry.expiryReason,
             },
@@ -589,11 +593,11 @@ export class QueueService {
           await this.notificationClient.sendBatchNotifications([
             {
               userId: entry.userId,
-              type: "queue_expired",
+              type: NotificationType.QUEUE_EXPIRED,
               title: "⏰ 队列等待超时",
               message: "很抱歉，等待时间已超过限制，请重新加入队列",
               channels: ["websocket"],
-              metadata: {
+              data: {
                 queueId: entry.id,
               },
             },

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LocalStorage 检查工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #1890ff;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .error {
+            color: #ff4d4f;
+            font-weight: bold;
+        }
+        .success {
+            color: #52c41a;
+            font-weight: bold;
+        }
+        .warning {
+            color: #faad14;
+            font-weight: bold;
+        }
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #40a9ff;
+        }
+        button.danger {
+            background: #ff4d4f;
+        }
+        button.danger:hover {
+            background: #ff7875;
+        }
+    </style>
+</head>
+<body>
+    <h1>LocalStorage 状态检查</h1>
+
+    <div class="section">
+        <h2>当前存储数据</h2>
+        <div id="storage-data"></div>
+    </div>
+
+    <div class="section">
+        <h2>诊断结果</h2>
+        <div id="diagnosis"></div>
+    </div>
+
+    <div class="section">
+        <h2>操作</h2>
+        <button onclick="location.reload()">刷新检查</button>
+        <button class="danger" onclick="clearStorage()">清除所有数据</button>
+        <button onclick="window.location.href='http://localhost:5173/login'">前往登录页</button>
+    </div>
+
+    <script>
+        function checkStorage() {
+            const storageDiv = document.getElementById('storage-data');
+            const diagnosisDiv = document.getElementById('diagnosis');
+
+            // 显示所有 localStorage 数据
+            let html = '<pre>';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                html += `<strong>${key}:</strong>\n${value}\n\n`;
+            }
+            html += '</pre>';
+            storageDiv.innerHTML = html;
+
+            // 诊断
+            const diagnosis = [];
+
+            const token = localStorage.getItem('token');
+            const userId = localStorage.getItem('userId');
+            const userStr = localStorage.getItem('user');
+
+            if (!token) {
+                diagnosis.push('<p class="error">❌ 缺少 token - 您未登录</p>');
+            } else {
+                diagnosis.push('<p class="success">✅ token 存在</p>');
+            }
+
+            if (!userId) {
+                diagnosis.push('<p class="error">❌ 缺少 userId</p>');
+            } else {
+                diagnosis.push('<p class="success">✅ userId 存在: ' + userId + '</p>');
+            }
+
+            if (!userStr) {
+                diagnosis.push('<p class="error">❌ 致命问题：缺少 user 对象！</p>');
+                diagnosis.push('<p class="warning">这是导致权限错误的原因。您需要：</p>');
+                diagnosis.push('<ol>');
+                diagnosis.push('<li>点击下方"清除所有数据"按钮</li>');
+                diagnosis.push('<li>重新登录</li>');
+                diagnosis.push('<li>登录后再次检查此页面，确认 user 对象已保存</li>');
+                diagnosis.push('</ol>');
+            } else {
+                try {
+                    const user = JSON.parse(userStr);
+                    diagnosis.push('<p class="success">✅ user 对象存在</p>');
+                    diagnosis.push('<pre>' + JSON.stringify(user, null, 2) + '</pre>');
+
+                    if (!user.roles || user.roles.length === 0) {
+                        diagnosis.push('<p class="error">❌ user.roles 为空</p>');
+                    } else {
+                        diagnosis.push('<p class="success">✅ 角色: ' + user.roles.join(', ') + '</p>');
+                    }
+
+                    if (user.isSuperAdmin === true) {
+                        diagnosis.push('<p class="success">✅ 超级管理员权限</p>');
+                    } else if (user.isSuperAdmin === false) {
+                        diagnosis.push('<p class="warning">⚠️ 非超级管理员</p>');
+                    } else {
+                        diagnosis.push('<p class="error">❌ 缺少 isSuperAdmin 字段</p>');
+                    }
+                } catch (e) {
+                    diagnosis.push('<p class="error">❌ user 对象格式错误: ' + e.message + '</p>');
+                }
+            }
+
+            diagnosisDiv.innerHTML = diagnosis.join('');
+        }
+
+        function clearStorage() {
+            if (confirm('确定要清除所有 localStorage 数据吗？这将登出您的账号。')) {
+                localStorage.clear();
+                alert('已清除所有数据，请重新登录');
+                location.reload();
+            }
+        }
+
+        // 页面加载时自动检查
+        checkStorage();
+    </script>
+</body>
+</html>

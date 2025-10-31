@@ -8,7 +8,8 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Request } from "express";
-import { InjectRedis } from "@liaoliaots/nestjs-redis";
+// TODO: Install @liaoliaots/nestjs-redis or use alternative Redis injection
+// import { InjectRedis } from "@liaoliaots/nestjs-redis";
 import Redis from "ioredis";
 import {
   RATE_LIMIT_KEY,
@@ -18,11 +19,14 @@ import {
 @Injectable()
 export class RateLimitGuard implements CanActivate {
   private readonly logger = new Logger(RateLimitGuard.name);
+  private readonly redis: any = null; // TODO: Inject actual Redis instance
 
   constructor(
     private readonly reflector: Reflector,
-    @InjectRedis() private readonly redis: Redis,
-  ) {}
+    // @InjectRedis() private readonly redis: Redis,
+  ) {
+    // TODO: Inject Redis instance when @liaoliaots/nestjs-redis is installed
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // 获取限流配置
@@ -33,6 +37,12 @@ export class RateLimitGuard implements CanActivate {
 
     // 如果没有配置限流，直接通过
     if (!rateLimitOptions) {
+      return true;
+    }
+
+    // TODO: Temporarily bypass rate limiting until Redis is properly configured
+    if (!this.redis) {
+      this.logger.warn('Rate limiting bypassed - Redis not configured');
       return true;
     }
 

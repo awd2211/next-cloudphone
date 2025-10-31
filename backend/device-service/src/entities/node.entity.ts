@@ -40,10 +40,10 @@ export class Node {
   @Index()
   name: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   hostname: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   ipAddress: string;
 
   @Column({ type: "int", default: 2375 })
@@ -87,10 +87,10 @@ export class Node {
   priority: number;
 
   // 地理位置信息（可选）
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   region: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   zone: string;
 
   // 健康检查

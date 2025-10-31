@@ -19,11 +19,11 @@ export class DeviceTemplate {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   @Index()
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   description: string;
 
   @Column({
@@ -76,10 +76,10 @@ export class DeviceTemplate {
   systemSettings: Record<string, any>;
 
   // 镜像信息（用于快照）
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   snapshotId: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   snapshotPath: string;
 
   // 使用统计
@@ -100,7 +100,7 @@ export class DeviceTemplate {
   @Column({ default: false })
   isPublic: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   @Index()
   createdBy: string;
 

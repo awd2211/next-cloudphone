@@ -23,11 +23,17 @@ export interface AllocationRequest {
     minCpu?: number;
     minMemory?: number;
   };
+  devicePreferences?: {
+    osVersion?: string;
+    screenSize?: string;
+    [key: string]: any;
+  };
 }
 
 export interface AllocationResponse {
   allocationId: string;
   deviceId: string;
+  deviceName?: string;
   device?: Partial<Device>;
   userId: string;
   tenantId?: string;
@@ -235,8 +241,8 @@ export class AllocationService {
         allocatedAt: allocatedAt.toISOString(),
         expiresAt: expiresAt.toISOString(),
         durationMinutes,
-        adbHost: selectedDevice.adbHost,
-        adbPort: selectedDevice.adbPort,
+        adbHost: selectedDevice.adbHost || undefined,
+        adbPort: selectedDevice.adbPort || undefined,
       });
     } catch (error) {
       this.logger.warn(`Failed to send allocation success notification: ${error.message}`);
@@ -609,6 +615,69 @@ export class AllocationService {
    * 释放后清除可用设备缓存
    */
   @CacheEvict({ keys: ["scheduler:available-devices"] })
+  /**
+   * 释放单个设备分配
+   * @param allocationId 分配ID
+   * @param options 释放选项
+   * @returns 是否成功释放
+   */
+  async releaseAllocation(
+    allocationId: string,
+    options?: { reason?: string; automatic?: boolean }
+  ): Promise<boolean> {
+    try {
+      // 查找分配记录
+      const allocation = await this.allocationRepository.findOne({
+        where: { id: allocationId },
+        relations: ['device'],
+      });
+
+      if (!allocation) {
+        this.logger.warn(`Allocation not found: ${allocationId}`);
+        return false;
+      }
+
+      // 检查分配状态
+      if (allocation.status === AllocationStatus.RELEASED || allocation.status === AllocationStatus.EXPIRED) {
+        this.logger.warn(`Allocation already released/expired: ${allocationId}`);
+        return true;
+      }
+
+      const now = new Date();
+
+      // 更新分配状态
+      allocation.status = AllocationStatus.RELEASED;
+      allocation.releasedAt = now;
+      allocation.durationSeconds = Math.floor(
+        (now.getTime() - allocation.allocatedAt.getTime()) / 1000
+      );
+
+      await this.allocationRepository.save(allocation);
+
+      // 发布释放事件
+      await this.eventBus.publish("cloudphone.events", "scheduler.allocation.released", {
+        deviceId: allocation.deviceId,
+        userId: allocation.userId,
+        allocationId: allocation.id,
+        allocatedAt: allocation.allocatedAt.toISOString(),
+        releasedAt: now.toISOString(),
+        durationSeconds: allocation.durationSeconds,
+        reason: options?.reason || 'Manual release',
+        automatic: options?.automatic || false,
+      });
+
+      this.logger.log(`Successfully released allocation: ${allocationId}${options?.reason ? ` (${options.reason})` : ''}`);
+      return true;
+
+    } catch (error) {
+      this.logger.error(`Failed to release allocation ${allocationId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 释放过期的设备分配
+   */
   async releaseExpiredAllocations(): Promise<number> {
     const now = new Date();
 

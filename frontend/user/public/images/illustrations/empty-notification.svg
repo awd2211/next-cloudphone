@@ -1,0 +1,26 @@
+<svg width="300" height="200" viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shadow -->
+  <ellipse cx="150" cy="180" rx="70" ry="10" fill="#F0F0F0"/>
+
+  <!-- Bell body -->
+  <path d="M150 50C150 50 120 55 120 90C120 110 115 120 115 130L185 130C185 120 180 110 180 90C180 55 150 50 150 50Z" fill="#FFF" stroke="#D9D9D9" stroke-width="2"/>
+
+  <!-- Bell top -->
+  <circle cx="150" cy="50" r="8" fill="#FFF" stroke="#D9D9D9" stroke-width="2"/>
+  <rect x="148" y="38" width="4" height="14" rx="2" fill="#D9D9D9"/>
+
+  <!-- Bell clapper -->
+  <ellipse cx="150" cy="135" rx="12" ry="6" fill="#FFF" stroke="#D9D9D9" stroke-width="2"/>
+
+  <!-- Mute symbol (diagonal line) -->
+  <line x1="120" y1="60" x2="180" y2="120" stroke="#FF4D4F" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Sound waves (crossed out) -->
+  <g opacity="0.3">
+    <path d="M190 75C190 75 200 80 200 90C200 100 190 105 190 105" stroke="#BFBFBF" stroke-width="2" stroke-linecap="round"/>
+    <path d="M110 75C110 75 100 80 100 90C100 100 110 105 110 105" stroke="#BFBFBF" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Text -->
+  <text x="150" y="195" font-family="Arial, sans-serif" font-size="14" fill="#8C8C8C" text-anchor="middle">暂无通知</text>
+</svg>

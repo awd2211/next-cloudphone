@@ -20,7 +20,7 @@ import { DeviceAllocation } from "../entities/device-allocation.entity";
 import { DeviceReservation } from "../entities/device-reservation.entity";
 import { AllocationQueue } from "../entities/allocation-queue.entity";
 import { AuthModule } from "../auth/auth.module";
-import { EventBusModule } from "@cloudphone/shared";
+import { EventBusModule, ServiceTokenService } from "@cloudphone/shared";
 import { QuotaModule } from "../quota/quota.module";
 
 @Module({
@@ -39,6 +39,7 @@ import { QuotaModule } from "../quota/quota.module";
   ],
   controllers: [SchedulerController],
   providers: [
+    ServiceTokenService, // 服务间认证token服务
     SchedulerService,
     NodeManagerService,
     ResourceMonitorService,

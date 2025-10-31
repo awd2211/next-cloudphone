@@ -206,10 +206,13 @@ const Home = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 24px',
-                    fontSize: 40,
                   }}
                 >
-                  🚀
+                  <img
+                    src="/images/icons/feature-performance.svg"
+                    alt="高性能"
+                    style={{ width: 50, height: 50 }}
+                  />
                 </div>
                 <h3 style={{ fontSize: 20, marginBottom: 12 }}>高性能</h3>
                 <p style={{ color: '#666' }}>
@@ -230,10 +233,13 @@ const Home = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 24px',
-                    fontSize: 40,
                   }}
                 >
-                  🛡️
+                  <img
+                    src="/images/icons/feature-security.svg"
+                    alt="安全可靠"
+                    style={{ width: 50, height: 50 }}
+                  />
                 </div>
                 <h3 style={{ fontSize: 20, marginBottom: 12 }}>安全可靠</h3>
                 <p style={{ color: '#666' }}>
@@ -254,10 +260,13 @@ const Home = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 24px',
-                    fontSize: 40,
                   }}
                 >
-                  💰
+                  <img
+                    src="/images/icons/feature-pricing.svg"
+                    alt="价格实惠"
+                    style={{ width: 50, height: 50 }}
+                  />
                 </div>
                 <h3 style={{ fontSize: 20, marginBottom: 12 }}>价格实惠</h3>
                 <p style={{ color: '#666' }}>

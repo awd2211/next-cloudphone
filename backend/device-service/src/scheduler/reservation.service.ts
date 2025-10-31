@@ -24,7 +24,7 @@ import {
 } from "./dto/reservation.dto";
 import { AllocationService } from "./allocation.service";
 import { EventBusService } from "@cloudphone/shared";
-import { NotificationClient } from "../notifications/notification.client";
+import { NotificationClientService, NotificationType } from "./notification-client.service";
 
 @Injectable()
 export class ReservationService {
@@ -35,7 +35,7 @@ export class ReservationService {
     private readonly reservationRepository: Repository<DeviceReservation>,
     private readonly allocationService: AllocationService,
     private readonly eventBus: EventBusService,
-    private readonly notificationClient: NotificationClient,
+    private readonly notificationClient: NotificationClientService,
   ) {}
 
   /**
@@ -112,11 +112,11 @@ export class ReservationService {
     await this.notificationClient.sendBatchNotifications([
       {
         userId: reservation.userId,
-        type: "reservation_created",
+        type: NotificationType.RESERVATION_CREATED,
         title: "📅 设备预约成功",
         message: `您的设备预约已创建，预约时间：${startTime.toLocaleString("zh-CN")}，时长 ${dto.durationMinutes} 分钟`,
         channels: ["websocket", "email"],
-        metadata: {
+        data: {
           reservationId: reservation.id,
           reservedStartTime: startTime.toISOString(),
         },
@@ -179,11 +179,11 @@ export class ReservationService {
     await this.notificationClient.sendBatchNotifications([
       {
         userId: reservation.userId,
-        type: "reservation_cancelled",
+        type: NotificationType.RESERVATION_CANCELLED,
         title: "❌ 设备预约已取消",
         message: `您的设备预约已取消。原因：${reservation.cancelReason}`,
         channels: ["websocket"],
-        metadata: {
+        data: {
           reservationId: reservation.id,
         },
       },
@@ -471,11 +471,11 @@ export class ReservationService {
       await this.notificationClient.sendBatchNotifications([
         {
           userId: reservation.userId,
-          type: "reservation_executed",
+          type: NotificationType.RESERVATION_EXECUTED,
           title: "✅ 预约设备已分配",
           message: `您预约的设备 ${allocationResult.deviceName} 已成功分配，可以开始使用了！`,
           channels: ["websocket", "email"],
-          metadata: {
+          data: {
             reservationId: reservation.id,
             deviceId: allocationResult.deviceId,
             deviceName: allocationResult.deviceName,
@@ -511,11 +511,11 @@ export class ReservationService {
       await this.notificationClient.sendBatchNotifications([
         {
           userId: reservation.userId,
-          type: "reservation_failed",
+          type: NotificationType.RESERVATION_FAILED,
           title: "❌ 预约设备分配失败",
           message: `很抱歉，您预约的设备分配失败。原因：${reservation.failureReason}`,
           channels: ["websocket", "email"],
-          metadata: {
+          data: {
             reservationId: reservation.id,
             failureReason: reservation.failureReason,
           },
@@ -606,11 +606,11 @@ export class ReservationService {
           await this.notificationClient.sendBatchNotifications([
             {
               userId: reservation.userId,
-              type: "reservation_expired",
+              type: NotificationType.RESERVATION_EXPIRED,
               title: "⏰ 设备预约已过期",
               message: "您的设备预约时间已过，预约已自动过期",
               channels: ["websocket"],
-              metadata: {
+              data: {
                 reservationId: reservation.id,
               },
             },
@@ -671,11 +671,11 @@ export class ReservationService {
             await this.notificationClient.sendBatchNotifications([
               {
                 userId: reservation.userId,
-                type: "reservation_reminder",
+                type: NotificationType.RESERVATION_REMINDER,
                 title: "⏰ 设备预约提醒",
                 message: `您预约的设备将在 ${minutesUntilStart} 分钟后开始使用，请做好准备`,
                 channels: ["websocket", "email"],
-                metadata: {
+                data: {
                   reservationId: reservation.id,
                   reservedStartTime: reservation.reservedStartTime.toISOString(),
                   minutesUntilStart,

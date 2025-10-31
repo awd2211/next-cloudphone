@@ -35,11 +35,11 @@ export class Device {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   @Index()
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   description: string | null;
 
   @Column({
@@ -57,18 +57,18 @@ export class Device {
   @Index()
   status: DeviceStatus;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   @Index()
   userId: string | null; // 逻辑外键 → user-service
 
   // ========== 冗余字段（从 user-service 同步，避免跨服务查询） ==========
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   userName: string | null; // 用户名
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   userEmail: string | null; // 用户邮箱
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   @Index()
   tenantId: string | null;
 
@@ -82,7 +82,7 @@ export class Device {
   @Index()
   providerType: DeviceProviderType;
 
-  @Column({ name: "external_id", nullable: true })
+  @Column({ name: "external_id", type: 'varchar', nullable: true })
   @Index()
   externalId: string | null; // Provider 侧的设备 ID（如 Docker containerId、华为 instanceId、物理设备 MAC）
 
@@ -92,25 +92,25 @@ export class Device {
   @Column({ name: "connection_info", type: "jsonb", nullable: true })
   connectionInfo: Record<string, any> | null; // 连接信息（ADB、SCRCPY、WebRTC 等）
 
-  @Column({ name: "device_group", nullable: true })
+  @Column({ name: "device_group", type: 'varchar', nullable: true })
   deviceGroup: string | null; // 设备分组（物理设备的机架位置、云设备的区域等）
 
   @Column({ name: "health_score", type: "int", default: 100 })
   healthScore: number; // 设备健康评分 (0-100)
 
   // Docker 容器信息（仅 Redroid 使用）
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   @Index()
   containerId: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   containerName: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   imageTag: string | null;
 
   // ADB 连接信息
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   adbHost: string | null;
 
   @Column({ type: "int", nullable: true })
@@ -126,24 +126,24 @@ export class Device {
   @Column({ type: "int", default: 10240 })
   storageMB: number;
 
-  @Column({ default: "1920x1080" })
+  @Column({ type: 'varchar', default: "1920x1080" })
   resolution: string;
 
   @Column({ type: "int", default: 240 })
   dpi: number;
 
   // Android 配置
-  @Column({ default: "11" })
+  @Column({ type: 'varchar', default: "11" })
   androidVersion: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   androidId: string | null;
 
   // 网络配置
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   ipAddress: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   macAddress: string | null;
 
   // 状态信息

@@ -1,0 +1,16 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shield outline -->
+  <path d="M40 10C40 10 28 12 20 15C20 15 18 25 18 35C18 45 25 58 40 68C55 58 62 45 62 35C62 25 60 15 60 15C52 12 40 10 40 10Z" fill="#52C41A"/>
+
+  <!-- Inner shield -->
+  <path d="M40 16C40 16 30 18 24 20C24 20 22 28 22 36C22 44 28 54 40 62C52 54 58 44 58 36C58 28 56 20 56 20C50 18 40 16 40 16Z" fill="#95DE64"/>
+
+  <!-- Center shield -->
+  <path d="M40 22C40 22 33 23 28 25C28 25 26 31 26 37C26 43 31 50 40 56C49 50 54 43 54 37C54 31 52 25 52 25C47 23 40 22 40 22Z" fill="#F6FFED"/>
+
+  <!-- Check mark -->
+  <path d="M34 38L38 42L48 32" stroke="#52C41A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Shine effect -->
+  <path d="M32 22C32 22 28 30 28 36C28 42 32 48 36 52" stroke="#FFF" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+</svg>

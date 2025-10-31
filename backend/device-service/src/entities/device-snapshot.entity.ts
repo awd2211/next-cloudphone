@@ -22,15 +22,15 @@ export class DeviceSnapshot {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   @Index()
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   description: string;
 
   // 关联设备
-  @Column()
+  @Column({ type: 'varchar' })
   @Index()
   deviceId: string;
 
@@ -47,10 +47,10 @@ export class DeviceSnapshot {
   status: SnapshotStatus;
 
   // Docker 镜像信息
-  @Column()
+  @Column({ type: 'varchar' })
   imageId: string; // Docker 镜像 ID
 
-  @Column()
+  @Column({ type: 'varchar' })
   imageName: string; // Docker 镜像名称（如 cloudphone-snapshot:xxx）
 
   @Column({ type: "bigint" })
@@ -64,14 +64,14 @@ export class DeviceSnapshot {
   @Column({ type: "int", default: 1 })
   version: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   parentSnapshotId: string; // 父快照 ID（用于增量快照）
 
   // 压缩信息
   @Column({ default: false })
   isCompressed: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   compressedPath: string; // 压缩文件路径
 
   @Column({ type: "bigint", nullable: true })
@@ -82,7 +82,7 @@ export class DeviceSnapshot {
   tags: string[];
 
   // 创建者
-  @Column()
+  @Column({ type: 'varchar' })
   @Index()
   createdBy: string;
 
