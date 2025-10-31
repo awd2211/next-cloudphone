@@ -1,6 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { AdbService } from "../../adb/adb.service";
-import { PhysicalDeviceInfo, NetworkScanConfig } from "./physical.types";
+import { Injectable, Logger } from '@nestjs/common';
+import { AdbService } from '../../adb/adb.service';
+import { PhysicalDeviceInfo, NetworkScanConfig } from './physical.types';
 
 /**
  * 物理设备发现服务
@@ -32,7 +32,7 @@ export class DeviceDiscoveryService {
     const timeoutMs = config.timeoutMs || 3000;
 
     this.logger.debug(
-      `Scanning ${ipAddresses.length} IPs, ports ${portRange.start}-${portRange.end}, concurrency ${concurrency}`,
+      `Scanning ${ipAddresses.length} IPs, ports ${portRange.start}-${portRange.end}, concurrency ${concurrency}`
     );
 
     const devices: PhysicalDeviceInfo[] = [];
@@ -42,19 +42,17 @@ export class DeviceDiscoveryService {
       const batch = ipAddresses.slice(i, i + concurrency);
 
       const results = await Promise.allSettled(
-        batch.map((ip) =>
-          this.scanIpRange(ip, portRange.start, portRange.end, timeoutMs),
-        ),
+        batch.map((ip) => this.scanIpRange(ip, portRange.start, portRange.end, timeoutMs))
       );
 
       for (const result of results) {
-        if (result.status === "fulfilled" && result.value) {
+        if (result.status === 'fulfilled' && result.value) {
           devices.push(result.value);
         }
       }
 
       this.logger.debug(
-        `Scanned ${Math.min(i + concurrency, ipAddresses.length)}/${ipAddresses.length} IPs, found ${devices.length} devices`,
+        `Scanned ${Math.min(i + concurrency, ipAddresses.length)}/${ipAddresses.length} IPs, found ${devices.length} devices`
       );
     }
 
@@ -69,7 +67,7 @@ export class DeviceDiscoveryService {
     ip: string,
     startPort: number,
     endPort: number,
-    timeoutMs: number,
+    timeoutMs: number
   ): Promise<PhysicalDeviceInfo | null> {
     for (let port = startPort; port <= endPort; port++) {
       const device = await this.tryConnectAdb(ip, port, timeoutMs);
@@ -86,7 +84,7 @@ export class DeviceDiscoveryService {
   private async tryConnectAdb(
     ip: string,
     port: number,
-    timeoutMs: number,
+    timeoutMs: number
   ): Promise<PhysicalDeviceInfo | null> {
     const serial = `${ip}:${port}`;
 
@@ -101,21 +99,20 @@ export class DeviceDiscoveryService {
       const properties = await this.adbService.getDeviceProperties(serial);
 
       // 获取设备序列号作为唯一 ID
-      const deviceId =
-        properties["ro.serialno"] || properties["ro.boot.serialno"] || serial;
+      const deviceId = properties['ro.serialno'] || properties['ro.boot.serialno'] || serial;
 
       const device: PhysicalDeviceInfo = {
         id: deviceId,
-        name: `${properties["ro.product.manufacturer"]}-${properties["ro.product.model"]}`,
+        name: `${properties['ro.product.manufacturer']}-${properties['ro.product.model']}`,
         ipAddress: ip,
         adbPort: port,
         properties: {
-          manufacturer: properties["ro.product.manufacturer"],
-          model: properties["ro.product.model"],
-          androidVersion: properties["ro.build.version.release"],
+          manufacturer: properties['ro.product.manufacturer'],
+          model: properties['ro.product.model'],
+          androidVersion: properties['ro.build.version.release'],
           serialNumber: deviceId,
         },
-        discoveryMethod: "network_scan",
+        discoveryMethod: 'network_scan',
         discoveredAt: new Date(),
       };
 
@@ -130,18 +127,14 @@ export class DeviceDiscoveryService {
   /**
    * 带超时的 ADB 连接
    */
-  private async connectWithTimeout(
-    ip: string,
-    port: number,
-    timeoutMs: number,
-  ): Promise<boolean> {
+  private async connectWithTimeout(ip: string, port: number, timeoutMs: number): Promise<boolean> {
     const serial = `${ip}:${port}`;
 
     return new Promise((resolve) => {
       const timer = setTimeout(() => resolve(false), timeoutMs);
 
       this.adbService
-        .connectToDevice("temp", ip, port)
+        .connectToDevice('temp', ip, port)
         .then(() => {
           clearTimeout(timer);
           resolve(true);
@@ -164,34 +157,33 @@ export class DeviceDiscoveryService {
   async registerDevice(
     ip: string,
     port: number,
-    deviceGroup?: string,
+    deviceGroup?: string
   ): Promise<PhysicalDeviceInfo> {
     this.logger.log(`Manually registering device: ${ip}:${port}`);
 
     const serial = `${ip}:${port}`;
 
     // 连接 ADB
-    await this.adbService.connectToDevice("manual", ip, port);
+    await this.adbService.connectToDevice('manual', ip, port);
 
     // 获取设备属性
     const properties = await this.adbService.getDeviceProperties(serial);
 
-    const deviceId =
-      properties["ro.serialno"] || properties["ro.boot.serialno"] || serial;
+    const deviceId = properties['ro.serialno'] || properties['ro.boot.serialno'] || serial;
 
     const device: PhysicalDeviceInfo = {
       id: deviceId,
-      name: `${properties["ro.product.manufacturer"]}-${properties["ro.product.model"]}`,
+      name: `${properties['ro.product.manufacturer']}-${properties['ro.product.model']}`,
       ipAddress: ip,
       adbPort: port,
       deviceGroup,
       properties: {
-        manufacturer: properties["ro.product.manufacturer"],
-        model: properties["ro.product.model"],
-        androidVersion: properties["ro.build.version.release"],
+        manufacturer: properties['ro.product.manufacturer'],
+        model: properties['ro.product.model'],
+        androidVersion: properties['ro.build.version.release'],
         serialNumber: deviceId,
       },
-      discoveryMethod: "manual",
+      discoveryMethod: 'manual',
       discoveredAt: new Date(),
     };
 
@@ -211,20 +203,18 @@ export class DeviceDiscoveryService {
 
     try {
       // 尝试连接
-      await this.adbService.connectToDevice("validate", ip, port);
+      await this.adbService.connectToDevice('validate', ip, port);
 
       // 检查 boot 状态
       const output = await this.adbService.executeShellCommand(
-        "validate",
-        "getprop sys.boot_completed",
-        3000,
+        'validate',
+        'getprop sys.boot_completed',
+        3000
       );
 
-      return output.trim() === "1";
+      return output.trim() === '1';
     } catch (error) {
-      this.logger.warn(
-        `Device validation failed for ${serial}: ${error.message}`,
-      );
+      this.logger.warn(`Device validation failed for ${serial}: ${error.message}`);
       return false;
     }
   }
@@ -236,16 +226,15 @@ export class DeviceDiscoveryService {
    * @returns IP 地址数组
    */
   private expandCidr(cidr: string): string[] {
-    const [baseIp, prefixLenStr] = cidr.split("/");
+    const [baseIp, prefixLenStr] = cidr.split('/');
     const prefixLen = parseInt(prefixLenStr, 10);
 
     if (prefixLen < 0 || prefixLen > 32) {
       throw new Error(`Invalid CIDR prefix length: ${prefixLen}`);
     }
 
-    const ipParts = baseIp.split(".").map((part) => parseInt(part, 10));
-    const baseIpNum =
-      (ipParts[0] << 24) | (ipParts[1] << 16) | (ipParts[2] << 8) | ipParts[3];
+    const ipParts = baseIp.split('.').map((part) => parseInt(part, 10));
+    const baseIpNum = (ipParts[0] << 24) | (ipParts[1] << 16) | (ipParts[2] << 8) | ipParts[3];
 
     const hostBits = 32 - prefixLen;
     const numHosts = Math.pow(2, hostBits);
@@ -293,14 +282,16 @@ export class DeviceDiscoveryService {
             const port = service.port || 5555;
 
             // 从 TXT 记录中获取设备 ID（如果有）
-            const deviceId = service.txt?.device_id ||
-                           service.txt?.deviceId ||
-                           `${service.name || 'unknown'}-${address}`;
+            const deviceId =
+              service.txt?.device_id ||
+              service.txt?.deviceId ||
+              `${service.name || 'unknown'}-${address}`;
 
-            const deviceName = service.txt?.name ||
-                             service.txt?.device_name ||
-                             service.name ||
-                             `Android Device (${address})`;
+            const deviceName =
+              service.txt?.name ||
+              service.txt?.device_name ||
+              service.name ||
+              `Android Device (${address})`;
 
             // 避免重复设备
             const uniqueKey = `${address}:${port}`;
@@ -324,13 +315,11 @@ export class DeviceDiscoveryService {
               devices.push(deviceInfo);
 
               this.logger.log(
-                `Discovered device via mDNS: ${deviceInfo.name} at ${address}:${port}`,
+                `Discovered device via mDNS: ${deviceInfo.name} at ${address}:${port}`
               );
             }
           } catch (error) {
-            this.logger.warn(
-              `Failed to process mDNS service: ${error.message}`,
-            );
+            this.logger.warn(`Failed to process mDNS service: ${error.message}`);
           }
         });
 
@@ -340,9 +329,7 @@ export class DeviceDiscoveryService {
             browser.stop();
             bonjour.destroy();
 
-            this.logger.log(
-              `mDNS discovery completed. Found ${devices.length} device(s)`,
-            );
+            this.logger.log(`mDNS discovery completed. Found ${devices.length} device(s)`);
 
             resolve(devices);
           } catch (error) {
@@ -350,7 +337,6 @@ export class DeviceDiscoveryService {
             resolve(devices);
           }
         }, 5000); // 5 秒扫描时间
-
       } catch (error) {
         this.logger.error('mDNS discovery failed', error);
         resolve([]);

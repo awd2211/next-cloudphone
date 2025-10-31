@@ -1,4 +1,12 @@
-import { IsString, IsEmail, IsNotEmpty, MinLength, IsOptional, MaxLength, Matches } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsNotEmpty,
+  MinLength,
+  IsOptional,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
@@ -42,4 +50,3 @@ export class RegisterDto {
   @Transform(({ value }) => value?.toString().trim())
   phone?: string;
 }
-

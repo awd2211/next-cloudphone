@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Quota, QuotaStatus, QuotaType, QuotaLimits, QuotaUsage } from '../entities/quota.entity';
@@ -73,7 +68,7 @@ export class QuotasService {
 
   constructor(
     @InjectRepository(Quota)
-    private quotaRepository: Repository<Quota>,
+    private quotaRepository: Repository<Quota>
   ) {}
 
   /**
@@ -189,8 +184,7 @@ export class QuotasService {
         break;
 
       case QuotaType.BANDWIDTH:
-        const remainingTraffic =
-          quota.limits.monthlyTrafficGB - quota.usage.monthlyTrafficUsedGB;
+        const remainingTraffic = quota.limits.monthlyTrafficGB - quota.usage.monthlyTrafficUsedGB;
         if (remainingTraffic < request.requestedAmount) {
           return {
             allowed: false,
@@ -202,8 +196,7 @@ export class QuotasService {
         break;
 
       case QuotaType.DURATION:
-        const remainingHours =
-          quota.limits.maxUsageHoursPerMonth - quota.usage.monthlyUsageHours;
+        const remainingHours = quota.limits.maxUsageHoursPerMonth - quota.usage.monthlyUsageHours;
         if (remainingHours < request.requestedAmount) {
           return {
             allowed: false,
@@ -222,10 +215,7 @@ export class QuotasService {
     if (request.quotaType === QuotaType.DEVICE && request.deviceConfig) {
       const { cpuCores, memoryGB, storageGB } = request.deviceConfig;
 
-      if (
-        cpuCores &&
-        cpuCores > quota.limits.maxCpuCoresPerDevice
-      ) {
+      if (cpuCores && cpuCores > quota.limits.maxCpuCoresPerDevice) {
         return {
           allowed: false,
           reason: `单设备 CPU 超限 (请求: ${cpuCores}, 限制: ${quota.limits.maxCpuCoresPerDevice} 核)`,
@@ -233,10 +223,7 @@ export class QuotasService {
         };
       }
 
-      if (
-        memoryGB &&
-        memoryGB > quota.limits.maxMemoryMBPerDevice / 1024
-      ) {
+      if (memoryGB && memoryGB > quota.limits.maxMemoryMBPerDevice / 1024) {
         return {
           allowed: false,
           reason: `单设备内存超限 (请求: ${memoryGB}GB, 限制: ${quota.limits.maxMemoryMBPerDevice / 1024}GB)`,
@@ -244,10 +231,7 @@ export class QuotasService {
         };
       }
 
-      if (
-        storageGB &&
-        storageGB > quota.limits.maxStorageGBPerDevice
-      ) {
+      if (storageGB && storageGB > quota.limits.maxStorageGBPerDevice) {
         return {
           allowed: false,
           reason: `单设备存储超限 (请求: ${storageGB}GB, 限制: ${quota.limits.maxStorageGBPerDevice}GB)`,
@@ -311,7 +295,7 @@ export class QuotasService {
 
     const updatedQuota = await this.quotaRepository.save(quota);
     this.logger.log(
-      `配额已扣减 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}, CPU: ${request.cpuCores || 0}`,
+      `配额已扣减 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}, CPU: ${request.cpuCores || 0}`
     );
 
     return updatedQuota;
@@ -324,37 +308,25 @@ export class QuotasService {
     const quota = await this.getUserQuota(request.userId);
 
     if (request.deviceCount) {
-      quota.usage.currentDevices = Math.max(
-        0,
-        quota.usage.currentDevices - request.deviceCount,
-      );
+      quota.usage.currentDevices = Math.max(0, quota.usage.currentDevices - request.deviceCount);
       if (request.concurrent) {
         quota.usage.currentConcurrentDevices = Math.max(
           0,
-          quota.usage.currentConcurrentDevices - request.deviceCount,
+          quota.usage.currentConcurrentDevices - request.deviceCount
         );
       }
     }
 
     if (request.cpuCores) {
-      quota.usage.usedCpuCores = Math.max(
-        0,
-        quota.usage.usedCpuCores - request.cpuCores,
-      );
+      quota.usage.usedCpuCores = Math.max(0, quota.usage.usedCpuCores - request.cpuCores);
     }
 
     if (request.memoryGB) {
-      quota.usage.usedMemoryGB = Math.max(
-        0,
-        quota.usage.usedMemoryGB - request.memoryGB,
-      );
+      quota.usage.usedMemoryGB = Math.max(0, quota.usage.usedMemoryGB - request.memoryGB);
     }
 
     if (request.storageGB) {
-      quota.usage.usedStorageGB = Math.max(
-        0,
-        quota.usage.usedStorageGB - request.storageGB,
-      );
+      quota.usage.usedStorageGB = Math.max(0, quota.usage.usedStorageGB - request.storageGB);
     }
 
     quota.usage.lastUpdatedAt = new Date();
@@ -372,9 +344,7 @@ export class QuotasService {
     }
 
     const updatedQuota = await this.quotaRepository.save(quota);
-    this.logger.log(
-      `配额已恢复 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}`,
-    );
+    this.logger.log(`配额已恢复 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}`);
 
     return updatedQuota;
   }
@@ -466,10 +436,8 @@ export class QuotasService {
         cpu: quota.limits.totalCpuCores - quota.usage.usedCpuCores,
         memory: quota.limits.totalMemoryGB - quota.usage.usedMemoryGB,
         storage: quota.limits.totalStorageGB - quota.usage.usedStorageGB,
-        traffic:
-          quota.limits.monthlyTrafficGB - quota.usage.monthlyTrafficUsedGB,
-        hours:
-          quota.limits.maxUsageHoursPerMonth - quota.usage.monthlyUsageHours,
+        traffic: quota.limits.monthlyTrafficGB - quota.usage.monthlyTrafficUsedGB,
+        hours: quota.limits.maxUsageHoursPerMonth - quota.usage.monthlyUsageHours,
       },
       alerts,
     };
@@ -563,13 +531,9 @@ export class QuotasService {
       case QuotaType.STORAGE:
         return quota.limits.totalStorageGB - quota.usage.usedStorageGB;
       case QuotaType.BANDWIDTH:
-        return (
-          quota.limits.monthlyTrafficGB - quota.usage.monthlyTrafficUsedGB
-        );
+        return quota.limits.monthlyTrafficGB - quota.usage.monthlyTrafficUsedGB;
       case QuotaType.DURATION:
-        return (
-          quota.limits.maxUsageHoursPerMonth - quota.usage.monthlyUsageHours
-        );
+        return quota.limits.maxUsageHoursPerMonth - quota.usage.monthlyUsageHours;
       default:
         return 0;
     }
@@ -653,14 +617,14 @@ export class QuotasService {
         a.percentage.cpu,
         a.percentage.memory,
         a.percentage.storage,
-        a.percentage.traffic,
+        a.percentage.traffic
       );
       const maxB = Math.max(
         b.percentage.devices,
         b.percentage.cpu,
         b.percentage.memory,
         b.percentage.storage,
-        b.percentage.traffic,
+        b.percentage.traffic
       );
       return maxB - maxA;
     });

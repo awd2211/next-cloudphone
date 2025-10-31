@@ -1,5 +1,5 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   HuaweiCphConfig,
   HuaweiPhoneInstance,
@@ -7,99 +7,113 @@ import {
   CreateHuaweiPhoneRequest,
   HuaweiConnectionInfo,
   HuaweiOperationResult,
-} from "./huawei.types";
-import { Retry, NetworkError, TimeoutError } from "../../common/retry.decorator";
-import { RateLimit } from "../../common/rate-limit.decorator";
+} from './huawei.types';
+import { Retry, NetworkError, TimeoutError } from '../../common/retry.decorator';
+import { RateLimit } from '../../common/rate-limit.decorator';
+import { HttpService } from '@nestjs/axios';
+import { lastValueFrom } from 'rxjs';
+import * as crypto from 'crypto';
 
 /**
  * HuaweiCphClient
  *
- * 华为云手机 CPH SDK 客户端
+ * 华为云手机 CPH SDK 客户端 - 真实实现
  *
- * Phase 3: 基础实现（模拟）
+ * 基于华为云 OpenAPI 3.0 规范实现
+ * 文档: https://support.huaweicloud.com/api-cph/cph_02_0001.html
  *
- * TODO: 集成真实的华为云 SDK
- * - 安装: npm install @huaweicloud/huaweicloud-sdk-cph
- * - 文档: https://support.huaweicloud.com/sdkreference-cph/cph_04_0001.html
+ * 实现方式:
+ * - 使用 @nestjs/axios (HttpService) 发送HTTP请求
+ * - 实现华为云 AK/SK 签名认证
+ * - 支持重试和限流
  */
 @Injectable()
 export class HuaweiCphClient {
   private readonly logger = new Logger(HuaweiCphClient.name);
   private config: HuaweiCphConfig;
 
-  /** 模拟实例存储 */
-  private instances: Map<string, HuaweiPhoneInstance> = new Map();
-
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private httpService: HttpService
+  ) {
     this.config = {
-      projectId: this.configService.get("HUAWEI_PROJECT_ID", ""),
-      accessKeyId: this.configService.get("HUAWEI_ACCESS_KEY_ID", ""),
-      secretAccessKey: this.configService.get("HUAWEI_SECRET_ACCESS_KEY", ""),
-      region: this.configService.get("HUAWEI_REGION", "cn-north-4"),
+      projectId: this.configService.get('HUAWEI_PROJECT_ID', ''),
+      accessKeyId: this.configService.get('HUAWEI_ACCESS_KEY_ID', ''),
+      secretAccessKey: this.configService.get('HUAWEI_SECRET_ACCESS_KEY', ''),
+      region: this.configService.get('HUAWEI_REGION', 'cn-north-4'),
       endpoint: this.configService.get(
-        "HUAWEI_ENDPOINT",
-        "https://cph.cn-north-4.myhuaweicloud.com",
+        'HUAWEI_ENDPOINT',
+        'https://cph.cn-north-4.myhuaweicloud.com'
       ),
-      defaultServerId: this.configService.get("HUAWEI_DEFAULT_SERVER_ID", ""),
-      defaultImageId: this.configService.get("HUAWEI_DEFAULT_IMAGE_ID", ""),
+      defaultServerId: this.configService.get('HUAWEI_DEFAULT_SERVER_ID', ''),
+      defaultImageId: this.configService.get('HUAWEI_DEFAULT_IMAGE_ID', ''),
     };
 
-    this.logger.log(
-      `HuaweiCphClient initialized for region: ${this.config.region}`,
-    );
+    this.logger.log(`HuaweiCphClient initialized for region: ${this.config.region}`);
+
+    // 验证必要配置
+    if (!this.config.accessKeyId || !this.config.secretAccessKey) {
+      this.logger.warn('Huawei Cloud credentials not configured. SDK will not work properly.');
+    }
   }
 
   /**
    * 创建云手机实例
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones
    */
   async createPhone(
-    request: CreateHuaweiPhoneRequest,
+    request: CreateHuaweiPhoneRequest
   ): Promise<HuaweiOperationResult<HuaweiPhoneInstance>> {
     try {
       this.logger.log(`Creating Huawei phone: ${request.phoneName}`);
 
-      // TODO: 调用真实的华为云 API
-      // const client = new CphClient({ ... });
-      // const result = await client.createCloudPhone(request);
-
-      // 模拟实现
-      const instanceId = `huawei-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const instance: HuaweiPhoneInstance = {
-        instanceId,
-        instanceName: request.phoneName,
-        specId: request.specId,
-        status: HuaweiPhoneStatus.CREATING,
-        serverId: request.serverId,
-        createTime: new Date().toISOString(),
-        updateTime: new Date().toISOString(),
-        publicIp: `120.92.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-        privateIp: `192.168.1.${Math.floor(Math.random() * 255)}`,
-        property: request.property,
+      const body = {
+        phone_name: request.phoneName,
+        server_id: request.serverId,
+        phone_model_name: request.specId,
+        image_id: request.imageId,
+        count: request.count || 1,
+        keypair_name: request.property?.keypairName,
+        extend_param: request.property,
       };
 
-      this.instances.set(instanceId, instance);
+      const response = await this.makeRequest<{
+        jobs: Array<{ phone_id: string; job_id: string }>;
+      }>('POST', `/v1/${this.config.projectId}/cloud-phone/phones`, body);
 
-      // 模拟异步创建过程
-      setTimeout(() => {
-        const inst = this.instances.get(instanceId);
-        if (inst) {
-          inst.status = HuaweiPhoneStatus.RUNNING;
-          inst.updateTime = new Date().toISOString();
-        }
-      }, 3000);
+      if (!response.success || !response.data) {
+        return {
+          success: false,
+          errorCode: response.errorCode,
+          errorMessage: response.errorMessage,
+          requestId: response.requestId,
+        };
+      }
 
-      this.logger.log(`Huawei phone created: ${instanceId}`);
+      // 华为云创建是异步的,返回job_id
+      const phoneId = response.data.jobs?.[0]?.phone_id;
+      if (!phoneId) {
+        return {
+          success: false,
+          errorCode: 'PHONE_ID_MISSING',
+          errorMessage: 'Phone ID not found in response',
+        };
+      }
+
+      // 等待手机创建完成(轮询状态)
+      const instance = await this.waitForPhoneReady(phoneId);
 
       return {
         success: true,
         data: instance,
-        requestId: `req-${Date.now()}`,
+        requestId: response.requestId,
       };
     } catch (error) {
       this.logger.error(`Failed to create Huawei phone: ${error.message}`);
       return {
         success: false,
-        errorCode: "CREATE_FAILED",
+        errorCode: 'CREATE_FAILED',
         errorMessage: error.message,
       };
     }
@@ -107,6 +121,8 @@ export class HuaweiCphClient {
 
   /**
    * 获取云手机实例详情
+   *
+   * API: GET /v1/{project_id}/cloud-phone/phones/{phone_id}
    */
   @Retry({
     maxAttempts: 3,
@@ -114,35 +130,49 @@ export class HuaweiCphClient {
     retryableErrors: [NetworkError, TimeoutError],
   })
   @RateLimit({
-    key: "huawei-api",
+    key: 'huawei-api',
     capacity: 15,
     refillRate: 8, // 8 requests/second
   })
-  async getPhone(
-    instanceId: string,
-  ): Promise<HuaweiOperationResult<HuaweiPhoneInstance>> {
+  async getPhone(instanceId: string): Promise<HuaweiOperationResult<HuaweiPhoneInstance>> {
     try {
-      // TODO: 调用真实的华为云 API
-      // const result = await client.showCloudPhoneDetail(instanceId);
+      const response = await this.makeRequest<{ phone: any }>(
+        'GET',
+        `/v1/${this.config.projectId}/cloud-phone/phones/${instanceId}`
+      );
 
-      // 模拟实现
-      const instance = this.instances.get(instanceId);
-      if (!instance) {
+      if (!response.success || !response.data) {
         return {
           success: false,
-          errorCode: "INSTANCE_NOT_FOUND",
-          errorMessage: `Instance ${instanceId} not found`,
+          errorCode: response.errorCode,
+          errorMessage: response.errorMessage,
+          requestId: response.requestId,
         };
       }
+
+      const phone = response.data.phone;
+      const instance: HuaweiPhoneInstance = {
+        instanceId: phone.phone_id,
+        instanceName: phone.phone_name,
+        specId: phone.phone_model_name,
+        status: this.mapStatus(phone.status),
+        serverId: phone.server_id,
+        createTime: phone.create_time,
+        updateTime: phone.update_time,
+        publicIp: phone.access_infos?.[0]?.intranet_ip,
+        privateIp: phone.access_infos?.[0]?.internet_ip,
+        property: phone.extend_param,
+      };
 
       return {
         success: true,
         data: instance,
+        requestId: response.requestId,
       };
     } catch (error) {
       return {
         success: false,
-        errorCode: "GET_FAILED",
+        errorCode: 'GET_FAILED',
         errorMessage: error.message,
       };
     }
@@ -150,6 +180,8 @@ export class HuaweiCphClient {
 
   /**
    * 启动云手机实例
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones/batch-start
    */
   @Retry({
     maxAttempts: 3,
@@ -157,7 +189,7 @@ export class HuaweiCphClient {
     retryableErrors: [NetworkError, TimeoutError],
   })
   @RateLimit({
-    key: "huawei-api",
+    key: 'huawei-api',
     capacity: 15,
     refillRate: 8,
   })
@@ -165,29 +197,24 @@ export class HuaweiCphClient {
     try {
       this.logger.log(`Starting Huawei phone: ${instanceId}`);
 
-      // TODO: 调用真实的华为云 API
-      // await client.startCloudPhone(instanceId);
-
-      // 模拟实现
-      const instance = this.instances.get(instanceId);
-      if (!instance) {
-        return {
-          success: false,
-          errorCode: "INSTANCE_NOT_FOUND",
-          errorMessage: `Instance ${instanceId} not found`,
-        };
-      }
-
-      instance.status = HuaweiPhoneStatus.RUNNING;
-      instance.updateTime = new Date().toISOString();
+      const response = await this.makeRequest(
+        'POST',
+        `/v1/${this.config.projectId}/cloud-phone/phones/batch-start`,
+        {
+          phones: [{ phone_id: instanceId }],
+        }
+      );
 
       return {
-        success: true,
+        success: response.success,
+        errorCode: response.errorCode,
+        errorMessage: response.errorMessage,
+        requestId: response.requestId,
       };
     } catch (error) {
       return {
         success: false,
-        errorCode: "START_FAILED",
+        errorCode: 'START_FAILED',
         errorMessage: error.message,
       };
     }
@@ -195,6 +222,8 @@ export class HuaweiCphClient {
 
   /**
    * 停止云手机实例
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones/batch-stop
    */
   @Retry({
     maxAttempts: 3,
@@ -202,7 +231,7 @@ export class HuaweiCphClient {
     retryableErrors: [NetworkError, TimeoutError],
   })
   @RateLimit({
-    key: "huawei-api",
+    key: 'huawei-api',
     capacity: 15,
     refillRate: 8,
   })
@@ -210,29 +239,24 @@ export class HuaweiCphClient {
     try {
       this.logger.log(`Stopping Huawei phone: ${instanceId}`);
 
-      // TODO: 调用真实的华为云 API
-      // await client.stopCloudPhone(instanceId);
-
-      // 模拟实现
-      const instance = this.instances.get(instanceId);
-      if (!instance) {
-        return {
-          success: false,
-          errorCode: "INSTANCE_NOT_FOUND",
-          errorMessage: `Instance ${instanceId} not found`,
-        };
-      }
-
-      instance.status = HuaweiPhoneStatus.STOPPED;
-      instance.updateTime = new Date().toISOString();
+      const response = await this.makeRequest(
+        'POST',
+        `/v1/${this.config.projectId}/cloud-phone/phones/batch-stop`,
+        {
+          phones: [{ phone_id: instanceId }],
+        }
+      );
 
       return {
-        success: true,
+        success: response.success,
+        errorCode: response.errorCode,
+        errorMessage: response.errorMessage,
+        requestId: response.requestId,
       };
     } catch (error) {
       return {
         success: false,
-        errorCode: "STOP_FAILED",
+        errorCode: 'STOP_FAILED',
         errorMessage: error.message,
       };
     }
@@ -240,43 +264,31 @@ export class HuaweiCphClient {
 
   /**
    * 重启云手机实例
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones/batch-restart
    */
   async rebootPhone(instanceId: string): Promise<HuaweiOperationResult<void>> {
     try {
       this.logger.log(`Rebooting Huawei phone: ${instanceId}`);
 
-      // TODO: 调用真实的华为云 API
-      // await client.rebootCloudPhone(instanceId);
-
-      // 模拟实现
-      const instance = this.instances.get(instanceId);
-      if (!instance) {
-        return {
-          success: false,
-          errorCode: "INSTANCE_NOT_FOUND",
-          errorMessage: `Instance ${instanceId} not found`,
-        };
-      }
-
-      instance.status = HuaweiPhoneStatus.REBOOTING;
-      instance.updateTime = new Date().toISOString();
-
-      // 模拟重启完成
-      setTimeout(() => {
-        const inst = this.instances.get(instanceId);
-        if (inst) {
-          inst.status = HuaweiPhoneStatus.RUNNING;
-          inst.updateTime = new Date().toISOString();
+      const response = await this.makeRequest(
+        'POST',
+        `/v1/${this.config.projectId}/cloud-phone/phones/batch-restart`,
+        {
+          phones: [{ phone_id: instanceId }],
         }
-      }, 2000);
+      );
 
       return {
-        success: true,
+        success: response.success,
+        errorCode: response.errorCode,
+        errorMessage: response.errorMessage,
+        requestId: response.requestId,
       };
     } catch (error) {
       return {
         success: false,
-        errorCode: "REBOOT_FAILED",
+        errorCode: 'REBOOT_FAILED',
         errorMessage: error.message,
       };
     }
@@ -284,39 +296,31 @@ export class HuaweiCphClient {
 
   /**
    * 删除云手机实例
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones/batch-delete
    */
   async deletePhone(instanceId: string): Promise<HuaweiOperationResult<void>> {
     try {
       this.logger.log(`Deleting Huawei phone: ${instanceId}`);
 
-      // TODO: 调用真实的华为云 API
-      // await client.deleteCloudPhone(instanceId);
-
-      // 模拟实现
-      const instance = this.instances.get(instanceId);
-      if (!instance) {
-        return {
-          success: false,
-          errorCode: "INSTANCE_NOT_FOUND",
-          errorMessage: `Instance ${instanceId} not found`,
-        };
-      }
-
-      instance.status = HuaweiPhoneStatus.DELETING;
-      instance.updateTime = new Date().toISOString();
-
-      // 模拟异步删除
-      setTimeout(() => {
-        this.instances.delete(instanceId);
-      }, 1000);
+      const response = await this.makeRequest(
+        'POST',
+        `/v1/${this.config.projectId}/cloud-phone/phones/batch-delete`,
+        {
+          phones: [{ phone_id: instanceId }],
+        }
+      );
 
       return {
-        success: true,
+        success: response.success,
+        errorCode: response.errorCode,
+        errorMessage: response.errorMessage,
+        requestId: response.requestId,
       };
     } catch (error) {
       return {
         success: false,
-        errorCode: "DELETE_FAILED",
+        errorCode: 'DELETE_FAILED',
         errorMessage: error.message,
       };
     }
@@ -324,6 +328,8 @@ export class HuaweiCphClient {
 
   /**
    * 获取连接信息
+   *
+   * API: GET /v1/{project_id}/cloud-phone/phones/{phone_id}/connect-infos
    */
   @Retry({
     maxAttempts: 3,
@@ -331,56 +337,238 @@ export class HuaweiCphClient {
     retryableErrors: [NetworkError, TimeoutError],
   })
   @RateLimit({
-    key: "huawei-api",
+    key: 'huawei-api',
     capacity: 15,
     refillRate: 8,
   })
   async getConnectionInfo(
-    instanceId: string,
+    instanceId: string
   ): Promise<HuaweiOperationResult<HuaweiConnectionInfo>> {
     try {
-      // TODO: 调用真实的华为云 API 获取 WebRTC ticket
-      // const ticket = await client.getConnectInfo(instanceId);
+      const response = await this.makeRequest<{ connect_infos: any[] }>(
+        'GET',
+        `/v1/${this.config.projectId}/cloud-phone/phones/${instanceId}/connect-infos`
+      );
 
-      // 模拟实现
-      const instance = this.instances.get(instanceId);
-      if (!instance) {
+      if (!response.success || !response.data) {
         return {
           success: false,
-          errorCode: "INSTANCE_NOT_FOUND",
-          errorMessage: `Instance ${instanceId} not found`,
+          errorCode: response.errorCode,
+          errorMessage: response.errorMessage,
+          requestId: response.requestId,
+        };
+      }
+
+      const connectInfo = response.data.connect_infos?.[0];
+      if (!connectInfo) {
+        return {
+          success: false,
+          errorCode: 'NO_CONNECTION_INFO',
+          errorMessage: 'No connection info available',
         };
       }
 
       const connectionInfo: HuaweiConnectionInfo = {
         instanceId,
         webrtc: {
-          sessionId: `session-${instanceId}`,
-          ticket: `ticket-${Date.now()}`,
-          signaling: `wss://cph-webrtc.${this.config.region}.myhuaweicloud.com`,
-          stunServers: [
+          sessionId: connectInfo.access_id || instanceId,
+          ticket: connectInfo.access_token || '',
+          signaling:
+            connectInfo.signaling_url || `wss://cph-webrtc.${this.config.region}.myhuaweicloud.com`,
+          stunServers: connectInfo.stun_servers || [
             `stun:stun.${this.config.region}.myhuaweicloud.com:3478`,
           ],
-          turnServers: [
-            {
-              urls: `turn:turn.${this.config.region}.myhuaweicloud.com:3478`,
-              username: "huawei",
-              credential: "credential-mock",
-            },
-          ],
+          turnServers: connectInfo.turn_servers || [],
         },
       };
 
       return {
         success: true,
         data: connectionInfo,
+        requestId: response.requestId,
       };
     } catch (error) {
       return {
         success: false,
-        errorCode: "GET_CONNECTION_FAILED",
+        errorCode: 'GET_CONNECTION_FAILED',
         errorMessage: error.message,
       };
     }
+  }
+
+  // ============================================================
+  // 私有辅助方法
+  // ============================================================
+
+  /**
+   * 发送HTTP请求到华为云API
+   */
+  private async makeRequest<T = any>(
+    method: string,
+    path: string,
+    body?: any
+  ): Promise<HuaweiOperationResult<T>> {
+    try {
+      const url = `${this.config.endpoint}${path}`;
+      const headers = this.generateHeaders(method, path, body);
+
+      this.logger.debug(`${method} ${url}`);
+
+      const response$ = this.httpService.request({
+        method,
+        url,
+        headers,
+        data: body,
+        timeout: 30000,
+      });
+
+      const response = await lastValueFrom(response$);
+
+      return {
+        success: true,
+        data: response.data as T,
+        requestId: response.headers['x-request-id'],
+      };
+    } catch (error) {
+      this.logger.error(
+        `Huawei API request failed: ${error.response?.data?.error_msg || error.message}`
+      );
+
+      return {
+        success: false,
+        errorCode: error.response?.data?.error_code || 'REQUEST_FAILED',
+        errorMessage: error.response?.data?.error_msg || error.message,
+      };
+    }
+  }
+
+  /**
+   * 生成华为云API请求头(包含签名)
+   *
+   * 华为云使用 AK/SK 签名认证
+   * 文档: https://support.huaweicloud.com/devg-apisign/api-sign-algorithm.html
+   */
+  private generateHeaders(method: string, path: string, body?: any): Record<string, string> {
+    const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const contentType = 'application/json';
+
+    const headers: Record<string, string> = {
+      'Content-Type': contentType,
+      'X-Sdk-Date': timestamp,
+      Host: new URL(this.config.endpoint).host,
+    };
+
+    // 如果配置了 AK/SK,生成签名
+    if (this.config.accessKeyId && this.config.secretAccessKey) {
+      const signature = this.signRequest(method, path, headers, body);
+      headers['Authorization'] = signature;
+    }
+
+    return headers;
+  }
+
+  /**
+   * 华为云 AK/SK 签名算法
+   *
+   * 简化实现,生产环境应使用官方SDK的签名逻辑
+   */
+  private signRequest(
+    method: string,
+    path: string,
+    headers: Record<string, string>,
+    body?: any
+  ): string {
+    try {
+      const algorithm = 'SDK-HMAC-SHA256';
+      const timestamp = headers['X-Sdk-Date'];
+
+      // 1. 规范化请求
+      const canonicalHeaders = Object.keys(headers)
+        .sort()
+        .map((key) => `${key.toLowerCase()}:${headers[key]}`)
+        .join('\n');
+
+      const signedHeaders = Object.keys(headers)
+        .sort()
+        .map((key) => key.toLowerCase())
+        .join(';');
+
+      const bodyHash = body
+        ? crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex')
+        : crypto.createHash('sha256').update('').digest('hex');
+
+      const canonicalRequest = [
+        method.toUpperCase(),
+        path,
+        '', // query string
+        canonicalHeaders,
+        '',
+        signedHeaders,
+        bodyHash,
+      ].join('\n');
+
+      // 2. 计算签名
+      const canonicalRequestHash = crypto
+        .createHash('sha256')
+        .update(canonicalRequest)
+        .digest('hex');
+
+      const stringToSign = [algorithm, timestamp, canonicalRequestHash].join('\n');
+
+      const signature = crypto
+        .createHmac('sha256', this.config.secretAccessKey)
+        .update(stringToSign)
+        .digest('hex');
+
+      // 3. 返回 Authorization 头
+      return `${algorithm} Access=${this.config.accessKeyId}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+    } catch (error) {
+      this.logger.error(`Failed to sign request: ${error.message}`);
+      return '';
+    }
+  }
+
+  /**
+   * 映射华为云状态到标准状态
+   */
+  private mapStatus(status: string): HuaweiPhoneStatus {
+    const statusMap: Record<string, HuaweiPhoneStatus> = {
+      '0': HuaweiPhoneStatus.CREATING,
+      '1': HuaweiPhoneStatus.RUNNING,
+      '2': HuaweiPhoneStatus.STOPPING,
+      '3': HuaweiPhoneStatus.STOPPED,
+      '4': HuaweiPhoneStatus.REBOOTING,
+      '5': HuaweiPhoneStatus.DELETING,
+      '-1': HuaweiPhoneStatus.ERROR,
+      '-2': HuaweiPhoneStatus.FROZEN,
+    };
+
+    return statusMap[status] || HuaweiPhoneStatus.ERROR;
+  }
+
+  /**
+   * 等待云手机创建完成
+   */
+  private async waitForPhoneReady(
+    phoneId: string,
+    maxAttempts: number = 60
+  ): Promise<HuaweiPhoneInstance> {
+    for (let i = 0; i < maxAttempts; i++) {
+      const result = await this.getPhone(phoneId);
+
+      if (result.success && result.data) {
+        if (result.data.status === HuaweiPhoneStatus.RUNNING) {
+          return result.data;
+        }
+        if (result.data.status === HuaweiPhoneStatus.ERROR) {
+          throw new Error(`Phone creation failed: ${phoneId}`);
+        }
+      }
+
+      // 等待5秒后重试
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+
+    throw new Error(`Timeout waiting for phone ${phoneId} to be ready`);
   }
 }

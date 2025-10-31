@@ -1,18 +1,13 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
-import { CacheService } from "../../cache/cache.service";
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { CacheService } from '../../cache/cache.service';
 import {
   PhysicalDeviceInfo,
   PooledDevice,
   DevicePoolStatus,
   DeviceAllocationRequest,
   HealthCheckResult,
-} from "./physical.types";
-import { AdbService } from "../../adb/adb.service";
+} from './physical.types';
+import { AdbService } from '../../adb/adb.service';
 
 /**
  * 物理设备池管理服务
@@ -30,12 +25,12 @@ export class DevicePoolService {
   private readonly logger = new Logger(DevicePoolService.name);
 
   // Redis 键前缀
-  private readonly POOL_KEY_PREFIX = "physical_device_pool";
-  private readonly DEVICE_KEY_PREFIX = "physical_device";
+  private readonly POOL_KEY_PREFIX = 'physical_device_pool';
+  private readonly DEVICE_KEY_PREFIX = 'physical_device';
 
   constructor(
     private cacheService: CacheService,
-    private adbService: AdbService,
+    private adbService: AdbService
   ) {}
 
   /**
@@ -50,9 +45,7 @@ export class DevicePoolService {
     // 检查设备是否已存在
     const existing = await this.getDevice(deviceInfo.id);
     if (existing) {
-      throw new BadRequestException(
-        `Device ${deviceInfo.id} already exists in pool`,
-      );
+      throw new BadRequestException(`Device ${deviceInfo.id} already exists in pool`);
     }
 
     // 创建池设备对象
@@ -87,9 +80,7 @@ export class DevicePoolService {
     }
 
     if (device.poolStatus === DevicePoolStatus.ALLOCATED) {
-      throw new BadRequestException(
-        `Device ${deviceId} is currently allocated, cannot remove`,
-      );
+      throw new BadRequestException(`Device ${deviceId} is currently allocated, cannot remove`);
     }
 
     // 从 Redis 删除
@@ -107,37 +98,29 @@ export class DevicePoolService {
    * @param request 分配请求
    * @returns 分配的设备
    */
-  async allocateDevice(
-    request: DeviceAllocationRequest,
-  ): Promise<PooledDevice> {
+  async allocateDevice(request: DeviceAllocationRequest): Promise<PooledDevice> {
     this.logger.log(`Allocating device for user: ${request.userId}`);
 
     // 获取所有可用设备
     const availableDevices = await this.getAvailableDevices();
 
     if (availableDevices.length === 0) {
-      throw new NotFoundException("No available devices in pool");
+      throw new NotFoundException('No available devices in pool');
     }
 
     // 过滤符合要求的设备
     let candidates = availableDevices;
 
     if (request.requirements) {
-      candidates = this.filterDevicesByRequirements(
-        candidates,
-        request.requirements,
-      );
+      candidates = this.filterDevicesByRequirements(candidates, request.requirements);
 
       if (candidates.length === 0) {
-        throw new NotFoundException("No devices match the requirements");
+        throw new NotFoundException('No devices match the requirements');
       }
     }
 
     // 选择最佳设备
-    const selectedDevice = this.selectBestDevice(
-      candidates,
-      request.preferredDeviceId,
-    );
+    const selectedDevice = this.selectBestDevice(candidates, request.preferredDeviceId);
 
     // 标记为已分配
     selectedDevice.poolStatus = DevicePoolStatus.ALLOCATED;
@@ -147,9 +130,7 @@ export class DevicePoolService {
 
     await this.saveDevice(selectedDevice);
 
-    this.logger.log(
-      `Device allocated: ${selectedDevice.id} → user ${request.userId}`,
-    );
+    this.logger.log(`Device allocated: ${selectedDevice.id} → user ${request.userId}`);
 
     return selectedDevice;
   }
@@ -168,9 +149,7 @@ export class DevicePoolService {
     }
 
     if (device.poolStatus !== DevicePoolStatus.ALLOCATED) {
-      this.logger.warn(
-        `Device ${deviceId} is not allocated, status: ${device.poolStatus}`,
-      );
+      this.logger.warn(`Device ${deviceId} is not allocated, status: ${device.poolStatus}`);
       return;
     }
 
@@ -204,9 +183,7 @@ export class DevicePoolService {
    */
   async getAvailableDevices(): Promise<PooledDevice[]> {
     const allDevices = await this.getAllDevices();
-    return allDevices.filter(
-      (d) => d.poolStatus === DevicePoolStatus.AVAILABLE,
-    );
+    return allDevices.filter((d) => d.poolStatus === DevicePoolStatus.AVAILABLE);
   }
 
   /**
@@ -219,8 +196,7 @@ export class DevicePoolService {
    */
   async getAllDevices(): Promise<PooledDevice[]> {
     // 从设备 ID 列表获取所有设备
-    const deviceIds =
-      (await this.cacheService.get<string[]>("physical_device:index")) || [];
+    const deviceIds = (await this.cacheService.get<string[]>('physical_device:index')) || [];
 
     const devices: PooledDevice[] = [];
 
@@ -266,34 +242,30 @@ export class DevicePoolService {
       try {
         bootOutput = await this.adbService.executeShellCommand(
           deviceId,
-          "getprop sys.boot_completed",
-          3000,
+          'getprop sys.boot_completed',
+          3000
         );
         result.checks.adbConnected = true;
-        result.checks.androidBooted = bootOutput.trim() === "1";
+        result.checks.androidBooted = bootOutput.trim() === '1';
       } catch (error) {
         // ADB 命令失败，说明未连接
         result.checks.adbConnected = false;
         result.checks.androidBooted = false;
         result.healthy = false;
         result.healthScore -= 50;
-        result.errorMessage = "ADB not connected";
+        result.errorMessage = 'ADB not connected';
         return result;
       }
 
       if (!result.checks.androidBooted) {
         result.healthy = false;
         result.healthScore -= 30;
-        result.errorMessage = "Android not booted";
+        result.errorMessage = 'Android not booted';
         return result;
       }
 
       // 3. 检查存储空间
-      const dfOutput = await this.adbService.executeShellCommand(
-        deviceId,
-        "df /data",
-        3000,
-      );
+      const dfOutput = await this.adbService.executeShellCommand(deviceId, 'df /data', 3000);
       const storageMatch = dfOutput.match(/(\d+)%/);
       if (storageMatch) {
         const usagePercent = parseInt(storageMatch[1], 10);
@@ -308,8 +280,8 @@ export class DevicePoolService {
       try {
         const batteryOutput = await this.adbService.executeShellCommand(
           deviceId,
-          "dumpsys battery | grep level",
-          3000,
+          'dumpsys battery | grep level',
+          3000
         );
         const batteryMatch = batteryOutput.match(/level: (\d+)/);
         if (batteryMatch) {
@@ -327,8 +299,8 @@ export class DevicePoolService {
       try {
         const tempOutput = await this.adbService.executeShellCommand(
           deviceId,
-          "dumpsys battery | grep temperature",
-          3000,
+          'dumpsys battery | grep temperature',
+          3000
         );
         const tempMatch = tempOutput.match(/temperature: (\d+)/);
         if (tempMatch) {
@@ -336,7 +308,7 @@ export class DevicePoolService {
 
           if (result.checks.temperature > 45) {
             result.healthScore -= 15;
-            result.errorMessage = "High temperature";
+            result.errorMessage = 'High temperature';
           }
         }
       } catch (error) {
@@ -349,7 +321,7 @@ export class DevicePoolService {
 
       if (result.healthScore < 30) {
         device.poolStatus = DevicePoolStatus.ERROR;
-        device.errorMessage = result.errorMessage || "Low health score";
+        device.errorMessage = result.errorMessage || 'Low health score';
       }
 
       await this.saveDevice(device);
@@ -373,10 +345,7 @@ export class DevicePoolService {
    * @param deviceId 设备 ID
    * @param status 新状态
    */
-  async updateDeviceStatus(
-    deviceId: string,
-    status: DevicePoolStatus,
-  ): Promise<void> {
+  async updateDeviceStatus(deviceId: string, status: DevicePoolStatus): Promise<void> {
     const device = await this.getDevice(deviceId);
     if (!device) {
       throw new NotFoundException(`Device ${deviceId} not found in pool`);
@@ -410,7 +379,7 @@ export class DevicePoolService {
    */
   private filterDevicesByRequirements(
     devices: PooledDevice[],
-    requirements: DeviceAllocationRequest["requirements"],
+    requirements: DeviceAllocationRequest['requirements']
   ): PooledDevice[] {
     if (!requirements) {
       return devices;
@@ -418,27 +387,19 @@ export class DevicePoolService {
 
     return devices.filter((device) => {
       // 健康评分
-      if (
-        requirements!.minHealthScore &&
-        device.healthScore < requirements!.minHealthScore
-      ) {
+      if (requirements!.minHealthScore && device.healthScore < requirements!.minHealthScore) {
         return false;
       }
 
       // 设备分组
-      if (
-        requirements!.deviceGroup &&
-        device.deviceGroup !== requirements!.deviceGroup
-      ) {
+      if (requirements!.deviceGroup && device.deviceGroup !== requirements!.deviceGroup) {
         return false;
       }
 
       // 设备标签
       if (requirements!.tags && requirements!.tags.length > 0) {
         const deviceTags = device.tags || [];
-        const hasAllTags = requirements!.tags.every((tag) =>
-          deviceTags.includes(tag),
-        );
+        const hasAllTags = requirements!.tags.every((tag) => deviceTags.includes(tag));
         if (!hasAllTags) {
           return false;
         }
@@ -463,10 +424,7 @@ export class DevicePoolService {
    * 1. 优先选择用户指定的设备（亲和性）
    * 2. 选择健康评分最高的设备
    */
-  private selectBestDevice(
-    devices: PooledDevice[],
-    preferredDeviceId?: string,
-  ): PooledDevice {
+  private selectBestDevice(devices: PooledDevice[], preferredDeviceId?: string): PooledDevice {
     // 用户指定设备
     if (preferredDeviceId) {
       const preferred = devices.find((d) => d.id === preferredDeviceId);
@@ -485,11 +443,10 @@ export class DevicePoolService {
    * 添加设备 ID 到索引
    */
   private async addToIndex(deviceId: string): Promise<void> {
-    const index =
-      (await this.cacheService.get<string[]>("physical_device:index")) || [];
+    const index = (await this.cacheService.get<string[]>('physical_device:index')) || [];
     if (!index.includes(deviceId)) {
       index.push(deviceId);
-      await this.cacheService.set("physical_device:index", index, 0); // 永久存储
+      await this.cacheService.set('physical_device:index', index, 0); // 永久存储
     }
   }
 
@@ -497,9 +454,8 @@ export class DevicePoolService {
    * 从索引中移除设备 ID
    */
   private async removeFromIndex(deviceId: string): Promise<void> {
-    const index =
-      (await this.cacheService.get<string[]>("physical_device:index")) || [];
+    const index = (await this.cacheService.get<string[]>('physical_device:index')) || [];
     const newIndex = index.filter((id) => id !== deviceId);
-    await this.cacheService.set("physical_device:index", newIndex, 0);
+    await this.cacheService.set('physical_device:index', newIndex, 0);
   }
 }

@@ -3,7 +3,11 @@ import { INestApplication, NotFoundException, BadRequestException } from '@nestj
 import * as request from 'supertest';
 import { QuotasController } from './quotas.controller';
 import { QuotasService } from './quotas.service';
-import { createTestApp, generateTestJwt, assertHttpResponse } from '@cloudphone/shared/testing/test-helpers';
+import {
+  createTestApp,
+  generateTestJwt,
+  assertHttpResponse,
+} from '@cloudphone/shared/testing/test-helpers';
 import { createMockQuota } from '@cloudphone/shared/testing/mock-factories';
 import { QuotaType } from '../entities/quota.entity';
 
@@ -35,9 +39,7 @@ describe('QuotasController', () => {
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       controllers: [QuotasController],
-      providers: [
-        { provide: QuotasService, useValue: mockQuotasService },
-      ],
+      providers: [{ provide: QuotasService, useValue: mockQuotasService }],
     }).compile();
 
     app = await createTestApp(moduleRef);
@@ -102,10 +104,7 @@ describe('QuotasController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .post('/quotas')
-        .send(createQuotaDto)
-        .expect(401);
+      await request(app.getHttpServer()).post('/quotas').send(createQuotaDto).expect(401);
     });
 
     it('should return 400 when user already has active quota', async () => {
@@ -203,9 +202,7 @@ describe('QuotasController', () => {
 
     it('should return 404 when quota not found', async () => {
       // Arrange
-      mockQuotasService.getUserQuota.mockRejectedValue(
-        new NotFoundException('Quota not found')
-      );
+      mockQuotasService.getUserQuota.mockRejectedValue(new NotFoundException('Quota not found'));
       const token = createAuthToken();
 
       // Act
@@ -217,9 +214,7 @@ describe('QuotasController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/quotas/user/user-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/quotas/user/user-123').expect(401);
     });
 
     it('should include usage percentage in response', async () => {
@@ -388,9 +383,7 @@ describe('QuotasController', () => {
 
     it('should return 404 when quota not found', async () => {
       // Arrange
-      mockQuotasService.deductQuota.mockRejectedValue(
-        new NotFoundException('Quota not found')
-      );
+      mockQuotasService.deductQuota.mockRejectedValue(new NotFoundException('Quota not found'));
       const token = createAuthToken();
 
       // Act
@@ -545,9 +538,7 @@ describe('QuotasController', () => {
 
     it('should return 404 when quota not found', async () => {
       // Arrange
-      mockQuotasService.updateQuota.mockRejectedValue(
-        new NotFoundException('Quota not found')
-      );
+      mockQuotasService.updateQuota.mockRejectedValue(new NotFoundException('Quota not found'));
       const token = createAuthToken(['admin']);
 
       // Act
@@ -715,9 +706,7 @@ describe('QuotasController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/quotas/usage-stats/user-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/quotas/usage-stats/user-123').expect(401);
     });
   });
 

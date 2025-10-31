@@ -1,19 +1,22 @@
-import { Injectable, Logger, Optional, HttpStatus, Inject, BadRequestException } from "@nestjs/common";
-import { InjectRepository, InjectDataSource } from "@nestjs/typeorm";
-import { Repository, DataSource, FindOptionsWhere } from "typeorm";
-import { ConfigService } from "@nestjs/config";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import { ModuleRef } from "@nestjs/core";
 import {
-  Device,
-  DeviceStatus,
-  DeviceProviderType,
-} from "../entities/device.entity";
-import { DockerService, RedroidConfig } from "../docker/docker.service";
-import { AdbService } from "../adb/adb.service";
-import { PortManagerService } from "../port-manager/port-manager.service";
-import { CreateDeviceDto } from "./dto/create-device.dto";
-import { UpdateDeviceDto } from "./dto/update-device.dto";
+  Injectable,
+  Logger,
+  Optional,
+  HttpStatus,
+  Inject,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource, FindOptionsWhere } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { ModuleRef } from '@nestjs/core';
+import { Device, DeviceStatus, DeviceProviderType } from '../entities/device.entity';
+import { DockerService, RedroidConfig } from '../docker/docker.service';
+import { AdbService } from '../adb/adb.service';
+import { PortManagerService } from '../port-manager/port-manager.service';
+import { CreateDeviceDto } from './dto/create-device.dto';
+import { UpdateDeviceDto } from './dto/update-device.dto';
 import {
   EventBusService,
   EventOutboxService,
@@ -27,18 +30,18 @@ import {
   CursorPagination,
   CursorPaginationDto,
   CursorPaginatedResponse,
-} from "@cloudphone/shared";
-import { QuotaClientService } from "../quota/quota-client.service";
-import { CacheService } from "../cache/cache.service";
-import { CacheKeys, CacheTTL } from "../cache/cache-keys";
-import { DeviceProviderFactory } from "../providers/device-provider.factory";
+} from '@cloudphone/shared';
+import { QuotaClientService } from '../quota/quota-client.service';
+import { CacheService } from '../cache/cache.service';
+import { CacheKeys, CacheTTL } from '../cache/cache-keys';
+import { DeviceProviderFactory } from '../providers/device-provider.factory';
 import {
   DeviceCreateConfig,
   DeviceProviderStatus,
   DeviceMetrics,
-} from "../providers/provider.types";
-import { IDeviceProvider } from "../providers/device-provider.interface";
-import { ScrcpyVideoCodec } from "../scrcpy/scrcpy.types";
+} from '../providers/provider.types';
+import { IDeviceProvider } from '../providers/device-provider.interface';
+import { ScrcpyVideoCodec } from '../scrcpy/scrcpy.types';
 
 /**
  * 设备创建 Saga State 接口
@@ -95,7 +98,7 @@ export class DevicesService {
     private moduleRef: ModuleRef, // ✅ 用于延迟获取服务
     private sagaOrchestrator: SagaOrchestratorService,
     @InjectDataSource()
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
   // ✅ 延迟获取 DevicePoolService 和 ScrcpyService (避免循环依赖)
@@ -153,7 +156,7 @@ export class DevicesService {
             const ports = await this.portManager.allocatePorts();
 
             this.logger.log(
-              `[SAGA] Ports allocated: ADB=${ports.adbPort}, WebRTC=${ports.webrtcPort}`,
+              `[SAGA] Ports allocated: ADB=${ports.adbPort}, WebRTC=${ports.webrtcPort}`
             );
 
             return { portsAllocated: true, ports };
@@ -182,18 +185,18 @@ export class DevicesService {
 
             const providerConfig: DeviceCreateConfig = {
               name: `cloudphone-${createDeviceDto.name}`,
-              userId: createDeviceDto.userId!,  // ✅ Guaranteed by validation
+              userId: createDeviceDto.userId!, // ✅ Guaranteed by validation
               cpuCores: createDeviceDto.cpuCores || 2,
               memoryMB: createDeviceDto.memoryMB || 4096,
               storageMB: createDeviceDto.storageMB || 10240,
-              resolution: createDeviceDto.resolution || "1920x1080",
+              resolution: createDeviceDto.resolution || '1920x1080',
               dpi: createDeviceDto.dpi || 240,
-              androidVersion: createDeviceDto.androidVersion || "11",
-              deviceType: createDeviceDto.type === "tablet" ? "tablet" : "phone",
+              androidVersion: createDeviceDto.androidVersion || '11',
+              deviceType: createDeviceDto.type === 'tablet' ? 'tablet' : 'phone',
               // Redroid 特定配置
               adbPort: state.ports?.adbPort,
-              enableGpu: this.configService.get("REDROID_ENABLE_GPU", "false") === "true",
-              enableAudio: this.configService.get("REDROID_ENABLE_AUDIO", "false") === "true",
+              enableGpu: this.configService.get('REDROID_ENABLE_GPU', 'false') === 'true',
+              enableAudio: this.configService.get('REDROID_ENABLE_AUDIO', 'false') === 'true',
               // Provider 特定配置
               providerSpecificConfig: createDeviceDto.providerSpecificConfig,
             };
@@ -201,7 +204,7 @@ export class DevicesService {
             const providerDevice = await provider.create(providerConfig);
 
             this.logger.log(
-              `[SAGA] Provider device created: ${providerDevice.id} (status: ${providerDevice.status})`,
+              `[SAGA] Provider device created: ${providerDevice.id} (status: ${providerDevice.status})`
             );
 
             return { providerDevice };
@@ -212,7 +215,7 @@ export class DevicesService {
             }
 
             this.logger.warn(
-              `[SAGA] Compensate: Destroying provider device ${state.providerDevice.id}`,
+              `[SAGA] Compensate: Destroying provider device ${state.providerDevice.id}`
             );
 
             try {
@@ -230,7 +233,7 @@ export class DevicesService {
             } catch (error) {
               this.logger.error(
                 `[SAGA] Failed to destroy provider device ${state.providerDevice.id}`,
-                error.stack,
+                error.stack
               );
             }
           },
@@ -254,23 +257,22 @@ export class DevicesService {
                 providerType,
                 externalId: state.providerDevice!.id,
                 connectionInfo: state.providerDevice!.connectionInfo as Record<string, unknown>,
-                providerConfig: (state.providerDevice as Record<string, unknown>).providerConfig as Record<string, unknown>,
+                providerConfig: (state.providerDevice as Record<string, unknown>)
+                  .providerConfig as Record<string, unknown>,
                 status: DeviceStatus.CREATING, // 初始状态 CREATING
                 // Redroid 兼容字段
                 containerId:
-                  providerType === DeviceProviderType.REDROID
-                    ? state.providerDevice!.id
-                    : null,
+                  providerType === DeviceProviderType.REDROID ? state.providerDevice!.id : null,
                 containerName:
                   providerType === DeviceProviderType.REDROID
-                    ? (state.providerDevice as Record<string, unknown>).name as string
+                    ? ((state.providerDevice as Record<string, unknown>).name as string)
                     : null,
                 adbPort: state.providerDevice!.connectionInfo?.adb?.port || null,
                 adbHost: state.providerDevice!.connectionInfo?.adb?.host || null,
                 metadata: {
                   ...createDeviceDto.metadata,
                   webrtcPort: state.ports?.webrtcPort,
-                  createdBy: "system",
+                  createdBy: 'system',
                 },
               });
 
@@ -292,7 +294,7 @@ export class DevicesService {
                     providerType: savedDevice.providerType,
                     sagaId,
                     timestamp: new Date().toISOString(),
-                  },
+                  }
                 );
                 this.logger.debug(`[SAGA] Event written to outbox: device.created`);
               }
@@ -332,7 +334,7 @@ export class DevicesService {
               await queryRunner.rollbackTransaction();
               this.logger.error(
                 `[SAGA] Failed to delete database record ${state.deviceId}`,
-                error.stack,
+                error.stack
               );
             } finally {
               await queryRunner.release();
@@ -351,12 +353,13 @@ export class DevicesService {
 
             this.logger.log(`[SAGA] Step 4: Reporting quota usage`);
 
-            await this.quotaClient.reportDeviceUsage(createDeviceDto.userId!, {  // ✅ Guaranteed by validation
-              deviceId: state.deviceId!,  // ✅ Guaranteed by step 3
+            await this.quotaClient.reportDeviceUsage(createDeviceDto.userId!, {
+              // ✅ Guaranteed by validation
+              deviceId: state.deviceId!, // ✅ Guaranteed by step 3
               cpuCores: createDeviceDto.cpuCores || 2,
               memoryGB: (createDeviceDto.memoryMB || 4096) / 1024,
               storageGB: (createDeviceDto.storageMB || 10240) / 1024,
-              operation: "increment",
+              operation: 'increment',
             });
 
             this.logger.log(`[SAGA] Quota usage reported`);
@@ -371,12 +374,13 @@ export class DevicesService {
             this.logger.warn(`[SAGA] Compensate: Rolling back quota usage`);
 
             try {
-              await this.quotaClient.reportDeviceUsage(createDeviceDto.userId!, {  // ✅ Guaranteed by validation
-                deviceId: state.deviceId!,  // ✅ Should exist if we're compensating
+              await this.quotaClient.reportDeviceUsage(createDeviceDto.userId!, {
+                // ✅ Guaranteed by validation
+                deviceId: state.deviceId!, // ✅ Should exist if we're compensating
                 cpuCores: createDeviceDto.cpuCores || 2,
                 memoryGB: (createDeviceDto.memoryMB || 4096) / 1024,
                 storageGB: (createDeviceDto.storageMB || 10240) / 1024,
-                operation: "decrement",
+                operation: 'decrement',
               });
 
               this.logger.log(`[SAGA] Quota usage rolled back`);
@@ -408,10 +412,7 @@ export class DevicesService {
               if (providerType === DeviceProviderType.REDROID) {
                 // Redroid: 异步启动容器
                 this.startDeviceAsync(device, provider).catch(async (error) => {
-                  this.logger.error(
-                    `Failed to start device ${device.id}`,
-                    error.stack,
-                  );
+                  this.logger.error(`Failed to start device ${device.id}`, error.stack);
                   await this.updateDeviceStatus(device.id, DeviceStatus.ERROR);
                 });
               } else if (providerType === DeviceProviderType.PHYSICAL) {
@@ -419,7 +420,7 @@ export class DevicesService {
                 this.startPhysicalDeviceAsync(device).catch(async (error) => {
                   this.logger.error(
                     `Failed to start SCRCPY for physical device ${device.id}`,
-                    error.stack,
+                    error.stack
                   );
                   await this.updateDeviceStatus(device.id, DeviceStatus.ERROR);
                 });
@@ -468,10 +469,7 @@ export class DevicesService {
                 status: DeviceStatus.STOPPED,
               });
             } catch (error) {
-              this.logger.error(
-                `[SAGA] Failed to stop device ${state.deviceId}`,
-                error.stack,
-              );
+              this.logger.error(`[SAGA] Failed to stop device ${state.deviceId}`, error.stack);
             }
           },
         } as SagaStep,
@@ -539,18 +537,14 @@ export class DevicesService {
       if (!device.externalId) {
         throw new BusinessException(
           BusinessErrorCode.DEVICE_START_FAILED,
-          `Device ${device.id} has no externalId`,
+          `Device ${device.id} has no externalId`
         );
       }
       await provider.start(device.externalId);
 
       // 等待 ADB 连接
       if (device.adbHost && device.adbPort) {
-        await this.adbService.connectToDevice(
-          device.id,
-          device.adbHost,
-          device.adbPort,
-        );
+        await this.adbService.connectToDevice(device.id, device.adbHost, device.adbPort);
 
         // 等待 Android 启动
         await this.waitForAndroidBoot(device.id, 60);
@@ -580,11 +574,7 @@ export class DevicesService {
 
       // 1. 建立 ADB 连接
       if (device.adbHost && device.adbPort) {
-        await this.adbService.connectToDevice(
-          device.id,
-          device.adbHost,
-          device.adbPort,
-        );
+        await this.adbService.connectToDevice(device.id, device.adbHost, device.adbPort);
         this.logger.debug(`ADB connected to ${device.adbHost}:${device.adbPort}`);
       }
 
@@ -608,7 +598,7 @@ export class DevicesService {
           videoUrl: session.videoUrl,
           audioUrl: session.audioUrl,
           controlUrl: session.controlUrl,
-        }
+        },
       };
 
       // 4. 更新状态为运行中
@@ -626,9 +616,7 @@ export class DevicesService {
   /**
    * 映射 Provider 状态到 Device 状态
    */
-  private mapProviderStatusToDeviceStatus(
-    providerStatus: DeviceProviderStatus,
-  ): DeviceStatus {
+  private mapProviderStatusToDeviceStatus(providerStatus: DeviceProviderStatus): DeviceStatus {
     switch (providerStatus) {
       case DeviceProviderStatus.CREATING:
         return DeviceStatus.CREATING;
@@ -658,7 +646,7 @@ export class DevicesService {
       if (!device.adbPort) {
         throw new BusinessException(
           BusinessErrorCode.DEVICE_START_FAILED,
-          `Redroid device ${device.id} has no adbPort assigned`,
+          `Redroid device ${device.id} has no adbPort assigned`
         );
       }
 
@@ -673,10 +661,8 @@ export class DevicesService {
         adbPort: device.adbPort,
         webrtcPort: device.metadata?.webrtcPort,
         androidVersion: device.androidVersion,
-        enableGpu:
-          this.configService.get("REDROID_ENABLE_GPU", "false") === "true",
-        enableAudio:
-          this.configService.get("REDROID_ENABLE_AUDIO", "false") === "true",
+        enableGpu: this.configService.get('REDROID_ENABLE_GPU', 'false') === 'true',
+        enableAudio: this.configService.get('REDROID_ENABLE_AUDIO', 'false') === 'true',
       };
 
       // 创建容器
@@ -697,15 +683,11 @@ export class DevicesService {
       if (!device.adbHost || !device.adbPort) {
         throw new BusinessException(
           BusinessErrorCode.DEVICE_START_FAILED,
-          `Device ${device.id} missing ADB connection info (host: ${device.adbHost}, port: ${device.adbPort})`,
+          `Device ${device.id} missing ADB connection info (host: ${device.adbHost}, port: ${device.adbPort})`
         );
       }
 
-      await this.adbService.connectToDevice(
-        device.id,
-        device.adbHost,
-        device.adbPort,
-      );
+      await this.adbService.connectToDevice(device.id, device.adbHost, device.adbPort);
 
       // 等待 Android 启动完成
       await this.waitForAndroidBoot(device.id, 60); // 最多等待60秒
@@ -720,10 +702,7 @@ export class DevicesService {
       await this.devicesRepository.save(device);
       this.logger.log(`Device ${device.id} created successfully`);
     } catch (error) {
-      this.logger.error(
-        `Failed to create Redroid container for device ${device.id}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to create Redroid container for device ${device.id}`, error.stack);
       throw error;
     }
   }
@@ -731,10 +710,7 @@ export class DevicesService {
   /**
    * 等待容器就绪
    */
-  private async waitForContainerReady(
-    containerId: string,
-    maxWaitSeconds: number,
-  ): Promise<void> {
+  private async waitForContainerReady(containerId: string, maxWaitSeconds: number): Promise<void> {
     const startTime = Date.now();
     const maxWaitMs = maxWaitSeconds * 1000;
 
@@ -754,18 +730,13 @@ export class DevicesService {
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
-    throw new Error(
-      `Container ${containerId} failed to start within ${maxWaitSeconds}s`,
-    );
+    throw new Error(`Container ${containerId} failed to start within ${maxWaitSeconds}s`);
   }
 
   /**
    * 等待 Android 启动完成
    */
-  private async waitForAndroidBoot(
-    deviceId: string,
-    maxWaitSeconds: number,
-  ): Promise<void> {
+  private async waitForAndroidBoot(deviceId: string, maxWaitSeconds: number): Promise<void> {
     const startTime = Date.now();
     const maxWaitMs = maxWaitSeconds * 1000;
 
@@ -773,11 +744,11 @@ export class DevicesService {
       try {
         const output = await this.adbService.executeShellCommand(
           deviceId,
-          "getprop sys.boot_completed",
-          3000,
+          'getprop sys.boot_completed',
+          3000
         );
 
-        if (output.trim() === "1") {
+        if (output.trim() === '1') {
           this.logger.debug(`Android boot completed for device ${deviceId}`);
           return;
         }
@@ -789,9 +760,7 @@ export class DevicesService {
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
-    throw new Error(
-      `Android failed to boot within ${maxWaitSeconds}s for device ${deviceId}`,
-    );
+    throw new Error(`Android failed to boot within ${maxWaitSeconds}s for device ${deviceId}`);
   }
 
   /**
@@ -804,16 +773,16 @@ export class DevicesService {
       // 设置设备属性
       const commands = [
         // 禁用屏幕休眠
-        "settings put system screen_off_timeout 2147483647",
+        'settings put system screen_off_timeout 2147483647',
 
         // 禁用屏幕锁定
-        "settings put secure lockscreen.disabled 1",
+        'settings put secure lockscreen.disabled 1',
 
         // 设置默认输入法（如果需要）
         // 'ime set com.android.adbkeyboard/.AdbIME',
 
         // 禁用系统更新
-        "pm disable com.android.vending",
+        'pm disable com.android.vending',
       ];
 
       for (const command of commands) {
@@ -836,13 +805,13 @@ export class DevicesService {
    * 获取 Redroid 镜像标签
    */
   private getRedroidImageTag(androidVersion?: string): string {
-    const version = androidVersion || "11";
+    const version = androidVersion || '11';
     const imageMap: Record<string, string> = {
-      "11": "redroid/redroid:11.0.0-latest",
-      "12": "redroid/redroid:12.0.0-latest",
-      "13": "redroid/redroid:13.0.0-latest",
+      '11': 'redroid/redroid:11.0.0-latest',
+      '12': 'redroid/redroid:12.0.0-latest',
+      '13': 'redroid/redroid:13.0.0-latest',
     };
-    return imageMap[version] || imageMap["11"];
+    return imageMap[version] || imageMap['11'];
   }
 
   async findAll(
@@ -850,7 +819,7 @@ export class DevicesService {
     limit: number = 10,
     userId?: string,
     tenantId?: string,
-    status?: DeviceStatus,
+    status?: DeviceStatus
   ): Promise<{ data: Device[]; total: number; page: number; limit: number }> {
     // 生成缓存键
     let cacheKey: string | undefined;
@@ -868,7 +837,7 @@ export class DevicesService {
       return this.cacheService.wrap(
         cacheKey,
         async () => this.queryDeviceList(page, limit, userId, tenantId, status),
-        CacheTTL.DEVICE_LIST, // 1 分钟 TTL
+        CacheTTL.DEVICE_LIST // 1 分钟 TTL
       );
     }
 
@@ -882,7 +851,7 @@ export class DevicesService {
     limit: number,
     userId?: string,
     tenantId?: string,
-    status?: DeviceStatus,
+    status?: DeviceStatus
   ): Promise<{ data: Device[]; total: number; page: number; limit: number }> {
     const skip = (page - 1) * limit;
 
@@ -895,7 +864,7 @@ export class DevicesService {
       where,
       skip,
       take: limit,
-      order: { createdAt: "DESC" },
+      order: { createdAt: 'DESC' },
     });
 
     return { data, total, page, limit };
@@ -926,7 +895,7 @@ export class DevicesService {
     dto: CursorPaginationDto,
     userId?: string,
     tenantId?: string,
-    status?: DeviceStatus,
+    status?: DeviceStatus
   ): Promise<CursorPaginatedResponse<Device>> {
     const { cursor, limit = 20 } = dto;
 
@@ -952,8 +921,7 @@ export class DevicesService {
     }
 
     // Order by createdAt DESC and fetch limit + 1 to check if there's more
-    qb.orderBy('device.createdAt', 'DESC')
-      .limit(limit + 1);
+    qb.orderBy('device.createdAt', 'DESC').limit(limit + 1);
 
     const devices = await qb.getMany();
 
@@ -974,7 +942,7 @@ export class DevicesService {
 
         return device;
       },
-      CacheTTL.DEVICE, // 5 分钟 TTL
+      CacheTTL.DEVICE // 5 分钟 TTL
     );
   }
 
@@ -1006,13 +974,10 @@ export class DevicesService {
           cpuCores: device.cpuCores,
           memoryGB: device.memoryMB / 1024,
           storageGB: device.storageMB / 1024,
-          operation: "decrement",
+          operation: 'decrement',
         })
         .catch((error) => {
-          this.logger.warn(
-            `Failed to report usage decrease for device ${id}`,
-            error.message,
-          );
+          this.logger.warn(`Failed to report usage decrease for device ${id}`, error.message);
         });
     }
 
@@ -1021,10 +986,7 @@ export class DevicesService {
       try {
         await this.adbService.disconnectFromDevice(id);
       } catch (error) {
-        this.logger.warn(
-          `Failed to disconnect ADB for device ${id}`,
-          error.message,
-        );
+        this.logger.warn(`Failed to disconnect ADB for device ${id}`, error.message);
       }
     }
 
@@ -1043,7 +1005,7 @@ export class DevicesService {
       } catch (error) {
         this.logger.warn(
           `Failed to release physical device ${device.externalId} back to pool`,
-          error.message,
+          error.message
         );
       }
     }
@@ -1053,10 +1015,7 @@ export class DevicesService {
         await provider.destroy(device.externalId);
         this.logger.debug(`Provider destroyed device: ${device.externalId}`);
       } catch (error) {
-        this.logger.warn(
-          `Failed to destroy device via provider ${id}`,
-          error.message,
-        );
+        this.logger.warn(`Failed to destroy device via provider ${id}`, error.message);
       }
     }
 
@@ -1066,7 +1025,7 @@ export class DevicesService {
       (device.adbPort || device.metadata?.webrtcPort)
     ) {
       this.portManager.releasePorts({
-        adbPort: device.adbPort ?? undefined,  // Convert null to undefined
+        adbPort: device.adbPort ?? undefined, // Convert null to undefined
         webrtcPort: device.metadata?.webrtcPort,
       });
       this.logger.debug(`Released ports for device ${id}`);
@@ -1084,20 +1043,14 @@ export class DevicesService {
 
       // ✅ 在同一事务内写入事件到 Outbox
       if (this.eventOutboxService) {
-        await this.eventOutboxService.writeEvent(
-          queryRunner,
-          'device',
-          id,
-          'device.deleted',
-          {
-            deviceId: id,
-            userId: device.userId,
-            deviceName: device.name,
-            tenantId: device.tenantId,
-            providerType: device.providerType,
-            timestamp: new Date().toISOString(),
-          },
-        );
+        await this.eventOutboxService.writeEvent(queryRunner, 'device', id, 'device.deleted', {
+          deviceId: id,
+          userId: device.userId,
+          deviceName: device.name,
+          tenantId: device.tenantId,
+          providerType: device.providerType,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       await queryRunner.commitTransaction();
@@ -1130,20 +1083,15 @@ export class DevicesService {
         return;
       }
 
-      this.logger.debug(
-        `Performing health check on ${runningDevices.length} devices`,
-      );
+      this.logger.debug(`Performing health check on ${runningDevices.length} devices`);
 
       for (const device of runningDevices) {
         this.checkDeviceHealth(device).catch((error) => {
-          this.logger.error(
-            `Health check failed for device ${device.id}`,
-            error.stack,
-          );
+          this.logger.error(`Health check failed for device ${device.id}`, error.stack);
         });
       }
     } catch (error) {
-      this.logger.error("Health check task failed", error.stack);
+      this.logger.error('Health check task failed', error.stack);
     }
   }
 
@@ -1166,7 +1114,7 @@ export class DevicesService {
 
         if (!healthResult.healthy) {
           this.logger.warn(
-            `Physical device ${device.id} is unhealthy. Score: ${healthResult.healthScore}, Checks: ${JSON.stringify(healthResult.checks)}`,
+            `Physical device ${device.id} is unhealthy. Score: ${healthResult.healthScore}, Checks: ${JSON.stringify(healthResult.checks)}`
           );
           await this.handleUnhealthyDevice(device, {
             container: true, // 物理设备没有容器
@@ -1178,10 +1126,7 @@ export class DevicesService {
           await this.updateHeartbeat(device.id);
         }
       } catch (error) {
-        this.logger.error(
-          `Health check failed for physical device ${device.id}`,
-          error.stack,
-        );
+        this.logger.error(`Health check failed for physical device ${device.id}`, error.stack);
       }
       return;
     }
@@ -1196,11 +1141,8 @@ export class DevicesService {
     // 1. 检查容器状态（仅 Redroid）
     if (device.providerType === DeviceProviderType.REDROID && device.containerId) {
       try {
-        const info = await this.dockerService.getContainerInfo(
-          device.containerId,
-        );
-        checks.container =
-          info.State.Running && info.State.Health?.Status !== "unhealthy";
+        const info = await this.dockerService.getContainerInfo(device.containerId);
+        checks.container = info.State.Running && info.State.Health?.Status !== 'unhealthy';
       } catch (error) {
         this.logger.warn(`Container check failed for device ${device.id}`);
       }
@@ -1211,12 +1153,8 @@ export class DevicesService {
 
     // 2. 检查 ADB 连接
     try {
-      const devices = await this.adbService.executeShellCommand(
-        device.id,
-        "echo test",
-        3000,
-      );
-      checks.adb = devices.includes("test");
+      const devices = await this.adbService.executeShellCommand(device.id, 'echo test', 3000);
+      checks.adb = devices.includes('test');
     } catch (error) {
       this.logger.warn(`ADB check failed for device ${device.id}`);
     }
@@ -1225,10 +1163,10 @@ export class DevicesService {
     try {
       const output = await this.adbService.executeShellCommand(
         device.id,
-        "getprop sys.boot_completed",
-        3000,
+        'getprop sys.boot_completed',
+        3000
       );
-      checks.android = output.trim() === "1";
+      checks.android = output.trim() === '1';
     } catch (error) {
       this.logger.warn(`Android check failed for device ${device.id}`);
     }
@@ -1237,9 +1175,7 @@ export class DevicesService {
     const isHealthy = checks.container && checks.adb && checks.android;
 
     if (!isHealthy) {
-      this.logger.warn(
-        `Device ${device.id} is unhealthy. Checks: ${JSON.stringify(checks)}`,
-      );
+      this.logger.warn(`Device ${device.id} is unhealthy. Checks: ${JSON.stringify(checks)}`);
       await this.handleUnhealthyDevice(device, checks);
     } else {
       // 更新心跳
@@ -1252,7 +1188,7 @@ export class DevicesService {
    */
   private async handleUnhealthyDevice(
     device: Device,
-    checks: { container: boolean; adb: boolean; android: boolean },
+    checks: { container: boolean; adb: boolean; android: boolean }
   ): Promise<void> {
     this.logger.warn(`Attempting to recover device ${device.id}`);
 
@@ -1267,28 +1203,20 @@ export class DevicesService {
       // 如果 ADB 未连接，尝试重新连接
       if (!checks.adb && device.adbHost && device.adbPort) {
         this.logger.log(`Reconnecting ADB for device ${device.id}`);
-        await this.adbService.connectToDevice(
-          device.id,
-          device.adbHost,
-          device.adbPort,
-        );
+        await this.adbService.connectToDevice(device.id, device.adbHost, device.adbPort);
         await this.waitForAndroidBoot(device.id, 30);
       }
 
       // 再次检查
-      const recheckOutput = await this.adbService.executeShellCommand(
-        device.id,
-        "echo test",
-        3000,
-      );
+      const recheckOutput = await this.adbService.executeShellCommand(device.id, 'echo test', 3000);
 
-      if (recheckOutput.includes("test")) {
+      if (recheckOutput.includes('test')) {
         this.logger.log(`Device ${device.id} recovered successfully`);
         device.status = DeviceStatus.RUNNING;
         device.lastActiveAt = new Date();
         await this.devicesRepository.save(device);
       } else {
-        throw new Error("Recovery check failed");
+        throw new Error('Recovery check failed');
       }
     } catch (error) {
       this.logger.error(`Failed to recover device ${device.id}`, error.stack);
@@ -1305,9 +1233,7 @@ export class DevicesService {
   async start(id: string): Promise<Device> {
     const device = await this.findOne(id);
 
-    this.logger.log(
-      `Starting device ${id} (Provider: ${device.providerType})`,
-    );
+    this.logger.log(`Starting device ${id} (Provider: ${device.providerType})`);
 
     // 获取 Provider
     const provider = this.providerFactory.getProvider(device.providerType);
@@ -1316,14 +1242,9 @@ export class DevicesService {
     if (device.externalId) {
       try {
         await provider.start(device.externalId);
-        this.logger.debug(
-          `Provider started device: ${device.externalId}`,
-        );
+        this.logger.debug(`Provider started device: ${device.externalId}`);
       } catch (error) {
-        this.logger.error(
-          `Failed to start device via provider ${id}`,
-          error.stack,
-        );
+        this.logger.error(`Failed to start device via provider ${id}`, error.stack);
 
         // 发布严重错误事件（设备启动失败）
         if (this.eventBus) {
@@ -1385,7 +1306,7 @@ export class DevicesService {
             ],
             documentationUrl: 'https://docs.cloudphone.com/troubleshooting/device-start-failed',
             retryable: true,
-          },
+          }
         );
       }
     }
@@ -1396,14 +1317,11 @@ export class DevicesService {
         await this.startPhysicalDeviceAsync(device);
         this.logger.log(`SCRCPY session started for physical device ${device.id}`);
       } catch (error) {
-        this.logger.error(
-          `Failed to start SCRCPY session for device ${id}`,
-          error.stack,
-        );
+        this.logger.error(`Failed to start SCRCPY session for device ${id}`, error.stack);
         throw new BusinessException(
           BusinessErrorCode.DEVICE_NOT_AVAILABLE,
           `无法启动 SCRCPY 会话: ${error.message}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
       }
     }
@@ -1422,19 +1340,13 @@ export class DevicesService {
 
       // ✅ 在同一事务内写入事件到 Outbox
       if (this.eventOutboxService) {
-        await this.eventOutboxService.writeEvent(
-          queryRunner,
-          'device',
-          id,
-          'device.started',
-          {
-            deviceId: id,
-            userId: device.userId,
-            tenantId: device.tenantId,
-            startedAt: new Date().toISOString(),
-            providerType: device.providerType,
-          },
-        );
+        await this.eventOutboxService.writeEvent(queryRunner, 'device', id, 'device.started', {
+          deviceId: id,
+          userId: device.userId,
+          tenantId: device.tenantId,
+          startedAt: new Date().toISOString(),
+          providerType: device.providerType,
+        });
       }
 
       await queryRunner.commitTransaction();
@@ -1446,17 +1358,9 @@ export class DevicesService {
     }
 
     // 建立 ADB 连接（如果支持且非物理设备，因为物理设备在 startPhysicalDeviceAsync 中已连接）
-    if (
-      device.providerType !== DeviceProviderType.PHYSICAL &&
-      device.adbHost &&
-      device.adbPort
-    ) {
+    if (device.providerType !== DeviceProviderType.PHYSICAL && device.adbHost && device.adbPort) {
       try {
-        await this.adbService.connectToDevice(
-          id,
-          device.adbHost,
-          device.adbPort,
-        );
+        await this.adbService.connectToDevice(id, device.adbHost, device.adbPort);
       } catch (error) {
         this.logger.warn(`Failed to connect ADB for device ${id}:`, error.message);
       }
@@ -1464,14 +1368,12 @@ export class DevicesService {
 
     // 上报并发设备增加（设备启动）
     if (this.quotaClient && device.userId) {
-      await this.quotaClient
-        .incrementConcurrentDevices(device.userId)
-        .catch((error) => {
-          this.logger.warn(
-            `Failed to increment concurrent devices for user ${device.userId}`,
-            error.message,
-          );
-        });
+      await this.quotaClient.incrementConcurrentDevices(device.userId).catch((error) => {
+        this.logger.warn(
+          `Failed to increment concurrent devices for user ${device.userId}`,
+          error.message
+        );
+      });
     }
 
     return savedDevice;
@@ -1480,9 +1382,7 @@ export class DevicesService {
   async stop(id: string): Promise<Device> {
     const device = await this.findOne(id);
 
-    this.logger.log(
-      `Stopping device ${id} (Provider: ${device.providerType})`,
-    );
+    this.logger.log(`Stopping device ${id} (Provider: ${device.providerType})`);
 
     const startTime = device.lastActiveAt || device.createdAt;
     const duration = Math.floor((Date.now() - startTime.getTime()) / 1000);
@@ -1494,10 +1394,7 @@ export class DevicesService {
         await scrcpyService.stopSession(device.id);
         this.logger.debug(`Stopped SCRCPY session for device ${device.id}`);
       } catch (error) {
-        this.logger.warn(
-          `Failed to stop SCRCPY session for device ${id}:`,
-          error.message,
-        );
+        this.logger.warn(`Failed to stop SCRCPY session for device ${id}:`, error.message);
       }
     }
 
@@ -1517,14 +1414,9 @@ export class DevicesService {
     if (device.externalId) {
       try {
         await provider.stop(device.externalId);
-        this.logger.debug(
-          `Provider stopped device: ${device.externalId}`,
-        );
+        this.logger.debug(`Provider stopped device: ${device.externalId}`);
       } catch (error) {
-        this.logger.error(
-          `Failed to stop device via provider ${id}`,
-          error.stack,
-        );
+        this.logger.error(`Failed to stop device via provider ${id}`, error.stack);
 
         // 发布严重错误事件（设备停止失败）
         if (this.eventBus) {
@@ -1556,7 +1448,7 @@ export class DevicesService {
         throw new BusinessException(
           BusinessErrorCode.DEVICE_NOT_AVAILABLE,
           `无法停止设备: ${error.message}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
       }
     }
@@ -1574,20 +1466,14 @@ export class DevicesService {
 
       // ✅ 在同一事务内写入事件到 Outbox
       if (this.eventOutboxService) {
-        await this.eventOutboxService.writeEvent(
-          queryRunner,
-          'device',
-          id,
-          'device.stopped',
-          {
-            deviceId: id,
-            userId: device.userId,
-            tenantId: device.tenantId,
-            stoppedAt: new Date().toISOString(),
-            duration, // 运行时长（秒）
-            providerType: device.providerType,
-          },
-        );
+        await this.eventOutboxService.writeEvent(queryRunner, 'device', id, 'device.stopped', {
+          deviceId: id,
+          userId: device.userId,
+          tenantId: device.tenantId,
+          stoppedAt: new Date().toISOString(),
+          duration, // 运行时长（秒）
+          providerType: device.providerType,
+        });
       }
 
       await queryRunner.commitTransaction();
@@ -1600,14 +1486,12 @@ export class DevicesService {
 
     // 上报并发设备减少（设备停止）
     if (this.quotaClient && device.userId) {
-      await this.quotaClient
-        .decrementConcurrentDevices(device.userId)
-        .catch((error) => {
-          this.logger.warn(
-            `Failed to decrement concurrent devices for user ${device.userId}`,
-            error.message,
-          );
-        });
+      await this.quotaClient.decrementConcurrentDevices(device.userId).catch((error) => {
+        this.logger.warn(
+          `Failed to decrement concurrent devices for user ${device.userId}`,
+          error.message
+        );
+      });
     }
 
     return savedDevice;
@@ -1616,9 +1500,7 @@ export class DevicesService {
   async restart(id: string): Promise<Device> {
     const device = await this.findOne(id);
 
-    this.logger.log(
-      `Restarting device ${id} (Provider: ${device.providerType})`,
-    );
+    this.logger.log(`Restarting device ${id} (Provider: ${device.providerType})`);
 
     // 获取 Provider
     const provider = this.providerFactory.getProvider(device.providerType);
@@ -1627,7 +1509,9 @@ export class DevicesService {
     if (device.externalId) {
       try {
         // 某些 Provider 可能有 rebootDevice 方法，否则用 stop + start
-        const providerWithReboot = provider as IDeviceProvider & { rebootDevice?: (id: string) => Promise<void> };
+        const providerWithReboot = provider as IDeviceProvider & {
+          rebootDevice?: (id: string) => Promise<void>;
+        };
         if (typeof providerWithReboot.rebootDevice === 'function') {
           await providerWithReboot.rebootDevice(device.externalId);
         } else {
@@ -1635,18 +1519,13 @@ export class DevicesService {
           await new Promise((resolve) => setTimeout(resolve, 2000)); // 等待2秒
           await provider.start(device.externalId);
         }
-        this.logger.debug(
-          `Provider restarted device: ${device.externalId}`,
-        );
+        this.logger.debug(`Provider restarted device: ${device.externalId}`);
       } catch (error) {
-        this.logger.error(
-          `Failed to restart device via provider ${id}`,
-          error.stack,
-        );
+        this.logger.error(`Failed to restart device via provider ${id}`, error.stack);
         throw new BusinessException(
           BusinessErrorCode.DEVICE_NOT_AVAILABLE,
           `无法重启设备: ${error.message}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
       }
     }
@@ -1671,10 +1550,8 @@ export class DevicesService {
 
     if (stats) {
       if (stats.cpuUsage !== undefined) update.cpuUsage = stats.cpuUsage;
-      if (stats.memoryUsage !== undefined)
-        update.memoryUsage = stats.memoryUsage;
-      if (stats.storageUsage !== undefined)
-        update.storageUsage = stats.storageUsage;
+      if (stats.memoryUsage !== undefined) update.memoryUsage = stats.memoryUsage;
+      if (stats.storageUsage !== undefined) update.storageUsage = stats.storageUsage;
     }
 
     await this.devicesRepository.update(id, update);
@@ -1684,12 +1561,18 @@ export class DevicesService {
     await this.devicesRepository.update(id, { status });
   }
 
-  async getStats(id: string): Promise<DeviceMetrics & { deviceId: string; providerType: string; timestamp: Date; error?: string; message?: string }> {
+  async getStats(id: string): Promise<
+    DeviceMetrics & {
+      deviceId: string;
+      providerType: string;
+      timestamp: Date;
+      error?: string;
+      message?: string;
+    }
+  > {
     const device = await this.findOne(id);
 
-    this.logger.debug(
-      `Getting stats for device ${id} (Provider: ${device.providerType})`,
-    );
+    this.logger.debug(`Getting stats for device ${id} (Provider: ${device.providerType})`);
 
     // 获取 Provider
     const provider = this.providerFactory.getProvider(device.providerType);
@@ -1714,10 +1597,7 @@ export class DevicesService {
           temperature: metrics.temperature,
         };
       } catch (error) {
-        this.logger.warn(
-          `Failed to get metrics from provider for device ${id}`,
-          error.message,
-        );
+        this.logger.warn(`Failed to get metrics from provider for device ${id}`, error.message);
         // 返回默认值
         return {
           deviceId: device.id,
@@ -1737,54 +1617,35 @@ export class DevicesService {
       timestamp: new Date(),
       cpuUsage: 0,
       memoryUsage: 0,
-      message: "Provider does not support metrics",
+      message: 'Provider does not support metrics',
     };
   }
 
   // ADB 相关方法
 
-  async executeShellCommand(
-    id: string,
-    command: string,
-    timeout?: number,
-  ): Promise<string> {
+  async executeShellCommand(id: string, command: string, timeout?: number): Promise<string> {
     await this.findOne(id); // 验证设备存在
     return await this.adbService.executeShellCommand(id, command, timeout);
   }
 
   async takeScreenshot(id: string): Promise<string> {
     await this.findOne(id);
-    const outputDir = this.configService.get(
-      "SCREENSHOT_DIR",
-      "/tmp/screenshots",
-    );
+    const outputDir = this.configService.get('SCREENSHOT_DIR', '/tmp/screenshots');
     const outputPath = `${outputDir}/${id}_${Date.now()}.png`;
     return await this.adbService.takeScreenshotToFile(id, outputPath);
   }
 
-  async pushFile(
-    id: string,
-    localPath: string,
-    remotePath: string,
-  ): Promise<boolean> {
+  async pushFile(id: string, localPath: string, remotePath: string): Promise<boolean> {
     await this.findOne(id);
     return await this.adbService.pushFile(id, localPath, remotePath);
   }
 
-  async pullFile(
-    id: string,
-    remotePath: string,
-    localPath: string,
-  ): Promise<boolean> {
+  async pullFile(id: string, remotePath: string, localPath: string): Promise<boolean> {
     await this.findOne(id);
     return await this.adbService.pullFile(id, remotePath, localPath);
   }
 
-  async installApk(
-    id: string,
-    apkPath: string,
-    reinstall?: boolean,
-  ): Promise<boolean> {
+  async installApk(id: string, apkPath: string, reinstall?: boolean): Promise<boolean> {
     await this.findOne(id);
     return await this.adbService.installApk(id, apkPath, reinstall);
   }
@@ -1799,11 +1660,7 @@ export class DevicesService {
     return await this.adbService.getInstalledPackages(id);
   }
 
-  async readLogcat(
-    id: string,
-    filter?: string,
-    lines?: number,
-  ): Promise<string> {
+  async readLogcat(id: string, filter?: string, lines?: number): Promise<string> {
     await this.findOne(id);
     return await this.adbService.readLogcat(id, { filter, lines });
   }
@@ -1824,28 +1681,31 @@ export class DevicesService {
    * 发布应用安装完成事件
    */
   async publishAppInstallCompleted(event: Record<string, unknown>): Promise<void> {
-    await this.eventBus.publishAppEvent("install.completed", event);
+    await this.eventBus.publishAppEvent('install.completed', event);
   }
 
   /**
    * 发布应用安装失败事件
    */
   async publishAppInstallFailed(event: Record<string, unknown>): Promise<void> {
-    await this.eventBus.publishAppEvent("install.failed", event);
+    await this.eventBus.publishAppEvent('install.failed', event);
   }
 
   /**
    * 发布应用卸载完成事件
    */
   async publishAppUninstallCompleted(event: Record<string, unknown>): Promise<void> {
-    await this.eventBus.publishAppEvent("uninstall.completed", event);
+    await this.eventBus.publishAppEvent('uninstall.completed', event);
   }
 
   /**
    * 发布设备分配事件
    */
   async publishDeviceAllocated(event: Record<string, unknown>): Promise<void> {
-    await this.eventBus.publishDeviceEvent(`allocate.${(event as Record<string, string>).sagaId}`, event);
+    await this.eventBus.publishDeviceEvent(
+      `allocate.${(event as Record<string, string>).sagaId}`,
+      event
+    );
   }
 
   /**
@@ -1862,8 +1722,8 @@ export class DevicesService {
     if (!device) {
       throw new BusinessException(
         BusinessErrorCode.DEVICE_NOT_AVAILABLE,
-        "没有可用的设备",
-        HttpStatus.BAD_REQUEST,
+        '没有可用的设备',
+        HttpStatus.BAD_REQUEST
       );
     }
 
@@ -1891,7 +1751,7 @@ export class DevicesService {
     device.status = DeviceStatus.IDLE;
     await this.devicesRepository.save(device);
 
-    this.logger.log(`Device ${deviceId} released. Reason: ${reason || "N/A"}`);
+    this.logger.log(`Device ${deviceId} released. Reason: ${reason || 'N/A'}`);
   }
 
   /**
@@ -1909,7 +1769,7 @@ export class DevicesService {
       throw new BusinessException(
         BusinessErrorCode.DEVICE_NOT_AVAILABLE,
         `设备未运行: ${deviceId}`,
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.BAD_REQUEST
       );
     }
 
@@ -1918,7 +1778,7 @@ export class DevicesService {
       throw new BusinessException(
         BusinessErrorCode.DEVICE_NOT_AVAILABLE,
         `Device ${deviceId} missing streaming info (containerName: ${device.containerName}, adbPort: ${device.adbPort})`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
 
@@ -1926,10 +1786,7 @@ export class DevicesService {
     let screenResolution = { width: 1080, height: 1920 }; // 默认值
     try {
       // 通过 adb shell wm size 获取精确分辨率
-      const sizeOutput = await this.adbService.executeShellCommand(
-        deviceId,
-        "wm size",
-      );
+      const sizeOutput = await this.adbService.executeShellCommand(deviceId, 'wm size');
       const match = sizeOutput.match(/Physical size: (\d+)x(\d+)/);
       if (match) {
         screenResolution = {
@@ -1938,9 +1795,7 @@ export class DevicesService {
         };
       }
     } catch (error) {
-      this.logger.warn(
-        `Failed to get screen resolution for device ${deviceId}: ${error.message}`,
-      );
+      this.logger.warn(`Failed to get screen resolution for device ${deviceId}: ${error.message}`);
     }
 
     return {
@@ -1961,7 +1816,7 @@ export class DevicesService {
       throw new BusinessException(
         BusinessErrorCode.DEVICE_NOT_AVAILABLE,
         `设备未运行: ${deviceId}`,
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.BAD_REQUEST
       );
     }
 
@@ -1970,9 +1825,7 @@ export class DevicesService {
       const screenshot = await this.adbService.takeScreenshot(deviceId);
       return screenshot;
     } catch (error) {
-      this.logger.error(
-        `Failed to take screenshot for device ${deviceId}: ${error.message}`,
-      );
+      this.logger.error(`Failed to take screenshot for device ${deviceId}: ${error.message}`);
       throw BusinessErrors.adbOperationFailed(`截图失败: ${error.message}`, {
         deviceId,
       });
@@ -1990,31 +1843,22 @@ export class DevicesService {
 
       // 2. 清除用户设备列表缓存（所有分页）
       if (device.userId) {
-        await this.cacheService.delPattern(
-          CacheKeys.userListPattern(device.userId),
-        );
+        await this.cacheService.delPattern(CacheKeys.userListPattern(device.userId));
       }
 
       // 3. 清除租户设备列表缓存
       if (device.tenantId) {
-        await this.cacheService.delPattern(
-          CacheKeys.tenantListPattern(device.tenantId),
-        );
+        await this.cacheService.delPattern(CacheKeys.tenantListPattern(device.tenantId));
       }
 
       // 4. 清除容器映射缓存
       if (device.containerId) {
-        await this.cacheService.del(
-          CacheKeys.deviceByContainer(device.containerId),
-        );
+        await this.cacheService.del(CacheKeys.deviceByContainer(device.containerId));
       }
 
       this.logger.debug(`Cache invalidated for device ${device.id}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to invalidate cache for device ${device.id}:`,
-        error.message,
-      );
+      this.logger.error(`Failed to invalidate cache for device ${device.id}:`, error.message);
       // 缓存失效失败不应该影响主流程
     }
   }

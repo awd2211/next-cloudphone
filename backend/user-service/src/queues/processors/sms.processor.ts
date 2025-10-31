@@ -38,7 +38,7 @@ export class SmsProcessor {
 
   constructor(
     private readonly pinoLogger: PinoLogger,
-    private readonly smsService: SmsService,
+    private readonly smsService: SmsService
   ) {
     this.pinoLogger.setContext(SmsProcessor.name);
   }
@@ -146,7 +146,7 @@ export class SmsProcessor {
    */
   @Process('send-verification-code')
   async handleSendVerificationCode(
-    job: Job<{ phone: string; code: string; expiresIn?: number }>,
+    job: Job<{ phone: string; code: string; expiresIn?: number }>
   ): Promise<void> {
     const { id, data } = job;
 
@@ -203,7 +203,7 @@ export class SmsProcessor {
       if (now - lastSent < this.RATE_LIMIT_WINDOW) {
         const waitTime = this.RATE_LIMIT_WINDOW - (now - lastSent);
         throw new Error(
-          `Rate limit exceeded for ${p}. Please wait ${Math.ceil(waitTime / 1000)} seconds.`,
+          `Rate limit exceeded for ${p}. Please wait ${Math.ceil(waitTime / 1000)} seconds.`
         );
       }
 
@@ -231,10 +231,7 @@ export class SmsProcessor {
   /**
    * 通过指定供应商发送短信
    */
-  private async sendSmsViaProvider(
-    provider: string,
-    data: SmsJobData,
-  ): Promise<void> {
+  private async sendSmsViaProvider(provider: string, data: SmsJobData): Promise<void> {
     // 准备短信数据
     const phoneNumber = Array.isArray(data.phone) ? data.phone[0] : data.phone;
 
@@ -253,7 +250,7 @@ export class SmsProcessor {
     }
 
     this.logger.log(
-      `📲 SMS sent via ${provider} to ${phoneNumber} (messageId: ${result.messageId})`,
+      `📲 SMS sent via ${provider} to ${phoneNumber} (messageId: ${result.messageId})`
     );
   }
 }

@@ -61,9 +61,9 @@ describe('EventBusService', () => {
       const serviceWithoutAmqp = moduleWithoutAmqp.get<EventBusService>(EventBusService);
 
       // Act & Assert
-      await expect(
-        serviceWithoutAmqp.publish('test-exchange', 'test.key', {}),
-      ).rejects.toThrow('AmqpConnection not available');
+      await expect(serviceWithoutAmqp.publish('test-exchange', 'test.key', {})).rejects.toThrow(
+        'AmqpConnection not available'
+      );
     });
   });
 
@@ -91,7 +91,7 @@ describe('EventBusService', () => {
         expect.objectContaining({
           persistent: true,
           timestamp: expect.any(Number),
-        }),
+        })
       );
     });
 
@@ -113,17 +113,12 @@ describe('EventBusService', () => {
       await service.publish(exchange, routingKey, message, options);
 
       // Assert
-      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
-        exchange,
-        routingKey,
-        message,
-        {
-          persistent: false,
-          timestamp: 1234567890,
-          priority: 5,
-          expiration: '60000',
-        },
-      );
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(exchange, routingKey, message, {
+        persistent: false,
+        timestamp: 1234567890,
+        priority: 5,
+        expiration: '60000',
+      });
     });
 
     it('应该默认使用持久化消息', async () => {
@@ -144,7 +139,7 @@ describe('EventBusService', () => {
         message,
         expect.objectContaining({
           persistent: true, // Default value
-        }),
+        })
       );
     });
 
@@ -159,7 +154,7 @@ describe('EventBusService', () => {
 
       // Act & Assert
       await expect(service.publish(exchange, routingKey, message)).rejects.toThrow(
-        'RabbitMQ connection failed',
+        'RabbitMQ connection failed'
       );
     });
 
@@ -182,7 +177,7 @@ describe('EventBusService', () => {
         message,
         expect.objectContaining({
           expiration: '60000', // Converted to string
-        }),
+        })
       );
     });
 
@@ -205,7 +200,7 @@ describe('EventBusService', () => {
         message,
         expect.objectContaining({
           expiration: '60000',
-        }),
+        })
       );
     });
   });
@@ -235,7 +230,7 @@ describe('EventBusService', () => {
           userId: 'user-456',
           status: 'running',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -260,7 +255,7 @@ describe('EventBusService', () => {
           deviceId: 'device-123',
           reason: 'user_request',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -290,7 +285,7 @@ describe('EventBusService', () => {
           deviceId: 'device-456',
           status: 'success',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -314,7 +309,7 @@ describe('EventBusService', () => {
           type: 'app.uninstalled',
           appId: 'app-123',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -344,7 +339,7 @@ describe('EventBusService', () => {
           userId: 'user-456',
           amount: 100,
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -368,7 +363,7 @@ describe('EventBusService', () => {
           type: 'order.payment_success',
           orderId: 'order-123',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -396,7 +391,7 @@ describe('EventBusService', () => {
           userId: 'user-123',
           email: 'test@example.com',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -420,7 +415,7 @@ describe('EventBusService', () => {
           type: 'user.updated',
           userId: 'user-123',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -450,7 +445,7 @@ describe('EventBusService', () => {
           userId: 'user-456',
           channel: 'email',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -474,7 +469,7 @@ describe('EventBusService', () => {
           type: 'notification.failed',
           notificationId: 'notification-123',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -504,7 +499,7 @@ describe('EventBusService', () => {
           amount: 100,
           chargeType: 'device_usage',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -530,7 +525,7 @@ describe('EventBusService', () => {
           userId: 'user-123',
           orderId: 'order-456',
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -554,7 +549,7 @@ describe('EventBusService', () => {
         'test',
         'test.event',
         event,
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -582,7 +577,7 @@ describe('EventBusService', () => {
         'test',
         'custom.event',
         event,
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -605,7 +600,7 @@ describe('EventBusService', () => {
         'test',
         'dynamic.event',
         event,
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -620,9 +615,7 @@ describe('EventBusService', () => {
       const loggerErrorSpy = jest.spyOn(service['logger'], 'error');
 
       // Act & Assert
-      await expect(
-        service.publish('test', 'test.key', {}),
-      ).rejects.toThrow('RabbitMQ error');
+      await expect(service.publish('test', 'test.key', {})).rejects.toThrow('RabbitMQ error');
 
       expect(loggerErrorSpy).toHaveBeenCalled();
     });
@@ -658,7 +651,7 @@ describe('EventBusService', () => {
         expect.objectContaining({
           timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/), // ISO format
         }),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -678,7 +671,7 @@ describe('EventBusService', () => {
         {},
         expect.objectContaining({
           timestamp: expect.any(Number),
-        }),
+        })
       );
 
       const callArgs = mockAmqpConnection.publish.mock.calls[0];

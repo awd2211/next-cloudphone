@@ -124,7 +124,7 @@ export class BusinessException extends HttpException {
       documentationUrl?: string;
       supportUrl?: string;
       retryable?: boolean;
-    },
+    }
   ) {
     const response: BusinessExceptionResponse = {
       success: false,
@@ -175,7 +175,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.USER_NOT_FOUND,
       `用户不存在: ${userId}`,
-      HttpStatus.NOT_FOUND,
+      HttpStatus.NOT_FOUND
     );
   }
 
@@ -201,7 +201,7 @@ export class BusinessErrors {
           },
         ],
         retryable: false,
-      },
+      }
     );
   }
 
@@ -226,7 +226,7 @@ export class BusinessErrors {
           },
         ],
         retryable: true,
-      },
+      }
     );
   }
 
@@ -234,11 +234,15 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.APP_NOT_FOUND,
       `应用不存在: ${appId}`,
-      HttpStatus.NOT_FOUND,
+      HttpStatus.NOT_FOUND
     );
   }
 
-  static insufficientBalance(userId: string, required?: number, current?: number): BusinessException {
+  static insufficientBalance(
+    userId: string,
+    required?: number,
+    current?: number
+  ): BusinessException {
     const detailMsg = required && current ? ` (需要: ¥${required}, 当前: ¥${current})` : '';
     return new BusinessException(
       BusinessErrorCode.INSUFFICIENT_BALANCE,
@@ -268,7 +272,7 @@ export class BusinessErrors {
         documentationUrl: 'https://docs.cloudphone.com/billing',
         supportUrl: '/support/tickets/new',
         retryable: false,
-      },
+      }
     );
   }
 
@@ -301,7 +305,7 @@ export class BusinessErrors {
         documentationUrl: 'https://docs.cloudphone.com/quotas',
         supportUrl: '/support/tickets/new',
         retryable: false,
-      },
+      }
     );
   }
 
@@ -333,7 +337,7 @@ export class BusinessErrors {
         documentationUrl: 'https://docs.cloudphone.com/troubleshooting',
         supportUrl: '/support/tickets/new',
         retryable: true,
-      },
+      }
     );
   }
 
@@ -342,7 +346,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.SNAPSHOT_NOT_FOUND,
       `快照不存在: ${snapshotId}`,
-      HttpStatus.NOT_FOUND,
+      HttpStatus.NOT_FOUND
     );
   }
 
@@ -350,7 +354,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.SNAPSHOT_NOT_READY,
       `快照未就绪: ${snapshotId}`,
-      HttpStatus.BAD_REQUEST,
+      HttpStatus.BAD_REQUEST
     );
   }
 
@@ -359,7 +363,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.TEMPLATE_NOT_FOUND,
       `模板不存在: ${templateId}`,
-      HttpStatus.NOT_FOUND,
+      HttpStatus.NOT_FOUND
     );
   }
 
@@ -367,7 +371,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.TEMPLATE_OPERATION_DENIED,
       reason,
-      HttpStatus.FORBIDDEN,
+      HttpStatus.FORBIDDEN
     );
   }
 
@@ -378,7 +382,7 @@ export class BusinessErrors {
       `ADB 操作失败: ${message}`,
       HttpStatus.INTERNAL_SERVER_ERROR,
       undefined,
-      details,
+      details
     );
   }
 
@@ -386,7 +390,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.ADB_DEVICE_OFFLINE,
       `设备离线: ${deviceId}`,
-      HttpStatus.NOT_FOUND,
+      HttpStatus.NOT_FOUND
     );
   }
 
@@ -394,7 +398,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.ADB_FILE_NOT_FOUND,
       `文件不存在: ${path}`,
-      HttpStatus.NOT_FOUND,
+      HttpStatus.NOT_FOUND
     );
   }
 
@@ -403,7 +407,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.NODE_NOT_FOUND,
       `节点不存在: ${nodeId}`,
-      HttpStatus.NOT_FOUND,
+      HttpStatus.NOT_FOUND
     );
   }
 
@@ -411,7 +415,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.NODE_ALREADY_EXISTS,
       `节点已存在: ${nodeName}`,
-      HttpStatus.BAD_REQUEST,
+      HttpStatus.BAD_REQUEST
     );
   }
 
@@ -419,7 +423,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.NO_AVAILABLE_NODES,
       '没有可用的节点',
-      HttpStatus.BAD_REQUEST,
+      HttpStatus.BAD_REQUEST
     );
   }
 
@@ -427,7 +431,7 @@ export class BusinessErrors {
     return new BusinessException(
       BusinessErrorCode.NODE_NOT_AVAILABLE,
       `节点不可用 ${nodeId}: ${reason}`,
-      HttpStatus.BAD_REQUEST,
+      HttpStatus.BAD_REQUEST
     );
   }
 
@@ -438,7 +442,7 @@ export class BusinessErrors {
       `Docker 操作失败: ${message}`,
       HttpStatus.INTERNAL_SERVER_ERROR,
       undefined,
-      details,
+      details
     );
   }
 }

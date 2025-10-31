@@ -262,11 +262,7 @@ describe('DataScopeService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act
-      const result = await service.applyScopeToQuery(
-        mockQueryBuilder,
-        userId,
-        resourceType,
-      );
+      const result = await service.applyScopeToQuery(mockQueryBuilder, userId, resourceType);
 
       // Assert
       expect(result).toBe(mockQueryBuilder);
@@ -334,12 +330,7 @@ describe('DataScopeService', () => {
       dataScopeRepository.find.mockResolvedValue([mockDataScope]);
 
       // Act
-      await service.applyScopeToQuery(
-        mockQueryBuilder,
-        userId,
-        resourceType,
-        customAlias,
-      );
+      await service.applyScopeToQuery(mockQueryBuilder, userId, resourceType, customAlias);
 
       // Assert
       expect(mockQueryBuilder.andWhere).toHaveBeenCalled();
@@ -365,11 +356,7 @@ describe('DataScopeService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act
-      const result = await service.checkRowAccess(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkRowAccess(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(true);
@@ -402,11 +389,7 @@ describe('DataScopeService', () => {
       dataScopeRepository.find.mockResolvedValue([mockDataScope]);
 
       // Act
-      const result = await service.checkRowAccess(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkRowAccess(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(false);
@@ -439,11 +422,7 @@ describe('DataScopeService', () => {
       dataScopeRepository.find.mockResolvedValue([mockDataScope]);
 
       // Act
-      const result = await service.checkRowAccess(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkRowAccess(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(true);
@@ -476,11 +455,7 @@ describe('DataScopeService', () => {
       dataScopeRepository.find.mockResolvedValue([mockDataScope]);
 
       // Act
-      const result = await service.checkRowAccess(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkRowAccess(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(true);
@@ -514,11 +489,7 @@ describe('DataScopeService', () => {
       dataScopeRepository.find.mockResolvedValue([mockDataScope]);
 
       // Act
-      const result = await service.checkRowAccess(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkRowAccess(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(false);
@@ -533,11 +504,7 @@ describe('DataScopeService', () => {
       userRepository.findOne.mockResolvedValue(null);
 
       // Act
-      const result = await service.checkRowAccess(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkRowAccess(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(false);
@@ -573,12 +540,8 @@ describe('DataScopeService', () => {
       const departmentId = 'dept-123';
 
       departmentRepository.find
-        .mockResolvedValueOnce([
-          { id: 'dept-456', parentId: 'dept-123', isActive: true },
-        ])
-        .mockResolvedValueOnce([
-          { id: 'dept-789', parentId: 'dept-456', isActive: true },
-        ])
+        .mockResolvedValueOnce([{ id: 'dept-456', parentId: 'dept-123', isActive: true }])
+        .mockResolvedValueOnce([{ id: 'dept-789', parentId: 'dept-456', isActive: true }])
         .mockResolvedValueOnce([]); // dept-789 无子部门
 
       // Act

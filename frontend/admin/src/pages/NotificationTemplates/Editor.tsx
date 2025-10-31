@@ -404,12 +404,7 @@ const NotificationTemplateEditor = () => {
           >
             预览
           </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<SendOutlined />}
-            onClick={() => openTest(record)}
-          >
+          <Button type="link" size="small" icon={<SendOutlined />} onClick={() => openTest(record)}>
             测试
           </Button>
           <Button
@@ -597,10 +592,7 @@ const NotificationTemplateEditor = () => {
             name="content"
             rules={[{ required: true, message: '请输入模板内容' }]}
           >
-            <TextArea
-              rows={10}
-              placeholder="输入模板内容，使用 {{variableName}} 插入变量"
-            />
+            <TextArea rows={10} placeholder="输入模板内容，使用 {{variableName}} 插入变量" />
           </Form.Item>
 
           <Form.Item label="激活模板" name="isActive" valuePropName="checked">
@@ -632,9 +624,7 @@ const NotificationTemplateEditor = () => {
           <Card size="small" title="预览结果">
             <div
               dangerouslySetInnerHTML={
-                selectedTemplate?.contentType === 'html'
-                  ? { __html: previewContent }
-                  : undefined
+                selectedTemplate?.contentType === 'html' ? { __html: previewContent } : undefined
               }
             >
               {selectedTemplate?.contentType !== 'html' && previewContent}
@@ -652,7 +642,13 @@ const NotificationTemplateEditor = () => {
       >
         <Form form={testForm} layout="vertical">
           <Form.Item
-            label={selectedTemplate?.type === 'email' ? '收件人邮箱' : selectedTemplate?.type === 'sms' ? '手机号' : '用户ID'}
+            label={
+              selectedTemplate?.type === 'email'
+                ? '收件人邮箱'
+                : selectedTemplate?.type === 'sms'
+                  ? '手机号'
+                  : '用户ID'
+            }
             name="recipient"
             rules={[{ required: true, message: '请输入接收方' }]}
           >
@@ -678,19 +674,22 @@ const NotificationTemplateEditor = () => {
       >
         <Timeline>
           {versions.map((version) => (
-            <Timeline.Item key={version.id} color={version.version === selectedTemplate?.version ? 'green' : 'blue'}>
+            <Timeline.Item
+              key={version.id}
+              color={version.version === selectedTemplate?.version ? 'green' : 'blue'}
+            >
               <div>
                 <Space>
                   <strong>v{version.version}</strong>
-                  {version.version === selectedTemplate?.version && <Tag color="green">当前版本</Tag>}
+                  {version.version === selectedTemplate?.version && (
+                    <Tag color="green">当前版本</Tag>
+                  )}
                 </Space>
                 <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
                   {dayjs(version.createdAt).format('YYYY-MM-DD HH:mm:ss')}
                   {version.createdBy && ` · ${version.createdBy}`}
                 </div>
-                {version.changeNote && (
-                  <div style={{ marginTop: '4px' }}>{version.changeNote}</div>
-                )}
+                {version.changeNote && <div style={{ marginTop: '4px' }}>{version.changeNote}</div>}
                 {version.version !== selectedTemplate?.version && (
                   <Button
                     type="link"

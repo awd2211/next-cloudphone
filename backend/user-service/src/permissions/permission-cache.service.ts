@@ -48,7 +48,7 @@ export class PermissionCacheService implements OnModuleInit {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Role)
-    private roleRepository: Repository<Role>,
+    private roleRepository: Repository<Role>
   ) {}
 
   async onModuleInit() {
@@ -81,9 +81,7 @@ export class PermissionCacheService implements OnModuleInit {
    * @param userId 用户ID
    * @returns 用户权限数据
    */
-  async loadAndCacheUserPermissions(
-    userId: string,
-  ): Promise<CachedUserPermissions | null> {
+  async loadAndCacheUserPermissions(userId: string): Promise<CachedUserPermissions | null> {
     try {
       const user = await this.userRepository.findOne({
         where: { id: userId },
@@ -135,10 +133,7 @@ export class PermissionCacheService implements OnModuleInit {
       });
 
       // 按资源类型和操作类型分组
-      const fieldPermissionsMap = new Map<
-        string,
-        Map<OperationType, FieldPermission[]>
-      >();
+      const fieldPermissionsMap = new Map<string, Map<OperationType, FieldPermission[]>>();
       fieldPermissions.forEach((fp) => {
         if (!fieldPermissionsMap.has(fp.resourceType)) {
           fieldPermissionsMap.set(fp.resourceType, new Map());
@@ -169,10 +164,7 @@ export class PermissionCacheService implements OnModuleInit {
 
       return cachedData;
     } catch (error) {
-      this.logger.error(
-        `加载用户权限失败: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`加载用户权限失败: ${error.message}`, error.stack);
       return null;
     }
   }
@@ -233,9 +225,7 @@ export class PermissionCacheService implements OnModuleInit {
   async warmupCache(userIds: string[]): Promise<void> {
     this.logger.log(`开始预热 ${userIds.length} 个用户的权限缓存`);
 
-    const promises = userIds.map((userId) =>
-      this.loadAndCacheUserPermissions(userId),
-    );
+    const promises = userIds.map((userId) => this.loadAndCacheUserPermissions(userId));
 
     await Promise.all(promises);
 

@@ -18,10 +18,7 @@
 export { TransactionTestHelper } from './transaction-test-helper';
 export { ConcurrencyTestHelper } from './concurrency-test-helper';
 
-export type {
-  ConcurrencyTestResult,
-  RaceConditionTestResult,
-} from './concurrency-test-helper';
+export type { ConcurrencyTestResult, RaceConditionTestResult } from './concurrency-test-helper';
 
 export {
   createTestDataSource,

@@ -6,9 +6,9 @@ import { EventBusService } from '@cloudphone/shared';
 
 // 缓存层级枚举
 export enum CacheLayer {
-  L1_ONLY = 'l1',        // 仅本地缓存
-  L2_ONLY = 'l2',        // 仅 Redis 缓存
-  L1_AND_L2 = 'both',    // 两级缓存
+  L1_ONLY = 'l1', // 仅本地缓存
+  L2_ONLY = 'l2', // 仅 Redis 缓存
+  L1_AND_L2 = 'both', // 两级缓存
 }
 
 // 缓存配置接口
@@ -34,10 +34,10 @@ export interface CacheConfig {
 
 // 缓存选项
 export interface CacheOptions {
-  ttl?: number;              // 过期时间 (秒)
-  layer?: CacheLayer;        // 缓存层级
-  randomTTL?: boolean;       // 是否随机 TTL
-  nullValueCache?: boolean;  // 是否缓存空值
+  ttl?: number; // 过期时间 (秒)
+  layer?: CacheLayer; // 缓存层级
+  randomTTL?: boolean; // 是否随机 TTL
+  nullValueCache?: boolean; // 是否缓存空值
 }
 
 // 空值标记
@@ -64,7 +64,7 @@ export class CacheService implements OnModuleDestroy {
 
   constructor(
     private readonly configService: ConfigService,
-    @Optional() private readonly eventBus: EventBusService,
+    @Optional() private readonly eventBus: EventBusService
   ) {
     // 从 ConfigService 读取配置
     this.config = {
@@ -84,7 +84,12 @@ export class CacheService implements OnModuleDestroy {
         randomTTLRange: this.configService.get('cache.strategy.randomTTLRange', 60),
         nullValueTTL: this.configService.get('cache.strategy.nullValueTTL', 120),
         hotDataPrefixes: this.configService.get('cache.strategy.hotDataPrefixes', [
-          'user:', 'role:', 'permission:', 'plan:', 'config:', 'device:',
+          'user:',
+          'role:',
+          'permission:',
+          'plan:',
+          'config:',
+          'device:',
         ]),
       },
     };
@@ -114,24 +119,26 @@ export class CacheService implements OnModuleDestroy {
 
       // 发布严重错误事件（Redis 连接失败）
       if (this.eventBus) {
-        this.eventBus.publishSystemError(
-          'high',
-          'REDIS_CONNECTION_FAILED',
-          `Redis connection error: ${err.message}`,
-          'user-service',
-          {
-            userMessage: 'Redis 缓存服务连接失败',
-            stackTrace: err.stack,
-            metadata: {
-              host: this.config.redis.host,
-              port: this.config.redis.port,
-              db: this.config.redis.db,
-              errorMessage: err.message,
-            },
-          }
-        ).catch(eventError => {
-          this.logger.error('Failed to publish Redis error event', eventError);
-        });
+        this.eventBus
+          .publishSystemError(
+            'high',
+            'REDIS_CONNECTION_FAILED',
+            `Redis connection error: ${err.message}`,
+            'user-service',
+            {
+              userMessage: 'Redis 缓存服务连接失败',
+              stackTrace: err.stack,
+              metadata: {
+                host: this.config.redis.host,
+                port: this.config.redis.port,
+                db: this.config.redis.db,
+                errorMessage: err.message,
+              },
+            }
+          )
+          .catch((eventError) => {
+            this.logger.error('Failed to publish Redis error event', eventError);
+          });
       }
     });
 
@@ -149,10 +156,7 @@ export class CacheService implements OnModuleDestroy {
   /**
    * 获取缓存值 (多层查询)
    */
-  async get<T>(
-    key: string,
-    options: CacheOptions = {},
-  ): Promise<T | null> {
+  async get<T>(key: string, options: CacheOptions = {}): Promise<T | null> {
     const layer = options.layer || CacheLayer.L1_AND_L2;
 
     try {
@@ -204,11 +208,7 @@ export class CacheService implements OnModuleDestroy {
   /**
    * 设置缓存值 (多层写入)
    */
-  async set<T>(
-    key: string,
-    value: T,
-    options: CacheOptions = {},
-  ): Promise<boolean> {
+  async set<T>(key: string, value: T, options: CacheOptions = {}): Promise<boolean> {
     const layer = options.layer || CacheLayer.L1_AND_L2;
     let ttl = options.ttl || this.config.local.stdTTL;
 
@@ -225,9 +225,8 @@ export class CacheService implements OnModuleDestroy {
 
     try {
       // 处理空值缓存
-      const serializedValue = value === null || value === undefined
-        ? NULL_VALUE
-        : this.serialize(value);
+      const serializedValue =
+        value === null || value === undefined ? NULL_VALUE : this.serialize(value);
 
       this.stats.sets++;
 
@@ -301,9 +300,7 @@ export class CacheService implements OnModuleDestroy {
     try {
       // 删除 L1 (遍历所有键)
       const localKeys = this.localCache.keys();
-      const matchedLocalKeys = localKeys.filter((key) =>
-        this.matchPattern(key, pattern),
-      );
+      const matchedLocalKeys = localKeys.filter((key) => this.matchPattern(key, pattern));
       matchedLocalKeys.forEach((key) => this.localCache.del(key));
 
       // 删除 L2 (使用 SCAN 命令)
@@ -311,13 +308,7 @@ export class CacheService implements OnModuleDestroy {
       let deletedCount = 0;
 
       do {
-        const [newCursor, keys] = await this.redis.scan(
-          cursor,
-          'MATCH',
-          pattern,
-          'COUNT',
-          100,
-        );
+        const [newCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
         cursor = newCursor;
 
         if (keys.length > 0) {
@@ -327,7 +318,7 @@ export class CacheService implements OnModuleDestroy {
       } while (cursor !== '0');
 
       this.logger.log(
-        `Pattern deletion: ${pattern} (L1: ${matchedLocalKeys.length}, L2: ${deletedCount})`,
+        `Pattern deletion: ${pattern} (L1: ${matchedLocalKeys.length}, L2: ${deletedCount})`
       );
       return matchedLocalKeys.length + deletedCount;
     } catch (error) {
@@ -356,7 +347,7 @@ export class CacheService implements OnModuleDestroy {
   async getOrSet<T>(
     key: string,
     factory: () => Promise<T>,
-    options: CacheOptions = {},
+    options: CacheOptions = {}
   ): Promise<T | null> {
     // 先尝试获取缓存
     const cached = await this.get<T>(key, options);
@@ -371,14 +362,10 @@ export class CacheService implements OnModuleDestroy {
       // 缓存空值防护
       if (value === null || value === undefined) {
         if (options.nullValueCache !== false) {
-          await this.set(
-            key,
-            null,
-            {
-              ...options,
-              ttl: this.config.strategy.nullValueTTL,
-            },
-          );
+          await this.set(key, null, {
+            ...options,
+            ttl: this.config.strategy.nullValueTTL,
+          });
         }
         return null;
       }
@@ -408,9 +395,7 @@ export class CacheService implements OnModuleDestroy {
     const total = this.stats.l1Hits + this.stats.l2Hits + this.stats.misses;
     const l1HitRate = total > 0 ? (this.stats.l1Hits / total) * 100 : 0;
     const l2HitRate = total > 0 ? (this.stats.l2Hits / total) * 100 : 0;
-    const totalHitRate = total > 0
-      ? ((this.stats.l1Hits + this.stats.l2Hits) / total) * 100
-      : 0;
+    const totalHitRate = total > 0 ? ((this.stats.l1Hits + this.stats.l2Hits) / total) * 100 : 0;
 
     return {
       l1: {
@@ -455,16 +440,12 @@ export class CacheService implements OnModuleDestroy {
   }
 
   private isHotData(key: string): boolean {
-    return this.config.strategy.hotDataPrefixes.some((prefix) =>
-      key.startsWith(prefix),
-    );
+    return this.config.strategy.hotDataPrefixes.some((prefix) => key.startsWith(prefix));
   }
 
   private matchPattern(key: string, pattern: string): boolean {
     // 简单的通配符匹配
-    const regex = new RegExp(
-      '^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$',
-    );
+    const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
     return regex.test(key);
   }
 

@@ -12,11 +12,8 @@ export class GetUsersHandler implements IQueryHandler<GetUsersQuery> {
     page: number;
     limit: number;
   }> {
-    return this.usersService.findAll(
-      query.page,
-      query.limit,
-      query.tenantId,
-      { includeRoles: query.includeRoles },
-    );
+    return this.usersService.findAll(query.page, query.limit, query.tenantId, {
+      includeRoles: query.includeRoles,
+    });
   }
 }

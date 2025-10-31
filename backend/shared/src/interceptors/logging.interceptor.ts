@@ -24,11 +24,7 @@ export class LoggingInterceptor implements NestInterceptor {
   private readonly excludePaths: string[];
 
   constructor(options?: LoggingInterceptorOptions) {
-    this.excludePaths = options?.excludePaths || [
-      '/health',
-      '/metrics',
-      '/favicon.ico',
-    ];
+    this.excludePaths = options?.excludePaths || ['/health', '/metrics', '/favicon.ico'];
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -42,10 +38,7 @@ export class LoggingInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const requestLog = [
-      `[${requestId || 'NO-ID'}]`,
-      `Incoming Request: ${method} ${url}`,
-    ];
+    const requestLog = [`[${requestId || 'NO-ID'}]`, `Incoming Request: ${method} ${url}`];
 
     if (Object.keys(query || {}).length) {
       requestLog.push(`Query: ${JSON.stringify(query)}`);
@@ -64,16 +57,16 @@ export class LoggingInterceptor implements NestInterceptor {
         next: () => {
           const responseTime = Date.now() - now;
           this.logger.debug(
-            `[${requestId || 'NO-ID'}] Response: ${method} ${url} - ${responseTime}ms`,
+            `[${requestId || 'NO-ID'}] Response: ${method} ${url} - ${responseTime}ms`
           );
         },
         error: (error) => {
           const responseTime = Date.now() - now;
           this.logger.error(
-            `[${requestId || 'NO-ID'}] Error Response: ${method} ${url} - ${responseTime}ms - ${error.message}`,
+            `[${requestId || 'NO-ID'}] Error Response: ${method} ${url} - ${responseTime}ms - ${error.message}`
           );
         },
-      }),
+      })
     );
   }
 

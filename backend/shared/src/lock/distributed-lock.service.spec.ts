@@ -56,7 +56,7 @@ describe('DistributedLockService', () => {
         expect.any(String), // UUID
         'PX',
         5000,
-        'NX',
+        'NX'
       );
     });
 
@@ -83,9 +83,9 @@ describe('DistributedLockService', () => {
       mockRedis.get.mockResolvedValue('existing-lock-id');
 
       // Act & Assert
-      await expect(
-        service.acquireLock('resource:123', 5000, 2, 10),
-      ).rejects.toThrow("Failed to acquire lock 'resource:123' after 3 attempts");
+      await expect(service.acquireLock('resource:123', 5000, 2, 10)).rejects.toThrow(
+        "Failed to acquire lock 'resource:123' after 3 attempts"
+      );
 
       expect(mockRedis.set).toHaveBeenCalledTimes(3); // Initial + 2 retries
     }, 10000);
@@ -117,7 +117,7 @@ describe('DistributedLockService', () => {
         expect.any(String),
         'PX',
         5000,
-        'NX',
+        'NX'
       );
     });
   });
@@ -137,7 +137,7 @@ describe('DistributedLockService', () => {
         expect.stringContaining('redis.call("get", KEYS[1])'),
         1,
         'lock:resource:123',
-        lockId,
+        lockId
       );
     });
 
@@ -206,9 +206,9 @@ describe('DistributedLockService', () => {
       const mockFn = jest.fn().mockRejectedValue(new Error('Function error'));
 
       // Act & Assert
-      await expect(
-        service.withLock('resource:123', 5000, mockFn),
-      ).rejects.toThrow('Function error');
+      await expect(service.withLock('resource:123', 5000, mockFn)).rejects.toThrow(
+        'Function error'
+      );
 
       // Lock should still be released
       expect(mockRedis.eval).toHaveBeenCalled();
@@ -246,7 +246,7 @@ describe('DistributedLockService', () => {
         expect.any(String),
         'PX',
         5000,
-        'NX',
+        'NX'
       );
     });
 
@@ -340,7 +340,7 @@ describe('DistributedLockService', () => {
         1,
         'lock:resource:123',
         lockId,
-        '10000',
+        '10000'
       );
     });
 
@@ -435,7 +435,7 @@ describe('DistributedLockService', () => {
         expect.any(String),
         'PX',
         5000,
-        'NX',
+        'NX'
       );
       expect(mockRedis.set).toHaveBeenNthCalledWith(
         2,
@@ -443,7 +443,7 @@ describe('DistributedLockService', () => {
         expect.any(String),
         'PX',
         5000,
-        'NX',
+        'NX'
       );
     });
   });
@@ -482,16 +482,12 @@ describe('DistributedLockService', () => {
       await service.acquireLock('resource:123', 5000);
 
       // Assert
-      expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Lock acquired'),
-      );
+      expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Lock acquired'));
     });
 
     it('应该记录重试日志', async () => {
       // Arrange
-      mockRedis.set
-        .mockResolvedValueOnce(null as any)
-        .mockResolvedValueOnce('OK' as any);
+      mockRedis.set.mockResolvedValueOnce(null as any).mockResolvedValueOnce('OK' as any);
       mockRedis.get.mockResolvedValue('existing-lock-id');
 
       const loggerSpy = jest.spyOn(service['logger'], 'debug');
@@ -500,9 +496,7 @@ describe('DistributedLockService', () => {
       await service.acquireLock('resource:123', 5000, 1, 10);
 
       // Assert
-      expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining('retrying'),
-      );
+      expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('retrying'));
     }, 10000);
   });
 });

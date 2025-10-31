@@ -150,7 +150,7 @@ export class EventSourcingMetrics {
     success: boolean,
     useSnapshot: boolean,
     eventCount: number,
-    durationMs: number,
+    durationMs: number
   ) {
     this.replayRequestsCounter.inc({
       success: success.toString(),
@@ -165,7 +165,7 @@ export class EventSourcingMetrics {
         use_snapshot: useSnapshot.toString(),
         event_count_bucket: eventCountBucket,
       },
-      durationMs / 1000,
+      durationMs / 1000
     );
   }
 
@@ -178,7 +178,7 @@ export class EventSourcingMetrics {
         handler_name: handlerName,
         event_type: eventType,
       },
-      durationMs / 1000,
+      durationMs / 1000
     );
   }
 

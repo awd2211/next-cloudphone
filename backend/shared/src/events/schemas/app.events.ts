@@ -54,4 +54,3 @@ export class AppUploadedEvent {
   uploadedBy: string;
   timestamp: string;
 }
-

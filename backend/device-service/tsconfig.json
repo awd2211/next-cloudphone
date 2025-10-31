@@ -20,7 +20,7 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
-    "noUnusedLocals": false,     // 开发时可以关闭，构建时启用
+    "noUnusedLocals": false, // 开发时可以关闭，构建时启用
     "noUnusedParameters": false, // 开发时可以关闭，构建时启用
     "esModuleInterop": true,
     // 提高代码质量
@@ -28,5 +28,12 @@
     "isolatedModules": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.patch.ts", "**/__tests__/**", "**/*.spec.ts", "**/*.test.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.patch.ts",
+    "**/__tests__/**",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
 }

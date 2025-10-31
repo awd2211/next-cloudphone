@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger } from '@nestjs/common';
 
 /**
  * Token Bucket 速率限制器
@@ -57,7 +57,7 @@ export class RateLimiterService {
   async waitForToken(
     key: string,
     options: RateLimitOptions,
-    timeoutMs: number = 30000,
+    timeoutMs: number = 30000
   ): Promise<number> {
     const bucket = this.getBucket(key, options);
     const startTime = Date.now();
@@ -69,14 +69,10 @@ export class RateLimiterService {
     }
 
     if (waitTime > timeoutMs) {
-      throw new Error(
-        `Rate limit exceeded: need to wait ${waitTime}ms, timeout is ${timeoutMs}ms`,
-      );
+      throw new Error(`Rate limit exceeded: need to wait ${waitTime}ms, timeout is ${timeoutMs}ms`);
     }
 
-    this.logger.debug(
-      `Rate limit for ${key}: waiting ${waitTime}ms for token...`,
-    );
+    this.logger.debug(`Rate limit for ${key}: waiting ${waitTime}ms for token...`);
 
     await this.delay(waitTime);
     bucket.tryConsume();

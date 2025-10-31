@@ -48,7 +48,12 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
 }) => {
   const [statistics, setStatistics] = useState<QuotaStatistics | null>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['devices', 'cpuCores', 'memoryGB', 'storageGB']);
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([
+    'devices',
+    'cpuCores',
+    'memoryGB',
+    'storageGB',
+  ]);
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(30, 'day'),
     dayjs(),
@@ -151,7 +156,9 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
         },
       },
       legend: {
-        data: selectedMetrics.map((metric) => metricOptions.find((m) => m.value === metric)?.label || metric),
+        data: selectedMetrics.map(
+          (metric) => metricOptions.find((m) => m.value === metric)?.label || metric
+        ),
         bottom: 10,
         type: 'scroll',
       },

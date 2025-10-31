@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
@@ -74,25 +68,25 @@ export class AuditPermissionInterceptor implements NestInterceptor {
     private reflector: Reflector,
     @InjectRepository(AuditLog)
     private auditLogRepository: Repository<AuditLog>,
-    private alertService: AlertService,
+    private alertService: AlertService
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     // 检查是否跳过审计
-    const skipAudit = this.reflector.getAllAndOverride<boolean>(
-      SKIP_AUDIT_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const skipAudit = this.reflector.getAllAndOverride<boolean>(SKIP_AUDIT_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (skipAudit) {
       return next.handle();
     }
 
     // 检查是否需要审计
-    const shouldAudit = this.reflector.getAllAndOverride<boolean>(
-      AUDIT_PERMISSION_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const shouldAudit = this.reflector.getAllAndOverride<boolean>(AUDIT_PERMISSION_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (!shouldAudit) {
       return next.handle();
@@ -103,15 +97,17 @@ export class AuditPermissionInterceptor implements NestInterceptor {
     const user = request.user;
 
     // 获取审计元数据
-    const resource = this.reflector.getAllAndOverride<string>(
-      AUDIT_RESOURCE_KEY,
-      [context.getHandler(), context.getClass()],
-    ) || 'unknown';
+    const resource =
+      this.reflector.getAllAndOverride<string>(AUDIT_RESOURCE_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) || 'unknown';
 
-    const action = this.reflector.getAllAndOverride<string>(
-      AUDIT_ACTION_KEY,
-      [context.getHandler(), context.getClass()],
-    ) || request.method.toLowerCase();
+    const action =
+      this.reflector.getAllAndOverride<string>(AUDIT_ACTION_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) || request.method.toLowerCase();
 
     const startTime = Date.now();
 
@@ -160,7 +156,7 @@ export class AuditPermissionInterceptor implements NestInterceptor {
 
         // 重新抛出错误
         throw error;
-      }),
+      })
     );
   }
 
@@ -174,11 +170,13 @@ export class AuditPermissionInterceptor implements NestInterceptor {
       case AuditLevel.CRITICAL:
         this.logger.error(logMessage);
         // 发送关键告警通知
-        this.alertService.sendCriticalAlert({
-          title: '关键审计事件',
-          message: logMessage,
-          details: entry,
-        }).catch(err => this.logger.error(`Failed to send alert: ${err.message}`));
+        this.alertService
+          .sendCriticalAlert({
+            title: '关键审计事件',
+            message: logMessage,
+            details: entry,
+          })
+          .catch((err) => this.logger.error(`Failed to send alert: ${err.message}`));
         break;
       case AuditLevel.ERROR:
         this.logger.error(logMessage);
@@ -191,7 +189,7 @@ export class AuditPermissionInterceptor implements NestInterceptor {
     }
 
     // 持久化到数据库（异步，不阻塞主流程）
-    this.saveAuditLog(entry).catch(err => {
+    this.saveAuditLog(entry).catch((err) => {
       this.logger.error(`Failed to save audit log: ${err.message}`);
     });
   }
@@ -256,28 +254,14 @@ export class AuditPermissionInterceptor implements NestInterceptor {
     }
 
     // 敏感操作使用 WARN 级别
-    const criticalActions = [
-      'delete',
-      'remove',
-      'destroy',
-      'revoke',
-      'disable',
-      'block',
-      'ban',
-    ];
+    const criticalActions = ['delete', 'remove', 'destroy', 'revoke', 'disable', 'block', 'ban'];
 
     if (criticalActions.some((a) => action.toLowerCase().includes(a))) {
       return AuditLevel.WARN;
     }
 
     // 权限相关操作使用 WARN 级别
-    const permissionActions = [
-      'grant',
-      'assign',
-      'permission',
-      'role',
-      'access',
-    ];
+    const permissionActions = ['grant', 'assign', 'permission', 'role', 'access'];
 
     if (permissionActions.some((a) => action.toLowerCase().includes(a))) {
       return AuditLevel.WARN;

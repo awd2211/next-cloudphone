@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Button, Space, Alert } from 'antd';
-import { WalletOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined } from '@ant-design/icons';
+import {
+  WalletOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  DollarOutlined,
+} from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,12 +22,12 @@ const BalanceOverview: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [balanceData, setBalanceData] = useState<BalanceData>({
-    currentBalance: 15620.50,
-    frozenBalance: 320.00,
-    totalRecharge: 50000.00,
-    totalConsumption: 34379.50,
-    monthlyRecharge: 8000.00,
-    monthlyConsumption: 6542.30,
+    currentBalance: 15620.5,
+    frozenBalance: 320.0,
+    totalRecharge: 50000.0,
+    totalConsumption: 34379.5,
+    monthlyRecharge: 8000.0,
+    monthlyConsumption: 6542.3,
   });
 
   // 余额趋势图
@@ -93,7 +98,7 @@ const BalanceOverview: React.FC = () => {
           { value: 1500, name: 'CPU 使用' },
           { value: 1200, name: '内存使用' },
           { value: 800, name: '存储费用' },
-          { value: 242.30, name: '其他' },
+          { value: 242.3, name: '其他' },
         ],
         emphasis: {
           itemStyle: {
@@ -200,15 +205,15 @@ const BalanceOverview: React.FC = () => {
         <Col span={12}>
           <Card>
             <Space>
-              <Button type="primary" icon={<DollarOutlined />} onClick={() => navigate('/billing/recharge')}>
+              <Button
+                type="primary"
+                icon={<DollarOutlined />}
+                onClick={() => navigate('/billing/recharge')}
+              >
                 账户充值
               </Button>
-              <Button onClick={() => navigate('/billing/transactions')}>
-                交易记录
-              </Button>
-              <Button onClick={() => navigate('/billing/invoices')}>
-                账单管理
-              </Button>
+              <Button onClick={() => navigate('/billing/transactions')}>交易记录</Button>
+              <Button onClick={() => navigate('/billing/invoices')}>账单管理</Button>
             </Space>
           </Card>
         </Col>

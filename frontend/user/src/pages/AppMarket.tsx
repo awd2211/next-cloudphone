@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Input, Select, Button, message, Modal, Form, Empty, Tag } from 'antd';
-import { SearchOutlined, DownloadOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { SearchOutlined, DownloadOutlined, AppstoreOutlined, EyeOutlined } from '@ant-design/icons';
 import { getApps, installAppToDevice } from '@/services/app';
 import { getMyDevices } from '@/services/device';
 import type { Application, Device } from '@/types';
 
 const AppMarket = () => {
+  const navigate = useNavigate();
   const [apps, setApps] = useState<Application[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +46,7 @@ const AppMarket = () => {
   const loadDevices = async () => {
     try {
       const res = await getMyDevices({ page: 1, pageSize: 100 });
-      setDevices(res.data.filter(d => d.status === 'running'));
+      setDevices(res.data.filter((d) => d.status === 'running'));
     } catch (error) {
       console.error('加载设备列表失败', error);
     }
@@ -160,11 +162,25 @@ const AppMarket = () => {
                   }
                   actions={[
                     <Button
+                      key="view"
+                      size="small"
+                      icon={<EyeOutlined />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/apps/${app.id}`);
+                      }}
+                    >
+                      详情
+                    </Button>,
+                    <Button
                       key="install"
                       type="primary"
                       size="small"
                       icon={<DownloadOutlined />}
-                      onClick={() => handleInstall(app)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleInstall(app);
+                      }}
                     >
                       安装
                     </Button>,

@@ -119,7 +119,7 @@ describe('NotificationPreferencesService', () => {
       const invalidType = 'invalid.type' as NotificationType;
 
       await expect(service.getUserPreference(mockUserId, invalidType)).rejects.toThrow(
-        NotFoundException,
+        NotFoundException
       );
     });
   });
@@ -140,7 +140,7 @@ describe('NotificationPreferencesService', () => {
       const result = await service.updateUserPreference(
         mockUserId,
         NotificationType.DEVICE_CREATED,
-        updates,
+        updates
       );
 
       expect(result.enabled).toBe(false);
@@ -162,7 +162,7 @@ describe('NotificationPreferencesService', () => {
       const result = await service.updateUserPreference(
         mockUserId,
         NotificationType.DEVICE_CREATED,
-        updates,
+        updates
       );
 
       expect(repository.create).toHaveBeenCalledWith({
@@ -184,7 +184,7 @@ describe('NotificationPreferencesService', () => {
       const result = await service.updateUserPreference(
         mockUserId,
         NotificationType.DEVICE_CREATED,
-        updates,
+        updates
       );
 
       expect(result.enabled).toBe(false);
@@ -282,7 +282,7 @@ describe('NotificationPreferencesService', () => {
       const result = await service.shouldReceiveNotification(
         mockUserId,
         NotificationType.DEVICE_CREATED,
-        NotificationChannel.WEBSOCKET,
+        NotificationChannel.WEBSOCKET
       );
 
       expect(result).toBe(false);
@@ -299,7 +299,7 @@ describe('NotificationPreferencesService', () => {
       const result = await service.shouldReceiveNotification(
         mockUserId,
         NotificationType.DEVICE_CREATED,
-        NotificationChannel.EMAIL, // Try to send via EMAIL
+        NotificationChannel.EMAIL // Try to send via EMAIL
       );
 
       expect(result).toBe(false);
@@ -328,7 +328,7 @@ describe('NotificationPreferencesService', () => {
       const result = await service.shouldReceiveNotification(
         mockUserId,
         NotificationType.DEVICE_CREATED, // Non-critical type
-        NotificationChannel.WEBSOCKET,
+        NotificationChannel.WEBSOCKET
       );
 
       expect(result).toBe(false);
@@ -358,7 +358,7 @@ describe('NotificationPreferencesService', () => {
       const result = await service.shouldReceiveNotification(
         mockUserId,
         NotificationType.DEVICE_ERROR, // Critical type
-        NotificationChannel.WEBSOCKET,
+        NotificationChannel.WEBSOCKET
       );
 
       expect(result).toBe(true);
@@ -380,7 +380,7 @@ describe('NotificationPreferencesService', () => {
       const result = await service.shouldReceiveNotification(
         mockUserId,
         NotificationType.DEVICE_CREATED,
-        NotificationChannel.WEBSOCKET,
+        NotificationChannel.WEBSOCKET
       );
 
       expect(result).toBe(true);
@@ -420,7 +420,7 @@ describe('NotificationPreferencesService', () => {
 
       const result = await service.getEnabledNotificationTypes(
         mockUserId,
-        NotificationChannel.WEBSOCKET,
+        NotificationChannel.WEBSOCKET
       );
 
       // Should return only DEVICE_CREATED and DEVICE_ERROR (enabled + has WEBSOCKET channel)

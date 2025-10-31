@@ -124,14 +124,16 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // 默认降级 UI
       return (
-        <div style={{
-          padding: '50px',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-          backgroundColor: '#f0f2f5'
-        }}>
+        <div
+          style={{
+            padding: '50px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+            backgroundColor: '#f0f2f5',
+          }}
+        >
           <Result
             status="error"
             title="页面出错了"
@@ -143,59 +145,70 @@ export class ErrorBoundary extends Component<Props, State> {
               <Button key="reset" onClick={this.handleReset}>
                 返回首页
               </Button>,
-              <Button
-                key="home"
-                onClick={() => window.location.href = '/'}
-              >
+              <Button key="home" onClick={() => (window.location.href = '/')}>
                 回到首页
               </Button>,
             ]}
           >
             {/* 开发环境下显示详细错误信息 */}
             {process.env.NODE_ENV === 'development' && error && (
-              <div style={{
-                textAlign: 'left',
-                background: '#fff',
-                padding: '20px',
-                borderRadius: '4px',
-                marginTop: '20px',
-                maxWidth: '800px',
-                overflow: 'auto'
-              }}>
-                <h3 style={{ color: '#ff4d4f' }}>错误详情（仅开发环境可见）：</h3>
-                <p><strong>错误消息：</strong></p>
-                <pre style={{
-                  background: '#f5f5f5',
-                  padding: '10px',
+              <div
+                style={{
+                  textAlign: 'left',
+                  background: '#fff',
+                  padding: '20px',
                   borderRadius: '4px',
-                  overflow: 'auto'
-                }}>
+                  marginTop: '20px',
+                  maxWidth: '800px',
+                  overflow: 'auto',
+                }}
+              >
+                <h3 style={{ color: '#ff4d4f' }}>错误详情（仅开发环境可见）：</h3>
+                <p>
+                  <strong>错误消息：</strong>
+                </p>
+                <pre
+                  style={{
+                    background: '#f5f5f5',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    overflow: 'auto',
+                  }}
+                >
                   {error.toString()}
                 </pre>
 
-                <p><strong>错误堆栈：</strong></p>
-                <pre style={{
-                  background: '#f5f5f5',
-                  padding: '10px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  overflow: 'auto',
-                  maxHeight: '300px'
-                }}>
+                <p>
+                  <strong>错误堆栈：</strong>
+                </p>
+                <pre
+                  style={{
+                    background: '#f5f5f5',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    overflow: 'auto',
+                    maxHeight: '300px',
+                  }}
+                >
                   {error.stack}
                 </pre>
 
                 {errorInfo && (
                   <>
-                    <p><strong>组件堆栈：</strong></p>
-                    <pre style={{
-                      background: '#f5f5f5',
-                      padding: '10px',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      overflow: 'auto',
-                      maxHeight: '200px'
-                    }}>
+                    <p>
+                      <strong>组件堆栈：</strong>
+                    </p>
+                    <pre
+                      style={{
+                        background: '#f5f5f5',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        overflow: 'auto',
+                        maxHeight: '200px',
+                      }}
+                    >
                       {errorInfo.componentStack}
                     </pre>
                   </>

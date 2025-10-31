@@ -99,6 +99,19 @@ export class User {
   @Column({ nullable: true })
   lastLoginIp: string;
 
+  /**
+   * 双因素认证密钥
+   * 存储TOTP密钥，用于生成验证码
+   */
+  @Column({ name: 'two_factor_secret', type: 'varchar', nullable: true })
+  twoFactorSecret: string | null;
+
+  /**
+   * 是否启用双因素认证
+   */
+  @Column({ name: 'two_factor_enabled', default: false })
+  twoFactorEnabled: boolean;
+
   @ManyToMany(() => Role, (role) => role.users, { eager: true })
   @JoinTable({
     name: 'user_roles',

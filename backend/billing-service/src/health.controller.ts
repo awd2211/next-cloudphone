@@ -46,7 +46,10 @@ export class HealthController {
   constructor(@InjectDataSource() private dataSource: DataSource) {}
 
   @Get()
-  @ApiOperation({ summary: '健康检查', description: '检查服务是否正常运行，包括依赖项状态和系统信息' })
+  @ApiOperation({
+    summary: '健康检查',
+    description: '检查服务是否正常运行，包括依赖项状态和系统信息',
+  })
   @ApiResponse({ status: 200, description: '服务正常' })
   async check(): Promise<HealthCheckResult> {
     const dependencies: HealthCheckResult['dependencies'] = {};

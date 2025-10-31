@@ -41,7 +41,7 @@ export class PartitionManagerService {
 
   constructor(
     @InjectDataSource()
-    private readonly dataSource: DataSource,
+    private readonly dataSource: DataSource
   ) {}
 
   /**
@@ -57,9 +57,7 @@ export class PartitionManagerService {
     try {
       this.logger.log('开始创建未来分区...');
 
-      const result = await this.dataSource.query(
-        'SELECT create_future_partitions()',
-      );
+      const result = await this.dataSource.query('SELECT create_future_partitions()');
 
       this.logger.log('✓ 未来分区创建完成', result);
     } catch (error) {
@@ -81,19 +79,16 @@ export class PartitionManagerService {
   })
   async cleanupOldPartitions(retentionMonths: number = 12): Promise<void> {
     try {
-      this.logger.log(
-        `开始清理旧分区（保留 ${retentionMonths} 个月）...`,
-      );
+      this.logger.log(`开始清理旧分区（保留 ${retentionMonths} 个月）...`);
 
-      const result = await this.dataSource.query(
-        'SELECT * FROM cleanup_old_partitions($1)',
-        [retentionMonths],
-      );
+      const result = await this.dataSource.query('SELECT * FROM cleanup_old_partitions($1)', [
+        retentionMonths,
+      ]);
 
       if (result.length > 0) {
         this.logger.log(
           `✓ 已删除 ${result.length} 个旧分区:`,
-          result.map((r: any) => r.dropped_partition),
+          result.map((r: any) => r.dropped_partition)
         );
       } else {
         this.logger.log('✓ 无需清理旧分区');
@@ -127,9 +122,7 @@ export class PartitionManagerService {
    */
   async getPartitionStats(): Promise<PartitionStats[]> {
     try {
-      const result = await this.dataSource.query(
-        'SELECT * FROM get_partition_stats()',
-      );
+      const result = await this.dataSource.query('SELECT * FROM get_partition_stats()');
 
       return result.map((row: any) => ({
         partitionName: row.partition_name,
@@ -153,9 +146,7 @@ export class PartitionManagerService {
    */
   async getPartitionInfo(): Promise<PartitionInfo[]> {
     try {
-      const result = await this.dataSource.query(
-        'SELECT * FROM v_partition_info',
-      );
+      const result = await this.dataSource.query('SELECT * FROM v_partition_info');
 
       return result.map((row: any) => ({
         partitionName: row.partition_name,
@@ -214,22 +205,18 @@ export class PartitionManagerService {
       }
 
       if (futurePartitionCount < 2) {
-        issues.push(
-          `未来分区数量不足：${futurePartitionCount} < 2（建议立即创建）`,
-        );
+        issues.push(`未来分区数量不足：${futurePartitionCount} < 2（建议立即创建）`);
       }
 
       // 检查默认分区中的数据量（不应该有数据）
       const defaultPartitionRows = await this.dataSource.query(
-        'SELECT COUNT(*) as count FROM ONLY user_events_default',
+        'SELECT COUNT(*) as count FROM ONLY user_events_default'
       );
 
       const defaultRowCount = parseInt(defaultPartitionRows[0]?.count || '0', 10);
 
       if (defaultRowCount > 0) {
-        issues.push(
-          `默认分区中有 ${defaultRowCount} 条数据（可能是分区不存在或日期异常）`,
-        );
+        issues.push(`默认分区中有 ${defaultRowCount} 条数据（可能是分区不存在或日期异常）`);
       }
 
       const healthy = issues.length === 0;
@@ -277,7 +264,7 @@ export class PartitionManagerService {
 
       // 获取总大小
       const totalSizeResult = await this.dataSource.query(
-        "SELECT pg_size_pretty(pg_total_relation_size('user_events')) as size",
+        "SELECT pg_size_pretty(pg_total_relation_size('user_events')) as size"
       );
       const totalSize = totalSizeResult[0]?.size || '0 bytes';
 

@@ -9,14 +9,14 @@ import {
 } from 'typeorm';
 
 export enum SubscriptionStatus {
-  ACTIVE = 'active',           // 活跃
-  CANCELED = 'canceled',       // 已取消
-  INCOMPLETE = 'incomplete',   // 未完成（首次支付失败）
+  ACTIVE = 'active', // 活跃
+  CANCELED = 'canceled', // 已取消
+  INCOMPLETE = 'incomplete', // 未完成（首次支付失败）
   INCOMPLETE_EXPIRED = 'incomplete_expired', // 过期
-  PAST_DUE = 'past_due',       // 逾期
-  TRIALING = 'trialing',       // 试用中
-  UNPAID = 'unpaid',           // 未支付
-  PAUSED = 'paused',           // 暂停
+  PAST_DUE = 'past_due', // 逾期
+  TRIALING = 'trialing', // 试用中
+  UNPAID = 'unpaid', // 未支付
+  PAUSED = 'paused', // 暂停
 }
 
 export enum SubscriptionInterval {

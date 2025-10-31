@@ -400,7 +400,12 @@ const LifecycleDashboard = () => {
                 <Option value="critical">关键设备</Option>
               </Select>
             </Form.Item>
-            <Form.Item label="压缩备份" name={['compress']} valuePropName="checked" initialValue={true}>
+            <Form.Item
+              label="压缩备份"
+              name={['compress']}
+              valuePropName="checked"
+              initialValue={true}
+            >
               <Switch />
             </Form.Item>
           </>
@@ -418,7 +423,12 @@ const LifecycleDashboard = () => {
                 <Option value="websocket">站内通知</Option>
               </Select>
             </Form.Item>
-            <Form.Item label="重复提醒" name={['repeat']} valuePropName="checked" initialValue={false}>
+            <Form.Item
+              label="重复提醒"
+              name={['repeat']}
+              valuePropName="checked"
+              initialValue={false}
+            >
               <Switch />
             </Form.Item>
             <Form.Item label="重复间隔 (天)" name={['repeatInterval']} initialValue={1}>
@@ -539,7 +549,12 @@ const LifecycleDashboard = () => {
           >
             测试
           </Button>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openModal(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openModal(record)}
+          >
             编辑
           </Button>
           <Popconfirm title="确定删除此规则？" onConfirm={() => handleDelete(record.id)}>
@@ -696,7 +711,9 @@ const LifecycleDashboard = () => {
         <Card>
           <Tabs activeKey={activeTab} onChange={setActiveTab}>
             <TabPane tab="规则管理" key="rules">
-              <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
+              <div
+                style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}
+              >
                 <Space>
                   <Select
                     placeholder="筛选类型"
@@ -860,7 +877,9 @@ const LifecycleDashboard = () => {
               <Descriptions.Item label="规则名称" span={2}>
                 {selectedHistory.ruleName}
               </Descriptions.Item>
-              <Descriptions.Item label="状态">{getStatusTag(selectedHistory.status)}</Descriptions.Item>
+              <Descriptions.Item label="状态">
+                {getStatusTag(selectedHistory.status)}
+              </Descriptions.Item>
               <Descriptions.Item label="触发方式">
                 {selectedHistory.executedBy === 'manual' ? '手动' : '自动'}
               </Descriptions.Item>

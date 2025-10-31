@@ -20,7 +20,7 @@ export class UserCreatedEventHandler implements IEventHandler<UserCreatedEvent> 
   constructor(
     private readonly eventStore: EventStoreService,
     private readonly eventBusService: EventBusService,
-    private readonly metricsService: UserMetricsService,
+    private readonly metricsService: UserMetricsService
   ) {}
 
   async handle(event: UserCreatedEvent) {
@@ -44,14 +44,9 @@ export class UserCreatedEventHandler implements IEventHandler<UserCreatedEvent> 
       // 3. 更新 Prometheus 指标
       this.metricsService.recordUserCreated(event.tenantId || 'default', true);
 
-      this.logger.log(
-        `UserCreatedEvent processed successfully for user: ${event.aggregateId}`,
-      );
+      this.logger.log(`UserCreatedEvent processed successfully for user: ${event.aggregateId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to handle UserCreatedEvent for user: ${event.aggregateId}`,
-        error,
-      );
+      this.logger.error(`Failed to handle UserCreatedEvent for user: ${event.aggregateId}`, error);
       // 不抛出异常，避免影响主流程
       // 事件处理失败会被记录，可以通过监控告警
     }

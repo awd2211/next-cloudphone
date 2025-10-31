@@ -107,9 +107,7 @@ const TutorialList: React.FC = () => {
             <Title level={2} style={{ marginBottom: 8 }}>
               视频教程
             </Title>
-            <Paragraph type="secondary">
-              通过视频快速学习产品功能
-            </Paragraph>
+            <Paragraph type="secondary">通过视频快速学习产品功能</Paragraph>
           </div>
 
           {/* 搜索和筛选 */}
@@ -136,9 +134,7 @@ const TutorialList: React.FC = () => {
               ))}
             </Select>
 
-            <Button onClick={() => navigate('/help')}>
-              返回帮助中心
-            </Button>
+            <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
           </Space>
 
           {/* 难度标签 */}
@@ -267,7 +263,9 @@ const TutorialList: React.FC = () => {
                         </Text>
                       </Space>
 
-                      <Space style={{ width: '100%', justifyContent: 'space-between', fontSize: 12 }}>
+                      <Space
+                        style={{ width: '100%', justifyContent: 'space-between', fontSize: 12 }}
+                      >
                         <Space size="large">
                           <Space size="small">
                             <EyeOutlined />
@@ -328,9 +326,7 @@ const TutorialList: React.FC = () => {
             <Button type="primary" onClick={() => navigate('/help/faqs')}>
               查看 FAQ
             </Button>
-            <Button onClick={() => navigate('/help')}>
-              返回帮助中心
-            </Button>
+            <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
           </Space>
         </Space>
       </Card>

@@ -1,14 +1,14 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { CacheService } from "../../cache/cache.service";
-import { AdbService } from "../../adb/adb.service";
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../../cache/cache.service';
+import { AdbService } from '../../adb/adb.service';
 import {
   PhysicalDeviceInfo,
   PooledDevice,
   DevicePoolStatus,
   DeviceAllocationRequest,
   HealthCheckResult,
-} from "./physical.types";
+} from './physical.types';
 import {
   ShardConfig,
   ShardStats,
@@ -16,7 +16,7 @@ import {
   ShardSelectionStrategy,
   ShardSelectionRequest,
   PoolOperationResult,
-} from "./sharded-pool.types";
+} from './sharded-pool.types';
 
 /**
  * ShardedPoolService
@@ -40,7 +40,7 @@ export class ShardedPoolService {
   private readonly logger = new Logger(ShardedPoolService.name);
 
   /** Redis 键前缀 */
-  private readonly SHARD_PREFIX = "physical_shard";
+  private readonly SHARD_PREFIX = 'physical_shard';
 
   /** 分片配置缓存 */
   private shardConfigs: Map<string, ShardConfig> = new Map();
@@ -51,7 +51,7 @@ export class ShardedPoolService {
   constructor(
     private cacheService: CacheService,
     private adbService: AdbService,
-    private configService: ConfigService,
+    private configService: ConfigService
   ) {
     this.initializeShards();
   }
@@ -64,29 +64,29 @@ export class ShardedPoolService {
     // 这里使用默认配置作为示例
     const defaultShards: ShardConfig[] = [
       {
-        shardId: "shard-01",
-        shardName: "Rack A",
-        deviceGroups: ["rack-A"],
+        shardId: 'shard-01',
+        shardName: 'Rack A',
+        deviceGroups: ['rack-A'],
         capacity: 500,
-        region: "cn-north",
+        region: 'cn-north',
         weight: 1,
         enabled: true,
       },
       {
-        shardId: "shard-02",
-        shardName: "Rack B",
-        deviceGroups: ["rack-B"],
+        shardId: 'shard-02',
+        shardName: 'Rack B',
+        deviceGroups: ['rack-B'],
         capacity: 500,
-        region: "cn-north",
+        region: 'cn-north',
         weight: 1,
         enabled: true,
       },
       {
-        shardId: "shard-03",
-        shardName: "Rack C",
-        deviceGroups: ["rack-C"],
+        shardId: 'shard-03',
+        shardName: 'Rack C',
+        deviceGroups: ['rack-C'],
         capacity: 500,
-        region: "cn-south",
+        region: 'cn-south',
         weight: 1,
         enabled: true,
       },
@@ -162,7 +162,7 @@ export class ShardedPoolService {
    * 分配设备（智能分片选择）
    */
   async allocateDevice(
-    request: DeviceAllocationRequest,
+    request: DeviceAllocationRequest
   ): Promise<PoolOperationResult<PooledDevice>> {
     const startTime = Date.now();
 
@@ -180,7 +180,7 @@ export class ShardedPoolService {
       if (selectedShards.length === 0) {
         return {
           success: false,
-          error: "No suitable shards found",
+          error: 'No suitable shards found',
         };
       }
 
@@ -189,20 +189,14 @@ export class ShardedPoolService {
         const devices = await this.getAvailableDevicesFromShard(shardId);
 
         // 过滤符合要求的设备
-        let candidates = this.filterDevicesByRequirements(
-          devices,
-          request.requirements,
-        );
+        let candidates = this.filterDevicesByRequirements(devices, request.requirements);
 
         if (candidates.length === 0) {
           continue;
         }
 
         // 选择最佳设备
-        const selectedDevice = this.selectBestDevice(
-          candidates,
-          request.preferredDeviceId,
-        );
+        const selectedDevice = this.selectBestDevice(candidates, request.preferredDeviceId);
 
         // 分配设备
         selectedDevice.poolStatus = DevicePoolStatus.ALLOCATED;
@@ -213,7 +207,7 @@ export class ShardedPoolService {
         await this.saveDeviceToShard(shardId, selectedDevice);
 
         this.logger.log(
-          `Device ${selectedDevice.id} allocated from shard ${shardId} to user ${request.userId}`,
+          `Device ${selectedDevice.id} allocated from shard ${shardId} to user ${request.userId}`
         );
 
         return {
@@ -226,7 +220,7 @@ export class ShardedPoolService {
 
       return {
         success: false,
-        error: "No available devices found in any shard",
+        error: 'No available devices found in any shard',
         duration: Date.now() - startTime,
       };
     } catch (error) {
@@ -329,19 +323,15 @@ export class ShardedPoolService {
     for (const region in byRegion) {
       const allocated = byRegion[region].total - byRegion[region].available;
       byRegion[region].utilizationRate =
-        byRegion[region].total > 0
-          ? (allocated / byRegion[region].total) * 100
-          : 0;
+        byRegion[region].total > 0 ? (allocated / byRegion[region].total) * 100 : 0;
     }
 
     return {
       totalDevices,
       totalShards: this.shardConfigs.size,
       shards: shardStats,
-      globalAverageHealthScore:
-        totalDevices > 0 ? totalHealthScore / totalDevices : 0,
-      globalUtilizationRate:
-        totalDevices > 0 ? (totalAllocated / totalDevices) * 100 : 0,
+      globalAverageHealthScore: totalDevices > 0 ? totalHealthScore / totalDevices : 0,
+      globalUtilizationRate: totalDevices > 0 ? (totalAllocated / totalDevices) * 100 : 0,
       byRegion,
       byStatus,
     };
@@ -380,10 +370,8 @@ export class ShardedPoolService {
       available,
       allocated,
       offline,
-      averageHealthScore:
-        devices.length > 0 ? totalHealthScore / devices.length : 0,
-      utilizationRate:
-        devices.length > 0 ? (allocated / devices.length) * 100 : 0,
+      averageHealthScore: devices.length > 0 ? totalHealthScore / devices.length : 0,
+      utilizationRate: devices.length > 0 ? (allocated / devices.length) * 100 : 0,
       updatedAt: new Date(),
     };
   }
@@ -391,27 +379,19 @@ export class ShardedPoolService {
   /**
    * 选择分片（根据策略）
    */
-  private async selectShards(
-    request: ShardSelectionRequest,
-  ): Promise<string[]> {
+  private async selectShards(request: ShardSelectionRequest): Promise<string[]> {
     const strategy = request.strategy || ShardSelectionStrategy.LEAST_USED;
-    const enabledShards = Array.from(this.shardConfigs.values()).filter(
-      (s) => s.enabled,
-    );
+    const enabledShards = Array.from(this.shardConfigs.values()).filter((s) => s.enabled);
 
     // 按设备分组过滤
     let filteredShards = enabledShards;
     if (request.deviceGroup) {
-      filteredShards = filteredShards.filter((s) =>
-        s.deviceGroups.includes(request.deviceGroup!),
-      );
+      filteredShards = filteredShards.filter((s) => s.deviceGroups.includes(request.deviceGroup!));
     }
 
     // 按区域过滤
     if (request.preferredRegion) {
-      const regionShards = filteredShards.filter(
-        (s) => s.region === request.preferredRegion,
-      );
+      const regionShards = filteredShards.filter((s) => s.region === request.preferredRegion);
       if (regionShards.length > 0) {
         filteredShards = regionShards;
       }
@@ -429,11 +409,9 @@ export class ShardedPoolService {
           filteredShards.map(async (shard) => {
             const stats = await this.getShardStats(shard.shardId);
             return { shard, stats };
-          }),
+          })
         );
-        shardsWithStats.sort(
-          (a, b) => a.stats.utilizationRate - b.stats.utilizationRate,
-        );
+        shardsWithStats.sort((a, b) => a.stats.utilizationRate - b.stats.utilizationRate);
         return shardsWithStats.map((s) => s.shard.shardId);
 
       case ShardSelectionStrategy.ROUND_ROBIN:
@@ -470,10 +448,7 @@ export class ShardedPoolService {
   /**
    * 保存设备到分片
    */
-  private async saveDeviceToShard(
-    shardId: string,
-    device: PooledDevice,
-  ): Promise<void> {
+  private async saveDeviceToShard(shardId: string, device: PooledDevice): Promise<void> {
     const key = `${this.SHARD_PREFIX}:${shardId}:device:${device.id}`;
     await this.cacheService.set(key, device, 0); // 永久存储
   }
@@ -483,7 +458,7 @@ export class ShardedPoolService {
    */
   private async getDeviceFromShard(
     shardId: string,
-    deviceId: string,
+    deviceId: string
   ): Promise<PooledDevice | null> {
     const key = `${this.SHARD_PREFIX}:${shardId}:device:${deviceId}`;
     return await this.cacheService.get<PooledDevice>(key);
@@ -492,9 +467,7 @@ export class ShardedPoolService {
   /**
    * 从分片获取所有设备（使用 SCAN）
    */
-  private async getAllDevicesFromShard(
-    shardId: string,
-  ): Promise<PooledDevice[]> {
+  private async getAllDevicesFromShard(shardId: string): Promise<PooledDevice[]> {
     // 使用 Redis SCAN 遍历所有设备键（替代 KEYS *）
     const pattern = `${this.SHARD_PREFIX}:${shardId}:device:*`;
     const deviceKeys = await this.cacheService.scan(pattern, 100);
@@ -513,31 +486,22 @@ export class ShardedPoolService {
       }
     }
 
-    this.logger.debug(
-      `Retrieved ${devices.length} devices from shard ${shardId} using SCAN`,
-    );
+    this.logger.debug(`Retrieved ${devices.length} devices from shard ${shardId} using SCAN`);
     return devices;
   }
 
   /**
    * 从分片获取可用设备
    */
-  private async getAvailableDevicesFromShard(
-    shardId: string,
-  ): Promise<PooledDevice[]> {
+  private async getAvailableDevicesFromShard(shardId: string): Promise<PooledDevice[]> {
     const allDevices = await this.getAllDevicesFromShard(shardId);
-    return allDevices.filter(
-      (d) => d.poolStatus === DevicePoolStatus.AVAILABLE,
-    );
+    return allDevices.filter((d) => d.poolStatus === DevicePoolStatus.AVAILABLE);
   }
 
   /**
    * 添加到分片索引
    */
-  private async addToShardIndex(
-    shardId: string,
-    deviceId: string,
-  ): Promise<void> {
+  private async addToShardIndex(shardId: string, deviceId: string): Promise<void> {
     const indexKey = `${this.SHARD_PREFIX}:${shardId}:index`;
     const index = (await this.cacheService.get<string[]>(indexKey)) || [];
     if (!index.includes(deviceId)) {
@@ -564,33 +528,25 @@ export class ShardedPoolService {
    */
   private filterDevicesByRequirements(
     devices: PooledDevice[],
-    requirements?: DeviceAllocationRequest["requirements"],
+    requirements?: DeviceAllocationRequest['requirements']
   ): PooledDevice[] {
     if (!requirements) return devices;
 
     return devices.filter((device) => {
       // 健康评分
-      if (
-        requirements.minHealthScore &&
-        device.healthScore < requirements.minHealthScore
-      ) {
+      if (requirements.minHealthScore && device.healthScore < requirements.minHealthScore) {
         return false;
       }
 
       // 设备分组
-      if (
-        requirements.deviceGroup &&
-        device.deviceGroup !== requirements.deviceGroup
-      ) {
+      if (requirements.deviceGroup && device.deviceGroup !== requirements.deviceGroup) {
         return false;
       }
 
       // 设备标签
       if (requirements.tags && requirements.tags.length > 0) {
         const deviceTags = device.tags || [];
-        const hasAllTags = requirements.tags.every((tag) =>
-          deviceTags.includes(tag),
-        );
+        const hasAllTags = requirements.tags.every((tag) => deviceTags.includes(tag));
         if (!hasAllTags) {
           return false;
         }
@@ -603,10 +559,7 @@ export class ShardedPoolService {
   /**
    * 选择最佳设备
    */
-  private selectBestDevice(
-    devices: PooledDevice[],
-    preferredDeviceId?: string,
-  ): PooledDevice {
+  private selectBestDevice(devices: PooledDevice[], preferredDeviceId?: string): PooledDevice {
     // 用户指定设备
     if (preferredDeviceId) {
       const preferred = devices.find((d) => d.id === preferredDeviceId);

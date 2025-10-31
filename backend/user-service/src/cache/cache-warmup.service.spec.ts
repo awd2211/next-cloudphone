@@ -76,28 +76,16 @@ describe('CacheWarmupService', () => {
       });
 
       // 验证角色缓存
-      expect(cacheService.set).toHaveBeenCalledWith(
-        'role:role-1',
-        mockRoles[0],
-        { ttl: 600 },
-      );
-      expect(cacheService.set).toHaveBeenCalledWith(
-        'role:role-2',
-        mockRoles[1],
-        { ttl: 600 },
-      );
+      expect(cacheService.set).toHaveBeenCalledWith('role:role-1', mockRoles[0], { ttl: 600 });
+      expect(cacheService.set).toHaveBeenCalledWith('role:role-2', mockRoles[1], { ttl: 600 });
 
       // 验证权限缓存
-      expect(cacheService.set).toHaveBeenCalledWith(
-        'permission:perm-1',
-        mockPermissions[0],
-        { ttl: 600 },
-      );
-      expect(cacheService.set).toHaveBeenCalledWith(
-        'permission:perm-2',
-        mockPermissions[1],
-        { ttl: 600 },
-      );
+      expect(cacheService.set).toHaveBeenCalledWith('permission:perm-1', mockPermissions[0], {
+        ttl: 600,
+      });
+      expect(cacheService.set).toHaveBeenCalledWith('permission:perm-2', mockPermissions[1], {
+        ttl: 600,
+      });
 
       // 总共调用4次set
       expect(cacheService.set).toHaveBeenCalledTimes(4);
@@ -120,9 +108,7 @@ describe('CacheWarmupService', () => {
     it('应该在角色查询失败时继续预热权限', async () => {
       // Arrange
       roleRepository.find.mockRejectedValue(new Error('Database error'));
-      permissionRepository.find.mockResolvedValue([
-        { id: 'perm-1', name: 'user:read' },
-      ]);
+      permissionRepository.find.mockResolvedValue([{ id: 'perm-1', name: 'user:read' }]);
 
       // Act
       await service.manualWarmup();
@@ -132,18 +118,14 @@ describe('CacheWarmupService', () => {
       expect(permissionRepository.find).toHaveBeenCalled();
 
       // 权限仍然应该被缓存
-      expect(cacheService.set).toHaveBeenCalledWith(
-        'permission:perm-1',
-        expect.any(Object),
-        { ttl: 600 },
-      );
+      expect(cacheService.set).toHaveBeenCalledWith('permission:perm-1', expect.any(Object), {
+        ttl: 600,
+      });
     });
 
     it('应该在权限查询失败时继续预热角色', async () => {
       // Arrange
-      roleRepository.find.mockResolvedValue([
-        { id: 'role-1', name: 'Admin', permissions: [] },
-      ]);
+      roleRepository.find.mockResolvedValue([{ id: 'role-1', name: 'Admin', permissions: [] }]);
       permissionRepository.find.mockRejectedValue(new Error('Database error'));
 
       // Act
@@ -154,11 +136,9 @@ describe('CacheWarmupService', () => {
       expect(permissionRepository.find).toHaveBeenCalled();
 
       // 角色仍然应该被缓存
-      expect(cacheService.set).toHaveBeenCalledWith(
-        'role:role-1',
-        expect.any(Object),
-        { ttl: 600 },
-      );
+      expect(cacheService.set).toHaveBeenCalledWith('role:role-1', expect.any(Object), {
+        ttl: 600,
+      });
     });
 
     it('应该限制预热的角色数量', async () => {
@@ -226,12 +206,8 @@ describe('CacheWarmupService', () => {
 
     it('应该在清除失败后仍然执行预热', async () => {
       // Arrange
-      (cacheService.delPattern as jest.Mock).mockRejectedValue(
-        new Error('Delete error'),
-      );
-      roleRepository.find.mockResolvedValue([
-        { id: 'role-1', name: 'Admin', permissions: [] },
-      ]);
+      (cacheService.delPattern as jest.Mock).mockRejectedValue(new Error('Delete error'));
+      roleRepository.find.mockResolvedValue([{ id: 'role-1', name: 'Admin', permissions: [] }]);
       permissionRepository.find.mockResolvedValue([]);
 
       // Act
@@ -288,9 +264,7 @@ describe('CacheWarmupService', () => {
       const mockRoles = [{ id: 'role-1', name: 'Admin', permissions: [] }];
       roleRepository.find.mockResolvedValue(mockRoles);
       permissionRepository.find.mockResolvedValue([]);
-      (cacheService.set as jest.Mock).mockRejectedValue(
-        new Error('Cache error'),
-      );
+      (cacheService.set as jest.Mock).mockRejectedValue(new Error('Cache error'));
 
       // Act & Assert - 不应该抛出异常
       await expect(service.manualWarmup()).resolves.not.toThrow();

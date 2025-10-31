@@ -80,7 +80,7 @@ export class ConcurrencyTestHelper {
    */
   async runConcurrent<T>(
     operation: () => Promise<T>,
-    count: number,
+    count: number
   ): Promise<ConcurrencyTestResult<T>> {
     const startTime = Date.now();
     const promises: Promise<T>[] = [];
@@ -93,7 +93,7 @@ export class ConcurrencyTestHelper {
         operation().catch((error) => {
           this.logger.warn(`Operation ${i} failed: ${error.message}`);
           throw error;
-        }),
+        })
       );
     }
 
@@ -115,7 +115,7 @@ export class ConcurrencyTestHelper {
     const successRate = successes.length / count;
 
     this.logger.debug(
-      `Completed ${count} operations in ${duration}ms (${(successRate * 100).toFixed(1)}% success rate)`,
+      `Completed ${count} operations in ${duration}ms (${(successRate * 100).toFixed(1)}% success rate)`
     );
 
     return {
@@ -133,7 +133,7 @@ export class ConcurrencyTestHelper {
    * @returns 测试结果
    */
   async runConcurrentBatch<T>(
-    operations: Array<() => Promise<T>>,
+    operations: Array<() => Promise<T>>
   ): Promise<ConcurrencyTestResult<T>> {
     const startTime = Date.now();
 
@@ -143,7 +143,7 @@ export class ConcurrencyTestHelper {
       op().catch((error) => {
         this.logger.warn(`Operation ${index} failed: ${error.message}`);
         throw error;
-      }),
+      })
     );
 
     const results = await Promise.allSettled(promises);
@@ -163,7 +163,7 @@ export class ConcurrencyTestHelper {
     const successRate = successes.length / operations.length;
 
     this.logger.debug(
-      `Completed ${operations.length} operations in ${duration}ms (${(successRate * 100).toFixed(1)}% success rate)`,
+      `Completed ${operations.length} operations in ${duration}ms (${(successRate * 100).toFixed(1)}% success rate)`
     );
 
     return {
@@ -185,7 +185,7 @@ export class ConcurrencyTestHelper {
    */
   async detectRaceCondition<T>(
     operation: () => Promise<T>,
-    count: number,
+    count: number
   ): Promise<RaceConditionTestResult<T>> {
     const startTime = Date.now();
     const promises: Promise<T>[] = [];
@@ -215,7 +215,7 @@ export class ConcurrencyTestHelper {
     const duration = Date.now() - startTime;
 
     this.logger.debug(
-      `Completed race condition test in ${duration}ms (${conflicts} conflicts detected)`,
+      `Completed race condition test in ${duration}ms (${conflicts} conflicts detected)`
     );
 
     return {
@@ -237,7 +237,7 @@ export class ConcurrencyTestHelper {
   async expectDeadlock(
     operation1: () => Promise<void>,
     operation2: () => Promise<void>,
-    timeoutMs: number = 5000,
+    timeoutMs: number = 5000
   ): Promise<void> {
     const startTime = Date.now();
 
@@ -256,10 +256,7 @@ export class ConcurrencyTestHelper {
 
     try {
       // 等待操作完成或超时
-      await Promise.race([
-        Promise.all([promise1, promise2]),
-        timeoutPromise,
-      ]);
+      await Promise.race([Promise.all([promise1, promise2]), timeoutPromise]);
 
       // 如果没有超时，说明没有死锁
       const duration = Date.now() - startTime;
@@ -289,7 +286,7 @@ export class ConcurrencyTestHelper {
   async stressTest<T>(
     operation: () => Promise<T>,
     durationMs: number,
-    concurrency: number = 10,
+    concurrency: number = 10
   ): Promise<{
     totalOperations: number;
     successfulOperations: number;
@@ -307,7 +304,7 @@ export class ConcurrencyTestHelper {
     const latencies: number[] = [];
 
     this.logger.debug(
-      `Starting stress test (duration: ${durationMs}ms, concurrency: ${concurrency})`,
+      `Starting stress test (duration: ${durationMs}ms, concurrency: ${concurrency})`
     );
 
     // 创建工作池
@@ -331,7 +328,7 @@ export class ConcurrencyTestHelper {
             const opDuration = Date.now() - opStartTime;
             latencies.push(opDuration);
           }
-        })(),
+        })()
       );
     }
 
@@ -345,7 +342,7 @@ export class ConcurrencyTestHelper {
     const maxLatency = Math.max(...latencies);
 
     this.logger.debug(
-      `Stress test completed: ${totalOperations} operations in ${duration}ms (${throughput.toFixed(2)} ops/sec)`,
+      `Stress test completed: ${totalOperations} operations in ${duration}ms (${throughput.toFixed(2)} ops/sec)`
     );
 
     return {
@@ -370,7 +367,7 @@ export class ConcurrencyTestHelper {
    */
   async expectSequentialConsistency<T>(
     operations: Array<() => Promise<T>>,
-    validator: (results: T[]) => boolean,
+    validator: (results: T[]) => boolean
   ): Promise<void> {
     this.logger.debug(`Testing sequential consistency with ${operations.length} operations`);
 
@@ -413,15 +410,10 @@ export class ConcurrencyTestHelper {
    * @param batchSize 批次大小
    * @returns 所有结果
    */
-  async batchExecute<T>(
-    operations: Array<() => Promise<T>>,
-    batchSize: number,
-  ): Promise<T[]> {
+  async batchExecute<T>(operations: Array<() => Promise<T>>, batchSize: number): Promise<T[]> {
     const results: T[] = [];
 
-    this.logger.debug(
-      `Executing ${operations.length} operations in batches of ${batchSize}`,
-    );
+    this.logger.debug(`Executing ${operations.length} operations in batches of ${batchSize}`);
 
     for (let i = 0; i < operations.length; i += batchSize) {
       const batch = operations.slice(i, i + batchSize);
@@ -429,7 +421,7 @@ export class ConcurrencyTestHelper {
       results.push(...batchResults);
 
       this.logger.debug(
-        `Completed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(operations.length / batchSize)}`,
+        `Completed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(operations.length / batchSize)}`
       );
     }
 
@@ -448,7 +440,7 @@ export class ConcurrencyTestHelper {
   async expectIdempotency<T>(
     operation: () => Promise<T>,
     count: number,
-    comparator: (a: T, b: T) => boolean,
+    comparator: (a: T, b: T) => boolean
   ): Promise<void> {
     this.logger.debug(`Testing idempotency with ${count} executions`);
 
@@ -463,9 +455,7 @@ export class ConcurrencyTestHelper {
     const firstResult = results[0];
     for (let i = 1; i < results.length; i++) {
       if (!comparator(firstResult, results[i])) {
-        throw new Error(
-          `Idempotency violation: execution ${i} returned different result`,
-        );
+        throw new Error(`Idempotency violation: execution ${i} returned different result`);
       }
     }
 

@@ -1,6 +1,11 @@
 import React from 'react';
 import { Alert, Button, Space, Typography, Collapse, Tag } from 'antd';
-import { ReloadOutlined, QuestionCircleOutlined, CustomerServiceOutlined, LinkOutlined } from '@ant-design/icons';
+import {
+  ReloadOutlined,
+  QuestionCircleOutlined,
+  CustomerServiceOutlined,
+  LinkOutlined,
+} from '@ant-design/icons';
 
 const { Text, Link } = Typography;
 const { Panel } = Collapse;
@@ -53,6 +58,8 @@ export interface EnhancedErrorAlertProps {
   className?: string;
   /** Alert类型（默认error） */
   type?: 'error' | 'warning' | 'info';
+  /** 自定义样式 */
+  style?: React.CSSProperties;
 }
 
 /**
@@ -111,6 +118,7 @@ export const EnhancedErrorAlert: React.FC<EnhancedErrorAlertProps> = ({
   showDocumentation = true,
   className,
   type = 'error',
+  style,
 }) => {
   const parsedError = parseError(error);
 
@@ -119,11 +127,16 @@ export const EnhancedErrorAlert: React.FC<EnhancedErrorAlertProps> = ({
   }
 
   const displayMessage = parsedError.userMessage || parsedError.message;
-  const hasSuggestions = showRecoverySuggestions && parsedError.recoverySuggestions && parsedError.recoverySuggestions.length > 0;
+  const hasSuggestions =
+    showRecoverySuggestions &&
+    parsedError.recoverySuggestions &&
+    parsedError.recoverySuggestions.length > 0;
   const hasRequestId = showRequestId && parsedError.requestId;
-  const hasTechnicalDetails = showTechnicalDetails && (parsedError.technicalMessage || parsedError.details);
-  const hasDocumentation = showDocumentation && (parsedError.documentationUrl || parsedError.supportUrl);
-  const canRetry = onRetry && (parsedError.retryable !== false);
+  const hasTechnicalDetails =
+    showTechnicalDetails && (parsedError.technicalMessage || parsedError.details);
+  const hasDocumentation =
+    showDocumentation && (parsedError.documentationUrl || parsedError.supportUrl);
+  const canRetry = onRetry && parsedError.retryable !== false;
 
   return (
     <Alert
@@ -132,16 +145,25 @@ export const EnhancedErrorAlert: React.FC<EnhancedErrorAlertProps> = ({
       closable={!!onClose}
       onClose={onClose}
       className={className}
+      style={style}
       message={
         <div>
-          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: hasSuggestions || hasRequestId ? 12 : 0 }}>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              marginBottom: hasSuggestions || hasRequestId ? 12 : 0,
+            }}
+          >
             {title || displayMessage}
           </div>
 
           {/* 恢复建议 */}
           {hasSuggestions && (
             <div style={{ marginTop: 12 }}>
-              <Text strong style={{ fontSize: 13 }}>解决方案：</Text>
+              <Text strong style={{ fontSize: 13 }}>
+                解决方案：
+              </Text>
               <ul style={{ margin: '8px 0 0 0', paddingLeft: 20 }}>
                 {parsedError.recoverySuggestions!.map((suggestion, index) => (
                   <li key={index} style={{ marginBottom: 6 }}>
@@ -149,7 +171,10 @@ export const EnhancedErrorAlert: React.FC<EnhancedErrorAlertProps> = ({
                     {suggestion.actionUrl && (
                       <>
                         {' '}
-                        <Link href={suggestion.actionUrl} target={suggestion.actionUrl.startsWith('http') ? '_blank' : '_self'}>
+                        <Link
+                          href={suggestion.actionUrl}
+                          target={suggestion.actionUrl.startsWith('http') ? '_blank' : '_self'}
+                        >
                           前往 <LinkOutlined style={{ fontSize: 12 }} />
                         </Link>
                       </>
@@ -162,7 +187,15 @@ export const EnhancedErrorAlert: React.FC<EnhancedErrorAlertProps> = ({
 
           {/* Request ID 和错误代码 */}
           {(hasRequestId || parsedError.code) && (
-            <div style={{ marginTop: 12, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div
+              style={{
+                marginTop: 12,
+                display: 'flex',
+                gap: 12,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
               {hasRequestId && (
                 <div>
                   <Tag color="default" style={{ fontSize: 11 }}>
@@ -199,15 +232,17 @@ export const EnhancedErrorAlert: React.FC<EnhancedErrorAlertProps> = ({
                         {parsedError.technicalMessage && (
                           <div style={{ marginBottom: 8 }}>
                             <Text strong>技术消息：</Text>
-                            <pre style={{
-                              background: '#f5f5f5',
-                              padding: 8,
-                              borderRadius: 4,
-                              margin: '4px 0 0 0',
-                              fontSize: 11,
-                              whiteSpace: 'pre-wrap',
-                              wordBreak: 'break-word',
-                            }}>
+                            <pre
+                              style={{
+                                background: '#f5f5f5',
+                                padding: 8,
+                                borderRadius: 4,
+                                margin: '4px 0 0 0',
+                                fontSize: 11,
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                              }}
+                            >
                               {parsedError.technicalMessage}
                             </pre>
                           </div>
@@ -215,17 +250,19 @@ export const EnhancedErrorAlert: React.FC<EnhancedErrorAlertProps> = ({
                         {parsedError.details && (
                           <div>
                             <Text strong>详细信息：</Text>
-                            <pre style={{
-                              background: '#f5f5f5',
-                              padding: 8,
-                              borderRadius: 4,
-                              margin: '4px 0 0 0',
-                              fontSize: 11,
-                              whiteSpace: 'pre-wrap',
-                              wordBreak: 'break-word',
-                              maxHeight: 200,
-                              overflow: 'auto',
-                            }}>
+                            <pre
+                              style={{
+                                background: '#f5f5f5',
+                                padding: 8,
+                                borderRadius: 4,
+                                margin: '4px 0 0 0',
+                                fontSize: 11,
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                maxHeight: 200,
+                                overflow: 'auto',
+                              }}
+                            >
                               {typeof parsedError.details === 'string'
                                 ? parsedError.details
                                 : JSON.stringify(parsedError.details, null, 2)}
@@ -245,12 +282,7 @@ export const EnhancedErrorAlert: React.FC<EnhancedErrorAlertProps> = ({
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
               <Space size="middle">
                 {canRetry && (
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<ReloadOutlined />}
-                    onClick={onRetry}
-                  >
+                  <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={onRetry}>
                     重试
                   </Button>
                 )}
@@ -290,7 +322,11 @@ export interface SimpleErrorAlertProps {
   className?: string;
 }
 
-export const SimpleErrorAlert: React.FC<SimpleErrorAlertProps> = ({ error, onClose, className }) => {
+export const SimpleErrorAlert: React.FC<SimpleErrorAlertProps> = ({
+  error,
+  onClose,
+  className,
+}) => {
   if (!error) return null;
 
   const message = typeof error === 'string' ? error : error.message;

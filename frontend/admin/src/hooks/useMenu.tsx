@@ -188,7 +188,7 @@ export const useMenu = () => {
       }
       return null;
     },
-    [menus],
+    [menus]
   );
 
   /**
@@ -207,7 +207,7 @@ export const useMenu = () => {
       }
       return null;
     },
-    [menus],
+    [menus]
   );
 
   /**
@@ -228,27 +228,30 @@ export const useMenu = () => {
         })
         .map((menu) => ({ ...menu }));
     },
-    [menus],
+    [menus]
   );
 
   /**
    * 展平菜单树为列表
    */
-  const flattenMenus = useCallback((menuList: MenuItem[] = menus): MenuItem[] => {
-    const result: MenuItem[] = [];
+  const flattenMenus = useCallback(
+    (menuList: MenuItem[] = menus): MenuItem[] => {
+      const result: MenuItem[] = [];
 
-    const flatten = (items: MenuItem[]) => {
-      for (const item of items) {
-        result.push(item);
-        if (item.children && item.children.length > 0) {
-          flatten(item.children);
+      const flatten = (items: MenuItem[]) => {
+        for (const item of items) {
+          result.push(item);
+          if (item.children && item.children.length > 0) {
+            flatten(item.children);
+          }
         }
-      }
-    };
+      };
 
-    flatten(menuList);
-    return result;
-  }, [menus]);
+      flatten(menuList);
+      return result;
+    },
+    [menus]
+  );
 
   /**
    * 获取所有菜单路径
@@ -274,18 +277,21 @@ export const useMenu = () => {
   /**
    * 获取菜单层级深度
    */
-  const getMenuDepth = useCallback((menuList: MenuItem[] = menus): number => {
-    if (!menuList || menuList.length === 0) return 0;
+  const getMenuDepth = useCallback(
+    (menuList: MenuItem[] = menus): number => {
+      if (!menuList || menuList.length === 0) return 0;
 
-    let maxDepth = 1;
-    for (const menu of menuList) {
-      if (menu.children && menu.children.length > 0) {
-        const childDepth = getMenuDepth(menu.children);
-        maxDepth = Math.max(maxDepth, 1 + childDepth);
+      let maxDepth = 1;
+      for (const menu of menuList) {
+        if (menu.children && menu.children.length > 0) {
+          const childDepth = getMenuDepth(menu.children);
+          maxDepth = Math.max(maxDepth, 1 + childDepth);
+        }
       }
-    }
-    return maxDepth;
-  }, [menus]);
+      return maxDepth;
+    },
+    [menus]
+  );
 
   /**
    * 根据 meta.order 排序菜单

@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, message, Tabs, Row, Col, Modal } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+  UserOutlined,
+  LockOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  SafetyOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { login, register, getCaptcha } from '@/services/auth';
 import { verify2FA } from '@/services/twoFactor';
@@ -118,24 +125,12 @@ const Login = () => {
       label: '登录',
       children: (
         <Form form={loginForm} onFinish={handleLogin} size="large">
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: '请输入用户名' }]}
-          >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder="用户名"
-            />
+          <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
+            <Input prefix={<UserOutlined />} placeholder="用户名" />
           </Form.Item>
 
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="密码"
-            />
+          <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+            <Input.Password prefix={<LockOutlined />} placeholder="密码" />
           </Form.Item>
 
           <Form.Item
@@ -198,10 +193,7 @@ const Login = () => {
               { min: 3, message: '用户名至少3个字符' },
             ]}
           >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder="用户名"
-            />
+            <Input prefix={<UserOutlined />} placeholder="用户名" />
           </Form.Item>
 
           <Form.Item
@@ -211,17 +203,11 @@ const Login = () => {
               { type: 'email', message: '请输入有效的邮箱地址' },
             ]}
           >
-            <Input
-              prefix={<MailOutlined />}
-              placeholder="邮箱"
-            />
+            <Input prefix={<MailOutlined />} placeholder="邮箱" />
           </Form.Item>
 
           <Form.Item name="phone">
-            <Input
-              prefix={<PhoneOutlined />}
-              placeholder="手机号（可选）"
-            />
+            <Input prefix={<PhoneOutlined />} placeholder="手机号（可选）" />
           </Form.Item>
 
           <Form.Item
@@ -231,10 +217,7 @@ const Login = () => {
               { min: 6, message: '密码至少6个字符' },
             ]}
           >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="密码"
-            />
+            <Input.Password prefix={<LockOutlined />} placeholder="密码" />
           </Form.Item>
 
           <Form.Item
@@ -252,10 +235,7 @@ const Login = () => {
               }),
             ]}
           >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="确认密码"
-            />
+            <Input.Password prefix={<LockOutlined />} placeholder="确认密码" />
           </Form.Item>
 
           <Form.Item>
@@ -285,12 +265,8 @@ const Login = () => {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 'bold', margin: 0 }}>
-            云手机平台
-          </h1>
-          <p style={{ color: '#999', marginTop: 8 }}>
-            随时随地，轻松使用云端手机
-          </p>
+          <h1 style={{ fontSize: 28, fontWeight: 'bold', margin: 0 }}>云手机平台</h1>
+          <p style={{ color: '#999', marginTop: 8 }}>随时随地，轻松使用云端手机</p>
         </div>
 
         <Tabs items={tabItems} centered />
@@ -311,9 +287,7 @@ const Login = () => {
         okButtonProps={{ loading }}
       >
         <div style={{ padding: '20px 0' }}>
-          <p style={{ marginBottom: 16, color: '#666' }}>
-            请输入验证器应用中显示的6位验证码
-          </p>
+          <p style={{ marginBottom: 16, color: '#666' }}>请输入验证器应用中显示的6位验证码</p>
           <Input
             placeholder="请输入6位验证码"
             value={twoFactorToken}

@@ -207,9 +207,7 @@ export class SanitizationPipe implements PipeTransform<any> {
 
     // 1. 长度限制
     if (this.options.maxStringLength && sanitized.length > this.options.maxStringLength) {
-      throw new BadRequestException(
-        `输入长度超过限制 (最大 ${this.options.maxStringLength} 字符)`,
-      );
+      throw new BadRequestException(`输入长度超过限制 (最大 ${this.options.maxStringLength} 字符)`);
     }
 
     // 2. 去除空白字符
@@ -259,9 +257,7 @@ export class SanitizationPipe implements PipeTransform<any> {
     for (const pattern of SQL_INJECTION_PATTERNS) {
       if (pattern.test(str)) {
         if (this.options.strictMode) {
-          throw new BadRequestException(
-            '检测到可疑的 SQL 注入模式，请求已被拒绝',
-          );
+          throw new BadRequestException('检测到可疑的 SQL 注入模式，请求已被拒绝');
         }
         // 非严格模式下记录日志但不拒绝
         logger.warn('[Security] Potential SQL injection detected:', str);
@@ -276,9 +272,7 @@ export class SanitizationPipe implements PipeTransform<any> {
     for (const pattern of NOSQL_INJECTION_PATTERNS) {
       if (pattern.test(str)) {
         if (this.options.strictMode) {
-          throw new BadRequestException(
-            '检测到可疑的 NoSQL 注入模式，请求已被拒绝',
-          );
+          throw new BadRequestException('检测到可疑的 NoSQL 注入模式，请求已被拒绝');
         }
         logger.warn('[Security] Potential NoSQL injection detected:', str);
       }
@@ -292,9 +286,7 @@ export class SanitizationPipe implements PipeTransform<any> {
     for (const pattern of XSS_PATTERNS) {
       if (pattern.test(str)) {
         if (this.options.strictMode) {
-          throw new BadRequestException(
-            '检测到可疑的 XSS 攻击模式，请求已被拒绝',
-          );
+          throw new BadRequestException('检测到可疑的 XSS 攻击模式，请求已被拒绝');
         }
         logger.warn('[Security] Potential XSS attack detected:', str);
       }
@@ -308,9 +300,7 @@ export class SanitizationPipe implements PipeTransform<any> {
     const lowerStr = str.toLowerCase();
     for (const keyword of this.options.customBlacklist!) {
       if (lowerStr.includes(keyword.toLowerCase())) {
-        throw new BadRequestException(
-          `输入包含禁止的关键字: ${keyword}`,
-        );
+        throw new BadRequestException(`输入包含禁止的关键字: ${keyword}`);
       }
     }
   }

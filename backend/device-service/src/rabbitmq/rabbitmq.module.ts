@@ -1,5 +1,5 @@
-import { Module, Global } from "@nestjs/common";
-import { EventBusModule } from "@cloudphone/shared";
+import { Module, Global } from '@nestjs/common';
+import { EventBusModule } from '@cloudphone/shared';
 
 /**
  * Device Service 本地 RabbitMQ 模块 V2

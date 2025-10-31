@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import {
   TicketsService,
@@ -64,7 +54,7 @@ export class TicketsController {
     @Query('category') category?: TicketCategory,
     @Query('priority') priority?: TicketPriority,
     @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('offset') offset?: number
   ) {
     return await this.ticketsService.getUserTickets(userId, {
       status,
@@ -88,7 +78,7 @@ export class TicketsController {
     @Query('priority') priority?: TicketPriority,
     @Query('category') category?: TicketCategory,
     @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('offset') offset?: number
   ) {
     return await this.ticketsService.getAllTickets({
       status,
@@ -118,10 +108,7 @@ export class TicketsController {
   @Post(':id/replies')
   @ApiOperation({ summary: '添加工单回复' })
   @ApiResponse({ status: 201, description: '回复成功' })
-  async addReply(
-    @Param('id') id: string,
-    @Body() dto: Omit<CreateReplyDto, 'ticketId'>,
-  ) {
+  async addReply(@Param('id') id: string, @Body() dto: Omit<CreateReplyDto, 'ticketId'>) {
     this.logger.log(`添加工单回复 - 工单ID: ${id}`);
     return await this.ticketsService.addReply({ ...dto, ticketId: id });
   }
@@ -134,7 +121,7 @@ export class TicketsController {
   @ApiResponse({ status: 200, description: '获取成功' })
   async getTicketReplies(
     @Param('id') id: string,
-    @Query('includeInternal') includeInternal?: boolean,
+    @Query('includeInternal') includeInternal?: boolean
   ) {
     return await this.ticketsService.getTicketReplies(id, includeInternal);
   }
@@ -145,10 +132,7 @@ export class TicketsController {
   @Post(':id/rate')
   @ApiOperation({ summary: '工单评分' })
   @ApiResponse({ status: 200, description: '评分成功' })
-  async rateTicket(
-    @Param('id') id: string,
-    @Body() body: { rating: number; feedback?: string },
-  ) {
+  async rateTicket(@Param('id') id: string, @Body() body: { rating: number; feedback?: string }) {
     this.logger.log(`工单评分 - ID: ${id}, 评分: ${body.rating}`);
     return await this.ticketsService.rateTicket(id, body.rating, body.feedback);
   }

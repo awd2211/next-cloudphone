@@ -18,7 +18,7 @@ export interface TempFileInfo {
 
 /**
  * 临时文件管理服务
- * 
+ *
  * 功能：
  * - 自动管理临时文件生命周期
  * - 定时清理过期文件
@@ -109,7 +109,7 @@ export class TempFileManagerService {
    * 批量清理临时文件
    */
   async cleanupBatch(files: (TempFileInfo | string)[]): Promise<void> {
-    await Promise.all(files.map(file => this.cleanup(file)));
+    await Promise.all(files.map((file) => this.cleanup(file)));
   }
 
   /**
@@ -117,7 +117,7 @@ export class TempFileManagerService {
    */
   async withTempFile<T>(
     callback: (filePath: string) => Promise<T>,
-    options?: TempFileOptions,
+    options?: TempFileOptions
   ): Promise<T> {
     const fileInfo = await this.create(options);
     try {
@@ -129,13 +129,13 @@ export class TempFileManagerService {
 
   /**
    * 清理过期的临时文件
-   * 
+   *
    * 注意：需要在使用此服务的模块中配置定时任务来调用此方法
    * 建议每小时执行一次
    */
   async cleanupExpiredFiles(): Promise<void> {
     this.logger.log('Starting cleanup of expired temp files...');
-    
+
     const now = Date.now();
     let cleanedCount = 0;
 
@@ -168,7 +168,7 @@ export class TempFileManagerService {
 
       for (const file of files) {
         const filePath = path.join(this.defaultTempDir, file);
-        
+
         // 跳过已跟踪的文件
         if (this.tempFiles.has(filePath)) {
           continue;
@@ -207,4 +207,3 @@ export class TempFileManagerService {
     };
   }
 }
-

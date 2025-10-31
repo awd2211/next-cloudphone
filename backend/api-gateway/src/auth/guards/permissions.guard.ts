@@ -1,16 +1,11 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import {
   PERMISSIONS_KEY,
   PermissionRequirement,
   PermissionOperator,
-} from "../decorators/permissions.decorator";
-import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
+} from '../decorators/permissions.decorator';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 /**
  * 权限守卫 - 基于权限的访问控制
@@ -32,17 +27,13 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // 获取所需的权限
-    const permissionRequirement =
-      this.reflector.getAllAndOverride<PermissionRequirement>(PERMISSIONS_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+    const permissionRequirement = this.reflector.getAllAndOverride<PermissionRequirement>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()]
+    );
 
     // 如果没有设置权限要求，允许通过
-    if (
-      !permissionRequirement ||
-      permissionRequirement.permissions.length === 0
-    ) {
+    if (!permissionRequirement || permissionRequirement.permissions.length === 0) {
       return true;
     }
 
@@ -52,7 +43,7 @@ export class PermissionsGuard implements CanActivate {
 
     // 用户必须已认证
     if (!user) {
-      throw new ForbiddenException("用户未认证");
+      throw new ForbiddenException('用户未认证');
     }
 
     // 获取用户权限
@@ -66,19 +57,19 @@ export class PermissionsGuard implements CanActivate {
     if (operator === PermissionOperator.OR) {
       // OR 逻辑：用户拥有任一权限即可
       hasPermission = requiredPermissions.some((permission) =>
-        userPermissions.includes(permission),
+        userPermissions.includes(permission)
       );
     } else {
       // AND 逻辑：用户必须拥有所有权限
       hasPermission = requiredPermissions.every((permission) =>
-        userPermissions.includes(permission),
+        userPermissions.includes(permission)
       );
     }
 
     if (!hasPermission) {
-      const operatorText = operator === PermissionOperator.OR ? "任一" : "所有";
+      const operatorText = operator === PermissionOperator.OR ? '任一' : '所有';
       throw new ForbiddenException(
-        `需要${operatorText}权限: ${requiredPermissions.join(", ")}。当前用户权限: ${userPermissions.join(", ") || "无"}`,
+        `需要${operatorText}权限: ${requiredPermissions.join(', ')}。当前用户权限: ${userPermissions.join(', ') || '无'}`
       );
     }
 

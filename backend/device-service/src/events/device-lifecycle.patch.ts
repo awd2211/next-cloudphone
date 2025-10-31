@@ -1,6 +1,6 @@
 /**
  * Device Service 事件补丁
- * 
+ *
  * 在 devices.service.ts 的 remove 方法末尾添加：
  */
 
@@ -13,4 +13,3 @@ if (this.eventBus) {
     tenantId: device.tenantId,
   });
 }
-

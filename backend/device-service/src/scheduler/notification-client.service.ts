@@ -1,29 +1,29 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { HttpClientService, ServiceTokenService } from "@cloudphone/shared";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { HttpClientService, ServiceTokenService } from '@cloudphone/shared';
 
 /**
  * 通知类型
  */
 export enum NotificationType {
-  ALLOCATION_SUCCESS = "allocation_success",
-  ALLOCATION_FAILED = "allocation_failed",
-  ALLOCATION_EXPIRED = "allocation_expired",
-  ALLOCATION_EXPIRING_SOON = "allocation_expiring_soon",
-  DEVICE_RELEASED = "device_released",
+  ALLOCATION_SUCCESS = 'allocation_success',
+  ALLOCATION_FAILED = 'allocation_failed',
+  ALLOCATION_EXPIRED = 'allocation_expired',
+  ALLOCATION_EXPIRING_SOON = 'allocation_expiring_soon',
+  DEVICE_RELEASED = 'device_released',
   // Queue notifications
-  QUEUE_JOINED = "queue_joined",
-  QUEUE_FULFILLED = "queue_fulfilled",
-  QUEUE_EXPIRED = "queue_expired",
-  QUEUE_CANCELLED = "queue_cancelled",
+  QUEUE_JOINED = 'queue_joined',
+  QUEUE_FULFILLED = 'queue_fulfilled',
+  QUEUE_EXPIRED = 'queue_expired',
+  QUEUE_CANCELLED = 'queue_cancelled',
   // Reservation notifications
-  RESERVATION_CREATED = "reservation_created",
-  RESERVATION_SUCCESS = "reservation_success",
-  RESERVATION_FAILED = "reservation_failed",
-  RESERVATION_EXPIRED = "reservation_expired",
-  RESERVATION_CANCELLED = "reservation_cancelled",
-  RESERVATION_REMINDER = "reservation_reminder",
-  RESERVATION_EXECUTED = "reservation_executed",
+  RESERVATION_CREATED = 'reservation_created',
+  RESERVATION_SUCCESS = 'reservation_success',
+  RESERVATION_FAILED = 'reservation_failed',
+  RESERVATION_EXPIRED = 'reservation_expired',
+  RESERVATION_CANCELLED = 'reservation_cancelled',
+  RESERVATION_REMINDER = 'reservation_reminder',
+  RESERVATION_EXECUTED = 'reservation_executed',
 }
 
 /**
@@ -88,20 +88,19 @@ export class NotificationClientService {
   constructor(
     private readonly httpClient: HttpClientService,
     private readonly configService: ConfigService,
-    private readonly serviceTokenService: ServiceTokenService,
+    private readonly serviceTokenService: ServiceTokenService
   ) {
     this.notificationServiceUrl =
-      this.configService.get<string>("NOTIFICATION_SERVICE_URL") ||
-      "http://localhost:30006";
+      this.configService.get<string>('NOTIFICATION_SERVICE_URL') || 'http://localhost:30006';
   }
 
   /**
    * 生成服务间认证 headers
    */
   private async getServiceHeaders(): Promise<Record<string, string>> {
-    const token = await this.serviceTokenService.generateToken("device-service");
+    const token = await this.serviceTokenService.generateToken('device-service');
     return {
-      "X-Service-Token": token,
+      'X-Service-Token': token,
     };
   }
 
@@ -120,8 +119,8 @@ export class NotificationClientService {
           title: data.title,
           message: data.message,
           data: data.data || {},
-          channels: data.channels || ["websocket"], // 默认只发 WebSocket
-          priority: "normal",
+          channels: data.channels || ['websocket'], // 默认只发 WebSocket
+          priority: 'normal',
         },
         { headers },
         {
@@ -131,9 +130,7 @@ export class NotificationClientService {
         }
       );
 
-      this.logger.log(
-        `📨 Notification sent: ${data.type} to user ${data.userId}`
-      );
+      this.logger.log(`📨 Notification sent: ${data.type} to user ${data.userId}`);
     } catch (error) {
       this.logger.error(
         `Failed to send notification: ${data.type} to user ${data.userId}`,
@@ -146,9 +143,7 @@ export class NotificationClientService {
   /**
    * 发送设备分配成功通知
    */
-  async notifyAllocationSuccess(
-    data: AllocationSuccessNotification
-  ): Promise<void> {
+  async notifyAllocationSuccess(data: AllocationSuccessNotification): Promise<void> {
     const message = data.adbHost
       ? `设备 ${data.deviceName} 已成功分配！连接信息：${data.adbHost}:${data.adbPort}，使用时长 ${data.durationMinutes} 分钟。`
       : `设备 ${data.deviceName} 已成功分配！使用时长 ${data.durationMinutes} 分钟。`;
@@ -156,7 +151,7 @@ export class NotificationClientService {
     await this.sendNotification({
       userId: data.userId,
       type: NotificationType.ALLOCATION_SUCCESS,
-      title: "✅ 设备分配成功",
+      title: '✅ 设备分配成功',
       message,
       data: {
         deviceId: data.deviceId,
@@ -168,44 +163,40 @@ export class NotificationClientService {
         adbHost: data.adbHost,
         adbPort: data.adbPort,
       },
-      channels: ["websocket", "email"], // 成功通知发送 WebSocket + Email
+      channels: ['websocket', 'email'], // 成功通知发送 WebSocket + Email
     });
   }
 
   /**
    * 发送设备分配失败通知
    */
-  async notifyAllocationFailed(
-    data: AllocationFailedNotification
-  ): Promise<void> {
+  async notifyAllocationFailed(data: AllocationFailedNotification): Promise<void> {
     const message = `设备分配失败：${data.reason}。请稍后重试或联系客服。`;
 
     await this.sendNotification({
       userId: data.userId,
       type: NotificationType.ALLOCATION_FAILED,
-      title: "❌ 设备分配失败",
+      title: '❌ 设备分配失败',
       message,
       data: {
         reason: data.reason,
         timestamp: data.timestamp,
       },
-      channels: ["websocket"], // 失败通知只发 WebSocket
+      channels: ['websocket'], // 失败通知只发 WebSocket
     });
   }
 
   /**
    * 发送设备分配过期通知
    */
-  async notifyAllocationExpired(
-    data: AllocationExpiredNotification
-  ): Promise<void> {
+  async notifyAllocationExpired(data: AllocationExpiredNotification): Promise<void> {
     const durationFormatted = this.formatDuration(data.durationSeconds);
     const message = `设备 ${data.deviceName} 使用时间已到期（使用时长：${durationFormatted}）。如需继续使用，请重新分配设备。`;
 
     await this.sendNotification({
       userId: data.userId,
       type: NotificationType.ALLOCATION_EXPIRED,
-      title: "⏰ 设备使用已过期",
+      title: '⏰ 设备使用已过期',
       message,
       data: {
         deviceId: data.deviceId,
@@ -215,7 +206,7 @@ export class NotificationClientService {
         expiredAt: data.expiredAt,
         durationSeconds: data.durationSeconds,
       },
-      channels: ["websocket", "email"], // 过期通知发送 WebSocket + Email
+      channels: ['websocket', 'email'], // 过期通知发送 WebSocket + Email
     });
   }
 
@@ -230,7 +221,7 @@ export class NotificationClientService {
     await this.sendNotification({
       userId: data.userId,
       type: NotificationType.ALLOCATION_EXPIRING_SOON,
-      title: "⚠️ 设备即将到期",
+      title: '⚠️ 设备即将到期',
       message,
       data: {
         deviceId: data.deviceId,
@@ -239,7 +230,7 @@ export class NotificationClientService {
         expiredAt: data.expiredAt,
         remainingMinutes: data.remainingMinutes,
       },
-      channels: ["websocket"], // 提醒通知只发 WebSocket
+      channels: ['websocket'], // 提醒通知只发 WebSocket
     });
   }
 
@@ -259,7 +250,7 @@ export class NotificationClientService {
     await this.sendNotification({
       userId: data.userId,
       type: NotificationType.DEVICE_RELEASED,
-      title: "📴 设备已释放",
+      title: '📴 设备已释放',
       message,
       data: {
         deviceId: data.deviceId,
@@ -267,16 +258,14 @@ export class NotificationClientService {
         allocationId: data.allocationId,
         durationSeconds: data.durationSeconds,
       },
-      channels: ["websocket"], // 释放通知只发 WebSocket
+      channels: ['websocket'], // 释放通知只发 WebSocket
     });
   }
 
   /**
    * 批量发送通知
    */
-  async sendBatchNotifications(
-    notifications: NotificationData[]
-  ): Promise<{
+  async sendBatchNotifications(notifications: NotificationData[]): Promise<{
     success: number;
     failed: number;
     errors: string[];
@@ -293,9 +282,7 @@ export class NotificationClientService {
         results.success++;
       } catch (error) {
         results.failed++;
-        results.errors.push(
-          `${notification.userId}/${notification.type}: ${error.message}`
-        );
+        results.errors.push(`${notification.userId}/${notification.type}: ${error.message}`);
       }
     }
 
@@ -335,7 +322,7 @@ export class NotificationClientService {
       );
       return true;
     } catch (error) {
-      this.logger.warn("Notification service health check failed");
+      this.logger.warn('Notification service health check failed');
       return false;
     }
   }

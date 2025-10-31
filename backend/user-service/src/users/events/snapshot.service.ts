@@ -22,21 +22,22 @@ export class SnapshotService {
    * 快照阈值：每多少个事件创建一个快照
    * 可以通过环境变量配置: SNAPSHOT_THRESHOLD
    */
-  private readonly snapshotThreshold: number =
-    parseInt(process.env.SNAPSHOT_THRESHOLD || '100', 10);
+  private readonly snapshotThreshold: number = parseInt(
+    process.env.SNAPSHOT_THRESHOLD || '100',
+    10
+  );
 
   /**
    * 保留多少个快照
    * 保留最近的 N 个快照，删除更旧的
    */
-  private readonly retainSnapshots: number =
-    parseInt(process.env.RETAIN_SNAPSHOTS || '5', 10);
+  private readonly retainSnapshots: number = parseInt(process.env.RETAIN_SNAPSHOTS || '5', 10);
 
   constructor(
     @InjectRepository(UserSnapshot)
     private readonly snapshotRepository: Repository<UserSnapshot>,
     private readonly eventStore: EventStoreService,
-    private readonly eventReplay: EventReplayService,
+    private readonly eventReplay: EventReplayService
   ) {}
 
   /**
@@ -51,9 +52,7 @@ export class SnapshotService {
     });
 
     if (snapshot) {
-      this.logger.debug(
-        `Found snapshot for ${aggregateId} at version ${snapshot.version}`,
-      );
+      this.logger.debug(`Found snapshot for ${aggregateId} at version ${snapshot.version}`);
     }
 
     return snapshot;
@@ -67,11 +66,9 @@ export class SnapshotService {
    */
   async createSnapshot(
     aggregateId: string,
-    reason: 'scheduled' | 'manual' | 'threshold' = 'manual',
+    reason: 'scheduled' | 'manual' | 'threshold' = 'manual'
   ): Promise<UserSnapshot> {
-    this.logger.log(
-      `Creating snapshot for aggregate: ${aggregateId}, reason: ${reason}`,
-    );
+    this.logger.log(`Creating snapshot for aggregate: ${aggregateId}, reason: ${reason}`);
 
     try {
       // 1. 重放所有事件获取当前状态
@@ -100,7 +97,7 @@ export class SnapshotService {
       const savedSnapshot = await this.snapshotRepository.save(snapshot);
 
       this.logger.log(
-        `Snapshot created for ${aggregateId} at version ${currentVersion} (${eventCount} events)`,
+        `Snapshot created for ${aggregateId} at version ${currentVersion} (${eventCount} events)`
       );
 
       // 5. 清理旧快照（保留最近的 N 个）
@@ -108,10 +105,7 @@ export class SnapshotService {
 
       return savedSnapshot;
     } catch (error) {
-      this.logger.error(
-        `Failed to create snapshot for ${aggregateId}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to create snapshot for ${aggregateId}`, error.stack);
       throw error;
     }
   }
@@ -140,7 +134,7 @@ export class SnapshotService {
 
     if (shouldCreate) {
       this.logger.debug(
-        `Snapshot threshold reached for ${aggregateId}: ${eventsSinceSnapshot} events since last snapshot`,
+        `Snapshot threshold reached for ${aggregateId}: ${eventsSinceSnapshot} events since last snapshot`
       );
     }
 
@@ -174,9 +168,7 @@ export class SnapshotService {
       const toDelete = snapshots.slice(this.retainSnapshots);
       await this.snapshotRepository.remove(toDelete);
 
-      this.logger.log(
-        `Cleaned up ${toDelete.length} old snapshots for ${aggregateId}`,
-      );
+      this.logger.log(`Cleaned up ${toDelete.length} old snapshots for ${aggregateId}`);
     }
   }
 
@@ -228,12 +220,12 @@ export class SnapshotService {
 
     const oldest = snapshots.reduce(
       (min, s) => (s.createdAt < min ? s.createdAt : min),
-      snapshots[0]?.createdAt,
+      snapshots[0]?.createdAt
     );
 
     const newest = snapshots.reduce(
       (max, s) => (s.createdAt > max ? s.createdAt : max),
-      snapshots[0]?.createdAt,
+      snapshots[0]?.createdAt
     );
 
     return {

@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { CreateUserCommand } from '../impl/create-user.command';
 import { UsersService } from '../../users.service';
 import { User } from '../../../entities/user.entity';
@@ -13,7 +13,7 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     private readonly usersService: UsersService,
     private readonly eventStore: EventStoreService,
     @InjectDataSource()
-    private readonly dataSource: DataSource,
+    private readonly dataSource: DataSource
   ) {}
 
   /**
@@ -47,13 +47,13 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
       // 在事务中执行创建用户的业务逻辑
       const user = await this.usersService.createInTransaction(
         queryRunner.manager,
-        command.createUserDto,
+        command.createUserDto
       );
 
       // 获取当前版本号（在同一事务中）
       const version = await this.eventStore.getCurrentVersionInTransaction(
         queryRunner.manager,
-        user.id,
+        user.id
       );
 
       // 创建并发布领域事件
@@ -65,7 +65,7 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
         user.fullName,
         user.phone,
         user.tenantId,
-        command.createUserDto.roleIds,
+        command.createUserDto.roleIds
       );
 
       // 在事务中保存事件

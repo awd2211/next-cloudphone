@@ -202,11 +202,7 @@ describe('FieldFilterService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act
-      const result = await service.filterFieldsArray(
-        userId,
-        resourceType,
-        dataArray,
-      );
+      const result = await service.filterFieldsArray(userId, resourceType, dataArray);
 
       // Assert
       expect(result).toEqual(dataArray);
@@ -243,11 +239,7 @@ describe('FieldFilterService', () => {
       fieldPermissionRepository.find.mockResolvedValue([mockFieldPermission]);
 
       // Act
-      const result = await service.filterFieldsArray(
-        userId,
-        resourceType,
-        dataArray,
-      );
+      const result = await service.filterFieldsArray(userId, resourceType, dataArray);
 
       // Assert
       expect(result).toHaveLength(2);
@@ -264,11 +256,7 @@ describe('FieldFilterService', () => {
       const dataArray: any[] = [];
 
       // Act
-      const result = await service.filterFieldsArray(
-        userId,
-        resourceType,
-        dataArray,
-      );
+      const result = await service.filterFieldsArray(userId, resourceType, dataArray);
 
       // Assert
       expect(result).toEqual([]);
@@ -367,11 +355,7 @@ describe('FieldFilterService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act
-      const result = await service.getFieldLists(
-        userId,
-        resourceType,
-        operation,
-      );
+      const result = await service.getFieldLists(userId, resourceType, operation);
 
       // Assert
       expect(result).toEqual({
@@ -411,11 +395,7 @@ describe('FieldFilterService', () => {
       fieldPermissionRepository.find.mockResolvedValue([mockFieldPermission]);
 
       // Act
-      const result = await service.getFieldLists(
-        userId,
-        resourceType,
-        operation,
-      );
+      const result = await service.getFieldLists(userId, resourceType, operation);
 
       // Assert
       expect(result).toBeDefined();
@@ -436,11 +416,7 @@ describe('FieldFilterService', () => {
       userRepository.findOne.mockResolvedValue(null);
 
       // Act
-      const result = await service.getFieldLists(
-        userId,
-        resourceType,
-        operation,
-      );
+      const result = await service.getFieldLists(userId, resourceType, operation);
 
       // Assert
       expect(result).toEqual({
@@ -475,7 +451,7 @@ describe('FieldFilterService', () => {
         resourceType,
         fieldName,
         accessLevel,
-        operation,
+        operation
       );
 
       // Assert
@@ -517,7 +493,7 @@ describe('FieldFilterService', () => {
         resourceType,
         fieldName,
         accessLevel,
-        operation,
+        operation
       );
 
       // Assert
@@ -559,7 +535,7 @@ describe('FieldFilterService', () => {
         resourceType,
         fieldName,
         accessLevel,
-        operation,
+        operation
       );
 
       // Assert
@@ -601,7 +577,7 @@ describe('FieldFilterService', () => {
         resourceType,
         fieldName,
         accessLevel,
-        operation,
+        operation
       );
 
       // Assert
@@ -643,7 +619,7 @@ describe('FieldFilterService', () => {
         resourceType,
         fieldName,
         accessLevel,
-        operation,
+        operation
       );
 
       // Assert
@@ -666,7 +642,7 @@ describe('FieldFilterService', () => {
         resourceType,
         fieldName,
         accessLevel,
-        operation,
+        operation
       );
 
       // Assert

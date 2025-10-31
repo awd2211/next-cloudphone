@@ -36,10 +36,7 @@ export interface AppFilters {
  * @param enabled - 是否启用查询 (默认: true)
  * @returns React Query infinite query result
  */
-export function useInfiniteApps(
-  filters?: AppFilters,
-  enabled: boolean = true
-) {
+export function useInfiniteApps(filters?: AppFilters, enabled: boolean = true) {
   return useInfiniteQuery({
     // Query Key - 包含所有过滤条件用于缓存隔离
     queryKey: ['apps', 'infinite', filters],
@@ -97,9 +94,7 @@ export function useInfiniteApps(
  * const allApps = flattenApps(data?.pages);
  * ```
  */
-export function flattenApps(
-  pages?: Array<{ data: Application[] }>
-): Application[] {
+export function flattenApps(pages?: Array<{ data: Application[] }>): Application[] {
   if (!pages) return [];
   return pages.flatMap((page) => page.data);
 }
@@ -117,9 +112,7 @@ export function flattenApps(
  * // 显示: "已加载 60 个应用"
  * ```
  */
-export function getTotalLoadedApps(
-  pages?: Array<{ data: Application[]; count: number }>
-): number {
+export function getTotalLoadedApps(pages?: Array<{ data: Application[]; count: number }>): number {
   if (!pages) return 0;
   return pages.reduce((total, page) => total + page.count, 0);
 }
@@ -138,15 +131,16 @@ export function getTotalLoadedApps(
  * // { '游戏': [...], '工具': [...], ... }
  * ```
  */
-export function groupAppsByCategory(
-  apps: Application[]
-): Record<string, Application[]> {
-  return apps.reduce((groups, app) => {
-    const category = app.category || '未分类';
-    if (!groups[category]) {
-      groups[category] = [];
-    }
-    groups[category].push(app);
-    return groups;
-  }, {} as Record<string, Application[]>);
+export function groupAppsByCategory(apps: Application[]): Record<string, Application[]> {
+  return apps.reduce(
+    (groups, app) => {
+      const category = app.category || '未分类';
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(app);
+      return groups;
+    },
+    {} as Record<string, Application[]>
+  );
 }

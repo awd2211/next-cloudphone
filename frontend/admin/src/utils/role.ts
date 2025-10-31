@@ -123,10 +123,7 @@ export function getRoleColor(role: string): string {
  * @param userPermissions 用户拥有的权限列表
  * @param requiredPermission 需要的权限（格式：resource.action）
  */
-export function hasPermission(
-  userPermissions: string[],
-  requiredPermission: string,
-): boolean {
+export function hasPermission(userPermissions: string[], requiredPermission: string): boolean {
   if (!userPermissions || userPermissions.length === 0) {
     return false;
   }
@@ -141,15 +138,13 @@ export function hasPermission(
  */
 export function hasAnyPermission(
   userPermissions: string[],
-  requiredPermissions: string[],
+  requiredPermissions: string[]
 ): boolean {
   if (!userPermissions || userPermissions.length === 0) {
     return false;
   }
 
-  return requiredPermissions.some((permission) =>
-    userPermissions.includes(permission),
-  );
+  return requiredPermissions.some((permission) => userPermissions.includes(permission));
 }
 
 /**
@@ -159,13 +154,11 @@ export function hasAnyPermission(
  */
 export function hasAllPermissions(
   userPermissions: string[],
-  requiredPermissions: string[],
+  requiredPermissions: string[]
 ): boolean {
   if (!userPermissions || userPermissions.length === 0) {
     return false;
   }
 
-  return requiredPermissions.every((permission) =>
-    userPermissions.includes(permission),
-  );
+  return requiredPermissions.every((permission) => userPermissions.includes(permission));
 }

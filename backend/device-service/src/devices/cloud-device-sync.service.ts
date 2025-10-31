@@ -1,12 +1,12 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, In } from "typeorm";
-import { Device, DeviceStatus, DeviceProviderType } from "../entities/device.entity";
-import { AliyunEcpClient } from "../providers/aliyun/aliyun-ecp.client";
-import { HuaweiCphClient } from "../providers/huawei/huawei-cph.client";
-import { AliyunPhoneStatus } from "../providers/aliyun/aliyun.types";
-import { HuaweiPhoneStatus } from "../providers/huawei/huawei.types";
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, In } from 'typeorm';
+import { Device, DeviceStatus, DeviceProviderType } from '../entities/device.entity';
+import { AliyunEcpClient } from '../providers/aliyun/aliyun-ecp.client';
+import { HuaweiCphClient } from '../providers/huawei/huawei-cph.client';
+import { AliyunPhoneStatus } from '../providers/aliyun/aliyun.types';
+import { HuaweiPhoneStatus } from '../providers/huawei/huawei.types';
 
 /**
  * 云设备状态同步服务
@@ -29,7 +29,7 @@ export class CloudDeviceSyncService {
     @InjectRepository(Device)
     private devicesRepository: Repository<Device>,
     private aliyunClient: AliyunEcpClient,
-    private huaweiClient: HuaweiCphClient,
+    private huaweiClient: HuaweiCphClient
   ) {}
 
   /**
@@ -38,17 +38,14 @@ export class CloudDeviceSyncService {
   @Cron(CronExpression.EVERY_5_MINUTES)
   async syncCloudDevicesStatus() {
     try {
-      this.logger.log("Starting cloud devices status synchronization");
+      this.logger.log('Starting cloud devices status synchronization');
 
       // 并发同步阿里云和华为云设备
-      await Promise.allSettled([
-        this.syncAliyunDevices(),
-        this.syncHuaweiDevices(),
-      ]);
+      await Promise.allSettled([this.syncAliyunDevices(), this.syncHuaweiDevices()]);
 
-      this.logger.log("Cloud devices status synchronization completed");
+      this.logger.log('Cloud devices status synchronization completed');
     } catch (error) {
-      this.logger.error("Failed to sync cloud devices status", error.stack);
+      this.logger.error('Failed to sync cloud devices status', error.stack);
     }
   }
 
@@ -65,7 +62,7 @@ export class CloudDeviceSyncService {
     });
 
     if (devices.length === 0) {
-      this.logger.debug("No Aliyun devices to sync");
+      this.logger.debug('No Aliyun devices to sync');
       return;
     }
 
@@ -81,15 +78,11 @@ export class CloudDeviceSyncService {
         syncedCount++;
       } catch (error) {
         errorCount++;
-        this.logger.warn(
-          `Failed to sync Aliyun device ${device.id}: ${error.message}`,
-        );
+        this.logger.warn(`Failed to sync Aliyun device ${device.id}: ${error.message}`);
       }
     }
 
-    this.logger.log(
-      `Aliyun sync completed: ${syncedCount} synced, ${errorCount} errors`,
-    );
+    this.logger.log(`Aliyun sync completed: ${syncedCount} synced, ${errorCount} errors`);
   }
 
   /**
@@ -104,9 +97,7 @@ export class CloudDeviceSyncService {
     const result = await this.aliyunClient.describeInstance(device.externalId);
 
     if (!result.success || !result.data) {
-      this.logger.warn(
-        `Failed to get Aliyun device ${device.externalId}: ${result.errorMessage}`,
-      );
+      this.logger.warn(`Failed to get Aliyun device ${device.externalId}: ${result.errorMessage}`);
       return;
     }
 
@@ -115,9 +106,7 @@ export class CloudDeviceSyncService {
 
     // 如果状态不一致，更新本地状态
     if (cloudStatus && device.status !== cloudStatus) {
-      this.logger.log(
-        `Updating device ${device.id} status: ${device.status} -> ${cloudStatus}`,
-      );
+      this.logger.log(`Updating device ${device.id} status: ${device.status} -> ${cloudStatus}`);
 
       device.status = cloudStatus;
       device.updatedAt = new Date();
@@ -163,7 +152,7 @@ export class CloudDeviceSyncService {
     });
 
     if (devices.length === 0) {
-      this.logger.debug("No Huawei devices to sync");
+      this.logger.debug('No Huawei devices to sync');
       return;
     }
 
@@ -179,15 +168,11 @@ export class CloudDeviceSyncService {
         syncedCount++;
       } catch (error) {
         errorCount++;
-        this.logger.warn(
-          `Failed to sync Huawei device ${device.id}: ${error.message}`,
-        );
+        this.logger.warn(`Failed to sync Huawei device ${device.id}: ${error.message}`);
       }
     }
 
-    this.logger.log(
-      `Huawei sync completed: ${syncedCount} synced, ${errorCount} errors`,
-    );
+    this.logger.log(`Huawei sync completed: ${syncedCount} synced, ${errorCount} errors`);
   }
 
   /**
@@ -202,9 +187,7 @@ export class CloudDeviceSyncService {
     const result = await this.huaweiClient.getPhone(device.externalId);
 
     if (!result.success || !result.data) {
-      this.logger.warn(
-        `Failed to get Huawei device ${device.externalId}: ${result.errorMessage}`,
-      );
+      this.logger.warn(`Failed to get Huawei device ${device.externalId}: ${result.errorMessage}`);
       return;
     }
 
@@ -213,9 +196,7 @@ export class CloudDeviceSyncService {
 
     // 如果状态不一致，更新本地状态
     if (cloudStatus && device.status !== cloudStatus) {
-      this.logger.log(
-        `Updating device ${device.id} status: ${device.status} -> ${cloudStatus}`,
-      );
+      this.logger.log(`Updating device ${device.id} status: ${device.status} -> ${cloudStatus}`);
 
       device.status = cloudStatus;
       device.updatedAt = new Date();
@@ -268,9 +249,7 @@ export class CloudDeviceSyncService {
         await this.syncHuaweiDeviceStatus(device);
         break;
       default:
-        throw new Error(
-          `Status sync not supported for provider type: ${device.providerType}`,
-        );
+        throw new Error(`Status sync not supported for provider type: ${device.providerType}`);
     }
   }
 }

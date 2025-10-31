@@ -116,26 +116,44 @@ const ReferralRecords = () => {
       key: 'status',
       render: (status: ReferralStatus) => {
         const config = {
-          [ReferralStatus.PENDING]: { color: 'blue', text: '待确认', icon: <ClockCircleOutlined /> },
-          [ReferralStatus.CONFIRMED]: { color: 'green', text: '已确认', icon: <CheckCircleOutlined /> },
+          [ReferralStatus.PENDING]: {
+            color: 'blue',
+            text: '待确认',
+            icon: <ClockCircleOutlined />,
+          },
+          [ReferralStatus.CONFIRMED]: {
+            color: 'green',
+            text: '已确认',
+            icon: <CheckCircleOutlined />,
+          },
           [ReferralStatus.REWARDED]: { color: 'success', text: '已奖励', icon: <GiftOutlined /> },
-          [ReferralStatus.EXPIRED]: { color: 'default', text: '已过期', icon: <CloseCircleOutlined /> },
+          [ReferralStatus.EXPIRED]: {
+            color: 'default',
+            text: '已过期',
+            icon: <CloseCircleOutlined />,
+          },
         };
         const { color, text, icon } = config[status];
-        return <Tag color={color} icon={icon}>{text}</Tag>;
+        return (
+          <Tag color={color} icon={icon}>
+            {text}
+          </Tag>
+        );
       },
     },
     {
       title: '奖励金额',
       dataIndex: 'reward',
       key: 'reward',
-      render: (amount: number) => <span style={{ color: '#cf1322', fontWeight: 'bold' }}>¥{amount.toFixed(2)}</span>,
+      render: (amount: number) => (
+        <span style={{ color: '#cf1322', fontWeight: 'bold' }}>¥{amount.toFixed(2)}</span>
+      ),
     },
     {
       title: '奖励时间',
       dataIndex: 'rewardedAt',
       key: 'rewardedAt',
-      render: (text: string) => text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-',
+      render: (text: string) => (text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'),
     },
   ];
 
@@ -144,17 +162,20 @@ const ReferralRecords = () => {
       title: '类型',
       dataIndex: 'type',
       key: 'type',
-      render: (type: string) => ({
-        invite: <Tag color="blue">邀请奖励</Tag>,
-        bonus: <Tag color="orange">额外奖励</Tag>,
-        other: <Tag>其他</Tag>,
-      }[type]),
+      render: (type: string) =>
+        ({
+          invite: <Tag color="blue">邀请奖励</Tag>,
+          bonus: <Tag color="orange">额外奖励</Tag>,
+          other: <Tag>其他</Tag>,
+        })[type],
     },
     {
       title: '金额',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount: number) => <span style={{ color: '#cf1322', fontWeight: 'bold' }}>+¥{amount.toFixed(2)}</span>,
+      render: (amount: number) => (
+        <span style={{ color: '#cf1322', fontWeight: 'bold' }}>+¥{amount.toFixed(2)}</span>
+      ),
     },
     {
       title: '说明',

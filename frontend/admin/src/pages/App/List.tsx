@@ -6,11 +6,7 @@ import type { UploadFile } from 'antd/es/upload/interface';
 import * as appService from '@/services/app';
 import type { Application } from '@/types';
 import dayjs from 'dayjs';
-import {
-  useApps,
-  useUploadApp,
-  useDeleteApp
-} from '@/hooks/useApps';
+import { useApps, useUploadApp, useDeleteApp } from '@/hooks/useApps';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { EnhancedErrorAlert, type EnhancedError } from '@/components/EnhancedErrorAlert';
 
@@ -63,7 +59,7 @@ const AppList = () => {
           file: file.originFileObj,
           onProgress: (percent) => {
             setUploadProgress(percent);
-          }
+          },
         });
       },
       {
@@ -109,9 +105,12 @@ const AppList = () => {
     );
   }, [fileList, uploadMutation, executeUpload]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    await deleteMutation.mutateAsync(id);
-  }, [deleteMutation]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteMutation.mutateAsync(id);
+    },
+    [deleteMutation]
+  );
 
   const handleModalCancel = useCallback(() => {
     setUploadModalVisible(false);
@@ -125,95 +124,95 @@ const AppList = () => {
   }, []);
 
   // ✅ useMemo 优化表格列配置
-  const columns: ColumnsType<Application> = useMemo(() => [
-    {
-      title: '图标',
-      dataIndex: 'iconUrl',
-      key: 'iconUrl',
-      width: 80,
-      render: (iconUrl: string) => iconUrl ? (
-        <Image
-          src={iconUrl}
-          width={40}
-          height={40}
-          fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
-        />
-      ) : (
-        <div style={{ width: 40, height: 40, background: '#f0f0f0' }} />
-      )
-    },
-    {
-      title: '应用名称',
-      dataIndex: 'name',
-      key: 'name',
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: '包名',
-      dataIndex: 'packageName',
-      key: 'packageName',
-      ellipsis: true,
-      sorter: (a, b) => a.packageName.localeCompare(b.packageName),
-    },
-    {
-      title: '版本',
-      dataIndex: 'versionName',
-      key: 'versionName',
-      render: (versionName: string, record) => `${versionName} (${record.versionCode})`,
-      sorter: (a, b) => a.versionCode - b.versionCode,
-    },
-    {
-      title: '大小',
-      dataIndex: 'size',
-      key: 'size',
-      render: (size: number) => `${((size || 0) / 1024 / 1024).toFixed(2)} MB`,
-      sorter: (a, b) => (a.size || 0) - (b.size || 0),
-    },
-    {
-      title: '分类',
-      dataIndex: 'category',
-      key: 'category',
-      sorter: (a, b) => (a.category || '').localeCompare(b.category || ''),
-    },
-    {
-      title: '上传时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
-      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 150,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Popconfirm
-            title="确定要删除这个应用吗?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" size="small" icon={<DeleteOutlined />} danger>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ], [handleDelete]);
+  const columns: ColumnsType<Application> = useMemo(
+    () => [
+      {
+        title: '图标',
+        dataIndex: 'iconUrl',
+        key: 'iconUrl',
+        width: 80,
+        render: (iconUrl: string) =>
+          iconUrl ? (
+            <Image
+              src={iconUrl}
+              width={40}
+              height={40}
+              fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+            />
+          ) : (
+            <div style={{ width: 40, height: 40, background: '#f0f0f0' }} />
+          ),
+      },
+      {
+        title: '应用名称',
+        dataIndex: 'name',
+        key: 'name',
+        sorter: (a, b) => a.name.localeCompare(b.name),
+      },
+      {
+        title: '包名',
+        dataIndex: 'packageName',
+        key: 'packageName',
+        ellipsis: true,
+        sorter: (a, b) => a.packageName.localeCompare(b.packageName),
+      },
+      {
+        title: '版本',
+        dataIndex: 'versionName',
+        key: 'versionName',
+        render: (versionName: string, record) => `${versionName} (${record.versionCode})`,
+        sorter: (a, b) => a.versionCode - b.versionCode,
+      },
+      {
+        title: '大小',
+        dataIndex: 'size',
+        key: 'size',
+        render: (size: number) => `${((size || 0) / 1024 / 1024).toFixed(2)} MB`,
+        sorter: (a, b) => (a.size || 0) - (b.size || 0),
+      },
+      {
+        title: '分类',
+        dataIndex: 'category',
+        key: 'category',
+        sorter: (a, b) => (a.category || '').localeCompare(b.category || ''),
+      },
+      {
+        title: '上传时间',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      },
+      {
+        title: '操作',
+        key: 'action',
+        width: 150,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="small">
+            <Popconfirm
+              title="确定要删除这个应用吗?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" size="small" icon={<DeleteOutlined />} danger>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [handleDelete]
+  );
 
   return (
     <div>
       <h2>应用管理</h2>
 
       <div style={{ marginBottom: 16 }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setUploadModalVisible(true)}
-        >
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploadModalVisible(true)}>
           上传应用
         </Button>
       </div>

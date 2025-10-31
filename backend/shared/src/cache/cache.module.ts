@@ -27,4 +27,3 @@ import * as redisStore from 'cache-manager-redis-store';
   exports: [NestCacheModule],
 })
 export class AppCacheModule {}
-

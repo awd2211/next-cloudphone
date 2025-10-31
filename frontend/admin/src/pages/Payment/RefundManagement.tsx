@@ -179,11 +179,7 @@ const RefundManagementContent: React.FC = () => {
       key: 'amount',
       render: (amount: number, record) => {
         const currencySymbol =
-          record.currency === 'CNY'
-            ? '¥'
-            : record.currency === 'USD'
-            ? '$'
-            : record.currency;
+          record.currency === 'CNY' ? '¥' : record.currency === 'USD' ? '$' : record.currency;
         return `${currencySymbol}${(amount || 0).toFixed(2)}`;
       },
     },
@@ -203,8 +199,7 @@ const RefundManagementContent: React.FC = () => {
       title: '支付时间',
       dataIndex: 'paidAt',
       key: 'paidAt',
-      render: (date: string) =>
-        date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-',
+      render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'),
     },
     {
       title: '创建时间',
@@ -271,10 +266,7 @@ const RefundManagementContent: React.FC = () => {
             <div>
               <h2 style={{ margin: 0 }}>退款管理</h2>
               <p style={{ margin: '8px 0 0', color: '#666' }}>
-                <Badge
-                  count={refunds.length}
-                  style={{ backgroundColor: '#faad14' }}
-                />
+                <Badge count={refunds.length} style={{ backgroundColor: '#faad14' }} />
                 <span style={{ marginLeft: 8 }}>待审核的退款申请</span>
               </p>
             </div>
@@ -314,14 +306,16 @@ const RefundManagementContent: React.FC = () => {
             <Descriptions.Item label="订单号" span={2}>
               {selectedRefund.order?.orderNo || '-'}
             </Descriptions.Item>
-            <Descriptions.Item label="用户ID">
-              {selectedRefund.userId}
-            </Descriptions.Item>
+            <Descriptions.Item label="用户ID">{selectedRefund.userId}</Descriptions.Item>
             <Descriptions.Item label="交易号">
               {selectedRefund.transactionId || '-'}
             </Descriptions.Item>
             <Descriptions.Item label="支付金额">
-              {selectedRefund.currency === 'CNY' ? '¥' : selectedRefund.currency === 'USD' ? '$' : selectedRefund.currency}
+              {selectedRefund.currency === 'CNY'
+                ? '¥'
+                : selectedRefund.currency === 'USD'
+                  ? '$'
+                  : selectedRefund.currency}
               {selectedRefund.amount.toFixed(2)}
             </Descriptions.Item>
             <Descriptions.Item label="支付方式">
@@ -330,9 +324,7 @@ const RefundManagementContent: React.FC = () => {
             <Descriptions.Item label="状态">
               {getStatusTag(selectedRefund.status)}
             </Descriptions.Item>
-            <Descriptions.Item label="客户ID">
-              {selectedRefund.customerId || '-'}
-            </Descriptions.Item>
+            <Descriptions.Item label="客户ID">{selectedRefund.customerId || '-'}</Descriptions.Item>
             <Descriptions.Item label="支付时间" span={2}>
               {selectedRefund.paidAt
                 ? dayjs(selectedRefund.paidAt).format('YYYY-MM-DD HH:mm:ss')
@@ -382,10 +374,7 @@ const RefundManagementContent: React.FC = () => {
           </Form.Item>
 
           <Form.Item label="管理员备注" name="adminNote">
-            <Input.TextArea
-              rows={3}
-              placeholder="可选的管理员备注（批准原因、处理说明等）"
-            />
+            <Input.TextArea rows={3} placeholder="可选的管理员备注（批准原因、处理说明等）" />
           </Form.Item>
 
           <div style={{ color: '#999', fontSize: '12px' }}>
@@ -425,17 +414,11 @@ const RefundManagementContent: React.FC = () => {
             name="reason"
             rules={[{ required: true, message: '请输入拒绝原因' }]}
           >
-            <Input.TextArea
-              rows={3}
-              placeholder="请输入拒绝退款的原因（将通知用户）"
-            />
+            <Input.TextArea rows={3} placeholder="请输入拒绝退款的原因（将通知用户）" />
           </Form.Item>
 
           <Form.Item label="管理员备注" name="adminNote">
-            <Input.TextArea
-              rows={2}
-              placeholder="可选的管理员内部备注"
-            />
+            <Input.TextArea rows={2} placeholder="可选的管理员内部备注" />
           </Form.Item>
         </Form>
       </Modal>

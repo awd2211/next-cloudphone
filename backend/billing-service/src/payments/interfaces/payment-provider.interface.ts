@@ -176,10 +176,7 @@ export interface IPaymentProvider {
    * @param immediately 是否立即取消（false则在周期结束时取消）
    * @returns 是否成功
    */
-  cancelSubscription(
-    subscriptionId: string,
-    immediately?: boolean,
-  ): Promise<boolean>;
+  cancelSubscription(subscriptionId: string, immediately?: boolean): Promise<boolean>;
 
   /**
    * 关闭未支付订单
@@ -195,11 +192,7 @@ export interface IPaymentProvider {
    * @param timestamp 时间戳（某些平台需要）
    * @returns 是否有效
    */
-  verifyWebhookSignature(
-    payload: any,
-    signature: string,
-    timestamp?: string,
-  ): boolean;
+  verifyWebhookSignature(payload: any, signature: string, timestamp?: string): boolean;
 
   /**
    * 获取客户端配置（用于前端集成）

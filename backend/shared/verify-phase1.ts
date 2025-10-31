@@ -13,11 +13,7 @@ import {
   TransactionOptions,
 } from './src/database/transaction.decorator';
 
-import {
-  DistributedLockService,
-  Lock,
-  LockConfig,
-} from './src/lock/distributed-lock.service';
+import { DistributedLockService, Lock, LockConfig } from './src/lock/distributed-lock.service';
 
 import { DistributedLockModule } from './src/lock/distributed-lock.module';
 

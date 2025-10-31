@@ -1,37 +1,31 @@
-import { Module } from "@nestjs/common";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { ScheduleModule } from "@nestjs/schedule";
-import { SchedulerService } from "./scheduler.service";
-import { NodeManagerService } from "./node-manager.service";
-import { ResourceMonitorService } from "./resource-monitor.service";
-import { AllocationService } from "./allocation.service";
-import { AllocationSchedulerService } from "./allocation-scheduler.service";
-import { ReservationService } from "./reservation.service";
-import { QueueService } from "./queue.service";
-import { BillingClientService } from "./billing-client.service";
-import { NotificationClientService } from "./notification-client.service";
-import { DeviceEventsConsumer } from "./consumers/device-events.consumer";
-import { UserEventsConsumer } from "./consumers/user-events.consumer";
-import { BillingEventsConsumer } from "./consumers/billing-events.consumer";
-import { SchedulerController } from "./scheduler.controller";
-import { Node } from "../entities/node.entity";
-import { Device } from "../entities/device.entity";
-import { DeviceAllocation } from "../entities/device-allocation.entity";
-import { DeviceReservation } from "../entities/device-reservation.entity";
-import { AllocationQueue } from "../entities/allocation-queue.entity";
-import { AuthModule } from "../auth/auth.module";
-import { EventBusModule, ServiceTokenService } from "@cloudphone/shared";
-import { QuotaModule } from "../quota/quota.module";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
+import { SchedulerService } from './scheduler.service';
+import { NodeManagerService } from './node-manager.service';
+import { ResourceMonitorService } from './resource-monitor.service';
+import { AllocationService } from './allocation.service';
+import { AllocationSchedulerService } from './allocation-scheduler.service';
+import { ReservationService } from './reservation.service';
+import { QueueService } from './queue.service';
+import { BillingClientService } from './billing-client.service';
+import { NotificationClientService } from './notification-client.service';
+import { DeviceEventsConsumer } from './consumers/device-events.consumer';
+import { UserEventsConsumer } from './consumers/user-events.consumer';
+import { BillingEventsConsumer } from './consumers/billing-events.consumer';
+import { SchedulerController } from './scheduler.controller';
+import { Node } from '../entities/node.entity';
+import { Device } from '../entities/device.entity';
+import { DeviceAllocation } from '../entities/device-allocation.entity';
+import { DeviceReservation } from '../entities/device-reservation.entity';
+import { AllocationQueue } from '../entities/allocation-queue.entity';
+import { AuthModule } from '../auth/auth.module';
+import { EventBusModule, ServiceTokenService } from '@cloudphone/shared';
+import { QuotaModule } from '../quota/quota.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Node,
-      Device,
-      DeviceAllocation,
-      DeviceReservation,
-      AllocationQueue,
-    ]),
+    TypeOrmModule.forFeature([Node, Device, DeviceAllocation, DeviceReservation, AllocationQueue]),
     ScheduleModule.forRoot(), // 启用定时任务
     AuthModule,
     EventBusModule,

@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  UseGuards,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -32,7 +25,7 @@ import { EventReplayService } from './event-replay.service';
 export class EventsController {
   constructor(
     private readonly eventStore: EventStoreService,
-    private readonly eventReplay: EventReplayService,
+    private readonly eventReplay: EventReplayService
   ) {}
 
   @Get('user/:userId/history')
@@ -85,7 +78,7 @@ export class EventsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async replayToVersion(
     @Param('userId') userId: string,
-    @Param('version', ParseIntPipe) version: number,
+    @Param('version', ParseIntPipe) version: number
   ) {
     const userState = await this.eventReplay.replayToVersion(userId, version);
     return {
@@ -110,10 +103,7 @@ export class EventsController {
   @ApiResponse({ status: 200, description: '时间旅行成功' })
   @ApiResponse({ status: 400, description: '时间戳格式错误' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async timeTravel(
-    @Param('userId') userId: string,
-    @Query('timestamp') timestamp: string,
-  ) {
+  async timeTravel(@Param('userId') userId: string, @Query('timestamp') timestamp: string) {
     const targetDate = new Date(timestamp);
 
     if (isNaN(targetDate.getTime())) {
@@ -123,10 +113,7 @@ export class EventsController {
       };
     }
 
-    const userState = await this.eventReplay.replayToTimestamp(
-      userId,
-      targetDate,
-    );
+    const userState = await this.eventReplay.replayToTimestamp(userId, targetDate);
     return {
       success: true,
       data: userState,
@@ -197,11 +184,11 @@ export class EventsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async getRecentEvents(
     @Query('eventType') eventType?: string,
-    @Query('limit') limit: string = '50',
+    @Query('limit') limit: string = '50'
   ) {
     const events = await this.eventStore.getEventsByType(
       eventType || 'UserCreated',
-      parseInt(limit),
+      parseInt(limit)
     );
 
     return {

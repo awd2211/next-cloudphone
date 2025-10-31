@@ -22,14 +22,14 @@ import { CircuitBreakerService } from '../services/circuit-breaker.service';
 export class CircuitBreakerInterceptor implements NestInterceptor {
   constructor(
     private reflector: Reflector,
-    private circuitBreakerService: CircuitBreakerService,
+    private circuitBreakerService: CircuitBreakerService
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     // 获取熔断器配置
     const options = this.reflector.get<CircuitBreakerDecoratorOptions>(
       CIRCUIT_BREAKER_KEY,
-      context.getHandler(),
+      context.getHandler()
     );
 
     // 如果没有熔断器配置，直接执行
@@ -57,10 +57,10 @@ export class CircuitBreakerInterceptor implements NestInterceptor {
           : async () => {
               // 默认降级：抛出服务不可用异常
               throw new ServiceUnavailableException(
-                `Service ${options.name} is temporarily unavailable`,
+                `Service ${options.name} is temporarily unavailable`
               );
             },
-      },
+      }
     );
 
     // 使用熔断器执行方法

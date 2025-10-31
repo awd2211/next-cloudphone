@@ -99,8 +99,7 @@ const PhysicalDeviceList = () => {
           connectionType: 'network',
           ipAddress: device.ipAddress,
           adbPort: 5555,
-          name:
-            `${device.manufacturer || ''} ${device.model || ''}`.trim() || device.serialNumber,
+          name: `${device.manufacturer || ''} ${device.model || ''}`.trim() || device.serialNumber,
         });
       } else {
         setSelectedDevice(null);
@@ -142,8 +141,7 @@ const PhysicalDeviceList = () => {
 
   const renderStatus = useCallback(
     (status: string) => {
-      const config =
-        statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
+      const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
       return (
         <Tag icon={config.icon} color={config.color}>
           {config.text}
@@ -153,154 +151,162 @@ const PhysicalDeviceList = () => {
     [statusConfig]
   );
 
-  const columns: ColumnsType<PhysicalDevice> = useMemo(() => [
-    {
-      title: '设备名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 200,
-      render: (text, record) => (
-        <Space>
-          <Badge status={record.status === 'online' ? 'success' : 'default'} />
-          <span style={{ fontWeight: 500 }}>{text}</span>
-        </Space>
-      ),
-    },
-    {
-      title: '序列号',
-      dataIndex: 'serialNumber',
-      key: 'serialNumber',
-      width: 180,
-      render: (text) => <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{text}</span>,
-    },
-    {
-      title: '设备信息',
-      key: 'deviceInfo',
-      width: 200,
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          {record.manufacturer && <span>{record.manufacturer}</span>}
-          {record.model && <span style={{ fontSize: '12px', color: '#999' }}>{record.model}</span>}
-          {record.androidVersion && (
-            <Tag size="small" color="blue">
-              Android {record.androidVersion}
-            </Tag>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: '连接方式',
-      dataIndex: 'connectionType',
-      key: 'connectionType',
-      width: 120,
-      align: 'center',
-      render: (type) =>
-        type === 'network' ? (
-          <Tag icon={<WifiOutlined />} color="blue">
-            网络
-          </Tag>
-        ) : (
-          <Tag icon={<UsbOutlined />} color="green">
-            USB
-          </Tag>
+  const columns: ColumnsType<PhysicalDevice> = useMemo(
+    () => [
+      {
+        title: '设备名称',
+        dataIndex: 'name',
+        key: 'name',
+        width: 200,
+        render: (text, record) => (
+          <Space>
+            <Badge status={record.status === 'online' ? 'success' : 'default'} />
+            <span style={{ fontWeight: 500 }}>{text}</span>
+          </Space>
         ),
-    },
-    {
-      title: 'IP 地址',
-      dataIndex: 'ipAddress',
-      key: 'ipAddress',
-      width: 150,
-      render: (ip, record) => (ip && record.connectionType === 'network' ? ip : '-'),
-    },
-    {
-      title: 'ADB 端口',
-      dataIndex: 'adbPort',
-      key: 'adbPort',
-      width: 100,
-      align: 'center',
-      render: (port) => port || '-',
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      align: 'center',
-      filters: [
-        { text: '在线', value: 'online' },
-        { text: '离线', value: 'offline' },
-        { text: '未注册', value: 'unregistered' },
-      ],
-      render: renderStatus,
-    },
-    {
-      title: '最后在线',
-      dataIndex: 'lastSeenAt',
-      key: 'lastSeenAt',
-      width: 180,
-      render: (text) => (text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 150,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button type="link" size="small" danger onClick={() => handleDelete(record.id)}>
-            移除
-          </Button>
-        </Space>
-      ),
-    },
-  ], [renderStatus, handleDelete]);
+      },
+      {
+        title: '序列号',
+        dataIndex: 'serialNumber',
+        key: 'serialNumber',
+        width: 180,
+        render: (text) => <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{text}</span>,
+      },
+      {
+        title: '设备信息',
+        key: 'deviceInfo',
+        width: 200,
+        render: (_, record) => (
+          <Space direction="vertical" size={0}>
+            {record.manufacturer && <span>{record.manufacturer}</span>}
+            {record.model && (
+              <span style={{ fontSize: '12px', color: '#999' }}>{record.model}</span>
+            )}
+            {record.androidVersion && (
+              <Tag size="small" color="blue">
+                Android {record.androidVersion}
+              </Tag>
+            )}
+          </Space>
+        ),
+      },
+      {
+        title: '连接方式',
+        dataIndex: 'connectionType',
+        key: 'connectionType',
+        width: 120,
+        align: 'center',
+        render: (type) =>
+          type === 'network' ? (
+            <Tag icon={<WifiOutlined />} color="blue">
+              网络
+            </Tag>
+          ) : (
+            <Tag icon={<UsbOutlined />} color="green">
+              USB
+            </Tag>
+          ),
+      },
+      {
+        title: 'IP 地址',
+        dataIndex: 'ipAddress',
+        key: 'ipAddress',
+        width: 150,
+        render: (ip, record) => (ip && record.connectionType === 'network' ? ip : '-'),
+      },
+      {
+        title: 'ADB 端口',
+        dataIndex: 'adbPort',
+        key: 'adbPort',
+        width: 100,
+        align: 'center',
+        render: (port) => port || '-',
+      },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        key: 'status',
+        width: 100,
+        align: 'center',
+        filters: [
+          { text: '在线', value: 'online' },
+          { text: '离线', value: 'offline' },
+          { text: '未注册', value: 'unregistered' },
+        ],
+        render: renderStatus,
+      },
+      {
+        title: '最后在线',
+        dataIndex: 'lastSeenAt',
+        key: 'lastSeenAt',
+        width: 180,
+        render: (text) => (text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'),
+      },
+      {
+        title: '操作',
+        key: 'action',
+        width: 150,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="small">
+            <Button type="link" size="small" danger onClick={() => handleDelete(record.id)}>
+              移除
+            </Button>
+          </Space>
+        ),
+      },
+    ],
+    [renderStatus, handleDelete]
+  );
 
   // Scan results columns
-  const scanColumns: ColumnsType<ScanResult> = useMemo(() => [
-    {
-      title: '序列号',
-      dataIndex: 'serialNumber',
-      key: 'serialNumber',
-      render: (text) => <span style={{ fontFamily: 'monospace' }}>{text}</span>,
-    },
-    {
-      title: '设备信息',
-      key: 'deviceInfo',
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <span>{record.manufacturer || '-'}</span>
-          <span style={{ fontSize: '12px', color: '#999' }}>{record.model || '-'}</span>
-        </Space>
-      ),
-    },
-    {
-      title: 'IP 地址',
-      dataIndex: 'ipAddress',
-      key: 'ipAddress',
-    },
-    {
-      title: 'Android 版本',
-      dataIndex: 'androidVersion',
-      key: 'androidVersion',
-      render: (version) => (version ? <Tag color="blue">Android {version}</Tag> : '-'),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: renderStatus,
-    },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_, record) => (
-        <Button type="primary" size="small" onClick={() => openRegisterModal(record)}>
-          注册
-        </Button>
-      ),
-    },
-  ], [renderStatus, openRegisterModal]);
+  const scanColumns: ColumnsType<ScanResult> = useMemo(
+    () => [
+      {
+        title: '序列号',
+        dataIndex: 'serialNumber',
+        key: 'serialNumber',
+        render: (text) => <span style={{ fontFamily: 'monospace' }}>{text}</span>,
+      },
+      {
+        title: '设备信息',
+        key: 'deviceInfo',
+        render: (_, record) => (
+          <Space direction="vertical" size={0}>
+            <span>{record.manufacturer || '-'}</span>
+            <span style={{ fontSize: '12px', color: '#999' }}>{record.model || '-'}</span>
+          </Space>
+        ),
+      },
+      {
+        title: 'IP 地址',
+        dataIndex: 'ipAddress',
+        key: 'ipAddress',
+      },
+      {
+        title: 'Android 版本',
+        dataIndex: 'androidVersion',
+        key: 'androidVersion',
+        render: (version) => (version ? <Tag color="blue">Android {version}</Tag> : '-'),
+      },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        key: 'status',
+        render: renderStatus,
+      },
+      {
+        title: '操作',
+        key: 'action',
+        render: (_, record) => (
+          <Button type="primary" size="small" onClick={() => openRegisterModal(record)}>
+            注册
+          </Button>
+        ),
+      },
+    ],
+    [renderStatus, openRegisterModal]
+  );
 
   // Statistics
   const stats = useMemo(
@@ -332,11 +338,7 @@ const PhysicalDeviceList = () => {
       <Card style={{ marginBottom: '16px' }}>
         <Row gutter={16}>
           <Col span={6}>
-            <Statistic
-              title="总设备数"
-              value={stats.total}
-              prefix={<WifiOutlined />}
-            />
+            <Statistic title="总设备数" value={stats.total} prefix={<WifiOutlined />} />
           </Col>
           <Col span={6}>
             <Statistic
@@ -370,11 +372,7 @@ const PhysicalDeviceList = () => {
 
       <Card>
         <Space style={{ marginBottom: '16px' }}>
-          <Button
-            type="primary"
-            icon={<ScanOutlined />}
-            onClick={() => setScanModalVisible(true)}
-          >
+          <Button type="primary" icon={<ScanOutlined />} onClick={() => setScanModalVisible(true)}>
             扫描网络设备
           </Button>
           <Button icon={<PlusOutlined />} onClick={() => openRegisterModal()}>
@@ -423,7 +421,12 @@ const PhysicalDeviceList = () => {
           style={{ marginBottom: '16px' }}
         />
 
-        <Form form={scanForm} onFinish={handleScan} layout="inline" style={{ marginBottom: '16px' }}>
+        <Form
+          form={scanForm}
+          onFinish={handleScan}
+          layout="inline"
+          style={{ marginBottom: '16px' }}
+        >
           <Form.Item
             name="subnet"
             rules={[{ required: true, message: '请输入子网段' }]}
@@ -520,7 +523,10 @@ const PhysicalDeviceList = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.connectionType !== curr.connectionType}>
+          <Form.Item
+            noStyle
+            shouldUpdate={(prev, curr) => prev.connectionType !== curr.connectionType}
+          >
             {({ getFieldValue }) =>
               getFieldValue('connectionType') === 'network' ? (
                 <>

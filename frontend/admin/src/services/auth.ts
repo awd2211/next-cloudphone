@@ -8,12 +8,17 @@ export interface LoginParams {
 }
 
 export interface LoginResponse {
+  success?: boolean;
   token: string;
   user: {
     id: string;
     username: string;
     email: string;
-    role: string;
+    roles: string[];
+    isSuperAdmin?: boolean;
+    tenantId?: string | null;
+    fullName?: string | null;
+    avatar?: string | null;
   };
 }
 

@@ -35,12 +35,7 @@ import {
   CloseCircleOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
-import type {
-  ApiKey,
-  ApiKeyStatus,
-  CreateApiKeyDto,
-  ApiKeyStatistics,
-} from '@/types';
+import type { ApiKey, ApiKeyStatus, CreateApiKeyDto, ApiKeyStatistics } from '@/types';
 import {
   getUserApiKeys,
   getApiKeyById,
@@ -330,7 +325,11 @@ const ApiKeyManagement: React.FC = () => {
       key: 'lastUsedAt',
       width: 170,
       render: (date?: string) =>
-        date ? new Date(date).toLocaleString('zh-CN') : <span style={{ color: '#999' }}>从未使用</span>,
+        date ? (
+          new Date(date).toLocaleString('zh-CN')
+        ) : (
+          <span style={{ color: '#999' }}>从未使用</span>
+        ),
     },
     {
       title: '过期时间',
@@ -518,26 +517,15 @@ const ApiKeyManagement: React.FC = () => {
             label="权限范围"
             rules={[{ required: true, message: '请选择权限范围' }]}
           >
-            <Select
-              mode="multiple"
-              placeholder="请选择权限范围"
-              options={commonScopes}
-            />
+            <Select mode="multiple" placeholder="请选择权限范围" options={commonScopes} />
           </Form.Item>
 
           <Form.Item name="expiresAt" label="过期时间">
-            <DatePicker
-              showTime
-              style={{ width: '100%' }}
-              placeholder="不设置则永不过期"
-            />
+            <DatePicker showTime style={{ width: '100%' }} placeholder="不设置则永不过期" />
           </Form.Item>
 
           <Form.Item name="description" label="描述">
-            <Input.TextArea
-              placeholder="请输入密钥用途描述"
-              rows={3}
-            />
+            <Input.TextArea placeholder="请输入密钥用途描述" rows={3} />
           </Form.Item>
         </Form>
       </Modal>
@@ -603,9 +591,7 @@ curl -H "X-API-Key: ${newKeyData.key}" \\
             <Descriptions.Item label="ID" span={2}>
               {selectedKey.id}
             </Descriptions.Item>
-            <Descriptions.Item label="名称">
-              {selectedKey.name}
-            </Descriptions.Item>
+            <Descriptions.Item label="名称">{selectedKey.name}</Descriptions.Item>
             <Descriptions.Item label="状态">
               <Tag
                 icon={getStatusIcon(selectedKey.status)}
@@ -617,9 +603,7 @@ curl -H "X-API-Key: ${newKeyData.key}" \\
             <Descriptions.Item label="密钥前缀" span={2}>
               <Text code>{getMaskedKey(selectedKey)}</Text>
             </Descriptions.Item>
-            <Descriptions.Item label="用户ID">
-              {selectedKey.userId}
-            </Descriptions.Item>
+            <Descriptions.Item label="用户ID">{selectedKey.userId}</Descriptions.Item>
             <Descriptions.Item label="使用次数">
               <Badge count={selectedKey.usageCount} showZero />
             </Descriptions.Item>

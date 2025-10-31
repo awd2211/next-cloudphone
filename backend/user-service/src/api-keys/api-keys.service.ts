@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ApiKey, ApiKeyStatus } from '../entities/api-key.entity';
@@ -29,7 +24,7 @@ export class ApiKeysService {
 
   constructor(
     @InjectRepository(ApiKey)
-    private apiKeyRepository: Repository<ApiKey>,
+    private apiKeyRepository: Repository<ApiKey>
   ) {}
 
   /**
@@ -132,7 +127,7 @@ export class ApiKeysService {
       scopes?: string[];
       description?: string;
       expiresAt?: Date;
-    },
+    }
   ): Promise<ApiKey> {
     const apiKey = await this.getApiKey(apiKeyId);
 
@@ -194,9 +189,10 @@ export class ApiKeysService {
     const expiredKeys = keys.filter((k) => k.status === ApiKeyStatus.EXPIRED).length;
     const totalUsage = keys.reduce((sum, k) => sum + k.usageCount, 0);
 
-    const mostUsedKey = keys.length > 0 ? keys.reduce((max, k) =>
-      !max || k.usageCount > max.usageCount ? k : max,
-    keys[0]) : null;
+    const mostUsedKey =
+      keys.length > 0
+        ? keys.reduce((max, k) => (!max || k.usageCount > max.usageCount ? k : max), keys[0])
+        : null;
 
     return {
       totalKeys,

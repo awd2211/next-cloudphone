@@ -62,7 +62,7 @@ export class InvoicesController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('offset') offset?: number
   ) {
     return await this.invoicesService.getUserInvoices(userId, {
       status,
@@ -95,7 +95,7 @@ export class InvoicesController {
   @ApiResponse({ status: 200, description: '支付成功' })
   async payInvoice(
     @Param('id') id: string,
-    @Body() body: { paymentId: string; paymentMethod: string },
+    @Body() body: { paymentId: string; paymentMethod: string }
   ) {
     this.logger.log(`支付账单 - ID: ${id}`);
     return await this.invoicesService.payInvoice({
@@ -111,10 +111,7 @@ export class InvoicesController {
   @Roles('admin')
   @ApiOperation({ summary: '取消账单' })
   @ApiResponse({ status: 200, description: '取消成功' })
-  async cancelInvoice(
-    @Param('id') id: string,
-    @Body() body: { reason: string },
-  ) {
+  async cancelInvoice(@Param('id') id: string, @Body() body: { reason: string }) {
     this.logger.log(`取消账单 - ID: ${id}`);
     return await this.invoicesService.cancelInvoice(id, body.reason);
   }

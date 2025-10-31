@@ -16,11 +16,7 @@ import { UserServiceClient } from '../clients/user-service.client';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Notification,
-      NotificationTemplate,
-      NotificationPreference,
-    ]),
+    TypeOrmModule.forFeature([Notification, NotificationTemplate, NotificationPreference]),
     HttpClientModule,
     ConsulModule,
     EmailModule,

@@ -143,7 +143,7 @@ export const ProviderCategoryMap: Record<DeviceProviderType, ProviderCategory> =
  */
 export function getProviderDisplayName(
   providerType: DeviceProviderType,
-  language: 'zh-CN' | 'en-US' = 'zh-CN',
+  language: 'zh-CN' | 'en-US' = 'zh-CN'
 ): string {
   if (language === 'en-US') {
     return ProviderDisplayNamesEN[providerType] || providerType;

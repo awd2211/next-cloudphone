@@ -28,7 +28,9 @@ export interface CreateNotificationDto {
 }
 
 // 获取通知列表
-export const getNotifications = (params?: PaginationParams & { isRead?: boolean; type?: string; userId?: string }) => {
+export const getNotifications = (
+  params?: PaginationParams & { isRead?: boolean; type?: string; userId?: string }
+) => {
   // 如果没有 userId,从 localStorage 获取当前用户 ID
   const userId = params?.userId || localStorage.getItem('userId') || 'test-user-id';
   return request.get<PaginatedResponse<Notification>>(`/notifications/user/${userId}`, { params });
@@ -117,7 +119,7 @@ class NotificationWebSocket {
 
   private emit(event: string, data: any) {
     const callbacks = this.listeners.get(event);
-    callbacks?.forEach(cb => cb(data));
+    callbacks?.forEach((cb) => cb(data));
   }
 }
 

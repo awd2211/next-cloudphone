@@ -66,7 +66,10 @@ const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 // 数据类型配置
-const dataTypeConfig: Record<ExportDataType, { label: string; icon: React.ReactNode; color: string; description: string }> = {
+const dataTypeConfig: Record<
+  ExportDataType,
+  { label: string; icon: React.ReactNode; color: string; description: string }
+> = {
   [ExportDataType.ORDERS]: {
     label: '订单数据',
     icon: <FileTextOutlined />,
@@ -112,21 +115,27 @@ const dataTypeConfig: Record<ExportDataType, { label: string; icon: React.ReactN
 };
 
 // 格式配置
-const formatConfig: Record<ExportFormat, { label: string; icon: React.ReactNode; color: string }> = {
-  [ExportFormat.CSV]: { label: 'CSV', icon: <FileTextOutlined />, color: '#52c41a' },
-  [ExportFormat.EXCEL]: { label: 'Excel', icon: <FileExcelOutlined />, color: '#1890ff' },
-  [ExportFormat.PDF]: { label: 'PDF', icon: <FilePdfOutlined />, color: '#f5222d' },
-  [ExportFormat.JSON]: { label: 'JSON', icon: <FileTextOutlined />, color: '#faad14' },
-};
+const formatConfig: Record<ExportFormat, { label: string; icon: React.ReactNode; color: string }> =
+  {
+    [ExportFormat.CSV]: { label: 'CSV', icon: <FileTextOutlined />, color: '#52c41a' },
+    [ExportFormat.EXCEL]: { label: 'Excel', icon: <FileExcelOutlined />, color: '#1890ff' },
+    [ExportFormat.PDF]: { label: 'PDF', icon: <FilePdfOutlined />, color: '#f5222d' },
+    [ExportFormat.JSON]: { label: 'JSON', icon: <FileTextOutlined />, color: '#faad14' },
+  };
 
 // 状态配置
-const statusConfig: Record<ExportStatus, { label: string; icon: React.ReactNode; color: string }> = {
-  [ExportStatus.PENDING]: { label: '等待中', icon: <ClockCircleOutlined />, color: 'default' },
-  [ExportStatus.PROCESSING]: { label: '处理中', icon: <SyncOutlined spin />, color: 'processing' },
-  [ExportStatus.COMPLETED]: { label: '已完成', icon: <CheckCircleOutlined />, color: 'success' },
-  [ExportStatus.FAILED]: { label: '失败', icon: <CloseCircleOutlined />, color: 'error' },
-  [ExportStatus.EXPIRED]: { label: '已过期', icon: <CloseCircleOutlined />, color: 'warning' },
-};
+const statusConfig: Record<ExportStatus, { label: string; icon: React.ReactNode; color: string }> =
+  {
+    [ExportStatus.PENDING]: { label: '等待中', icon: <ClockCircleOutlined />, color: 'default' },
+    [ExportStatus.PROCESSING]: {
+      label: '处理中',
+      icon: <SyncOutlined spin />,
+      color: 'processing',
+    },
+    [ExportStatus.COMPLETED]: { label: '已完成', icon: <CheckCircleOutlined />, color: 'success' },
+    [ExportStatus.FAILED]: { label: '失败', icon: <CloseCircleOutlined />, color: 'error' },
+    [ExportStatus.EXPIRED]: { label: '已过期', icon: <CloseCircleOutlined />, color: 'warning' },
+  };
 
 const ExportCenter: React.FC = () => {
   const [form] = Form.useForm();
@@ -332,12 +341,7 @@ const ExportCenter: React.FC = () => {
               {config.label}
             </Tag>
             {status === ExportStatus.PROCESSING && record.recordCount && (
-              <Progress
-                percent={50}
-                size="small"
-                status="active"
-                showInfo={false}
-              />
+              <Progress percent={50} size="small" status="active" showInfo={false} />
             )}
           </Space>
         );
@@ -348,7 +352,7 @@ const ExportCenter: React.FC = () => {
       dataIndex: 'fileSize',
       key: 'fileSize',
       width: 100,
-      render: (size?: number) => size ? formatFileSize(size) : '-',
+      render: (size?: number) => (size ? formatFileSize(size) : '-'),
     },
     {
       title: '记录数',
@@ -391,10 +395,7 @@ const ExportCenter: React.FC = () => {
               重试
             </Button>
           )}
-          <Popconfirm
-            title="确认删除此任务？"
-            onConfirm={() => handleDelete(record.id)}
-          >
+          <Popconfirm title="确认删除此任务？" onConfirm={() => handleDelete(record.id)}>
             <Button type="link" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
@@ -435,11 +436,7 @@ const ExportCenter: React.FC = () => {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={12} lg={6}>
             <Card>
-              <Statistic
-                title="总任务数"
-                value={stats.total}
-                prefix={<FileTextOutlined />}
-              />
+              <Statistic title="总任务数" value={stats.total} prefix={<FileTextOutlined />} />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
@@ -496,17 +493,11 @@ const ExportCenter: React.FC = () => {
             删除选中 ({selectedRowKeys.length})
           </Button>
 
-          <Popconfirm
-            title="确认清空所有已完成的任务？"
-            onConfirm={handleClearCompleted}
-          >
+          <Popconfirm title="确认清空所有已完成的任务？" onConfirm={handleClearCompleted}>
             <Button icon={<ClearOutlined />}>清空已完成</Button>
           </Popconfirm>
 
-          <Popconfirm
-            title="确认清空所有失败的任务？"
-            onConfirm={handleClearFailed}
-          >
+          <Popconfirm title="确认清空所有失败的任务？" onConfirm={handleClearFailed}>
             <Button icon={<ClearOutlined />}>清空失败</Button>
           </Popconfirm>
 
@@ -567,7 +558,11 @@ const ExportCenter: React.FC = () => {
 
       {/* 创建导出 Modal */}
       <Modal
-        title={<Space><ExportOutlined /> 创建导出任务</Space>}
+        title={
+          <Space>
+            <ExportOutlined /> 创建导出任务
+          </Space>
+        }
         open={createModalVisible}
         onOk={handleCreateExport}
         onCancel={() => {

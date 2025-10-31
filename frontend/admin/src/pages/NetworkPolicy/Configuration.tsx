@@ -1,6 +1,28 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, Select, Switch, message, Tag, InputNumber, Row, Col } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, CloseCircleOutlined, ExperimentOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Table,
+  Button,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Switch,
+  message,
+  Tag,
+  InputNumber,
+  Row,
+  Col,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExperimentOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import request from '@/utils/request';
 import dayjs from 'dayjs';
@@ -69,7 +91,13 @@ const NetworkPolicyConfiguration = () => {
     } else {
       setEditingPolicy(null);
       form.resetFields();
-      form.setFieldsValue({ direction: 'both', protocol: 'all', action: 'allow', priority: 100, isEnabled: true });
+      form.setFieldsValue({
+        direction: 'both',
+        protocol: 'all',
+        action: 'allow',
+        priority: 100,
+        isEnabled: true,
+      });
     }
     setModalVisible(true);
   };
@@ -228,10 +256,7 @@ const NetworkPolicyConfiguration = () => {
       key: 'isEnabled',
       width: 100,
       render: (enabled, record) => (
-        <Switch
-          checked={enabled}
-          onChange={(checked) => handleToggle(record.id, checked)}
-        />
+        <Switch checked={enabled} onChange={(checked) => handleToggle(record.id, checked)} />
       ),
     },
     {
@@ -241,10 +266,21 @@ const NetworkPolicyConfiguration = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openModal(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openModal(record)}
+          >
             编辑
           </Button>
-          <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)}>
+          <Button
+            type="link"
+            size="small"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record.id)}
+          >
             删除
           </Button>
         </Space>

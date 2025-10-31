@@ -18,12 +18,12 @@ export function escapeSql(input: string): string {
   if (!input) return input;
 
   return input
-    .replace(/\'/g, "''")        // 单引号转义
-    .replace(/\\/g, '\\\\')      // 反斜杠转义
-    .replace(/\x00/g, '\\0')     // NULL 字符
-    .replace(/\n/g, '\\n')       // 换行符
-    .replace(/\r/g, '\\r')       // 回车符
-    .replace(/\x1a/g, '\\Z');    // Ctrl+Z
+    .replace(/\'/g, "''") // 单引号转义
+    .replace(/\\/g, '\\\\') // 反斜杠转义
+    .replace(/\x00/g, '\\0') // NULL 字符
+    .replace(/\n/g, '\\n') // 换行符
+    .replace(/\r/g, '\\r') // 回车符
+    .replace(/\x1a/g, '\\Z'); // Ctrl+Z
 }
 
 /**
@@ -65,8 +65,8 @@ export function sanitizeUsername(username: string): string {
 
   return username
     .trim()
-    .replace(/[^a-zA-Z0-9_\-\u4e00-\u9fa5]/g, '')  // 保留中文字符
-    .substring(0, 50);  // 限制长度
+    .replace(/[^a-zA-Z0-9_\-\u4e00-\u9fa5]/g, '') // 保留中文字符
+    .substring(0, 50); // 限制长度
 }
 
 /**
@@ -78,8 +78,8 @@ export function sanitizeEmail(email: string): string {
   return email
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9@._\-]/g, '')  // 只保留邮箱合法字符
-    .substring(0, 100);  // 限制长度
+    .replace(/[^a-z0-9@._\-]/g, '') // 只保留邮箱合法字符
+    .substring(0, 100); // 限制长度
 }
 
 /**
@@ -90,9 +90,9 @@ export function sanitizePhone(phone: string): string {
 
   return phone
     .trim()
-    .replace(/[^0-9+\-\s()]/g, '')  // 只保留数字和常见分隔符
-    .replace(/\s+/g, '')  // 移除所有空格
-    .substring(0, 20);  // 限制长度
+    .replace(/[^0-9+\-\s()]/g, '') // 只保留数字和常见分隔符
+    .replace(/\s+/g, '') // 移除所有空格
+    .substring(0, 20); // 限制长度
 }
 
 /**
@@ -123,8 +123,8 @@ export function sanitizeText(text: string): string {
   if (!text) return text;
 
   return text
-    .replace(/[\x00-\x1F\x7F]/g, '')  // 移除控制字符
-    .replace(/[\uFFF0-\uFFFF]/g, '')  // 移除特殊 Unicode
+    .replace(/[\x00-\x1F\x7F]/g, '') // 移除控制字符
+    .replace(/[\uFFF0-\uFFFF]/g, '') // 移除特殊 Unicode
     .trim();
 }
 
@@ -136,8 +136,8 @@ export function sanitizeSearchQuery(query: string): string {
 
   return query
     .trim()
-    .replace(/['"`;\\]/g, '')  // 移除危险字符
-    .substring(0, 100);  // 限制长度
+    .replace(/['"`;\\]/g, '') // 移除危险字符
+    .substring(0, 100); // 限制长度
 }
 
 /**
@@ -164,7 +164,7 @@ export function sanitizeUuid(uuid: string): string | null {
  */
 export function sanitizeObject<T extends Record<string, any>>(
   obj: T,
-  sanitizer: (value: string) => string = sanitizeText,
+  sanitizer: (value: string) => string = sanitizeText
 ): T {
   const result: any = { ...obj };
 
@@ -190,7 +190,7 @@ export function validateLength(
   input: string,
   min: number,
   max: number,
-  fieldName: string = 'input',
+  fieldName: string = 'input'
 ): void {
   if (!input) {
     throw new Error(`${fieldName} 不能为空`);
@@ -235,9 +235,9 @@ export function sanitizeFilePath(filePath: string): string {
   if (!filePath) return filePath;
 
   return filePath
-    .replace(/\.\./g, '')  // 移除 ..
-    .replace(/[\/\\]{2,}/g, '/')  // 合并多个斜杠
-    .replace(/^[\/\\]+/, '')  // 移除开头的斜杠
+    .replace(/\.\./g, '') // 移除 ..
+    .replace(/[\/\\]{2,}/g, '/') // 合并多个斜杠
+    .replace(/^[\/\\]+/, '') // 移除开头的斜杠
     .trim();
 }
 
@@ -248,7 +248,7 @@ export function sanitizeFileName(fileName: string): string {
   if (!fileName) return fileName;
 
   return fileName
-    .replace(/[^a-zA-Z0-9._\-\u4e00-\u9fa5]/g, '_')  // 只保留安全字符
-    .replace(/\.{2,}/g, '.')  // 合并多个点
-    .substring(0, 255);  // 限制长度
+    .replace(/[^a-zA-Z0-9._\-\u4e00-\u9fa5]/g, '_') // 只保留安全字符
+    .replace(/\.{2,}/g, '.') // 合并多个点
+    .substring(0, 255); // 限制长度
 }

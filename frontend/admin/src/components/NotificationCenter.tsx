@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Badge, Dropdown, List, Button, Empty, Spin } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
-import { getNotifications, getUnreadCount, markAsRead, notificationWS, type Notification } from '@/services/notification';
+import {
+  getNotifications,
+  getUnreadCount,
+  markAsRead,
+  notificationWS,
+  type Notification,
+} from '@/services/notification';
 import { useNavigate } from 'react-router-dom';
 
 const NotificationCenter: React.FC = () => {
@@ -33,9 +39,7 @@ const NotificationCenter: React.FC = () => {
   const handleMarkAsRead = async (id: string) => {
     try {
       await markAsRead(id);
-      setNotifications(notifications.map(n =>
-        n.id === id ? { ...n, isRead: true } : n
-      ));
+      setNotifications(notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
       setUnreadCount(Math.max(0, unreadCount - 1));
     } catch (error) {
       console.error('Failed to mark as read:', error);
@@ -62,8 +66,8 @@ const NotificationCenter: React.FC = () => {
 
     // 监听新通知
     const handleNewNotification = (notification: Notification) => {
-      setNotifications(prev => [notification, ...prev.slice(0, 9)]);
-      setUnreadCount(prev => prev + 1);
+      setNotifications((prev) => [notification, ...prev.slice(0, 9)]);
+      setUnreadCount((prev) => prev + 1);
 
       // 可以在这里显示浏览器通知
       if (Notification.permission === 'granted') {
@@ -87,8 +91,25 @@ const NotificationCenter: React.FC = () => {
   }, [userId]);
 
   const dropdownMenu = (
-    <div style={{ width: 360, maxHeight: 480, overflow: 'auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div
+      style={{
+        width: 360,
+        maxHeight: 480,
+        overflow: 'auto',
+        background: '#fff',
+        borderRadius: 8,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      }}
+    >
+      <div
+        style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid #f0f0f0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <span style={{ fontWeight: 600, fontSize: 16 }}>通知中心</span>
         {unreadCount > 0 && (
           <span style={{ color: '#999', fontSize: 14 }}>{unreadCount} 条未读</span>
@@ -116,7 +137,13 @@ const NotificationCenter: React.FC = () => {
             >
               <List.Item.Meta
                 title={
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
                     <span style={{ fontWeight: item.isRead ? 'normal' : 600 }}>{item.title}</span>
                     {!item.isRead && <Badge status="processing" />}
                   </div>
@@ -136,7 +163,13 @@ const NotificationCenter: React.FC = () => {
       )}
 
       <div style={{ padding: '8px 16px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
-        <Button type="link" onClick={() => { navigate('/notifications'); setDropdownOpen(false); }}>
+        <Button
+          type="link"
+          onClick={() => {
+            navigate('/notifications');
+            setDropdownOpen(false);
+          }}
+        >
           查看全部通知
         </Button>
       </div>

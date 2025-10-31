@@ -89,9 +89,9 @@ export class ServiceAuthGuard implements CanActivate {
  * Service Token Payload Interface
  */
 export interface ServiceTokenPayload {
-  service: string;        // 服务名称 (e.g., 'device-service')
-  iss: string;           // 发行者 (issuer)
-  aud: string;           // 受众 (audience)
-  iat: number;           // 签发时间 (issued at)
-  exp: number;           // 过期时间 (expiration)
+  service: string; // 服务名称 (e.g., 'device-service')
+  iss: string; // 发行者 (issuer)
+  aud: string; // 受众 (audience)
+  iat: number; // 签发时间 (issued at)
+  exp: number; // 过期时间 (expiration)
 }

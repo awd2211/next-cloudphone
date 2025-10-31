@@ -40,7 +40,7 @@ export class CurrencyService {
 
   constructor(
     private configService: ConfigService,
-    private readonly httpClient: HttpClientService,
+    private readonly httpClient: HttpClientService
   ) {}
 
   /**
@@ -96,7 +96,7 @@ export class CurrencyService {
           timeout: 10000,
           retries: 3,
           circuitBreaker: true,
-        },
+        }
       );
 
       if (response && response.rates) {
@@ -128,11 +128,7 @@ export class CurrencyService {
   /**
    * 货币转换
    */
-  async convert(
-    amount: number,
-    fromCurrency: string,
-    toCurrency: string,
-  ): Promise<number> {
+  async convert(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
     if (fromCurrency === toCurrency) {
       return amount;
     }

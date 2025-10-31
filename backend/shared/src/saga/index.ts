@@ -18,10 +18,6 @@ export { SagaOrchestratorService } from './saga-orchestrator.service';
 export { SagaModule } from './saga.module';
 
 // Export types and enums
-export type {
-  SagaState,
-  SagaStep,
-  SagaDefinition,
-} from './saga-orchestrator.service';
+export type { SagaState, SagaStep, SagaDefinition } from './saga-orchestrator.service';
 
 export { SagaStatus, SagaType } from './saga-orchestrator.service';

@@ -26,7 +26,7 @@ export class EventReplayService {
   constructor(
     private readonly eventStore: EventStoreService,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>
   ) {}
 
   /**
@@ -47,15 +47,10 @@ export class EventReplayService {
    * @param useSnapshot 是否使用快照（默认 true）
    * @returns 重建的用户对象
    */
-  async replayUserEvents(
-    userId: string,
-    useSnapshot: boolean = true,
-  ): Promise<Partial<User>> {
+  async replayUserEvents(userId: string, useSnapshot: boolean = true): Promise<Partial<User>> {
     const startTime = Date.now();
 
-    this.logger.log(
-      `Starting event replay for user: ${userId} (useSnapshot: ${useSnapshot})`,
-    );
+    this.logger.log(`Starting event replay for user: ${userId} (useSnapshot: ${useSnapshot})`);
 
     let userState: Partial<User> = { id: userId };
     let startVersion = 0;
@@ -71,14 +66,12 @@ export class EventReplayService {
           startVersion = snapshot.version;
           snapshotUsed = true;
 
-          this.logger.debug(
-            `Using snapshot at version ${startVersion} for user ${userId}`,
-          );
+          this.logger.debug(`Using snapshot at version ${startVersion} for user ${userId}`);
         }
       } catch (error) {
         this.logger.warn(
           `Failed to load snapshot for ${userId}, falling back to full replay`,
-          error.message,
+          error.message
         );
         // 继续使用完整重放
       }
@@ -94,7 +87,7 @@ export class EventReplayService {
     }
 
     this.logger.log(
-      `Replaying ${events.length} events for user: ${userId} (snapshot: ${snapshotUsed ? 'yes' : 'no'})`,
+      `Replaying ${events.length} events for user: ${userId} (snapshot: ${snapshotUsed ? 'yes' : 'no'})`
     );
 
     // 3. 按顺序应用事件
@@ -105,7 +98,7 @@ export class EventReplayService {
     const duration = Date.now() - startTime;
 
     this.logger.log(
-      `Event replay completed for user: ${userId} in ${duration}ms (${events.length} events, snapshot: ${snapshotUsed})`,
+      `Event replay completed for user: ${userId} in ${duration}ms (${events.length} events, snapshot: ${snapshotUsed})`
     );
 
     return userState;
@@ -117,20 +110,15 @@ export class EventReplayService {
    * @param targetVersion 目标版本号
    * @returns 该版本的用户状态
    */
-  async replayToVersion(
-    userId: string,
-    targetVersion: number,
-  ): Promise<Partial<User>> {
-    this.logger.log(
-      `Replaying user ${userId} events to version ${targetVersion}`,
-    );
+  async replayToVersion(userId: string, targetVersion: number): Promise<Partial<User>> {
+    this.logger.log(`Replaying user ${userId} events to version ${targetVersion}`);
 
     const events = await this.eventStore.getEventsForAggregate(userId);
     const eventsToApply = events.filter((e) => e.version <= targetVersion);
 
     if (eventsToApply.length === 0) {
       throw new NotFoundException(
-        `No events found for user ${userId} up to version ${targetVersion}`,
+        `No events found for user ${userId} up to version ${targetVersion}`
       );
     }
 
@@ -140,9 +128,7 @@ export class EventReplayService {
       userState = this.applyEvent(userState, event);
     }
 
-    this.logger.log(
-      `Replayed ${eventsToApply.length} events to version ${targetVersion}`,
-    );
+    this.logger.log(`Replayed ${eventsToApply.length} events to version ${targetVersion}`);
     return userState;
   }
 
@@ -152,22 +138,15 @@ export class EventReplayService {
    * @param targetDate 目标时间点
    * @returns 该时间点的用户状态
    */
-  async replayToTimestamp(
-    userId: string,
-    targetDate: Date,
-  ): Promise<Partial<User>> {
-    this.logger.log(
-      `Time travel: Replaying user ${userId} to ${targetDate.toISOString()}`,
-    );
+  async replayToTimestamp(userId: string, targetDate: Date): Promise<Partial<User>> {
+    this.logger.log(`Time travel: Replaying user ${userId} to ${targetDate.toISOString()}`);
 
     const events = await this.eventStore.getEventsForAggregate(userId);
-    const eventsToApply = events.filter(
-      (e) => e.createdAt.getTime() <= targetDate.getTime(),
-    );
+    const eventsToApply = events.filter((e) => e.createdAt.getTime() <= targetDate.getTime());
 
     if (eventsToApply.length === 0) {
       throw new NotFoundException(
-        `No events found for user ${userId} before ${targetDate.toISOString()}`,
+        `No events found for user ${userId} before ${targetDate.toISOString()}`
       );
     }
 
@@ -177,9 +156,7 @@ export class EventReplayService {
       userState = this.applyEvent(userState, event);
     }
 
-    this.logger.log(
-      `Time travel completed: Applied ${eventsToApply.length} events`,
-    );
+    this.logger.log(`Time travel completed: Applied ${eventsToApply.length} events`);
     return userState;
   }
 
@@ -252,10 +229,7 @@ export class EventReplayService {
     }
   }
 
-  private applyUserCreatedEvent(
-    state: Partial<User>,
-    event: UserEvent,
-  ): Partial<User> {
+  private applyUserCreatedEvent(state: Partial<User>, event: UserEvent): Partial<User> {
     return {
       ...state,
       username: event.eventData.username,
@@ -267,10 +241,7 @@ export class EventReplayService {
     };
   }
 
-  private applyUserUpdatedEvent(
-    state: Partial<User>,
-    event: UserEvent,
-  ): Partial<User> {
+  private applyUserUpdatedEvent(state: Partial<User>, event: UserEvent): Partial<User> {
     return {
       ...state,
       ...event.eventData,
@@ -278,10 +249,7 @@ export class EventReplayService {
     };
   }
 
-  private applyPasswordChangedEvent(
-    state: Partial<User>,
-    event: UserEvent,
-  ): Partial<User> {
+  private applyPasswordChangedEvent(state: Partial<User>, event: UserEvent): Partial<User> {
     return {
       ...state,
       // 密码不存储在事件中，只记录修改操作
@@ -289,10 +257,7 @@ export class EventReplayService {
     };
   }
 
-  private applyUserDeletedEvent(
-    state: Partial<User>,
-    event: UserEvent,
-  ): Partial<User> {
+  private applyUserDeletedEvent(state: Partial<User>, event: UserEvent): Partial<User> {
     return {
       ...state,
       status: UserStatus.DELETED,
@@ -300,10 +265,7 @@ export class EventReplayService {
     };
   }
 
-  private applyLoginInfoUpdatedEvent(
-    state: Partial<User>,
-    event: UserEvent,
-  ): Partial<User> {
+  private applyLoginInfoUpdatedEvent(state: Partial<User>, event: UserEvent): Partial<User> {
     return {
       ...state,
       lastLoginAt: event.eventData.loginAt,
@@ -312,10 +274,7 @@ export class EventReplayService {
     };
   }
 
-  private applyAccountLockedEvent(
-    state: Partial<User>,
-    event: UserEvent,
-  ): Partial<User> {
+  private applyAccountLockedEvent(state: Partial<User>, event: UserEvent): Partial<User> {
     return {
       ...state,
       loginAttempts: event.eventData.loginAttempts,
@@ -323,10 +282,7 @@ export class EventReplayService {
     };
   }
 
-  private applyAccountUnlockedEvent(
-    state: Partial<User>,
-    event: UserEvent,
-  ): Partial<User> {
+  private applyAccountUnlockedEvent(state: Partial<User>, event: UserEvent): Partial<User> {
     return {
       ...state,
       loginAttempts: 0,
@@ -334,10 +290,7 @@ export class EventReplayService {
     };
   }
 
-  private applyRolesAssignedEvent(
-    state: Partial<User>,
-    event: UserEvent,
-  ): Partial<User> {
+  private applyRolesAssignedEvent(state: Partial<User>, event: UserEvent): Partial<User> {
     return {
       ...state,
       // roleIds 会在查询时从关系表获取
@@ -359,9 +312,7 @@ export class EventReplayService {
     // 获取所有唯一的 aggregateId
     const aggregateIds = await this.eventStore
       .getEventsForAggregate('')
-      .then((events) =>
-        [...new Set(events.map((e) => e.aggregateId))],
-      );
+      .then((events) => [...new Set(events.map((e) => e.aggregateId))]);
 
     let success = 0;
     let failed = 0;
@@ -380,9 +331,7 @@ export class EventReplayService {
       }
     }
 
-    this.logger.warn(
-      `Read model rebuild completed: ${success} success, ${failed} failed`,
-    );
+    this.logger.warn(`Read model rebuild completed: ${success} success, ${failed} failed`);
 
     return {
       total: aggregateIds.length,

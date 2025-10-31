@@ -52,13 +52,7 @@ describe('EventStoreService', () => {
   describe('saveEvent', () => {
     it('should save event successfully when no version conflict', async () => {
       const userId = 'test-user-id';
-      const event = new UserCreatedEvent(
-        userId,
-        1,
-        'testuser',
-        'test@example.com',
-        'Test User',
-      );
+      const event = new UserCreatedEvent(userId, 1, 'testuser', 'test@example.com', 'Test User');
 
       const metadata = { userId: 'admin', ipAddress: '127.0.0.1' };
 
@@ -97,13 +91,7 @@ describe('EventStoreService', () => {
 
     it('should throw ConflictException when version conflict exists', async () => {
       const userId = 'test-user-id';
-      const event = new UserCreatedEvent(
-        userId,
-        1,
-        'testuser',
-        'test@example.com',
-        'Test User',
-      );
+      const event = new UserCreatedEvent(userId, 1, 'testuser', 'test@example.com', 'Test User');
 
       // Simulate existing event with same version
       repository.findOne.mockResolvedValue({
@@ -176,10 +164,7 @@ describe('EventStoreService', () => {
       const version = await service.getCurrentVersion(userId);
 
       expect(version).toBe(5);
-      expect(mockQueryBuilder.select).toHaveBeenCalledWith(
-        'MAX(event.version)',
-        'maxVersion',
-      );
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('MAX(event.version)', 'maxVersion');
     });
 
     it('should return 0 for new aggregate with no events', async () => {
@@ -223,10 +208,9 @@ describe('EventStoreService', () => {
 
       expect(result).toEqual(mockEvents);
       // Note: The implementation uses '>' not '>=' to get events AFTER fromVersion
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'event.version > :fromVersion',
-        { fromVersion },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('event.version > :fromVersion', {
+        fromVersion,
+      });
     });
   });
 
@@ -245,10 +229,9 @@ describe('EventStoreService', () => {
       const count = await service.countEvents(userId);
 
       expect(count).toBe(3);
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
-        'event.aggregateId = :aggregateId',
-        { aggregateId: userId },
-      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('event.aggregateId = :aggregateId', {
+        aggregateId: userId,
+      });
     });
 
     it('should count events by type', async () => {
@@ -265,14 +248,12 @@ describe('EventStoreService', () => {
       const count = await service.countEvents(userId, 'UserUpdated');
 
       expect(count).toBe(2);
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
-        'event.aggregateId = :aggregateId',
-        { aggregateId: userId },
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'event.eventType = :eventType',
-        { eventType: 'UserUpdated' },
-      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('event.aggregateId = :aggregateId', {
+        aggregateId: userId,
+      });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('event.eventType = :eventType', {
+        eventType: 'UserUpdated',
+      });
     });
   });
 

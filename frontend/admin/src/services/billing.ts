@@ -112,24 +112,34 @@ export const getMeteringOverview = () => {
 };
 
 // 用户计量列表
-export const getUserMeterings = (params?: PaginationParams & { startDate?: string; endDate?: string }) => {
+export const getUserMeterings = (
+  params?: PaginationParams & { startDate?: string; endDate?: string }
+) => {
   return request.get('/metering/users', { params });
 };
 
 // 设备计量列表
-export const getDeviceMeterings = (params?: PaginationParams & { startDate?: string; endDate?: string }) => {
+export const getDeviceMeterings = (
+  params?: PaginationParams & { startDate?: string; endDate?: string }
+) => {
   return request.get('/metering/devices', { params });
 };
 
 // 计量趋势数据
-export const getMeteringTrend = (type: 'daily' | 'weekly' | 'monthly', startDate?: string, endDate?: string) => {
+export const getMeteringTrend = (
+  type: 'daily' | 'weekly' | 'monthly',
+  startDate?: string,
+  endDate?: string
+) => {
   return request.get('/metering/trend', {
     params: { type, startDate, endDate },
   });
 };
 
 // 资源使用分析
-export const getResourceUsageAnalysis = (resourceType?: 'cpu' | 'memory' | 'storage' | 'bandwidth') => {
+export const getResourceUsageAnalysis = (
+  resourceType?: 'cpu' | 'memory' | 'storage' | 'bandwidth'
+) => {
   return request.get('/metering/resource-analysis', {
     params: { resourceType },
   });
@@ -170,7 +180,12 @@ export const getUsageTrend = (startDate: string, endDate: string) => {
 };
 
 // 导出用户账单
-export const exportUserBill = (userId: string, startDate: string, endDate: string, format: 'excel' | 'csv' = 'excel') => {
+export const exportUserBill = (
+  userId: string,
+  startDate: string,
+  endDate: string,
+  format: 'excel' | 'csv' = 'excel'
+) => {
   return request.get(`/reports/bills/${userId}/export`, {
     params: { startDate, endDate, format },
     responseType: 'blob',
@@ -178,7 +193,11 @@ export const exportUserBill = (userId: string, startDate: string, endDate: strin
 };
 
 // 导出收入报表
-export const exportRevenueReport = (startDate: string, endDate: string, format: 'excel' | 'csv' = 'excel') => {
+export const exportRevenueReport = (
+  startDate: string,
+  endDate: string,
+  format: 'excel' | 'csv' = 'excel'
+) => {
   return request.get('/reports/revenue/export', {
     params: { startDate, endDate, format },
     responseType: 'blob',

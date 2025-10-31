@@ -3,7 +3,11 @@ import { INestApplication, NotFoundException, ConflictException } from '@nestjs/
 import * as request from 'supertest';
 import { RolesController } from './roles.controller';
 import { RolesService } from './roles.service';
-import { createTestApp, generateTestJwt, assertHttpResponse } from '@cloudphone/shared/testing/test-helpers';
+import {
+  createTestApp,
+  generateTestJwt,
+  assertHttpResponse,
+} from '@cloudphone/shared/testing/test-helpers';
 import { createMockRole, createMockPermission } from '@cloudphone/shared/testing/mock-factories';
 
 describe('RolesController', () => {
@@ -21,7 +25,9 @@ describe('RolesController', () => {
   };
 
   // Helper to generate auth token with specific permissions
-  const createAuthToken = (permissions: string[] = ['role.read', 'role.create', 'role.update', 'role.delete']) => {
+  const createAuthToken = (
+    permissions: string[] = ['role.read', 'role.create', 'role.update', 'role.delete']
+  ) => {
     return generateTestJwt({
       sub: 'test-user-id',
       username: 'testadmin',
@@ -33,9 +39,7 @@ describe('RolesController', () => {
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       controllers: [RolesController],
-      providers: [
-        { provide: RolesService, useValue: mockRolesService },
-      ],
+      providers: [{ provide: RolesService, useValue: mockRolesService }],
     }).compile();
 
     app = await createTestApp(moduleRef);
@@ -101,10 +105,7 @@ describe('RolesController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .post('/roles')
-        .send(createRoleDto)
-        .expect(401);
+      await request(app.getHttpServer()).post('/roles').send(createRoleDto).expect(401);
     });
 
     it('should return 400 when validation fails', async () => {
@@ -125,9 +126,7 @@ describe('RolesController', () => {
 
     it('should return 409 when role name already exists', async () => {
       // Arrange
-      mockRolesService.create.mockRejectedValue(
-        new ConflictException('Role name already exists')
-      );
+      mockRolesService.create.mockRejectedValue(new ConflictException('Role name already exists'));
       const token = createAuthToken(['role.create']);
 
       // Act
@@ -201,9 +200,7 @@ describe('RolesController', () => {
       mockRolesService.findAll.mockResolvedValue(mockResult);
 
       // Act
-      const response = await request(app.getHttpServer())
-        .get('/roles?page=1&limit=10')
-        .expect(200);
+      const response = await request(app.getHttpServer()).get('/roles?page=1&limit=10').expect(200);
 
       // Assert
       assertHttpResponse(response, 200, {
@@ -228,9 +225,7 @@ describe('RolesController', () => {
       });
 
       // Act
-      await request(app.getHttpServer())
-        .get('/roles')
-        .expect(200);
+      await request(app.getHttpServer()).get('/roles').expect(200);
 
       // Assert
       expect(mockRolesService.findAll).toHaveBeenCalledWith(1, 10, undefined);
@@ -246,9 +241,7 @@ describe('RolesController', () => {
       });
 
       // Act
-      await request(app.getHttpServer())
-        .get('/roles?tenantId=tenant-123')
-        .expect(200);
+      await request(app.getHttpServer()).get('/roles?tenantId=tenant-123').expect(200);
 
       // Assert
       expect(mockRolesService.findAll).toHaveBeenCalledWith(1, 10, 'tenant-123');
@@ -264,9 +257,7 @@ describe('RolesController', () => {
       });
 
       // Act - No Authorization header
-      await request(app.getHttpServer())
-        .get('/roles')
-        .expect(200);
+      await request(app.getHttpServer()).get('/roles').expect(200);
     });
 
     it('should handle large page numbers', async () => {
@@ -279,9 +270,7 @@ describe('RolesController', () => {
       });
 
       // Act
-      await request(app.getHttpServer())
-        .get('/roles?page=20&limit=10')
-        .expect(200);
+      await request(app.getHttpServer()).get('/roles?page=20&limit=10').expect(200);
     });
 
     it('should return empty array when no roles exist', async () => {
@@ -294,9 +283,7 @@ describe('RolesController', () => {
       });
 
       // Act
-      const response = await request(app.getHttpServer())
-        .get('/roles')
-        .expect(200);
+      const response = await request(app.getHttpServer()).get('/roles').expect(200);
 
       // Assert
       expect(response.body.data).toEqual([]);
@@ -362,9 +349,7 @@ describe('RolesController', () => {
 
     it('should return 404 when role not found', async () => {
       // Arrange
-      mockRolesService.findOne.mockRejectedValue(
-        new NotFoundException('Role not found')
-      );
+      mockRolesService.findOne.mockRejectedValue(new NotFoundException('Role not found'));
       const token = createAuthToken(['role.read']);
 
       // Act
@@ -387,9 +372,7 @@ describe('RolesController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/roles/role-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/roles/role-123').expect(401);
     });
   });
 
@@ -427,9 +410,7 @@ describe('RolesController', () => {
 
     it('should return 404 when role not found', async () => {
       // Arrange
-      mockRolesService.update.mockRejectedValue(
-        new NotFoundException('Role not found')
-      );
+      mockRolesService.update.mockRejectedValue(new NotFoundException('Role not found'));
       const token = createAuthToken(['role.update']);
 
       // Act
@@ -472,9 +453,7 @@ describe('RolesController', () => {
 
     it('should prevent updating system roles', async () => {
       // Arrange
-      mockRolesService.update.mockRejectedValue(
-        new Error('Cannot modify system role')
-      );
+      mockRolesService.update.mockRejectedValue(new Error('Cannot modify system role'));
       const token = createAuthToken(['role.update']);
 
       // Act
@@ -522,9 +501,7 @@ describe('RolesController', () => {
 
     it('should return 404 when role not found', async () => {
       // Arrange
-      mockRolesService.remove.mockRejectedValue(
-        new NotFoundException('Role not found')
-      );
+      mockRolesService.remove.mockRejectedValue(new NotFoundException('Role not found'));
       const token = createAuthToken(['role.delete']);
 
       // Act
@@ -547,16 +524,12 @@ describe('RolesController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .delete('/roles/role-123')
-        .expect(401);
+      await request(app.getHttpServer()).delete('/roles/role-123').expect(401);
     });
 
     it('should prevent deleting system roles', async () => {
       // Arrange
-      mockRolesService.remove.mockRejectedValue(
-        new Error('Cannot delete system role')
-      );
+      mockRolesService.remove.mockRejectedValue(new Error('Cannot delete system role'));
       const token = createAuthToken(['role.delete']);
 
       // Act
@@ -568,9 +541,7 @@ describe('RolesController', () => {
 
     it('should prevent deleting role with active users', async () => {
       // Arrange
-      mockRolesService.remove.mockRejectedValue(
-        new Error('Cannot delete role with active users')
-      );
+      mockRolesService.remove.mockRejectedValue(new Error('Cannot delete role with active users'));
       const token = createAuthToken(['role.delete']);
 
       // Act
@@ -586,9 +557,7 @@ describe('RolesController', () => {
 
     it('should add permissions to role successfully', async () => {
       // Arrange
-      const mockPermissions = permissionIds.map(id =>
-        createMockPermission({ id })
-      );
+      const mockPermissions = permissionIds.map((id) => createMockPermission({ id }));
       const mockRole = createMockRole({
         id: 'role-123',
         permissions: mockPermissions,
@@ -618,9 +587,7 @@ describe('RolesController', () => {
 
     it('should return 404 when role not found', async () => {
       // Arrange
-      mockRolesService.addPermissions.mockRejectedValue(
-        new NotFoundException('Role not found')
-      );
+      mockRolesService.addPermissions.mockRejectedValue(new NotFoundException('Role not found'));
       const token = createAuthToken(['role.update']);
 
       // Act
@@ -736,9 +703,7 @@ describe('RolesController', () => {
 
     it('should return 404 when role not found', async () => {
       // Arrange
-      mockRolesService.removePermissions.mockRejectedValue(
-        new NotFoundException('Role not found')
-      );
+      mockRolesService.removePermissions.mockRejectedValue(new NotFoundException('Role not found'));
       const token = createAuthToken(['role.update']);
 
       // Act

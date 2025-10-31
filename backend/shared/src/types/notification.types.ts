@@ -1,6 +1,6 @@
 /**
  * 通知相关枚举类型
- * 
+ *
  * 统一的通知类型、状态和渠道定义
  * 用于跨服务共享
  */
@@ -27,7 +27,7 @@ export enum NotificationStatus {
 
 /**
  * 通知类型枚举
- * 
+ *
  * 涵盖系统中所有可能的通知场景
  */
 export enum NotificationType {
@@ -89,7 +89,7 @@ export enum NotificationCategory {
  */
 export function getNotificationCategory(type: NotificationType): NotificationCategory {
   const typeStr = type.toString();
-  
+
   if (typeStr.startsWith('device.')) {
     return NotificationCategory.DEVICE;
   } else if (typeStr.startsWith('app.')) {

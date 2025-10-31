@@ -1,9 +1,9 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import Redis from "ioredis";
-import { ConfigService } from "@nestjs/config";
-import { Device, DeviceStatus } from "../entities/device.entity";
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import Redis from 'ioredis';
+import { ConfigService } from '@nestjs/config';
+import { Device, DeviceStatus } from '../entities/device.entity';
 
 /**
  * 设备统计缓存服务
@@ -18,17 +18,17 @@ export class DeviceStatsCacheService {
   constructor(
     @InjectRepository(Device)
     private deviceRepository: Repository<Device>,
-    private configService: ConfigService,
+    private configService: ConfigService
   ) {
     this.redis = new Redis({
-      host: this.configService.get("REDIS_HOST") || "localhost",
-      port: parseInt(this.configService.get("REDIS_PORT") || "6379"),
-      password: this.configService.get("REDIS_PASSWORD"),
+      host: this.configService.get('REDIS_HOST') || 'localhost',
+      port: parseInt(this.configService.get('REDIS_PORT') || '6379'),
+      password: this.configService.get('REDIS_PASSWORD'),
       db: 0, // 使用 DB 0
     });
 
-    this.redis.on("connect", () => {
-      this.logger.log("Redis connected for device stats cache");
+    this.redis.on('connect', () => {
+      this.logger.log('Redis connected for device stats cache');
     });
   }
 
@@ -36,7 +36,7 @@ export class DeviceStatsCacheService {
    * 获取在线设备数（带缓存）
    */
   async getOnlineDevicesCount(): Promise<number> {
-    const cacheKey = "stats:devices:online";
+    const cacheKey = 'stats:devices:online';
 
     // 从 Redis 获取
     const cached = await this.redis.get(cacheKey);
@@ -59,7 +59,7 @@ export class DeviceStatsCacheService {
    * 获取设备总数（带缓存）
    */
   async getTotalDevicesCount(): Promise<number> {
-    const cacheKey = "stats:devices:total";
+    const cacheKey = 'stats:devices:total';
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -99,7 +99,7 @@ export class DeviceStatsCacheService {
    * 清除设备统计缓存
    */
   async clearStats(): Promise<void> {
-    const keys = await this.redis.keys("stats:devices:*");
+    const keys = await this.redis.keys('stats:devices:*');
     if (keys.length > 0) {
       await this.redis.del(...keys);
       this.logger.log(`Cleared ${keys.length} device stats cache keys`);
@@ -109,12 +109,9 @@ export class DeviceStatsCacheService {
   /**
    * 设备状态变化时清除相关缓存
    */
-  async invalidateOnStatusChange(
-    deviceId: string,
-    userId: string,
-  ): Promise<void> {
+  async invalidateOnStatusChange(deviceId: string, userId: string): Promise<void> {
     await Promise.all([
-      this.redis.del("stats:devices:online"),
+      this.redis.del('stats:devices:online'),
       this.redis.del(`stats:devices:user:${userId}`),
     ]);
   }

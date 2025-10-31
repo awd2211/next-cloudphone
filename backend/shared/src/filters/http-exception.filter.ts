@@ -1,4 +1,11 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { BusinessException } from '../exceptions/business.exception';
 
@@ -29,7 +36,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       // 记录业务异常日志
       this.logger.warn(
-        `[${requestId}] ${request.method} ${request.url} - ${status}: ${businessResponse.message} (errorCode: ${businessResponse.errorCode})`,
+        `[${requestId}] ${request.method} ${request.url} - ${status}: ${businessResponse.message} (errorCode: ${businessResponse.errorCode})`
       );
 
       response.status(status).json(businessResponse);
@@ -37,9 +44,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     // 提取错误信息
-    const message = typeof exceptionResponse === 'string'
-      ? exceptionResponse
-      : (exceptionResponse as any).message || exception.message;
+    const message =
+      typeof exceptionResponse === 'string'
+        ? exceptionResponse
+        : (exceptionResponse as any).message || exception.message;
 
     // 构建统一的错误响应
     const errorResponse = {
@@ -57,15 +65,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (status >= 500) {
       this.logger.error(
         `[${requestId}] ${request.method} ${request.url} - ${status}`,
-        exception.stack,
+        exception.stack
       );
     } else if (status >= 400) {
       this.logger.warn(
-        `[${requestId}] ${request.method} ${request.url} - ${status}: ${JSON.stringify(message)}`,
+        `[${requestId}] ${request.method} ${request.url} - ${status}: ${JSON.stringify(message)}`
       );
     }
 
     response.status(status).json(errorResponse);
   }
 }
-

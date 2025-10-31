@@ -4,15 +4,11 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
-} from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, In, LessThan } from "typeorm";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import {
-  AllocationQueue,
-  QueueStatus,
-  UserPriority,
-} from "../entities/allocation-queue.entity";
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, In, LessThan } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { AllocationQueue, QueueStatus, UserPriority } from '../entities/allocation-queue.entity';
 import {
   JoinQueueDto,
   CancelQueueDto,
@@ -23,10 +19,10 @@ import {
   QueuePositionResponse,
   ProcessQueueBatchDto,
   ProcessQueueBatchResult,
-} from "./dto/queue.dto";
-import { AllocationService } from "./allocation.service";
-import { EventBusService } from "@cloudphone/shared";
-import { NotificationClientService, NotificationType } from "./notification-client.service";
+} from './dto/queue.dto';
+import { AllocationService } from './allocation.service';
+import { EventBusService } from '@cloudphone/shared';
+import { NotificationClientService, NotificationType } from './notification-client.service';
 
 @Injectable()
 export class QueueService {
@@ -40,7 +36,7 @@ export class QueueService {
     private readonly queueRepository: Repository<AllocationQueue>,
     private readonly allocationService: AllocationService,
     private readonly eventBus: EventBusService,
-    private readonly notificationClient: NotificationClientService,
+    private readonly notificationClient: NotificationClientService
   ) {}
 
   /**
@@ -50,7 +46,7 @@ export class QueueService {
     userId: string,
     tenantId: string | undefined,
     userTier: string,
-    dto: JoinQueueDto,
+    dto: JoinQueueDto
   ): Promise<QueueEntryResponse> {
     this.logger.log(`User ${userId} (${userTier}) joining queue`);
 
@@ -63,9 +59,7 @@ export class QueueService {
     });
 
     if (existingEntry) {
-      throw new ConflictException(
-        `User already has an active queue entry: ${existingEntry.id}`,
-      );
+      throw new ConflictException(`User already has an active queue entry: ${existingEntry.id}`);
     }
 
     // 2. 确定优先级
@@ -88,7 +82,7 @@ export class QueueService {
       retryCount: 0,
       metadata: {
         joinedAt: new Date().toISOString(),
-        source: "user_request",
+        source: 'user_request',
       },
     });
 
@@ -98,17 +92,13 @@ export class QueueService {
     await this.updateQueuePosition(queueEntry.id);
 
     // 5. 发布事件
-    await this.eventBus.publish(
-      "cloudphone.events",
-      "scheduler.queue.joined",
-      {
-        queueId: queueEntry.id,
-        userId: queueEntry.userId,
-        priority: queueEntry.priority,
-        userTier: queueEntry.userTier,
-        timestamp: new Date().toISOString(),
-      },
-    );
+    await this.eventBus.publish('cloudphone.events', 'scheduler.queue.joined', {
+      queueId: queueEntry.id,
+      userId: queueEntry.userId,
+      priority: queueEntry.priority,
+      userTier: queueEntry.userTier,
+      timestamp: new Date().toISOString(),
+    });
 
     // 6. 发送通知
     const updatedEntry = await this.queueRepository.findOne({
@@ -123,9 +113,9 @@ export class QueueService {
       {
         userId: queueEntry.userId,
         type: NotificationType.QUEUE_JOINED,
-        title: "🔄 已加入设备分配队列",
+        title: '🔄 已加入设备分配队列',
         message: `您当前排在第 ${updatedEntry.queuePosition} 位，预计等待 ${updatedEntry.estimatedWaitMinutes} 分钟`,
-        channels: ["websocket"],
+        channels: ['websocket'],
         data: {
           queueId: queueEntry.id,
           position: updatedEntry.queuePosition,
@@ -134,9 +124,7 @@ export class QueueService {
       },
     ]);
 
-    this.logger.log(
-      `User ${userId} joined queue at position ${updatedEntry.queuePosition}`,
-    );
+    this.logger.log(`User ${userId} joined queue at position ${updatedEntry.queuePosition}`);
 
     return this.mapToResponse(updatedEntry);
   }
@@ -144,10 +132,7 @@ export class QueueService {
   /**
    * 取消队列条目
    */
-  async cancelQueue(
-    queueId: string,
-    dto: CancelQueueDto,
-  ): Promise<QueueEntryResponse> {
+  async cancelQueue(queueId: string, dto: CancelQueueDto): Promise<QueueEntryResponse> {
     this.logger.log(`Cancelling queue entry ${queueId}`);
 
     // 1. 查找队列条目
@@ -161,15 +146,13 @@ export class QueueService {
 
     // 2. 检查状态
     if (![QueueStatus.WAITING, QueueStatus.PROCESSING].includes(queueEntry.status)) {
-      throw new BadRequestException(
-        `Cannot cancel queue entry in status: ${queueEntry.status}`,
-      );
+      throw new BadRequestException(`Cannot cancel queue entry in status: ${queueEntry.status}`);
     }
 
     // 3. 更新为已取消
     queueEntry.status = QueueStatus.CANCELLED;
     queueEntry.cancelledAt = new Date();
-    queueEntry.cancelReason = dto.reason || "User cancelled";
+    queueEntry.cancelReason = dto.reason || 'User cancelled';
 
     await this.queueRepository.save(queueEntry);
 
@@ -177,16 +160,12 @@ export class QueueService {
     await this.recalculateAllPositions();
 
     // 5. 发布事件
-    await this.eventBus.publish(
-      "cloudphone.events",
-      "scheduler.queue.cancelled",
-      {
-        queueId: queueEntry.id,
-        userId: queueEntry.userId,
-        cancelReason: queueEntry.cancelReason,
-        timestamp: new Date().toISOString(),
-      },
-    );
+    await this.eventBus.publish('cloudphone.events', 'scheduler.queue.cancelled', {
+      queueId: queueEntry.id,
+      userId: queueEntry.userId,
+      cancelReason: queueEntry.cancelReason,
+      timestamp: new Date().toISOString(),
+    });
 
     this.logger.log(`Queue entry ${queueId} cancelled`);
 
@@ -235,8 +214,8 @@ export class QueueService {
     const [entries, total] = await this.queueRepository.findAndCount({
       where: whereConditions,
       order: {
-        priority: "DESC",
-        createdAt: "ASC",
+        priority: 'DESC',
+        createdAt: 'ASC',
       },
       skip,
       take: pageSize,
@@ -264,9 +243,7 @@ export class QueueService {
     }
 
     if (queueEntry.status !== QueueStatus.WAITING) {
-      throw new BadRequestException(
-        `Queue entry is not in waiting status: ${queueEntry.status}`,
-      );
+      throw new BadRequestException(`Queue entry is not in waiting status: ${queueEntry.status}`);
     }
 
     // 计算前面等待的人数
@@ -275,21 +252,16 @@ export class QueueService {
         status: QueueStatus.WAITING,
       },
       order: {
-        priority: "DESC",
-        createdAt: "ASC",
+        priority: 'DESC',
+        createdAt: 'ASC',
       },
     });
 
     // 计算已等待时间
-    const waitedMinutes = Math.round(
-      (Date.now() - queueEntry.createdAt.getTime()) / 60000,
-    );
+    const waitedMinutes = Math.round((Date.now() - queueEntry.createdAt.getTime()) / 60000);
 
     // 计算剩余最大等待时间
-    const remainingMaxWaitMinutes = Math.max(
-      0,
-      queueEntry.maxWaitMinutes - waitedMinutes,
-    );
+    const remainingMaxWaitMinutes = Math.max(0, queueEntry.maxWaitMinutes - waitedMinutes);
 
     return {
       queueId: queueEntry.id,
@@ -305,19 +277,19 @@ export class QueueService {
    * 处理队列中的下一个条目
    */
   async processNextQueueEntry(): Promise<boolean> {
-    this.logger.debug("Processing next queue entry...");
+    this.logger.debug('Processing next queue entry...');
 
     // 1. 按优先级和时间顺序获取下一个等待的条目
     const queueEntry = await this.queueRepository.findOne({
       where: { status: QueueStatus.WAITING },
       order: {
-        priority: "DESC", // 优先级高的先处理
-        createdAt: "ASC", // 同优先级按先来后到
+        priority: 'DESC', // 优先级高的先处理
+        createdAt: 'ASC', // 同优先级按先来后到
       },
     });
 
     if (!queueEntry) {
-      this.logger.debug("No queue entries to process");
+      this.logger.debug('No queue entries to process');
       return false;
     }
 
@@ -350,29 +322,25 @@ export class QueueService {
       await this.queueRepository.save(queueEntry);
 
       // 5. 发布成功事件
-      await this.eventBus.publish(
-        "cloudphone.events",
-        "scheduler.queue.fulfilled",
-        {
-          queueId: queueEntry.id,
-          userId: queueEntry.userId,
-          deviceId: allocationResult.deviceId,
-          allocationId: allocationResult.allocationId,
-          waitedMinutes: Math.round(
-            (queueEntry.fulfilledAt.getTime() - queueEntry.createdAt.getTime()) / 60000,
-          ),
-          timestamp: new Date().toISOString(),
-        },
-      );
+      await this.eventBus.publish('cloudphone.events', 'scheduler.queue.fulfilled', {
+        queueId: queueEntry.id,
+        userId: queueEntry.userId,
+        deviceId: allocationResult.deviceId,
+        allocationId: allocationResult.allocationId,
+        waitedMinutes: Math.round(
+          (queueEntry.fulfilledAt.getTime() - queueEntry.createdAt.getTime()) / 60000
+        ),
+        timestamp: new Date().toISOString(),
+      });
 
       // 6. 发送成功通知
       await this.notificationClient.sendBatchNotifications([
         {
           userId: queueEntry.userId,
           type: NotificationType.QUEUE_FULFILLED,
-          title: "✅ 设备已分配",
+          title: '✅ 设备已分配',
           message: `排队成功！设备 ${allocationResult.deviceName} 已为您准备好`,
-          channels: ["websocket", "email"],
+          channels: ['websocket', 'email'],
           data: {
             queueId: queueEntry.id,
             deviceId: allocationResult.deviceId,
@@ -385,7 +353,7 @@ export class QueueService {
       await this.recalculateAllPositions();
 
       this.logger.log(
-        `Queue entry ${queueEntry.id} fulfilled with device ${allocationResult.deviceId}`,
+        `Queue entry ${queueEntry.id} fulfilled with device ${allocationResult.deviceId}`
       );
 
       return true;
@@ -408,9 +376,9 @@ export class QueueService {
           {
             userId: queueEntry.userId,
             type: NotificationType.QUEUE_EXPIRED,
-            title: "❌ 设备分配失败",
+            title: '❌ 设备分配失败',
             message: `很抱歉，多次尝试后仍无法为您分配设备。请稍后重试。`,
-            channels: ["websocket", "email"],
+            channels: ['websocket', 'email'],
             data: {
               queueId: queueEntry.id,
               reason: queueEntry.expiryReason,
@@ -419,7 +387,7 @@ export class QueueService {
         ]);
 
         this.logger.warn(
-          `Queue entry ${queueEntry.id} expired after ${queueEntry.retryCount} attempts`,
+          `Queue entry ${queueEntry.id} expired after ${queueEntry.retryCount} attempts`
         );
       } else {
         // 重新放回等待队列
@@ -427,7 +395,7 @@ export class QueueService {
         await this.queueRepository.save(queueEntry);
 
         this.logger.warn(
-          `Queue entry ${queueEntry.id} failed (attempt ${queueEntry.retryCount}), will retry: ${error.message}`,
+          `Queue entry ${queueEntry.id} failed (attempt ${queueEntry.retryCount}), will retry: ${error.message}`
         );
       }
 
@@ -438,9 +406,7 @@ export class QueueService {
   /**
    * 批量处理队列条目
    */
-  async processQueueBatch(
-    dto: ProcessQueueBatchDto,
-  ): Promise<ProcessQueueBatchResult> {
+  async processQueueBatch(dto: ProcessQueueBatchDto): Promise<ProcessQueueBatchResult> {
     const startTime = Date.now();
     const maxCount = dto.maxCount || 10;
     const continueOnError = dto.continueOnError ?? true;
@@ -476,7 +442,7 @@ export class QueueService {
           // 记录成功（从数据库获取详情）
           const queueEntry = await this.queueRepository.findOne({
             where: { status: QueueStatus.FULFILLED },
-            order: { fulfilledAt: "DESC" },
+            order: { fulfilledAt: 'DESC' },
           });
 
           if (queueEntry) {
@@ -492,8 +458,8 @@ export class QueueService {
         processedCount++;
       } catch (error) {
         failures.push({
-          queueId: "unknown",
-          userId: "unknown",
+          queueId: 'unknown',
+          userId: 'unknown',
           reason: error.message,
         });
 
@@ -506,7 +472,7 @@ export class QueueService {
     const executionTimeMs = Date.now() - startTime;
 
     this.logger.log(
-      `Batch processing complete: ${successes.length} succeeded, ${failures.length} failed in ${executionTimeMs}ms`,
+      `Batch processing complete: ${successes.length} succeeded, ${failures.length} failed in ${executionTimeMs}ms`
     );
 
     return {
@@ -524,7 +490,7 @@ export class QueueService {
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async autoProcessQueue(): Promise<void> {
-    this.logger.debug("Auto-processing queue...");
+    this.logger.debug('Auto-processing queue...');
 
     try {
       // 检查是否有等待的条目
@@ -533,7 +499,7 @@ export class QueueService {
       });
 
       if (waitingCount === 0) {
-        this.logger.debug("No waiting queue entries");
+        this.logger.debug('No waiting queue entries');
         return;
       }
 
@@ -541,7 +507,7 @@ export class QueueService {
       const availableDevices = await this.allocationService.getAvailableDevices();
 
       if (availableDevices.length === 0) {
-        this.logger.debug("No available devices for queue processing");
+        this.logger.debug('No available devices for queue processing');
         return;
       }
 
@@ -553,30 +519,25 @@ export class QueueService {
         continueOnError: true,
       });
     } catch (error) {
-      this.logger.error(
-        `Error in autoProcessQueue: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error in autoProcessQueue: ${error.message}`, error.stack);
     }
   }
 
   /**
    * Cron: 每5分钟标记过期的队列条目
    */
-  @Cron("*/5 * * * *")
+  @Cron('*/5 * * * *')
   async markExpiredQueueEntries(): Promise<void> {
-    this.logger.debug("Checking for expired queue entries...");
+    this.logger.debug('Checking for expired queue entries...');
 
     try {
       // 查找等待中且已超过最大等待时间的条目
       const now = new Date();
 
       const expiredEntries = await this.queueRepository
-        .createQueryBuilder("queue")
-        .where("queue.status = :status", { status: QueueStatus.WAITING })
-        .andWhere(
-          "EXTRACT(EPOCH FROM (NOW() - queue.created_at)) / 60 > queue.max_wait_minutes",
-        )
+        .createQueryBuilder('queue')
+        .where('queue.status = :status', { status: QueueStatus.WAITING })
+        .andWhere('EXTRACT(EPOCH FROM (NOW() - queue.created_at)) / 60 > queue.max_wait_minutes')
         .getMany();
 
       if (expiredEntries.length > 0) {
@@ -585,7 +546,7 @@ export class QueueService {
         for (const entry of expiredEntries) {
           entry.status = QueueStatus.EXPIRED;
           entry.expiredAt = now;
-          entry.expiryReason = "Maximum wait time exceeded";
+          entry.expiryReason = 'Maximum wait time exceeded';
 
           await this.queueRepository.save(entry);
 
@@ -594,9 +555,9 @@ export class QueueService {
             {
               userId: entry.userId,
               type: NotificationType.QUEUE_EXPIRED,
-              title: "⏰ 队列等待超时",
-              message: "很抱歉，等待时间已超过限制，请重新加入队列",
-              channels: ["websocket"],
+              title: '⏰ 队列等待超时',
+              message: '很抱歉，等待时间已超过限制，请重新加入队列',
+              channels: ['websocket'],
               data: {
                 queueId: entry.id,
               },
@@ -610,10 +571,7 @@ export class QueueService {
         this.logger.log(`Marked ${expiredEntries.length} queue entries as expired`);
       }
     } catch (error) {
-      this.logger.error(
-        `Error in markExpiredQueueEntries: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error in markExpiredQueueEntries: ${error.message}`, error.stack);
     }
   }
 
@@ -622,15 +580,12 @@ export class QueueService {
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async updateAllQueuePositions(): Promise<void> {
-    this.logger.debug("Updating queue positions...");
+    this.logger.debug('Updating queue positions...');
 
     try {
       await this.recalculateAllPositions();
     } catch (error) {
-      this.logger.error(
-        `Error in updateAllQueuePositions: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error in updateAllQueuePositions: ${error.message}`, error.stack);
     }
   }
 
@@ -661,7 +616,7 @@ export class QueueService {
     // 计算平均等待时间
     const fulfilledEntries = await this.queueRepository.find({
       where: { status: QueueStatus.FULFILLED },
-      select: ["createdAt", "fulfilledAt"],
+      select: ['createdAt', 'fulfilledAt'],
     });
 
     let averageWaitMinutes = 0;
@@ -675,7 +630,7 @@ export class QueueService {
     // 按优先级分组统计
     const byPriority: Record<string, { waiting: number; fulfilled: number }> = {};
 
-    const tiers = ["standard", "vip", "premium", "enterprise"];
+    const tiers = ['standard', 'vip', 'premium', 'enterprise'];
     for (const tier of tiers) {
       const waiting = await this.queueRepository.count({
         where: { userTier: tier, status: QueueStatus.WAITING },
@@ -706,8 +661,8 @@ export class QueueService {
     const waitingEntries = await this.queueRepository.find({
       where: { status: QueueStatus.WAITING },
       order: {
-        priority: "DESC",
-        createdAt: "ASC",
+        priority: 'DESC',
+        createdAt: 'ASC',
       },
     });
 
@@ -737,20 +692,19 @@ export class QueueService {
 
     // 计算位置：统计优先级更高或同优先级但创建时间更早的条目数
     const position = await this.queueRepository
-      .createQueryBuilder("queue")
-      .where("queue.status = :status", { status: QueueStatus.WAITING })
+      .createQueryBuilder('queue')
+      .where('queue.status = :status', { status: QueueStatus.WAITING })
       .andWhere(
-        "(queue.priority > :priority OR (queue.priority = :priority AND queue.created_at < :createdAt))",
+        '(queue.priority > :priority OR (queue.priority = :priority AND queue.created_at < :createdAt))',
         {
           priority: queueEntry.priority,
           createdAt: queueEntry.createdAt,
-        },
+        }
       )
       .getCount();
 
     queueEntry.queuePosition = position + 1;
-    queueEntry.estimatedWaitMinutes =
-      queueEntry.queuePosition * this.AVERAGE_DEVICE_USAGE_MINUTES;
+    queueEntry.estimatedWaitMinutes = queueEntry.queuePosition * this.AVERAGE_DEVICE_USAGE_MINUTES;
 
     await this.queueRepository.save(queueEntry);
   }

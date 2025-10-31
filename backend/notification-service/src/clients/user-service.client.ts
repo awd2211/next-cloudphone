@@ -62,7 +62,7 @@ export class UserServiceClient {
 
   constructor(
     private readonly httpClient: HttpClientService,
-    private readonly consulService: ConsulService,
+    private readonly consulService: ConsulService
   ) {}
 
   /**
@@ -101,7 +101,7 @@ export class UserServiceClient {
       const response = await this.httpClient.get<RolesResponse>(
         url,
         {},
-        { timeout: 5000, retries: 2 },
+        { timeout: 5000, retries: 2 }
       );
 
       return response;
@@ -127,9 +127,7 @@ export class UserServiceClient {
       }
 
       // 查找匹配的角色（不区分大小写）
-      const role = rolesResponse.data.find(
-        (r) => r.name.toLowerCase() === roleName.toLowerCase(),
-      );
+      const role = rolesResponse.data.find((r) => r.name.toLowerCase() === roleName.toLowerCase());
 
       if (role) {
         this.logger.debug(`Found role: ${role.name} (${role.id})`);
@@ -152,7 +150,11 @@ export class UserServiceClient {
    * @param limit 每页数量
    * @returns 用户列表
    */
-  async getUsersByRole(roleId: string, page: number = 1, limit: number = 100): Promise<UsersResponse> {
+  async getUsersByRole(
+    roleId: string,
+    page: number = 1,
+    limit: number = 100
+  ): Promise<UsersResponse> {
     try {
       const baseUrl = await this.getUserServiceUrl();
       const url = `${baseUrl}/users/filter?roleId=${roleId}&page=${page}&limit=${limit}&includeRoles=true`;
@@ -162,7 +164,7 @@ export class UserServiceClient {
       const response = await this.httpClient.get<UsersResponse>(
         url,
         {},
-        { timeout: 5000, retries: 2 },
+        { timeout: 5000, retries: 2 }
       );
 
       return response;
@@ -210,7 +212,9 @@ export class UserServiceClient {
           // 去重：避免同时有 admin 和 super_admin 角色的用户重复
           const uniqueIds = ids.filter((id) => !adminUserIds.includes(id));
           adminUserIds.push(...uniqueIds);
-          this.logger.debug(`Found ${ids.length} users with 'super_admin' role (${uniqueIds.length} unique)`);
+          this.logger.debug(
+            `Found ${ids.length} users with 'super_admin' role (${uniqueIds.length} unique)`
+          );
         }
       }
 
@@ -222,7 +226,7 @@ export class UserServiceClient {
         const superAdmins = await this.httpClient.get<UsersResponse>(
           url,
           {},
-          { timeout: 5000, retries: 1 },
+          { timeout: 5000, retries: 1 }
         );
 
         if (superAdmins.success && superAdmins.data) {
@@ -233,7 +237,9 @@ export class UserServiceClient {
           // 去重
           const uniqueIds = ids.filter((id) => !adminUserIds.includes(id));
           adminUserIds.push(...uniqueIds);
-          this.logger.debug(`Found ${ids.length} users with isSuperAdmin=true (${uniqueIds.length} unique)`);
+          this.logger.debug(
+            `Found ${ids.length} users with isSuperAdmin=true (${uniqueIds.length} unique)`
+          );
         }
       } catch (error) {
         // isSuperAdmin 过滤可能不支持，忽略错误
@@ -249,7 +255,10 @@ export class UserServiceClient {
       // Fallback: 从环境变量读取
       const fallbackIds = process.env.ADMIN_USER_IDS || '';
       if (fallbackIds) {
-        const ids = fallbackIds.split(',').map((id) => id.trim()).filter(Boolean);
+        const ids = fallbackIds
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean);
         this.logger.warn(`Using fallback admin IDs from environment: ${ids.length} IDs`);
         return ids;
       }
@@ -274,7 +283,7 @@ export class UserServiceClient {
       const response = await this.httpClient.get<{ success: boolean; data: User }>(
         url,
         {},
-        { timeout: 5000, retries: 2 },
+        { timeout: 5000, retries: 2 }
       );
 
       if (response.success && response.data) {

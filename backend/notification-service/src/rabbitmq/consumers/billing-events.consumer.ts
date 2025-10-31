@@ -25,7 +25,7 @@ export class BillingEventsConsumer {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
-    private readonly templatesService: TemplatesService,
+    private readonly templatesService: TemplatesService
   ) {}
 
   @RabbitSubscribe({
@@ -45,7 +45,7 @@ export class BillingEventsConsumer {
           balance: event.payload.currentBalance,
           daysRemaining: event.payload.daysRemaining || 3,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -60,7 +60,7 @@ export class BillingEventsConsumer {
       if (event.payload.email) {
         await this.emailService.sendLowBalanceAlert(
           event.payload.email,
-          event.payload.currentBalance,
+          event.payload.currentBalance
         );
       }
     } catch (error) {
@@ -88,7 +88,7 @@ export class BillingEventsConsumer {
           paymentMethod: event.payload.paymentMethod || '未知',
           paidAt: event.payload.paidAt || new Date(),
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -118,12 +118,14 @@ export class BillingEventsConsumer {
       const rendered = await this.templatesService.render(
         'billing.invoice_generated',
         {
-          month: event.payload.month || new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' }),
+          month:
+            event.payload.month ||
+            new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' }),
           totalAmount: event.payload.amount,
           invoiceId: event.payload.invoiceId,
           dueDate: event.payload.dueDate,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({

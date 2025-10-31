@@ -20,7 +20,7 @@ export class ApiKeyAuthGuard implements CanActivate {
 
   constructor(
     private readonly apiKeysService: ApiKeysService,
-    private reflector: Reflector,
+    private reflector: Reflector
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -46,19 +46,17 @@ export class ApiKeyAuthGuard implements CanActivate {
     }
 
     // 检查所需权限
-    const requiredScopes = this.reflector.getAllAndOverride<string[]>(
-      API_SCOPES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredScopes = this.reflector.getAllAndOverride<string[]>(API_SCOPES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (requiredScopes && requiredScopes.length > 0) {
-      const hasRequiredScopes = requiredScopes.every((scope) =>
-        apiKey.hasScopePattern(scope),
-      );
+      const hasRequiredScopes = requiredScopes.every((scope) => apiKey.hasScopePattern(scope));
 
       if (!hasRequiredScopes) {
         this.logger.warn(
-          `API 密钥权限不足 - 需要: ${requiredScopes.join(', ')}, 拥有: ${apiKey.scopes.join(', ')}`,
+          `API 密钥权限不足 - 需要: ${requiredScopes.join(', ')}, 拥有: ${apiKey.scopes.join(', ')}`
         );
         throw new UnauthorizedException('API 密钥权限不足');
       }
@@ -78,5 +76,4 @@ export class ApiKeyAuthGuard implements CanActivate {
 /**
  * API 权限装饰器
  */
-export const ApiScopes = (...scopes: string[]) =>
-  Reflect.metadata(API_SCOPES_KEY, scopes);
+export const ApiScopes = (...scopes: string[]) => Reflect.metadata(API_SCOPES_KEY, scopes);

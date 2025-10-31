@@ -119,7 +119,13 @@ export function DashboardSkeleton() {
  */
 export function CardListSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+        gap: '16px',
+      }}
+    >
       {Array.from({ length: count }).map((_, index) => (
         <Card key={index}>
           <Skeleton active avatar paragraph={{ rows: 3 }} />
@@ -139,7 +145,13 @@ export function ContentSkeleton({ rows = 5 }: { rows?: number }) {
 /**
  * 带标题的卡片骨架屏
  */
-export function CardSkeleton({ hasAvatar = false, rows = 4 }: { hasAvatar?: boolean; rows?: number }) {
+export function CardSkeleton({
+  hasAvatar = false,
+  rows = 4,
+}: {
+  hasAvatar?: boolean;
+  rows?: number;
+}) {
   return (
     <Card>
       <Skeleton active avatar={hasAvatar} paragraph={{ rows }} />

@@ -124,7 +124,7 @@ export const useDataScope = () => {
       if (params?.isActive !== undefined) queryParams.append('isActive', String(params.isActive));
 
       const response = await request.get(
-        `/data-scopes${queryParams.toString() ? `?${queryParams}` : ''}`,
+        `/data-scopes${queryParams.toString() ? `?${queryParams}` : ''}`
       );
 
       console.log('🔍 useDataScope fetchDataScopes 响应:', response);
@@ -346,14 +346,16 @@ export const useDataScope = () => {
         userId?: string;
         tenantId?: string;
         departmentId?: string;
-      },
+      }
     ): boolean => {
       if (!dataScopes || dataScopes.length === 0) {
         return false;
       }
 
       // 按优先级排序
-      const sortedScopes = [...dataScopes].sort((a, b) => (a.priority || 100) - (b.priority || 100));
+      const sortedScopes = [...dataScopes].sort(
+        (a, b) => (a.priority || 100) - (b.priority || 100)
+      );
 
       for (const scope of sortedScopes) {
         if (!scope.isActive) continue;
@@ -375,7 +377,10 @@ export const useDataScope = () => {
                 return true;
               }
               // 如果启用了子部门包含，需要额外检查（前端通常不做层级检查，交给后端）
-              if (scope.includeSubDepartments && resourceData.departmentId === context.departmentId) {
+              if (
+                scope.includeSubDepartments &&
+                resourceData.departmentId === context.departmentId
+              ) {
                 return true;
               }
             }
@@ -401,7 +406,7 @@ export const useDataScope = () => {
 
       return false;
     },
-    [],
+    []
   );
 
   /**

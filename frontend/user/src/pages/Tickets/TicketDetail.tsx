@@ -223,38 +223,26 @@ const TicketDetail: React.FC = () => {
       <Card style={{ marginBottom: '16px' }}>
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space>
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate('/tickets')}
-            >
+            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/tickets')}>
               返回列表
             </Button>
             <Divider type="vertical" />
-            <h2 style={{ margin: 0 }}>#{ticket.id.slice(0, 8)} - {ticket.title}</h2>
+            <h2 style={{ margin: 0 }}>
+              #{ticket.id.slice(0, 8)} - {ticket.title}
+            </h2>
           </Space>
 
           <Space>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={handleRefresh}
-            >
+            <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
               刷新
             </Button>
 
             {ticket.status === TicketStatus.CLOSED ? (
-              <Button
-                type="primary"
-                icon={<CheckCircleOutlined />}
-                onClick={handleReopenTicket}
-              >
+              <Button type="primary" icon={<CheckCircleOutlined />} onClick={handleReopenTicket}>
                 重新打开
               </Button>
             ) : (
-              <Button
-                danger
-                icon={<CloseCircleOutlined />}
-                onClick={handleCloseTicket}
-              >
+              <Button danger icon={<CloseCircleOutlined />} onClick={handleCloseTicket}>
                 关闭工单
               </Button>
             )}
@@ -284,15 +272,12 @@ const TicketDetail: React.FC = () => {
           </Descriptions.Item>
 
           <Descriptions.Item label="创建时间">
-            {dayjs(ticket.createdAt).format('YYYY-MM-DD HH:mm:ss')}
-            {' '}
-            ({dayjs(ticket.createdAt).fromNow()})
+            {dayjs(ticket.createdAt).format('YYYY-MM-DD HH:mm:ss')} (
+            {dayjs(ticket.createdAt).fromNow()})
           </Descriptions.Item>
 
           {ticket.assignedToName && (
-            <Descriptions.Item label="处理人">
-              {ticket.assignedToName}
-            </Descriptions.Item>
+            <Descriptions.Item label="处理人">{ticket.assignedToName}</Descriptions.Item>
           )}
 
           {ticket.tags && ticket.tags.length > 0 && (
@@ -354,19 +339,20 @@ const TicketDetail: React.FC = () => {
                     <strong>{reply.userName}</strong>
                     {reply.isStaff && <Tag color="blue">客服</Tag>}
                     <span style={{ color: '#999', fontSize: '12px' }}>
-                      {dayjs(reply.createdAt).format('YYYY-MM-DD HH:mm:ss')}
-                      {' '}
-                      ({dayjs(reply.createdAt).fromNow()})
+                      {dayjs(reply.createdAt).format('YYYY-MM-DD HH:mm:ss')} (
+                      {dayjs(reply.createdAt).fromNow()})
                     </span>
                   </Space>
 
-                  <div style={{
-                    marginTop: '8px',
-                    padding: '12px',
-                    background: reply.isStaff ? '#e6f7ff' : '#f6ffed',
-                    borderRadius: '4px',
-                    whiteSpace: 'pre-wrap',
-                  }}>
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      padding: '12px',
+                      background: reply.isStaff ? '#e6f7ff' : '#f6ffed',
+                      borderRadius: '4px',
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
                     {reply.content}
                   </div>
 
@@ -414,13 +400,9 @@ const TicketDetail: React.FC = () => {
                 customRequest={handleUpload}
                 onChange={({ fileList }) => setFileList(fileList)}
                 onRemove={(file) => {
-                  const att = uploadedAttachments.find(
-                    (a) => a.id === file.response?.id
-                  );
+                  const att = uploadedAttachments.find((a) => a.id === file.response?.id);
                   if (att) {
-                    setUploadedAttachments(
-                      uploadedAttachments.filter((a) => a.id !== att.id)
-                    );
+                    setUploadedAttachments(uploadedAttachments.filter((a) => a.id !== att.id));
                   }
                 }}
                 accept="image/*,.pdf,.doc,.docx,.txt,.log"

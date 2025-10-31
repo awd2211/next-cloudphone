@@ -13,11 +13,11 @@ import { Role } from './role.entity';
  * 数据权限范围类型
  */
 export enum DataScopeType {
-  ALL = 'all',           // 全部数据
-  TENANT = 'tenant',     // 本租户数据
+  ALL = 'all', // 全部数据
+  TENANT = 'tenant', // 本租户数据
   DEPARTMENT = 'department', // 本部门数据（含子部门）
-  SELF = 'self',         // 仅本人创建的数据
-  CUSTOM = 'custom',     // 自定义范围
+  SELF = 'self', // 仅本人创建的数据
+  CUSTOM = 'custom', // 自定义范围
 }
 
 @Entity('permissions')
@@ -72,10 +72,10 @@ export class Permission {
    */
   @Column({ type: 'jsonb', nullable: true })
   fieldRules: {
-    hidden?: string[];      // 隐藏字段
-    readOnly?: string[];    // 只读字段
-    visible?: string[];     // 可见字段（白名单）
-    editable?: string[];    // 可编辑字段
+    hidden?: string[]; // 隐藏字段
+    readOnly?: string[]; // 只读字段
+    visible?: string[]; // 可见字段（白名单）
+    editable?: string[]; // 可编辑字段
   };
 
   /**

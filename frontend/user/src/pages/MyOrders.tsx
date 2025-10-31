@@ -103,7 +103,7 @@ const MyOrders = () => {
       title: '支付时间',
       dataIndex: 'paidAt',
       key: 'paidAt',
-      render: (date?: string) => date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-',
+      render: (date?: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'),
     },
     {
       title: '操作',
@@ -113,12 +113,7 @@ const MyOrders = () => {
       render: (_, record) => (
         <>
           {record.status === 'pending' && (
-            <Button
-              type="link"
-              size="small"
-              danger
-              onClick={() => handleCancel(record.id)}
-            >
+            <Button type="link" size="small" danger onClick={() => handleCancel(record.id)}>
               取消订单
             </Button>
           )}

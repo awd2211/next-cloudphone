@@ -33,7 +33,7 @@ export interface PhysicalDeviceInfo {
   };
 
   /** 发现方式 */
-  discoveryMethod: "manual" | "network_scan" | "mdns";
+  discoveryMethod: 'manual' | 'network_scan' | 'mdns';
 
   /** 发现时间 */
   discoveredAt: Date;
@@ -47,19 +47,19 @@ export interface PhysicalDeviceInfo {
  */
 export enum DevicePoolStatus {
   /** 可用（空闲） */
-  AVAILABLE = "available",
+  AVAILABLE = 'available',
 
   /** 已分配（使用中） */
-  ALLOCATED = "allocated",
+  ALLOCATED = 'allocated',
 
   /** 离线 */
-  OFFLINE = "offline",
+  OFFLINE = 'offline',
 
   /** 维护中 */
-  MAINTENANCE = "maintenance",
+  MAINTENANCE = 'maintenance',
 
   /** 错误 */
-  ERROR = "error",
+  ERROR = 'error',
 }
 
 /**

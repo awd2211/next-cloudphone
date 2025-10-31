@@ -158,124 +158,136 @@ const TicketList: React.FC = () => {
     return <Badge status={config.status} text={config.text} />;
   }, []);
 
-  const handleViewDetail = useCallback((ticket: Ticket) => {
-    navigate(`/tickets/${ticket.id}`);
-  }, [navigate]);
+  const handleViewDetail = useCallback(
+    (ticket: Ticket) => {
+      navigate(`/tickets/${ticket.id}`);
+    },
+    [navigate]
+  );
 
   // 使用 useMemo 缓存 columns 配置
-  const columns: ColumnsType<Ticket> = useMemo(() => [
-    {
-      title: '工单编号',
-      dataIndex: 'ticketNo',
-      key: 'ticketNo',
-      width: 160,
-      render: (ticketNo: string, record: Ticket) => (
-        <Space>
-          <a onClick={() => handleViewDetail(record)}>{ticketNo}</a>
-          {record.unreadReplies > 0 && (
-            <Badge count={record.unreadReplies} size="small" />
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: '标题',
-      dataIndex: 'title',
-      key: 'title',
-      ellipsis: true,
-    },
-    {
-      title: '分类',
-      dataIndex: 'category',
-      key: 'category',
-      width: 110,
-      render: (category: Ticket['category']) => getCategoryTag(category),
-    },
-    {
-      title: '优先级',
-      dataIndex: 'priority',
-      key: 'priority',
-      width: 90,
-      render: (priority: Ticket['priority']) => getPriorityTag(priority),
-      sorter: (a, b) => {
-        const priorityOrder = { low: 1, medium: 2, high: 3, urgent: 4 };
-        return priorityOrder[a.priority] - priorityOrder[b.priority];
+  const columns: ColumnsType<Ticket> = useMemo(
+    () => [
+      {
+        title: '工单编号',
+        dataIndex: 'ticketNo',
+        key: 'ticketNo',
+        width: 160,
+        render: (ticketNo: string, record: Ticket) => (
+          <Space>
+            <a onClick={() => handleViewDetail(record)}>{ticketNo}</a>
+            {record.unreadReplies > 0 && <Badge count={record.unreadReplies} size="small" />}
+          </Space>
+        ),
       },
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 120,
-      render: (status: Ticket['status']) => getStatusBadge(status),
-    },
-    {
-      title: '提交人',
-      dataIndex: 'userName',
-      key: 'userName',
-      width: 100,
-    },
-    {
-      title: '负责人',
-      dataIndex: 'assignedToName',
-      key: 'assignedToName',
-      width: 100,
-      render: (name?: string) => name || <Tag>未分配</Tag>,
-    },
-    {
-      title: '回复数',
-      dataIndex: 'replyCount',
-      key: 'replyCount',
-      width: 80,
-      align: 'center',
-      render: (count: number) => (
-        <Badge count={count} showZero style={{ backgroundColor: '#52c41a' }} />
-      ),
-    },
-    {
-      title: '最后更新',
-      dataIndex: 'updatedAt',
-      key: 'updatedAt',
-      width: 160,
-      sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 120,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="查看详情">
-            <Button
-              type="link"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewDetail(record)}
-            />
-          </Tooltip>
-          <Tooltip title="快速回复">
-            <Button
-              type="link"
-              size="small"
-              icon={<MessageOutlined />}
-              onClick={() => handleViewDetail(record)}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ], [getCategoryTag, getPriorityTag, getStatusBadge, handleViewDetail]);
+      {
+        title: '标题',
+        dataIndex: 'title',
+        key: 'title',
+        ellipsis: true,
+      },
+      {
+        title: '分类',
+        dataIndex: 'category',
+        key: 'category',
+        width: 110,
+        render: (category: Ticket['category']) => getCategoryTag(category),
+      },
+      {
+        title: '优先级',
+        dataIndex: 'priority',
+        key: 'priority',
+        width: 90,
+        render: (priority: Ticket['priority']) => getPriorityTag(priority),
+        sorter: (a, b) => {
+          const priorityOrder = { low: 1, medium: 2, high: 3, urgent: 4 };
+          return priorityOrder[a.priority] - priorityOrder[b.priority];
+        },
+      },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        key: 'status',
+        width: 120,
+        render: (status: Ticket['status']) => getStatusBadge(status),
+      },
+      {
+        title: '提交人',
+        dataIndex: 'userName',
+        key: 'userName',
+        width: 100,
+      },
+      {
+        title: '负责人',
+        dataIndex: 'assignedToName',
+        key: 'assignedToName',
+        width: 100,
+        render: (name?: string) => name || <Tag>未分配</Tag>,
+      },
+      {
+        title: '回复数',
+        dataIndex: 'replyCount',
+        key: 'replyCount',
+        width: 80,
+        align: 'center',
+        render: (count: number) => (
+          <Badge count={count} showZero style={{ backgroundColor: '#52c41a' }} />
+        ),
+      },
+      {
+        title: '最后更新',
+        dataIndex: 'updatedAt',
+        key: 'updatedAt',
+        width: 160,
+        sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+      },
+      {
+        title: '操作',
+        key: 'actions',
+        width: 120,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space>
+            <Tooltip title="查看详情">
+              <Button
+                type="link"
+                size="small"
+                icon={<EyeOutlined />}
+                onClick={() => handleViewDetail(record)}
+              />
+            </Tooltip>
+            <Tooltip title="快速回复">
+              <Button
+                type="link"
+                size="small"
+                icon={<MessageOutlined />}
+                onClick={() => handleViewDetail(record)}
+              />
+            </Tooltip>
+          </Space>
+        ),
+      },
+    ],
+    [getCategoryTag, getPriorityTag, getStatusBadge, handleViewDetail]
+  );
 
   // 使用 useMemo 缓存过滤后的数据
-  const filteredTickets = useMemo(() => tickets.filter(ticket => {
-    if (categoryFilter !== 'all' && ticket.category !== categoryFilter) return false;
-    if (statusFilter !== 'all' && ticket.status !== statusFilter) return false;
-    if (priorityFilter !== 'all' && ticket.priority !== priorityFilter) return false;
-    if (searchText && !ticket.title.toLowerCase().includes(searchText.toLowerCase()) &&
-        !ticket.ticketNo.toLowerCase().includes(searchText.toLowerCase())) return false;
-    return true;
-  }), [tickets, categoryFilter, statusFilter, priorityFilter, searchText]);
+  const filteredTickets = useMemo(
+    () =>
+      tickets.filter((ticket) => {
+        if (categoryFilter !== 'all' && ticket.category !== categoryFilter) return false;
+        if (statusFilter !== 'all' && ticket.status !== statusFilter) return false;
+        if (priorityFilter !== 'all' && ticket.priority !== priorityFilter) return false;
+        if (
+          searchText &&
+          !ticket.title.toLowerCase().includes(searchText.toLowerCase()) &&
+          !ticket.ticketNo.toLowerCase().includes(searchText.toLowerCase())
+        )
+          return false;
+        return true;
+      }),
+    [tickets, categoryFilter, statusFilter, priorityFilter, searchText]
+  );
 
   return (
     <Card
@@ -292,7 +304,7 @@ const TicketList: React.FC = () => {
           prefix={<SearchOutlined />}
           style={{ width: 250 }}
           value={searchText}
-          onChange={e => setSearchText(e.target.value)}
+          onChange={(e) => setSearchText(e.target.value)}
         />
         <Select
           style={{ width: 130 }}

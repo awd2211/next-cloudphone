@@ -18,23 +18,23 @@ export class RateLimitMiddleware implements NestMiddleware {
   // 不同端点的限流配置
   private readonly endpointLimits: Map<string, { limit: number; window: number }> = new Map([
     // 认证端点 - 严格限流
-    ['/auth/login', { limit: 5, window: 60 }],           // 5次/分钟
-    ['/auth/register', { limit: 3, window: 60 }],        // 3次/分钟
+    ['/auth/login', { limit: 5, window: 60 }], // 5次/分钟
+    ['/auth/register', { limit: 3, window: 60 }], // 3次/分钟
     ['/auth/forgot-password', { limit: 3, window: 300 }], // 3次/5分钟
 
     // 设备操作 - 中等限流
-    ['/devices', { limit: 100, window: 60 }],            // 100次/分钟
-    ['/devices/:id', { limit: 200, window: 60 }],        // 200次/分钟
+    ['/devices', { limit: 100, window: 60 }], // 100次/分钟
+    ['/devices/:id', { limit: 200, window: 60 }], // 200次/分钟
 
     // ADB 操作 - 宽松限流
-    ['/devices/:id/shell', { limit: 50, window: 60 }],   // 50次/分钟
+    ['/devices/:id/shell', { limit: 50, window: 60 }], // 50次/分钟
     ['/devices/:id/screenshot', { limit: 20, window: 60 }], // 20次/分钟
 
     // 文件上传 - 严格限流
-    ['/apps/upload', { limit: 10, window: 60 }],         // 10次/分钟
+    ['/apps/upload', { limit: 10, window: 60 }], // 10次/分钟
 
     // 支付操作 - 非常严格
-    ['/billing/pay', { limit: 5, window: 300 }],         // 5次/5分钟
+    ['/billing/pay', { limit: 5, window: 300 }], // 5次/5分钟
   ]);
 
   constructor(private readonly configService: ConfigService) {
@@ -95,7 +95,7 @@ export class RateLimitMiddleware implements NestMiddleware {
               error: 'Too Many Requests',
               retryAfter,
             },
-            HttpStatus.TOO_MANY_REQUESTS,
+            HttpStatus.TOO_MANY_REQUESTS
           );
         }
       }
@@ -217,7 +217,7 @@ export class RateLimitMiddleware implements NestMiddleware {
   private async checkRateLimit(
     key: string,
     limit: number,
-    windowSeconds: number,
+    windowSeconds: number
   ): Promise<boolean> {
     const now = Date.now();
     const windowStart = now - windowSeconds * 1000;
@@ -309,7 +309,7 @@ export class IPBlacklistMiddleware implements NestMiddleware {
             message: 'IP 地址已被封禁',
             error: 'IP Blacklisted',
           },
-          HttpStatus.FORBIDDEN,
+          HttpStatus.FORBIDDEN
         );
       }
 

@@ -9,7 +9,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { PermissionsService } from './permissions.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
@@ -31,9 +38,7 @@ export class PermissionsController {
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async create(@Body() createPermissionDto: CreatePermissionDto) {
-    const permission = await this.permissionsService.create(
-      createPermissionDto,
-    );
+    const permission = await this.permissionsService.create(createPermissionDto);
     return {
       success: true,
       data: permission,
@@ -48,9 +53,7 @@ export class PermissionsController {
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async bulkCreate(@Body() createPermissionDtos: CreatePermissionDto[]) {
-    const permissions = await this.permissionsService.bulkCreate(
-      createPermissionDtos,
-    );
+    const permissions = await this.permissionsService.bulkCreate(createPermissionDtos);
     return {
       success: true,
       data: permissions,
@@ -69,13 +72,9 @@ export class PermissionsController {
   async findAll(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
-    @Query('resource') resource?: string,
+    @Query('resource') resource?: string
   ) {
-    const result = await this.permissionsService.findAll(
-      parseInt(page),
-      parseInt(limit),
-      resource,
-    );
+    const result = await this.permissionsService.findAll(parseInt(page), parseInt(limit), resource);
     return {
       success: true,
       ...result,
@@ -118,14 +117,8 @@ export class PermissionsController {
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '权限不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async update(
-    @Param('id') id: string,
-    @Body() updatePermissionDto: UpdatePermissionDto,
-  ) {
-    const permission = await this.permissionsService.update(
-      id,
-      updatePermissionDto,
-    );
+  async update(@Param('id') id: string, @Body() updatePermissionDto: UpdatePermissionDto) {
+    const permission = await this.permissionsService.update(id, updatePermissionDto);
     return {
       success: true,
       data: permission,

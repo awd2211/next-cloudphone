@@ -19,7 +19,7 @@ export class QueueService {
     @InjectQueue(QueueName.EMAIL) private emailQueue: Queue,
     @InjectQueue(QueueName.SMS) private smsQueue: Queue,
     @InjectQueue(QueueName.DEVICE_OPERATION) private deviceOperationQueue: Queue,
-    @InjectQueue(QueueName.NOTIFICATION) private notificationQueue: Queue,
+    @InjectQueue(QueueName.NOTIFICATION) private notificationQueue: Queue
   ) {}
 
   // ============================================================================
@@ -29,10 +29,7 @@ export class QueueService {
   /**
    * 添加邮件发送任务
    */
-  async sendEmail(
-    data: EmailJobData,
-    options?: Partial<JobOptions>,
-  ): Promise<Job<EmailJobData>> {
+  async sendEmail(data: EmailJobData, options?: Partial<JobOptions>): Promise<Job<EmailJobData>> {
     this.logger.log(`📧 Adding email job: ${data.subject} to ${data.to}`);
 
     return this.emailQueue.add('send-email', data, {
@@ -44,10 +41,7 @@ export class QueueService {
   /**
    * 批量发送邮件
    */
-  async sendBatchEmail(
-    emails: EmailJobData[],
-    options?: Partial<JobOptions>,
-  ): Promise<Job> {
+  async sendBatchEmail(emails: EmailJobData[], options?: Partial<JobOptions>): Promise<Job> {
     this.logger.log(`📧 Adding batch email job: ${emails.length} emails`);
 
     return this.emailQueue.add(
@@ -56,7 +50,7 @@ export class QueueService {
       {
         priority: JobPriority.LOW,
         ...options,
-      },
+      }
     );
   }
 
@@ -65,7 +59,7 @@ export class QueueService {
    */
   async sendScheduledEmail(
     data: EmailJobData & { scheduledTime: Date },
-    options?: Partial<JobOptions>,
+    options?: Partial<JobOptions>
   ): Promise<Job> {
     const delay = data.scheduledTime.getTime() - Date.now();
 
@@ -73,9 +67,7 @@ export class QueueService {
       throw new Error('Scheduled time must be in the future');
     }
 
-    this.logger.log(
-      `📅 Scheduling email for ${data.scheduledTime.toISOString()}`,
-    );
+    this.logger.log(`📅 Scheduling email for ${data.scheduledTime.toISOString()}`);
 
     return this.emailQueue.add('send-scheduled-email', data, {
       delay,
@@ -91,10 +83,7 @@ export class QueueService {
   /**
    * 发送短信
    */
-  async sendSms(
-    data: SmsJobData,
-    options?: Partial<JobOptions>,
-  ): Promise<Job<SmsJobData>> {
+  async sendSms(data: SmsJobData, options?: Partial<JobOptions>): Promise<Job<SmsJobData>> {
     this.logger.log(`📱 Adding SMS job to ${data.phone}`);
 
     return this.smsQueue.add('send-sms', data, {
@@ -106,10 +95,7 @@ export class QueueService {
   /**
    * 批量发送短信
    */
-  async sendBatchSms(
-    messages: SmsJobData[],
-    options?: Partial<JobOptions>,
-  ): Promise<Job> {
+  async sendBatchSms(messages: SmsJobData[], options?: Partial<JobOptions>): Promise<Job> {
     this.logger.log(`📱 Adding batch SMS job: ${messages.length} messages`);
 
     return this.smsQueue.add(
@@ -118,7 +104,7 @@ export class QueueService {
       {
         priority: JobPriority.NORMAL,
         ...options,
-      },
+      }
     );
   }
 
@@ -129,7 +115,7 @@ export class QueueService {
     phone: string,
     code: string,
     expiresIn: number = 5,
-    options?: Partial<JobOptions>,
+    options?: Partial<JobOptions>
   ): Promise<Job> {
     this.logger.log(`🔑 Sending verification code to ${phone}`);
 
@@ -139,7 +125,7 @@ export class QueueService {
       {
         priority: JobPriority.CRITICAL, // 验证码最高优先级
         ...options,
-      },
+      }
     );
   }
 
@@ -154,7 +140,7 @@ export class QueueService {
     deviceId: string,
     userId?: string,
     params?: Record<string, any>,
-    options?: Partial<JobOptions>,
+    options?: Partial<JobOptions>
   ): Promise<Job<DeviceOperationJobData>> {
     this.logger.log(`🚀 Starting device ${deviceId}`);
 
@@ -166,7 +152,7 @@ export class QueueService {
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },
         ...options,
-      },
+      }
     );
   }
 
@@ -176,7 +162,7 @@ export class QueueService {
   async stopDevice(
     deviceId: string,
     userId?: string,
-    options?: Partial<JobOptions>,
+    options?: Partial<JobOptions>
   ): Promise<Job<DeviceOperationJobData>> {
     this.logger.log(`🛑 Stopping device ${deviceId}`);
 
@@ -186,7 +172,7 @@ export class QueueService {
       {
         priority: JobPriority.HIGH,
         ...options,
-      },
+      }
     );
   }
 
@@ -196,7 +182,7 @@ export class QueueService {
   async restartDevice(
     deviceId: string,
     userId?: string,
-    options?: Partial<JobOptions>,
+    options?: Partial<JobOptions>
   ): Promise<Job<DeviceOperationJobData>> {
     this.logger.log(`🔄 Restarting device ${deviceId}`);
 
@@ -206,7 +192,7 @@ export class QueueService {
       {
         priority: JobPriority.HIGH,
         ...options,
-      },
+      }
     );
   }
 
@@ -217,7 +203,7 @@ export class QueueService {
     deviceId: string,
     appPackage: string,
     apkUrl: string,
-    options?: Partial<JobOptions>,
+    options?: Partial<JobOptions>
   ): Promise<Job> {
     this.logger.log(`📦 Installing app ${appPackage} on device ${deviceId}`);
 
@@ -228,7 +214,7 @@ export class QueueService {
         priority: JobPriority.NORMAL,
         timeout: 5 * 60 * 1000, // 5分钟超时
         ...options,
-      },
+      }
     );
   }
 
@@ -238,7 +224,7 @@ export class QueueService {
   async uninstallApp(
     deviceId: string,
     appPackage: string,
-    options?: Partial<JobOptions>,
+    options?: Partial<JobOptions>
   ): Promise<Job> {
     this.logger.log(`🗑️ Uninstalling app ${appPackage} from device ${deviceId}`);
 
@@ -248,7 +234,7 @@ export class QueueService {
       {
         priority: JobPriority.NORMAL,
         ...options,
-      },
+      }
     );
   }
 
@@ -281,7 +267,7 @@ export class QueueService {
       queues.map(async ({ name, queue }) => {
         const counts = await queue.getJobCounts();
         return { name, counts };
-      }),
+      })
     );
 
     return statuses;
@@ -294,7 +280,7 @@ export class QueueService {
     queueName: QueueName,
     status: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed',
     start: number = 0,
-    end: number = 10,
+    end: number = 10
   ): Promise<Job[]> {
     const queue = this.getQueueByName(queueName);
 
@@ -383,13 +369,11 @@ export class QueueService {
   async cleanQueue(
     queueName: QueueName,
     grace: number = 24 * 3600 * 1000, // 默认保留 24 小时
-    type: 'completed' | 'failed' = 'completed',
+    type: 'completed' | 'failed' = 'completed'
   ): Promise<void> {
     const queue = this.getQueueByName(queueName);
     await queue.clean(grace, type);
-    this.logger.log(
-      `🧹 Cleaned ${type} jobs older than ${grace}ms in queue ${queueName}`,
-    );
+    this.logger.log(`🧹 Cleaned ${type} jobs older than ${grace}ms in queue ${queueName}`);
   }
 
   /**
@@ -413,16 +397,12 @@ export class QueueService {
   /**
    * 通用方法：添加任务到指定队列
    */
-  async addJob(
-    queueName: QueueName,
-    data: any,
-    options?: Partial<JobOptions>,
-  ): Promise<Job> {
+  async addJob(queueName: QueueName, data: any, options?: Partial<JobOptions>): Promise<Job> {
     const queue = this.getQueueByName(queueName);
     const jobType = data.type || 'default';
-    
+
     this.logger.log(`Adding job to ${queueName} queue: ${jobType}`);
-    
+
     return queue.add(jobType, data, {
       priority: JobPriority.NORMAL,
       ...options,

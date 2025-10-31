@@ -34,15 +34,11 @@ function redactSensitiveData(obj: any): any {
   const redacted: any = {};
   for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
-    const isSensitive = SENSITIVE_FIELDS.some(field => 
-      lowerKey.includes(field.toLowerCase())
-    );
+    const isSensitive = SENSITIVE_FIELDS.some((field) => lowerKey.includes(field.toLowerCase()));
 
     if (isSensitive && typeof value === 'string') {
       // 只显示前3个字符
-      redacted[key] = value.length > 3 
-        ? `${value.substring(0, 3)}***` 
-        : '***';
+      redacted[key] = value.length > 3 ? `${value.substring(0, 3)}***` : '***';
     } else if (typeof value === 'object' && value !== null) {
       redacted[key] = redactSensitiveData(value);
     } else {
@@ -62,19 +58,21 @@ export function createLoggerConfig(serviceName: string): Params {
   return {
     pinoHttp: {
       level: logLevel,
-      
+
       // 生产环境使用 JSON 格式，开发环境使用 pretty 格式
-      transport: !isProduction ? {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'SYS:yyyy-mm-dd HH:MM:ss.l',
-          ignore: 'pid,hostname',
-          messageFormat: '{service} [{context}] {msg}',
-          errorLikeObjectKeys: ['err', 'error'],
-          singleLine: false,
-        },
-      } : undefined,
+      transport: !isProduction
+        ? {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              translateTime: 'SYS:yyyy-mm-dd HH:MM:ss.l',
+              ignore: 'pid,hostname',
+              messageFormat: '{service} [{context}] {msg}',
+              errorLikeObjectKeys: ['err', 'error'],
+              singleLine: false,
+            },
+          }
+        : undefined,
 
       // 自定义序列化器
       serializers: {
@@ -107,7 +105,8 @@ export function createLoggerConfig(serviceName: string): Params {
             statusCode: res.statusCode,
             headers: {
               'content-type': res.getHeader?.('content-type') || res.headers?.['content-type'],
-              'content-length': res.getHeader?.('content-length') || res.headers?.['content-length'],
+              'content-length':
+                res.getHeader?.('content-length') || res.headers?.['content-length'],
             },
           };
         },
@@ -167,12 +166,8 @@ export function createLoggerConfig(serviceName: string): Params {
       autoLogging: {
         // 忽略健康检查等端点
         ignore: (req: any) => {
-          const ignoredPaths = [
-            '/health',
-            '/metrics',
-            '/favicon.ico',
-          ];
-          return ignoredPaths.some(path => req.url?.startsWith(path));
+          const ignoredPaths = ['/health', '/metrics', '/favicon.ico'];
+          return ignoredPaths.some((path) => req.url?.startsWith(path));
         },
       },
 
@@ -213,26 +208,28 @@ export function createAppLogger(serviceName: string) {
   return pino({
     name: serviceName,
     level: process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug'),
-    
+
     // 生产环境配置
-    ...(isProduction ? {
-      timestamp: () => `,"time":"${new Date().toISOString()}"`,
-      formatters: {
-        level: (label: string) => {
-          return { level: label };
-        },
-      },
-    } : {
-      // 开发环境使用 pretty 输出
-      transport: {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'SYS:yyyy-mm-dd HH:MM:ss.l',
-          ignore: 'pid,hostname',
-        },
-      },
-    }),
+    ...(isProduction
+      ? {
+          timestamp: () => `,"time":"${new Date().toISOString()}"`,
+          formatters: {
+            level: (label: string) => {
+              return { level: label };
+            },
+          },
+        }
+      : {
+          // 开发环境使用 pretty 输出
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              translateTime: 'SYS:yyyy-mm-dd HH:MM:ss.l',
+              ignore: 'pid,hostname',
+            },
+          },
+        }),
 
     // 基础属性
     base: {
@@ -253,4 +250,3 @@ export function shouldSampleLog(sampleRate: number = 0.1): boolean {
   }
   return true; // 开发环境记录所有日志
 }
-

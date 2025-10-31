@@ -15,7 +15,7 @@ export enum TenantStatus {
 
 /**
  * 租户实体
- * 
+ *
  * 用于多租户SaaS架构的租户管理
  */
 @Entity('tenants')
@@ -80,4 +80,3 @@ export class Tenant {
     return this.expiresAt && new Date() > this.expiresAt;
   }
 }
-

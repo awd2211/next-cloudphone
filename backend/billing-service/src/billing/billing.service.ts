@@ -18,11 +18,73 @@ export class BillingService {
     private planRepository: Repository<Plan>,
     @InjectRepository(UsageRecord)
     private usageRecordRepository: Repository<UsageRecord>,
-    private readonly purchasePlanSaga: PurchasePlanSagaV2,
+    private readonly purchasePlanSaga: PurchasePlanSagaV2
   ) {}
 
-  async getPlans() {
-    return this.planRepository.find({ where: { isActive: true } });
+  async getPlans(page: number = 1, pageSize: number = 10) {
+    const skip = (page - 1) * pageSize;
+
+    const [data, total] = await this.planRepository.findAndCount({
+      where: { isPublic: true, isActive: true },
+      order: { createdAt: 'DESC' },
+      skip,
+      take: pageSize,
+    });
+
+    return {
+      success: true,
+      data,
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  async getPlan(id: string) {
+    const plan = await this.planRepository.findOne({ where: { id } });
+    if (!plan) {
+      throw new NotFoundException(`套餐不存在: ${id}`);
+    }
+    return {
+      success: true,
+      data: plan,
+    };
+  }
+
+  async createPlan(data: any) {
+    const plan = this.planRepository.create(data);
+    await this.planRepository.save(plan);
+    return {
+      success: true,
+      data: plan,
+      message: '套餐创建成功',
+    };
+  }
+
+  async updatePlan(id: string, data: any) {
+    const plan = await this.planRepository.findOne({ where: { id } });
+    if (!plan) {
+      throw new NotFoundException(`套餐不存在: ${id}`);
+    }
+    Object.assign(plan, data);
+    await this.planRepository.save(plan);
+    return {
+      success: true,
+      data: plan,
+      message: '套餐更新成功',
+    };
+  }
+
+  async deletePlan(id: string) {
+    const plan = await this.planRepository.findOne({ where: { id } });
+    if (!plan) {
+      throw new NotFoundException(`套餐不存在: ${id}`);
+    }
+    await this.planRepository.remove(plan);
+    return {
+      success: true,
+      message: '套餐删除成功',
+    };
   }
 
   /**
@@ -44,11 +106,7 @@ export class BillingService {
     }
 
     // 使用 Saga 模式启动订单购买流程
-    const sagaId = await this.purchasePlanSaga.startPurchase(
-      userId,
-      planId,
-      plan.price,
-    );
+    const sagaId = await this.purchasePlanSaga.startPurchase(userId, planId, plan.price);
 
     this.logger.log(`Purchase Saga started: ${sagaId} for user ${userId}`);
 
@@ -80,11 +138,7 @@ export class BillingService {
     return order;
   }
 
-  async updateOrderStatus(
-    orderId: string,
-    status: OrderStatus,
-    metadata?: any,
-  ): Promise<Order> {
+  async updateOrderStatus(orderId: string, status: OrderStatus, metadata?: any): Promise<Order> {
     const order = await this.getOrder(orderId);
 
     order.status = status;
@@ -114,9 +168,7 @@ export class BillingService {
     const order = await this.getOrder(orderId);
 
     if (order.status !== OrderStatus.PENDING) {
-      throw new BadRequestException(
-        `只能取消待支付的订单，当前状态: ${order.status}`,
-      );
+      throw new BadRequestException(`只能取消待支付的订单，当前状态: ${order.status}`);
     }
 
     order.status = OrderStatus.CANCELLED;
@@ -149,9 +201,7 @@ export class BillingService {
 
         this.logger.log(`Cancelled expired order: ${order.orderNumber}`);
       } catch (error) {
-        this.logger.error(
-          `Failed to cancel order ${order.orderNumber}: ${error.message}`,
-        );
+        this.logger.error(`Failed to cancel order ${order.orderNumber}: ${error.message}`);
       }
     }
 
@@ -192,7 +242,12 @@ export class BillingService {
     };
   }
 
-  async startUsage(data: { userId: string; deviceId: string; tenantId: string; usageType?: UsageType }) {
+  async startUsage(data: {
+    userId: string;
+    deviceId: string;
+    tenantId: string;
+    usageType?: UsageType;
+  }) {
     const record = this.usageRecordRepository.create({
       userId: data.userId,
       deviceId: data.deviceId,

@@ -10,20 +10,34 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { RolesService } from '../roles/roles.service';
 import { CursorPaginationDto, DataScopeGuard, DataScope, DataScopeType } from '@cloudphone/shared';
-import { CreateUserCommand, UpdateUserCommand, ChangePasswordCommand, DeleteUserCommand } from './commands/impl';
+import {
+  CreateUserCommand,
+  UpdateUserCommand,
+  ChangePasswordCommand,
+  DeleteUserCommand,
+} from './commands/impl';
 import { GetUserQuery, GetUsersQuery, GetUserStatsQuery } from './queries/impl';
+import { SkipMask } from '../common/decorators/skip-mask.decorator';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -34,7 +48,7 @@ export class UsersController {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
     private readonly rolesService: RolesService,
-    private readonly usersService: UsersService,
+    private readonly usersService: UsersService
   ) {}
 
   @Post()
@@ -66,13 +80,13 @@ export class UsersController {
     @Query('page') page: string = '1',
     @Query('pageSize') pageSize?: string,
     @Query('limit') limit?: string,
-    @Query('tenantId') tenantId?: string,
+    @Query('tenantId') tenantId?: string
   ) {
     const itemsPerPage = pageSize || limit || '100';
     const result = await this.rolesService.findAll(
       parseInt(page),
       parseInt(itemsPerPage),
-      tenantId,
+      tenantId
     );
     return {
       success: true,
@@ -110,7 +124,7 @@ export class UsersController {
       filters.page || 1,
       filters.limit || 10,
       undefined,
-      { includeRoles: filters.includeRoles === 'true', filters },
+      { includeRoles: filters.includeRoles === 'true', filters }
     );
 
     return {
@@ -123,6 +137,7 @@ export class UsersController {
 
   @Get()
   @RequirePermission('user.read')
+  @SkipMask('email') // 管理员可以看到完整邮箱
   @ApiOperation({ summary: '获取用户列表', description: '分页获取用户列表 (基础版)' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
   @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
@@ -132,10 +147,10 @@ export class UsersController {
   async findAll(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
-    @Query('tenantId') tenantId?: string,
+    @Query('tenantId') tenantId?: string
   ) {
     const result = await this.queryBus.execute(
-      new GetUsersQuery(parseInt(page), parseInt(limit), tenantId),
+      new GetUsersQuery(parseInt(page), parseInt(limit), tenantId)
     );
     return {
       success: true,
@@ -157,7 +172,12 @@ export class UsersController {
   })
   @ApiQuery({ name: 'limit', required: false, description: '每页数量 (1-100)', example: 20 })
   @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
-  @ApiQuery({ name: 'includeRoles', required: false, description: '是否包含角色信息', example: 'true' })
+  @ApiQuery({
+    name: 'includeRoles',
+    required: false,
+    description: '是否包含角色信息',
+    example: 'true',
+  })
   @ApiResponse({
     status: 200,
     description: '获取成功',
@@ -175,13 +195,11 @@ export class UsersController {
   async findAllCursor(
     @Query() paginationDto: CursorPaginationDto,
     @Query('tenantId') tenantId?: string,
-    @Query('includeRoles') includeRoles?: string,
+    @Query('includeRoles') includeRoles?: string
   ) {
-    const result = await this.usersService.findAllCursor(
-      paginationDto,
-      tenantId,
-      { includeRoles: includeRoles === 'true' },
-    );
+    const result = await this.usersService.findAllCursor(paginationDto, tenantId, {
+      includeRoles: includeRoles === 'true',
+    });
     return {
       success: true,
       ...result,
@@ -241,14 +259,32 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '密码修改成功' })
   @ApiResponse({ status: 400, description: '原密码错误' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async changePassword(
-    @Param('id') id: string,
-    @Body() changePasswordDto: ChangePasswordDto,
-  ) {
+  async changePassword(@Param('id') id: string, @Body() changePasswordDto: ChangePasswordDto) {
     await this.commandBus.execute(new ChangePasswordCommand(id, changePasswordDto));
     return {
       success: true,
       message: '密码修改成功',
+    };
+  }
+
+  @Patch(':id/preferences')
+  @RequirePermission('user.update')
+  @DataScope(DataScopeType.SELF) // 用户只能修改自己的偏好设置
+  @ApiOperation({ summary: '更新偏好设置', description: '更新用户的语言和主题偏好设置' })
+  @ApiParam({ name: 'id', description: '用户 ID' })
+  @ApiResponse({ status: 200, description: '偏好设置更新成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async updatePreferences(
+    @Param('id') id: string,
+    @Body() updatePreferencesDto: UpdatePreferencesDto
+  ) {
+    const user = await this.usersService.updatePreferences(id, updatePreferencesDto);
+    const { password, ...userWithoutPassword } = user;
+    return {
+      success: true,
+      data: userWithoutPassword,
+      message: '偏好设置更新成功',
     };
   }
 

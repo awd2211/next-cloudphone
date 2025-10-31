@@ -1,7 +1,34 @@
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Button, Space, Input, message, Popconfirm, Alert, Form, Modal } from 'antd';
-import { DatabaseOutlined, DeleteOutlined, ReloadOutlined, ClearOutlined, CheckCircleOutlined, SearchOutlined } from '@ant-design/icons';
-import { getCacheStats, resetCacheStats, flushCache, deleteCache, deleteCachePattern, checkCacheExists } from '@/services/cache';
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Button,
+  Space,
+  Input,
+  message,
+  Popconfirm,
+  Alert,
+  Form,
+  Modal,
+} from 'antd';
+import {
+  DatabaseOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+  ClearOutlined,
+  CheckCircleOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
+import {
+  getCacheStats,
+  resetCacheStats,
+  flushCache,
+  deleteCache,
+  deleteCachePattern,
+  checkCacheExists,
+} from '@/services/cache';
 import type { CacheStats } from '@/types';
 
 const CacheManagement = () => {
@@ -144,10 +171,7 @@ const CacheManagement = () => {
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic
-                title="总请求数"
-                value={stats?.totalRequests || 0}
-              />
+              <Statistic title="总请求数" value={stats?.totalRequests || 0} />
             </Card>
           </Col>
         </Row>
@@ -161,37 +185,29 @@ const CacheManagement = () => {
                 precision={2}
                 suffix="%"
                 valueStyle={{
-                  color: stats && stats.hitRate >= 80 ? '#52c41a' : stats && stats.hitRate >= 50 ? '#1890ff' : '#ff4d4f'
+                  color:
+                    stats && stats.hitRate >= 80
+                      ? '#52c41a'
+                      : stats && stats.hitRate >= 50
+                        ? '#1890ff'
+                        : '#ff4d4f',
                 }}
               />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic
-                title="未命中率"
-                value={stats?.missRate || 0}
-                precision={2}
-                suffix="%"
-              />
+              <Statistic title="未命中率" value={stats?.missRate || 0} precision={2} suffix="%" />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic
-                title="L1 缓存大小"
-                value={stats?.l1Size || 0}
-                suffix="keys"
-              />
+              <Statistic title="L1 缓存大小" value={stats?.l1Size || 0} suffix="keys" />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic
-                title="L2 缓存大小"
-                value={stats?.l2Size || 0}
-                suffix="keys"
-              />
+              <Statistic title="L2 缓存大小" value={stats?.l2Size || 0} suffix="keys" />
             </Card>
           </Col>
         </Row>
@@ -199,39 +215,23 @@ const CacheManagement = () => {
         {/* 操作按钮 */}
         <Card title="缓存操作">
           <Space wrap>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={loadStats}
-              loading={loading}
-            >
+            <Button icon={<ReloadOutlined />} onClick={loadStats} loading={loading}>
               刷新统计
             </Button>
 
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={handleResetStats}
-            >
+            <Button icon={<ReloadOutlined />} onClick={handleResetStats}>
               重置统计
             </Button>
 
-            <Button
-              icon={<DeleteOutlined />}
-              onClick={() => setDeleteKeyModalVisible(true)}
-            >
+            <Button icon={<DeleteOutlined />} onClick={() => setDeleteKeyModalVisible(true)}>
               删除指定键
             </Button>
 
-            <Button
-              icon={<ClearOutlined />}
-              onClick={() => setDeletePatternModalVisible(true)}
-            >
+            <Button icon={<ClearOutlined />} onClick={() => setDeletePatternModalVisible(true)}>
               按模式删除
             </Button>
 
-            <Button
-              icon={<SearchOutlined />}
-              onClick={() => setCheckKeyModalVisible(true)}
-            >
+            <Button icon={<SearchOutlined />} onClick={() => setCheckKeyModalVisible(true)}>
               检查键存在
             </Button>
 
@@ -243,11 +243,7 @@ const CacheManagement = () => {
               cancelText="取消"
               okButtonProps={{ danger: true }}
             >
-              <Button
-                danger
-                icon={<ClearOutlined />}
-                loading={loading}
-              >
+              <Button danger icon={<ClearOutlined />} loading={loading}>
                 清空所有缓存
               </Button>
             </Popconfirm>
@@ -257,10 +253,17 @@ const CacheManagement = () => {
         {/* 说明信息 */}
         <Card title="缓存说明">
           <Space direction="vertical" size="small">
-            <div><strong>L1 缓存 (NodeCache):</strong> 内存级缓存，速度最快，适合频繁访问的热数据</div>
-            <div><strong>L2 缓存 (Redis):</strong> 分布式缓存，支持跨进程共享，持久化存储</div>
-            <div><strong>缓存策略:</strong> 先查 L1，未命中查 L2，再未命中查数据库并回填缓存</div>
-            <div><strong>性能指标:</strong>
+            <div>
+              <strong>L1 缓存 (NodeCache):</strong> 内存级缓存，速度最快，适合频繁访问的热数据
+            </div>
+            <div>
+              <strong>L2 缓存 (Redis):</strong> 分布式缓存，支持跨进程共享，持久化存储
+            </div>
+            <div>
+              <strong>缓存策略:</strong> 先查 L1，未命中查 L2，再未命中查数据库并回填缓存
+            </div>
+            <div>
+              <strong>性能指标:</strong>
               <ul style={{ marginTop: 8 }}>
                 <li>命中率 ≥ 80%: 优秀 (绿色)</li>
                 <li>命中率 50-80%: 正常 (蓝色)</li>
@@ -327,9 +330,15 @@ const CacheManagement = () => {
             message="支持的通配符"
             description={
               <div>
-                <div><code>*</code> - 匹配任意数量的字符</div>
-                <div><code>?</code> - 匹配单个字符</div>
-                <div>示例: <code>user:*</code> 匹配所有以 user: 开头的键</div>
+                <div>
+                  <code>*</code> - 匹配任意数量的字符
+                </div>
+                <div>
+                  <code>?</code> - 匹配单个字符
+                </div>
+                <div>
+                  示例: <code>user:*</code> 匹配所有以 user: 开头的键
+                </div>
               </div>
             }
             type="info"

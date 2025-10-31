@@ -74,8 +74,7 @@ export function useUpdateDevice() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateDeviceDto }) =>
-      updateDevice(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateDeviceDto }) => updateDevice(id, data),
     onSuccess: (_, variables) => {
       // 使设备详情和列表查询失效
       queryClient.invalidateQueries({ queryKey: deviceKeys.detail(variables.id) });
@@ -156,12 +155,12 @@ export function useBatchDeviceOperation() {
   return useMutation({
     mutationFn: async ({
       ids,
-      operation
+      operation,
     }: {
       ids: string[];
-      operation: 'start' | 'stop' | 'delete'
+      operation: 'start' | 'stop' | 'delete';
     }) => {
-      const promises = ids.map(id => {
+      const promises = ids.map((id) => {
         switch (operation) {
           case 'start':
             return startDevice(id);
@@ -177,19 +176,24 @@ export function useBatchDeviceOperation() {
       queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
 
       if (variables.operation === 'delete') {
-        variables.ids.forEach(id => {
+        variables.ids.forEach((id) => {
           queryClient.removeQueries({ queryKey: deviceKeys.detail(id) });
         });
       } else {
-        variables.ids.forEach(id => {
+        variables.ids.forEach((id) => {
           queryClient.invalidateQueries({ queryKey: deviceKeys.detail(id) });
         });
       }
 
-      message.success(`批量${
-        variables.operation === 'start' ? '启动' :
-        variables.operation === 'stop' ? '停止' : '删除'
-      }成功`);
+      message.success(
+        `批量${
+          variables.operation === 'start'
+            ? '启动'
+            : variables.operation === 'stop'
+              ? '停止'
+              : '删除'
+        }成功`
+      );
     },
     onError: (error: any) => {
       message.error(error.response?.data?.message || '批量操作失败');

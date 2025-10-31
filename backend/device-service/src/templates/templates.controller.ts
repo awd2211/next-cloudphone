@@ -10,17 +10,17 @@ import {
   UseGuards,
   Request,
   Logger,
-} from "@nestjs/common";
-import { Request as ExpressRequest } from "express";
-import { TemplatesService } from "./templates.service";
-import { CreateTemplateDto } from "./dto/create-template.dto";
-import { UpdateTemplateDto } from "./dto/update-template.dto";
+} from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
+import { TemplatesService } from './templates.service';
+import { CreateTemplateDto } from './dto/create-template.dto';
+import { UpdateTemplateDto } from './dto/update-template.dto';
 import {
   CreateDeviceFromTemplateDto,
   BatchCreateFromTemplateDto,
-} from "./dto/create-from-template.dto";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
-import { TemplateCategory } from "../entities/device-template.entity";
+} from './dto/create-from-template.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { TemplateCategory } from '../entities/device-template.entity';
 
 interface AuthenticatedRequest extends ExpressRequest {
   user?: {
@@ -29,7 +29,7 @@ interface AuthenticatedRequest extends ExpressRequest {
   };
 }
 
-@Controller("templates")
+@Controller('templates')
 @UseGuards(JwtAuthGuard)
 export class TemplatesController {
   private readonly logger = new Logger(TemplatesController.name);
@@ -49,9 +49,7 @@ export class TemplatesController {
       throw new Error('User authentication required');
     }
 
-    this.logger.log(
-      `User ${userId} creating template: ${createTemplateDto.name}`,
-    );
+    this.logger.log(`User ${userId} creating template: ${createTemplateDto.name}`);
     return await this.templatesService.create(createTemplateDto, userId);
   }
 
@@ -61,14 +59,13 @@ export class TemplatesController {
    */
   @Get()
   async findAll(
-    @Query("category") category?: TemplateCategory,
-    @Query("isPublic") isPublic?: string,
-    @Request() req?: AuthenticatedRequest,
+    @Query('category') category?: TemplateCategory,
+    @Query('isPublic') isPublic?: string,
+    @Request() req?: AuthenticatedRequest
   ) {
     // ✅ req 可选链处理
     const userId = req?.user?.userId || req?.user?.sub;
-    const isPublicBool =
-      isPublic === "true" ? true : isPublic === "false" ? false : undefined;
+    const isPublicBool = isPublic === 'true' ? true : isPublic === 'false' ? false : undefined;
 
     return await this.templatesService.findAll(category, isPublicBool, userId);
   }
@@ -77,8 +74,8 @@ export class TemplatesController {
    * 获取热门模板
    * GET /templates/popular?limit=10
    */
-  @Get("popular")
-  async getPopular(@Query("limit") limit?: string) {
+  @Get('popular')
+  async getPopular(@Query('limit') limit?: string) {
     const limitNum = limit ? parseInt(limit, 10) : 10;
     return await this.templatesService.getPopularTemplates(limitNum);
   }
@@ -87,8 +84,8 @@ export class TemplatesController {
    * 搜索模板
    * GET /templates/search?q=游戏
    */
-  @Get("search")
-  async search(@Query("q") query: string, @Request() req: AuthenticatedRequest) {
+  @Get('search')
+  async search(@Query('q') query: string, @Request() req: AuthenticatedRequest) {
     const userId = req.user?.userId || req.user?.sub;
 
     // ✅ 验证 userId（搜索操作需要用户上下文）
@@ -103,8 +100,8 @@ export class TemplatesController {
    * 获取单个模板
    * GET /templates/:id
    */
-  @Get(":id")
-  async findOne(@Param("id") id: string, @Request() req: AuthenticatedRequest) {
+  @Get(':id')
+  async findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     const userId = req.user?.userId || req.user?.sub;
 
     // ✅ userId 可选（findOne 支持可选 userId）
@@ -115,11 +112,11 @@ export class TemplatesController {
    * 更新模板
    * PATCH /templates/:id
    */
-  @Patch(":id")
+  @Patch(':id')
   async update(
-    @Param("id") id: string,
+    @Param('id') id: string,
     @Body() updateTemplateDto: UpdateTemplateDto,
-    @Request() req: AuthenticatedRequest,
+    @Request() req: AuthenticatedRequest
   ) {
     const userId = req.user?.userId || req.user?.sub;
 
@@ -135,8 +132,8 @@ export class TemplatesController {
    * 删除模板
    * DELETE /templates/:id
    */
-  @Delete(":id")
-  async remove(@Param("id") id: string, @Request() req: AuthenticatedRequest) {
+  @Delete(':id')
+  async remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     const userId = req.user?.userId || req.user?.sub;
 
     // ✅ 验证 userId 必须存在
@@ -145,18 +142,18 @@ export class TemplatesController {
     }
 
     await this.templatesService.remove(id, userId);
-    return { message: "Template deleted successfully" };
+    return { message: 'Template deleted successfully' };
   }
 
   /**
    * 从模板创建单个设备
    * POST /templates/:id/create-device
    */
-  @Post(":id/create-device")
+  @Post(':id/create-device')
   async createDevice(
-    @Param("id") id: string,
+    @Param('id') id: string,
     @Body() dto: CreateDeviceFromTemplateDto,
-    @Request() req: AuthenticatedRequest,
+    @Request() req: AuthenticatedRequest
   ) {
     const userId = req.user?.userId || req.user?.sub;
 
@@ -166,22 +163,18 @@ export class TemplatesController {
     }
 
     this.logger.log(`User ${userId} creating device from template ${id}`);
-    return await this.templatesService.createDeviceFromTemplate(
-      id,
-      dto,
-      userId,
-    );
+    return await this.templatesService.createDeviceFromTemplate(id, dto, userId);
   }
 
   /**
    * 从模板批量创建设备
    * POST /templates/:id/batch-create
    */
-  @Post(":id/batch-create")
+  @Post(':id/batch-create')
   async batchCreate(
-    @Param("id") id: string,
+    @Param('id') id: string,
     @Body() dto: BatchCreateFromTemplateDto,
-    @Request() req: AuthenticatedRequest,
+    @Request() req: AuthenticatedRequest
   ) {
     const userId = req.user?.userId || req.user?.sub;
 
@@ -190,9 +183,7 @@ export class TemplatesController {
       throw new Error('User authentication required');
     }
 
-    this.logger.log(
-      `User ${userId} batch creating ${dto.count} devices from template ${id}`,
-    );
+    this.logger.log(`User ${userId} batch creating ${dto.count} devices from template ${id}`);
     return await this.templatesService.batchCreateFromTemplate(id, dto, userId);
   }
 }

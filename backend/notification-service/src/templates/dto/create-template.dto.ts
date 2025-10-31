@@ -1,4 +1,13 @@
-import { IsString, IsEnum, IsOptional, IsBoolean, IsArray, IsObject, Length, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsObject,
+  Length,
+  MaxLength,
+} from 'class-validator';
 import { NotificationType, NotificationChannel } from '@cloudphone/shared';
 
 export class CreateTemplateDto {

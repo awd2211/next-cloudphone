@@ -51,14 +51,14 @@ function parseError(error: Error | ErrorDetail | string): ErrorDetail {
  */
 function getErrorSuggestion(code?: string): string | null {
   const suggestions: Record<string, string> = {
-    'NETWORK_ERROR': '请检查您的网络连接，然后重试',
-    'TIMEOUT': '请求超时，请检查网络或稍后重试',
-    'UNAUTHORIZED': '登录已过期，请重新登录',
-    'FORBIDDEN': '您没有权限执行此操作，请联系管理员',
-    'NOT_FOUND': '请求的资源不存在，请刷新页面后重试',
-    'VALIDATION_ERROR': '请检查输入的数据是否正确',
-    'SERVER_ERROR': '服务器遇到问题，请稍后重试',
-    'QUOTA_EXCEEDED': '配额已用完，请升级套餐或联系管理员',
+    NETWORK_ERROR: '请检查您的网络连接，然后重试',
+    TIMEOUT: '请求超时，请检查网络或稍后重试',
+    UNAUTHORIZED: '登录已过期，请重新登录',
+    FORBIDDEN: '您没有权限执行此操作，请联系管理员',
+    NOT_FOUND: '请求的资源不存在，请刷新页面后重试',
+    VALIDATION_ERROR: '请检查输入的数据是否正确',
+    SERVER_ERROR: '服务器遇到问题，请稍后重试',
+    QUOTA_EXCEEDED: '配额已用完，请升级套餐或联系管理员',
   };
 
   return code ? suggestions[code] || null : null;
@@ -84,14 +84,10 @@ export function ErrorAlert({
       message={
         <Space direction="vertical" style={{ width: '100%' }}>
           {/* 错误标题 */}
-          <Text strong>
-            {errorDetail.code ? `错误 [${errorDetail.code}]` : '操作失败'}
-          </Text>
+          <Text strong>{errorDetail.code ? `错误 [${errorDetail.code}]` : '操作失败'}</Text>
 
           {/* 错误消息 */}
-          <Paragraph style={{ marginBottom: 0 }}>
-            {errorDetail.message}
-          </Paragraph>
+          <Paragraph style={{ marginBottom: 0 }}>{errorDetail.message}</Paragraph>
 
           {/* 建议 */}
           {suggestion && (
@@ -107,21 +103,12 @@ export function ErrorAlert({
           {/* 操作按钮 */}
           <Space style={{ marginTop: 8 }}>
             {onRetry && (
-              <Button
-                type="primary"
-                icon={<ReloadOutlined />}
-                onClick={onRetry}
-                size="small"
-              >
+              <Button type="primary" icon={<ReloadOutlined />} onClick={onRetry} size="small">
                 重试
               </Button>
             )}
             {onReport && (
-              <Button
-                icon={<BugOutlined />}
-                onClick={onReport}
-                size="small"
-              >
+              <Button icon={<BugOutlined />} onClick={onReport} size="small">
                 报告问题
               </Button>
             )}
@@ -132,9 +119,7 @@ export function ErrorAlert({
             <Collapse ghost style={{ marginTop: 8 }}>
               <Panel header="查看详细信息" key="details">
                 <Space direction="vertical" style={{ width: '100%' }}>
-                  {errorDetail.requestId && (
-                    <Text code>请求 ID: {errorDetail.requestId}</Text>
-                  )}
+                  {errorDetail.requestId && <Text code>请求 ID: {errorDetail.requestId}</Text>}
                   {errorDetail.timestamp && (
                     <Text type="secondary">
                       时间: {new Date(errorDetail.timestamp).toLocaleString('zh-CN')}
@@ -174,15 +159,7 @@ export function ErrorAlert({
  * 简化版错误提示（用于内联显示）
  */
 export function InlineError({ message }: { message: string }) {
-  return (
-    <Alert
-      type="error"
-      message={message}
-      showIcon
-      closable
-      style={{ marginBottom: 16 }}
-    />
-  );
+  return <Alert type="error" message={message} showIcon closable style={{ marginBottom: 16 }} />;
 }
 
 /**

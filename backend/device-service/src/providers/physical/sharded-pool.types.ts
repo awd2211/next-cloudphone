@@ -84,11 +84,14 @@ export interface GlobalPoolStats {
   globalUtilizationRate: number;
 
   /** 按区域统计 */
-  byRegion: Record<string, {
-    total: number;
-    available: number;
-    utilizationRate: number;
-  }>;
+  byRegion: Record<
+    string,
+    {
+      total: number;
+      available: number;
+      utilizationRate: number;
+    }
+  >;
 
   /** 按状态统计 */
   byStatus: Record<string, number>;
@@ -99,19 +102,19 @@ export interface GlobalPoolStats {
  */
 export enum ShardSelectionStrategy {
   /** 最少使用（默认） */
-  LEAST_USED = "least_used",
+  LEAST_USED = 'least_used',
 
   /** 轮询 */
-  ROUND_ROBIN = "round_robin",
+  ROUND_ROBIN = 'round_robin',
 
   /** 加权轮询 */
-  WEIGHTED_ROUND_ROBIN = "weighted_round_robin",
+  WEIGHTED_ROUND_ROBIN = 'weighted_round_robin',
 
   /** 随机 */
-  RANDOM = "random",
+  RANDOM = 'random',
 
   /** 区域亲和性 */
-  REGION_AFFINITY = "region_affinity",
+  REGION_AFFINITY = 'region_affinity',
 }
 
 /**

@@ -15,7 +15,7 @@ export class AppsConsumer {
 
   constructor(
     @InjectRepository(DeviceApplication)
-    private deviceAppsRepository: Repository<DeviceApplication>,
+    private deviceAppsRepository: Repository<DeviceApplication>
   ) {}
 
   /**
@@ -30,9 +30,7 @@ export class AppsConsumer {
     },
   })
   async handleInstallCompleted(event: AppInstallCompletedEvent) {
-    this.logger.log(
-      `App install completed: ${event.appId} on device ${event.deviceId}`,
-    );
+    this.logger.log(`App install completed: ${event.appId} on device ${event.deviceId}`);
 
     try {
       // 更新安装记录状态
@@ -41,13 +39,11 @@ export class AppsConsumer {
         installedAt: event.installedAt || new Date(),
       });
 
-      this.logger.log(
-        `Installation record ${event.installationId} updated to INSTALLED`,
-      );
+      this.logger.log(`Installation record ${event.installationId} updated to INSTALLED`);
     } catch (error) {
       this.logger.error(
         `Failed to update installation record ${event.installationId}:`,
-        error.message,
+        error.message
       );
     }
   }
@@ -65,7 +61,7 @@ export class AppsConsumer {
   })
   async handleInstallFailed(event: AppInstallFailedEvent) {
     this.logger.log(
-      `App install failed: ${event.appId} on device ${event.deviceId}. Error: ${event.error}`,
+      `App install failed: ${event.appId} on device ${event.deviceId}. Error: ${event.error}`
     );
 
     try {
@@ -75,13 +71,11 @@ export class AppsConsumer {
         errorMessage: event.error,
       } as any);
 
-      this.logger.log(
-        `Installation record ${event.installationId} updated to FAILED`,
-      );
+      this.logger.log(`Installation record ${event.installationId} updated to FAILED`);
     } catch (error) {
       this.logger.error(
         `Failed to update installation record ${event.installationId}:`,
-        error.message,
+        error.message
       );
     }
   }
@@ -98,9 +92,7 @@ export class AppsConsumer {
     },
   })
   async handleUninstallCompleted(event: AppUninstallCompletedEvent) {
-    this.logger.log(
-      `App uninstall completed: ${event.appId} from device ${event.deviceId}`,
-    );
+    this.logger.log(`App uninstall completed: ${event.appId} from device ${event.deviceId}`);
 
     try {
       if (event.status === 'success') {
@@ -111,7 +103,7 @@ export class AppsConsumer {
         } as any);
 
         this.logger.log(
-          `Device-app relation deleted for device ${event.deviceId}, app ${event.appId}`,
+          `Device-app relation deleted for device ${event.deviceId}, app ${event.appId}`
         );
       } else {
         // 卸载失败，记录错误
@@ -122,15 +114,11 @@ export class AppsConsumer {
           } as any,
           {
             errorMessage: event.error,
-          },
+          }
         );
       }
     } catch (error) {
-      this.logger.error(
-        `Failed to handle uninstall completed event:`,
-        error.message,
-      );
+      this.logger.error(`Failed to handle uninstall completed event:`, error.message);
     }
   }
 }
-

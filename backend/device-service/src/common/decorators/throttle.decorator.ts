@@ -1,6 +1,6 @@
-import { SetMetadata } from "@nestjs/common";
+import { SetMetadata } from '@nestjs/common';
 
-export const THROTTLE_KEY = "throttle";
+export const THROTTLE_KEY = 'throttle';
 
 /**
  * 节流配置

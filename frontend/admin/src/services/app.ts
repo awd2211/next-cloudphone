@@ -19,10 +19,12 @@ export const getApps = (params?: PaginationParams) => {
 };
 
 // 应用列表 (游标分页 - 高性能)
-export const getAppsCursor = (params?: CursorPaginationParams & {
-  tenantId?: string;
-  category?: string;
-}) => {
+export const getAppsCursor = (
+  params?: CursorPaginationParams & {
+    tenantId?: string;
+    category?: string;
+  }
+) => {
   return request.get<CursorPaginatedResponse<Application>>('/apps/cursor', { params });
 };
 

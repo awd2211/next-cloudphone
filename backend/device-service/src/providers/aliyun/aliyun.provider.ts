@@ -3,8 +3,8 @@ import {
   Logger,
   InternalServerErrorException,
   NotImplementedException,
-} from "@nestjs/common";
-import { IDeviceProvider } from "../device-provider.interface";
+} from '@nestjs/common';
+import { IDeviceProvider } from '../device-provider.interface';
 import {
   DeviceProviderType,
   DeviceProviderStatus,
@@ -21,12 +21,9 @@ import {
   FileTransferOptions,
   AppInstallOptions,
   CaptureFormat,
-} from "../provider.types";
-import { AliyunEcpClient } from "./aliyun-ecp.client";
-import {
-  AliyunPhoneStatus,
-  ALIYUN_PHONE_SPECS,
-} from "./aliyun.types";
+} from '../provider.types';
+import { AliyunEcpClient } from './aliyun-ecp.client';
+import { AliyunPhoneStatus, ALIYUN_PHONE_SPECS } from './aliyun.types';
 
 /**
  * AliyunProvider - 阿里云国际云手机 ECP Provider
@@ -59,9 +56,7 @@ export class AliyunProvider implements IDeviceProvider {
    * 创建云手机实例
    */
   async create(config: DeviceCreateConfig): Promise<ProviderDevice> {
-    this.logger.log(
-      `Creating Aliyun ECP phone for user ${config.userId}: ${config.name}`,
-    );
+    this.logger.log(`Creating Aliyun ECP phone for user ${config.userId}: ${config.name}`);
 
     try {
       // 根据配置选择规格
@@ -69,23 +64,18 @@ export class AliyunProvider implements IDeviceProvider {
 
       // 从 providerSpecificConfig 获取阿里云特定配置
       const regionId =
-        config.providerSpecificConfig?.regionId ||
-        process.env.ALIYUN_REGION ||
-        "cn-hangzhou";
+        config.providerSpecificConfig?.regionId || process.env.ALIYUN_REGION || 'cn-hangzhou';
       const zoneId =
         config.providerSpecificConfig?.zoneId ||
         process.env.ALIYUN_DEFAULT_ZONE_ID ||
         `${regionId}-b`;
       const imageId =
-        config.providerSpecificConfig?.imageId ||
-        process.env.ALIYUN_DEFAULT_IMAGE_ID ||
-        "default";
-      const chargeType =
-        config.providerSpecificConfig?.chargeType || "PostPaid";
+        config.providerSpecificConfig?.imageId || process.env.ALIYUN_DEFAULT_IMAGE_ID || 'default';
+      const chargeType = config.providerSpecificConfig?.chargeType || 'PostPaid';
 
       // 解析分辨率
       const resolution =
-        typeof config.resolution === "string"
+        typeof config.resolution === 'string'
           ? config.resolution
           : `${config.resolution.width}x${config.resolution.height}`;
 
@@ -102,19 +92,18 @@ export class AliyunProvider implements IDeviceProvider {
           config.providerSpecificConfig?.securityGroupId ||
           process.env.ALIYUN_DEFAULT_SECURITY_GROUP_ID,
         vSwitchId:
-          config.providerSpecificConfig?.vSwitchId ||
-          process.env.ALIYUN_DEFAULT_VSWITCH_ID,
+          config.providerSpecificConfig?.vSwitchId || process.env.ALIYUN_DEFAULT_VSWITCH_ID,
         description: `Cloud phone for user ${config.userId}`,
         property: {
           userId: config.userId,
           resolution,
-          createdBy: "device-service",
+          createdBy: 'device-service',
         },
       });
 
       if (!result.success || !result.data) {
         throw new InternalServerErrorException(
-          `Failed to create Aliyun phone: ${result.errorMessage}`,
+          `Failed to create Aliyun phone: ${result.errorMessage}`
         );
       }
 
@@ -129,15 +118,15 @@ export class AliyunProvider implements IDeviceProvider {
           providerType: DeviceProviderType.ALIYUN_ECP,
           aliyunEcp: {
             instanceId: instance.instanceId,
-            webrtcToken: "will-be-fetched-on-connect",
+            webrtcToken: 'will-be-fetched-on-connect',
             webrtcUrl: `wss://ecp-stream.${regionId}.aliyuncs.com/stream/${instance.instanceId}`,
             tokenExpiresAt: new Date(Date.now() + 30000), // 30秒后
           },
         },
         properties: {
-          manufacturer: "Aliyun",
+          manufacturer: 'Aliyun',
           model: `ECP-${instanceType}`,
-          androidVersion: instance.systemVersion || "11",
+          androidVersion: instance.systemVersion || '11',
           resolution,
           dpi: config.dpi || 480,
         },
@@ -163,9 +152,7 @@ export class AliyunProvider implements IDeviceProvider {
 
     const result = await this.ecpClient.startInstance(deviceId);
     if (!result.success) {
-      throw new InternalServerErrorException(
-        `Failed to start: ${result.errorMessage}`,
-      );
+      throw new InternalServerErrorException(`Failed to start: ${result.errorMessage}`);
     }
   }
 
@@ -177,9 +164,7 @@ export class AliyunProvider implements IDeviceProvider {
 
     const result = await this.ecpClient.stopInstance(deviceId);
     if (!result.success) {
-      throw new InternalServerErrorException(
-        `Failed to stop: ${result.errorMessage}`,
-      );
+      throw new InternalServerErrorException(`Failed to stop: ${result.errorMessage}`);
     }
   }
 
@@ -191,9 +176,7 @@ export class AliyunProvider implements IDeviceProvider {
 
     const result = await this.ecpClient.deleteInstance(deviceId);
     if (!result.success) {
-      throw new InternalServerErrorException(
-        `Failed to destroy: ${result.errorMessage}`,
-      );
+      throw new InternalServerErrorException(`Failed to destroy: ${result.errorMessage}`);
     }
   }
 
@@ -204,9 +187,7 @@ export class AliyunProvider implements IDeviceProvider {
     const result = await this.ecpClient.describeInstance(deviceId);
 
     if (!result.success || !result.data) {
-      throw new InternalServerErrorException(
-        `Failed to get status: ${result.errorMessage}`,
-      );
+      throw new InternalServerErrorException(`Failed to get status: ${result.errorMessage}`);
     }
 
     return this.mapAliyunStatusToProviderStatus(result.data.status);
@@ -223,7 +204,7 @@ export class AliyunProvider implements IDeviceProvider {
 
     if (!result.success || !result.data) {
       throw new InternalServerErrorException(
-        `Failed to get connection info: ${result.errorMessage}`,
+        `Failed to get connection info: ${result.errorMessage}`
       );
     }
 
@@ -248,24 +229,22 @@ export class AliyunProvider implements IDeviceProvider {
     const result = await this.ecpClient.describeInstance(deviceId);
 
     if (!result.success || !result.data) {
-      throw new InternalServerErrorException(
-        `Failed to get properties: ${result.errorMessage}`,
-      );
+      throw new InternalServerErrorException(`Failed to get properties: ${result.errorMessage}`);
     }
 
     const instance = result.data;
 
     return {
-      manufacturer: "Aliyun",
+      manufacturer: 'Aliyun',
       model: instance.phoneModel || `ECP-${instance.instanceType}`,
-      androidVersion: instance.systemVersion || "11",
+      androidVersion: instance.systemVersion || '11',
       serialNumber: instance.instanceId,
       custom: {
         regionId: instance.regionId,
         zoneId: instance.zoneId,
         chargeType: instance.chargeType,
-        publicIp: instance.publicIp || "",
-        privateIp: instance.privateIp || "",
+        publicIp: instance.publicIp || '',
+        privateIp: instance.privateIp || '',
       },
     };
   }
@@ -326,9 +305,7 @@ export class AliyunProvider implements IDeviceProvider {
     });
 
     if (!result.success) {
-      throw new InternalServerErrorException(
-        `Failed to reboot: ${result.errorMessage}`,
-      );
+      throw new InternalServerErrorException(`Failed to reboot: ${result.errorMessage}`);
     }
   }
 
@@ -343,9 +320,9 @@ export class AliyunProvider implements IDeviceProvider {
    */
   async sendTouchEvent(deviceId: string, event: TouchEvent): Promise<void> {
     throw new NotImplementedException(
-      "Touch events should be sent via Aliyun WebRTC data channel. " +
-        "Frontend should send touch events directly to WebRTC connection. " +
-        "Alternatively, use ADB: adb shell input tap x y",
+      'Touch events should be sent via Aliyun WebRTC data channel. ' +
+        'Frontend should send touch events directly to WebRTC connection. ' +
+        'Alternatively, use ADB: adb shell input tap x y'
     );
   }
 
@@ -354,8 +331,8 @@ export class AliyunProvider implements IDeviceProvider {
    */
   async sendSwipeEvent(deviceId: string, event: SwipeEvent): Promise<void> {
     throw new NotImplementedException(
-      "Swipe events should be sent via Aliyun WebRTC data channel. " +
-        "Alternatively, use ADB: adb shell input swipe x1 y1 x2 y2 duration",
+      'Swipe events should be sent via Aliyun WebRTC data channel. ' +
+        'Alternatively, use ADB: adb shell input swipe x1 y1 x2 y2 duration'
     );
   }
 
@@ -364,8 +341,8 @@ export class AliyunProvider implements IDeviceProvider {
    */
   async sendKeyEvent(deviceId: string, event: KeyEvent): Promise<void> {
     throw new NotImplementedException(
-      "Key events should be sent via Aliyun WebRTC data channel. " +
-        "Alternatively, use ADB: adb shell input keyevent KEYCODE",
+      'Key events should be sent via Aliyun WebRTC data channel. ' +
+        'Alternatively, use ADB: adb shell input keyevent KEYCODE'
     );
   }
 
@@ -374,8 +351,8 @@ export class AliyunProvider implements IDeviceProvider {
    */
   async inputText(deviceId: string, input: TextInput): Promise<void> {
     throw new NotImplementedException(
-      "Text input should be sent via Aliyun WebRTC data channel. " +
-        "Alternatively, use ADB: adb shell input text 'your text'",
+      'Text input should be sent via Aliyun WebRTC data channel. ' +
+        "Alternatively, use ADB: adb shell input text 'your text'"
     );
   }
 
@@ -386,8 +363,9 @@ export class AliyunProvider implements IDeviceProvider {
    */
   async executeShell(deviceId: string, command: string): Promise<string> {
     throw new NotImplementedException(
-      "Shell execution requires ADB connection. " +
-        "Use ADB service: adb -s <instanceId> shell " + command,
+      'Shell execution requires ADB connection. ' +
+        'Use ADB service: adb -s <instanceId> shell ' +
+        command
     );
   }
 
@@ -396,13 +374,10 @@ export class AliyunProvider implements IDeviceProvider {
    *
    * 需通过 ADB 实现: adb push
    */
-  async pushFile(
-    deviceId: string,
-    options: FileTransferOptions,
-  ): Promise<void> {
+  async pushFile(deviceId: string, options: FileTransferOptions): Promise<void> {
     throw new NotImplementedException(
-      "File transfer requires ADB connection. " +
-        `Use ADB service: adb push ${options.localPath} ${options.remotePath}`,
+      'File transfer requires ADB connection. ' +
+        `Use ADB service: adb push ${options.localPath} ${options.remotePath}`
     );
   }
 
@@ -411,13 +386,10 @@ export class AliyunProvider implements IDeviceProvider {
    *
    * 需通过 ADB 实现: adb pull
    */
-  async pullFile(
-    deviceId: string,
-    options: FileTransferOptions,
-  ): Promise<void> {
+  async pullFile(deviceId: string, options: FileTransferOptions): Promise<void> {
     throw new NotImplementedException(
-      "File transfer requires ADB connection. " +
-        `Use ADB service: adb pull ${options.remotePath} ${options.localPath}`,
+      'File transfer requires ADB connection. ' +
+        `Use ADB service: adb pull ${options.remotePath} ${options.localPath}`
     );
   }
 
@@ -426,13 +398,11 @@ export class AliyunProvider implements IDeviceProvider {
    *
    * 需通过 ADB 实现: adb install <apk>
    */
-  async installApp(
-    deviceId: string,
-    options: AppInstallOptions,
-  ): Promise<string | void> {
+  async installApp(deviceId: string, options: AppInstallOptions): Promise<string | void> {
     throw new NotImplementedException(
-      "App installation requires ADB connection. " +
-        "Use ADB service: adb -s <instanceId> install " + options.apkPath,
+      'App installation requires ADB connection. ' +
+        'Use ADB service: adb -s <instanceId> install ' +
+        options.apkPath
     );
   }
 
@@ -441,8 +411,9 @@ export class AliyunProvider implements IDeviceProvider {
    */
   async uninstallApp(deviceId: string, packageName: string): Promise<void> {
     throw new NotImplementedException(
-      "App uninstallation requires ADB connection. " +
-        "Use ADB service: adb -s <instanceId> uninstall " + packageName,
+      'App uninstallation requires ADB connection. ' +
+        'Use ADB service: adb -s <instanceId> uninstall ' +
+        packageName
     );
   }
 
@@ -453,8 +424,8 @@ export class AliyunProvider implements IDeviceProvider {
    */
   async takeScreenshot(deviceId: string): Promise<Buffer> {
     throw new NotImplementedException(
-      "Screenshot can be captured from WebRTC video stream (client-side), " +
-        "or via ADB: adb shell screencap -p /sdcard/screen.png && adb pull /sdcard/screen.png",
+      'Screenshot can be captured from WebRTC video stream (client-side), ' +
+        'or via ADB: adb shell screencap -p /sdcard/screen.png && adb pull /sdcard/screen.png'
     );
   }
 
@@ -463,8 +434,8 @@ export class AliyunProvider implements IDeviceProvider {
    */
   async startRecording(deviceId: string, duration?: number): Promise<string> {
     throw new NotImplementedException(
-      "Screen recording should be done on WebRTC client side by recording MediaStream. " +
-        "Alternatively, use ADB: adb shell screenrecord /sdcard/recording.mp4",
+      'Screen recording should be done on WebRTC client side by recording MediaStream. ' +
+        'Alternatively, use ADB: adb shell screenrecord /sdcard/recording.mp4'
     );
   }
 
@@ -473,8 +444,8 @@ export class AliyunProvider implements IDeviceProvider {
    */
   async stopRecording(deviceId: string, recordingId: string): Promise<Buffer> {
     throw new NotImplementedException(
-      "Screen recording should be stopped on client side. " +
-        "If using ADB, pull the recording file: adb pull /sdcard/recording.mp4",
+      'Screen recording should be stopped on client side. ' +
+        'If using ADB, pull the recording file: adb pull /sdcard/recording.mp4'
     );
   }
 
@@ -483,30 +454,23 @@ export class AliyunProvider implements IDeviceProvider {
    *
    * 需通过 ADB 模拟位置或阿里云控制台配置
    */
-  async setLocation(
-    deviceId: string,
-    latitude: number,
-    longitude: number,
-  ): Promise<void> {
+  async setLocation(deviceId: string, latitude: number, longitude: number): Promise<void> {
     throw new NotImplementedException(
-      "Location mocking requires ADB commands or Aliyun console configuration. " +
-        "Use ADB: adb shell setprop mock.gps.lat " +
+      'Location mocking requires ADB commands or Aliyun console configuration. ' +
+        'Use ADB: adb shell setprop mock.gps.lat ' +
         latitude +
-        " && adb shell setprop mock.gps.lng " +
-        longitude,
+        ' && adb shell setprop mock.gps.lng ' +
+        longitude
     );
   }
 
   /**
    * 旋转屏幕
    */
-  async rotateScreen(
-    deviceId: string,
-    orientation: "portrait" | "landscape",
-  ): Promise<void> {
+  async rotateScreen(deviceId: string, orientation: 'portrait' | 'landscape'): Promise<void> {
     throw new NotImplementedException(
-      "Screen rotation should be controlled via Aliyun WebRTC data channel. " +
-        "Alternatively, use ADB: adb shell settings put system user_rotation <0|1|2|3>",
+      'Screen rotation should be controlled via Aliyun WebRTC data channel. ' +
+        'Alternatively, use ADB: adb shell settings put system user_rotation <0|1|2|3>'
     );
   }
 
@@ -537,9 +501,7 @@ export class AliyunProvider implements IDeviceProvider {
   /**
    * 映射阿里云状态到 Provider 状态
    */
-  private mapAliyunStatusToProviderStatus(
-    status: AliyunPhoneStatus,
-  ): DeviceProviderStatus {
+  private mapAliyunStatusToProviderStatus(status: AliyunPhoneStatus): DeviceProviderStatus {
     switch (status) {
       case AliyunPhoneStatus.CREATING:
       case AliyunPhoneStatus.STARTING:

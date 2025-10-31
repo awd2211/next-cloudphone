@@ -42,7 +42,7 @@ import { SqlInjectionGuard } from './sql-injection-guard';
         const maxStringLength = configService.get<number>('VALIDATION_MAX_STRING_LENGTH', 10000);
         const enableHtmlSanitization = configService.get<boolean>(
           'VALIDATION_ENABLE_HTML_SANITIZATION',
-          true,
+          true
         );
 
         return new SanitizationPipe({

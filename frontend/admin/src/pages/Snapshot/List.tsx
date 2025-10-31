@@ -38,7 +38,7 @@ import {
   useCreateSnapshot,
   useRestoreSnapshot,
   useCompressSnapshot,
-  useDeleteSnapshot
+  useDeleteSnapshot,
 } from '@/hooks/useSnapshots';
 import { useDevices } from '@/hooks/useDevices';
 
@@ -86,23 +86,35 @@ const SnapshotList = () => {
   const devices = devicesData?.data || [];
 
   // ✅ useCallback 优化事件处理函数
-  const handleCreate = useCallback(async (values: any) => {
-    await createMutation.mutateAsync(values);
-    setCreateModalVisible(false);
-    form.resetFields();
-  }, [createMutation, form]);
+  const handleCreate = useCallback(
+    async (values: any) => {
+      await createMutation.mutateAsync(values);
+      setCreateModalVisible(false);
+      form.resetFields();
+    },
+    [createMutation, form]
+  );
 
-  const handleRestore = useCallback(async (id: string, deviceName: string) => {
-    await restoreMutation.mutateAsync({ id, deviceName });
-  }, [restoreMutation]);
+  const handleRestore = useCallback(
+    async (id: string, deviceName: string) => {
+      await restoreMutation.mutateAsync({ id, deviceName });
+    },
+    [restoreMutation]
+  );
 
-  const handleCompress = useCallback(async (id: string) => {
-    await compressMutation.mutateAsync(id);
-  }, [compressMutation]);
+  const handleCompress = useCallback(
+    async (id: string) => {
+      await compressMutation.mutateAsync(id);
+    },
+    [compressMutation]
+  );
 
-  const handleDelete = useCallback(async (id: string) => {
-    await deleteMutation.mutateAsync(id);
-  }, [deleteMutation]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteMutation.mutateAsync(id);
+    },
+    [deleteMutation]
+  );
 
   const handleCreateModalOpen = useCallback(() => {
     setCreateModalVisible(true);
@@ -123,142 +135,147 @@ const SnapshotList = () => {
   }, []);
 
   // ✅ useMemo 优化状态配置
-  const statusConfig = useMemo(() => ({
-    creating: { color: 'processing' as const, icon: <ClockCircleOutlined />, text: '创建中' },
-    ready: { color: 'success' as const, icon: <CheckCircleOutlined />, text: '就绪' },
-    restoring: { color: 'processing' as const, icon: <ClockCircleOutlined />, text: '恢复中' },
-    failed: { color: 'error' as const, icon: <ExclamationCircleOutlined />, text: '失败' },
-  }), []);
+  const statusConfig = useMemo(
+    () => ({
+      creating: { color: 'processing' as const, icon: <ClockCircleOutlined />, text: '创建中' },
+      ready: { color: 'success' as const, icon: <CheckCircleOutlined />, text: '就绪' },
+      restoring: { color: 'processing' as const, icon: <ClockCircleOutlined />, text: '恢复中' },
+      failed: { color: 'error' as const, icon: <ExclamationCircleOutlined />, text: '失败' },
+    }),
+    []
+  );
 
-  const renderStatus = useCallback((status: string) => {
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.ready;
-    return (
-      <Tag icon={config.icon} color={config.color}>
-        {config.text}
-      </Tag>
-    );
-  }, [statusConfig]);
+  const renderStatus = useCallback(
+    (status: string) => {
+      const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.ready;
+      return (
+        <Tag icon={config.icon} color={config.color}>
+          {config.text}
+        </Tag>
+      );
+    },
+    [statusConfig]
+  );
 
   // ✅ useMemo 优化表格列配置
-  const columns: ColumnsType<DeviceSnapshot> = useMemo(() => [
-    {
-      title: '快照名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 200,
-      render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: '设备',
-      dataIndex: ['device', 'name'],
-      key: 'deviceName',
-      width: 150,
-      render: (text, record) => (
-        <Tooltip title={`设备 ID: ${record.deviceId}`}>
-          <span>{text || record.deviceId}</span>
-        </Tooltip>
-      ),
-    },
-    {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-      render: (text) => text || '-',
-    },
-    {
-      title: '大小',
-      dataIndex: 'size',
-      key: 'size',
-      width: 120,
-      sorter: (a, b) => a.size - b.size,
-      render: (size) => formatSize(size),
-    },
-    {
-      title: '压缩状态',
-      dataIndex: 'compressed',
-      key: 'compressed',
-      width: 100,
-      align: 'center',
-      filters: [
-        { text: '已压缩', value: true },
-        { text: '未压缩', value: false },
-      ],
-      render: (compressed) =>
-        compressed ? (
-          <Tag color="green">已压缩</Tag>
-        ) : (
-          <Tag color="orange">未压缩</Tag>
+  const columns: ColumnsType<DeviceSnapshot> = useMemo(
+    () => [
+      {
+        title: '快照名称',
+        dataIndex: 'name',
+        key: 'name',
+        width: 200,
+        render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
+        sorter: (a, b) => a.name.localeCompare(b.name),
+      },
+      {
+        title: '设备',
+        dataIndex: ['device', 'name'],
+        key: 'deviceName',
+        width: 150,
+        render: (text, record) => (
+          <Tooltip title={`设备 ID: ${record.deviceId}`}>
+            <span>{text || record.deviceId}</span>
+          </Tooltip>
         ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      align: 'center',
-      filters: [
-        { text: '创建中', value: 'creating' },
-        { text: '就绪', value: 'ready' },
-        { text: '恢复中', value: 'restoring' },
-        { text: '失败', value: 'failed' },
-      ],
-      render: renderStatus,
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 180,
-      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 280,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          {record.status === 'ready' && (
-            <>
-              <Popconfirm
-                title={`确定要恢复快照 "${record.name}" 吗？`}
-                description="此操作将覆盖设备当前状态，无法撤销"
-                onConfirm={() => handleRestore(record.id, record.device?.name || record.deviceId)}
-              >
-                <Button type="link" size="small" icon={<RollbackOutlined />}>
-                  恢复
-                </Button>
-              </Popconfirm>
-              {!record.compressed && (
-                <Tooltip title="压缩快照以节省存储空间">
-                  <Button
-                    type="link"
-                    size="small"
-                    icon={<CompressOutlined />}
-                    onClick={() => handleCompress(record.id)}
-                  >
-                    压缩
+      },
+      {
+        title: '描述',
+        dataIndex: 'description',
+        key: 'description',
+        ellipsis: true,
+        render: (text) => text || '-',
+      },
+      {
+        title: '大小',
+        dataIndex: 'size',
+        key: 'size',
+        width: 120,
+        sorter: (a, b) => a.size - b.size,
+        render: (size) => formatSize(size),
+      },
+      {
+        title: '压缩状态',
+        dataIndex: 'compressed',
+        key: 'compressed',
+        width: 100,
+        align: 'center',
+        filters: [
+          { text: '已压缩', value: true },
+          { text: '未压缩', value: false },
+        ],
+        render: (compressed) =>
+          compressed ? <Tag color="green">已压缩</Tag> : <Tag color="orange">未压缩</Tag>,
+      },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        key: 'status',
+        width: 100,
+        align: 'center',
+        filters: [
+          { text: '创建中', value: 'creating' },
+          { text: '就绪', value: 'ready' },
+          { text: '恢复中', value: 'restoring' },
+          { text: '失败', value: 'failed' },
+        ],
+        render: renderStatus,
+      },
+      {
+        title: '创建时间',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        width: 180,
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
+      },
+      {
+        title: '操作',
+        key: 'action',
+        width: 280,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="small">
+            {record.status === 'ready' && (
+              <>
+                <Popconfirm
+                  title={`确定要恢复快照 "${record.name}" 吗？`}
+                  description="此操作将覆盖设备当前状态，无法撤销"
+                  onConfirm={() => handleRestore(record.id, record.device?.name || record.deviceId)}
+                >
+                  <Button type="link" size="small" icon={<RollbackOutlined />}>
+                    恢复
                   </Button>
-                </Tooltip>
-              )}
-            </>
-          )}
-          <Popconfirm
-            title="确定要删除这个快照吗？"
-            description="删除后将无法恢复"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ], [formatSize, renderStatus, handleRestore, handleCompress, handleDelete]);
+                </Popconfirm>
+                {!record.compressed && (
+                  <Tooltip title="压缩快照以节省存储空间">
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<CompressOutlined />}
+                      onClick={() => handleCompress(record.id)}
+                    >
+                      压缩
+                    </Button>
+                  </Tooltip>
+                )}
+              </>
+            )}
+            <Popconfirm
+              title="确定要删除这个快照吗？"
+              description="删除后将无法恢复"
+              onConfirm={() => handleDelete(record.id)}
+            >
+              <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [formatSize, renderStatus, handleRestore, handleCompress, handleDelete]
+  );
 
   // ✅ useMemo 优化存储使用率计算
   const storageUsage = useMemo(() => {
@@ -268,19 +285,21 @@ const SnapshotList = () => {
   }, [stats?.totalSize]);
 
   // ✅ useMemo 优化设备选项
-  const deviceOptions = useMemo(() =>
-    devices.map((device) => ({
-      label: device.name || device.id,
-      value: device.id,
-    })),
+  const deviceOptions = useMemo(
+    () =>
+      devices.map((device) => ({
+        label: device.name || device.id,
+        value: device.id,
+      })),
     [devices]
   );
 
-  const deviceOptionsForCreate = useMemo(() =>
-    devices.map((device) => ({
-      label: `${device.name || device.id} - ${device.status}`,
-      value: device.id,
-    })),
+  const deviceOptionsForCreate = useMemo(
+    () =>
+      devices.map((device) => ({
+        label: `${device.name || device.id} - ${device.status}`,
+        value: device.id,
+      })),
     [devices]
   );
 
@@ -420,10 +439,7 @@ const SnapshotList = () => {
             <Input placeholder="例如：系统备份_v1.0" />
           </Form.Item>
           <Form.Item label="快照描述" name="description">
-            <TextArea
-              rows={3}
-              placeholder="记录快照的用途或包含的重要变更"
-            />
+            <TextArea rows={3} placeholder="记录快照的用途或包含的重要变更" />
           </Form.Item>
         </Form>
       </Modal>

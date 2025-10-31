@@ -5,16 +5,13 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-} from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
-import { Request } from "express";
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { Request } from 'express';
 // TODO: Install @liaoliaots/nestjs-redis or use alternative Redis injection
 // import { InjectRedis } from "@liaoliaots/nestjs-redis";
-import Redis from "ioredis";
-import {
-  THROTTLE_KEY,
-  ThrottleOptions,
-} from "../decorators/throttle.decorator";
+import Redis from 'ioredis';
+import { THROTTLE_KEY, ThrottleOptions } from '../decorators/throttle.decorator';
 
 @Injectable()
 export class ThrottleGuard implements CanActivate {
@@ -22,7 +19,7 @@ export class ThrottleGuard implements CanActivate {
   private readonly redis: any = null; // TODO: Inject actual Redis instance
 
   constructor(
-    private readonly reflector: Reflector,
+    private readonly reflector: Reflector
     // @InjectRedis() private readonly redis: Redis,
   ) {
     // TODO: Inject Redis instance when @liaoliaots/nestjs-redis is installed
@@ -30,10 +27,7 @@ export class ThrottleGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // 获取节流配置
-    const throttleOptions = this.reflector.get<ThrottleOptions>(
-      THROTTLE_KEY,
-      context.getHandler(),
-    );
+    const throttleOptions = this.reflector.get<ThrottleOptions>(THROTTLE_KEY, context.getHandler());
 
     // 如果没有配置节流，直接通过
     if (!throttleOptions) {
@@ -60,9 +54,7 @@ export class ThrottleGuard implements CanActivate {
         const ttl = await this.redis.pttl(key);
         const remainingSeconds = Math.ceil(ttl / 1000);
 
-        this.logger.warn(
-          `Throttle triggered for key: ${key}, retry after ${remainingSeconds}s`,
-        );
+        this.logger.warn(`Throttle triggered for key: ${key}, retry after ${remainingSeconds}s`);
 
         throw new HttpException(
           {
@@ -70,20 +62,15 @@ export class ThrottleGuard implements CanActivate {
             message:
               throttleOptions.message ||
               `Please wait ${remainingSeconds} seconds before trying again.`,
-            error: "Too Many Requests",
+            error: 'Too Many Requests',
             retryAfter: remainingSeconds,
           },
-          HttpStatus.TOO_MANY_REQUESTS,
+          HttpStatus.TOO_MANY_REQUESTS
         );
       }
 
       // 设置节流键
-      await this.redis.set(
-        key,
-        Date.now().toString(),
-        "PX",
-        throttleOptions.ttl,
-      );
+      await this.redis.set(key, Date.now().toString(), 'PX', throttleOptions.ttl);
 
       return true;
     } catch (error) {
@@ -93,10 +80,7 @@ export class ThrottleGuard implements CanActivate {
       }
 
       // Redis错误时记录日志但允许请求通过（降级策略）
-      this.logger.error(
-        `Throttle check failed for key: ${key}`,
-        error.stack,
-      );
+      this.logger.error(`Throttle check failed for key: ${key}`, error.stack);
       return true;
     }
   }
@@ -104,11 +88,8 @@ export class ThrottleGuard implements CanActivate {
   /**
    * 构建节流键
    */
-  private buildThrottleKey(
-    request: Request,
-    options: ThrottleOptions,
-  ): string {
-    const prefix = "throttle";
+  private buildThrottleKey(request: Request, options: ThrottleOptions): string {
+    const prefix = 'throttle';
 
     // 获取标识符（用户ID或IP）
     let identifier: string;
@@ -136,17 +117,17 @@ export class ThrottleGuard implements CanActivate {
    */
   private getIpAddress(request: Request): string {
     // 考虑代理情况
-    const forwarded = request.headers["x-forwarded-for"];
+    const forwarded = request.headers['x-forwarded-for'];
     if (forwarded) {
-      const ips = (forwarded as string).split(",");
+      const ips = (forwarded as string).split(',');
       return ips[0].trim();
     }
 
-    const realIp = request.headers["x-real-ip"];
+    const realIp = request.headers['x-real-ip'];
     if (realIp) {
       return realIp as string;
     }
 
-    return request.ip || request.socket.remoteAddress || "unknown";
+    return request.ip || request.socket.remoteAddress || 'unknown';
   }
 }

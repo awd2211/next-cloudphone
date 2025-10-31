@@ -7,7 +7,14 @@ import { AppsModule } from './apps/apps.module';
 import { MinioModule } from './minio/minio.module';
 import { ApkModule } from './apk/apk.module';
 import { HealthController } from './health.controller';
-import { ConsulModule, createLoggerConfig, EventBusModule, SagaModule, SecurityModule, EventOutboxModule } from '@cloudphone/shared';
+import {
+  ConsulModule,
+  createLoggerConfig,
+  EventBusModule,
+  SagaModule,
+  SecurityModule,
+  EventOutboxModule,
+} from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 // import { AppRabbitMQModule } from './rabbitmq/rabbitmq.module'; // ❌ V2: 移除重复的 RabbitMQ 模块
 import { AppsConsumer } from './apps/apps.consumer'; // ✅ V2: 直接导入消费者
@@ -44,11 +51,11 @@ import { DeviceApplication } from './entities/device-application.entity'; // ✅
     ApkModule,
     ConsulModule,
     EventBusModule.forRoot(), // ✅ V2: 统一使用 EventBusModule.forRoot() (包含 RabbitMQModule)
-    EventOutboxModule,        // ✅ Transactional Outbox Pattern
-    SagaModule,               // Saga 编排模块（用于分布式事务）
-    SecurityModule,           // ✅ 统一安全模块（已修复 AutoBanMiddleware）
+    EventOutboxModule, // ✅ Transactional Outbox Pattern
+    SagaModule, // Saga 编排模块（用于分布式事务）
+    SecurityModule, // ✅ 统一安全模块（已修复 AutoBanMiddleware）
   ],
   controllers: [HealthController],
-  providers: [AppsConsumer],  // ✅ V2: 直接注册消费者
+  providers: [AppsConsumer], // ✅ V2: 直接注册消费者
 })
 export class AppModule {}

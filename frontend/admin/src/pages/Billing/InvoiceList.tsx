@@ -29,47 +29,47 @@ const InvoiceList: React.FC = () => {
       id: 'inv-001',
       invoiceNo: 'INV-202510-001',
       billingPeriod: '2025年10月',
-      amount: 6542.30,
+      amount: 6542.3,
       status: 'unpaid',
       issueDate: '2025-10-20',
       dueDate: '2025-10-30',
       items: [
-        { description: '设备租赁费用', quantity: 15, unitPrice: 180.00, amount: 2700.00 },
-        { description: 'CPU 使用费', quantity: 320, unitPrice: 4.50, amount: 1440.00 },
-        { description: '内存使用费', quantity: 512, unitPrice: 2.80, amount: 1433.60 },
-        { description: '存储费用', quantity: 100, unitPrice: 9.687, amount: 968.70 },
+        { description: '设备租赁费用', quantity: 15, unitPrice: 180.0, amount: 2700.0 },
+        { description: 'CPU 使用费', quantity: 320, unitPrice: 4.5, amount: 1440.0 },
+        { description: '内存使用费', quantity: 512, unitPrice: 2.8, amount: 1433.6 },
+        { description: '存储费用', quantity: 100, unitPrice: 9.687, amount: 968.7 },
       ],
     },
     {
       id: 'inv-002',
       invoiceNo: 'INV-202509-001',
       billingPeriod: '2025年9月',
-      amount: 7128.50,
+      amount: 7128.5,
       status: 'paid',
       issueDate: '2025-09-20',
       dueDate: '2025-09-30',
       paidDate: '2025-09-25',
       items: [
-        { description: '设备租赁费用', quantity: 18, unitPrice: 180.00, amount: 3240.00 },
-        { description: 'CPU 使用费', quantity: 350, unitPrice: 4.50, amount: 1575.00 },
-        { description: '内存使用费', quantity: 600, unitPrice: 2.80, amount: 1680.00 },
-        { description: '存储费用', quantity: 65, unitPrice: 9.746, amount: 633.50 },
+        { description: '设备租赁费用', quantity: 18, unitPrice: 180.0, amount: 3240.0 },
+        { description: 'CPU 使用费', quantity: 350, unitPrice: 4.5, amount: 1575.0 },
+        { description: '内存使用费', quantity: 600, unitPrice: 2.8, amount: 1680.0 },
+        { description: '存储费用', quantity: 65, unitPrice: 9.746, amount: 633.5 },
       ],
     },
     {
       id: 'inv-003',
       invoiceNo: 'INV-202508-001',
       billingPeriod: '2025年8月',
-      amount: 5896.20,
+      amount: 5896.2,
       status: 'paid',
       issueDate: '2025-08-20',
       dueDate: '2025-08-30',
       paidDate: '2025-08-22',
       items: [
-        { description: '设备租赁费用', quantity: 12, unitPrice: 180.00, amount: 2160.00 },
-        { description: 'CPU 使用费', quantity: 280, unitPrice: 4.50, amount: 1260.00 },
-        { description: '内存使用费', quantity: 450, unitPrice: 2.80, amount: 1260.00 },
-        { description: '存储费用', quantity: 120, unitPrice: 9.302, amount: 1216.20 },
+        { description: '设备租赁费用', quantity: 12, unitPrice: 180.0, amount: 2160.0 },
+        { description: 'CPU 使用费', quantity: 280, unitPrice: 4.5, amount: 1260.0 },
+        { description: '内存使用费', quantity: 450, unitPrice: 2.8, amount: 1260.0 },
+        { description: '存储费用', quantity: 120, unitPrice: 9.302, amount: 1216.2 },
       ],
     },
   ]);
@@ -283,18 +283,12 @@ const InvoiceList: React.FC = () => {
         {selectedInvoice && (
           <>
             <Descriptions bordered column={2}>
-              <Descriptions.Item label="账单编号">
-                {selectedInvoice.invoiceNo}
-              </Descriptions.Item>
+              <Descriptions.Item label="账单编号">{selectedInvoice.invoiceNo}</Descriptions.Item>
               <Descriptions.Item label="账单周期">
                 {selectedInvoice.billingPeriod}
               </Descriptions.Item>
-              <Descriptions.Item label="开票日期">
-                {selectedInvoice.issueDate}
-              </Descriptions.Item>
-              <Descriptions.Item label="到期日期">
-                {selectedInvoice.dueDate}
-              </Descriptions.Item>
+              <Descriptions.Item label="开票日期">{selectedInvoice.issueDate}</Descriptions.Item>
+              <Descriptions.Item label="到期日期">{selectedInvoice.dueDate}</Descriptions.Item>
               <Descriptions.Item label="支付日期">
                 {selectedInvoice.paidDate || '未支付'}
               </Descriptions.Item>
@@ -322,9 +316,7 @@ const InvoiceList: React.FC = () => {
                       <strong>合计</strong>
                     </Table.Summary.Cell>
                     <Table.Summary.Cell index={1}>
-                      <strong style={{ fontSize: 16 }}>
-                        ¥{selectedInvoice.amount.toFixed(2)}
-                      </strong>
+                      <strong style={{ fontSize: 16 }}>¥{selectedInvoice.amount.toFixed(2)}</strong>
                     </Table.Summary.Cell>
                   </Table.Summary.Row>
                 </Table.Summary>

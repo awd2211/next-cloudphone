@@ -30,3 +30,8 @@ export const rebootDevice = (id: string) => {
 export const getMyDeviceStats = () => {
   return request.get('/devices/my/stats');
 };
+
+// 获取单个设备的资源统计
+export const getDeviceStats = (id: string) => {
+  return request.get(`/devices/${id}/stats`);
+};

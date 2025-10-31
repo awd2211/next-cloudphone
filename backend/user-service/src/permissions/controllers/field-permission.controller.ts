@@ -20,12 +20,7 @@ import {
 } from '../../entities/field-permission.entity';
 import { EnhancedPermissionsGuard } from '../guards/enhanced-permissions.guard';
 import { AuditPermissionInterceptor } from '../interceptors/audit-permission.interceptor';
-import {
-  RequirePermissions,
-  AuditCreate,
-  AuditUpdate,
-  AuditDelete,
-} from '../decorators';
+import { RequirePermissions, AuditCreate, AuditUpdate, AuditDelete } from '../decorators';
 
 /**
  * 创建字段权限 DTO
@@ -69,18 +64,18 @@ class UpdateFieldPermissionDto {
 export class FieldPermissionController {
   constructor(
     @InjectRepository(FieldPermission)
-    private fieldPermissionRepository: Repository<FieldPermission>,
+    private fieldPermissionRepository: Repository<FieldPermission>
   ) {}
 
   /**
    * 获取所有字段权限配置
    */
   @Get()
-  @RequirePermissions('permission:fieldPermission:list')
+  @RequirePermissions('field-permission:list')
   async findAll(
     @Query('roleId') roleId?: string,
     @Query('resourceType') resourceType?: string,
-    @Query('operation') operation?: OperationType,
+    @Query('operation') operation?: OperationType
   ) {
     const where: any = {};
     if (roleId) where.roleId = roleId;
@@ -103,7 +98,7 @@ export class FieldPermissionController {
    * 根据ID获取字段权限配置
    */
   @Get(':id')
-  @RequirePermissions('permission:fieldPermission:view')
+  @RequirePermissions('field-permission:read')
   async findOne(@Param('id') id: string) {
     const permission = await this.fieldPermissionRepository.findOne({
       where: { id },
@@ -127,11 +122,8 @@ export class FieldPermissionController {
    * 获取角色的字段权限配置
    */
   @Get('role/:roleId')
-  @RequirePermissions('permission:fieldPermission:list')
-  async findByRole(
-    @Param('roleId') roleId: string,
-    @Query('resourceType') resourceType?: string,
-  ) {
+  @RequirePermissions('field-permission:list')
+  async findByRole(@Param('roleId') roleId: string, @Query('resourceType') resourceType?: string) {
     const where: any = { roleId };
     if (resourceType) where.resourceType = resourceType;
 
@@ -141,14 +133,17 @@ export class FieldPermissionController {
     });
 
     // 按资源类型和操作类型分组
-    const grouped = permissions.reduce((acc, perm) => {
-      const key = `${perm.resourceType}:${perm.operation}`;
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(perm);
-      return acc;
-    }, {} as Record<string, FieldPermission[]>);
+    const grouped = permissions.reduce(
+      (acc, perm) => {
+        const key = `${perm.resourceType}:${perm.operation}`;
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push(perm);
+        return acc;
+      },
+      {} as Record<string, FieldPermission[]>
+    );
 
     return {
       success: true,
@@ -161,7 +156,7 @@ export class FieldPermissionController {
    * 创建字段权限配置
    */
   @Post()
-  @RequirePermissions('permission:fieldPermission:create')
+  @RequirePermissions('field-permission:create')
   @AuditCreate('fieldPermission')
   async create(@Body() dto: CreateFieldPermissionDto) {
     const permission = this.fieldPermissionRepository.create({
@@ -183,7 +178,7 @@ export class FieldPermissionController {
    * 更新字段权限配置
    */
   @Put(':id')
-  @RequirePermissions('permission:fieldPermission:update')
+  @RequirePermissions('field-permission:update')
   @AuditUpdate('fieldPermission')
   async update(@Param('id') id: string, @Body() dto: UpdateFieldPermissionDto) {
     const permission = await this.fieldPermissionRepository.findOne({
@@ -211,7 +206,7 @@ export class FieldPermissionController {
    * 删除字段权限配置
    */
   @Delete(':id')
-  @RequirePermissions('permission:fieldPermission:delete')
+  @RequirePermissions('field-permission:delete')
   @AuditDelete('fieldPermission')
   async remove(@Param('id') id: string) {
     const permission = await this.fieldPermissionRepository.findOne({
@@ -237,7 +232,7 @@ export class FieldPermissionController {
    * 批量创建字段权限
    */
   @Post('batch')
-  @RequirePermissions('permission:fieldPermission:create')
+  @RequirePermissions('field-permission:create')
   @AuditCreate('fieldPermission')
   async batchCreate(@Body() dtos: CreateFieldPermissionDto[]) {
     const permissions = dtos.map((dto) =>
@@ -245,7 +240,7 @@ export class FieldPermissionController {
         ...dto,
         isActive: true,
         priority: dto.priority ?? 100,
-      }),
+      })
     );
 
     await this.fieldPermissionRepository.save(permissions);
@@ -261,7 +256,7 @@ export class FieldPermissionController {
    * 启用/禁用字段权限配置
    */
   @Put(':id/toggle')
-  @RequirePermissions('permission:fieldPermission:update')
+  @RequirePermissions('field-permission:toggle')
   @AuditUpdate('fieldPermission')
   async toggle(@Param('id') id: string) {
     const permission = await this.fieldPermissionRepository.findOne({
@@ -289,7 +284,7 @@ export class FieldPermissionController {
    * 获取字段访问级别枚举
    */
   @Get('meta/access-levels')
-  @RequirePermissions('permission:fieldPermission:list')
+  @RequirePermissions('field-permission:meta')
   getAccessLevels() {
     return {
       success: true,
@@ -304,7 +299,7 @@ export class FieldPermissionController {
    * 获取操作类型枚举
    */
   @Get('meta/operation-types')
-  @RequirePermissions('permission:fieldPermission:list')
+  @RequirePermissions('field-permission:meta')
   getOperationTypes() {
     return {
       success: true,
@@ -319,7 +314,7 @@ export class FieldPermissionController {
    * 获取字段转换规则示例
    */
   @Get('meta/transform-examples')
-  @RequirePermissions('permission:fieldPermission:list')
+  @RequirePermissions('field-permission:meta')
   getTransformExamples() {
     return {
       success: true,

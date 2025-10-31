@@ -28,11 +28,7 @@ describe('PricingEngineService', () => {
 
       const durationSeconds = 3600; // 1 小时
 
-      const result = service.calculateCost(
-        DeviceProviderType.REDROID,
-        config,
-        durationSeconds,
-      );
+      const result = service.calculateCost(DeviceProviderType.REDROID, config, durationSeconds);
 
       // 基础费用: 0.5 元/小时
       // CPU: 2 核 * 0.1 = 0.2 元/小时
@@ -53,11 +49,7 @@ describe('PricingEngineService', () => {
 
       const durationSeconds = 7200; // 2 小时
 
-      const result = service.calculateCost(
-        DeviceProviderType.REDROID,
-        config,
-        durationSeconds,
-      );
+      const result = service.calculateCost(DeviceProviderType.REDROID, config, durationSeconds);
 
       // 基础: 0.5 * 2 = 1.0
       // CPU: 4 * 0.1 * 2 = 0.8
@@ -81,11 +73,7 @@ describe('PricingEngineService', () => {
 
       const durationSeconds = 3600; // 1 小时
 
-      const result = service.calculateCost(
-        DeviceProviderType.REDROID,
-        config,
-        durationSeconds,
-      );
+      const result = service.calculateCost(DeviceProviderType.REDROID, config, durationSeconds);
 
       // 基础: 0.5 * 1.2 = 0.6
       // CPU: 8 * 0.1 * 1.2 = 0.96
@@ -108,11 +96,7 @@ describe('PricingEngineService', () => {
 
       const durationSeconds = 3600; // 1 小时
 
-      const result = service.calculateCost(
-        DeviceProviderType.PHYSICAL,
-        config,
-        durationSeconds,
-      );
+      const result = service.calculateCost(DeviceProviderType.PHYSICAL, config, durationSeconds);
 
       // 基础费用: 0.3 元/小时
       expect(result.totalCost).toBe(0.3);
@@ -130,11 +114,7 @@ describe('PricingEngineService', () => {
 
       const durationSeconds = 3600; // 1 小时
 
-      const result = service.calculateCost(
-        DeviceProviderType.PHYSICAL,
-        config,
-        durationSeconds,
-      );
+      const result = service.calculateCost(DeviceProviderType.PHYSICAL, config, durationSeconds);
 
       // 基础: 0.3
       // GPU: 0.2
@@ -156,11 +136,7 @@ describe('PricingEngineService', () => {
 
       const durationSeconds = 3600; // 1 小时
 
-      const result = service.calculateCost(
-        DeviceProviderType.HUAWEI_CPH,
-        config,
-        durationSeconds,
-      );
+      const result = service.calculateCost(DeviceProviderType.HUAWEI_CPH, config, durationSeconds);
 
       // 基础: 1.5
       // CPU: 4 * 0.2 = 0.8
@@ -184,11 +160,7 @@ describe('PricingEngineService', () => {
 
       const durationSeconds = 3600; // 1 小时
 
-      const result = service.calculateCost(
-        DeviceProviderType.ALIYUN_ECP,
-        config,
-        durationSeconds,
-      );
+      const result = service.calculateCost(DeviceProviderType.ALIYUN_ECP, config, durationSeconds);
 
       // 基础: 1.2
       // CPU: 2 * 0.15 = 0.3
@@ -208,11 +180,7 @@ describe('PricingEngineService', () => {
 
       const durationSeconds = 1800; // 30 分钟
 
-      const result = service.calculateCost(
-        DeviceProviderType.REDROID,
-        config,
-        durationSeconds,
-      );
+      const result = service.calculateCost(DeviceProviderType.REDROID, config, durationSeconds);
 
       // 应按 1 小时计费
       expect(result.durationHours).toBe(1);
@@ -227,11 +195,7 @@ describe('PricingEngineService', () => {
 
       const durationSeconds = 3660; // 61 分钟
 
-      const result = service.calculateCost(
-        DeviceProviderType.REDROID,
-        config,
-        durationSeconds,
-      );
+      const result = service.calculateCost(DeviceProviderType.REDROID, config, durationSeconds);
 
       // 应按 2 小时计费
       expect(result.durationHours).toBe(2);
@@ -249,7 +213,7 @@ describe('PricingEngineService', () => {
       const result = service.estimateMonthlyCost(
         DeviceProviderType.REDROID,
         config,
-        8, // 每天8小时
+        8 // 每天8小时
       );
 
       // 小时费率: 0.8
@@ -266,7 +230,7 @@ describe('PricingEngineService', () => {
       const result = service.estimateMonthlyCost(
         DeviceProviderType.REDROID,
         config,
-        24, // 每天24小时
+        24 // 每天24小时
       );
 
       // 小时费率: 0.8
@@ -290,28 +254,20 @@ describe('PricingEngineService', () => {
 
       // Physical: 0.3 (最便宜)
       expect(comparison[DeviceProviderType.PHYSICAL].totalCost).toBe(0.3);
-      expect(comparison[DeviceProviderType.PHYSICAL].pricingTier).toBe(
-        PricingTier.STANDARD,
-      );
+      expect(comparison[DeviceProviderType.PHYSICAL].pricingTier).toBe(PricingTier.STANDARD);
 
       // Redroid: 0.8
       expect(comparison[DeviceProviderType.REDROID].totalCost).toBe(0.8);
-      expect(comparison[DeviceProviderType.REDROID].pricingTier).toBe(
-        PricingTier.BASIC,
-      );
+      expect(comparison[DeviceProviderType.REDROID].pricingTier).toBe(PricingTier.BASIC);
 
       // Aliyun: 1.66
       expect(comparison[DeviceProviderType.ALIYUN_ECP].totalCost).toBe(1.66);
-      expect(comparison[DeviceProviderType.ALIYUN_ECP].pricingTier).toBe(
-        PricingTier.PREMIUM,
-      );
+      expect(comparison[DeviceProviderType.ALIYUN_ECP].pricingTier).toBe(PricingTier.PREMIUM);
 
       // Huawei: 2.1 (最贵，不是2.7)
       // 基础: 1.5, CPU: 2*0.2=0.4, 内存: 2*0.1=0.2 = 2.1
       expect(comparison[DeviceProviderType.HUAWEI_CPH].totalCost).toBe(2.1);
-      expect(comparison[DeviceProviderType.HUAWEI_CPH].pricingTier).toBe(
-        PricingTier.PREMIUM,
-      );
+      expect(comparison[DeviceProviderType.HUAWEI_CPH].pricingTier).toBe(PricingTier.PREMIUM);
     });
 
     it('应该包含所有 Provider 类型', () => {
@@ -337,11 +293,7 @@ describe('PricingEngineService', () => {
         memoryMB: 2048,
       };
 
-      const result = service.calculateCost(
-        DeviceProviderType.REDROID,
-        config,
-        3600,
-      );
+      const result = service.calculateCost(DeviceProviderType.REDROID, config, 3600);
 
       // 只有基础费用和内存费用
       expect(result.totalCost).toBe(0.6); // 0.5 + 0.1
@@ -353,11 +305,7 @@ describe('PricingEngineService', () => {
         memoryMB: 0,
       };
 
-      const result = service.calculateCost(
-        DeviceProviderType.REDROID,
-        config,
-        3600,
-      );
+      const result = service.calculateCost(DeviceProviderType.REDROID, config, 3600);
 
       // 只有基础费用和 CPU 费用
       expect(result.totalCost).toBe(0.7); // 0.5 + 0.2
@@ -369,11 +317,7 @@ describe('PricingEngineService', () => {
         memoryMB: 2048,
       };
 
-      const result = service.calculateCost(
-        DeviceProviderType.REDROID,
-        config,
-        0,
-      );
+      const result = service.calculateCost(DeviceProviderType.REDROID, config, 0);
 
       // 应按 1 小时计费（向上取整）
       expect(result.durationHours).toBe(0); // ceil(0/3600)
@@ -386,11 +330,7 @@ describe('PricingEngineService', () => {
         memoryMB: 2048,
       };
 
-      const result = service.calculateCost(
-        'unknown_provider' as any,
-        config,
-        3600,
-      );
+      const result = service.calculateCost('unknown_provider' as any, config, 3600);
 
       // 应使用 Redroid 默认定价
       expect(result.totalCost).toBe(0.8);

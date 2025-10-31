@@ -1,5 +1,12 @@
 import { useMemo } from 'react';
-import { hasAdminRole, isSuperAdmin, getHighestRole, getRoleColor, getRoleDisplayName, UserRole } from '@/utils/role';
+import {
+  hasAdminRole,
+  isSuperAdmin,
+  getHighestRole,
+  getRoleColor,
+  getRoleDisplayName,
+  UserRole,
+} from '@/utils/role';
 
 /**
  * 用户角色 Hook
@@ -55,7 +62,7 @@ export const useRole = () => {
    */
   const hasAnyRole = (roleNames: string[]): boolean => {
     const userRoleNames = roles.map((r: any) => (typeof r === 'string' ? r : r.name));
-    return roleNames.some(name => userRoleNames.includes(name));
+    return roleNames.some((name) => userRoleNames.includes(name));
   };
 
   return {

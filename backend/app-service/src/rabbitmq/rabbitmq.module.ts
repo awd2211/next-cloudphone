@@ -7,7 +7,7 @@ import { DeviceApplication } from '../entities/device-application.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([DeviceApplication]),  // ✅ Consumer 需要 DeviceApplication 仓库
+    TypeOrmModule.forFeature([DeviceApplication]), // ✅ Consumer 需要 DeviceApplication 仓库
     RabbitMQModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

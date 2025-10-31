@@ -144,9 +144,7 @@ export const envValidationSchema = Joi.object({
   METRICS_TRACK_CHANNEL_USAGE: Joi.boolean().default(true),
 
   // ===== 日志配置 =====
-  LOG_LEVEL: Joi.string()
-    .valid('debug', 'info', 'warn', 'error', 'fatal')
-    .default('info'),
+  LOG_LEVEL: Joi.string().valid('debug', 'info', 'warn', 'error', 'fatal').default('info'),
   LOG_FORMAT: Joi.string().valid('json', 'pretty').default('json'),
   LOG_FILE_ENABLED: Joi.boolean().default(false),
   LOG_FILE_PATH: Joi.string().optional(),

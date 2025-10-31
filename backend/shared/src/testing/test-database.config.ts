@@ -31,7 +31,7 @@ import { DataSource, DataSourceOptions } from 'typeorm';
  * @returns 数据源实例
  */
 export async function createTestDataSource(
-  options: Partial<DataSourceOptions> = {},
+  options: Partial<DataSourceOptions> = {}
 ): Promise<DataSource> {
   const defaultOptions: DataSourceOptions = {
     type: 'postgres',
@@ -95,7 +95,7 @@ export async function resetDatabase(dataSource: DataSource): Promise<void> {
  */
 export async function runInTestTransaction<T>(
   dataSource: DataSource,
-  callback: (dataSource: DataSource) => Promise<T>,
+  callback: (dataSource: DataSource) => Promise<T>
 ): Promise<T> {
   const queryRunner = dataSource.createQueryRunner();
 
@@ -131,7 +131,7 @@ export async function runInTestTransaction<T>(
 export async function waitForDatabase(
   dataSource: DataSource,
   maxRetries: number = 10,
-  delayMs: number = 1000,
+  delayMs: number = 1000
 ): Promise<void> {
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -140,7 +140,7 @@ export async function waitForDatabase(
     } catch (error) {
       if (i === maxRetries - 1) {
         throw new Error(
-          `Database connection failed after ${maxRetries} attempts: ${error.message}`,
+          `Database connection failed after ${maxRetries} attempts: ${error.message}`
         );
       }
       await new Promise((resolve) => setTimeout(resolve, delayMs));

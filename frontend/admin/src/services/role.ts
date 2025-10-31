@@ -12,12 +12,19 @@ export const getRole = (id: string) => {
 };
 
 // 创建角色
-export const createRole = (data: { name: string; description?: string; permissionIds: string[] }) => {
+export const createRole = (data: {
+  name: string;
+  description?: string;
+  permissionIds: string[];
+}) => {
   return request.post<Role>('/roles', data);
 };
 
 // 更新角色
-export const updateRole = (id: string, data: { name?: string; description?: string; permissionIds?: string[] }) => {
+export const updateRole = (
+  id: string,
+  data: { name?: string; description?: string; permissionIds?: string[] }
+) => {
   return request.patch<Role>(`/roles/${id}`, data);
 };
 
@@ -33,12 +40,19 @@ export const getPermissions = () => {
 };
 
 // 创建权限
-export const createPermission = (data: { resource: string; action: string; description?: string }) => {
+export const createPermission = (data: {
+  resource: string;
+  action: string;
+  description?: string;
+}) => {
   return request.post<Permission>('/permissions', data);
 };
 
 // 更新权限
-export const updatePermission = (id: string, data: { resource?: string; action?: string; description?: string }) => {
+export const updatePermission = (
+  id: string,
+  data: { resource?: string; action?: string; description?: string }
+) => {
   return request.patch<Permission>(`/permissions/${id}`, data);
 };
 
@@ -68,6 +82,8 @@ export const getPermissionsByResource = (resource: string) => {
 };
 
 // 批量创建权限 (P2 优先级)
-export const bulkCreatePermissions = (data: Array<{ resource: string; action: string; description?: string }>) => {
+export const bulkCreatePermissions = (
+  data: Array<{ resource: string; action: string; description?: string }>
+) => {
   return request.post<Permission[]>('/permissions/bulk', data);
 };

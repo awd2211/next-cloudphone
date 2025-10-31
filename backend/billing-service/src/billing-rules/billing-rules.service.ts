@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BillingRule, RuleType, ResourceType, BillingUnit } from './entities/billing-rule.entity';
@@ -30,7 +25,7 @@ export class BillingRulesService {
 
   constructor(
     @InjectRepository(BillingRule)
-    private ruleRepository: Repository<BillingRule>,
+    private ruleRepository: Repository<BillingRule>
   ) {}
 
   async createRule(dto: CreateBillingRuleDto): Promise<BillingRule> {
@@ -81,7 +76,7 @@ export class BillingRulesService {
   async calculatePrice(
     resourceType: ResourceType,
     quantity: number,
-    context?: any,
+    context?: any
   ): Promise<{ rule: BillingRule; price: number }> {
     const rules = await this.ruleRepository.find({
       where: { resourceType, isActive: true },

@@ -116,7 +116,7 @@ export const useFieldPermission = () => {
       if (params?.operation) queryParams.append('operation', params.operation);
 
       const response = await request.get(
-        `/field-permissions${queryParams.toString() ? `?${queryParams}` : ''}`,
+        `/field-permissions${queryParams.toString() ? `?${queryParams}` : ''}`
       );
 
       console.log('🔍 useFieldPermission fetchFieldPermissions 响应:', response);
@@ -166,29 +166,26 @@ export const useFieldPermission = () => {
   /**
    * 获取角色的字段权限配置
    */
-  const getRoleFieldPermissions = useCallback(
-    async (roleId: string, resourceType?: string) => {
-      setLoading(true);
-      setError(null);
+  const getRoleFieldPermissions = useCallback(async (roleId: string, resourceType?: string) => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const queryParams = resourceType ? `?resourceType=${resourceType}` : '';
-        const response = await request.get(`/field-permissions/role/${roleId}${queryParams}`);
+    try {
+      const queryParams = resourceType ? `?resourceType=${resourceType}` : '';
+      const response = await request.get(`/field-permissions/role/${roleId}${queryParams}`);
 
-        if (response.success) {
-          return response.data as Record<string, FieldPermission[]>;
-        } else {
-          throw new Error(response.message || '获取角色字段权限失败');
-        }
-      } catch (err: any) {
-        setError(err);
-        throw err;
-      } finally {
-        setLoading(false);
+      if (response.success) {
+        return response.data as Record<string, FieldPermission[]>;
+      } else {
+        throw new Error(response.message || '获取角色字段权限失败');
       }
-    },
-    [],
-  );
+    } catch (err: any) {
+      setError(err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   /**
    * 创建字段权限配置
@@ -216,28 +213,25 @@ export const useFieldPermission = () => {
   /**
    * 更新字段权限配置
    */
-  const updateFieldPermission = useCallback(
-    async (id: string, dto: UpdateFieldPermissionDto) => {
-      setLoading(true);
-      setError(null);
+  const updateFieldPermission = useCallback(async (id: string, dto: UpdateFieldPermissionDto) => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const response = await request.put(`/field-permissions/${id}`, dto);
+    try {
+      const response = await request.put(`/field-permissions/${id}`, dto);
 
-        if (response.success) {
-          return response.data as FieldPermission;
-        } else {
-          throw new Error(response.message || '更新字段权限失败');
-        }
-      } catch (err: any) {
-        setError(err);
-        throw err;
-      } finally {
-        setLoading(false);
+      if (response.success) {
+        return response.data as FieldPermission;
+      } else {
+        throw new Error(response.message || '更新字段权限失败');
       }
-    },
-    [],
-  );
+    } catch (err: any) {
+      setError(err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   /**
    * 删除字段权限配置

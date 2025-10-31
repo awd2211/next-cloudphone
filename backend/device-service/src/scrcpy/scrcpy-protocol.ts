@@ -135,9 +135,7 @@ export class ScrcpyControlMessage {
     offset += 2;
 
     // [22-23] 压力 (0xFFFF = 1.0)
-    const pressure = params.pressure !== undefined
-      ? Math.round(params.pressure * 0xFFFF)
-      : 0xFFFF;
+    const pressure = params.pressure !== undefined ? Math.round(params.pressure * 0xffff) : 0xffff;
     buffer.writeUInt16BE(pressure, offset);
     offset += 2;
 

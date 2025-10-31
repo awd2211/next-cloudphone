@@ -274,7 +274,7 @@ describe('CacheService', () => {
 
       // Assert
       expect(result).toBe(true);
-      keys.forEach(key => {
+      keys.forEach((key) => {
         expect(mockLocalCache.del).toHaveBeenCalledWith(key);
       });
       expect(mockRedis.del).toHaveBeenCalledWith(...keys);

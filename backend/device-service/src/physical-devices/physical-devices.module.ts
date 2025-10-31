@@ -1,6 +1,6 @@
-import { Module } from "@nestjs/common";
-import { PhysicalDevicesController } from "./physical-devices.controller";
-import { PhysicalModule } from "../providers/physical/physical.module";
+import { Module } from '@nestjs/common';
+import { PhysicalDevicesController } from './physical-devices.controller';
+import { PhysicalModule } from '../providers/physical/physical.module';
 
 /**
  * PhysicalDevicesModule

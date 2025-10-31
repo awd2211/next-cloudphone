@@ -106,9 +106,7 @@ describe('Device Creation Flow (E2E)', () => {
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
     await app.init();
 
-    deviceRepository = moduleFixture.get<Repository<Device>>(
-      getRepositoryToken(Device),
-    );
+    deviceRepository = moduleFixture.get<Repository<Device>>(getRepositoryToken(Device));
     dockerService = moduleFixture.get<DockerService>(DockerService);
     adbService = moduleFixture.get<AdbService>(AdbService);
     eventBusService = moduleFixture.get<EventBusService>(EventBusService);
@@ -186,7 +184,7 @@ describe('Device Creation Flow (E2E)', () => {
         expect.objectContaining({
           userId: 'user-123',
           name: 'Test Device',
-        }),
+        })
       );
 
       // Assert - Quota reporting
@@ -198,7 +196,7 @@ describe('Device Creation Flow (E2E)', () => {
           cpuCores: 2,
           memoryMB: 4096,
           diskGB: 64,
-        }),
+        })
       );
 
       // Assert - Event publishing
@@ -209,7 +207,7 @@ describe('Device Creation Flow (E2E)', () => {
           userId: 'user-123',
           name: 'Test Device',
           status: DeviceStatus.CREATING,
-        }),
+        })
       );
     });
 
@@ -252,9 +250,7 @@ describe('Device Creation Flow (E2E)', () => {
 
     it('should handle port allocation failure', async () => {
       // Arrange
-      mockPortManager.allocatePorts.mockRejectedValue(
-        new Error('No available ports'),
-      );
+      mockPortManager.allocatePorts.mockRejectedValue(new Error('No available ports'));
 
       // Act
       const response = await request(app.getHttpServer())
@@ -273,7 +269,7 @@ describe('Device Creation Flow (E2E)', () => {
     it('should rollback on event publishing failure', async () => {
       // Arrange
       mockEventBusService.publishDeviceEvent.mockRejectedValue(
-        new Error('RabbitMQ connection failed'),
+        new Error('RabbitMQ connection failed')
       );
 
       // Act
@@ -325,15 +321,10 @@ describe('Device Creation Flow (E2E)', () => {
       expect(response.body.status).toBe(DeviceStatus.RUNNING);
 
       // Assert - Docker service
-      expect(mockDockerService.startContainer).toHaveBeenCalledWith(
-        'container-123',
-      );
+      expect(mockDockerService.startContainer).toHaveBeenCalledWith('container-123');
 
       // Assert - ADB connection
-      expect(mockAdbService.connect).toHaveBeenCalledWith(
-        'localhost',
-        5555,
-      );
+      expect(mockAdbService.connect).toHaveBeenCalledWith('localhost', 5555);
 
       // Assert - Event publishing
       expect(mockEventBusService.publishDeviceEvent).toHaveBeenCalledWith(
@@ -341,15 +332,13 @@ describe('Device Creation Flow (E2E)', () => {
         expect.objectContaining({
           deviceId: device.id,
           status: DeviceStatus.RUNNING,
-        }),
+        })
       );
     });
 
     it('should handle Docker start failure', async () => {
       // Arrange
-      mockDockerService.startContainer.mockRejectedValue(
-        new Error('Container not found'),
-      );
+      mockDockerService.startContainer.mockRejectedValue(new Error('Container not found'));
 
       // Act
       const response = await request(app.getHttpServer())
@@ -390,9 +379,7 @@ describe('Device Creation Flow (E2E)', () => {
 
     it('should successfully delete a device with cleanup', async () => {
       // Act
-      await request(app.getHttpServer())
-        .delete(`/devices/${device.id}`)
-        .expect(200);
+      await request(app.getHttpServer()).delete(`/devices/${device.id}`).expect(200);
 
       // Assert - Device removed from database
       const deviceInDb = await deviceRepository.findOne({
@@ -401,18 +388,14 @@ describe('Device Creation Flow (E2E)', () => {
       expect(deviceInDb).toBeNull();
 
       // Assert - Docker cleanup
-      expect(mockDockerService.stopContainer).toHaveBeenCalledWith(
-        'container-123',
-      );
-      expect(mockDockerService.removeContainer).toHaveBeenCalledWith(
-        'container-123',
-      );
+      expect(mockDockerService.stopContainer).toHaveBeenCalledWith('container-123');
+      expect(mockDockerService.removeContainer).toHaveBeenCalledWith('container-123');
 
       // Assert - Port cleanup
       expect(mockPortManager.releasePorts).toHaveBeenCalledWith(
         device.id,
         5555,
-        expect.any(Number),
+        expect.any(Number)
       );
 
       // Assert - Quota update
@@ -420,7 +403,7 @@ describe('Device Creation Flow (E2E)', () => {
         'user-123',
         device.id,
         'delete',
-        expect.any(Object),
+        expect.any(Object)
       );
 
       // Assert - Event publishing
@@ -429,20 +412,16 @@ describe('Device Creation Flow (E2E)', () => {
         expect.objectContaining({
           deviceId: device.id,
           userId: 'user-123',
-        }),
+        })
       );
     });
 
     it('should handle cleanup errors gracefully', async () => {
       // Arrange
-      mockDockerService.stopContainer.mockRejectedValue(
-        new Error('Container already stopped'),
-      );
+      mockDockerService.stopContainer.mockRejectedValue(new Error('Container already stopped'));
 
       // Act - Should still succeed even if container stop fails
-      await request(app.getHttpServer())
-        .delete(`/devices/${device.id}`)
-        .expect(200);
+      await request(app.getHttpServer()).delete(`/devices/${device.id}`).expect(200);
 
       // Assert - Device still removed
       const deviceInDb = await deviceRepository.findOne({
@@ -520,7 +499,7 @@ describe('Device Creation Flow (E2E)', () => {
         .expect(200);
 
       expect(response.body.data).toHaveLength(2);
-      expect(response.body.data.every(d => d.userId === 'user-123')).toBe(true);
+      expect(response.body.data.every((d) => d.userId === 'user-123')).toBe(true);
     });
 
     it('should filter devices by status', async () => {
@@ -529,7 +508,7 @@ describe('Device Creation Flow (E2E)', () => {
         .expect(200);
 
       expect(response.body.data).toHaveLength(2);
-      expect(response.body.data.every(d => d.status === DeviceStatus.RUNNING)).toBe(true);
+      expect(response.body.data.every((d) => d.status === DeviceStatus.RUNNING)).toBe(true);
     });
 
     it('should support pagination', async () => {

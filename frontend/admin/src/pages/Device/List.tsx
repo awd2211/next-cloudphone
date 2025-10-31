@@ -1,6 +1,36 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Table, Tag, Space, Button, Modal, Form, Input, InputNumber, message, Popconfirm, Card, Statistic, Row, Col, Select, DatePicker, Dropdown, Badge } from 'antd';
-import { PlusOutlined, PlayCircleOutlined, StopOutlined, ReloadOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, DownloadOutlined, DownOutlined, WifiOutlined } from '@ant-design/icons';
+import {
+  Table,
+  Tag,
+  Space,
+  Button,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  message,
+  Popconfirm,
+  Card,
+  Statistic,
+  Row,
+  Col,
+  Select,
+  DatePicker,
+  Dropdown,
+  Badge,
+} from 'antd';
+import {
+  PlusOutlined,
+  PlayCircleOutlined,
+  StopOutlined,
+  ReloadOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  SearchOutlined,
+  DownloadOutlined,
+  DownOutlined,
+  WifiOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import type { Device, CreateDeviceDto } from '@/types';
@@ -24,7 +54,12 @@ import {
 } from '@/hooks/useDevices';
 
 // ✅ 导入批量操作服务（暂时保留直接调用，后续可以改造为 hooks）
-import { batchStartDevices, batchStopDevices, batchRebootDevices, batchDeleteDevices } from '@/services/device';
+import {
+  batchStartDevices,
+  batchStopDevices,
+  batchRebootDevices,
+  batchDeleteDevices,
+} from '@/services/device';
 import { queryClient } from '@/lib/react-query';
 import { deviceKeys } from '@/hooks/useDevices';
 
@@ -107,20 +142,15 @@ const DeviceList = () => {
       // 设备状态更新 - 乐观更新 UI
       if (type === 'device:status') {
         // ✅ 直接更新缓存中的数据
-        queryClient.setQueryData(
-          deviceKeys.list(params),
-          (old: any) => {
-            if (!old) return old;
-            return {
-              ...old,
-              data: old.data.map((device: Device) =>
-                device.id === data.deviceId
-                  ? { ...device, status: data.status }
-                  : device
-              ),
-            };
-          }
-        );
+        queryClient.setQueryData(deviceKeys.list(params), (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.map((device: Device) =>
+              device.id === data.deviceId ? { ...device, status: data.status } : device
+            ),
+          };
+        });
         // 失效统计缓存
         queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
       }
@@ -128,8 +158,7 @@ const DeviceList = () => {
       else if (type === 'device:created') {
         message.info(`新设备已创建: ${data.name}`);
         queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-      }
-      else if (type === 'device:deleted') {
+      } else if (type === 'device:deleted') {
         message.warning(`设备已删除: ${data.name}`);
         queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
       }
@@ -137,27 +166,42 @@ const DeviceList = () => {
   }, [lastMessage, params]);
 
   // ✅ 使用 useCallback 优化事件处理函数
-  const handleCreate = useCallback(async (values: CreateDeviceDto) => {
-    await createDeviceMutation.mutateAsync(values);
-    setCreateModalVisible(false);
-    form.resetFields();
-  }, [createDeviceMutation, form]);
+  const handleCreate = useCallback(
+    async (values: CreateDeviceDto) => {
+      await createDeviceMutation.mutateAsync(values);
+      setCreateModalVisible(false);
+      form.resetFields();
+    },
+    [createDeviceMutation, form]
+  );
 
-  const handleStart = useCallback(async (id: string) => {
-    await startDeviceMutation.mutateAsync(id);
-  }, [startDeviceMutation]);
+  const handleStart = useCallback(
+    async (id: string) => {
+      await startDeviceMutation.mutateAsync(id);
+    },
+    [startDeviceMutation]
+  );
 
-  const handleStop = useCallback(async (id: string) => {
-    await stopDeviceMutation.mutateAsync(id);
-  }, [stopDeviceMutation]);
+  const handleStop = useCallback(
+    async (id: string) => {
+      await stopDeviceMutation.mutateAsync(id);
+    },
+    [stopDeviceMutation]
+  );
 
-  const handleReboot = useCallback(async (id: string) => {
-    await rebootDeviceMutation.mutateAsync(id);
-  }, [rebootDeviceMutation]);
+  const handleReboot = useCallback(
+    async (id: string) => {
+      await rebootDeviceMutation.mutateAsync(id);
+    },
+    [rebootDeviceMutation]
+  );
 
-  const handleDelete = useCallback(async (id: string) => {
-    await deleteDeviceMutation.mutateAsync(id);
-  }, [deleteDeviceMutation]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteDeviceMutation.mutateAsync(id);
+    },
+    [deleteDeviceMutation]
+  );
 
   // ✅ 批量操作（使用 useAsyncOperation 消除静默失败）
   const { execute: executeBatchOperation } = useAsyncOperation();
@@ -168,18 +212,15 @@ const DeviceList = () => {
       return;
     }
 
-    await executeBatchOperation(
-      () => batchStartDevices(selectedRowKeys as string[]),
-      {
-        successMessage: `成功启动 ${selectedRowKeys.length} 台设备`,
-        errorContext: `批量启动${selectedRowKeys.length}台设备`,
-        onSuccess: () => {
-          setSelectedRowKeys([]);
-          queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-          queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
-        },
-      }
-    );
+    await executeBatchOperation(() => batchStartDevices(selectedRowKeys as string[]), {
+      successMessage: `成功启动 ${selectedRowKeys.length} 台设备`,
+      errorContext: `批量启动${selectedRowKeys.length}台设备`,
+      onSuccess: () => {
+        setSelectedRowKeys([]);
+        queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
+      },
+    });
   }, [selectedRowKeys, executeBatchOperation]);
 
   const handleBatchStop = useCallback(async () => {
@@ -188,18 +229,15 @@ const DeviceList = () => {
       return;
     }
 
-    await executeBatchOperation(
-      () => batchStopDevices(selectedRowKeys as string[]),
-      {
-        successMessage: `成功停止 ${selectedRowKeys.length} 台设备`,
-        errorContext: `批量停止${selectedRowKeys.length}台设备`,
-        onSuccess: () => {
-          setSelectedRowKeys([]);
-          queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-          queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
-        },
-      }
-    );
+    await executeBatchOperation(() => batchStopDevices(selectedRowKeys as string[]), {
+      successMessage: `成功停止 ${selectedRowKeys.length} 台设备`,
+      errorContext: `批量停止${selectedRowKeys.length}台设备`,
+      onSuccess: () => {
+        setSelectedRowKeys([]);
+        queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
+      },
+    });
   }, [selectedRowKeys, executeBatchOperation]);
 
   const handleBatchReboot = useCallback(async () => {
@@ -208,19 +246,16 @@ const DeviceList = () => {
       return;
     }
 
-    await executeBatchOperation(
-      () => batchRebootDevices(selectedRowKeys as string[]),
-      {
-        successMessage: `成功重启 ${selectedRowKeys.length} 台设备`,
-        errorContext: `批量重启${selectedRowKeys.length}台设备`,
-        onSuccess: () => {
-          setSelectedRowKeys([]);
-          setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-          }, 2000);
-        },
-      }
-    );
+    await executeBatchOperation(() => batchRebootDevices(selectedRowKeys as string[]), {
+      successMessage: `成功重启 ${selectedRowKeys.length} 台设备`,
+      errorContext: `批量重启${selectedRowKeys.length}台设备`,
+      onSuccess: () => {
+        setSelectedRowKeys([]);
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+        }, 2000);
+      },
+    });
   }, [selectedRowKeys, executeBatchOperation]);
 
   const handleBatchDelete = useCallback(async () => {
@@ -229,42 +264,43 @@ const DeviceList = () => {
       return;
     }
 
-    await executeBatchOperation(
-      () => batchDeleteDevices(selectedRowKeys as string[]),
-      {
-        successMessage: `成功删除 ${selectedRowKeys.length} 台设备`,
-        errorContext: `批量删除${selectedRowKeys.length}台设备`,
-        onSuccess: () => {
-          setSelectedRowKeys([]);
-          queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-          queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
-        },
-      }
-    );
+    await executeBatchOperation(() => batchDeleteDevices(selectedRowKeys as string[]), {
+      successMessage: `成功删除 ${selectedRowKeys.length} 台设备`,
+      errorContext: `批量删除${selectedRowKeys.length}台设备`,
+      onSuccess: () => {
+        setSelectedRowKeys([]);
+        queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
+      },
+    });
   }, [selectedRowKeys, executeBatchOperation]);
 
   // ✅ 使用 useMemo 优化状态映射（避免每次渲染都重新创建）
-  const statusMap = useMemo(() => ({
-    idle: { color: 'default', text: '空闲' },
-    running: { color: 'green', text: '运行中' },
-    stopped: { color: 'red', text: '已停止' },
-    error: { color: 'error', text: '错误' },
-  }), []);
+  const statusMap = useMemo(
+    () => ({
+      idle: { color: 'default', text: '空闲' },
+      running: { color: 'green', text: '运行中' },
+      stopped: { color: 'red', text: '已停止' },
+      error: { color: 'error', text: '错误' },
+    }),
+    []
+  );
 
   // ✅ 使用 useMemo 优化导出数据转换
-  const exportData = useMemo(() =>
-    devices.map(device => ({
-      '设备ID': device.id,
-      '设备名称': device.name,
-      '状态': statusMap[device.status as keyof typeof statusMap]?.text || device.status,
-      'Android版本': device.androidVersion,
-      'CPU核心数': device.cpuCores,
-      '内存(MB)': device.memoryMB,
-      '存储(MB)': device.storageMB,
-      'IP地址': device.ipAddress || '-',
-      'VNC端口': device.vncPort || '-',
-      '创建时间': dayjs(device.createdAt).format('YYYY-MM-DD HH:mm:ss'),
-    })),
+  const exportData = useMemo(
+    () =>
+      devices.map((device) => ({
+        设备ID: device.id,
+        设备名称: device.name,
+        状态: statusMap[device.status as keyof typeof statusMap]?.text || device.status,
+        Android版本: device.androidVersion,
+        CPU核心数: device.cpuCores,
+        '内存(MB)': device.memoryMB,
+        '存储(MB)': device.storageMB,
+        IP地址: device.ipAddress || '-',
+        VNC端口: device.vncPort || '-',
+        创建时间: dayjs(device.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+      })),
     [devices, statusMap]
   );
 
@@ -293,159 +329,180 @@ const DeviceList = () => {
   }, [exportData]);
 
   // ✅ 使用 useMemo 优化导出菜单
-  const exportMenuItems: MenuProps['items'] = useMemo(() => [
-    { key: 'excel', label: '导出为 Excel', onClick: handleExportExcel },
-    { key: 'csv', label: '导出为 CSV', onClick: handleExportCSV },
-    { key: 'json', label: '导出为 JSON', onClick: handleExportJSON },
-  ], [handleExportExcel, handleExportCSV, handleExportJSON]);
+  const exportMenuItems: MenuProps['items'] = useMemo(
+    () => [
+      { key: 'excel', label: '导出为 Excel', onClick: handleExportExcel },
+      { key: 'csv', label: '导出为 CSV', onClick: handleExportCSV },
+      { key: 'json', label: '导出为 JSON', onClick: handleExportJSON },
+    ],
+    [handleExportExcel, handleExportCSV, handleExportJSON]
+  );
 
   // 批量选择配置
-  const rowSelection = useMemo(() => ({
-    selectedRowKeys,
-    onChange: setSelectedRowKeys,
-  }), [selectedRowKeys]);
+  const rowSelection = useMemo(
+    () => ({
+      selectedRowKeys,
+      onChange: setSelectedRowKeys,
+    }),
+    [selectedRowKeys]
+  );
 
   // ✅ 使用 useMemo 优化表格列配置（避免每次渲染都重新创建）
-  const columns: ColumnsType<Device> = useMemo(() => [
-    {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 120,
-      ellipsis: true,
-      render: (id: string) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-          {id.substring(0, 8)}...
-        </span>
-      ),
-    },
-    {
-      title: '设备名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 150,
-      ellipsis: true,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status: string) => {
-        const config = statusMap[status as keyof typeof statusMap] || { color: 'default', text: status };
-        return <Tag color={config.color}>{config.text}</Tag>;
+  const columns: ColumnsType<Device> = useMemo(
+    () => [
+      {
+        title: 'ID',
+        dataIndex: 'id',
+        key: 'id',
+        width: 120,
+        ellipsis: true,
+        render: (id: string) => (
+          <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{id.substring(0, 8)}...</span>
+        ),
       },
-      responsive: ['md'],
-    },
-    {
-      title: 'Android版本',
-      dataIndex: 'androidVersion',
-      key: 'androidVersion',
-      width: 120,
-      responsive: ['lg'],
-    },
-    {
-      title: 'CPU',
-      dataIndex: 'cpuCores',
-      key: 'cpuCores',
-      width: 80,
-      render: (cores: number) => `${cores}核`,
-      responsive: ['lg'],
-    },
-    {
-      title: '内存',
-      dataIndex: 'memoryMB',
-      key: 'memoryMB',
-      width: 100,
-      render: (memory: number) => `${(memory / 1024).toFixed(1)}GB`,
-      responsive: ['lg'],
-    },
-    {
-      title: 'IP地址',
-      dataIndex: 'ipAddress',
-      key: 'ipAddress',
-      width: 130,
-      ellipsis: true,
-      responsive: ['xl'],
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 160,
-      render: (date: string) => dayjs(date).format('MM-DD HH:mm'),
-      responsive: ['xl'],
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 250,
-      fixed: 'right',
-      render: (_: any, record: Device) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/devices/${record.id}`)}
-          >
-            详情
-          </Button>
-
-          {record.status !== 'running' ? (
+      {
+        title: '设备名称',
+        dataIndex: 'name',
+        key: 'name',
+        width: 150,
+        ellipsis: true,
+      },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        key: 'status',
+        width: 100,
+        render: (status: string) => {
+          const config = statusMap[status as keyof typeof statusMap] || {
+            color: 'default',
+            text: status,
+          };
+          return <Tag color={config.color}>{config.text}</Tag>;
+        },
+        responsive: ['md'],
+      },
+      {
+        title: 'Android版本',
+        dataIndex: 'androidVersion',
+        key: 'androidVersion',
+        width: 120,
+        responsive: ['lg'],
+      },
+      {
+        title: 'CPU',
+        dataIndex: 'cpuCores',
+        key: 'cpuCores',
+        width: 80,
+        render: (cores: number) => `${cores}核`,
+        responsive: ['lg'],
+      },
+      {
+        title: '内存',
+        dataIndex: 'memoryMB',
+        key: 'memoryMB',
+        width: 100,
+        render: (memory: number) => `${(memory / 1024).toFixed(1)}GB`,
+        responsive: ['lg'],
+      },
+      {
+        title: 'IP地址',
+        dataIndex: 'ipAddress',
+        key: 'ipAddress',
+        width: 130,
+        ellipsis: true,
+        responsive: ['xl'],
+      },
+      {
+        title: '创建时间',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        width: 160,
+        render: (date: string) => dayjs(date).format('MM-DD HH:mm'),
+        responsive: ['xl'],
+      },
+      {
+        title: '操作',
+        key: 'actions',
+        width: 250,
+        fixed: 'right',
+        render: (_: any, record: Device) => (
+          <Space size="small">
             <Button
               type="link"
               size="small"
-              icon={<PlayCircleOutlined />}
-              onClick={() => handleStart(record.id)}
-              loading={startDeviceMutation.isPending}
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/devices/${record.id}`)}
             >
-              启动
+              详情
             </Button>
-          ) : (
-            <Button
-              type="link"
-              size="small"
-              icon={<StopOutlined />}
-              onClick={() => handleStop(record.id)}
-              loading={stopDeviceMutation.isPending}
-            >
-              停止
-            </Button>
-          )}
 
-          <Button
-            type="link"
-            size="small"
-            icon={<ReloadOutlined />}
-            onClick={() => handleReboot(record.id)}
-            loading={rebootDeviceMutation.isPending}
-          >
-            重启
-          </Button>
-
-          <PermissionGuard permission="device.delete">
-            <Popconfirm
-              title="确定删除该设备？"
-              onConfirm={() => handleDelete(record.id)}
-              okText="确定"
-              cancelText="取消"
-            >
+            {record.status !== 'running' ? (
               <Button
                 type="link"
                 size="small"
-                danger
-                icon={<DeleteOutlined />}
-                loading={deleteDeviceMutation.isPending}
+                icon={<PlayCircleOutlined />}
+                onClick={() => handleStart(record.id)}
+                loading={startDeviceMutation.isPending}
               >
-                删除
+                启动
               </Button>
-            </Popconfirm>
-          </PermissionGuard>
-        </Space>
-      ),
-    },
-  ], [navigate, handleStart, handleStop, handleReboot, handleDelete, statusMap, startDeviceMutation.isPending, stopDeviceMutation.isPending, rebootDeviceMutation.isPending, deleteDeviceMutation.isPending]);
+            ) : (
+              <Button
+                type="link"
+                size="small"
+                icon={<StopOutlined />}
+                onClick={() => handleStop(record.id)}
+                loading={stopDeviceMutation.isPending}
+              >
+                停止
+              </Button>
+            )}
+
+            <Button
+              type="link"
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={() => handleReboot(record.id)}
+              loading={rebootDeviceMutation.isPending}
+            >
+              重启
+            </Button>
+
+            <PermissionGuard permission="device.delete">
+              <Popconfirm
+                title="确定删除该设备？"
+                onConfirm={() => handleDelete(record.id)}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button
+                  type="link"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  loading={deleteDeviceMutation.isPending}
+                >
+                  删除
+                </Button>
+              </Popconfirm>
+            </PermissionGuard>
+          </Space>
+        ),
+      },
+    ],
+    [
+      navigate,
+      handleStart,
+      handleStop,
+      handleReboot,
+      handleDelete,
+      statusMap,
+      startDeviceMutation.isPending,
+      stopDeviceMutation.isPending,
+      rebootDeviceMutation.isPending,
+      deleteDeviceMutation.isPending,
+    ]
+  );
 
   return (
     <div style={{ padding: '24px' }}>
@@ -471,11 +528,7 @@ const DeviceList = () => {
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic
-              title="空闲"
-              value={stats?.idle || 0}
-              valueStyle={{ color: '#faad14' }}
-            />
+            <Statistic title="空闲" value={stats?.idle || 0} valueStyle={{ color: '#faad14' }} />
           </Card>
         </Col>
         <Col span={6}>
@@ -625,11 +678,7 @@ const DeviceList = () => {
         confirmLoading={createDeviceMutation.isPending}
         width={600}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleCreate}
-        >
+        <Form form={form} layout="vertical" onFinish={handleCreate}>
           <Form.Item
             label="设备名称"
             name="name"

@@ -8,7 +8,7 @@ import { EventStoreService } from '../../events/event-store.service';
 export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
   constructor(
     private readonly usersService: UsersService,
-    private readonly eventStore: EventStoreService,
+    private readonly eventStore: EventStoreService
   ) {}
 
   async execute(command: DeleteUserCommand): Promise<void> {
@@ -20,7 +20,7 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
     const event = new UserDeletedEvent(
       command.id,
       version + 1,
-      'system', // deletedBy - 可以从上下文获取当前操作者
+      'system' // deletedBy - 可以从上下文获取当前操作者
     );
 
     await this.eventStore.saveEvent(event);

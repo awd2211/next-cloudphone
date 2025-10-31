@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  UseGuards,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiSecurity } from '@nestjs/swagger';
 import { ApiKeysService, CreateApiKeyDto } from './api-keys.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -76,7 +66,7 @@ export class ApiKeysController {
       scopes?: string[];
       description?: string;
       expiresAt?: Date;
-    },
+    }
   ) {
     this.logger.log(`更新 API 密钥 - ID: ${id}`);
     return await this.apiKeysService.updateApiKey(id, updates);

@@ -1,6 +1,27 @@
 import React, { useState } from 'react';
-import { Card, Descriptions, Tag, Badge, Button, Space, Divider, List, Avatar, Input, Select, Modal, message } from 'antd';
-import { ArrowLeftOutlined, UserOutlined, ClockCircleOutlined, SendOutlined, CloseOutlined, CheckOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Descriptions,
+  Tag,
+  Badge,
+  Button,
+  Space,
+  Divider,
+  List,
+  Avatar,
+  Input,
+  Select,
+  Modal,
+  message,
+} from 'antd';
+import {
+  ArrowLeftOutlined,
+  UserOutlined,
+  ClockCircleOutlined,
+  SendOutlined,
+  CloseOutlined,
+  CheckOutlined,
+} from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import request from '../../utils/request';
 
@@ -43,7 +64,8 @@ const TicketDetail: React.FC = () => {
     id: 'ticket-001',
     ticketNo: 'TKT-20251020-001',
     title: '设备无法启动',
-    content: '我的设备ID DEV-12345 无法启动，点击启动按钮后没有任何反应。已经尝试重启浏览器和清除缓存，问题依然存在。请协助处理。',
+    content:
+      '我的设备ID DEV-12345 无法启动，点击启动按钮后没有任何反应。已经尝试重启浏览器和清除缓存，问题依然存在。请协助处理。',
     category: 'technical',
     priority: 'high',
     status: 'in_progress',
@@ -87,7 +109,8 @@ const TicketDetail: React.FC = () => {
         userId: 'admin-001',
         userName: '李工程师',
         userType: 'admin',
-        content: '我已经找到问题了，是由于系统资源分配异常导致的。我已经为您重新分配了资源，请尝试重新启动设备。',
+        content:
+          '我已经找到问题了，是由于系统资源分配异常导致的。我已经为您重新分配了资源，请尝试重新启动设备。',
         createdAt: '2025-10-20 14:10:30',
         isInternal: false,
       },
@@ -217,20 +240,12 @@ const TicketDetail: React.FC = () => {
         extra={
           <Space>
             {ticket.status !== 'resolved' && ticket.status !== 'closed' && (
-              <Button
-                type="primary"
-                icon={<CheckOutlined />}
-                onClick={handleResolveTicket}
-              >
+              <Button type="primary" icon={<CheckOutlined />} onClick={handleResolveTicket}>
                 标记为已解决
               </Button>
             )}
             {ticket.status !== 'closed' && (
-              <Button
-                danger
-                icon={<CloseOutlined />}
-                onClick={handleCloseTicket}
-              >
+              <Button danger icon={<CloseOutlined />} onClick={handleCloseTicket}>
                 关闭工单
               </Button>
             )}
@@ -241,30 +256,16 @@ const TicketDetail: React.FC = () => {
           <Descriptions.Item label="工单标题" span={2}>
             {ticket.title}
           </Descriptions.Item>
-          <Descriptions.Item label="分类">
-            {getCategoryTag(ticket.category)}
-          </Descriptions.Item>
-          <Descriptions.Item label="优先级">
-            {getPriorityTag(ticket.priority)}
-          </Descriptions.Item>
-          <Descriptions.Item label="状态">
-            {getStatusBadge(ticket.status)}
-          </Descriptions.Item>
+          <Descriptions.Item label="分类">{getCategoryTag(ticket.category)}</Descriptions.Item>
+          <Descriptions.Item label="优先级">{getPriorityTag(ticket.priority)}</Descriptions.Item>
+          <Descriptions.Item label="状态">{getStatusBadge(ticket.status)}</Descriptions.Item>
           <Descriptions.Item label="负责人">
             {ticket.assignedToName || <Tag>未分配</Tag>}
           </Descriptions.Item>
-          <Descriptions.Item label="提交人">
-            {ticket.userName}
-          </Descriptions.Item>
-          <Descriptions.Item label="联系邮箱">
-            {ticket.userEmail}
-          </Descriptions.Item>
-          <Descriptions.Item label="创建时间">
-            {ticket.createdAt}
-          </Descriptions.Item>
-          <Descriptions.Item label="最后更新">
-            {ticket.updatedAt}
-          </Descriptions.Item>
+          <Descriptions.Item label="提交人">{ticket.userName}</Descriptions.Item>
+          <Descriptions.Item label="联系邮箱">{ticket.userEmail}</Descriptions.Item>
+          <Descriptions.Item label="创建时间">{ticket.createdAt}</Descriptions.Item>
+          <Descriptions.Item label="最后更新">{ticket.updatedAt}</Descriptions.Item>
           <Descriptions.Item label="问题描述" span={2}>
             <div style={{ whiteSpace: 'pre-wrap' }}>{ticket.content}</div>
           </Descriptions.Item>
@@ -304,9 +305,7 @@ const TicketDetail: React.FC = () => {
                   </Space>
                 }
               />
-              <div style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>
-                {reply.content}
-              </div>
+              <div style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{reply.content}</div>
             </List.Item>
           )}
         />
@@ -319,14 +318,10 @@ const TicketDetail: React.FC = () => {
               rows={6}
               placeholder="请输入回复内容..."
               value={replyContent}
-              onChange={e => setReplyContent(e.target.value)}
+              onChange={(e) => setReplyContent(e.target.value)}
             />
             <Space>
-              <Select
-                style={{ width: 150 }}
-                value={newStatus}
-                onChange={setNewStatus}
-              >
+              <Select style={{ width: 150 }} value={newStatus} onChange={setNewStatus}>
                 <Option value="open">待处理</Option>
                 <Option value="in_progress">处理中</Option>
                 <Option value="waiting_customer">等待客户</Option>
@@ -335,7 +330,7 @@ const TicketDetail: React.FC = () => {
               <Select
                 style={{ width: 150 }}
                 value={isInternalNote ? 'internal' : 'public'}
-                onChange={value => setIsInternalNote(value === 'internal')}
+                onChange={(value) => setIsInternalNote(value === 'internal')}
               >
                 <Option value="public">公开回复</Option>
                 <Option value="internal">内部备注</Option>

@@ -124,29 +124,27 @@ function parseAxiosError(error: AxiosError): ApiError {
  */
 function getFriendlyErrorMessage(error: ApiError): string {
   const messageMap: Record<string, string> = {
-    'NETWORK_ERROR': '网络连接失败，请检查您的网络设置',
-    'TIMEOUT': '请求超时，请稍后重试',
-    'UNAUTHORIZED': '登录已过期，请重新登录',
-    'FORBIDDEN': '您没有权限执行此操作',
-    'NOT_FOUND': '请求的资源不存在',
-    'VALIDATION_ERROR': '数据验证失败，请检查输入',
-    'SERVER_ERROR': '服务器错误，请稍后重试',
-    'QUOTA_EXCEEDED': '配额已用完，请升级套餐',
-    'HTTP_400': '请求参数错误',
-    'HTTP_401': '未授权，请登录',
-    'HTTP_403': '没有权限访问',
-    'HTTP_404': '资源不存在',
-    'HTTP_422': '数据验证失败',
-    'HTTP_429': '请求过于频繁，请稍后再试',
-    'HTTP_500': '服务器内部错误',
-    'HTTP_502': '网关错误',
-    'HTTP_503': '服务暂时不可用',
-    'HTTP_504': '网关超时',
+    NETWORK_ERROR: '网络连接失败，请检查您的网络设置',
+    TIMEOUT: '请求超时，请稍后重试',
+    UNAUTHORIZED: '登录已过期，请重新登录',
+    FORBIDDEN: '您没有权限执行此操作',
+    NOT_FOUND: '请求的资源不存在',
+    VALIDATION_ERROR: '数据验证失败，请检查输入',
+    SERVER_ERROR: '服务器错误，请稍后重试',
+    QUOTA_EXCEEDED: '配额已用完，请升级套餐',
+    HTTP_400: '请求参数错误',
+    HTTP_401: '未授权，请登录',
+    HTTP_403: '没有权限访问',
+    HTTP_404: '资源不存在',
+    HTTP_422: '数据验证失败',
+    HTTP_429: '请求过于频繁，请稍后再试',
+    HTTP_500: '服务器内部错误',
+    HTTP_502: '网关错误',
+    HTTP_503: '服务暂时不可用',
+    HTTP_504: '网关超时',
   };
 
-  return error.code && messageMap[error.code]
-    ? messageMap[error.code]
-    : error.message;
+  return error.code && messageMap[error.code] ? messageMap[error.code] : error.message;
 }
 
 /**
@@ -194,10 +192,7 @@ export function useErrorHandler() {
    * 处理错误
    */
   const handleError = useCallback(
-    (
-      error: Error | AxiosError | string,
-      options: ErrorOptions = {}
-    ) => {
+    (error: Error | AxiosError | string, options: ErrorOptions = {}) => {
       const {
         showNotification = true,
         showModal = false,
@@ -226,9 +221,7 @@ export function useErrorHandler() {
 
       // 获取友好的错误消息（优先使用userMessage，然后是customMessage，最后是映射的消息）
       const friendlyMessage =
-        customMessage ||
-        apiError.userMessage ||
-        getFriendlyErrorMessage(apiError);
+        customMessage || apiError.userMessage || getFriendlyErrorMessage(apiError);
 
       // 控制台日志
       if (logToConsole) {
@@ -243,7 +236,8 @@ export function useErrorHandler() {
 
       // 根据displayMode决定显示方式
       const shouldShowModal = displayMode === 'modal' || showModal;
-      const shouldShowNotification = displayMode === 'notification' || (showNotification && !shouldShowModal);
+      const shouldShowNotification =
+        displayMode === 'notification' || (showNotification && !shouldShowModal);
 
       // 显示通知
       if (shouldShowNotification) {
@@ -260,10 +254,12 @@ export function useErrorHandler() {
               )}
               {(showRetry || apiError.retryable) && onRetry && (
                 <div style={{ marginTop: 8 }}>
-                  <a onClick={() => {
-                    message.destroy(messageKey);
-                    onRetry();
-                  }}>
+                  <a
+                    onClick={() => {
+                      message.destroy(messageKey);
+                      onRetry();
+                    }}
+                  >
                     点击重试
                   </a>
                 </div>
@@ -294,7 +290,11 @@ export function useErrorHandler() {
                         {suggestion.actionUrl && (
                           <span>
                             {' '}
-                            <a href={suggestion.actionUrl} target="_blank" rel="noopener noreferrer">
+                            <a
+                              href={suggestion.actionUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               前往 →
                             </a>
                           </span>
@@ -311,7 +311,16 @@ export function useErrorHandler() {
                   <summary style={{ cursor: 'pointer', color: '#666', fontSize: 12 }}>
                     查看技术详情
                   </summary>
-                  <pre style={{ fontSize: 11, marginTop: 8, overflow: 'auto', background: '#f5f5f5', padding: 8, borderRadius: 4 }}>
+                  <pre
+                    style={{
+                      fontSize: 11,
+                      marginTop: 8,
+                      overflow: 'auto',
+                      background: '#f5f5f5',
+                      padding: 8,
+                      borderRadius: 4,
+                    }}
+                  >
                     {apiError.details}
                   </pre>
                 </details>
@@ -335,7 +344,12 @@ export function useErrorHandler() {
               {(apiError.documentationUrl || apiError.supportUrl) && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
                   {apiError.documentationUrl && (
-                    <a href={apiError.documentationUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: 16 }}>
+                    <a
+                      href={apiError.documentationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ marginRight: 16 }}
+                    >
                       查看文档
                     </a>
                   )}
@@ -373,10 +387,7 @@ export function useErrorHandler() {
    * 处理 Promise 错误
    */
   const handlePromiseError = useCallback(
-    async <T,>(
-      promise: Promise<T>,
-      options?: ErrorOptions
-    ): Promise<T | null> => {
+    async <T,>(promise: Promise<T>, options?: ErrorOptions): Promise<T | null> => {
       try {
         return await promise;
       } catch (error) {
@@ -391,10 +402,7 @@ export function useErrorHandler() {
    * 创建错误处理的包装器
    */
   const withErrorHandler = useCallback(
-    <T extends (...args: any[]) => any>(
-      fn: T,
-      options?: ErrorOptions
-    ): T => {
+    <T extends (...args: any[]) => any>(fn: T, options?: ErrorOptions): T => {
       return ((...args: any[]) => {
         try {
           const result = fn(...args);

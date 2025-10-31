@@ -1,11 +1,11 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { DeviceAllocation, AllocationStatus } from "../../entities/device-allocation.entity";
-import { Device } from "../../entities/device.entity";
-import { AllocationService } from "../allocation.service";
-import { NotificationClientService } from "../notification-client.service";
+import { Injectable, Logger } from '@nestjs/common';
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { DeviceAllocation, AllocationStatus } from '../../entities/device-allocation.entity';
+import { Device } from '../../entities/device.entity';
+import { AllocationService } from '../allocation.service';
+import { NotificationClientService } from '../notification-client.service';
 
 /**
  * Billing 事件消费者
@@ -32,20 +32,20 @@ export class BillingEventsConsumer {
     @InjectRepository(Device)
     private deviceRepository: Repository<Device>,
     private allocationService: AllocationService,
-    private notificationClient: NotificationClientService,
+    private notificationClient: NotificationClientService
   ) {}
 
   /**
    * 支付失败事件 - 记录失败次数，达到阈值后释放设备
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "billing.payment_failed",
-    queue: "scheduler.billing-payment-failed",
+    exchange: 'cloudphone.events',
+    routingKey: 'billing.payment_failed',
+    queue: 'scheduler.billing-payment-failed',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.billing-payment-failed.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.billing-payment-failed.failed',
     },
   })
   async handlePaymentFailed(event: {
@@ -64,14 +64,16 @@ export class BillingEventsConsumer {
       const newCount = currentCount + 1;
       this.paymentFailureCount.set(event.userId, newCount);
 
-      this.logger.log(`User ${event.userId} payment failure count: ${newCount}/${this.FAILURE_THRESHOLD}`);
+      this.logger.log(
+        `User ${event.userId} payment failure count: ${newCount}/${this.FAILURE_THRESHOLD}`
+      );
 
       // 发送余额不足警告
       await this.notificationClient.sendBatchNotifications([
         {
           userId: event.userId,
-          type: "billing_alert" as any,
-          title: "⚠️ 支付失败",
+          type: 'billing_alert' as any,
+          title: '⚠️ 支付失败',
           message: `支付失败：${event.reason}。请及时充值，避免服务中断。`,
           data: {
             amount: event.amount,
@@ -79,7 +81,7 @@ export class BillingEventsConsumer {
             failureCount: newCount,
             threshold: this.FAILURE_THRESHOLD,
           },
-          channels: ["websocket", "email"],
+          channels: ['websocket', 'email'],
         },
       ]);
 
@@ -102,7 +104,7 @@ export class BillingEventsConsumer {
           for (const allocation of activeAllocations) {
             try {
               await this.allocationService.releaseAllocation(allocation.id, {
-                reason: "多次支付失败，账户已暂停服务",
+                reason: '多次支付失败，账户已暂停服务',
                 automatic: true,
               });
 
@@ -123,9 +125,7 @@ export class BillingEventsConsumer {
                 });
               }
             } catch (error) {
-              this.logger.error(
-                `Failed to release allocation ${allocation.id}: ${error.message}`
-              );
+              this.logger.error(`Failed to release allocation ${allocation.id}: ${error.message}`);
             }
           }
 
@@ -147,13 +147,13 @@ export class BillingEventsConsumer {
    * 余额不足预警事件
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "billing.balance_low",
-    queue: "scheduler.billing-balance-low",
+    exchange: 'cloudphone.events',
+    routingKey: 'billing.balance_low',
+    queue: 'scheduler.billing-balance-low',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.billing-balance-low.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.billing-balance-low.failed',
     },
   })
   async handleBalanceLow(event: {
@@ -171,14 +171,14 @@ export class BillingEventsConsumer {
       await this.notificationClient.sendBatchNotifications([
         {
           userId: event.userId,
-          type: "billing_alert" as any,
-          title: "💰 余额不足提醒",
+          type: 'billing_alert' as any,
+          title: '💰 余额不足提醒',
           message: `您的账户余额为 ¥${event.currentBalance}，已低于预警值 ¥${event.threshold}。请及时充值以保证服务正常使用。`,
           data: {
             currentBalance: event.currentBalance,
             threshold: event.threshold,
           },
-          channels: ["websocket", "email"],
+          channels: ['websocket', 'email'],
         },
       ]);
 
@@ -196,13 +196,13 @@ export class BillingEventsConsumer {
    * 账户欠费事件 - 立即释放所有设备
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "billing.overdue",
-    queue: "scheduler.billing-overdue",
+    exchange: 'cloudphone.events',
+    routingKey: 'billing.overdue',
+    queue: 'scheduler.billing-overdue',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.billing-overdue.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.billing-overdue.failed',
     },
   })
   async handleOverdue(event: {
@@ -264,9 +264,7 @@ export class BillingEventsConsumer {
             notificationCount++;
           }
         } catch (error) {
-          this.logger.error(
-            `Failed to release allocation ${allocation.id}: ${error.message}`
-          );
+          this.logger.error(`Failed to release allocation ${allocation.id}: ${error.message}`);
         }
       }
 
@@ -278,22 +276,19 @@ export class BillingEventsConsumer {
       await this.notificationClient.sendBatchNotifications([
         {
           userId: event.userId,
-          type: "billing_alert" as any,
-          title: "🚨 账户欠费提醒",
+          type: 'billing_alert' as any,
+          title: '🚨 账户欠费提醒',
           message: `您的账户已欠费 ¥${event.overdueAmount}（${event.overdueDays} 天），所有设备已自动释放。请尽快充值恢复服务。`,
           data: {
             overdueAmount: event.overdueAmount,
             overdueDays: event.overdueDays,
             releasedDevices: successCount,
           },
-          channels: ["websocket", "email", "sms"],
+          channels: ['websocket', 'email', 'sms'],
         },
       ]);
     } catch (error) {
-      this.logger.error(
-        `Failed to handle billing.overdue event: ${error.message}`,
-        error.stack
-      );
+      this.logger.error(`Failed to handle billing.overdue event: ${error.message}`, error.stack);
       throw error; // Important event - throw to DLX
     }
   }
@@ -302,13 +297,13 @@ export class BillingEventsConsumer {
    * 支付成功事件 - 重置失败计数
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "billing.payment_success",
-    queue: "scheduler.billing-payment-success",
+    exchange: 'cloudphone.events',
+    routingKey: 'billing.payment_success',
+    queue: 'scheduler.billing-payment-success',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.billing-payment-success.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.billing-payment-success.failed',
     },
   })
   async handlePaymentSuccess(event: {
@@ -332,14 +327,14 @@ export class BillingEventsConsumer {
       await this.notificationClient.sendBatchNotifications([
         {
           userId: event.userId,
-          type: "billing_alert" as any,
-          title: "✅ 支付成功",
+          type: 'billing_alert' as any,
+          title: '✅ 支付成功',
           message: `支付 ¥${event.amount} 成功，当前余额 ¥${event.newBalance}。服务已恢复正常。`,
           data: {
             amount: event.amount,
             newBalance: event.newBalance,
           },
-          channels: ["websocket"],
+          channels: ['websocket'],
         },
       ]);
 
@@ -357,13 +352,13 @@ export class BillingEventsConsumer {
    * 账户充值事件
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "billing.recharged",
-    queue: "scheduler.billing-recharged",
+    exchange: 'cloudphone.events',
+    routingKey: 'billing.recharged',
+    queue: 'scheduler.billing-recharged',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.billing-recharged.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.billing-recharged.failed',
     },
   })
   async handleRecharged(event: {
@@ -387,21 +382,18 @@ export class BillingEventsConsumer {
       await this.notificationClient.sendBatchNotifications([
         {
           userId: event.userId,
-          type: "billing_alert" as any,
-          title: "💳 充值成功",
+          type: 'billing_alert' as any,
+          title: '💳 充值成功',
           message: `充值 ¥${event.amount} 成功，当前余额 ¥${event.newBalance}。感谢您的支持！`,
           data: {
             amount: event.amount,
             newBalance: event.newBalance,
           },
-          channels: ["websocket"],
+          channels: ['websocket'],
         },
       ]);
     } catch (error) {
-      this.logger.error(
-        `Failed to handle billing.recharged event: ${error.message}`,
-        error.stack
-      );
+      this.logger.error(`Failed to handle billing.recharged event: ${error.message}`, error.stack);
       // Don't throw - recharge is informational
     }
   }
@@ -413,7 +405,7 @@ export class BillingEventsConsumer {
   cleanupFailureCounters(maxAge: number = 7 * 24 * 60 * 60 * 1000): void {
     // 简单实现：清空所有计数（生产环境应使用 Redis 带 TTL）
     if (this.paymentFailureCount.size > 1000) {
-      this.logger.log("Clearing payment failure counters (size limit reached)");
+      this.logger.log('Clearing payment failure counters (size limit reached)');
       this.paymentFailureCount.clear();
     }
   }

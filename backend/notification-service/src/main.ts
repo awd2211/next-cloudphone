@@ -8,7 +8,10 @@ import { AppModule } from './app.module';
 import { ConsulService } from '@cloudphone/shared';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { 
+    bufferLogs: true,
+    cors: true, // 启用 CORS（WebSocket 需要）
+  });
 
   const configService = app.get(ConfigService);
 
@@ -21,7 +24,7 @@ async function bootstrap() {
     helmet({
       contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false,
-    }),
+    })
   );
 
   // ========== 验证和转换 ==========
@@ -30,12 +33,15 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    }),
+    })
   );
 
   // ========== CORS 配置 ==========
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void
+    ) => {
       if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
         callback(null, true);
       } else if (process.env.NODE_ENV === 'development') {
@@ -54,16 +60,10 @@ async function bootstrap() {
 
   // ========== API 版本控制 ==========
 
-  // 设置全局前缀和版本
-  app.setGlobalPrefix('api/v1', {
-    exclude: [
-      'health',           // 健康检查不需要版本
-      'health/detailed',
-      'health/liveness',
-      'health/readiness',
-      'metrics',          // Prometheus metrics 不需要版本
-    ],
-  });
+  // 微服务不设置全局前缀，由 API Gateway 统一处理版本路由
+  // app.setGlobalPrefix('api/v1', {
+  //   exclude: ['health', 'metrics', 'socket.io', 'socket.io/(.*)'],
+  // });
 
   // ========== Swagger API 文档 ==========
   const config = new DocumentBuilder()
@@ -80,7 +80,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/v1/docs', app, document, {
+  SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -103,10 +103,12 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
   logger.log(`🚀 Notification Service is running on: http://localhost:${port}`);
-  logger.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
-  logger.log(`🔗 API Base URL: http://localhost:${port}/api/v1`);
+  logger.log(`📚 API Documentation: http://localhost:${port}/docs`);
+  logger.log(`🔗 API Base URL: http://localhost:${port}`);
   logger.log(`🔗 RabbitMQ: ${configService.get('RABBITMQ_URL', 'amqp://localhost:5672')}`);
-  logger.log(`🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`);
+  logger.log(
+    `🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`
+  );
 }
 
 bootstrap();

@@ -1,11 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  EmailProvider,
-  EmailOptions,
-  EmailResult,
-  EmailProviderConfig,
-} from '../email.interface';
+import { EmailProvider, EmailOptions, EmailResult, EmailProviderConfig } from '../email.interface';
 import * as nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
 
@@ -72,10 +67,7 @@ export class SmtpProvider implements EmailProvider {
       secure: this.configService.get<string>('SMTP_SECURE', 'false') === 'true',
       user: this.configService.get<string>('SMTP_USER'),
       pass: this.configService.get<string>('SMTP_PASS'),
-      fromEmail: this.configService.get<string>(
-        'SMTP_FROM',
-        'CloudPhone <noreply@cloudphone.com>',
-      ),
+      fromEmail: this.configService.get<string>('SMTP_FROM', 'CloudPhone <noreply@cloudphone.com>'),
     };
 
     // 验证必需配置
@@ -99,12 +91,13 @@ export class SmtpProvider implements EmailProvider {
         host: this.config.host,
         port: this.config.port,
         secure: this.config.secure,
-        auth: this.config.user && this.config.pass
-          ? {
-              user: this.config.user,
-              pass: this.config.pass,
-            }
-          : undefined,
+        auth:
+          this.config.user && this.config.pass
+            ? {
+                user: this.config.user,
+                pass: this.config.pass,
+              }
+            : undefined,
         // 连接超时和套接字超时
         connectionTimeout: 10000,
         socketTimeout: 10000,
@@ -174,7 +167,7 @@ export class SmtpProvider implements EmailProvider {
 
       const recipients = Array.isArray(options.to) ? options.to : [options.to];
       this.logger.log(
-        `Email sent successfully via SMTP to ${recipients.join(', ')}, MessageId: ${info.messageId}`,
+        `Email sent successfully via SMTP to ${recipients.join(', ')}, MessageId: ${info.messageId}`
       );
 
       return {
@@ -199,10 +192,7 @@ export class SmtpProvider implements EmailProvider {
   /**
    * 批量发送邮件
    */
-  async sendBatch(
-    recipients: string[],
-    options: Omit<EmailOptions, 'to'>,
-  ): Promise<EmailResult[]> {
+  async sendBatch(recipients: string[], options: Omit<EmailOptions, 'to'>): Promise<EmailResult[]> {
     const results: EmailResult[] = [];
 
     for (const recipient of recipients) {

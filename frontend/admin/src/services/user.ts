@@ -15,10 +15,12 @@ export const getUsers = (params?: PaginationParams) => {
 };
 
 // 用户列表 (游标分页 - 高性能)
-export const getUsersCursor = (params?: CursorPaginationParams & {
-  tenantId?: string;
-  includeRoles?: boolean;
-}) => {
+export const getUsersCursor = (
+  params?: CursorPaginationParams & {
+    tenantId?: string;
+    includeRoles?: boolean;
+  }
+) => {
   return request.get<CursorPaginatedResponse<User>>('/users/cursor', { params });
 };
 
@@ -60,4 +62,12 @@ export const rechargeBalance = (userId: string, amount: number, reason?: string)
 // 扣减余额
 export const deductBalance = (userId: string, amount: number, reason: string) => {
   return request.post(`/balance/adjust`, { userId, amount: -amount, reason, type: 'adjustment' });
+};
+
+// 修改密码
+export const changePassword = (
+  userId: string,
+  data: { oldPassword: string; newPassword: string }
+) => {
+  return request.post(`/users/${userId}/change-password`, data);
 };

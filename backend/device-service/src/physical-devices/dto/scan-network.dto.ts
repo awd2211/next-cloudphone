@@ -1,19 +1,19 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsString, IsOptional, IsInt, Min, Max } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
 
 /**
  * 网络扫描 DTO
  */
 export class ScanNetworkDto {
   @ApiProperty({
-    description: "网络 CIDR 地址（如 192.168.1.0/24）",
-    example: "192.168.1.0/24",
+    description: '网络 CIDR 地址（如 192.168.1.0/24）',
+    example: '192.168.1.0/24',
   })
   @IsString()
   networkCidr: string;
 
   @ApiPropertyOptional({
-    description: "ADB 端口起始范围",
+    description: 'ADB 端口起始范围',
     example: 5555,
     default: 5555,
   })
@@ -24,7 +24,7 @@ export class ScanNetworkDto {
   portStart?: number;
 
   @ApiPropertyOptional({
-    description: "ADB 端口结束范围",
+    description: 'ADB 端口结束范围',
     example: 5565,
     default: 5565,
   })
@@ -35,7 +35,7 @@ export class ScanNetworkDto {
   portEnd?: number;
 
   @ApiPropertyOptional({
-    description: "并发扫描数量",
+    description: '并发扫描数量',
     example: 50,
     default: 50,
   })
@@ -46,7 +46,7 @@ export class ScanNetworkDto {
   concurrency?: number;
 
   @ApiPropertyOptional({
-    description: "超时时间（毫秒）",
+    description: '超时时间（毫秒）',
     example: 2000,
     default: 2000,
   })

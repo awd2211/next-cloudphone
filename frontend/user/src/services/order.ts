@@ -44,6 +44,8 @@ export const getPayment = (id: string) => {
 };
 
 // 获取使用记录
-export const getUsageRecords = (params?: PaginationParams & { startDate?: string; endDate?: string }) => {
+export const getUsageRecords = (
+  params?: PaginationParams & { startDate?: string; endDate?: string }
+) => {
   return request.get<PaginatedResponse<any>>('/billing/usage/my', { params });
 };

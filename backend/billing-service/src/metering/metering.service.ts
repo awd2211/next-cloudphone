@@ -3,7 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { HttpClientService, DeviceProviderType, DeviceType, DeviceConfigSnapshot } from '@cloudphone/shared';
+import {
+  HttpClientService,
+  DeviceProviderType,
+  DeviceType,
+  DeviceConfigSnapshot,
+} from '@cloudphone/shared';
 import { UsageRecord } from '../billing/entities/usage-record.entity';
 import { PricingEngineService } from '../billing/pricing-engine.service';
 
@@ -31,7 +36,7 @@ export class MeteringService {
     private usageRecordRepository: Repository<UsageRecord>,
     private httpClient: HttpClientService,
     private configService: ConfigService,
-    private pricingEngine: PricingEngineService, // 新增：计费引擎
+    private pricingEngine: PricingEngineService // 新增：计费引擎
   ) {}
 
   /**
@@ -68,7 +73,10 @@ export class MeteringService {
    */
   private async getRunningDevices(): Promise<any[]> {
     try {
-      const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL', 'http://localhost:30002');
+      const deviceServiceUrl = this.configService.get(
+        'DEVICE_SERVICE_URL',
+        'http://localhost:30002'
+      );
 
       const response = await this.httpClient.get<{ data: any[] }>(
         `${deviceServiceUrl}/devices?status=running`,
@@ -77,7 +85,7 @@ export class MeteringService {
           timeout: 10000,
           retries: 2,
           circuitBreaker: true,
-        },
+        }
       );
 
       return response.data || [];
@@ -92,7 +100,10 @@ export class MeteringService {
    */
   async collectDeviceUsage(deviceId: string): Promise<DeviceUsageData> {
     try {
-      const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL', 'http://localhost:30002');
+      const deviceServiceUrl = this.configService.get(
+        'DEVICE_SERVICE_URL',
+        'http://localhost:30002'
+      );
 
       // 获取设备详情
       const deviceResponse = await this.httpClient.get<{ data: any }>(
@@ -102,7 +113,7 @@ export class MeteringService {
           timeout: 8000,
           retries: 2,
           circuitBreaker: true,
-        },
+        }
       );
       const device = deviceResponse.data;
 
@@ -114,7 +125,7 @@ export class MeteringService {
           timeout: 8000,
           retries: 2,
           circuitBreaker: true,
-        },
+        }
       );
       const stats = statsResponse.data;
 
@@ -151,12 +162,12 @@ export class MeteringService {
     const billingCalculation = this.pricingEngine.calculateCost(
       usageData.providerType,
       usageData.deviceConfig,
-      usageData.duration,
+      usageData.duration
     );
 
     this.logger.debug(
       `Billing calculation for device ${usageData.deviceId}: ` +
-      `${billingCalculation.totalCost} CNY (${billingCalculation.billingRate} CNY/h)`,
+        `${billingCalculation.totalCost} CNY (${billingCalculation.billingRate} CNY/h)`
     );
 
     const record = this.usageRecordRepository.create({
@@ -208,7 +219,7 @@ export class MeteringService {
     });
 
     // 计算总计（使用实际字段）
-    const totalCpuHours = records.reduce((sum, r) => sum + (r.durationSeconds / 3600), 0);
+    const totalCpuHours = records.reduce((sum, r) => sum + r.durationSeconds / 3600, 0);
     const totalMemoryGB = records.reduce((sum, r) => sum + Number(r.quantity || 0), 0);
     const totalStorageGB = 0; // UsageRecord 没有此字段
     const totalNetworkGB = 0; // UsageRecord 没有此字段
@@ -245,13 +256,15 @@ export class MeteringService {
     });
 
     // 计算平均值
-    const avgCpuUsage = records.length > 0
-      ? records.reduce((sum, r) => sum + (r.durationSeconds / 3600), 0) / records.length
-      : 0;
+    const avgCpuUsage =
+      records.length > 0
+        ? records.reduce((sum, r) => sum + r.durationSeconds / 3600, 0) / records.length
+        : 0;
 
-    const avgMemoryUsage = records.length > 0
-      ? records.reduce((sum, r) => sum + Number(r.quantity || 0), 0) / records.length
-      : 0;
+    const avgMemoryUsage =
+      records.length > 0
+        ? records.reduce((sum, r) => sum + Number(r.quantity || 0), 0) / records.length
+        : 0;
 
     return {
       records,
@@ -282,14 +295,14 @@ export class MeteringService {
 
     // 按用户分组统计
     const userStats = new Map<string, number>();
-    records.forEach(record => {
+    records.forEach((record) => {
       const current = userStats.get(record.userId) || 0;
       userStats.set(record.userId, current + record.durationSeconds);
     });
 
     // 按设备分组统计
     const deviceStats = new Map<string, number>();
-    records.forEach(record => {
+    records.forEach((record) => {
       const current = deviceStats.get(record.deviceId) || 0;
       deviceStats.set(record.deviceId, current + record.durationSeconds);
     });
@@ -372,10 +385,7 @@ export class MeteringService {
   /**
    * 停止使用追踪（响应设备停止事件）
    */
-  async stopUsageTracking(
-    deviceId: string,
-    duration: number,
-  ): Promise<void> {
+  async stopUsageTracking(deviceId: string, duration: number): Promise<void> {
     // 查找未结束的使用记录
     const record = await this.usageRecordRepository.findOne({
       where: {
@@ -401,7 +411,7 @@ export class MeteringService {
       const billingCalculation = this.pricingEngine.calculateCost(
         record.providerType,
         record.deviceConfig,
-        duration,
+        duration
       );
 
       record.cost = billingCalculation.totalCost;
@@ -419,7 +429,7 @@ export class MeteringService {
     await this.usageRecordRepository.save(record);
 
     this.logger.log(
-      `Usage tracking stopped for device ${deviceId}. Duration: ${duration}s, Cost: ${record.cost}`,
+      `Usage tracking stopped for device ${deviceId}. Duration: ${duration}s, Cost: ${record.cost}`
     );
   }
 
@@ -441,5 +451,4 @@ export class MeteringService {
       cloudConfig: device.providerConfig || device.cloudConfig,
     };
   }
-
 }

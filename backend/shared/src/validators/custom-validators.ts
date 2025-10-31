@@ -61,7 +61,8 @@ export class IsChineseIdCardConstraint implements ValidatorConstraintInterface {
     if (!idCard) return false;
 
     // 18位身份证号（支持15位转18位的规则）
-    const idCardRegex = /^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/;
+    const idCardRegex =
+      /^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/;
 
     if (!idCardRegex.test(idCard)) {
       return false;
@@ -178,7 +179,9 @@ export class IsStrongPasswordConstraint implements ValidatorConstraintInterface 
 
     // 特殊字符
     if (requireSpecialChars) {
-      const specialCharRegex = new RegExp(`[${specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`);
+      const specialCharRegex = new RegExp(
+        `[${specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`
+      );
       if (!specialCharRegex.test(password)) {
         return false;
       }
@@ -203,7 +206,7 @@ export class IsStrongPasswordConstraint implements ValidatorConstraintInterface 
 
 export function IsStrongPassword(
   options?: StrongPasswordOptions,
-  validationOptions?: ValidationOptions,
+  validationOptions?: ValidationOptions
 ) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
@@ -253,7 +256,8 @@ export class IsMacAddressConstraint implements ValidatorConstraintInterface {
     // - 00:1A:2B:3C:4D:5E
     // - 00-1A-2B-3C-4D-5E
     // - 001A.2B3C.4D5E
-    const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$|^([0-9A-Fa-f]{4}\.){2}([0-9A-Fa-f]{4})$/;
+    const macRegex =
+      /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$|^([0-9A-Fa-f]{4}\.){2}([0-9A-Fa-f]{4})$/;
     return macRegex.test(mac);
   }
 
@@ -312,7 +316,7 @@ export class IsSafeUrlConstraint implements ValidatorConstraintInterface {
 
 export function IsSafeUrl(
   options?: { blockLocalhost?: boolean },
-  validationOptions?: ValidationOptions,
+  validationOptions?: ValidationOptions
 ) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
@@ -445,7 +449,7 @@ export class IsDateInRangeConstraint implements ValidatorConstraintInterface {
 
 export function IsDateInRange(
   options?: { minDate?: string | Date; maxDate?: string | Date },
-  validationOptions?: ValidationOptions,
+  validationOptions?: ValidationOptions
 ) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
@@ -493,7 +497,7 @@ export class ArrayLengthConstraint implements ValidatorConstraintInterface {
 
 export function ArrayLength(
   options?: { min?: number; max?: number },
-  validationOptions?: ValidationOptions,
+  validationOptions?: ValidationOptions
 ) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
@@ -564,10 +568,7 @@ export class IsEnumCaseInsensitiveConstraint implements ValidatorConstraintInter
   }
 }
 
-export function IsEnumCaseInsensitive(
-  enumType: object,
-  validationOptions?: ValidationOptions,
-) {
+export function IsEnumCaseInsensitive(enumType: object, validationOptions?: ValidationOptions) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
       target: object.constructor,

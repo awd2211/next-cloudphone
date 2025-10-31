@@ -175,7 +175,7 @@ describe('Device Lifecycle E2E Tests', () => {
           const device = await deviceService.get<any>(`/devices/${deviceId}`);
           return device.status === 'running';
         },
-        { timeout: 30000, interval: 2000 },
+        { timeout: 30000, interval: 2000 }
       );
     });
 
@@ -188,7 +188,7 @@ describe('Device Lifecycle E2E Tests', () => {
           const device = await deviceService.get<any>(`/devices/${deviceId}`);
           return device.status === 'running';
         },
-        { timeout: 30000, interval: 2000 },
+        { timeout: 30000, interval: 2000 }
       );
 
       // Then stop it
@@ -240,7 +240,7 @@ describe('Device Lifecycle E2E Tests', () => {
           const d = await deviceService.get<any>(`/devices/${deviceId}`);
           return d.status === 'running';
         },
-        { timeout: 30000, interval: 2000 },
+        { timeout: 30000, interval: 2000 }
       );
     });
 
@@ -252,7 +252,7 @@ describe('Device Lifecycle E2E Tests', () => {
 
       const response = await deviceService.post<any>(
         `/devices/${deviceId}/snapshots`,
-        snapshotData,
+        snapshotData
       );
 
       expect(response).toBeDefined();
@@ -275,7 +275,7 @@ describe('Device Lifecycle E2E Tests', () => {
 
       // Restore from snapshot
       const response = await deviceService.post<any>(
-        `/devices/${deviceId}/snapshots/${snapshot.id}/restore`,
+        `/devices/${deviceId}/snapshots/${snapshot.id}/restore`
       );
 
       expect(response).toBeDefined();
@@ -322,7 +322,7 @@ describe('Device Lifecycle E2E Tests', () => {
 
     it('should retrieve device metrics history', async () => {
       const response = await deviceService.get<any[]>(
-        `/devices/${deviceId}/metrics/history?period=1h`,
+        `/devices/${deviceId}/metrics/history?period=1h`
       );
 
       expect(Array.isArray(response)).toBe(true);

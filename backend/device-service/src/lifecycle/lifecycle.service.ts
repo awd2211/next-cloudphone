@@ -1,14 +1,14 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, LessThan } from "typeorm";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import { ConfigService } from "@nestjs/config";
-import { Device, DeviceStatus } from "../entities/device.entity";
-import { DockerService } from "../docker/docker.service";
-import { AdbService } from "../adb/adb.service";
-import { PortManagerService } from "../port-manager/port-manager.service";
-import { EventBusService } from "@cloudphone/shared";
-import { MetricsService } from "../metrics/metrics.service";
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, LessThan } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
+import { Device, DeviceStatus } from '../entities/device.entity';
+import { DockerService } from '../docker/docker.service';
+import { AdbService } from '../adb/adb.service';
+import { PortManagerService } from '../port-manager/port-manager.service';
+import { EventBusService } from '@cloudphone/shared';
+import { MetricsService } from '../metrics/metrics.service';
 
 export interface CleanupResult {
   totalScanned: number;
@@ -48,21 +48,12 @@ export class LifecycleService {
     private portManager: PortManagerService,
     private configService: ConfigService,
     private eventBus: EventBusService,
-    private metricsService: MetricsService,
+    private metricsService: MetricsService
   ) {
     // 从环境变量读取配置
-    this.IDLE_CLEANUP_HOURS = +this.configService.get(
-      "DEVICE_IDLE_CLEANUP_HOURS",
-      24,
-    );
-    this.ERROR_CLEANUP_HOURS = +this.configService.get(
-      "DEVICE_ERROR_CLEANUP_HOURS",
-      2,
-    );
-    this.STOPPED_CLEANUP_DAYS = +this.configService.get(
-      "DEVICE_STOPPED_CLEANUP_DAYS",
-      7,
-    );
+    this.IDLE_CLEANUP_HOURS = +this.configService.get('DEVICE_IDLE_CLEANUP_HOURS', 24);
+    this.ERROR_CLEANUP_HOURS = +this.configService.get('DEVICE_ERROR_CLEANUP_HOURS', 2);
+    this.STOPPED_CLEANUP_DAYS = +this.configService.get('DEVICE_STOPPED_CLEANUP_DAYS', 7);
   }
 
   /**
@@ -70,7 +61,7 @@ export class LifecycleService {
    */
   @Cron(CronExpression.EVERY_HOUR)
   async performAutoCleanup(): Promise<CleanupResult> {
-    this.logger.log("开始自动清理任务...");
+    this.logger.log('开始自动清理任务...');
 
     const result: CleanupResult = {
       totalScanned: 0,
@@ -112,16 +103,13 @@ export class LifecycleService {
         result.details.orphanedContainers;
 
       this.logger.log(
-        `自动清理完成 - 清理: ${result.totalCleaned} 项, 错误: ${result.errors.length} 项`,
+        `自动清理完成 - 清理: ${result.totalCleaned} 项, 错误: ${result.errors.length} 项`
       );
 
       // 记录清理指标
-      this.metricsService.recordOperationDuration(
-        "auto_cleanup",
-        Date.now() / 1000,
-      );
+      this.metricsService.recordOperationDuration('auto_cleanup', Date.now() / 1000);
     } catch (error) {
-      this.logger.error("自动清理任务失败", error.stack);
+      this.logger.error('自动清理任务失败', error.stack);
       result.errors.push(`全局错误: ${error.message}`);
     }
 
@@ -132,7 +120,7 @@ export class LifecycleService {
    * 清理长时间空闲的设备
    */
   async cleanupIdleDevices(): Promise<{ cleaned: number; errors: string[] }> {
-    this.logger.log("检查空闲设备...");
+    this.logger.log('检查空闲设备...');
 
     const cutoffTime = new Date();
     cutoffTime.setHours(cutoffTime.getHours() - this.IDLE_CLEANUP_HOURS);
@@ -144,9 +132,7 @@ export class LifecycleService {
       },
     });
 
-    this.logger.log(
-      `发现 ${idleDevices.length} 个空闲超过 ${this.IDLE_CLEANUP_HOURS} 小时的设备`,
-    );
+    this.logger.log(`发现 ${idleDevices.length} 个空闲超过 ${this.IDLE_CLEANUP_HOURS} 小时的设备`);
 
     let cleaned = 0;
     const errors: string[] = [];
@@ -159,10 +145,7 @@ export class LifecycleService {
         await this.stopDevice(device);
 
         // 可选：是否删除设备（根据配置决定）
-        const autoDelete = this.configService.get<boolean>(
-          "AUTO_DELETE_IDLE_DEVICES",
-          false,
-        );
+        const autoDelete = this.configService.get<boolean>('AUTO_DELETE_IDLE_DEVICES', false);
 
         if (autoDelete) {
           await this.deleteDevice(device);
@@ -172,15 +155,15 @@ export class LifecycleService {
         }
 
         // 发布设备清理事件
-        await this.eventBus.publish("cloudphone.events", "device.cleaned", {
+        await this.eventBus.publish('cloudphone.events', 'device.cleaned', {
           eventId: `cleanup-idle-${device.id}-${Date.now()}`,
-          eventType: "device.cleaned",
+          eventType: 'device.cleaned',
           timestamp: new Date().toISOString(),
-          priority: "low",
+          priority: 'low',
           payload: {
             deviceId: device.id,
             userId: device.userId,
-            reason: "idle_timeout",
+            reason: 'idle_timeout',
             idleHours: this.IDLE_CLEANUP_HOURS,
             deleted: autoDelete,
           },
@@ -190,10 +173,7 @@ export class LifecycleService {
       } catch (error) {
         this.logger.error(`清理空闲设备失败: ${device.id}`, error.stack);
         errors.push(`设备 ${device.id}: ${error.message}`);
-        this.metricsService.recordOperationError(
-          "cleanup_idle",
-          "device_cleanup_failed",
-        );
+        this.metricsService.recordOperationError('cleanup_idle', 'device_cleanup_failed');
       }
     }
 
@@ -204,7 +184,7 @@ export class LifecycleService {
    * 清理错误状态的设备
    */
   async cleanupErrorDevices(): Promise<{ cleaned: number; errors: string[] }> {
-    this.logger.log("检查错误状态设备...");
+    this.logger.log('检查错误状态设备...');
 
     const cutoffTime = new Date();
     cutoffTime.setHours(cutoffTime.getHours() - this.ERROR_CLEANUP_HOURS);
@@ -217,7 +197,7 @@ export class LifecycleService {
     });
 
     this.logger.log(
-      `发现 ${errorDevices.length} 个错误状态超过 ${this.ERROR_CLEANUP_HOURS} 小时的设备`,
+      `发现 ${errorDevices.length} 个错误状态超过 ${this.ERROR_CLEANUP_HOURS} 小时的设备`
     );
 
     let cleaned = 0;
@@ -236,15 +216,15 @@ export class LifecycleService {
           this.logger.log(`已删除无法恢复的错误设备: ${device.id}`);
 
           // 发布设备清理事件
-          await this.eventBus.publish("cloudphone.events", "device.cleaned", {
+          await this.eventBus.publish('cloudphone.events', 'device.cleaned', {
             eventId: `cleanup-error-${device.id}-${Date.now()}`,
-            eventType: "device.cleaned",
+            eventType: 'device.cleaned',
             timestamp: new Date().toISOString(),
-            priority: "medium",
+            priority: 'medium',
             payload: {
               deviceId: device.id,
               userId: device.userId,
-              reason: "unrecoverable_error",
+              reason: 'unrecoverable_error',
               deleted: true,
             },
           });
@@ -256,10 +236,7 @@ export class LifecycleService {
       } catch (error) {
         this.logger.error(`清理错误设备失败: ${device.id}`, error.stack);
         errors.push(`设备 ${device.id}: ${error.message}`);
-        this.metricsService.recordOperationError(
-          "cleanup_error",
-          "device_cleanup_failed",
-        );
+        this.metricsService.recordOperationError('cleanup_error', 'device_cleanup_failed');
       }
     }
 
@@ -273,7 +250,7 @@ export class LifecycleService {
     cleaned: number;
     errors: string[];
   }> {
-    this.logger.log("检查长期停止的设备...");
+    this.logger.log('检查长期停止的设备...');
 
     const cutoffTime = new Date();
     cutoffTime.setDate(cutoffTime.getDate() - this.STOPPED_CLEANUP_DAYS);
@@ -286,7 +263,7 @@ export class LifecycleService {
     });
 
     this.logger.log(
-      `发现 ${stoppedDevices.length} 个停止超过 ${this.STOPPED_CLEANUP_DAYS} 天的设备`,
+      `发现 ${stoppedDevices.length} 个停止超过 ${this.STOPPED_CLEANUP_DAYS} 天的设备`
     );
 
     let cleaned = 0;
@@ -299,15 +276,15 @@ export class LifecycleService {
         await this.deleteDevice(device);
 
         // 发布设备清理事件
-        await this.eventBus.publish("cloudphone.events", "device.cleaned", {
+        await this.eventBus.publish('cloudphone.events', 'device.cleaned', {
           eventId: `cleanup-stopped-${device.id}-${Date.now()}`,
-          eventType: "device.cleaned",
+          eventType: 'device.cleaned',
           timestamp: new Date().toISOString(),
-          priority: "low",
+          priority: 'low',
           payload: {
             deviceId: device.id,
             userId: device.userId,
-            reason: "long_term_stopped",
+            reason: 'long_term_stopped',
             stoppedDays: this.STOPPED_CLEANUP_DAYS,
             deleted: true,
           },
@@ -317,10 +294,7 @@ export class LifecycleService {
       } catch (error) {
         this.logger.error(`清理停止设备失败: ${device.id}`, error.stack);
         errors.push(`设备 ${device.id}: ${error.message}`);
-        this.metricsService.recordOperationError(
-          "cleanup_stopped",
-          "device_cleanup_failed",
-        );
+        this.metricsService.recordOperationError('cleanup_stopped', 'device_cleanup_failed');
       }
     }
 
@@ -334,7 +308,7 @@ export class LifecycleService {
     cleaned: number;
     errors: string[];
   }> {
-    this.logger.log("检查孤立的容器...");
+    this.logger.log('检查孤立的容器...');
 
     let cleaned = 0;
     const errors: string[] = [];
@@ -343,14 +317,14 @@ export class LifecycleService {
       // 获取所有 cloudphone 容器
       const allContainers = await this.dockerService.listContainers(true);
       const containers = allContainers.filter((c) =>
-        c.Names.some((name) => name.includes("cloudphone-")),
+        c.Names.some((name) => name.includes('cloudphone-'))
       );
 
       this.logger.log(`发现 ${containers.length} 个 cloudphone 容器`);
 
       for (const container of containers) {
-        const containerName = container.Names[0]?.replace(/^\//, "");
-        const deviceId = containerName?.replace("cloudphone-", "");
+        const containerName = container.Names[0]?.replace(/^\//, '');
+        const deviceId = containerName?.replace('cloudphone-', '');
 
         if (!deviceId) continue;
 
@@ -374,7 +348,7 @@ export class LifecycleService {
         }
       }
     } catch (error) {
-      this.logger.error("清理孤立容器失败", error.stack);
+      this.logger.error('清理孤立容器失败', error.stack);
       errors.push(`全局错误: ${error.message}`);
     }
 
@@ -399,19 +373,13 @@ export class LifecycleService {
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
       // 检查容器状态
-      const info = await this.dockerService.getContainerInfo(
-        device.containerId,
-      );
+      const info = await this.dockerService.getContainerInfo(device.containerId);
 
       if (info.State.Running) {
         // 尝试 ADB 连接
         if (device.adbHost && device.adbPort) {
           try {
-            await this.adbService.connectToDevice(
-              device.id,
-              device.adbHost,
-              device.adbPort,
-            );
+            await this.adbService.connectToDevice(device.id, device.adbHost, device.adbPort);
 
             // 恢复成功，更新状态
             device.status = DeviceStatus.RUNNING;
@@ -492,7 +460,7 @@ export class LifecycleService {
     await this.deviceRepository.save(device);
 
     // 发布删除事件
-    await this.eventBus.publishDeviceEvent("deleted", {
+    await this.eventBus.publishDeviceEvent('deleted', {
       deviceId: device.id,
       userId: device.userId,
       deviceName: device.name,
@@ -504,7 +472,7 @@ export class LifecycleService {
    * 手动触发清理（用于 API 调用）
    */
   async triggerManualCleanup(): Promise<CleanupResult> {
-    this.logger.log("手动触发清理任务");
+    this.logger.log('手动触发清理任务');
     return await this.performAutoCleanup();
   }
 
@@ -526,27 +494,26 @@ export class LifecycleService {
     const cutoffStopped = new Date();
     cutoffStopped.setDate(cutoffStopped.getDate() - this.STOPPED_CLEANUP_DAYS);
 
-    const [idleCandidates, errorCandidates, stoppedCandidates] =
-      await Promise.all([
-        this.deviceRepository.count({
-          where: {
-            status: DeviceStatus.RUNNING,
-            lastActiveAt: LessThan(cutoffIdle),
-          },
-        }),
-        this.deviceRepository.count({
-          where: {
-            status: DeviceStatus.ERROR,
-            updatedAt: LessThan(cutoffError),
-          },
-        }),
-        this.deviceRepository.count({
-          where: {
-            status: DeviceStatus.STOPPED,
-            updatedAt: LessThan(cutoffStopped),
-          },
-        }),
-      ]);
+    const [idleCandidates, errorCandidates, stoppedCandidates] = await Promise.all([
+      this.deviceRepository.count({
+        where: {
+          status: DeviceStatus.RUNNING,
+          lastActiveAt: LessThan(cutoffIdle),
+        },
+      }),
+      this.deviceRepository.count({
+        where: {
+          status: DeviceStatus.ERROR,
+          updatedAt: LessThan(cutoffError),
+        },
+      }),
+      this.deviceRepository.count({
+        where: {
+          status: DeviceStatus.STOPPED,
+          updatedAt: LessThan(cutoffStopped),
+        },
+      }),
+    ]);
 
     return {
       idleCandidates,

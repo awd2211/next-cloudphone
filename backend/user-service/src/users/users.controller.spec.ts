@@ -5,8 +5,16 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { RolesService } from '../roles/roles.service';
-import { createTestApp, generateTestJwt, assertHttpResponse } from '@cloudphone/shared/testing/test-helpers';
-import { createMockUser, createMockUsers, createMockRole } from '@cloudphone/shared/testing/mock-factories';
+import {
+  createTestApp,
+  generateTestJwt,
+  assertHttpResponse,
+} from '@cloudphone/shared/testing/test-helpers';
+import {
+  createMockUser,
+  createMockUsers,
+  createMockRole,
+} from '@cloudphone/shared/testing/mock-factories';
 
 describe('UsersController', () => {
   let app: INestApplication;
@@ -37,7 +45,9 @@ describe('UsersController', () => {
   };
 
   // Helper to generate auth token with specific permissions
-  const createAuthToken = (permissions: string[] = ['user.read', 'user.create', 'user.update', 'user.delete']) => {
+  const createAuthToken = (
+    permissions: string[] = ['user.read', 'user.create', 'user.update', 'user.delete']
+  ) => {
     return generateTestJwt({
       sub: 'test-user-id',
       username: 'testuser',
@@ -142,10 +152,7 @@ describe('UsersController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .post('/users')
-        .send(createUserDto)
-        .expect(401);
+      await request(app.getHttpServer()).post('/users').send(createUserDto).expect(401);
     });
 
     it('should return 400 when validation fails', async () => {
@@ -166,9 +173,7 @@ describe('UsersController', () => {
 
     it('should return 409 when username already exists', async () => {
       // Arrange
-      mockCommandBus.execute.mockRejectedValue(
-        new Error('Username already exists')
-      );
+      mockCommandBus.execute.mockRejectedValue(new Error('Username already exists'));
       const token = createAuthToken(['user.create']);
 
       // Act
@@ -495,10 +500,7 @@ describe('UsersController', () => {
   describe('GET /users/roles', () => {
     it('should return roles list when authenticated', async () => {
       // Arrange
-      const mockRoles = [
-        createMockRole({ name: 'admin' }),
-        createMockRole({ name: 'user' }),
-      ];
+      const mockRoles = [createMockRole({ name: 'admin' }), createMockRole({ name: 'user' })];
       mockRolesService.findAll.mockResolvedValue({
         data: mockRoles,
         total: 2,
@@ -617,9 +619,7 @@ describe('UsersController', () => {
 
     it('should return 404 when user not found', async () => {
       // Arrange
-      mockQueryBus.execute.mockRejectedValue(
-        new NotFoundException('User not found')
-      );
+      mockQueryBus.execute.mockRejectedValue(new NotFoundException('User not found'));
       const token = createAuthToken(['user.read']);
 
       // Act
@@ -712,9 +712,7 @@ describe('UsersController', () => {
 
     it('should return 404 when user not found', async () => {
       // Arrange
-      mockCommandBus.execute.mockRejectedValue(
-        new NotFoundException('User not found')
-      );
+      mockCommandBus.execute.mockRejectedValue(new NotFoundException('User not found'));
       const token = createAuthToken(['user.update']);
 
       // Act
@@ -797,9 +795,7 @@ describe('UsersController', () => {
 
     it('should return 400 when old password is incorrect', async () => {
       // Arrange
-      mockCommandBus.execute.mockRejectedValue(
-        new Error('Old password is incorrect')
-      );
+      mockCommandBus.execute.mockRejectedValue(new Error('Old password is incorrect'));
       const token = createAuthToken(['user.update']);
 
       // Act
@@ -874,9 +870,7 @@ describe('UsersController', () => {
 
     it('should return 404 when user not found', async () => {
       // Arrange
-      mockCommandBus.execute.mockRejectedValue(
-        new NotFoundException('User not found')
-      );
+      mockCommandBus.execute.mockRejectedValue(new NotFoundException('User not found'));
       const token = createAuthToken(['user.delete']);
 
       // Act
@@ -899,9 +893,7 @@ describe('UsersController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .delete('/users/user-123')
-        .expect(401);
+      await request(app.getHttpServer()).delete('/users/user-123').expect(401);
     });
 
     it('should perform soft delete (not hard delete)', async () => {
@@ -982,14 +974,14 @@ describe('UsersController', () => {
       const token = createAuthToken(['user.read']);
 
       // Make 100+ requests rapidly
-      const requests = Array(110).fill(null).map(() =>
-        request(app.getHttpServer())
-          .get('/users')
-          .set('Authorization', `Bearer ${token}`)
-      );
+      const requests = Array(110)
+        .fill(null)
+        .map(() =>
+          request(app.getHttpServer()).get('/users').set('Authorization', `Bearer ${token}`)
+        );
 
       const responses = await Promise.all(requests);
-      const rateLimitedResponses = responses.filter(r => r.status === 429);
+      const rateLimitedResponses = responses.filter((r) => r.status === 429);
 
       // Some requests should be rate limited
       expect(rateLimitedResponses.length).toBeGreaterThan(0);

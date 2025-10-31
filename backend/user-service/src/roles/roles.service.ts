@@ -20,7 +20,7 @@ export class RolesService {
     private rolesRepository: Repository<Role>,
     @InjectRepository(Permission)
     private permissionsRepository: Repository<Permission>,
-    @Optional() private cacheService: CacheService,
+    @Optional() private cacheService: CacheService
   ) {}
 
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
@@ -52,7 +52,7 @@ export class RolesService {
   async findAll(
     page: number = 1,
     limit: number = 10,
-    tenantId?: string,
+    tenantId?: string
   ): Promise<{ data: Role[]; total: number; page: number; limit: number }> {
     const skip = (page - 1) * limit;
 
@@ -170,10 +170,7 @@ export class RolesService {
     await this.rolesRepository.remove(role);
   }
 
-  async addPermissions(
-    roleId: string,
-    permissionIds: string[],
-  ): Promise<Role> {
+  async addPermissions(roleId: string, permissionIds: string[]): Promise<Role> {
     const role = await this.rolesRepository.findOne({
       where: { id: roleId },
       relations: ['permissions'],
@@ -188,21 +185,14 @@ export class RolesService {
     });
 
     // 合并权限（去重）
-    const existingPermissionIds = new Set(
-      role.permissions.map((p) => p.id),
-    );
-    const permissionsToAdd = newPermissions.filter(
-      (p) => !existingPermissionIds.has(p.id),
-    );
+    const existingPermissionIds = new Set(role.permissions.map((p) => p.id));
+    const permissionsToAdd = newPermissions.filter((p) => !existingPermissionIds.has(p.id));
 
     role.permissions = [...role.permissions, ...permissionsToAdd];
     return await this.rolesRepository.save(role);
   }
 
-  async removePermissions(
-    roleId: string,
-    permissionIds: string[],
-  ): Promise<Role> {
+  async removePermissions(roleId: string, permissionIds: string[]): Promise<Role> {
     const role = await this.rolesRepository.findOne({
       where: { id: roleId },
       relations: ['permissions'],
@@ -213,9 +203,7 @@ export class RolesService {
     }
 
     const permissionIdsSet = new Set(permissionIds);
-    role.permissions = role.permissions.filter(
-      (p) => !permissionIdsSet.has(p.id),
-    );
+    role.permissions = role.permissions.filter((p) => !permissionIdsSet.has(p.id));
 
     return await this.rolesRepository.save(role);
   }

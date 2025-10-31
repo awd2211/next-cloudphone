@@ -1,8 +1,8 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq"; // ✅ V2: 启用消费者
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Device } from "../entities/device.entity";
+import { Injectable, Logger } from '@nestjs/common';
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq'; // ✅ V2: 启用消费者
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Device } from '../entities/device.entity';
 
 /**
  * 用户事件监听器
@@ -31,7 +31,7 @@ export class UserEventsHandler {
 
   constructor(
     @InjectRepository(Device)
-    private deviceRepository: Repository<Device>,
+    private deviceRepository: Repository<Device>
   ) {}
 
   /**
@@ -40,9 +40,9 @@ export class UserEventsHandler {
    * ✅ V2: 启用装饰器
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "user.updated",
-    queue: "device-service.user-updated",
+    exchange: 'cloudphone.events',
+    routingKey: 'user.updated',
+    queue: 'device-service.user-updated',
     queueOptions: {
       durable: true,
     },
@@ -58,12 +58,10 @@ export class UserEventsHandler {
           userName: event.username,
           userEmail: event.email,
           tenantId: event.tenantId || null,
-        },
+        }
       );
 
-      this.logger.log(
-        `已同步用户 ${event.userId} 的信息，影响 ${result.affected} 个设备`,
-      );
+      this.logger.log(`已同步用户 ${event.userId} 的信息，影响 ${result.affected} 个设备`);
     } catch (error) {
       this.logger.error(`同步用户信息失败: ${error.message}`, error.stack);
     }
@@ -75,9 +73,9 @@ export class UserEventsHandler {
    * ✅ V2: 启用装饰器
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "user.deleted",
-    queue: "device-service.user-deleted",
+    exchange: 'cloudphone.events',
+    routingKey: 'user.deleted',
+    queue: 'device-service.user-deleted',
     queueOptions: {
       durable: true,
     },
@@ -88,10 +86,7 @@ export class UserEventsHandler {
     try {
       // 根据业务规则处理用户的设备
       // 选项1: 软删除
-      await this.deviceRepository.update(
-        { userId: event.userId },
-        { status: "deleted" as any },
-      );
+      await this.deviceRepository.update({ userId: event.userId }, { status: 'deleted' as any });
 
       // 选项2: 完全删除（谨慎使用）
       // await this.deviceRepository.delete({ userId: event.userId });

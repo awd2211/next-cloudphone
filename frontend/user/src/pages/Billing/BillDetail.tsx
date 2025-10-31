@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Descriptions, Table, Tag, Button, Space, message, Modal, Select, Divider, Typography, Steps } from 'antd';
-import { LeftOutlined, DownloadOutlined, PrinterOutlined, FileTextOutlined, WalletOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Descriptions,
+  Table,
+  Tag,
+  Button,
+  Space,
+  message,
+  Modal,
+  Select,
+  Divider,
+  Typography,
+  Steps,
+} from 'antd';
+import {
+  LeftOutlined,
+  DownloadOutlined,
+  PrinterOutlined,
+  FileTextOutlined,
+  WalletOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -145,9 +164,27 @@ const BillDetail: React.FC = () => {
     { title: '项目名称', dataIndex: 'name', key: 'name' },
     { title: '描述', dataIndex: 'description', key: 'description', render: (text) => text || '-' },
     { title: '数量', dataIndex: 'quantity', key: 'quantity', width: 100 },
-    { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 120, render: (price) => formatAmount(price) },
-    { title: '折扣', dataIndex: 'discount', key: 'discount', width: 100, render: (discount) => discount ? formatAmount(discount) : '-' },
-    { title: '金额', dataIndex: 'amount', key: 'amount', width: 120, render: (amount) => formatAmount(amount) },
+    {
+      title: '单价',
+      dataIndex: 'unitPrice',
+      key: 'unitPrice',
+      width: 120,
+      render: (price) => formatAmount(price),
+    },
+    {
+      title: '折扣',
+      dataIndex: 'discount',
+      key: 'discount',
+      width: 100,
+      render: (discount) => (discount ? formatAmount(discount) : '-'),
+    },
+    {
+      title: '金额',
+      dataIndex: 'amount',
+      key: 'amount',
+      width: 120,
+      render: (amount) => formatAmount(amount),
+    },
   ];
 
   // 状态步骤
@@ -169,14 +206,20 @@ const BillDetail: React.FC = () => {
       <Card style={{ marginBottom: 16 }}>
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space>
-            <Button icon={<LeftOutlined />} onClick={() => navigate('/billing')}>返回</Button>
+            <Button icon={<LeftOutlined />} onClick={() => navigate('/billing')}>
+              返回
+            </Button>
             <Title level={4} style={{ margin: 0 }}>
               <FileTextOutlined /> 账单详情
             </Title>
           </Space>
           <Space>
             {bill.status === BillStatus.PENDING && (
-              <Button type="primary" icon={<WalletOutlined />} onClick={() => setPaymentModalVisible(true)}>
+              <Button
+                type="primary"
+                icon={<WalletOutlined />}
+                onClick={() => setPaymentModalVisible(true)}
+              >
                 立即支付
               </Button>
             )}
@@ -201,10 +244,11 @@ const BillDetail: React.FC = () => {
       <Card style={{ marginBottom: 16 }}>
         <Steps current={getStatusStep()}>
           <Step title="待支付" description={dayjs(bill.createdAt).format('YYYY-MM-DD HH:mm')} />
-          <Step title="已支付" description={bill.paidAt ? dayjs(bill.paidAt).format('YYYY-MM-DD HH:mm') : undefined} />
-          {bill.status === BillStatus.REFUNDED && (
-            <Step title="已退款" description="退款完成" />
-          )}
+          <Step
+            title="已支付"
+            description={bill.paidAt ? dayjs(bill.paidAt).format('YYYY-MM-DD HH:mm') : undefined}
+          />
+          {bill.status === BillStatus.REFUNDED && <Step title="已退款" description="退款完成" />}
         </Steps>
       </Card>
 
@@ -221,7 +265,8 @@ const BillDetail: React.FC = () => {
           <Descriptions.Item label="计费周期">{formatBillingCycle(bill.cycle)}</Descriptions.Item>
           {bill.periodStart && bill.periodEnd && (
             <Descriptions.Item label="账期范围" span={2}>
-              {dayjs(bill.periodStart).format('YYYY-MM-DD')} ~ {dayjs(bill.periodEnd).format('YYYY-MM-DD')}
+              {dayjs(bill.periodStart).format('YYYY-MM-DD')} ~{' '}
+              {dayjs(bill.periodEnd).format('YYYY-MM-DD')}
             </Descriptions.Item>
           )}
           <Descriptions.Item label="创建时间">
@@ -240,7 +285,9 @@ const BillDetail: React.FC = () => {
             </Descriptions.Item>
           )}
           {bill.description && (
-            <Descriptions.Item label="说明" span={2}>{bill.description}</Descriptions.Item>
+            <Descriptions.Item label="说明" span={2}>
+              {bill.description}
+            </Descriptions.Item>
           )}
         </Descriptions>
       </Card>
@@ -284,7 +331,9 @@ const BillDetail: React.FC = () => {
               )}
               <Table.Summary.Row>
                 <Table.Summary.Cell index={0} colSpan={5} align="right">
-                  <Text strong style={{ fontSize: 16 }}>实付金额：</Text>
+                  <Text strong style={{ fontSize: 16 }}>
+                    实付金额：
+                  </Text>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={1}>
                   <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
@@ -314,9 +363,16 @@ const BillDetail: React.FC = () => {
           </div>
           <div>
             <Text>选择支付方式：</Text>
-            <Select value={paymentMethod} onChange={setPaymentMethod} style={{ width: '100%', marginTop: 8 }} size="large">
+            <Select
+              value={paymentMethod}
+              onChange={setPaymentMethod}
+              style={{ width: '100%', marginTop: 8 }}
+              size="large"
+            >
               {Object.entries(paymentMethodConfig).map(([key, config]) => (
-                <Option key={key} value={key}>{config.label}</Option>
+                <Option key={key} value={key}>
+                  {config.label}
+                </Option>
               ))}
             </Select>
           </div>
@@ -334,19 +390,33 @@ const BillDetail: React.FC = () => {
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>
             <Text>发票类型：</Text>
-            <Select value={invoiceType} onChange={setInvoiceType} style={{ width: '100%', marginTop: 8 }}>
+            <Select
+              value={invoiceType}
+              onChange={setInvoiceType}
+              style={{ width: '100%', marginTop: 8 }}
+            >
               <Option value="personal">个人</Option>
               <Option value="company">企业</Option>
             </Select>
           </div>
           <div>
             <Text>发票抬头：</Text>
-            <Input value={invoiceTitle} onChange={(e) => setInvoiceTitle(e.target.value)} style={{ marginTop: 8 }} placeholder="请输入发票抬头" />
+            <Input
+              value={invoiceTitle}
+              onChange={(e) => setInvoiceTitle(e.target.value)}
+              style={{ marginTop: 8 }}
+              placeholder="请输入发票抬头"
+            />
           </div>
           {invoiceType === 'company' && (
             <div>
               <Text>税号：</Text>
-              <Input value={taxId} onChange={(e) => setTaxId(e.target.value)} style={{ marginTop: 8 }} placeholder="请输入企业税号" />
+              <Input
+                value={taxId}
+                onChange={(e) => setTaxId(e.target.value)}
+                style={{ marginTop: 8 }}
+                placeholder="请输入企业税号"
+              />
             </div>
           )}
         </Space>

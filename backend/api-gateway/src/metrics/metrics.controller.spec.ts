@@ -22,7 +22,8 @@ describe('MetricsController', () => {
 
   describe('getMetrics', () => {
     it('should return Prometheus metrics', async () => {
-      const mockMetrics = '# HELP api_gateway_http_requests_total\n# TYPE api_gateway_http_requests_total counter\n';
+      const mockMetrics =
+        '# HELP api_gateway_http_requests_total\n# TYPE api_gateway_http_requests_total counter\n';
       jest.spyOn(metricsService, 'getMetrics').mockResolvedValue(mockMetrics);
 
       const result = await controller.getMetrics();

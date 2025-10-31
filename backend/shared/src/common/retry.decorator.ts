@@ -74,7 +74,7 @@ function calculateBackoffDelay(
   baseDelayMs: number,
   maxDelayMs: number,
   exponentialBase: number,
-  jitterFactor: number,
+  jitterFactor: number
 ): number {
   // 计算指数延迟: baseDelay * (exponentialBase ^ (attempt - 1))
   const exponentialDelay = baseDelayMs * Math.pow(exponentialBase, attempt - 1);
@@ -100,7 +100,7 @@ function calculateBackoffDelay(
  */
 function isRetryableError(
   error: Error,
-  retryableErrors?: Array<new (...args: any[]) => Error>,
+  retryableErrors?: Array<new (...args: any[]) => Error>
 ): boolean {
   if (!retryableErrors || retryableErrors.length === 0) {
     // 如果未指定可重试错误，默认所有错误都可重试
@@ -172,11 +172,7 @@ export function Retry(options: RetryOptions = {}): MethodDecorator {
     throwOriginalError = true,
   } = options;
 
-  return function (
-    target: any,
-    propertyKey: string | symbol,
-    descriptor: PropertyDescriptor,
-  ) {
+  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const methodName = String(propertyKey);
     const logger = new Logger(`${target.constructor.name}.${methodName}`);
@@ -201,7 +197,7 @@ export function Retry(options: RetryOptions = {}): MethodDecorator {
           // 检查是否为可重试的错误
           if (!isRetryableError(error, retryableErrors)) {
             logger.error(
-              `Non-retryable error on attempt ${attempt}/${maxAttempts}: ${error.message}`,
+              `Non-retryable error on attempt ${attempt}/${maxAttempts}: ${error.message}`
             );
             throw error;
           }
@@ -209,15 +205,13 @@ export function Retry(options: RetryOptions = {}): MethodDecorator {
           // 如果是最后一次尝试，直接抛出错误
           if (attempt === maxAttempts) {
             logger.error(
-              `Max retry attempts (${maxAttempts}) reached. Last error: ${error.message}`,
+              `Max retry attempts (${maxAttempts}) reached. Last error: ${error.message}`
             );
 
             if (throwOriginalError) {
               throw error;
             } else {
-              throw new Error(
-                `Failed after ${maxAttempts} attempts. Last error: ${error.message}`,
-              );
+              throw new Error(`Failed after ${maxAttempts} attempts. Last error: ${error.message}`);
             }
           }
 
@@ -227,11 +221,11 @@ export function Retry(options: RetryOptions = {}): MethodDecorator {
             baseDelayMs,
             maxDelayMs,
             exponentialBase,
-            jitterFactor,
+            jitterFactor
           );
 
           logger.warn(
-            `Attempt ${attempt}/${maxAttempts} failed: ${error.message}. Retrying in ${delayMs}ms...`,
+            `Attempt ${attempt}/${maxAttempts} failed: ${error.message}. Retrying in ${delayMs}ms...`
           );
 
           // 执行重试回调
@@ -239,10 +233,7 @@ export function Retry(options: RetryOptions = {}): MethodDecorator {
             try {
               onRetry(error, attempt, delayMs);
             } catch (callbackError) {
-              logger.error(
-                `Retry callback failed: ${callbackError.message}`,
-                callbackError.stack,
-              );
+              logger.error(`Retry callback failed: ${callbackError.message}`, callbackError.stack);
             }
           }
 
@@ -287,7 +278,7 @@ export function Retry(options: RetryOptions = {}): MethodDecorator {
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  options: RetryOptions = {},
+  options: RetryOptions = {}
 ): Promise<T> {
   const {
     maxAttempts = 3,
@@ -321,16 +312,12 @@ export async function retryWithBackoff<T>(
       }
 
       if (attempt === maxAttempts) {
-        logger.error(
-          `Max retry attempts (${maxAttempts}) reached. Last error: ${error.message}`,
-        );
+        logger.error(`Max retry attempts (${maxAttempts}) reached. Last error: ${error.message}`);
 
         if (throwOriginalError) {
           throw error;
         } else {
-          throw new Error(
-            `Failed after ${maxAttempts} attempts. Last error: ${error.message}`,
-          );
+          throw new Error(`Failed after ${maxAttempts} attempts. Last error: ${error.message}`);
         }
       }
 
@@ -339,21 +326,18 @@ export async function retryWithBackoff<T>(
         baseDelayMs,
         maxDelayMs,
         exponentialBase,
-        jitterFactor,
+        jitterFactor
       );
 
       logger.warn(
-        `Attempt ${attempt}/${maxAttempts} failed: ${error.message}. Retrying in ${delayMs}ms...`,
+        `Attempt ${attempt}/${maxAttempts} failed: ${error.message}. Retrying in ${delayMs}ms...`
       );
 
       if (onRetry) {
         try {
           onRetry(error, attempt, delayMs);
         } catch (callbackError) {
-          logger.error(
-            `Retry callback failed: ${callbackError.message}`,
-            callbackError.stack,
-          );
+          logger.error(`Retry callback failed: ${callbackError.message}`, callbackError.stack);
         }
       }
 

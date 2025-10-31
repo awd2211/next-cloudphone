@@ -33,7 +33,9 @@ export interface UpdateApiKeyDto {
 }
 
 // 获取 API 密钥列表
-export const getApiKeys = (params?: PaginationParams & { status?: string; environment?: string }) => {
+export const getApiKeys = (
+  params?: PaginationParams & { status?: string; environment?: string }
+) => {
   return request.get<PaginatedResponse<ApiKey>>('/api-keys', { params });
 };
 
@@ -68,7 +70,10 @@ export const rotateApiKey = (id: string) => {
 };
 
 // 获取 API 密钥使用统计
-export const getApiKeyUsageStats = (id: string, params?: { startDate?: string; endDate?: string }) => {
+export const getApiKeyUsageStats = (
+  id: string,
+  params?: { startDate?: string; endDate?: string }
+) => {
   return request.get<{
     totalRequests: number;
     successfulRequests: number;
@@ -80,5 +85,7 @@ export const getApiKeyUsageStats = (id: string, params?: { startDate?: string; e
 
 // 获取可用的权限范围列表
 export const getAvailableScopes = () => {
-  return request.get<Array<{ value: string; label: string; description: string }>>('/api-keys/scopes');
+  return request.get<Array<{ value: string; label: string; description: string }>>(
+    '/api-keys/scopes'
+  );
 };

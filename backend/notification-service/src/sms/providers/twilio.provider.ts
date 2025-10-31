@@ -159,9 +159,7 @@ export class TwilioSmsProvider implements SmsProvider {
 
     // Twilio 不支持真正的批量发送，需要逐个发送
     // 但我们可以并发发送以提高性能
-    const promises = recipients.map((to) =>
-      this.send({ to, message }),
-    );
+    const promises = recipients.map((to) => this.send({ to, message }));
 
     const batchResults = await Promise.allSettled(promises);
 

@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Observable, of } from 'rxjs';
@@ -18,12 +12,9 @@ import { tap } from 'rxjs/operators';
 export class ApiCacheInterceptor implements NestInterceptor {
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
-  async intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<any>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const request = context.switchToHttp().getRequest();
-    
+
     // 只缓存 GET 请求
     if (request.method !== 'GET') {
       return next.handle();
@@ -31,10 +22,10 @@ export class ApiCacheInterceptor implements NestInterceptor {
 
     // 生成缓存键
     const cacheKey = this.getCacheKey(request);
-    
+
     // 尝试从缓存获取
     const cachedResponse = await this.cacheManager.get(cacheKey);
-    
+
     if (cachedResponse) {
       // 命中缓存
       return of(cachedResponse);
@@ -47,7 +38,7 @@ export class ApiCacheInterceptor implements NestInterceptor {
         if (response && (response.success === true || response.data)) {
           await this.cacheManager.set(cacheKey, response);
         }
-      }),
+      })
     );
   }
 
@@ -60,4 +51,3 @@ export class ApiCacheInterceptor implements NestInterceptor {
     return `api:${url}:${query}`;
   }
 }
-

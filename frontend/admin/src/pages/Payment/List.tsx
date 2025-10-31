@@ -82,24 +82,21 @@ const PaymentList = () => {
     setPage(1);
   }, []);
 
-  const handleFilter = useCallback(
-    (values: any) => {
-      const newFilters: PaymentListParams = {
-        status: values.status,
-        method: values.method,
-        userId: values.userId,
-      };
+  const handleFilter = useCallback((values: any) => {
+    const newFilters: PaymentListParams = {
+      status: values.status,
+      method: values.method,
+      userId: values.userId,
+    };
 
-      if (values.dateRange && values.dateRange.length === 2) {
-        newFilters.startDate = values.dateRange[0].format('YYYY-MM-DD');
-        newFilters.endDate = values.dateRange[1].format('YYYY-MM-DD');
-      }
+    if (values.dateRange && values.dateRange.length === 2) {
+      newFilters.startDate = values.dateRange[0].format('YYYY-MM-DD');
+      newFilters.endDate = values.dateRange[1].format('YYYY-MM-DD');
+    }
 
-      setFilters(newFilters);
-      setPage(1);
-    },
-    []
-  );
+    setFilters(newFilters);
+    setPage(1);
+  }, []);
 
   const handleClearFilters = useCallback(() => {
     form.resetFields();
@@ -168,140 +165,137 @@ const PaymentList = () => {
     return `${currencySymbol}${(amount || 0).toFixed(2)}`;
   }, []);
 
-  const columns: ColumnsType<PaymentDetail> = useMemo(() => [
-    {
-      title: '支付单号',
-      dataIndex: 'paymentNo',
-      key: 'paymentNo',
-      width: 180,
-      fixed: 'left',
-    },
-    {
-      title: '订单号',
-      dataIndex: 'order',
-      key: 'order',
-      width: 180,
-      render: (order: any) => order?.orderNo || '-',
-    },
-    {
-      title: '用户ID',
-      dataIndex: 'userId',
-      key: 'userId',
-      width: 100,
-      ellipsis: true,
-    },
-    {
-      title: '金额',
-      dataIndex: 'amount',
-      key: 'amount',
-      render: renderAmount,
-      sorter: (a, b) => a.amount - b.amount,
-    },
-    {
-      title: '支付方式',
-      dataIndex: 'method',
-      key: 'method',
-      render: (method: string) => {
-        const config = methodMap[method as keyof typeof methodMap] || {
-          color: 'default' as const,
-          text: method,
-        };
-        return <Tag color={config.color}>{config.text}</Tag>;
+  const columns: ColumnsType<PaymentDetail> = useMemo(
+    () => [
+      {
+        title: '支付单号',
+        dataIndex: 'paymentNo',
+        key: 'paymentNo',
+        width: 180,
+        fixed: 'left',
       },
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const config = statusMap[status as keyof typeof statusMap] || {
-          color: 'default' as const,
-          text: status,
-        };
-        return <Tag color={config.color}>{config.text}</Tag>;
+      {
+        title: '订单号',
+        dataIndex: 'order',
+        key: 'order',
+        width: 180,
+        render: (order: any) => order?.orderNo || '-',
       },
-    },
-    {
-      title: '交易号',
-      dataIndex: 'transactionId',
-      key: 'transactionId',
-      ellipsis: true,
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
-    },
-    {
-      title: '支付时间',
-      dataIndex: 'paidAt',
-      key: 'paidAt',
-      render: (date: string) => date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-',
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 220,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          {(record.status === 'pending' || record.status === 'processing') && (
-            <>
-              <Button
-                type="link"
-                size="small"
-                icon={<ReloadOutlined />}
-                onClick={() => handleSyncStatus(record.id)}
-              >
-                同步状态
-              </Button>
-              {record.paymentUrl && (
+      {
+        title: '用户ID',
+        dataIndex: 'userId',
+        key: 'userId',
+        width: 100,
+        ellipsis: true,
+      },
+      {
+        title: '金额',
+        dataIndex: 'amount',
+        key: 'amount',
+        render: renderAmount,
+        sorter: (a, b) => a.amount - b.amount,
+      },
+      {
+        title: '支付方式',
+        dataIndex: 'method',
+        key: 'method',
+        render: (method: string) => {
+          const config = methodMap[method as keyof typeof methodMap] || {
+            color: 'default' as const,
+            text: method,
+          };
+          return <Tag color={config.color}>{config.text}</Tag>;
+        },
+      },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        key: 'status',
+        render: (status: string) => {
+          const config = statusMap[status as keyof typeof statusMap] || {
+            color: 'default' as const,
+            text: status,
+          };
+          return <Tag color={config.color}>{config.text}</Tag>;
+        },
+      },
+      {
+        title: '交易号',
+        dataIndex: 'transactionId',
+        key: 'transactionId',
+        ellipsis: true,
+      },
+      {
+        title: '创建时间',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
+      },
+      {
+        title: '支付时间',
+        dataIndex: 'paidAt',
+        key: 'paidAt',
+        render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'),
+      },
+      {
+        title: '操作',
+        key: 'action',
+        width: 220,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="small">
+            {(record.status === 'pending' || record.status === 'processing') && (
+              <>
                 <Button
                   type="link"
                   size="small"
-                  onClick={() => {
-                    setSelectedPayment(record);
-                    setQrCodeModalVisible(true);
-                  }}
+                  icon={<ReloadOutlined />}
+                  onClick={() => handleSyncStatus(record.id)}
                 >
-                  查看二维码
+                  同步状态
                 </Button>
-              )}
-            </>
-          )}
-          {record.status === 'success' && hasPermission('payment:refund:create') && (
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DollarOutlined />}
-              onClick={() => {
-                setSelectedPayment(record);
-                refundForm.setFieldsValue({ amount: record.amount });
-                setRefundModalVisible(true);
-              }}
-            >
-              退款
-            </Button>
-          )}
-          {record.status === 'success' && !hasPermission('payment:refund:create') && (
-            <Tooltip title="无退款权限">
+                {record.paymentUrl && (
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => {
+                      setSelectedPayment(record);
+                      setQrCodeModalVisible(true);
+                    }}
+                  >
+                    查看二维码
+                  </Button>
+                )}
+              </>
+            )}
+            {record.status === 'success' && hasPermission('payment:refund:create') && (
               <Button
                 type="link"
                 size="small"
                 danger
-                disabled
                 icon={<DollarOutlined />}
+                onClick={() => {
+                  setSelectedPayment(record);
+                  refundForm.setFieldsValue({ amount: record.amount });
+                  setRefundModalVisible(true);
+                }}
               >
                 退款
               </Button>
-            </Tooltip>
-          )}
-        </Space>
-      ),
-    },
-  ], [methodMap, statusMap, renderAmount, handleSyncStatus, hasPermission, refundForm]);
+            )}
+            {record.status === 'success' && !hasPermission('payment:refund:create') && (
+              <Tooltip title="无退款权限">
+                <Button type="link" size="small" danger disabled icon={<DollarOutlined />}>
+                  退款
+                </Button>
+              </Tooltip>
+            )}
+          </Space>
+        ),
+      },
+    ],
+    [methodMap, statusMap, renderAmount, handleSyncStatus, hasPermission, refundForm]
+  );
 
   return (
     <div style={{ padding: '24px' }}>
@@ -314,10 +308,7 @@ const PaymentList = () => {
             </Col>
             <Col>
               <Space>
-                <Button
-                  icon={<FilterOutlined />}
-                  onClick={() => setShowFilters(!showFilters)}
-                >
+                <Button icon={<FilterOutlined />} onClick={() => setShowFilters(!showFilters)}>
                   {showFilters ? '隐藏筛选' : '显示筛选'}
                 </Button>
                 <PermissionGuard permission="payment:list:export">
@@ -347,9 +338,7 @@ const PaymentList = () => {
             <Button type="primary" onClick={handleSearch}>
               搜索
             </Button>
-            {searchValue && (
-              <Button onClick={handleClearSearch}>清空</Button>
-            )}
+            {searchValue && <Button onClick={handleClearSearch}>清空</Button>}
           </Space.Compact>
         </Card>
 
@@ -513,7 +502,9 @@ const PaymentList = () => {
               height={300}
               fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
             />
-            <p style={{ marginTop: 16 }}>请使用{selectedPayment.method === 'wechat' ? '微信' : '支付宝'}扫码支付</p>
+            <p style={{ marginTop: 16 }}>
+              请使用{selectedPayment.method === 'wechat' ? '微信' : '支付宝'}扫码支付
+            </p>
             <p>金额: ¥{selectedPayment.amount.toFixed(2)}</p>
           </div>
         )}

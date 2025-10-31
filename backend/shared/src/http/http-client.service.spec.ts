@@ -44,7 +44,7 @@ describe('HttpClientService', () => {
     };
 
     (CircuitBreaker as jest.MockedClass<typeof CircuitBreaker>).mockImplementation(
-      () => mockCircuitBreaker,
+      () => mockCircuitBreaker
     );
 
     const module: TestingModule = await Test.createTestingModule({
@@ -419,7 +419,7 @@ describe('HttpClientService', () => {
           timeout: 5000,
           errorThresholdPercentage: 70,
           resetTimeout: 60000,
-        }),
+        })
       );
     });
 
@@ -449,9 +449,9 @@ describe('HttpClientService', () => {
       mockCircuitBreaker.fire.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(
-        service.requestWithCircuitBreaker(serviceKey, requestFn),
-      ).rejects.toThrow('Service error');
+      await expect(service.requestWithCircuitBreaker(serviceKey, requestFn)).rejects.toThrow(
+        'Service error'
+      );
     });
   });
 
@@ -618,9 +618,7 @@ describe('HttpClientService', () => {
       await service.get(url, undefined, { retries: 1, retryDelay: 1 });
 
       // Assert
-      expect(loggerWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Retry'),
-      );
+      expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Retry'));
     }, 10000);
   });
 

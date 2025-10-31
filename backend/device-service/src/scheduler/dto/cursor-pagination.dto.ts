@@ -1,19 +1,12 @@
-import {
-  IsString,
-  IsNumber,
-  IsOptional,
-  Min,
-  Max,
-  IsEnum,
-} from "class-validator";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsString, IsNumber, IsOptional, Min, Max, IsEnum } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * 游标分页排序方向
  */
 export enum SortDirection {
-  ASC = "asc",
-  DESC = "desc",
+  ASC = 'asc',
+  DESC = 'desc',
 }
 
 /**
@@ -21,15 +14,15 @@ export enum SortDirection {
  */
 export class CursorPaginationDto {
   @ApiPropertyOptional({
-    description: "游标（上一页的最后一条记录ID）",
-    example: "cursor_abc123",
+    description: '游标（上一页的最后一条记录ID）',
+    example: 'cursor_abc123',
   })
   @IsOptional()
   @IsString()
   cursor?: string;
 
   @ApiPropertyOptional({
-    description: "每页数量",
+    description: '每页数量',
     example: 20,
     minimum: 1,
     maximum: 100,
@@ -42,7 +35,7 @@ export class CursorPaginationDto {
   limit?: number = 20;
 
   @ApiPropertyOptional({
-    description: "排序方向",
+    description: '排序方向',
     enum: SortDirection,
     default: SortDirection.DESC,
   })
@@ -56,45 +49,45 @@ export class CursorPaginationDto {
  */
 export class CursorPaginationMeta {
   @ApiProperty({
-    description: "当前页游标",
-    example: "cursor_abc123",
+    description: '当前页游标',
+    example: 'cursor_abc123',
   })
   cursor: string;
 
   @ApiProperty({
-    description: "下一页游标（如果有）",
-    example: "cursor_def456",
+    description: '下一页游标（如果有）',
+    example: 'cursor_def456',
     nullable: true,
   })
   nextCursor: string | null;
 
   @ApiProperty({
-    description: "上一页游标（如果有）",
-    example: "cursor_ghi789",
+    description: '上一页游标（如果有）',
+    example: 'cursor_ghi789',
     nullable: true,
   })
   prevCursor: string | null;
 
   @ApiProperty({
-    description: "是否有下一页",
+    description: '是否有下一页',
     example: true,
   })
   hasNextPage: boolean;
 
   @ApiProperty({
-    description: "是否有上一页",
+    description: '是否有上一页',
     example: false,
   })
   hasPrevPage: boolean;
 
   @ApiProperty({
-    description: "当前页数据量",
+    description: '当前页数据量',
     example: 20,
   })
   count: number;
 
   @ApiProperty({
-    description: "每页限制",
+    description: '每页限制',
     example: 20,
   })
   limit: number;
@@ -105,13 +98,13 @@ export class CursorPaginationMeta {
  */
 export class CursorPaginatedResponse<T> {
   @ApiProperty({
-    description: "数据列表",
+    description: '数据列表',
     isArray: true,
   })
   data: T[];
 
   @ApiProperty({
-    description: "分页元数据",
+    description: '分页元数据',
     type: CursorPaginationMeta,
   })
   meta: CursorPaginationMeta;
@@ -131,7 +124,7 @@ export class CursorEncoder {
       id,
       ts: timestamp.getTime(),
     };
-    return Buffer.from(JSON.stringify(payload)).toString("base64url");
+    return Buffer.from(JSON.stringify(payload)).toString('base64url');
   }
 
   /**
@@ -140,7 +133,7 @@ export class CursorEncoder {
    */
   static decode(cursor: string): { id: string; ts: number } | null {
     try {
-      const decoded = Buffer.from(cursor, "base64url").toString("utf-8");
+      const decoded = Buffer.from(cursor, 'base64url').toString('utf-8');
       const payload = JSON.parse(decoded);
       if (payload.id && payload.ts) {
         return { id: payload.id, ts: payload.ts };

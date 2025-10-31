@@ -37,9 +37,7 @@ export class RolesGuard implements CanActivate {
     const hasRole = requiredRoles.some((role) => userRoles.includes(role));
 
     if (!hasRole) {
-      throw new ForbiddenException(
-        `需要以下角色之一: ${requiredRoles.join(', ')}`,
-      );
+      throw new ForbiddenException(`需要以下角色之一: ${requiredRoles.join(', ')}`);
     }
 
     return true;

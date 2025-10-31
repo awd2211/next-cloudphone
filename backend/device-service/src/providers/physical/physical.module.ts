@@ -1,9 +1,9 @@
-import { Module } from "@nestjs/common";
-import { PhysicalProvider } from "./physical.provider";
-import { DevicePoolService } from "./device-pool.service";
-import { DeviceDiscoveryService } from "./device-discovery.service";
-import { AdbModule } from "../../adb/adb.module";
-import { ScrcpyModule } from "../../scrcpy/scrcpy.module";
+import { Module } from '@nestjs/common';
+import { PhysicalProvider } from './physical.provider';
+import { DevicePoolService } from './device-pool.service';
+import { DeviceDiscoveryService } from './device-discovery.service';
+import { AdbModule } from '../../adb/adb.module';
+import { ScrcpyModule } from '../../scrcpy/scrcpy.module';
 
 /**
  * PhysicalModule

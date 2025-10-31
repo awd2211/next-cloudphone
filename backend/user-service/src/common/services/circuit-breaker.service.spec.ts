@@ -30,7 +30,7 @@ describe('CircuitBreakerService', () => {
 
     // Mock CircuitBreaker constructor
     (CircuitBreaker as jest.MockedClass<typeof CircuitBreaker>).mockImplementation(
-      () => mockBreaker,
+      () => mockBreaker
     );
 
     const module: TestingModule = await Test.createTestingModule({
@@ -63,7 +63,7 @@ describe('CircuitBreakerService', () => {
         expect.objectContaining({
           timeout: 5000,
           errorThresholdPercentage: 50,
-        }),
+        })
       );
       expect(breaker).toBe(mockBreaker);
     });
@@ -84,7 +84,7 @@ describe('CircuitBreakerService', () => {
           errorThresholdPercentage: 50,
           resetTimeout: 30000,
           volumeThreshold: 10,
-        }),
+        })
       );
     });
 
@@ -178,9 +178,7 @@ describe('CircuitBreakerService', () => {
 
     it('应该在熔断器不存在时抛出错误', async () => {
       // Act & Assert
-      await expect(service.fire('nonexistent')).rejects.toThrow(
-        '熔断器 nonexistent 不存在',
-      );
+      await expect(service.fire('nonexistent')).rejects.toThrow('熔断器 nonexistent 不存在');
     });
   });
 
@@ -431,8 +429,8 @@ describe('CircuitBreakerService', () => {
 
       const statuses = service.getAllBreakerStatus();
       expect(statuses).toHaveLength(2);
-      expect(statuses.find(s => s.name === 'breaker-1')).toBeDefined();
-      expect(statuses.find(s => s.name === 'breaker-2')).toBeDefined();
+      expect(statuses.find((s) => s.name === 'breaker-1')).toBeDefined();
+      expect(statuses.find((s) => s.name === 'breaker-2')).toBeDefined();
     });
   });
 });

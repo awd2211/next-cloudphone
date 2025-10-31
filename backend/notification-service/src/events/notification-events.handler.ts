@@ -104,7 +104,7 @@ export class NotificationEventsHandler {
 
   constructor(
     private readonly notificationsService: NotificationsService,
-    private readonly emailService: EmailService,
+    private readonly emailService: EmailService
   ) {}
 
   /**
@@ -129,10 +129,7 @@ export class NotificationEventsHandler {
 
       // 发送邮件通知（如果有邮箱）
       if (event.userEmail) {
-        await this.emailService.sendDeviceCreatedEmail(
-          event.userEmail,
-          event.deviceName,
-        );
+        await this.emailService.sendDeviceCreatedEmail(event.userEmail, event.deviceName);
       }
     } catch (error) {
       this.logger.error(`处理设备创建事件失败: ${error.message}`);
@@ -199,10 +196,7 @@ export class NotificationEventsHandler {
 
     // 邮件告警
     if (event.userEmail) {
-      await this.emailService.sendLowBalanceAlert(
-        event.userEmail,
-        event.balance,
-      );
+      await this.emailService.sendLowBalanceAlert(event.userEmail, event.balance);
     }
   }
 
@@ -221,7 +215,7 @@ export class NotificationEventsHandler {
         startTime: event.startTime,
         endTime: event.endTime,
         duration: event.duration,
-      },
+      }
     );
   }
 
@@ -275,9 +269,7 @@ export class NotificationEventsHandler {
    */
   @OnEvent('device.expiration_warning')
   async handleDeviceExpirationWarning(event: DeviceExpirationWarningEventPayload) {
-    this.logger.log(
-      `收到设备到期提醒事件: ${event.deviceId}, ${event.daysRemaining} 天后到期`,
-    );
+    this.logger.log(`收到设备到期提醒事件: ${event.deviceId}, ${event.daysRemaining} 天后到期`);
 
     try {
       // WebSocket 通知
@@ -300,7 +292,7 @@ export class NotificationEventsHandler {
           event.userEmail,
           event.deviceName,
           new Date(event.expiresAt),
-          event.daysRemaining,
+          event.daysRemaining
         );
       }
     } catch (error) {
@@ -335,15 +327,13 @@ export class NotificationEventsHandler {
    */
   @OnEvent('snapshot.expiration_warning')
   async handleSnapshotExpirationWarning(event: SnapshotExpirationWarningEventPayload) {
-    this.logger.log(
-      `收到快照到期提醒事件: ${event.snapshotId}, ${event.daysRemaining} 天后到期`,
-    );
+    this.logger.log(`收到快照到期提醒事件: ${event.snapshotId}, ${event.daysRemaining} 天后到期`);
 
     try {
       // 查询设备的用户ID（需要从设备服务获取）
       // 这里先记录日志，实际应用中需要通过 deviceId 查询用户
       this.logger.log(
-        `快照 ${event.snapshotName} (设备: ${event.deviceId}) 将在 ${event.daysRemaining} 天后到期`,
+        `快照 ${event.snapshotName} (设备: ${event.deviceId}) 将在 ${event.daysRemaining} 天后到期`
       );
 
       // 可以通过 API 调用设备服务获取用户信息，然后发送通知
@@ -372,15 +362,11 @@ export class NotificationEventsHandler {
    */
   @OnEvent('device.backup_completed')
   async handleBackupCompleted(event: BackupCompletedEventPayload) {
-    this.logger.log(
-      `收到备份任务完成事件: 成功 ${event.successCount}/${event.totalDevices}`,
-    );
+    this.logger.log(`收到备份任务完成事件: 成功 ${event.successCount}/${event.totalDevices}`);
 
     // 如果有失败的备份，可以发送管理员通知
     if (event.failureCount > 0) {
-      this.logger.warn(
-        `备份任务有 ${event.failureCount} 个失败，需要关注`,
-      );
+      this.logger.warn(`备份任务有 ${event.failureCount} 个失败，需要关注`);
     }
   }
 
@@ -392,4 +378,3 @@ export class NotificationEventsHandler {
     this.logger.log(`收到备份清理完成事件: 清理了 ${event.cleanedCount} 个过期备份`);
   }
 }
-

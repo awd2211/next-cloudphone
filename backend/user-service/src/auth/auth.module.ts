@@ -10,6 +10,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { CaptchaService } from './services/captcha.service';
+import { TwoFactorService } from './two-factor.service';
 import { CacheModule } from '../cache/cache.module';
 import { createJwtConfig } from '@cloudphone/shared';
 
@@ -28,7 +29,14 @@ import { createJwtConfig } from '@cloudphone/shared';
     CacheModule, // 导入 CacheModule 用于 Token 黑名单
   ],
   controllers: [AuthController],
-  providers: [AuthService, CaptchaService, JwtStrategy, RolesGuard, PermissionsGuard],
+  providers: [
+    AuthService,
+    CaptchaService,
+    TwoFactorService,
+    JwtStrategy,
+    RolesGuard,
+    PermissionsGuard,
+  ],
   exports: [AuthService, JwtModule, JwtStrategy, PassportModule, RolesGuard, PermissionsGuard],
 })
 export class AuthModule {}

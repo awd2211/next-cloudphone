@@ -9,7 +9,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -40,22 +47,22 @@ export class RolesController {
   }
 
   @Get()
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @RequirePermission('role.read')
+  @ApiBearerAuth()
   @ApiOperation({ summary: '获取角色列表', description: '分页获取角色列表' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
   @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 10 })
   @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
   @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
   async findAll(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
-    @Query('tenantId') tenantId?: string,
+    @Query('tenantId') tenantId?: string
   ) {
-    const result = await this.rolesService.findAll(
-      parseInt(page),
-      parseInt(limit),
-      tenantId,
-    );
+    const result = await this.rolesService.findAll(parseInt(page), parseInt(limit), tenantId);
     return {
       success: true,
       ...result,
@@ -115,10 +122,7 @@ export class RolesController {
   @ApiResponse({ status: 200, description: '权限添加成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async addPermissions(
-    @Param('id') id: string,
-    @Body('permissionIds') permissionIds: string[],
-  ) {
+  async addPermissions(@Param('id') id: string, @Body('permissionIds') permissionIds: string[]) {
     const role = await this.rolesService.addPermissions(id, permissionIds);
     return {
       success: true,
@@ -134,10 +138,7 @@ export class RolesController {
   @ApiResponse({ status: 200, description: '权限移除成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async removePermissions(
-    @Param('id') id: string,
-    @Body('permissionIds') permissionIds: string[],
-  ) {
+  async removePermissions(@Param('id') id: string, @Body('permissionIds') permissionIds: string[]) {
     const role = await this.rolesService.removePermissions(id, permissionIds);
     return {
       success: true,

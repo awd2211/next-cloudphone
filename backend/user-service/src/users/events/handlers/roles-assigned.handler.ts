@@ -8,25 +8,21 @@ import { EventStoreService } from '../event-store.service';
  * 当用户被分配新角色时触发
  */
 @EventsHandler(RolesAssignedEvent)
-export class RolesAssignedEventHandler
-  implements IEventHandler<RolesAssignedEvent>
-{
+export class RolesAssignedEventHandler implements IEventHandler<RolesAssignedEvent> {
   private readonly logger = new Logger(RolesAssignedEventHandler.name);
 
   constructor(private readonly eventStore: EventStoreService) {}
 
   async handle(event: RolesAssignedEvent) {
     try {
-      this.logger.log(
-        `Handling RolesAssignedEvent for user: ${event.aggregateId}`,
-      );
+      this.logger.log(`Handling RolesAssignedEvent for user: ${event.aggregateId}`);
 
       // 事件已经在 EventStoreService 中保存和发布
       // 这里可以添加其他副作用，例如：
 
       // 1. 记录角色变更日志
       this.logger.debug(
-        `Roles assigned to user ${event.aggregateId}: ${event.roleIds.join(', ')} by ${event.assignedBy}`,
+        `Roles assigned to user ${event.aggregateId}: ${event.roleIds.join(', ')} by ${event.assignedBy}`
       );
 
       // 2. 清除用户权限缓存
@@ -54,13 +50,11 @@ export class RolesAssignedEventHandler
       //   await this.permissionService.refreshUserPermissions(event.aggregateId);
       // }, 1000);
 
-      this.logger.log(
-        `RolesAssignedEvent handled successfully for user: ${event.aggregateId}`,
-      );
+      this.logger.log(`RolesAssignedEvent handled successfully for user: ${event.aggregateId}`);
     } catch (error) {
       this.logger.error(
         `Failed to handle RolesAssignedEvent for user: ${event.aggregateId}`,
-        error.stack,
+        error.stack
       );
       // 不抛出异常，避免影响主流程
     }

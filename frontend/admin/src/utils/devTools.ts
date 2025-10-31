@@ -124,9 +124,7 @@ export function useComponentSize(ref: React.RefObject<HTMLElement>): {
       });
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(
-          `📏 Component resized: ${entry.contentRect.width}x${entry.contentRect.height}`
-        );
+        console.log(`📏 Component resized: ${entry.contentRect.width}x${entry.contentRect.height}`);
       }
     });
 
@@ -185,12 +183,7 @@ export class ApiLogger {
     timestamp: Date;
   }> = [];
 
-  static log(
-    url: string,
-    method: string,
-    duration: number,
-    status: number
-  ): void {
+  static log(url: string, method: string, duration: number, status: number): void {
     if (process.env.NODE_ENV !== 'development') return;
 
     this.requests.push({
@@ -202,9 +195,7 @@ export class ApiLogger {
     });
 
     const emoji = status >= 200 && status < 300 ? '✅' : '❌';
-    console.log(
-      `${emoji} [API] ${method} ${url} - ${status} (${duration.toFixed(2)}ms)`
-    );
+    console.log(`${emoji} [API] ${method} ${url} - ${status} (${duration.toFixed(2)}ms)`);
 
     // 慢请求警告
     if (duration > 1000) {
@@ -222,9 +213,7 @@ export class ApiLogger {
     const averageDuration =
       this.requests.reduce((sum, req) => sum + req.duration, 0) / totalRequests;
     const slowRequests = this.requests.filter((req) => req.duration > 1000).length;
-    const failedRequests = this.requests.filter(
-      (req) => req.status >= 400
-    ).length;
+    const failedRequests = this.requests.filter((req) => req.status >= 400).length;
 
     return {
       totalRequests,
@@ -268,13 +257,10 @@ export class MemoryLeakDetector {
       // 检测内存泄漏（持续增长）
       if (this.snapshots.length >= 5) {
         const recentSnapshots = this.snapshots.slice(-5);
-        const increasing = recentSnapshots.every(
-          (val, i, arr) => i === 0 || val > arr[i - 1]
-        );
+        const increasing = recentSnapshots.every((val, i, arr) => i === 0 || val > arr[i - 1]);
 
         if (increasing) {
-          const growth =
-            recentSnapshots[recentSnapshots.length - 1] - recentSnapshots[0];
+          const growth = recentSnapshots[recentSnapshots.length - 1] - recentSnapshots[0];
           console.warn(
             `⚠️ Potential memory leak detected! Memory increased by ${(growth / 1024 / 1024).toFixed(2)}MB`
           );
@@ -294,10 +280,7 @@ export class MemoryLeakDetector {
 /**
  * React Hooks 依赖检查器
  */
-export function useDependencyChecker(
-  hookName: string,
-  dependencies: any[]
-): void {
+export function useDependencyChecker(hookName: string, dependencies: any[]): void {
   if (process.env.NODE_ENV !== 'development') return;
 
   const previousDeps = React.useRef<any[]>();
@@ -306,13 +289,10 @@ export function useDependencyChecker(
     if (previousDeps.current) {
       dependencies.forEach((dep, index) => {
         if (dep !== previousDeps.current![index]) {
-          console.log(
-            `🔍 [${hookName}] Dependency ${index} changed:`,
-            {
-              from: previousDeps.current![index],
-              to: dep,
-            }
-          );
+          console.log(`🔍 [${hookName}] Dependency ${index} changed:`, {
+            from: previousDeps.current![index],
+            to: dep,
+          });
         }
       });
     }
@@ -336,9 +316,7 @@ if (process.env.NODE_ENV === 'development') {
     '%c🔧 开发者工具已启用',
     'background: #222; color: #bada55; font-size: 16px; padding: 4px;'
   );
-  console.log(
-    '使用 window.__DEV_TOOLS__ 访问调试工具'
-  );
+  console.log('使用 window.__DEV_TOOLS__ 访问调试工具');
 }
 
 // 需要导入 React

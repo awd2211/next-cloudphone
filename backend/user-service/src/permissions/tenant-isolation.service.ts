@@ -29,7 +29,7 @@ export class TenantIsolationService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Tenant)
-    private tenantRepository: Repository<Tenant>,
+    private tenantRepository: Repository<Tenant>
   ) {}
 
   /**
@@ -70,7 +70,7 @@ export class TenantIsolationService {
     queryBuilder: SelectQueryBuilder<T>,
     userId: string,
     alias?: string,
-    tenantField: string = 'tenantId',
+    tenantField: string = 'tenantId'
   ): Promise<SelectQueryBuilder<T>> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -92,7 +92,7 @@ export class TenantIsolationService {
         qb.where(`${tableAlias}.${tenantField} = :tenantId`, {
           tenantId: user.tenantId,
         });
-      }),
+      })
     );
 
     return queryBuilder;
@@ -104,10 +104,7 @@ export class TenantIsolationService {
    * @param targetTenantId 目标租户ID
    * @returns 是否允许跨租户访问
    */
-  async checkCrossTenantAccess(
-    userId: string,
-    targetTenantId: string,
-  ): Promise<boolean> {
+  async checkCrossTenantAccess(userId: string, targetTenantId: string): Promise<boolean> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
     });
@@ -168,7 +165,7 @@ export class TenantIsolationService {
   async validateDataTenant(
     userId: string,
     data: any,
-    tenantField: string = 'tenantId',
+    tenantField: string = 'tenantId'
   ): Promise<void> {
     if (!data || !data[tenantField]) {
       return; // 数据没有租户信息，跳过验证
@@ -203,7 +200,7 @@ export class TenantIsolationService {
   async validateDataArrayTenant(
     userId: string,
     dataArray: any[],
-    tenantField: string = 'tenantId',
+    tenantField: string = 'tenantId'
   ): Promise<void> {
     if (!dataArray || dataArray.length === 0) {
       return;
@@ -224,7 +221,7 @@ export class TenantIsolationService {
 
     // 检查所有数据是否属于同一租户
     const invalidData = dataArray.find(
-      (data) => data[tenantField] && data[tenantField] !== user.tenantId,
+      (data) => data[tenantField] && data[tenantField] !== user.tenantId
     );
 
     if (invalidData) {
@@ -239,11 +236,7 @@ export class TenantIsolationService {
    * @param tenantField 租户字段名（默认为 'tenantId'）
    * @returns 设置租户ID后的数据
    */
-  async setDataTenant(
-    userId: string,
-    data: any,
-    tenantField: string = 'tenantId',
-  ): Promise<any> {
+  async setDataTenant(userId: string, data: any, tenantField: string = 'tenantId'): Promise<any> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       select: ['id', 'tenantId', 'isSuperAdmin'],
@@ -285,7 +278,7 @@ export class TenantIsolationService {
   async setDataArrayTenant(
     userId: string,
     dataArray: any[],
-    tenantField: string = 'tenantId',
+    tenantField: string = 'tenantId'
   ): Promise<any[]> {
     if (!dataArray || dataArray.length === 0) {
       return dataArray;
@@ -383,7 +376,7 @@ export class TenantIsolationService {
       const tenants = await this.tenantRepository.find({
         where: { status: 'active' as any },
       });
-      return tenants.map(t => t.id);
+      return tenants.map((t) => t.id);
     }
 
     // 普通用户只能访问自己的租户

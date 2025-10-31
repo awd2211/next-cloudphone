@@ -5,16 +5,13 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-} from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
-import { Request } from "express";
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { Request } from 'express';
 // TODO: Install @liaoliaots/nestjs-redis or use alternative Redis injection
 // import { InjectRedis } from "@liaoliaots/nestjs-redis";
-import Redis from "ioredis";
-import {
-  RATE_LIMIT_KEY,
-  RateLimitOptions,
-} from "../decorators/rate-limit.decorator";
+import Redis from 'ioredis';
+import { RATE_LIMIT_KEY, RateLimitOptions } from '../decorators/rate-limit.decorator';
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {
@@ -22,7 +19,7 @@ export class RateLimitGuard implements CanActivate {
   private readonly redis: any = null; // TODO: Inject actual Redis instance
 
   constructor(
-    private readonly reflector: Reflector,
+    private readonly reflector: Reflector
     // @InjectRedis() private readonly redis: Redis,
   ) {
     // TODO: Inject Redis instance when @liaoliaots/nestjs-redis is installed
@@ -32,7 +29,7 @@ export class RateLimitGuard implements CanActivate {
     // 获取限流配置
     const rateLimitOptions = this.reflector.get<RateLimitOptions>(
       RATE_LIMIT_KEY,
-      context.getHandler(),
+      context.getHandler()
     );
 
     // 如果没有配置限流，直接通过
@@ -66,34 +63,30 @@ export class RateLimitGuard implements CanActivate {
         const ttl = await this.redis.ttl(key);
 
         this.logger.warn(
-          `Rate limit exceeded for key: ${key}, count: ${current}/${rateLimitOptions.limit}`,
+          `Rate limit exceeded for key: ${key}, count: ${current}/${rateLimitOptions.limit}`
         );
 
         throw new HttpException(
           {
             statusCode: HttpStatus.TOO_MANY_REQUESTS,
             message:
-              rateLimitOptions.message ||
-              `Too many requests. Please try again in ${ttl} seconds.`,
-            error: "Too Many Requests",
+              rateLimitOptions.message || `Too many requests. Please try again in ${ttl} seconds.`,
+            error: 'Too Many Requests',
             retryAfter: ttl,
             limit: rateLimitOptions.limit,
             remaining: 0,
             reset: Date.now() + ttl * 1000,
           },
-          HttpStatus.TOO_MANY_REQUESTS,
+          HttpStatus.TOO_MANY_REQUESTS
         );
       }
 
       // 设置响应头
       const response = context.switchToHttp().getResponse();
       const ttl = await this.redis.ttl(key);
-      response.setHeader("X-RateLimit-Limit", rateLimitOptions.limit);
-      response.setHeader(
-        "X-RateLimit-Remaining",
-        Math.max(0, rateLimitOptions.limit - current),
-      );
-      response.setHeader("X-RateLimit-Reset", Date.now() + ttl * 1000);
+      response.setHeader('X-RateLimit-Limit', rateLimitOptions.limit);
+      response.setHeader('X-RateLimit-Remaining', Math.max(0, rateLimitOptions.limit - current));
+      response.setHeader('X-RateLimit-Reset', Date.now() + ttl * 1000);
 
       return true;
     } catch (error) {
@@ -103,10 +96,7 @@ export class RateLimitGuard implements CanActivate {
       }
 
       // Redis错误时记录日志但允许请求通过（降级策略）
-      this.logger.error(
-        `Rate limit check failed for key: ${key}`,
-        error.stack,
-      );
+      this.logger.error(`Rate limit check failed for key: ${key}`, error.stack);
       return true;
     }
   }
@@ -114,11 +104,8 @@ export class RateLimitGuard implements CanActivate {
   /**
    * 构建限流键
    */
-  private buildRateLimitKey(
-    request: Request,
-    options: RateLimitOptions,
-  ): string {
-    const prefix = options.keyPrefix || "rate_limit";
+  private buildRateLimitKey(request: Request, options: RateLimitOptions): string {
+    const prefix = options.keyPrefix || 'rate_limit';
 
     // 获取标识符（用户ID或IP）
     let identifier: string;
@@ -143,17 +130,17 @@ export class RateLimitGuard implements CanActivate {
    */
   private getIpAddress(request: Request): string {
     // 考虑代理情况
-    const forwarded = request.headers["x-forwarded-for"];
+    const forwarded = request.headers['x-forwarded-for'];
     if (forwarded) {
-      const ips = (forwarded as string).split(",");
+      const ips = (forwarded as string).split(',');
       return ips[0].trim();
     }
 
-    const realIp = request.headers["x-real-ip"];
+    const realIp = request.headers['x-real-ip'];
     if (realIp) {
       return realIp as string;
     }
 
-    return request.ip || request.socket.remoteAddress || "unknown";
+    return request.ip || request.socket.remoteAddress || 'unknown';
   }
 }

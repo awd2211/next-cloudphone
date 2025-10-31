@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Descriptions, Tag, message, Row, Col, Statistic } from 'antd';
+import { Card, Button, Descriptions, Tag, message, Row, Col, Statistic, Space } from 'antd';
 import {
   ArrowLeftOutlined,
   PlayCircleOutlined,
   PauseCircleOutlined,
   ReloadOutlined,
+  DashboardOutlined,
+  CameraOutlined,
 } from '@ant-design/icons';
 import { getDevice, startDevice, stopDevice, rebootDevice } from '@/services/device';
 import WebRTCPlayer from '@/components/WebRTCPlayer';
@@ -88,13 +90,21 @@ const DeviceDetail = () => {
 
   return (
     <div>
-      <Button
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/devices')}
-        style={{ marginBottom: 24 }}
-      >
-        返回设备列表
-      </Button>
+      <Space style={{ marginBottom: 24 }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/devices')}>
+          返回设备列表
+        </Button>
+        <Button
+          type="primary"
+          icon={<DashboardOutlined />}
+          onClick={() => navigate(`/devices/${id}/monitor`)}
+        >
+          实时监控
+        </Button>
+        <Button icon={<CameraOutlined />} onClick={() => navigate(`/devices/${id}/snapshots`)}>
+          快照管理
+        </Button>
+      </Space>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={8}>
@@ -110,20 +120,12 @@ const DeviceDetail = () => {
         </Col>
         <Col span={8}>
           <Card>
-            <Statistic
-              title="CPU 核心数"
-              value={device.cpuCores}
-              suffix="核"
-            />
+            <Statistic title="CPU 核心数" value={device.cpuCores} suffix="核" />
           </Card>
         </Col>
         <Col span={8}>
           <Card>
-            <Statistic
-              title="内存"
-              value={(device.memoryMB / 1024).toFixed(1)}
-              suffix="GB"
-            />
+            <Statistic title="内存" value={(device.memoryMB / 1024).toFixed(1)} suffix="GB" />
           </Card>
         </Col>
       </Row>
@@ -131,45 +133,24 @@ const DeviceDetail = () => {
       <Card title="设备信息" loading={loading} style={{ marginBottom: 24 }}>
         <Descriptions column={2} bordered>
           <Descriptions.Item label="设备名称">{device.name}</Descriptions.Item>
-          <Descriptions.Item label="状态">
-            {getStatusTag(device.status)}
-          </Descriptions.Item>
-          <Descriptions.Item label="Android 版本">
-            {device.androidVersion}
-          </Descriptions.Item>
-          <Descriptions.Item label="CPU 核心数">
-            {device.cpuCores}
-          </Descriptions.Item>
-          <Descriptions.Item label="内存">
-            {device.memoryMB} MB
-          </Descriptions.Item>
-          <Descriptions.Item label="存储">
-            {device.storageMB} MB
-          </Descriptions.Item>
-          <Descriptions.Item label="IP 地址">
-            {device.ipAddress || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="VNC 端口">
-            {device.vncPort || '-'}
-          </Descriptions.Item>
+          <Descriptions.Item label="状态">{getStatusTag(device.status)}</Descriptions.Item>
+          <Descriptions.Item label="Android 版本">{device.androidVersion}</Descriptions.Item>
+          <Descriptions.Item label="CPU 核心数">{device.cpuCores}</Descriptions.Item>
+          <Descriptions.Item label="内存">{device.memoryMB} MB</Descriptions.Item>
+          <Descriptions.Item label="存储">{device.storageMB} MB</Descriptions.Item>
+          <Descriptions.Item label="IP 地址">{device.ipAddress || '-'}</Descriptions.Item>
+          <Descriptions.Item label="VNC 端口">{device.vncPort || '-'}</Descriptions.Item>
           <Descriptions.Item label="创建时间">
             {dayjs(device.createdAt).format('YYYY-MM-DD HH:mm')}
           </Descriptions.Item>
           <Descriptions.Item label="最后启动时间">
-            {device.lastStartedAt
-              ? dayjs(device.lastStartedAt).format('YYYY-MM-DD HH:mm')
-              : '-'}
+            {device.lastStartedAt ? dayjs(device.lastStartedAt).format('YYYY-MM-DD HH:mm') : '-'}
           </Descriptions.Item>
         </Descriptions>
 
         <div style={{ marginTop: 24 }}>
           {device.status !== 'running' ? (
-            <Button
-              type="primary"
-              size="large"
-              icon={<PlayCircleOutlined />}
-              onClick={handleStart}
-            >
+            <Button type="primary" size="large" icon={<PlayCircleOutlined />} onClick={handleStart}>
               启动设备
             </Button>
           ) : (
@@ -182,11 +163,7 @@ const DeviceDetail = () => {
               >
                 停止设备
               </Button>
-              <Button
-                size="large"
-                icon={<ReloadOutlined />}
-                onClick={handleReboot}
-              >
+              <Button size="large" icon={<ReloadOutlined />} onClick={handleReboot}>
                 重启设备
               </Button>
             </>

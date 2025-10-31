@@ -27,7 +27,7 @@ export class IpFilterMiddleware implements NestMiddleware {
           message: 'Access denied',
           timestamp: new Date().toISOString(),
         },
-        HttpStatus.FORBIDDEN,
+        HttpStatus.FORBIDDEN
       );
     }
 
@@ -90,8 +90,6 @@ export class IpFilterMiddleware implements NestMiddleware {
    */
   private ipToNumber(ip: string): number {
     const parts = ip.split('.').map((part) => parseInt(part, 10));
-    return (
-      (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]
-    ) >>> 0;
+    return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
   }
 }

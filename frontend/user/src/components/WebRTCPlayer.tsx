@@ -267,7 +267,8 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
 
       // 计算网络质量
       let quality: NetworkQuality = 'excellent';
-      const packetLossRate = packetsReceived > 0 ? packetsLost / (packetsReceived + packetsLost) : 0;
+      const packetLossRate =
+        packetsReceived > 0 ? packetsLost / (packetsReceived + packetsLost) : 0;
 
       if (rtt > 200 || packetLossRate > 0.05 || bitrate < 500000) {
         quality = 'poor';
@@ -302,7 +303,9 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
     }
 
     const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // 指数退避，最大 30 秒
-    message.info(`${delay / 1000} 秒后自动重连... (${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+    message.info(
+      `${delay / 1000} 秒后自动重连... (${reconnectAttempts + 1}/${maxReconnectAttempts})`
+    );
 
     reconnectTimeoutRef.current = window.setTimeout(() => {
       setReconnectAttempts((prev) => prev + 1);
@@ -361,11 +364,7 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
       extra={
         <Space>
           {!isConnected && !isConnecting && (
-            <Button
-              type="primary"
-              icon={<PlayCircleOutlined />}
-              onClick={createPeerConnection}
-            >
+            <Button type="primary" icon={<PlayCircleOutlined />} onClick={createPeerConnection}>
               连接
             </Button>
           )}
@@ -455,9 +454,7 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
             <Badge status="success" text="已连接 - 实时画面传输中" />
             <Space>
               <SignalFilled style={{ color: qualityConfig.color }} />
-              <span style={{ color: qualityConfig.color }}>
-                网络质量: {qualityConfig.text}
-              </span>
+              <span style={{ color: qualityConfig.color }}>网络质量: {qualityConfig.text}</span>
             </Space>
             {showStats && (
               <Button
@@ -474,12 +471,7 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
 
       {/* 统计信息面板 */}
       {isConnected && showStatsPanel && stats && (
-        <Card
-          size="small"
-          title="连接统计"
-          style={{ marginTop: 16 }}
-          bodyStyle={{ padding: 16 }}
-        >
+        <Card size="small" title="连接统计" style={{ marginTop: 16 }} bodyStyle={{ padding: 16 }}>
           <Row gutter={[16, 16]}>
             <Col span={6}>
               <Statistic
@@ -490,18 +482,10 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
               />
             </Col>
             <Col span={6}>
-              <Statistic
-                title="帧率"
-                value={stats.fps}
-                suffix="FPS"
-              />
+              <Statistic title="帧率" value={stats.fps} suffix="FPS" />
             </Col>
             <Col span={6}>
-              <Statistic
-                title="延迟 (RTT)"
-                value={stats.rtt}
-                suffix="ms"
-              />
+              <Statistic title="延迟 (RTT)" value={stats.rtt} suffix="ms" />
             </Col>
             <Col span={6}>
               <Statistic
@@ -516,17 +500,17 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
                 title="丢包率"
                 value={
                   stats.packetsReceived > 0
-                    ? ((stats.packetsLost / (stats.packetsReceived + stats.packetsLost)) * 100).toFixed(2)
+                    ? (
+                        (stats.packetsLost / (stats.packetsReceived + stats.packetsLost)) *
+                        100
+                      ).toFixed(2)
                     : '0.00'
                 }
                 suffix="%"
               />
             </Col>
             <Col span={6}>
-              <Statistic
-                title="分辨率"
-                value={stats.resolution || 'N/A'}
-              />
+              <Statistic title="分辨率" value={stats.resolution || 'N/A'} />
             </Col>
             <Col span={6}>
               <Statistic
@@ -537,10 +521,7 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
               />
             </Col>
             <Col span={6}>
-              <Statistic
-                title="编解码器"
-                value={stats.codec.split('/')[1] || 'N/A'}
-              />
+              <Statistic title="编解码器" value={stats.codec.split('/')[1] || 'N/A'} />
             </Col>
           </Row>
         </Card>

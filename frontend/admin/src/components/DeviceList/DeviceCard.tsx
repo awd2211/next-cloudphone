@@ -30,7 +30,7 @@ interface Device {
 interface DeviceCardProps {
   device: Device;
   onClick: () => void;
-  onDeviceChanged?: () => void;  // Callback for refreshing device list after operations
+  onDeviceChanged?: () => void; // Callback for refreshing device list after operations
 }
 
 // Provider 中文名映射
@@ -73,7 +73,9 @@ const DeviceCard: React.FC<DeviceCardProps> = memo(({ device, onClick, onDeviceC
       // Refresh device list to show updated status
       onDeviceChanged?.();
     } catch (error: any) {
-      message.error(`启动设备失败: ${error.response?.data?.message || error.message || '未知错误'}`);
+      message.error(
+        `启动设备失败: ${error.response?.data?.message || error.message || '未知错误'}`
+      );
     } finally {
       setLoading(false);
     }
@@ -88,7 +90,9 @@ const DeviceCard: React.FC<DeviceCardProps> = memo(({ device, onClick, onDeviceC
       // Refresh device list to show updated status
       onDeviceChanged?.();
     } catch (error: any) {
-      message.error(`停止设备失败: ${error.response?.data?.message || error.message || '未知错误'}`);
+      message.error(
+        `停止设备失败: ${error.response?.data?.message || error.message || '未知错误'}`
+      );
     } finally {
       setLoading(false);
     }
@@ -110,7 +114,9 @@ const DeviceCard: React.FC<DeviceCardProps> = memo(({ device, onClick, onDeviceC
           // Refresh device list to remove deleted device
           onDeviceChanged?.();
         } catch (error: any) {
-          message.error(`删除设备失败: ${error.response?.data?.message || error.message || '未知错误'}`);
+          message.error(
+            `删除设备失败: ${error.response?.data?.message || error.message || '未知错误'}`
+          );
         }
       },
     });

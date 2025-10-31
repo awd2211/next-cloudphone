@@ -1,5 +1,18 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Space, Button, Modal, Form, Input, message, Popconfirm, Transfer, Tag, Tree, Tabs } from 'antd';
+import {
+  Table,
+  Space,
+  Button,
+  Modal,
+  Form,
+  Input,
+  message,
+  Popconfirm,
+  Transfer,
+  Tag,
+  Tree,
+  Tabs,
+} from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { DataNode } from 'antd/es/tree';
@@ -11,7 +24,7 @@ import {
   useCreateRole,
   useUpdateRole,
   useDeleteRole,
-  useAssignPermissions
+  useAssignPermissions,
 } from '@/hooks/useRoles';
 
 interface TransferItem {
@@ -55,30 +68,39 @@ const RoleList = () => {
   const total = data?.total || 0;
 
   // ✅ useCallback 优化事件处理函数
-  const handleSubmit = useCallback(async (values: { name: string; description?: string }) => {
-    if (editingRole) {
-      await updateMutation.mutateAsync({ id: editingRole.id, data: values });
-    } else {
-      await createMutation.mutateAsync({ ...values, permissionIds: [] });
-    }
-    setModalVisible(false);
-    setEditingRole(null);
-    form.resetFields();
-  }, [editingRole, createMutation, updateMutation, form]);
+  const handleSubmit = useCallback(
+    async (values: { name: string; description?: string }) => {
+      if (editingRole) {
+        await updateMutation.mutateAsync({ id: editingRole.id, data: values });
+      } else {
+        await createMutation.mutateAsync({ ...values, permissionIds: [] });
+      }
+      setModalVisible(false);
+      setEditingRole(null);
+      form.resetFields();
+    },
+    [editingRole, createMutation, updateMutation, form]
+  );
 
-  const handleEdit = useCallback((role: Role) => {
-    setEditingRole(role);
-    form.setFieldsValue(role);
-    setModalVisible(true);
-  }, [form]);
+  const handleEdit = useCallback(
+    (role: Role) => {
+      setEditingRole(role);
+      form.setFieldsValue(role);
+      setModalVisible(true);
+    },
+    [form]
+  );
 
-  const handleDelete = useCallback(async (id: string) => {
-    await deleteMutation.mutateAsync(id);
-  }, [deleteMutation]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteMutation.mutateAsync(id);
+    },
+    [deleteMutation]
+  );
 
   const handleManagePermissions = useCallback((role: Role) => {
     setSelectedRole(role);
-    setSelectedPermissions(role.permissions?.map(p => p.id) || []);
+    setSelectedPermissions(role.permissions?.map((p) => p.id) || []);
     setPermissionModalVisible(true);
   }, []);
 
@@ -86,7 +108,7 @@ const RoleList = () => {
     if (!selectedRole) return;
     await assignPermissionsMutation.mutateAsync({
       roleId: selectedRole.id,
-      permissionIds: selectedPermissions
+      permissionIds: selectedPermissions,
     });
     setPermissionModalVisible(false);
   }, [selectedRole, selectedPermissions, assignPermissionsMutation]);
@@ -108,96 +130,98 @@ const RoleList = () => {
   }, []);
 
   // ✅ useMemo 优化表格列配置
-  const columns: ColumnsType<Role> = useMemo(() => [
-    {
-      title: '角色名称',
-      dataIndex: 'name',
-      key: 'name',
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-    },
-    {
-      title: '权限数量',
-      dataIndex: 'permissions',
-      key: 'permissions',
-      render: (permissions: Permission[]) => permissions?.length || 0,
-      sorter: (a, b) => (a.permissions?.length || 0) - (b.permissions?.length || 0),
-    },
-    {
-      title: '权限',
-      dataIndex: 'permissions',
-      key: 'permissionList',
-      width: 400,
-      render: (permissions: Permission[]) => (
-        <div>
-          {permissions?.slice(0, 3).map((p) => (
-            <Tag key={p.id} style={{ marginBottom: 4 }}>
-              {p.resource}:{p.action}
-            </Tag>
-          ))}
-          {permissions && permissions.length > 3 && (
-            <Tag>+{permissions.length - 3} 更多</Tag>
-          )}
-        </div>
-      ),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-',
-      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 250,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<KeyOutlined />}
-            onClick={() => handleManagePermissions(record)}
-          >
-            配置权限
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定要删除这个角色吗?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" size="small" icon={<DeleteOutlined />} danger>
-              删除
+  const columns: ColumnsType<Role> = useMemo(
+    () => [
+      {
+        title: '角色名称',
+        dataIndex: 'name',
+        key: 'name',
+        sorter: (a, b) => a.name.localeCompare(b.name),
+      },
+      {
+        title: '描述',
+        dataIndex: 'description',
+        key: 'description',
+        ellipsis: true,
+      },
+      {
+        title: '权限数量',
+        dataIndex: 'permissions',
+        key: 'permissions',
+        render: (permissions: Permission[]) => permissions?.length || 0,
+        sorter: (a, b) => (a.permissions?.length || 0) - (b.permissions?.length || 0),
+      },
+      {
+        title: '权限',
+        dataIndex: 'permissions',
+        key: 'permissionList',
+        width: 400,
+        render: (permissions: Permission[]) => (
+          <div>
+            {permissions?.slice(0, 3).map((p) => (
+              <Tag key={p.id} style={{ marginBottom: 4 }}>
+                {p.resource}:{p.action}
+              </Tag>
+            ))}
+            {permissions && permissions.length > 3 && <Tag>+{permissions.length - 3} 更多</Tag>}
+          </div>
+        ),
+      },
+      {
+        title: '创建时间',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'),
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      },
+      {
+        title: '操作',
+        key: 'action',
+        width: 250,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="small">
+            <Button
+              type="link"
+              size="small"
+              icon={<KeyOutlined />}
+              onClick={() => handleManagePermissions(record)}
+            >
+              配置权限
             </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ], [handleManagePermissions, handleEdit, handleDelete]);
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            >
+              编辑
+            </Button>
+            <Popconfirm
+              title="确定要删除这个角色吗?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" size="small" icon={<DeleteOutlined />} danger>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [handleManagePermissions, handleEdit, handleDelete]
+  );
 
   // ✅ useMemo 优化 Transfer 数据源
-  const transferDataSource: TransferItem[] = useMemo(() =>
-    (Array.isArray(permissions) ? permissions : []).map(p => ({
-      key: p.id,
-      title: `${p.resource}:${p.action}`,
-      description: p.description,
-    })),
+  const transferDataSource: TransferItem[] = useMemo(
+    () =>
+      (Array.isArray(permissions) ? permissions : []).map((p) => ({
+        key: p.id,
+        title: `${p.resource}:${p.action}`,
+        description: p.description,
+      })),
     [permissions]
   );
 
@@ -207,18 +231,21 @@ const RoleList = () => {
       return [];
     }
 
-    const grouped = permissions.reduce((acc, permission) => {
-      if (!acc[permission.resource]) {
-        acc[permission.resource] = [];
-      }
-      acc[permission.resource].push(permission);
-      return acc;
-    }, {} as Record<string, Permission[]>);
+    const grouped = permissions.reduce(
+      (acc, permission) => {
+        if (!acc[permission.resource]) {
+          acc[permission.resource] = [];
+        }
+        acc[permission.resource].push(permission);
+        return acc;
+      },
+      {} as Record<string, Permission[]>
+    );
 
     return Object.entries(grouped).map(([resource, perms]) => ({
       title: resource,
       key: resource,
-      children: perms.map(p => ({
+      children: perms.map((p) => ({
         title: `${p.action} (${p.description || '无描述'})`,
         key: p.id,
       })),
@@ -230,11 +257,7 @@ const RoleList = () => {
       <h2>角色管理</h2>
 
       <div style={{ marginBottom: 16 }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
           创建角色
         </Button>
       </div>
@@ -308,12 +331,16 @@ const RoleList = () => {
                     onCheck={(checkedKeys) => {
                       // 只保留叶子节点（实际权限ID）
                       const keys = Array.isArray(checkedKeys) ? checkedKeys : checkedKeys.checked;
-                      const leafKeys = keys.filter(key =>
-                        permissions.some(p => p.id === key)
-                      );
+                      const leafKeys = keys.filter((key) => permissions.some((p) => p.id === key));
                       setSelectedPermissions(leafKeys as string[]);
                     }}
-                    style={{ maxHeight: 400, overflow: 'auto', border: '1px solid #d9d9d9', padding: 16, borderRadius: 4 }}
+                    style={{
+                      maxHeight: 400,
+                      overflow: 'auto',
+                      border: '1px solid #d9d9d9',
+                      padding: 16,
+                      borderRadius: 4,
+                    }}
                   />
                 </div>
               ),

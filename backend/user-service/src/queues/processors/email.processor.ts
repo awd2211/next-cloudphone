@@ -39,9 +39,7 @@ export class EmailProcessor {
   private readonly logger = new Logger(EmailProcessor.name);
   private transporter: Transporter | null;
 
-  constructor(
-    private readonly pinoLogger: PinoLogger,
-  ) {
+  constructor(private readonly pinoLogger: PinoLogger) {
     // 初始化邮件传输器
     this.initializeTransporter();
     this.pinoLogger.setContext(EmailProcessor.name);
@@ -112,9 +110,7 @@ export class EmailProcessor {
    * 处理批量邮件发送
    */
   @Process('send-batch-email')
-  async handleSendBatchEmail(
-    job: Job<{ emails: EmailJobData[] }>,
-  ): Promise<void> {
+  async handleSendBatchEmail(job: Job<{ emails: EmailJobData[] }>): Promise<void> {
     const { id, data } = job;
     const totalEmails = data.emails.length;
 
@@ -132,9 +128,7 @@ export class EmailProcessor {
         const progress = Math.floor(((i + 1) / totalEmails) * 100);
         await job.progress(progress);
       } catch (error) {
-        this.logger.error(
-          `Failed to send email ${i + 1}/${totalEmails}: ${error.message}`,
-        );
+        this.logger.error(`Failed to send email ${i + 1}/${totalEmails}: ${error.message}`);
         failureCount++;
       }
     }
@@ -279,11 +273,13 @@ export class EmailProcessor {
   /**
    * 发送失败告警给管理员
    */
-  private async alertEmailFailure(jobData: EmailJobData, error: Error, attemptsMade: number): Promise<void> {
+  private async alertEmailFailure(
+    jobData: EmailJobData,
+    error: Error,
+    attemptsMade: number
+  ): Promise<void> {
     try {
-      this.logger.error(
-        `⚠️ Email job failed after ${attemptsMade} attempts: ${error.message}`,
-      );
+      this.logger.error(`⚠️ Email job failed after ${attemptsMade} attempts: ${error.message}`);
 
       // 生产环境应集成 AlertService 通知管理员
       // 参考实现在 src/common/services/alert/alert.service.ts

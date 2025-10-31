@@ -86,14 +86,8 @@ const PaymentDashboardContent: React.FC = () => {
     try {
       const [startDate, endDate] = dateRange;
       const [statsRes, methodsRes, dailyRes] = await Promise.all([
-        getPaymentStatistics(
-          startDate.format('YYYY-MM-DD'),
-          endDate.format('YYYY-MM-DD')
-        ),
-        getPaymentMethodsStats(
-          startDate.format('YYYY-MM-DD'),
-          endDate.format('YYYY-MM-DD')
-        ),
+        getPaymentStatistics(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD')),
+        getPaymentMethodsStats(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD')),
         getDailyStatistics(30),
       ]);
 
@@ -304,9 +298,7 @@ const PaymentDashboardContent: React.FC = () => {
                     suffix={
                       <span style={{ fontSize: '14px', color: '#666' }}>
                         <br />
-                        <small>
-                          {statistics.overview.refundedTransactions} 笔
-                        </small>
+                        <small>{statistics.overview.refundedTransactions} 笔</small>
                       </span>
                     }
                   />

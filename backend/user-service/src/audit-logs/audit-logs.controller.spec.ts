@@ -3,7 +3,11 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AuditLogsController } from './audit-logs.controller';
 import { AuditLogsService } from './audit-logs.service';
-import { createTestApp, generateTestJwt, assertHttpResponse } from '@cloudphone/shared/testing/test-helpers';
+import {
+  createTestApp,
+  generateTestJwt,
+  assertHttpResponse,
+} from '@cloudphone/shared/testing/test-helpers';
 import { AuditAction, AuditLevel } from '../entities/audit-log.entity';
 
 describe('AuditLogsController', () => {
@@ -47,9 +51,7 @@ describe('AuditLogsController', () => {
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       controllers: [AuditLogsController],
-      providers: [
-        { provide: AuditLogsService, useValue: mockAuditLogsService },
-      ],
+      providers: [{ provide: AuditLogsService, useValue: mockAuditLogsService }],
     }).compile();
 
     app = await createTestApp(moduleRef);
@@ -89,10 +91,7 @@ describe('AuditLogsController', () => {
       // Assert
       expect(response.body.data).toHaveLength(3);
       expect(response.body.total).toBe(3);
-      expect(mockAuditLogsService.getUserLogs).toHaveBeenCalledWith(
-        'user-123',
-        expect.any(Object)
-      );
+      expect(mockAuditLogsService.getUserLogs).toHaveBeenCalledWith('user-123', expect.any(Object));
     });
 
     it('应该支持按操作类型过滤', async () => {
@@ -196,9 +195,7 @@ describe('AuditLogsController', () => {
 
     it('应该在未认证时返回401', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/audit-logs/user/user-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/audit-logs/user/user-123').expect(401);
     });
 
     it('应该处理无效的日期格式', async () => {
@@ -308,9 +305,7 @@ describe('AuditLogsController', () => {
 
     it('应该在未认证时返回401', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/audit-logs/resource/device/device-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/audit-logs/resource/device/device-123').expect(401);
     });
 
     it('应该返回空数组当资源没有日志时', async () => {
@@ -332,10 +327,7 @@ describe('AuditLogsController', () => {
   describe('GET /audit-logs/search', () => {
     it('应该允许管理员搜索审计日志', async () => {
       // Arrange
-      const mockLogs = [
-        createMockAuditLog(),
-        createMockAuditLog(),
-      ];
+      const mockLogs = [createMockAuditLog(), createMockAuditLog()];
       mockAuditLogsService.searchLogs.mockResolvedValue({
         data: mockLogs,
         total: 2,
@@ -552,9 +544,7 @@ describe('AuditLogsController', () => {
           { userId: 'user-1', count: 50 },
           { userId: 'user-2', count: 40 },
         ],
-        topIpAddresses: [
-          { ipAddress: '192.168.1.1', count: 30 },
-        ],
+        topIpAddresses: [{ ipAddress: '192.168.1.1', count: 30 }],
         dailyTrend: [],
       };
       mockAuditLogsService.getStatistics.mockResolvedValue(mockStats);
@@ -611,9 +601,7 @@ describe('AuditLogsController', () => {
 
     it('应该在未认证时返回401', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/audit-logs/statistics')
-        .expect(401);
+      await request(app.getHttpServer()).get('/audit-logs/statistics').expect(401);
     });
 
     it('应该返回空统计当没有日志时', async () => {
@@ -643,21 +631,13 @@ describe('AuditLogsController', () => {
   describe('安全性和边界情况', () => {
     it('应该要求所有端点都需要认证', async () => {
       // 测试所有端点都需要token
-      await request(app.getHttpServer())
-        .get('/audit-logs/user/user-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/audit-logs/user/user-123').expect(401);
 
-      await request(app.getHttpServer())
-        .get('/audit-logs/resource/device/device-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/audit-logs/resource/device/device-123').expect(401);
 
-      await request(app.getHttpServer())
-        .get('/audit-logs/search')
-        .expect(401);
+      await request(app.getHttpServer()).get('/audit-logs/search').expect(401);
 
-      await request(app.getHttpServer())
-        .get('/audit-logs/statistics')
-        .expect(401);
+      await request(app.getHttpServer()).get('/audit-logs/statistics').expect(401);
     });
 
     it('应该强制管理员角色访问受保护的端点', async () => {
@@ -704,16 +684,18 @@ describe('AuditLogsController', () => {
       const token = createAuthToken();
 
       // Act - 发起多个并发请求
-      const requests = Array(10).fill(null).map(() =>
-        request(app.getHttpServer())
-          .get('/audit-logs/user/user-123')
-          .set('Authorization', `Bearer ${token}`)
-      );
+      const requests = Array(10)
+        .fill(null)
+        .map(() =>
+          request(app.getHttpServer())
+            .get('/audit-logs/user/user-123')
+            .set('Authorization', `Bearer ${token}`)
+        );
 
       const responses = await Promise.all(requests);
 
       // Assert - 所有请求都应该成功
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.status).toBe(200);
       });
     });

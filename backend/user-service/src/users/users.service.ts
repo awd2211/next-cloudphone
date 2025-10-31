@@ -13,6 +13,7 @@ import { Role } from '../entities/role.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import {
   EventBusService,
   CursorPagination,
@@ -34,7 +35,7 @@ export class UsersService {
     @Optional() private eventBus: EventBusService,
     @Optional() private cacheService: CacheService,
     @Optional() private metricsService: UserMetricsService,
-    @Optional() private tracingService: TracingService,
+    @Optional() private tracingService: TracingService
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -112,10 +113,7 @@ export class UsersService {
    * @param createUserDto CreateUserDto - 用户创建DTO
    * @returns Promise<User> - 创建的用户
    */
-  async createInTransaction(
-    manager: EntityManager,
-    createUserDto: CreateUserDto,
-  ): Promise<User> {
+  async createInTransaction(manager: EntityManager, createUserDto: CreateUserDto): Promise<User> {
     // 使用事务管理器进行查询
     const userRepository = manager.getRepository(User);
     const roleRepository = manager.getRepository(Role);
@@ -133,10 +131,7 @@ export class UsersService {
     ]);
 
     if (userByUsername) {
-      throw BusinessException.userAlreadyExists(
-        'username',
-        createUserDto.username,
-      );
+      throw BusinessException.userAlreadyExists('username', createUserDto.username);
     }
     if (userByEmail) {
       throw BusinessException.userAlreadyExists('email', createUserDto.email);
@@ -174,10 +169,7 @@ export class UsersService {
     if (this.metricsService) {
       // 使用 setImmediate 确保在事务提交后执行
       setImmediate(() => {
-        this.metricsService.recordUserCreated(
-          savedUser.tenantId || 'default',
-          true,
-        );
+        this.metricsService.recordUserCreated(savedUser.tenantId || 'default', true);
       });
     }
 
@@ -198,7 +190,7 @@ export class UsersService {
     page: number = 1,
     limit: number = 10,
     tenantId?: string,
-    options?: { includeRoles?: boolean; filters?: any },
+    options?: { includeRoles?: boolean; filters?: any }
   ): Promise<{ data: any[]; total: number; page: number; limit: number }> {
     // 如果有高级过滤器，使用新的方法
     if (options?.filters) {
@@ -254,7 +246,7 @@ export class UsersService {
   async findAllCursor(
     dto: CursorPaginationDto,
     tenantId?: string,
-    options?: { includeRoles?: boolean },
+    options?: { includeRoles?: boolean }
   ): Promise<CursorPaginatedResponse<User>> {
     const { cursor, limit = 20 } = dto;
 
@@ -284,8 +276,11 @@ export class UsersService {
 
     // Include roles if requested
     if (options?.includeRoles) {
-      qb.leftJoinAndSelect('user.roles', 'role')
-        .addSelect(['role.id', 'role.name', 'role.displayName']);
+      qb.leftJoinAndSelect('user.roles', 'role').addSelect([
+        'role.id',
+        'role.name',
+        'role.displayName',
+      ]);
     }
 
     // Apply cursor condition
@@ -297,8 +292,7 @@ export class UsersService {
     }
 
     // Order by createdAt DESC and fetch limit + 1
-    qb.orderBy('user.createdAt', 'DESC')
-      .limit(limit + 1);
+    qb.orderBy('user.createdAt', 'DESC').limit(limit + 1);
 
     const users = await qb.getMany();
 
@@ -312,7 +306,7 @@ export class UsersService {
    */
   private async findAllWithFilters(
     filters: any,
-    options?: { includeRoles?: boolean },
+    options?: { includeRoles?: boolean }
   ): Promise<{ data: any[]; total: number; page: number; limit: number }> {
     const queryBuilder = this.usersRepository
       .createQueryBuilder('user')
@@ -344,7 +338,7 @@ export class UsersService {
     if (filters.search) {
       queryBuilder.andWhere(
         '(user.username ILIKE :search OR user.email ILIKE :search OR user.fullName ILIKE :search)',
-        { search: `%${filters.search}%` },
+        { search: `%${filters.search}%` }
       );
     }
 
@@ -442,12 +436,13 @@ export class UsersService {
       // 先从缓存获取
       const cacheKey = `user:${id}`;
       if (this.cacheService) {
-        const cached = await this.tracingService?.traceCacheOperation(
-          'get',
-          cacheKey,
-          () => this.cacheService.get<User>(cacheKey),
-          span?.context(),
-        ) || await this.cacheService.get<User>(cacheKey);
+        const cached =
+          (await this.tracingService?.traceCacheOperation(
+            'get',
+            cacheKey,
+            () => this.cacheService.get<User>(cacheKey),
+            span?.context()
+          )) || (await this.cacheService.get<User>(cacheKey));
 
         if (cached) {
           this.tracingService?.setTag(span, 'cache.hit', true);
@@ -459,17 +454,20 @@ export class UsersService {
       this.tracingService?.setTag(span, 'cache.hit', false);
 
       // 缓存未命中，查询数据库
-      const user = await this.tracingService?.traceDbQuery(
-        'findOne',
-        () => this.usersRepository.findOne({
+      const user =
+        (await this.tracingService?.traceDbQuery(
+          'findOne',
+          () =>
+            this.usersRepository.findOne({
+              where: { id },
+              relations: ['roles', 'roles.permissions'],
+            }),
+          span?.context()
+        )) ||
+        (await this.usersRepository.findOne({
           where: { id },
           relations: ['roles', 'roles.permissions'],
-        }),
-        span?.context(),
-      ) || await this.usersRepository.findOne({
-        where: { id },
-        relations: ['roles', 'roles.permissions'],
-      });
+        }));
 
       if (!user) {
         throw new NotFoundException(`用户 #${id} 不存在`);
@@ -479,12 +477,12 @@ export class UsersService {
 
       // 存入缓存，5分钟过期
       if (this.cacheService) {
-        await this.tracingService?.traceCacheOperation(
+        (await this.tracingService?.traceCacheOperation(
           'set',
           cacheKey,
           () => this.cacheService.set(cacheKey, userWithoutPassword, { ttl: 300 }),
-          span?.context(),
-        ) || await this.cacheService.set(cacheKey, userWithoutPassword, { ttl: 300 });
+          span?.context()
+        )) || (await this.cacheService.set(cacheKey, userWithoutPassword, { ttl: 300 }));
       }
 
       this.tracingService?.finishSpan(span);
@@ -548,7 +546,7 @@ export class UsersService {
 
     Object.assign(user, updateUserDto);
     const savedUser = await this.usersRepository.save(user);
-    
+
     // 清除缓存
     if (this.cacheService) {
       await this.cacheService.del(`user:${id}`);
@@ -564,14 +562,11 @@ export class UsersService {
         timestamp: new Date().toISOString(),
       });
     }
-    
+
     return savedUser;
   }
 
-  async changePassword(
-    id: string,
-    changePasswordDto: ChangePasswordDto,
-  ): Promise<void> {
+  async changePassword(id: string, changePasswordDto: ChangePasswordDto): Promise<void> {
     const user = await this.usersRepository.findOne({ where: { id } });
 
     if (!user) {
@@ -579,10 +574,7 @@ export class UsersService {
     }
 
     // 验证旧密码
-    const isPasswordValid = await bcrypt.compare(
-      changePasswordDto.oldPassword,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(changePasswordDto.oldPassword, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('旧密码不正确');
@@ -591,6 +583,33 @@ export class UsersService {
     // 设置新密码
     user.password = await bcrypt.hash(changePasswordDto.newPassword, 10);
     await this.usersRepository.save(user);
+  }
+
+  async updatePreferences(id: string, updatePreferencesDto: UpdatePreferencesDto): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException(`用户 #${id} 不存在`);
+    }
+
+    // 更新metadata中的偏好设置
+    const metadata = user.metadata || {};
+    if (updatePreferencesDto.language) {
+      metadata.language = updatePreferencesDto.language;
+    }
+    if (updatePreferencesDto.theme) {
+      metadata.theme = updatePreferencesDto.theme;
+    }
+    user.metadata = metadata;
+
+    const savedUser = await this.usersRepository.save(user);
+
+    // 清除用户缓存
+    if (this.cacheService) {
+      await this.cacheService.del(`user:${id}`);
+    }
+
+    return savedUser;
   }
 
   async remove(id: string): Promise<void> {
@@ -633,10 +652,10 @@ export class UsersService {
 
     // 渐进式锁定策略：根据失败次数增加锁定时间
     const lockDurations = {
-      3: 5 * 60 * 1000,         // 3次失败 -> 锁定5分钟
-      5: 15 * 60 * 1000,        // 5次失败 -> 锁定15分钟
-      7: 60 * 60 * 1000,        // 7次失败 -> 锁定1小时
-      10: 24 * 60 * 60 * 1000,  // 10次失败 -> 锁定24小时
+      3: 5 * 60 * 1000, // 3次失败 -> 锁定5分钟
+      5: 15 * 60 * 1000, // 5次失败 -> 锁定15分钟
+      7: 60 * 60 * 1000, // 7次失败 -> 锁定1小时
+      10: 24 * 60 * 60 * 1000, // 10次失败 -> 锁定24小时
     };
 
     // 找到适用的锁定时长
@@ -862,6 +881,6 @@ export class UsersService {
    * 延迟执行
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

@@ -36,10 +36,7 @@ export interface UserFilters {
  * @param enabled - 是否启用查询 (默认: true)
  * @returns React Query infinite query result
  */
-export function useInfiniteUsers(
-  filters?: UserFilters,
-  enabled: boolean = true
-) {
+export function useInfiniteUsers(filters?: UserFilters, enabled: boolean = true) {
   return useInfiniteQuery({
     // Query Key - 包含所有过滤条件用于缓存隔离
     queryKey: ['users', 'infinite', filters],
@@ -97,9 +94,7 @@ export function useInfiniteUsers(
  * const allUsers = flattenUsers(data?.pages);
  * ```
  */
-export function flattenUsers(
-  pages?: Array<{ data: User[] }>
-): User[] {
+export function flattenUsers(pages?: Array<{ data: User[] }>): User[] {
   if (!pages) return [];
   return pages.flatMap((page) => page.data);
 }
@@ -117,9 +112,7 @@ export function flattenUsers(
  * // 显示: "已加载 60 位用户"
  * ```
  */
-export function getTotalLoadedUsers(
-  pages?: Array<{ data: User[]; count: number }>
-): number {
+export function getTotalLoadedUsers(pages?: Array<{ data: User[]; count: number }>): number {
   if (!pages) return 0;
   return pages.reduce((total, page) => total + page.count, 0);
 }

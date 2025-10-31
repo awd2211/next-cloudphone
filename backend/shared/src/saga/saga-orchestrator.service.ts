@@ -137,7 +137,7 @@ export class SagaOrchestratorService {
 
   constructor(
     @InjectDataSource()
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {
     // 初始化 repository（直接使用 DataSource 的查询能力）
     this.sagaRepository = this.dataSource.getRepository('saga_state');
@@ -150,10 +150,7 @@ export class SagaOrchestratorService {
    * @param initialState 初始状态
    * @returns Saga ID
    */
-  async executeSaga<T = any>(
-    definition: SagaDefinition<T>,
-    initialState: T,
-  ): Promise<string> {
+  async executeSaga<T = any>(definition: SagaDefinition<T>, initialState: T): Promise<string> {
     const sagaId = `${definition.type.toLowerCase()}-${uuidv4()}`;
 
     // 创建 Saga 状态记录
@@ -176,10 +173,7 @@ export class SagaOrchestratorService {
 
     // 异步执行 Saga（不阻塞调用者）
     this.runSaga(sagaId, definition, initialState).catch((error) => {
-      this.logger.error(
-        `Saga ${sagaId} execution failed: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Saga ${sagaId} execution failed: ${error.message}`, error.stack);
     });
 
     return sagaId;
@@ -191,7 +185,7 @@ export class SagaOrchestratorService {
   private async runSaga<T = any>(
     sagaId: string,
     definition: SagaDefinition<T>,
-    initialState: T,
+    initialState: T
   ): Promise<void> {
     let currentState = await this.getSagaState(sagaId);
     let state = { ...initialState, ...currentState.state };
@@ -213,7 +207,7 @@ export class SagaOrchestratorService {
           sagaId,
           step,
           state,
-          currentState.maxRetries,
+          currentState.maxRetries
         );
 
         // 更新状态
@@ -233,7 +227,7 @@ export class SagaOrchestratorService {
       this.logger.log(`Saga ${sagaId} completed successfully`);
     } catch (error) {
       this.logger.error(
-        `Saga ${sagaId} failed at step ${currentState.currentStep}: ${error.message}`,
+        `Saga ${sagaId} failed at step ${currentState.currentStep}: ${error.message}`
       );
 
       // 执行补偿逻辑
@@ -248,7 +242,7 @@ export class SagaOrchestratorService {
     sagaId: string,
     step: SagaStep<T>,
     state: T,
-    maxRetries: number,
+    maxRetries: number
   ): Promise<Partial<T>> {
     let lastError: Error = new Error('Step execution failed');
 
@@ -258,14 +252,14 @@ export class SagaOrchestratorService {
       } catch (error) {
         lastError = error;
         this.logger.warn(
-          `Saga ${sagaId} step ${step.name} failed (attempt ${attempt + 1}/${maxRetries + 1}): ${error.message}`,
+          `Saga ${sagaId} step ${step.name} failed (attempt ${attempt + 1}/${maxRetries + 1}): ${error.message}`
         );
 
         // 更新重试计数
-        await this.dataSource.query(
-          `UPDATE saga_state SET retry_count = $1 WHERE saga_id = $2`,
-          [attempt + 1, sagaId],
-        );
+        await this.dataSource.query(`UPDATE saga_state SET retry_count = $1 WHERE saga_id = $2`, [
+          attempt + 1,
+          sagaId,
+        ]);
 
         // 如果还有重试机会，等待后重试
         if (attempt < maxRetries) {
@@ -283,7 +277,7 @@ export class SagaOrchestratorService {
   private async compensateSaga<T = any>(
     sagaId: string,
     definition: SagaDefinition<T>,
-    failedStepIndex: number,
+    failedStepIndex: number
   ): Promise<void> {
     const currentState = await this.getSagaState(sagaId);
 
@@ -293,9 +287,7 @@ export class SagaOrchestratorService {
       errorMessage: currentState.errorMessage,
     });
 
-    this.logger.log(
-      `Saga ${sagaId} compensating from step ${failedStepIndex}`,
-    );
+    this.logger.log(`Saga ${sagaId} compensating from step ${failedStepIndex}`);
 
     // 反向执行补偿逻辑
     for (let i = failedStepIndex; i >= 0; i--) {
@@ -306,7 +298,7 @@ export class SagaOrchestratorService {
         await step.compensate(currentState.state as T);
       } catch (error) {
         this.logger.error(
-          `Saga ${sagaId} compensation failed at step ${step.name}: ${error.message}`,
+          `Saga ${sagaId} compensation failed at step ${step.name}: ${error.message}`
         );
         // 继续补偿其他步骤（尽力而为）
       }
@@ -351,17 +343,14 @@ export class SagaOrchestratorService {
         state.maxRetries,
         state.timeoutAt,
         state.startedAt,
-      ],
+      ]
     );
   }
 
   /**
    * 更新 Saga 状态
    */
-  private async updateSagaState(
-    sagaId: string,
-    updates: Partial<SagaState>,
-  ): Promise<void> {
+  private async updateSagaState(sagaId: string, updates: Partial<SagaState>): Promise<void> {
     const fields: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -401,7 +390,7 @@ export class SagaOrchestratorService {
 
     await this.dataSource.query(
       `UPDATE saga_state SET ${fields.join(', ')} WHERE saga_id = $${paramIndex}`,
-      values,
+      values
     );
   }
 
@@ -409,10 +398,9 @@ export class SagaOrchestratorService {
    * 获取 Saga 状态
    */
   async getSagaState(sagaId: string): Promise<SagaState> {
-    const [result] = await this.dataSource.query(
-      `SELECT * FROM saga_state WHERE saga_id = $1`,
-      [sagaId],
-    );
+    const [result] = await this.dataSource.query(`SELECT * FROM saga_state WHERE saga_id = $1`, [
+      sagaId,
+    ]);
 
     if (!result) {
       throw new Error(`Saga ${sagaId} not found`);
@@ -446,7 +434,7 @@ export class SagaOrchestratorService {
        SET status = $1, error_message = 'Saga timeout exceeded', completed_at = CURRENT_TIMESTAMP
        WHERE status = $2 AND timeout_at < CURRENT_TIMESTAMP
        RETURNING saga_id`,
-      [SagaStatus.TIMEOUT, SagaStatus.RUNNING],
+      [SagaStatus.TIMEOUT, SagaStatus.RUNNING]
     );
 
     const count = result.length;
@@ -466,12 +454,7 @@ export class SagaOrchestratorService {
        WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '${retentionDays} days'
        AND status IN ($1, $2, $3, $4)
        RETURNING saga_id`,
-      [
-        SagaStatus.COMPLETED,
-        SagaStatus.COMPENSATED,
-        SagaStatus.FAILED,
-        SagaStatus.TIMEOUT,
-      ],
+      [SagaStatus.COMPLETED, SagaStatus.COMPENSATED, SagaStatus.FAILED, SagaStatus.TIMEOUT]
     );
 
     const count = result.length;

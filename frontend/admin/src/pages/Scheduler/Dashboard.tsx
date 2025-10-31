@@ -263,9 +263,7 @@ const SchedulerDashboard = () => {
       dataIndex: 'name',
       key: 'name',
       width: 150,
-      render: (name, record) => (
-        <a onClick={() => openNodeDetail(record)}>{name}</a>
-      ),
+      render: (name, record) => <a onClick={() => openNodeDetail(record)}>{name}</a>,
     },
     {
       title: '地址',
@@ -313,7 +311,9 @@ const SchedulerDashboard = () => {
       render: (_, record) => {
         const percent = (record.usage.memory / record.capacity.memory) * 100;
         return (
-          <Tooltip title={`${(record.usage.memory / 1024).toFixed(1)}/${(record.capacity.memory / 1024).toFixed(1)} GB`}>
+          <Tooltip
+            title={`${(record.usage.memory / 1024).toFixed(1)}/${(record.capacity.memory / 1024).toFixed(1)} GB`}
+          >
             <Progress
               percent={Math.round(percent)}
               size="small"
@@ -339,7 +339,7 @@ const SchedulerDashboard = () => {
       dataIndex: 'lastHeartbeat',
       key: 'lastHeartbeat',
       width: 160,
-      render: (time) => time ? dayjs(time).format('MM-DD HH:mm:ss') : '-',
+      render: (time) => (time ? dayjs(time).format('MM-DD HH:mm:ss') : '-'),
     },
     {
       title: '操作',
@@ -383,10 +383,7 @@ const SchedulerDashboard = () => {
               排空
             </Button>
           </Popconfirm>
-          <Popconfirm
-            title="确定删除此节点？"
-            onConfirm={() => handleDeleteNode(record.id)}
-          >
+          <Popconfirm title="确定删除此节点？" onConfirm={() => handleDeleteNode(record.id)}>
             <Button type="link" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
@@ -439,7 +436,7 @@ const SchedulerDashboard = () => {
       dataIndex: 'nodeId',
       key: 'nodeId',
       width: 100,
-      render: (id) => id ? id.substring(0, 8) : '-',
+      render: (id) => (id ? id.substring(0, 8) : '-'),
     },
     {
       title: '资源需求',
@@ -465,7 +462,13 @@ const SchedulerDashboard = () => {
     <div style={{ padding: '24px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* 集群统计 */}
-        <Card title={<span><DashboardOutlined /> 集群概览</span>}>
+        <Card
+          title={
+            <span>
+              <DashboardOutlined /> 集群概览
+            </span>
+          }
+        >
           <Row gutter={16}>
             <Col span={6}>
               <Statistic
@@ -509,8 +512,8 @@ const SchedulerDashboard = () => {
                     (clusterStats?.utilizationRate.cpu || 0) > 80
                       ? 'exception'
                       : (clusterStats?.utilizationRate.cpu || 0) > 60
-                      ? 'normal'
-                      : 'success'
+                        ? 'normal'
+                        : 'success'
                   }
                 />
                 <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
@@ -526,8 +529,8 @@ const SchedulerDashboard = () => {
                     (clusterStats?.utilizationRate.memory || 0) > 80
                       ? 'exception'
                       : (clusterStats?.utilizationRate.memory || 0) > 60
-                      ? 'normal'
-                      : 'success'
+                        ? 'normal'
+                        : 'success'
                   }
                 />
                 <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
@@ -544,8 +547,8 @@ const SchedulerDashboard = () => {
                     (clusterStats?.utilizationRate.devices || 0) > 80
                       ? 'exception'
                       : (clusterStats?.utilizationRate.devices || 0) > 60
-                      ? 'normal'
-                      : 'success'
+                        ? 'normal'
+                        : 'success'
                   }
                 />
                 <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
@@ -583,7 +586,9 @@ const SchedulerDashboard = () => {
         <Card>
           <Tabs activeKey={activeTab} onChange={setActiveTab}>
             <TabPane tab="节点列表" key="nodes">
-              <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
+              <div
+                style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}
+              >
                 <Space>
                   <Button icon={<ReloadOutlined />} onClick={loadNodes}>
                     刷新
@@ -653,7 +658,12 @@ const SchedulerDashboard = () => {
                 name="port"
                 rules={[{ required: !editingNode, message: '请输入端口' }]}
               >
-                <InputNumber min={1} max={65535} style={{ width: '100%' }} disabled={!!editingNode} />
+                <InputNumber
+                  min={1}
+                  max={65535}
+                  style={{ width: '100%' }}
+                  disabled={!!editingNode}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -746,7 +756,8 @@ const SchedulerDashboard = () => {
             </Descriptions.Item>
             <Descriptions.Item label="CPU 容量">{selectedNode.capacity.cpu} 核</Descriptions.Item>
             <Descriptions.Item label="CPU 使用">
-              {selectedNode.usage.cpu} 核 ({((selectedNode.usage.cpu / selectedNode.capacity.cpu) * 100).toFixed(1)}%)
+              {selectedNode.usage.cpu} 核 (
+              {((selectedNode.usage.cpu / selectedNode.capacity.cpu) * 100).toFixed(1)}%)
             </Descriptions.Item>
             <Descriptions.Item label="内存容量">
               {(selectedNode.capacity.memory / 1024).toFixed(1)} GB
@@ -762,13 +773,20 @@ const SchedulerDashboard = () => {
               {(selectedNode.usage.storage / 1024).toFixed(1)} GB (
               {((selectedNode.usage.storage / selectedNode.capacity.storage) * 100).toFixed(1)}%)
             </Descriptions.Item>
-            <Descriptions.Item label="设备容量">{selectedNode.capacity.maxDevices}</Descriptions.Item>
+            <Descriptions.Item label="设备容量">
+              {selectedNode.capacity.maxDevices}
+            </Descriptions.Item>
             <Descriptions.Item label="设备数量">
               {selectedNode.usage.deviceCount} (
-              {((selectedNode.usage.deviceCount / selectedNode.capacity.maxDevices) * 100).toFixed(1)}%)
+              {((selectedNode.usage.deviceCount / selectedNode.capacity.maxDevices) * 100).toFixed(
+                1
+              )}
+              %)
             </Descriptions.Item>
             <Descriptions.Item label="最后心跳" span={2}>
-              {selectedNode.lastHeartbeat ? dayjs(selectedNode.lastHeartbeat).format('YYYY-MM-DD HH:mm:ss') : '-'}
+              {selectedNode.lastHeartbeat
+                ? dayjs(selectedNode.lastHeartbeat).format('YYYY-MM-DD HH:mm:ss')
+                : '-'}
             </Descriptions.Item>
             <Descriptions.Item label="创建时间" span={2}>
               {dayjs(selectedNode.createdAt).format('YYYY-MM-DD HH:mm:ss')}

@@ -16,16 +16,9 @@ import { BalanceModule } from '../balance/balance.module';
   imports: [
     TypeOrmModule.forFeature([Order, UsageRecord]),
     MeteringModule, // 用量追踪服务
-    BalanceModule,  // 余额管理服务
+    BalanceModule, // 余额管理服务
   ],
-  providers: [
-    BillingUserEventsHandler,
-    BillingDeviceEventsHandler,
-  ],
-  exports: [
-    BillingUserEventsHandler,
-    BillingDeviceEventsHandler,
-  ],
+  providers: [BillingUserEventsHandler, BillingDeviceEventsHandler],
+  exports: [BillingUserEventsHandler, BillingDeviceEventsHandler],
 })
 export class EventsModule {}
-

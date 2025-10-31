@@ -1,7 +1,16 @@
-import { Controller, Post, Get, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards, Param } from '@nestjs/common';
 import { SmsService } from './sms.service';
 import { OtpService, OtpType } from './otp.service';
-import { IsPhoneNumber, IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+import {
+  IsPhoneNumber,
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  Min,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 /**
  * 发送短信 DTO
@@ -77,6 +86,39 @@ export class SendBatchSmsDto {
 }
 
 /**
+ * 查询 SMS 记录 DTO
+ */
+export class QuerySmsDto {
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  provider?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  limit?: number = 10;
+}
+
+/**
  * SMS 控制器
  *
  * 提供短信发送和管理的 HTTP API
@@ -92,8 +134,26 @@ export class SendBatchSmsDto {
 export class SmsController {
   constructor(
     private readonly smsService: SmsService,
-    private readonly otpService: OtpService,
+    private readonly otpService: OtpService
   ) {}
+
+  /**
+   * 查询 SMS 记录列表
+   * GET /sms?status=sent&page=1&limit=10
+   */
+  @Get()
+  async findAll(@Query() query: QuerySmsDto) {
+    return this.smsService.findAll(query);
+  }
+
+  /**
+   * 根据 ID 查询 SMS 记录
+   * GET /sms/:id
+   */
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.smsService.findOne(id);
+  }
 
   /**
    * 发送单条短信
@@ -118,11 +178,7 @@ export class SmsController {
    */
   @Post('send-otp')
   async sendOtp(@Body() dto: SendOtpDto) {
-    const result = await this.smsService.sendOtp(
-      dto.phoneNumber,
-      dto.code,
-      dto.expiryMinutes,
-    );
+    const result = await this.smsService.sendOtp(dto.phoneNumber, dto.code, dto.expiryMinutes);
 
     return {
       success: result.success,
@@ -136,10 +192,7 @@ export class SmsController {
    */
   @Post('send-batch')
   async sendBatch(@Body() dto: SendBatchSmsDto) {
-    const results = await this.smsService.sendBatch(
-      dto.phoneNumbers,
-      dto.message,
-    );
+    const results = await this.smsService.sendBatch(dto.phoneNumbers, dto.message);
 
     const successCount = results.filter((r) => r.success).length;
     const failedCount = results.filter((r) => !r.success).length;
@@ -178,7 +231,9 @@ export class SmsController {
     return {
       phoneNumber,
       isValid,
-      format: isValid ? 'Valid international format' : 'Invalid format (expected: +[country code][number])',
+      format: isValid
+        ? 'Valid international format'
+        : 'Invalid format (expected: +[country code][number])',
     };
   }
 
@@ -199,11 +254,7 @@ export class SmsController {
    */
   @Post('otp/send')
   async sendOtpV2(@Body() dto: SendOtpV2Dto) {
-    const result = await this.otpService.sendOtp(
-      dto.phoneNumber,
-      dto.type,
-      dto.customMessage,
-    );
+    const result = await this.otpService.sendOtp(dto.phoneNumber, dto.type, dto.customMessage);
 
     return result;
   }
@@ -213,11 +264,7 @@ export class SmsController {
    */
   @Post('otp/verify')
   async verifyOtp(@Body() dto: VerifyOtpDto) {
-    const result = await this.otpService.verifyOtp(
-      dto.phoneNumber,
-      dto.code,
-      dto.type,
-    );
+    const result = await this.otpService.verifyOtp(dto.phoneNumber, dto.code, dto.type);
 
     return result;
   }
@@ -226,10 +273,7 @@ export class SmsController {
    * 检查是否有活跃的验证码
    */
   @Get('otp/active')
-  async hasActiveOtp(
-    @Query('phoneNumber') phoneNumber: string,
-    @Query('type') type: OtpType,
-  ) {
+  async hasActiveOtp(@Query('phoneNumber') phoneNumber: string, @Query('type') type: OtpType) {
     const hasActive = await this.otpService.hasActiveOtp(phoneNumber, type);
     const remainingTtl = hasActive ? await this.otpService.getRemainingTtl(phoneNumber, type) : 0;
 
@@ -247,7 +291,7 @@ export class SmsController {
   @Get('otp/retries')
   async getRemainingRetries(
     @Query('phoneNumber') phoneNumber: string,
-    @Query('type') type: OtpType,
+    @Query('type') type: OtpType
   ) {
     const retries = await this.otpService.getRemainingRetries(phoneNumber, type);
 
@@ -272,9 +316,7 @@ export class SmsController {
    * ⚠️ 生产环境应该添加认证保护
    */
   @Post('otp/clear')
-  async clearOtp(
-    @Body() body: { phoneNumber: string; type: OtpType },
-  ) {
+  async clearOtp(@Body() body: { phoneNumber: string; type: OtpType }) {
     await this.otpService.clearOtp(body.phoneNumber, body.type);
 
     return {

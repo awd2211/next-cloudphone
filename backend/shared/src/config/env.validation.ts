@@ -69,7 +69,7 @@ export function validateRedisConfig(): EnvValidationResult {
  */
 export function validateRabbitMQConfig(): EnvValidationResult {
   const result = validateOptionalEnvVars(['RABBITMQ_URL']);
-  
+
   if (!process.env.RABBITMQ_URL) {
     result.warnings.push('RabbitMQ not configured, EventBus features will not work');
   }
@@ -82,7 +82,7 @@ export function validateRabbitMQConfig(): EnvValidationResult {
  */
 export function validateSMTPConfig(): EnvValidationResult {
   const result = validateOptionalEnvVars(['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS']);
-  
+
   if (!process.env.SMTP_HOST) {
     result.warnings.push('SMTP not configured, email features will use mock mode');
   }
@@ -103,7 +103,8 @@ export function validateSMSConfig(): EnvValidationResult {
   }
 
   // 检查阿里云短信
-  const hasAliyun = process.env.ALIYUN_SMS_ACCESS_KEY_ID && process.env.ALIYUN_SMS_ACCESS_KEY_SECRET;
+  const hasAliyun =
+    process.env.ALIYUN_SMS_ACCESS_KEY_ID && process.env.ALIYUN_SMS_ACCESS_KEY_SECRET;
   if (!hasAliyun) {
     warnings.push('Aliyun SMS not configured');
   }
@@ -131,18 +132,18 @@ export function validateAllEnvVars(): EnvValidationResult {
     validateSMSConfig(),
   ];
 
-  const errors = results.flatMap(r => r.errors);
-  const warnings = results.flatMap(r => r.warnings);
+  const errors = results.flatMap((r) => r.errors);
+  const warnings = results.flatMap((r) => r.warnings);
 
   // 输出验证结果
   if (errors.length > 0) {
     logger.error('❌ Environment validation failed:');
-    errors.forEach(err => logger.error(`  - ${err}`));
+    errors.forEach((err) => logger.error(`  - ${err}`));
   }
 
   if (warnings.length > 0) {
     logger.warn('⚠️ Environment validation warnings:');
-    warnings.forEach(warn => logger.warn(`  - ${warn}`));
+    warnings.forEach((warn) => logger.warn(`  - ${warn}`));
   }
 
   if (errors.length === 0 && warnings.length === 0) {
@@ -155,4 +156,3 @@ export function validateAllEnvVars(): EnvValidationResult {
     warnings,
   };
 }
-

@@ -3,7 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Permission, DataScopeType } from '../entities/permission.entity';
 import { DataScope, ScopeType } from '../entities/data-scope.entity';
-import { FieldPermission, FieldAccessLevel, OperationType } from '../entities/field-permission.entity';
+import {
+  FieldPermission,
+  FieldAccessLevel,
+  OperationType,
+} from '../entities/field-permission.entity';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 
@@ -47,7 +51,7 @@ export class PermissionCheckerService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Role)
-    private roleRepository: Repository<Role>,
+    private roleRepository: Repository<Role>
   ) {}
 
   /**
@@ -56,10 +60,7 @@ export class PermissionCheckerService {
    * @param functionCode 功能代码（如 'system:user:list'）
    * @returns 是否有权限
    */
-  async checkFunctionPermission(
-    userId: string,
-    functionCode: string,
-  ): Promise<boolean> {
+  async checkFunctionPermission(userId: string, functionCode: string): Promise<boolean> {
     try {
       const user = await this.getUserWithRoles(userId);
       if (!user) {
@@ -76,16 +77,10 @@ export class PermissionCheckerService {
 
       // 检查是否有匹配的权限
       return permissions.some(
-        (p) =>
-          p.name === functionCode &&
-          p.isActive &&
-          this.checkConditions(p.conditions, user),
+        (p) => p.name === functionCode && p.isActive && this.checkConditions(p.conditions, user)
       );
     } catch (error) {
-      this.logger.error(
-        `检查功能权限失败: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`检查功能权限失败: ${error.message}`, error.stack);
       return false;
     }
   }
@@ -100,7 +95,7 @@ export class PermissionCheckerService {
   async checkOperationPermission(
     userId: string,
     resource: string,
-    action: string,
+    action: string
   ): Promise<PermissionCheckResult> {
     try {
       const user = await this.getUserWithRoles(userId);
@@ -122,7 +117,7 @@ export class PermissionCheckerService {
           p.resource === resource &&
           p.action === action &&
           p.isActive &&
-          this.checkConditions(p.conditions, user),
+          this.checkConditions(p.conditions, user)
       );
 
       if (!matchedPermission) {
@@ -138,10 +133,7 @@ export class PermissionCheckerService {
         filter: matchedPermission.dataFilter,
       };
     } catch (error) {
-      this.logger.error(
-        `检查操作权限失败: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`检查操作权限失败: ${error.message}`, error.stack);
       return { allowed: false, reason: '权限检查异常' };
     }
   }
@@ -156,7 +148,7 @@ export class PermissionCheckerService {
   async checkDataPermission(
     userId: string,
     resourceType: string,
-    resourceData: any,
+    resourceData: any
   ): Promise<boolean> {
     try {
       const user = await this.getUserWithRoles(userId);
@@ -183,10 +175,7 @@ export class PermissionCheckerService {
 
       return this.evaluateDataScope(user, primaryScope, resourceData);
     } catch (error) {
-      this.logger.error(
-        `检查数据权限失败: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`检查数据权限失败: ${error.message}`, error.stack);
       return false;
     }
   }
@@ -201,7 +190,7 @@ export class PermissionCheckerService {
   async checkFieldPermission(
     userId: string,
     resourceType: string,
-    operation: OperationType,
+    operation: OperationType
   ): Promise<FieldPermissionResult> {
     try {
       const user = await this.getUserWithRoles(userId);
@@ -222,11 +211,7 @@ export class PermissionCheckerService {
       }
 
       // 获取用户角色的字段权限配置
-      const fieldPermissions = await this.getUserFieldPermissions(
-        user,
-        resourceType,
-        operation,
-      );
+      const fieldPermissions = await this.getUserFieldPermissions(user, resourceType, operation);
 
       if (fieldPermissions.length === 0) {
         return this.emptyFieldPermission();
@@ -235,10 +220,7 @@ export class PermissionCheckerService {
       // 合并多个角色的字段权限（取并集）
       return this.mergeFieldPermissions(fieldPermissions);
     } catch (error) {
-      this.logger.error(
-        `检查字段权限失败: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`检查字段权限失败: ${error.message}`, error.stack);
       return this.emptyFieldPermission();
     }
   }
@@ -249,10 +231,7 @@ export class PermissionCheckerService {
    * @param permissionNames 权限名称列表
    * @returns 是否拥有任意一个权限
    */
-  async hasAnyPermission(
-    userId: string,
-    permissionNames: string[],
-  ): Promise<boolean> {
+  async hasAnyPermission(userId: string, permissionNames: string[]): Promise<boolean> {
     for (const name of permissionNames) {
       const hasPermission = await this.checkFunctionPermission(userId, name);
       if (hasPermission) {
@@ -268,10 +247,7 @@ export class PermissionCheckerService {
    * @param permissionNames 权限名称列表
    * @returns 是否拥有所有权限
    */
-  async hasAllPermissions(
-    userId: string,
-    permissionNames: string[],
-  ): Promise<boolean> {
+  async hasAllPermissions(userId: string, permissionNames: string[]): Promise<boolean> {
     for (const name of permissionNames) {
       const hasPermission = await this.checkFunctionPermission(userId, name);
       if (!hasPermission) {
@@ -319,10 +295,7 @@ export class PermissionCheckerService {
   /**
    * 获取用户的数据范围配置
    */
-  private async getUserDataScopes(
-    user: User,
-    resourceType: string,
-  ): Promise<DataScope[]> {
+  private async getUserDataScopes(user: User, resourceType: string): Promise<DataScope[]> {
     if (!user.roles || user.roles.length === 0) {
       return [];
     }
@@ -346,7 +319,7 @@ export class PermissionCheckerService {
   private async getUserFieldPermissions(
     user: User,
     resourceType: string,
-    operation: OperationType,
+    operation: OperationType
   ): Promise<FieldPermission[]> {
     if (!user.roles || user.roles.length === 0) {
       return [];
@@ -369,10 +342,7 @@ export class PermissionCheckerService {
   /**
    * 检查权限条件
    */
-  private checkConditions(
-    conditions: Record<string, any>,
-    user: User,
-  ): boolean {
+  private checkConditions(conditions: Record<string, any>, user: User): boolean {
     if (!conditions || Object.keys(conditions).length === 0) {
       return true;
     }
@@ -400,9 +370,7 @@ export class PermissionCheckerService {
         // 需要部门层级查询，这里简化处理
         return resourceData.departmentId === user.departmentId;
       case 'self':
-        return (
-          resourceData.createdBy === user.id || resourceData.userId === user.id
-        );
+        return resourceData.createdBy === user.id || resourceData.userId === user.id;
       default:
         return false;
     }
@@ -411,11 +379,7 @@ export class PermissionCheckerService {
   /**
    * 评估数据范围规则
    */
-  private evaluateDataScope(
-    user: User,
-    dataScope: DataScope,
-    resourceData: any,
-  ): boolean {
+  private evaluateDataScope(user: User, dataScope: DataScope, resourceData: any): boolean {
     switch (dataScope.scopeType) {
       case ScopeType.ALL:
         return true;
@@ -433,9 +397,7 @@ export class PermissionCheckerService {
         return resourceData.departmentId === user.departmentId;
 
       case ScopeType.SELF:
-        return (
-          resourceData.createdBy === user.id || resourceData.userId === user.id
-        );
+        return resourceData.createdBy === user.id || resourceData.userId === user.id;
 
       case ScopeType.CUSTOM:
         return this.evaluateCustomFilter(dataScope.filter, resourceData);
@@ -448,10 +410,7 @@ export class PermissionCheckerService {
   /**
    * 评估自定义过滤条件
    */
-  private evaluateCustomFilter(
-    filter: Record<string, any>,
-    data: any,
-  ): boolean {
+  private evaluateCustomFilter(filter: Record<string, any>, data: any): boolean {
     if (!filter) {
       return true;
     }
@@ -506,9 +465,7 @@ export class PermissionCheckerService {
   /**
    * 合并字段权限
    */
-  private mergeFieldPermissions(
-    permissions: FieldPermission[],
-  ): FieldPermissionResult {
+  private mergeFieldPermissions(permissions: FieldPermission[]): FieldPermissionResult {
     const result: FieldPermissionResult = {
       visibleFields: [],
       editableFields: [],
@@ -550,10 +507,9 @@ export class PermissionCheckerService {
 
     // 计算可见字段（除了隐藏字段外的所有字段）
     // 注意：这里需要根据实际业务逻辑调整
-    result.visibleFields = [
-      ...result.editableFields,
-      ...result.readOnlyFields,
-    ].filter((f) => !result.hiddenFields.includes(f));
+    result.visibleFields = [...result.editableFields, ...result.readOnlyFields].filter(
+      (f) => !result.hiddenFields.includes(f)
+    );
 
     return result;
   }

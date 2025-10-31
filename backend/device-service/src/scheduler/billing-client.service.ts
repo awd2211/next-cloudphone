@@ -1,6 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { HttpClientService, ServiceTokenService } from "@cloudphone/shared";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { HttpClientService, ServiceTokenService } from '@cloudphone/shared';
 
 /**
  * 设备使用计费数据
@@ -31,20 +31,19 @@ export class BillingClientService {
   constructor(
     private readonly httpClient: HttpClientService,
     private readonly configService: ConfigService,
-    private readonly serviceTokenService: ServiceTokenService,
+    private readonly serviceTokenService: ServiceTokenService
   ) {
     this.billingServiceUrl =
-      this.configService.get<string>("BILLING_SERVICE_URL") ||
-      "http://localhost:30005";
+      this.configService.get<string>('BILLING_SERVICE_URL') || 'http://localhost:30005';
   }
 
   /**
    * 生成服务间认证 headers
    */
   private async getServiceHeaders(): Promise<Record<string, string>> {
-    const token = await this.serviceTokenService.generateToken("device-service");
+    const token = await this.serviceTokenService.generateToken('device-service');
     return {
-      "X-Service-Token": token,
+      'X-Service-Token': token,
     };
   }
 
@@ -101,9 +100,7 @@ export class BillingClientService {
 
       // 计费上报失败不应阻止设备释放，但需要记录告警
       // 可以考虑使用消息队列进行重试或人工介入
-      this.logger.warn(
-        `⚠️ Billing data may be lost for allocation: ${usageData.allocationId}`
-      );
+      this.logger.warn(`⚠️ Billing data may be lost for allocation: ${usageData.allocationId}`);
     }
   }
 
@@ -136,28 +133,25 @@ export class BillingClientService {
         }
       );
 
-      const hasBalance = response.balance > 0 && response.status === "active";
+      const hasBalance = response.balance > 0 && response.status === 'active';
 
       return {
         hasBalance,
         balance: response.balance,
-        reason: hasBalance ? undefined : "Insufficient balance or inactive account",
+        reason: hasBalance ? undefined : 'Insufficient balance or inactive account',
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to check user balance: ${error.message}`,
-        error.stack
-      );
+      this.logger.error(`Failed to check user balance: ${error.message}`, error.stack);
 
       // 余额检查失败时的降级策略
       const allowOnError = this.configService.get<boolean>(
-        "BILLING_ALLOW_ON_ERROR",
-        true, // 默认允许，避免影响用户体验
+        'BILLING_ALLOW_ON_ERROR',
+        true // 默认允许，避免影响用户体验
       );
 
       if (allowOnError) {
         this.logger.warn(
-          "Billing service unavailable, allowing operation due to BILLING_ALLOW_ON_ERROR=true"
+          'Billing service unavailable, allowing operation due to BILLING_ALLOW_ON_ERROR=true'
         );
         return { hasBalance: true, balance: 0 };
       }
@@ -165,7 +159,7 @@ export class BillingClientService {
       return {
         hasBalance: false,
         balance: 0,
-        reason: "Billing service unavailable",
+        reason: 'Billing service unavailable',
       };
     }
   }
@@ -175,9 +169,7 @@ export class BillingClientService {
    *
    * @param usageDataList 设备使用数据列表
    */
-  async reportBatchDeviceUsage(
-    usageDataList: DeviceUsageBilling[]
-  ): Promise<{
+  async reportBatchDeviceUsage(usageDataList: DeviceUsageBilling[]): Promise<{
     success: number;
     failed: number;
     errors: string[];
@@ -194,9 +186,7 @@ export class BillingClientService {
         results.success++;
       } catch (error) {
         results.failed++;
-        results.errors.push(
-          `${usageData.deviceId}: ${error.message}`
-        );
+        results.errors.push(`${usageData.deviceId}: ${error.message}`);
       }
     }
 

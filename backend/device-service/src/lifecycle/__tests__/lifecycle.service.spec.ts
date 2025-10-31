@@ -1,16 +1,16 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { getRepositoryToken } from "@nestjs/typeorm";
-import { Repository, LessThan } from "typeorm";
-import { ConfigService } from "@nestjs/config";
-import { LifecycleService, CleanupResult } from "../lifecycle.service";
-import { Device, DeviceStatus } from "../../entities/device.entity";
-import { DockerService } from "../../docker/docker.service";
-import { AdbService } from "../../adb/adb.service";
-import { PortManagerService } from "../../port-manager/port-manager.service";
-import { EventBusService } from "@cloudphone/shared";
-import { MetricsService } from "../../metrics/metrics.service";
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository, LessThan } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { LifecycleService, CleanupResult } from '../lifecycle.service';
+import { Device, DeviceStatus } from '../../entities/device.entity';
+import { DockerService } from '../../docker/docker.service';
+import { AdbService } from '../../adb/adb.service';
+import { PortManagerService } from '../../port-manager/port-manager.service';
+import { EventBusService } from '@cloudphone/shared';
+import { MetricsService } from '../../metrics/metrics.service';
 
-describe("LifecycleService", () => {
+describe('LifecycleService', () => {
   let service: LifecycleService;
   let deviceRepository: jest.Mocked<Repository<Device>>;
   let dockerService: jest.Mocked<DockerService>;
@@ -21,12 +21,12 @@ describe("LifecycleService", () => {
   let metricsService: jest.Mocked<MetricsService>;
 
   const mockDevice: Device = {
-    id: "device-123",
-    name: "TestDevice",
-    userId: "user-123",
-    containerId: "container-abc",
+    id: 'device-123',
+    name: 'TestDevice',
+    userId: 'user-123',
+    containerId: 'container-abc',
     status: DeviceStatus.RUNNING,
-    adbHost: "localhost",
+    adbHost: 'localhost',
     adbPort: 5555,
     lastActiveAt: new Date(Date.now() - 25 * 60 * 60 * 1000), // 25 hours ago
     updatedAt: new Date(),
@@ -128,9 +128,9 @@ describe("LifecycleService", () => {
     jest.useRealTimers(); // Reset timers after each test
   });
 
-  describe("cleanupIdleDevices", () => {
-    it("should cleanup idle devices", async () => {
-      const idleDevices = [mockDevice, { ...mockDevice, id: "device-456" }];
+  describe('cleanupIdleDevices', () => {
+    it('should cleanup idle devices', async () => {
+      const idleDevices = [mockDevice, { ...mockDevice, id: 'device-456' }];
       deviceRepository.find.mockResolvedValue(idleDevices);
       adbService.disconnectFromDevice.mockResolvedValue(undefined);
       dockerService.stopContainer.mockResolvedValue(undefined);
@@ -151,9 +151,9 @@ describe("LifecycleService", () => {
       expect(eventBus.publish).toHaveBeenCalledTimes(2);
     });
 
-    it("should delete idle devices when AUTO_DELETE_IDLE_DEVICES is true", async () => {
+    it('should delete idle devices when AUTO_DELETE_IDLE_DEVICES is true', async () => {
       configService.get.mockImplementation((key, defaultValue) => {
-        if (key === "AUTO_DELETE_IDLE_DEVICES") return true;
+        if (key === 'AUTO_DELETE_IDLE_DEVICES') return true;
         return defaultValue;
       });
 
@@ -168,33 +168,30 @@ describe("LifecycleService", () => {
       const result = await service.cleanupIdleDevices();
 
       expect(dockerService.removeContainer).toHaveBeenCalled();
-      expect(eventBus.publishDeviceEvent).toHaveBeenCalledWith(
-        "deleted",
-        expect.any(Object),
-      );
+      expect(eventBus.publishDeviceEvent).toHaveBeenCalledWith('deleted', expect.any(Object));
       expect(result.cleaned).toBe(1);
     });
 
-    it("should handle errors gracefully", async () => {
+    it('should handle errors gracefully', async () => {
       const idleDevices = [mockDevice];
       deviceRepository.find.mockResolvedValue(idleDevices);
       // Make stopDevice fail by throwing error during stopContainer
-      dockerService.stopContainer.mockRejectedValue(new Error("Docker error"));
+      dockerService.stopContainer.mockRejectedValue(new Error('Docker error'));
       adbService.disconnectFromDevice.mockResolvedValue(undefined);
-      deviceRepository.save.mockRejectedValue(new Error("Save failed"));
+      deviceRepository.save.mockRejectedValue(new Error('Save failed'));
 
       const result = await service.cleanupIdleDevices();
 
       expect(result.cleaned).toBe(0);
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain("device-123");
+      expect(result.errors[0]).toContain('device-123');
       expect(metricsService.recordOperationError).toHaveBeenCalledWith(
-        "cleanup_idle",
-        "device_cleanup_failed",
+        'cleanup_idle',
+        'device_cleanup_failed'
       );
     });
 
-    it("should return empty result when no idle devices found", async () => {
+    it('should return empty result when no idle devices found', async () => {
       deviceRepository.find.mockResolvedValue([]);
 
       const result = await service.cleanupIdleDevices();
@@ -204,8 +201,8 @@ describe("LifecycleService", () => {
     });
   });
 
-  describe("cleanupErrorDevices", () => {
-    it("should cleanup error devices", async () => {
+  describe('cleanupErrorDevices', () => {
+    it('should cleanup error devices', async () => {
       jest.useFakeTimers(); // Use fake timers for the 5-second delay
 
       const errorDevice = { ...mockDevice, status: DeviceStatus.ERROR };
@@ -237,7 +234,7 @@ describe("LifecycleService", () => {
       expect(dockerService.removeContainer).toHaveBeenCalled();
     });
 
-    it("should attempt recovery before deleting", async () => {
+    it('should attempt recovery before deleting', async () => {
       jest.useFakeTimers();
 
       const errorDevice = { ...mockDevice, status: DeviceStatus.ERROR };
@@ -258,10 +255,10 @@ describe("LifecycleService", () => {
       expect(result.cleaned).toBe(0); // No cleanup, device recovered
     });
 
-    it("should handle recovery failures", async () => {
+    it('should handle recovery failures', async () => {
       const errorDevice = { ...mockDevice, status: DeviceStatus.ERROR };
       deviceRepository.find.mockResolvedValue([errorDevice]);
-      dockerService.restartContainer.mockRejectedValue(new Error("Restart failed"));
+      dockerService.restartContainer.mockRejectedValue(new Error('Restart failed'));
       dockerService.removeContainer.mockResolvedValue(undefined);
       adbService.disconnectFromDevice.mockResolvedValue(undefined);
       deviceRepository.save.mockImplementation((device) => Promise.resolve(device));
@@ -275,8 +272,8 @@ describe("LifecycleService", () => {
     });
   });
 
-  describe("cleanupStoppedDevices", () => {
-    it("should cleanup long-term stopped devices", async () => {
+  describe('cleanupStoppedDevices', () => {
+    it('should cleanup long-term stopped devices', async () => {
       const stoppedDevice = {
         ...mockDevice,
         status: DeviceStatus.STOPPED,
@@ -300,23 +297,23 @@ describe("LifecycleService", () => {
       expect(result.cleaned).toBe(1);
       expect(dockerService.removeContainer).toHaveBeenCalled();
       expect(eventBus.publish).toHaveBeenCalledWith(
-        "cloudphone.events",
-        "device.cleaned",
+        'cloudphone.events',
+        'device.cleaned',
         expect.objectContaining({
           payload: expect.objectContaining({
-            reason: "long_term_stopped",
+            reason: 'long_term_stopped',
           }),
-        }),
+        })
       );
     });
 
-    it("should handle cleanup errors", async () => {
+    it('should handle cleanup errors', async () => {
       const stoppedDevice = { ...mockDevice, status: DeviceStatus.STOPPED };
       deviceRepository.find.mockResolvedValue([stoppedDevice]);
       // Make deleteDevice fail completely
-      dockerService.removeContainer.mockRejectedValue(new Error("Delete error"));
+      dockerService.removeContainer.mockRejectedValue(new Error('Delete error'));
       adbService.disconnectFromDevice.mockResolvedValue(undefined);
-      deviceRepository.save.mockRejectedValue(new Error("Save failed"));
+      deviceRepository.save.mockRejectedValue(new Error('Save failed'));
 
       const result = await service.cleanupStoppedDevices();
 
@@ -326,11 +323,11 @@ describe("LifecycleService", () => {
     });
   });
 
-  describe("cleanupOrphanedContainers", () => {
-    it("should cleanup orphaned containers", async () => {
+  describe('cleanupOrphanedContainers', () => {
+    it('should cleanup orphaned containers', async () => {
       const containers = [
-        { Id: "container-1", Names: ["/cloudphone-device-orphan"] },
-        { Id: "container-2", Names: ["/cloudphone-device-existing"] },
+        { Id: 'container-1', Names: ['/cloudphone-device-orphan'] },
+        { Id: 'container-2', Names: ['/cloudphone-device-existing'] },
       ];
       dockerService.listContainers.mockResolvedValue(containers);
       deviceRepository.findOne
@@ -342,15 +339,15 @@ describe("LifecycleService", () => {
 
       expect(dockerService.listContainers).toHaveBeenCalledWith(true);
       expect(dockerService.removeContainer).toHaveBeenCalledTimes(1);
-      expect(dockerService.removeContainer).toHaveBeenCalledWith("container-1");
+      expect(dockerService.removeContainer).toHaveBeenCalledWith('container-1');
       expect(result.cleaned).toBe(1);
     });
 
-    it("should handle container deletion errors", async () => {
-      const containers = [{ Id: "container-1", Names: ["/cloudphone-device-orphan"] }];
+    it('should handle container deletion errors', async () => {
+      const containers = [{ Id: 'container-1', Names: ['/cloudphone-device-orphan'] }];
       dockerService.listContainers.mockResolvedValue(containers);
       deviceRepository.findOne.mockResolvedValue(null);
-      dockerService.removeContainer.mockRejectedValue(new Error("Delete failed"));
+      dockerService.removeContainer.mockRejectedValue(new Error('Delete failed'));
 
       const result = await service.cleanupOrphanedContainers();
 
@@ -358,10 +355,10 @@ describe("LifecycleService", () => {
       expect(result.errors).toHaveLength(1);
     });
 
-    it("should skip non-cloudphone containers", async () => {
+    it('should skip non-cloudphone containers', async () => {
       const containers = [
-        { Id: "container-1", Names: ["/other-app-container"] },
-        { Id: "container-2", Names: ["/cloudphone-device-123"] },
+        { Id: 'container-1', Names: ['/other-app-container'] },
+        { Id: 'container-2', Names: ['/cloudphone-device-123'] },
       ];
       dockerService.listContainers.mockResolvedValue(containers);
       deviceRepository.findOne.mockResolvedValue(mockDevice);
@@ -373,8 +370,8 @@ describe("LifecycleService", () => {
     });
   });
 
-  describe("performAutoCleanup", () => {
-    it("should perform all cleanup tasks", async () => {
+  describe('performAutoCleanup', () => {
+    it('should perform all cleanup tasks', async () => {
       deviceRepository.find.mockResolvedValue([]);
       dockerService.listContainers.mockResolvedValue([]);
 
@@ -392,19 +389,19 @@ describe("LifecycleService", () => {
         errors: [],
       });
       expect(metricsService.recordOperationDuration).toHaveBeenCalledWith(
-        "auto_cleanup",
-        expect.any(Number),
+        'auto_cleanup',
+        expect.any(Number)
       );
     });
 
-    it("should aggregate cleanup results", async () => {
+    it('should aggregate cleanup results', async () => {
       jest.useFakeTimers();
 
       const idleDevice = { ...mockDevice };
-      const errorDevice = { ...mockDevice, id: "device-error", status: DeviceStatus.ERROR };
+      const errorDevice = { ...mockDevice, id: 'device-error', status: DeviceStatus.ERROR };
       const stoppedDevice = {
         ...mockDevice,
-        id: "device-stopped",
+        id: 'device-stopped',
         status: DeviceStatus.STOPPED,
       };
 
@@ -433,18 +430,18 @@ describe("LifecycleService", () => {
       expect(result.details.expiredDevices).toBe(1);
     });
 
-    it("should handle global errors gracefully", async () => {
-      deviceRepository.find.mockRejectedValue(new Error("Database error"));
+    it('should handle global errors gracefully', async () => {
+      deviceRepository.find.mockRejectedValue(new Error('Database error'));
 
       const result = await service.performAutoCleanup();
 
       expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some((e) => e.includes("全局错误"))).toBe(true);
+      expect(result.errors.some((e) => e.includes('全局错误'))).toBe(true);
     });
   });
 
-  describe("getCleanupStatistics", () => {
-    it("should return cleanup candidates count", async () => {
+  describe('getCleanupStatistics', () => {
+    it('should return cleanup candidates count', async () => {
       deviceRepository.count
         .mockResolvedValueOnce(5) // idle
         .mockResolvedValueOnce(2) // error
@@ -460,7 +457,7 @@ describe("LifecycleService", () => {
       expect(deviceRepository.count).toHaveBeenCalledTimes(3);
     });
 
-    it("should use correct time thresholds", async () => {
+    it('should use correct time thresholds', async () => {
       deviceRepository.count.mockResolvedValue(0);
 
       await service.getCleanupStatistics();
@@ -475,8 +472,8 @@ describe("LifecycleService", () => {
     });
   });
 
-  describe("triggerManualCleanup", () => {
-    it("should trigger cleanup and return result", async () => {
+  describe('triggerManualCleanup', () => {
+    it('should trigger cleanup and return result', async () => {
       deviceRepository.find.mockResolvedValue([]);
       dockerService.listContainers.mockResolvedValue([]);
 

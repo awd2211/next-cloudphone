@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Invoice, InvoiceStatus, InvoiceType, InvoiceItem } from './entities/invoice.entity';
@@ -34,7 +29,7 @@ export class InvoicesService {
 
   constructor(
     @InjectRepository(Invoice)
-    private invoiceRepository: Repository<Invoice>,
+    private invoiceRepository: Repository<Invoice>
   ) {}
 
   /**
@@ -62,7 +57,7 @@ export class InvoicesService {
 
     const savedInvoice = await this.invoiceRepository.save(invoice);
     this.logger.log(
-      `账单已创建 - 用户: ${dto.userId}, 账单号: ${invoiceNumber}, 金额: ${savedInvoice.total}`,
+      `账单已创建 - 用户: ${dto.userId}, 账单号: ${invoiceNumber}, 金额: ${savedInvoice.total}`
     );
 
     return savedInvoice;
@@ -101,7 +96,7 @@ export class InvoicesService {
       endDate?: Date;
       limit?: number;
       offset?: number;
-    },
+    }
   ): Promise<{ invoices: Invoice[]; total: number }> {
     const queryBuilder = this.invoiceRepository
       .createQueryBuilder('invoice')
@@ -118,10 +113,10 @@ export class InvoicesService {
     }
 
     if (options?.startDate && options?.endDate) {
-      queryBuilder.andWhere(
-        'invoice.billingPeriodStart BETWEEN :startDate AND :endDate',
-        { startDate: options.startDate, endDate: options.endDate },
-      );
+      queryBuilder.andWhere('invoice.billingPeriodStart BETWEEN :startDate AND :endDate', {
+        startDate: options.startDate,
+        endDate: options.endDate,
+      });
     }
 
     queryBuilder.orderBy('invoice.createdAt', 'DESC');
@@ -176,9 +171,7 @@ export class InvoicesService {
 
     const updatedInvoice = await this.invoiceRepository.save(invoice);
 
-    this.logger.log(
-      `账单已支付 - 账单号: ${invoice.invoiceNumber}, 金额: ${invoice.total}`,
-    );
+    this.logger.log(`账单已支付 - 账单号: ${invoice.invoiceNumber}, 金额: ${invoice.total}`);
 
     return updatedInvoice;
   }
@@ -194,9 +187,7 @@ export class InvoicesService {
     }
 
     invoice.status = InvoiceStatus.CANCELLED;
-    invoice.notes = invoice.notes
-      ? `${invoice.notes}\n取消原因: ${reason}`
-      : `取消原因: ${reason}`;
+    invoice.notes = invoice.notes ? `${invoice.notes}\n取消原因: ${reason}` : `取消原因: ${reason}`;
 
     const updatedInvoice = await this.invoiceRepository.save(invoice);
 
@@ -221,7 +212,7 @@ export class InvoicesService {
     // 简化实现，实际应该查询所有活跃用户
 
     this.logger.log(
-      `月度账单生成完成 - 账期: ${lastMonth.toISOString().split('T')[0]} 至 ${lastMonthEnd.toISOString().split('T')[0]}`,
+      `月度账单生成完成 - 账期: ${lastMonth.toISOString().split('T')[0]} 至 ${lastMonthEnd.toISOString().split('T')[0]}`
     );
   }
 
@@ -241,9 +232,7 @@ export class InvoicesService {
     for (const invoice of overdueInvoices) {
       invoice.status = InvoiceStatus.OVERDUE;
       await this.invoiceRepository.save(invoice);
-      this.logger.warn(
-        `账单已逾期 - 账单号: ${invoice.invoiceNumber}, 用户: ${invoice.userId}`,
-      );
+      this.logger.warn(`账单已逾期 - 账单号: ${invoice.invoiceNumber}, 用户: ${invoice.userId}`);
     }
 
     if (overdueInvoices.length > 0) {
@@ -263,12 +252,7 @@ export class InvoicesService {
     pendingAmount: number;
     paidAmount: number;
   }> {
-    const [
-      totalInvoices,
-      pendingInvoices,
-      paidInvoices,
-      overdueInvoices,
-    ] = await Promise.all([
+    const [totalInvoices, pendingInvoices, paidInvoices, overdueInvoices] = await Promise.all([
       this.invoiceRepository.count({ where: { userId } }),
       this.invoiceRepository.count({
         where: { userId, status: InvoiceStatus.PENDING },
@@ -283,10 +267,7 @@ export class InvoicesService {
 
     const allInvoices = await this.invoiceRepository.find({ where: { userId } });
 
-    const totalAmount = allInvoices.reduce(
-      (sum, inv) => sum + Number(inv.total),
-      0,
-    );
+    const totalAmount = allInvoices.reduce((sum, inv) => sum + Number(inv.total), 0);
     const pendingAmount = allInvoices
       .filter((inv) => inv.status === InvoiceStatus.PENDING)
       .reduce((sum, inv) => sum + Number(inv.total), 0);

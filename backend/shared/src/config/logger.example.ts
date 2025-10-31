@@ -1,6 +1,6 @@
 /**
  * 日志使用示例
- * 
+ *
  * 展示如何在 NestJS 服务中使用增强的日志功能
  */
 
@@ -15,7 +15,7 @@ export class ExampleService {
   // 方式 2: 注入 Pino Logger（推荐，性能更好）
   constructor(
     @InjectPinoLogger(ExampleService.name)
-    private readonly pinoLogger: PinoLogger,
+    private readonly pinoLogger: PinoLogger
   ) {}
 
   /**
@@ -51,7 +51,7 @@ export class ExampleService {
           userAgent: 'Mozilla/5.0',
         },
       },
-      `User ${userId} performed ${action}`,
+      `User ${userId} performed ${action}`
     );
   }
 
@@ -68,7 +68,7 @@ export class ExampleService {
         },
         context: 'UserService',
       },
-      'Failed to create user',
+      'Failed to create user'
     );
   }
 
@@ -89,7 +89,7 @@ export class ExampleService {
           operation: 'someOperation',
           status: 'success',
         },
-        `Operation completed in ${duration}ms`,
+        `Operation completed in ${duration}ms`
       );
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -100,7 +100,7 @@ export class ExampleService {
           status: 'failed',
           error: error.message,
         },
-        `Operation failed after ${duration}ms`,
+        `Operation failed after ${duration}ms`
       );
     }
   }
@@ -117,7 +117,7 @@ export class ExampleService {
         currency: 'CNY',
         timestamp: new Date().toISOString(),
       },
-      `Order ${orderId} created with amount ${amount}`,
+      `Order ${orderId} created with amount ${amount}`
     );
   }
 
@@ -135,7 +135,7 @@ export class ExampleService {
           token: user.token, // 会被自动脱敏
         },
       },
-      'User logged in',
+      'User logged in'
     );
   }
 
@@ -148,9 +148,11 @@ export class ExampleService {
     if (isDebug) {
       this.pinoLogger.debug(
         {
-          data: { /* 大量调试数据 */ },
+          data: {
+            /* 大量调试数据 */
+          },
         },
-        'Detailed debug information',
+        'Detailed debug information'
       );
     }
   }
@@ -166,13 +168,13 @@ export class ExampleService {
         service: 'user-service',
         operation: 'getUserById',
       },
-      'Processing user request',
+      'Processing user request'
     );
   }
 
   private async someOperation() {
     // 模拟操作
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 }
 
@@ -186,7 +188,7 @@ import { Request } from 'express';
 export class ExampleController {
   constructor(
     @InjectPinoLogger(ExampleController.name)
-    private readonly logger: PinoLogger,
+    private readonly logger: PinoLogger
   ) {}
 
   @Get()
@@ -198,19 +200,19 @@ export class ExampleController {
         url: req.url,
         requestId: req.id, // 自动生成的请求ID
       },
-      'Handling get example request',
+      'Handling get example request'
     );
 
     try {
       const result = await this.processRequest();
-      
+
       // 成功响应日志
       this.logger.info(
         {
           status: 'success',
           resultCount: result.length,
         },
-        'Request processed successfully',
+        'Request processed successfully'
       );
 
       return result;
@@ -221,7 +223,7 @@ export class ExampleController {
           error: error.message,
           stack: error.stack,
         },
-        'Request processing failed',
+        'Request processing failed'
       );
       throw error;
     }
@@ -244,4 +246,3 @@ const appLogger = createAppLogger('my-service');
 // 使用
 appLogger.info({ event: 'app.started' }, 'Application started successfully');
 appLogger.error({ error: 'Connection failed' }, 'Database connection error');
-

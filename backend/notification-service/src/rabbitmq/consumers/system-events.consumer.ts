@@ -17,7 +17,7 @@ export class SystemEventsConsumer {
 
   constructor(
     private readonly notificationsService: NotificationsService,
-    private readonly templatesService: TemplatesService,
+    private readonly templatesService: TemplatesService
   ) {}
 
   @RabbitSubscribe({
@@ -39,20 +39,16 @@ export class SystemEventsConsumer {
           duration: event.payload.duration,
           affectedServices: event.payload.affectedServices,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       // 广播给所有在线用户
-      await this.notificationsService.broadcast(
-        rendered.title,
-        rendered.body,
-        {
-          startTime: event.payload.startTime,
-          endTime: event.payload.endTime,
-          duration: event.payload.duration,
-          affectedServices: event.payload.affectedServices,
-        },
-      );
+      await this.notificationsService.broadcast(rendered.title, rendered.body, {
+        startTime: event.payload.startTime,
+        endTime: event.payload.endTime,
+        duration: event.payload.duration,
+        affectedServices: event.payload.affectedServices,
+      });
     } catch (error) {
       this.logger.error(`处理系统维护事件失败: ${error.message}`);
       throw error;

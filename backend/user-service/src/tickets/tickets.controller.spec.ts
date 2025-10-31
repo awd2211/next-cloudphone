@@ -131,10 +131,7 @@ describe('TicketsController', () => {
       };
 
       // Act & Assert
-      await request(app.getHttpServer())
-        .post('/tickets')
-        .send(createTicketDto)
-        .expect(401);
+      await request(app.getHttpServer()).post('/tickets').send(createTicketDto).expect(401);
     });
 
     it('应该在缺少必填字段时返回 400', async () => {
@@ -189,9 +186,7 @@ describe('TicketsController', () => {
     it('应该在工单不存在时返回 404', async () => {
       // Arrange
       const ticketId = 'non-existent';
-      mockTicketsService.getTicket.mockRejectedValue(
-        new Error('工单 non-existent 未找到'),
-      );
+      mockTicketsService.getTicket.mockRejectedValue(new Error('工单 non-existent 未找到'));
       const token = createAuthToken();
 
       // Act & Assert
@@ -203,9 +198,7 @@ describe('TicketsController', () => {
 
     it('应该在未授权时返回 401', async () => {
       // Act & Assert
-      await request(app.getHttpServer())
-        .get('/tickets/ticket-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/tickets/ticket-123').expect(401);
     });
   });
 
@@ -234,18 +227,13 @@ describe('TicketsController', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.tickets).toHaveLength(2);
       expect(response.body.total).toBe(2);
-      expect(mockTicketsService.getUserTickets).toHaveBeenCalledWith(
-        userId,
-        expect.any(Object),
-      );
+      expect(mockTicketsService.getUserTickets).toHaveBeenCalledWith(userId, expect.any(Object));
     });
 
     it('应该支持按状态筛选', async () => {
       // Arrange
       const userId = 'user-123';
-      const mockTickets = [
-        createMockTicket({ userId, status: TicketStatus.OPEN }),
-      ];
+      const mockTickets = [createMockTicket({ userId, status: TicketStatus.OPEN })];
 
       mockTicketsService.getUserTickets.mockResolvedValue({
         tickets: mockTickets,
@@ -264,7 +252,7 @@ describe('TicketsController', () => {
         userId,
         expect.objectContaining({
           status: TicketStatus.OPEN,
-        }),
+        })
       );
     });
 
@@ -288,7 +276,7 @@ describe('TicketsController', () => {
         userId,
         expect.objectContaining({
           category: TicketCategory.BILLING,
-        }),
+        })
       );
     });
 
@@ -313,7 +301,7 @@ describe('TicketsController', () => {
         expect.objectContaining({
           limit: 10,
           offset: 20,
-        }),
+        })
       );
     });
 
@@ -337,7 +325,7 @@ describe('TicketsController', () => {
         userId,
         expect.objectContaining({
           priority: TicketPriority.URGENT,
-        }),
+        })
       );
     });
   });
@@ -388,7 +376,7 @@ describe('TicketsController', () => {
       expect(mockTicketsService.getAllTickets).toHaveBeenCalledWith(
         expect.objectContaining({
           assignedTo,
-        }),
+        })
       );
     });
 
@@ -402,7 +390,9 @@ describe('TicketsController', () => {
 
       // Act
       await request(app.getHttpServer())
-        .get(`/tickets?status=${TicketStatus.OPEN}&priority=${TicketPriority.HIGH}&category=${TicketCategory.TECHNICAL}`)
+        .get(
+          `/tickets?status=${TicketStatus.OPEN}&priority=${TicketPriority.HIGH}&category=${TicketCategory.TECHNICAL}`
+        )
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
@@ -412,7 +402,7 @@ describe('TicketsController', () => {
           status: TicketStatus.OPEN,
           priority: TicketPriority.HIGH,
           category: TicketCategory.TECHNICAL,
-        }),
+        })
       );
     });
 
@@ -456,10 +446,7 @@ describe('TicketsController', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.status).toBe(TicketStatus.RESOLVED);
       expect(response.body.data.resolvedAt).toBeDefined();
-      expect(mockTicketsService.updateTicket).toHaveBeenCalledWith(
-        ticketId,
-        updateDto,
-      );
+      expect(mockTicketsService.updateTicket).toHaveBeenCalledWith(ticketId, updateDto);
     });
 
     it('应该成功更新工单优先级', async () => {
@@ -569,9 +556,7 @@ describe('TicketsController', () => {
     it('应该在工单不存在时返回 404', async () => {
       // Arrange
       const ticketId = 'non-existent';
-      mockTicketsService.updateTicket.mockRejectedValue(
-        new Error('工单 non-existent 未找到'),
-      );
+      mockTicketsService.updateTicket.mockRejectedValue(new Error('工单 non-existent 未找到'));
       const token = createAuthToken(['ticket.update']);
 
       // Act & Assert
@@ -629,7 +614,7 @@ describe('TicketsController', () => {
         expect.objectContaining({
           ticketId,
           ...replyDto,
-        }),
+        })
       );
     });
 
@@ -699,9 +684,7 @@ describe('TicketsController', () => {
         type: ReplyType.USER,
       };
 
-      mockTicketsService.addReply.mockRejectedValue(
-        new Error('工单已关闭，无法回复'),
-      );
+      mockTicketsService.addReply.mockRejectedValue(new Error('工单已关闭，无法回复'));
       const token = createAuthToken();
 
       // Act & Assert
@@ -721,9 +704,7 @@ describe('TicketsController', () => {
         type: ReplyType.USER,
       };
 
-      mockTicketsService.addReply.mockRejectedValue(
-        new Error('工单 non-existent 未找到'),
-      );
+      mockTicketsService.addReply.mockRejectedValue(new Error('工单 non-existent 未找到'));
       const token = createAuthToken();
 
       // Act & Assert
@@ -756,10 +737,7 @@ describe('TicketsController', () => {
       // Assert
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveLength(2);
-      expect(mockTicketsService.getTicketReplies).toHaveBeenCalledWith(
-        ticketId,
-        false,
-      );
+      expect(mockTicketsService.getTicketReplies).toHaveBeenCalledWith(ticketId, false);
     });
 
     it('应该允许管理员查看内部备注', async () => {
@@ -782,10 +760,7 @@ describe('TicketsController', () => {
 
       // Assert
       expect(response.body.data).toHaveLength(3);
-      expect(mockTicketsService.getTicketReplies).toHaveBeenCalledWith(
-        ticketId,
-        true,
-      );
+      expect(mockTicketsService.getTicketReplies).toHaveBeenCalledWith(ticketId, true);
     });
 
     it('应该返回按时间排序的回复列表', async () => {
@@ -861,7 +836,7 @@ describe('TicketsController', () => {
       expect(mockTicketsService.rateTicket).toHaveBeenCalledWith(
         ticketId,
         5,
-        '客服响应及时，问题解决得很好！',
+        '客服响应及时，问题解决得很好！'
       );
     });
 
@@ -899,9 +874,7 @@ describe('TicketsController', () => {
         rating: 6, // 超出 1-5 范围
       };
 
-      mockTicketsService.rateTicket.mockRejectedValue(
-        new Error('评分必须在 1-5 之间'),
-      );
+      mockTicketsService.rateTicket.mockRejectedValue(new Error('评分必须在 1-5 之间'));
       const token = createAuthToken();
 
       // Act & Assert
@@ -919,9 +892,7 @@ describe('TicketsController', () => {
         rating: 5,
       };
 
-      mockTicketsService.rateTicket.mockRejectedValue(
-        new Error('只能对已关闭的工单进行评分'),
-      );
+      mockTicketsService.rateTicket.mockRejectedValue(new Error('只能对已关闭的工单进行评分'));
       const token = createAuthToken();
 
       // Act & Assert
@@ -939,9 +910,7 @@ describe('TicketsController', () => {
         rating: 5,
       };
 
-      mockTicketsService.rateTicket.mockRejectedValue(
-        new Error('工单 non-existent 未找到'),
-      );
+      mockTicketsService.rateTicket.mockRejectedValue(new Error('工单 non-existent 未找到'));
       const token = createAuthToken();
 
       // Act & Assert
@@ -1059,9 +1028,7 @@ describe('TicketsController', () => {
         category: TicketCategory.OTHER,
       };
 
-      mockTicketsService.createTicket.mockResolvedValue(
-        createMockTicket(xssDto),
-      );
+      mockTicketsService.createTicket.mockResolvedValue(createMockTicket(xssDto));
       const token = createAuthToken();
 
       // Act
@@ -1085,9 +1052,7 @@ describe('TicketsController', () => {
         type: ReplyType.USER,
       };
 
-      mockTicketsService.addReply.mockResolvedValue(
-        createMockTicketReply(xssReply),
-      );
+      mockTicketsService.addReply.mockResolvedValue(createMockTicketReply(xssReply));
       const token = createAuthToken();
 
       // Act
@@ -1131,9 +1096,7 @@ describe('TicketsController', () => {
         category: TicketCategory.OTHER,
       };
 
-      mockTicketsService.createTicket.mockResolvedValue(
-        createMockTicket(createTicketDto),
-      );
+      mockTicketsService.createTicket.mockResolvedValue(createMockTicket(createTicketDto));
       const token = createAuthToken();
 
       // Act
@@ -1154,9 +1117,7 @@ describe('TicketsController', () => {
         tags: ['bug#123', 'v2.0-beta', 'user@email.com', '中文标签'],
       };
 
-      mockTicketsService.updateTicket.mockResolvedValue(
-        createMockTicket(updateDto),
-      );
+      mockTicketsService.updateTicket.mockResolvedValue(createMockTicket(updateDto));
       const token = createAuthToken(['ticket.update']);
 
       // Act
@@ -1167,10 +1128,7 @@ describe('TicketsController', () => {
         .expect(200);
 
       // Assert
-      expect(mockTicketsService.updateTicket).toHaveBeenCalledWith(
-        ticketId,
-        updateDto,
-      );
+      expect(mockTicketsService.updateTicket).toHaveBeenCalledWith(ticketId, updateDto);
     });
 
     it('应该正确处理无效的枚举值', async () => {

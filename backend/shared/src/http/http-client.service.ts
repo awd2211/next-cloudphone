@@ -20,7 +20,7 @@ export class HttpClientService {
 
   constructor(
     private httpService: HttpService,
-    private configService: ConfigService,
+    private configService: ConfigService
   ) {}
 
   /**
@@ -29,7 +29,7 @@ export class HttpClientService {
   async get<T = any>(
     url: string,
     config?: AxiosRequestConfig,
-    options?: HttpClientOptions,
+    options?: HttpClientOptions
   ): Promise<T> {
     this.logger.debug(`GET ${url}`);
 
@@ -47,7 +47,7 @@ export class HttpClientService {
       catchError((error) => {
         this.logger.error(`GET ${url} failed: ${error.message}`);
         return throwError(() => error);
-      }),
+      })
     );
 
     try {
@@ -65,7 +65,7 @@ export class HttpClientService {
     url: string,
     data?: any,
     config?: AxiosRequestConfig,
-    options?: HttpClientOptions,
+    options?: HttpClientOptions
   ): Promise<T> {
     this.logger.debug(`POST ${url}`);
 
@@ -87,7 +87,7 @@ export class HttpClientService {
       catchError((error) => {
         this.logger.error(`POST ${url} failed: ${error.message}`);
         return throwError(() => error);
-      }),
+      })
     );
 
     try {
@@ -105,7 +105,7 @@ export class HttpClientService {
     url: string,
     data?: any,
     config?: AxiosRequestConfig,
-    options?: HttpClientOptions,
+    options?: HttpClientOptions
   ): Promise<T> {
     this.logger.debug(`PUT ${url}`);
 
@@ -125,7 +125,7 @@ export class HttpClientService {
       catchError((error) => {
         this.logger.error(`PUT ${url} failed: ${error.message}`);
         return throwError(() => error);
-      }),
+      })
     );
 
     try {
@@ -142,7 +142,7 @@ export class HttpClientService {
   async delete<T = any>(
     url: string,
     config?: AxiosRequestConfig,
-    options?: HttpClientOptions,
+    options?: HttpClientOptions
   ): Promise<T> {
     this.logger.debug(`DELETE ${url}`);
 
@@ -162,7 +162,7 @@ export class HttpClientService {
       catchError((error) => {
         this.logger.error(`DELETE ${url} failed: ${error.message}`);
         return throwError(() => error);
-      }),
+      })
     );
 
     try {
@@ -179,7 +179,7 @@ export class HttpClientService {
   async requestWithCircuitBreaker<T = any>(
     serviceKey: string,
     requestFn: () => Promise<T>,
-    breakerOptions?: CircuitBreaker.Options,
+    breakerOptions?: CircuitBreaker.Options
   ): Promise<T> {
     let breaker = this.circuitBreakers.get(serviceKey);
 

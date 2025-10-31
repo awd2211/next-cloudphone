@@ -33,13 +33,10 @@ export const envValidationSchema = Joi.object({
   REDIS_CACHE_DB: Joi.number().min(0).max(15).default(1),
 
   // ===== JWT 配置 =====
-  JWT_SECRET: Joi.string()
-    .min(32)
-    .required()
-    .messages({
-      'string.min': 'JWT_SECRET must be at least 32 characters for security',
-      'any.required': 'JWT_SECRET is required',
-    }),
+  JWT_SECRET: Joi.string().min(32).required().messages({
+    'string.min': 'JWT_SECRET must be at least 32 characters for security',
+    'any.required': 'JWT_SECRET is required',
+  }),
   JWT_EXPIRES_IN: Joi.string().default('24h'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 
@@ -163,9 +160,7 @@ export const envValidationSchema = Joi.object({
   JAEGER_SAMPLER_PARAM: Joi.number().min(0).max(1).default(1),
 
   // ===== 日志配置 =====
-  LOG_LEVEL: Joi.string()
-    .valid('debug', 'info', 'warn', 'error', 'fatal')
-    .default('info'),
+  LOG_LEVEL: Joi.string().valid('debug', 'info', 'warn', 'error', 'fatal').default('info'),
   LOG_FORMAT: Joi.string().valid('json', 'pretty').default('json'),
   LOG_FILE_ENABLED: Joi.boolean().default(false),
   LOG_FILE_PATH: Joi.string().optional(),

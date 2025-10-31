@@ -15,10 +15,7 @@ const preloadedRoutes = new Set<string>();
  * @param routeName 路由名称（用于去重）
  * @returns Promise<void>
  */
-export const preloadRoute = async (
-  importFn: PreloadFn,
-  routeName: string
-): Promise<void> => {
+export const preloadRoute = async (importFn: PreloadFn, routeName: string): Promise<void> => {
   // 已经预加载过，跳过
   if (preloadedRoutes.has(routeName)) {
     console.log(`[RoutePreloader] Route "${routeName}" already preloaded, skipping`);
@@ -69,9 +66,7 @@ export const preloadOnHover = (importFn: PreloadFn, routeName: string) => {
  *   { importFn: () => import('@/pages/Device/List'), routeName: 'DeviceList' },
  * ]);
  */
-export const preloadOnIdle = (
-  routes: Array<{ importFn: PreloadFn; routeName: string }>
-): void => {
+export const preloadOnIdle = (routes: Array<{ importFn: PreloadFn; routeName: string }>): void => {
   if (!('requestIdleCallback' in window)) {
     // 浏览器不支持 requestIdleCallback，降级为 setTimeout
     console.warn('[RoutePreloader] requestIdleCallback not supported, using setTimeout');

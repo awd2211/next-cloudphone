@@ -95,10 +95,7 @@ export class TemplatesController {
    * 🔒 需要认证（任何登录用户都可以查看）
    */
   @Get('by-code/:code')
-  findByCode(
-    @Param('code') code: string,
-    @Query('language') language?: string,
-  ) {
+  findByCode(@Param('code') code: string, @Query('language') language?: string) {
     return this.templatesService.findByCode(code, language);
   }
 
@@ -109,11 +106,7 @@ export class TemplatesController {
    */
   @Post('render')
   async render(@Body() renderDto: RenderTemplateDto) {
-    return this.templatesService.render(
-      renderDto.templateCode,
-      renderDto.data,
-      renderDto.language,
-    );
+    return this.templatesService.render(renderDto.templateCode, renderDto.data, renderDto.language);
   }
 
   /**

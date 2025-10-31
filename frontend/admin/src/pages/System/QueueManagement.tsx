@@ -17,7 +17,7 @@ import {
   Form,
   Input,
   Select,
-  Tabs
+  Tabs,
 } from 'antd';
 import {
   DatabaseOutlined,
@@ -28,7 +28,7 @@ import {
   RetweetOutlined,
   EyeOutlined,
   ClearOutlined,
-  SendOutlined
+  SendOutlined,
 } from '@ant-design/icons';
 import {
   getAllQueuesStatus,
@@ -42,7 +42,7 @@ import {
   cleanQueue,
   testSendEmail,
   testSendSms,
-  testStartDevice
+  testStartDevice,
 } from '@/services/queue';
 import type { QueueStatus, QueueJob, QueueJobDetail, QueueSummary } from '@/types';
 import dayjs from 'dayjs';
@@ -54,7 +54,9 @@ const QueueManagement = () => {
   const [queues, setQueues] = useState<QueueStatus[]>([]);
   const [selectedQueue, setSelectedQueue] = useState<string>('');
   const [jobs, setJobs] = useState<QueueJob[]>([]);
-  const [jobStatus, setJobStatus] = useState<'waiting' | 'active' | 'completed' | 'failed' | 'delayed'>('waiting');
+  const [jobStatus, setJobStatus] = useState<
+    'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
+  >('waiting');
   const [loading, setLoading] = useState(false);
   const [jobDetailVisible, setJobDetailVisible] = useState(false);
   const [jobDetail, setJobDetail] = useState<QueueJobDetail | null>(null);
@@ -221,9 +223,7 @@ const QueueManagement = () => {
       dataIndex: 'name',
       key: 'name',
       width: 200,
-      render: (name: string) => (
-        <Tag color="blue">{name}</Tag>
-      )
+      render: (name: string) => <Tag color="blue">{name}</Tag>,
     },
     {
       title: '状态',
@@ -231,45 +231,43 @@ const QueueManagement = () => {
       key: 'isPaused',
       width: 100,
       render: (isPaused: boolean) => (
-        <Tag color={isPaused ? 'red' : 'green'}>
-          {isPaused ? '已暂停' : '运行中'}
-        </Tag>
-      )
+        <Tag color={isPaused ? 'red' : 'green'}>{isPaused ? '已暂停' : '运行中'}</Tag>
+      ),
     },
     {
       title: '等待',
       dataIndex: ['counts', 'waiting'],
       key: 'waiting',
       width: 80,
-      render: (count: number) => <Tag color="orange">{count}</Tag>
+      render: (count: number) => <Tag color="orange">{count}</Tag>,
     },
     {
       title: '处理中',
       dataIndex: ['counts', 'active'],
       key: 'active',
       width: 80,
-      render: (count: number) => <Tag color="blue">{count}</Tag>
+      render: (count: number) => <Tag color="blue">{count}</Tag>,
     },
     {
       title: '已完成',
       dataIndex: ['counts', 'completed'],
       key: 'completed',
       width: 80,
-      render: (count: number) => <Tag color="green">{count}</Tag>
+      render: (count: number) => <Tag color="green">{count}</Tag>,
     },
     {
       title: '失败',
       dataIndex: ['counts', 'failed'],
       key: 'failed',
       width: 80,
-      render: (count: number) => <Tag color="red">{count}</Tag>
+      render: (count: number) => <Tag color="red">{count}</Tag>,
     },
     {
       title: '延迟',
       dataIndex: ['counts', 'delayed'],
       key: 'delayed',
       width: 80,
-      render: (count: number) => <Tag>{count}</Tag>
+      render: (count: number) => <Tag>{count}</Tag>,
     },
     {
       title: '操作',
@@ -319,8 +317,8 @@ const QueueManagement = () => {
             查看任务
           </Button>
         </Space>
-      )
-    }
+      ),
+    },
   ];
 
   // 任务表格列
@@ -330,42 +328,40 @@ const QueueManagement = () => {
       dataIndex: 'id',
       key: 'id',
       width: 100,
-      render: (id: string) => id.substring(0, 8)
+      render: (id: string) => id.substring(0, 8),
     },
     {
       title: '任务名称',
       dataIndex: 'name',
       key: 'name',
-      width: 150
+      width: 150,
     },
     {
       title: '进度',
       dataIndex: 'progress',
       key: 'progress',
       width: 150,
-      render: (progress: number) => (
-        <Progress percent={progress} size="small" />
-      )
+      render: (progress: number) => <Progress percent={progress} size="small" />,
     },
     {
       title: '尝试次数',
       dataIndex: 'attemptsMade',
       key: 'attemptsMade',
-      width: 100
+      width: 100,
     },
     {
       title: '创建时间',
       dataIndex: 'timestamp',
       key: 'timestamp',
       width: 160,
-      render: (timestamp: number) => dayjs(timestamp).format('MM-DD HH:mm:ss')
+      render: (timestamp: number) => dayjs(timestamp).format('MM-DD HH:mm:ss'),
     },
     {
       title: '失败原因',
       dataIndex: 'failedReason',
       key: 'failedReason',
       width: 200,
-      ellipsis: true
+      ellipsis: true,
     },
     {
       title: '操作',
@@ -402,8 +398,8 @@ const QueueManagement = () => {
             </Button>
           </Popconfirm>
         </Space>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -483,13 +479,11 @@ const QueueManagement = () => {
 
             <TabPane tab="任务列表" key="jobs" disabled={!selectedQueue}>
               <Space style={{ marginBottom: 16 }} wrap>
-                <span>当前队列: <Tag color="blue">{selectedQueue}</Tag></span>
+                <span>
+                  当前队列: <Tag color="blue">{selectedQueue}</Tag>
+                </span>
 
-                <Select
-                  value={jobStatus}
-                  onChange={setJobStatus}
-                  style={{ width: 120 }}
-                >
+                <Select value={jobStatus} onChange={setJobStatus} style={{ width: 120 }}>
                   <Select.Option value="waiting">等待中</Select.Option>
                   <Select.Option value="active">处理中</Select.Option>
                   <Select.Option value="completed">已完成</Select.Option>
@@ -502,18 +496,13 @@ const QueueManagement = () => {
                 </Button>
 
                 {jobStatus === 'completed' && (
-                  <Button
-                    onClick={() => handleCleanQueue(selectedQueue, 'completed')}
-                  >
+                  <Button onClick={() => handleCleanQueue(selectedQueue, 'completed')}>
                     清理已完成
                   </Button>
                 )}
 
                 {jobStatus === 'failed' && (
-                  <Button
-                    danger
-                    onClick={() => handleCleanQueue(selectedQueue, 'failed')}
-                  >
+                  <Button danger onClick={() => handleCleanQueue(selectedQueue, 'failed')}>
                     清理失败任务
                   </Button>
                 )}

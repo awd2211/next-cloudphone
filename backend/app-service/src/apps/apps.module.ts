@@ -21,11 +21,11 @@ import { SagaModule } from '@cloudphone/shared';
     HttpModule,
     MinioModule,
     ApkModule,
-    SagaModule,  // ✅ AppsService 依赖 SagaOrchestratorService
+    SagaModule, // ✅ AppsService 依赖 SagaOrchestratorService
     // EventBusModule 是全局模块，已在 AppModule 中导入，无需重复导入
   ],
   controllers: [AppsController],
-  providers: [AppsService],  // ✅ AppsConsumer 已移至 AppRabbitMQModule
+  providers: [AppsService], // ✅ AppsConsumer 已移至 AppRabbitMQModule
   exports: [AppsService],
 })
 export class AppsModule {}

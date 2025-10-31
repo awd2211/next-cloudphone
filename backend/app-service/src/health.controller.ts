@@ -49,29 +49,28 @@ export class HealthController {
 
   constructor(
     @InjectDataSource() private dataSource: DataSource,
-    private minioService: MinioService,
+    private minioService: MinioService
   ) {}
 
   @Get()
   @Public()
-  @ApiOperation({ summary: '健康检查', description: '检查服务是否正常运行，包括依赖项状态和系统信息' })
+  @ApiOperation({
+    summary: '健康检查',
+    description: '检查服务是否正常运行，包括依赖项状态和系统信息',
+  })
   @ApiResponse({ status: 200, description: '服务正常' })
   async check(): Promise<HealthCheckResult> {
     const dependencies: HealthCheckResult['dependencies'] = {};
 
     // Check all critical dependencies in parallel
-    const [dbCheck, minioCheck] = await Promise.all([
-      this.checkDatabase(),
-      this.checkMinio(),
-    ]);
+    const [dbCheck, minioCheck] = await Promise.all([this.checkDatabase(), this.checkMinio()]);
 
     dependencies.database = dbCheck;
     dependencies.minio = minioCheck;
 
     // Determine overall status
     const hasUnhealthyDependency =
-      dbCheck.status === 'unhealthy' ||
-      minioCheck.status === 'unhealthy';
+      dbCheck.status === 'unhealthy' || minioCheck.status === 'unhealthy';
 
     const overallStatus = hasUnhealthyDependency ? 'degraded' : 'ok';
 
@@ -218,15 +217,10 @@ export class HealthController {
   async readiness() {
     try {
       // Check critical dependencies for readiness
-      const [dbCheck, minioCheck] = await Promise.all([
-        this.checkDatabase(),
-        this.checkMinio(),
-      ]);
+      const [dbCheck, minioCheck] = await Promise.all([this.checkDatabase(), this.checkMinio()]);
 
       // Service is ready only if all critical dependencies are healthy
-      const isReady =
-        dbCheck.status === 'healthy' &&
-        minioCheck.status === 'healthy';
+      const isReady = dbCheck.status === 'healthy' && minioCheck.status === 'healthy';
 
       if (!isReady) {
         return {

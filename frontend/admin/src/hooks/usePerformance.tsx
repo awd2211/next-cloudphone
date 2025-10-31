@@ -102,7 +102,9 @@ export function usePerformance(options: UsePerformanceOptions = {}): Performance
     });
 
     if (logToConsole) {
-      console.log(`[Performance] ${componentName} render #${renderCountRef.current}: ${renderTime.toFixed(2)}ms`);
+      console.log(
+        `[Performance] ${componentName} render #${renderCountRef.current}: ${renderTime.toFixed(2)}ms`
+      );
 
       // 警告慢渲染
       if (renderTime > 16) {
@@ -172,7 +174,9 @@ export function useWebVitals() {
       clsObserver.observe({ type: 'layout-shift', buffered: true });
 
       // TTFB
-      const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+      const navigationEntries = performance.getEntriesByType(
+        'navigation'
+      ) as PerformanceNavigationTiming[];
       if (navigationEntries.length > 0) {
         const ttfb = navigationEntries[0].responseStart;
         setVitals((prev) => ({ ...prev, ttfb }));
@@ -287,7 +291,11 @@ export function useMemoryMonitor(interval = 5000) {
  * 渲染性能分析器组件
  * 显示性能指标
  */
-export function PerformanceMonitor({ position = 'bottom-right' }: { position?: 'bottom-right' | 'top-right' | 'bottom-left' | 'top-left' }) {
+export function PerformanceMonitor({
+  position = 'bottom-right',
+}: {
+  position?: 'bottom-right' | 'top-right' | 'bottom-left' | 'top-left';
+}) {
   const vitals = useWebVitals();
   const memoryInfo = useMemoryMonitor();
   const [visible, setVisible] = useState(false);
@@ -348,24 +356,24 @@ export function PerformanceMonitor({ position = 'bottom-right' }: { position?: '
           <div style={{ marginBottom: 12 }}>
             <h4 style={{ margin: '8px 0 4px 0', color: '#fff' }}>Web Vitals</h4>
             <div>FCP: {vitals.fcp.toFixed(2)}ms</div>
-            <div>LCP: {vitals.lcp.toFixed(2)}ms {vitals.lcp > 2500 && '⚠️'}</div>
-            <div>FID: {vitals.fid.toFixed(2)}ms {vitals.fid > 100 && '⚠️'}</div>
-            <div>CLS: {vitals.cls.toFixed(4)} {vitals.cls > 0.1 && '⚠️'}</div>
+            <div>
+              LCP: {vitals.lcp.toFixed(2)}ms {vitals.lcp > 2500 && '⚠️'}
+            </div>
+            <div>
+              FID: {vitals.fid.toFixed(2)}ms {vitals.fid > 100 && '⚠️'}
+            </div>
+            <div>
+              CLS: {vitals.cls.toFixed(4)} {vitals.cls > 0.1 && '⚠️'}
+            </div>
             <div>TTFB: {vitals.ttfb.toFixed(2)}ms</div>
           </div>
 
           {memoryInfo && (
             <div>
               <h4 style={{ margin: '8px 0 4px 0', color: '#fff' }}>内存使用</h4>
-              <div>
-                已用: {(memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2)}MB
-              </div>
-              <div>
-                总计: {(memoryInfo.totalJSHeapSize / 1024 / 1024).toFixed(2)}MB
-              </div>
-              <div>
-                限制: {(memoryInfo.jsHeapSizeLimit / 1024 / 1024).toFixed(2)}MB
-              </div>
+              <div>已用: {(memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2)}MB</div>
+              <div>总计: {(memoryInfo.totalJSHeapSize / 1024 / 1024).toFixed(2)}MB</div>
+              <div>限制: {(memoryInfo.jsHeapSizeLimit / 1024 / 1024).toFixed(2)}MB</div>
               <div>
                 使用率: {memoryInfo.usagePercentage.toFixed(2)}%{' '}
                 {memoryInfo.usagePercentage > 80 && '⚠️'}

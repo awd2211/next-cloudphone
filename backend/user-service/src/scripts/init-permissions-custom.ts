@@ -2,7 +2,11 @@ import { createConnection, Connection } from 'typeorm';
 import { Permission } from '../entities/permission.entity';
 import { Role } from '../entities/role.entity';
 import { DataScope, ScopeType } from '../entities/data-scope.entity';
-import { FieldPermission, FieldAccessLevel, OperationType } from '../entities/field-permission.entity';
+import {
+  FieldPermission,
+  FieldAccessLevel,
+  OperationType,
+} from '../entities/field-permission.entity';
 import { User } from '../entities/user.entity';
 import { DataScopeType } from '../entities/permission.entity';
 import * as bcrypt from 'bcryptjs';
@@ -279,77 +283,159 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 
   platform_admin: [
     // 用户管理
-    'user:create', 'user:read', 'user:read_sensitive', 'user:update', 'user:delete',
-    'user:ban', 'user:reset_password', 'user:export',
+    'user:create',
+    'user:read',
+    'user:read_sensitive',
+    'user:update',
+    'user:delete',
+    'user:ban',
+    'user:reset_password',
+    'user:export',
     // 设备管理
-    'device:create', 'device:read', 'device:update', 'device:delete', 'device:control',
-    'device:console', 'device:export',
+    'device:create',
+    'device:read',
+    'device:update',
+    'device:delete',
+    'device:control',
+    'device:console',
+    'device:export',
     // 应用管理
-    'app:create', 'app:read', 'app:update', 'app:delete', 'app:install',
-    'app:uninstall', 'app:export',
+    'app:create',
+    'app:read',
+    'app:update',
+    'app:delete',
+    'app:install',
+    'app:uninstall',
+    'app:export',
     // 订单管理
-    'order:read', 'order:update', 'order:cancel', 'order:export',
+    'order:read',
+    'order:update',
+    'order:cancel',
+    'order:export',
     // 账单管理
-    'billing:read', 'billing:read_all', 'billing:export',
+    'billing:read',
+    'billing:read_all',
+    'billing:export',
     // 支付管理
-    'payment:read', 'payment:refund', 'payment:export',
+    'payment:read',
+    'payment:refund',
+    'payment:export',
     // 套餐管理
-    'plan:create', 'plan:read', 'plan:update', 'plan:delete', 'plan:set_price',
+    'plan:create',
+    'plan:read',
+    'plan:update',
+    'plan:delete',
+    'plan:set_price',
     // 工单管理
-    'ticket:read', 'ticket:update', 'ticket:assign', 'ticket:close', 'ticket:export',
+    'ticket:read',
+    'ticket:update',
+    'ticket:assign',
+    'ticket:close',
+    'ticket:export',
     // 代理商管理
-    'agent:create', 'agent:read', 'agent:update', 'agent:delete', 'agent:set_pricing',
+    'agent:create',
+    'agent:read',
+    'agent:update',
+    'agent:delete',
+    'agent:set_pricing',
     // 分润管理
-    'commission:read_all', 'commission:approve_withdraw', 'commission:export',
+    'commission:read_all',
+    'commission:approve_withdraw',
+    'commission:export',
     // 数据分析
-    'analytics:read_basic', 'analytics:read_advanced', 'analytics:read_financial',
+    'analytics:read_basic',
+    'analytics:read_advanced',
+    'analytics:read_financial',
     'analytics:export',
     // 系统管理
-    'system:settings_read', 'system:settings_update', 'system:node_manage', 'system:monitor',
+    'system:settings_read',
+    'system:settings_update',
+    'system:node_manage',
+    'system:monitor',
     // 角色权限
-    'role:create', 'role:read', 'role:update', 'role:delete', 'role:assign',
-    'permission:read', 'permission:dataScope:list', 'permission:fieldPermission:list',
+    'role:create',
+    'role:read',
+    'role:update',
+    'role:delete',
+    'role:assign',
+    'permission:read',
+    'permission:dataScope:list',
+    'permission:fieldPermission:list',
     // 审计日志
-    'audit_log:read', 'audit_log:export',
+    'audit_log:read',
+    'audit_log:export',
   ],
 
   finance_manager: [
     // 查看用户（用于对账）
-    'user:read', 'user:read_sensitive',
+    'user:read',
+    'user:read_sensitive',
     // 订单管理
-    'order:read', 'order:export',
+    'order:read',
+    'order:export',
     // 账单管理（核心）
-    'billing:read', 'billing:read_all', 'billing:update', 'billing:export',
+    'billing:read',
+    'billing:read_all',
+    'billing:update',
+    'billing:export',
     // 支付管理（核心）
-    'payment:read', 'payment:refund', 'payment:approve_refund', 'payment:export',
+    'payment:read',
+    'payment:refund',
+    'payment:approve_refund',
+    'payment:export',
     // 分润管理（核心）
-    'commission:read_all', 'commission:approve_withdraw', 'commission:export',
+    'commission:read_all',
+    'commission:approve_withdraw',
+    'commission:export',
     // 财务数据分析
-    'analytics:read_financial', 'analytics:export',
+    'analytics:read_financial',
+    'analytics:export',
     // 审计日志
-    'audit_log:read', 'audit_log:export',
+    'audit_log:read',
+    'audit_log:export',
   ],
 
   operations_manager: [
     // 设备管理（核心）
-    'device:read', 'device:update', 'device:control', 'device:console', 'device:export',
+    'device:read',
+    'device:update',
+    'device:control',
+    'device:console',
+    'device:export',
     // 应用管理
-    'app:read', 'app:update', 'app:install', 'app:uninstall',
+    'app:read',
+    'app:update',
+    'app:install',
+    'app:uninstall',
     // 系统管理（核心）
-    'system:settings_read', 'system:settings_update', 'system:node_manage', 'system:monitor',
+    'system:settings_read',
+    'system:settings_update',
+    'system:node_manage',
+    'system:monitor',
     // 数据分析
-    'analytics:read_basic', 'analytics:read_advanced',
+    'analytics:read_basic',
+    'analytics:read_advanced',
     // 审计日志
-    'audit_log:read', 'audit_log:export',
+    'audit_log:read',
+    'audit_log:export',
   ],
 
   customer_service: [
     // 用户管理（查看+操作）
-    'user:read', 'user:update', 'user:ban', 'user:reset_password',
+    'user:read',
+    'user:update',
+    'user:ban',
+    'user:reset_password',
     // 设备管理（查看+操作）
-    'device:read', 'device:update', 'device:control',
+    'device:read',
+    'device:update',
+    'device:control',
     // 工单管理（核心）
-    'ticket:create', 'ticket:read', 'ticket:update', 'ticket:assign', 'ticket:close',
+    'ticket:create',
+    'ticket:read',
+    'ticket:update',
+    'ticket:assign',
+    'ticket:close',
     // 订单查看
     'order:read',
     // 账单查看
@@ -360,28 +446,37 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 
   data_analyst: [
     // 查看用户数据
-    'user:read', 'user:export',
+    'user:read',
+    'user:export',
     // 查看设备数据
-    'device:read', 'device:export',
+    'device:read',
+    'device:export',
     // 查看订单数据
-    'order:read', 'order:export',
+    'order:read',
+    'order:export',
     // 查看账单数据
-    'billing:read', 'billing:export',
+    'billing:read',
+    'billing:export',
     // 数据分析（核心）
-    'analytics:read_basic', 'analytics:read_advanced', 'analytics:read_financial',
+    'analytics:read_basic',
+    'analytics:read_advanced',
+    'analytics:read_financial',
     'analytics:export',
   ],
 
   agent: [
     // 客户管理（核心）
-    'agent_customer:create', 'agent_customer:read', 'agent_customer:update',
+    'agent_customer:create',
+    'agent_customer:read',
+    'agent_customer:update',
     'agent_customer:assign_resource',
     // 查看客户设备
     'device:read',
     // 查看客户订单
     'order:read',
     // 分润管理（核心）
-    'commission:read', 'commission:withdraw',
+    'commission:read',
+    'commission:withdraw',
     // 套餐查看（用于销售）
     'plan:read',
     // 查看自己的数据分析
@@ -390,52 +485,85 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 
   developer: [
     // API 密钥管理（核心）
-    'api_key:create', 'api_key:read', 'api_key:delete', 'api_key:rotate',
+    'api_key:create',
+    'api_key:read',
+    'api_key:delete',
+    'api_key:rotate',
     // API 配额查看
     'api_quota:read',
     // API 日志
-    'api_log:read', 'api_log:export',
+    'api_log:read',
+    'api_log:export',
     // Webhook 管理（核心）
-    'webhook:create', 'webhook:read', 'webhook:update', 'webhook:delete', 'webhook:test',
+    'webhook:create',
+    'webhook:read',
+    'webhook:update',
+    'webhook:delete',
+    'webhook:test',
     // 设备管理（通过API）
-    'device:create', 'device:read', 'device:update', 'device:delete', 'device:control',
+    'device:create',
+    'device:read',
+    'device:update',
+    'device:delete',
+    'device:control',
     // 应用管理
-    'app:read', 'app:install', 'app:uninstall',
+    'app:read',
+    'app:install',
+    'app:uninstall',
   ],
 
   enterprise_user: [
     // 设备管理
-    'device:create', 'device:read', 'device:update', 'device:delete', 'device:control',
+    'device:create',
+    'device:read',
+    'device:update',
+    'device:delete',
+    'device:control',
     'device:console',
     // 应用管理
-    'app:read', 'app:install', 'app:uninstall',
+    'app:read',
+    'app:install',
+    'app:uninstall',
     // 订单管理
-    'order:create', 'order:read', 'order:cancel',
+    'order:create',
+    'order:read',
+    'order:cancel',
     // 账单查看
     'billing:read',
     // 支付
-    'payment:create', 'payment:read',
+    'payment:create',
+    'payment:read',
     // 套餐查看
     'plan:read',
     // 工单
-    'ticket:create', 'ticket:read',
+    'ticket:create',
+    'ticket:read',
   ],
 
   individual_user: [
     // 设备管理（限制数量）
-    'device:create', 'device:read', 'device:update', 'device:control', 'device:console',
+    'device:create',
+    'device:read',
+    'device:update',
+    'device:control',
+    'device:console',
     // 应用管理
-    'app:read', 'app:install', 'app:uninstall',
+    'app:read',
+    'app:install',
+    'app:uninstall',
     // 订单管理
-    'order:create', 'order:read',
+    'order:create',
+    'order:read',
     // 账单查看
     'billing:read',
     // 支付
-    'payment:create', 'payment:read',
+    'payment:create',
+    'payment:read',
     // 套餐查看
     'plan:read',
     // 工单
-    'ticket:create', 'ticket:read',
+    'ticket:create',
+    'ticket:read',
   ],
 };
 
@@ -483,7 +611,7 @@ async function initPermissions(connection: Connection): Promise<Map<string, Perm
  */
 async function initRoles(
   connection: Connection,
-  permissionMap: Map<string, Permission>,
+  permissionMap: Map<string, Permission>
 ): Promise<Map<string, Role>> {
   const roleRepo = connection.getRepository(Role);
   const roleMap = new Map<string, Role>();
@@ -566,13 +694,19 @@ async function initDataScopes(connection: Connection, roleMap: Map<string, Role>
 
     // Agent - 本人数据（只能看自己的客户）
     { role: 'agent', resourceType: 'agent_customer', scopeType: ScopeType.SELF },
-    { role: 'agent', resourceType: 'device', scopeType: ScopeType.CUSTOM,
+    {
+      role: 'agent',
+      resourceType: 'device',
+      scopeType: ScopeType.CUSTOM,
       filter: { agentId: '$userId' }, // 自定义过滤器，只看自己客户的设备
-      description: '代理商只能查看自己客户的设备'
+      description: '代理商只能查看自己客户的设备',
     },
-    { role: 'agent', resourceType: 'order', scopeType: ScopeType.CUSTOM,
+    {
+      role: 'agent',
+      resourceType: 'order',
+      scopeType: ScopeType.CUSTOM,
       filter: { agentId: '$userId' },
-      description: '代理商只能查看自己客户的订单'
+      description: '代理商只能查看自己客户的订单',
     },
     { role: 'agent', resourceType: 'commission', scopeType: ScopeType.SELF },
 
@@ -636,7 +770,7 @@ interface FieldPermConfig {
  */
 async function initFieldPermissions(
   connection: Connection,
-  roleMap: Map<string, Role>,
+  roleMap: Map<string, Role>
 ): Promise<void> {
   const fieldPermRepo = connection.getRepository(FieldPermission);
 
@@ -683,7 +817,7 @@ async function initFieldPermissions(
       hiddenFields: ['password', 'salt', 'twoFactorSecret'],
       fieldTransforms: {
         phone: { type: 'mask', pattern: '***-****-{4}' }, // ***-****-5678
-        email: { type: 'mask', pattern: '{3}***@***' },   // use***@***
+        email: { type: 'mask', pattern: '{3}***@***' }, // use***@***
         idCard: { type: 'mask', pattern: '{6}********{4}' }, // 110101********1234
       },
       description: '客服查看用户（敏感信息脱敏）',
@@ -696,10 +830,10 @@ async function initFieldPermissions(
       operation: OperationType.VIEW,
       hiddenFields: ['password', 'salt', 'twoFactorSecret'],
       fieldTransforms: {
-        phone: { type: 'hash' },     // ***HASHED***
-        email: { type: 'hash' },     // ***HASHED***
-        idCard: { type: 'hash' },    // ***HASHED***
-        realName: { type: 'hash' },  // ***HASHED***
+        phone: { type: 'hash' }, // ***HASHED***
+        email: { type: 'hash' }, // ***HASHED***
+        idCard: { type: 'hash' }, // ***HASHED***
+        realName: { type: 'hash' }, // ***HASHED***
       },
       description: '数据分析师查看用户（完全脱敏）',
     },
@@ -802,7 +936,7 @@ async function initFieldPermissions(
  */
 async function createTestAccounts(
   connection: Connection,
-  roleMap: Map<string, Role>,
+  roleMap: Map<string, Role>
 ): Promise<void> {
   const userRepo = connection.getRepository(User);
 

@@ -77,9 +77,7 @@ export class TransactionTestHelper {
    * @param callback 事务回调函数
    * @returns 回调函数的返回值
    */
-  async runInTransaction<T>(
-    callback: (manager: EntityManager) => Promise<T>,
-  ): Promise<T> {
+  async runInTransaction<T>(callback: (manager: EntityManager) => Promise<T>): Promise<T> {
     const queryRunner = this.createQueryRunner();
 
     try {
@@ -110,7 +108,7 @@ export class TransactionTestHelper {
    * @throws 如果回调函数没有抛出异常
    */
   async expectTransactionRollback(
-    callback: (manager: EntityManager) => Promise<void>,
+    callback: (manager: EntityManager) => Promise<void>
   ): Promise<void> {
     const queryRunner = this.createQueryRunner();
     let errorThrown = false;
@@ -147,9 +145,7 @@ export class TransactionTestHelper {
    * @param callback 应该成功的回调函数
    * @returns 回调函数的返回值
    */
-  async expectTransactionCommit<T>(
-    callback: (manager: EntityManager) => Promise<T>,
-  ): Promise<T> {
+  async expectTransactionCommit<T>(callback: (manager: EntityManager) => Promise<T>): Promise<T> {
     const queryRunner = this.createQueryRunner();
 
     try {
@@ -177,17 +173,11 @@ export class TransactionTestHelper {
    * @param entity 实体类
    * @param expectedCount 期望的记录数
    */
-  async expectRecordCount(
-    entity: any,
-    expectedCount: number,
-    where?: any,
-  ): Promise<void> {
+  async expectRecordCount(entity: any, expectedCount: number, where?: any): Promise<void> {
     const count = await this.dataSource.manager.count(entity, { where });
 
     if (count !== expectedCount) {
-      throw new Error(
-        `Expected ${expectedCount} records, but found ${count} records`,
-      );
+      throw new Error(`Expected ${expectedCount} records, but found ${count} records`);
     }
   }
 
@@ -201,9 +191,7 @@ export class TransactionTestHelper {
     const record = await this.dataSource.manager.findOne(entity, { where });
 
     if (!record) {
-      throw new Error(
-        `Expected record to exist with conditions: ${JSON.stringify(where)}`,
-      );
+      throw new Error(`Expected record to exist with conditions: ${JSON.stringify(where)}`);
     }
   }
 
@@ -217,9 +205,7 @@ export class TransactionTestHelper {
     const record = await this.dataSource.manager.findOne(entity, { where });
 
     if (record) {
-      throw new Error(
-        `Expected record to not exist with conditions: ${JSON.stringify(where)}`,
-      );
+      throw new Error(`Expected record to not exist with conditions: ${JSON.stringify(where)}`);
     }
   }
 
@@ -242,7 +228,7 @@ export class TransactionTestHelper {
    */
   async expectTransactionTimeout(
     callback: (manager: EntityManager) => Promise<void>,
-    timeoutMs: number,
+    timeoutMs: number
   ): Promise<void> {
     const queryRunner = this.createQueryRunner();
 
@@ -258,10 +244,7 @@ export class TransactionTestHelper {
       });
 
       // 竞速执行
-      await Promise.race([
-        callback(queryRunner.manager),
-        timeoutPromise,
-      ]);
+      await Promise.race([callback(queryRunner.manager), timeoutPromise]);
 
       throw new Error('Expected transaction to timeout, but it completed');
     } catch (error) {
@@ -293,7 +276,7 @@ export class TransactionTestHelper {
     entity: any,
     id: any,
     update1: (record: any) => void,
-    update2: (record: any) => void,
+    update2: (record: any) => void
   ): Promise<void> {
     const qr1 = this.createQueryRunner();
     const qr2 = this.createQueryRunner();
@@ -325,9 +308,7 @@ export class TransactionTestHelper {
         await qr2.manager.save(entity, record2);
         await qr2.commitTransaction();
 
-        throw new Error(
-          'Expected optimistic lock conflict, but second transaction succeeded',
-        );
+        throw new Error('Expected optimistic lock conflict, but second transaction succeeded');
       } catch (error) {
         // 期望冲突
         if (qr2.isTransactionActive) {
@@ -388,16 +369,12 @@ export class TransactionTestHelper {
         await Promise.race([lockPromise, timeoutPromise]);
 
         // 如果没有超时，说明获取了锁（测试失败）
-        throw new Error(
-          'Expected pessimistic lock to block, but it succeeded',
-        );
+        throw new Error('Expected pessimistic lock to block, but it succeeded');
       } catch (error) {
         if (error.message === 'Lock timeout') {
           // 超时成功，说明锁被阻塞
           const duration = Date.now() - startTime;
-          this.logger.debug(
-            `Transaction 2 was blocked for ${duration}ms (expected)`,
-          );
+          this.logger.debug(`Transaction 2 was blocked for ${duration}ms (expected)`);
 
           // 释放第一个事务的锁
           await qr1.commitTransaction();

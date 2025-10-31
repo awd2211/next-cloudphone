@@ -14,8 +14,8 @@ export const NoThrottle = () => SkipThrottle();
 export const LoginThrottle = () =>
   Throttle({
     default: {
-      ttl: 60000,  // 60秒
-      limit: 5,    // 5次
+      ttl: 60000, // 60秒
+      limit: 5, // 5次
     },
   });
 
@@ -26,8 +26,8 @@ export const LoginThrottle = () =>
 export const RegisterThrottle = () =>
   Throttle({
     default: {
-      ttl: 60000,  // 60秒
-      limit: 3,    // 3次
+      ttl: 60000, // 60秒
+      limit: 3, // 3次
     },
   });
 
@@ -38,8 +38,8 @@ export const RegisterThrottle = () =>
 export const SendCodeThrottle = () =>
   Throttle({
     default: {
-      ttl: 60000,  // 60秒
-      limit: 1,    // 1次
+      ttl: 60000, // 60秒
+      limit: 1, // 1次
     },
   });
 
@@ -50,8 +50,8 @@ export const SendCodeThrottle = () =>
 export const ResetPasswordThrottle = () =>
   Throttle({
     default: {
-      ttl: 300000,  // 300秒
-      limit: 3,     // 3次
+      ttl: 300000, // 300秒
+      limit: 3, // 3次
     },
   });
 
@@ -62,8 +62,8 @@ export const ResetPasswordThrottle = () =>
 export const UploadThrottle = () =>
   Throttle({
     default: {
-      ttl: 60000,  // 60秒
-      limit: 20,   // 20次
+      ttl: 60000, // 60秒
+      limit: 20, // 20次
     },
   });
 
@@ -74,8 +74,8 @@ export const UploadThrottle = () =>
 export const QueryThrottle = () =>
   Throttle({
     default: {
-      ttl: 60000,  // 60秒
-      limit: 200,  // 200次
+      ttl: 60000, // 60秒
+      limit: 200, // 200次
     },
   });
 
@@ -86,8 +86,8 @@ export const QueryThrottle = () =>
 export const PublicThrottle = () =>
   Throttle({
     default: {
-      ttl: 60000,  // 60秒
-      limit: 500,  // 500次
+      ttl: 60000, // 60秒
+      limit: 500, // 500次
     },
   });
 
@@ -98,8 +98,8 @@ export const PublicThrottle = () =>
 export const StrictThrottle = () =>
   Throttle({
     default: {
-      ttl: 60000,  // 60秒
-      limit: 10,   // 10次
+      ttl: 60000, // 60秒
+      limit: 10, // 10次
     },
   });
 

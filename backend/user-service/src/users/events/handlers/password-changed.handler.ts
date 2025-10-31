@@ -6,22 +6,18 @@ import { EventBusService } from '@cloudphone/shared';
 import { UserMetricsService } from '../../../common/metrics/user-metrics.service';
 
 @EventsHandler(PasswordChangedEvent)
-export class PasswordChangedEventHandler
-  implements IEventHandler<PasswordChangedEvent>
-{
+export class PasswordChangedEventHandler implements IEventHandler<PasswordChangedEvent> {
   private readonly logger = new Logger(PasswordChangedEventHandler.name);
 
   constructor(
     private readonly eventStore: EventStoreService,
     private readonly eventBusService: EventBusService,
-    private readonly metricsService: UserMetricsService,
+    private readonly metricsService: UserMetricsService
   ) {}
 
   async handle(event: PasswordChangedEvent) {
     try {
-      this.logger.log(
-        `Handling PasswordChangedEvent for user: ${event.aggregateId}`,
-      );
+      this.logger.log(`Handling PasswordChangedEvent for user: ${event.aggregateId}`);
 
       // 保存事件
       await this.eventStore.saveEvent(event);
@@ -36,13 +32,11 @@ export class PasswordChangedEventHandler
       // 记录指标
       this.metricsService.recordPasswordChange('default', true);
 
-      this.logger.log(
-        `PasswordChangedEvent processed for user: ${event.aggregateId}`,
-      );
+      this.logger.log(`PasswordChangedEvent processed for user: ${event.aggregateId}`);
     } catch (error) {
       this.logger.error(
         `Failed to handle PasswordChangedEvent for user: ${event.aggregateId}`,
-        error,
+        error
       );
     }
   }

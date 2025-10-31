@@ -4,7 +4,11 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { Ticket, TicketStatus, TicketPriority, TicketCategory } from './entities/ticket.entity';
 import { TicketReply, ReplyType } from './entities/ticket-reply.entity';
-import { createMockRepository, createMockTicket, createMockTicketReply } from '@cloudphone/shared/testing';
+import {
+  createMockRepository,
+  createMockTicket,
+  createMockTicketReply,
+} from '@cloudphone/shared/testing';
 
 describe('TicketsService', () => {
   let service: TicketsService;
@@ -88,7 +92,7 @@ describe('TicketsService', () => {
       expect(ticketRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           status: TicketStatus.OPEN,
-        }),
+        })
       );
     });
 
@@ -139,9 +143,7 @@ describe('TicketsService', () => {
       ticketRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.getTicket(ticketId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.getTicket(ticketId)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -149,10 +151,7 @@ describe('TicketsService', () => {
     it('应该成功获取用户工单列表', async () => {
       // Arrange
       const userId = 'user-123';
-      const mockTickets = [
-        createMockTicket({ userId }),
-        createMockTicket({ userId }),
-      ];
+      const mockTickets = [createMockTicket({ userId }), createMockTicket({ userId })];
 
       const mockQueryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -197,10 +196,7 @@ describe('TicketsService', () => {
       await service.getUserTickets(userId, { status });
 
       // Assert
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'ticket.status = :status',
-        { status },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('ticket.status = :status', { status });
     });
 
     it('应该支持分页', async () => {
@@ -263,9 +259,7 @@ describe('TicketsService', () => {
       ticketRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.updateTicket(ticketId, dto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.updateTicket(ticketId, dto)).rejects.toThrow(NotFoundException);
     });
 
     it('应该在关闭工单时设置closedAt时间', async () => {
@@ -385,14 +379,10 @@ describe('TicketsService', () => {
 
       // Assert
       expect(result).toEqual(mockReplies);
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
-        'reply.ticketId = :ticketId',
-        { ticketId },
-      );
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'reply.createdAt',
-        'ASC',
-      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('reply.ticketId = :ticketId', {
+        ticketId,
+      });
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('reply.createdAt', 'ASC');
     });
 
     it('应该按创建时间升序排序', async () => {
@@ -413,10 +403,7 @@ describe('TicketsService', () => {
       await service.getTicketReplies(ticketId);
 
       // Assert
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'reply.createdAt',
-        'ASC',
-      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('reply.createdAt', 'ASC');
     });
   });
 
@@ -457,9 +444,7 @@ describe('TicketsService', () => {
       ticketRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.rateTicket(ticketId, 5)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.rateTicket(ticketId, 5)).rejects.toThrow(NotFoundException);
     });
 
     it('应该在工单未关闭时抛出BadRequestException', async () => {
@@ -475,9 +460,7 @@ describe('TicketsService', () => {
       ticketRepository.findOne.mockResolvedValue(mockTicket);
 
       // Act & Assert
-      await expect(service.rateTicket(ticketId, 5)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.rateTicket(ticketId, 5)).rejects.toThrow(BadRequestException);
     });
   });
 

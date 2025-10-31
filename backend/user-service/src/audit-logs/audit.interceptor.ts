@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { AuditLogsService } from './audit-logs.service';
@@ -38,52 +32,56 @@ export class AuditInterceptor implements NestInterceptor {
         // 成功的操作
         const duration = Date.now() - startTime;
 
-        this.auditLogsService.createLog({
-          userId: user.id || user.userId,
-          action,
-          level: AuditLevel.INFO,
-          resourceType: this.getResourceType(url),
-          resourceId: this.getResourceId(url, response),
-          description: this.generateDescription(action, method, url, true),
-          newValue: this.sanitizeData(response),
-          metadata: {
-            duration,
-            method,
-            url,
-          },
-          ipAddress: ip,
-          userAgent: headers['user-agent'],
-          success: true,
-        }).catch((err) => {
-          this.logger.error('Failed to create audit log', err);
-        });
+        this.auditLogsService
+          .createLog({
+            userId: user.id || user.userId,
+            action,
+            level: AuditLevel.INFO,
+            resourceType: this.getResourceType(url),
+            resourceId: this.getResourceId(url, response),
+            description: this.generateDescription(action, method, url, true),
+            newValue: this.sanitizeData(response),
+            metadata: {
+              duration,
+              method,
+              url,
+            },
+            ipAddress: ip,
+            userAgent: headers['user-agent'],
+            success: true,
+          })
+          .catch((err) => {
+            this.logger.error('Failed to create audit log', err);
+          });
       }),
       catchError((error) => {
         // 失败的操作
         const duration = Date.now() - startTime;
 
-        this.auditLogsService.createLog({
-          userId: user.id || user.userId,
-          action,
-          level: AuditLevel.ERROR,
-          resourceType: this.getResourceType(url),
-          description: this.generateDescription(action, method, url, false),
-          metadata: {
-            duration,
-            method,
-            url,
-            error: error.message,
-          },
-          ipAddress: ip,
-          userAgent: headers['user-agent'],
-          success: false,
-          errorMessage: error.message,
-        }).catch((err) => {
-          this.logger.error('Failed to create audit log', err);
-        });
+        this.auditLogsService
+          .createLog({
+            userId: user.id || user.userId,
+            action,
+            level: AuditLevel.ERROR,
+            resourceType: this.getResourceType(url),
+            description: this.generateDescription(action, method, url, false),
+            metadata: {
+              duration,
+              method,
+              url,
+              error: error.message,
+            },
+            ipAddress: ip,
+            userAgent: headers['user-agent'],
+            success: false,
+            errorMessage: error.message,
+          })
+          .catch((err) => {
+            this.logger.error('Failed to create audit log', err);
+          });
 
         return throwError(() => error);
-      }),
+      })
     );
   }
 
@@ -144,7 +142,7 @@ export class AuditInterceptor implements NestInterceptor {
     action: AuditAction,
     method: string,
     url: string,
-    success: boolean,
+    success: boolean
   ): string {
     const status = success ? '成功' : '失败';
     return `${action} ${status} - ${method} ${url}`;

@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  Index,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
 
 /**
  * 用户事件实体
@@ -66,12 +60,12 @@ export class UserEvent {
    */
   @Column({ type: 'jsonb', nullable: true })
   metadata?: {
-    userId?: string;       // 执行操作的用户ID
-    username?: string;     // 执行操作的用户名
-    ipAddress?: string;    // 客户端IP地址
-    userAgent?: string;    // 浏览器信息
+    userId?: string; // 执行操作的用户ID
+    username?: string; // 执行操作的用户名
+    ipAddress?: string; // 客户端IP地址
+    userAgent?: string; // 浏览器信息
     correlationId?: string; // 关联ID（用于分布式追踪）
-    causationId?: string;   // 因果ID（导致此事件的事件ID）
+    causationId?: string; // 因果ID（导致此事件的事件ID）
   };
 
   /**

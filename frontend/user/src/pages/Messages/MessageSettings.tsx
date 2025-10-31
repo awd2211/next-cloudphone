@@ -134,9 +134,7 @@ const MessageSettings: React.FC = () => {
           <Title level={4} style={{ margin: 0 }}>
             <BellOutlined /> 消息通知设置
           </Title>
-          <Text type="secondary">
-            自定义您的消息通知偏好，控制如何接收各类通知提醒
-          </Text>
+          <Text type="secondary">自定义您的消息通知偏好，控制如何接收各类通知提醒</Text>
         </Space>
       </Card>
 
@@ -170,11 +168,7 @@ const MessageSettings: React.FC = () => {
         >
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item
-                name="emailEnabled"
-                valuePropName="checked"
-                style={{ marginBottom: 0 }}
-              >
+              <Form.Item name="emailEnabled" valuePropName="checked" style={{ marginBottom: 0 }}>
                 <Card
                   size="small"
                   hoverable
@@ -201,11 +195,7 @@ const MessageSettings: React.FC = () => {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item
-                name="smsEnabled"
-                valuePropName="checked"
-                style={{ marginBottom: 0 }}
-              >
+              <Form.Item name="smsEnabled" valuePropName="checked" style={{ marginBottom: 0 }}>
                 <Card
                   size="small"
                   hoverable
@@ -232,11 +222,7 @@ const MessageSettings: React.FC = () => {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item
-                name="pushEnabled"
-                valuePropName="checked"
-                style={{ marginBottom: 0 }}
-              >
+              <Form.Item name="pushEnabled" valuePropName="checked" style={{ marginBottom: 0 }}>
                 <Card
                   size="small"
                   hoverable
@@ -263,11 +249,7 @@ const MessageSettings: React.FC = () => {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item
-                name="soundEnabled"
-                valuePropName="checked"
-                style={{ marginBottom: 0 }}
-              >
+              <Form.Item name="soundEnabled" valuePropName="checked" style={{ marginBottom: 0 }}>
                 <Card
                   size="small"
                   hoverable
@@ -313,9 +295,7 @@ const MessageSettings: React.FC = () => {
           }
           style={{ marginBottom: 16 }}
         >
-          <Paragraph type="secondary">
-            选择您希望接收的通知类型
-          </Paragraph>
+          <Paragraph type="secondary">选择您希望接收的通知类型</Paragraph>
 
           <Row gutter={[24, 16]}>
             <Col xs={24} sm={12} lg={8}>
@@ -610,12 +590,7 @@ const MessageSettings: React.FC = () => {
         {/* 操作按钮 */}
         <Card>
           <Space>
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              loading={saving}
-              onClick={handleSave}
-            >
+            <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave}>
               保存设置
             </Button>
 
@@ -623,9 +598,7 @@ const MessageSettings: React.FC = () => {
               恢复默认
             </Button>
 
-            <Button onClick={() => navigate('/messages')}>
-              返回消息列表
-            </Button>
+            <Button onClick={() => navigate('/messages')}>返回消息列表</Button>
           </Space>
         </Card>
       </Form>

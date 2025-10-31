@@ -91,9 +91,7 @@ export const envValidationSchema = Joi.object({
   METRICS_PATH: Joi.string().default('/metrics'),
 
   // ===== 日志配置 =====
-  LOG_LEVEL: Joi.string()
-    .valid('debug', 'info', 'warn', 'error', 'fatal')
-    .default('info'),
+  LOG_LEVEL: Joi.string().valid('debug', 'info', 'warn', 'error', 'fatal').default('info'),
   LOG_FORMAT: Joi.string().valid('json', 'pretty').default('json'),
 
   // Request logging

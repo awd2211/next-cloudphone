@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { Reflector } from '@nestjs/core';
 import { DataScopeService } from '../data-scope.service';
@@ -32,28 +26,25 @@ export class DataScopeInterceptor implements NestInterceptor {
 
   constructor(
     private reflector: Reflector,
-    private dataScopeService: DataScopeService,
+    private dataScopeService: DataScopeService
   ) {}
 
-  async intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<any>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     // 检查是否跳过数据范围过滤
-    const skipDataScope = this.reflector.getAllAndOverride<boolean>(
-      SKIP_DATA_SCOPE_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const skipDataScope = this.reflector.getAllAndOverride<boolean>(SKIP_DATA_SCOPE_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (skipDataScope) {
       return next.handle();
     }
 
     // 获取资源类型
-    const resourceType = this.reflector.getAllAndOverride<string>(
-      DATA_SCOPE_RESOURCE_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const resourceType = this.reflector.getAllAndOverride<string>(DATA_SCOPE_RESOURCE_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // 如果没有配置资源类型，跳过数据范围过滤
     if (!resourceType) {
@@ -70,23 +61,15 @@ export class DataScopeInterceptor implements NestInterceptor {
 
     try {
       // 获取数据范围过滤器
-      const filter = await this.dataScopeService.getDataScopeFilter(
-        user.id,
-        resourceType,
-      );
+      const filter = await this.dataScopeService.getDataScopeFilter(user.id, resourceType);
 
       // 将过滤器附加到请求对象
       request.dataScopeFilter = filter;
       request.dataScopeResource = resourceType;
 
-      this.logger.debug(
-        `已为用户 ${user.id} 应用 ${resourceType} 的数据范围过滤`,
-      );
+      this.logger.debug(`已为用户 ${user.id} 应用 ${resourceType} 的数据范围过滤`);
     } catch (error) {
-      this.logger.error(
-        `应用数据范围过滤失败: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`应用数据范围过滤失败: ${error.message}`, error.stack);
       // 失败时不影响请求继续执行
     }
 

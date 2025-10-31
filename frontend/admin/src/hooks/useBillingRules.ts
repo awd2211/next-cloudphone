@@ -9,11 +9,7 @@ import {
   testBillingRule,
   getBillingRuleTemplates,
 } from '@/services/billing';
-import type {
-  CreateBillingRuleDto,
-  UpdateBillingRuleDto,
-  PaginationParams,
-} from '@/types';
+import type { CreateBillingRuleDto, UpdateBillingRuleDto, PaginationParams } from '@/types';
 
 // Query Keys
 export const billingRuleKeys = {

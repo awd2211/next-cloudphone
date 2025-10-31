@@ -99,10 +99,7 @@ export class PrometheusMiddleware implements NestMiddleware {
     path = path.split('?')[0];
 
     // 替换 UUID 格式的 ID
-    path = path.replace(
-      /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
-      '/:id',
-    );
+    path = path.replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '/:id');
 
     // 替换数字 ID
     path = path.replace(/\/\d+/g, '/:id');

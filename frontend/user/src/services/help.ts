@@ -5,10 +5,10 @@ export interface HelpCategory {
   id: string;
   name: string;
   description: string;
-  icon: string;           // 图标名称
+  icon: string; // 图标名称
   order: number;
   articleCount: number;
-  color?: string;         // 分类颜色
+  color?: string; // 分类颜色
 }
 
 // 帮助文章
@@ -22,7 +22,7 @@ export interface HelpArticle {
   tags: string[];
   views: number;
   likes: number;
-  helpfulCount: number;   // 有帮助计数
+  helpfulCount: number; // 有帮助计数
   author?: string;
   createdAt: string;
   updatedAt: string;
@@ -49,13 +49,13 @@ export interface ArticleListResponse {
 
 // FAQ 分类
 export enum FAQCategory {
-  GENERAL = 'general',           // 常见问题
-  ACCOUNT = 'account',           // 账户相关
-  BILLING = 'billing',           // 计费相关
-  DEVICE = 'device',             // 设备相关
-  APP = 'app',                   // 应用相关
-  TECHNICAL = 'technical',       // 技术问题
-  SECURITY = 'security',         // 安全问题
+  GENERAL = 'general', // 常见问题
+  ACCOUNT = 'account', // 账户相关
+  BILLING = 'billing', // 计费相关
+  DEVICE = 'device', // 设备相关
+  APP = 'app', // 应用相关
+  TECHNICAL = 'technical', // 技术问题
+  SECURITY = 'security', // 安全问题
 }
 
 // FAQ
@@ -68,7 +68,7 @@ export interface FAQ {
   views: number;
   helpfulCount: number;
   tags?: string[];
-  relatedArticles?: string[];  // 关联文章 ID
+  relatedArticles?: string[]; // 关联文章 ID
   createdAt: string;
   updatedAt: string;
 }
@@ -91,9 +91,9 @@ export interface FAQListResponse {
 
 // 教程难度
 export enum TutorialDifficulty {
-  BEGINNER = 'beginner',     // 入门
+  BEGINNER = 'beginner', // 入门
   INTERMEDIATE = 'intermediate', // 进阶
-  ADVANCED = 'advanced',     // 高级
+  ADVANCED = 'advanced', // 高级
 }
 
 // 教程步骤
@@ -113,14 +113,14 @@ export interface Tutorial {
   description: string;
   summary: string;
   difficulty: TutorialDifficulty;
-  duration: number;         // 预计时长（分钟）
+  duration: number; // 预计时长（分钟）
   steps: TutorialStep[];
   coverImage?: string;
   video?: string;
   tags: string[];
   views: number;
   likes: number;
-  completedCount: number;   // 完成人数
+  completedCount: number; // 完成人数
   author?: string;
   createdAt: string;
   updatedAt: string;
@@ -145,19 +145,19 @@ export interface TutorialListResponse {
 
 // 反馈类型
 export enum FeedbackType {
-  HELPFUL = 'helpful',       // 有帮助
+  HELPFUL = 'helpful', // 有帮助
   NOT_HELPFUL = 'not_helpful', // 没有帮助
   SUGGESTION = 'suggestion', // 建议
-  BUG = 'bug',               // 问题反馈
+  BUG = 'bug', // 问题反馈
 }
 
 // 反馈数据
 export interface FeedbackData {
   type: FeedbackType;
-  relatedId?: string;        // 关联的文章/FAQ/教程 ID
+  relatedId?: string; // 关联的文章/FAQ/教程 ID
   relatedType?: 'article' | 'faq' | 'tutorial';
   content?: string;
-  contact?: string;          // 联系方式
+  contact?: string; // 联系方式
 }
 
 // 搜索结果

@@ -90,14 +90,14 @@ describe('Billing & Balance E2E Tests', () => {
       await sleep(1000);
 
       const transactions = await billingService.get<any[]>(
-        `/transactions/user/${testUserId}?limit=10`,
+        `/transactions/user/${testUserId}?limit=10`
       );
 
       expect(Array.isArray(transactions)).toBe(true);
       expect(transactions.length).toBeGreaterThan(0);
 
       const rechargeTransaction = transactions.find(
-        (t) => t.type === 'recharge' && t.description === 'Test transaction record',
+        (t) => t.type === 'recharge' && t.description === 'Test transaction record'
       );
       expect(rechargeTransaction).toBeDefined();
       expect(Number(rechargeTransaction!.amount)).toBe(500);
@@ -162,11 +162,11 @@ describe('Billing & Balance E2E Tests', () => {
       await sleep(1000);
 
       const transactions = await billingService.get<any[]>(
-        `/transactions/user/${testUserId}?limit=10`,
+        `/transactions/user/${testUserId}?limit=10`
       );
 
       const consumeTransaction = transactions.find(
-        (t) => t.type === 'consume' && t.description === 'Test consumption record',
+        (t) => t.type === 'consume' && t.description === 'Test consumption record'
       );
       expect(consumeTransaction).toBeDefined();
       expect(Number(consumeTransaction!.amount)).toBe(200);
@@ -197,7 +197,7 @@ describe('Billing & Balance E2E Tests', () => {
       expect(response).toBeDefined();
       expect(Number(response.balance.balance)).toBe(Number(balanceBefore.balance) - 500);
       expect(Number(response.balance.frozenBalance)).toBe(
-        Number(balanceBefore.frozenBalance) + 500,
+        Number(balanceBefore.frozenBalance) + 500
       );
     });
 
@@ -222,7 +222,7 @@ describe('Billing & Balance E2E Tests', () => {
       expect(response).toBeDefined();
       expect(Number(response.balance.balance)).toBe(Number(balanceBefore.balance) + 300);
       expect(Number(response.balance.frozenBalance)).toBe(
-        Number(balanceBefore.frozenBalance) - 300,
+        Number(balanceBefore.frozenBalance) - 300
       );
     });
 
@@ -276,9 +276,7 @@ describe('Billing & Balance E2E Tests', () => {
     });
 
     it('should retrieve transaction history', async () => {
-      const response = await billingService.get<any[]>(
-        `/transactions/user/${testUserId}?limit=20`,
-      );
+      const response = await billingService.get<any[]>(`/transactions/user/${testUserId}?limit=20`);
 
       expect(Array.isArray(response)).toBe(true);
       expect(response.length).toBeGreaterThan(0);
@@ -293,7 +291,7 @@ describe('Billing & Balance E2E Tests', () => {
 
     it('should filter transactions by type', async () => {
       const rechargeTransactions = await billingService.get<any[]>(
-        `/transactions/user/${testUserId}?type=recharge&limit=20`,
+        `/transactions/user/${testUserId}?type=recharge&limit=20`
       );
 
       expect(Array.isArray(rechargeTransactions)).toBe(true);
@@ -304,11 +302,11 @@ describe('Billing & Balance E2E Tests', () => {
 
     it('should paginate transaction results', async () => {
       const page1 = await billingService.get<any[]>(
-        `/transactions/user/${testUserId}?limit=2&offset=0`,
+        `/transactions/user/${testUserId}?limit=2&offset=0`
       );
 
       const page2 = await billingService.get<any[]>(
-        `/transactions/user/${testUserId}?limit=2&offset=2`,
+        `/transactions/user/${testUserId}?limit=2&offset=2`
       );
 
       expect(page1.length).toBeLessThanOrEqual(2);
@@ -322,7 +320,7 @@ describe('Billing & Balance E2E Tests', () => {
 
     it('should sort transactions by date descending', async () => {
       const transactions = await billingService.get<any[]>(
-        `/transactions/user/${testUserId}?limit=10`,
+        `/transactions/user/${testUserId}?limit=10`
       );
 
       if (transactions.length > 1) {
@@ -403,7 +401,7 @@ describe('Billing & Balance E2E Tests', () => {
       await sleep(1000);
 
       const response = await billingService.get<any>(
-        `/usage/user/${testUserId}/statistics?period=day`,
+        `/usage/user/${testUserId}/statistics?period=day`
       );
 
       expect(response).toBeDefined();

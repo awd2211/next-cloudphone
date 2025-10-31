@@ -60,7 +60,7 @@ export function createPaginationResponse<T>(
   data: T[],
   total: number,
   page: number,
-  limit: number,
+  limit: number
 ): PaginationResponse<T> {
   const totalPages = Math.ceil(total / limit);
 

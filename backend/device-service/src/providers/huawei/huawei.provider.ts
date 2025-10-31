@@ -3,8 +3,8 @@ import {
   Logger,
   NotImplementedException,
   InternalServerErrorException,
-} from "@nestjs/common";
-import { IDeviceProvider } from "../device-provider.interface";
+} from '@nestjs/common';
+import { IDeviceProvider } from '../device-provider.interface';
 import {
   DeviceProviderType,
   DeviceProviderStatus,
@@ -21,9 +21,9 @@ import {
   FileTransferOptions,
   DeviceProperties,
   DeviceMetrics,
-} from "../provider.types";
-import { HuaweiCphClient } from "./huawei-cph.client";
-import { HuaweiPhoneStatus } from "./huawei.types";
+} from '../provider.types';
+import { HuaweiCphClient } from './huawei-cph.client';
+import { HuaweiPhoneStatus } from './huawei.types';
 
 /**
  * HuaweiProvider
@@ -58,8 +58,8 @@ export class HuaweiProvider implements IDeviceProvider {
       this.logger.log(`Creating Huawei phone for user ${config.userId}`);
 
       // 解析分辨率
-      let resolution = "1080x1920";
-      if (typeof config.resolution === "string") {
+      let resolution = '1080x1920';
+      if (typeof config.resolution === 'string') {
         resolution = config.resolution;
       } else if (config.resolution) {
         resolution = `${config.resolution.width}x${config.resolution.height}`;
@@ -71,13 +71,11 @@ export class HuaweiProvider implements IDeviceProvider {
       // 创建云手机
       // 从 providerSpecificConfig 中获取华为特定配置
       const imageId =
-        config.providerSpecificConfig?.imageId ||
-        process.env.HUAWEI_DEFAULT_IMAGE_ID ||
-        "default";
+        config.providerSpecificConfig?.imageId || process.env.HUAWEI_DEFAULT_IMAGE_ID || 'default';
       const serverId =
         config.providerSpecificConfig?.serverId ||
         process.env.HUAWEI_DEFAULT_SERVER_ID ||
-        "default";
+        'default';
 
       const result = await this.cphClient.createPhone({
         phoneName: config.name || `huawei-${config.userId}-${Date.now()}`,
@@ -92,7 +90,7 @@ export class HuaweiProvider implements IDeviceProvider {
 
       if (!result.success || !result.data) {
         throw new InternalServerErrorException(
-          `Failed to create Huawei phone: ${result.errorMessage}`,
+          `Failed to create Huawei phone: ${result.errorMessage}`
         );
       }
 
@@ -107,16 +105,16 @@ export class HuaweiProvider implements IDeviceProvider {
           providerType: DeviceProviderType.HUAWEI_CPH,
           huaweiCph: {
             instanceId: instance.instanceId,
-            accessIp: instance.publicIp || "unknown",
+            accessIp: instance.publicIp || 'unknown',
             accessPort: 8080, // 华为 WebRTC 默认端口
             sessionId: instance.instanceId,
-            ticket: "will-be-fetched-on-connect",
+            ticket: 'will-be-fetched-on-connect',
           },
         },
         properties: {
-          manufacturer: "Huawei",
+          manufacturer: 'Huawei',
           model: `CPH-${specId}`,
-          androidVersion: "10",
+          androidVersion: '10',
           resolution,
           dpi: 480,
         },
@@ -135,7 +133,7 @@ export class HuaweiProvider implements IDeviceProvider {
     const result = await this.cphClient.startPhone(deviceId);
     if (!result.success) {
       throw new InternalServerErrorException(
-        `Failed to start Huawei phone: ${result.errorMessage}`,
+        `Failed to start Huawei phone: ${result.errorMessage}`
       );
     }
   }
@@ -146,9 +144,7 @@ export class HuaweiProvider implements IDeviceProvider {
   async stop(deviceId: string): Promise<void> {
     const result = await this.cphClient.stopPhone(deviceId);
     if (!result.success) {
-      throw new InternalServerErrorException(
-        `Failed to stop Huawei phone: ${result.errorMessage}`,
-      );
+      throw new InternalServerErrorException(`Failed to stop Huawei phone: ${result.errorMessage}`);
     }
   }
 
@@ -159,7 +155,7 @@ export class HuaweiProvider implements IDeviceProvider {
     const result = await this.cphClient.deletePhone(deviceId);
     if (!result.success) {
       throw new InternalServerErrorException(
-        `Failed to delete Huawei phone: ${result.errorMessage}`,
+        `Failed to delete Huawei phone: ${result.errorMessage}`
       );
     }
   }
@@ -184,7 +180,7 @@ export class HuaweiProvider implements IDeviceProvider {
 
     if (!result.success || !result.data) {
       throw new InternalServerErrorException(
-        `Failed to get connection info: ${result.errorMessage}`,
+        `Failed to get connection info: ${result.errorMessage}`
       );
     }
 
@@ -194,10 +190,10 @@ export class HuaweiProvider implements IDeviceProvider {
       providerType: DeviceProviderType.HUAWEI_CPH,
       huaweiCph: {
         instanceId: connInfo.instanceId,
-        accessIp: connInfo.webrtc?.signaling || "unknown",
+        accessIp: connInfo.webrtc?.signaling || 'unknown',
         accessPort: 8080,
         sessionId: connInfo.webrtc?.sessionId || deviceId,
-        ticket: connInfo.webrtc?.ticket || "",
+        ticket: connInfo.webrtc?.ticket || '',
       },
     };
   }
@@ -209,17 +205,17 @@ export class HuaweiProvider implements IDeviceProvider {
     const result = await this.cphClient.getPhone(deviceId);
 
     if (!result.success || !result.data) {
-      throw new InternalServerErrorException("Failed to get phone details");
+      throw new InternalServerErrorException('Failed to get phone details');
     }
 
     const instance = result.data;
 
     return {
-      manufacturer: "Huawei",
+      manufacturer: 'Huawei',
       model: `CPH-${instance.specId}`,
-      androidVersion: "10",
+      androidVersion: '10',
       serialNumber: instance.instanceId,
-      resolution: instance.property?.resolution || "1080x1920",
+      resolution: instance.property?.resolution || '1080x1920',
       dpi: 480,
     };
   }
@@ -276,7 +272,7 @@ export class HuaweiProvider implements IDeviceProvider {
     const result = await this.cphClient.rebootPhone(deviceId);
     if (!result.success) {
       throw new InternalServerErrorException(
-        `Failed to reboot Huawei phone: ${result.errorMessage}`,
+        `Failed to reboot Huawei phone: ${result.errorMessage}`
       );
     }
   }
@@ -284,94 +280,57 @@ export class HuaweiProvider implements IDeviceProvider {
   // ==================== 以下方法暂不支持 ====================
 
   async sendTouchEvent(deviceId: string, event: TouchEvent): Promise<void> {
-    throw new NotImplementedException(
-      "Touch events should be sent via Huawei WebRTC channel",
-    );
+    throw new NotImplementedException('Touch events should be sent via Huawei WebRTC channel');
   }
 
   async sendSwipeEvent(deviceId: string, event: SwipeEvent): Promise<void> {
-    throw new NotImplementedException(
-      "Swipe events should be sent via Huawei WebRTC channel",
-    );
+    throw new NotImplementedException('Swipe events should be sent via Huawei WebRTC channel');
   }
 
   async sendKeyEvent(deviceId: string, event: KeyEvent): Promise<void> {
-    throw new NotImplementedException(
-      "Key events should be sent via Huawei WebRTC channel",
-    );
+    throw new NotImplementedException('Key events should be sent via Huawei WebRTC channel');
   }
 
   async inputText(deviceId: string, input: TextInput): Promise<void> {
-    throw new NotImplementedException(
-      "Text input should be sent via Huawei WebRTC channel",
-    );
+    throw new NotImplementedException('Text input should be sent via Huawei WebRTC channel');
   }
 
-  async installApp(
-    deviceId: string,
-    options: AppInstallOptions,
-  ): Promise<void> {
+  async installApp(deviceId: string, options: AppInstallOptions): Promise<void> {
     throw new NotImplementedException(
-      "App installation requires pre-configured image or Huawei app market",
+      'App installation requires pre-configured image or Huawei app market'
     );
   }
 
   async uninstallApp(deviceId: string, packageName: string): Promise<void> {
-    throw new NotImplementedException(
-      "App uninstallation not supported for Huawei CPH",
-    );
+    throw new NotImplementedException('App uninstallation not supported for Huawei CPH');
   }
 
   async getInstalledApps(deviceId: string): Promise<string[]> {
-    throw new NotImplementedException(
-      "Listing installed apps not supported for Huawei CPH",
-    );
+    throw new NotImplementedException('Listing installed apps not supported for Huawei CPH');
   }
 
-  async pushFile(
-    deviceId: string,
-    options: FileTransferOptions,
-  ): Promise<void> {
-    throw new NotImplementedException(
-      "File transfer should use Huawei cloud storage",
-    );
+  async pushFile(deviceId: string, options: FileTransferOptions): Promise<void> {
+    throw new NotImplementedException('File transfer should use Huawei cloud storage');
   }
 
-  async pullFile(
-    deviceId: string,
-    options: FileTransferOptions,
-  ): Promise<void> {
-    throw new NotImplementedException(
-      "File transfer should use Huawei cloud storage",
-    );
+  async pullFile(deviceId: string, options: FileTransferOptions): Promise<void> {
+    throw new NotImplementedException('File transfer should use Huawei cloud storage');
   }
 
   async takeScreenshot(deviceId: string): Promise<Buffer> {
-    throw new NotImplementedException(
-      "Screenshot should be captured from WebRTC stream",
-    );
+    throw new NotImplementedException('Screenshot should be captured from WebRTC stream');
   }
 
   async startRecording(deviceId: string, duration?: number): Promise<string> {
-    throw new NotImplementedException(
-      "Recording should be done on WebRTC stream",
-    );
+    throw new NotImplementedException('Recording should be done on WebRTC stream');
   }
 
   async stopRecording(deviceId: string, recordingId: string): Promise<Buffer> {
-    throw new NotImplementedException(
-      "Recording should be done on WebRTC stream",
-    );
+    throw new NotImplementedException('Recording should be done on WebRTC stream');
   }
 
-  async setLocation(
-    deviceId: string,
-    latitude: number,
-    longitude: number,
-  ): Promise<void> {
-    throw new NotImplementedException(
-      "Location simulation not yet implemented for Huawei CPH",
-    );
+  async setLocation(deviceId: string, latitude: number, longitude: number): Promise<void> {
+    throw new NotImplementedException('Location simulation not yet implemented for Huawei CPH');
   }
 
   // ==================== 私有辅助方法 ====================
@@ -382,20 +341,18 @@ export class HuaweiProvider implements IDeviceProvider {
   private selectSpecByConfig(config: DeviceCreateConfig): string {
     // 根据 CPU 和内存选择合适的规格
     if (config.cpuCores >= 8 && config.memoryMB >= 8192) {
-      return "cloudphone.rx1.8xlarge"; // 8核16G
+      return 'cloudphone.rx1.8xlarge'; // 8核16G
     } else if (config.cpuCores >= 4 && config.memoryMB >= 4096) {
-      return "cloudphone.rx1.4xlarge"; // 4核8G
+      return 'cloudphone.rx1.4xlarge'; // 4核8G
     } else {
-      return "cloudphone.rx1.2xlarge"; // 2核4G
+      return 'cloudphone.rx1.2xlarge'; // 2核4G
     }
   }
 
   /**
    * 映射华为状态到 Provider 状态
    */
-  private mapHuaweiStatusToProviderStatus(
-    status: HuaweiPhoneStatus,
-  ): DeviceProviderStatus {
+  private mapHuaweiStatusToProviderStatus(status: HuaweiPhoneStatus): DeviceProviderStatus {
     switch (status) {
       case HuaweiPhoneStatus.CREATING:
         return DeviceProviderStatus.CREATING;

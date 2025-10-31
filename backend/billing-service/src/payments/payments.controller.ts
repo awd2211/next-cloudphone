@@ -13,11 +13,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
-import {
-  CreatePaymentDto,
-  RefundPaymentDto,
-  QueryPaymentDto,
-} from './dto/create-payment.dto';
+import { CreatePaymentDto, RefundPaymentDto, QueryPaymentDto } from './dto/create-payment.dto';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -36,14 +32,8 @@ export class PaymentsController {
   @ApiOperation({ summary: '创建支付订单' })
   @ApiResponse({ status: 201, description: '支付订单创建成功' })
   @ApiResponse({ status: 429, description: '创建订单过于频繁，请稍后再试' })
-  async create(
-    @Body() createPaymentDto: CreatePaymentDto,
-    @Headers('user-id') userId: string,
-  ) {
-    const payment = await this.paymentsService.createPayment(
-      createPaymentDto,
-      userId,
-    );
+  async create(@Body() createPaymentDto: CreatePaymentDto, @Headers('user-id') userId: string) {
+    const payment = await this.paymentsService.createPayment(createPaymentDto, userId);
     return {
       success: true,
       data: payment,
@@ -82,9 +72,7 @@ export class PaymentsController {
   @ApiOperation({ summary: '查询支付状态' })
   @ApiResponse({ status: 200, description: '查询成功' })
   async query(@Body() queryPaymentDto: QueryPaymentDto) {
-    const result = await this.paymentsService.queryPayment(
-      queryPaymentDto.paymentNo,
-    );
+    const result = await this.paymentsService.queryPayment(queryPaymentDto.paymentNo);
     return {
       success: true,
       data: result,
@@ -102,14 +90,8 @@ export class PaymentsController {
   @ApiOperation({ summary: '申请退款' })
   @ApiResponse({ status: 200, description: '退款申请成功' })
   @ApiResponse({ status: 429, description: '退款申请过于频繁，请稍后再试' })
-  async refund(
-    @Param('id') id: string,
-    @Body() refundPaymentDto: RefundPaymentDto,
-  ) {
-    const payment = await this.paymentsService.refundPayment(
-      id,
-      refundPaymentDto,
-    );
+  async refund(@Param('id') id: string, @Body() refundPaymentDto: RefundPaymentDto) {
+    const payment = await this.paymentsService.refundPayment(id, refundPaymentDto);
     return {
       success: true,
       data: payment,

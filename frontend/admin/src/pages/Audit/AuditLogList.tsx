@@ -259,22 +259,23 @@ const AuditLogList: React.FC = () => {
     let filtered = logs;
 
     if (resourceTypeFilter !== 'all') {
-      filtered = filtered.filter(log => log.resourceType === resourceTypeFilter);
+      filtered = filtered.filter((log) => log.resourceType === resourceTypeFilter);
     }
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(log => log.status === statusFilter);
+      filtered = filtered.filter((log) => log.status === statusFilter);
     }
 
     if (methodFilter !== 'all') {
-      filtered = filtered.filter(log => log.method === methodFilter);
+      filtered = filtered.filter((log) => log.method === methodFilter);
     }
 
     if (searchText) {
-      filtered = filtered.filter(log =>
-        log.action.toLowerCase().includes(searchText.toLowerCase()) ||
-        log.userName.toLowerCase().includes(searchText.toLowerCase()) ||
-        log.details?.toLowerCase().includes(searchText.toLowerCase())
+      filtered = filtered.filter(
+        (log) =>
+          log.action.toLowerCase().includes(searchText.toLowerCase()) ||
+          log.userName.toLowerCase().includes(searchText.toLowerCase()) ||
+          log.details?.toLowerCase().includes(searchText.toLowerCase())
       );
     }
 
@@ -283,21 +284,34 @@ const AuditLogList: React.FC = () => {
 
   const handleExport = () => {
     // 将审计日志导出为 CSV 文件
-    const headers = ['ID', '用户名', '操作', '资源', '资源类型', 'IP地址', '方法', '状态', '详情', '创建时间'];
+    const headers = [
+      'ID',
+      '用户名',
+      '操作',
+      '资源',
+      '资源类型',
+      'IP地址',
+      '方法',
+      '状态',
+      '详情',
+      '创建时间',
+    ];
     const csvContent = [
       headers.join(','),
-      ...filteredLogs.map(log => [
-        log.id,
-        log.userName,
-        log.action,
-        log.resource,
-        log.resourceType,
-        log.ipAddress,
-        log.method,
-        log.status,
-        `"${(log.details || '').replace(/"/g, '""')}"`, // 转义 CSV 中的引号
-        dayjs(log.createdAt).format('YYYY-MM-DD HH:mm:ss')
-      ].join(','))
+      ...filteredLogs.map((log) =>
+        [
+          log.id,
+          log.userName,
+          log.action,
+          log.resource,
+          log.resourceType,
+          log.ipAddress,
+          log.method,
+          log.status,
+          `"${(log.details || '').replace(/"/g, '""')}"`, // 转义 CSV 中的引号
+          dayjs(log.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+        ].join(',')
+      ),
     ].join('\n');
 
     // 添加 UTF-8 BOM 以支持中文
@@ -378,7 +392,7 @@ const AuditLogList: React.FC = () => {
           prefix={<SearchOutlined />}
           style={{ width: 250 }}
           value={searchText}
-          onChange={e => setSearchText(e.target.value)}
+          onChange={(e) => setSearchText(e.target.value)}
         />
         <Button icon={<FilterOutlined />} onClick={handleReset}>
           重置

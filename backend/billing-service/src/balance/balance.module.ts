@@ -7,10 +7,7 @@ import { BalanceTransaction } from './entities/balance-transaction.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([UserBalance, BalanceTransaction]),
-    AuthModule,
-  ],
+  imports: [TypeOrmModule.forFeature([UserBalance, BalanceTransaction]), AuthModule],
   controllers: [BalanceController],
   providers: [BalanceService],
   exports: [BalanceService],

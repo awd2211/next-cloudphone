@@ -43,7 +43,7 @@ import { UserMetricsService } from '../common/metrics/user-metrics.service';
 export class UsersModule {
   constructor(
     private readonly eventReplay: EventReplayService,
-    private readonly snapshotService: SnapshotService,
+    private readonly snapshotService: SnapshotService
   ) {
     // 解决循环依赖：EventReplayService -> SnapshotService -> EventReplayService
     this.eventReplay.setSnapshotService(this.snapshotService);

@@ -54,14 +54,7 @@ const AuditLogManagement: React.FC = () => {
   useEffect(() => {
     loadLogs();
     loadStatistics();
-  }, [
-    filterUserId,
-    filterAction,
-    filterLevel,
-    filterResourceType,
-    filterSuccess,
-    filterDateRange,
-  ]);
+  }, [filterUserId, filterAction, filterLevel, filterResourceType, filterSuccess, filterDateRange]);
 
   const loadLogs = async () => {
     setLoading(true);
@@ -106,10 +99,7 @@ const AuditLogManagement: React.FC = () => {
 
   const handleDateRangeChange = (dates: any) => {
     if (dates && dates.length === 2) {
-      setFilterDateRange([
-        dates[0].toISOString(),
-        dates[1].toISOString(),
-      ]);
+      setFilterDateRange([dates[0].toISOString(), dates[1].toISOString()]);
     } else {
       setFilterDateRange(null);
     }
@@ -386,11 +376,7 @@ const AuditLogManagement: React.FC = () => {
               <Select.Option value={true}>成功</Select.Option>
               <Select.Option value={false}>失败</Select.Option>
             </Select>
-            <RangePicker
-              showTime
-              onChange={handleDateRangeChange}
-              style={{ width: 350 }}
-            />
+            <RangePicker showTime onChange={handleDateRangeChange} style={{ width: 350 }} />
             <Button icon={<ReloadOutlined />} onClick={loadLogs}>
               刷新
             </Button>
@@ -427,7 +413,10 @@ const AuditLogManagement: React.FC = () => {
                 {new Date(selectedLog.createdAt).toLocaleString('zh-CN')}
               </Descriptions.Item>
               <Descriptions.Item label="级别">
-                <Tag icon={getLevelIcon(selectedLog.level)} color={getLevelColor(selectedLog.level)}>
+                <Tag
+                  icon={getLevelIcon(selectedLog.level)}
+                  color={getLevelColor(selectedLog.level)}
+                >
                   {getLevelLabel(selectedLog.level)}
                 </Tag>
               </Descriptions.Item>
@@ -448,9 +437,7 @@ const AuditLogManagement: React.FC = () => {
               <Descriptions.Item label="操作分类">
                 <Tag>{getActionCategory(selectedLog.action)}</Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="用户ID">
-                {selectedLog.userId}
-              </Descriptions.Item>
+              <Descriptions.Item label="用户ID">{selectedLog.userId}</Descriptions.Item>
               <Descriptions.Item label="目标用户ID">
                 {selectedLog.targetUserId || <span style={{ color: '#999' }}>-</span>}
               </Descriptions.Item>

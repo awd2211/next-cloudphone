@@ -1,6 +1,6 @@
 /**
  * Billing Service - 订单生命周期事件发布补丁
- * 
+ *
  * 在相应的方法中添加事件发布
  */
 
@@ -55,4 +55,3 @@ async refundPayment(paymentId: string, amount: number, reason: string): Promise<
   return savedPayment;
 }
 */
-

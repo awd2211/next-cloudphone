@@ -205,8 +205,13 @@ export function useUpdatePermission() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { resource?: string; action?: string; description?: string } }) =>
-      roleService.updatePermission(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { resource?: string; action?: string; description?: string };
+    }) => roleService.updatePermission(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: permissionKeys.lists() });
       message.success('更新权限成功');

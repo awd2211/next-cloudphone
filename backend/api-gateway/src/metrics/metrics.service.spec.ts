@@ -44,7 +44,7 @@ describe('MetricsService', () => {
     it('should handle different HTTP methods', () => {
       const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
-      methods.forEach(method => {
+      methods.forEach((method) => {
         expect(() => {
           service.recordHttpRequest(method, '/test', 200, 0.1);
         }).not.toThrow();
@@ -70,7 +70,7 @@ describe('MetricsService', () => {
     it('should handle different services', () => {
       const services = ['user-service', 'device-service', 'billing-service'];
 
-      services.forEach(serviceName => {
+      services.forEach((serviceName) => {
         expect(() => {
           service.recordProxyRequest(serviceName, 'POST', 201, 0.8);
         }).not.toThrow();

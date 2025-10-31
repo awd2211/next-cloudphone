@@ -16,4 +16,4 @@ createRoot(document.getElementById('root')!).render(
       </ConfigProvider>
     </QueryProvider>
   </StrictMode>
-)
+);

@@ -1,7 +1,4 @@
-import {
-  NotificationType,
-  NotificationChannel,
-} from '../entities/notification-preference.entity';
+import { NotificationType, NotificationChannel } from '../entities/notification-preference.entity';
 
 /**
  * 通知优先级分类
@@ -54,11 +51,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: Record<
   },
   [NotificationType.DEVICE_ERROR]: {
     enabled: true,
-    channels: [
-      NotificationChannel.WEBSOCKET,
-      NotificationChannel.EMAIL,
-      NotificationChannel.SMS,
-    ],
+    channels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL, NotificationChannel.SMS],
     priority: NotificationPriority.CRITICAL,
     description: '设备故障（关键）',
   },
@@ -122,11 +115,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: Record<
   // ========== 计费相关 - 非常重要 ==========
   [NotificationType.BILLING_LOW_BALANCE]: {
     enabled: true,
-    channels: [
-      NotificationChannel.WEBSOCKET,
-      NotificationChannel.EMAIL,
-      NotificationChannel.SMS,
-    ],
+    channels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL, NotificationChannel.SMS],
     priority: NotificationPriority.CRITICAL,
     description: '余额不足预警',
   },
@@ -156,11 +145,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: Record<
   },
   [NotificationType.BILLING_SUBSCRIPTION_EXPIRED]: {
     enabled: true,
-    channels: [
-      NotificationChannel.WEBSOCKET,
-      NotificationChannel.EMAIL,
-      NotificationChannel.SMS,
-    ],
+    channels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL, NotificationChannel.SMS],
     priority: NotificationPriority.CRITICAL,
     description: '套餐已到期',
   },
@@ -212,11 +197,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: Record<
   },
   [NotificationType.SYSTEM_SECURITY_ALERT]: {
     enabled: true,
-    channels: [
-      NotificationChannel.WEBSOCKET,
-      NotificationChannel.EMAIL,
-      NotificationChannel.SMS,
-    ],
+    channels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL, NotificationChannel.SMS],
     priority: NotificationPriority.CRITICAL,
     description: '安全警报',
   },
@@ -242,9 +223,7 @@ export function getAllNotificationTypes(): Array<{
 /**
  * 获取某个优先级的所有通知类型
  */
-export function getNotificationTypesByPriority(
-  priority: NotificationPriority,
-): NotificationType[] {
+export function getNotificationTypesByPriority(priority: NotificationPriority): NotificationType[] {
   return Object.entries(DEFAULT_NOTIFICATION_PREFERENCES)
     .filter(([_, config]) => config.priority === priority)
     .map(([type, _]) => type as NotificationType);

@@ -5,18 +5,18 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from "typeorm";
+} from 'typeorm';
 
 export enum TemplateCategory {
-  GAMING = "gaming",
-  TESTING = "testing",
-  GENERAL = "general",
-  CUSTOM = "custom",
+  GAMING = 'gaming',
+  TESTING = 'testing',
+  GENERAL = 'general',
+  CUSTOM = 'custom',
 }
 
-@Entity("device_templates")
+@Entity('device_templates')
 export class DeviceTemplate {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'varchar' })
@@ -27,7 +27,7 @@ export class DeviceTemplate {
   description: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: TemplateCategory,
     default: TemplateCategory.GENERAL,
   })
@@ -35,22 +35,22 @@ export class DeviceTemplate {
   category: TemplateCategory;
 
   // 设备配置
-  @Column({ type: "int", default: 2 })
+  @Column({ type: 'int', default: 2 })
   cpuCores: number;
 
-  @Column({ type: "int", default: 4096 })
+  @Column({ type: 'int', default: 4096 })
   memoryMB: number;
 
-  @Column({ type: "int", default: 10240 })
+  @Column({ type: 'int', default: 10240 })
   storageMB: number;
 
-  @Column({ default: "1080x1920" })
+  @Column({ default: '1080x1920' })
   resolution: string;
 
-  @Column({ type: "int", default: 320 })
+  @Column({ type: 'int', default: 320 })
   dpi: number;
 
-  @Column({ default: "11" })
+  @Column({ default: '11' })
   androidVersion: string;
 
   @Column({ default: false })
@@ -60,7 +60,7 @@ export class DeviceTemplate {
   enableAudio: boolean;
 
   // 预安装应用列表
-  @Column({ type: "jsonb", default: [] })
+  @Column({ type: 'jsonb', default: [] })
   preInstalledApps: Array<{
     packageName: string;
     apkPath: string;
@@ -68,11 +68,11 @@ export class DeviceTemplate {
   }>;
 
   // 预设命令（初始化脚本）
-  @Column({ type: "jsonb", default: [] })
+  @Column({ type: 'jsonb', default: [] })
   initCommands: string[];
 
   // 系统设置
-  @Column({ type: "jsonb", nullable: true })
+  @Column({ type: 'jsonb', nullable: true })
   systemSettings: Record<string, any>;
 
   // 镜像信息（用于快照）
@@ -83,17 +83,17 @@ export class DeviceTemplate {
   snapshotPath: string;
 
   // 使用统计
-  @Column({ type: "int", default: 0 })
+  @Column({ type: 'int', default: 0 })
   usageCount: number;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   lastUsedAt: Date;
 
   // 模板元数据
-  @Column({ type: "jsonb", nullable: true })
+  @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;
 
-  @Column({ type: "jsonb", default: [] })
+  @Column({ type: 'jsonb', default: [] })
   tags: string[];
 
   // 发布状态

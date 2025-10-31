@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
@@ -43,12 +37,7 @@ export class QueryAuditInterceptor implements NestInterceptor {
 
     // 记录查询开始
     if (safeQueryMeta) {
-      this.logSafeQuery(
-        className,
-        methodName,
-        safeQueryMeta,
-        context.getArgs(),
-      );
+      this.logSafeQuery(className, methodName, safeQueryMeta, context.getArgs());
     }
 
     if (rawQueryMeta) {
@@ -96,19 +85,14 @@ export class QueryAuditInterceptor implements NestInterceptor {
         });
 
         throw error;
-      }),
+      })
     );
   }
 
   /**
    * 记录安全查询
    */
-  private logSafeQuery(
-    className: string,
-    methodName: string,
-    meta: any,
-    args: any[],
-  ): void {
+  private logSafeQuery(className: string, methodName: string, meta: any, args: any[]): void {
     this.logger.log({
       type: 'safe_query',
       class: className,
@@ -133,9 +117,7 @@ export class QueryAuditInterceptor implements NestInterceptor {
       reviewed: meta.reviewed,
       reviewedBy: meta.reviewedBy,
       reviewDate: meta.reviewDate,
-      warning: meta.reviewed
-        ? undefined
-        : '⚠️ 未经审查的原生 SQL 查询！请进行安全审查',
+      warning: meta.reviewed ? undefined : '⚠️ 未经审查的原生 SQL 查询！请进行安全审查',
       timestamp: new Date().toISOString(),
     });
   }
@@ -181,9 +163,7 @@ export class QueryAuditInterceptor implements NestInterceptor {
       'ssn',
     ];
 
-    return sensitiveFields.some((field) =>
-      fieldName.toLowerCase().includes(field.toLowerCase()),
-    );
+    return sensitiveFields.some((field) => fieldName.toLowerCase().includes(field.toLowerCase()));
   }
 
   /**

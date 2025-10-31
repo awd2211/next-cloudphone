@@ -37,31 +37,31 @@ export interface HuaweiPhoneSpec {
  */
 export enum HuaweiPhoneStatus {
   /** 创建中 */
-  CREATING = "CREATING",
+  CREATING = 'CREATING',
 
   /** 运行中 */
-  RUNNING = "RUNNING",
+  RUNNING = 'RUNNING',
 
   /** 重启中 */
-  REBOOTING = "REBOOTING",
+  REBOOTING = 'REBOOTING',
 
   /** 已停止 */
-  STOPPED = "STOPPED",
+  STOPPED = 'STOPPED',
 
   /** 停止中 */
-  STOPPING = "STOPPING",
+  STOPPING = 'STOPPING',
 
   /** 删除中 */
-  DELETING = "DELETING",
+  DELETING = 'DELETING',
 
   /** 已删除 */
-  DELETED = "DELETED",
+  DELETED = 'DELETED',
 
   /** 错误 */
-  ERROR = "ERROR",
+  ERROR = 'ERROR',
 
   /** 冻结 */
-  FROZEN = "FROZEN",
+  FROZEN = 'FROZEN',
 }
 
 /**

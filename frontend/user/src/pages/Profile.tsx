@@ -1,6 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Card, Descriptions, Button, Form, Input, Modal, message, Row, Col, Statistic, Space } from 'antd';
-import { EditOutlined, LockOutlined, DollarOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Descriptions,
+  Button,
+  Form,
+  Input,
+  Modal,
+  message,
+  Row,
+  Col,
+  Statistic,
+  Space,
+} from 'antd';
+import {
+  EditOutlined,
+  LockOutlined,
+  DollarOutlined,
+  ClockCircleOutlined,
+  SettingOutlined,
+  CreditCardOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from '@/services/auth';
 import { updateProfile, changePassword, getBalance } from '@/services/user';
@@ -105,10 +124,7 @@ const Profile = () => {
               >
                 充值
               </Button>
-              <Button
-                icon={<ClockCircleOutlined />}
-                onClick={() => navigate('/usage')}
-              >
+              <Button icon={<ClockCircleOutlined />} onClick={() => navigate('/usage')}>
                 使用记录
               </Button>
             </Space>
@@ -151,15 +167,29 @@ const Profile = () => {
         </Descriptions>
       </Card>
 
-      <Card title="安全设置" style={{ marginTop: 24 }}>
+      <Card title="账户设置" style={{ marginTop: 24 }}>
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
           <div>
-            <h4>修改密码</h4>
-            <Button
-              icon={<LockOutlined />}
-              onClick={() => setPasswordModalVisible(true)}
-            >
+            <h4>安全设置</h4>
+            <Button icon={<LockOutlined />} onClick={() => setPasswordModalVisible(true)}>
               修改密码
+            </Button>
+          </div>
+          <div>
+            <h4>偏好设置</h4>
+            <p style={{ color: '#666', marginBottom: 8 }}>自定义您的语言、主题和通知偏好</p>
+            <Button icon={<SettingOutlined />} onClick={() => navigate('/profile/preferences')}>
+              偏好设置
+            </Button>
+          </div>
+          <div>
+            <h4>支付方式</h4>
+            <p style={{ color: '#666', marginBottom: 8 }}>管理您的支付方式和绑定账户</p>
+            <Button
+              icon={<CreditCardOutlined />}
+              onClick={() => navigate('/profile/payment-methods')}
+            >
+              支付方式管理
             </Button>
           </div>
         </Space>

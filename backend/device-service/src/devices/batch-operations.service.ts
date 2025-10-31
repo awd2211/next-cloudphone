@@ -1,16 +1,16 @@
-import { Injectable, Logger, BadRequestException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, In } from "typeorm";
-import { Device, DeviceStatus } from "../entities/device.entity";
-import { DevicesService } from "./devices.service";
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, In } from 'typeorm';
+import { Device, DeviceStatus } from '../entities/device.entity';
+import { DevicesService } from './devices.service';
 import {
   BatchCreateDeviceDto,
   BatchOperationDto,
   BatchOperationType,
   BatchOperationResult,
-} from "./dto/batch-operation.dto";
-import { CreateDeviceDto } from "./dto/create-device.dto";
-import pLimit from "p-limit";
+} from './dto/batch-operation.dto';
+import { CreateDeviceDto } from './dto/create-device.dto';
+import pLimit from 'p-limit';
 
 @Injectable()
 export class BatchOperationsService {
@@ -19,7 +19,7 @@ export class BatchOperationsService {
   constructor(
     @InjectRepository(Device)
     private devicesRepository: Repository<Device>,
-    private devicesService: DevicesService,
+    private devicesService: DevicesService
   ) {}
 
   /**
@@ -27,14 +27,9 @@ export class BatchOperationsService {
    */
   async batchCreate(dto: BatchCreateDeviceDto): Promise<BatchOperationResult> {
     const startTime = Date.now();
-    this.logger.log(
-      `Batch creating ${dto.count} devices with prefix "${dto.namePrefix}"`,
-    );
+    this.logger.log(`Batch creating ${dto.count} devices with prefix "${dto.namePrefix}"`);
 
-    const results: Record<
-      string,
-      { success: boolean; message?: string; data?: any }
-    > = {};
+    const results: Record<string, { success: boolean; message?: string; data?: any }> = {};
     let successCount = 0;
     let failedCount = 0;
 
@@ -80,12 +75,9 @@ export class BatchOperationsService {
               message: error.message,
             };
             failedCount++;
-            this.logger.error(
-              `Failed to create device ${deviceName}`,
-              error.stack,
-            );
+            this.logger.error(`Failed to create device ${deviceName}`, error.stack);
           }
-        }),
+        })
       );
     }
 
@@ -93,7 +85,7 @@ export class BatchOperationsService {
 
     const duration = Date.now() - startTime;
     this.logger.log(
-      `Batch creation completed: ${successCount} success, ${failedCount} failed, ${duration}ms`,
+      `Batch creation completed: ${successCount} success, ${failedCount} failed, ${duration}ms`
     );
 
     return {
@@ -115,17 +107,14 @@ export class BatchOperationsService {
     const devices = await this.getTargetDevices(dto);
 
     if (devices.length === 0) {
-      throw new BadRequestException("No devices found matching the criteria");
+      throw new BadRequestException('No devices found matching the criteria');
     }
 
     this.logger.log(
-      `Batch ${dto.operation} on ${devices.length} devices (max concurrency: ${dto.maxConcurrency || 10})`,
+      `Batch ${dto.operation} on ${devices.length} devices (max concurrency: ${dto.maxConcurrency || 10})`
     );
 
-    const results: Record<
-      string,
-      { success: boolean; message?: string; data?: any }
-    > = {};
+    const results: Record<string, { success: boolean; message?: string; data?: any }> = {};
     let successCount = 0;
     let failedCount = 0;
 
@@ -147,19 +136,16 @@ export class BatchOperationsService {
             message: error.message,
           };
           failedCount++;
-          this.logger.error(
-            `Failed to ${dto.operation} device ${device.id}`,
-            error.stack,
-          );
+          this.logger.error(`Failed to ${dto.operation} device ${device.id}`, error.stack);
         }
-      }),
+      })
     );
 
     await Promise.all(promises);
 
     const duration = Date.now() - startTime;
     this.logger.log(
-      `Batch operation completed: ${successCount} success, ${failedCount} failed, ${duration}ms`,
+      `Batch operation completed: ${successCount} success, ${failedCount} failed, ${duration}ms`
     );
 
     return {
@@ -196,9 +182,7 @@ export class BatchOperationsService {
 
     // 如果没有指定任何条件，抛出错误
     if (Object.keys(where).length === 0 && !dto.deviceIds) {
-      throw new BadRequestException(
-        "Must specify deviceIds, groupName, or userId",
-      );
+      throw new BadRequestException('Must specify deviceIds, groupName, or userId');
     }
 
     return await this.devicesRepository.find({ where });
@@ -207,10 +191,7 @@ export class BatchOperationsService {
   /**
    * 执行单个设备操作
    */
-  private async executeOperation(
-    device: Device,
-    dto: BatchOperationDto,
-  ): Promise<any> {
+  private async executeOperation(device: Device, dto: BatchOperationDto): Promise<any> {
     switch (dto.operation) {
       case BatchOperationType.START:
         return await this.devicesService.start(device.id);
@@ -226,33 +207,21 @@ export class BatchOperationsService {
 
       case BatchOperationType.EXECUTE_COMMAND:
         if (!dto.command) {
-          throw new BadRequestException(
-            "Command is required for EXECUTE_COMMAND operation",
-          );
+          throw new BadRequestException('Command is required for EXECUTE_COMMAND operation');
         }
-        return await this.devicesService.executeShellCommand(
-          device.id,
-          dto.command,
-        );
+        return await this.devicesService.executeShellCommand(device.id, dto.command);
 
       case BatchOperationType.INSTALL_APP:
         if (!dto.apkPath) {
-          throw new BadRequestException(
-            "apkPath is required for INSTALL_APP operation",
-          );
+          throw new BadRequestException('apkPath is required for INSTALL_APP operation');
         }
         return await this.devicesService.installApk(device.id, dto.apkPath);
 
       case BatchOperationType.UNINSTALL_APP:
         if (!dto.packageName) {
-          throw new BadRequestException(
-            "packageName is required for UNINSTALL_APP operation",
-          );
+          throw new BadRequestException('packageName is required for UNINSTALL_APP operation');
         }
-        return await this.devicesService.uninstallApp(
-          device.id,
-          dto.packageName,
-        );
+        return await this.devicesService.uninstallApp(device.id, dto.packageName);
 
       default:
         throw new BadRequestException(`Unknown operation: ${dto.operation}`);
@@ -268,7 +237,7 @@ export class BatchOperationsService {
     const stats: Record<string, any> = {};
 
     devices.forEach((device) => {
-      const groupName = device.metadata?.groupName || "ungrouped";
+      const groupName = device.metadata?.groupName || 'ungrouped';
 
       if (!stats[groupName]) {
         stats[groupName] = {
@@ -315,13 +284,8 @@ export class BatchOperationsService {
   /**
    * 更新设备分组
    */
-  async updateDeviceGroup(
-    deviceIds: string[],
-    groupName: string,
-  ): Promise<void> {
-    this.logger.log(
-      `Updating ${deviceIds.length} devices to group "${groupName}"`,
-    );
+  async updateDeviceGroup(deviceIds: string[], groupName: string): Promise<void> {
+    this.logger.log(`Updating ${deviceIds.length} devices to group "${groupName}"`);
 
     await Promise.all(
       deviceIds.map(async (deviceId) => {
@@ -336,19 +300,17 @@ export class BatchOperationsService {
           };
           await this.devicesRepository.save(device);
         }
-      }),
+      })
     );
   }
 
   /**
    * 批量获取设备状态
    */
-  async batchGetStatus(
-    deviceIds: string[],
-  ): Promise<Record<string, DeviceStatus>> {
+  async batchGetStatus(deviceIds: string[]): Promise<Record<string, DeviceStatus>> {
     const devices = await this.devicesRepository.find({
       where: { id: In(deviceIds) },
-      select: ["id", "status"],
+      select: ['id', 'status'],
     });
 
     const statusMap: Record<string, DeviceStatus> = {};
@@ -365,7 +327,7 @@ export class BatchOperationsService {
   async batchExecuteAndCollect(
     deviceIds: string[],
     command: string,
-    maxConcurrency: number = 10,
+    maxConcurrency: number = 10
   ): Promise<Record<string, string>> {
     const limit = pLimit(maxConcurrency);
     const results: Record<string, string> = {};
@@ -373,15 +335,12 @@ export class BatchOperationsService {
     const promises = deviceIds.map((deviceId) =>
       limit(async () => {
         try {
-          const output = await this.devicesService.executeShellCommand(
-            deviceId,
-            command,
-          );
+          const output = await this.devicesService.executeShellCommand(deviceId, command);
           results[deviceId] = output;
         } catch (error) {
           results[deviceId] = `ERROR: ${error.message}`;
         }
-      }),
+      })
     );
 
     await Promise.all(promises);

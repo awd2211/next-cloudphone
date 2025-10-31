@@ -5,34 +5,34 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from "typeorm";
+} from 'typeorm';
 
 export enum DeviceStatus {
-  CREATING = "creating",
-  IDLE = "idle",
-  ALLOCATED = "allocated",
-  RUNNING = "running",
-  STOPPED = "stopped",
-  PAUSED = "paused",
-  ERROR = "error",
-  DELETED = "deleted",
+  CREATING = 'creating',
+  IDLE = 'idle',
+  ALLOCATED = 'allocated',
+  RUNNING = 'running',
+  STOPPED = 'stopped',
+  PAUSED = 'paused',
+  ERROR = 'error',
+  DELETED = 'deleted',
 }
 
 export enum DeviceType {
-  PHONE = "phone",
-  TABLET = "tablet",
+  PHONE = 'phone',
+  TABLET = 'tablet',
 }
 
 export enum DeviceProviderType {
-  REDROID = "redroid",
-  HUAWEI_CPH = "huawei_cph",
-  ALIYUN_ECP = "aliyun_ecp",
-  PHYSICAL = "physical",
+  REDROID = 'redroid',
+  HUAWEI_CPH = 'huawei_cph',
+  ALIYUN_ECP = 'aliyun_ecp',
+  PHYSICAL = 'physical',
 }
 
-@Entity("devices")
+@Entity('devices')
 export class Device {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'varchar' })
@@ -43,14 +43,14 @@ export class Device {
   description: string | null;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: DeviceType,
     default: DeviceType.PHONE,
   })
   type: DeviceType;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: DeviceStatus,
     default: DeviceStatus.CREATING,
   })
@@ -74,28 +74,28 @@ export class Device {
 
   // ========== Provider 信息（多设备源支持） ==========
   @Column({
-    name: "provider_type",
-    type: "enum",
+    name: 'provider_type',
+    type: 'enum',
     enum: DeviceProviderType,
     default: DeviceProviderType.REDROID,
   })
   @Index()
   providerType: DeviceProviderType;
 
-  @Column({ name: "external_id", type: 'varchar', nullable: true })
+  @Column({ name: 'external_id', type: 'varchar', nullable: true })
   @Index()
   externalId: string | null; // Provider 侧的设备 ID（如 Docker containerId、华为 instanceId、物理设备 MAC）
 
-  @Column({ name: "provider_config", type: "jsonb", nullable: true })
+  @Column({ name: 'provider_config', type: 'jsonb', nullable: true })
   providerConfig: Record<string, any> | null; // Provider 特定配置（创建时的参数）
 
-  @Column({ name: "connection_info", type: "jsonb", nullable: true })
+  @Column({ name: 'connection_info', type: 'jsonb', nullable: true })
   connectionInfo: Record<string, any> | null; // 连接信息（ADB、SCRCPY、WebRTC 等）
 
-  @Column({ name: "device_group", type: 'varchar', nullable: true })
+  @Column({ name: 'device_group', type: 'varchar', nullable: true })
   deviceGroup: string | null; // 设备分组（物理设备的机架位置、云设备的区域等）
 
-  @Column({ name: "health_score", type: "int", default: 100 })
+  @Column({ name: 'health_score', type: 'int', default: 100 })
   healthScore: number; // 设备健康评分 (0-100)
 
   // Docker 容器信息（仅 Redroid 使用）
@@ -113,27 +113,27 @@ export class Device {
   @Column({ type: 'varchar', nullable: true })
   adbHost: string | null;
 
-  @Column({ type: "int", nullable: true })
+  @Column({ type: 'int', nullable: true })
   adbPort: number | null;
 
   // 设备配置
-  @Column({ type: "int", default: 2 })
+  @Column({ type: 'int', default: 2 })
   cpuCores: number;
 
-  @Column({ type: "int", default: 4096 })
+  @Column({ type: 'int', default: 4096 })
   memoryMB: number;
 
-  @Column({ type: "int", default: 10240 })
+  @Column({ type: 'int', default: 10240 })
   storageMB: number;
 
-  @Column({ type: 'varchar', default: "1920x1080" })
+  @Column({ type: 'varchar', default: '1920x1080' })
   resolution: string;
 
-  @Column({ type: "int", default: 240 })
+  @Column({ type: 'int', default: 240 })
   dpi: number;
 
   // Android 配置
-  @Column({ type: 'varchar', default: "11" })
+  @Column({ type: 'varchar', default: '11' })
   androidVersion: string;
 
   @Column({ type: 'varchar', nullable: true })
@@ -147,43 +147,43 @@ export class Device {
   macAddress: string | null;
 
   // 状态信息
-  @Column({ type: "int", default: 0 })
+  @Column({ type: 'int', default: 0 })
   cpuUsage: number;
 
-  @Column({ type: "int", default: 0 })
+  @Column({ type: 'int', default: 0 })
   memoryUsage: number;
 
-  @Column({ type: "int", default: 0 })
+  @Column({ type: 'int', default: 0 })
   storageUsage: number;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   lastHeartbeatAt: Date | null;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   lastActiveAt: Date | null;
 
   // 到期时间（用于临时设备或有时限的设备）
-  @Column({ name: "expires_at", type: "timestamp", nullable: true })
+  @Column({ name: 'expires_at', type: 'timestamp', nullable: true })
   @Index()
   expiresAt: Date | null;
 
   // 是否启用自动备份
-  @Column({ name: "auto_backup_enabled", default: false })
+  @Column({ name: 'auto_backup_enabled', default: false })
   autoBackupEnabled: boolean;
 
   // 自动备份间隔（小时）
-  @Column({ name: "backup_interval_hours", type: "int", nullable: true })
+  @Column({ name: 'backup_interval_hours', type: 'int', nullable: true })
   backupIntervalHours: number | null;
 
   // 最后备份时间
-  @Column({ name: "last_backup_at", type: "timestamp", nullable: true })
+  @Column({ name: 'last_backup_at', type: 'timestamp', nullable: true })
   lastBackupAt: Date | null;
 
   // 元数据
-  @Column({ type: "jsonb", nullable: true })
+  @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any> | null;
 
-  @Column({ name: "device_tags", type: "jsonb", nullable: true })
+  @Column({ name: 'device_tags', type: 'jsonb', nullable: true })
   deviceTags: string[] | null; // 设备标签（用于过滤和搜索）
 
   @CreateDateColumn()

@@ -76,10 +76,7 @@ export interface DataScopeConfig {
  */
 export const DataScope = (config: DataScopeConfig | DataScopeType) => {
   // 如果传入的是类型，转换为配置对象
-  const fullConfig: DataScopeConfig =
-    typeof config === 'string'
-      ? { type: config }
-      : config;
+  const fullConfig: DataScopeConfig = typeof config === 'string' ? { type: config } : config;
 
   // 设置默认值
   if (!fullConfig.ownerField) {

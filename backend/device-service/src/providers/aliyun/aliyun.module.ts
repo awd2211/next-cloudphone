@@ -1,6 +1,6 @@
-import { Module } from "@nestjs/common";
-import { AliyunProvider } from "./aliyun.provider";
-import { AliyunEcpClient } from "./aliyun-ecp.client";
+import { Module } from '@nestjs/common';
+import { AliyunProvider } from './aliyun.provider';
+import { AliyunEcpClient } from './aliyun-ecp.client';
 
 /**
  * AliyunModule
@@ -34,10 +34,7 @@ import { AliyunEcpClient } from "./aliyun-ecp.client";
  * - ADB 连接需要公网 IP，需在安全组中放行端口 5555
  */
 @Module({
-  providers: [
-    AliyunEcpClient,
-    AliyunProvider,
-  ],
+  providers: [AliyunEcpClient, AliyunProvider],
   exports: [
     AliyunProvider,
     AliyunEcpClient, // ✅ Export for CloudDeviceTokenService

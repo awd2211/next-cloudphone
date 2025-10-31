@@ -25,7 +25,7 @@ import { BalanceClientService } from './clients/balance-client.service';
     HttpModule,
     HttpClientModule,
     CurrencyModule,
-    SagaModule,  // ✅ PaymentsService 依赖 SagaOrchestratorService
+    SagaModule, // ✅ PaymentsService 依赖 SagaOrchestratorService
   ],
   controllers: [PaymentsController, PaymentsAdminController],
   providers: [

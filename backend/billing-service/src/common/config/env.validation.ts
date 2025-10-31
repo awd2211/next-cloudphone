@@ -103,9 +103,7 @@ export const envValidationSchema = Joi.object({
   USER_SERVICE_URL: Joi.string().uri().optional(),
 
   // ===== 日志配置 =====
-  LOG_LEVEL: Joi.string()
-    .valid('debug', 'info', 'warn', 'error')
-    .default('info'),
+  LOG_LEVEL: Joi.string().valid('debug', 'info', 'warn', 'error').default('info'),
   LOG_FORMAT: Joi.string().valid('json', 'dev', 'pretty').default('json'),
 
   // ===== RabbitMQ 配置 =====

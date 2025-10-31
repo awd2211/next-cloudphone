@@ -1,5 +1,5 @@
-import { Logger } from "@nestjs/common";
-import { RateLimitOptions } from "./rate-limiter.service";
+import { Logger } from '@nestjs/common';
+import { RateLimitOptions } from './rate-limiter.service';
 
 /**
  * RateLimit 装饰器配置
@@ -30,11 +30,7 @@ class GlobalRateLimiter {
     return bucket;
   }
 
-  async waitForToken(
-    key: string,
-    options: RateLimitOptions,
-    timeoutMs: number,
-  ): Promise<number> {
+  async waitForToken(key: string, options: RateLimitOptions, timeoutMs: number): Promise<number> {
     const bucket = this.getBucket(key, options);
     const startTime = Date.now();
     const waitTime = bucket.getWaitTime();
@@ -45,9 +41,7 @@ class GlobalRateLimiter {
     }
 
     if (waitTime > timeoutMs) {
-      throw new Error(
-        `Rate limit exceeded: need to wait ${waitTime}ms, timeout is ${timeoutMs}ms`,
-      );
+      throw new Error(`Rate limit exceeded: need to wait ${waitTime}ms, timeout is ${timeoutMs}ms`);
     }
 
     await delay(waitTime);
@@ -84,20 +78,9 @@ const globalRateLimiter = new GlobalRateLimiter();
  * ```
  */
 export function RateLimit(options: RateLimitDecoratorOptions) {
-  const {
-    key,
-    capacity,
-    refillRate,
-    initialTokens,
-    timeoutMs = 30000,
-    blocking = true,
-  } = options;
+  const { key, capacity, refillRate, initialTokens, timeoutMs = 30000, blocking = true } = options;
 
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const logger = new Logger(`${target.constructor.name}.${propertyKey}`);
 
@@ -111,23 +94,15 @@ export function RateLimit(options: RateLimitDecoratorOptions) {
       if (blocking) {
         // 阻塞模式：等待直到有可用 token
         try {
-          const waitTime = await globalRateLimiter.waitForToken(
-            key,
-            rateLimitOptions,
-            timeoutMs,
-          );
+          const waitTime = await globalRateLimiter.waitForToken(key, rateLimitOptions, timeoutMs);
 
           if (waitTime > 0) {
-            logger.debug(
-              `Rate limit: waited ${waitTime}ms for token (key: ${key})`,
-            );
+            logger.debug(`Rate limit: waited ${waitTime}ms for token (key: ${key})`);
           }
 
           return await originalMethod.apply(this, args);
         } catch (error) {
-          logger.error(
-            `Rate limit error (key: ${key}): ${error.message}`,
-          );
+          logger.error(`Rate limit error (key: ${key}): ${error.message}`);
           throw error;
         }
       } else {
@@ -135,9 +110,7 @@ export function RateLimit(options: RateLimitDecoratorOptions) {
         const consumed = globalRateLimiter.tryConsume(key, rateLimitOptions);
 
         if (!consumed) {
-          const error = new Error(
-            `Rate limit exceeded for ${key}: no available tokens`,
-          );
+          const error = new Error(`Rate limit exceeded for ${key}: no available tokens`);
           logger.warn(error.message);
           throw error;
         }
@@ -212,10 +185,10 @@ export class CloudProviderError extends Error {
   constructor(
     public readonly provider: string,
     public readonly code: string,
-    message: string,
+    message: string
   ) {
     super(`[${provider}] ${code}: ${message}`);
-    this.name = "CloudProviderError";
+    this.name = 'CloudProviderError';
   }
 }
 
@@ -225,6 +198,6 @@ export class CloudProviderError extends Error {
 export class RateLimitError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "RateLimitError";
+    this.name = 'RateLimitError';
   }
 }

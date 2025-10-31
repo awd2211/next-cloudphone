@@ -1,8 +1,4 @@
-import {
-  createLoggerConfig,
-  createAppLogger,
-  shouldSampleLog,
-} from './logger.config';
+import { createLoggerConfig, createAppLogger, shouldSampleLog } from './logger.config';
 
 describe('Logger Config', () => {
   // Save original environment

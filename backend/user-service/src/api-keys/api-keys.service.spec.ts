@@ -78,7 +78,7 @@ describe('ApiKeysService', () => {
       expect(apiKeyRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           prefix: expect.stringContaining('cp_live_'),
-        }),
+        })
       );
     });
 
@@ -100,7 +100,7 @@ describe('ApiKeysService', () => {
       expect(apiKeyRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           usageCount: 0,
-        }),
+        })
       );
     });
 
@@ -122,7 +122,7 @@ describe('ApiKeysService', () => {
       expect(apiKeyRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           status: ApiKeyStatus.ACTIVE,
-        }),
+        })
       );
     });
   });
@@ -216,10 +216,7 @@ describe('ApiKeysService', () => {
     it('应该成功获取用户的API密钥列表', async () => {
       // Arrange
       const userId = 'user-123';
-      const mockApiKeys = [
-        createMockApiKey({ userId }),
-        createMockApiKey({ userId }),
-      ];
+      const mockApiKeys = [createMockApiKey({ userId }), createMockApiKey({ userId })];
 
       apiKeyRepository.find.mockResolvedValue(mockApiKeys);
 
@@ -247,7 +244,7 @@ describe('ApiKeysService', () => {
       expect(apiKeyRepository.find).toHaveBeenCalledWith(
         expect.objectContaining({
           order: { createdAt: 'DESC' },
-        }),
+        })
       );
     });
   });
@@ -278,9 +275,7 @@ describe('ApiKeysService', () => {
       apiKeyRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.getApiKey(apiKeyId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.getApiKey(apiKeyId)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -316,9 +311,7 @@ describe('ApiKeysService', () => {
       apiKeyRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.updateApiKey(apiKeyId, dto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.updateApiKey(apiKeyId, dto)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -353,9 +346,7 @@ describe('ApiKeysService', () => {
       apiKeyRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.revokeApiKey(apiKeyId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.revokeApiKey(apiKeyId)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -382,9 +373,7 @@ describe('ApiKeysService', () => {
       apiKeyRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.deleteApiKey(apiKeyId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.deleteApiKey(apiKeyId)).rejects.toThrow(NotFoundException);
     });
   });
 

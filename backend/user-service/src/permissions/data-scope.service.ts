@@ -27,7 +27,7 @@ export class DataScopeService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Department)
-    private departmentRepository: Repository<Department>,
+    private departmentRepository: Repository<Department>
   ) {}
 
   /**
@@ -36,10 +36,7 @@ export class DataScopeService {
    * @param resourceType 资源类型
    * @returns 数据范围过滤器
    */
-  async getDataScopeFilter(
-    userId: string,
-    resourceType: string,
-  ): Promise<DataScopeFilter | null> {
+  async getDataScopeFilter(userId: string, resourceType: string): Promise<DataScopeFilter | null> {
     try {
       const user = await this.userRepository.findOne({
         where: { id: userId },
@@ -82,10 +79,7 @@ export class DataScopeService {
       const primaryScope = dataScopes[0];
       return await this.buildScopeFilter(user, primaryScope, resourceType);
     } catch (error) {
-      this.logger.error(
-        `获取数据范围过滤器失败: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`获取数据范围过滤器失败: ${error.message}`, error.stack);
       return null;
     }
   }
@@ -101,7 +95,7 @@ export class DataScopeService {
     queryBuilder: SelectQueryBuilder<T>,
     userId: string,
     resourceType: string,
-    alias?: string,
+    alias?: string
   ): Promise<SelectQueryBuilder<T>> {
     const filter = await this.getDataScopeFilter(userId, resourceType);
     if (!filter) {
@@ -114,7 +108,7 @@ export class DataScopeService {
     queryBuilder.andWhere(
       new Brackets((qb) => {
         qb.where(this.replaceAlias(filter.whereClause, tableAlias), filter.parameters);
-      }),
+      })
     );
 
     return queryBuilder;
@@ -127,11 +121,7 @@ export class DataScopeService {
    * @param resourceData 资源数据
    * @returns 是否可以访问
    */
-  async checkRowAccess(
-    userId: string,
-    resourceType: string,
-    resourceData: any,
-  ): Promise<boolean> {
+  async checkRowAccess(userId: string, resourceType: string, resourceData: any): Promise<boolean> {
     try {
       const user = await this.userRepository.findOne({
         where: { id: userId },
@@ -168,10 +158,7 @@ export class DataScopeService {
       const primaryScope = dataScopes[0];
       return this.evaluateScopeRule(user, primaryScope, resourceData);
     } catch (error) {
-      this.logger.error(
-        `检查行访问权限失败: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`检查行访问权限失败: ${error.message}`, error.stack);
       return false;
     }
   }
@@ -183,7 +170,7 @@ export class DataScopeService {
    */
   async getDepartmentWithChildren(departmentId: string): Promise<string[]> {
     const result = [departmentId];
-    
+
     try {
       const children = await this.departmentRepository.find({
         where: { parentId: departmentId, isActive: true },
@@ -205,7 +192,7 @@ export class DataScopeService {
    */
   private async buildDefaultScopeFilter(
     user: User,
-    resourceType: string,
+    resourceType: string
   ): Promise<DataScopeFilter | null> {
     const alias = resourceType;
 
@@ -240,7 +227,7 @@ export class DataScopeService {
   private async buildScopeFilter(
     user: User,
     dataScope: DataScope,
-    resourceType: string,
+    resourceType: string
   ): Promise<DataScopeFilter | null> {
     const alias = resourceType;
 
@@ -278,7 +265,7 @@ export class DataScopeService {
   private async buildDepartmentFilter(
     user: User,
     dataScope: DataScope,
-    alias: string,
+    alias: string
   ): Promise<DataScopeFilter> {
     const departmentIds =
       dataScope.departmentIds && dataScope.departmentIds.length > 0
@@ -309,7 +296,7 @@ export class DataScopeService {
 
     while (queue.length > 0) {
       const currentId = queue.shift();
-      
+
       // 查询当前部门的所有子部门
       const subDepartments = await this.departmentRepository.find({
         where: { parentId: currentId },
@@ -334,7 +321,7 @@ export class DataScopeService {
   private async buildDepartmentFilterLegacy(
     user: User,
     alias: string,
-    includeSubDepartments: boolean,
+    includeSubDepartments: boolean
   ): Promise<DataScopeFilter> {
     if (includeSubDepartments) {
       // 递归获取所有子部门
@@ -354,10 +341,7 @@ export class DataScopeService {
   /**
    * 构建自定义过滤器
    */
-  private buildCustomFilter(
-    filter: Record<string, any>,
-    alias: string,
-  ): DataScopeFilter | null {
+  private buildCustomFilter(filter: Record<string, any>, alias: string): DataScopeFilter | null {
     if (!filter || Object.keys(filter).length === 0) {
       return null;
     }
@@ -371,12 +355,7 @@ export class DataScopeService {
         // 处理操作符
         for (const [op, opValue] of Object.entries(value)) {
           const paramName = `param${paramIndex++}`;
-          const condition = this.buildOperatorCondition(
-            alias,
-            field,
-            op,
-            paramName,
-          );
+          const condition = this.buildOperatorCondition(alias, field, op, paramName);
           if (condition) {
             conditions.push(condition);
             parameters[paramName] = opValue;
@@ -407,7 +386,7 @@ export class DataScopeService {
     alias: string,
     field: string,
     operator: string,
-    paramName: string,
+    paramName: string
   ): string | null {
     const column = `${alias}.${field}`;
 
@@ -443,11 +422,7 @@ export class DataScopeService {
   /**
    * 评估数据范围规则
    */
-  private evaluateScopeRule(
-    user: User,
-    dataScope: DataScope,
-    resourceData: any,
-  ): boolean {
+  private evaluateScopeRule(user: User, dataScope: DataScope, resourceData: any): boolean {
     switch (dataScope.scopeType) {
       case ScopeType.ALL:
         return true;
@@ -463,10 +438,7 @@ export class DataScopeService {
         return resourceData.departmentId === user.departmentId;
 
       case ScopeType.SELF:
-        return (
-          resourceData.createdBy === user.id ||
-          resourceData.userId === user.id
-        );
+        return resourceData.createdBy === user.id || resourceData.userId === user.id;
 
       case ScopeType.CUSTOM:
         return this.evaluateCustomFilter(dataScope.filter, resourceData);
@@ -479,10 +451,7 @@ export class DataScopeService {
   /**
    * 评估自定义过滤条件
    */
-  private evaluateCustomFilter(
-    filter: Record<string, any>,
-    data: any,
-  ): boolean {
+  private evaluateCustomFilter(filter: Record<string, any>, data: any): boolean {
     if (!filter || Object.keys(filter).length === 0) {
       return true;
     }
@@ -507,11 +476,7 @@ export class DataScopeService {
   /**
    * 评估操作符
    */
-  private evaluateOperator(
-    dataValue: any,
-    operator: string,
-    filterValue: any,
-  ): boolean {
+  private evaluateOperator(dataValue: any, operator: string, filterValue: any): boolean {
     switch (operator) {
       case '$eq':
         return dataValue === filterValue;
@@ -552,10 +517,7 @@ export class DataScopeService {
       case 'department':
         return resourceData.departmentId === user.departmentId;
       case 'self':
-        return (
-          resourceData.createdBy === user.id ||
-          resourceData.userId === user.id
-        );
+        return resourceData.createdBy === user.id || resourceData.userId === user.id;
       default:
         return false;
     }

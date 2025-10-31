@@ -36,7 +36,7 @@ export class MinioService {
   async uploadFile(
     filePath: string,
     objectName: string,
-    metadata?: Record<string, string>,
+    metadata?: Record<string, string>
   ): Promise<{ etag: string; objectKey: string }> {
     try {
       const fileStream = fs.createReadStream(filePath);
@@ -52,7 +52,7 @@ export class MinioService {
         objectName,
         fileStream,
         stats.size,
-        metaData,
+        metaData
       );
 
       return {
@@ -74,11 +74,7 @@ export class MinioService {
 
   async getFileUrl(objectName: string, expirySeconds: number = 7 * 24 * 60 * 60): Promise<string> {
     try {
-      return await this.minioClient.presignedGetObject(
-        this.bucketName,
-        objectName,
-        expirySeconds,
-      );
+      return await this.minioClient.presignedGetObject(this.bucketName, objectName, expirySeconds);
     } catch (error) {
       throw new InternalServerErrorException(`获取文件 URL 失败: ${error.message}`);
     }

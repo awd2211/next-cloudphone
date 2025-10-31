@@ -9,48 +9,35 @@ import {
   Query,
   UseGuards,
   Logger,
-} from "@nestjs/common";
-import {
-  SchedulerService,
-  ScheduleRequest,
-  SchedulingStrategy,
-} from "./scheduler.service";
-import {
-  NodeManagerService,
-  CreateNodeDto,
-  UpdateNodeDto,
-} from "./node-manager.service";
-import { ResourceMonitorService } from "./resource-monitor.service";
+} from '@nestjs/common';
+import { SchedulerService, ScheduleRequest, SchedulingStrategy } from './scheduler.service';
+import { NodeManagerService, CreateNodeDto, UpdateNodeDto } from './node-manager.service';
+import { ResourceMonitorService } from './resource-monitor.service';
 import {
   AllocationService,
   AllocationRequest,
   SchedulingStrategy as AllocationStrategy,
-} from "./allocation.service";
+} from './allocation.service';
 import {
   BatchAllocateDto,
   BatchReleaseDto,
   BatchExtendDto,
   BatchQueryDto,
-} from "./dto/batch-allocation.dto";
-import { ExtendAllocationDto } from "./dto/extend-allocation.dto";
+} from './dto/batch-allocation.dto';
+import { ExtendAllocationDto } from './dto/extend-allocation.dto';
 import {
   CreateReservationDto,
   UpdateReservationDto,
   CancelReservationDto,
   QueryReservationsDto,
-} from "./dto/reservation.dto";
-import {
-  JoinQueueDto,
-  CancelQueueDto,
-  QueryQueueDto,
-  ProcessQueueBatchDto,
-} from "./dto/queue.dto";
-import { ReservationService } from "./reservation.service";
-import { QueueService } from "./queue.service";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
-import { NodeStatus } from "../entities/node.entity";
+} from './dto/reservation.dto';
+import { JoinQueueDto, CancelQueueDto, QueryQueueDto, ProcessQueueBatchDto } from './dto/queue.dto';
+import { ReservationService } from './reservation.service';
+import { QueueService } from './queue.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { NodeStatus } from '../entities/node.entity';
 
-@Controller("scheduler")
+@Controller('scheduler')
 @UseGuards(JwtAuthGuard)
 export class SchedulerController {
   private readonly logger = new Logger(SchedulerController.name);
@@ -61,7 +48,7 @@ export class SchedulerController {
     private readonly resourceMonitorService: ResourceMonitorService,
     private readonly allocationService: AllocationService,
     private readonly reservationService: ReservationService,
-    private readonly queueService: QueueService,
+    private readonly queueService: QueueService
   ) {}
 
   // ==================== 节点管理 API ====================
@@ -70,7 +57,7 @@ export class SchedulerController {
    * 注册新节点
    * POST /scheduler/nodes
    */
-  @Post("nodes")
+  @Post('nodes')
   async registerNode(@Body() dto: CreateNodeDto) {
     this.logger.log(`Registering node: ${dto.name}`);
     return await this.nodeManagerService.registerNode(dto);
@@ -80,8 +67,8 @@ export class SchedulerController {
    * 获取节点列表
    * GET /scheduler/nodes?status=online
    */
-  @Get("nodes")
-  async listNodes(@Query("status") status?: NodeStatus) {
+  @Get('nodes')
+  async listNodes(@Query('status') status?: NodeStatus) {
     return await this.nodeManagerService.listNodes(status);
   }
 
@@ -89,8 +76,8 @@ export class SchedulerController {
    * 获取节点详情
    * GET /scheduler/nodes/:id
    */
-  @Get("nodes/:id")
-  async getNode(@Param("id") id: string) {
+  @Get('nodes/:id')
+  async getNode(@Param('id') id: string) {
     return await this.nodeManagerService.getNode(id);
   }
 
@@ -98,8 +85,8 @@ export class SchedulerController {
    * 更新节点信息
    * PUT /scheduler/nodes/:id
    */
-  @Put("nodes/:id")
-  async updateNode(@Param("id") id: string, @Body() dto: UpdateNodeDto) {
+  @Put('nodes/:id')
+  async updateNode(@Param('id') id: string, @Body() dto: UpdateNodeDto) {
     return await this.nodeManagerService.updateNode(id, dto);
   }
 
@@ -107,21 +94,18 @@ export class SchedulerController {
    * 删除节点
    * DELETE /scheduler/nodes/:id
    */
-  @Delete("nodes/:id")
-  async unregisterNode(@Param("id") id: string) {
+  @Delete('nodes/:id')
+  async unregisterNode(@Param('id') id: string) {
     await this.nodeManagerService.unregisterNode(id);
-    return { message: "Node unregistered successfully" };
+    return { message: 'Node unregistered successfully' };
   }
 
   /**
    * 设置节点维护模式
    * POST /scheduler/nodes/:id/maintenance
    */
-  @Post("nodes/:id/maintenance")
-  async setMaintenance(
-    @Param("id") id: string,
-    @Body() body: { enable: boolean },
-  ) {
+  @Post('nodes/:id/maintenance')
+  async setMaintenance(@Param('id') id: string, @Body() body: { enable: boolean }) {
     return await this.nodeManagerService.setMaintenance(id, body.enable);
   }
 
@@ -129,8 +113,8 @@ export class SchedulerController {
    * 排空节点
    * POST /scheduler/nodes/:id/drain
    */
-  @Post("nodes/:id/drain")
-  async drainNode(@Param("id") id: string) {
+  @Post('nodes/:id/drain')
+  async drainNode(@Param('id') id: string) {
     return await this.nodeManagerService.drainNode(id);
   }
 
@@ -138,30 +122,25 @@ export class SchedulerController {
    * 添加节点污点
    * POST /scheduler/nodes/:id/taints
    */
-  @Post("nodes/:id/taints")
+  @Post('nodes/:id/taints')
   async addTaint(
-    @Param("id") id: string,
+    @Param('id') id: string,
     @Body()
     body: {
       key: string;
       value: string;
-      effect: "NoSchedule" | "PreferNoSchedule" | "NoExecute";
-    },
+      effect: 'NoSchedule' | 'PreferNoSchedule' | 'NoExecute';
+    }
   ) {
-    return await this.nodeManagerService.addTaint(
-      id,
-      body.key,
-      body.value,
-      body.effect,
-    );
+    return await this.nodeManagerService.addTaint(id, body.key, body.value, body.effect);
   }
 
   /**
    * 删除节点污点
    * DELETE /scheduler/nodes/:id/taints/:key
    */
-  @Delete("nodes/:id/taints/:key")
-  async removeTaint(@Param("id") id: string, @Param("key") key: string) {
+  @Delete('nodes/:id/taints/:key')
+  async removeTaint(@Param('id') id: string, @Param('key') key: string) {
     return await this.nodeManagerService.removeTaint(id, key);
   }
 
@@ -169,11 +148,8 @@ export class SchedulerController {
    * 更新节点标签
    * PUT /scheduler/nodes/:id/labels
    */
-  @Put("nodes/:id/labels")
-  async updateLabels(
-    @Param("id") id: string,
-    @Body() labels: Record<string, string>,
-  ) {
+  @Put('nodes/:id/labels')
+  async updateLabels(@Param('id') id: string, @Body() labels: Record<string, string>) {
     return await this.nodeManagerService.updateLabels(id, labels);
   }
 
@@ -181,8 +157,8 @@ export class SchedulerController {
    * 删除节点标签
    * DELETE /scheduler/nodes/:id/labels/:key
    */
-  @Delete("nodes/:id/labels/:key")
-  async removeLabel(@Param("id") id: string, @Param("key") key: string) {
+  @Delete('nodes/:id/labels/:key')
+  async removeLabel(@Param('id') id: string, @Param('key') key: string) {
     return await this.nodeManagerService.removeLabel(id, key);
   }
 
@@ -190,7 +166,7 @@ export class SchedulerController {
    * 获取节点统计信息
    * GET /scheduler/nodes/stats/summary
    */
-  @Get("nodes/stats/summary")
+  @Get('nodes/stats/summary')
   async getNodesStats() {
     return await this.nodeManagerService.getNodesStats();
   }
@@ -201,7 +177,7 @@ export class SchedulerController {
    * 为设备选择节点
    * POST /scheduler/schedule
    */
-  @Post("schedule")
+  @Post('schedule')
   async scheduleDevice(@Body() request: ScheduleRequest) {
     return await this.schedulerService.scheduleDevice(request);
   }
@@ -210,7 +186,7 @@ export class SchedulerController {
    * 批量调度设备
    * POST /scheduler/schedule/batch
    */
-  @Post("schedule/batch")
+  @Post('schedule/batch')
   async scheduleDevices(@Body() requests: ScheduleRequest[]) {
     const results = await this.schedulerService.scheduleDevices(requests);
     return {
@@ -227,7 +203,7 @@ export class SchedulerController {
    * 设置调度策略
    * POST /scheduler/strategy
    */
-  @Post("strategy")
+  @Post('strategy')
   async setStrategy(@Body() body: { strategy: SchedulingStrategy }) {
     this.schedulerService.setStrategy(body.strategy);
     return {
@@ -240,7 +216,7 @@ export class SchedulerController {
    * 获取调度统计
    * GET /scheduler/stats
    */
-  @Get("stats")
+  @Get('stats')
   async getSchedulingStats() {
     return await this.schedulerService.getSchedulingStats();
   }
@@ -249,7 +225,7 @@ export class SchedulerController {
    * 重新平衡集群
    * POST /scheduler/rebalance
    */
-  @Post("rebalance")
+  @Post('rebalance')
   async rebalanceCluster() {
     return await this.schedulerService.rebalanceCluster();
   }
@@ -260,17 +236,17 @@ export class SchedulerController {
    * 更新节点资源使用情况
    * POST /scheduler/resources/update/:nodeId
    */
-  @Post("resources/update/:nodeId")
-  async updateNodeUsage(@Param("nodeId") nodeId: string) {
+  @Post('resources/update/:nodeId')
+  async updateNodeUsage(@Param('nodeId') nodeId: string) {
     await this.resourceMonitorService.updateNodeUsage(nodeId);
-    return { message: "Node usage updated successfully" };
+    return { message: 'Node usage updated successfully' };
   }
 
   /**
    * 获取集群资源统计
    * GET /scheduler/resources/cluster-stats
    */
-  @Get("resources/cluster-stats")
+  @Get('resources/cluster-stats')
   async getClusterStats() {
     return await this.resourceMonitorService.getClusterStats();
   }
@@ -279,7 +255,7 @@ export class SchedulerController {
    * 获取本地节点信息
    * GET /scheduler/resources/local-node-info
    */
-  @Get("resources/local-node-info")
+  @Get('resources/local-node-info')
   async getLocalNodeInfo() {
     return await this.resourceMonitorService.getLocalNodeInfo();
   }
@@ -290,8 +266,8 @@ export class SchedulerController {
    * 按区域获取节点
    * GET /scheduler/nodes/by-region/:region
    */
-  @Get("nodes/by-region/:region")
-  async getNodesByRegion(@Param("region") region: string) {
+  @Get('nodes/by-region/:region')
+  async getNodesByRegion(@Param('region') region: string) {
     return await this.nodeManagerService.getNodesByRegion(region);
   }
 
@@ -299,11 +275,8 @@ export class SchedulerController {
    * 按标签获取节点
    * GET /scheduler/nodes/by-label?key=env&value=prod
    */
-  @Get("nodes/by-label")
-  async getNodesByLabel(
-    @Query("key") key: string,
-    @Query("value") value?: string,
-  ) {
+  @Get('nodes/by-label')
+  async getNodesByLabel(@Query('key') key: string, @Query('value') value?: string) {
     return await this.nodeManagerService.getNodesByLabel(key, value);
   }
 
@@ -313,16 +286,16 @@ export class SchedulerController {
    * 为用户分配设备
    * POST /scheduler/devices/allocate
    */
-  @Post("devices/allocate")
+  @Post('devices/allocate')
   async allocateDevice(@Body() request: AllocationRequest) {
     this.logger.log(
-      `Allocating device for user: ${request.userId}, tenant: ${request.tenantId || "default"}`,
+      `Allocating device for user: ${request.userId}, tenant: ${request.tenantId || 'default'}`
     );
     const result = await this.allocationService.allocateDevice(request);
     return {
       success: true,
       data: result,
-      message: "Device allocated successfully",
+      message: 'Device allocated successfully',
     };
   }
 
@@ -330,21 +303,14 @@ export class SchedulerController {
    * 释放设备
    * POST /scheduler/devices/release
    */
-  @Post("devices/release")
-  async releaseDevice(
-    @Body() body: { deviceId: string; userId?: string },
-  ) {
-    this.logger.log(
-      `Releasing device: ${body.deviceId}, user: ${body.userId || "any"}`,
-    );
-    const result = await this.allocationService.releaseDevice(
-      body.deviceId,
-      body.userId,
-    );
+  @Post('devices/release')
+  async releaseDevice(@Body() body: { deviceId: string; userId?: string }) {
+    this.logger.log(`Releasing device: ${body.deviceId}, user: ${body.userId || 'any'}`);
+    const result = await this.allocationService.releaseDevice(body.deviceId, body.userId);
     return {
       success: true,
       data: result,
-      message: "Device released successfully",
+      message: 'Device released successfully',
     };
   }
 
@@ -352,7 +318,7 @@ export class SchedulerController {
    * 获取可用设备列表
    * GET /scheduler/devices/available
    */
-  @Get("devices/available")
+  @Get('devices/available')
   async getAvailableDevices() {
     const devices = await this.allocationService.getAvailableDevices();
     return {
@@ -366,7 +332,7 @@ export class SchedulerController {
    * 获取分配统计信息
    * GET /scheduler/allocations/stats
    */
-  @Get("allocations/stats")
+  @Get('allocations/stats')
   async getAllocationStats() {
     const stats = await this.allocationService.getAllocationStats();
     return {
@@ -379,16 +345,12 @@ export class SchedulerController {
    * 获取分配记录
    * GET /scheduler/allocations?userId=xxx&limit=10
    */
-  @Get("allocations")
-  async getAllocations(
-    @Query("userId") userId?: string,
-    @Query("limit") limit: string = "10",
-  ) {
+  @Get('allocations')
+  async getAllocations(@Query('userId') userId?: string, @Query('limit') limit: string = '10') {
     const limitNum = parseInt(limit, 10) || 10;
 
     if (userId) {
-      const allocations =
-        await this.allocationService.getUserAllocations(userId, limitNum);
+      const allocations = await this.allocationService.getUserAllocations(userId, limitNum);
       return {
         success: true,
         data: allocations,
@@ -400,7 +362,7 @@ export class SchedulerController {
       success: true,
       data: [],
       total: 0,
-      message: "userId parameter required",
+      message: 'userId parameter required',
     };
   }
 
@@ -408,10 +370,8 @@ export class SchedulerController {
    * 设置分配调度策略
    * POST /scheduler/allocations/strategy
    */
-  @Post("allocations/strategy")
-  async setAllocationStrategy(
-    @Body() body: { strategy: AllocationStrategy },
-  ) {
+  @Post('allocations/strategy')
+  async setAllocationStrategy(@Body() body: { strategy: AllocationStrategy }) {
     this.allocationService.setStrategy(body.strategy);
     return {
       success: true,
@@ -424,7 +384,7 @@ export class SchedulerController {
    * 检查并释放过期的分配
    * POST /scheduler/allocations/release-expired
    */
-  @Post("allocations/release-expired")
+  @Post('allocations/release-expired')
   async releaseExpiredAllocations() {
     const count = await this.allocationService.releaseExpiredAllocations();
     return {
@@ -438,7 +398,7 @@ export class SchedulerController {
    * 获取调度器配置信息
    * GET /scheduler/config
    */
-  @Get("config")
+  @Get('config')
   async getConfig() {
     const stats = await this.allocationService.getAllocationStats();
     return {
@@ -458,14 +418,11 @@ export class SchedulerController {
    * 批量分配设备
    * POST /scheduler/allocations/batch
    */
-  @Post("allocations/batch")
+  @Post('allocations/batch')
   async batchAllocate(@Body() dto: BatchAllocateDto) {
     this.logger.log(`Batch allocating ${dto.requests.length} devices...`);
 
-    const result = await this.allocationService.batchAllocate(
-      dto.requests,
-      dto.continueOnError
-    );
+    const result = await this.allocationService.batchAllocate(dto.requests, dto.continueOnError);
 
     return {
       success: true,
@@ -478,7 +435,7 @@ export class SchedulerController {
    * 批量释放设备
    * POST /scheduler/allocations/batch/release
    */
-  @Post("allocations/batch/release")
+  @Post('allocations/batch/release')
   async batchRelease(@Body() dto: BatchReleaseDto) {
     this.logger.log(`Batch releasing ${dto.allocationIds.length} allocations...`);
 
@@ -499,7 +456,7 @@ export class SchedulerController {
    * 批量续期设备
    * POST /scheduler/allocations/batch/extend
    */
-  @Post("allocations/batch/extend")
+  @Post('allocations/batch/extend')
   async batchExtend(@Body() dto: BatchExtendDto) {
     this.logger.log(
       `Batch extending ${dto.allocationIds.length} allocations by ${dto.additionalMinutes} minutes...`
@@ -522,14 +479,11 @@ export class SchedulerController {
    * 批量查询用户设备分配
    * POST /scheduler/allocations/batch/query
    */
-  @Post("allocations/batch/query")
+  @Post('allocations/batch/query')
   async batchQuery(@Body() dto: BatchQueryDto) {
     this.logger.log(`Batch querying allocations for ${dto.userIds.length} users...`);
 
-    const result = await this.allocationService.batchQuery(
-      dto.userIds,
-      dto.activeOnly
-    );
+    const result = await this.allocationService.batchQuery(dto.userIds, dto.activeOnly);
 
     return {
       success: true,
@@ -544,14 +498,9 @@ export class SchedulerController {
    * 延长单个设备分配的使用时间
    * PUT /scheduler/allocations/:id/extend
    */
-  @Put("allocations/:id/extend")
-  async extendAllocation(
-    @Param("id") allocationId: string,
-    @Body() dto: ExtendAllocationDto
-  ) {
-    this.logger.log(
-      `Extending allocation ${allocationId} by ${dto.additionalMinutes} minutes...`
-    );
+  @Put('allocations/:id/extend')
+  async extendAllocation(@Param('id') allocationId: string, @Body() dto: ExtendAllocationDto) {
+    this.logger.log(`Extending allocation ${allocationId} by ${dto.additionalMinutes} minutes...`);
 
     const result = await this.allocationService.extendAllocation(
       allocationId,
@@ -570,19 +519,17 @@ export class SchedulerController {
    * 获取分配的续期信息
    * GET /scheduler/allocations/:id/extend-info
    */
-  @Get("allocations/:id/extend-info")
-  async getAllocationExtendInfo(@Param("id") allocationId: string) {
+  @Get('allocations/:id/extend-info')
+  async getAllocationExtendInfo(@Param('id') allocationId: string) {
     this.logger.log(`Getting extend info for allocation ${allocationId}...`);
 
-    const result = await this.allocationService.getAllocationExtendInfo(
-      allocationId
-    );
+    const result = await this.allocationService.getAllocationExtendInfo(allocationId);
 
     return {
       success: true,
       data: result,
       message: result.canExtend
-        ? "Allocation can be extended"
+        ? 'Allocation can be extended'
         : `Cannot extend: ${result.cannotExtendReason}`,
     };
   }
@@ -593,26 +540,20 @@ export class SchedulerController {
    * 创建设备预约
    * POST /scheduler/reservations
    */
-  @Post("reservations")
+  @Post('reservations')
   async createReservation(
     @Body() dto: CreateReservationDto,
-    @Query("userId") userId: string,
-    @Query("tenantId") tenantId?: string
+    @Query('userId') userId: string,
+    @Query('tenantId') tenantId?: string
   ) {
-    this.logger.log(
-      `Creating reservation for user ${userId} at ${dto.reservedStartTime}`
-    );
+    this.logger.log(`Creating reservation for user ${userId} at ${dto.reservedStartTime}`);
 
-    const result = await this.reservationService.createReservation(
-      userId,
-      tenantId,
-      dto
-    );
+    const result = await this.reservationService.createReservation(userId, tenantId, dto);
 
     return {
       success: true,
       data: result,
-      message: "Reservation created successfully",
+      message: 'Reservation created successfully',
     };
   }
 
@@ -620,8 +561,8 @@ export class SchedulerController {
    * 获取预约详情
    * GET /scheduler/reservations/:id
    */
-  @Get("reservations/:id")
-  async getReservation(@Param("id") reservationId: string) {
+  @Get('reservations/:id')
+  async getReservation(@Param('id') reservationId: string) {
     this.logger.log(`Getting reservation ${reservationId}`);
 
     const result = await this.reservationService.getReservation(reservationId);
@@ -636,7 +577,7 @@ export class SchedulerController {
    * 查询预约列表
    * GET /scheduler/reservations?userId=xxx&status=pending&page=1&pageSize=10
    */
-  @Get("reservations")
+  @Get('reservations')
   async getReservations(@Query() query: QueryReservationsDto) {
     this.logger.log(`Querying reservations with filters: ${JSON.stringify(query)}`);
 
@@ -653,22 +594,16 @@ export class SchedulerController {
    * 更新预约
    * PUT /scheduler/reservations/:id
    */
-  @Put("reservations/:id")
-  async updateReservation(
-    @Param("id") reservationId: string,
-    @Body() dto: UpdateReservationDto
-  ) {
+  @Put('reservations/:id')
+  async updateReservation(@Param('id') reservationId: string, @Body() dto: UpdateReservationDto) {
     this.logger.log(`Updating reservation ${reservationId}`);
 
-    const result = await this.reservationService.updateReservation(
-      reservationId,
-      dto
-    );
+    const result = await this.reservationService.updateReservation(reservationId, dto);
 
     return {
       success: true,
       data: result,
-      message: "Reservation updated successfully",
+      message: 'Reservation updated successfully',
     };
   }
 
@@ -676,22 +611,16 @@ export class SchedulerController {
    * 取消预约
    * POST /scheduler/reservations/:id/cancel
    */
-  @Post("reservations/:id/cancel")
-  async cancelReservation(
-    @Param("id") reservationId: string,
-    @Body() dto: CancelReservationDto
-  ) {
+  @Post('reservations/:id/cancel')
+  async cancelReservation(@Param('id') reservationId: string, @Body() dto: CancelReservationDto) {
     this.logger.log(`Cancelling reservation ${reservationId}`);
 
-    const result = await this.reservationService.cancelReservation(
-      reservationId,
-      dto
-    );
+    const result = await this.reservationService.cancelReservation(reservationId, dto);
 
     return {
       success: true,
       data: result,
-      message: "Reservation cancelled successfully",
+      message: 'Reservation cancelled successfully',
     };
   }
 
@@ -699,7 +628,7 @@ export class SchedulerController {
    * 检查时间冲突
    * POST /scheduler/reservations/check-conflict
    */
-  @Post("reservations/check-conflict")
+  @Post('reservations/check-conflict')
   async checkReservationConflict(
     @Body()
     body: {
@@ -729,9 +658,9 @@ export class SchedulerController {
    * 获取预约统计信息
    * GET /scheduler/reservations/stats?userId=xxx
    */
-  @Get("reservations/stats/summary")
-  async getReservationStatistics(@Query("userId") userId?: string) {
-    this.logger.log(`Getting reservation statistics for user: ${userId || "all"}`);
+  @Get('reservations/stats/summary')
+  async getReservationStatistics(@Query('userId') userId?: string) {
+    this.logger.log(`Getting reservation statistics for user: ${userId || 'all'}`);
 
     const result = await this.reservationService.getReservationStatistics(userId);
 
@@ -747,21 +676,16 @@ export class SchedulerController {
    * 加入队列
    * POST /scheduler/queue/join
    */
-  @Post("queue/join")
+  @Post('queue/join')
   async joinQueue(
     @Body() dto: JoinQueueDto,
-    @Query("userId") userId: string,
-    @Query("tenantId") tenantId?: string,
-    @Query("userTier") userTier: string = "standard"
+    @Query('userId') userId: string,
+    @Query('tenantId') tenantId?: string,
+    @Query('userTier') userTier: string = 'standard'
   ) {
     this.logger.log(`User ${userId} (${userTier}) joining queue`);
 
-    const result = await this.queueService.joinQueue(
-      userId,
-      tenantId,
-      userTier,
-      dto
-    );
+    const result = await this.queueService.joinQueue(userId, tenantId, userTier, dto);
 
     return {
       success: true,
@@ -774,11 +698,8 @@ export class SchedulerController {
    * 取消队列条目
    * POST /scheduler/queue/:id/cancel
    */
-  @Post("queue/:id/cancel")
-  async cancelQueue(
-    @Param("id") queueId: string,
-    @Body() dto: CancelQueueDto
-  ) {
+  @Post('queue/:id/cancel')
+  async cancelQueue(@Param('id') queueId: string, @Body() dto: CancelQueueDto) {
     this.logger.log(`Cancelling queue entry ${queueId}`);
 
     const result = await this.queueService.cancelQueue(queueId, dto);
@@ -786,7 +707,7 @@ export class SchedulerController {
     return {
       success: true,
       data: result,
-      message: "Queue entry cancelled successfully",
+      message: 'Queue entry cancelled successfully',
     };
   }
 
@@ -794,8 +715,8 @@ export class SchedulerController {
    * 获取队列条目详情
    * GET /scheduler/queue/:id
    */
-  @Get("queue/:id")
-  async getQueueEntry(@Param("id") queueId: string) {
+  @Get('queue/:id')
+  async getQueueEntry(@Param('id') queueId: string) {
     this.logger.log(`Getting queue entry ${queueId}`);
 
     const result = await this.queueService.getQueueEntry(queueId);
@@ -810,7 +731,7 @@ export class SchedulerController {
    * 查询队列列表
    * GET /scheduler/queue?userId=xxx&status=waiting&page=1&pageSize=10
    */
-  @Get("queue")
+  @Get('queue')
   async getQueueList(@Query() query: QueryQueueDto) {
     this.logger.log(`Querying queue with filters: ${JSON.stringify(query)}`);
 
@@ -827,8 +748,8 @@ export class SchedulerController {
    * 获取队列位置信息
    * GET /scheduler/queue/:id/position
    */
-  @Get("queue/:id/position")
-  async getQueuePosition(@Param("id") queueId: string) {
+  @Get('queue/:id/position')
+  async getQueuePosition(@Param('id') queueId: string) {
     this.logger.log(`Getting position for queue entry ${queueId}`);
 
     const result = await this.queueService.getQueuePosition(queueId);
@@ -844,17 +765,17 @@ export class SchedulerController {
    * 手动处理下一个队列条目（管理员）
    * POST /scheduler/queue/process-next
    */
-  @Post("queue/process-next")
+  @Post('queue/process-next')
   async processNextQueueEntry() {
-    this.logger.log("Manually processing next queue entry...");
+    this.logger.log('Manually processing next queue entry...');
 
     const result = await this.queueService.processNextQueueEntry();
 
     return {
       success: result,
       message: result
-        ? "Queue entry processed successfully"
-        : "No queue entries to process or processing failed",
+        ? 'Queue entry processed successfully'
+        : 'No queue entries to process or processing failed',
     };
   }
 
@@ -862,11 +783,9 @@ export class SchedulerController {
    * 批量处理队列（管理员）
    * POST /scheduler/queue/process-batch
    */
-  @Post("queue/process-batch")
+  @Post('queue/process-batch')
   async processQueueBatch(@Body() dto: ProcessQueueBatchDto) {
-    this.logger.log(
-      `Batch processing queue (max: ${dto.maxCount || 10} entries)...`
-    );
+    this.logger.log(`Batch processing queue (max: ${dto.maxCount || 10} entries)...`);
 
     const result = await this.queueService.processQueueBatch(dto);
 
@@ -881,9 +800,9 @@ export class SchedulerController {
    * 获取队列统计信息
    * GET /scheduler/queue/stats
    */
-  @Get("queue/stats")
+  @Get('queue/stats')
   async getQueueStatistics() {
-    this.logger.log("Getting queue statistics...");
+    this.logger.log('Getting queue statistics...');
 
     const result = await this.queueService.getQueueStatistics();
 

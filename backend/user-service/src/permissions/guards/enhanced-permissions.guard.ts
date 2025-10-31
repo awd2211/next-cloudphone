@@ -34,15 +34,15 @@ export class EnhancedPermissionsGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private permissionChecker: PermissionCheckerService,
-    private tenantIsolation: TenantIsolationService,
+    private tenantIsolation: TenantIsolationService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // 检查是否跳过权限验证
-    const skipPermission = this.reflector.getAllAndOverride<boolean>(
-      SKIP_PERMISSION_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const skipPermission = this.reflector.getAllAndOverride<boolean>(SKIP_PERMISSION_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (skipPermission) {
       return true;
@@ -59,10 +59,10 @@ export class EnhancedPermissionsGuard implements CanActivate {
     }
 
     // 检查是否需要超级管理员权限
-    const requireSuperAdmin = this.reflector.getAllAndOverride<boolean>(
-      REQUIRE_SUPER_ADMIN_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requireSuperAdmin = this.reflector.getAllAndOverride<boolean>(REQUIRE_SUPER_ADMIN_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (requireSuperAdmin) {
       const isSuperAdmin = await this.tenantIsolation.isSuperAdmin(user.id);
@@ -74,10 +74,10 @@ export class EnhancedPermissionsGuard implements CanActivate {
     }
 
     // 获取所需权限
-    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
-      PERMISSIONS_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // 如果没有配置权限要求，允许访问
     if (!requiredPermissions || requiredPermissions.length === 0) {
@@ -85,40 +85,32 @@ export class EnhancedPermissionsGuard implements CanActivate {
     }
 
     // 检查是否需要所有权限
-    const requireAll = this.reflector.getAllAndOverride<boolean>(
-      REQUIRE_ALL_PERMISSIONS_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requireAll = this.reflector.getAllAndOverride<boolean>(REQUIRE_ALL_PERMISSIONS_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // 执行权限检查
     let hasPermission = false;
 
     if (requireAll) {
       // 需要拥有所有权限
-      hasPermission = await this.permissionChecker.hasAllPermissions(
-        user.id,
-        requiredPermissions,
-      );
+      hasPermission = await this.permissionChecker.hasAllPermissions(user.id, requiredPermissions);
     } else {
       // 只需要拥有任意一个权限
-      hasPermission = await this.permissionChecker.hasAnyPermission(
-        user.id,
-        requiredPermissions,
-      );
+      hasPermission = await this.permissionChecker.hasAnyPermission(user.id, requiredPermissions);
     }
 
     if (!hasPermission) {
-      this.logger.warn(
-        `用户 ${user.id} 缺少必需的权限: ${requiredPermissions.join(', ')}`,
-      );
+      this.logger.warn(`用户 ${user.id} 缺少必需的权限: ${requiredPermissions.join(', ')}`);
       throw new ForbiddenException('权限不足');
     }
 
     // 检查跨租户访问权限
-    const allowCrossTenant = this.reflector.getAllAndOverride<boolean>(
-      ALLOW_CROSS_TENANT_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const allowCrossTenant = this.reflector.getAllAndOverride<boolean>(ALLOW_CROSS_TENANT_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (!allowCrossTenant) {
       // 不允许跨租户访问，验证请求参数中的 tenantId
@@ -127,13 +119,11 @@ export class EnhancedPermissionsGuard implements CanActivate {
       if (targetTenantId) {
         const canAccess = await this.tenantIsolation.checkCrossTenantAccess(
           user.id,
-          targetTenantId,
+          targetTenantId
         );
 
         if (!canAccess) {
-          this.logger.warn(
-            `用户 ${user.id} 尝试跨租户访问: ${targetTenantId}`,
-          );
+          this.logger.warn(`用户 ${user.id} 尝试跨租户访问: ${targetTenantId}`);
           throw new ForbiddenException('不允许跨租户访问');
         }
       }
@@ -150,11 +140,6 @@ export class EnhancedPermissionsGuard implements CanActivate {
    * 优先级：body.tenantId > params.tenantId > query.tenantId
    */
   private extractTenantId(request: any): string | null {
-    return (
-      request.body?.tenantId ||
-      request.params?.tenantId ||
-      request.query?.tenantId ||
-      null
-    );
+    return request.body?.tenantId || request.params?.tenantId || request.query?.tenantId || null;
   }
 }

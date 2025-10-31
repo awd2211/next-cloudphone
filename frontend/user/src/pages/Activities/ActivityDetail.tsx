@@ -187,11 +187,7 @@ const ActivityDetail = () => {
           >
             <Space size="large" align="center">
               <div style={{ fontSize: 48 }}>
-                {activity.type === ActivityType.GIFT ? (
-                  <GiftOutlined />
-                ) : (
-                  <ThunderboltOutlined />
-                )}
+                {activity.type === ActivityType.GIFT ? <GiftOutlined /> : <ThunderboltOutlined />}
               </div>
               <div>
                 <h1 style={{ color: '#fff', margin: 0, fontSize: 32 }}>{activity.title}</h1>
@@ -208,9 +204,7 @@ const ActivityDetail = () => {
       {!isOngoing && (
         <Alert
           message={
-            activity.status === ActivityStatus.UPCOMING
-              ? '活动即将开始，敬请期待!'
-              : '活动已结束'
+            activity.status === ActivityStatus.UPCOMING ? '活动即将开始，敬请期待!' : '活动已结束'
           }
           type={activity.status === ActivityStatus.UPCOMING ? 'info' : 'warning'}
           showIcon

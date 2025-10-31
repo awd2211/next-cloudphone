@@ -5,22 +5,22 @@ import {
   ForbiddenException,
   Logger,
   SetMetadata,
-} from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
-import { QuotaClientService } from "./quota-client.service";
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { QuotaClientService } from './quota-client.service';
 
 /**
  * 配额守卫装饰器的元数据键
  */
-export const QUOTA_CHECK_KEY = "quotaCheck";
+export const QUOTA_CHECK_KEY = 'quotaCheck';
 
 /**
  * 配额检查类型
  */
 export enum QuotaCheckType {
-  DEVICE_CREATION = "device_creation", // 设备创建配额检查
-  CONCURRENT_DEVICES = "concurrent_devices", // 并发设备配额检查
-  SKIP = "skip", // 跳过配额检查
+  DEVICE_CREATION = 'device_creation', // 设备创建配额检查
+  CONCURRENT_DEVICES = 'concurrent_devices', // 并发设备配额检查
+  SKIP = 'skip', // 跳过配额检查
 }
 
 /**
@@ -30,8 +30,7 @@ export enum QuotaCheckType {
  * @QuotaCheck(QuotaCheckType.DEVICE_CREATION)
  * async create(@Body() dto: CreateDeviceDto) { ... }
  */
-export const QuotaCheck = (checkType: QuotaCheckType) =>
-  SetMetadata(QUOTA_CHECK_KEY, checkType);
+export const QuotaCheck = (checkType: QuotaCheckType) => SetMetadata(QUOTA_CHECK_KEY, checkType);
 
 /**
  * QuotaGuard - 配额检查守卫
@@ -44,7 +43,7 @@ export class QuotaGuard implements CanActivate {
 
   constructor(
     private reflector: Reflector,
-    private quotaClient: QuotaClientService,
+    private quotaClient: QuotaClientService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -60,7 +59,7 @@ export class QuotaGuard implements CanActivate {
     const userId = this.extractUserId(request);
 
     if (!userId) {
-      this.logger.warn("No userId found in request, skipping quota check");
+      this.logger.warn('No userId found in request, skipping quota check');
       return true; // 如果无法获取用户ID，放行（由认证守卫处理）
     }
 
@@ -107,10 +106,7 @@ export class QuotaGuard implements CanActivate {
   /**
    * 检查设备创建配额
    */
-  private async checkDeviceCreationQuota(
-    request: any,
-    userId: string,
-  ): Promise<boolean> {
+  private async checkDeviceCreationQuota(request: any, userId: string): Promise<boolean> {
     const deviceSpecs = {
       cpuCores: request.body?.cpuCores || 2,
       memoryMB: request.body?.memoryMB || 2048,
@@ -118,18 +114,13 @@ export class QuotaGuard implements CanActivate {
     };
 
     this.logger.debug(
-      `Checking device creation quota for user ${userId}: ${JSON.stringify(deviceSpecs)}`,
+      `Checking device creation quota for user ${userId}: ${JSON.stringify(deviceSpecs)}`
     );
 
-    const result = await this.quotaClient.checkDeviceCreationQuota(
-      userId,
-      deviceSpecs,
-    );
+    const result = await this.quotaClient.checkDeviceCreationQuota(userId, deviceSpecs);
 
     if (!result.allowed) {
-      this.logger.warn(
-        `Device creation blocked for user ${userId}: ${result.reason}`,
-      );
+      this.logger.warn(`Device creation blocked for user ${userId}: ${result.reason}`);
       throw new ForbiddenException(`设备创建失败: ${result.reason}`);
     }
 
@@ -137,7 +128,7 @@ export class QuotaGuard implements CanActivate {
     request.quotaCheckResult = result;
 
     this.logger.log(
-      `Device creation allowed for user ${userId}. Remaining: ${result.remainingDevices} devices`,
+      `Device creation allowed for user ${userId}. Remaining: ${result.remainingDevices} devices`
     );
 
     return true;
@@ -152,9 +143,7 @@ export class QuotaGuard implements CanActivate {
     const result = await this.quotaClient.checkConcurrentQuota(userId);
 
     if (!result.allowed) {
-      this.logger.warn(
-        `Concurrent device limit reached for user ${userId}: ${result.reason}`,
-      );
+      this.logger.warn(`Concurrent device limit reached for user ${userId}: ${result.reason}`);
       throw new ForbiddenException(`并发设备数已达上限: ${result.reason}`);
     }
 

@@ -7,8 +7,8 @@ module.exports = {
       cwd: './backend/api-gateway',
 
       // 🚀 集群模式配置
-      instances: 4,              // 使用 4 个核心（或 'max' 自动检测）
-      exec_mode: 'cluster',      // 启用集群模式
+      instances: 4, // 使用 4 个核心（或 'max' 自动检测）
+      exec_mode: 'cluster', // 启用集群模式
 
       autorestart: true,
       watch: false,
@@ -21,13 +21,13 @@ module.exports = {
 
       env: {
         NODE_ENV: 'production',
-        PORT: 30000
+        PORT: 30000,
       },
 
       error_file: './logs/api-gateway-error.log',
       out_file: './logs/api-gateway-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      merge_logs: true
+      merge_logs: true,
     },
 
     // ===== User Service - 2实例集群 =====
@@ -50,13 +50,13 @@ module.exports = {
 
       env: {
         NODE_ENV: 'production',
-        PORT: 30001
+        PORT: 30001,
       },
 
       error_file: './logs/user-service-error.log',
       out_file: './logs/user-service-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      merge_logs: true
+      merge_logs: true,
     },
 
     // ===== Device Service - 单实例 =====
@@ -75,13 +75,13 @@ module.exports = {
 
       env: {
         NODE_ENV: 'production',
-        PORT: 30002
+        PORT: 30002,
       },
 
       error_file: './logs/device-service-error.log',
       out_file: './logs/device-service-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      merge_logs: true
+      merge_logs: true,
     },
 
     // ===== App Service - 单实例 =====
@@ -100,13 +100,13 @@ module.exports = {
 
       env: {
         NODE_ENV: 'production',
-        PORT: 30003
+        PORT: 30003,
       },
 
       error_file: './logs/app-service-error.log',
       out_file: './logs/app-service-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      merge_logs: true
+      merge_logs: true,
     },
 
     // ===== Billing Service - 单实例 =====
@@ -125,13 +125,13 @@ module.exports = {
 
       env: {
         NODE_ENV: 'production',
-        PORT: 30005
+        PORT: 30005,
       },
 
       error_file: './logs/billing-service-error.log',
       out_file: './logs/billing-service-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      merge_logs: true
+      merge_logs: true,
     },
 
     // ===== Notification Service - 单实例 =====
@@ -149,13 +149,13 @@ module.exports = {
 
       env: {
         NODE_ENV: 'production',
-        PORT: 30006
+        PORT: 30006,
       },
 
       error_file: './logs/notification-service-error.log',
       out_file: './logs/notification-service-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      merge_logs: true
-    }
-  ]
+      merge_logs: true,
+    },
+  ],
 };

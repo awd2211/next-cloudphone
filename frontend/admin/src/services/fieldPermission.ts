@@ -1,5 +1,11 @@
 import request from '@/utils/request';
-import type { FieldPermission, FieldAccessLevel, OperationType, CreateFieldPermissionDto, UpdateFieldPermissionDto } from '@/types';
+import type {
+  FieldPermission,
+  FieldAccessLevel,
+  OperationType,
+  CreateFieldPermissionDto,
+  UpdateFieldPermissionDto,
+} from '@/types';
 
 /**
  * 获取访问级别元数据

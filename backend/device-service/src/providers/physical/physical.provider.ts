@@ -3,8 +3,8 @@ import {
   Logger,
   InternalServerErrorException,
   NotImplementedException,
-} from "@nestjs/common";
-import { IDeviceProvider } from "../device-provider.interface";
+} from '@nestjs/common';
+import { IDeviceProvider } from '../device-provider.interface';
 import {
   DeviceProviderType,
   DeviceProviderStatus,
@@ -21,12 +21,12 @@ import {
   FileTransferOptions,
   DeviceProperties,
   DeviceMetrics,
-} from "../provider.types";
-import { DevicePoolService } from "./device-pool.service";
-import { DeviceDiscoveryService } from "./device-discovery.service";
-import { AdbService } from "../../adb/adb.service";
-import { ScrcpyService } from "../../scrcpy/scrcpy.service";
-import { DevicePoolStatus } from "./physical.types";
+} from '../provider.types';
+import { DevicePoolService } from './device-pool.service';
+import { DeviceDiscoveryService } from './device-discovery.service';
+import { AdbService } from '../../adb/adb.service';
+import { ScrcpyService } from '../../scrcpy/scrcpy.service';
+import { DevicePoolStatus } from './physical.types';
 
 /**
  * PhysicalProvider
@@ -63,7 +63,7 @@ export class PhysicalProvider implements IDeviceProvider {
     private devicePool: DevicePoolService,
     private deviceDiscovery: DeviceDiscoveryService,
     private adbService: AdbService,
-    private scrcpyService: ScrcpyService,
+    private scrcpyService: ScrcpyService
   ) {}
 
   /**
@@ -94,7 +94,7 @@ export class PhysicalProvider implements IDeviceProvider {
           host: pooledDevice.ipAddress,
           port: 27183, // SCRCPY 默认端口
           maxBitrate: 8000000, // 8 Mbps
-          codec: "h264", // 视频编码器
+          codec: 'h264', // 视频编码器
         },
       };
 
@@ -114,17 +114,14 @@ export class PhysicalProvider implements IDeviceProvider {
       };
 
       this.logger.log(
-        `Physical device allocated: ${device.id} (${pooledDevice.ipAddress}:${pooledDevice.adbPort})`,
+        `Physical device allocated: ${device.id} (${pooledDevice.ipAddress}:${pooledDevice.adbPort})`
       );
 
       return device;
     } catch (error) {
-      this.logger.error(
-        `Failed to allocate physical device: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to allocate physical device: ${error.message}`, error.stack);
       throw new InternalServerErrorException(
-        `Failed to allocate physical device: ${error.message}`,
+        `Failed to allocate physical device: ${error.message}`
       );
     }
   }
@@ -138,40 +135,29 @@ export class PhysicalProvider implements IDeviceProvider {
     try {
       const device = await this.devicePool.getDevice(deviceId);
       if (!device) {
-        throw new InternalServerErrorException(
-          `Device ${deviceId} not found in pool`,
-        );
+        throw new InternalServerErrorException(`Device ${deviceId} not found in pool`);
       }
 
       const serial = `${device.ipAddress}:${device.adbPort}`;
 
       // 确保 ADB 连接
-      await this.adbService.connectToDevice(
-        deviceId,
-        device.ipAddress,
-        device.adbPort,
-      );
+      await this.adbService.connectToDevice(deviceId, device.ipAddress, device.adbPort);
 
       // 检查 Android 启动状态
       const bootOutput = await this.adbService.executeShellCommand(
         deviceId,
-        "getprop sys.boot_completed",
-        5000,
+        'getprop sys.boot_completed',
+        5000
       );
 
-      if (bootOutput.trim() !== "1") {
-        throw new InternalServerErrorException("Android not fully booted");
+      if (bootOutput.trim() !== '1') {
+        throw new InternalServerErrorException('Android not fully booted');
       }
 
       this.logger.log(`Physical device started: ${deviceId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to start physical device: ${error.message}`,
-        error.stack,
-      );
-      throw new InternalServerErrorException(
-        `Failed to start physical device: ${error.message}`,
-      );
+      this.logger.error(`Failed to start physical device: ${error.message}`, error.stack);
+      throw new InternalServerErrorException(`Failed to start physical device: ${error.message}`);
     }
   }
 
@@ -187,10 +173,7 @@ export class PhysicalProvider implements IDeviceProvider {
 
       this.logger.log(`Physical device stopped: ${deviceId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to stop physical device: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to stop physical device: ${error.message}`, error.stack);
       // 不抛出错误，允许部分失败
     }
   }
@@ -212,17 +195,10 @@ export class PhysicalProvider implements IDeviceProvider {
       // 释放回设备池
       await this.devicePool.releaseDevice(deviceId);
 
-      this.logger.log(
-        `Physical device destroyed (released to pool): ${deviceId}`,
-      );
+      this.logger.log(`Physical device destroyed (released to pool): ${deviceId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to destroy physical device: ${error.message}`,
-        error.stack,
-      );
-      throw new InternalServerErrorException(
-        `Failed to destroy physical device: ${error.message}`,
-      );
+      this.logger.error(`Failed to destroy physical device: ${error.message}`, error.stack);
+      throw new InternalServerErrorException(`Failed to destroy physical device: ${error.message}`);
     }
   }
 
@@ -252,9 +228,7 @@ export class PhysicalProvider implements IDeviceProvider {
           return DeviceProviderStatus.ERROR;
       }
     } catch (error) {
-      this.logger.error(
-        `Failed to get status for device ${deviceId}: ${error.message}`,
-      );
+      this.logger.error(`Failed to get status for device ${deviceId}: ${error.message}`);
       return DeviceProviderStatus.ERROR;
     }
   }
@@ -266,9 +240,7 @@ export class PhysicalProvider implements IDeviceProvider {
     try {
       const device = await this.devicePool.getDevice(deviceId);
       if (!device) {
-        throw new InternalServerErrorException(
-          `Device ${deviceId} not found in pool`,
-        );
+        throw new InternalServerErrorException(`Device ${deviceId} not found in pool`);
       }
 
       const connectionInfo: ConnectionInfo = {
@@ -287,18 +259,14 @@ export class PhysicalProvider implements IDeviceProvider {
           host: device.ipAddress,
           port: scrcpySession.config.port!,
           maxBitrate: scrcpySession.config.videoBitRate!,
-          codec: scrcpySession.config.videoCodec as "h264" | "h265",
+          codec: scrcpySession.config.videoCodec as 'h264' | 'h265',
         };
       }
 
       return connectionInfo;
     } catch (error) {
-      this.logger.error(
-        `Failed to get connection info for device ${deviceId}: ${error.message}`,
-      );
-      throw new InternalServerErrorException(
-        `Failed to get connection info: ${error.message}`,
-      );
+      this.logger.error(`Failed to get connection info for device ${deviceId}: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to get connection info: ${error.message}`);
     }
   }
 
@@ -308,9 +276,7 @@ export class PhysicalProvider implements IDeviceProvider {
   async getProperties(deviceId: string): Promise<DeviceProperties> {
     const device = await this.devicePool.getDevice(deviceId);
     if (!device) {
-      throw new InternalServerErrorException(
-        `Device ${deviceId} not found in pool`,
-      );
+      throw new InternalServerErrorException(`Device ${deviceId} not found in pool`);
     }
 
     return {
@@ -327,9 +293,7 @@ export class PhysicalProvider implements IDeviceProvider {
   async getMetrics(deviceId: string): Promise<DeviceMetrics> {
     const device = await this.devicePool.getDevice(deviceId);
     if (!device) {
-      throw new InternalServerErrorException(
-        `Device ${deviceId} not found in pool`,
-      );
+      throw new InternalServerErrorException(`Device ${deviceId} not found in pool`);
     }
 
     // 执行健康检查获取实时指标
@@ -387,7 +351,7 @@ export class PhysicalProvider implements IDeviceProvider {
       event.startY,
       event.endX,
       event.endY,
-      event.durationMs,
+      event.durationMs
     );
   }
 
@@ -408,21 +372,15 @@ export class PhysicalProvider implements IDeviceProvider {
   /**
    * 安装应用
    */
-  async installApp(
-    deviceId: string,
-    options: AppInstallOptions,
-  ): Promise<string> {
+  async installApp(deviceId: string, options: AppInstallOptions): Promise<string> {
     const connectionInfo = await this.getConnectionInfo(deviceId);
     if (!connectionInfo.adb) {
-      throw new InternalServerErrorException("ADB connection not available");
+      throw new InternalServerErrorException('ADB connection not available');
     }
 
-    await this.adbService.installApk(
-      connectionInfo.adb.serial,
-      options.apkPath,
-    );
+    await this.adbService.installApk(connectionInfo.adb.serial, options.apkPath);
 
-    return options.packageName || "unknown";
+    return options.packageName || 'unknown';
   }
 
   /**
@@ -431,7 +389,7 @@ export class PhysicalProvider implements IDeviceProvider {
   async uninstallApp(deviceId: string, packageName: string): Promise<void> {
     const connectionInfo = await this.getConnectionInfo(deviceId);
     if (!connectionInfo.adb) {
-      throw new InternalServerErrorException("ADB connection not available");
+      throw new InternalServerErrorException('ADB connection not available');
     }
 
     await this.adbService.uninstallApp(connectionInfo.adb.serial, packageName);
@@ -440,38 +398,32 @@ export class PhysicalProvider implements IDeviceProvider {
   /**
    * 推送文件到设备
    */
-  async pushFile(
-    deviceId: string,
-    options: FileTransferOptions,
-  ): Promise<void> {
+  async pushFile(deviceId: string, options: FileTransferOptions): Promise<void> {
     const connectionInfo = await this.getConnectionInfo(deviceId);
     if (!connectionInfo.adb) {
-      throw new InternalServerErrorException("ADB connection not available");
+      throw new InternalServerErrorException('ADB connection not available');
     }
 
     await this.adbService.pushFile(
       connectionInfo.adb.serial,
       options.localPath,
-      options.remotePath,
+      options.remotePath
     );
   }
 
   /**
    * 从设备拉取文件
    */
-  async pullFile(
-    deviceId: string,
-    options: FileTransferOptions,
-  ): Promise<void> {
+  async pullFile(deviceId: string, options: FileTransferOptions): Promise<void> {
     const connectionInfo = await this.getConnectionInfo(deviceId);
     if (!connectionInfo.adb) {
-      throw new InternalServerErrorException("ADB connection not available");
+      throw new InternalServerErrorException('ADB connection not available');
     }
 
     await this.adbService.pullFile(
       connectionInfo.adb.serial,
       options.remotePath,
-      options.localPath,
+      options.localPath
     );
   }
 
@@ -503,7 +455,7 @@ export class PhysicalProvider implements IDeviceProvider {
 
     // 提取录屏文件路径（从 recordingId 解析或使用约定路径）
     // recordingId 格式: recording_{deviceId}_{timestamp}
-    const timestamp = recordingId.split("_").pop();
+    const timestamp = recordingId.split('_').pop();
     const remotePath = `/sdcard/recording_${timestamp}.mp4`;
     const localPath = `/tmp/${recordingId}.mp4`;
 
@@ -511,7 +463,7 @@ export class PhysicalProvider implements IDeviceProvider {
     await this.adbService.pullFile(deviceId, remotePath, localPath);
 
     // 读取文件为 Buffer
-    const fs = await import("fs");
+    const fs = await import('fs');
     const buffer = fs.readFileSync(localPath);
 
     // 清理临时文件
@@ -523,11 +475,7 @@ export class PhysicalProvider implements IDeviceProvider {
   /**
    * 设置地理位置
    */
-  async setLocation(
-    deviceId: string,
-    latitude: number,
-    longitude: number,
-  ): Promise<void> {
+  async setLocation(deviceId: string, latitude: number, longitude: number): Promise<void> {
     await this.adbService.setLocation(deviceId, latitude, longitude);
   }
 }

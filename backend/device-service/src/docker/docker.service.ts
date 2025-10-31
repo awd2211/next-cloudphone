@@ -1,8 +1,8 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import Dockerode = require("dockerode");
-import { GpuManagerService, GpuConfig } from "../gpu/gpu-manager.service";
-import { Retry, DockerError } from "../common/retry.decorator";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import Dockerode = require('dockerode');
+import { GpuManagerService, GpuConfig } from '../gpu/gpu-manager.service';
+import { Retry, DockerError } from '../common/retry.decorator';
 
 export interface RedroidConfig {
   name: string;
@@ -26,10 +26,9 @@ export class DockerService {
 
   constructor(
     private configService: ConfigService,
-    private gpuManager: GpuManagerService,
+    private gpuManager: GpuManagerService
   ) {
-    const dockerHost =
-      this.configService.get("DOCKER_HOST") || "/var/run/docker.sock";
+    const dockerHost = this.configService.get('DOCKER_HOST') || '/var/run/docker.sock';
 
     this.docker = new Dockerode({
       socketPath: dockerHost,
@@ -48,7 +47,7 @@ export class DockerService {
     await this.pullImageIfNeeded(imageTag);
 
     // 解析分辨率
-    const [width, height] = config.resolution.split("x").map(Number);
+    const [width, height] = config.resolution.split('x').map(Number);
 
     // GPU 配置（需要先初始化，因为下面的 env 需要用到）
     let gpuConfig: GpuConfig;
@@ -65,16 +64,16 @@ export class DockerService {
 
     // 音频配置
     if (config.enableAudio) {
-      env.push("REDROID_AUDIO=1");
+      env.push('REDROID_AUDIO=1');
     }
 
     // 构建端口映射
     const portBindings: any = {
-      "5555/tcp": [{ HostPort: String(config.adbPort) }],
+      '5555/tcp': [{ HostPort: String(config.adbPort) }],
     };
 
     if (config.webrtcPort) {
-      portBindings["8080/tcp"] = [{ HostPort: String(config.webrtcPort) }];
+      portBindings['8080/tcp'] = [{ HostPort: String(config.webrtcPort) }];
     }
 
     if (config.enableGpu) {
@@ -83,16 +82,14 @@ export class DockerService {
         gpuConfig = config.gpuConfig;
       } else {
         // 使用推荐配置
-        gpuConfig = this.gpuManager.getRecommendedConfig("balanced");
+        gpuConfig = this.gpuManager.getRecommendedConfig('balanced');
       }
 
       // 验证配置
       const validation = await this.gpuManager.validateConfig(gpuConfig);
       if (!validation.valid) {
-        this.logger.warn(
-          `GPU validation failed: ${validation.errors.join(", ")}`,
-        );
-        this.logger.warn("Falling back to software rendering");
+        this.logger.warn(`GPU validation failed: ${validation.errors.join(', ')}`);
+        this.logger.warn('Falling back to software rendering');
         gpuConfig.enabled = false;
       }
 
@@ -103,9 +100,7 @@ export class DockerService {
         if (gpuEnv && gpuEnv.length > 0) {
           env.push(...gpuEnv);
         }
-        this.logger.log(
-          `GPU enabled: ${gpuConfig.driver}, devices: ${gpuDevices.length}`,
-        );
+        this.logger.log(`GPU enabled: ${gpuConfig.driver}, devices: ${gpuDevices.length}`);
       }
     }
 
@@ -132,39 +127,37 @@ export class DockerService {
         PublishAllPorts: false,
 
         // 存储配置
-        StorageOpt: config.storageMB
-          ? { size: `${config.storageMB}M` }
-          : undefined,
+        StorageOpt: config.storageMB ? { size: `${config.storageMB}M` } : undefined,
 
         // 设备挂载
         Devices: gpuDevices.length > 0 ? gpuDevices : undefined,
 
         // 安全配置
-        SecurityOpt: ["no-new-privileges:true", "apparmor=docker-default"],
-        CapDrop: ["ALL"],
+        SecurityOpt: ['no-new-privileges:true', 'apparmor=docker-default'],
+        CapDrop: ['ALL'],
         CapAdd: [
-          "CHOWN",
-          "DAC_OVERRIDE",
-          "FOWNER",
-          "SETGID",
-          "SETUID",
-          "NET_BIND_SERVICE",
-          "SYS_ADMIN", // Redroid 需要
+          'CHOWN',
+          'DAC_OVERRIDE',
+          'FOWNER',
+          'SETGID',
+          'SETUID',
+          'NET_BIND_SERVICE',
+          'SYS_ADMIN', // Redroid 需要
         ],
 
         // 重启策略
         RestartPolicy: {
-          Name: "unless-stopped",
+          Name: 'unless-stopped',
           MaximumRetryCount: 3,
         },
 
         // 网络模式
-        NetworkMode: "bridge",
+        NetworkMode: 'bridge',
       },
 
       // 健康检查配置
       Healthcheck: {
-        Test: ["CMD-SHELL", "getprop sys.boot_completed | grep -q 1"],
+        Test: ['CMD-SHELL', 'getprop sys.boot_completed | grep -q 1'],
         Interval: 10 * 1e9, // 10 秒
         Timeout: 5 * 1e9, // 5 秒
         Retries: 3,
@@ -173,16 +166,14 @@ export class DockerService {
 
       // 标签
       Labels: {
-        "com.cloudphone.managed": "true",
-        "com.cloudphone.type": "redroid",
-        "com.cloudphone.version": config.androidVersion || "11",
+        'com.cloudphone.managed': 'true',
+        'com.cloudphone.type': 'redroid',
+        'com.cloudphone.version': config.androidVersion || '11',
       },
     };
 
     this.logger.log(`Creating Redroid container: ${config.name}`);
-    this.logger.debug(
-      `Container config: ${JSON.stringify(containerConfig, null, 2)}`,
-    );
+    this.logger.debug(`Container config: ${JSON.stringify(containerConfig, null, 2)}`);
 
     const container = await this.docker.createContainer(containerConfig);
 
@@ -197,8 +188,8 @@ export class DockerService {
    * 获取 Redroid 镜像标签
    */
   private getRedroidImage(androidVersion?: string): string {
-    const version = androidVersion || "11";
-    const customImage = this.configService.get("REDROID_IMAGE");
+    const version = androidVersion || '11';
+    const customImage = this.configService.get('REDROID_IMAGE');
 
     if (customImage) {
       return customImage;
@@ -206,12 +197,12 @@ export class DockerService {
 
     // 根据 Android 版本选择镜像
     const imageMap: Record<string, string> = {
-      "11": "redroid/redroid:11.0.0-latest",
-      "12": "redroid/redroid:12.0.0-latest",
-      "13": "redroid/redroid:13.0.0-latest",
+      '11': 'redroid/redroid:11.0.0-latest',
+      '12': 'redroid/redroid:12.0.0-latest',
+      '13': 'redroid/redroid:13.0.0-latest',
     };
 
-    return imageMap[version] || imageMap["11"];
+    return imageMap[version] || imageMap['11'];
   }
 
   @Retry({ maxAttempts: 3, baseDelayMs: 2000, retryableErrors: [DockerError] })
@@ -222,15 +213,9 @@ export class DockerService {
       this.logger.log(`Pulling image ${imageTag}...`);
       await new Promise((resolve, reject) => {
         this.docker.pull(imageTag, (err: any, stream: any) => {
-          if (err)
-            return reject(
-              new DockerError(`Failed to pull image: ${err.message}`),
-            );
+          if (err) return reject(new DockerError(`Failed to pull image: ${err.message}`));
           this.docker.modem.followProgress(stream, (err: any, output: any) => {
-            if (err)
-              return reject(
-                new DockerError(`Failed to download image: ${err.message}`),
-              );
+            if (err) return reject(new DockerError(`Failed to download image: ${err.message}`));
             resolve(output);
           });
         });
@@ -300,11 +285,8 @@ export class DockerService {
       let cpuPercent: number | undefined;
       if (stats.cpu_stats && stats.precpu_stats) {
         const cpuDelta =
-          stats.cpu_stats.cpu_usage.total_usage -
-          stats.precpu_stats.cpu_usage.total_usage;
-        const systemDelta =
-          stats.cpu_stats.system_cpu_usage -
-          stats.precpu_stats.system_cpu_usage;
+          stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage;
+        const systemDelta = stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage;
         const cpuCount = stats.cpu_stats.online_cpus || 1;
 
         if (systemDelta > 0 && cpuDelta > 0) {
@@ -349,9 +331,9 @@ export class DockerService {
         blockWriteBytes = 0;
 
         for (const entry of stats.blkio_stats.io_service_bytes_recursive) {
-          if (entry.op === "Read") {
+          if (entry.op === 'Read') {
             blockReadBytes += entry.value;
-          } else if (entry.op === "Write") {
+          } else if (entry.op === 'Write') {
             blockWriteBytes += entry.value;
           }
         }
@@ -368,9 +350,7 @@ export class DockerService {
         block_write_bytes: blockWriteBytes,
       };
     } catch (error) {
-      this.logger.debug(
-        `Failed to get stats for container ${containerId}: ${error.message}`,
-      );
+      this.logger.debug(`Failed to get stats for container ${containerId}: ${error.message}`);
       return null;
     }
   }
@@ -380,7 +360,7 @@ export class DockerService {
     const info = await container.inspect();
 
     const portBindings = info.NetworkSettings.Ports;
-    const adbPort = portBindings["5555/tcp"]?.[0]?.HostPort;
+    const adbPort = portBindings['5555/tcp']?.[0]?.HostPort;
 
     if (!adbPort) {
       throw new Error(`Container ${containerId} has no ADB port binding`);
@@ -388,9 +368,7 @@ export class DockerService {
     return parseInt(adbPort);
   }
 
-  async listContainers(
-    all: boolean = false,
-  ): Promise<Dockerode.ContainerInfo[]> {
+  async listContainers(all: boolean = false): Promise<Dockerode.ContainerInfo[]> {
     return await this.docker.listContainers({ all });
   }
 

@@ -19,18 +19,18 @@ export enum PaymentMethod {
 }
 
 export enum PaymentMode {
-  HOSTED = 'hosted',   // 托管页面（跳转到第三方）
-  CUSTOM = 'custom',   // 自定义UI（嵌入式）
+  HOSTED = 'hosted', // 托管页面（跳转到第三方）
+  CUSTOM = 'custom', // 自定义UI（嵌入式）
 }
 
 export enum PaymentStatus {
-  PENDING = 'pending',      // 待支付
+  PENDING = 'pending', // 待支付
   PROCESSING = 'processing', // 支付中
-  SUCCESS = 'success',       // 支付成功
-  FAILED = 'failed',         // 支付失败
-  REFUNDING = 'refunding',   // 退款中
-  REFUNDED = 'refunded',     // 已退款
-  CANCELLED = 'cancelled',   // 已取消
+  SUCCESS = 'success', // 支付成功
+  FAILED = 'failed', // 支付失败
+  REFUNDING = 'refunding', // 退款中
+  REFUNDED = 'refunded', // 已退款
+  CANCELLED = 'cancelled', // 已取消
 }
 
 @Entity('payments')

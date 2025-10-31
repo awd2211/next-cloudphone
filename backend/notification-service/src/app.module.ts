@@ -15,6 +15,7 @@ import { EmailModule } from './email/email.module';
 import { SmsModule } from './sms/sms.module';
 import { TemplatesModule } from './templates/templates.module';
 import { NotificationEventsHandler } from './events/notification-events.handler';
+import { NotificationGateway } from './gateway/notification.gateway';
 // import { CloudphoneRabbitMQModule } from './rabbitmq/rabbitmq.module'; // ❌ V2: 移除独立 RabbitMQ 模块
 import { UserEventsConsumer } from './rabbitmq/consumers/user-events.consumer'; // ✅ V2: 直接导入消费者
 import { DeviceEventsConsumer } from './rabbitmq/consumers/device-events.consumer';
@@ -28,6 +29,7 @@ import { AuthModule } from './auth/auth.module';
 import { Notification } from './entities/notification.entity';
 import { NotificationTemplate } from './entities/notification-template.entity';
 import { NotificationPreference } from './entities/notification-preference.entity';
+import { SmsRecord } from './sms/entities/sms-record.entity';
 import { validate } from './common/config/env.validation';
 import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusModule
 
@@ -51,9 +53,9 @@ import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusM
         port: +configService.get('DB_PORT', 5432),
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'postgres'),
-        database: configService.get('DB_DATABASE', 'cloudphone'),
-        entities: [Notification, NotificationTemplate, NotificationPreference],
-        synchronize: false, // Disabled to prevent auto schema changes
+        database: configService.get('DB_DATABASE', 'cloudphone_notification'), // ✅ 迁移到独立数据库
+        entities: [Notification, NotificationTemplate, NotificationPreference, SmsRecord],
+        synchronize: configService.get('NODE_ENV') === 'development', // ✅ 开发环境自动创建表
         logging: configService.get('NODE_ENV') === 'development',
         autoLoadEntities: false,
       }),
@@ -123,12 +125,11 @@ import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusM
     // ========== 安全模块 ==========
     // SecurityModule, // ⚠️ 暂时禁用以便测试 API
   ],
-  controllers: [
-    HealthController,
-  ],
+  controllers: [HealthController],
   providers: [
     TasksService,
     NotificationEventsHandler,
+    NotificationGateway, // ✅ WebSocket 网关
     // ✅ V2: 直接注册所有消费者
     UserEventsConsumer,
     DeviceEventsConsumer,

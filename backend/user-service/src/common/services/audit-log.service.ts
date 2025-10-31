@@ -2,7 +2,11 @@ import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
-import { AuditLog as AuditLogEntity, AuditAction, AuditLevel } from '../../entities/audit-log.entity';
+import {
+  AuditLog as AuditLogEntity,
+  AuditAction,
+  AuditLevel,
+} from '../../entities/audit-log.entity';
 import { AlertService, AlertLevel } from './alert/alert.service';
 
 /**
@@ -101,7 +105,7 @@ export class AuditLogService {
     private readonly pinoLogger: PinoLogger,
     @InjectRepository(AuditLogEntity)
     private readonly auditLogRepository: Repository<AuditLogEntity>,
-    private readonly alertService: AlertService,
+    private readonly alertService: AlertService
   ) {
     this.pinoLogger.setContext(AuditLogService.name);
     // 定期清理过期数据
@@ -146,7 +150,12 @@ export class AuditLogService {
   /**
    * 记录登录成功
    */
-  async logLoginSuccess(userId: string, username: string, ip: string, userAgent?: string): Promise<void> {
+  async logLoginSuccess(
+    userId: string,
+    username: string,
+    ip: string,
+    userAgent?: string
+  ): Promise<void> {
     await this.log({
       eventType: AuditEventType.LOGIN_SUCCESS,
       severity: AuditSeverity.INFO,
@@ -162,7 +171,12 @@ export class AuditLogService {
   /**
    * 记录登录失败
    */
-  async logLoginFailed(username: string, ip: string, reason: string, userAgent?: string): Promise<void> {
+  async logLoginFailed(
+    username: string,
+    ip: string,
+    reason: string,
+    userAgent?: string
+  ): Promise<void> {
     await this.log({
       eventType: AuditEventType.LOGIN_FAILED,
       severity: AuditSeverity.WARNING,
@@ -201,7 +215,7 @@ export class AuditLogService {
     username: string,
     resource: string,
     action: string,
-    ip: string,
+    ip: string
   ): Promise<void> {
     await this.log({
       eventType: AuditEventType.SENSITIVE_DATA_ACCESSED,
@@ -223,7 +237,7 @@ export class AuditLogService {
     username: string,
     resource: string,
     details: any,
-    ip: string,
+    ip: string
   ): Promise<void> {
     await this.log({
       eventType: AuditEventType.SENSITIVE_DATA_MODIFIED,
@@ -246,7 +260,7 @@ export class AuditLogService {
     username: string,
     resource: string,
     action: string,
-    ip: string,
+    ip: string
   ): Promise<void> {
     await this.log({
       eventType: AuditEventType.PERMISSION_DENIED,
@@ -264,11 +278,7 @@ export class AuditLogService {
   /**
    * 记录 SQL 注入尝试
    */
-  async logSqlInjectionAttempt(
-    ip: string,
-    userAgent: string,
-    input: string,
-  ): Promise<void> {
+  async logSqlInjectionAttempt(ip: string, userAgent: string, input: string): Promise<void> {
     await this.log({
       eventType: AuditEventType.SQL_INJECTION_ATTEMPT,
       severity: AuditSeverity.CRITICAL,
@@ -288,7 +298,7 @@ export class AuditLogService {
     userId: string | undefined,
     ip: string,
     reason: string,
-    details?: any,
+    details?: any
   ): Promise<void> {
     await this.log({
       eventType: AuditEventType.SUSPICIOUS_ACTIVITY,
@@ -309,7 +319,7 @@ export class AuditLogService {
     userId: string | undefined,
     ip: string,
     violation: string,
-    details?: any,
+    details?: any
   ): Promise<void> {
     await this.log({
       eventType: AuditEventType.SECURITY_VIOLATION,
@@ -331,7 +341,7 @@ export class AuditLogService {
     createdByUsername: string,
     newUserId: string,
     newUsername: string,
-    ip: string,
+    ip: string
   ): Promise<void> {
     await this.log({
       eventType: AuditEventType.USER_CREATED,
@@ -355,7 +365,7 @@ export class AuditLogService {
     targetUserId: string,
     oldRole: string,
     newRole: string,
-    ip: string,
+    ip: string
   ): Promise<void> {
     await this.log({
       eventType: AuditEventType.USER_ROLE_CHANGED,
@@ -495,13 +505,11 @@ export class AuditLogService {
     failedAttempts: Array<{ key: string; count: number; elapsed: number }>;
   } {
     const now = Date.now();
-    const failedAttempts = Array.from(this.failedLoginAttempts.entries()).map(
-      ([key, record]) => ({
-        key,
-        count: record.count,
-        elapsed: Math.floor((now - record.firstAttempt) / 1000),
-      }),
-    );
+    const failedAttempts = Array.from(this.failedLoginAttempts.entries()).map(([key, record]) => ({
+      key,
+      count: record.count,
+      elapsed: Math.floor((now - record.firstAttempt) / 1000),
+    }));
 
     return {
       suspiciousIPs: this.suspiciousIPs.size,
@@ -615,9 +623,10 @@ export class AuditLogService {
       userAgent: log.userAgent,
       requestId: log.metadata?.requestId,
       success: log.severity !== AuditSeverity.ERROR && log.severity !== AuditSeverity.CRITICAL,
-      errorMessage: log.severity === AuditSeverity.ERROR || log.severity === AuditSeverity.CRITICAL
-        ? log.description
-        : undefined,
+      errorMessage:
+        log.severity === AuditSeverity.ERROR || log.severity === AuditSeverity.CRITICAL
+          ? log.description
+          : undefined,
     };
   }
 

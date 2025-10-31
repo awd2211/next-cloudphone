@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Param,
-  UseGuards,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Get, Query, Param, UseGuards, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { AuditLogsService } from './audit-logs.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -35,7 +28,7 @@ export class AuditLogsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('offset') offset?: number
   ) {
     return await this.auditLogsService.getUserLogs(userId, {
       action,
@@ -56,12 +49,12 @@ export class AuditLogsController {
   async getResourceLogs(
     @Param('resourceType') resourceType: string,
     @Param('resourceId') resourceId: string,
-    @Query('limit') limit?: number,
+    @Query('limit') limit?: number
   ) {
     return await this.auditLogsService.getResourceLogs(
       resourceType,
       resourceId,
-      limit ? Number(limit) : 50,
+      limit ? Number(limit) : 50
     );
   }
 
@@ -83,7 +76,7 @@ export class AuditLogsController {
     @Query('endDate') endDate?: string,
     @Query('success') success?: boolean,
     @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('offset') offset?: number
   ) {
     return await this.auditLogsService.searchLogs({
       userId,

@@ -8,16 +8,16 @@
  */
 export enum DeviceProviderType {
   /** Redroid (Docker 容器化 Android) - 当前已有 */
-  REDROID = "redroid",
+  REDROID = 'redroid',
 
   /** 华为云手机 CPH */
-  HUAWEI_CPH = "huawei_cph",
+  HUAWEI_CPH = 'huawei_cph',
 
   /** 阿里云国际云手机 ECP */
-  ALIYUN_ECP = "aliyun_ecp",
+  ALIYUN_ECP = 'aliyun_ecp',
 
   /** 物理设备 (网络 ADB + SCRCPY) */
-  PHYSICAL = "physical",
+  PHYSICAL = 'physical',
 }
 
 /**
@@ -25,31 +25,31 @@ export enum DeviceProviderType {
  */
 export enum DeviceProviderStatus {
   /** 创建中 */
-  CREATING = "creating",
+  CREATING = 'creating',
 
   /** 运行中 */
-  RUNNING = "running",
+  RUNNING = 'running',
 
   /** 已停止 */
-  STOPPED = "stopped",
+  STOPPED = 'stopped',
 
   /** 错误 */
-  ERROR = "error",
+  ERROR = 'error',
 
   /** 销毁中 */
-  DESTROYING = "destroying",
+  DESTROYING = 'destroying',
 
   /** 已销毁 */
-  DESTROYED = "destroyed",
+  DESTROYED = 'destroyed',
 
   /** 离线 (物理设备) */
-  OFFLINE = "offline",
+  OFFLINE = 'offline',
 
   /** 可用 (设备池) */
-  AVAILABLE = "available",
+  AVAILABLE = 'available',
 
   /** 已分配 (设备池) */
-  ALLOCATED = "allocated",
+  ALLOCATED = 'allocated',
 }
 
 /**
@@ -105,7 +105,7 @@ export interface ConnectionInfo {
     host: string;
     port: number;
     maxBitrate: number;
-    codec: "h264" | "h265";
+    codec: 'h264' | 'h265';
   };
 
   /** VNC 连接 (某些云手机可能支持) */
@@ -190,28 +190,28 @@ export interface DeviceCapabilities {
  */
 export enum CaptureFormat {
   /** PNG 截图 (via ADB screencap) */
-  SCREENCAP = "screencap",
+  SCREENCAP = 'screencap',
 
   /** H.264 视频流 (via ADB screenrecord) */
-  SCREENRECORD = "screenrecord",
+  SCREENRECORD = 'screenrecord',
 
   /** SCRCPY 协议 (高性能) */
-  SCRCPY = "scrcpy",
+  SCRCPY = 'scrcpy',
 
   /** WebRTC 流 */
-  WEBRTC = "webrtc",
+  WEBRTC = 'webrtc',
 
   /** RTMP 流 */
-  RTMP = "rtmp",
+  RTMP = 'rtmp',
 
   /** HLS 流 */
-  HLS = "hls",
+  HLS = 'hls',
 
   /** VNC 协议 */
-  VNC = "vnc",
+  VNC = 'vnc',
 
   /** 原始视频流 */
-  RAW_VIDEO = "raw_video",
+  RAW_VIDEO = 'raw_video',
 }
 
 /**
@@ -243,7 +243,7 @@ export interface DeviceCreateConfig {
   androidVersion?: string;
 
   /** 设备类型 (手机/平板) */
-  deviceType?: "phone" | "tablet";
+  deviceType?: 'phone' | 'tablet';
 
   /** ADB 端口 (Redroid 使用) */
   adbPort?: number;
@@ -289,7 +289,7 @@ export interface ProviderDevice {
  */
 export interface DeviceControlOperation {
   /** 操作类型 */
-  type: "touch" | "swipe" | "keyevent" | "text" | "back" | "home" | "power";
+  type: 'touch' | 'swipe' | 'keyevent' | 'text' | 'back' | 'home' | 'power';
 
   /** 操作参数 */
   params: Record<string, any>;
@@ -300,7 +300,7 @@ export interface DeviceControlOperation {
  */
 export interface TouchEvent {
   /** 触摸类型 */
-  action: "down" | "move" | "up";
+  action: 'down' | 'move' | 'up';
 
   /** X 坐标 */
   x: number;
@@ -492,10 +492,10 @@ export class ProviderError extends Error {
     message: string,
     public readonly providerType: DeviceProviderType,
     public readonly code: string,
-    public readonly details?: any,
+    public readonly details?: any
   ) {
     super(message);
-    this.name = "ProviderError";
+    this.name = 'ProviderError';
   }
 }
 

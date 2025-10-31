@@ -86,10 +86,8 @@ async function seed() {
         isSystem: true,
       });
       // 关联基础权限
-      const userPermissions = createdPermissions.filter(p =>
-        p.name.includes('read') ||
-        p.name === 'devices.create' ||
-        p.name === 'apps.install'
+      const userPermissions = createdPermissions.filter(
+        (p) => p.name.includes('read') || p.name === 'devices.create' || p.name === 'apps.install'
       );
       userRole.permissions = userPermissions;
       await roleRepo.save(userRole);
@@ -222,7 +220,6 @@ async function seed() {
     console.log('  用户名: testuser');
     console.log('  密码: test123456');
     console.log('==================\n');
-
   } catch (error) {
     console.error('❌ 数据库初始化失败:', error);
     process.exit(1);

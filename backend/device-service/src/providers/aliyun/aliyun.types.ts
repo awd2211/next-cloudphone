@@ -13,31 +13,31 @@
  */
 export enum AliyunPhoneStatus {
   /** 创建中 */
-  CREATING = "Creating",
+  CREATING = 'Creating',
 
   /** 运行中 */
-  RUNNING = "Running",
+  RUNNING = 'Running',
 
   /** 停止中 */
-  STOPPING = "Stopping",
+  STOPPING = 'Stopping',
 
   /** 已停止 */
-  STOPPED = "Stopped",
+  STOPPED = 'Stopped',
 
   /** 启动中 */
-  STARTING = "Starting",
+  STARTING = 'Starting',
 
   /** 重启中 */
-  RESTARTING = "Restarting",
+  RESTARTING = 'Restarting',
 
   /** 删除中 */
-  DELETING = "Deleting",
+  DELETING = 'Deleting',
 
   /** 异常 */
-  EXCEPTION = "Exception",
+  EXCEPTION = 'Exception',
 
   /** 已释放 */
-  RELEASED = "Released",
+  RELEASED = 'Released',
 }
 
 /**
@@ -107,7 +107,7 @@ export interface AliyunPhoneInstance {
   expiredTime?: string;
 
   /** 付费类型 (PrePaid/PostPaid) */
-  chargeType: "PrePaid" | "PostPaid";
+  chargeType: 'PrePaid' | 'PostPaid';
 
   /** 系统版本 (Android 版本) */
   systemVersion?: string;
@@ -139,7 +139,7 @@ export interface CreateAliyunPhoneRequest {
   zoneId: string;
 
   /** 付费类型 */
-  chargeType: "PrePaid" | "PostPaid";
+  chargeType: 'PrePaid' | 'PostPaid';
 
   /** 实例数量 (默认 1) */
   amount?: number;
@@ -298,19 +298,19 @@ export interface AliyunAdbConfig {
  */
 export const ALIYUN_PHONE_SPECS = {
   /** 2核4G (标准型) */
-  STANDARD_2C4G: "ecp.ce.2c4g",
+  STANDARD_2C4G: 'ecp.ce.2c4g',
 
   /** 4核8G (高性能型) */
-  PERFORMANCE_4C8G: "ecp.ce.4c8g",
+  PERFORMANCE_4C8G: 'ecp.ce.4c8g',
 
   /** 8核16G (旗舰型) */
-  FLAGSHIP_8C16G: "ecp.ce.8c16g",
+  FLAGSHIP_8C16G: 'ecp.ce.8c16g',
 
   /** 2核4G (Android 10) */
-  ANDROID10_2C4G: "ecp.ce.android10.2c4g",
+  ANDROID10_2C4G: 'ecp.ce.android10.2c4g',
 
   /** 4核8G (Android 11) */
-  ANDROID11_4C8G: "ecp.ce.android11.4c8g",
+  ANDROID11_4C8G: 'ecp.ce.android11.4c8g',
 } as const;
 
 /**
@@ -318,20 +318,20 @@ export const ALIYUN_PHONE_SPECS = {
  */
 export const ALIYUN_REGIONS = {
   /** 华东1 (杭州) */
-  CN_HANGZHOU: "cn-hangzhou",
+  CN_HANGZHOU: 'cn-hangzhou',
 
   /** 华北2 (北京) */
-  CN_BEIJING: "cn-beijing",
+  CN_BEIJING: 'cn-beijing',
 
   /** 华南1 (深圳) */
-  CN_SHENZHEN: "cn-shenzhen",
+  CN_SHENZHEN: 'cn-shenzhen',
 
   /** 新加坡 */
-  AP_SOUTHEAST_1: "ap-southeast-1",
+  AP_SOUTHEAST_1: 'ap-southeast-1',
 
   /** 日本 (东京) */
-  AP_NORTHEAST_1: "ap-northeast-1",
+  AP_NORTHEAST_1: 'ap-northeast-1',
 
   /** 美国西部1 (硅谷) */
-  US_WEST_1: "us-west-1",
+  US_WEST_1: 'us-west-1',
 } as const;

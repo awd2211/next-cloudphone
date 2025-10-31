@@ -86,13 +86,7 @@ const PlanDistributionChart = ({ data, loading }: PlanDistributionChartProps) =>
     ],
   };
 
-  return (
-    <ReactECharts
-      option={option}
-      style={{ height: '400px' }}
-      showLoading={loading}
-    />
-  );
+  return <ReactECharts option={option} style={{ height: '400px' }} showLoading={loading} />;
 };
 
 export default PlanDistributionChart;

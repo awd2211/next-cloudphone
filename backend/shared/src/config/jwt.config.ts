@@ -59,16 +59,13 @@ export class JwtConfigFactory {
    * @param isDevelopment 是否为开发环境
    * @throws Error 如果密钥不符合要求
    */
-  static validateSecretStrength(
-    secret: string,
-    isDevelopment: boolean = false,
-  ): void {
+  static validateSecretStrength(secret: string, isDevelopment: boolean = false): void {
     // 生产环境严格检查
     if (!isDevelopment) {
       // 1. 检查密钥长度
       if (!secret || secret.length < MIN_SECRET_LENGTH) {
         throw new Error(
-          `JWT_SECRET 长度不足！生产环境要求至少 ${MIN_SECRET_LENGTH} 字符（当前: ${secret?.length || 0} 字符）`,
+          `JWT_SECRET 长度不足！生产环境要求至少 ${MIN_SECRET_LENGTH} 字符（当前: ${secret?.length || 0} 字符）`
         );
       }
 
@@ -85,9 +82,7 @@ export class JwtConfigFactory {
       ];
 
       if (weakSecrets.some((weak) => secret.toLowerCase().includes(weak))) {
-        throw new Error(
-          '检测到弱 JWT_SECRET！生产环境禁止使用默认或常见密钥',
-        );
+        throw new Error('检测到弱 JWT_SECRET！生产环境禁止使用默认或常见密钥');
       }
 
       // 3. 检查密钥复杂度（应包含多种字符类型）
@@ -103,15 +98,13 @@ export class JwtConfigFactory {
         (hasSpecialChar ? 1 : 0);
 
       if (complexity < 3) {
-        throw new Error(
-          'JWT_SECRET 复杂度不足！应包含大小写字母、数字和特殊字符中的至少 3 种',
-        );
+        throw new Error('JWT_SECRET 复杂度不足！应包含大小写字母、数字和特殊字符中的至少 3 种');
       }
     } else {
       // 开发环境：警告但不阻止
       if (!secret || secret.length < MIN_SECRET_LENGTH) {
         console.warn(
-          `⚠️  警告: JWT_SECRET 长度不足（${secret?.length || 0} 字符），建议至少 ${MIN_SECRET_LENGTH} 字符`,
+          `⚠️  警告: JWT_SECRET 长度不足（${secret?.length || 0} 字符），建议至少 ${MIN_SECRET_LENGTH} 字符`
         );
       }
     }
@@ -228,10 +221,7 @@ JWT_SECRET=your-strong-secret-key-here
    * @param configService NestJS ConfigService
    * @returns 如果使用旧密钥返回 true
    */
-  static isTokenSignedWithOldSecret(
-    token: string,
-    configService: ConfigService,
-  ): boolean {
+  static isTokenSignedWithOldSecret(token: string, configService: ConfigService): boolean {
     const jwtConfig = this.createJwtConfig(configService);
     if (!jwtConfig.oldSecret) {
       return false;

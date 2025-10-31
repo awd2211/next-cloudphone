@@ -1,12 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { SmsService } from './sms.service';
+import { SmsController } from './sms.controller';
 import { OtpService } from './otp.service';
 import { TwilioSmsProvider } from './providers/twilio.provider';
 import { AwsSnsProvider } from './providers/aws-sns.provider';
 import { MessageBirdProvider } from './providers/messagebird.provider';
 import { AliyunSmsProvider } from './providers/aliyun.provider';
 import { TencentSmsProvider } from './providers/tencent.provider';
+import { SmsRecord } from './entities/sms-record.entity';
 
 /**
  * SMS 模块
@@ -51,7 +54,8 @@ import { TencentSmsProvider } from './providers/tencent.provider';
  * ```
  */
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, TypeOrmModule.forFeature([SmsRecord])],
+  controllers: [SmsController],
   providers: [
     // 国际提供商
     TwilioSmsProvider,

@@ -108,12 +108,8 @@ describe('RolesService', () => {
       rolesRepository.findOne.mockResolvedValue(existingRole);
 
       // Act & Assert
-      await expect(service.create(createRoleDto)).rejects.toThrow(
-        ConflictException,
-      );
-      await expect(service.create(createRoleDto)).rejects.toThrow(
-        '角色 existing-role 已存在',
-      );
+      await expect(service.create(createRoleDto)).rejects.toThrow(ConflictException);
+      await expect(service.create(createRoleDto)).rejects.toThrow('角色 existing-role 已存在');
       expect(rolesRepository.save).not.toHaveBeenCalled();
     });
 
@@ -150,18 +146,12 @@ describe('RolesService', () => {
         permissionIds,
       };
 
-      const mockPermissions = permissionIds.map((id) =>
-        createMockPermission({ id }),
-      );
+      const mockPermissions = permissionIds.map((id) => createMockPermission({ id }));
 
       rolesRepository.findOne.mockResolvedValue(null);
       permissionsRepository.find.mockResolvedValue(mockPermissions);
-      rolesRepository.create.mockReturnValue(
-        createMockRole({ permissions: mockPermissions }),
-      );
-      rolesRepository.save.mockResolvedValue(
-        createMockRole({ permissions: mockPermissions }),
-      );
+      rolesRepository.create.mockReturnValue(createMockRole({ permissions: mockPermissions }));
+      rolesRepository.save.mockResolvedValue(createMockRole({ permissions: mockPermissions }));
 
       // Act
       await service.create(createRoleDto);
@@ -216,7 +206,7 @@ describe('RolesService', () => {
       expect(rolesRepository.findAndCount).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { tenantId },
-        }),
+        })
       );
     });
 
@@ -236,7 +226,7 @@ describe('RolesService', () => {
         expect.objectContaining({
           skip: expectedSkip,
           take: limit,
-        }),
+        })
       );
     });
 
@@ -252,7 +242,7 @@ describe('RolesService', () => {
         expect.objectContaining({
           skip: 0,
           take: 10,
-        }),
+        })
       );
     });
   });
@@ -286,12 +276,8 @@ describe('RolesService', () => {
       rolesRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.findOne(roleId)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.findOne(roleId)).rejects.toThrow(
-        `角色 #${roleId} 不存在`,
-      );
+      await expect(service.findOne(roleId)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(roleId)).rejects.toThrow(`角色 #${roleId} 不存在`);
     });
 
     it('应该从缓存中返回角色', async () => {
@@ -321,11 +307,7 @@ describe('RolesService', () => {
       await service.findOne(roleId);
 
       // Assert
-      expect(cacheService.set).toHaveBeenCalledWith(
-        `role:${roleId}`,
-        mockRole,
-        { ttl: 600 },
-      );
+      expect(cacheService.set).toHaveBeenCalledWith(`role:${roleId}`, mockRole, { ttl: 600 });
     });
   });
 
@@ -355,12 +337,8 @@ describe('RolesService', () => {
       rolesRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.findByName(roleName)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.findByName(roleName)).rejects.toThrow(
-        `角色 ${roleName} 不存在`,
-      );
+      await expect(service.findByName(roleName)).rejects.toThrow(NotFoundException);
+      await expect(service.findByName(roleName)).rejects.toThrow(`角色 ${roleName} 不存在`);
     });
   });
 
@@ -394,9 +372,7 @@ describe('RolesService', () => {
       rolesRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.update(roleId, updateDto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.update(roleId, updateDto)).rejects.toThrow(NotFoundException);
     });
 
     it('应该拒绝修改系统角色', async () => {
@@ -408,12 +384,8 @@ describe('RolesService', () => {
       rolesRepository.findOne.mockResolvedValue(systemRole);
 
       // Act & Assert
-      await expect(service.update(roleId, updateDto)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.update(roleId, updateDto)).rejects.toThrow(
-        '系统角色不允许修改',
-      );
+      await expect(service.update(roleId, updateDto)).rejects.toThrow(BadRequestException);
+      await expect(service.update(roleId, updateDto)).rejects.toThrow('系统角色不允许修改');
       expect(rolesRepository.save).not.toHaveBeenCalled();
     });
 
@@ -437,11 +409,9 @@ describe('RolesService', () => {
         .mockResolvedValueOnce(conflictRole);
 
       // Act & Assert
+      await expect(service.update(roleId, updateDto)).rejects.toThrow(ConflictException);
       await expect(service.update(roleId, updateDto)).rejects.toThrow(
-        ConflictException,
-      );
-      await expect(service.update(roleId, updateDto)).rejects.toThrow(
-        `角色 ${updateDto.name} 已存在`,
+        `角色 ${updateDto.name} 已存在`
       );
     });
 
@@ -478,9 +448,7 @@ describe('RolesService', () => {
       const permissionIds = ['p1', 'p2'];
       const updateDto = { permissionIds };
 
-      const mockPermissions = permissionIds.map((id) =>
-        createMockPermission({ id }),
-      );
+      const mockPermissions = permissionIds.map((id) => createMockPermission({ id }));
       const mockRole = createMockRole({ id: roleId, isSystem: false });
 
       rolesRepository.findOne.mockResolvedValue(mockRole);
@@ -532,9 +500,7 @@ describe('RolesService', () => {
       rolesRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.remove(roleId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.remove(roleId)).rejects.toThrow(NotFoundException);
     });
 
     it('应该拒绝删除系统角色', async () => {
@@ -545,12 +511,8 @@ describe('RolesService', () => {
       rolesRepository.findOne.mockResolvedValue(systemRole);
 
       // Act & Assert
-      await expect(service.remove(roleId)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.remove(roleId)).rejects.toThrow(
-        '系统角色不允许删除',
-      );
+      await expect(service.remove(roleId)).rejects.toThrow(BadRequestException);
+      await expect(service.remove(roleId)).rejects.toThrow('系统角色不允许删除');
       expect(rolesRepository.remove).not.toHaveBeenCalled();
     });
 
@@ -566,12 +528,8 @@ describe('RolesService', () => {
       rolesRepository.findOne.mockResolvedValue(mockRole);
 
       // Act & Assert
-      await expect(service.remove(roleId)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.remove(roleId)).rejects.toThrow(
-        '该角色下还有用户，无法删除',
-      );
+      await expect(service.remove(roleId)).rejects.toThrow(BadRequestException);
+      await expect(service.remove(roleId)).rejects.toThrow('该角色下还有用户，无法删除');
       expect(rolesRepository.remove).not.toHaveBeenCalled();
     });
   });
@@ -583,9 +541,7 @@ describe('RolesService', () => {
       const permissionIds = ['p1', 'p2'];
 
       const existingPermissions = [createMockPermission({ id: 'p0' })];
-      const newPermissions = permissionIds.map((id) =>
-        createMockPermission({ id }),
-      );
+      const newPermissions = permissionIds.map((id) => createMockPermission({ id }));
 
       const mockRole = createMockRole({
         id: roleId,
@@ -615,9 +571,9 @@ describe('RolesService', () => {
       rolesRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(
-        service.addPermissions(roleId, permissionIds),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.addPermissions(roleId, permissionIds)).rejects.toThrow(
+        NotFoundException
+      );
     });
 
     it('应该去除重复的权限', async () => {
@@ -687,9 +643,7 @@ describe('RolesService', () => {
       });
 
       // Act
-      const result = await service.removePermissions(roleId, [
-        permissionToRemove,
-      ]);
+      const result = await service.removePermissions(roleId, [permissionToRemove]);
 
       // Assert
       expect(result.permissions).toHaveLength(2);
@@ -703,9 +657,7 @@ describe('RolesService', () => {
       rolesRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(
-        service.removePermissions(roleId, ['p1']),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.removePermissions(roleId, ['p1'])).rejects.toThrow(NotFoundException);
     });
 
     it('应该能移除多个权限', async () => {
@@ -744,9 +696,7 @@ describe('RolesService', () => {
       rolesRepository.save.mockResolvedValue(mockRole);
 
       // Act
-      const result = await service.removePermissions(roleId, [
-        'nonexistent-perm',
-      ]);
+      const result = await service.removePermissions(roleId, ['nonexistent-perm']);
 
       // Assert
       expect(result.permissions).toHaveLength(1); // 保持原有权限

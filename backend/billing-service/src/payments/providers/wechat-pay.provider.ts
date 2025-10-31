@@ -46,14 +46,10 @@ export class WeChatPayProvider {
         });
         this.logger.log('WeChat Pay initialized successfully');
       } catch (error) {
-        this.logger.warn(
-          `Failed to initialize WeChat Pay: ${error.message}. Using mock mode.`,
-        );
+        this.logger.warn(`Failed to initialize WeChat Pay: ${error.message}. Using mock mode.`);
       }
     } else {
-      this.logger.warn(
-        'WeChat Pay credentials not configured. Using mock mode.',
-      );
+      this.logger.warn('WeChat Pay credentials not configured. Using mock mode.');
     }
   }
 
@@ -64,11 +60,9 @@ export class WeChatPayProvider {
     paymentNo: string,
     description: string,
     amount: number,
-    notifyUrl: string,
+    notifyUrl: string
   ): Promise<WeChatPayResult> {
-    this.logger.log(
-      `Creating WeChat Pay Native order: ${paymentNo}, amount: ${amount}`,
-    );
+    this.logger.log(`Creating WeChat Pay Native order: ${paymentNo}, amount: ${amount}`);
 
     // Mock 模式
     if (!this.wxPay) {
@@ -149,11 +143,9 @@ export class WeChatPayProvider {
     refundNo: string,
     totalAmount: number,
     refundAmount: number,
-    reason: string,
+    reason: string
   ): Promise<any> {
-    this.logger.log(
-      `Creating WeChat Pay refund: ${refundNo}, amount: ${refundAmount}`,
-    );
+    this.logger.log(`Creating WeChat Pay refund: ${refundNo}, amount: ${refundAmount}`);
 
     // Mock 模式
     if (!this.wxPay) {
@@ -188,12 +180,7 @@ export class WeChatPayProvider {
   /**
    * 验证支付回调签名
    */
-  verifyNotification(
-    timestamp: string,
-    nonce: string,
-    body: string,
-    signature: string,
-  ): boolean {
+  verifyNotification(timestamp: string, nonce: string, body: string, signature: string): boolean {
     if (!this.config.publicKey) {
       this.logger.warn('WeChat Pay public key not configured, skipping verification');
       return true; // Mock 模式下通过验证
@@ -209,10 +196,7 @@ export class WeChatPayProvider {
   /**
    * Mock: 创建 Native 订单
    */
-  private createMockNativeOrder(
-    paymentNo: string,
-    amount: number,
-  ): WeChatPayResult {
+  private createMockNativeOrder(paymentNo: string, amount: number): WeChatPayResult {
     return {
       prepayId: `mock_prepay_${paymentNo}`,
       codeUrl: `weixin://wxpay/bizpayurl?pr=mock_${paymentNo}`,

@@ -232,7 +232,12 @@ const InvoiceList = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<FileTextOutlined />} onClick={() => handleViewDetail(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<FileTextOutlined />}
+            onClick={() => handleViewDetail(record)}
+          >
             详情
           </Button>
           {record.status === 'issued' && record.downloadUrl && (
@@ -322,7 +327,12 @@ const InvoiceList = () => {
                 description={
                   <Space direction="vertical" size="small">
                     <Text type="secondary">暂无发票记录</Text>
-                    <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => setApplyModalVisible(true)}>
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<PlusOutlined />}
+                      onClick={() => setApplyModalVisible(true)}
+                    >
                       立即申请发票
                     </Button>
                   </Space>
@@ -368,16 +378,14 @@ const InvoiceList = () => {
               optionFilterProp="children"
               notFoundContent={
                 bills.length === 0 ? (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="暂无可开具发票的账单"
-                  />
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无可开具发票的账单" />
                 ) : undefined
               }
             >
               {bills.map((bill) => (
                 <Option key={bill.id} value={bill.id}>
-                  {bill.billNo} - ¥{bill.finalAmount.toFixed(2)} ({dayjs(bill.paidAt).format('YYYY-MM-DD')})
+                  {bill.billNo} - ¥{bill.finalAmount.toFixed(2)} (
+                  {dayjs(bill.paidAt).format('YYYY-MM-DD')})
                 </Option>
               ))}
             </Select>
@@ -460,7 +468,9 @@ const InvoiceList = () => {
                   type="primary"
                   icon={<DownloadOutlined />}
                   loading={downloading}
-                  onClick={() => selectedInvoice && handleDownload(selectedInvoice.id, selectedInvoice.invoiceNo)}
+                  onClick={() =>
+                    selectedInvoice && handleDownload(selectedInvoice.id, selectedInvoice.invoiceNo)
+                  }
                 >
                   下载发票
                 </Button>,
@@ -486,7 +496,9 @@ const InvoiceList = () => {
                   {selectedInvoice.type === 'company' ? '企业' : '个人'}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="状态">{renderStatus(selectedInvoice.status)}</Descriptions.Item>
+              <Descriptions.Item label="状态">
+                {renderStatus(selectedInvoice.status)}
+              </Descriptions.Item>
               <Descriptions.Item label="发票抬头" span={2}>
                 {selectedInvoice.title}
               </Descriptions.Item>
@@ -514,7 +526,9 @@ const InvoiceList = () => {
               <>
                 <Divider />
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <CheckCircleOutlined style={{ fontSize: '48px', color: '#52c41a', marginBottom: '16px' }} />
+                  <CheckCircleOutlined
+                    style={{ fontSize: '48px', color: '#52c41a', marginBottom: '16px' }}
+                  />
                   <div>
                     <Title level={5}>发票已开具</Title>
                     <Text type="secondary">您可以下载电子发票进行查看和打印</Text>
@@ -527,7 +541,9 @@ const InvoiceList = () => {
               <>
                 <Divider />
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <ClockCircleOutlined style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }} />
+                  <ClockCircleOutlined
+                    style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }}
+                  />
                   <div>
                     <Title level={5}>审核中</Title>
                     <Text type="secondary">您的发票申请正在审核中，通常在 1-3 个工作日内完成</Text>
@@ -540,7 +556,9 @@ const InvoiceList = () => {
               <>
                 <Divider />
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <CloseCircleOutlined style={{ fontSize: '48px', color: '#ff4d4f', marginBottom: '16px' }} />
+                  <CloseCircleOutlined
+                    style={{ fontSize: '48px', color: '#ff4d4f', marginBottom: '16px' }}
+                  />
                   <div>
                     <Title level={5}>申请被拒绝</Title>
                     <Text type="secondary">请检查发票信息是否正确，或联系客服咨询</Text>

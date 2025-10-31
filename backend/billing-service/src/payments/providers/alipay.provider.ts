@@ -47,9 +47,7 @@ export class AlipayProvider {
         });
         this.logger.log('Alipay SDK initialized successfully');
       } catch (error) {
-        this.logger.warn(
-          `Failed to initialize Alipay SDK: ${error.message}. Using mock mode.`,
-        );
+        this.logger.warn(`Failed to initialize Alipay SDK: ${error.message}. Using mock mode.`);
       }
     } else {
       this.logger.warn('Alipay credentials not configured. Using mock mode.');
@@ -64,11 +62,9 @@ export class AlipayProvider {
     subject: string,
     amount: number,
     notifyUrl: string,
-    returnUrl?: string,
+    returnUrl?: string
   ): Promise<AlipayResult> {
-    this.logger.log(
-      `Creating Alipay QR code order: ${paymentNo}, amount: ${amount}`,
-    );
+    this.logger.log(`Creating Alipay QR code order: ${paymentNo}, amount: ${amount}`);
 
     // Mock 模式
     if (!this.alipaySdk) {
@@ -104,11 +100,9 @@ export class AlipayProvider {
     subject: string,
     amount: number,
     notifyUrl: string,
-    returnUrl: string,
+    returnUrl: string
   ): Promise<AlipayResult> {
-    this.logger.log(
-      `Creating Alipay WAP order: ${paymentNo}, amount: ${amount}`,
-    );
+    this.logger.log(`Creating Alipay WAP order: ${paymentNo}, amount: ${amount}`);
 
     // Mock 模式
     if (!this.alipaySdk) {
@@ -195,14 +189,8 @@ export class AlipayProvider {
   /**
    * 申请退款
    */
-  async refund(
-    paymentNo: string,
-    refundAmount: number,
-    reason: string,
-  ): Promise<any> {
-    this.logger.log(
-      `Creating Alipay refund: ${paymentNo}, amount: ${refundAmount}`,
-    );
+  async refund(paymentNo: string, refundAmount: number, reason: string): Promise<any> {
+    this.logger.log(`Creating Alipay refund: ${paymentNo}, amount: ${refundAmount}`);
 
     // Mock 模式
     if (!this.alipaySdk) {
@@ -251,10 +239,7 @@ export class AlipayProvider {
   /**
    * Mock: 创建扫码支付订单
    */
-  private createMockQrCodeOrder(
-    paymentNo: string,
-    amount: number,
-  ): AlipayResult {
+  private createMockQrCodeOrder(paymentNo: string, amount: number): AlipayResult {
     return {
       tradeNo: `mock_alipay_${paymentNo}`,
       qrCode: `https://qr.alipay.com/mock_${paymentNo}`,
@@ -264,10 +249,7 @@ export class AlipayProvider {
   /**
    * Mock: 创建手机网站支付订单
    */
-  private createMockWapOrder(
-    paymentNo: string,
-    amount: number,
-  ): AlipayResult {
+  private createMockWapOrder(paymentNo: string, amount: number): AlipayResult {
     return {
       tradeNo: `mock_alipay_${paymentNo}`,
       url: `https://openapi.alipay.com/gateway.do?mock=${paymentNo}`,

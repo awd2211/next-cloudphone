@@ -6,21 +6,21 @@ import {
   ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
-} from "@nestjs/websockets";
-import { Logger } from "@nestjs/common";
-import { Server, Socket } from "socket.io";
-import { ScrcpyService } from "./scrcpy.service";
+} from '@nestjs/websockets';
+import { Logger } from '@nestjs/common';
+import { Server, Socket } from 'socket.io';
+import { ScrcpyService } from './scrcpy.service';
 import {
   ScrcpyTouchEvent,
   ScrcpyKeyEvent,
   ScrcpyScrollEvent,
   ScrcpyEventType,
-} from "./scrcpy.types";
+} from './scrcpy.types';
 import {
   ScrcpyControlMessage,
   AndroidMotionEventAction,
   AndroidKeyEventAction,
-} from "./scrcpy-protocol";
+} from './scrcpy-protocol';
 
 /**
  * ScrcpyGateway
@@ -44,14 +44,12 @@ import {
  * - scroll_event - 滚动事件
  */
 @WebSocketGateway({
-  namespace: "scrcpy",
+  namespace: 'scrcpy',
   cors: {
-    origin: "*", // 生产环境应该限制具体域名
+    origin: '*', // 生产环境应该限制具体域名
   },
 })
-export class ScrcpyGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+export class ScrcpyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -86,11 +84,8 @@ export class ScrcpyGateway
   /**
    * 加入 SCRCPY 会话
    */
-  @SubscribeMessage("join_session")
-  handleJoinSession(
-    @MessageBody() data: { deviceId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
+  @SubscribeMessage('join_session')
+  handleJoinSession(@MessageBody() data: { deviceId: string }, @ConnectedSocket() client: Socket) {
     const { deviceId } = data;
 
     this.logger.log(`Client ${client.id} joining session for device ${deviceId}`);
@@ -98,7 +93,7 @@ export class ScrcpyGateway
     // 检查会话是否存在
     const session = this.scrcpyService.getSession(deviceId);
     if (!session) {
-      client.emit("error", {
+      client.emit('error', {
         message: `No SCRCPY session found for device ${deviceId}`,
       });
       return;
@@ -111,7 +106,7 @@ export class ScrcpyGateway
     this.scrcpyService.updateLastActive(deviceId);
 
     // 发送会话信息
-    client.emit("session_info", {
+    client.emit('session_info', {
       deviceId,
       sessionId: session.sessionId,
       videoUrl: session.videoUrl,
@@ -120,19 +115,14 @@ export class ScrcpyGateway
       config: session.config,
     });
 
-    this.logger.log(
-      `Client ${client.id} joined session for device ${deviceId}`,
-    );
+    this.logger.log(`Client ${client.id} joined session for device ${deviceId}`);
   }
 
   /**
    * 离开 SCRCPY 会话
    */
-  @SubscribeMessage("leave_session")
-  handleLeaveSession(
-    @MessageBody() data: { deviceId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
+  @SubscribeMessage('leave_session')
+  handleLeaveSession(@MessageBody() data: { deviceId: string }, @ConnectedSocket() client: Socket) {
     const { deviceId } = data;
     this.unsubscribeFromDevice(client.id, deviceId);
     this.logger.log(`Client ${client.id} left session for device ${deviceId}`);
@@ -141,19 +131,16 @@ export class ScrcpyGateway
   /**
    * 触控事件
    */
-  @SubscribeMessage("touch_event")
-  handleTouchEvent(
-    @MessageBody() event: ScrcpyTouchEvent,
-    @ConnectedSocket() client: Socket,
-  ) {
+  @SubscribeMessage('touch_event')
+  handleTouchEvent(@MessageBody() event: ScrcpyTouchEvent, @ConnectedSocket() client: Socket) {
     const deviceId = this.clientSessions.get(client.id);
     if (!deviceId) {
-      client.emit("error", { message: "Not in a session" });
+      client.emit('error', { message: 'Not in a session' });
       return;
     }
 
     this.logger.debug(
-      `Touch event from ${client.id} for device ${deviceId}: ${event.type} (${event.x}, ${event.y})`,
+      `Touch event from ${client.id} for device ${deviceId}: ${event.type} (${event.x}, ${event.y})`
     );
 
     // 更新最后活跃时间
@@ -163,13 +150,13 @@ export class ScrcpyGateway
     try {
       const session = this.scrcpyService.getSession(deviceId);
       if (!session) {
-        client.emit("error", { message: "Session not found" });
+        client.emit('error', { message: 'Session not found' });
         return;
       }
 
       const process = this.scrcpyService.getProcess(deviceId);
       if (!process || !process.stdin) {
-        client.emit("error", { message: "SCRCPY process not available" });
+        client.emit('error', { message: 'SCRCPY process not available' });
         return;
       }
 
@@ -211,34 +198,26 @@ export class ScrcpyGateway
       // 发送到 SCRCPY stdin
       process.stdin.write(message);
 
-      this.logger.debug(
-        `Touch event forwarded to SCRCPY: ${event.type} (${event.x}, ${event.y})`,
-      );
+      this.logger.debug(`Touch event forwarded to SCRCPY: ${event.type} (${event.x}, ${event.y})`);
     } catch (error) {
-      this.logger.error(
-        `Failed to forward touch event: ${error.message}`,
-        error.stack,
-      );
-      client.emit("error", { message: "Failed to forward touch event" });
+      this.logger.error(`Failed to forward touch event: ${error.message}`, error.stack);
+      client.emit('error', { message: 'Failed to forward touch event' });
     }
   }
 
   /**
    * 按键事件
    */
-  @SubscribeMessage("key_event")
-  handleKeyEvent(
-    @MessageBody() event: ScrcpyKeyEvent,
-    @ConnectedSocket() client: Socket,
-  ) {
+  @SubscribeMessage('key_event')
+  handleKeyEvent(@MessageBody() event: ScrcpyKeyEvent, @ConnectedSocket() client: Socket) {
     const deviceId = this.clientSessions.get(client.id);
     if (!deviceId) {
-      client.emit("error", { message: "Not in a session" });
+      client.emit('error', { message: 'Not in a session' });
       return;
     }
 
     this.logger.debug(
-      `Key event from ${client.id} for device ${deviceId}: ${event.type} keyCode=${event.keyCode}`,
+      `Key event from ${client.id} for device ${deviceId}: ${event.type} keyCode=${event.keyCode}`
     );
 
     // 更新最后活跃时间
@@ -248,7 +227,7 @@ export class ScrcpyGateway
     try {
       const process = this.scrcpyService.getProcess(deviceId);
       if (!process || !process.stdin) {
-        client.emit("error", { message: "SCRCPY process not available" });
+        client.emit('error', { message: 'SCRCPY process not available' });
         return;
       }
 
@@ -283,34 +262,26 @@ export class ScrcpyGateway
       // 发送到 SCRCPY stdin
       process.stdin.write(message);
 
-      this.logger.debug(
-        `Key event forwarded to SCRCPY: ${event.type} keycode=${event.keyCode}`,
-      );
+      this.logger.debug(`Key event forwarded to SCRCPY: ${event.type} keycode=${event.keyCode}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to forward key event: ${error.message}`,
-        error.stack,
-      );
-      client.emit("error", { message: "Failed to forward key event" });
+      this.logger.error(`Failed to forward key event: ${error.message}`, error.stack);
+      client.emit('error', { message: 'Failed to forward key event' });
     }
   }
 
   /**
    * 滚动事件
    */
-  @SubscribeMessage("scroll_event")
-  handleScrollEvent(
-    @MessageBody() event: ScrcpyScrollEvent,
-    @ConnectedSocket() client: Socket,
-  ) {
+  @SubscribeMessage('scroll_event')
+  handleScrollEvent(@MessageBody() event: ScrcpyScrollEvent, @ConnectedSocket() client: Socket) {
     const deviceId = this.clientSessions.get(client.id);
     if (!deviceId) {
-      client.emit("error", { message: "Not in a session" });
+      client.emit('error', { message: 'Not in a session' });
       return;
     }
 
     this.logger.debug(
-      `Scroll event from ${client.id} for device ${deviceId}: (${event.x}, ${event.y}) h=${event.hScroll} v=${event.vScroll}`,
+      `Scroll event from ${client.id} for device ${deviceId}: (${event.x}, ${event.y}) h=${event.hScroll} v=${event.vScroll}`
     );
 
     // 更新最后活跃时间
@@ -320,13 +291,13 @@ export class ScrcpyGateway
     try {
       const session = this.scrcpyService.getSession(deviceId);
       if (!session) {
-        client.emit("error", { message: "Session not found" });
+        client.emit('error', { message: 'Session not found' });
         return;
       }
 
       const process = this.scrcpyService.getProcess(deviceId);
       if (!process || !process.stdin) {
-        client.emit("error", { message: "SCRCPY process not available" });
+        client.emit('error', { message: 'SCRCPY process not available' });
         return;
       }
 
@@ -351,14 +322,11 @@ export class ScrcpyGateway
       process.stdin.write(message);
 
       this.logger.debug(
-        `Scroll event forwarded to SCRCPY: (${event.x}, ${event.y}) h=${event.hScroll} v=${event.vScroll}`,
+        `Scroll event forwarded to SCRCPY: (${event.x}, ${event.y}) h=${event.hScroll} v=${event.vScroll}`
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to forward scroll event: ${error.message}`,
-        error.stack,
-      );
-      client.emit("error", { message: "Failed to forward scroll event" });
+      this.logger.error(`Failed to forward scroll event: ${error.message}`, error.stack);
+      client.emit('error', { message: 'Failed to forward scroll event' });
     }
   }
 
@@ -372,7 +340,7 @@ export class ScrcpyGateway
     const subscribers = this.deviceSubscribers.get(deviceId);
     if (subscribers && subscribers.size > 0) {
       for (const socketId of subscribers) {
-        this.server.to(socketId).emit("video_frame", {
+        this.server.to(socketId).emit('video_frame', {
           deviceId,
           data: frame,
         });
@@ -390,7 +358,7 @@ export class ScrcpyGateway
     const subscribers = this.deviceSubscribers.get(deviceId);
     if (subscribers && subscribers.size > 0) {
       for (const socketId of subscribers) {
-        this.server.to(socketId).emit("audio_frame", {
+        this.server.to(socketId).emit('audio_frame', {
           deviceId,
           data: frame,
         });
@@ -464,15 +432,11 @@ export class ScrcpyGateway
    * @param eventType 事件类型
    * @param client WebSocket 客户端
    */
-  private handleSpecialKey(
-    deviceId: string,
-    eventType: ScrcpyEventType,
-    client: Socket,
-  ) {
+  private handleSpecialKey(deviceId: string, eventType: ScrcpyEventType, client: Socket) {
     try {
       const process = this.scrcpyService.getProcess(deviceId);
       if (!process || !process.stdin) {
-        client.emit("error", { message: "SCRCPY process not available" });
+        client.emit('error', { message: 'SCRCPY process not available' });
         return;
       }
 
@@ -500,11 +464,8 @@ export class ScrcpyGateway
 
       this.logger.debug(`Special key forwarded to SCRCPY: ${eventType}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to forward special key: ${error.message}`,
-        error.stack,
-      );
-      client.emit("error", { message: "Failed to forward special key" });
+      this.logger.error(`Failed to forward special key: ${error.message}`, error.stack);
+      client.emit('error', { message: 'Failed to forward special key' });
     }
   }
 }

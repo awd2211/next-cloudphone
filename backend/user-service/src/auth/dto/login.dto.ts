@@ -37,4 +37,3 @@ export class LoginDto {
   @Matches(/^[a-f0-9-]{36}$/, { message: '验证码ID格式无效' })
   captchaId: string;
 }
-

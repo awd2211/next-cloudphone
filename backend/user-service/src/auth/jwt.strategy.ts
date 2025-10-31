@@ -14,7 +14,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private configService: ConfigService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private cacheService: CacheService,
+    private cacheService: CacheService
   ) {
     // 🔒 使用 shared 模块的安全 JWT 配置
     const jwtConfig = JwtConfigFactory.getPassportJwtConfig(configService);

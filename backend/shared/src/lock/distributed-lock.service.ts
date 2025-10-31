@@ -53,7 +53,7 @@ export class DistributedLockService {
     key: string,
     ttl: number,
     retries: number = 3,
-    retryDelay: number = 100,
+    retryDelay: number = 100
   ): Promise<string> {
     const lockKey = this.getLockKey(key);
     const lockId = uuidv4();
@@ -65,18 +65,10 @@ export class DistributedLockService {
         // 使用 SET NX PX 原子操作设置锁
         // NX: 只在键不存在时设置
         // PX: 设置过期时间（毫秒）
-        const result = await this.redis.set(
-          lockKey,
-          lockId,
-          'PX',
-          ttl,
-          'NX',
-        );
+        const result = await this.redis.set(lockKey, lockId, 'PX', ttl, 'NX');
 
         if (result === 'OK') {
-          this.logger.debug(
-            `Lock acquired: ${lockKey}, lockId: ${lockId}, ttl: ${ttl}ms`,
-          );
+          this.logger.debug(`Lock acquired: ${lockKey}, lockId: ${lockId}, ttl: ${ttl}ms`);
           return lockId;
         }
 
@@ -95,15 +87,12 @@ export class DistributedLockService {
         attempts++;
         if (attempts <= retries) {
           this.logger.debug(
-            `Lock acquisition failed, retrying (${attempts}/${retries + 1}): ${lockKey}`,
+            `Lock acquisition failed, retrying (${attempts}/${retries + 1}): ${lockKey}`
           );
           await this.sleep(retryDelay);
         }
       } catch (error) {
-        this.logger.error(
-          `Error acquiring lock ${lockKey}: ${error.message}`,
-          error.stack,
-        );
+        this.logger.error(`Error acquiring lock ${lockKey}: ${error.message}`, error.stack);
         attempts++;
         if (attempts <= retries) {
           await this.sleep(retryDelay);
@@ -111,9 +100,7 @@ export class DistributedLockService {
       }
     }
 
-    throw new Error(
-      `Failed to acquire lock '${key}' after ${retries + 1} attempts`,
-    );
+    throw new Error(`Failed to acquire lock '${key}' after ${retries + 1} attempts`);
   }
 
   /**
@@ -145,15 +132,12 @@ export class DistributedLockService {
         return true;
       } else {
         this.logger.warn(
-          `Lock release failed: ${lockKey}, lockId: ${lockId} (lock may have expired or been released)`,
+          `Lock release failed: ${lockKey}, lockId: ${lockId} (lock may have expired or been released)`
         );
         return false;
       }
     } catch (error) {
-      this.logger.error(
-        `Error releasing lock ${lockKey}: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error releasing lock ${lockKey}: ${error.message}`, error.stack);
       return false;
     }
   }
@@ -176,7 +160,7 @@ export class DistributedLockService {
     ttl: number,
     fn: () => Promise<T>,
     retries: number = 3,
-    retryDelay: number = 100,
+    retryDelay: number = 100
   ): Promise<T> {
     let lockId: string | null = null;
 
@@ -213,19 +197,14 @@ export class DistributedLockService {
       const result = await this.redis.set(lockKey, lockId, 'PX', ttl, 'NX');
 
       if (result === 'OK') {
-        this.logger.debug(
-          `Lock acquired (try): ${lockKey}, lockId: ${lockId}`,
-        );
+        this.logger.debug(`Lock acquired (try): ${lockKey}, lockId: ${lockId}`);
         return lockId;
       }
 
       this.logger.debug(`Lock busy (try): ${lockKey}`);
       return null;
     } catch (error) {
-      this.logger.error(
-        `Error trying to acquire lock ${lockKey}: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error trying to acquire lock ${lockKey}: ${error.message}`, error.stack);
       return null;
     }
   }
@@ -264,11 +243,7 @@ export class DistributedLockService {
    * @param ttl 新的过期时间（毫秒）
    * @returns 是否成功延长
    */
-  async extendLock(
-    key: string,
-    lockId: string,
-    ttl: number,
-  ): Promise<boolean> {
+  async extendLock(key: string, lockId: string, ttl: number): Promise<boolean> {
     const lockKey = this.getLockKey(key);
 
     // Lua 脚本确保原子性
@@ -281,30 +256,17 @@ export class DistributedLockService {
     `;
 
     try {
-      const result = await this.redis.eval(
-        luaScript,
-        1,
-        lockKey,
-        lockId,
-        ttl.toString(),
-      );
+      const result = await this.redis.eval(luaScript, 1, lockKey, lockId, ttl.toString());
 
       if (result === 1) {
-        this.logger.debug(
-          `Lock extended: ${lockKey}, lockId: ${lockId}, new ttl: ${ttl}ms`,
-        );
+        this.logger.debug(`Lock extended: ${lockKey}, lockId: ${lockId}, new ttl: ${ttl}ms`);
         return true;
       }
 
-      this.logger.warn(
-        `Lock extension failed: ${lockKey}, lockId: ${lockId}`,
-      );
+      this.logger.warn(`Lock extension failed: ${lockKey}, lockId: ${lockId}`);
       return false;
     } catch (error) {
-      this.logger.error(
-        `Error extending lock ${lockKey}: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error extending lock ${lockKey}: ${error.message}`, error.stack);
       return false;
     }
   }
@@ -328,10 +290,7 @@ export class DistributedLockService {
       }
       return false;
     } catch (error) {
-      this.logger.error(
-        `Error force-releasing lock ${lockKey}: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error force-releasing lock ${lockKey}: ${error.message}`, error.stack);
       return false;
     }
   }
@@ -390,34 +349,25 @@ export interface LockConfig {
  * ```
  */
 export function Lock(config: LockConfig | ((args: any[]) => LockConfig)) {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-      const lockService: DistributedLockService =
-        this.lockService || this.distributedLockService;
+      const lockService: DistributedLockService = this.lockService || this.distributedLockService;
 
       if (!lockService) {
         throw new Error(
-          `@Lock decorator requires DistributedLockService to be injected into ${target.constructor.name}`,
+          `@Lock decorator requires DistributedLockService to be injected into ${target.constructor.name}`
         );
       }
 
       // 解析配置
-      const lockConfig =
-        typeof config === 'function' ? config(args) : config;
+      const lockConfig = typeof config === 'function' ? config(args) : config;
 
       // 解析键名中的占位符 ${args[0]}, ${args[1]} 等
-      const key = lockConfig.key.replace(
-        /\$\{args\[(\d+)\]\}/g,
-        (_, index) => {
-          return args[parseInt(index)] || '';
-        },
-      );
+      const key = lockConfig.key.replace(/\$\{args\[(\d+)\]\}/g, (_, index) => {
+        return args[parseInt(index)] || '';
+      });
 
       // 使用 withLock 执行方法
       return await lockService.withLock(
@@ -427,7 +377,7 @@ export function Lock(config: LockConfig | ((args: any[]) => LockConfig)) {
           return await originalMethod.apply(this, args);
         },
         lockConfig.retries,
-        lockConfig.retryDelay,
+        lockConfig.retryDelay
       );
     };
 

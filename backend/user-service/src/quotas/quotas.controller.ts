@@ -12,7 +12,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
-import { QuotasService, CreateQuotaDto, UpdateQuotaDto, CheckQuotaRequest, DeductQuotaRequest, RestoreQuotaRequest } from './quotas.service';
+import {
+  QuotasService,
+  CreateQuotaDto,
+  UpdateQuotaDto,
+  CheckQuotaRequest,
+  DeductQuotaRequest,
+  RestoreQuotaRequest,
+} from './quotas.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -60,7 +67,7 @@ export class QuotasController {
   @ApiResponse({ status: 200, description: '检查完成' })
   async checkQuota(@Body() request: CheckQuotaRequest) {
     this.logger.debug(
-      `检查配额 - 用户: ${request.userId}, 类型: ${request.quotaType}, 数量: ${request.requestedAmount}`,
+      `检查配额 - 用户: ${request.userId}, 类型: ${request.quotaType}, 数量: ${request.requestedAmount}`
     );
     return await this.quotasService.checkQuota(request);
   }
@@ -98,10 +105,7 @@ export class QuotasController {
   @ApiOperation({ summary: '更新配额' })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '未找到配额' })
-  async updateQuota(
-    @Param('id') id: string,
-    @Body() dto: UpdateQuotaDto,
-  ) {
+  async updateQuota(@Param('id') id: string, @Body() dto: UpdateQuotaDto) {
     this.logger.log(`更新配额 - ID: ${id}`);
     return await this.quotasService.updateQuota(id, dto);
   }
@@ -126,10 +130,10 @@ export class QuotasController {
       memoryGB: number;
       storageGB: number;
       operation: 'increment' | 'decrement';
-    },
+    }
   ) {
     this.logger.log(
-      `上报用量 - 用户: ${userId}, 操作: ${usageReport.operation}, 设备: ${usageReport.deviceId}`,
+      `上报用量 - 用户: ${userId}, 操作: ${usageReport.operation}, 设备: ${usageReport.deviceId}`
     );
 
     if (usageReport.operation === 'increment') {
@@ -171,9 +175,7 @@ export class QuotasController {
   @ApiOperation({ summary: '批量检查配额' })
   @ApiResponse({ status: 200, description: '检查完成' })
   async batchCheckQuota(@Body() requests: CheckQuotaRequest[]) {
-    const results = await Promise.all(
-      requests.map((req) => this.quotasService.checkQuota(req)),
-    );
+    const results = await Promise.all(requests.map((req) => this.quotasService.checkQuota(req)));
     return {
       total: results.length,
       allowed: results.filter((r) => r.allowed).length,

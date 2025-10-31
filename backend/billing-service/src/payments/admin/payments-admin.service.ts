@@ -43,7 +43,7 @@ export class PaymentsAdminService {
     private paypalProvider: PayPalProvider,
     private paddleProvider: PaddleProvider,
     private wechatPayProvider: WeChatPayProvider,
-    private alipayProvider: AlipayProvider,
+    private alipayProvider: AlipayProvider
   ) {}
 
   /**
@@ -55,7 +55,7 @@ export class PaymentsAdminService {
     if (startDate || endDate) {
       where.createdAt = Between(
         startDate ? new Date(startDate) : new Date('2020-01-01'),
-        endDate ? new Date(endDate) : new Date(),
+        endDate ? new Date(endDate) : new Date()
       );
     }
 
@@ -84,10 +84,7 @@ export class PaymentsAdminService {
       select: ['refundAmount'],
     });
 
-    const totalRefunded = refundedPayments.reduce(
-      (sum, p) => sum + Number(p.refundAmount || 0),
-      0,
-    );
+    const totalRefunded = refundedPayments.reduce((sum, p) => sum + Number(p.refundAmount || 0), 0);
 
     return {
       overview: {
@@ -118,7 +115,7 @@ export class PaymentsAdminService {
     if (startDate || endDate) {
       where.createdAt = Between(
         startDate ? new Date(startDate) : new Date('2020-01-01'),
-        endDate ? new Date(endDate) : new Date(),
+        endDate ? new Date(endDate) : new Date()
       );
     }
 
@@ -159,12 +156,12 @@ export class PaymentsAdminService {
 
     const payments = await this.paymentsRepository
       .createQueryBuilder('payment')
-      .select("DATE(payment.created_at)", 'date')
+      .select('DATE(payment.created_at)', 'date')
       .addSelect('COUNT(*)', 'count')
       .addSelect('SUM(CASE WHEN payment.status = :success THEN 1 ELSE 0 END)', 'successCount')
       .addSelect(
         'SUM(CASE WHEN payment.status = :success THEN payment.amount ELSE 0 END)',
-        'revenue',
+        'revenue'
       )
       .where('payment.created_at >= :startDate', { startDate })
       .setParameter('success', PaymentStatus.SUCCESS)
@@ -195,7 +192,7 @@ export class PaymentsAdminService {
     if (startDate || endDate) {
       where.createdAt = Between(
         startDate ? new Date(startDate) : new Date('2020-01-01'),
-        endDate ? new Date(endDate) : new Date(),
+        endDate ? new Date(endDate) : new Date()
       );
     }
 
@@ -203,10 +200,9 @@ export class PaymentsAdminService {
 
     // 搜索功能
     if (search) {
-      queryBuilder.where(
-        '(payment.payment_no LIKE :search OR payment.order_id LIKE :search)',
-        { search: `%${search}%` },
-      );
+      queryBuilder.where('(payment.payment_no LIKE :search OR payment.order_id LIKE :search)', {
+        search: `%${search}%`,
+      });
     } else {
       queryBuilder.where(where);
     }
@@ -249,7 +245,7 @@ export class PaymentsAdminService {
     paymentId: string,
     amount?: number,
     reason: string = '管理员手动退款',
-    adminNote?: string,
+    adminNote?: string
   ) {
     const payment = await this.paymentsRepository.findOne({
       where: { id: paymentId },
@@ -321,12 +317,7 @@ export class PaymentsAdminService {
       throw new NotFoundException(`支付记录不存在: ${paymentId}`);
     }
 
-    return await this.manualRefund(
-      paymentId,
-      payment.amount,
-      '退款申请已批准',
-      adminNote,
-    );
+    return await this.manualRefund(paymentId, payment.amount, '退款申请已批准', adminNote);
   }
 
   /**
@@ -357,13 +348,10 @@ export class PaymentsAdminService {
    */
   async getExceptionPayments(
     page: number = 1,
-    limit: number = 20,
+    limit: number = 20
   ): Promise<PaginatedResult<Payment>> {
     const [items, total] = await this.paymentsRepository.findAndCount({
-      where: [
-        { status: PaymentStatus.FAILED },
-        { status: PaymentStatus.REFUNDING },
-      ],
+      where: [{ status: PaymentStatus.FAILED }, { status: PaymentStatus.REFUNDING }],
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -434,7 +422,7 @@ export class PaymentsAdminService {
     if (params.startDate || params.endDate) {
       where.createdAt = Between(
         params.startDate ? new Date(params.startDate) : new Date('2020-01-01'),
-        params.endDate ? new Date(params.endDate) : new Date(),
+        params.endDate ? new Date(params.endDate) : new Date()
       );
     }
 
@@ -475,7 +463,7 @@ export class PaymentsAdminService {
     });
 
     // 生成 Buffer
-    return await workbook.xlsx.writeBuffer() as Buffer;
+    return (await workbook.xlsx.writeBuffer()) as Buffer;
   }
 
   /**
@@ -523,7 +511,9 @@ export class PaymentsAdminService {
   /**
    * 测试支付提供商连接
    */
-  async testProviderConnection(provider: PaymentMethod): Promise<{ success: boolean; message: string }> {
+  async testProviderConnection(
+    provider: PaymentMethod
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const providerInstance = this.getProvider(provider);
 
@@ -531,16 +521,26 @@ export class PaymentsAdminService {
         return { success: false, message: '不支持的支付方式' };
       }
 
+      // 检查 provider 是否有 getClientConfig 方法
+      if (typeof providerInstance.getClientConfig !== 'function') {
+        return { success: false, message: '提供商未实现配置方法' };
+      }
+
       // 获取客户端配置来验证连接
       const config = providerInstance.getClientConfig();
 
-      if (!config.publicKey && !config.clientId) {
+      if (!config) {
+        return { success: false, message: '无法获取配置' };
+      }
+
+      if (!config.publicKey && !config.clientId && !config.appId) {
         return { success: false, message: '未配置密钥' };
       }
 
       return { success: true, message: '连接正常' };
     } catch (error) {
-      return { success: false, message: error.message };
+      this.logger.error(`测试支付提供商连接失败: ${provider}`, error.stack);
+      return { success: false, message: error?.message || '连接测试失败' };
     }
   }
 
@@ -550,7 +550,7 @@ export class PaymentsAdminService {
   async getWebhookLogs(
     page: number = 1,
     limit: number = 50,
-    provider?: PaymentMethod,
+    provider?: PaymentMethod
   ): Promise<PaginatedResult<any>> {
     // 这里需要有一个 webhook_logs 表来记录所有 webhook 事件
     // 简化实现，返回空数据

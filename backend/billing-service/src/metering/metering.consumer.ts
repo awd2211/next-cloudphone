@@ -22,9 +22,7 @@ export class MeteringConsumer {
     },
   })
   async handleDeviceStarted(event: DeviceStartedEvent) {
-    this.logger.log(
-      `Device started event received: ${event.deviceId}, starting usage metering`,
-    );
+    this.logger.log(`Device started event received: ${event.deviceId}, starting usage metering`);
 
     try {
       // 开始计量
@@ -36,10 +34,7 @@ export class MeteringConsumer {
 
       this.logger.log(`Usage metering started for device ${event.deviceId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to start metering for device ${event.deviceId}:`,
-        error.message,
-      );
+      this.logger.error(`Failed to start metering for device ${event.deviceId}:`, error.message);
     }
   }
 
@@ -56,23 +51,16 @@ export class MeteringConsumer {
   })
   async handleDeviceStopped(event: DeviceStoppedEvent) {
     this.logger.log(
-      `Device stopped event received: ${event.deviceId}, stopping usage metering. Duration: ${event.duration}s`,
+      `Device stopped event received: ${event.deviceId}, stopping usage metering. Duration: ${event.duration}s`
     );
 
     try {
       // 结束计量
-      await this.meteringService.stopUsageTracking(
-        event.deviceId,
-        event.duration,
-      );
+      await this.meteringService.stopUsageTracking(event.deviceId, event.duration);
 
       this.logger.log(`Usage metering stopped for device ${event.deviceId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to stop metering for device ${event.deviceId}:`,
-        error.message,
-      );
+      this.logger.error(`Failed to stop metering for device ${event.deviceId}:`, error.message);
     }
   }
 }
-

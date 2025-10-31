@@ -1,4 +1,4 @@
-import { IsInt, Min, Max, IsString, IsOptional } from "class-validator";
+import { IsInt, Min, Max, IsString, IsOptional } from 'class-validator';
 
 export class CreateDeviceFromTemplateDto {
   @IsString()

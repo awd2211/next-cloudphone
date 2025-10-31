@@ -9,10 +9,10 @@ import {
 
 export enum AppStatus {
   UPLOADING = 'uploading',
-  PENDING_REVIEW = 'pending_review',  // 待审核
-  APPROVED = 'approved',               // 已批准（等同于 available）
-  REJECTED = 'rejected',               // 已拒绝
-  AVAILABLE = 'available',             // 可用（向后兼容）
+  PENDING_REVIEW = 'pending_review', // 待审核
+  APPROVED = 'approved', // 已批准（等同于 available）
+  REJECTED = 'rejected', // 已拒绝
+  AVAILABLE = 'available', // 可用（向后兼容）
   UNAVAILABLE = 'unavailable',
   DELETED = 'deleted',
 }

@@ -1,13 +1,13 @@
-import { Module, OnModuleInit, Logger } from "@nestjs/common";
-import { DeviceProviderFactory } from "./device-provider.factory";
-import { RedroidModule } from "./redroid/redroid.module";
-import { RedroidProvider } from "./redroid/redroid.provider";
-import { PhysicalModule } from "./physical/physical.module";
-import { PhysicalProvider } from "./physical/physical.provider";
-import { HuaweiModule } from "./huawei/huawei.module";
-import { HuaweiProvider } from "./huawei/huawei.provider";
-import { AliyunModule } from "./aliyun/aliyun.module";
-import { AliyunProvider } from "./aliyun/aliyun.provider";
+import { Module, OnModuleInit, Logger } from '@nestjs/common';
+import { DeviceProviderFactory } from './device-provider.factory';
+import { RedroidModule } from './redroid/redroid.module';
+import { RedroidProvider } from './redroid/redroid.provider';
+import { PhysicalModule } from './physical/physical.module';
+import { PhysicalProvider } from './physical/physical.provider';
+import { HuaweiModule } from './huawei/huawei.module';
+import { HuaweiProvider } from './huawei/huawei.provider';
+import { AliyunModule } from './aliyun/aliyun.module';
+import { AliyunProvider } from './aliyun/aliyun.provider';
 
 /**
  * ProvidersModule
@@ -39,7 +39,7 @@ export class ProvidersModule implements OnModuleInit {
     private readonly redroidProvider: RedroidProvider,
     private readonly physicalProvider: PhysicalProvider, // ✅ Phase 2A
     private readonly huaweiProvider: HuaweiProvider, // ✅ Phase 3
-    private readonly aliyunProvider: AliyunProvider, // ✅ Phase 4
+    private readonly aliyunProvider: AliyunProvider // ✅ Phase 4
   ) {}
 
   /**
@@ -61,8 +61,8 @@ export class ProvidersModule implements OnModuleInit {
     Logger.log(
       `Registered ${this.providerFactory.getProviderCount()} providers: ${this.providerFactory
         .getAvailableProviderTypes()
-        .join(", ")}`,
-      'ProvidersModule',
+        .join(', ')}`,
+      'ProvidersModule'
     );
   }
 }

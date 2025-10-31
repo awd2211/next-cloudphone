@@ -226,7 +226,7 @@ describe('SmsService', () => {
           to: phoneNumber,
           message: expect.stringContaining(code),
           isOtp: true,
-        }),
+        })
       );
     });
   });
@@ -246,10 +246,7 @@ describe('SmsService', () => {
       const results = await service.sendBatch(phoneNumbers, message);
 
       expect(results).toHaveLength(2);
-      expect(mockTwilioProvider.sendBatch).toHaveBeenCalledWith(
-        phoneNumbers,
-        message,
-      );
+      expect(mockTwilioProvider.sendBatch).toHaveBeenCalledWith(phoneNumbers, message);
     });
   });
 
@@ -261,9 +258,7 @@ describe('SmsService', () => {
       const result = service.validatePhoneNumber(phoneNumber);
 
       expect(result).toBe(true);
-      expect(mockTwilioProvider.validatePhoneNumber).toHaveBeenCalledWith(
-        phoneNumber,
-      );
+      expect(mockTwilioProvider.validatePhoneNumber).toHaveBeenCalledWith(phoneNumber);
     });
   });
 
@@ -286,7 +281,7 @@ describe('SmsService', () => {
         expect.objectContaining({
           to: phoneNumber,
           message,
-        }),
+        })
       );
     });
   });

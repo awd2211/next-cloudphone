@@ -239,7 +239,7 @@ describe('UsersService', () => {
       expect(usersRepository.findAndCount).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { tenantId: 'tenant-123' },
-        }),
+        })
       );
     });
 
@@ -251,7 +251,7 @@ describe('UsersService', () => {
       expect(usersRepository.findAndCount).toHaveBeenCalledWith(
         expect.objectContaining({
           relations: ['roles'],
-        }),
+        })
       );
     });
 
@@ -264,7 +264,7 @@ describe('UsersService', () => {
         expect.objectContaining({
           skip: 40, // (3 - 1) * 20
           take: 20,
-        }),
+        })
       );
     });
   });
@@ -291,11 +291,9 @@ describe('UsersService', () => {
         where: { id: 'user-123' },
         relations: ['roles', 'roles.permissions'],
       });
-      expect(cacheService.set).toHaveBeenCalledWith(
-        'user:user-123',
-        expect.any(Object),
-        { ttl: 300 },
-      );
+      expect(cacheService.set).toHaveBeenCalledWith('user:user-123', expect.any(Object), {
+        ttl: 300,
+      });
     });
 
     it('should throw NotFoundException if user not found', async () => {
@@ -357,7 +355,7 @@ describe('UsersService', () => {
       usersRepository.findOne.mockResolvedValue(null);
 
       await expect(service.findByEmail('nonexistent@example.com')).rejects.toThrow(
-        NotFoundException,
+        NotFoundException
       );
     });
   });
@@ -386,9 +384,7 @@ describe('UsersService', () => {
     it('should throw NotFoundException if user not found', async () => {
       usersRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.update('nonexistent', updateUserDto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.update('nonexistent', updateUserDto)).rejects.toThrow(NotFoundException);
     });
 
     it('should update roles when roleIds provided', async () => {
@@ -428,7 +424,7 @@ describe('UsersService', () => {
       usersRepository.findOne.mockResolvedValue(null);
 
       await expect(service.changePassword('nonexistent', changePasswordDto)).rejects.toThrow(
-        NotFoundException,
+        NotFoundException
       );
     });
 
@@ -443,7 +439,7 @@ describe('UsersService', () => {
       };
 
       await expect(service.changePassword('user-123', wrongPasswordDto)).rejects.toThrow(
-        UnauthorizedException,
+        UnauthorizedException
       );
     });
   });
@@ -507,7 +503,7 @@ describe('UsersService', () => {
         expect.objectContaining({
           attempts: 3,
           severity: 'warning',
-        }),
+        })
       );
     });
 
@@ -525,7 +521,7 @@ describe('UsersService', () => {
         expect.objectContaining({
           attempts: 10,
           severity: 'critical',
-        }),
+        })
       );
     });
 
@@ -649,7 +645,7 @@ describe('UsersService', () => {
         expect.any(Object),
         expect.objectContaining({
           ttl: 60,
-        }),
+        })
       );
       expect(metricsService.updateUserStats).toHaveBeenCalled();
     });

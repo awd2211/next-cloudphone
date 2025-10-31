@@ -1,17 +1,37 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Tag, Space, Button, Modal, message, Input, Select, DatePicker, Card, Row, Col, Dropdown, Popconfirm, Form, InputNumber } from 'antd';
-import { EyeOutlined, CloseCircleOutlined, SearchOutlined, DownloadOutlined, DownOutlined, DollarOutlined } from '@ant-design/icons';
+import {
+  Table,
+  Tag,
+  Space,
+  Button,
+  Modal,
+  message,
+  Input,
+  Select,
+  DatePicker,
+  Card,
+  Row,
+  Col,
+  Dropdown,
+  Popconfirm,
+  Form,
+  InputNumber,
+} from 'antd';
+import {
+  EyeOutlined,
+  CloseCircleOutlined,
+  SearchOutlined,
+  DownloadOutlined,
+  DownOutlined,
+  DollarOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import * as billingService from '@/services/billing';
 import type { Order } from '@/types';
 import dayjs from 'dayjs';
 import { exportToExcel, exportToCSV } from '@/utils/export';
-import {
-  useOrders,
-  useCancelOrder,
-  useRefundOrder
-} from '@/hooks/useOrders';
+import { useOrders, useCancelOrder, useRefundOrder } from '@/hooks/useOrders';
 
 const { Search } = Input;
 const { RangePicker } = DatePicker;
@@ -88,15 +108,18 @@ const OrderList = () => {
   }, [selectedRowKeys]);
 
   // ✅ useMemo 优化批量选择配置
-  const rowSelection = useMemo(() => ({
-    selectedRowKeys,
-    onChange: (selectedRowKeys: React.Key[]) => {
-      setSelectedRowKeys(selectedRowKeys);
-    },
-    getCheckboxProps: (record: Order) => ({
-      disabled: record.status !== 'pending', // 只有待支付的订单可以批量取消
+  const rowSelection = useMemo(
+    () => ({
+      selectedRowKeys,
+      onChange: (selectedRowKeys: React.Key[]) => {
+        setSelectedRowKeys(selectedRowKeys);
+      },
+      getCheckboxProps: (record: Order) => ({
+        disabled: record.status !== 'pending', // 只有待支付的订单可以批量取消
+      }),
     }),
-  }), [selectedRowKeys]);
+    [selectedRowKeys]
+  );
 
   // ✅ useMemo 优化导出数据生成
   const exportData = useMemo(() => {
@@ -113,15 +136,15 @@ const OrderList = () => {
       expired: '已过期',
     };
 
-    return orders.map(order => ({
-      '订单号': order.orderNo,
-      '用户': order.user?.username || '-',
-      '套餐': order.plan?.name || '-',
-      '金额': order.amount,
-      '支付方式': paymentMethodMap[order.paymentMethod] || '-',
-      '状态': statusMap[order.status] || order.status,
-      '创建时间': dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss'),
-      '支付时间': order.paidAt ? dayjs(order.paidAt).format('YYYY-MM-DD HH:mm:ss') : '-',
+    return orders.map((order) => ({
+      订单号: order.orderNo,
+      用户: order.user?.username || '-',
+      套餐: order.plan?.name || '-',
+      金额: order.amount,
+      支付方式: paymentMethodMap[order.paymentMethod] || '-',
+      状态: statusMap[order.status] || order.status,
+      创建时间: dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+      支付时间: order.paidAt ? dayjs(order.paidAt).format('YYYY-MM-DD HH:mm:ss') : '-',
     }));
   }, [orders]);
 
@@ -136,20 +159,23 @@ const OrderList = () => {
   }, [exportData]);
 
   // ✅ useMemo 优化导出菜单
-  const exportMenuItems: MenuProps['items'] = useMemo(() => [
-    {
-      key: 'excel',
-      label: '导出为Excel',
-      icon: <DownloadOutlined />,
-      onClick: handleExportExcel,
-    },
-    {
-      key: 'csv',
-      label: '导出为CSV',
-      icon: <DownloadOutlined />,
-      onClick: handleExportCSV,
-    },
-  ], [handleExportExcel, handleExportCSV]);
+  const exportMenuItems: MenuProps['items'] = useMemo(
+    () => [
+      {
+        key: 'excel',
+        label: '导出为Excel',
+        icon: <DownloadOutlined />,
+        onClick: handleExportExcel,
+      },
+      {
+        key: 'csv',
+        label: '导出为CSV',
+        icon: <DownloadOutlined />,
+        onClick: handleExportCSV,
+      },
+    ],
+    [handleExportExcel, handleExportCSV]
+  );
 
   const handleRefund = useCallback(async () => {
     if (!selectedOrder) return;
@@ -164,19 +190,25 @@ const OrderList = () => {
   }, [selectedOrder, refundAmount, refundReason, refundMutation]);
 
   // ✅ useMemo 优化映射对象
-  const paymentMethodMap = useMemo(() => ({
-    wechat: '微信支付',
-    alipay: '支付宝',
-    balance: '余额支付',
-  }), []);
+  const paymentMethodMap = useMemo(
+    () => ({
+      wechat: '微信支付',
+      alipay: '支付宝',
+      balance: '余额支付',
+    }),
+    []
+  );
 
-  const statusMap = useMemo(() => ({
-    pending: { color: 'orange', text: '待支付' },
-    paid: { color: 'green', text: '已支付' },
-    cancelled: { color: 'default', text: '已取消' },
-    refunded: { color: 'red', text: '已退款' },
-    expired: { color: 'default', text: '已过期' },
-  }), []);
+  const statusMap = useMemo(
+    () => ({
+      pending: { color: 'orange', text: '待支付' },
+      paid: { color: 'green', text: '已支付' },
+      cancelled: { color: 'default', text: '已取消' },
+      refunded: { color: 'red', text: '已退款' },
+      expired: { color: 'default', text: '已过期' },
+    }),
+    []
+  );
 
   const handleViewDetail = useCallback((record: Order) => {
     setSelectedOrder(record);
@@ -195,111 +227,114 @@ const OrderList = () => {
   }, []);
 
   // ✅ useMemo 优化表格列配置
-  const columns: ColumnsType<Order> = useMemo(() => [
-    {
-      title: '订单号',
-      dataIndex: 'orderNo',
-      key: 'orderNo',
-      width: 180,
-      fixed: 'left',
-      sorter: (a, b) => a.orderNo.localeCompare(b.orderNo),
-    },
-    {
-      title: '用户',
-      dataIndex: 'user',
-      key: 'user',
-      sorter: (a, b) => (a.user?.username || '').localeCompare(b.user?.username || ''),
-      render: (user: any) => user?.username || '-',
-    },
-    {
-      title: '套餐',
-      dataIndex: 'plan',
-      key: 'plan',
-      sorter: (a, b) => (a.plan?.name || '').localeCompare(b.plan?.name || ''),
-      render: (plan: any) => plan?.name || '-',
-    },
-    {
-      title: '金额',
-      dataIndex: 'amount',
-      key: 'amount',
-      sorter: (a, b) => a.amount - b.amount,
-      render: (amount: number) => `¥${(amount || 0).toFixed(2)}`,
-    },
-    {
-      title: '支付方式',
-      dataIndex: 'paymentMethod',
-      key: 'paymentMethod',
-      sorter: (a, b) => (a.paymentMethod || '').localeCompare(b.paymentMethod || ''),
-      render: (method: string) => paymentMethodMap[method] || '-',
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      sorter: (a, b) => a.status.localeCompare(b.status),
-      render: (status: string) => {
-        const config = statusMap[status] || { color: 'default', text: status };
-        return <Tag color={config.color}>{config.text}</Tag>;
+  const columns: ColumnsType<Order> = useMemo(
+    () => [
+      {
+        title: '订单号',
+        dataIndex: 'orderNo',
+        key: 'orderNo',
+        width: 180,
+        fixed: 'left',
+        sorter: (a, b) => a.orderNo.localeCompare(b.orderNo),
       },
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
-    },
-    {
-      title: '支付时间',
-      dataIndex: 'paidAt',
-      key: 'paidAt',
-      sorter: (a, b) => {
-        const timeA = a.paidAt ? new Date(a.paidAt).getTime() : 0;
-        const timeB = b.paidAt ? new Date(b.paidAt).getTime() : 0;
-        return timeA - timeB;
+      {
+        title: '用户',
+        dataIndex: 'user',
+        key: 'user',
+        sorter: (a, b) => (a.user?.username || '').localeCompare(b.user?.username || ''),
+        render: (user: any) => user?.username || '-',
       },
-      render: (date: string) => date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-',
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 200,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleViewDetail(record)}
-          >
-            详情
-          </Button>
-          {record.status === 'pending' && (
+      {
+        title: '套餐',
+        dataIndex: 'plan',
+        key: 'plan',
+        sorter: (a, b) => (a.plan?.name || '').localeCompare(b.plan?.name || ''),
+        render: (plan: any) => plan?.name || '-',
+      },
+      {
+        title: '金额',
+        dataIndex: 'amount',
+        key: 'amount',
+        sorter: (a, b) => a.amount - b.amount,
+        render: (amount: number) => `¥${(amount || 0).toFixed(2)}`,
+      },
+      {
+        title: '支付方式',
+        dataIndex: 'paymentMethod',
+        key: 'paymentMethod',
+        sorter: (a, b) => (a.paymentMethod || '').localeCompare(b.paymentMethod || ''),
+        render: (method: string) => paymentMethodMap[method] || '-',
+      },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        key: 'status',
+        sorter: (a, b) => a.status.localeCompare(b.status),
+        render: (status: string) => {
+          const config = statusMap[status] || { color: 'default', text: status };
+          return <Tag color={config.color}>{config.text}</Tag>;
+        },
+      },
+      {
+        title: '创建时间',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
+      },
+      {
+        title: '支付时间',
+        dataIndex: 'paidAt',
+        key: 'paidAt',
+        sorter: (a, b) => {
+          const timeA = a.paidAt ? new Date(a.paidAt).getTime() : 0;
+          const timeB = b.paidAt ? new Date(b.paidAt).getTime() : 0;
+          return timeA - timeB;
+        },
+        render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'),
+      },
+      {
+        title: '操作',
+        key: 'action',
+        width: 200,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="small">
             <Button
               type="link"
               size="small"
-              danger
-              icon={<CloseCircleOutlined />}
-              onClick={() => handleOpenCancel(record)}
+              icon={<EyeOutlined />}
+              onClick={() => handleViewDetail(record)}
             >
-              取消
+              详情
             </Button>
-          )}
-          {record.status === 'paid' && (
-            <Button
-              type="link"
-              size="small"
-              icon={<DollarOutlined />}
-              onClick={() => handleOpenRefund(record)}
-            >
-              退款
-            </Button>
-          )}
-        </Space>
-      ),
-    },
-  ], [paymentMethodMap, statusMap, handleViewDetail, handleOpenCancel, handleOpenRefund]);
+            {record.status === 'pending' && (
+              <Button
+                type="link"
+                size="small"
+                danger
+                icon={<CloseCircleOutlined />}
+                onClick={() => handleOpenCancel(record)}
+              >
+                取消
+              </Button>
+            )}
+            {record.status === 'paid' && (
+              <Button
+                type="link"
+                size="small"
+                icon={<DollarOutlined />}
+                onClick={() => handleOpenRefund(record)}
+              >
+                退款
+              </Button>
+            )}
+          </Space>
+        ),
+      },
+    ],
+    [paymentMethodMap, statusMap, handleViewDetail, handleOpenCancel, handleOpenRefund]
+  );
 
   return (
     <div>
@@ -357,10 +392,7 @@ const OrderList = () => {
               placeholder={['开始日期', '结束日期']}
               onChange={(dates) => {
                 if (dates) {
-                  setDateRange([
-                    dates[0]!.format('YYYY-MM-DD'),
-                    dates[1]!.format('YYYY-MM-DD'),
-                  ]);
+                  setDateRange([dates[0]!.format('YYYY-MM-DD'), dates[1]!.format('YYYY-MM-DD')]);
                 } else {
                   setDateRange(null);
                 }
@@ -423,21 +455,50 @@ const OrderList = () => {
       >
         {selectedOrder && (
           <div>
-            <p><strong>订单号：</strong>{selectedOrder.orderNo}</p>
-            <p><strong>用户：</strong>{selectedOrder.user?.username}</p>
-            <p><strong>套餐：</strong>{selectedOrder.plan?.name}</p>
-            <p><strong>金额：</strong>¥{selectedOrder.amount.toFixed(2)}</p>
-            <p><strong>支付方式：</strong>{selectedOrder.paymentMethod || '-'}</p>
-            <p><strong>状态：</strong>{selectedOrder.status}</p>
-            <p><strong>创建时间：</strong>{dayjs(selectedOrder.createdAt).format('YYYY-MM-DD HH:mm:ss')}</p>
+            <p>
+              <strong>订单号：</strong>
+              {selectedOrder.orderNo}
+            </p>
+            <p>
+              <strong>用户：</strong>
+              {selectedOrder.user?.username}
+            </p>
+            <p>
+              <strong>套餐：</strong>
+              {selectedOrder.plan?.name}
+            </p>
+            <p>
+              <strong>金额：</strong>¥{selectedOrder.amount.toFixed(2)}
+            </p>
+            <p>
+              <strong>支付方式：</strong>
+              {selectedOrder.paymentMethod || '-'}
+            </p>
+            <p>
+              <strong>状态：</strong>
+              {selectedOrder.status}
+            </p>
+            <p>
+              <strong>创建时间：</strong>
+              {dayjs(selectedOrder.createdAt).format('YYYY-MM-DD HH:mm:ss')}
+            </p>
             {selectedOrder.paidAt && (
-              <p><strong>支付时间：</strong>{dayjs(selectedOrder.paidAt).format('YYYY-MM-DD HH:mm:ss')}</p>
+              <p>
+                <strong>支付时间：</strong>
+                {dayjs(selectedOrder.paidAt).format('YYYY-MM-DD HH:mm:ss')}
+              </p>
             )}
             {selectedOrder.cancelledAt && (
-              <p><strong>取消时间：</strong>{dayjs(selectedOrder.cancelledAt).format('YYYY-MM-DD HH:mm:ss')}</p>
+              <p>
+                <strong>取消时间：</strong>
+                {dayjs(selectedOrder.cancelledAt).format('YYYY-MM-DD HH:mm:ss')}
+              </p>
             )}
             {selectedOrder.expiresAt && (
-              <p><strong>过期时间：</strong>{dayjs(selectedOrder.expiresAt).format('YYYY-MM-DD HH:mm:ss')}</p>
+              <p>
+                <strong>过期时间：</strong>
+                {dayjs(selectedOrder.expiresAt).format('YYYY-MM-DD HH:mm:ss')}
+              </p>
             )}
           </div>
         )}
@@ -476,12 +537,22 @@ const OrderList = () => {
         <Form layout="vertical">
           <Form.Item label="订单信息">
             <div>
-              <p><strong>订单号：</strong>{selectedOrder?.orderNo}</p>
-              <p><strong>订单金额：</strong>¥{selectedOrder?.amount.toFixed(2)}</p>
-              <p><strong>支付方式：</strong>
-                {selectedOrder?.paymentMethod === 'wechat' ? '微信支付' :
-                 selectedOrder?.paymentMethod === 'alipay' ? '支付宝' :
-                 selectedOrder?.paymentMethod === 'balance' ? '余额支付' : '-'}
+              <p>
+                <strong>订单号：</strong>
+                {selectedOrder?.orderNo}
+              </p>
+              <p>
+                <strong>订单金额：</strong>¥{selectedOrder?.amount.toFixed(2)}
+              </p>
+              <p>
+                <strong>支付方式：</strong>
+                {selectedOrder?.paymentMethod === 'wechat'
+                  ? '微信支付'
+                  : selectedOrder?.paymentMethod === 'alipay'
+                    ? '支付宝'
+                    : selectedOrder?.paymentMethod === 'balance'
+                      ? '余额支付'
+                      : '-'}
               </p>
             </div>
           </Form.Item>

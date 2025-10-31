@@ -59,7 +59,7 @@ const FAQList: React.FC = () => {
   const [query, setQuery] = useState<FAQListQuery>({
     page: 1,
     pageSize: 20,
-    category: searchParams.get('category') as FAQCategory || undefined,
+    category: (searchParams.get('category') as FAQCategory) || undefined,
   });
 
   // 加载 FAQ 列表
@@ -142,9 +142,7 @@ const FAQList: React.FC = () => {
             <Title level={2} style={{ marginBottom: 8 }}>
               常见问题
             </Title>
-            <Paragraph type="secondary">
-              快速找到常见问题的答案
-            </Paragraph>
+            <Paragraph type="secondary">快速找到常见问题的答案</Paragraph>
           </div>
 
           {/* 搜索和筛选 */}
@@ -171,9 +169,7 @@ const FAQList: React.FC = () => {
               ))}
             </Select>
 
-            <Button onClick={() => navigate('/help')}>
-              返回帮助中心
-            </Button>
+            <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
           </Space>
 
           {/* 分类标签 */}
@@ -209,11 +205,7 @@ const FAQList: React.FC = () => {
           </div>
         ) : faqs.length > 0 ? (
           <>
-            <Collapse
-              accordion
-              onChange={handlePanelChange}
-              expandIconPosition="end"
-            >
+            <Collapse accordion onChange={handlePanelChange} expandIconPosition="end">
               {faqs.map((faq) => {
                 const categoryConfig = faqCategoryConfig[faq.category];
 
@@ -227,7 +219,11 @@ const FAQList: React.FC = () => {
                           <span style={{ fontWeight: 500 }}>{faq.question}</span>
                           <Tag color={categoryConfig.color}>{categoryConfig.label}</Tag>
                         </Space>
-                        <Space size="large" style={{ fontSize: 12 }} onClick={(e) => e.stopPropagation()}>
+                        <Space
+                          size="large"
+                          style={{ fontSize: 12 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Space size="small">
                             <EyeOutlined />
                             <span>{faq.views}</span>
@@ -323,9 +319,7 @@ const FAQList: React.FC = () => {
             <Button type="primary" onClick={() => navigate('/tickets')}>
               提交工单
             </Button>
-            <Button onClick={() => navigate('/help')}>
-              返回帮助中心
-            </Button>
+            <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
           </Space>
         </Space>
       </Card>

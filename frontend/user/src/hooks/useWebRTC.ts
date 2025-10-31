@@ -191,10 +191,7 @@ export const useWebRTC = (config: WebRTCConfig): UseWebRTCReturn => {
 
   // 处理连接失败
   const handleFailure = useCallback(() => {
-    if (
-      config.reconnectOnFailure !== false &&
-      retryCountRef.current < (config.maxRetries || 3)
-    ) {
+    if (config.reconnectOnFailure !== false && retryCountRef.current < (config.maxRetries || 3)) {
       const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 10000);
       retryCountRef.current++;
 

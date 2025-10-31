@@ -14,9 +14,9 @@ import { Role } from './role.entity';
  * 字段访问级别
  */
 export enum FieldAccessLevel {
-  HIDDEN = 'hidden',     // 完全隐藏，用户看不到此字段
-  READ = 'read',         // 只读，可以查看但不能修改
-  WRITE = 'write',       // 可读可写
+  HIDDEN = 'hidden', // 完全隐藏，用户看不到此字段
+  READ = 'read', // 只读，可以查看但不能修改
+  WRITE = 'write', // 可读可写
   REQUIRED = 'required', // 必填字段（写入时必须提供）
 }
 
@@ -24,10 +24,10 @@ export enum FieldAccessLevel {
  * 操作类型
  */
 export enum OperationType {
-  CREATE = 'create',   // 创建时的字段权限
-  UPDATE = 'update',   // 更新时的字段权限
-  VIEW = 'view',       // 查看时的字段权限
-  EXPORT = 'export',   // 导出时的字段权限
+  CREATE = 'create', // 创建时的字段权限
+  UPDATE = 'update', // 更新时的字段权限
+  VIEW = 'view', // 查看时的字段权限
+  EXPORT = 'export', // 导出时的字段权限
 }
 
 /**

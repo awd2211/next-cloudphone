@@ -346,7 +346,12 @@ const TemplateList = () => {
               批量创建
             </Button>
           </Tooltip>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openEditModal(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openEditModal(record)}
+          >
             编辑
           </Button>
           <Popconfirm title="确定要删除这个模板吗？" onConfirm={() => handleDelete(record.id)}>
@@ -367,19 +372,38 @@ const TemplateList = () => {
             <Statistic title="总模板数" value={stats?.totalTemplates || 0} />
           </Col>
           <Col span={6}>
-            <Statistic title="公开模板" value={stats?.publicTemplates || 0} valueStyle={{ color: '#3f8600' }} />
+            <Statistic
+              title="公开模板"
+              value={stats?.publicTemplates || 0}
+              valueStyle={{ color: '#3f8600' }}
+            />
           </Col>
           <Col span={6}>
-            <Statistic title="私有模板" value={stats?.privateTemplates || 0} valueStyle={{ color: '#cf1322' }} />
+            <Statistic
+              title="私有模板"
+              value={stats?.privateTemplates || 0}
+              valueStyle={{ color: '#cf1322' }}
+            />
           </Col>
           <Col span={6}>
-            <Statistic title="总使用次数" value={stats?.totalUsage || 0} valueStyle={{ color: '#1890ff' }} />
+            <Statistic
+              title="总使用次数"
+              value={stats?.totalUsage || 0}
+              valueStyle={{ color: '#1890ff' }}
+            />
           </Col>
         </Row>
       </Card>
 
       {popularTemplates.length > 0 && (
-        <Card title={<span><FireOutlined /> 热门模板</span>} style={{ marginBottom: '16px' }}>
+        <Card
+          title={
+            <span>
+              <FireOutlined /> 热门模板
+            </span>
+          }
+          style={{ marginBottom: '16px' }}
+        >
           <Space wrap>
             {popularTemplates.map((template) => (
               <Tag
@@ -397,7 +421,11 @@ const TemplateList = () => {
 
       <Card>
         <Space style={{ marginBottom: '16px' }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateModalVisible(true)}
+          >
             新建模板
           </Button>
           <Search
@@ -462,7 +490,11 @@ const TemplateList = () => {
         width={700}
       >
         <Form form={form} onFinish={handleCreate} layout="vertical">
-          <Form.Item label="模板名称" name="name" rules={[{ required: true, message: '请输入模板名称' }]}>
+          <Form.Item
+            label="模板名称"
+            name="name"
+            rules={[{ required: true, message: '请输入模板名称' }]}
+          >
             <Input placeholder="请输入模板名称" />
           </Form.Item>
           <Form.Item label="模板描述" name="description">
@@ -558,7 +590,11 @@ const TemplateList = () => {
         onOk={() => editForm.submit()}
       >
         <Form form={editForm} onFinish={handleEdit} layout="vertical">
-          <Form.Item label="模板名称" name="name" rules={[{ required: true, message: '请输入模板名称' }]}>
+          <Form.Item
+            label="模板名称"
+            name="name"
+            rules={[{ required: true, message: '请输入模板名称' }]}
+          >
             <Input placeholder="请输入模板名称" />
           </Form.Item>
           <Form.Item label="模板描述" name="description">

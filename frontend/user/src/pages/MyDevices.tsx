@@ -8,7 +8,13 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
-import { getMyDevices, startDevice, stopDevice, rebootDevice, getMyDeviceStats } from '@/services/device';
+import {
+  getMyDevices,
+  startDevice,
+  stopDevice,
+  rebootDevice,
+  getMyDeviceStats,
+} from '@/services/device';
 import type { Device } from '@/types';
 import dayjs from 'dayjs';
 

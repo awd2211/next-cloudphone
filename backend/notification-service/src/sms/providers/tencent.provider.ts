@@ -1,11 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  SmsProvider,
-  SmsOptions,
-  SmsResult,
-  SmsProviderConfig,
-} from '../sms.interface';
+import { SmsProvider, SmsOptions, SmsResult, SmsProviderConfig } from '../sms.interface';
 import * as crypto from 'crypto';
 import axios from 'axios';
 
@@ -73,31 +68,22 @@ export class TencentSmsProvider implements SmsProvider {
       secretKey: this.configService.get<string>('TENCENT_SMS_SECRET_KEY'),
       appId: this.configService.get<string>('TENCENT_SMS_APP_ID'),
       signName: this.configService.get<string>('TENCENT_SMS_SIGN_NAME'),
-      templateIdOtp: this.configService.get<string>(
-        'TENCENT_SMS_TEMPLATE_ID_OTP',
-      ),
+      templateIdOtp: this.configService.get<string>('TENCENT_SMS_TEMPLATE_ID_OTP'),
       templateIdNotification: this.configService.get<string>(
-        'TENCENT_SMS_TEMPLATE_ID_NOTIFICATION',
+        'TENCENT_SMS_TEMPLATE_ID_NOTIFICATION'
       ),
       enabled: this.configService.get<boolean>('TENCENT_SMS_ENABLED', false),
-      region: this.configService.get<string>(
-        'TENCENT_SMS_REGION',
-        'ap-guangzhou',
-      ),
+      region: this.configService.get<string>('TENCENT_SMS_REGION', 'ap-guangzhou'),
       endpoint: 'sms.tencentcloudapi.com',
     };
 
     // 验证必需配置
     if (!this.config.secretId || !this.config.secretKey) {
-      this.logger.warn(
-        'Tencent Cloud SMS credentials not configured. SMS sending will fail.',
-      );
+      this.logger.warn('Tencent Cloud SMS credentials not configured. SMS sending will fail.');
     }
 
     if (!this.config.appId || !this.config.signName) {
-      this.logger.warn(
-        'Tencent Cloud SMS app ID or sign name not configured.',
-      );
+      this.logger.warn('Tencent Cloud SMS app ID or sign name not configured.');
     }
   }
 
@@ -144,9 +130,7 @@ export class TencentSmsProvider implements SmsProvider {
         PhoneNumberSet: [phoneNumber],
         SmsSdkAppId: this.config.appId,
         SignName: this.config.signName,
-        TemplateId: options.isOtp
-          ? this.config.templateIdOtp
-          : this.config.templateIdNotification,
+        TemplateId: options.isOtp ? this.config.templateIdOtp : this.config.templateIdNotification,
         TemplateParamSet: templateParamSet,
       };
 
@@ -170,7 +154,7 @@ export class TencentSmsProvider implements SmsProvider {
         this.stats.sent++;
         const messageId = response.data.Response.SendStatusSet[0].SerialNo;
         this.logger.log(
-          `SMS sent successfully via Tencent Cloud to ${phoneNumber}, MessageId: ${messageId}`,
+          `SMS sent successfully via Tencent Cloud to ${phoneNumber}, MessageId: ${messageId}`
         );
         return {
           success: true,
@@ -225,10 +209,7 @@ export class TencentSmsProvider implements SmsProvider {
   /**
    * 内部批量发送
    */
-  private async sendBatchInternal(
-    recipients: string[],
-    message: string,
-  ): Promise<SmsResult[]> {
+  private async sendBatchInternal(recipients: string[], message: string): Promise<SmsResult[]> {
     try {
       // 规范化所有手机号
       const phoneNumbers = recipients.map((r) => this.normalizePhoneNumber(r));
@@ -320,11 +301,7 @@ export class TencentSmsProvider implements SmsProvider {
   /**
    * 构建请求头（腾讯云 TC3-HMAC-SHA256 签名）
    */
-  private buildHeaders(
-    action: string,
-    payload: any,
-    timestamp: number,
-  ): Record<string, string> {
+  private buildHeaders(action: string, payload: any, timestamp: number): Record<string, string> {
     const service = 'sms';
     const version = '2021-01-11';
     const algorithm = 'TC3-HMAC-SHA256';
@@ -336,10 +313,7 @@ export class TencentSmsProvider implements SmsProvider {
     const canonicalQueryString = '';
     const canonicalHeaders = `content-type:application/json\nhost:${this.config.endpoint}\n`;
     const signedHeaders = 'content-type;host';
-    const payloadHash = crypto
-      .createHash('sha256')
-      .update(JSON.stringify(payload))
-      .digest('hex');
+    const payloadHash = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
     const canonicalRequest = `${httpRequestMethod}\n${canonicalUri}\n${canonicalQueryString}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
 
     // 2. 拼接待签名字符串
@@ -355,18 +329,9 @@ export class TencentSmsProvider implements SmsProvider {
       .createHmac('sha256', `TC3${this.config.secretKey}`)
       .update(date)
       .digest();
-    const secretService = crypto
-      .createHmac('sha256', secretDate)
-      .update(service)
-      .digest();
-    const secretSigning = crypto
-      .createHmac('sha256', secretService)
-      .update('tc3_request')
-      .digest();
-    const signature = crypto
-      .createHmac('sha256', secretSigning)
-      .update(stringToSign)
-      .digest('hex');
+    const secretService = crypto.createHmac('sha256', secretDate).update(service).digest();
+    const secretSigning = crypto.createHmac('sha256', secretService).update('tc3_request').digest();
+    const signature = crypto.createHmac('sha256', secretSigning).update(stringToSign).digest('hex');
 
     // 4. 拼接 Authorization
     const authorization = `${algorithm} Credential=${this.config.secretId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;

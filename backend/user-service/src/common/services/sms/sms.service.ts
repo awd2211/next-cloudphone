@@ -23,7 +23,7 @@ export class SmsService {
   constructor(
     private configService: ConfigService,
     private aliyunProvider: AliyunSmsProvider,
-    private tencentProvider: TencentSmsProvider,
+    private tencentProvider: TencentSmsProvider
   ) {
     // 注册所有提供商
     this.providers.set(this.aliyunProvider.name, this.aliyunProvider);
@@ -80,11 +80,11 @@ export class SmsService {
 
       if (result.success) {
         this.logger.log(
-          `SMS sent successfully via ${providerName} to ${data.phone} (messageId: ${result.messageId})`,
+          `SMS sent successfully via ${providerName} to ${data.phone} (messageId: ${result.messageId})`
         );
       } else {
         this.logger.error(
-          `Failed to send SMS via ${providerName} to ${data.phone}: ${result.error}`,
+          `Failed to send SMS via ${providerName} to ${data.phone}: ${result.error}`
         );
 
         // 如果发送失败且启用了故障转移，尝试其他提供商
@@ -115,7 +115,7 @@ export class SmsService {
    */
   private async sendWithFallback(
     failedProvider: string,
-    data: SmsSendData,
+    data: SmsSendData
   ): Promise<SmsSendResult> {
     this.logger.log(`Attempting SMS fallback (failed provider: ${failedProvider})`);
 

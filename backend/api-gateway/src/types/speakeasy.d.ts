@@ -1,4 +1,4 @@
-declare module "speakeasy" {
+declare module 'speakeasy' {
   export function generateSecret(options?: any): any;
 
   export namespace totp {

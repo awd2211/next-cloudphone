@@ -13,28 +13,22 @@ export class StatsService {
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
     private readonly httpClient: HttpClientService,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService
   ) {}
 
   /**
    * 获取仪表盘统计数据
    */
   async getDashboardStats() {
-    const [
-      totalUsers,
-      activeDevices,
-      todayRevenue,
-      monthRevenue,
-      todayOrders,
-      pendingOrders,
-    ] = await Promise.all([
-      this.getTotalUsersCount(),
-      this.getOnlineDevicesCount(),
-      this.getTodayRevenue(),
-      this.getMonthRevenue(),
-      this.getTodayOrdersCount(),
-      this.getPendingOrdersCount(),
-    ]);
+    const [totalUsers, activeDevices, todayRevenue, monthRevenue, todayOrders, pendingOrders] =
+      await Promise.all([
+        this.getTotalUsersCount(),
+        this.getOnlineDevicesCount(),
+        this.getTodayRevenue(),
+        this.getMonthRevenue(),
+        this.getTodayOrdersCount(),
+        this.getPendingOrdersCount(),
+      ]);
 
     return {
       totalUsers,
@@ -52,11 +46,14 @@ export class StatsService {
    */
   async getTotalUsersCount(): Promise<number> {
     try {
-      const userServiceUrl = this.configService.get('USER_SERVICE_URL', 'http://user-service:30001');
+      const userServiceUrl = this.configService.get(
+        'USER_SERVICE_URL',
+        'http://user-service:30001'
+      );
       const response = await this.httpClient.get<{ count: number }>(
         `${userServiceUrl}/users/count`,
         {},
-        { timeout: 5000, retries: 2, circuitBreaker: true },
+        { timeout: 5000, retries: 2, circuitBreaker: true }
       );
       return response.count || 0;
     } catch (error) {
@@ -70,11 +67,14 @@ export class StatsService {
    */
   async getOnlineDevicesCount(): Promise<number> {
     try {
-      const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL', 'http://device-service:30002');
+      const deviceServiceUrl = this.configService.get(
+        'DEVICE_SERVICE_URL',
+        'http://device-service:30002'
+      );
       const response = await this.httpClient.get<{ count: number }>(
         `${deviceServiceUrl}/devices/count?status=running`,
         {},
-        { timeout: 5000, retries: 2, circuitBreaker: true },
+        { timeout: 5000, retries: 2, circuitBreaker: true }
       );
       return response.count || 0;
     } catch (error) {
@@ -88,11 +88,14 @@ export class StatsService {
    */
   async getDeviceStatusDistribution() {
     try {
-      const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL', 'http://device-service:30002');
+      const deviceServiceUrl = this.configService.get(
+        'DEVICE_SERVICE_URL',
+        'http://device-service:30002'
+      );
       const response = await this.httpClient.get<any>(
         `${deviceServiceUrl}/devices/stats/status-distribution`,
         {},
-        { timeout: 5000, retries: 2, circuitBreaker: true },
+        { timeout: 5000, retries: 2, circuitBreaker: true }
       );
       return response || { idle: 0, running: 0, stopped: 0, error: 0 };
     } catch (error) {
@@ -106,14 +109,17 @@ export class StatsService {
    */
   async getTodayNewUsersCount(): Promise<number> {
     try {
-      const userServiceUrl = this.configService.get('USER_SERVICE_URL', 'http://user-service:30001');
+      const userServiceUrl = this.configService.get(
+        'USER_SERVICE_URL',
+        'http://user-service:30001'
+      );
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
       const response = await this.httpClient.get<{ count: number }>(
         `${userServiceUrl}/users/count?createdAfter=${today.toISOString()}`,
         {},
-        { timeout: 5000, retries: 2, circuitBreaker: true },
+        { timeout: 5000, retries: 2, circuitBreaker: true }
       );
       return response.count || 0;
     } catch (error) {
@@ -127,11 +133,14 @@ export class StatsService {
    */
   async getUserActivityStats(days: number = 7) {
     try {
-      const userServiceUrl = this.configService.get('USER_SERVICE_URL', 'http://user-service:30001');
+      const userServiceUrl = this.configService.get(
+        'USER_SERVICE_URL',
+        'http://user-service:30001'
+      );
       const response = await this.httpClient.get<any>(
         `${userServiceUrl}/users/stats/activity?days=${days}`,
         {},
-        { timeout: 5000, retries: 2, circuitBreaker: true },
+        { timeout: 5000, retries: 2, circuitBreaker: true }
       );
       return response || [];
     } catch (error) {
@@ -145,11 +154,14 @@ export class StatsService {
    */
   async getUserGrowthStats(days: number = 30) {
     try {
-      const userServiceUrl = this.configService.get('USER_SERVICE_URL', 'http://user-service:30001');
+      const userServiceUrl = this.configService.get(
+        'USER_SERVICE_URL',
+        'http://user-service:30001'
+      );
       const response = await this.httpClient.get<any>(
         `${userServiceUrl}/users/stats/growth?days=${days}`,
         {},
-        { timeout: 5000, retries: 2, circuitBreaker: true },
+        { timeout: 5000, retries: 2, circuitBreaker: true }
       );
       return response || [];
     } catch (error) {
@@ -217,7 +229,7 @@ export class StatsService {
       .orderBy('date', 'ASC')
       .getRawMany();
 
-    return orders.map(row => ({
+    return orders.map((row) => ({
       date: row.date,
       revenue: parseFloat(row.revenue || '0'),
       orders: parseInt(row.orders || '0'),
@@ -256,11 +268,14 @@ export class StatsService {
    */
   async getPlanDistributionStats() {
     try {
-      const userServiceUrl = this.configService.get('USER_SERVICE_URL', 'http://user-service:30001');
+      const userServiceUrl = this.configService.get(
+        'USER_SERVICE_URL',
+        'http://user-service:30001'
+      );
       const response = await this.httpClient.get<any>(
         `${userServiceUrl}/plans/stats/distribution`,
         {},
-        { timeout: 5000, retries: 2, circuitBreaker: true },
+        { timeout: 5000, retries: 2, circuitBreaker: true }
       );
       return response || [];
     } catch (error) {

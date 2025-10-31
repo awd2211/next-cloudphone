@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { UserBalance, BalanceStatus } from './entities/user-balance.entity';
@@ -62,7 +57,7 @@ export class BalanceService {
     private balanceRepository: Repository<UserBalance>,
     @InjectRepository(BalanceTransaction)
     private transactionRepository: Repository<BalanceTransaction>,
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
   /**
@@ -178,7 +173,7 @@ export class BalanceService {
       await queryRunner.commitTransaction();
 
       this.logger.log(
-        `充值成功 - 用户: ${dto.userId}, 金额: ${dto.amount}, 余额: ${balance.balance}`,
+        `充值成功 - 用户: ${dto.userId}, 金额: ${dto.amount}, 余额: ${balance.balance}`
       );
 
       return { balance, transaction };
@@ -222,7 +217,7 @@ export class BalanceService {
 
       if (!balance.canConsume(dto.amount)) {
         throw new BadRequestException(
-          `余额不足 (可用: ${balance.getAvailableBalance()}, 需要: ${dto.amount})`,
+          `余额不足 (可用: ${balance.getAvailableBalance()}, 需要: ${dto.amount})`
         );
       }
 
@@ -250,15 +245,13 @@ export class BalanceService {
       await queryRunner.commitTransaction();
 
       this.logger.log(
-        `消费成功 - 用户: ${dto.userId}, 金额: ${dto.amount}, 余额: ${balance.balance}`,
+        `消费成功 - 用户: ${dto.userId}, 金额: ${dto.amount}, 余额: ${balance.balance}`
       );
 
       // 检查是否需要自动充值
       if (balance.autoRecharge && balance.autoRechargeTrigger) {
         if (Number(balance.balance) <= balance.autoRechargeTrigger) {
-          this.logger.warn(
-            `余额低于自动充值阈值 - 用户: ${dto.userId}, 触发自动充值`,
-          );
+          this.logger.warn(`余额低于自动充值阈值 - 用户: ${dto.userId}, 触发自动充值`);
           // 这里可以触发自动充值流程
         }
       }
@@ -337,7 +330,11 @@ export class BalanceService {
   /**
    * 解冻余额
    */
-  async unfreezeBalance(userId: string, amount: number, reason: string): Promise<{
+  async unfreezeBalance(
+    userId: string,
+    amount: number,
+    reason: string
+  ): Promise<{
     balance: UserBalance;
     transaction: BalanceTransaction;
   }> {
@@ -439,7 +436,7 @@ export class BalanceService {
       await queryRunner.commitTransaction();
 
       this.logger.log(
-        `余额调整成功 - 用户: ${dto.userId}, 金额: ${dto.amount}, 操作人: ${dto.operatorId}`,
+        `余额调整成功 - 用户: ${dto.userId}, 金额: ${dto.amount}, 操作人: ${dto.operatorId}`
       );
 
       return { balance, transaction };
@@ -462,7 +459,7 @@ export class BalanceService {
       status?: TransactionStatus;
       limit?: number;
       offset?: number;
-    },
+    }
   ): Promise<{ transactions: BalanceTransaction[]; total: number }> {
     const queryBuilder = this.transactionRepository
       .createQueryBuilder('transaction')
@@ -512,10 +509,7 @@ export class BalanceService {
     const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // 最近10条交易
-    const { transactions: recentTransactions } = await this.getTransactions(
-      userId,
-      { limit: 10 },
-    );
+    const { transactions: recentTransactions } = await this.getTransactions(userId, { limit: 10 });
 
     // 本月充值
     const monthlyRecharge = await this.transactionRepository
@@ -591,9 +585,7 @@ export class BalanceService {
     if (newStatus !== balance.status) {
       balance.status = newStatus;
       await this.balanceRepository.save(balance);
-      this.logger.warn(
-        `余额状态变更 - 用户: ${balance.userId}, 状态: ${balance.status}`,
-      );
+      this.logger.warn(`余额状态变更 - 用户: ${balance.userId}, 状态: ${balance.status}`);
     }
   }
 }

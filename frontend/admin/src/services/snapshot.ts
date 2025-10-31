@@ -8,7 +8,9 @@ import type {
 } from '@/types';
 
 // 获取快照列表
-export const getSnapshots = (params?: PaginationParams & { deviceId?: string; status?: string }) => {
+export const getSnapshots = (
+  params?: PaginationParams & { deviceId?: string; status?: string }
+) => {
   return request.get<PaginatedResponse<DeviceSnapshot>>('/snapshots', { params });
 };
 

@@ -293,10 +293,7 @@ describe('PermissionCacheService', () => {
     it('应该清除指定租户的所有用户缓存', async () => {
       // Arrange
       const tenantId = 'tenant-123';
-      const mockUsers = [
-        { id: 'user-1' },
-        { id: 'user-2' },
-      ];
+      const mockUsers = [{ id: 'user-1' }, { id: 'user-2' }];
 
       userRepository.find.mockResolvedValue(mockUsers);
 
@@ -337,10 +334,7 @@ describe('PermissionCacheService', () => {
   describe('warmupActiveUsersCache', () => {
     it('应该预热活跃用户的缓存', async () => {
       // Arrange
-      const mockActiveUsers = [
-        { id: 'user-1' },
-        { id: 'user-2' },
-      ];
+      const mockActiveUsers = [{ id: 'user-1' }, { id: 'user-2' }];
 
       userRepository.find.mockResolvedValue(mockActiveUsers);
       userRepository.findOne.mockResolvedValue({

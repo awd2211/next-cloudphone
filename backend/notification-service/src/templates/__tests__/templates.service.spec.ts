@@ -97,7 +97,7 @@ describe('TemplatesService', () => {
             code: createTemplateDto.code,
             language: 'zh-CN',
             isActive: true,
-          }),
+          })
         );
         expect(templateRepository.save).toHaveBeenCalled();
       });
@@ -107,7 +107,7 @@ describe('TemplatesService', () => {
 
         await expect(service.create(createTemplateDto)).rejects.toThrow(ConflictException);
         await expect(service.create(createTemplateDto)).rejects.toThrow(
-          'Template with code "device-created" already exists',
+          'Template with code "device-created" already exists'
         );
         expect(templateRepository.save).not.toHaveBeenCalled();
       });
@@ -181,7 +181,7 @@ describe('TemplatesService', () => {
 
         await expect(service.update(mockTemplate.id, updateDto)).rejects.toThrow(ConflictException);
         await expect(service.update(mockTemplate.id, updateDto)).rejects.toThrow(
-          'Template with code "existing-code" already exists',
+          'Template with code "existing-code" already exists'
         );
       });
     });
@@ -334,7 +334,7 @@ describe('TemplatesService', () => {
         const result = await service.render(
           'device-created',
           { deviceName: 'Test', deviceId: 'device-123' },
-          'zh-CN',
+          'zh-CN'
         );
 
         expect(result.title).toBeDefined();
@@ -346,9 +346,11 @@ describe('TemplatesService', () => {
       it('should throw NotFoundException if template not found', async () => {
         templateRepository.findOne.mockResolvedValue(null);
 
-        await expect(service.render('non-existent', {}, 'zh-CN')).rejects.toThrow(NotFoundException);
         await expect(service.render('non-existent', {}, 'zh-CN')).rejects.toThrow(
-          'Template with code "non-existent" not found',
+          NotFoundException
+        );
+        await expect(service.render('non-existent', {}, 'zh-CN')).rejects.toThrow(
+          'Template with code "non-existent" not found'
         );
       });
 
@@ -363,7 +365,7 @@ describe('TemplatesService', () => {
         const result = await service.render(
           'device-created',
           { deviceName: 'Test Device', deviceId: 'override-id' },
-          'zh-CN',
+          'zh-CN'
         );
 
         // deviceId should be overridden, userName should use default
@@ -416,7 +418,11 @@ describe('TemplatesService', () => {
 
         templateRepository.findOne.mockResolvedValue(templateWithDate);
 
-        const result = await service.render('device-created', { date: new Date('2024-01-15') }, 'zh-CN');
+        const result = await service.render(
+          'device-created',
+          { date: new Date('2024-01-15') },
+          'zh-CN'
+        );
 
         expect(result.body).toContain('2024');
       });
@@ -468,8 +474,10 @@ describe('TemplatesService', () => {
           .mockResolvedValueOnce(mockTemplate) // template-2: conflict
           .mockResolvedValueOnce(null); // template-3: no conflict
 
-        templateRepository.create.mockImplementation((dto) => ({ ...mockTemplate, ...dto } as any));
-        templateRepository.save.mockImplementation((template) => Promise.resolve(template as NotificationTemplate));
+        templateRepository.create.mockImplementation((dto) => ({ ...mockTemplate, ...dto }) as any);
+        templateRepository.save.mockImplementation((template) =>
+          Promise.resolve(template as NotificationTemplate)
+        );
 
         const results = await service.bulkCreate(templates);
 

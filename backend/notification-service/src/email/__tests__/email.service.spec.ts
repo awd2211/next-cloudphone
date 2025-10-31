@@ -101,7 +101,7 @@ describe('EmailService', () => {
           subject: 'Test Subject',
           text: 'Test content',
           from: 'Cloud Phone <noreply@cloudphone.com>',
-        }),
+        })
       );
     });
 
@@ -119,7 +119,7 @@ describe('EmailService', () => {
       expect(mockTransporter.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           html: '<h1>Hello</h1>',
-        }),
+        })
       );
     });
 
@@ -139,7 +139,7 @@ describe('EmailService', () => {
       expect(mockTransporter.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           html: '<h1>Hello World</h1>',
-        }),
+        })
       );
     });
 
@@ -179,10 +179,7 @@ describe('EmailService', () => {
         messageId: 'test-message-id',
       });
 
-      const result = await service.sendDeviceCreatedEmail(
-        'user@test.com',
-        'My Device',
-      );
+      const result = await service.sendDeviceCreatedEmail('user@test.com', 'My Device');
 
       expect(result).toBe(true);
       expect(mockTransporter.sendMail).toHaveBeenCalledWith(
@@ -190,7 +187,7 @@ describe('EmailService', () => {
           to: 'user@test.com',
           subject: '设备创建成功通知',
           html: expect.stringContaining('My Device'),
-        }),
+        })
       );
     });
 
@@ -221,7 +218,7 @@ describe('EmailService', () => {
           to: 'user@test.com',
           subject: '余额不足提醒',
           html: expect.stringContaining('50.50'),
-        }),
+        })
       );
     });
 
@@ -255,10 +252,7 @@ describe('EmailService', () => {
         messageId: 'test-message-id',
       });
 
-      const result = await service.sendWelcomeEmail(
-        'newuser@test.com',
-        'John Doe',
-      );
+      const result = await service.sendWelcomeEmail('newuser@test.com', 'John Doe');
 
       expect(result).toBe(true);
       expect(mockTransporter.sendMail).toHaveBeenCalledWith(
@@ -266,7 +260,7 @@ describe('EmailService', () => {
           to: 'newuser@test.com',
           subject: '欢迎加入云手机平台',
           html: expect.stringContaining('John Doe'),
-        }),
+        })
       );
     });
 
@@ -305,7 +299,7 @@ describe('EmailService', () => {
       const result = await service.sendPasswordResetEmail(
         'user@test.com',
         'reset-token-123',
-        '2024-12-31 23:59:59',
+        '2024-12-31 23:59:59'
       );
 
       expect(result).toBe(true);
@@ -314,7 +308,7 @@ describe('EmailService', () => {
           to: 'user@test.com',
           subject: '密码重置请求',
           html: expect.stringContaining('reset-token-123'),
-        }),
+        })
       );
     });
 
@@ -323,11 +317,7 @@ describe('EmailService', () => {
         messageId: 'test-message-id',
       });
 
-      await service.sendPasswordResetEmail(
-        'user@test.com',
-        'token123',
-        '2024-12-31',
-      );
+      await service.sendPasswordResetEmail('user@test.com', 'token123', '2024-12-31');
 
       const callArgs = mockTransporter.sendMail.mock.calls[0][0];
       expect(callArgs.html).toContain('token123');
@@ -339,11 +329,7 @@ describe('EmailService', () => {
         messageId: 'test-message-id',
       });
 
-      await service.sendPasswordResetEmail(
-        'user@test.com',
-        'token',
-        '2024-12-31 23:59:59',
-      );
+      await service.sendPasswordResetEmail('user@test.com', 'token', '2024-12-31 23:59:59');
 
       const callArgs = mockTransporter.sendMail.mock.calls[0][0];
       expect(callArgs.html).toContain('2024-12-31 23:59:59');

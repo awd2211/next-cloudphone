@@ -1,9 +1,4 @@
-import {
-  PipeTransform,
-  Injectable,
-  ArgumentMetadata,
-  BadRequestException,
-} from '@nestjs/common';
+import { PipeTransform, Injectable, ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 /**
  * SQL 注入防护管道
@@ -21,32 +16,62 @@ export class SqlInjectionValidationPipe implements PipeTransform {
    */
   private readonly dangerousKeywords = [
     // SQL 命令
-    'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER',
-    'EXEC', 'EXECUTE', 'UNION', 'DECLARE', 'CAST', 'CONVERT',
+    'SELECT',
+    'INSERT',
+    'UPDATE',
+    'DELETE',
+    'DROP',
+    'CREATE',
+    'ALTER',
+    'EXEC',
+    'EXECUTE',
+    'UNION',
+    'DECLARE',
+    'CAST',
+    'CONVERT',
 
     // SQL 函数
-    'CHAR', 'NCHAR', 'VARCHAR', 'NVARCHAR', 'ASCII', 'CHR',
-    'CONCAT', 'SUBSTRING', 'LEN', 'LENGTH', 'SLEEP', 'BENCHMARK',
+    'CHAR',
+    'NCHAR',
+    'VARCHAR',
+    'NVARCHAR',
+    'ASCII',
+    'CHR',
+    'CONCAT',
+    'SUBSTRING',
+    'LEN',
+    'LENGTH',
+    'SLEEP',
+    'BENCHMARK',
 
     // SQL 注释符号
-    '--', '/*', '*/', '#',
+    '--',
+    '/*',
+    '*/',
+    '#',
 
     // SQL 特殊操作
-    'XP_', 'SP_', 'UTL_', 'DBMS_',
+    'XP_',
+    'SP_',
+    'UTL_',
+    'DBMS_',
 
     // 危险操作
-    'SHUTDOWN', 'GRANT', 'REVOKE', 'TRUNCATE',
+    'SHUTDOWN',
+    'GRANT',
+    'REVOKE',
+    'TRUNCATE',
   ];
 
   /**
    * SQL 注入危险字符
    */
   private readonly dangerousPatterns = [
-    /(\%27)|(\')|(\-\-)|(\%23)|(#)/i,  // SQL 注释和引号
-    /((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))/i,  // SQL 注入模式
-    /\w*((\%27)|(\'))((\%6F)|o|(\%4F))((\%72)|r|(\%52))/i,  // 'OR' 模式
-    /((\%27)|(\'))union/i,  // UNION 注入
-    /exec(\s|\+)+(s|x)p\w+/i,  // 存储过程执行
+    /(\%27)|(\')|(\-\-)|(\%23)|(#)/i, // SQL 注释和引号
+    /((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))/i, // SQL 注入模式
+    /\w*((\%27)|(\'))((\%6F)|o|(\%4F))((\%72)|r|(\%52))/i, // 'OR' 模式
+    /((\%27)|(\'))union/i, // UNION 注入
+    /exec(\s|\+)+(s|x)p\w+/i, // 存储过程执行
   ];
 
   /**
@@ -144,9 +169,9 @@ export class SqlInjectionValidationPipe implements PipeTransform {
 @Injectable()
 export class SqlInjectionValidationPipeLoose implements PipeTransform {
   private readonly criticalPatterns = [
-    /(\%27)|(\')|(\-\-)|(\%23)|(#)/i,  // SQL 注释和引号
-    /((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))/i,  // SQL 注入模式
-    /\w*((\%27)|(\'))((\%6F)|o|(\%4F))((\%72)|r|(\%52))/i,  // 'OR' 模式
+    /(\%27)|(\')|(\-\-)|(\%23)|(#)/i, // SQL 注释和引号
+    /((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))/i, // SQL 注入模式
+    /\w*((\%27)|(\'))((\%6F)|o|(\%4F))((\%72)|r|(\%52))/i, // 'OR' 模式
   ];
 
   transform(value: any, metadata: ArgumentMetadata) {

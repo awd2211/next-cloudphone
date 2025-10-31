@@ -44,10 +44,7 @@ import { BillingUserEventsHandler } from '../events/user-events.handler';
     MeteringModule,
     BalanceModule,
   ],
-  providers: [
-    BillingDeviceEventsHandler,
-    BillingUserEventsHandler,
-  ],
+  providers: [BillingDeviceEventsHandler, BillingUserEventsHandler],
   exports: [RabbitMQModule],
 })
 export class BillingRabbitMQModule {}

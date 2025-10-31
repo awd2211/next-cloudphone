@@ -365,12 +365,8 @@ const TutorialDetail: React.FC = () => {
             >
               {liked ? '已点赞' : '点赞'}
             </Button>
-            <Button onClick={() => navigate('/help/tutorials')}>
-              浏览更多教程
-            </Button>
-            <Button onClick={() => navigate('/help')}>
-              返回帮助中心
-            </Button>
+            <Button onClick={() => navigate('/help/tutorials')}>浏览更多教程</Button>
+            <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
           </Space>
         </Space>
       </Card>

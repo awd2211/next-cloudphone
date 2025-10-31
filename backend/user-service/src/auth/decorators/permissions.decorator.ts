@@ -17,7 +17,7 @@ export interface PermissionRequirement {
  */
 export const RequirePermission = (
   permissions: string | string[],
-  operator: PermissionOperator = PermissionOperator.AND,
+  operator: PermissionOperator = PermissionOperator.AND
 ) => {
   const permissionArray = Array.isArray(permissions) ? permissions : [permissions];
   const requirement: PermissionRequirement = {

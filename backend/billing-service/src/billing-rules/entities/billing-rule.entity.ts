@@ -182,7 +182,7 @@ export class BillingRule {
     // 找到适用的批量折扣档位
     const sortedTiers = [...this.tiers].sort((a, b) => b.from - a.from);
     const applicableTier = sortedTiers.find(
-      (tier) => quantity >= tier.from && (tier.to === -1 || quantity <= tier.to),
+      (tier) => quantity >= tier.from && (tier.to === -1 || quantity <= tier.to)
     );
 
     if (!applicableTier) {
@@ -203,7 +203,9 @@ export class BillingRule {
     const applicableConfig = this.timeBasedPricing.find((config) => {
       const hourMatch = hour >= config.startHour && hour < config.endHour;
       const dayMatch =
-        !config.days || config.days.length === 0 || (day !== undefined && config.days.includes(day));
+        !config.days ||
+        config.days.length === 0 ||
+        (day !== undefined && config.days.includes(day));
       return hourMatch && dayMatch;
     });
 

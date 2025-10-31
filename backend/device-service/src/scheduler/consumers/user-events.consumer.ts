@@ -1,11 +1,11 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, In } from "typeorm";
-import { DeviceAllocation, AllocationStatus } from "../../entities/device-allocation.entity";
-import { Device } from "../../entities/device.entity";
-import { AllocationService } from "../allocation.service";
-import { NotificationClientService } from "../notification-client.service";
+import { Injectable, Logger } from '@nestjs/common';
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, In } from 'typeorm';
+import { DeviceAllocation, AllocationStatus } from '../../entities/device-allocation.entity';
+import { Device } from '../../entities/device.entity';
+import { AllocationService } from '../allocation.service';
+import { NotificationClientService } from '../notification-client.service';
 
 /**
  * User 事件消费者
@@ -26,26 +26,23 @@ export class UserEventsConsumer {
     @InjectRepository(Device)
     private deviceRepository: Repository<Device>,
     private allocationService: AllocationService,
-    private notificationClient: NotificationClientService,
+    private notificationClient: NotificationClientService
   ) {}
 
   /**
    * 用户删除事件 - 释放该用户的所有设备分配
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "user.deleted",
-    queue: "scheduler.user-deleted",
+    exchange: 'cloudphone.events',
+    routingKey: 'user.deleted',
+    queue: 'scheduler.user-deleted',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.user-deleted.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.user-deleted.failed',
     },
   })
-  async handleUserDeleted(event: {
-    userId: string;
-    timestamp: string;
-  }): Promise<void> {
+  async handleUserDeleted(event: { userId: string; timestamp: string }): Promise<void> {
     this.logger.log(`📥 Received user.deleted event: ${event.userId}`);
 
     try {
@@ -71,14 +68,12 @@ export class UserEventsConsumer {
       for (const allocation of activeAllocations) {
         try {
           await this.allocationService.releaseAllocation(allocation.id, {
-            reason: "用户账户已删除",
+            reason: '用户账户已删除',
             automatic: true,
           });
           successCount++;
         } catch (error) {
-          this.logger.error(
-            `Failed to release allocation ${allocation.id}: ${error.message}`
-          );
+          this.logger.error(`Failed to release allocation ${allocation.id}: ${error.message}`);
         }
       }
 
@@ -98,13 +93,13 @@ export class UserEventsConsumer {
    * 用户暂停事件 - 释放该用户的所有设备分配
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "user.suspended",
-    queue: "scheduler.user-suspended",
+    exchange: 'cloudphone.events',
+    routingKey: 'user.suspended',
+    queue: 'scheduler.user-suspended',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.user-suspended.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.user-suspended.failed',
     },
   })
   async handleUserSuspended(event: {
@@ -112,9 +107,7 @@ export class UserEventsConsumer {
     reason: string;
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(
-      `📥 Received user.suspended event: ${event.userId} (${event.reason})`
-    );
+    this.logger.log(`📥 Received user.suspended event: ${event.userId} (${event.reason})`);
 
     try {
       const activeAllocations = await this.allocationRepository.find({
@@ -129,9 +122,7 @@ export class UserEventsConsumer {
         return;
       }
 
-      this.logger.log(
-        `Found ${activeAllocations.length} active allocations for suspended user`
-      );
+      this.logger.log(`Found ${activeAllocations.length} active allocations for suspended user`);
 
       let successCount = 0;
       let notificationCount = 0;
@@ -164,9 +155,7 @@ export class UserEventsConsumer {
             notificationCount++;
           }
         } catch (error) {
-          this.logger.error(
-            `Failed to release allocation ${allocation.id}: ${error.message}`
-          );
+          this.logger.error(`Failed to release allocation ${allocation.id}: ${error.message}`);
         }
       }
 
@@ -174,10 +163,7 @@ export class UserEventsConsumer {
         `✅ Released ${successCount} allocations, sent ${notificationCount} notifications`
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to handle user.suspended event: ${error.message}`,
-        error.stack
-      );
+      this.logger.error(`Failed to handle user.suspended event: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -186,13 +172,13 @@ export class UserEventsConsumer {
    * 用户配额更新事件 - 检查是否需要释放设备
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "user.quota_updated",
-    queue: "scheduler.user-quota-updated",
+    exchange: 'cloudphone.events',
+    routingKey: 'user.quota_updated',
+    queue: 'scheduler.user-quota-updated',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.user-quota-updated.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.user-quota-updated.failed',
     },
   })
   async handleUserQuotaUpdated(event: {
@@ -214,7 +200,7 @@ export class UserEventsConsumer {
             status: AllocationStatus.ALLOCATED,
           },
           order: {
-            allocatedAt: "ASC", // 优先释放最早分配的设备
+            allocatedAt: 'ASC', // 优先释放最早分配的设备
           },
         });
 
@@ -259,10 +245,7 @@ export class UserEventsConsumer {
         }
       }
     } catch (error) {
-      this.logger.error(
-        `Failed to handle user.quota_updated event: ${error.message}`,
-        error.stack
-      );
+      this.logger.error(`Failed to handle user.quota_updated event: ${error.message}`, error.stack);
       // Don't throw - quota updates are informational
     }
   }
@@ -271,18 +254,18 @@ export class UserEventsConsumer {
    * 用户配额超限事件 - 立即释放超出的设备
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "user.quota_exceeded",
-    queue: "scheduler.user-quota-exceeded",
+    exchange: 'cloudphone.events',
+    routingKey: 'user.quota_exceeded',
+    queue: 'scheduler.user-quota-exceeded',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.user-quota-exceeded.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.user-quota-exceeded.failed',
     },
   })
   async handleUserQuotaExceeded(event: {
     userId: string;
-    quotaType: "devices" | "cpu" | "memory";
+    quotaType: 'devices' | 'cpu' | 'memory';
     current: number;
     limit: number;
     timestamp: string;
@@ -292,29 +275,27 @@ export class UserEventsConsumer {
     );
 
     try {
-      if (event.quotaType === "devices") {
+      if (event.quotaType === 'devices') {
         const activeAllocations = await this.allocationRepository.find({
           where: {
             userId: event.userId,
             status: AllocationStatus.ALLOCATED,
           },
           order: {
-            allocatedAt: "ASC",
+            allocatedAt: 'ASC',
           },
         });
 
         const excessCount = event.current - event.limit;
 
         if (excessCount > 0 && activeAllocations.length >= excessCount) {
-          this.logger.log(
-            `Releasing ${excessCount} oldest devices to enforce quota limit`
-          );
+          this.logger.log(`Releasing ${excessCount} oldest devices to enforce quota limit`);
 
           const devicesToRelease = activeAllocations.slice(0, excessCount);
 
           for (const allocation of devicesToRelease) {
             await this.allocationService.releaseAllocation(allocation.id, {
-              reason: "设备配额超限，已自动释放",
+              reason: '设备配额超限，已自动释放',
               automatic: true,
             });
           }
@@ -335,19 +316,16 @@ export class UserEventsConsumer {
    * 用户激活事件 - 记录日志（暂无自动化操作）
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "user.activated",
-    queue: "scheduler.user-activated",
+    exchange: 'cloudphone.events',
+    routingKey: 'user.activated',
+    queue: 'scheduler.user-activated',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.user-activated.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.user-activated.failed',
     },
   })
-  async handleUserActivated(event: {
-    userId: string;
-    timestamp: string;
-  }): Promise<void> {
+  async handleUserActivated(event: { userId: string; timestamp: string }): Promise<void> {
     this.logger.log(`📥 Received user.activated event: ${event.userId}`);
 
     // Currently just logging - could trigger welcome notifications

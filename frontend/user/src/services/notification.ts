@@ -3,19 +3,19 @@ import { io, Socket } from 'socket.io-client';
 
 // 通知类型
 export enum NotificationType {
-  SYSTEM = 'system',                 // 系统通知
-  TICKET_REPLY = 'ticket_reply',     // 工单回复
+  SYSTEM = 'system', // 系统通知
+  TICKET_REPLY = 'ticket_reply', // 工单回复
   TICKET_RESOLVED = 'ticket_resolved', // 工单已解决
-  BALANCE_LOW = 'balance_low',       // 余额不足
+  BALANCE_LOW = 'balance_low', // 余额不足
   BALANCE_RECHARGED = 'balance_recharged', // 充值成功
   ORDER_COMPLETED = 'order_completed', // 订单完成
-  ORDER_FAILED = 'order_failed',     // 订单失败
-  DEVICE_READY = 'device_ready',     // 设备就绪
-  DEVICE_ERROR = 'device_error',     // 设备异常
-  APP_INSTALLED = 'app_installed',   // 应用安装完成
-  PROMOTION = 'promotion',           // 促销活动
-  MAINTENANCE = 'maintenance',       // 维护通知
-  SECURITY = 'security',             // 安全提醒
+  ORDER_FAILED = 'order_failed', // 订单失败
+  DEVICE_READY = 'device_ready', // 设备就绪
+  DEVICE_ERROR = 'device_error', // 设备异常
+  APP_INSTALLED = 'app_installed', // 应用安装完成
+  PROMOTION = 'promotion', // 促销活动
+  MAINTENANCE = 'maintenance', // 维护通知
+  SECURITY = 'security', // 安全提醒
 }
 
 // 通知状态
@@ -41,10 +41,10 @@ export interface Notification {
   status: NotificationStatus;
   priority: NotificationPriority;
   userId: string;
-  relatedId?: string;          // 关联的资源 ID（如工单 ID、订单 ID）
-  relatedType?: string;        // 关联的资源类型
-  actionUrl?: string;          // 跳转链接
-  actionText?: string;         // 操作按钮文本
+  relatedId?: string; // 关联的资源 ID（如工单 ID、订单 ID）
+  relatedType?: string; // 关联的资源类型
+  actionUrl?: string; // 跳转链接
+  actionText?: string; // 操作按钮文本
   metadata?: Record<string, any>; // 额外数据
   createdAt: string;
   readAt?: string;
@@ -74,23 +74,23 @@ export interface NotificationListResponse {
 // 通知设置接口
 export interface NotificationSettings {
   userId: string;
-  emailEnabled: boolean;           // 启用邮件通知
-  smsEnabled: boolean;             // 启用短信通知
-  pushEnabled: boolean;            // 启用推送通知
-  soundEnabled: boolean;           // 启用声音
+  emailEnabled: boolean; // 启用邮件通知
+  smsEnabled: boolean; // 启用短信通知
+  pushEnabled: boolean; // 启用推送通知
+  soundEnabled: boolean; // 启用声音
 
   // 通知类型开关
-  systemNotifications: boolean;    // 系统通知
-  ticketNotifications: boolean;    // 工单通知
-  orderNotifications: boolean;     // 订单通知
-  deviceNotifications: boolean;    // 设备通知
-  billingNotifications: boolean;   // 账单通知
+  systemNotifications: boolean; // 系统通知
+  ticketNotifications: boolean; // 工单通知
+  orderNotifications: boolean; // 订单通知
+  deviceNotifications: boolean; // 设备通知
+  billingNotifications: boolean; // 账单通知
   promotionNotifications: boolean; // 促销通知
 
   // 免打扰设置
-  quietHoursEnabled: boolean;      // 启用免打扰
-  quietHoursStart?: string;        // 免打扰开始时间（HH:mm）
-  quietHoursEnd?: string;          // 免打扰结束时间（HH:mm）
+  quietHoursEnabled: boolean; // 启用免打扰
+  quietHoursStart?: string; // 免打扰开始时间（HH:mm）
+  quietHoursEnd?: string; // 免打扰结束时间（HH:mm）
 }
 
 // 通知统计
@@ -106,7 +106,9 @@ export interface NotificationStats {
 /**
  * 获取消息列表
  */
-export const getNotifications = (params?: NotificationListQuery): Promise<NotificationListResponse> => {
+export const getNotifications = (
+  params?: NotificationListQuery
+): Promise<NotificationListResponse> => {
   return request({
     url: '/notifications',
     method: 'GET',
@@ -189,7 +191,9 @@ export const getNotificationSettings = (): Promise<NotificationSettings> => {
 /**
  * 更新通知设置
  */
-export const updateNotificationSettings = (settings: Partial<NotificationSettings>): Promise<NotificationSettings> => {
+export const updateNotificationSettings = (
+  settings: Partial<NotificationSettings>
+): Promise<NotificationSettings> => {
   return request({
     url: '/notifications/settings',
     method: 'PUT',
@@ -300,7 +304,7 @@ class NotificationWebSocket {
   private emit(event: string, data: any) {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
-      handlers.forEach(handler => handler(data));
+      handlers.forEach((handler) => handler(data));
     }
   }
 

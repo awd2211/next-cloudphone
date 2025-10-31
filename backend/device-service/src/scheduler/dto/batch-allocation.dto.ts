@@ -8,23 +8,23 @@ import {
   ArrayMinSize,
   ArrayMaxSize,
   ValidateNested,
-} from "class-validator";
-import { Type } from "class-transformer";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * 单个分配请求
  */
 export class SingleAllocationRequest {
   @ApiProperty({
-    description: "用户ID",
-    example: "user-123",
+    description: '用户ID',
+    example: 'user-123',
   })
   @IsString()
   userId: string;
 
   @ApiProperty({
-    description: "分配时长（分钟）",
+    description: '分配时长（分钟）',
     example: 60,
     minimum: 1,
     maximum: 1440,
@@ -35,7 +35,7 @@ export class SingleAllocationRequest {
   durationMinutes: number;
 
   @ApiPropertyOptional({
-    description: "设备偏好（可选）",
+    description: '设备偏好（可选）',
     example: { cpu: 4, memory: 8192 },
   })
   @IsOptional()
@@ -51,7 +51,7 @@ export class SingleAllocationRequest {
  */
 export class BatchAllocateDto {
   @ApiProperty({
-    description: "分配请求列表",
+    description: '分配请求列表',
     type: [SingleAllocationRequest],
     minItems: 1,
     maxItems: 50,
@@ -64,7 +64,7 @@ export class BatchAllocateDto {
   requests: SingleAllocationRequest[];
 
   @ApiPropertyOptional({
-    description: "是否部分成功时继续（默认 true）",
+    description: '是否部分成功时继续（默认 true）',
     example: true,
   })
   @IsOptional()
@@ -76,26 +76,26 @@ export class BatchAllocateDto {
  */
 export class BatchAllocationResult {
   @ApiProperty({
-    description: "成功数量",
+    description: '成功数量',
     example: 8,
   })
   successCount: number;
 
   @ApiProperty({
-    description: "失败数量",
+    description: '失败数量',
     example: 2,
   })
   failedCount: number;
 
   @ApiProperty({
-    description: "总数",
+    description: '总数',
     example: 10,
   })
   totalCount: number;
 
   @ApiProperty({
-    description: "成功的分配列表",
-    type: "array",
+    description: '成功的分配列表',
+    type: 'array',
   })
   successes: Array<{
     userId: string;
@@ -106,8 +106,8 @@ export class BatchAllocationResult {
   }>;
 
   @ApiProperty({
-    description: "失败的分配列表",
-    type: "array",
+    description: '失败的分配列表',
+    type: 'array',
   })
   failures: Array<{
     userId: string;
@@ -116,7 +116,7 @@ export class BatchAllocationResult {
   }>;
 
   @ApiProperty({
-    description: "执行时长（毫秒）",
+    description: '执行时长（毫秒）',
     example: 1250,
   })
   executionTimeMs: number;
@@ -127,9 +127,9 @@ export class BatchAllocationResult {
  */
 export class BatchReleaseDto {
   @ApiProperty({
-    description: "要释放的分配ID列表",
+    description: '要释放的分配ID列表',
     type: [String],
-    example: ["alloc-1", "alloc-2", "alloc-3"],
+    example: ['alloc-1', 'alloc-2', 'alloc-3'],
     minItems: 1,
     maxItems: 100,
   })
@@ -140,15 +140,15 @@ export class BatchReleaseDto {
   allocationIds: string[];
 
   @ApiPropertyOptional({
-    description: "释放原因（可选）",
-    example: "批量释放操作",
+    description: '释放原因（可选）',
+    example: '批量释放操作',
   })
   @IsOptional()
   @IsString()
   reason?: string;
 
   @ApiPropertyOptional({
-    description: "是否部分成功时继续（默认 true）",
+    description: '是否部分成功时继续（默认 true）',
     example: true,
   })
   @IsOptional()
@@ -160,33 +160,33 @@ export class BatchReleaseDto {
  */
 export class BatchReleaseResult {
   @ApiProperty({
-    description: "成功数量",
+    description: '成功数量',
     example: 8,
   })
   successCount: number;
 
   @ApiProperty({
-    description: "失败数量",
+    description: '失败数量',
     example: 2,
   })
   failedCount: number;
 
   @ApiProperty({
-    description: "总数",
+    description: '总数',
     example: 10,
   })
   totalCount: number;
 
   @ApiProperty({
-    description: "成功释放的分配ID列表",
+    description: '成功释放的分配ID列表',
     type: [String],
-    example: ["alloc-1", "alloc-2"],
+    example: ['alloc-1', 'alloc-2'],
   })
   successIds: string[];
 
   @ApiProperty({
-    description: "失败的分配列表",
-    type: "array",
+    description: '失败的分配列表',
+    type: 'array',
   })
   failures: Array<{
     allocationId: string;
@@ -195,7 +195,7 @@ export class BatchReleaseResult {
   }>;
 
   @ApiProperty({
-    description: "执行时长（毫秒）",
+    description: '执行时长（毫秒）',
     example: 850,
   })
   executionTimeMs: number;
@@ -206,9 +206,9 @@ export class BatchReleaseResult {
  */
 export class BatchExtendDto {
   @ApiProperty({
-    description: "要续期的分配ID列表",
+    description: '要续期的分配ID列表',
     type: [String],
-    example: ["alloc-1", "alloc-2"],
+    example: ['alloc-1', 'alloc-2'],
     minItems: 1,
     maxItems: 50,
   })
@@ -219,7 +219,7 @@ export class BatchExtendDto {
   allocationIds: string[];
 
   @ApiProperty({
-    description: "延长时长（分钟）",
+    description: '延长时长（分钟）',
     example: 30,
     minimum: 1,
     maximum: 1440,
@@ -230,7 +230,7 @@ export class BatchExtendDto {
   additionalMinutes: number;
 
   @ApiPropertyOptional({
-    description: "是否部分成功时继续（默认 true）",
+    description: '是否部分成功时继续（默认 true）',
     example: true,
   })
   @IsOptional()
@@ -242,26 +242,26 @@ export class BatchExtendDto {
  */
 export class BatchExtendResult {
   @ApiProperty({
-    description: "成功数量",
+    description: '成功数量',
     example: 8,
   })
   successCount: number;
 
   @ApiProperty({
-    description: "失败数量",
+    description: '失败数量',
     example: 2,
   })
   failedCount: number;
 
   @ApiProperty({
-    description: "总数",
+    description: '总数',
     example: 10,
   })
   totalCount: number;
 
   @ApiProperty({
-    description: "成功的续期列表",
-    type: "array",
+    description: '成功的续期列表',
+    type: 'array',
   })
   successes: Array<{
     allocationId: string;
@@ -271,8 +271,8 @@ export class BatchExtendResult {
   }>;
 
   @ApiProperty({
-    description: "失败的续期列表",
-    type: "array",
+    description: '失败的续期列表',
+    type: 'array',
   })
   failures: Array<{
     allocationId: string;
@@ -281,7 +281,7 @@ export class BatchExtendResult {
   }>;
 
   @ApiProperty({
-    description: "执行时长（毫秒）",
+    description: '执行时长（毫秒）',
     example: 650,
   })
   executionTimeMs: number;
@@ -292,9 +292,9 @@ export class BatchExtendResult {
  */
 export class BatchQueryDto {
   @ApiProperty({
-    description: "用户ID列表",
+    description: '用户ID列表',
     type: [String],
-    example: ["user-1", "user-2"],
+    example: ['user-1', 'user-2'],
     minItems: 1,
     maxItems: 100,
   })
@@ -305,7 +305,7 @@ export class BatchQueryDto {
   userIds: string[];
 
   @ApiPropertyOptional({
-    description: "只查询活跃分配（默认 true）",
+    description: '只查询活跃分配（默认 true）',
     example: true,
   })
   @IsOptional()
@@ -317,31 +317,38 @@ export class BatchQueryDto {
  */
 export class BatchQueryResult {
   @ApiProperty({
-    description: "用户分配映射",
-    type: "object",
+    description: '用户分配映射',
+    type: 'object',
     additionalProperties: true,
     example: {
-      "user-1": [{ allocationId: "alloc-1", deviceId: "device-1", expiresAt: "2025-10-30T12:00:00Z" }],
-      "user-2": [{ allocationId: "alloc-2", deviceId: "device-2", expiresAt: "2025-10-30T13:00:00Z" }],
+      'user-1': [
+        { allocationId: 'alloc-1', deviceId: 'device-1', expiresAt: '2025-10-30T12:00:00Z' },
+      ],
+      'user-2': [
+        { allocationId: 'alloc-2', deviceId: 'device-2', expiresAt: '2025-10-30T13:00:00Z' },
+      ],
     },
   })
-  allocations: Record<string, Array<{
-    allocationId: string;
-    deviceId: string;
-    deviceName: string;
-    status: string;
-    allocatedAt: string;
-    expiresAt: string;
-  }>>;
+  allocations: Record<
+    string,
+    Array<{
+      allocationId: string;
+      deviceId: string;
+      deviceName: string;
+      status: string;
+      allocatedAt: string;
+      expiresAt: string;
+    }>
+  >;
 
   @ApiProperty({
-    description: "查询的用户数量",
+    description: '查询的用户数量',
     example: 10,
   })
   userCount: number;
 
   @ApiProperty({
-    description: "总分配数量",
+    description: '总分配数量',
     example: 25,
   })
   totalAllocations: number;

@@ -43,7 +43,7 @@ export const timeTravel = (userId: string, timestamp: string) => {
     data: any;
     message: string;
   }>(`/events/user/${userId}/replay/timestamp`, {
-    params: { timestamp }
+    params: { timestamp },
   });
 };
 
@@ -56,7 +56,7 @@ export const getEventStats = (eventType?: string) => {
     data: EventStats;
     message: string;
   }>('/events/stats', {
-    params: eventType ? { eventType } : undefined
+    params: eventType ? { eventType } : undefined,
   });
 };
 
@@ -72,7 +72,7 @@ export const getRecentEvents = (eventType?: string, limit: number = 50) => {
   }>('/events/recent', {
     params: {
       eventType,
-      limit: limit.toString()
-    }
+      limit: limit.toString(),
+    },
   });
 };

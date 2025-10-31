@@ -53,7 +53,7 @@ describe('EventBusService', () => {
         expect.objectContaining({
           persistent: true,
           timestamp: expect.any(Number),
-        }),
+        })
       );
     });
 
@@ -67,9 +67,9 @@ describe('EventBusService', () => {
       mockAmqpConnection.publish.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(
-        service.publish(exchange, routingKey, message),
-      ).rejects.toThrow('RabbitMQ connection failed');
+      await expect(service.publish(exchange, routingKey, message)).rejects.toThrow(
+        'RabbitMQ connection failed'
+      );
     });
 
     it('should log success message', async () => {
@@ -85,9 +85,7 @@ describe('EventBusService', () => {
       await service.publish(exchange, routingKey, message);
 
       // Assert
-      expect(logSpy).toHaveBeenCalledWith(
-        `Event published: ${routingKey} to ${exchange}`,
-      );
+      expect(logSpy).toHaveBeenCalledWith(`Event published: ${routingKey} to ${exchange}`);
     });
 
     it('should log error when publish fails', async () => {
@@ -108,10 +106,7 @@ describe('EventBusService', () => {
       }
 
       // Assert
-      expect(errorSpy).toHaveBeenCalledWith(
-        `Failed to publish event: ${routingKey}`,
-        error,
-      );
+      expect(errorSpy).toHaveBeenCalledWith(`Failed to publish event: ${routingKey}`, error);
     });
   });
 
@@ -143,7 +138,7 @@ describe('EventBusService', () => {
           userId: 'user-456',
           deviceName: 'My Device',
           deviceType: 'Android',
-        }),
+        })
       );
     });
 
@@ -164,9 +159,7 @@ describe('EventBusService', () => {
       // Assert
       const publishedMessage = publishSpy.mock.calls[0][2];
       expect(publishedMessage.timestamp).toBeDefined();
-      expect(new Date(publishedMessage.timestamp).getTime()).toBeLessThanOrEqual(
-        Date.now(),
-      );
+      expect(new Date(publishedMessage.timestamp).getTime()).toBeLessThanOrEqual(Date.now());
     });
   });
 
@@ -196,7 +189,7 @@ describe('EventBusService', () => {
           appId: 'app-123',
           deviceId: 'device-456',
           version: '1.0.0',
-        }),
+        })
       );
     });
   });
@@ -227,7 +220,7 @@ describe('EventBusService', () => {
           orderId: 'order-123',
           userId: 'user-456',
           amount: 99.99,
-        }),
+        })
       );
     });
   });
@@ -258,7 +251,7 @@ describe('EventBusService', () => {
           userId: 'user-123',
           username: 'testuser',
           email: 'test@example.com',
-        }),
+        })
       );
     });
   });
@@ -289,7 +282,7 @@ describe('EventBusService', () => {
           userId: 'user-123',
           email: 'test@example.com',
           subject: 'Welcome',
-        }),
+        })
       );
     });
   });
@@ -322,7 +315,7 @@ describe('EventBusService', () => {
           userId: 'user-456',
           amount: 199.99,
           paymentMethod: 'credit_card',
-        }),
+        })
       );
     });
   });
@@ -357,7 +350,7 @@ describe('EventBusService', () => {
           'cloudphone.events',
           expectedRoutingKey,
           expect.any(Object),
-          expect.any(Object),
+          expect.any(Object)
         );
       }
     });
@@ -383,7 +376,7 @@ describe('EventBusService', () => {
           expect.any(Object),
           expect.objectContaining({
             persistent: true,
-          }),
+          })
         );
       }
     });

@@ -116,10 +116,7 @@ export class Invoice {
   }
 
   isOverdue(): boolean {
-    return (
-      this.status === InvoiceStatus.PENDING &&
-      new Date() > new Date(this.dueDate)
-    );
+    return this.status === InvoiceStatus.PENDING && new Date() > new Date(this.dueDate);
   }
 
   canCancel(): boolean {

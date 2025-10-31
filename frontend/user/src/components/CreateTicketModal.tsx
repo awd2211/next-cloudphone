@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Modal,
-  Form,
-  Input,
-  Select,
-  Upload,
-  Button,
-  message,
-  Tag,
-  Space,
-} from 'antd';
+import { Modal, Form, Input, Select, Upload, Button, message, Tag, Space } from 'antd';
 import { UploadOutlined, InboxOutlined } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
 import {
@@ -94,13 +84,9 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
 
   // 处理文件移除
   const handleFileRemove = (file: UploadFile) => {
-    const attachment = uploadedAttachments.find(
-      (att) => att.id === file.response?.id
-    );
+    const attachment = uploadedAttachments.find((att) => att.id === file.response?.id);
     if (attachment) {
-      setUploadedAttachments(
-        uploadedAttachments.filter((att) => att.id !== attachment.id)
-      );
+      setUploadedAttachments(uploadedAttachments.filter((att) => att.id !== attachment.id));
     }
   };
 
@@ -185,11 +171,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
             { max: 100, message: '标题不能超过100个字符' },
           ]}
         >
-          <Input
-            placeholder="简要描述您的问题"
-            maxLength={100}
-            showCount
-          />
+          <Input placeholder="简要描述您的问题" maxLength={100} showCount />
         </Form.Item>
 
         <Form.Item
@@ -267,19 +249,19 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
               <InboxOutlined />
             </p>
             <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
-            <p className="ant-upload-hint">
-              支持图片、PDF、Word文档、文本文件等，最多上传5个文件
-            </p>
+            <p className="ant-upload-hint">支持图片、PDF、Word文档、文本文件等，最多上传5个文件</p>
           </Dragger>
         </Form.Item>
 
-        <div style={{
-          background: '#f0f2f5',
-          padding: '12px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          color: '#666',
-        }}>
+        <div
+          style={{
+            background: '#f0f2f5',
+            padding: '12px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#666',
+          }}
+        >
           <p style={{ margin: 0, marginBottom: '8px' }}>
             <strong>提示：</strong>
           </p>

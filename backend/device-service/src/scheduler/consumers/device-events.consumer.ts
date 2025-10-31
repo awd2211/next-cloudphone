@@ -1,11 +1,11 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Device } from "../../entities/device.entity";
-import { DeviceAllocation, AllocationStatus } from "../../entities/device-allocation.entity";
-import { AllocationService } from "../allocation.service";
-import { NotificationClientService } from "../notification-client.service";
+import { Injectable, Logger } from '@nestjs/common';
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Device } from '../../entities/device.entity';
+import { DeviceAllocation, AllocationStatus } from '../../entities/device-allocation.entity';
+import { AllocationService } from '../allocation.service';
+import { NotificationClientService } from '../notification-client.service';
 
 /**
  * Device 事件消费者
@@ -26,20 +26,20 @@ export class DeviceEventsConsumer {
     @InjectRepository(DeviceAllocation)
     private allocationRepository: Repository<DeviceAllocation>,
     private allocationService: AllocationService,
-    private notificationClient: NotificationClientService,
+    private notificationClient: NotificationClientService
   ) {}
 
   /**
    * 设备故障事件 - 自动释放分配
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "device.failed",
-    queue: "scheduler.device-failed",
+    exchange: 'cloudphone.events',
+    routingKey: 'device.failed',
+    queue: 'scheduler.device-failed',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.device-failed.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.device-failed.failed',
     },
   })
   async handleDeviceFailed(event: {
@@ -69,9 +69,7 @@ export class DeviceEventsConsumer {
         automatic: true,
       });
 
-      this.logger.log(
-        `✅ Auto-released allocation ${activeAllocation.id} due to device failure`
-      );
+      this.logger.log(`✅ Auto-released allocation ${activeAllocation.id} due to device failure`);
 
       // 发送故障通知
       const device = await this.deviceRepository.findOne({
@@ -104,13 +102,13 @@ export class DeviceEventsConsumer {
    * 设备删除事件 - 释放分配并通知用户
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "device.deleted",
-    queue: "scheduler.device-deleted",
+    exchange: 'cloudphone.events',
+    routingKey: 'device.deleted',
+    queue: 'scheduler.device-deleted',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.device-deleted.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.device-deleted.failed',
     },
   })
   async handleDeviceDeleted(event: {
@@ -134,15 +132,13 @@ export class DeviceEventsConsumer {
         return;
       }
 
-      this.logger.log(
-        `Found ${activeAllocations.length} active allocations for deleted device`
-      );
+      this.logger.log(`Found ${activeAllocations.length} active allocations for deleted device`);
 
       // 释放所有活跃分配
       for (const allocation of activeAllocations) {
         try {
           await this.allocationService.releaseAllocation(allocation.id, {
-            reason: "设备已删除",
+            reason: '设备已删除',
             automatic: true,
           });
 
@@ -151,13 +147,11 @@ export class DeviceEventsConsumer {
           // 通知用户设备已被删除
           await this.notificationClient.notifyAllocationFailed({
             userId: allocation.userId,
-            reason: "您使用的设备已被删除，分配已自动释放",
+            reason: '您使用的设备已被删除，分配已自动释放',
             timestamp: new Date().toISOString(),
           });
         } catch (error) {
-          this.logger.error(
-            `Failed to release allocation ${allocation.id}: ${error.message}`
-          );
+          this.logger.error(`Failed to release allocation ${allocation.id}: ${error.message}`);
         }
       }
     } catch (error) {
@@ -173,13 +167,13 @@ export class DeviceEventsConsumer {
    * 设备状态变更事件
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "device.status_changed",
-    queue: "scheduler.device-status-changed",
+    exchange: 'cloudphone.events',
+    routingKey: 'device.status_changed',
+    queue: 'scheduler.device-status-changed',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.device-status-changed.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.device-status-changed.failed',
     },
   })
   async handleDeviceStatusChanged(event: {
@@ -195,8 +189,8 @@ export class DeviceEventsConsumer {
     try {
       // 如果设备从 running 变为 stopped/error，释放分配
       if (
-        event.oldStatus === "running" &&
-        (event.newStatus === "stopped" || event.newStatus === "error")
+        event.oldStatus === 'running' &&
+        (event.newStatus === 'stopped' || event.newStatus === 'error')
       ) {
         const activeAllocation = await this.allocationRepository.findOne({
           where: {
@@ -229,13 +223,13 @@ export class DeviceEventsConsumer {
    * 设备维护事件 - 释放分配以便维护
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "device.maintenance",
-    queue: "scheduler.device-maintenance",
+    exchange: 'cloudphone.events',
+    routingKey: 'device.maintenance',
+    queue: 'scheduler.device-maintenance',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.device-maintenance.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.device-maintenance.failed',
     },
   })
   async handleDeviceMaintenance(event: {
@@ -262,9 +256,7 @@ export class DeviceEventsConsumer {
           automatic: true,
         });
 
-        this.logger.log(
-          `✅ Released allocation ${activeAllocation.id} for device maintenance`
-        );
+        this.logger.log(`✅ Released allocation ${activeAllocation.id} for device maintenance`);
 
         // 通知用户设备需要维护
         const device = await this.deviceRepository.findOne({
@@ -284,10 +276,7 @@ export class DeviceEventsConsumer {
         }
       }
     } catch (error) {
-      this.logger.error(
-        `Failed to handle device.maintenance event: ${error.message}`,
-        error.stack
-      );
+      this.logger.error(`Failed to handle device.maintenance event: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -296,13 +285,13 @@ export class DeviceEventsConsumer {
    * 设备创建事件 - 记录新设备加入
    */
   @RabbitSubscribe({
-    exchange: "cloudphone.events",
-    routingKey: "device.created",
-    queue: "scheduler.device-created",
+    exchange: 'cloudphone.events',
+    routingKey: 'device.created',
+    queue: 'scheduler.device-created',
     queueOptions: {
       durable: true,
-      deadLetterExchange: "cloudphone.dlx",
-      deadLetterRoutingKey: "scheduler.device-created.failed",
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'scheduler.device-created.failed',
     },
   })
   async handleDeviceCreated(event: {
@@ -311,9 +300,7 @@ export class DeviceEventsConsumer {
     deviceType: string;
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(
-      `📥 Received device.created event: ${event.deviceId} (${event.deviceType})`
-    );
+    this.logger.log(`📥 Received device.created event: ${event.deviceId} (${event.deviceType})`);
 
     // Currently just logging, could trigger autoscaling decisions
     // or update device pool statistics

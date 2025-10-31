@@ -10,18 +10,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { NotificationPreferencesService } from './preferences.service';
-import {
-  NotificationType,
-  NotificationChannel,
-} from '../entities/notification-preference.entity';
-import {
-  IsEnum,
-  IsBoolean,
-  IsArray,
-  IsOptional,
-  ValidateNested,
-  IsObject,
-} from 'class-validator';
+import { NotificationType, NotificationChannel } from '../entities/notification-preference.entity';
+import { IsEnum, IsBoolean, IsArray, IsOptional, ValidateNested, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 import { getAllNotificationTypes } from './default-preferences';
 
@@ -87,9 +77,7 @@ export class PreferenceUpdateItem {
  */
 @Controller('notifications/preferences')
 export class NotificationPreferencesController {
-  constructor(
-    private readonly preferencesService: NotificationPreferencesService,
-  ) {}
+  constructor(private readonly preferencesService: NotificationPreferencesService) {}
 
   /**
    * 获取当前用户的所有通知偏好
@@ -116,14 +104,8 @@ export class NotificationPreferencesController {
    * 获取特定类型的通知偏好
    */
   @Get(':type')
-  async getUserPreference(
-    @Param('type') type: NotificationType,
-    @Query('userId') userId: string,
-  ) {
-    const preference = await this.preferencesService.getUserPreference(
-      userId,
-      type,
-    );
+  async getUserPreference(@Param('type') type: NotificationType, @Query('userId') userId: string) {
+    const preference = await this.preferencesService.getUserPreference(userId, type);
 
     return {
       userId,
@@ -142,13 +124,9 @@ export class NotificationPreferencesController {
   async updateUserPreference(
     @Param('type') type: NotificationType,
     @Query('userId') userId: string,
-    @Body() dto: UpdatePreferenceDto,
+    @Body() dto: UpdatePreferenceDto
   ) {
-    const preference = await this.preferencesService.updateUserPreference(
-      userId,
-      type,
-      dto,
-    );
+    const preference = await this.preferencesService.updateUserPreference(userId, type, dto);
 
     return {
       success: true,
@@ -170,11 +148,11 @@ export class NotificationPreferencesController {
   @HttpCode(HttpStatus.OK)
   async batchUpdatePreferences(
     @Query('userId') userId: string,
-    @Body() dto: BatchUpdatePreferencesDto,
+    @Body() dto: BatchUpdatePreferencesDto
   ) {
     const preferences = await this.preferencesService.batchUpdatePreferences(
       userId,
-      dto.preferences,
+      dto.preferences
     );
 
     return {
@@ -243,12 +221,12 @@ export class NotificationPreferencesController {
       userId: string;
       notificationType: NotificationType;
       channel: NotificationChannel;
-    },
+    }
   ) {
     const shouldReceive = await this.preferencesService.shouldReceiveNotification(
       body.userId,
       body.notificationType,
-      body.channel,
+      body.channel
     );
 
     return {
@@ -265,12 +243,9 @@ export class NotificationPreferencesController {
   @Get('channel/:channel')
   async getEnabledTypesForChannel(
     @Param('channel') channel: NotificationChannel,
-    @Query('userId') userId: string,
+    @Query('userId') userId: string
   ) {
-    const types = await this.preferencesService.getEnabledNotificationTypes(
-      userId,
-      channel,
-    );
+    const types = await this.preferencesService.getEnabledNotificationTypes(userId, channel);
 
     return {
       userId,

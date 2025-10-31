@@ -55,10 +55,7 @@ const ReferralCenter = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [configData, statsData] = await Promise.all([
-        getReferralConfig(),
-        getReferralStats(),
-      ]);
+      const [configData, statsData] = await Promise.all([getReferralConfig(), getReferralStats()]);
       setConfig(configData);
       setStats(statsData);
     } catch (error: any) {
@@ -243,7 +240,9 @@ const ReferralCenter = () => {
                   marginBottom: 16,
                 }}
               >
-                <div style={{ fontSize: 48, fontWeight: 'bold', color: '#1890ff', letterSpacing: 4 }}>
+                <div
+                  style={{ fontSize: 48, fontWeight: 'bold', color: '#1890ff', letterSpacing: 4 }}
+                >
                   {config?.inviteCode || '----'}
                 </div>
               </div>
@@ -320,10 +319,7 @@ const ReferralCenter = () => {
                 >
                   微博
                 </Button>
-                <Button
-                  icon={<ShareAltOutlined />}
-                  onClick={() => handleShare('link')}
-                >
+                <Button icon={<ShareAltOutlined />} onClick={() => handleShare('link')}>
                   更多...
                 </Button>
               </Space>
@@ -355,12 +351,7 @@ const ReferralCenter = () => {
                 }}
               >
                 {config?.inviteLink && (
-                  <QRCode
-                    value={config.inviteLink}
-                    size={240}
-                    icon="/logo.png"
-                    errorLevel="H"
-                  />
+                  <QRCode value={config.inviteLink} size={240} icon="/logo.png" errorLevel="H" />
                 )}
               </div>
 

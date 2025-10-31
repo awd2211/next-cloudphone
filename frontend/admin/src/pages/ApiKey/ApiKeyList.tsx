@@ -1,6 +1,27 @@
 import React, { useState } from 'react';
-import { Card, Table, Tag, Button, Space, Modal, Form, Input, Select, message, Switch, Tooltip, Typography } from 'antd';
-import { PlusOutlined, CopyOutlined, DeleteOutlined, EyeOutlined, EyeInvisibleOutlined, KeyOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Table,
+  Tag,
+  Button,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  message,
+  Switch,
+  Tooltip,
+  Typography,
+} from 'antd';
+import {
+  PlusOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  KeyOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import request from '../../utils/request';
 
@@ -115,7 +136,7 @@ const ApiKeyList: React.FC = () => {
   };
 
   const toggleSecretVisibility = (id: string) => {
-    setVisibleSecrets(prev => {
+    setVisibleSecrets((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
         newSet.delete(id);
@@ -198,7 +219,7 @@ const ApiKeyList: React.FC = () => {
       okType: 'danger',
       cancelText: '取消',
       onOk: () => {
-        setApiKeys(apiKeys.filter(k => k.id !== record.id));
+        setApiKeys(apiKeys.filter((k) => k.id !== record.id));
         message.success('密钥已删除');
       },
     });
@@ -206,9 +227,7 @@ const ApiKeyList: React.FC = () => {
 
   const handleToggleStatus = (record: ApiKey) => {
     const newStatus = record.status === 'active' ? 'inactive' : 'active';
-    setApiKeys(apiKeys.map(k =>
-      k.id === record.id ? { ...k, status: newStatus } : k
-    ));
+    setApiKeys(apiKeys.map((k) => (k.id === record.id ? { ...k, status: newStatus } : k)));
     message.success(`密钥已${newStatus === 'active' ? '激活' : '禁用'}`);
   };
 
@@ -269,7 +288,7 @@ const ApiKeyList: React.FC = () => {
       width: 250,
       render: (scopes: string[]) => (
         <>
-          {scopes.slice(0, 2).map(scope => (
+          {scopes.slice(0, 2).map((scope) => (
             <Tag key={scope} style={{ marginBottom: 4 }}>
               {scope}
             </Tag>
@@ -331,11 +350,7 @@ const ApiKeyList: React.FC = () => {
             onChange={() => handleToggleStatus(record)}
           />
           <Tooltip title="查看详情">
-            <Button
-              type="link"
-              size="small"
-              icon={<EyeOutlined />}
-            />
+            <Button type="link" size="small" icon={<EyeOutlined />} />
           </Tooltip>
           <Tooltip title="删除">
             <Button
@@ -379,7 +394,11 @@ const ApiKeyList: React.FC = () => {
       </Card>
 
       <Modal
-        title={<><KeyOutlined /> 创建 API 密钥</>}
+        title={
+          <>
+            <KeyOutlined /> 创建 API 密钥
+          </>
+        }
         open={createModalVisible}
         onCancel={() => {
           setCreateModalVisible(false);
@@ -423,31 +442,26 @@ const ApiKeyList: React.FC = () => {
             label="权限范围"
             rules={[{ required: true, message: '请选择至少一个权限' }]}
           >
-            <Select
-              mode="multiple"
-              placeholder="选择权限范围"
-              options={availableScopes}
-            />
+            <Select mode="multiple" placeholder="选择权限范围" options={availableScopes} />
           </Form.Item>
 
-          <Form.Item
-            name="expiresAt"
-            label="过期时间（可选）"
-          >
+          <Form.Item name="expiresAt" label="过期时间（可选）">
             <Input placeholder="例如: 2026-12-31" />
           </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="描述（可选）"
-          >
+          <Form.Item name="description" label="描述（可选）">
             <TextArea rows={3} placeholder="密钥用途说明" />
           </Form.Item>
 
-          <div style={{ background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 4, padding: 12 }}>
-            <Text type="warning">
-              ⚠️ 注意事项：
-            </Text>
+          <div
+            style={{
+              background: '#fff7e6',
+              border: '1px solid #ffd591',
+              borderRadius: 4,
+              padding: 12,
+            }}
+          >
+            <Text type="warning">⚠️ 注意事项：</Text>
             <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
               <li>Secret Key 创建后仅显示一次，请妥善保管</li>
               <li>不要在公开场合或代码仓库中暴露密钥</li>

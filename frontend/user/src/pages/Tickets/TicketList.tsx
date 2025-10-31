@@ -185,9 +185,7 @@ const TicketList: React.FC = () => {
       key: 'type',
       width: 100,
       render: (type: TicketType) => (
-        <Tag color={ticketTypeConfig[type]?.color}>
-          {ticketTypeConfig[type]?.label}
-        </Tag>
+        <Tag color={ticketTypeConfig[type]?.color}>{ticketTypeConfig[type]?.label}</Tag>
       ),
     },
     {
@@ -196,9 +194,7 @@ const TicketList: React.FC = () => {
       key: 'priority',
       width: 80,
       render: (priority: TicketPriority) => (
-        <Tag color={priorityConfig[priority]?.color}>
-          {priorityConfig[priority]?.label}
-        </Tag>
+        <Tag color={priorityConfig[priority]?.color}>{priorityConfig[priority]?.label}</Tag>
       ),
     },
     {
@@ -207,10 +203,7 @@ const TicketList: React.FC = () => {
       key: 'status',
       width: 120,
       render: (status: TicketStatus) => (
-        <Tag
-          icon={statusConfig[status]?.icon}
-          color={statusConfig[status]?.color}
-        >
+        <Tag icon={statusConfig[status]?.icon} color={statusConfig[status]?.color}>
           {statusConfig[status]?.label}
         </Tag>
       ),
@@ -231,10 +224,7 @@ const TicketList: React.FC = () => {
       key: 'action',
       width: 100,
       render: (_, record: Ticket) => (
-        <Button
-          type="link"
-          onClick={() => goToDetail(record.id)}
-        >
+        <Button type="link" onClick={() => goToDetail(record.id)}>
           查看详情
         </Button>
       ),
@@ -248,11 +238,7 @@ const TicketList: React.FC = () => {
         <Row gutter={16} style={{ marginBottom: '24px' }}>
           <Col xs={24} sm={12} lg={8}>
             <Card>
-              <Statistic
-                title="全部工单"
-                value={stats.total}
-                prefix={<ClockCircleOutlined />}
-              />
+              <Statistic title="全部工单" value={stats.total} prefix={<ClockCircleOutlined />} />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={8}>
@@ -283,10 +269,7 @@ const TicketList: React.FC = () => {
         title="我的工单"
         extra={
           <Space>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={handleRefresh}
-            >
+            <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
               刷新
             </Button>
             <Button
@@ -369,10 +352,7 @@ const TicketList: React.FC = () => {
           }}
           locale={{
             emptyText: (
-              <Empty
-                description="暂无工单"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              >
+              <Empty description="暂无工单" image={Empty.PRESENTED_IMAGE_SIMPLE}>
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}

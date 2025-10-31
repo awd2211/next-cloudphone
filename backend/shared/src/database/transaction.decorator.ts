@@ -27,11 +27,7 @@ import { DataSource, EntityManager, QueryRunner } from 'typeorm';
  * @returns MethodDecorator
  */
 export function Transaction(): MethodDecorator {
-  return function (
-    target: any,
-    propertyKey: string | symbol,
-    descriptor: PropertyDescriptor,
-  ) {
+  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
@@ -45,7 +41,7 @@ export function Transaction(): MethodDecorator {
       if (!dataSource) {
         throw new Error(
           `@Transaction decorator requires DataSource to be injected. ` +
-          `Please inject DataSource into ${target.constructor.name} or use ModuleRef.`,
+            `Please inject DataSource into ${target.constructor.name} or use ModuleRef.`
         );
       }
 
@@ -60,10 +56,7 @@ export function Transaction(): MethodDecorator {
         await queryRunner.startTransaction();
 
         // 调用原方法，将 EntityManager 作为第一个参数注入
-        const result = await originalMethod.apply(this, [
-          queryRunner.manager,
-          ...args,
-        ]);
+        const result = await originalMethod.apply(this, [queryRunner.manager, ...args]);
 
         // 提交事务
         await queryRunner.commitTransaction();
@@ -139,11 +132,7 @@ export interface TransactionOptions {
   /**
    * 隔离级别
    */
-  isolationLevel?:
-    | 'READ UNCOMMITTED'
-    | 'READ COMMITTED'
-    | 'REPEATABLE READ'
-    | 'SERIALIZABLE';
+  isolationLevel?: 'READ UNCOMMITTED' | 'READ COMMITTED' | 'REPEATABLE READ' | 'SERIALIZABLE';
 
   /**
    * 超时时间（毫秒）
@@ -161,27 +150,16 @@ export interface TransactionOptions {
  *
  * @param options 事务配置
  */
-export function TransactionWithOptions(
-  options: TransactionOptions = {},
-): MethodDecorator {
-  return function (
-    target: any,
-    propertyKey: string | symbol,
-    descriptor: PropertyDescriptor,
-  ) {
+export function TransactionWithOptions(options: TransactionOptions = {}): MethodDecorator {
+  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
       const dataSource: DataSource =
-        this.dataSource ||
-        this.moduleRef?.get(DataSource) ||
-        this.connection ||
-        null;
+        this.dataSource || this.moduleRef?.get(DataSource) || this.connection || null;
 
       if (!dataSource) {
-        throw new Error(
-          `@TransactionWithOptions decorator requires DataSource`,
-        );
+        throw new Error(`@TransactionWithOptions decorator requires DataSource`);
       }
 
       const queryRunner: QueryRunner = dataSource.createQueryRunner();
@@ -203,17 +181,12 @@ export function TransactionWithOptions(
             if (queryRunner.isTransactionActive) {
               await queryRunner.rollbackTransaction();
               await queryRunner.release();
-              throw new Error(
-                `Transaction timeout after ${options.timeout}ms`,
-              );
+              throw new Error(`Transaction timeout after ${options.timeout}ms`);
             }
           }, options.timeout);
         }
 
-        const result = await originalMethod.apply(this, [
-          queryRunner.manager,
-          ...args,
-        ]);
+        const result = await originalMethod.apply(this, [queryRunner.manager, ...args]);
 
         if (timeoutId) {
           clearTimeout(timeoutId);

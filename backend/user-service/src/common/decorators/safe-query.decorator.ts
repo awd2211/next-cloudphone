@@ -44,9 +44,9 @@ export interface SafeQueryOptions {
 export const SafeQuery = (options: SafeQueryOptions = {}) =>
   SetMetadata(SAFE_QUERY_KEY, {
     description: options.description || 'Database query',
-    logParameters: options.logParameters !== false,  // 默认记录参数
-    logResult: options.logResult !== false,          // 默认记录结果
-    validateParameters: options.validateParameters !== false,  // 默认验证
+    logParameters: options.logParameters !== false, // 默认记录参数
+    logResult: options.logResult !== false, // 默认记录结果
+    validateParameters: options.validateParameters !== false, // 默认验证
   });
 
 /**

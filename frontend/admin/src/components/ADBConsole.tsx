@@ -90,11 +90,7 @@ const ADBConsole = ({ deviceId }: ADBConsoleProps) => {
         <Space wrap>
           <span style={{ fontWeight: 'bold' }}>常用命令：</span>
           {getCommonCommands().map((item, index) => (
-            <Button
-              key={index}
-              size="small"
-              onClick={() => setCommand(item.command)}
-            >
+            <Button key={index} size="small" onClick={() => setCommand(item.command)}>
               {item.label}
             </Button>
           ))}
@@ -117,9 +113,7 @@ const ADBConsole = ({ deviceId }: ADBConsoleProps) => {
         }}
       >
         {messages.length === 0 && (
-          <div style={{ color: '#666' }}>
-            欢迎使用 ADB 控制台。输入命令并按回车执行。
-          </div>
+          <div style={{ color: '#666' }}>欢迎使用 ADB 控制台。输入命令并按回车执行。</div>
         )}
         {messages.map((msg, index) => (
           <div key={index} style={{ marginBottom: 8 }}>
@@ -144,9 +138,7 @@ const ADBConsole = ({ deviceId }: ADBConsoleProps) => {
                 {msg.content}
               </pre>
             )}
-            {msg.type === 'error' && (
-              <span style={{ color: '#f48771' }}>{msg.content}</span>
-            )}
+            {msg.type === 'error' && <span style={{ color: '#f48771' }}>{msg.content}</span>}
           </div>
         ))}
       </div>
@@ -160,12 +152,7 @@ const ADBConsole = ({ deviceId }: ADBConsoleProps) => {
           disabled={loading}
           prefix={<span style={{ color: '#999' }}>adb shell</span>}
         />
-        <Button
-          type="primary"
-          icon={<SendOutlined />}
-          onClick={handleExecute}
-          loading={loading}
-        >
+        <Button type="primary" icon={<SendOutlined />} onClick={handleExecute} loading={loading}>
           执行
         </Button>
         <Button icon={<ClearOutlined />} onClick={handleClear}>

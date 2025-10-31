@@ -20,12 +20,7 @@ export interface QueueOptionsConfig {
  * @returns RabbitMQ 队列选项
  */
 export function createQueueOptions(config: QueueOptionsConfig) {
-  const {
-    queueName,
-    eventType,
-    enablePriority = true,
-    maxPriority = 10,
-  } = config;
+  const { queueName, eventType, enablePriority = true, maxPriority = 10 } = config;
 
   const options: any = {
     durable: true,

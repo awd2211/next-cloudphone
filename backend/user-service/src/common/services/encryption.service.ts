@@ -239,10 +239,7 @@ export class EncryptionService {
    * @param fields 需要加密的字段列表
    * @returns 加密后的对象
    */
-  encryptFields<T extends Record<string, any>>(
-    obj: T,
-    fields: (keyof T)[],
-  ): T {
+  encryptFields<T extends Record<string, any>>(obj: T, fields: (keyof T)[]): T {
     const result = { ...obj };
 
     for (const field of fields) {
@@ -261,10 +258,7 @@ export class EncryptionService {
    * @param fields 需要解密的字段列表
    * @returns 解密后的对象
    */
-  decryptFields<T extends Record<string, any>>(
-    obj: T,
-    fields: (keyof T)[],
-  ): T {
+  decryptFields<T extends Record<string, any>>(obj: T, fields: (keyof T)[]): T {
     const result = { ...obj };
 
     for (const field of fields) {
@@ -285,7 +279,7 @@ export class EncryptionService {
    */
   maskFields<T extends Record<string, any>>(
     obj: T,
-    fieldMasks: Record<keyof T, 'phone' | 'email' | 'idCard' | 'bankCard' | 'name'>,
+    fieldMasks: Record<keyof T, 'phone' | 'email' | 'idCard' | 'bankCard' | 'name'>
   ): T {
     const result: any = { ...obj };
 

@@ -28,9 +28,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // 确定 HTTP 状态码
     const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     // 提取错误消息
     const message = this.getErrorMessage(exception);
@@ -129,18 +127,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(
         `${request.method} ${request.url}`,
         exception instanceof Error ? exception.stack : JSON.stringify(exception),
-        JSON.stringify(logData),
+        JSON.stringify(logData)
       );
     } else if (status >= 400) {
       this.logger.warn(
         `${request.method} ${request.url} - ${this.getErrorMessage(exception)}`,
-        JSON.stringify(logData),
+        JSON.stringify(logData)
       );
     } else {
-      this.logger.log(
-        `${request.method} ${request.url}`,
-        JSON.stringify(logData),
-      );
+      this.logger.log(`${request.method} ${request.url}`, JSON.stringify(logData));
     }
   }
 }

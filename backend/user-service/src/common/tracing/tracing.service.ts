@@ -145,7 +145,7 @@ export class TracingService implements OnModuleInit {
   async traceDbQuery<T>(
     operationName: string,
     queryFn: () => Promise<T>,
-    parentSpanContext?: SpanContext,
+    parentSpanContext?: SpanContext
   ): Promise<T> {
     const span = this.startSpan(`db.${operationName}`, parentSpanContext);
 
@@ -181,7 +181,7 @@ export class TracingService implements OnModuleInit {
     method: string,
     url: string,
     requestFn: () => Promise<T>,
-    parentSpanContext?: SpanContext,
+    parentSpanContext?: SpanContext
   ): Promise<T> {
     const span = this.startSpan(`http.${method.toLowerCase()}`, parentSpanContext);
 
@@ -221,7 +221,7 @@ export class TracingService implements OnModuleInit {
     operation: 'get' | 'set' | 'del',
     key: string,
     operationFn: () => Promise<T>,
-    parentSpanContext?: SpanContext,
+    parentSpanContext?: SpanContext
   ): Promise<T> {
     const span = this.startSpan(`cache.${operation}`, parentSpanContext);
 

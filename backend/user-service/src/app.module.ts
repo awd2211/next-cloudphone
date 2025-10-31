@@ -15,6 +15,7 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { QueueModule } from './queues/queue.module';
 import { CacheModule } from './cache/cache.module';
+import { SettingsModule } from './settings/settings.module';
 import { HealthController } from './health.controller';
 import { MetricsController } from './metrics.controller';
 // 通知功能已迁移到独立的 notification-service
@@ -38,7 +39,12 @@ import { HealthCheckService } from './common/services/health-check.service';
 import { AlertService } from './common/services/alert/alert.service';
 import { RequestTrackerMiddleware } from './common/middleware/request-tracker.middleware';
 import { getDatabaseConfig } from './common/config/database.config';
-import { ConsulModule, createLoggerConfig, SecurityModule, EventBusModule } from '@cloudphone/shared';
+import {
+  ConsulModule,
+  createLoggerConfig,
+  SecurityModule,
+  EventBusModule,
+} from '@cloudphone/shared';
 import { CacheWarmupService } from './cache/cache-warmup.service';
 import { CacheService } from './cache/cache.service';
 import { UserMetricsService } from './common/metrics/user-metrics.service';
@@ -77,9 +83,10 @@ import { validate } from './common/config/env.validation';
     AuditLogsModule,
     ApiKeysModule,
     QueueModule,
-    CacheModule,  // ✅ 添加缓存管理模块
-    ConsulModule,  // ✅ 已修复 DiscoveryService 依赖问题
-    EventBusModule.forRoot(),  // ✅ 事件总线（用于错误通知）
+    CacheModule, // ✅ 添加缓存管理模块
+    SettingsModule, // ✅ 系统设置管理
+    ConsulModule, // ✅ 已修复 DiscoveryService 依赖问题
+    EventBusModule.forRoot(), // ✅ 事件总线（用于错误通知）
     // SecurityModule,  // ⚠️ 暂时禁用 CSRF 保护以便开发测试
     // ScheduleModule 放在最后，避免依赖问题
     ScheduleModule.forRoot(),
@@ -106,15 +113,15 @@ import { validate } from './common/config/env.validation';
     AuditLogService,
     EncryptionService,
     DatabaseMonitorService,
-    PartitionManagerService,     // 分区管理（Phase 2 优化）
-    QueryOptimizationService,    // 查询优化（Phase 3 优化）
+    PartitionManagerService, // 分区管理（Phase 2 优化）
+    QueryOptimizationService, // 查询优化（Phase 3 优化）
     GracefulShutdownService,
     HealthCheckService,
     AlertService,
     CacheService,
-    CacheWarmupService,  // 缓存预热
-    UserMetricsService,  // 用户业务指标
-    TracingService,      // Jaeger 分布式追踪
+    CacheWarmupService, // 缓存预热
+    UserMetricsService, // 用户业务指标
+    TracingService, // Jaeger 分布式追踪
     // NotificationService 已迁移到 notification-service
   ],
 })

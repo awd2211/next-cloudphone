@@ -198,10 +198,7 @@ describe('AuthService', () => {
       expect(result.data.username).toBe(registerDto.username);
       expect(result.data.email).toBe(registerDto.email);
       expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: [
-          { username: registerDto.username },
-          { email: registerDto.email },
-        ],
+        where: [{ username: registerDto.username }, { email: registerDto.email }],
       });
       expect(userRepository.create).toHaveBeenCalled();
       expect(userRepository.save).toHaveBeenCalled();
@@ -223,12 +220,8 @@ describe('AuthService', () => {
       userRepository.findOne.mockResolvedValue(existingUser);
 
       // Act & Assert
-      await expect(service.register(registerDto)).rejects.toThrow(
-        ConflictException,
-      );
-      await expect(service.register(registerDto)).rejects.toThrow(
-        '用户名已存在',
-      );
+      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(registerDto)).rejects.toThrow('用户名已存在');
       expect(userRepository.create).not.toHaveBeenCalled();
       expect(userRepository.save).not.toHaveBeenCalled();
     });
@@ -249,12 +242,8 @@ describe('AuthService', () => {
       userRepository.findOne.mockResolvedValue(existingUser);
 
       // Act & Assert
-      await expect(service.register(registerDto)).rejects.toThrow(
-        ConflictException,
-      );
-      await expect(service.register(registerDto)).rejects.toThrow(
-        '邮箱已存在',
-      );
+      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(registerDto)).rejects.toThrow('邮箱已存在');
       expect(userRepository.create).not.toHaveBeenCalled();
       expect(userRepository.save).not.toHaveBeenCalled();
     });
@@ -319,9 +308,7 @@ describe('AuthService', () => {
 
       const mockRole = createMockRole({
         name: 'user',
-        permissions: [
-          createMockPermission({ resource: 'device', action: 'read' }),
-        ],
+        permissions: [createMockPermission({ resource: 'device', action: 'read' })],
       });
 
       const mockUser = createMockUser({
@@ -351,10 +338,7 @@ describe('AuthService', () => {
       expect(result.token).toBe('mock-jwt-token');
       expect(result.user).toHaveProperty('id');
       expect(result.user.username).toBe(loginDto.username);
-      expect(captchaService.verify).toHaveBeenCalledWith(
-        loginDto.captchaId,
-        loginDto.captcha,
-      );
+      expect(captchaService.verify).toHaveBeenCalledWith(loginDto.captchaId, loginDto.captcha);
       expect(mockQueryRunner.startTransaction).toHaveBeenCalled();
       expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
       expect(mockQueryRunner.release).toHaveBeenCalled();
@@ -372,12 +356,8 @@ describe('AuthService', () => {
       captchaService.verify.mockResolvedValue(false);
 
       // Act & Assert
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        '验证码错误或已过期',
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow('验证码错误或已过期');
       expect(mockDataSource.createQueryRunner).not.toHaveBeenCalled();
     });
 
@@ -394,12 +374,8 @@ describe('AuthService', () => {
       mockQueryBuilder.getOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        '用户名或密码错误',
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow('用户名或密码错误');
       expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
       expect(mockQueryRunner.release).toHaveBeenCalled();
     });
@@ -425,9 +401,7 @@ describe('AuthService', () => {
       mockQueryRunner.manager.save.mockResolvedValue(mockUser);
 
       // Act & Assert
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
 
       expect(mockQueryRunner.manager.save).toHaveBeenCalled();
       const savedUser = mockQueryRunner.manager.save.mock.calls[0][1];
@@ -452,7 +426,7 @@ describe('AuthService', () => {
       captchaService.verify.mockResolvedValue(true);
       mockBcrypt.compare.mockResolvedValue(false); // 密码错误
       // 每次调用 getOne 都返回一个新的用户对象副本
-      mockQueryBuilder.getOne.mockImplementation(() => ({...mockUser}));
+      mockQueryBuilder.getOne.mockImplementation(() => ({ ...mockUser }));
       mockQueryRunner.manager.save.mockResolvedValue(mockUser);
 
       // Act & Assert - 只调用一次
@@ -485,9 +459,7 @@ describe('AuthService', () => {
       mockQueryBuilder.getOne.mockResolvedValue(mockUser);
 
       // Act & Assert
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
       await expect(service.login(loginDto)).rejects.toThrow(/账号已被锁定/);
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
     });
@@ -511,12 +483,8 @@ describe('AuthService', () => {
       mockQueryBuilder.getOne.mockResolvedValue(mockUser);
 
       // Act & Assert
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        '账号已被禁用或删除',
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow('账号已被禁用或删除');
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
     });
 
@@ -586,9 +554,7 @@ describe('AuthService', () => {
       };
 
       captchaService.verify.mockResolvedValue(true);
-      mockQueryBuilder.getOne.mockRejectedValue(
-        new Error('Database error'),
-      );
+      mockQueryBuilder.getOne.mockRejectedValue(new Error('Database error'));
 
       // Act & Assert
       await expect(service.login(loginDto)).rejects.toThrow('Database error');
@@ -736,9 +702,7 @@ describe('AuthService', () => {
 
       // Assert
       expect(result).toBe(true);
-      expect(cacheService.exists).toHaveBeenCalledWith(
-        `blacklist:token:${token}`,
-      );
+      expect(cacheService.exists).toHaveBeenCalledWith(`blacklist:token:${token}`);
     });
 
     it('应该在 token 不在黑名单时返回 false', async () => {
@@ -795,9 +759,7 @@ describe('AuthService', () => {
       userRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
       // Act & Assert
-      await expect(service.getProfile(userId)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.getProfile(userId)).rejects.toThrow(UnauthorizedException);
       await expect(service.getProfile(userId)).rejects.toThrow('用户不存在');
     });
 
@@ -817,13 +779,10 @@ describe('AuthService', () => {
       await service.getProfile(userId);
 
       // Assert
-      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
-        'user.roles',
-        'role',
-      );
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('user.roles', 'role');
       expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
         'role.permissions',
-        'permission',
+        'permission'
       );
     });
   });
@@ -869,9 +828,7 @@ describe('AuthService', () => {
       userRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
       // Act & Assert
-      await expect(service.refreshToken(userId)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.refreshToken(userId)).rejects.toThrow(UnauthorizedException);
     });
 
     it('应该生成包含最新角色和权限的 token', async () => {

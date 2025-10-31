@@ -36,7 +36,7 @@ export class TencentSmsProvider implements ISmsProvider {
     this.secretKey = this.configService.get<string>('TENCENT_SMS_SECRET_KEY', '');
     this.sdkAppId = this.configService.get<string>('TENCENT_SMS_SDK_APP_ID', '');
     this.signName = this.configService.get<string>('TENCENT_SMS_SIGN_NAME', '');
-    
+
     // 初始化客户端
     this.initializeClient();
   }

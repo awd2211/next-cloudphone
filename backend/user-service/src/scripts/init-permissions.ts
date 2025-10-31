@@ -2,7 +2,11 @@ import { createConnection, Connection } from 'typeorm';
 import { Permission } from '../entities/permission.entity';
 import { Role } from '../entities/role.entity';
 import { DataScope, ScopeType } from '../entities/data-scope.entity';
-import { FieldPermission, FieldAccessLevel, OperationType } from '../entities/field-permission.entity';
+import {
+  FieldPermission,
+  FieldAccessLevel,
+  OperationType,
+} from '../entities/field-permission.entity';
 import { User } from '../entities/user.entity';
 import { DataScopeType } from '../entities/permission.entity';
 import * as bcrypt from 'bcryptjs';
@@ -311,7 +315,7 @@ async function initPermissions(connection: Connection): Promise<Map<string, Perm
  */
 async function initRoles(
   connection: Connection,
-  permissionMap: Map<string, Permission>,
+  permissionMap: Map<string, Permission>
 ): Promise<Map<string, Role>> {
   const roleRepo = connection.getRepository(Role);
   const roleMap = new Map<string, Role>();
@@ -485,7 +489,7 @@ async function initDataScopes(connection: Connection, roleMap: Map<string, Role>
  */
 async function initFieldPermissions(
   connection: Connection,
-  roleMap: Map<string, Role>,
+  roleMap: Map<string, Role>
 ): Promise<void> {
   const fieldPermRepo = connection.getRepository(FieldPermission);
 
@@ -578,11 +582,11 @@ async function initFieldPermissions(
       });
       await fieldPermRepo.save(fieldPerm);
       console.log(
-        `  ✅ 创建字段权限: ${config.role} - ${config.resourceType} - ${config.operation}`,
+        `  ✅ 创建字段权限: ${config.role} - ${config.resourceType} - ${config.operation}`
       );
     } else {
       console.log(
-        `  ⏭️  字段权限已存在: ${config.role} - ${config.resourceType} - ${config.operation}`,
+        `  ⏭️  字段权限已存在: ${config.role} - ${config.resourceType} - ${config.operation}`
       );
     }
   }
@@ -593,7 +597,7 @@ async function initFieldPermissions(
  */
 async function createDefaultAdmin(
   connection: Connection,
-  roleMap: Map<string, Role>,
+  roleMap: Map<string, Role>
 ): Promise<void> {
   const userRepo = connection.getRepository(User);
 
@@ -671,9 +675,7 @@ async function main() {
     console.log(`  - 权限数量: ${permissionMap.size}`);
     console.log(`  - 角色数量: ${roleMap.size}`);
     console.log(`  - 数据范围配置: ${await connection.getRepository(DataScope).count()}`);
-    console.log(
-      `  - 字段权限配置: ${await connection.getRepository(FieldPermission).count()}`,
-    );
+    console.log(`  - 字段权限配置: ${await connection.getRepository(FieldPermission).count()}`);
 
     await connection.close();
   } catch (error) {

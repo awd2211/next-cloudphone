@@ -1,7 +1,11 @@
 import { BadRequestException } from '@nestjs/common';
 import { plainToClass } from 'class-transformer';
 import { IsString, IsNumber, IsEmail, validate } from 'class-validator';
-import { SanitizationPipe, StrictSanitizationPipe, LooseSanitizationPipe } from '../sanitization.pipe';
+import {
+  SanitizationPipe,
+  StrictSanitizationPipe,
+  LooseSanitizationPipe,
+} from '../sanitization.pipe';
 
 // 测试用 DTO
 class TestDto {
@@ -252,7 +256,7 @@ describe('SanitizationPipe', () => {
       };
 
       await expect(pipeWithBlacklist.transform(value, metadata)).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
     });
 
@@ -268,7 +272,7 @@ describe('SanitizationPipe', () => {
       };
 
       await expect(pipeWithBlacklist.transform(value, metadata)).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
     });
   });

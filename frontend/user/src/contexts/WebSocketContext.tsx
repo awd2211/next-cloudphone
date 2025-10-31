@@ -132,12 +132,13 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   };
 
   const handleDeviceStatusChange = (data: any) => {
-    const statusText = {
-      running: '运行中',
-      stopped: '已停止',
-      idle: '空闲',
-      error: '错误',
-    }[data.status] || data.status;
+    const statusText =
+      {
+        running: '运行中',
+        stopped: '已停止',
+        idle: '空闲',
+        error: '错误',
+      }[data.status] || data.status;
 
     handleNotification({
       type: 'info',
@@ -147,13 +148,14 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   };
 
   const handleOrderStatusChange = (data: any) => {
-    const statusText = {
-      pending: '待支付',
-      paid: '已支付',
-      cancelled: '已取消',
-      refunded: '已退款',
-      expired: '已过期',
-    }[data.status] || data.status;
+    const statusText =
+      {
+        pending: '待支付',
+        paid: '已支付',
+        cancelled: '已取消',
+        refunded: '已退款',
+        expired: '已过期',
+      }[data.status] || data.status;
 
     handleNotification({
       type: data.status === 'paid' ? 'success' : 'info',

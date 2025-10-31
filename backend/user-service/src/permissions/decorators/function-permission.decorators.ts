@@ -26,8 +26,7 @@ export const RequirePermissions = (...permissions: string[]) =>
  * @RequireAllPermissions()
  * async createUser() { ... }
  */
-export const RequireAllPermissions = () =>
-  SetMetadata(REQUIRE_ALL_PERMISSIONS_KEY, true);
+export const RequireAllPermissions = () => SetMetadata(REQUIRE_ALL_PERMISSIONS_KEY, true);
 
 /**
  * 允许跨租户访问
@@ -46,8 +45,7 @@ export const AllowCrossTenant = () => SetMetadata(ALLOW_CROSS_TENANT_KEY, true);
  * @RequireSuperAdmin()
  * async deleteAllUsers() { ... }
  */
-export const RequireSuperAdmin = () =>
-  SetMetadata(REQUIRE_SUPER_ADMIN_KEY, true);
+export const RequireSuperAdmin = () => SetMetadata(REQUIRE_SUPER_ADMIN_KEY, true);
 
 /**
  * 跳过权限检查

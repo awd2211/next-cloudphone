@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Alert, Tag } from 'antd';
-import { MobileOutlined, UserOutlined, AppstoreOutlined, CloudServerOutlined, DollarOutlined, ShoppingOutlined } from '@ant-design/icons';
+import {
+  MobileOutlined,
+  UserOutlined,
+  AppstoreOutlined,
+  CloudServerOutlined,
+  DollarOutlined,
+  ShoppingOutlined,
+} from '@ant-design/icons';
 import { getDashboardStats, getUserGrowthStats, getPlanDistributionStats } from '@/services/stats';
 import { getRevenueStats } from '@/services/billing';
 import { getDeviceStats } from '@/services/device';
@@ -9,7 +16,7 @@ import {
   RevenueChartLazy,
   DeviceStatusChartLazy,
   UserGrowthChartLazy,
-  PlanDistributionChartLazy
+  PlanDistributionChartLazy,
 } from '@/components/LazyComponents';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useRole } from '@/hooks/useRole';
@@ -65,7 +72,7 @@ const Dashboard = () => {
           { status: 'idle', count: deviceData.idle || 0 },
           { status: 'running', count: deviceData.running || 0 },
           { status: 'stopped', count: deviceData.stopped || 0 },
-        ].filter(item => item.count > 0);
+        ].filter((item) => item.count > 0);
 
         // 加载用户增长数据（近30天）
         const userGrowthRes: any = await getUserGrowthStats(30);
@@ -108,7 +115,14 @@ const Dashboard = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}
+      >
         <h2 style={{ marginBottom: 0 }}>仪表盘</h2>
         <Tag color={roleColor}>{roleDisplayName}</Tag>
       </div>
@@ -135,7 +149,7 @@ const Dashboard = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card loading={statsLoading}>
             <Statistic
-              title={isAdmin ? "总设备数" : "我的设备"}
+              title={isAdmin ? '总设备数' : '我的设备'}
               value={stats?.totalDevices || 0}
               prefix={<MobileOutlined />}
               valueStyle={{ color: '#3f8600' }}
@@ -157,7 +171,11 @@ const Dashboard = () => {
         <RoleGuard adminOnly>
           <Col xs={24} sm={12} lg={6}>
             <Card loading={statsLoading}>
-              <Statistic title="用户总数" value={stats?.totalUsers || 0} prefix={<UserOutlined />} />
+              <Statistic
+                title="用户总数"
+                value={stats?.totalUsers || 0}
+                prefix={<UserOutlined />}
+              />
             </Card>
           </Col>
         </RoleGuard>
@@ -166,7 +184,11 @@ const Dashboard = () => {
         <RoleGuard adminOnly>
           <Col xs={24} sm={12} lg={6}>
             <Card loading={statsLoading}>
-              <Statistic title="应用总数" value={stats?.totalApps || 0} prefix={<AppstoreOutlined />} />
+              <Statistic
+                title="应用总数"
+                value={stats?.totalApps || 0}
+                prefix={<AppstoreOutlined />}
+              />
             </Card>
           </Col>
         </RoleGuard>
@@ -175,22 +197,44 @@ const Dashboard = () => {
         <RoleGuard adminOnly>
           <Col xs={24} sm={12} lg={6}>
             <Card loading={statsLoading}>
-              <Statistic title="今日收入" value={stats?.todayRevenue || 0} prefix="¥" precision={2} valueStyle={{ color: '#cf1322' }} />
+              <Statistic
+                title="今日收入"
+                value={stats?.todayRevenue || 0}
+                prefix="¥"
+                precision={2}
+                valueStyle={{ color: '#cf1322' }}
+              />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card loading={statsLoading}>
-              <Statistic title="本月收入" value={stats?.monthRevenue || 0} prefix="¥" precision={2} valueStyle={{ color: '#cf1322' }} />
+              <Statistic
+                title="本月收入"
+                value={stats?.monthRevenue || 0}
+                prefix="¥"
+                precision={2}
+                valueStyle={{ color: '#cf1322' }}
+              />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card loading={statsLoading}>
-              <Statistic title="今日订单" value={stats?.todayOrders || 0} prefix={<ShoppingOutlined />} valueStyle={{ color: '#faad14' }} />
+              <Statistic
+                title="今日订单"
+                value={stats?.todayOrders || 0}
+                prefix={<ShoppingOutlined />}
+                valueStyle={{ color: '#faad14' }}
+              />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card loading={statsLoading}>
-              <Statistic title="本月订单" value={stats?.monthOrders || 0} prefix={<ShoppingOutlined />} valueStyle={{ color: '#faad14' }} />
+              <Statistic
+                title="本月订单"
+                value={stats?.monthOrders || 0}
+                prefix={<ShoppingOutlined />}
+                valueStyle={{ color: '#faad14' }}
+              />
             </Card>
           </Col>
         </RoleGuard>

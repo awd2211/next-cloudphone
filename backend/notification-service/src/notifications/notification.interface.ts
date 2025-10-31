@@ -1,4 +1,8 @@
-import { NotificationCategory, NotificationStatus, NotificationChannel } from '../entities/notification.entity';
+import {
+  NotificationCategory,
+  NotificationStatus,
+  NotificationChannel,
+} from '../entities/notification.entity';
 
 export { NotificationCategory, NotificationStatus, NotificationChannel };
 

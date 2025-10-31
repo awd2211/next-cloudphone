@@ -68,12 +68,8 @@ export class BillingRulesController {
       resourceType: ResourceType;
       quantity: number;
       context?: any;
-    },
+    }
   ) {
-    return await this.rulesService.calculatePrice(
-      body.resourceType,
-      body.quantity,
-      body.context,
-    );
+    return await this.rulesService.calculatePrice(body.resourceType, body.quantity, body.context);
   }
 }

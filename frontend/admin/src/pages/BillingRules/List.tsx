@@ -211,118 +211,117 @@ const BillingRuleList = () => {
     []
   );
 
-  const columns: ColumnsType<BillingRule> = useMemo(() => [
-    {
-      title: '规则名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 200,
-      render: (name, record) => (
-        <a onClick={() => openDetailModal(record)}>{name}</a>
-      ),
-    },
-    {
-      title: '类型',
-      dataIndex: 'type',
-      key: 'type',
-      width: 120,
-      render: (type) => {
-        const config = typeMap[type as keyof typeof typeMap];
-        return <Tag color={config?.color}>{config?.text}</Tag>;
+  const columns: ColumnsType<BillingRule> = useMemo(
+    () => [
+      {
+        title: '规则名称',
+        dataIndex: 'name',
+        key: 'name',
+        width: 200,
+        render: (name, record) => <a onClick={() => openDetailModal(record)}>{name}</a>,
       },
-    },
-    {
-      title: '公式',
-      dataIndex: 'formula',
-      key: 'formula',
-      width: 200,
-      ellipsis: true,
-      render: (formula) => (
-        <code style={{ fontSize: '12px', color: '#595959' }}>{formula}</code>
-      ),
-    },
-    {
-      title: '优先级',
-      dataIndex: 'priority',
-      key: 'priority',
-      width: 80,
-      align: 'center',
-      sorter: (a, b) => a.priority - b.priority,
-    },
-    {
-      title: '状态',
-      dataIndex: 'isActive',
-      key: 'isActive',
-      width: 100,
-      render: (isActive, record) => (
-        <Switch
-          checked={isActive}
-          checkedChildren={<CheckCircleOutlined />}
-          unCheckedChildren={<CloseCircleOutlined />}
-          onChange={(checked) => handleToggleActive(record.id, checked)}
-        />
-      ),
-    },
-    {
-      title: '有效期',
-      key: 'validity',
-      width: 200,
-      render: (_, record) => {
-        if (!record.validFrom && !record.validUntil) {
-          return <Tag color="green">永久有效</Tag>;
-        }
-        return (
-          <div>
-            {record.validFrom && <div>从: {dayjs(record.validFrom).format('YYYY-MM-DD')}</div>}
-            {record.validUntil && <div>至: {dayjs(record.validUntil).format('YYYY-MM-DD')}</div>}
-          </div>
-        );
+      {
+        title: '类型',
+        dataIndex: 'type',
+        key: 'type',
+        width: 120,
+        render: (type) => {
+          const config = typeMap[type as keyof typeof typeMap];
+          return <Tag color={config?.color}>{config?.text}</Tag>;
+        },
       },
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 160,
-      render: (time) => dayjs(time).format('YYYY-MM-DD HH:mm'),
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 200,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<ExperimentOutlined />}
-            onClick={() => openTestModal(record)}
-          >
-            测试
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => openModal(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定要删除此规则吗？"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
+      {
+        title: '公式',
+        dataIndex: 'formula',
+        key: 'formula',
+        width: 200,
+        ellipsis: true,
+        render: (formula) => <code style={{ fontSize: '12px', color: '#595959' }}>{formula}</code>,
+      },
+      {
+        title: '优先级',
+        dataIndex: 'priority',
+        key: 'priority',
+        width: 80,
+        align: 'center',
+        sorter: (a, b) => a.priority - b.priority,
+      },
+      {
+        title: '状态',
+        dataIndex: 'isActive',
+        key: 'isActive',
+        width: 100,
+        render: (isActive, record) => (
+          <Switch
+            checked={isActive}
+            checkedChildren={<CheckCircleOutlined />}
+            unCheckedChildren={<CloseCircleOutlined />}
+            onChange={(checked) => handleToggleActive(record.id, checked)}
+          />
+        ),
+      },
+      {
+        title: '有效期',
+        key: 'validity',
+        width: 200,
+        render: (_, record) => {
+          if (!record.validFrom && !record.validUntil) {
+            return <Tag color="green">永久有效</Tag>;
+          }
+          return (
+            <div>
+              {record.validFrom && <div>从: {dayjs(record.validFrom).format('YYYY-MM-DD')}</div>}
+              {record.validUntil && <div>至: {dayjs(record.validUntil).format('YYYY-MM-DD')}</div>}
+            </div>
+          );
+        },
+      },
+      {
+        title: '创建时间',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        width: 160,
+        render: (time) => dayjs(time).format('YYYY-MM-DD HH:mm'),
+      },
+      {
+        title: '操作',
+        key: 'actions',
+        width: 200,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="small">
+            <Button
+              type="link"
+              size="small"
+              icon={<ExperimentOutlined />}
+              onClick={() => openTestModal(record)}
+            >
+              测试
             </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ], [typeMap, openDetailModal, openTestModal, openModal, handleDelete, handleToggleActive]);
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => openModal(record)}
+            >
+              编辑
+            </Button>
+            <Popconfirm
+              title="确定要删除此规则吗？"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [typeMap, openDetailModal, openTestModal, openModal, handleDelete, handleToggleActive]
+  );
 
   return (
     <div style={{ padding: '24px' }}>
@@ -330,16 +329,12 @@ const BillingRuleList = () => {
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
           <Row gutter={16}>
             <Col span={8}>
-              <Statistic
-                title="总规则数"
-                value={total}
-                prefix={<CodeOutlined />}
-              />
+              <Statistic title="总规则数" value={total} prefix={<CodeOutlined />} />
             </Col>
             <Col span={8}>
               <Statistic
                 title="激活中"
-                value={rules.filter(r => r.isActive).length}
+                value={rules.filter((r) => r.isActive).length}
                 valueStyle={{ color: '#52c41a' }}
                 prefix={<CheckCircleOutlined />}
               />
@@ -347,7 +342,7 @@ const BillingRuleList = () => {
             <Col span={8}>
               <Statistic
                 title="已停用"
-                value={rules.filter(r => !r.isActive).length}
+                value={rules.filter((r) => !r.isActive).length}
                 valueStyle={{ color: '#ff4d4f' }}
                 prefix={<CloseCircleOutlined />}
               />
@@ -440,7 +435,10 @@ const BillingRuleList = () => {
           <Form.Item
             label={
               <span>
-                计费公式 <a onClick={() => message.info('支持变量: hours, cpuCores, memoryMB, storageMB')}>查看帮助</a>
+                计费公式{' '}
+                <a onClick={() => message.info('支持变量: hours, cpuCores, memoryMB, storageMB')}>
+                  查看帮助
+                </a>
               </span>
             }
             name="formula"
@@ -466,10 +464,7 @@ const BillingRuleList = () => {
               },
             ]}
           >
-            <TextArea
-              rows={4}
-              placeholder='{"basePrice": 0.5, "cpuPricePerCore": 0.3}'
-            />
+            <TextArea rows={4} placeholder='{"basePrice": 0.5, "cpuPricePerCore": 0.3}' />
           </Form.Item>
 
           <Form.Item label="有效期" name="validRange">
@@ -481,11 +476,7 @@ const BillingRuleList = () => {
               <Divider>快速应用模板</Divider>
               <Space wrap>
                 {templates.map((template: any) => (
-                  <Button
-                    key={template.id}
-                    size="small"
-                    onClick={() => applyTemplate(template)}
-                  >
+                  <Button key={template.id} size="small" onClick={() => applyTemplate(template)}>
                     {template.name}
                   </Button>
                 ))}
@@ -558,11 +549,7 @@ const BillingRuleList = () => {
           {testResult && (
             <>
               <Divider>测试结果</Divider>
-              <Alert
-                message={`计算费用: ¥${testResult.cost.toFixed(2)}`}
-                type="success"
-                showIcon
-              />
+              <Alert message={`计算费用: ¥${testResult.cost.toFixed(2)}`} type="success" showIcon />
               <Descriptions bordered size="small" column={1}>
                 {testResult.breakdown.map((item, index) => (
                   <Descriptions.Item key={index} label={item.component}>
@@ -592,11 +579,17 @@ const BillingRuleList = () => {
             <Descriptions.Item label="规则名称">{selectedRule.name}</Descriptions.Item>
             <Descriptions.Item label="描述">{selectedRule.description || '-'}</Descriptions.Item>
             <Descriptions.Item label="类型">
-              <Tag color={
-                selectedRule.type === 'time-based' ? 'blue' :
-                selectedRule.type === 'usage-based' ? 'green' :
-                selectedRule.type === 'tiered' ? 'orange' : 'purple'
-              }>
+              <Tag
+                color={
+                  selectedRule.type === 'time-based'
+                    ? 'blue'
+                    : selectedRule.type === 'usage-based'
+                      ? 'green'
+                      : selectedRule.type === 'tiered'
+                        ? 'orange'
+                        : 'purple'
+                }
+              >
                 {selectedRule.type}
               </Tag>
             </Descriptions.Item>

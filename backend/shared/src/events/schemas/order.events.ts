@@ -35,4 +35,3 @@ export class OrderRefundedEvent {
   refundedAt: Date;
   timestamp: string;
 }
-

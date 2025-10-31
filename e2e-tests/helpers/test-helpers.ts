@@ -43,7 +43,7 @@ export async function createTestUser(userData?: Partial<TestUser>): Promise<Test
       {
         username: user.username,
         password: user.password,
-      },
+      }
     );
 
     user.token = loginResponse.access_token;
@@ -91,16 +91,18 @@ export async function createTestDevice(deviceData?: Partial<TestDevice>): Promis
     ...deviceData,
   };
 
-  const response = await deviceService.post<{ id: string; name: string; status: string; adbPort: number }>(
-    '/devices',
-    {
-      name: device.name,
-      cpuCores: 2,
-      memoryMB: 4096,
-      resolution: '1080x1920',
-      androidVersion: '11',
-    },
-  );
+  const response = await deviceService.post<{
+    id: string;
+    name: string;
+    status: string;
+    adbPort: number;
+  }>('/devices', {
+    name: device.name,
+    cpuCores: 2,
+    memoryMB: 4096,
+    resolution: '1080x1920',
+    androidVersion: '11',
+  });
 
   return {
     id: response.id,
@@ -137,7 +139,7 @@ export async function deleteTestUser(userId: string): Promise<void> {
  */
 export async function waitFor(
   condition: () => Promise<boolean>,
-  options: { timeout?: number; interval?: number } = {},
+  options: { timeout?: number; interval?: number } = {}
 ): Promise<void> {
   const { timeout = 10000, interval = 500 } = options;
   const startTime = Date.now();

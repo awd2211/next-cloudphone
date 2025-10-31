@@ -1,10 +1,16 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, RequestTimeoutException } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  RequestTimeoutException,
+} from '@nestjs/common';
 import { Observable, throwError, TimeoutError } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
 
 /**
  * 超时拦截器
- * 
+ *
  * 为所有请求设置超时限制
  */
 @Injectable()
@@ -23,8 +29,7 @@ export class TimeoutInterceptor implements NestInterceptor {
           return throwError(() => new RequestTimeoutException('Request timeout'));
         }
         return throwError(() => err);
-      }),
+      })
     );
   }
 }
-

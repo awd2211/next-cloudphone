@@ -67,7 +67,7 @@ const DeviceDetail = () => {
     try {
       const packages = await getInstalledPackages(id);
       // 提取包名
-      const appNames = packages.map(pkg => pkg.name);
+      const appNames = packages.map((pkg) => pkg.name);
       setInstalledApps(appNames);
     } catch (error) {
       message.error('加载已安装应用失败');
@@ -253,12 +253,8 @@ const DeviceDetail = () => {
           <Descriptions.Item label="状态">{getStatusTag(device.status)}</Descriptions.Item>
           <Descriptions.Item label="Android 版本">{device.androidVersion}</Descriptions.Item>
           <Descriptions.Item label="CPU 核心数">{device.cpuCores}</Descriptions.Item>
-          <Descriptions.Item label="内存">
-            {device.memoryMB} MB
-          </Descriptions.Item>
-          <Descriptions.Item label="存储">
-            {device.storageMB} MB
-          </Descriptions.Item>
+          <Descriptions.Item label="内存">{device.memoryMB} MB</Descriptions.Item>
+          <Descriptions.Item label="存储">{device.storageMB} MB</Descriptions.Item>
           <Descriptions.Item label="IP 地址">{device.ipAddress || '-'}</Descriptions.Item>
           <Descriptions.Item label="ADB 端口">{device.adbPort || '-'}</Descriptions.Item>
           <Descriptions.Item label="VNC 端口">{device.vncPort || '-'}</Descriptions.Item>

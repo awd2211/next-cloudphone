@@ -1,11 +1,5 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { MenuPermissionService } from '../menu-permission.service';
 import { PermissionCacheService } from '../permission-cache.service';
 import { EnhancedPermissionsGuard } from '../guards/enhanced-permissions.guard';
@@ -16,11 +10,11 @@ import { RequirePermissions, SkipPermission } from '../decorators';
  * 提供菜单树和权限列表 API
  */
 @Controller('menu-permissions')
-@UseGuards(EnhancedPermissionsGuard)
+@UseGuards(AuthGuard('jwt'), EnhancedPermissionsGuard)
 export class MenuPermissionController {
   constructor(
     private menuPermissionService: MenuPermissionService,
-    private permissionCacheService: PermissionCacheService,
+    private permissionCacheService: PermissionCacheService
   ) {}
 
   /**
@@ -53,18 +47,20 @@ export class MenuPermissionController {
   @Get('my-permissions')
   @SkipPermission()
   async getMyPermissions(@Request() req: any) {
+    console.log('[DEBUG] req.user:', req.user);
+    console.log('[DEBUG] req.headers.authorization:', req.headers?.authorization?.substring(0, 20));
+
     const userId = req.user?.id;
 
     if (!userId) {
+      console.log('[DEBUG] userId is empty, returning 未登录');
       return {
         success: false,
         message: '未登录',
       };
     }
 
-    const permissions = await this.menuPermissionService.getUserPermissionNames(
-      userId,
-    );
+    const permissions = await this.menuPermissionService.getUserPermissionNames(userId);
 
     return {
       success: true,
@@ -87,10 +83,7 @@ export class MenuPermissionController {
       };
     }
 
-    const hasAccess = await this.menuPermissionService.checkMenuAccess(
-      userId,
-      path,
-    );
+    const hasAccess = await this.menuPermissionService.checkMenuAccess(userId, path);
 
     return {
       success: true,
@@ -132,9 +125,7 @@ export class MenuPermissionController {
   @Get('user/:userId/permissions')
   @RequirePermissions('permission:view')
   async getUserPermissions(@Param('userId') userId: string) {
-    const permissions = await this.menuPermissionService.getUserPermissionNames(
-      userId,
-    );
+    const permissions = await this.menuPermissionService.getUserPermissionNames(userId);
 
     return {
       success: true,

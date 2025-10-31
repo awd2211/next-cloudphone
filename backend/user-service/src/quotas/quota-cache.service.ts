@@ -63,14 +63,10 @@ export class QuotaCacheService {
     const cacheKey = this.getQuotaCacheKey(userId);
 
     try {
-      await this.cacheService.set(
-        cacheKey,
-        this.serializeQuota(quota),
-        {
-          ttl: this.CACHE_TTL,
-          layer: CacheLayer.L1_AND_L2, // 双层缓存
-        },
-      );
+      await this.cacheService.set(cacheKey, this.serializeQuota(quota), {
+        ttl: this.CACHE_TTL,
+        layer: CacheLayer.L1_AND_L2, // 双层缓存
+      });
 
       this.logger.debug(`配额已缓存 - 用户: ${userId}, TTL: ${this.CACHE_TTL}s`);
     } catch (error) {
@@ -109,9 +105,7 @@ export class QuotaCacheService {
   async warmupQuotas(quotas: Quota[]): Promise<void> {
     this.logger.log(`开始预热配额缓存 - 数量: ${quotas.length}`);
 
-    const promises = quotas.map((quota) =>
-      this.setQuota(quota.userId, quota),
-    );
+    const promises = quotas.map((quota) => this.setQuota(quota.userId, quota));
 
     await Promise.allSettled(promises);
 
@@ -193,7 +187,7 @@ export class QuotaCacheService {
       totalMemoryGB: number;
       totalStorageGB: number;
       monthlyTrafficGB: number;
-    },
+    }
   ): Promise<void> {
     const cacheKey = `${this.CACHE_PREFIX}:limits:${userId}`;
 

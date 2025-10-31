@@ -17,7 +17,7 @@ export class EventStoreService {
   constructor(
     @InjectRepository(UserEvent)
     private readonly eventRepository: Repository<UserEvent>,
-    private readonly eventBus: EventBus,
+    private readonly eventBus: EventBus
   ) {}
 
   /**
@@ -29,7 +29,7 @@ export class EventStoreService {
   @Retry({
     maxAttempts: 3,
     baseDelayMs: 1000,
-    retryableErrors: [QueryFailedError, DatabaseError]
+    retryableErrors: [QueryFailedError, DatabaseError],
   })
   async saveEvent(
     event: UserDomainEvent,
@@ -40,7 +40,7 @@ export class EventStoreService {
       userAgent?: string;
       correlationId?: string;
       causationId?: string;
-    },
+    }
   ): Promise<UserEvent> {
     try {
       // 检查版本冲突（乐观锁）
@@ -53,7 +53,7 @@ export class EventStoreService {
 
       if (existingEvent) {
         throw new ConflictException(
-          `Event version conflict for aggregate ${event.aggregateId}, version ${event.version}`,
+          `Event version conflict for aggregate ${event.aggregateId}, version ${event.version}`
         );
       }
 
@@ -71,7 +71,7 @@ export class EventStoreService {
       const savedEvent = await this.eventRepository.save(userEvent);
 
       this.logger.log(
-        `Event saved: ${event.getEventType()} for aggregate ${event.aggregateId}, version ${event.version}`,
+        `Event saved: ${event.getEventType()} for aggregate ${event.aggregateId}, version ${event.version}`
       );
 
       // 发布事件到 CQRS EventBus（用于事件处理器）
@@ -81,7 +81,7 @@ export class EventStoreService {
     } catch (error) {
       this.logger.error(
         `Failed to save event: ${event.getEventType()} for aggregate ${event.aggregateId}`,
-        error,
+        error
       );
       throw error;
     }
@@ -95,33 +95,30 @@ export class EventStoreService {
   @Retry({
     maxAttempts: 3,
     baseDelayMs: 1000,
-    retryableErrors: [QueryFailedError, DatabaseError]
+    retryableErrors: [QueryFailedError, DatabaseError],
   })
-  async saveEvents(
-    events: UserDomainEvent[],
-    metadata?: any,
-  ): Promise<UserEvent[]> {
+  async saveEvents(events: UserDomainEvent[], metadata?: any): Promise<UserEvent[]> {
     if (events.length === 0) return [];
 
     // 使用事务确保原子性
     return await this.eventRepository.manager.transaction(async (transactionalEntityManager) => {
       // 检查版本冲突
-      const aggregateIds = [...new Set(events.map(e => e.aggregateId))];
+      const aggregateIds = [...new Set(events.map((e) => e.aggregateId))];
       const existingEvents = await transactionalEntityManager.find(UserEvent, {
-        where: aggregateIds.map(aggregateId => ({
+        where: aggregateIds.map((aggregateId) => ({
           aggregateId,
-          version: events.find(e => e.aggregateId === aggregateId)?.version,
+          version: events.find((e) => e.aggregateId === aggregateId)?.version,
         })),
       });
 
       if (existingEvents.length > 0) {
         throw new ConflictException(
-          `Event version conflict detected for ${existingEvents.length} events`,
+          `Event version conflict detected for ${existingEvents.length} events`
         );
       }
 
       // 批量创建事件实体
-      const eventEntities = events.map(event =>
+      const eventEntities = events.map((event) =>
         this.eventRepository.create({
           aggregateId: event.aggregateId,
           eventType: event.getEventType(),
@@ -129,7 +126,7 @@ export class EventStoreService {
           version: event.version,
           metadata,
           createdAt: event.occurredAt,
-        }),
+        })
       );
 
       // 批量保存
@@ -138,7 +135,7 @@ export class EventStoreService {
       this.logger.log(`Batch saved ${savedEvents.length} events`);
 
       // 并行发布事件到 EventBus
-      await Promise.all(events.map(event => this.eventBus.publish(event)));
+      await Promise.all(events.map((event) => this.eventBus.publish(event)));
 
       return savedEvents;
     });
@@ -161,10 +158,7 @@ export class EventStoreService {
    * @param aggregateId 聚合根ID
    * @param fromVersion 起始版本（不包含）
    */
-  async getEventsFromVersion(
-    aggregateId: string,
-    fromVersion: number,
-  ): Promise<UserEvent[]> {
+  async getEventsFromVersion(aggregateId: string, fromVersion: number): Promise<UserEvent[]> {
     return this.eventRepository
       .createQueryBuilder('event')
       .where('event.aggregateId = :aggregateId', { aggregateId })
@@ -196,7 +190,7 @@ export class EventStoreService {
    */
   async getCurrentVersionInTransaction(
     manager: EntityManager,
-    aggregateId: string,
+    aggregateId: string
   ): Promise<number> {
     const result = await manager
       .createQueryBuilder(UserEvent, 'event')
@@ -227,7 +221,7 @@ export class EventStoreService {
       userAgent?: string;
       correlationId?: string;
       causationId?: string;
-    },
+    }
   ): Promise<UserEvent> {
     try {
       const eventRepository = manager.getRepository(UserEvent);
@@ -242,7 +236,7 @@ export class EventStoreService {
 
       if (existingEvent) {
         throw new ConflictException(
-          `Event version conflict for aggregate ${event.aggregateId}, version ${event.version}`,
+          `Event version conflict for aggregate ${event.aggregateId}, version ${event.version}`
         );
       }
 
@@ -260,7 +254,7 @@ export class EventStoreService {
       const savedEvent = await eventRepository.save(userEvent);
 
       this.logger.log(
-        `Event saved in transaction: ${event.getEventType()} for aggregate ${event.aggregateId}, version ${event.version}`,
+        `Event saved in transaction: ${event.getEventType()} for aggregate ${event.aggregateId}, version ${event.version}`
       );
 
       // 重要：在事务中不立即发布事件到 EventBus
@@ -269,7 +263,7 @@ export class EventStoreService {
       setImmediate(() => {
         this.eventBus.publish(event);
         this.logger.log(
-          `Event published to EventBus: ${event.getEventType()} for aggregate ${event.aggregateId}`,
+          `Event published to EventBus: ${event.getEventType()} for aggregate ${event.aggregateId}`
         );
       });
 
@@ -277,7 +271,7 @@ export class EventStoreService {
     } catch (error) {
       this.logger.error(
         `Failed to save event in transaction: ${event.getEventType()} for aggregate ${event.aggregateId}`,
-        error,
+        error
       );
       throw error;
     }
@@ -292,7 +286,7 @@ export class EventStoreService {
   async getEventsByTimeRange(
     startDate: Date,
     endDate: Date,
-    eventType?: string,
+    eventType?: string
   ): Promise<UserEvent[]> {
     const queryBuilder = this.eventRepository
       .createQueryBuilder('event')
@@ -311,10 +305,7 @@ export class EventStoreService {
    * @param eventType 事件类型
    * @param limit 限制数量
    */
-  async getEventsByType(
-    eventType: string,
-    limit: number = 100,
-  ): Promise<UserEvent[]> {
+  async getEventsByType(eventType: string, limit: number = 100): Promise<UserEvent[]> {
     return this.eventRepository.find({
       where: { eventType },
       order: { createdAt: 'DESC' },
@@ -358,9 +349,7 @@ export class EventStoreService {
 
     const result = await queryBuilder.execute();
 
-    this.logger.warn(
-      `Purged ${result.affected} events before ${beforeDate.toISOString()}`,
-    );
+    this.logger.warn(`Purged ${result.affected} events before ${beforeDate.toISOString()}`);
 
     return result.affected || 0;
   }

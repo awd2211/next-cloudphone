@@ -2,7 +2,7 @@
  * Type declarations for adbkit module
  * Since @types/adbkit is not available, we declare basic types manually
  */
-declare module "adbkit" {
+declare module 'adbkit' {
   export interface Client {
     createConnection(options?: any): any;
     listDevices(): Promise<Device[]>;

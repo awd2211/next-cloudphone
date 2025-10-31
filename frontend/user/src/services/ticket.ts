@@ -2,12 +2,12 @@ import request from '@/utils/request';
 
 // 工单类型
 export enum TicketType {
-  TECHNICAL = 'technical',       // 技术问题
-  BILLING = 'billing',           // 账单问题
-  DEVICE = 'device',             // 设备问题
-  APP = 'app',                   // 应用问题
-  FEATURE = 'feature',           // 功能建议
-  OTHER = 'other',               // 其他
+  TECHNICAL = 'technical', // 技术问题
+  BILLING = 'billing', // 账单问题
+  DEVICE = 'device', // 设备问题
+  APP = 'app', // 应用问题
+  FEATURE = 'feature', // 功能建议
+  OTHER = 'other', // 其他
 }
 
 // 工单优先级
@@ -20,11 +20,11 @@ export enum TicketPriority {
 
 // 工单状态
 export enum TicketStatus {
-  OPEN = 'open',                 // 待处理
-  IN_PROGRESS = 'in_progress',   // 处理中
-  WAITING = 'waiting',           // 等待用户
-  RESOLVED = 'resolved',         // 已解决
-  CLOSED = 'closed',             // 已关闭
+  OPEN = 'open', // 待处理
+  IN_PROGRESS = 'in_progress', // 处理中
+  WAITING = 'waiting', // 等待用户
+  RESOLVED = 'resolved', // 已解决
+  CLOSED = 'closed', // 已关闭
 }
 
 // 工单接口

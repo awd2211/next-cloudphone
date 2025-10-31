@@ -20,11 +20,13 @@ export const getDevices = (params?: PaginationParams) => {
 };
 
 // 设备列表 (游标分页 - 高性能)
-export const getDevicesCursor = (params?: CursorPaginationParams & {
-  userId?: string;
-  tenantId?: string;
-  status?: string;
-}) => {
+export const getDevicesCursor = (
+  params?: CursorPaginationParams & {
+    userId?: string;
+    tenantId?: string;
+    status?: string;
+  }
+) => {
   return request.get<CursorPaginatedResponse<Device>>('/devices/cursor', { params });
 };
 

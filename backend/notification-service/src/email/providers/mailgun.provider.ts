@@ -1,11 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  EmailProvider,
-  EmailOptions,
-  EmailResult,
-  EmailProviderConfig,
-} from '../email.interface';
+import { EmailProvider, EmailOptions, EmailResult, EmailProviderConfig } from '../email.interface';
 import FormData from 'form-data';
 import axios, { AxiosInstance } from 'axios';
 
@@ -68,9 +63,7 @@ export class MailgunProvider implements EmailProvider {
   private loadConfig(): void {
     const region = this.configService.get<string>('MAILGUN_REGION', 'us');
     const baseUrl =
-      region === 'eu'
-        ? 'https://api.eu.mailgun.net/v3'
-        : 'https://api.mailgun.net/v3';
+      region === 'eu' ? 'https://api.eu.mailgun.net/v3' : 'https://api.mailgun.net/v3';
 
     this.config = {
       provider: 'mailgun',
@@ -78,7 +71,7 @@ export class MailgunProvider implements EmailProvider {
       domain: this.configService.get<string>('MAILGUN_DOMAIN'),
       fromEmail: this.configService.get<string>(
         'MAILGUN_FROM',
-        'CloudPhone <noreply@cloudphone.com>',
+        'CloudPhone <noreply@cloudphone.com>'
       ),
       region,
       baseUrl,
@@ -86,9 +79,7 @@ export class MailgunProvider implements EmailProvider {
 
     // 验证必需配置
     if (!this.config.apiKey || !this.config.domain) {
-      this.logger.warn(
-        'Mailgun credentials not configured. Email sending will fail.',
-      );
+      this.logger.warn('Mailgun credentials not configured. Email sending will fail.');
     }
   }
 
@@ -189,7 +180,7 @@ export class MailgunProvider implements EmailProvider {
       this.stats.sent++;
 
       this.logger.log(
-        `Email sent successfully via Mailgun to ${recipients.join(', ')}, MessageId: ${response.data.id}`,
+        `Email sent successfully via Mailgun to ${recipients.join(', ')}, MessageId: ${response.data.id}`
       );
 
       return {
@@ -213,10 +204,7 @@ export class MailgunProvider implements EmailProvider {
   /**
    * 批量发送邮件
    */
-  async sendBatch(
-    recipients: string[],
-    options: Omit<EmailOptions, 'to'>,
-  ): Promise<EmailResult[]> {
+  async sendBatch(recipients: string[], options: Omit<EmailOptions, 'to'>): Promise<EmailResult[]> {
     // Mailgun 支持批量发送（收件人变量），这里简化为逐个发送
     const results: EmailResult[] = [];
 
@@ -319,16 +307,13 @@ export class MailgunProvider implements EmailProvider {
     didYouMean?: string;
   }> {
     try {
-      const response = await axios.get(
-        'https://api.mailgun.net/v4/address/validate',
-        {
-          params: { address: email },
-          auth: {
-            username: 'api',
-            password: this.config.apiKey!,
-          },
+      const response = await axios.get('https://api.mailgun.net/v4/address/validate', {
+        params: { address: email },
+        auth: {
+          username: 'api',
+          password: this.config.apiKey!,
         },
-      );
+      });
 
       return {
         valid: response.data.result === 'deliverable',

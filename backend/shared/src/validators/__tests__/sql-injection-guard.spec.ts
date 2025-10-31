@@ -1,7 +1,11 @@
 import { ExecutionContext, BadRequestException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { SqlInjectionGuard, StrictSqlInjectionGuard, SqlInjectionSeverity } from '../sql-injection-guard';
+import {
+  SqlInjectionGuard,
+  StrictSqlInjectionGuard,
+  SqlInjectionSeverity,
+} from '../sql-injection-guard';
 
 describe('SqlInjectionGuard', () => {
   let guard: SqlInjectionGuard;
@@ -135,7 +139,7 @@ describe('SqlInjectionGuard', () => {
 
   describe('UNION 注入检测', () => {
     it('应该检测 UNION SELECT 攻击', () => {
-      mockRequest.query = { id: "1 UNION SELECT password FROM admin" };
+      mockRequest.query = { id: '1 UNION SELECT password FROM admin' };
 
       const spy = jest.spyOn(guard['logger'], 'warn');
       guard.canActivate(mockContext);
@@ -166,7 +170,7 @@ describe('SqlInjectionGuard', () => {
 
   describe('时间盲注检测', () => {
     it('应该检测 SLEEP 函数', () => {
-      mockRequest.body = { query: "SELECT * FROM users WHERE id = 1 AND SLEEP(5)" };
+      mockRequest.body = { query: 'SELECT * FROM users WHERE id = 1 AND SLEEP(5)' };
 
       const spy = jest.spyOn(guard['logger'], 'warn');
       guard.canActivate(mockContext);
@@ -175,7 +179,9 @@ describe('SqlInjectionGuard', () => {
     });
 
     it('应该检测 BENCHMARK 函数', () => {
-      mockRequest.body = { query: "SELECT * FROM users WHERE id = 1 AND BENCHMARK(1000000, MD5('test'))" };
+      mockRequest.body = {
+        query: "SELECT * FROM users WHERE id = 1 AND BENCHMARK(1000000, MD5('test'))",
+      };
 
       const spy = jest.spyOn(guard['logger'], 'warn');
       guard.canActivate(mockContext);
@@ -218,14 +224,14 @@ describe('SqlInjectionGuard', () => {
   describe('严重程度级别', () => {
     it('应该在 HIGH 级别拒绝可疑请求', () => {
       jest.spyOn(reflector, 'get').mockReturnValue(SqlInjectionSeverity.HIGH);
-      mockRequest.body = { query: "SELECT * FROM users" };
+      mockRequest.body = { query: 'SELECT * FROM users' };
 
       expect(() => guard.canActivate(mockContext)).toThrow(BadRequestException);
     });
 
     it('应该在 MEDIUM 级别标记但允许通过', () => {
       jest.spyOn(reflector, 'get').mockReturnValue(SqlInjectionSeverity.MEDIUM);
-      mockRequest.body = { query: "SELECT * FROM users" };
+      mockRequest.body = { query: 'SELECT * FROM users' };
 
       const result = guard.canActivate(mockContext);
 
@@ -235,7 +241,7 @@ describe('SqlInjectionGuard', () => {
 
     it('应该在 LOW 级别仅记录日志', () => {
       jest.spyOn(reflector, 'get').mockReturnValue(SqlInjectionSeverity.LOW);
-      mockRequest.body = { query: "SELECT * FROM users" };
+      mockRequest.body = { query: 'SELECT * FROM users' };
 
       const spy = jest.spyOn(guard['logger'], 'log');
       const result = guard.canActivate(mockContext);
@@ -250,7 +256,7 @@ describe('SqlInjectionGuard', () => {
       mockRequest.body = {
         user: {
           profile: {
-            bio: "DROP TABLE users",
+            bio: 'DROP TABLE users',
           },
         },
       };
@@ -263,7 +269,7 @@ describe('SqlInjectionGuard', () => {
 
     it('应该检测数组中的 SQL 注入', () => {
       mockRequest.body = {
-        tags: ['normal', "SELECT * FROM passwords", 'another'],
+        tags: ['normal', 'SELECT * FROM passwords', 'another'],
       };
 
       const spy = jest.spyOn(guard['logger'], 'warn');
@@ -275,7 +281,7 @@ describe('SqlInjectionGuard', () => {
 
   describe('风险评分', () => {
     it('应该为高危查询分配高风险评分', () => {
-      mockRequest.body = { query: "DROP TABLE users; DELETE FROM admin" };
+      mockRequest.body = { query: 'DROP TABLE users; DELETE FROM admin' };
 
       const inputs = guard['extractAllInputs'](mockRequest as Request);
       const result = guard['detectSqlInjection'](inputs);
@@ -296,7 +302,7 @@ describe('SqlInjectionGuard', () => {
   describe('Header 检测', () => {
     it('应该检测可疑的 User-Agent', () => {
       mockRequest.headers = {
-        'user-agent': "sqlmap/1.0 (http://sqlmap.org) SELECT * FROM users",
+        'user-agent': 'sqlmap/1.0 (http://sqlmap.org) SELECT * FROM users',
       };
 
       const spy = jest.spyOn(guard['logger'], 'warn');
@@ -354,13 +360,13 @@ describe('StrictSqlInjectionGuard', () => {
   });
 
   it('应该拒绝任何风险评分 >= 20 的请求', () => {
-    mockRequest.body = { query: "SELECT * FROM users" };
+    mockRequest.body = { query: 'SELECT * FROM users' };
 
     expect(() => guard.canActivate(mockContext)).toThrow(BadRequestException);
   });
 
   it('应该允许风险评分 < 20 的请求', () => {
-    mockRequest.body = { name: "John Doe" };
+    mockRequest.body = { name: 'John Doe' };
 
     expect(guard.canActivate(mockContext)).toBe(true);
   });

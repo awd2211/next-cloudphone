@@ -145,10 +145,7 @@ export class Quota {
   }
 
   hasAvailableConcurrentQuota(count: number = 1): boolean {
-    return (
-      this.usage.currentConcurrentDevices + count <=
-      this.limits.maxConcurrentDevices
-    );
+    return this.usage.currentConcurrentDevices + count <= this.limits.maxConcurrentDevices;
   }
 
   hasAvailableCpuQuota(cores: number): boolean {
@@ -168,10 +165,7 @@ export class Quota {
   }
 
   getRemainingConcurrentDevices(): number {
-    return Math.max(
-      0,
-      this.limits.maxConcurrentDevices - this.usage.currentConcurrentDevices,
-    );
+    return Math.max(0, this.limits.maxConcurrentDevices - this.usage.currentConcurrentDevices);
   }
 
   getUsagePercentage(): {
@@ -184,9 +178,7 @@ export class Quota {
   } {
     return {
       devices:
-        this.limits.maxDevices > 0
-          ? (this.usage.currentDevices / this.limits.maxDevices) * 100
-          : 0,
+        this.limits.maxDevices > 0 ? (this.usage.currentDevices / this.limits.maxDevices) * 100 : 0,
       cpu:
         this.limits.totalCpuCores > 0
           ? (this.usage.usedCpuCores / this.limits.totalCpuCores) * 100
@@ -201,8 +193,7 @@ export class Quota {
           : 0,
       traffic:
         this.limits.monthlyTrafficGB > 0
-          ? (this.usage.monthlyTrafficUsedGB / this.limits.monthlyTrafficGB) *
-            100
+          ? (this.usage.monthlyTrafficUsedGB / this.limits.monthlyTrafficGB) * 100
           : 0,
       hours:
         this.limits.maxUsageHoursPerMonth > 0

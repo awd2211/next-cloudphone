@@ -1,11 +1,11 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Device, DeviceStatus, DeviceProviderType } from "../entities/device.entity";
-import { DeviceProviderFactory } from "../providers/device-provider.factory";
-import { AliyunEcpClient } from "../providers/aliyun/aliyun-ecp.client";
-import { HuaweiCphClient } from "../providers/huawei/huawei-cph.client";
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Device, DeviceStatus, DeviceProviderType } from '../entities/device.entity';
+import { DeviceProviderFactory } from '../providers/device-provider.factory';
+import { AliyunEcpClient } from '../providers/aliyun/aliyun-ecp.client';
+import { HuaweiCphClient } from '../providers/huawei/huawei-cph.client';
 
 /**
  * 云设备 Token 自动刷新服务
@@ -28,7 +28,7 @@ export class CloudDeviceTokenService {
     private devicesRepository: Repository<Device>,
     private providerFactory: DeviceProviderFactory,
     private aliyunClient: AliyunEcpClient,
-    private huaweiClient: HuaweiCphClient,
+    private huaweiClient: HuaweiCphClient
   ) {}
 
   /**
@@ -51,16 +51,14 @@ export class CloudDeviceTokenService {
         return;
       }
 
-      this.logger.debug(
-        `Refreshing tokens for ${aliyunDevices.length} Aliyun devices`,
-      );
+      this.logger.debug(`Refreshing tokens for ${aliyunDevices.length} Aliyun devices`);
 
       // 并发刷新所有设备的 Token
       await Promise.allSettled(
-        aliyunDevices.map(device => this.refreshAliyunDeviceToken(device)),
+        aliyunDevices.map((device) => this.refreshAliyunDeviceToken(device))
       );
     } catch (error) {
-      this.logger.error("Failed to refresh Aliyun tokens", error.stack);
+      this.logger.error('Failed to refresh Aliyun tokens', error.stack);
     }
   }
 
@@ -69,20 +67,16 @@ export class CloudDeviceTokenService {
    */
   private async refreshAliyunDeviceToken(device: Device): Promise<void> {
     if (!device.externalId) {
-      this.logger.warn(
-        `Device ${device.id} has no externalId, skipping token refresh`,
-      );
+      this.logger.warn(`Device ${device.id} has no externalId, skipping token refresh`);
       return;
     }
 
     try {
       // 获取新的连接信息（包含新 Token）
-      const result = await this.aliyunClient.getConnectionInfo(
-        device.externalId,
-      );
+      const result = await this.aliyunClient.getConnectionInfo(device.externalId);
 
       if (!result.success || !result.data) {
-        throw new Error(result.errorMessage || "Failed to get connection info");
+        throw new Error(result.errorMessage || 'Failed to get connection info');
       }
 
       const connectionInfo = result.data;
@@ -102,13 +96,10 @@ export class CloudDeviceTokenService {
       await this.devicesRepository.save(device);
 
       this.logger.debug(
-        `Refreshed token for Aliyun device ${device.id} (${device.name}), expires at ${connectionInfo.expireTime}`,
+        `Refreshed token for Aliyun device ${device.id} (${device.name}), expires at ${connectionInfo.expireTime}`
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to refresh token for Aliyun device ${device.id}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to refresh token for Aliyun device ${device.id}`, error.stack);
     }
   }
 
@@ -132,16 +123,14 @@ export class CloudDeviceTokenService {
         return;
       }
 
-      this.logger.debug(
-        `Refreshing tokens for ${huaweiDevices.length} Huawei devices`,
-      );
+      this.logger.debug(`Refreshing tokens for ${huaweiDevices.length} Huawei devices`);
 
       // 并发刷新所有设备的 Token
       await Promise.allSettled(
-        huaweiDevices.map(device => this.refreshHuaweiDeviceToken(device)),
+        huaweiDevices.map((device) => this.refreshHuaweiDeviceToken(device))
       );
     } catch (error) {
-      this.logger.error("Failed to refresh Huawei tokens", error.stack);
+      this.logger.error('Failed to refresh Huawei tokens', error.stack);
     }
   }
 
@@ -150,20 +139,16 @@ export class CloudDeviceTokenService {
    */
   private async refreshHuaweiDeviceToken(device: Device): Promise<void> {
     if (!device.externalId) {
-      this.logger.warn(
-        `Device ${device.id} has no externalId, skipping token refresh`,
-      );
+      this.logger.warn(`Device ${device.id} has no externalId, skipping token refresh`);
       return;
     }
 
     try {
       // 获取新的连接信息（包含新 Token）
-      const result = await this.huaweiClient.getConnectionInfo(
-        device.externalId,
-      );
+      const result = await this.huaweiClient.getConnectionInfo(device.externalId);
 
       if (!result.success || !result.data) {
-        throw new Error(result.errorMessage || "Failed to get connection info");
+        throw new Error(result.errorMessage || 'Failed to get connection info');
       }
 
       const connectionInfo = result.data;
@@ -195,14 +180,9 @@ export class CloudDeviceTokenService {
 
       await this.devicesRepository.save(device);
 
-      this.logger.debug(
-        `Refreshed token for Huawei device ${device.id} (${device.name})`,
-      );
+      this.logger.debug(`Refreshed token for Huawei device ${device.id} (${device.name})`);
     } catch (error) {
-      this.logger.error(
-        `Failed to refresh token for Huawei device ${device.id}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to refresh token for Huawei device ${device.id}`, error.stack);
     }
   }
 
@@ -230,9 +210,7 @@ export class CloudDeviceTokenService {
         await this.refreshHuaweiDeviceToken(device);
         break;
       default:
-        throw new Error(
-          `Token refresh not supported for provider type: ${device.providerType}`,
-        );
+        throw new Error(`Token refresh not supported for provider type: ${device.providerType}`);
     }
   }
 }

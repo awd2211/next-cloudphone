@@ -27,9 +27,7 @@ export class DeviceServiceClient {
       'device-service',
       async (deviceId: string) => {
         // 实际的服务调用
-        const response = await fetch(
-          `http://device-service:30002/devices/${deviceId}`,
-        );
+        const response = await fetch(`http://device-service:30002/devices/${deviceId}`);
         if (!response.ok) {
           throw new Error(`Device service error: ${response.statusText}`);
         }
@@ -47,7 +45,7 @@ export class DeviceServiceClient {
             message: 'Device service temporarily unavailable',
           };
         },
-      },
+      }
     );
   }
 
@@ -71,9 +69,7 @@ export class AppServiceClient {
    */
   @ExternalServiceCall('app-service', 5000)
   async getAppInfo(appId: string) {
-    const response = await fetch(
-      `http://app-service:30003/apps/${appId}`,
-    );
+    const response = await fetch(`http://app-service:30003/apps/${appId}`);
     if (!response.ok) {
       throw new Error('App service error');
     }
@@ -182,7 +178,7 @@ export class NotificationService {
           // 这里可以调用邮件服务作为降级方案
           return { status: 'fallback', method: 'email' };
         },
-      },
+      }
     );
   }
 
@@ -251,7 +247,7 @@ export class CircuitBreakerHealthService {
 export class OrderService {
   constructor(
     private deviceServiceClient: DeviceServiceClient,
-    private paymentServiceClient: PaymentServiceClient,
+    private paymentServiceClient: PaymentServiceClient
   ) {}
 
   /**
@@ -269,12 +265,11 @@ export class OrderService {
       }
 
       // 2. 创建支付订单（payment-service 熔断器）
-      const paymentOrder =
-        await this.paymentServiceClient.createAlipayOrder({
-          userId,
-          deviceId,
-          amount: 100,
-        });
+      const paymentOrder = await this.paymentServiceClient.createAlipayOrder({
+        userId,
+        deviceId,
+        amount: 100,
+      });
 
       return {
         orderId: 'order-123',
@@ -284,10 +279,7 @@ export class OrderService {
     } catch (error) {
       // 如果任何服务熔断，返回友好错误
       if (error.message.includes('temporarily unavailable')) {
-        throw new HttpException(
-          'Service temporarily unavailable, please try again later',
-          503,
-        );
+        throw new HttpException('Service temporarily unavailable, please try again later', 503);
       }
       throw error;
     }

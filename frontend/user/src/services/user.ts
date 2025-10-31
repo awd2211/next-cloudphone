@@ -1,6 +1,11 @@
 import request from '@/utils/request';
 import type { User } from '@/types';
 
+// 获取当前用户信息
+export const getUserInfo = () => {
+  return request.get<User>('/users/me');
+};
+
 // 更新用户信息
 export const updateProfile = (data: { email?: string; phone?: string }) => {
   return request.patch<User>('/users/profile', data);
@@ -19,4 +24,16 @@ export const getBalance = () => {
 // 充值
 export const recharge = (amount: number) => {
   return request.post('/users/recharge', { amount });
+};
+
+// 更新用户偏好设置
+export const updateUserPreferences = (
+  userId: string,
+  data: {
+    language?: string;
+    theme?: string;
+    preferences?: Record<string, any>;
+  }
+) => {
+  return request.patch(`/users/${userId}/preferences`, data);
 };

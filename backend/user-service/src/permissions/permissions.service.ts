@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Permission } from '../entities/permission.entity';
@@ -13,7 +9,7 @@ import { UpdatePermissionDto } from './dto/update-permission.dto';
 export class PermissionsService {
   constructor(
     @InjectRepository(Permission)
-    private permissionsRepository: Repository<Permission>,
+    private permissionsRepository: Repository<Permission>
   ) {}
 
   async create(createPermissionDto: CreatePermissionDto): Promise<Permission> {
@@ -33,7 +29,7 @@ export class PermissionsService {
   async findAll(
     page: number = 1,
     limit: number = 10,
-    resource?: string,
+    resource?: string
   ): Promise<{
     data: Permission[];
     total: number;
@@ -82,10 +78,7 @@ export class PermissionsService {
     return permission;
   }
 
-  async update(
-    id: string,
-    updatePermissionDto: UpdatePermissionDto,
-  ): Promise<Permission> {
+  async update(id: string, updatePermissionDto: UpdatePermissionDto): Promise<Permission> {
     const permission = await this.permissionsRepository.findOne({
       where: { id },
     });
@@ -127,12 +120,8 @@ export class PermissionsService {
     });
   }
 
-  async bulkCreate(
-    createPermissionDtos: CreatePermissionDto[],
-  ): Promise<Permission[]> {
-    const permissions = createPermissionDtos.map((dto) =>
-      this.permissionsRepository.create(dto),
-    );
+  async bulkCreate(createPermissionDtos: CreatePermissionDto[]): Promise<Permission[]> {
+    const permissions = createPermissionDtos.map((dto) => this.permissionsRepository.create(dto));
     return await this.permissionsRepository.save(permissions);
   }
 }

@@ -80,41 +80,47 @@ const QuotaList: React.FC = () => {
   }, [loadQuotas, loadAlerts]);
 
   // 创建配额
-  const handleCreateQuota = useCallback(async (values: CreateQuotaDto) => {
-    try {
-      const result = await quotaService.createQuota(values);
-      if (result.success) {
-        message.success('创建配额成功');
-        setCreateModalVisible(false);
-        form.resetFields();
-        loadQuotas();
-      } else {
-        message.error(result.message || '创建配额失败');
+  const handleCreateQuota = useCallback(
+    async (values: CreateQuotaDto) => {
+      try {
+        const result = await quotaService.createQuota(values);
+        if (result.success) {
+          message.success('创建配额成功');
+          setCreateModalVisible(false);
+          form.resetFields();
+          loadQuotas();
+        } else {
+          message.error(result.message || '创建配额失败');
+        }
+      } catch (error) {
+        message.error('创建配额失败');
+        console.error(error);
       }
-    } catch (error) {
-      message.error('创建配额失败');
-      console.error(error);
-    }
-  }, [form, loadQuotas]);
+    },
+    [form, loadQuotas]
+  );
 
   // 更新配额
-  const handleUpdateQuota = useCallback(async (values: UpdateQuotaDto) => {
-    if (!selectedQuota) return;
-    try {
-      const result = await quotaService.updateQuota(selectedQuota.id, values);
-      if (result.success) {
-        message.success('更新配额成功');
-        setEditModalVisible(false);
-        editForm.resetFields();
-        loadQuotas();
-      } else {
-        message.error(result.message || '更新配额失败');
+  const handleUpdateQuota = useCallback(
+    async (values: UpdateQuotaDto) => {
+      if (!selectedQuota) return;
+      try {
+        const result = await quotaService.updateQuota(selectedQuota.id, values);
+        if (result.success) {
+          message.success('更新配额成功');
+          setEditModalVisible(false);
+          editForm.resetFields();
+          loadQuotas();
+        } else {
+          message.error(result.message || '更新配额失败');
+        }
+      } catch (error) {
+        message.error('更新配额失败');
+        console.error(error);
       }
-    } catch (error) {
-      message.error('更新配额失败');
-      console.error(error);
-    }
-  }, [selectedQuota, editForm, loadQuotas]);
+    },
+    [selectedQuota, editForm, loadQuotas]
+  );
 
   // 查看配额详情
   const handleViewDetail = useCallback(async (record: Quota) => {
@@ -134,14 +140,17 @@ const QuotaList: React.FC = () => {
   }, []);
 
   // 编辑配额
-  const handleEdit = useCallback((record: Quota) => {
-    setSelectedQuota(record);
-    editForm.setFieldsValue({
-      limits: record.limits,
-      autoRenew: record.autoRenew,
-    });
-    setEditModalVisible(true);
-  }, [editForm]);
+  const handleEdit = useCallback(
+    (record: Quota) => {
+      setSelectedQuota(record);
+      editForm.setFieldsValue({
+        limits: record.limits,
+        autoRenew: record.autoRenew,
+      });
+      setEditModalVisible(true);
+    },
+    [editForm]
+  );
 
   // 计算使用率百分比
   const calculateUsagePercent = (used: number, total: number) => {
@@ -172,116 +181,123 @@ const QuotaList: React.FC = () => {
   };
 
   // 表格列配置
-  const columns = useMemo(() => [
-    {
-      title: '用户ID',
-      dataIndex: 'userId',
-      key: 'userId',
-      width: 200,
-      ellipsis: true,
-    },
-    {
-      title: '设备配额',
-      key: 'devices',
-      width: 180,
-      render: (record: Quota) => {
-        const percent = calculateUsagePercent(
-          record.usage.currentDevices,
-          record.limits.maxDevices
-        );
-        return (
-          <div>
+  const columns = useMemo(
+    () => [
+      {
+        title: '用户ID',
+        dataIndex: 'userId',
+        key: 'userId',
+        width: 200,
+        ellipsis: true,
+      },
+      {
+        title: '设备配额',
+        key: 'devices',
+        width: 180,
+        render: (record: Quota) => {
+          const percent = calculateUsagePercent(
+            record.usage.currentDevices,
+            record.limits.maxDevices
+          );
+          return (
             <div>
-              {record.usage.currentDevices} / {record.limits.maxDevices}
+              <div>
+                {record.usage.currentDevices} / {record.limits.maxDevices}
+              </div>
+              <Progress
+                percent={percent}
+                size="small"
+                status={percent > 90 ? 'exception' : percent > 70 ? 'normal' : 'success'}
+              />
             </div>
-            <Progress
-              percent={percent}
-              size="small"
-              status={percent > 90 ? 'exception' : percent > 70 ? 'normal' : 'success'}
-            />
-          </div>
-        );
+          );
+        },
       },
-    },
-    {
-      title: 'CPU 配额',
-      key: 'cpu',
-      width: 180,
-      render: (record: Quota) => {
-        const percent = calculateUsagePercent(
-          record.usage.usedCpuCores,
-          record.limits.totalCpuCores
-        );
-        return (
-          <div>
-            <div>{record.usage.usedCpuCores} / {record.limits.totalCpuCores} 核</div>
-            <Progress percent={percent} size="small" />
-          </div>
-        );
+      {
+        title: 'CPU 配额',
+        key: 'cpu',
+        width: 180,
+        render: (record: Quota) => {
+          const percent = calculateUsagePercent(
+            record.usage.usedCpuCores,
+            record.limits.totalCpuCores
+          );
+          return (
+            <div>
+              <div>
+                {record.usage.usedCpuCores} / {record.limits.totalCpuCores} 核
+              </div>
+              <Progress percent={percent} size="small" />
+            </div>
+          );
+        },
       },
-    },
-    {
-      title: '内存配额',
-      key: 'memory',
-      width: 180,
-      render: (record: Quota) => {
-        const percent = calculateUsagePercent(
-          record.usage.usedMemoryGB,
-          record.limits.totalMemoryGB
-        );
-        return (
-          <div>
-            <div>{record.usage.usedMemoryGB} / {record.limits.totalMemoryGB} GB</div>
-            <Progress percent={percent} size="small" />
-          </div>
-        );
+      {
+        title: '内存配额',
+        key: 'memory',
+        width: 180,
+        render: (record: Quota) => {
+          const percent = calculateUsagePercent(
+            record.usage.usedMemoryGB,
+            record.limits.totalMemoryGB
+          );
+          return (
+            <div>
+              <div>
+                {record.usage.usedMemoryGB} / {record.limits.totalMemoryGB} GB
+              </div>
+              <Progress percent={percent} size="small" />
+            </div>
+          );
+        },
       },
-    },
-    {
-      title: '存储配额',
-      key: 'storage',
-      width: 180,
-      render: (record: Quota) => {
-        const percent = calculateUsagePercent(
-          record.usage.usedStorageGB,
-          record.limits.totalStorageGB
-        );
-        return (
-          <div>
-            <div>{record.usage.usedStorageGB} / {record.limits.totalStorageGB} GB</div>
-            <Progress percent={percent} size="small" />
-          </div>
-        );
+      {
+        title: '存储配额',
+        key: 'storage',
+        width: 180,
+        render: (record: Quota) => {
+          const percent = calculateUsagePercent(
+            record.usage.usedStorageGB,
+            record.limits.totalStorageGB
+          );
+          return (
+            <div>
+              <div>
+                {record.usage.usedStorageGB} / {record.limits.totalStorageGB} GB
+              </div>
+              <Progress percent={percent} size="small" />
+            </div>
+          );
+        },
       },
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)}>
-          {getStatusText(status)}
-        </Tag>
-      ),
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 150,
-      fixed: 'right' as const,
-      render: (record: Quota) => (
-        <Space>
-          <Button type="link" size="small" onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-          <Button type="link" size="small" onClick={() => handleViewDetail(record)}>
-            详情
-          </Button>
-        </Space>
-      ),
-    },
-  ], [handleEdit, handleViewDetail]);
+      {
+        title: '状态',
+        dataIndex: 'status',
+        key: 'status',
+        width: 100,
+        render: (status: string) => (
+          <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
+        ),
+      },
+      {
+        title: '操作',
+        key: 'actions',
+        width: 150,
+        fixed: 'right' as const,
+        render: (record: Quota) => (
+          <Space>
+            <Button type="link" size="small" onClick={() => handleEdit(record)}>
+              编辑
+            </Button>
+            <Button type="link" size="small" onClick={() => handleViewDetail(record)}>
+              详情
+            </Button>
+          </Space>
+        ),
+      },
+    ],
+    [handleEdit, handleViewDetail]
+  );
 
   // 配额告警组件
   const AlertPanel = useMemo(() => {
@@ -301,7 +317,9 @@ const QuotaList: React.FC = () => {
               <div key={index} style={{ marginBottom: 8 }}>
                 <Tag color="orange">{alert.quotaType}</Tag>
                 <span>用户 {alert.userId}: </span>
-                <span>{alert.message} (使用率: {alert.usagePercent}%)</span>
+                <span>
+                  {alert.message} (使用率: {alert.usagePercent}%)
+                </span>
               </div>
             ))}
             {alerts.length > 3 && (
@@ -429,11 +447,7 @@ const QuotaList: React.FC = () => {
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}>
           <Card>
-            <Statistic
-              title="总配额数"
-              value={quotas.length}
-              prefix={<LineChartOutlined />}
-            />
+            <Statistic title="总配额数" value={quotas.length} prefix={<LineChartOutlined />} />
           </Card>
         </Col>
         <Col span={6}>
@@ -514,11 +528,7 @@ const QuotaList: React.FC = () => {
         onOk={() => form.submit()}
         width={700}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleCreateQuota}
-        >
+        <Form form={form} layout="vertical" onFinish={handleCreateQuota}>
           <Form.Item
             label="用户ID"
             name="userId"
@@ -534,11 +544,7 @@ const QuotaList: React.FC = () => {
                   name={['limits', 'maxDevices']}
                   rules={[{ required: true, message: '请输入最大设备数' }]}
                 >
-                  <InputNumber
-                    placeholder="最大设备数"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="最大设备数" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -546,11 +552,7 @@ const QuotaList: React.FC = () => {
                   name={['limits', 'maxConcurrentDevices']}
                   rules={[{ required: true, message: '请输入最大并发设备数' }]}
                 >
-                  <InputNumber
-                    placeholder="最大并发设备数"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="最大并发设备数" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -563,11 +565,7 @@ const QuotaList: React.FC = () => {
                   name={['limits', 'totalCpuCores']}
                   rules={[{ required: true, message: '请输入总CPU核数' }]}
                 >
-                  <InputNumber
-                    placeholder="总CPU核数"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="总CPU核数" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -575,11 +573,7 @@ const QuotaList: React.FC = () => {
                   name={['limits', 'totalMemoryGB']}
                   rules={[{ required: true, message: '请输入总内存(GB)' }]}
                 >
-                  <InputNumber
-                    placeholder="总内存(GB)"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="总内存(GB)" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -587,11 +581,7 @@ const QuotaList: React.FC = () => {
                   name={['limits', 'totalStorageGB']}
                   rules={[{ required: true, message: '请输入总存储(GB)' }]}
                 >
-                  <InputNumber
-                    placeholder="总存储(GB)"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="总存储(GB)" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -604,11 +594,7 @@ const QuotaList: React.FC = () => {
                   name={['limits', 'maxBandwidthMbps']}
                   rules={[{ required: true, message: '请输入最大带宽(Mbps)' }]}
                 >
-                  <InputNumber
-                    placeholder="最大带宽(Mbps)"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="最大带宽(Mbps)" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -616,11 +602,7 @@ const QuotaList: React.FC = () => {
                   name={['limits', 'monthlyTrafficGB']}
                   rules={[{ required: true, message: '请输入月流量(GB)' }]}
                 >
-                  <InputNumber
-                    placeholder="月流量(GB)"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="月流量(GB)" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -639,29 +621,17 @@ const QuotaList: React.FC = () => {
         onOk={() => editForm.submit()}
         width={700}
       >
-        <Form
-          form={editForm}
-          layout="vertical"
-          onFinish={handleUpdateQuota}
-        >
+        <Form form={editForm} layout="vertical" onFinish={handleUpdateQuota}>
           <Form.Item label="设备限制">
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name={['limits', 'maxDevices']}>
-                  <InputNumber
-                    placeholder="最大设备数"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="最大设备数" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item name={['limits', 'maxConcurrentDevices']}>
-                  <InputNumber
-                    placeholder="最大并发设备数"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="最大并发设备数" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -671,29 +641,17 @@ const QuotaList: React.FC = () => {
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item name={['limits', 'totalCpuCores']}>
-                  <InputNumber
-                    placeholder="总CPU核数"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="总CPU核数" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
               <Col span={8}>
                 <Form.Item name={['limits', 'totalMemoryGB']}>
-                  <InputNumber
-                    placeholder="总内存(GB)"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="总内存(GB)" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
               <Col span={8}>
                 <Form.Item name={['limits', 'totalStorageGB']}>
-                  <InputNumber
-                    placeholder="总存储(GB)"
-                    min={0}
-                    style={{ width: '100%' }}
-                  />
+                  <InputNumber placeholder="总存储(GB)" min={0} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -716,12 +674,23 @@ const QuotaList: React.FC = () => {
             <Card title="基本信息" size="small" style={{ marginBottom: 16 }}>
               <Row gutter={16}>
                 <Col span={12}>
-                  <p><strong>用户ID:</strong> {selectedQuota.userId}</p>
-                  <p><strong>状态:</strong> <Tag color={getStatusColor(selectedQuota.status)}>{getStatusText(selectedQuota.status)}</Tag></p>
+                  <p>
+                    <strong>用户ID:</strong> {selectedQuota.userId}
+                  </p>
+                  <p>
+                    <strong>状态:</strong>{' '}
+                    <Tag color={getStatusColor(selectedQuota.status)}>
+                      {getStatusText(selectedQuota.status)}
+                    </Tag>
+                  </p>
                 </Col>
                 <Col span={12}>
-                  <p><strong>创建时间:</strong> {new Date(selectedQuota.createdAt).toLocaleString()}</p>
-                  <p><strong>更新时间:</strong> {new Date(selectedQuota.updatedAt).toLocaleString()}</p>
+                  <p>
+                    <strong>创建时间:</strong> {new Date(selectedQuota.createdAt).toLocaleString()}
+                  </p>
+                  <p>
+                    <strong>更新时间:</strong> {new Date(selectedQuota.updatedAt).toLocaleString()}
+                  </p>
                 </Col>
               </Row>
             </Card>
@@ -732,7 +701,10 @@ const QuotaList: React.FC = () => {
                   <Statistic title="最大设备数" value={selectedQuota.limits.maxDevices} />
                 </Col>
                 <Col span={12}>
-                  <Statistic title="最大并发设备" value={selectedQuota.limits.maxConcurrentDevices} />
+                  <Statistic
+                    title="最大并发设备"
+                    value={selectedQuota.limits.maxConcurrentDevices}
+                  />
                 </Col>
                 <Col span={8}>
                   <Statistic title="总CPU(核)" value={selectedQuota.limits.totalCpuCores} />

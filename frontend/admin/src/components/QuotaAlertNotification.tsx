@@ -136,15 +136,11 @@ const QuotaAlertNotification: React.FC<QuotaAlertNotificationProps> = ({
   // 告警列表内容
   const alertListContent = (
     <div style={{ width: 400, maxHeight: 500, overflow: 'auto' }}>
-      <div style={{ padding: '8px 16px', fontWeight: 600 }}>
-        配额告警 ({alerts.length})
-      </div>
+      <div style={{ padding: '8px 16px', fontWeight: 600 }}>配额告警 ({alerts.length})</div>
       <Divider style={{ margin: '8px 0' }} />
 
       {alerts.length === 0 ? (
-        <div style={{ padding: 16, textAlign: 'center', color: '#999' }}>
-          暂无告警
-        </div>
+        <div style={{ padding: 16, textAlign: 'center', color: '#999' }}>暂无告警</div>
       ) : (
         <List
           dataSource={alerts.slice(0, maxDisplayCount)}
@@ -162,13 +158,9 @@ const QuotaAlertNotification: React.FC<QuotaAlertNotificationProps> = ({
                   <Tag color={getSeverityColor(alert.severity)}>
                     {getQuotaTypeText(alert.quotaType)}
                   </Tag>
-                  <span style={{ color: '#666', fontSize: 12 }}>
-                    用户: {alert.userId}
-                  </span>
+                  <span style={{ color: '#666', fontSize: 12 }}>用户: {alert.userId}</span>
                 </div>
-                <div style={{ fontSize: 13, color: '#333' }}>
-                  {alert.message}
-                </div>
+                <div style={{ fontSize: 13, color: '#333' }}>{alert.message}</div>
                 <div style={{ marginTop: 4, fontSize: 12, color: '#999' }}>
                   使用率: {alert.usagePercent}%
                 </div>
@@ -196,12 +188,7 @@ const QuotaAlertNotification: React.FC<QuotaAlertNotificationProps> = ({
   );
 
   return (
-    <Popover
-      content={alertListContent}
-      title={null}
-      trigger="click"
-      placement="bottomRight"
-    >
+    <Popover content={alertListContent} title={null} trigger="click" placement="bottomRight">
       <Badge count={alerts.length} offset={[-5, 5]}>
         <Button
           type="text"

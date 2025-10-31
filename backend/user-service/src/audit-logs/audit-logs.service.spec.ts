@@ -60,7 +60,7 @@ describe('AuditLogsService', () => {
           userId: dto.userId,
           action: dto.action,
           resourceType: dto.resourceType,
-        }),
+        })
       );
       expect(auditLogRepository.save).toHaveBeenCalled();
     });
@@ -84,7 +84,7 @@ describe('AuditLogsService', () => {
       expect(auditLogRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           level: AuditLevel.INFO,
-        }),
+        })
       );
     });
 
@@ -107,7 +107,7 @@ describe('AuditLogsService', () => {
       expect(auditLogRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
-        }),
+        })
       );
     });
 
@@ -207,10 +207,7 @@ describe('AuditLogsService', () => {
       await service.getUserLogs(userId, { action });
 
       // Assert
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'log.action = :action',
-        { action },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('log.action = :action', { action });
     });
 
     it('应该支持按resourceType过滤', async () => {
@@ -232,10 +229,9 @@ describe('AuditLogsService', () => {
       await service.getUserLogs(userId, { resourceType });
 
       // Assert
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'log.resourceType = :resourceType',
-        { resourceType },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('log.resourceType = :resourceType', {
+        resourceType,
+      });
     });
 
     it('应该支持日期范围过滤', async () => {
@@ -258,14 +254,12 @@ describe('AuditLogsService', () => {
       await service.getUserLogs(userId, { startDate, endDate });
 
       // Assert
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'log.createdAt >= :startDate',
-        { startDate },
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'log.createdAt <= :endDate',
-        { endDate },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('log.createdAt >= :startDate', {
+        startDate,
+      });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('log.createdAt <= :endDate', {
+        endDate,
+      });
     });
 
     it('应该支持分页', async () => {
@@ -355,7 +349,7 @@ describe('AuditLogsService', () => {
       expect(auditLogRepository.find).toHaveBeenCalledWith(
         expect.objectContaining({
           take: limit,
-        }),
+        })
       );
     });
   });
@@ -385,18 +379,15 @@ describe('AuditLogsService', () => {
 
       // Assert
       expect(result.total).toBe(5);
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'log.userId = :userId',
-        { userId: options.userId },
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'log.action = :action',
-        { action: options.action },
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'log.level = :level',
-        { level: options.level },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('log.userId = :userId', {
+        userId: options.userId,
+      });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('log.action = :action', {
+        action: options.action,
+      });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('log.level = :level', {
+        level: options.level,
+      });
     });
 
     it('应该支持按IP地址搜索', async () => {
@@ -416,10 +407,9 @@ describe('AuditLogsService', () => {
       await service.searchLogs({ ipAddress });
 
       // Assert
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'log.ipAddress = :ipAddress',
-        { ipAddress },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('log.ipAddress = :ipAddress', {
+        ipAddress,
+      });
     });
 
     it('应该支持按success状态搜索', async () => {
@@ -437,10 +427,9 @@ describe('AuditLogsService', () => {
       await service.searchLogs({ success: false });
 
       // Assert
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'log.success = :success',
-        { success: false },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('log.success = :success', {
+        success: false,
+      });
     });
   });
 
@@ -531,7 +520,7 @@ describe('AuditLogsService', () => {
         expect.objectContaining({
           where: expect.objectContaining({ success: false }),
           take: 10,
-        }),
+        })
       );
     });
   });

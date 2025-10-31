@@ -1,11 +1,5 @@
 import { Logger } from '@nestjs/common';
-import {
-  DataSource,
-  EntityManager,
-  ObjectLiteral,
-  QueryRunner,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { DataSource, EntityManager, ObjectLiteral, QueryRunner, SelectQueryBuilder } from 'typeorm';
 
 /**
  * 查询审计配置
@@ -296,7 +290,7 @@ export class QueryAudit {
     parameters: any[] | undefined,
     executionTime: number,
     error: Error | undefined,
-    auditResult: QueryAuditResult,
+    auditResult: QueryAuditResult
   ): void {
     const isSlowQuery = executionTime >= this.config.slowQueryThreshold;
 
@@ -515,7 +509,7 @@ export class AuditedQueryBuilder<Entity extends ObjectLiteral> {
  * 创建审计 QueryBuilder
  */
 export function createAuditedQueryBuilder<Entity extends ObjectLiteral>(
-  queryBuilder: SelectQueryBuilder<Entity>,
+  queryBuilder: SelectQueryBuilder<Entity>
 ): AuditedQueryBuilder<Entity> {
   return new AuditedQueryBuilder(queryBuilder);
 }

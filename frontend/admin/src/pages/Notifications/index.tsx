@@ -1,5 +1,19 @@
 import { useState, useEffect } from 'react';
-import { List, Card, Badge, Button, Modal, Form, Input, Select, message, Space, Tag, Popconfirm, Tabs } from 'antd';
+import {
+  List,
+  Card,
+  Badge,
+  Button,
+  Modal,
+  Form,
+  Input,
+  Select,
+  message,
+  Space,
+  Tag,
+  Popconfirm,
+  Tabs,
+} from 'antd';
 import { BellOutlined, CheckOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import {
   getNotifications,
@@ -113,7 +127,11 @@ const NotificationCenter = () => {
     },
     {
       key: 'unread',
-      label: <Badge count={notifications.filter(n => !n.isRead).length} offset={[10, 0]}>未读通知</Badge>,
+      label: (
+        <Badge count={notifications.filter((n) => !n.isRead).length} offset={[10, 0]}>
+          未读通知
+        </Badge>
+      ),
     },
     {
       key: 'read',
@@ -134,20 +152,13 @@ const NotificationCenter = () => {
           >
             发送通知
           </Button>
-          <Button
-            icon={<CheckOutlined />}
-            onClick={handleMarkAllAsRead}
-          >
+          <Button icon={<CheckOutlined />} onClick={handleMarkAllAsRead}>
             全部标记为已读
           </Button>
         </Space>
       </Card>
 
-      <Tabs
-        activeKey={selectedTab}
-        items={tabItems}
-        onChange={setSelectedTab}
-      />
+      <Tabs activeKey={selectedTab} items={tabItems} onChange={setSelectedTab} />
 
       <List
         loading={loading}
@@ -167,7 +178,7 @@ const NotificationCenter = () => {
               padding: '16px',
               marginBottom: 8,
               borderRadius: 4,
-              border: '1px solid #e8e8e8'
+              border: '1px solid #e8e8e8',
             }}
             actions={[
               !item.isRead && (
@@ -193,16 +204,14 @@ const NotificationCenter = () => {
             ].filter(Boolean)}
           >
             <List.Item.Meta
-              avatar={<BellOutlined style={{ fontSize: 24, color: getTypeConfig(item.type).color }} />}
+              avatar={
+                <BellOutlined style={{ fontSize: 24, color: getTypeConfig(item.type).color }} />
+              }
               title={
                 <Space>
                   {!item.isRead && <Badge status="processing" />}
-                  <span style={{ fontWeight: item.isRead ? 'normal' : 'bold' }}>
-                    {item.title}
-                  </span>
-                  <Tag color={getTypeConfig(item.type).color}>
-                    {getTypeConfig(item.type).text}
-                  </Tag>
+                  <span style={{ fontWeight: item.isRead ? 'normal' : 'bold' }}>{item.title}</span>
+                  <Tag color={getTypeConfig(item.type).color}>{getTypeConfig(item.type).text}</Tag>
                 </Space>
               }
               description={
@@ -234,11 +243,7 @@ const NotificationCenter = () => {
         onOk={() => form.submit()}
         width={600}
       >
-        <Form
-          form={form}
-          onFinish={handleCreate}
-          layout="vertical"
-        >
+        <Form form={form} onFinish={handleCreate} layout="vertical">
           <Form.Item
             label="通知类型"
             name="type"
@@ -270,11 +275,7 @@ const NotificationCenter = () => {
             <Input.TextArea rows={4} placeholder="请输入通知内容" />
           </Form.Item>
 
-          <Form.Item
-            label="接收对象"
-            name="sendToAll"
-            initialValue={true}
-          >
+          <Form.Item label="接收对象" name="sendToAll" initialValue={true}>
             <Select>
               <Select.Option value={true}>所有用户</Select.Option>
               <Select.Option value={false}>指定用户</Select.Option>

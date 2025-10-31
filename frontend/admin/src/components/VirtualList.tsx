@@ -22,12 +22,7 @@ interface VirtualListProps<T> {
   className?: string;
 }
 
-function VirtualList<T>({
-  items,
-  itemHeight,
-  renderItem,
-  className
-}: VirtualListProps<T>) {
+function VirtualList<T>({ items, itemHeight, renderItem, className }: VirtualListProps<T>) {
   // 渲染单个行组件
   const Row = ({ index, style }: ListChildComponentProps) => (
     <div style={style} className={className}>
@@ -38,12 +33,7 @@ function VirtualList<T>({
   return (
     <AutoSizer>
       {({ height, width }) => (
-        <List
-          height={height}
-          itemCount={items.length}
-          itemSize={itemHeight}
-          width={width}
-        >
+        <List height={height} itemCount={items.length} itemSize={itemHeight} width={width}>
           {Row}
         </List>
       )}

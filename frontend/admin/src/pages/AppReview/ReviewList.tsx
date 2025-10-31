@@ -63,7 +63,9 @@ const AppReviewList = () => {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
-  const [reviewAction, setReviewAction] = useState<'approve' | 'reject' | 'request_changes'>('approve');
+  const [reviewAction, setReviewAction] = useState<'approve' | 'reject' | 'request_changes'>(
+    'approve'
+  );
   const [reviewHistory, setReviewHistory] = useState<AppReviewRecord[]>([]);
   const [form] = Form.useForm();
 
@@ -271,7 +273,12 @@ const AppReviewList = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => viewAppDetail(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => viewAppDetail(record)}
+          >
             详情
           </Button>
           <Button
@@ -290,7 +297,11 @@ const AppReviewList = () => {
           >
             拒绝
           </Button>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openReviewModal(record, 'request_changes')}>
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openReviewModal(record, 'request_changes')}
+          >
             请求修改
           </Button>
         </Space>
@@ -307,7 +318,9 @@ const AppReviewList = () => {
       width: 200,
       render: (text, record) => (
         <Space>
-          {record.iconUrl && <Image src={record.iconUrl} width={32} height={32} style={{ borderRadius: '4px' }} />}
+          {record.iconUrl && (
+            <Image src={record.iconUrl} width={32} height={32} style={{ borderRadius: '4px' }} />
+          )}
           <span>{text}</span>
         </Space>
       ),
@@ -351,10 +364,20 @@ const AppReviewList = () => {
       width: 150,
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => viewAppDetail(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => viewAppDetail(record)}
+          >
             详情
           </Button>
-          <Button type="link" size="small" icon={<HistoryOutlined />} onClick={() => viewReviewHistory(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<HistoryOutlined />}
+            onClick={() => viewReviewHistory(record)}
+          >
             历史
           </Button>
         </Space>
@@ -588,8 +611,8 @@ const AppReviewList = () => {
           reviewAction === 'approve'
             ? '批准应用'
             : reviewAction === 'reject'
-            ? '拒绝应用'
-            : '请求修改'
+              ? '拒绝应用'
+              : '请求修改'
         }
         open={reviewModalVisible}
         onCancel={() => {
@@ -669,8 +692,12 @@ const AppReviewList = () => {
             <Descriptions.Item label="版本号">{selectedApp.versionCode}</Descriptions.Item>
             <Descriptions.Item label="文件大小">{formatSize(selectedApp.size)}</Descriptions.Item>
             <Descriptions.Item label="分类">{selectedApp.category || '-'}</Descriptions.Item>
-            <Descriptions.Item label="最低 SDK">{selectedApp.minSdkVersion || '-'}</Descriptions.Item>
-            <Descriptions.Item label="目标 SDK">{selectedApp.targetSdkVersion || '-'}</Descriptions.Item>
+            <Descriptions.Item label="最低 SDK">
+              {selectedApp.minSdkVersion || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="目标 SDK">
+              {selectedApp.targetSdkVersion || '-'}
+            </Descriptions.Item>
             <Descriptions.Item label="描述" span={2}>
               {selectedApp.description || '-'}
             </Descriptions.Item>
@@ -729,8 +756,8 @@ const AppReviewList = () => {
                     record.action === 'approve'
                       ? 'green'
                       : record.action === 'reject'
-                      ? 'red'
-                      : 'blue'
+                        ? 'red'
+                        : 'blue'
                   }
                 >
                   <p>
@@ -738,10 +765,10 @@ const AppReviewList = () => {
                       {record.action === 'approve'
                         ? '批准'
                         : record.action === 'reject'
-                        ? '拒绝'
-                        : record.action === 'request_changes'
-                        ? '请求修改'
-                        : '提交审核'}
+                          ? '拒绝'
+                          : record.action === 'request_changes'
+                            ? '请求修改'
+                            : '提交审核'}
                     </strong>
                   </p>
                   <p>操作人：{record.reviewedBy || '-'}</p>

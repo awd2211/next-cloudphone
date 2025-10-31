@@ -12,7 +12,9 @@ import type {
 // ========== 生命周期规则管理 ==========
 
 // 获取规则列表
-export const getLifecycleRules = (params?: PaginationParams & { type?: string; enabled?: boolean }) => {
+export const getLifecycleRules = (
+  params?: PaginationParams & { type?: string; enabled?: boolean }
+) => {
   return request.get<PaginatedResponse<LifecycleRule>>('/devices/lifecycle/rules', { params });
 };
 
@@ -55,9 +57,16 @@ export const testLifecycleRule = (id: string, dryRun: boolean = true) => {
 
 // 获取执行历史
 export const getLifecycleHistory = (
-  params?: PaginationParams & { ruleId?: string; status?: string; startDate?: string; endDate?: string }
+  params?: PaginationParams & {
+    ruleId?: string;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  }
 ) => {
-  return request.get<PaginatedResponse<LifecycleExecutionHistory>>('/devices/lifecycle/history', { params });
+  return request.get<PaginatedResponse<LifecycleExecutionHistory>>('/devices/lifecycle/history', {
+    params,
+  });
 };
 
 // 获取执行详情
@@ -88,5 +97,7 @@ export const getLifecycleRuleTemplates = () => {
 
 // 从模板创建规则
 export const createRuleFromTemplate = (templateId: string, customConfig?: Record<string, any>) => {
-  return request.post<LifecycleRule>(`/devices/lifecycle/templates/${templateId}/create`, { config: customConfig });
+  return request.post<LifecycleRule>(`/devices/lifecycle/templates/${templateId}/create`, {
+    config: customConfig,
+  });
 };

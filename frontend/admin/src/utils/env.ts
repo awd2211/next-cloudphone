@@ -27,7 +27,7 @@ export function validateEnv(): EnvConfig {
   if (missing.length > 0) {
     throw new Error(
       `缺少必需的环境变量: ${missing.join(', ')}\n` +
-      `请检查 .env 文件并确保所有必需的变量都已配置。`
+        `请检查 .env 文件并确保所有必需的变量都已配置。`
     );
   }
 

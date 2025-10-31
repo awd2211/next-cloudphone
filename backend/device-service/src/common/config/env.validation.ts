@@ -1,4 +1,4 @@
-import * as Joi from "joi";
+import * as Joi from 'joi';
 
 /**
  * Device Service 环境变量验证 Schema
@@ -7,8 +7,8 @@ import * as Joi from "joi";
 export const envValidationSchema = Joi.object({
   // ===== 运行环境 =====
   NODE_ENV: Joi.string()
-    .valid("development", "production", "test", "staging")
-    .default("development"),
+    .valid('development', 'production', 'test', 'staging')
+    .default('development'),
   PORT: Joi.number().port().default(30002),
 
   // ===== 数据库配置 =====
@@ -19,29 +19,29 @@ export const envValidationSchema = Joi.object({
   DB_DATABASE: Joi.string().required(),
 
   // ===== Redis 配置 =====
-  REDIS_HOST: Joi.string().default("localhost"),
+  REDIS_HOST: Joi.string().default('localhost'),
   REDIS_PORT: Joi.number().port().default(6379),
-  REDIS_PASSWORD: Joi.string().allow("").optional(),
+  REDIS_PASSWORD: Joi.string().allow('').optional(),
 
   // ===== JWT 配置 =====
   JWT_SECRET: Joi.string().min(32).required().messages({
-    "string.min": "JWT_SECRET must be at least 32 characters for security",
-    "any.required": "JWT_SECRET is required",
+    'string.min': 'JWT_SECRET must be at least 32 characters for security',
+    'any.required': 'JWT_SECRET is required',
   }),
-  JWT_EXPIRES_IN: Joi.string().default("24h"),
+  JWT_EXPIRES_IN: Joi.string().default('24h'),
 
   // ===== Docker 配置 =====
-  DOCKER_HOST: Joi.string().default("/var/run/docker.sock"),
-  DOCKER_NETWORK: Joi.string().default("cloudphone_network"),
-  DOCKER_STORAGE_DRIVER: Joi.string().default("overlay2"),
-  DOCKER_DATA_ROOT: Joi.string().default("/var/lib/docker"),
+  DOCKER_HOST: Joi.string().default('/var/run/docker.sock'),
+  DOCKER_NETWORK: Joi.string().default('cloudphone_network'),
+  DOCKER_STORAGE_DRIVER: Joi.string().default('overlay2'),
+  DOCKER_DATA_ROOT: Joi.string().default('/var/lib/docker'),
 
   // ===== Redroid 配置 =====
-  REDROID_IMAGE: Joi.string().allow("").optional(),
+  REDROID_IMAGE: Joi.string().allow('').optional(),
   DEFAULT_ANDROID_VERSION: Joi.number().valid(11, 12, 13, 14).default(11),
   REDROID_ENABLE_GPU: Joi.boolean().default(false),
-  REDROID_GPU_MODE: Joi.string().valid("guest", "host").default("guest"),
-  REDROID_GPU_DRIVER: Joi.string().valid("virgl", "angle").default("virgl"),
+  REDROID_GPU_MODE: Joi.string().valid('guest', 'host').default('guest'),
+  REDROID_GPU_DRIVER: Joi.string().valid('virgl', 'angle').default('virgl'),
   REDROID_ENABLE_AUDIO: Joi.boolean().default(false),
 
   // ===== 端口范围配置 =====
@@ -58,15 +58,15 @@ export const envValidationSchema = Joi.object({
   DEFAULT_STORAGE_MB: Joi.number().min(1024).max(1048576).default(10240),
   DEFAULT_RESOLUTION: Joi.string()
     .pattern(/^\d+x\d+$/)
-    .default("1080x1920"),
+    .default('1080x1920'),
   DEFAULT_DPI: Joi.number().min(120).max(640).default(320),
 
   // ===== ADB 配置 =====
-  ADB_HOST: Joi.string().default("localhost"),
+  ADB_HOST: Joi.string().default('localhost'),
   ADB_PORT: Joi.number().port().default(5037),
   ADB_CONNECTION_TIMEOUT: Joi.number().default(5000),
   ADB_COMMAND_TIMEOUT: Joi.number().default(30000),
-  SCREENSHOT_DIR: Joi.string().default("/tmp/screenshots"),
+  SCREENSHOT_DIR: Joi.string().default('/tmp/screenshots'),
 
   // ===== 健康检查配置 =====
   HEALTH_CHECK_INTERVAL: Joi.number().min(10).default(30),
@@ -84,10 +84,8 @@ export const envValidationSchema = Joi.object({
   NOTIFICATION_SERVICE_URL: Joi.string().uri().optional(),
 
   // ===== 日志配置 =====
-  LOG_LEVEL: Joi.string()
-    .valid("debug", "info", "warn", "error", "fatal")
-    .default("info"),
-  LOG_FORMAT: Joi.string().valid("json", "pretty").default("json"),
+  LOG_LEVEL: Joi.string().valid('debug', 'info', 'warn', 'error', 'fatal').default('info'),
+  LOG_FORMAT: Joi.string().valid('json', 'pretty').default('json'),
   ENABLE_FILE_LOGGING: Joi.boolean().default(true),
 
   // ===== 生命周期自动化配置 =====
@@ -111,7 +109,7 @@ export const envValidationSchema = Joi.object({
   BACKUP_INTERVAL_HOURS: Joi.number().min(1).default(24),
   BACKUP_RETENTION_DAYS: Joi.number().min(1).default(30),
   MAX_BACKUPS_PER_DEVICE: Joi.number().min(1).default(10),
-  SNAPSHOT_DIR: Joi.string().default("/data/snapshots"),
+  SNAPSHOT_DIR: Joi.string().default('/data/snapshots'),
 
   // ===== 故障转移配置 =====
   FAILOVER_ENABLED: Joi.boolean().default(true),
@@ -132,25 +130,25 @@ export const envValidationSchema = Joi.object({
   // ===== 监控和指标配置 =====
   METRICS_ENABLED: Joi.boolean().default(true),
   METRICS_PORT: Joi.number().port().default(30002),
-  METRICS_PATH: Joi.string().default("/metrics"),
+  METRICS_PATH: Joi.string().default('/metrics'),
 
   // ===== RabbitMQ 配置 =====
   RABBITMQ_URL: Joi.string().uri().required(),
-  RABBITMQ_EXCHANGE: Joi.string().default("cloudphone.events"),
-  RABBITMQ_QUEUE_PREFIX: Joi.string().default("device-service"),
+  RABBITMQ_EXCHANGE: Joi.string().default('cloudphone.events'),
+  RABBITMQ_QUEUE_PREFIX: Joi.string().default('device-service'),
 
   // ===== Consul 配置 =====
-  CONSUL_HOST: Joi.string().default("localhost"),
+  CONSUL_HOST: Joi.string().default('localhost'),
   CONSUL_PORT: Joi.number().port().default(8500),
-  CONSUL_SERVICE_NAME: Joi.string().default("device-service"),
+  CONSUL_SERVICE_NAME: Joi.string().default('device-service'),
   CONSUL_SERVICE_PORT: Joi.number().port().default(30002),
 
   // ===== CORS 配置 =====
   CORS_ORIGINS: Joi.string().optional(),
 }).messages({
-  "any.required": "{{#label}} is required",
-  "string.uri": "{{#label}} must be a valid URI",
-  "number.port": "{{#label}} must be a valid port number",
+  'any.required': '{{#label}} is required',
+  'string.uri': '{{#label}} must be a valid URI',
+  'number.port': '{{#label}} must be a valid port number',
 });
 
 /**
@@ -166,12 +164,8 @@ export function validate(config: Record<string, unknown>) {
   });
 
   if (error) {
-    const errorMessages = error.details
-      .map((detail) => detail.message)
-      .join("\n");
-    throw new Error(
-      `❌ Environment variable validation failed:\n${errorMessages}`,
-    );
+    const errorMessages = error.details.map((detail) => detail.message).join('\n');
+    throw new Error(`❌ Environment variable validation failed:\n${errorMessages}`);
   }
 
   return value;

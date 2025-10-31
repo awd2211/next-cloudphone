@@ -239,7 +239,13 @@ const MainLayout = () => {
         </div>
       </Content>
 
-      <Footer style={{ textAlign: 'center', background: '#f0f2f5', padding: isMobile ? '12px' : '24px 50px' }}>
+      <Footer
+        style={{
+          textAlign: 'center',
+          background: '#f0f2f5',
+          padding: isMobile ? '12px' : '24px 50px',
+        }}
+      >
         云手机平台 ©{new Date().getFullYear()}
       </Footer>
 

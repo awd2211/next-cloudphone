@@ -73,7 +73,7 @@ export class CaptchaService {
     await this.redis.del(key);
 
     const isValid = storedCode === code.toLowerCase();
-    
+
     if (!isValid) {
       this.logger.warn(`Invalid captcha: ${id}`);
     }
@@ -93,4 +93,3 @@ export class CaptchaService {
     await this.redis.quit();
   }
 }
-

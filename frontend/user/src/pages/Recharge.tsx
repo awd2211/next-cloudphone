@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Card, Row, Col, Button, InputNumber, message, Steps, Modal, QRCode, Spin } from 'antd';
-import { DollarOutlined, WechatOutlined, AlipayOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import {
+  DollarOutlined,
+  WechatOutlined,
+  AlipayOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons';
 import { recharge } from '@/services/user';
 import { createPayment, queryPaymentStatus } from '@/services/order';
 import type { Payment } from '@/types';
@@ -103,9 +108,7 @@ const Recharge = () => {
       {currentStep === 0 && (
         <Card title="选择充值金额">
           <div style={{ marginBottom: 24 }}>
-            <div style={{ marginBottom: 16, fontSize: 16, fontWeight: 'bold' }}>
-              快捷金额：
-            </div>
+            <div style={{ marginBottom: 16, fontSize: 16, fontWeight: 'bold' }}>快捷金额：</div>
             <Row gutter={[16, 16]}>
               {quickAmounts.map((amt) => (
                 <Col key={amt} span={8}>
@@ -124,9 +127,7 @@ const Recharge = () => {
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <div style={{ marginBottom: 16, fontSize: 16, fontWeight: 'bold' }}>
-              自定义金额：
-            </div>
+            <div style={{ marginBottom: 16, fontSize: 16, fontWeight: 'bold' }}>自定义金额：</div>
             <InputNumber
               size="large"
               value={amount}
@@ -159,17 +160,13 @@ const Recharge = () => {
                 marginBottom: 24,
               }}
             >
-              <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>
-                充值金额
-              </div>
+              <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>充值金额</div>
               <div style={{ fontSize: 32, fontWeight: 'bold', color: '#f5222d' }}>
                 ¥{amount.toFixed(2)}
               </div>
             </div>
 
-            <div style={{ marginBottom: 16, fontSize: 16, fontWeight: 'bold' }}>
-              选择支付方式：
-            </div>
+            <div style={{ marginBottom: 16, fontSize: 16, fontWeight: 'bold' }}>选择支付方式：</div>
             <Row gutter={16}>
               <Col span={12}>
                 <Card
@@ -182,9 +179,7 @@ const Recharge = () => {
                 >
                   <div style={{ textAlign: 'center', padding: '24px 0' }}>
                     <WechatOutlined style={{ fontSize: 48, color: '#09bb07' }} />
-                    <div style={{ marginTop: 16, fontSize: 18, fontWeight: 'bold' }}>
-                      微信支付
-                    </div>
+                    <div style={{ marginTop: 16, fontSize: 18, fontWeight: 'bold' }}>微信支付</div>
                   </div>
                 </Card>
               </Col>
@@ -199,9 +194,7 @@ const Recharge = () => {
                 >
                   <div style={{ textAlign: 'center', padding: '24px 0' }}>
                     <AlipayOutlined style={{ fontSize: 48, color: '#1677ff' }} />
-                    <div style={{ marginTop: 16, fontSize: 18, fontWeight: 'bold' }}>
-                      支付宝
-                    </div>
+                    <div style={{ marginTop: 16, fontSize: 18, fontWeight: 'bold' }}>支付宝</div>
                   </div>
                 </Card>
               </Col>
@@ -228,14 +221,12 @@ const Recharge = () => {
       {currentStep === 2 && (
         <Card>
           <div style={{ textAlign: 'center', padding: '48px 0' }}>
-            <CheckCircleOutlined
-              style={{ fontSize: 72, color: '#52c41a', marginBottom: 24 }}
-            />
+            <CheckCircleOutlined style={{ fontSize: 72, color: '#52c41a', marginBottom: 24 }} />
             <h2 style={{ fontSize: 28, marginBottom: 16 }}>充值成功！</h2>
             <p style={{ fontSize: 16, color: '#666', marginBottom: 32 }}>
               ¥{amount.toFixed(2)} 已充值到您的账户
             </p>
-            <Button type="primary" size="large" onClick={() => window.location.href = '/profile'}>
+            <Button type="primary" size="large" onClick={() => (window.location.href = '/profile')}>
               查看余额
             </Button>
           </div>

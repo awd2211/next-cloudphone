@@ -3,7 +3,11 @@ import { INestApplication, NotFoundException } from '@nestjs/common';
 import * as request from 'supertest';
 import { ApiKeysController } from './api-keys.controller';
 import { ApiKeysService } from './api-keys.service';
-import { createTestApp, generateTestJwt, assertHttpResponse } from '@cloudphone/shared/testing/test-helpers';
+import {
+  createTestApp,
+  generateTestJwt,
+  assertHttpResponse,
+} from '@cloudphone/shared/testing/test-helpers';
 
 describe('ApiKeysController', () => {
   let app: INestApplication;
@@ -48,9 +52,7 @@ describe('ApiKeysController', () => {
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       controllers: [ApiKeysController],
-      providers: [
-        { provide: ApiKeysService, useValue: mockApiKeysService },
-      ],
+      providers: [{ provide: ApiKeysService, useValue: mockApiKeysService }],
     }).compile();
 
     app = await createTestApp(moduleRef);
@@ -104,10 +106,7 @@ describe('ApiKeysController', () => {
 
     it('应该在未认证时返回401', async () => {
       // Act
-      await request(app.getHttpServer())
-        .post('/api-keys')
-        .send(createDto)
-        .expect(401);
+      await request(app.getHttpServer()).post('/api-keys').send(createDto).expect(401);
 
       // Assert
       expect(mockApiKeysService.createApiKey).not.toHaveBeenCalled();
@@ -236,7 +235,7 @@ describe('ApiKeysController', () => {
         .expect(200);
 
       // Assert
-      response.body.forEach(key => {
+      response.body.forEach((key) => {
         expect(key).not.toHaveProperty('secretKey');
         expect(key).not.toHaveProperty('hashedKey');
       });
@@ -244,9 +243,7 @@ describe('ApiKeysController', () => {
 
     it('应该在未认证时返回401', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/api-keys/user/user-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/api-keys/user/user-123').expect(401);
     });
 
     it('应该返回空数组当用户没有密钥时', async () => {
@@ -314,9 +311,7 @@ describe('ApiKeysController', () => {
 
     it('应该在密钥不存在时返回404', async () => {
       // Arrange
-      mockApiKeysService.getApiKey.mockRejectedValue(
-        new NotFoundException('API key not found')
-      );
+      mockApiKeysService.getApiKey.mockRejectedValue(new NotFoundException('API key not found'));
       const token = createAuthToken();
 
       // Act
@@ -328,9 +323,7 @@ describe('ApiKeysController', () => {
 
     it('应该在未认证时返回401', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/api-keys/key-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/api-keys/key-123').expect(401);
     });
 
     it('应该显示密钥的使用统计', async () => {
@@ -394,17 +387,12 @@ describe('ApiKeysController', () => {
         .expect(200);
 
       // Assert
-      expect(mockApiKeysService.updateApiKey).toHaveBeenCalledWith(
-        'key-123',
-        partialUpdate
-      );
+      expect(mockApiKeysService.updateApiKey).toHaveBeenCalledWith('key-123', partialUpdate);
     });
 
     it('应该在密钥不存在时返回404', async () => {
       // Arrange
-      mockApiKeysService.updateApiKey.mockRejectedValue(
-        new NotFoundException('API key not found')
-      );
+      mockApiKeysService.updateApiKey.mockRejectedValue(new NotFoundException('API key not found'));
       const token = createAuthToken();
 
       // Act
@@ -417,9 +405,7 @@ describe('ApiKeysController', () => {
 
     it('应该防止更新已撤销的密钥', async () => {
       // Arrange
-      mockApiKeysService.updateApiKey.mockRejectedValue(
-        new Error('Cannot update revoked API key')
-      );
+      mockApiKeysService.updateApiKey.mockRejectedValue(new Error('Cannot update revoked API key'));
       const token = createAuthToken();
 
       // Act
@@ -472,9 +458,7 @@ describe('ApiKeysController', () => {
 
     it('应该在密钥不存在时返回404', async () => {
       // Arrange
-      mockApiKeysService.revokeApiKey.mockRejectedValue(
-        new NotFoundException('API key not found')
-      );
+      mockApiKeysService.revokeApiKey.mockRejectedValue(new NotFoundException('API key not found'));
       const token = createAuthToken();
 
       // Act
@@ -486,9 +470,7 @@ describe('ApiKeysController', () => {
 
     it('应该在未认证时返回401', async () => {
       // Act
-      await request(app.getHttpServer())
-        .post('/api-keys/key-123/revoke')
-        .expect(401);
+      await request(app.getHttpServer()).post('/api-keys/key-123/revoke').expect(401);
     });
 
     it('应该允许撤销已撤销的密钥（幂等操作）', async () => {
@@ -560,9 +542,7 @@ describe('ApiKeysController', () => {
 
     it('应该在密钥不存在时返回404', async () => {
       // Arrange
-      mockApiKeysService.deleteApiKey.mockRejectedValue(
-        new NotFoundException('API key not found')
-      );
+      mockApiKeysService.deleteApiKey.mockRejectedValue(new NotFoundException('API key not found'));
       const token = createAuthToken(['admin']);
 
       // Act
@@ -574,9 +554,7 @@ describe('ApiKeysController', () => {
 
     it('应该在未认证时返回401', async () => {
       // Act
-      await request(app.getHttpServer())
-        .delete('/api-keys/key-123')
-        .expect(401);
+      await request(app.getHttpServer()).delete('/api-keys/key-123').expect(401);
     });
   });
 
@@ -621,9 +599,7 @@ describe('ApiKeysController', () => {
 
     it('应该在未认证时返回401', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/api-keys/statistics/user-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/api-keys/statistics/user-123').expect(401);
     });
 
     it('应该返回空统计当用户没有密钥时', async () => {
@@ -666,9 +642,7 @@ describe('ApiKeysController', () => {
 
     it('应该在缺少API密钥时返回401', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/api-keys/test/auth')
-        .expect(401);
+      await request(app.getHttpServer()).get('/api-keys/test/auth').expect(401);
     });
 
     it('应该在API密钥无效时返回401', async () => {
@@ -692,27 +666,15 @@ describe('ApiKeysController', () => {
   describe('安全性和边界情况', () => {
     it('应该要求所有端点都需要认证', async () => {
       // 测试所有端点都需要token（除了test/auth使用API密钥）
-      await request(app.getHttpServer())
-        .post('/api-keys')
-        .send({})
-        .expect(401);
+      await request(app.getHttpServer()).post('/api-keys').send({}).expect(401);
 
-      await request(app.getHttpServer())
-        .get('/api-keys/user/user-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/api-keys/user/user-123').expect(401);
 
-      await request(app.getHttpServer())
-        .get('/api-keys/key-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/api-keys/key-123').expect(401);
 
-      await request(app.getHttpServer())
-        .put('/api-keys/key-123')
-        .send({})
-        .expect(401);
+      await request(app.getHttpServer()).put('/api-keys/key-123').send({}).expect(401);
 
-      await request(app.getHttpServer())
-        .post('/api-keys/key-123/revoke')
-        .expect(401);
+      await request(app.getHttpServer()).post('/api-keys/key-123/revoke').expect(401);
     });
 
     it('应该验证userId格式防止路径遍历', async () => {
@@ -787,17 +749,19 @@ describe('ApiKeysController', () => {
       const token = createAuthToken();
 
       // Act - 发起多个并发请求
-      const requests = Array(5).fill(null).map(() =>
-        request(app.getHttpServer())
-          .post('/api-keys')
-          .set('Authorization', `Bearer ${token}`)
-          .send(dto)
-      );
+      const requests = Array(5)
+        .fill(null)
+        .map(() =>
+          request(app.getHttpServer())
+            .post('/api-keys')
+            .set('Authorization', `Bearer ${token}`)
+            .send(dto)
+        );
 
       const responses = await Promise.all(requests);
 
       // Assert - 所有请求都应该成功
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.status).toBe(201);
         expect(response.body.secretKey).toBeDefined();
       });

@@ -147,13 +147,7 @@ describe('OptimizedComponents', () => {
     const { LazyImage } = require('../components/OptimizedComponents');
     const onLoad = vi.fn();
 
-    render(
-      <LazyImage
-        src="https://example.com/image.jpg"
-        alt="Test image"
-        onLoad={onLoad}
-      />
-    );
+    render(<LazyImage src="https://example.com/image.jpg" alt="Test image" onLoad={onLoad} />);
 
     // 验证图片初始状态
     const img = screen.getByAlt('Test image') as HTMLImageElement;
@@ -171,9 +165,7 @@ describe('OptimizedComponents', () => {
     const { DebouncedInput } = require('../components/OptimizedComponents');
     const onChange = vi.fn();
 
-    render(
-      <DebouncedInput value="" onChange={onChange} delay={300} />
-    );
+    render(<DebouncedInput value="" onChange={onChange} delay={300} />);
 
     const input = screen.getByRole('textbox') as HTMLInputElement;
 

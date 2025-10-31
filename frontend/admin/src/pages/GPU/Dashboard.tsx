@@ -209,7 +209,11 @@ const GPUDashboard = () => {
         const percent = (record.memoryUsed / record.totalMemoryMB) * 100;
         return (
           <Tooltip title={`${record.memoryUsed}MB / ${record.totalMemoryMB}MB`}>
-            <Progress percent={Math.round(percent)} size="small" status={percent > 80 ? 'exception' : 'normal'} />
+            <Progress
+              percent={Math.round(percent)}
+              size="small"
+              status={percent > 80 ? 'exception' : 'normal'}
+            />
           </Tooltip>
         );
       },
@@ -454,7 +458,9 @@ const GPUDashboard = () => {
             <Descriptions.Item label="型号">{selectedGPU.model}</Descriptions.Item>
             <Descriptions.Item label="厂商">{selectedGPU.vendor}</Descriptions.Item>
             <Descriptions.Item label="驱动版本">{selectedGPU.driverVersion}</Descriptions.Item>
-            <Descriptions.Item label="CUDA 版本">{selectedGPU.cudaVersion || '-'}</Descriptions.Item>
+            <Descriptions.Item label="CUDA 版本">
+              {selectedGPU.cudaVersion || '-'}
+            </Descriptions.Item>
             <Descriptions.Item label="状态">{getStatusTag(selectedGPU.status)}</Descriptions.Item>
             <Descriptions.Item label="节点">{selectedGPU.nodeName}</Descriptions.Item>
             <Descriptions.Item label="显存容量">{selectedGPU.totalMemoryMB} MB</Descriptions.Item>

@@ -1,11 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import {
-  SagaOrchestratorService,
-  EventBusService,
-  SagaStatus,
-} from '@cloudphone/shared';
+import { SagaOrchestratorService, EventBusService, SagaStatus } from '@cloudphone/shared';
 import { PurchasePlanSagaV2 } from './purchase-plan-v2.saga';
 import { Order, OrderStatus } from '../billing/entities/order.entity';
 import { Plan, PlanType, BillingCycle } from '../billing/entities/plan.entity';
@@ -311,9 +307,7 @@ describe('PurchasePlanSagaV2', () => {
       orderRepository.update.mockResolvedValue({} as any);
 
       // Mock waitForDeviceAllocation to return a device ID
-      jest
-        .spyOn(saga as any, 'waitForDeviceAllocation')
-        .mockResolvedValue('device-123');
+      jest.spyOn(saga as any, 'waitForDeviceAllocation').mockResolvedValue('device-123');
 
       const result = await (saga as any).allocateDevice(state);
 
@@ -342,13 +336,9 @@ describe('PurchasePlanSagaV2', () => {
       };
 
       eventBus.publishDeviceEvent.mockResolvedValue();
-      jest
-        .spyOn(saga as any, 'waitForDeviceAllocation')
-        .mockResolvedValue(null);
+      jest.spyOn(saga as any, 'waitForDeviceAllocation').mockResolvedValue(null);
 
-      await expect((saga as any).allocateDevice(state)).rejects.toThrow(
-        'Device allocation failed'
-      );
+      await expect((saga as any).allocateDevice(state)).rejects.toThrow('Device allocation failed');
     });
   });
 

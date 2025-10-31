@@ -17,7 +17,8 @@ export class AuthService {
 
   // 🔒 预生成的虚拟密码哈希，用于防止时序攻击
   // 当用户不存在时使用这个哈希，确保响应时间与真实哈希比较一致
-  private readonly DUMMY_PASSWORD_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
+  private readonly DUMMY_PASSWORD_HASH =
+    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
 
   constructor(
     @InjectRepository(User)
@@ -27,7 +28,7 @@ export class AuthService {
     private cacheService: CacheService,
     @InjectDataSource()
     private dataSource: DataSource,
-    private eventBus: EventBusService,
+    private eventBus: EventBusService
   ) {}
 
   /**
@@ -44,7 +45,7 @@ export class AuthService {
    */
   private async addTimingDelay(minMs: number = 200, maxMs: number = 400): Promise<void> {
     const delay = minMs + Math.floor(Math.random() * (maxMs - minMs));
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
   /**
@@ -162,7 +163,7 @@ export class AuthService {
     // 1. 验证验证码（开发环境可跳过）
     const isDev = process.env.NODE_ENV === 'development';
     const isCaptchaValid = isDev
-      ? true  // 开发环境跳过验证码检查
+      ? true // 开发环境跳过验证码检查
       : await this.captchaService.verify(captchaId, captcha);
 
     if (!isCaptchaValid) {
@@ -294,8 +295,8 @@ export class AuthService {
         username: user.username,
         email: user.email,
         tenantId: user.tenantId,
-        roles: user.roles?.map(r => r.name) || [],
-        permissions: user.roles?.flatMap(r => r.permissions?.map(p => p.name)) || [],
+        roles: user.roles?.map((r) => r.name) || [],
+        permissions: user.roles?.flatMap((r) => r.permissions?.map((p) => p.name)) || [],
       };
 
       const token = this.jwtService.sign(payload);
@@ -311,7 +312,7 @@ export class AuthService {
           email: user.email,
           fullName: user.fullName,
           avatar: user.avatar,
-          roles: user.roles?.map(r => r.name) || [],
+          roles: user.roles?.map((r) => r.name) || [],
           tenantId: user.tenantId,
           isSuperAdmin: user.isSuperAdmin,
         },
@@ -323,7 +324,11 @@ export class AuthService {
       }
 
       // 检查是否是数据库连接错误
-      if (error.code === 'ECONNREFUSED' || error.code === '57P03' || error.message?.includes('Connection')) {
+      if (
+        error.code === 'ECONNREFUSED' ||
+        error.code === '57P03' ||
+        error.message?.includes('Connection')
+      ) {
         this.logger.error(`Database connection error during login: ${error.message}`);
 
         // 发布严重错误事件（数据库连接失败）
@@ -445,8 +450,9 @@ export class AuthService {
       username: user.username,
       email: user.email,
       tenantId: user.tenantId,
-      roles: user.roles?.map(r => r.name) || [],
-      permissions: user.roles?.flatMap(r => r.permissions?.map(p => `${p.resource}:${p.action}`)) || [],
+      roles: user.roles?.map((r) => r.name) || [],
+      permissions:
+        user.roles?.flatMap((r) => r.permissions?.map((p) => `${p.resource}:${p.action}`)) || [],
     };
 
     const token = this.jwtService.sign(payload);
@@ -474,10 +480,9 @@ export class AuthService {
       id: user.id,
       username: user.username,
       email: user.email,
-      roles: user.roles?.map(r => r.name) || [],
+      roles: user.roles?.map((r) => r.name) || [],
       tenantId: user.tenantId,
       isSuperAdmin: user.isSuperAdmin,
     };
   }
 }
-

@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, DatePicker, Select, Space, Spin } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined, UserOutlined, MobileOutlined, DollarOutlined, ShoppingOutlined } from '@ant-design/icons';
+import {
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  UserOutlined,
+  MobileOutlined,
+  DollarOutlined,
+  ShoppingOutlined,
+} from '@ant-design/icons';
 import { EChartsLazy } from '@/components/LazyComponents';
 import dayjs from 'dayjs';
 import { getRevenueStats } from '@/services/billing';
@@ -258,18 +265,11 @@ const Analytics = () => {
             value={[dayjs(dateRange[0]), dayjs(dateRange[1])]}
             onChange={(dates) => {
               if (dates) {
-                setDateRange([
-                  dates[0]!.format('YYYY-MM-DD'),
-                  dates[1]!.format('YYYY-MM-DD'),
-                ]);
+                setDateRange([dates[0]!.format('YYYY-MM-DD'), dates[1]!.format('YYYY-MM-DD')]);
               }
             }}
           />
-          <Select
-            value={period}
-            onChange={setPeriod}
-            style={{ width: 120 }}
-          >
+          <Select value={period} onChange={setPeriod} style={{ width: 120 }}>
             <Select.Option value="day">按天</Select.Option>
             <Select.Option value="week">按周</Select.Option>
             <Select.Option value="month">按月</Select.Option>

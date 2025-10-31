@@ -28,7 +28,7 @@ export class UserEventsConsumer {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
-    private readonly templatesService: TemplatesService,
+    private readonly templatesService: TemplatesService
   ) {}
 
   /**
@@ -47,10 +47,7 @@ export class UserEventsConsumer {
       },
     },
   })
-  async handleUserRegistered(
-    event: UserRegisteredEvent,
-    msg: ConsumeMessage,
-  ) {
+  async handleUserRegistered(event: UserRegisteredEvent, msg: ConsumeMessage) {
     this.logger.log(`收到用户注册事件: ${event.payload.username}`);
 
     try {
@@ -63,7 +60,7 @@ export class UserEventsConsumer {
           registeredAt: event.payload.registerTime,
           loginUrl: process.env.FRONTEND_URL || 'https://cloudphone.example.com/login',
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       // 发送 WebSocket 通知
@@ -80,10 +77,7 @@ export class UserEventsConsumer {
 
       // 发送欢迎邮件（使用渲染的HTML模板）
       if (event.payload.email && rendered.emailHtml) {
-        await this.emailService.sendWelcomeEmail(
-          event.payload.email,
-          event.payload.username,
-        );
+        await this.emailService.sendWelcomeEmail(event.payload.email, event.payload.username);
       }
 
       this.logger.log(`用户注册通知已发送: ${event.payload.userId}`);
@@ -107,11 +101,10 @@ export class UserEventsConsumer {
       },
     },
   })
-  async handleLoginFailed(
-    event: UserLoginFailedEvent,
-    msg: ConsumeMessage,
-  ) {
-    this.logger.warn(`收到登录失败事件: ${event.payload.username}, 失败次数: ${event.payload.failureCount}`);
+  async handleLoginFailed(event: UserLoginFailedEvent, msg: ConsumeMessage) {
+    this.logger.warn(
+      `收到登录失败事件: ${event.payload.username}, 失败次数: ${event.payload.failureCount}`
+    );
 
     try {
       // 只有当失败次数达到阈值时才发送通知
@@ -125,7 +118,7 @@ export class UserEventsConsumer {
             location: '未知位置', // 可以集成IP地理位置服务
             attemptTime: event.payload.timestamp,
           },
-          'zh-CN',
+          'zh-CN'
         );
 
         // 发送高优先级告警通知
@@ -164,10 +157,7 @@ export class UserEventsConsumer {
       },
     },
   })
-  async handlePasswordResetRequested(
-    event: PasswordResetRequestedEvent,
-    msg: ConsumeMessage,
-  ) {
+  async handlePasswordResetRequested(event: PasswordResetRequestedEvent, msg: ConsumeMessage) {
     this.logger.log(`收到密码重置请求: ${event.payload.userId}`);
 
     try {
@@ -181,14 +171,14 @@ export class UserEventsConsumer {
           code: event.payload.resetToken.substring(0, 6), // 前6位作为验证码
           expiresAt: event.payload.expiresAt,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       // 发送重置链接邮件（使用渲染的HTML模板）
       await this.emailService.sendPasswordResetEmail(
         event.payload.email,
         event.payload.resetToken,
-        event.payload.expiresAt,
+        event.payload.expiresAt
       );
 
       // WebSocket 通知
@@ -224,10 +214,7 @@ export class UserEventsConsumer {
       },
     },
   })
-  async handlePasswordChanged(
-    event: PasswordChangedEvent,
-    msg: ConsumeMessage,
-  ) {
+  async handlePasswordChanged(event: PasswordChangedEvent, msg: ConsumeMessage) {
     this.logger.log(`收到密码变更事件: ${event.payload.userId}`);
 
     try {
@@ -238,7 +225,7 @@ export class UserEventsConsumer {
           username: event.payload.username,
           changedAt: event.payload.changedAt,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       // WebSocket 通知
@@ -257,7 +244,7 @@ export class UserEventsConsumer {
         await this.emailService.sendPasswordChangedNotification(
           event.payload.email,
           event.payload.username,
-          event.payload.changedAt,
+          event.payload.changedAt
         );
       }
 
@@ -282,10 +269,7 @@ export class UserEventsConsumer {
       },
     },
   })
-  async handleTwoFactorEnabled(
-    event: TwoFactorEnabledEvent,
-    msg: ConsumeMessage,
-  ) {
+  async handleTwoFactorEnabled(event: TwoFactorEnabledEvent, msg: ConsumeMessage) {
     this.logger.log(`收到双因素认证启用事件: ${event.payload.userId}`);
 
     try {
@@ -296,7 +280,7 @@ export class UserEventsConsumer {
           username: event.payload.username || '用户',
           enabledAt: event.payload.enabledAt,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -330,10 +314,7 @@ export class UserEventsConsumer {
       },
     },
   })
-  async handleProfileUpdated(
-    event: ProfileUpdatedEvent,
-    msg: ConsumeMessage,
-  ) {
+  async handleProfileUpdated(event: ProfileUpdatedEvent, msg: ConsumeMessage) {
     this.logger.log(`收到用户资料更新事件: ${event.payload.userId}`);
 
     try {
@@ -344,7 +325,7 @@ export class UserEventsConsumer {
           updatedFields: event.payload.updatedFields,
           updatedAt: event.payload.updatedAt,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({

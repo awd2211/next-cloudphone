@@ -5,9 +5,9 @@ export const CACHEABLE_METADATA = 'cacheable';
 
 // 缓存装饰器元数据
 export interface CacheableMetadata {
-  keyPrefix?: string;        // 缓存键前缀
-  ttl?: number;              // 过期时间 (秒)
-  options?: CacheOptions;    // 缓存选项
+  keyPrefix?: string; // 缓存键前缀
+  ttl?: number; // 过期时间 (秒)
+  options?: CacheOptions; // 缓存选项
   keyGenerator?: (...args: any[]) => string; // 自定义键生成器
 }
 
@@ -35,11 +35,7 @@ export interface CacheableMetadata {
  * ```
  */
 export function Cacheable(metadata: CacheableMetadata = {}): MethodDecorator {
-  return function (
-    target: any,
-    propertyKey: string | symbol,
-    descriptor: PropertyDescriptor,
-  ) {
+  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
@@ -49,7 +45,7 @@ export function Cacheable(metadata: CacheableMetadata = {}): MethodDecorator {
       if (!cacheService) {
         // 如果没有 CacheService，直接执行原方法
         console.warn(
-          `CacheService not found in ${target.constructor.name}. Cacheable decorator will be ignored.`,
+          `CacheService not found in ${target.constructor.name}. Cacheable decorator will be ignored.`
         );
         return originalMethod.apply(this, args);
       }
@@ -58,7 +54,7 @@ export function Cacheable(metadata: CacheableMetadata = {}): MethodDecorator {
       const cacheKey = generateCacheKey(
         metadata.keyPrefix || String(propertyKey),
         metadata.keyGenerator,
-        args,
+        args
       );
 
       // 尝试从缓存获取
@@ -99,11 +95,7 @@ export function CacheEvict(metadata: {
   keyGenerator?: (...args: any[]) => string;
   allEntries?: boolean; // 是否清除所有以 keyPrefix 开头的缓存
 }): MethodDecorator {
-  return function (
-    target: any,
-    propertyKey: string | symbol,
-    descriptor: PropertyDescriptor,
-  ) {
+  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
@@ -125,7 +117,7 @@ export function CacheEvict(metadata: {
         const cacheKey = generateCacheKey(
           metadata.keyPrefix || String(propertyKey),
           metadata.keyGenerator,
-          args,
+          args
         );
         await cacheService.del(cacheKey);
       }
@@ -151,11 +143,7 @@ export function CacheEvict(metadata: {
  * ```
  */
 export function CachePut(metadata: CacheableMetadata = {}): MethodDecorator {
-  return function (
-    target: any,
-    propertyKey: string | symbol,
-    descriptor: PropertyDescriptor,
-  ) {
+  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
@@ -172,7 +160,7 @@ export function CachePut(metadata: CacheableMetadata = {}): MethodDecorator {
       const cacheKey = generateCacheKey(
         metadata.keyPrefix || String(propertyKey),
         metadata.keyGenerator,
-        args,
+        args
       );
 
       // 更新缓存
@@ -192,7 +180,7 @@ export function CachePut(metadata: CacheableMetadata = {}): MethodDecorator {
 function generateCacheKey(
   prefix: string,
   keyGenerator: ((...args: any[]) => string) | undefined,
-  args: any[],
+  args: any[]
 ): string {
   if (keyGenerator) {
     const suffix = keyGenerator(...args);

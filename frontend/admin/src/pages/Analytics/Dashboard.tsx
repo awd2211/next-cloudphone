@@ -1,6 +1,11 @@
 import React from 'react';
 import { Card, Row, Col, Statistic } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined, UserOutlined, DollarOutlined } from '@ant-design/icons';
+import {
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  UserOutlined,
+  DollarOutlined,
+} from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 
 const AnalyticsDashboard: React.FC = () => {
@@ -98,11 +103,7 @@ const AnalyticsDashboard: React.FC = () => {
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic
-              title="活跃设备"
-              value={856}
-              valueStyle={{ color: '#1890ff' }}
-            />
+            <Statistic title="活跃设备" value={856} valueStyle={{ color: '#1890ff' }} />
           </Card>
         </Col>
         <Col span={6}>

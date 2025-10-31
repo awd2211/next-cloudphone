@@ -68,7 +68,7 @@ async function runSeeds() {
     // 加载并运行用户种子数据
     const { seedUsers } = await import('../backend/user-service/src/seeds/user.seed');
     const { users } = await seedUsers(userServiceDataSource);
-    const userIds = users.filter(u => u.username.startsWith('testuser')).map(u => u.id);
+    const userIds = users.filter((u) => u.username.startsWith('testuser')).map((u) => u.id);
 
     // 2. 初始化设备服务数据源
     console.log('\n📦 Connecting to Device Service database...');
@@ -109,7 +109,6 @@ async function runSeeds() {
     console.log('   - testuser2 / user123 (测试用户)');
     console.log('   - testuser3 / user123 (测试用户)');
     console.log('   - support1 / user123 (客服)\n');
-
   } catch (error) {
     console.error('❌ Error seeding database:', error);
     throw error;

@@ -1,6 +1,6 @@
-import { Injectable, Logger, Inject } from "@nestjs/common";
-import { CACHE_MANAGER } from "@nestjs/cache-manager";
-import { Cache } from "cache-manager";
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 /**
  * Redis 缓存服务
@@ -71,19 +71,12 @@ export class CacheService {
       if (store && store.client) {
         const keys = await store.client.keys(pattern);
         if (keys && keys.length > 0) {
-          await Promise.all(
-            keys.map((key: string) => this.cacheManager.del(key)),
-          );
-          this.logger.debug(
-            `Cache DEL pattern: ${pattern} (${keys.length} keys)`,
-          );
+          await Promise.all(keys.map((key: string) => this.cacheManager.del(key)));
+          this.logger.debug(`Cache DEL pattern: ${pattern} (${keys.length} keys)`);
         }
       }
     } catch (error) {
-      this.logger.error(
-        `Cache DEL pattern error for ${pattern}:`,
-        error.message,
-      );
+      this.logger.error(`Cache DEL pattern error for ${pattern}:`, error.message);
     }
   }
 
@@ -93,9 +86,9 @@ export class CacheService {
   async reset(): Promise<void> {
     try {
       await this.cacheManager.reset();
-      this.logger.warn("Cache RESET: All keys cleared");
+      this.logger.warn('Cache RESET: All keys cleared');
     } catch (error) {
-      this.logger.error("Cache RESET error:", error.message);
+      this.logger.error('Cache RESET error:', error.message);
     }
   }
 
@@ -109,7 +102,7 @@ export class CacheService {
     try {
       const store: any = this.cacheManager.store;
       if (!store || !store.client) {
-        this.logger.warn("Redis client not available for SCAN operation");
+        this.logger.warn('Redis client not available for SCAN operation');
         return [];
       }
 
@@ -129,15 +122,10 @@ export class CacheService {
         }
       } while (cursor !== 0);
 
-      this.logger.debug(
-        `Cache SCAN: ${pattern} found ${keys.length} keys`,
-      );
+      this.logger.debug(`Cache SCAN: ${pattern} found ${keys.length} keys`);
       return keys;
     } catch (error) {
-      this.logger.error(
-        `Cache SCAN error for pattern ${pattern}:`,
-        error.message,
-      );
+      this.logger.error(`Cache SCAN error for pattern ${pattern}:`, error.message);
       return [];
     }
   }
@@ -156,10 +144,7 @@ export class CacheService {
    * @param items 键值对数组
    * @param ttl 过期时间（秒）
    */
-  async mset<T>(
-    items: Array<{ key: string; value: T }>,
-    ttl: number = 60,
-  ): Promise<void> {
+  async mset<T>(items: Array<{ key: string; value: T }>, ttl: number = 60): Promise<void> {
     await Promise.all(items.map((item) => this.set(item.key, item.value, ttl)));
   }
 
@@ -169,11 +154,7 @@ export class CacheService {
    * @param fn 回调函数（缓存未命中时执行）
    * @param ttl 过期时间（秒）
    */
-  async wrap<T>(
-    key: string,
-    fn: () => Promise<T>,
-    ttl: number = 60,
-  ): Promise<T> {
+  async wrap<T>(key: string, fn: () => Promise<T>, ttl: number = 60): Promise<T> {
     // 1. 尝试从缓存获取
     const cached = await this.get<T>(key);
     if (cached !== null) {

@@ -18,7 +18,7 @@ import {
   FileTransferOptions,
   DeviceProperties,
   DeviceMetrics,
-} from "./provider.types";
+} from './provider.types';
 
 /**
  * 设备提供商核心接口
@@ -142,10 +142,7 @@ export interface IDeviceProvider {
    * @param options 安装选项
    * @returns 安装任务 ID (如果是异步操作)
    */
-  installApp?(
-    deviceId: string,
-    options: AppInstallOptions,
-  ): Promise<string | void>;
+  installApp?(deviceId: string, options: AppInstallOptions): Promise<string | void>;
 
   /**
    * 卸载应用
@@ -205,11 +202,7 @@ export interface IDeviceProvider {
    * @param latitude 纬度
    * @param longitude 经度
    */
-  setLocation?(
-    deviceId: string,
-    latitude: number,
-    longitude: number,
-  ): Promise<void>;
+  setLocation?(deviceId: string, latitude: number, longitude: number): Promise<void>;
 
   /**
    * 设置网络状态
@@ -224,11 +217,7 @@ export interface IDeviceProvider {
    * @param level 电量百分比
    * @param charging 是否充电
    */
-  setBatteryStatus?(
-    deviceId: string,
-    level: number,
-    charging: boolean,
-  ): Promise<void>;
+  setBatteryStatus?(deviceId: string, level: number, charging: boolean): Promise<void>;
 }
 
 /**

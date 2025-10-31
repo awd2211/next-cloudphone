@@ -111,13 +111,10 @@ describe('User Authentication E2E Tests', () => {
     it('should successfully login with correct credentials', async () => {
       userService.clearToken(); // Clear token from createTestUser
 
-      const response = await userService.post<{ access_token: string; user: any }>(
-        '/auth/login',
-        {
-          username: testUser.username,
-          password: testUser.password,
-        },
-      );
+      const response = await userService.post<{ access_token: string; user: any }>('/auth/login', {
+        username: testUser.username,
+        password: testUser.password,
+      });
 
       expect(response.access_token).toBeDefined();
       expect(typeof response.access_token).toBe('string');
@@ -132,7 +129,7 @@ describe('User Authentication E2E Tests', () => {
         userService.post('/auth/login', {
           username: testUser.username,
           password: 'WrongPassword123!',
-        }),
+        })
       ).rejects.toThrow();
     });
 
@@ -143,7 +140,7 @@ describe('User Authentication E2E Tests', () => {
         userService.post('/auth/login', {
           username: 'nonexistent_user_999',
           password: 'TestPassword123!',
-        }),
+        })
       ).rejects.toThrow();
     });
 
@@ -154,7 +151,7 @@ describe('User Authentication E2E Tests', () => {
         userService.post('/auth/login', {
           username: testUser.username,
           // Missing password
-        }),
+        })
       ).rejects.toThrow();
     });
   });
@@ -190,7 +187,7 @@ describe('User Authentication E2E Tests', () => {
       // This is a placeholder - actual implementation would need to create an expired token
       // For now, we just test with an obviously invalid token
       userService.setToken(
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
       );
 
       await expect(userService.get('/users/profile')).rejects.toThrow();
@@ -237,13 +234,10 @@ describe('User Authentication E2E Tests', () => {
 
       // Verify new password works
       userService.clearToken();
-      const loginResponse = await userService.post<{ access_token: string }>(
-        '/auth/login',
-        {
-          username: testUser.username,
-          password: newPassword,
-        },
-      );
+      const loginResponse = await userService.post<{ access_token: string }>('/auth/login', {
+        username: testUser.username,
+        password: newPassword,
+      });
 
       expect(loginResponse.access_token).toBeDefined();
     });
@@ -253,7 +247,7 @@ describe('User Authentication E2E Tests', () => {
         userService.post('/auth/change-password', {
           oldPassword: 'WrongOldPassword123!',
           newPassword: 'NewPassword456!',
-        }),
+        })
       ).rejects.toThrow();
     });
   });

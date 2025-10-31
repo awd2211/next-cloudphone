@@ -1,4 +1,4 @@
-import { Logger } from "@nestjs/common";
+import { Logger } from '@nestjs/common';
 
 /**
  * 重试配置接口
@@ -21,7 +21,7 @@ function calculateBackoffDelay(
   baseDelayMs: number,
   maxDelayMs: number,
   exponentialBase: number,
-  jitterFactor: number,
+  jitterFactor: number
 ): number {
   // 计算指数延迟: baseDelay * (exponentialBase ^ attempt)
   const exponentialDelay = baseDelayMs * Math.pow(exponentialBase, attempt - 1);
@@ -40,7 +40,7 @@ function calculateBackoffDelay(
  */
 function isRetryableError(
   error: Error,
-  retryableErrors?: Array<new (...args: any[]) => Error>,
+  retryableErrors?: Array<new (...args: any[]) => Error>
 ): boolean {
   if (!retryableErrors || retryableErrors.length === 0) {
     // 如果未指定可重试错误，默认所有错误都可重试
@@ -84,11 +84,7 @@ export function Retry(options: RetryOptions = {}) {
     onRetry,
   } = options;
 
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const logger = new Logger(`${target.constructor.name}.${propertyKey}`);
 
@@ -105,7 +101,7 @@ export function Retry(options: RetryOptions = {}) {
           // 检查是否为可重试的错误
           if (!isRetryableError(error, retryableErrors)) {
             logger.error(
-              `Non-retryable error on attempt ${attempt}/${maxAttempts}: ${error.message}`,
+              `Non-retryable error on attempt ${attempt}/${maxAttempts}: ${error.message}`
             );
             throw error;
           }
@@ -113,7 +109,7 @@ export function Retry(options: RetryOptions = {}) {
           // 如果是最后一次尝试，直接抛出错误
           if (attempt === maxAttempts) {
             logger.error(
-              `Max retry attempts (${maxAttempts}) reached. Last error: ${error.message}`,
+              `Max retry attempts (${maxAttempts}) reached. Last error: ${error.message}`
             );
             throw error;
           }
@@ -124,11 +120,11 @@ export function Retry(options: RetryOptions = {}) {
             baseDelayMs,
             maxDelayMs,
             exponentialBase,
-            jitterFactor,
+            jitterFactor
           );
 
           logger.warn(
-            `Attempt ${attempt}/${maxAttempts} failed: ${error.message}. Retrying in ${delayMs}ms...`,
+            `Attempt ${attempt}/${maxAttempts} failed: ${error.message}. Retrying in ${delayMs}ms...`
           );
 
           // 执行重试回调
@@ -168,7 +164,7 @@ export function Retry(options: RetryOptions = {}) {
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  options: RetryOptions = {},
+  options: RetryOptions = {}
 ): Promise<T> {
   const {
     maxAttempts = 3,
@@ -180,7 +176,7 @@ export async function retryWithBackoff<T>(
     onRetry,
   } = options;
 
-  const logger = new Logger("retryWithBackoff");
+  const logger = new Logger('retryWithBackoff');
   let lastError: Error | undefined;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -195,9 +191,7 @@ export async function retryWithBackoff<T>(
       }
 
       if (attempt === maxAttempts) {
-        logger.error(
-          `Max retry attempts (${maxAttempts}) reached. Last error: ${error.message}`,
-        );
+        logger.error(`Max retry attempts (${maxAttempts}) reached. Last error: ${error.message}`);
         throw error;
       }
 
@@ -206,11 +200,11 @@ export async function retryWithBackoff<T>(
         baseDelayMs,
         maxDelayMs,
         exponentialBase,
-        jitterFactor,
+        jitterFactor
       );
 
       logger.warn(
-        `Attempt ${attempt}/${maxAttempts} failed: ${error.message}. Retrying in ${delayMs}ms...`,
+        `Attempt ${attempt}/${maxAttempts} failed: ${error.message}. Retrying in ${delayMs}ms...`
       );
 
       if (onRetry) {
@@ -234,34 +228,34 @@ export async function retryWithBackoff<T>(
 export class NetworkError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "NetworkError";
+    this.name = 'NetworkError';
   }
 }
 
 export class TimeoutError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "TimeoutError";
+    this.name = 'TimeoutError';
   }
 }
 
 export class TemporaryError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "TemporaryError";
+    this.name = 'TemporaryError';
   }
 }
 
 export class DatabaseError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "DatabaseError";
+    this.name = 'DatabaseError';
   }
 }
 
 export class EventStoreError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "EventStoreError";
+    this.name = 'EventStoreError';
   }
 }

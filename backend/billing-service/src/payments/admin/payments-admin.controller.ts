@@ -10,13 +10,7 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { PaymentsAdminService } from './payments-admin.service';
 import { PaymentStatus, PaymentMethod } from '../entities/payment.entity';
 
@@ -39,14 +33,8 @@ export class PaymentsAdminController {
   @ApiQuery({ name: 'startDate', required: false, description: '开始日期 (YYYY-MM-DD)' })
   @ApiQuery({ name: 'endDate', required: false, description: '结束日期 (YYYY-MM-DD)' })
   @ApiResponse({ status: 200, description: '统计数据' })
-  async getStatistics(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    const stats = await this.paymentsAdminService.getPaymentStatistics(
-      startDate,
-      endDate,
-    );
+  async getStatistics(@Query('startDate') startDate?: string, @Query('endDate') endDate?: string) {
+    const stats = await this.paymentsAdminService.getPaymentStatistics(startDate, endDate);
     return {
       success: true,
       data: stats,
@@ -63,12 +51,9 @@ export class PaymentsAdminController {
   @ApiQuery({ name: 'endDate', required: false })
   async getPaymentMethodsStats(
     @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query('endDate') endDate?: string
   ) {
-    const stats = await this.paymentsAdminService.getPaymentMethodsStatistics(
-      startDate,
-      endDate,
-    );
+    const stats = await this.paymentsAdminService.getPaymentMethodsStatistics(startDate, endDate);
     return {
       success: true,
       data: stats,
@@ -112,7 +97,7 @@ export class PaymentsAdminController {
     @Query('userId') userId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('search') search?: string,
+    @Query('search') search?: string
   ) {
     const result = await this.paymentsAdminService.findAllWithPagination({
       page,
@@ -160,13 +145,13 @@ export class PaymentsAdminController {
   @HttpCode(HttpStatus.OK)
   async manualRefund(
     @Param('id') id: string,
-    @Body() body: { amount?: number; reason: string; adminNote?: string },
+    @Body() body: { amount?: number; reason: string; adminNote?: string }
   ) {
     const result = await this.paymentsAdminService.manualRefund(
       id,
       body.amount,
       body.reason,
-      body.adminNote,
+      body.adminNote
     );
     return {
       success: true,
@@ -195,10 +180,7 @@ export class PaymentsAdminController {
   @Post('refunds/:id/approve')
   @ApiOperation({ summary: '批准退款申请' })
   @HttpCode(HttpStatus.OK)
-  async approveRefund(
-    @Param('id') id: string,
-    @Body() body: { adminNote?: string },
-  ) {
+  async approveRefund(@Param('id') id: string, @Body() body: { adminNote?: string }) {
     const result = await this.paymentsAdminService.approveRefund(id, body.adminNote);
     return {
       success: true,
@@ -215,7 +197,7 @@ export class PaymentsAdminController {
   @HttpCode(HttpStatus.OK)
   async rejectRefund(
     @Param('id') id: string,
-    @Body() body: { reason: string; adminNote?: string },
+    @Body() body: { reason: string; adminNote?: string }
   ) {
     await this.paymentsAdminService.rejectRefund(id, body.reason, body.adminNote);
     return {
@@ -231,10 +213,7 @@ export class PaymentsAdminController {
   @ApiOperation({ summary: '获取异常支付列表' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async getExceptions(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
-  ) {
+  async getExceptions(@Query('page') page: number = 1, @Query('limit') limit: number = 20) {
     const result = await this.paymentsAdminService.getExceptionPayments(page, limit);
     return {
       success: true,
@@ -277,7 +256,7 @@ export class PaymentsAdminController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('status') status?: PaymentStatus,
-    @Query('method') method?: PaymentMethod,
+    @Query('method') method?: PaymentMethod
   ) {
     const buffer = await this.paymentsAdminService.exportPaymentsToExcel({
       startDate,
@@ -321,7 +300,7 @@ export class PaymentsAdminController {
       enabledMethods?: PaymentMethod[];
       enabledCurrencies?: string[];
       settings?: any;
-    },
+    }
   ) {
     const result = await this.paymentsAdminService.updatePaymentConfig(config);
     return {
@@ -357,7 +336,7 @@ export class PaymentsAdminController {
   async getWebhookLogs(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 50,
-    @Query('provider') provider?: PaymentMethod,
+    @Query('provider') provider?: PaymentMethod
   ) {
     const result = await this.paymentsAdminService.getWebhookLogs(page, limit, provider);
     return {

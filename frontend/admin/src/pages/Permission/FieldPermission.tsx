@@ -47,8 +47,12 @@ const { TabPane } = Tabs;
 
 const FieldPermissionManagement: React.FC = () => {
   const [permissions, setPermissions] = useState<FieldPermission[]>([]);
-  const [accessLevels, setAccessLevels] = useState<Array<{ value: FieldAccessLevel; label: string }>>([]);
-  const [operationTypes, setOperationTypes] = useState<Array<{ value: OperationType; label: string }>>([]);
+  const [accessLevels, setAccessLevels] = useState<
+    Array<{ value: FieldAccessLevel; label: string }>
+  >([]);
+  const [operationTypes, setOperationTypes] = useState<
+    Array<{ value: OperationType; label: string }>
+  >([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
@@ -166,10 +170,18 @@ const FieldPermissionManagement: React.FC = () => {
         roleId: values.roleId,
         resourceType: values.resourceType,
         operation: values.operation,
-        hiddenFields: values.hiddenFields ? values.hiddenFields.split(',').map((s: string) => s.trim()) : undefined,
-        readOnlyFields: values.readOnlyFields ? values.readOnlyFields.split(',').map((s: string) => s.trim()) : undefined,
-        writableFields: values.writableFields ? values.writableFields.split(',').map((s: string) => s.trim()) : undefined,
-        requiredFields: values.requiredFields ? values.requiredFields.split(',').map((s: string) => s.trim()) : undefined,
+        hiddenFields: values.hiddenFields
+          ? values.hiddenFields.split(',').map((s: string) => s.trim())
+          : undefined,
+        readOnlyFields: values.readOnlyFields
+          ? values.readOnlyFields.split(',').map((s: string) => s.trim())
+          : undefined,
+        writableFields: values.writableFields
+          ? values.writableFields.split(',').map((s: string) => s.trim())
+          : undefined,
+        requiredFields: values.requiredFields
+          ? values.requiredFields.split(',').map((s: string) => s.trim())
+          : undefined,
         description: values.description,
         priority: values.priority,
       };
@@ -205,19 +217,19 @@ const FieldPermissionManagement: React.FC = () => {
   };
 
   const getOperationLabel = (operation: OperationType) => {
-    const operationType = operationTypes.find(t => t.value === operation);
+    const operationType = operationTypes.find((t) => t.value === operation);
     return operationType?.label || operation;
   };
 
   const statistics = {
     total: permissions.length,
-    active: permissions.filter(p => p.isActive).length,
-    inactive: permissions.filter(p => !p.isActive).length,
+    active: permissions.filter((p) => p.isActive).length,
+    inactive: permissions.filter((p) => !p.isActive).length,
     byOperation: {
-      create: permissions.filter(p => p.operation === 'create').length,
-      update: permissions.filter(p => p.operation === 'update').length,
-      view: permissions.filter(p => p.operation === 'view').length,
-      export: permissions.filter(p => p.operation === 'export').length,
+      create: permissions.filter((p) => p.operation === 'create').length,
+      update: permissions.filter((p) => p.operation === 'update').length,
+      view: permissions.filter((p) => p.operation === 'view').length,
+      export: permissions.filter((p) => p.operation === 'export').length,
     },
   };
 
@@ -248,9 +260,7 @@ const FieldPermissionManagement: React.FC = () => {
       key: 'operation',
       width: 100,
       render: (operation: OperationType) => (
-        <Tag color={getOperationColor(operation)}>
-          {getOperationLabel(operation)}
-        </Tag>
+        <Tag color={getOperationColor(operation)}>{getOperationLabel(operation)}</Tag>
       ),
     },
     {
@@ -258,36 +268,28 @@ const FieldPermissionManagement: React.FC = () => {
       dataIndex: 'hiddenFields',
       key: 'hiddenFields',
       width: 150,
-      render: (fields?: string[]) => (
-        <span>{fields?.length || 0} 个</span>
-      ),
+      render: (fields?: string[]) => <span>{fields?.length || 0} 个</span>,
     },
     {
       title: '只读字段',
       dataIndex: 'readOnlyFields',
       key: 'readOnlyFields',
       width: 150,
-      render: (fields?: string[]) => (
-        <span>{fields?.length || 0} 个</span>
-      ),
+      render: (fields?: string[]) => <span>{fields?.length || 0} 个</span>,
     },
     {
       title: '可写字段',
       dataIndex: 'writableFields',
       key: 'writableFields',
       width: 150,
-      render: (fields?: string[]) => (
-        <span>{fields?.length || 0} 个</span>
-      ),
+      render: (fields?: string[]) => <span>{fields?.length || 0} 个</span>,
     },
     {
       title: '必填字段',
       dataIndex: 'requiredFields',
       key: 'requiredFields',
       width: 150,
-      render: (fields?: string[]) => (
-        <span>{fields?.length || 0} 个</span>
-      ),
+      render: (fields?: string[]) => <span>{fields?.length || 0} 个</span>,
     },
     {
       title: '优先级',
@@ -362,11 +364,7 @@ const FieldPermissionManagement: React.FC = () => {
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic
-              title="启用中"
-              value={statistics.active}
-              valueStyle={{ color: '#52c41a' }}
-            />
+            <Statistic title="启用中" value={statistics.active} valueStyle={{ color: '#52c41a' }} />
           </Card>
         </Col>
         <Col span={6}>
@@ -396,14 +394,14 @@ const FieldPermissionManagement: React.FC = () => {
             <Input
               placeholder="角色ID"
               value={filterRoleId}
-              onChange={e => setFilterRoleId(e.target.value)}
+              onChange={(e) => setFilterRoleId(e.target.value)}
               style={{ width: 150 }}
               allowClear
             />
             <Input
               placeholder="资源类型"
               value={filterResourceType}
-              onChange={e => setFilterResourceType(e.target.value)}
+              onChange={(e) => setFilterResourceType(e.target.value)}
               style={{ width: 150 }}
               allowClear
             />
@@ -474,48 +472,20 @@ const FieldPermissionManagement: React.FC = () => {
 
           <Tabs defaultActiveKey="basic">
             <TabPane tab="基础字段配置" key="basic">
-              <Form.Item
-                name="hiddenFields"
-                label="隐藏字段"
-                tooltip="多个字段用逗号分隔"
-              >
-                <Input.TextArea
-                  placeholder="如: password, secret, 多个用逗号分隔"
-                  rows={2}
-                />
+              <Form.Item name="hiddenFields" label="隐藏字段" tooltip="多个字段用逗号分隔">
+                <Input.TextArea placeholder="如: password, secret, 多个用逗号分隔" rows={2} />
               </Form.Item>
 
-              <Form.Item
-                name="readOnlyFields"
-                label="只读字段"
-                tooltip="多个字段用逗号分隔"
-              >
-                <Input.TextArea
-                  placeholder="如: id, createdAt, 多个用逗号分隔"
-                  rows={2}
-                />
+              <Form.Item name="readOnlyFields" label="只读字段" tooltip="多个字段用逗号分隔">
+                <Input.TextArea placeholder="如: id, createdAt, 多个用逗号分隔" rows={2} />
               </Form.Item>
 
-              <Form.Item
-                name="writableFields"
-                label="可写字段"
-                tooltip="多个字段用逗号分隔"
-              >
-                <Input.TextArea
-                  placeholder="如: name, email, 多个用逗号分隔"
-                  rows={2}
-                />
+              <Form.Item name="writableFields" label="可写字段" tooltip="多个字段用逗号分隔">
+                <Input.TextArea placeholder="如: name, email, 多个用逗号分隔" rows={2} />
               </Form.Item>
 
-              <Form.Item
-                name="requiredFields"
-                label="必填字段"
-                tooltip="多个字段用逗号分隔"
-              >
-                <Input.TextArea
-                  placeholder="如: name, email, 多个用逗号分隔"
-                  rows={2}
-                />
+              <Form.Item name="requiredFields" label="必填字段" tooltip="多个字段用逗号分隔">
+                <Input.TextArea placeholder="如: name, email, 多个用逗号分隔" rows={2} />
               </Form.Item>
             </TabPane>
 
@@ -530,10 +500,7 @@ const FieldPermissionManagement: React.FC = () => {
               </Form.Item>
 
               <Form.Item name="description" label="描述">
-                <Input.TextArea
-                  placeholder="请输入配置描述"
-                  rows={3}
-                />
+                <Input.TextArea placeholder="请输入配置描述" rows={3} />
               </Form.Item>
             </TabPane>
           </Tabs>
@@ -556,20 +523,14 @@ const FieldPermissionManagement: React.FC = () => {
             <Descriptions.Item label="ID" span={2}>
               {detailPermission.id}
             </Descriptions.Item>
-            <Descriptions.Item label="角色ID">
-              {detailPermission.roleId}
-            </Descriptions.Item>
-            <Descriptions.Item label="资源类型">
-              {detailPermission.resourceType}
-            </Descriptions.Item>
+            <Descriptions.Item label="角色ID">{detailPermission.roleId}</Descriptions.Item>
+            <Descriptions.Item label="资源类型">{detailPermission.resourceType}</Descriptions.Item>
             <Descriptions.Item label="操作类型">
               <Tag color={getOperationColor(detailPermission.operation)}>
                 {getOperationLabel(detailPermission.operation)}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="优先级">
-              {detailPermission.priority}
-            </Descriptions.Item>
+            <Descriptions.Item label="优先级">{detailPermission.priority}</Descriptions.Item>
             <Descriptions.Item label="状态" span={2}>
               <Tag color={detailPermission.isActive ? 'success' : 'error'}>
                 {detailPermission.isActive ? '启用' : '禁用'}
@@ -578,8 +539,10 @@ const FieldPermissionManagement: React.FC = () => {
             <Descriptions.Item label="隐藏字段" span={2}>
               {detailPermission.hiddenFields?.length ? (
                 <Space wrap>
-                  {detailPermission.hiddenFields.map(field => (
-                    <Tag key={field} color="red">{field}</Tag>
+                  {detailPermission.hiddenFields.map((field) => (
+                    <Tag key={field} color="red">
+                      {field}
+                    </Tag>
                   ))}
                 </Space>
               ) : (
@@ -589,8 +552,10 @@ const FieldPermissionManagement: React.FC = () => {
             <Descriptions.Item label="只读字段" span={2}>
               {detailPermission.readOnlyFields?.length ? (
                 <Space wrap>
-                  {detailPermission.readOnlyFields.map(field => (
-                    <Tag key={field} color="orange">{field}</Tag>
+                  {detailPermission.readOnlyFields.map((field) => (
+                    <Tag key={field} color="orange">
+                      {field}
+                    </Tag>
                   ))}
                 </Space>
               ) : (
@@ -600,8 +565,10 @@ const FieldPermissionManagement: React.FC = () => {
             <Descriptions.Item label="可写字段" span={2}>
               {detailPermission.writableFields?.length ? (
                 <Space wrap>
-                  {detailPermission.writableFields.map(field => (
-                    <Tag key={field} color="blue">{field}</Tag>
+                  {detailPermission.writableFields.map((field) => (
+                    <Tag key={field} color="blue">
+                      {field}
+                    </Tag>
                   ))}
                 </Space>
               ) : (
@@ -611,37 +578,41 @@ const FieldPermissionManagement: React.FC = () => {
             <Descriptions.Item label="必填字段" span={2}>
               {detailPermission.requiredFields?.length ? (
                 <Space wrap>
-                  {detailPermission.requiredFields.map(field => (
-                    <Tag key={field} color="purple">{field}</Tag>
+                  {detailPermission.requiredFields.map((field) => (
+                    <Tag key={field} color="purple">
+                      {field}
+                    </Tag>
                   ))}
                 </Space>
               ) : (
                 <span style={{ color: '#999' }}>无</span>
               )}
             </Descriptions.Item>
-            {detailPermission.fieldAccessMap && Object.keys(detailPermission.fieldAccessMap).length > 0 && (
-              <Descriptions.Item label="字段访问映射" span={2}>
-                <Space wrap>
-                  {Object.entries(detailPermission.fieldAccessMap).map(([field, level]) => (
-                    <Tag key={field} color="cyan">
-                      {field}: {level}
-                    </Tag>
-                  ))}
-                </Space>
-              </Descriptions.Item>
-            )}
-            {detailPermission.fieldTransforms && Object.keys(detailPermission.fieldTransforms).length > 0 && (
-              <Descriptions.Item label="字段转换规则" span={2}>
-                <Space direction="vertical">
-                  {Object.entries(detailPermission.fieldTransforms).map(([field, transform]) => (
-                    <div key={field}>
-                      <Tag color="geekblue">{field}</Tag>
-                      <span>类型: {transform.type}</span>
-                    </div>
-                  ))}
-                </Space>
-              </Descriptions.Item>
-            )}
+            {detailPermission.fieldAccessMap &&
+              Object.keys(detailPermission.fieldAccessMap).length > 0 && (
+                <Descriptions.Item label="字段访问映射" span={2}>
+                  <Space wrap>
+                    {Object.entries(detailPermission.fieldAccessMap).map(([field, level]) => (
+                      <Tag key={field} color="cyan">
+                        {field}: {level}
+                      </Tag>
+                    ))}
+                  </Space>
+                </Descriptions.Item>
+              )}
+            {detailPermission.fieldTransforms &&
+              Object.keys(detailPermission.fieldTransforms).length > 0 && (
+                <Descriptions.Item label="字段转换规则" span={2}>
+                  <Space direction="vertical">
+                    {Object.entries(detailPermission.fieldTransforms).map(([field, transform]) => (
+                      <div key={field}>
+                        <Tag color="geekblue">{field}</Tag>
+                        <span>类型: {transform.type}</span>
+                      </div>
+                    ))}
+                  </Space>
+                </Descriptions.Item>
+              )}
             <Descriptions.Item label="描述" span={2}>
               {detailPermission.description || <span style={{ color: '#999' }}>无</span>}
             </Descriptions.Item>

@@ -1,6 +1,6 @@
-import { Injectable, Logger, HttpException, HttpStatus } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { HttpClientService, ServiceTokenService } from "@cloudphone/shared";
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { HttpClientService, ServiceTokenService } from '@cloudphone/shared';
 
 /**
  * 配额限制接口（与 user-service 保持一致）
@@ -40,10 +40,10 @@ export interface QuotaUsage {
  * 配额状态枚举
  */
 export enum QuotaStatus {
-  ACTIVE = "active",
-  EXCEEDED = "exceeded",
-  SUSPENDED = "suspended",
-  EXPIRED = "expired",
+  ACTIVE = 'active',
+  EXCEEDED = 'exceeded',
+  SUSPENDED = 'suspended',
+  EXPIRED = 'expired',
 }
 
 /**
@@ -82,7 +82,7 @@ export interface UsageReport {
   cpuCores: number;
   memoryGB: number;
   storageGB: number;
-  operation: "increment" | "decrement"; // 增加或减少
+  operation: 'increment' | 'decrement'; // 增加或减少
 }
 
 /**
@@ -98,20 +98,19 @@ export class QuotaClientService {
   constructor(
     private readonly httpClient: HttpClientService,
     private readonly configService: ConfigService,
-    private readonly serviceTokenService: ServiceTokenService,
+    private readonly serviceTokenService: ServiceTokenService
   ) {
     this.userServiceUrl =
-      this.configService.get<string>("USER_SERVICE_URL") ||
-      "http://localhost:30001";
+      this.configService.get<string>('USER_SERVICE_URL') || 'http://localhost:30001';
   }
 
   /**
    * 生成服务间认证 headers
    */
   private async getServiceHeaders(): Promise<Record<string, string>> {
-    const token = await this.serviceTokenService.generateToken("device-service");
+    const token = await this.serviceTokenService.generateToken('device-service');
     return {
-      "X-Service-Token": token,
+      'X-Service-Token': token,
     };
   }
 
@@ -131,35 +130,26 @@ export class QuotaClientService {
           timeout: 5000,
           retries: 3,
           circuitBreaker: true,
-        },
+        }
       );
 
       return data;
     } catch (error) {
-      this.logger.error(
-        `Failed to fetch quota for user ${userId}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to fetch quota for user ${userId}`, error.stack);
 
       if (error.response?.status === 404) {
-        throw new HttpException(
-          `User quota not found for user ${userId}`,
-          HttpStatus.NOT_FOUND,
-        );
+        throw new HttpException(`User quota not found for user ${userId}`, HttpStatus.NOT_FOUND);
       }
 
       // 熔断器打开时的降级处理
-      if (error.message?.includes("Circuit breaker is open")) {
+      if (error.message?.includes('Circuit breaker is open')) {
         throw new HttpException(
-          "User service temporarily unavailable",
-          HttpStatus.SERVICE_UNAVAILABLE,
+          'User service temporarily unavailable',
+          HttpStatus.SERVICE_UNAVAILABLE
         );
       }
 
-      throw new HttpException(
-        "Failed to fetch user quota",
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException('Failed to fetch user quota', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -176,7 +166,7 @@ export class QuotaClientService {
       cpuCores: number;
       memoryMB: number;
       storageMB: number;
-    },
+    }
   ): Promise<QuotaCheckResult> {
     try {
       const quota = await this.getUserQuota(userId);
@@ -193,13 +183,12 @@ export class QuotaClientService {
       if (quota.validUntil && new Date() > new Date(quota.validUntil)) {
         return {
           allowed: false,
-          reason: "Quota has expired",
+          reason: 'Quota has expired',
         };
       }
 
       // 3. 检查设备数量配额
-      const remainingDevices =
-        quota.limits.maxDevices - quota.usage.currentDevices;
+      const remainingDevices = quota.limits.maxDevices - quota.usage.currentDevices;
 
       if (remainingDevices < 1) {
         return {
@@ -234,12 +223,9 @@ export class QuotaClientService {
       }
 
       // 5. 检查总资源配额
-      const remainingCpu =
-        quota.limits.totalCpuCores - quota.usage.usedCpuCores;
-      const remainingMemory =
-        quota.limits.totalMemoryGB - quota.usage.usedMemoryGB;
-      const remainingStorage =
-        quota.limits.totalStorageGB - quota.usage.usedStorageGB;
+      const remainingCpu = quota.limits.totalCpuCores - quota.usage.usedCpuCores;
+      const remainingMemory = quota.limits.totalMemoryGB - quota.usage.usedMemoryGB;
+      const remainingStorage = quota.limits.totalStorageGB - quota.usage.usedStorageGB;
 
       if (deviceSpecs.cpuCores > remainingCpu) {
         return {
@@ -277,21 +263,18 @@ export class QuotaClientService {
       this.logger.error(`Quota check failed for user ${userId}`, error.stack);
 
       // 如果配额服务不可用，根据配置决定是否允许创建
-      const allowOnError = this.configService.get<boolean>(
-        "QUOTA_ALLOW_ON_ERROR",
-        false,
-      );
+      const allowOnError = this.configService.get<boolean>('QUOTA_ALLOW_ON_ERROR', false);
 
       if (allowOnError) {
         this.logger.warn(
-          "Quota service unavailable, allowing operation due to QUOTA_ALLOW_ON_ERROR=true",
+          'Quota service unavailable, allowing operation due to QUOTA_ALLOW_ON_ERROR=true'
         );
         return { allowed: true };
       }
 
       return {
         allowed: false,
-        reason: "Quota service unavailable",
+        reason: 'Quota service unavailable',
       };
     }
   }
@@ -299,14 +282,9 @@ export class QuotaClientService {
   /**
    * 上报设备用量（创建设备时增加用量）（使用内部 API + 服务 Token）
    */
-  async reportDeviceUsage(
-    userId: string,
-    usageReport: UsageReport,
-  ): Promise<void> {
+  async reportDeviceUsage(userId: string, usageReport: UsageReport): Promise<void> {
     try {
-      this.logger.debug(
-        `Reporting usage for user ${userId}: ${JSON.stringify(usageReport)}`,
-      );
+      this.logger.debug(`Reporting usage for user ${userId}: ${JSON.stringify(usageReport)}`);
 
       const headers = await this.getServiceHeaders();
 
@@ -318,21 +296,16 @@ export class QuotaClientService {
           timeout: 5000,
           retries: 3,
           circuitBreaker: true,
-        },
+        }
       );
 
       this.logger.log(`Usage reported successfully for user ${userId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to report usage for user ${userId}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to report usage for user ${userId}`, error.stack);
 
       // 用量上报失败不应阻止设备创建，但应该记录告警
       // 可以考虑使用消息队列进行重试
-      this.logger.warn(
-        "Usage reporting failed, device created but quota may be inconsistent",
-      );
+      this.logger.warn('Usage reporting failed, device created but quota may be inconsistent');
     }
   }
 
@@ -344,8 +317,7 @@ export class QuotaClientService {
       const quota = await this.getUserQuota(userId);
 
       const remainingConcurrent =
-        quota.limits.maxConcurrentDevices -
-        quota.usage.currentConcurrentDevices;
+        quota.limits.maxConcurrentDevices - quota.usage.currentConcurrentDevices;
 
       if (remainingConcurrent < 1) {
         return {
@@ -356,10 +328,7 @@ export class QuotaClientService {
 
       return { allowed: true };
     } catch (error) {
-      this.logger.error(
-        `Concurrent quota check failed for user ${userId}`,
-        error.stack,
-      );
+      this.logger.error(`Concurrent quota check failed for user ${userId}`, error.stack);
       return { allowed: true }; // 检查失败时默认允许
     }
   }
@@ -385,15 +354,12 @@ export class QuotaClientService {
           timeout: 5000,
           retries: 3,
           circuitBreaker: true,
-        },
+        }
       );
 
       this.logger.log(`Concurrent device count incremented for user ${userId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to increment concurrent devices for user ${userId}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to increment concurrent devices for user ${userId}`, error.stack);
     }
   }
 
@@ -418,15 +384,12 @@ export class QuotaClientService {
           timeout: 5000,
           retries: 3,
           circuitBreaker: true,
-        },
+        }
       );
 
       this.logger.log(`Concurrent device count decremented for user ${userId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to decrement concurrent devices for user ${userId}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to decrement concurrent devices for user ${userId}`, error.stack);
     }
   }
 
@@ -462,14 +425,11 @@ export class QuotaClientService {
           : 0,
       traffic:
         quota.limits.monthlyTrafficGB > 0
-          ? (quota.usage.monthlyTrafficUsedGB / quota.limits.monthlyTrafficGB) *
-            100
+          ? (quota.usage.monthlyTrafficUsedGB / quota.limits.monthlyTrafficGB) * 100
           : 0,
       hours:
         quota.limits.maxUsageHoursPerMonth > 0
-          ? (quota.usage.monthlyUsageHours /
-              quota.limits.maxUsageHoursPerMonth) *
-            100
+          ? (quota.usage.monthlyUsageHours / quota.limits.maxUsageHoursPerMonth) * 100
           : 0,
     };
   }

@@ -194,12 +194,14 @@ describe('PaymentsService - Core Functions', () => {
 
       ordersRepository.findOne.mockResolvedValue(mockOrder);
       paymentsRepository.create.mockReturnValue(mockPayment);
-      paymentsRepository.save.mockResolvedValue(createMockPayment({
-        ...mockPayment,
-        status: PaymentStatus.PROCESSING,
-        transactionId: 'wx_prepay_123',
-        paymentUrl: 'weixin://wxpay/bizpayurl?pr=abc123',
-      }));
+      paymentsRepository.save.mockResolvedValue(
+        createMockPayment({
+          ...mockPayment,
+          status: PaymentStatus.PROCESSING,
+          transactionId: 'wx_prepay_123',
+          paymentUrl: 'weixin://wxpay/bizpayurl?pr=abc123',
+        })
+      );
       wechatPayProvider.createNativeOrder.mockResolvedValue({
         prepayId: 'wx_prepay_123',
         codeUrl: 'weixin://wxpay/bizpayurl?pr=abc123',
@@ -222,12 +224,8 @@ describe('PaymentsService - Core Functions', () => {
 
       ordersRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        '订单不存在',
-      );
+      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(NotFoundException);
+      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow('订单不存在');
     });
 
     it('should throw BadRequestException when order status is not PENDING', async () => {
@@ -237,16 +235,18 @@ describe('PaymentsService - Core Functions', () => {
         amount: 99.99,
       };
 
-      ordersRepository.findOne.mockResolvedValue(createMockOrder({
-        ...mockOrder,
-        status: OrderStatus.PAID,
-      }));
+      ordersRepository.findOne.mockResolvedValue(
+        createMockOrder({
+          ...mockOrder,
+          status: OrderStatus.PAID,
+        })
+      );
 
       await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
       await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        '订单状态不允许支付',
+        '订单状态不允许支付'
       );
     });
 
@@ -260,10 +260,10 @@ describe('PaymentsService - Core Functions', () => {
       ordersRepository.findOne.mockResolvedValue(mockOrder);
 
       await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
       await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        '支付金额与订单金额不一致',
+        '支付金额与订单金额不一致'
       );
     });
 
@@ -277,23 +277,19 @@ describe('PaymentsService - Core Functions', () => {
       ordersRepository.findOne.mockResolvedValue(mockOrder);
       paymentsRepository.create.mockReturnValue(mockPayment);
       paymentsRepository.save.mockResolvedValue(mockPayment);
-      wechatPayProvider.createNativeOrder.mockRejectedValue(
-        new Error('WeChat API error'),
-      );
+      wechatPayProvider.createNativeOrder.mockRejectedValue(new Error('WeChat API error'));
 
       await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        InternalServerErrorException,
+        InternalServerErrorException
       );
-      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        '支付创建失败',
-      );
+      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow('支付创建失败');
 
       // Verify payment was marked as failed
       expect(paymentsRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           status: PaymentStatus.FAILED,
           failureReason: 'WeChat API error',
-        }),
+        })
       );
     });
   });
@@ -306,14 +302,18 @@ describe('PaymentsService - Core Functions', () => {
         amount: 99.99,
       };
 
-      ordersRepository.findOne.mockResolvedValue(createMockOrder({
-        ...mockOrder,
-        status: OrderStatus.PENDING,
-      }));
-      paymentsRepository.create.mockReturnValue(createMockPayment({
-        ...mockPayment,
-        method: PaymentMethod.BALANCE,
-      }));
+      ordersRepository.findOne.mockResolvedValue(
+        createMockOrder({
+          ...mockOrder,
+          status: OrderStatus.PENDING,
+        })
+      );
+      paymentsRepository.create.mockReturnValue(
+        createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.BALANCE,
+        })
+      );
 
       let savedPayment: any;
       paymentsRepository.save.mockImplementation((payment: any) => {
@@ -332,25 +332,23 @@ describe('PaymentsService - Core Functions', () => {
         newBalance: 100.01,
       });
 
-      ordersRepository.save.mockResolvedValue(createMockOrder({
-        ...mockOrder,
-        status: OrderStatus.PAID,
-      }));
+      ordersRepository.save.mockResolvedValue(
+        createMockOrder({
+          ...mockOrder,
+          status: OrderStatus.PAID,
+        })
+      );
 
       const result = await service.createPayment(createDto, 'user-123');
 
       expect(result.status).toBe(PaymentStatus.SUCCESS);
       expect(result.transactionId).toBe('bal_tx_123');
       expect(balanceClient.checkBalance).toHaveBeenCalledWith('user-123', 99.99);
-      expect(balanceClient.deductBalance).toHaveBeenCalledWith(
-        'user-123',
-        99.99,
-        'order-123',
-      );
+      expect(balanceClient.deductBalance).toHaveBeenCalledWith('user-123', 99.99, 'order-123');
       expect(ordersRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           status: OrderStatus.PAID,
-        }),
+        })
       );
     });
 
@@ -361,14 +359,18 @@ describe('PaymentsService - Core Functions', () => {
         amount: 99.99,
       };
 
-      ordersRepository.findOne.mockResolvedValue(createMockOrder({
-        ...mockOrder,
-        status: OrderStatus.PENDING,
-      }));
-      paymentsRepository.create.mockReturnValue(createMockPayment({
-        ...mockPayment,
-        method: PaymentMethod.BALANCE,
-      }));
+      ordersRepository.findOne.mockResolvedValue(
+        createMockOrder({
+          ...mockOrder,
+          status: OrderStatus.PENDING,
+        })
+      );
+      paymentsRepository.create.mockReturnValue(
+        createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.BALANCE,
+        })
+      );
       paymentsRepository.save.mockImplementation((payment: any) => Promise.resolve(payment as any));
 
       balanceClient.checkBalance.mockResolvedValue({
@@ -377,11 +379,9 @@ describe('PaymentsService - Core Functions', () => {
       });
 
       await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        InternalServerErrorException,
+        InternalServerErrorException
       );
-      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        '支付创建失败',
-      );
+      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow('支付创建失败');
 
       expect(balanceClient.deductBalance).not.toHaveBeenCalled();
 
@@ -398,14 +398,18 @@ describe('PaymentsService - Core Functions', () => {
         amount: 99.99,
       };
 
-      ordersRepository.findOne.mockResolvedValue(createMockOrder({
-        ...mockOrder,
-        status: OrderStatus.PENDING,
-      }));
-      paymentsRepository.create.mockReturnValue(createMockPayment({
-        ...mockPayment,
-        method: PaymentMethod.BALANCE,
-      }));
+      ordersRepository.findOne.mockResolvedValue(
+        createMockOrder({
+          ...mockOrder,
+          status: OrderStatus.PENDING,
+        })
+      );
+      paymentsRepository.create.mockReturnValue(
+        createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.BALANCE,
+        })
+      );
       paymentsRepository.save.mockImplementation((payment: any) => Promise.resolve(payment as any));
 
       balanceClient.checkBalance.mockResolvedValue({
@@ -416,11 +420,9 @@ describe('PaymentsService - Core Functions', () => {
       balanceClient.deductBalance.mockRejectedValue(new Error('Deduction failed'));
 
       await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        InternalServerErrorException,
+        InternalServerErrorException
       );
-      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
-        '支付创建失败',
-      );
+      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow('支付创建失败');
 
       // Verify payment was marked as failed
       const savedCalls = (paymentsRepository.save as jest.Mock).mock.calls;
@@ -469,10 +471,10 @@ describe('PaymentsService - Core Functions', () => {
       paymentsRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.refundPayment('non-existent', { amount: 99.99, reason: 'Test' }),
+        service.refundPayment('non-existent', { amount: 99.99, reason: 'Test' })
       ).rejects.toThrow(NotFoundException);
       await expect(
-        service.refundPayment('non-existent', { amount: 99.99, reason: 'Test' }),
+        service.refundPayment('non-existent', { amount: 99.99, reason: 'Test' })
       ).rejects.toThrow('支付记录不存在');
     });
 
@@ -485,10 +487,10 @@ describe('PaymentsService - Core Functions', () => {
       paymentsRepository.findOne.mockResolvedValue(pendingPayment);
 
       await expect(
-        service.refundPayment('payment-123', { amount: 99.99, reason: 'Test' }),
+        service.refundPayment('payment-123', { amount: 99.99, reason: 'Test' })
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.refundPayment('payment-123', { amount: 99.99, reason: 'Test' }),
+        service.refundPayment('payment-123', { amount: 99.99, reason: 'Test' })
       ).rejects.toThrow('只能对支付成功的订单进行退款');
     });
 
@@ -502,10 +504,10 @@ describe('PaymentsService - Core Functions', () => {
       paymentsRepository.findOne.mockResolvedValue(successfulPayment);
 
       await expect(
-        service.refundPayment('payment-123', { amount: 150.0, reason: 'Test' }),
+        service.refundPayment('payment-123', { amount: 150.0, reason: 'Test' })
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.refundPayment('payment-123', { amount: 150.0, reason: 'Test' }),
+        service.refundPayment('payment-123', { amount: 150.0, reason: 'Test' })
       ).rejects.toThrow('退款金额不能大于支付金额');
     });
 
@@ -519,10 +521,10 @@ describe('PaymentsService - Core Functions', () => {
       ordersRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.refundPayment('payment-123', { amount: 99.99, reason: 'Test' }),
+        service.refundPayment('payment-123', { amount: 99.99, reason: 'Test' })
       ).rejects.toThrow(NotFoundException);
       await expect(
-        service.refundPayment('payment-123', { amount: 99.99, reason: 'Test' }),
+        service.refundPayment('payment-123', { amount: 99.99, reason: 'Test' })
       ).rejects.toThrow('订单不存在');
     });
   });
@@ -547,12 +549,8 @@ describe('PaymentsService - Core Functions', () => {
     it('should throw NotFoundException when payment does not exist', async () => {
       paymentsRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.queryPayment('non-existent')).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.queryPayment('non-existent')).rejects.toThrow(
-        '支付记录不存在',
-      );
+      await expect(service.queryPayment('non-existent')).rejects.toThrow(NotFoundException);
+      await expect(service.queryPayment('non-existent')).rejects.toThrow('支付记录不存在');
     });
   });
 
@@ -573,11 +571,9 @@ describe('PaymentsService - Core Functions', () => {
     });
 
     it('should throw BadRequestException for unsupported payment method', () => {
+      expect(() => service['getPaymentProvider']('INVALID' as any)).toThrow(BadRequestException);
       expect(() => service['getPaymentProvider']('INVALID' as any)).toThrow(
-        BadRequestException,
-      );
-      expect(() => service['getPaymentProvider']('INVALID' as any)).toThrow(
-        'Unsupported payment method',
+        'Unsupported payment method'
       );
     });
   });

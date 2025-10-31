@@ -38,8 +38,8 @@ export const queueConfig: BullModuleOptions = {
  * 队列名称常量
  */
 export enum QueueName {
-  EMAIL = 'email',           // 邮件队列
-  SMS = 'sms',               // 短信队列
+  EMAIL = 'email', // 邮件队列
+  SMS = 'sms', // 短信队列
   NOTIFICATION = 'notification', // 通知队列
   DEVICE_OPERATION = 'device-operation', // 设备操作队列
   DATA_EXPORT = 'data-export', // 数据导出队列
@@ -52,10 +52,10 @@ export enum QueueName {
  * 任务优先级
  */
 export enum JobPriority {
-  CRITICAL = 1,   // 关键任务（立即处理）
-  HIGH = 3,       // 高优先级
-  NORMAL = 5,     // 正常优先级
-  LOW = 7,        // 低优先级
+  CRITICAL = 1, // 关键任务（立即处理）
+  HIGH = 3, // 高优先级
+  NORMAL = 5, // 正常优先级
+  LOW = 7, // 低优先级
   BACKGROUND = 10, // 后台任务
 }
 
@@ -63,9 +63,9 @@ export enum JobPriority {
  * 任务延迟配置（毫秒）
  */
 export const JobDelay = {
-  IMMEDIATE: 0,             // 立即执行
-  SHORT: 5 * 1000,          // 5秒后
-  MEDIUM: 30 * 1000,        // 30秒后
-  LONG: 5 * 60 * 1000,      // 5分钟后
+  IMMEDIATE: 0, // 立即执行
+  SHORT: 5 * 1000, // 5秒后
+  MEDIUM: 30 * 1000, // 30秒后
+  LONG: 5 * 60 * 1000, // 5分钟后
   VERY_LONG: 30 * 60 * 1000, // 30分钟后
 };

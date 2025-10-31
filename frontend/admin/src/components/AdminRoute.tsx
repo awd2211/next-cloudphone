@@ -63,12 +63,14 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     // 显示403页面
     if (showForbidden) {
       return (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '80vh'
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '80vh',
+          }}
+        >
           <Result
             status="403"
             title="403"

@@ -162,9 +162,7 @@ const PlanPurchase = () => {
               </span>
             </Descriptions.Item>
             <Descriptions.Item label="有效期">{plan.duration} 天</Descriptions.Item>
-            <Descriptions.Item label="设备数量">
-              最多 {plan.deviceLimit} 个
-            </Descriptions.Item>
+            <Descriptions.Item label="设备数量">最多 {plan.deviceLimit} 个</Descriptions.Item>
             {plan.description && (
               <Descriptions.Item label="套餐说明">{plan.description}</Descriptions.Item>
             )}
@@ -200,19 +198,43 @@ const PlanPurchase = () => {
               size="large"
             >
               <Space direction="vertical" style={{ width: '100%' }}>
-                <Radio value="wechat" style={{ width: '100%', padding: 16, border: '1px solid #d9d9d9', borderRadius: 4 }}>
+                <Radio
+                  value="wechat"
+                  style={{
+                    width: '100%',
+                    padding: 16,
+                    border: '1px solid #d9d9d9',
+                    borderRadius: 4,
+                  }}
+                >
                   <Space>
                     <span style={{ fontSize: 24 }}>💚</span>
                     <span style={{ fontSize: 16 }}>微信支付</span>
                   </Space>
                 </Radio>
-                <Radio value="alipay" style={{ width: '100%', padding: 16, border: '1px solid #d9d9d9', borderRadius: 4 }}>
+                <Radio
+                  value="alipay"
+                  style={{
+                    width: '100%',
+                    padding: 16,
+                    border: '1px solid #d9d9d9',
+                    borderRadius: 4,
+                  }}
+                >
                   <Space>
                     <span style={{ fontSize: 24 }}>💙</span>
                     <span style={{ fontSize: 16 }}>支付宝</span>
                   </Space>
                 </Radio>
-                <Radio value="balance" style={{ width: '100%', padding: 16, border: '1px solid #d9d9d9', borderRadius: 4 }}>
+                <Radio
+                  value="balance"
+                  style={{
+                    width: '100%',
+                    padding: 16,
+                    border: '1px solid #d9d9d9',
+                    borderRadius: 4,
+                  }}
+                >
                   <Space>
                     <span style={{ fontSize: 24 }}>💰</span>
                     <span style={{ fontSize: 16 }}>余额支付</span>

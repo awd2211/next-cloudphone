@@ -1,9 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import {
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { QuotasService } from './quotas.service';
 import { Quota, QuotaStatus, QuotaType } from '../entities/quota.entity';
 import { createMockRepository } from '@cloudphone/shared/testing';
@@ -130,12 +127,8 @@ describe('QuotasService', () => {
       quotaRepository.findOne.mockResolvedValue(existingQuota);
 
       // Act & Assert
-      await expect(service.createQuota(dto)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.createQuota(dto)).rejects.toThrow(
-        '用户已有活跃配额',
-      );
+      await expect(service.createQuota(dto)).rejects.toThrow(BadRequestException);
+      await expect(service.createQuota(dto)).rejects.toThrow('用户已有活跃配额');
       expect(quotaRepository.save).not.toHaveBeenCalled();
     });
   });
@@ -166,12 +159,8 @@ describe('QuotasService', () => {
       quotaRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.getUserQuota(userId)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.getUserQuota(userId)).rejects.toThrow(
-        `用户 ${userId} 未找到活跃配额`,
-      );
+      await expect(service.getUserQuota(userId)).rejects.toThrow(NotFoundException);
+      await expect(service.getUserQuota(userId)).rejects.toThrow(`用户 ${userId} 未找到活跃配额`);
     });
 
     it('应该在配额过期时更新状态并抛出异常', async () => {
@@ -189,12 +178,8 @@ describe('QuotasService', () => {
       });
 
       // Act & Assert
-      await expect(service.getUserQuota(userId)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.getUserQuota(userId)).rejects.toThrow(
-        '配额已过期',
-      );
+      await expect(service.getUserQuota(userId)).rejects.toThrow(BadRequestException);
+      await expect(service.getUserQuota(userId)).rejects.toThrow('配额已过期');
       expect(quotaRepository.save).toHaveBeenCalled();
     });
   });
@@ -484,9 +469,7 @@ describe('QuotasService', () => {
       quotaRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.updateQuota(quotaId, dto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.updateQuota(quotaId, dto)).rejects.toThrow(NotFoundException);
     });
   });
 });

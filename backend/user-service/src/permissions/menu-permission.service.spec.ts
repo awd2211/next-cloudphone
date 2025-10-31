@@ -71,9 +71,7 @@ describe('MenuPermissionService', () => {
       expect(result).toBeDefined();
       expect(result.length).toBeGreaterThan(0);
       // 验证菜单按顺序排序
-      expect(result[0].meta?.order).toBeLessThanOrEqual(
-        result[1]?.meta?.order ?? 999,
-      );
+      expect(result[0].meta?.order).toBeLessThanOrEqual(result[1]?.meta?.order ?? 999);
     });
 
     it('应该根据权限过滤菜单', async () => {

@@ -80,7 +80,7 @@ export const usePermission = () => {
         throw new Error(response.message || '获取权限失败');
       }
     } catch (error: any) {
-      setContext(prev => ({
+      setContext((prev) => ({
         ...prev,
         loading: false,
         error,
@@ -103,7 +103,7 @@ export const usePermission = () => {
       if (!permission) return true;
       return context.permissions.includes(permission);
     },
-    [context.permissions, context.isSuperAdmin],
+    [context.permissions, context.isSuperAdmin]
   );
 
   /**
@@ -113,9 +113,9 @@ export const usePermission = () => {
     (permissions: string[]): boolean => {
       if (context.isSuperAdmin) return true;
       if (!permissions || permissions.length === 0) return true;
-      return permissions.some(p => context.permissions.includes(p));
+      return permissions.some((p) => context.permissions.includes(p));
     },
-    [context.permissions, context.isSuperAdmin],
+    [context.permissions, context.isSuperAdmin]
   );
 
   /**
@@ -125,9 +125,9 @@ export const usePermission = () => {
     (permissions: string[]): boolean => {
       if (context.isSuperAdmin) return true;
       if (!permissions || permissions.length === 0) return true;
-      return permissions.every(p => context.permissions.includes(p));
+      return permissions.every((p) => context.permissions.includes(p));
     },
-    [context.permissions, context.isSuperAdmin],
+    [context.permissions, context.isSuperAdmin]
   );
 
   /**
@@ -136,7 +136,7 @@ export const usePermission = () => {
   const refreshPermissions = useCallback(async () => {
     globalPermissions = null;
     permissionPromise = null;
-    setContext(prev => ({ ...prev, loading: true }));
+    setContext((prev) => ({ ...prev, loading: true }));
     await loadPermissions();
   }, [loadPermissions]);
 
@@ -249,15 +249,11 @@ export const usePermissionGuard = () => {
         anyOf?: string[];
         allOf?: string[];
         fallback?: React.ReactNode;
-      },
+      }
     ) => {
-      return (
-        <PermissionGuard {...options}>
-          {component}
-        </PermissionGuard>
-      );
+      return <PermissionGuard {...options}>{component}</PermissionGuard>;
     },
-    [],
+    []
   );
 };
 

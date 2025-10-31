@@ -1,8 +1,8 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import * as fs from "fs";
-import { exec } from "child_process";
-import { promisify } from "util";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as fs from 'fs';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
@@ -16,10 +16,10 @@ export interface GpuInfo {
 
 export interface GpuConfig {
   enabled: boolean;
-  mode: "host" | "guest";
-  driver: "virgl" | "angle" | "swiftshader";
+  mode: 'host' | 'guest';
+  driver: 'virgl' | 'angle' | 'swiftshader';
   devices: string[];
-  performance: "high" | "balanced" | "low";
+  performance: 'high' | 'balanced' | 'low';
 }
 
 @Injectable()
@@ -39,11 +39,11 @@ export class GpuManagerService {
       return this.gpuInfo;
     }
 
-    this.logger.log("Detecting GPU...");
+    this.logger.log('Detecting GPU...');
 
     const info: GpuInfo = {
       available: false,
-      driver: "none",
+      driver: 'none',
       devices: [],
       renderNodes: [],
       capabilities: [],
@@ -51,18 +51,14 @@ export class GpuManagerService {
 
     try {
       // 检查 /dev/dri 目录
-      if (fs.existsSync("/dev/dri")) {
-        const files = fs.readdirSync("/dev/dri");
+      if (fs.existsSync('/dev/dri')) {
+        const files = fs.readdirSync('/dev/dri');
 
         // 查找渲染节点
-        info.renderNodes = files
-          .filter((f) => f.startsWith("renderD"))
-          .map((f) => `/dev/dri/${f}`);
+        info.renderNodes = files.filter((f) => f.startsWith('renderD')).map((f) => `/dev/dri/${f}`);
 
         // 查找卡设备
-        info.devices = files
-          .filter((f) => f.startsWith("card"))
-          .map((f) => `/dev/dri/${f}`);
+        info.devices = files.filter((f) => f.startsWith('card')).map((f) => `/dev/dri/${f}`);
 
         if (info.renderNodes.length > 0 || info.devices.length > 0) {
           info.available = true;
@@ -71,40 +67,38 @@ export class GpuManagerService {
 
       // 检测 GPU 驱动
       try {
-        const { stdout } = await execAsync(
-          'glxinfo 2>/dev/null | grep "OpenGL renderer"',
-        );
+        const { stdout } = await execAsync('glxinfo 2>/dev/null | grep "OpenGL renderer"');
         if (stdout) {
           info.driver = this.parseDriverFromGlxinfo(stdout);
-          info.capabilities.push("OpenGL");
+          info.capabilities.push('OpenGL');
         }
       } catch (error) {
-        this.logger.debug("glxinfo not available or no OpenGL support");
+        this.logger.debug('glxinfo not available or no OpenGL support');
       }
 
       // 检测 Vulkan 支持
       try {
-        const { stdout } = await execAsync("vulkaninfo --summary 2>/dev/null");
-        if (stdout && stdout.includes("Vulkan Instance")) {
-          info.capabilities.push("Vulkan");
+        const { stdout } = await execAsync('vulkaninfo --summary 2>/dev/null');
+        if (stdout && stdout.includes('Vulkan Instance')) {
+          info.capabilities.push('Vulkan');
         }
       } catch (error) {
-        this.logger.debug("Vulkan not available");
+        this.logger.debug('Vulkan not available');
       }
 
       this.gpuInfo = info;
 
       if (info.available) {
         this.logger.log(
-          `GPU detected: ${info.driver}, Devices: ${info.devices.length}, Render nodes: ${info.renderNodes.length}, Capabilities: ${info.capabilities.join(", ")}`,
+          `GPU detected: ${info.driver}, Devices: ${info.devices.length}, Render nodes: ${info.renderNodes.length}, Capabilities: ${info.capabilities.join(', ')}`
         );
       } else {
-        this.logger.warn("No GPU detected, will use software rendering");
+        this.logger.warn('No GPU detected, will use software rendering');
       }
 
       return info;
     } catch (error) {
-      this.logger.error("Failed to detect GPU", error.stack);
+      this.logger.error('Failed to detect GPU', error.stack);
       return info;
     }
   }
@@ -113,29 +107,27 @@ export class GpuManagerService {
    * 从 glxinfo 输出解析驱动名称
    */
   private parseDriverFromGlxinfo(output: string): string {
-    if (output.includes("llvmpipe")) return "llvmpipe (software)";
-    if (output.includes("virgl")) return "virgl";
-    if (output.includes("NVIDIA")) return "nvidia";
-    if (output.includes("AMD")) return "amd";
-    if (output.includes("Intel")) return "intel";
-    return "unknown";
+    if (output.includes('llvmpipe')) return 'llvmpipe (software)';
+    if (output.includes('virgl')) return 'virgl';
+    if (output.includes('NVIDIA')) return 'nvidia';
+    if (output.includes('AMD')) return 'amd';
+    if (output.includes('Intel')) return 'intel';
+    return 'unknown';
   }
 
   /**
    * 获取推荐的 GPU 配置
    */
-  getRecommendedConfig(
-    performance: "high" | "balanced" | "low" = "balanced",
-  ): GpuConfig {
+  getRecommendedConfig(performance: 'high' | 'balanced' | 'low' = 'balanced'): GpuConfig {
     const gpuInfo = this.gpuInfo;
 
     if (!gpuInfo || !gpuInfo.available) {
       return {
         enabled: false,
-        mode: "guest",
-        driver: "swiftshader",
+        mode: 'guest',
+        driver: 'swiftshader',
         devices: [],
-        performance: "low",
+        performance: 'low',
       };
     }
 
@@ -143,27 +135,24 @@ export class GpuManagerService {
     const configs = {
       high: {
         enabled: true,
-        mode: "guest" as const,
-        driver: "virgl" as const,
-        devices:
-          gpuInfo.renderNodes.length > 0
-            ? gpuInfo.renderNodes
-            : gpuInfo.devices,
-        performance: "high" as const,
+        mode: 'guest' as const,
+        driver: 'virgl' as const,
+        devices: gpuInfo.renderNodes.length > 0 ? gpuInfo.renderNodes : gpuInfo.devices,
+        performance: 'high' as const,
       },
       balanced: {
         enabled: true,
-        mode: "guest" as const,
-        driver: "virgl" as const,
+        mode: 'guest' as const,
+        driver: 'virgl' as const,
         devices: gpuInfo.renderNodes.slice(0, 1), // 使用第一个渲染节点
-        performance: "balanced" as const,
+        performance: 'balanced' as const,
       },
       low: {
         enabled: false,
-        mode: "guest" as const,
-        driver: "swiftshader" as const,
+        mode: 'guest' as const,
+        driver: 'swiftshader' as const,
         devices: [],
-        performance: "low" as const,
+        performance: 'low' as const,
       },
     };
 
@@ -173,9 +162,7 @@ export class GpuManagerService {
   /**
    * 验证 GPU 配置
    */
-  async validateConfig(
-    config: GpuConfig,
-  ): Promise<{ valid: boolean; errors: string[] }> {
+  async validateConfig(config: GpuConfig): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
 
     if (!config.enabled) {
@@ -197,11 +184,8 @@ export class GpuManagerService {
     }
 
     // 检查驱动支持
-    if (
-      config.driver === "virgl" &&
-      !this.gpuInfo?.capabilities.includes("OpenGL")
-    ) {
-      errors.push("virgl driver requires OpenGL support");
+    if (config.driver === 'virgl' && !this.gpuInfo?.capabilities.includes('OpenGL')) {
+      errors.push('virgl driver requires OpenGL support');
     }
 
     return {
@@ -221,7 +205,7 @@ export class GpuManagerService {
     return config.devices.map((device) => ({
       PathOnHost: device,
       PathInContainer: device,
-      CgroupPermissions: "rwm",
+      CgroupPermissions: 'rwm',
     }));
   }
 
@@ -240,22 +224,22 @@ export class GpuManagerService {
 
     // 驱动配置
     switch (config.driver) {
-      case "virgl":
-        env.push("REDROID_GPU_GUEST_DRIVER=virgl");
-        env.push("GALLIUM_DRIVER=virpipe");
+      case 'virgl':
+        env.push('REDROID_GPU_GUEST_DRIVER=virgl');
+        env.push('GALLIUM_DRIVER=virpipe');
         break;
-      case "angle":
-        env.push("REDROID_GPU_GUEST_DRIVER=angle");
+      case 'angle':
+        env.push('REDROID_GPU_GUEST_DRIVER=angle');
         break;
-      case "swiftshader":
-        env.push("REDROID_GPU_GUEST_DRIVER=swiftshader");
+      case 'swiftshader':
+        env.push('REDROID_GPU_GUEST_DRIVER=swiftshader');
         break;
     }
 
     // 性能优化
-    if (config.performance === "high") {
-      env.push("MESA_GL_VERSION_OVERRIDE=3.3");
-      env.push("MESA_GLSL_VERSION_OVERRIDE=330");
+    if (config.performance === 'high') {
+      env.push('MESA_GL_VERSION_OVERRIDE=3.3');
+      env.push('MESA_GLSL_VERSION_OVERRIDE=330');
     }
 
     return env;
@@ -278,12 +262,10 @@ export class GpuManagerService {
     const mockResult = {
       fps: this.gpuInfo?.available ? 60 : 30,
       renderTime: this.gpuInfo?.available ? 16.7 : 33.3,
-      driver: this.gpuInfo?.driver || "software",
+      driver: this.gpuInfo?.driver || 'software',
     };
 
-    this.logger.log(
-      `GPU benchmark: ${mockResult.fps} FPS, ${mockResult.renderTime}ms render time`,
-    );
+    this.logger.log(`GPU benchmark: ${mockResult.fps} FPS, ${mockResult.renderTime}ms render time`);
 
     return mockResult;
   }
@@ -331,35 +313,29 @@ export class GpuManagerService {
     const warnings: string[] = [];
 
     if (!info.available) {
-      warnings.push("No GPU detected. Gaming performance will be limited.");
-      recommendations.push(
-        "Install GPU drivers and ensure /dev/dri is accessible",
-      );
+      warnings.push('No GPU detected. Gaming performance will be limited.');
+      recommendations.push('Install GPU drivers and ensure /dev/dri is accessible');
     } else {
-      if (info.driver.includes("software")) {
-        warnings.push(
-          "Using software rendering (llvmpipe). Performance will be poor.",
-        );
-        recommendations.push("Install proper GPU drivers (Mesa, NVIDIA, AMD)");
+      if (info.driver.includes('software')) {
+        warnings.push('Using software rendering (llvmpipe). Performance will be poor.');
+        recommendations.push('Install proper GPU drivers (Mesa, NVIDIA, AMD)');
       }
 
       if (info.renderNodes.length === 0 && info.devices.length > 0) {
         warnings.push(
-          "No render nodes found. Using card devices may require additional permissions.",
+          'No render nodes found. Using card devices may require additional permissions.'
         );
-        recommendations.push(
-          "Ensure user has access to /dev/dri/renderD* devices",
-        );
+        recommendations.push('Ensure user has access to /dev/dri/renderD* devices');
       }
 
-      if (!info.capabilities.includes("OpenGL")) {
-        warnings.push("OpenGL not available. virgl driver will not work.");
-        recommendations.push("Install mesa-utils and verify OpenGL support");
+      if (!info.capabilities.includes('OpenGL')) {
+        warnings.push('OpenGL not available. virgl driver will not work.');
+        recommendations.push('Install mesa-utils and verify OpenGL support');
       }
 
-      if (info.capabilities.includes("Vulkan")) {
+      if (info.capabilities.includes('Vulkan')) {
         recommendations.push(
-          "Vulkan support detected. Consider using ANGLE driver for better performance.",
+          'Vulkan support detected. Consider using ANGLE driver for better performance.'
         );
       }
     }

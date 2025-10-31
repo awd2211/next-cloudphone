@@ -14,9 +14,14 @@ const PlanPurchase = lazy(() => import('@/pages/PlanPurchase'));
 const MyDevices = lazy(() => import('@/pages/MyDevices'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const DeviceDetail = lazy(() => import('@/pages/DeviceDetail'));
+const DeviceMonitor = lazy(() => import('@/pages/DeviceMonitor'));
+const DeviceSnapshots = lazy(() => import('@/pages/DeviceSnapshots'));
 const MyOrders = lazy(() => import('@/pages/MyOrders'));
 const Profile = lazy(() => import('@/pages/Profile'));
+const ProfilePreferences = lazy(() => import('@/pages/ProfilePreferences'));
+const PaymentMethods = lazy(() => import('@/pages/PaymentMethods'));
 const AppMarket = lazy(() => import('@/pages/AppMarket'));
+const AppDetail = lazy(() => import('@/pages/AppDetail'));
 const Recharge = lazy(() => import('@/pages/Recharge'));
 const UsageRecords = lazy(() => import('@/pages/UsageRecords'));
 const TicketList = lazy(() => import('@/pages/Tickets/TicketList'));
@@ -39,12 +44,14 @@ const ReferralRecords = lazy(() => import('@/pages/Referral/ReferralRecords'));
 
 // Loading 组件
 const PageLoading = () => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '400px'
-  }}>
+  <div
+    style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '400px',
+    }}
+  >
     <Spin size="large" tip="加载中..." />
   </div>
 );
@@ -94,6 +101,14 @@ export const router = createBrowserRouter([
         element: withSuspense(DeviceDetail),
       },
       {
+        path: 'devices/:id/monitor',
+        element: withSuspense(DeviceMonitor),
+      },
+      {
+        path: 'devices/:id/snapshots',
+        element: withSuspense(DeviceSnapshots),
+      },
+      {
         path: 'orders',
         element: withSuspense(MyOrders),
       },
@@ -102,8 +117,20 @@ export const router = createBrowserRouter([
         element: withSuspense(Profile),
       },
       {
+        path: 'profile/preferences',
+        element: withSuspense(ProfilePreferences),
+      },
+      {
+        path: 'profile/payment-methods',
+        element: withSuspense(PaymentMethods),
+      },
+      {
         path: 'apps',
         element: withSuspense(AppMarket),
+      },
+      {
+        path: 'apps/:id',
+        element: withSuspense(AppDetail),
       },
       {
         path: 'recharge',

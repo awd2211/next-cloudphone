@@ -11,7 +11,7 @@ export class ConsulService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {
     const host = this.configService.get('CONSUL_HOST', 'localhost');
     const port = this.configService.get('CONSUL_PORT', '8500');
-    
+
     this.consul = new (Consul as any)({
       host,
       port,
@@ -50,7 +50,7 @@ export class ConsulService implements OnModuleInit, OnModuleDestroy {
     name: string,
     port: number,
     tags: string[] = [],
-    healthPath: string = '/health',
+    healthPath: string = '/health'
   ): Promise<string | null> {
     const serviceId = `${name}-${process.env.HOSTNAME || 'dev'}-${Date.now()}`;
     const address = process.env.SERVICE_HOST || '127.0.0.1';
@@ -77,13 +77,11 @@ export class ConsulService implements OnModuleInit, OnModuleDestroy {
       };
 
       this.logger.debug(`Registering service with config: ${JSON.stringify(config, null, 2)}`);
-      
+
       await this.consul.agent.service.register(config);
 
       this.serviceId = serviceId;
-      this.logger.log(
-        `✅ Service registered: ${serviceId} at ${address}:${port}${healthPath}`,
-      );
+      this.logger.log(`✅ Service registered: ${serviceId} at ${address}:${port}${healthPath}`);
 
       return serviceId;
     } catch (error) {
@@ -190,4 +188,3 @@ export class ConsulService implements OnModuleInit, OnModuleDestroy {
     }
   }
 }
-

@@ -170,8 +170,8 @@ const ExceptionPaymentsContent: React.FC = () => {
       render: (_, record) => {
         const type = getExceptionType(record);
         const colorMap: Record<string, string> = {
-          '长时间处理中': 'warning',
-          '长时间待支付': 'warning',
+          长时间处理中: 'warning',
+          长时间待支付: 'warning',
           支付失败: 'error',
           退款超时: 'error',
           其他异常: 'default',
@@ -204,11 +204,7 @@ const ExceptionPaymentsContent: React.FC = () => {
       width: 120,
       render: (amount: number, record) => {
         const currencySymbol =
-          record.currency === 'CNY'
-            ? '¥'
-            : record.currency === 'USD'
-            ? '$'
-            : record.currency;
+          record.currency === 'CNY' ? '¥' : record.currency === 'USD' ? '$' : record.currency;
         return `${currencySymbol}${(amount || 0).toFixed(2)}`;
       },
     },
@@ -234,9 +230,7 @@ const ExceptionPaymentsContent: React.FC = () => {
       render: (date: string) => {
         const hoursSince = dayjs().diff(dayjs(date), 'hour');
         return (
-          <Tooltip title={`${hoursSince} 小时前`}>
-            {dayjs(date).format('YYYY-MM-DD HH:mm')}
-          </Tooltip>
+          <Tooltip title={`${hoursSince} 小时前`}>{dayjs(date).format('YYYY-MM-DD HH:mm')}</Tooltip>
         );
       },
     },
@@ -358,14 +352,16 @@ const ExceptionPaymentsContent: React.FC = () => {
               <Descriptions.Item label="订单号" span={2}>
                 {selectedPayment.order?.orderNo || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="用户ID">
-                {selectedPayment.userId}
-              </Descriptions.Item>
+              <Descriptions.Item label="用户ID">{selectedPayment.userId}</Descriptions.Item>
               <Descriptions.Item label="交易号">
                 {selectedPayment.transactionId || '-'}
               </Descriptions.Item>
               <Descriptions.Item label="支付金额">
-                {selectedPayment.currency === 'CNY' ? '¥' : selectedPayment.currency === 'USD' ? '$' : selectedPayment.currency}
+                {selectedPayment.currency === 'CNY'
+                  ? '¥'
+                  : selectedPayment.currency === 'USD'
+                    ? '$'
+                    : selectedPayment.currency}
                 {selectedPayment.amount.toFixed(2)}
               </Descriptions.Item>
               <Descriptions.Item label="支付方式">

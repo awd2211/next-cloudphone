@@ -20,8 +20,7 @@ import {
  * @SkipTenantIsolation()
  * async crossTenantOperation() { ... }
  */
-export const SkipTenantIsolation = () =>
-  SetMetadata(SKIP_TENANT_ISOLATION_KEY, true);
+export const SkipTenantIsolation = () => SetMetadata(SKIP_TENANT_ISOLATION_KEY, true);
 
 /**
  * 自定义租户字段名
@@ -31,8 +30,7 @@ export const SkipTenantIsolation = () =>
  * @TenantField('organizationId')
  * async getOrganizationData() { ... }
  */
-export const TenantField = (fieldName: string) =>
-  SetMetadata(TENANT_FIELD_KEY, fieldName);
+export const TenantField = (fieldName: string) => SetMetadata(TENANT_FIELD_KEY, fieldName);
 
 /**
  * 自动设置租户ID
@@ -57,34 +55,19 @@ export const AutoSetTenant = () => SetMetadata(AUTO_SET_TENANT_KEY, true);
  * @AuditPermission({ resource: 'user', action: 'delete' })
  * async deleteUser(@Param('id') id: string) { ... }
  */
-export const AuditPermission = (config?: {
-  resource?: string;
-  action?: string;
-}) => {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) {
+export const AuditPermission = (config?: { resource?: string; action?: string }) => {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     // 启用审计
     SetMetadata(AUDIT_PERMISSION_KEY, true)(target, propertyKey, descriptor);
 
     // 设置资源类型
     if (config?.resource) {
-      SetMetadata(AUDIT_RESOURCE_KEY, config.resource)(
-        target,
-        propertyKey,
-        descriptor,
-      );
+      SetMetadata(AUDIT_RESOURCE_KEY, config.resource)(target, propertyKey, descriptor);
     }
 
     // 设置操作类型
     if (config?.action) {
-      SetMetadata(AUDIT_ACTION_KEY, config.action)(
-        target,
-        propertyKey,
-        descriptor,
-      );
+      SetMetadata(AUDIT_ACTION_KEY, config.action)(target, propertyKey, descriptor);
     }
 
     return descriptor;
@@ -110,8 +93,7 @@ export const SkipAudit = () => SetMetadata(SKIP_AUDIT_KEY, true);
  * @AuditCreate('user')
  * async createUser(@Body() dto: CreateUserDto) { ... }
  */
-export const AuditCreate = (resource: string) =>
-  AuditPermission({ resource, action: 'create' });
+export const AuditCreate = (resource: string) => AuditPermission({ resource, action: 'create' });
 
 /**
  * 组合装饰器：审计更新操作
@@ -121,8 +103,7 @@ export const AuditCreate = (resource: string) =>
  * @AuditUpdate('user')
  * async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) { ... }
  */
-export const AuditUpdate = (resource: string) =>
-  AuditPermission({ resource, action: 'update' });
+export const AuditUpdate = (resource: string) => AuditPermission({ resource, action: 'update' });
 
 /**
  * 组合装饰器：审计删除操作
@@ -132,8 +113,7 @@ export const AuditUpdate = (resource: string) =>
  * @AuditDelete('user')
  * async deleteUser(@Param('id') id: string) { ... }
  */
-export const AuditDelete = (resource: string) =>
-  AuditPermission({ resource, action: 'delete' });
+export const AuditDelete = (resource: string) => AuditPermission({ resource, action: 'delete' });
 
 /**
  * 组合装饰器：审计导出操作
@@ -143,8 +123,7 @@ export const AuditDelete = (resource: string) =>
  * @AuditExport('user')
  * async exportUsers() { ... }
  */
-export const AuditExport = (resource: string) =>
-  AuditPermission({ resource, action: 'export' });
+export const AuditExport = (resource: string) => AuditPermission({ resource, action: 'export' });
 
 /**
  * 组合装饰器：审计授权操作
@@ -154,8 +133,7 @@ export const AuditExport = (resource: string) =>
  * @AuditGrant('permission')
  * async grantPermission(@Body() dto: GrantPermissionDto) { ... }
  */
-export const AuditGrant = (resource: string) =>
-  AuditPermission({ resource, action: 'grant' });
+export const AuditGrant = (resource: string) => AuditPermission({ resource, action: 'grant' });
 
 /**
  * 组合装饰器：审计撤销操作
@@ -165,5 +143,4 @@ export const AuditGrant = (resource: string) =>
  * @AuditRevoke('permission')
  * async revokePermission(@Body() dto: RevokePermissionDto) { ... }
  */
-export const AuditRevoke = (resource: string) =>
-  AuditPermission({ resource, action: 'revoke' });
+export const AuditRevoke = (resource: string) => AuditPermission({ resource, action: 'revoke' });

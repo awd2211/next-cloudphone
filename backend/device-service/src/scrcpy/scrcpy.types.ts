@@ -12,18 +12,18 @@
  * SCRCPY 视频编码器
  */
 export enum ScrcpyVideoCodec {
-  H264 = "h264",
-  H265 = "h265",
-  AV1 = "av1",
+  H264 = 'h264',
+  H265 = 'h265',
+  AV1 = 'av1',
 }
 
 /**
  * SCRCPY 音频编码器
  */
 export enum ScrcpyAudioCodec {
-  OPUS = "opus",
-  AAC = "aac",
-  RAW = "raw",
+  OPUS = 'opus',
+  AAC = 'aac',
+  RAW = 'raw',
 }
 
 /**
@@ -115,10 +115,10 @@ export interface ScrcpySession {
  * SCRCPY 进程状态
  */
 export enum ScrcpyProcessStatus {
-  STARTING = "starting",
-  RUNNING = "running",
-  STOPPED = "stopped",
-  ERROR = "error",
+  STARTING = 'starting',
+  RUNNING = 'running',
+  STOPPED = 'stopped',
+  ERROR = 'error',
 }
 
 /**
@@ -148,15 +148,15 @@ export interface ScrcpyProcessInfo {
  * SCRCPY 事件类型
  */
 export enum ScrcpyEventType {
-  TOUCH_DOWN = "touch_down",
-  TOUCH_UP = "touch_up",
-  TOUCH_MOVE = "touch_move",
-  KEY_DOWN = "key_down",
-  KEY_UP = "key_up",
-  SCROLL = "scroll",
-  BACK = "back",
-  HOME = "home",
-  APP_SWITCH = "app_switch",
+  TOUCH_DOWN = 'touch_down',
+  TOUCH_UP = 'touch_up',
+  TOUCH_MOVE = 'touch_move',
+  KEY_DOWN = 'key_down',
+  KEY_UP = 'key_up',
+  SCROLL = 'scroll',
+  BACK = 'back',
+  HOME = 'home',
+  APP_SWITCH = 'app_switch',
 }
 
 /**

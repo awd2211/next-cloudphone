@@ -14,7 +14,16 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+  ApiConsumes,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import { diskStorage } from 'multer';
@@ -94,12 +103,9 @@ export class AppsController {
           cb(null, true);
         }
       },
-    }),
+    })
   )
-  async uploadApp(
-    @UploadedFile() file: Express.Multer.File,
-    @Body() createAppDto: CreateAppDto,
-  ) {
+  async uploadApp(@UploadedFile() file: Express.Multer.File, @Body() createAppDto: CreateAppDto) {
     if (!file) {
       throw new BadRequestException('请选择要上传的 APK 文件');
     }
@@ -125,13 +131,13 @@ export class AppsController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('tenantId') tenantId?: string,
-    @Query('category') category?: string,
+    @Query('category') category?: string
   ) {
     const result = await this.appsService.findAll(
       parseInt(page),
       parseInt(limit),
       tenantId,
-      category,
+      category
     );
     return {
       success: true,
@@ -171,13 +177,9 @@ export class AppsController {
   async findAllCursor(
     @Query() paginationDto: CursorPaginationDto,
     @Query('tenantId') tenantId?: string,
-    @Query('category') category?: string,
+    @Query('category') category?: string
   ) {
-    const result = await this.appsService.findAllCursor(
-      paginationDto,
-      tenantId,
-      category,
-    );
+    const result = await this.appsService.findAllCursor(paginationDto, tenantId, category);
     return {
       success: true,
       ...result,
@@ -292,7 +294,7 @@ export class AppsController {
       try {
         const result = await this.appsService.installToDevice(
           installAppDto.applicationId,
-          deviceId,
+          deviceId
         );
         results.push({
           deviceId,
@@ -326,10 +328,7 @@ export class AppsController {
 
     for (const deviceId of uninstallAppDto.deviceIds) {
       try {
-        await this.appsService.uninstallFromDevice(
-          uninstallAppDto.applicationId,
-          deviceId,
-        );
+        await this.appsService.uninstallFromDevice(uninstallAppDto.applicationId, deviceId);
         results.push({
           deviceId,
           success: true,
@@ -373,10 +372,7 @@ export class AppsController {
   @ApiResponse({ status: 200, description: '提交成功' })
   @ApiResponse({ status: 400, description: '应用状态不允许提交审核' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async submitForReview(
-    @Param('id') id: string,
-    @Body() dto: SubmitReviewDto,
-  ) {
+  async submitForReview(@Param('id') id: string, @Body() dto: SubmitReviewDto) {
     const app = await this.appsService.submitForReview(id, dto);
     return {
       success: true,
@@ -424,10 +420,7 @@ export class AppsController {
   @ApiResponse({ status: 200, description: '要求修改成功' })
   @ApiResponse({ status: 400, description: '应用不在待审核状态' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async requestChanges(
-    @Param('id') id: string,
-    @Body() dto: RequestChangesDto,
-  ) {
+  async requestChanges(@Param('id') id: string, @Body() dto: RequestChangesDto) {
     const app = await this.appsService.requestChanges(id, dto);
     return {
       success: true,
@@ -459,12 +452,9 @@ export class AppsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async getPendingReviewApps(
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('limit') limit: string = '10'
   ) {
-    const result = await this.appsService.getPendingReviewApps(
-      parseInt(page),
-      parseInt(limit),
-    );
+    const result = await this.appsService.getPendingReviewApps(parseInt(page), parseInt(limit));
     return {
       success: true,
       ...result,
@@ -489,7 +479,7 @@ export class AppsController {
         applicationId: query.applicationId,
         reviewerId: query.reviewerId,
         action: query.action,
-      },
+      }
     );
     return {
       success: true,

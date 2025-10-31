@@ -37,10 +37,7 @@ export interface DeviceFilters {
  * @param enabled - 是否启用查询 (默认: true)
  * @returns React Query infinite query result
  */
-export function useInfiniteDevices(
-  filters?: DeviceFilters,
-  enabled: boolean = true
-) {
+export function useInfiniteDevices(filters?: DeviceFilters, enabled: boolean = true) {
   return useInfiniteQuery({
     // Query Key - 包含所有过滤条件用于缓存隔离
     queryKey: ['devices', 'infinite', filters],
@@ -99,9 +96,7 @@ export function useInfiniteDevices(
  * const allDevices = flattenDevices(data?.pages);
  * ```
  */
-export function flattenDevices(
-  pages?: Array<{ data: Device[] }>
-): Device[] {
+export function flattenDevices(pages?: Array<{ data: Device[] }>): Device[] {
   if (!pages) return [];
   return pages.flatMap((page) => page.data);
 }
@@ -119,9 +114,7 @@ export function flattenDevices(
  * // 显示: "已加载 60 台设备"
  * ```
  */
-export function getTotalLoadedDevices(
-  pages?: Array<{ data: Device[]; count: number }>
-): number {
+export function getTotalLoadedDevices(pages?: Array<{ data: Device[]; count: number }>): number {
   if (!pages) return 0;
   return pages.reduce((total, page) => total + page.count, 0);
 }

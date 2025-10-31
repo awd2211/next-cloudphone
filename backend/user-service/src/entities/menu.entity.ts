@@ -9,7 +9,7 @@ import {
 
 /**
  * 菜单实体
- * 
+ *
  * 用于动态管理系统菜单配置
  */
 @Entity('menus')
@@ -55,4 +55,3 @@ export class Menu {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

@@ -36,7 +36,7 @@ export class AliyunSmsProvider implements ISmsProvider {
     this.accessKeySecret = this.configService.get<string>('ALIYUN_SMS_ACCESS_KEY_SECRET', '');
     this.signName = this.configService.get<string>('ALIYUN_SMS_SIGN_NAME', '');
     this.region = this.configService.get<string>('ALIYUN_SMS_REGION', 'cn-hangzhou');
-    
+
     // 初始化客户端
     this.initializeClient();
   }

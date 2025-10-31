@@ -29,17 +29,13 @@ export class ReportsService {
     private usageRecordRepository: Repository<UsageRecord>,
     @InjectRepository(Plan)
     private planRepository: Repository<Plan>,
-    private configService: ConfigService,
+    private configService: ConfigService
   ) {}
 
   /**
    * 生成用户账单报表
    */
-  async generateUserBillReport(
-    userId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<any> {
+  async generateUserBillReport(userId: string, startDate: Date, endDate: Date): Promise<any> {
     this.logger.log(`Generating bill report for user ${userId}`);
 
     // 获取订单
@@ -62,7 +58,7 @@ export class ReportsService {
 
     // 计算总计
     const totalAmount = orders.reduce((sum, order) => sum + order.amount, 0);
-    const totalCpuHours = usageRecords.reduce((sum, r) => sum + (r.durationSeconds / 3600), 0);
+    const totalCpuHours = usageRecords.reduce((sum, r) => sum + r.durationSeconds / 3600, 0);
     const totalDuration = usageRecords.reduce((sum, r) => sum + r.durationSeconds, 0);
 
     return {
@@ -77,7 +73,7 @@ export class ReportsService {
         totalCpuHours: totalCpuHours.toFixed(2),
         totalDurationHours: (totalDuration / 3600).toFixed(2),
       },
-      orders: orders.map(order => ({
+      orders: orders.map((order) => ({
         id: order.id,
         amount: order.amount,
         status: order.status,
@@ -110,7 +106,7 @@ export class ReportsService {
 
     // 按日期分组统计
     const dailyRevenue = new Map<string, number>();
-    paidOrders.forEach(order => {
+    paidOrders.forEach((order) => {
       const date = order.createdAt.toISOString().split('T')[0];
       const current = dailyRevenue.get(date) || 0;
       dailyRevenue.set(date, current + order.amount);
@@ -118,7 +114,7 @@ export class ReportsService {
 
     // 按套餐分组统计
     const planRevenue = new Map<string, { count: number; amount: number }>();
-    paidOrders.forEach(order => {
+    paidOrders.forEach((order) => {
       const planId = order.planId || 'unknown';
       const current = planRevenue.get(planId) || { count: 0, amount: 0 };
       planRevenue.set(planId, {
@@ -159,7 +155,7 @@ export class ReportsService {
     startDate: Date,
     endDate: Date,
     userId?: string,
-    tenantId?: string,
+    tenantId?: string
   ): Promise<any> {
     this.logger.log(`Generating usage trend report`);
 
@@ -180,13 +176,16 @@ export class ReportsService {
     });
 
     // 按日期分组
-    const dailyUsage = new Map<string, {
-      cpuHours: number;
-      memoryGB: number;
-      duration: number;
-    }>();
+    const dailyUsage = new Map<
+      string,
+      {
+        cpuHours: number;
+        memoryGB: number;
+        duration: number;
+      }
+    >();
 
-    usageRecords.forEach(record => {
+    usageRecords.forEach((record) => {
       const date = record.startTime.toISOString().split('T')[0];
       const current = dailyUsage.get(date) || { cpuHours: 0, memoryGB: 0, duration: 0 };
       // 使用 durationSeconds 计算小时数，quantity 作为资源使用量

@@ -35,17 +35,14 @@ export class TenantInterceptor implements NestInterceptor {
 
   constructor(
     private reflector: Reflector,
-    private tenantIsolation: TenantIsolationService,
+    private tenantIsolation: TenantIsolationService
   ) {}
 
-  async intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<any>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     // 检查是否跳过租户隔离
     const skipTenantIsolation = this.reflector.getAllAndOverride<boolean>(
       SKIP_TENANT_ISOLATION_KEY,
-      [context.getHandler(), context.getClass()],
+      [context.getHandler(), context.getClass()]
     );
 
     if (skipTenantIsolation) {
@@ -61,16 +58,17 @@ export class TenantInterceptor implements NestInterceptor {
     }
 
     // 获取租户字段名
-    const tenantField = this.reflector.getAllAndOverride<string>(
-      TENANT_FIELD_KEY,
-      [context.getHandler(), context.getClass()],
-    ) || 'tenantId';
+    const tenantField =
+      this.reflector.getAllAndOverride<string>(TENANT_FIELD_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) || 'tenantId';
 
     // 检查是否需要自动设置租户ID
-    const autoSetTenant = this.reflector.getAllAndOverride<boolean>(
-      AUTO_SET_TENANT_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const autoSetTenant = this.reflector.getAllAndOverride<boolean>(AUTO_SET_TENANT_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // 处理请求体（POST/PUT/PATCH）
     if (request.body && typeof request.body === 'object') {
@@ -81,49 +79,31 @@ export class TenantInterceptor implements NestInterceptor {
             request.body = await this.tenantIsolation.setDataArrayTenant(
               user.id,
               request.body,
-              tenantField,
+              tenantField
             );
           } else {
             request.body = await this.tenantIsolation.setDataTenant(
               user.id,
               request.body,
-              tenantField,
+              tenantField
             );
           }
-          this.logger.debug(
-            `已为用户 ${user.id} 自动设置租户ID`,
-          );
+          this.logger.debug(`已为用户 ${user.id} 自动设置租户ID`);
         } catch (error) {
-          this.logger.error(
-            `自动设置租户ID失败: ${error.message}`,
-            error.stack,
-          );
+          this.logger.error(`自动设置租户ID失败: ${error.message}`, error.stack);
           throw error;
         }
       } else {
         // 验证租户ID
         try {
           if (Array.isArray(request.body)) {
-            await this.tenantIsolation.validateDataArrayTenant(
-              user.id,
-              request.body,
-              tenantField,
-            );
+            await this.tenantIsolation.validateDataArrayTenant(user.id, request.body, tenantField);
           } else {
-            await this.tenantIsolation.validateDataTenant(
-              user.id,
-              request.body,
-              tenantField,
-            );
+            await this.tenantIsolation.validateDataTenant(user.id, request.body, tenantField);
           }
-          this.logger.debug(
-            `已验证用户 ${user.id} 的租户访问权限`,
-          );
+          this.logger.debug(`已验证用户 ${user.id} 的租户访问权限`);
         } catch (error) {
-          this.logger.error(
-            `租户验证失败: ${error.message}`,
-            error.stack,
-          );
+          this.logger.error(`租户验证失败: ${error.message}`, error.stack);
           throw error;
         }
       }
@@ -133,12 +113,12 @@ export class TenantInterceptor implements NestInterceptor {
     if (request.query && request.query[tenantField]) {
       const canAccess = await this.tenantIsolation.checkCrossTenantAccess(
         user.id,
-        request.query[tenantField],
+        request.query[tenantField]
       );
 
       if (!canAccess) {
         this.logger.warn(
-          `用户 ${user.id} 尝试通过查询参数跨租户访问: ${request.query[tenantField]}`,
+          `用户 ${user.id} 尝试通过查询参数跨租户访问: ${request.query[tenantField]}`
         );
         throw new ForbiddenException('不允许跨租户访问');
       }
@@ -148,12 +128,12 @@ export class TenantInterceptor implements NestInterceptor {
     if (request.params && request.params[tenantField]) {
       const canAccess = await this.tenantIsolation.checkCrossTenantAccess(
         user.id,
-        request.params[tenantField],
+        request.params[tenantField]
       );
 
       if (!canAccess) {
         this.logger.warn(
-          `用户 ${user.id} 尝试通过路径参数跨租户访问: ${request.params[tenantField]}`,
+          `用户 ${user.id} 尝试通过路径参数跨租户访问: ${request.params[tenantField]}`
         );
         throw new ForbiddenException('不允许跨租户访问');
       }
@@ -169,45 +149,28 @@ export class TenantInterceptor implements NestInterceptor {
         try {
           // 验证单个对象
           if (typeof data === 'object' && !Array.isArray(data) && data[tenantField]) {
-            await this.tenantIsolation.validateDataTenant(
-              user.id,
-              data,
-              tenantField,
-            );
+            await this.tenantIsolation.validateDataTenant(user.id, data, tenantField);
           }
 
           // 验证数组
           if (Array.isArray(data)) {
-            await this.tenantIsolation.validateDataArrayTenant(
-              user.id,
-              data,
-              tenantField,
-            );
+            await this.tenantIsolation.validateDataArrayTenant(user.id, data, tenantField);
           }
 
           // 验证分页数据
           if (this.isPaginatedData(data)) {
             const items = data.data || data.items || data.list;
             if (items && Array.isArray(items)) {
-              await this.tenantIsolation.validateDataArrayTenant(
-                user.id,
-                items,
-                tenantField,
-              );
+              await this.tenantIsolation.validateDataArrayTenant(user.id, items, tenantField);
             }
           }
         } catch (error) {
-          this.logger.error(
-            `响应数据租户验证失败: ${error.message}`,
-            error.stack,
-          );
+          this.logger.error(`响应数据租户验证失败: ${error.message}`, error.stack);
           // 响应验证失败时记录警告但不阻止响应
           // 这是为了防止数据泄露
-          this.logger.warn(
-            `检测到潜在的跨租户数据泄露，已记录但未阻止响应`,
-          );
+          this.logger.warn(`检测到潜在的跨租户数据泄露，已记录但未阻止响应`);
         }
-      }),
+      })
     );
   }
 

@@ -77,7 +77,7 @@ export class StripeProvider implements IPaymentProvider {
       params;
 
     this.logger.log(
-      `Creating Stripe ${mode || 'hosted'} payment: ${paymentNo}, amount: ${amount} ${currency}`,
+      `Creating Stripe ${mode || 'hosted'} payment: ${paymentNo}, amount: ${amount} ${currency}`
     );
 
     try {
@@ -98,7 +98,9 @@ export class StripeProvider implements IPaymentProvider {
             },
           ],
           mode: 'payment',
-          success_url: returnUrl || `${this.configService.get('FRONTEND_URL')}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+          success_url:
+            returnUrl ||
+            `${this.configService.get('FRONTEND_URL')}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: returnUrl || `${this.configService.get('FRONTEND_URL')}/payment/cancel`,
           client_reference_id: paymentNo,
           customer: customerId,
@@ -193,7 +195,8 @@ export class StripeProvider implements IPaymentProvider {
           ],
           mode: 'subscription',
           success_url:
-            successUrl || `${this.configService.get('FRONTEND_URL')}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+            successUrl ||
+            `${this.configService.get('FRONTEND_URL')}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: cancelUrl || `${this.configService.get('FRONTEND_URL')}/subscription/cancel`,
           customer: customerId,
           customer_email: !customerId ? customerEmail : undefined,
@@ -206,7 +209,7 @@ export class StripeProvider implements IPaymentProvider {
         // 获取订阅详情（如果已创建）
         if (session.subscription) {
           const subscription = await this.stripe.subscriptions.retrieve(
-            session.subscription as string,
+            session.subscription as string
           );
           return this.mapSubscriptionResult(subscription, session.url || '');
         }
@@ -388,7 +391,9 @@ export class StripeProvider implements IPaymentProvider {
       throw new Error('Stripe not initialized');
     }
 
-    this.logger.log(`Canceling Stripe subscription: ${subscriptionId}, immediately: ${immediately}`);
+    this.logger.log(
+      `Canceling Stripe subscription: ${subscriptionId}, immediately: ${immediately}`
+    );
 
     try {
       if (immediately) {
@@ -463,7 +468,7 @@ export class StripeProvider implements IPaymentProvider {
    */
   private mapSubscriptionResult(
     subscription: Stripe.Subscription,
-    hostedPageUrl?: string,
+    hostedPageUrl?: string
   ): SubscriptionResult {
     const invoice = subscription.latest_invoice as Stripe.Invoice | null;
     const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent | null;

@@ -14,12 +14,12 @@ import { Role } from './role.entity';
  * 数据范围类型
  */
 export enum ScopeType {
-  ALL = 'all',               // 全部数据（不限制）
-  TENANT = 'tenant',         // 本租户数据
+  ALL = 'all', // 全部数据（不限制）
+  TENANT = 'tenant', // 本租户数据
   DEPARTMENT = 'department', // 本部门及子部门数据
   DEPARTMENT_ONLY = 'department_only', // 仅本部门数据（不含子部门）
-  SELF = 'self',             // 仅本人创建的数据
-  CUSTOM = 'custom',         // 自定义过滤条件
+  SELF = 'self', // 仅本人创建的数据
+  CUSTOM = 'custom', // 自定义过滤条件
 }
 
 /**

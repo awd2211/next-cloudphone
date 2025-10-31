@@ -68,7 +68,7 @@ export function createCustomDatabaseConfig(options: {
       database: configService.get<string>('DB_DATABASE', options.databaseName),
       entities: options.entities || [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: options.synchronize ?? false,
-      logging: options.logging ?? (configService.get<string>('NODE_ENV') === 'development'),
+      logging: options.logging ?? configService.get<string>('NODE_ENV') === 'development',
       extra: {
         max: 20,
         min: 5,

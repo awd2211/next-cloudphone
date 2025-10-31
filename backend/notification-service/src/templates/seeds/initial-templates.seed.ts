@@ -80,7 +80,8 @@ export const initialTemplates = [
         </a>
       </div>
     `,
-    smsTemplate: '【云手机】警告：检测到账号{{username}}异常登录尝试，IP:{{ipAddress}}。如非本人操作请立即修改密码。',
+    smsTemplate:
+      '【云手机】警告：检测到账号{{username}}异常登录尝试，IP:{{ipAddress}}。如非本人操作请立即修改密码。',
     channels: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
     language: 'zh-CN',
     isActive: true,
@@ -393,11 +394,11 @@ export const initialTemplates = [
     language: 'zh-CN',
     isActive: true,
     defaultData: {
-      amount: 100.00,
+      amount: 100.0,
       orderId: 'ORD-20250122-001',
       paymentMethod: '支付宝',
       paidAt: new Date(),
-      balance: 500.00,
+      balance: 500.0,
       invoiceUrl: 'https://cloudphone.example.com/invoices/001',
     },
     description: '支付成功后的确认通知',
@@ -447,7 +448,7 @@ export const initialTemplates = [
     isActive: true,
     defaultData: {
       orderId: 'ORD-20250122-001',
-      amount: 100.00,
+      amount: 100.0,
       reason: '余额不足',
       failedAt: new Date(),
       retryUrl: 'https://cloudphone.example.com/orders/retry/001',
@@ -481,14 +482,20 @@ export const initialTemplates = [
         </a>
       </div>
     `,
-    smsTemplate: '【云手机】余额不足！当前{{formatCurrency balance}}，预计{{daysRemaining}}天后服务暂停，请及时充值。',
-    channels: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.WEBSOCKET, NotificationChannel.PUSH],
+    smsTemplate:
+      '【云手机】余额不足！当前{{formatCurrency balance}}，预计{{daysRemaining}}天后服务暂停，请及时充值。',
+    channels: [
+      NotificationChannel.EMAIL,
+      NotificationChannel.SMS,
+      NotificationChannel.WEBSOCKET,
+      NotificationChannel.PUSH,
+    ],
     language: 'zh-CN',
     isActive: true,
     defaultData: {
-      balance: 10.00,
+      balance: 10.0,
       daysRemaining: 2,
-      dailyCost: 5.00,
+      dailyCost: 5.0,
       rechargeUrl: 'https://cloudphone.example.com/recharge',
     },
     description: '账户余额不足时的提醒通知',
@@ -544,10 +551,10 @@ export const initialTemplates = [
     defaultData: {
       month: '2025年1月',
       invoiceNumber: 'INV-202501-001',
-      totalAmount: 150.00,
-      deviceCost: 100.00,
-      trafficCost: 30.00,
-      otherCost: 20.00,
+      totalAmount: 150.0,
+      deviceCost: 100.0,
+      trafficCost: 30.0,
+      otherCost: 20.0,
       generatedAt: new Date(),
       invoiceUrl: 'https://cloudphone.example.com/invoices/INV-202501-001',
     },
@@ -682,8 +689,14 @@ export const initialTemplates = [
         </p>
       </div>
     `,
-    smsTemplate: '【云手机】系统将于{{formatDate startTime}}维护{{duration}}小时，服务可能中断，请提前准备。',
-    channels: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.WEBSOCKET, NotificationChannel.PUSH],
+    smsTemplate:
+      '【云手机】系统将于{{formatDate startTime}}维护{{duration}}小时，服务可能中断，请提前准备。',
+    channels: [
+      NotificationChannel.EMAIL,
+      NotificationChannel.SMS,
+      NotificationChannel.WEBSOCKET,
+      NotificationChannel.PUSH,
+    ],
     language: 'zh-CN',
     isActive: true,
     defaultData: {
@@ -693,5 +706,659 @@ export const initialTemplates = [
       maintenanceType: '系统升级',
     },
     description: '系统维护前的提前通知',
+  },
+
+  {
+    code: 'system.announcement',
+    name: '系统公告',
+    type: NotificationType.SYSTEM_ANNOUNCEMENT,
+    title: '系统公告',
+    body: '{{title}}: {{content}}',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1890ff;">📢 系统公告</h2>
+        <p>尊敬的用户，</p>
+        <div style="background: #e6f7ff; border-left: 4px solid #1890ff; padding: 20px; margin: 20px 0; border-radius: 4px;">
+          <h3 style="margin-top: 0; color: #1890ff;">{{title}}</h3>
+          <div style="line-height: 1.6;">
+            {{content}}
+          </div>
+        </div>
+        <p style="color: #999; font-size: 12px; margin-top: 30px;">
+          发布时间：{{formatDate publishedAt}}
+        </p>
+      </div>
+    `,
+    smsTemplate: '【云手机】系统公告：{{title}}。详情请登录平台查看。',
+    channels: [NotificationChannel.EMAIL, NotificationChannel.WEBSOCKET, NotificationChannel.PUSH],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      title: '重要通知',
+      content: '这是系统公告内容',
+      publishedAt: new Date(),
+    },
+    description: '系统发布重要公告时使用',
+  },
+
+  {
+    code: 'system.update',
+    name: '系统更新通知',
+    type: NotificationType.SYSTEM_UPDATE,
+    title: '系统更新',
+    body: '系统已更新至版本 {{version}}，新增功能：{{features}}',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #52c41a;">🎉 系统更新</h2>
+        <p>尊敬的用户，</p>
+        <p>系统已成功更新，为您带来更好的体验！</p>
+        <div style="background: #f6ffed; border-left: 4px solid #52c41a; padding: 15px; margin: 20px 0;">
+          <p><strong>版本信息：</strong></p>
+          <ul>
+            <li>新版本：<strong>{{version}}</strong></li>
+            <li>更新时间：{{formatDate updatedAt}}</li>
+          </ul>
+        </div>
+        <p><strong>✨ 新增功能：</strong></p>
+        <div style="background: #fafafa; padding: 15px; border-radius: 4px; margin: 15px 0;">
+          {{features}}
+        </div>
+        <p><strong>🔧 优化改进：</strong></p>
+        <div style="background: #fafafa; padding: 15px; border-radius: 4px; margin: 15px 0;">
+          {{improvements}}
+        </div>
+        <p>感谢您的支持！</p>
+      </div>
+    `,
+    smsTemplate: '【云手机】系统已更新至{{version}}，带来更好体验！',
+    channels: [NotificationChannel.EMAIL, NotificationChannel.WEBSOCKET, NotificationChannel.PUSH],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      version: 'v2.0.0',
+      features: '新增云手机批量管理功能',
+      improvements: '优化了界面响应速度',
+      updatedAt: new Date(),
+    },
+    description: '系统版本更新时的通知',
+  },
+
+  // ==================== 设备相关补充模板 ====================
+
+  {
+    code: 'device.started',
+    name: '云手机启动成功',
+    type: NotificationType.DEVICE_STARTED,
+    title: '云手机已启动',
+    body: '您的云手机 {{deviceName}} 已成功启动，现在可以使用了。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #52c41a;">▶️ 云手机已启动</h2>
+        <p>尊敬的用户，</p>
+        <p>您的云手机已成功启动！</p>
+        <div style="background: #f6ffed; border-left: 4px solid #52c41a; padding: 15px; margin: 20px 0;">
+          <p><strong>设备信息：</strong></p>
+          <ul>
+            <li>设备名称：{{deviceName}}</li>
+            <li>设备ID：{{deviceId}}</li>
+            <li>启动时间：{{formatDate startedAt}}</li>
+          </ul>
+        </div>
+        <a href="{{deviceUrl}}" style="display: inline-block; background: #52c41a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">
+          打开云手机
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】您的云手机{{deviceName}}已启动，可以使用了！',
+    channels: [NotificationChannel.WEBSOCKET, NotificationChannel.PUSH],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      deviceName: '我的云手机',
+      deviceId: 'device-12345',
+      startedAt: new Date(),
+      deviceUrl: 'https://cloudphone.example.com/devices/device-12345',
+    },
+    description: '云手机启动成功后的通知',
+  },
+
+  {
+    code: 'device.stopped',
+    name: '云手机已停止',
+    type: NotificationType.DEVICE_STOPPED,
+    title: '云手机已停止',
+    body: '您的云手机 {{deviceName}} 已停止运行。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #faad14;">⏸️ 云手机已停止</h2>
+        <p>尊敬的用户，</p>
+        <p>您的云手机已停止运行。</p>
+        <div style="background: #fffbe6; border-left: 4px solid #faad14; padding: 15px; margin: 20px 0;">
+          <p><strong>设备信息：</strong></p>
+          <ul>
+            <li>设备名称：{{deviceName}}</li>
+            <li>设备ID：{{deviceId}}</li>
+            <li>停止时间：{{formatDate stoppedAt}}</li>
+            <li>运行时长：{{runningDuration}}</li>
+          </ul>
+        </div>
+        <p>您可以随时重新启动云手机。</p>
+        <a href="{{deviceUrl}}" style="display: inline-block; background: #1890ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">
+          查看设备
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】您的云手机{{deviceName}}已停止运行。',
+    channels: [NotificationChannel.WEBSOCKET, NotificationChannel.PUSH],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      deviceName: '我的云手机',
+      deviceId: 'device-12345',
+      stoppedAt: new Date(),
+      runningDuration: '2小时30分钟',
+      deviceUrl: 'https://cloudphone.example.com/devices/device-12345',
+    },
+    description: '云手机停止运行时的通知',
+  },
+
+  {
+    code: 'device.connection_lost',
+    name: '设备连接丢失',
+    type: NotificationType.DEVICE_CONNECTION_LOST,
+    title: '设备连接丢失',
+    body: '您的云手机 {{deviceName}} 连接已断开，正在尝试重新连接。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #ff4d4f;">⚠️ 设备连接丢失</h2>
+        <p>尊敬的用户，</p>
+        <p>检测到您的云手机连接已断开。</p>
+        <div style="background: #fff1f0; border-left: 4px solid #ff4d4f; padding: 15px; margin: 20px 0;">
+          <p><strong>设备信息：</strong></p>
+          <ul>
+            <li>设备名称：{{deviceName}}</li>
+            <li>设备ID：{{deviceId}}</li>
+            <li>断开时间：{{formatDate disconnectedAt}}</li>
+            <li>最后活动：{{formatDate lastActivity}}</li>
+          </ul>
+        </div>
+        <p>系统正在自动尝试重新连接。如果问题持续，请检查：</p>
+        <ul>
+          <li>网络连接状态</li>
+          <li>设备运行状态</li>
+          <li>服务器健康状态</li>
+        </ul>
+        <a href="{{deviceUrl}}" style="display: inline-block; background: #ff4d4f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">
+          查看设备状态
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】设备{{deviceName}}连接丢失，正在重连。',
+    channels: [NotificationChannel.EMAIL, NotificationChannel.WEBSOCKET, NotificationChannel.PUSH],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      deviceName: '我的云手机',
+      deviceId: 'device-12345',
+      disconnectedAt: new Date(),
+      lastActivity: new Date(Date.now() - 5 * 60 * 1000),
+      deviceUrl: 'https://cloudphone.example.com/devices/device-12345',
+    },
+    description: '设备连接丢失时的告警通知',
+  },
+
+  {
+    code: 'device.deleted',
+    name: '云手机已删除',
+    type: NotificationType.DEVICE_DELETED,
+    title: '云手机已删除',
+    body: '您的云手机 {{deviceName}} 已被删除。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #8c8c8c;">🗑️ 云手机已删除</h2>
+        <p>尊敬的用户，</p>
+        <p>您的云手机已成功删除。</p>
+        <div style="background: #fafafa; border-left: 4px solid #8c8c8c; padding: 15px; margin: 20px 0;">
+          <p><strong>删除信息：</strong></p>
+          <ul>
+            <li>设备名称：{{deviceName}}</li>
+            <li>设备ID：{{deviceId}}</li>
+            <li>删除时间：{{formatDate deletedAt}}</li>
+            <li>总运行时长：{{totalRunningTime}}</li>
+          </ul>
+        </div>
+        <p style="color: #ff4d4f;">⚠️ 提醒：设备数据已被清除，无法恢复。</p>
+        <p>如需继续使用，请创建新的云手机。</p>
+        <a href="{{createDeviceUrl}}" style="display: inline-block; background: #1890ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">
+          创建新设备
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】云手机{{deviceName}}已删除。',
+    channels: [NotificationChannel.EMAIL, NotificationChannel.WEBSOCKET],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      deviceName: '我的云手机',
+      deviceId: 'device-12345',
+      deletedAt: new Date(),
+      totalRunningTime: '150小时',
+      createDeviceUrl: 'https://cloudphone.example.com/devices/create',
+    },
+    description: '云手机删除时的确认通知',
+  },
+
+  {
+    code: 'device.expiring_soon',
+    name: '设备即将过期',
+    type: NotificationType.DEVICE_EXPIRING_SOON,
+    title: '云手机即将过期',
+    body: '您的云手机 {{deviceName}} 将在 {{daysRemaining}} 天后过期，请及时续费。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #faad14;">⏰ 云手机即将过期</h2>
+        <p>尊敬的用户，</p>
+        <p>您的云手机即将到期，请及时续费以避免服务中断。</p>
+        <div style="background: #fffbe6; border-left: 4px solid #faad14; padding: 15px; margin: 20px 0;">
+          <p><strong>到期提醒：</strong></p>
+          <ul>
+            <li>设备名称：{{deviceName}}</li>
+            <li>设备ID：{{deviceId}}</li>
+            <li>到期时间：<span style="color: #faad14; font-weight: bold;">{{formatDate expiresAt}}</span></li>
+            <li>剩余天数：<span style="color: #ff4d4f; font-size: 18px; font-weight: bold;">{{daysRemaining}} 天</span></li>
+          </ul>
+        </div>
+        <p style="color: #ff4d4f;"><strong>⚠️ 重要提示：</strong></p>
+        <p>到期后，云手机将自动停止并可能被删除，数据将无法恢复。</p>
+        <a href="{{renewUrl}}" style="display: inline-block; background: #faad14; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; font-size: 16px;">
+          立即续费
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】云手机{{deviceName}}将在{{daysRemaining}}天后过期，请及时续费！',
+    channels: [
+      NotificationChannel.EMAIL,
+      NotificationChannel.SMS,
+      NotificationChannel.WEBSOCKET,
+      NotificationChannel.PUSH,
+    ],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      deviceName: '我的云手机',
+      deviceId: 'device-12345',
+      expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      daysRemaining: 3,
+      renewUrl: 'https://cloudphone.example.com/devices/device-12345/renew',
+    },
+    description: '设备即将过期的提前通知',
+  },
+
+  {
+    code: 'device.expired',
+    name: '设备已过期',
+    type: NotificationType.DEVICE_EXPIRED,
+    title: '云手机已过期',
+    body: '您的云手机 {{deviceName}} 已过期并已停止服务。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #ff4d4f;">❌ 云手机已过期</h2>
+        <p>尊敬的用户，</p>
+        <p>您的云手机已过期，服务已停止。</p>
+        <div style="background: #fff1f0; border-left: 4px solid #ff4d4f; padding: 15px; margin: 20px 0;">
+          <p><strong>过期信息：</strong></p>
+          <ul>
+            <li>设备名称：{{deviceName}}</li>
+            <li>设备ID：{{deviceId}}</li>
+            <li>过期时间：{{formatDate expiredAt}}</li>
+            <li>状态：<span style="color: #ff4d4f; font-weight: bold;">已停止</span></li>
+          </ul>
+        </div>
+        <p style="color: #ff4d4f;"><strong>⚠️ 重要提示：</strong></p>
+        <ul>
+          <li>设备已自动停止运行</li>
+          <li>数据将在 {{dataRetentionDays}} 天后删除</li>
+          <li>续费后可恢复使用</li>
+        </ul>
+        <a href="{{renewUrl}}" style="display: inline-block; background: #ff4d4f; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; font-size: 16px;">
+          立即续费恢复
+        </a>
+      </div>
+    `,
+    smsTemplate:
+      '【云手机】云手机{{deviceName}}已过期并停止服务，数据将在{{dataRetentionDays}}天后删除！',
+    channels: [
+      NotificationChannel.EMAIL,
+      NotificationChannel.SMS,
+      NotificationChannel.WEBSOCKET,
+      NotificationChannel.PUSH,
+    ],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      deviceName: '我的云手机',
+      deviceId: 'device-12345',
+      expiredAt: new Date(),
+      dataRetentionDays: 7,
+      renewUrl: 'https://cloudphone.example.com/devices/device-12345/renew',
+    },
+    description: '设备过期后的通知',
+  },
+
+  // ==================== 应用相关补充模板 ====================
+
+  {
+    code: 'app.uninstalled',
+    name: '应用卸载成功',
+    type: NotificationType.APP_UNINSTALLED,
+    title: '应用已卸载',
+    body: '应用 {{appName}} 已从云手机 {{deviceName}} 卸载成功。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #8c8c8c;">✓ 应用已卸载</h2>
+        <p>尊敬的用户，</p>
+        <p>应用已成功从您的云手机卸载。</p>
+        <div style="background: #fafafa; border-left: 4px solid #8c8c8c; padding: 15px; margin: 20px 0;">
+          <p><strong>卸载信息：</strong></p>
+          <ul>
+            <li>应用名称：{{appName}}</li>
+            <li>应用版本：{{appVersion}}</li>
+            <li>设备名称：{{deviceName}}</li>
+            <li>卸载时间：{{formatDate uninstalledAt}}</li>
+          </ul>
+        </div>
+        <p>如需重新安装，请访问应用市场。</p>
+        <a href="{{appStoreUrl}}" style="display: inline-block; background: #1890ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">
+          访问应用市场
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】应用{{appName}}已从{{deviceName}}卸载。',
+    channels: [NotificationChannel.WEBSOCKET],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      appName: '微信',
+      appVersion: '8.0.0',
+      deviceName: '我的云手机',
+      uninstalledAt: new Date(),
+      appStoreUrl: 'https://cloudphone.example.com/apps',
+    },
+    description: '应用卸载成功后的通知',
+  },
+
+  {
+    code: 'app.approved',
+    name: '应用审核通过',
+    type: NotificationType.APP_APPROVED,
+    title: '应用审核通过',
+    body: '恭喜！您提交的应用 {{appName}} 已通过审核，现已上架应用市场。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #52c41a;">✓ 应用审核通过</h2>
+        <p>尊敬的开发者，</p>
+        <p>恭喜！您提交的应用已通过审核！</p>
+        <div style="background: #f6ffed; border-left: 4px solid #52c41a; padding: 15px; margin: 20px 0;">
+          <p><strong>审核结果：</strong></p>
+          <ul>
+            <li>应用名称：{{appName}}</li>
+            <li>应用版本：{{appVersion}}</li>
+            <li>审核状态：<span style="color: #52c41a; font-weight: bold;">通过</span></li>
+            <li>审核时间：{{formatDate approvedAt}}</li>
+            <li>审核人员：{{reviewer}}</li>
+          </ul>
+        </div>
+        <p>您的应用已上架应用市场，用户现在可以下载使用了！</p>
+        <a href="{{appUrl}}" style="display: inline-block; background: #52c41a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">
+          查看应用详情
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】恭喜！应用{{appName}}已通过审核并上架！',
+    channels: [NotificationChannel.EMAIL, NotificationChannel.WEBSOCKET],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      appName: '我的应用',
+      appVersion: '1.0.0',
+      approvedAt: new Date(),
+      reviewer: '系统管理员',
+      appUrl: 'https://cloudphone.example.com/apps/my-app',
+    },
+    description: '应用审核通过后的通知',
+  },
+
+  {
+    code: 'app.rejected',
+    name: '应用审核被拒',
+    type: NotificationType.APP_REJECTED,
+    title: '应用审核未通过',
+    body: '抱歉，您提交的应用 {{appName}} 未通过审核。原因：{{reason}}',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #ff4d4f;">✗ 应用审核未通过</h2>
+        <p>尊敬的开发者，</p>
+        <p>很抱歉，您提交的应用未能通过审核。</p>
+        <div style="background: #fff1f0; border-left: 4px solid #ff4d4f; padding: 15px; margin: 20px 0;">
+          <p><strong>审核结果：</strong></p>
+          <ul>
+            <li>应用名称：{{appName}}</li>
+            <li>应用版本：{{appVersion}}</li>
+            <li>审核状态：<span style="color: #ff4d4f; font-weight: bold;">未通过</span></li>
+            <li>审核时间：{{formatDate rejectedAt}}</li>
+            <li>审核人员：{{reviewer}}</li>
+          </ul>
+        </div>
+        <div style="background: #fff7e6; border-left: 4px solid #faad14; padding: 15px; margin: 20px 0;">
+          <p><strong>未通过原因：</strong></p>
+          <p style="color: #ff4d4f;">{{reason}}</p>
+        </div>
+        <p><strong>改进建议：</strong></p>
+        <div style="background: #fafafa; padding: 15px; border-radius: 4px; margin: 15px 0;">
+          {{suggestions}}
+        </div>
+        <p>请根据反馈修改后重新提交审核。</p>
+        <a href="{{resubmitUrl}}" style="display: inline-block; background: #1890ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">
+          重新提交
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】应用{{appName}}审核未通过：{{reason}}。请修改后重新提交。',
+    channels: [NotificationChannel.EMAIL, NotificationChannel.WEBSOCKET],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      appName: '我的应用',
+      appVersion: '1.0.0',
+      rejectedAt: new Date(),
+      reviewer: '系统管理员',
+      reason: '应用描述不完整',
+      suggestions: '请补充应用的详细功能说明和使用教程',
+      resubmitUrl: 'https://cloudphone.example.com/apps/my-app/resubmit',
+    },
+    description: '应用审核被拒时的通知',
+  },
+
+  // ==================== 计费相关补充模板 ====================
+
+  {
+    code: 'billing.subscription_expiring',
+    name: '套餐即将到期',
+    type: NotificationType.BILLING_SUBSCRIPTION_EXPIRING,
+    title: '套餐即将到期',
+    body: '您的{{planName}}套餐将在 {{daysRemaining}} 天后到期，请及时续费。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #faad14;">⏰ 套餐即将到期</h2>
+        <p>尊敬的用户，</p>
+        <p>您的订阅套餐即将到期，请及时续费以继续享受服务。</p>
+        <div style="background: #fffbe6; border-left: 4px solid #faad14; padding: 15px; margin: 20px 0;">
+          <p><strong>套餐信息：</strong></p>
+          <ul>
+            <li>套餐名称：{{planName}}</li>
+            <li>到期时间：<span style="color: #faad14; font-weight: bold;">{{formatDate expiresAt}}</span></li>
+            <li>剩余天数：<span style="color: #ff4d4f; font-size: 18px; font-weight: bold;">{{daysRemaining}} 天</span></li>
+            <li>续费价格：<span style="color: #1890ff; font-size: 18px; font-weight: bold;">{{formatCurrency renewalPrice}}</span></li>
+          </ul>
+        </div>
+        <p style="color: #ff4d4f;"><strong>⚠️ 温馨提示：</strong></p>
+        <p>到期后将自动降级为免费套餐，部分功能将受限。</p>
+        <a href="{{renewUrl}}" style="display: inline-block; background: #faad14; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; font-size: 16px;">
+          立即续费
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】{{planName}}套餐将在{{daysRemaining}}天后到期，立即续费享优惠！',
+    channels: [
+      NotificationChannel.EMAIL,
+      NotificationChannel.SMS,
+      NotificationChannel.WEBSOCKET,
+      NotificationChannel.PUSH,
+    ],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      planName: '专业版',
+      expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      daysRemaining: 3,
+      renewalPrice: 99.0,
+      renewUrl: 'https://cloudphone.example.com/billing/renew',
+    },
+    description: '订阅套餐即将到期的提醒',
+  },
+
+  {
+    code: 'billing.subscription_expired',
+    name: '套餐已到期',
+    type: NotificationType.BILLING_SUBSCRIPTION_EXPIRED,
+    title: '套餐已到期',
+    body: '您的{{planName}}套餐已到期，已自动降级为免费版。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #ff4d4f;">❌ 套餐已到期</h2>
+        <p>尊敬的用户，</p>
+        <p>您的订阅套餐已到期。</p>
+        <div style="background: #fff1f0; border-left: 4px solid #ff4d4f; padding: 15px; margin: 20px 0;">
+          <p><strong>套餐信息：</strong></p>
+          <ul>
+            <li>原套餐：{{planName}}</li>
+            <li>到期时间：{{formatDate expiredAt}}</li>
+            <li>当前套餐：<span style="color: #8c8c8c;">免费版</span></li>
+          </ul>
+        </div>
+        <p><strong>⚠️ 功能变更：</strong></p>
+        <ul>
+          <li>云手机数量限制：{{freeDeviceLimit}} 台</li>
+          <li>存储空间限制：{{freeStorageLimit}}</li>
+          <li>高级功能已禁用</li>
+        </ul>
+        <p>续费即可恢复所有专业功能！</p>
+        <a href="{{renewUrl}}" style="display: inline-block; background: #ff4d4f; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; font-size: 16px;">
+          立即续费升级
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】{{planName}}套餐已到期，已降级为免费版。续费可恢复功能！',
+    channels: [
+      NotificationChannel.EMAIL,
+      NotificationChannel.SMS,
+      NotificationChannel.WEBSOCKET,
+      NotificationChannel.PUSH,
+    ],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      planName: '专业版',
+      expiredAt: new Date(),
+      freeDeviceLimit: 1,
+      freeStorageLimit: '5GB',
+      renewUrl: 'https://cloudphone.example.com/billing/renew',
+    },
+    description: '订阅套餐到期后的通知',
+  },
+
+  // ==================== 用户相关补充模板 ====================
+
+  {
+    code: 'user.login',
+    name: '用户登录通知',
+    type: NotificationType.USER_LOGIN,
+    title: '账号登录提醒',
+    body: '您的账号于 {{formatDate loginTime}} 在 {{location}} 登录。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1890ff;">🔐 账号登录提醒</h2>
+        <p>尊敬的 <strong>{{username}}</strong>，</p>
+        <p>检测到您的账号有新的登录活动。</p>
+        <div style="background: #e6f7ff; border-left: 4px solid #1890ff; padding: 15px; margin: 20px 0;">
+          <p><strong>登录详情：</strong></p>
+          <ul>
+            <li>登录时间：{{formatDate loginTime}}</li>
+            <li>IP地址：{{ipAddress}}</li>
+            <li>登录位置：{{location}}</li>
+            <li>设备信息：{{device}}</li>
+            <li>浏览器：{{browser}}</li>
+          </ul>
+        </div>
+        <p style="color: #faad14;">⚠️ 如果这不是您本人的操作，请立即修改密码并联系客服。</p>
+        <a href="{{securityUrl}}" style="display: inline-block; background: #1890ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">
+          查看安全设置
+        </a>
+      </div>
+    `,
+    smsTemplate:
+      '【云手机】您的账号于{{formatDate loginTime}}在{{location}}登录。如非本人操作请立即修改密码。',
+    channels: [NotificationChannel.EMAIL, NotificationChannel.SMS],
+    language: 'zh-CN',
+    isActive: false, // 默认关闭，用户可选择开启
+    defaultData: {
+      username: '用户',
+      loginTime: new Date(),
+      ipAddress: '192.168.1.1',
+      location: '北京',
+      device: 'Windows PC',
+      browser: 'Chrome 120',
+      securityUrl: 'https://cloudphone.example.com/security',
+    },
+    description: '用户登录时的安全提醒（可选）',
+  },
+
+  {
+    code: 'user.profile_updated',
+    name: '个人信息更新',
+    type: NotificationType.USER_PROFILE_UPDATED,
+    title: '个人信息已更新',
+    body: '您的个人信息已成功更新。',
+    emailTemplate: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #52c41a;">✓ 个人信息已更新</h2>
+        <p>尊敬的 <strong>{{username}}</strong>，</p>
+        <p>您的个人信息已成功更新。</p>
+        <div style="background: #f6ffed; border-left: 4px solid #52c41a; padding: 15px; margin: 20px 0;">
+          <p><strong>更新信息：</strong></p>
+          <ul>
+            <li>更新时间：{{formatDate updatedAt}}</li>
+            <li>更新内容：{{updatedFields}}</li>
+            <li>IP地址：{{ipAddress}}</li>
+          </ul>
+        </div>
+        <p style="color: #faad14;">⚠️ 如果这不是您本人的操作，请立即联系客服。</p>
+        <a href="{{profileUrl}}" style="display: inline-block; background: #1890ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">
+          查看个人资料
+        </a>
+      </div>
+    `,
+    smsTemplate: '【云手机】您的个人信息已更新。如非本人操作请联系客服。',
+    channels: [NotificationChannel.EMAIL, NotificationChannel.WEBSOCKET],
+    language: 'zh-CN',
+    isActive: true,
+    defaultData: {
+      username: '用户',
+      updatedAt: new Date(),
+      updatedFields: '头像、昵称',
+      ipAddress: '192.168.1.1',
+      profileUrl: 'https://cloudphone.example.com/profile',
+    },
+    description: '用户更新个人信息后的确认通知',
   },
 ];

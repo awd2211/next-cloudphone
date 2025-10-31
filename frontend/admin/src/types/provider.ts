@@ -4,10 +4,10 @@
 
 // 提供商类型枚举
 export enum DeviceProvider {
-  DOCKER = 'docker',       // 本地 Redroid 容器
-  PHYSICAL = 'physical',   // 物理 Android 设备
-  HUAWEI = 'huawei',       // 华为云 CPH
-  ALIYUN = 'aliyun',       // 阿里云 ECP
+  DOCKER = 'docker', // 本地 Redroid 容器
+  PHYSICAL = 'physical', // 物理 Android 设备
+  HUAWEI = 'huawei', // 华为云 CPH
+  ALIYUN = 'aliyun', // 阿里云 ECP
 }
 
 // 提供商显示名称
@@ -83,8 +83,8 @@ export interface DeviceExtended {
   androidVersion?: string;
 
   // 提供商相关
-  providerInstanceId?: string;  // 云端实例 ID
-  nodeId?: string;              // 节点 ID (物理设备)
+  providerInstanceId?: string; // 云端实例 ID
+  nodeId?: string; // 节点 ID (物理设备)
 
   // 连接信息
   connectionInfo?: DeviceConnectionInfo;
@@ -113,13 +113,13 @@ export interface CreateDeviceDto {
   imageTag?: string;
 
   // 华为云配置
-  specId?: string;       // 华为云规格 ID
-  serverId?: string;     // 华为云服务器 ID
-  phoneModel?: string;   // 华为云手机型号
+  specId?: string; // 华为云规格 ID
+  serverId?: string; // 华为云服务器 ID
+  phoneModel?: string; // 华为云手机型号
 
   // 阿里云配置
   instanceType?: string; // 阿里云实例类型
-  imageId?: string;      // 阿里云镜像 ID
+  imageId?: string; // 阿里云镜像 ID
 
   // 物理设备配置
   serialNumber?: string; // 物理设备序列号
@@ -154,7 +154,7 @@ export interface ProviderSpec {
   cpuCores: number;
   memoryMB: number;
   diskGB: number;
-  price: number;  // 单位: 元/小时
+  price: number; // 单位: 元/小时
   available: boolean;
 }
 

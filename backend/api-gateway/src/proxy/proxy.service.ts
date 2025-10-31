@@ -1,10 +1,10 @@
-import { Injectable, Logger, HttpException, HttpStatus } from "@nestjs/common";
-import { HttpService } from "@nestjs/axios";
-import { ConfigService } from "@nestjs/config";
-import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
-import { catchError, map, Observable } from "rxjs";
-import { ConsulService } from "@cloudphone/shared";
-import CircuitBreaker = require("opossum");
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { Observable } from 'rxjs';
+import { ConsulService } from '@cloudphone/shared';
+import CircuitBreaker = require('opossum');
 
 export interface ServiceRoute {
   name: string;
@@ -39,72 +39,72 @@ export class ProxyService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
-    private readonly consulService: ConsulService,
+    private readonly consulService: ConsulService
   ) {
-    this.useConsul = this.configService.get("USE_CONSUL", "false") === "true";
+    this.useConsul = this.configService.get('USE_CONSUL', 'false') === 'true';
 
     // 服务配置（用于 Consul 服务发现）
     this.serviceConfigs = new Map([
       [
-        "users",
+        'users',
         {
-          name: "User Service",
-          consulName: "user-service",
-          healthCheck: "/health",
+          name: 'User Service',
+          consulName: 'user-service',
+          healthCheck: '/health',
           timeout: 10000,
         },
       ],
       [
-        "devices",
+        'devices',
         {
-          name: "Device Service",
-          consulName: "device-service",
-          healthCheck: "/health",
+          name: 'Device Service',
+          consulName: 'device-service',
+          healthCheck: '/health',
           timeout: 10000,
         },
       ],
       [
-        "apps",
+        'apps',
         {
-          name: "App Service",
-          consulName: "app-service",
-          healthCheck: "/health",
+          name: 'App Service',
+          consulName: 'app-service',
+          healthCheck: '/health',
           timeout: 30000,
         },
       ],
       [
-        "scheduler",
+        'scheduler',
         {
-          name: "Scheduler Service (Device Service)",
-          consulName: "device-service", // scheduler now integrated into device-service
-          healthCheck: "/health",
+          name: 'Scheduler Service (Device Service)',
+          consulName: 'device-service', // scheduler now integrated into device-service
+          healthCheck: '/health',
           timeout: 10000,
         },
       ],
       [
-        "billing",
+        'billing',
         {
-          name: "Billing Service",
-          consulName: "billing-service",
-          healthCheck: "/health",
+          name: 'Billing Service',
+          consulName: 'billing-service',
+          healthCheck: '/health',
           timeout: 10000,
         },
       ],
       [
-        "notifications",
+        'notifications',
         {
-          name: "Notification Service",
-          consulName: "notification-service",
-          healthCheck: "/health",
+          name: 'Notification Service',
+          consulName: 'notification-service',
+          healthCheck: '/health',
           timeout: 10000,
         },
       ],
       [
-        "media",
+        'media',
         {
-          name: "Media Service",
-          consulName: "media-service",
-          healthCheck: "/health",
+          name: 'Media Service',
+          consulName: 'media-service',
+          healthCheck: '/health',
           timeout: 5000,
         },
       ],
@@ -113,79 +113,65 @@ export class ProxyService {
     // 初始化微服务路由配置（静态配置，作为 fallback）
     this.services = new Map([
       [
-        "users",
+        'users',
         {
-          name: "User Service",
-          url:
-            this.configService.get("USER_SERVICE_URL") ||
-            "http://localhost:30001",
-          healthCheck: "/health",
+          name: 'User Service',
+          url: this.configService.get('USER_SERVICE_URL') || 'http://localhost:30001',
+          healthCheck: '/health',
           timeout: 10000,
         },
       ],
       [
-        "devices",
+        'devices',
         {
-          name: "Device Service",
-          url:
-            this.configService.get("DEVICE_SERVICE_URL") ||
-            "http://localhost:30002",
-          healthCheck: "/health",
+          name: 'Device Service',
+          url: this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:30002',
+          healthCheck: '/health',
           timeout: 10000,
         },
       ],
       [
-        "apps",
+        'apps',
         {
-          name: "App Service",
-          url:
-            this.configService.get("APP_SERVICE_URL") ||
-            "http://localhost:30003",
-          healthCheck: "/health",
+          name: 'App Service',
+          url: this.configService.get('APP_SERVICE_URL') || 'http://localhost:30003',
+          healthCheck: '/health',
           timeout: 30000,
         },
       ],
       [
-        "scheduler",
+        'scheduler',
         {
-          name: "Scheduler Service (Device Service)",
-          url:
-            this.configService.get("SCHEDULER_SERVICE_URL") ||
-            "http://localhost:30002", // Now points to device-service
-          healthCheck: "/health",
+          name: 'Scheduler Service (Device Service)',
+          url: this.configService.get('SCHEDULER_SERVICE_URL') || 'http://localhost:30002', // Now points to device-service
+          healthCheck: '/health',
           timeout: 10000,
         },
       ],
       [
-        "billing",
+        'billing',
         {
-          name: "Billing Service",
-          url:
-            this.configService.get("BILLING_SERVICE_URL") ||
-            "http://localhost:30005",
-          healthCheck: "/health",
+          name: 'Billing Service',
+          url: this.configService.get('BILLING_SERVICE_URL') || 'http://localhost:30005',
+          healthCheck: '/health',
           timeout: 10000,
         },
       ],
       [
-        "notifications",
+        'notifications',
         {
-          name: "Notification Service",
-          url:
-            this.configService.get("NOTIFICATION_SERVICE_URL") ||
-            "http://localhost:30006",
-          healthCheck: "/health",
+          name: 'Notification Service',
+          url: this.configService.get('NOTIFICATION_SERVICE_URL') || 'http://localhost:30006',
+          healthCheck: '/health',
           timeout: 10000,
         },
       ],
       [
-        "media",
+        'media',
         {
-          name: "Media Service",
-          url:
-            this.configService.get("MEDIA_SERVICE_URL") ||
-            "http://localhost:30007",
-          healthCheck: "/health",
+          name: 'Media Service',
+          url: this.configService.get('MEDIA_SERVICE_URL') || 'http://localhost:30007',
+          healthCheck: '/health',
           timeout: 5000,
         },
       ],
@@ -216,12 +202,9 @@ export class ProxyService {
       };
 
       // 创建熔断器，包装 HTTP 请求函数
-      const breaker = new CircuitBreaker(
-        async (config: AxiosRequestConfig) => {
-          return await this.httpService.axiosRef.request(config);
-        },
-        options,
-      );
+      const breaker = new CircuitBreaker(async (config: AxiosRequestConfig) => {
+        return await this.httpService.axiosRef.request(config);
+      }, options);
 
       // 监听熔断器事件
       breaker.on('open', () => {
@@ -236,7 +219,7 @@ export class ProxyService {
         this.logger.log(`🟢 Circuit breaker CLOSED for ${serviceName}`);
       });
 
-      breaker.on('fallback', (result: any) => {
+      breaker.on('fallback', () => {
         this.logger.warn(`⚠️ Circuit breaker FALLBACK triggered for ${serviceName}`);
       });
 
@@ -262,9 +245,7 @@ export class ProxyService {
       const serviceConfig = this.serviceConfigs.get(serviceName);
       if (serviceConfig) {
         try {
-          const url = await this.consulService.getService(
-            serviceConfig.consulName,
-          );
+          const url = await this.consulService.getService(serviceConfig.consulName);
           this.logger.debug(`Resolved ${serviceName} from Consul: ${url}`);
 
           // 缓存 Consul 解析的地址
@@ -276,9 +257,7 @@ export class ProxyService {
 
           return url;
         } catch (error) {
-          this.logger.warn(
-            `Failed to get ${serviceName} from Consul: ${error.message}`,
-          );
+          this.logger.warn(`Failed to get ${serviceName} from Consul: ${error.message}`);
           // Consul 失败时，清除缓存，强制使用 fallback
           this.serviceUrlCache.delete(serviceName);
         }
@@ -287,7 +266,7 @@ export class ProxyService {
 
     // 3. Fallback 到静态配置（环境变量）
     const service = this.services.get(serviceName);
-    const fallbackUrl = service?.url || "";
+    const fallbackUrl = service?.url || '';
 
     if (fallbackUrl) {
       this.logger.debug(`Using fallback URL for ${serviceName}: ${fallbackUrl}`);
@@ -324,7 +303,7 @@ export class ProxyService {
     method: string,
     data?: any,
     headers?: any,
-    params?: any,
+    params?: any
   ): Observable<any> {
     return new Observable((subscriber) => {
       this.proxyRequestAsync(serviceName, path, method, data, headers, params)
@@ -347,27 +326,21 @@ export class ProxyService {
     method: string,
     data?: any,
     headers?: any,
-    params?: any,
+    params?: any
   ): Promise<any> {
     // 获取服务配置
     const service = this.services.get(serviceName);
     const serviceConfig = this.serviceConfigs.get(serviceName);
 
     if (!service && !serviceConfig) {
-      throw new HttpException(
-        `服务 ${serviceName} 不存在`,
-        HttpStatus.NOT_FOUND,
-      );
+      throw new HttpException(`服务 ${serviceName} 不存在`, HttpStatus.NOT_FOUND);
     }
 
     // 获取服务 URL（从 Consul 或静态配置）
     const serviceUrl = await this.getServiceUrl(serviceName);
 
     if (!serviceUrl) {
-      throw new HttpException(
-        `无法获取服务 ${serviceName} 的地址`,
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
+      throw new HttpException(`无法获取服务 ${serviceName} 的地址`, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
     const url = `${serviceUrl}${path}`;
@@ -386,12 +359,14 @@ export class ProxyService {
     }
 
     // 根据请求方法添加数据
-    if (data && ["POST", "PUT", "PATCH"].includes(method.toUpperCase())) {
+    if (data && ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
       config.data = data;
     }
 
     this.logger.log(`📤 Proxying ${method} ${url}`);
-    this.logger.log(`📋 Config: ${JSON.stringify({url: config.url, params: config.params, method: config.method})}`);
+    this.logger.log(
+      `📋 Config: ${JSON.stringify({ url: config.url, params: config.params, method: config.method })}`
+    );
 
     // 根据请求方法决定是否重试
     const isIdempotent = ['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE'].includes(method.toUpperCase());
@@ -399,22 +374,21 @@ export class ProxyService {
 
     try {
       const response = await this.executeWithRetry(config, maxRetries, serviceName);
-      this.logger.log(`✅ Response from ${serviceName}: status=${response.status}, data keys=${Object.keys(response.data || {})}`);
+      this.logger.log(
+        `✅ Response from ${serviceName}: status=${response.status}, data keys=${Object.keys(response.data || {})}`
+      );
       return response.data;
     } catch (error: any) {
       const axiosError = error as AxiosError;
       this.logger.error(
         `Error proxying to ${serviceName}: ${axiosError.message}`,
-        axiosError.stack,
+        axiosError.stack
       );
 
       // 提取错误信息
-      const status =
-        axiosError.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      const status = axiosError.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
       const message =
-        (axiosError.response?.data as any)?.message ||
-        axiosError.message ||
-        "服务请求失败";
+        (axiosError.response?.data as any)?.message || axiosError.message || '服务请求失败';
 
       throw new HttpException(
         {
@@ -423,7 +397,7 @@ export class ProxyService {
           service: serviceConfig?.name || service?.name || serviceName,
           timestamp: new Date().toISOString(),
         },
-        status,
+        status
       );
     }
   }
@@ -435,7 +409,7 @@ export class ProxyService {
     config: AxiosRequestConfig,
     maxRetries: number,
     serviceName: string,
-    attempt = 0,
+    attempt = 0
   ): Promise<AxiosResponse> {
     try {
       // 获取该服务的熔断器
@@ -453,17 +427,15 @@ export class ProxyService {
       const axiosError = error as AxiosError;
 
       // 判断是否应该重试
-      const shouldRetry =
-        attempt < maxRetries &&
-        this.isRetryableError(axiosError);
+      const shouldRetry = attempt < maxRetries && this.isRetryableError(axiosError);
 
       if (shouldRetry) {
         const delay = Math.pow(2, attempt) * 500; // 指数退避: 500ms, 1s, 2s
         this.logger.warn(
-          `Retry ${attempt + 1}/${maxRetries} for ${serviceName} after ${delay}ms (error: ${axiosError.message})`,
+          `Retry ${attempt + 1}/${maxRetries} for ${serviceName} after ${delay}ms (error: ${axiosError.message})`
         );
 
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return this.executeWithRetry(config, maxRetries, serviceName, attempt + 1);
       }
 
@@ -508,22 +480,21 @@ export class ProxyService {
     for (const [key, service] of this.services.entries()) {
       try {
         const startTime = Date.now();
-        await this.httpService.axiosRef.get(
-          `${service.url}${service.healthCheck}`,
-          { timeout: 5000 },
-        );
+        await this.httpService.axiosRef.get(`${service.url}${service.healthCheck}`, {
+          timeout: 5000,
+        });
         const responseTime = Date.now() - startTime;
 
         healthResults[key] = {
           name: service.name,
-          status: "healthy",
+          status: 'healthy',
           url: service.url,
           responseTime: `${responseTime}ms`,
         };
       } catch (error) {
         healthResults[key] = {
           name: service.name,
-          status: "unhealthy",
+          status: 'unhealthy',
           url: service.url,
           error: error.message,
         };
@@ -585,12 +556,7 @@ export class ProxyService {
     const sanitized = { ...headers };
 
     // 移除不应该转发的请求头
-    const excludeHeaders = [
-      "host",
-      "connection",
-      "content-length",
-      "transfer-encoding",
-    ];
+    const excludeHeaders = ['host', 'connection', 'content-length', 'transfer-encoding'];
 
     for (const header of excludeHeaders) {
       delete sanitized[header];

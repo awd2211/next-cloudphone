@@ -55,6 +55,7 @@ const PhysicalDeviceList = lazy(() => import('@/pages/PhysicalDevice/List'));
 
 // 应用审核
 const AppReviewList = lazy(() => import('@/pages/AppReview/ReviewList'));
+const AppReviewDetail = lazy(() => import('@/pages/AppReview/ReviewDetail'));
 
 // 计量仪表板
 const MeteringDashboard = lazy(() => import('@/pages/Metering/Dashboard'));
@@ -73,24 +74,41 @@ const GPUDashboard = lazy(() => import('@/pages/GPU/Dashboard'));
 
 // P2 页面 - 通知模板编辑器
 const NotificationTemplateEditor = lazy(() => import('@/pages/NotificationTemplates/Editor'));
+const NotificationTemplatesList = lazy(() => import('@/pages/NotificationTemplates/List'));
 
 // P2 页面 - 系统管理
 const CacheManagement = lazy(() => import('@/pages/System/CacheManagement'));
 const QueueManagement = lazy(() => import('@/pages/System/QueueManagement'));
 const EventSourcingViewer = lazy(() => import('@/pages/System/EventSourcingViewer'));
+const ConsulMonitor = lazy(() => import('@/pages/System/ConsulMonitor'));
+const PrometheusMonitor = lazy(() => import('@/pages/System/PrometheusMonitor'));
 
 // P2 页面 - 设备高级功能
 const DeviceGroupManagement = lazy(() => import('@/pages/DeviceGroups/Management'));
 const NetworkPolicyConfiguration = lazy(() => import('@/pages/NetworkPolicy/Configuration'));
 
+// SMS 管理
+const SMSManagement = lazy(() => import('@/pages/SMS/Management'));
+
+// 统计仪表板
+const StatsDashboard = lazy(() => import('@/pages/Stats/Dashboard'));
+
+// 故障转移管理
+const FailoverManagement = lazy(() => import('@/pages/Failover/Management'));
+
+// 状态恢复管理
+const StateRecoveryManagement = lazy(() => import('@/pages/StateRecovery/Management'));
+
 // Loading 组件
 const PageLoading = () => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh'
-  }}>
+  <div
+    style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+    }}
+  >
     <Spin size="large" tip="加载中...">
       <div style={{ minHeight: 100 }} />
     </Spin>
@@ -107,7 +125,10 @@ const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<a
 );
 
 // 管理员路由包裹（Suspense + AdminRoute）
-const withAdminRoute = (Component: React.LazyExoticComponent<React.ComponentType<any>>, requireSuperAdmin = false) => (
+const withAdminRoute = (
+  Component: React.LazyExoticComponent<React.ComponentType<any>>,
+  requireSuperAdmin = false
+) => (
   <ErrorBoundary>
     <Suspense fallback={<PageLoading />}>
       <AdminRoute requireSuperAdmin={requireSuperAdmin} showForbidden>
@@ -171,6 +192,10 @@ export const router = createBrowserRouter([
       {
         path: 'app-review',
         element: withAdminRoute(AppReviewList), // Admin only
+      },
+      {
+        path: 'app-review/:id',
+        element: withAdminRoute(AppReviewDetail), // Admin only
       },
       {
         path: 'metering',
@@ -317,9 +342,14 @@ export const router = createBrowserRouter([
         path: 'resources/gpu',
         element: withSuspense(GPUDashboard),
       },
-      // 通知模板编辑器
+      // 通知模板管理
       {
         path: 'notifications/templates',
+        element: withAdminRoute(NotificationTemplatesList), // Admin only
+      },
+      // 通知模板编辑器
+      {
+        path: 'notifications/templates/editor',
         element: withSuspense(NotificationTemplateEditor),
       },
       // 系统管理 - Super Admin only
@@ -335,6 +365,14 @@ export const router = createBrowserRouter([
         path: 'system/events',
         element: withAdminRoute(EventSourcingViewer, true), // Super Admin only
       },
+      {
+        path: 'system/consul',
+        element: withAdminRoute(ConsulMonitor, true), // Super Admin only
+      },
+      {
+        path: 'system/monitoring',
+        element: withAdminRoute(PrometheusMonitor, true), // Super Admin only
+      },
       // 设备高级功能
       {
         path: 'devices/groups',
@@ -343,6 +381,26 @@ export const router = createBrowserRouter([
       {
         path: 'devices/network-policies',
         element: withSuspense(NetworkPolicyConfiguration),
+      },
+      // SMS 管理
+      {
+        path: 'sms',
+        element: withSuspense(SMSManagement),
+      },
+      // 统计仪表板
+      {
+        path: 'stats',
+        element: withSuspense(StatsDashboard),
+      },
+      // 故障转移管理
+      {
+        path: 'devices/failover',
+        element: withSuspense(FailoverManagement),
+      },
+      // 状态恢复管理
+      {
+        path: 'devices/state-recovery',
+        element: withSuspense(StateRecoveryManagement),
       },
     ],
   },

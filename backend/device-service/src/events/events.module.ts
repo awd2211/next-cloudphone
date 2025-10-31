@@ -1,7 +1,7 @@
-import { Module } from "@nestjs/common";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { Device } from "../entities/device.entity";
-import { UserEventsHandler } from "./user-events.handler";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Device } from '../entities/device.entity';
+import { UserEventsHandler } from './user-events.handler';
 
 /**
  * 事件处理模块

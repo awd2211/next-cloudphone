@@ -217,7 +217,7 @@ export class MenuPermissionService {
     @InjectRepository(Role)
     private roleRepository: Repository<Role>,
     @InjectRepository(Menu)
-    private menuRepository: Repository<Menu>,
+    private menuRepository: Repository<Menu>
   ) {}
 
   /**
@@ -246,17 +246,11 @@ export class MenuPermissionService {
       const permissionNames = permissions.map((p) => p.name);
 
       // 过滤菜单
-      const filteredMenus = this.filterMenusByPermissions(
-        this.ALL_MENUS,
-        permissionNames,
-      );
+      const filteredMenus = this.filterMenusByPermissions(this.ALL_MENUS, permissionNames);
 
       return this.sortMenus(filteredMenus);
     } catch (error) {
-      this.logger.error(
-        `获取用户菜单失败: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`获取用户菜单失败: ${error.message}`, error.stack);
       return [];
     }
   }
@@ -285,10 +279,7 @@ export class MenuPermissionService {
       const permissions = await this.getUserPermissions(user);
       return permissions.map((p) => p.name);
     } catch (error) {
-      this.logger.error(
-        `获取用户权限列表失败: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`获取用户权限列表失败: ${error.message}`, error.stack);
       return [];
     }
   }
@@ -380,10 +371,7 @@ export class MenuPermissionService {
   /**
    * 根据权限过滤菜单
    */
-  private filterMenusByPermissions(
-    menus: MenuItem[],
-    permissionNames: string[],
-  ): MenuItem[] {
+  private filterMenusByPermissions(menus: MenuItem[], permissionNames: string[]): MenuItem[] {
     const filtered: MenuItem[] = [];
 
     for (const menu of menus) {
@@ -454,7 +442,7 @@ export class MenuPermissionService {
     const rootMenus: MenuItem[] = [];
 
     // 转换为MenuItem格式
-    menus.forEach(menu => {
+    menus.forEach((menu) => {
       menuMap.set(menu.id, {
         id: menu.code,
         name: menu.name,
@@ -472,10 +460,10 @@ export class MenuPermissionService {
     });
 
     // 构建树结构
-    menus.forEach(menu => {
+    menus.forEach((menu) => {
       const menuItem = menuMap.get(menu.id);
       if (!menuItem) return;
-      
+
       if (menu.parentId && menuMap.has(menu.parentId)) {
         const parent = menuMap.get(menu.parentId);
         if (parent) {
@@ -509,7 +497,7 @@ export class MenuPermissionService {
   private findBreadcrumbPath(
     menus: MenuItem[],
     targetPath: string,
-    breadcrumb: MenuItem[],
+    breadcrumb: MenuItem[]
   ): boolean {
     for (const menu of menus) {
       breadcrumb.push(menu);

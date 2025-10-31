@@ -1,9 +1,6 @@
-import { Injectable, NotFoundException, Logger } from "@nestjs/common";
-import {
-  IDeviceProvider,
-  IDeviceProviderFactory,
-} from "./device-provider.interface";
-import { DeviceProviderType } from "./provider.types";
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { IDeviceProvider, IDeviceProviderFactory } from './device-provider.interface';
+import { DeviceProviderType } from './provider.types';
 
 /**
  * DeviceProviderFactory
@@ -38,7 +35,7 @@ export class DeviceProviderFactory implements IDeviceProviderFactory {
     if (!provider) {
       throw new NotFoundException(
         `Device provider '${type}' not found. ` +
-          `Available providers: ${Array.from(this.providers.keys()).join(", ")}`,
+          `Available providers: ${Array.from(this.providers.keys()).join(', ')}`
       );
     }
     return provider;
@@ -53,9 +50,7 @@ export class DeviceProviderFactory implements IDeviceProviderFactory {
     const type = provider.providerType;
 
     if (this.providers.has(type)) {
-      this.logger.warn(
-        `Provider '${type}' is already registered, overwriting`,
-      );
+      this.logger.warn(`Provider '${type}' is already registered, overwriting`);
     }
 
     this.providers.set(type, provider);

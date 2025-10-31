@@ -34,11 +34,7 @@ class RequestLogger {
   /**
    * 记录响应日志
    */
-  static logResponse(
-    response: AxiosResponse,
-    duration: number,
-    requestId: string
-  ) {
+  static logResponse(response: AxiosResponse, duration: number, requestId: string) {
     const log = {
       type: 'api_response',
       requestId,
@@ -60,11 +56,7 @@ class RequestLogger {
   /**
    * 记录错误日志
    */
-  static logError(
-    error: AxiosError,
-    duration: number,
-    requestId: string
-  ) {
+  static logError(error: AxiosError, duration: number, requestId: string) {
     const log = {
       type: 'api_error',
       requestId,
@@ -95,7 +87,7 @@ class RequestLogger {
     const sanitized = { ...headers };
     const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
 
-    sensitiveHeaders.forEach(header => {
+    sensitiveHeaders.forEach((header) => {
       if (sanitized[header]) {
         sanitized[header] = '***REDACTED***';
       }
@@ -111,16 +103,9 @@ class RequestLogger {
     if (!data || typeof data !== 'object') return data;
 
     const sanitized = { ...data };
-    const sensitiveFields = [
-      'password',
-      'token',
-      'secret',
-      'apiKey',
-      'creditCard',
-      'cvv',
-    ];
+    const sensitiveFields = ['password', 'token', 'secret', 'apiKey', 'creditCard', 'cvv'];
 
-    sensitiveFields.forEach(field => {
+    sensitiveFields.forEach((field) => {
       if (sanitized[field]) {
         sanitized[field] = '***REDACTED***';
       }

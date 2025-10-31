@@ -59,7 +59,7 @@ export class CircuitBreakerService {
   createBreaker<T extends any[], R>(
     name: string,
     action: (...args: T) => Promise<R>,
-    options: CircuitBreakerOptions = {},
+    options: CircuitBreakerOptions = {}
   ): CircuitBreaker<T, R> {
     // 如果已存在，直接返回
     if (this.breakers.has(name)) {
@@ -68,10 +68,10 @@ export class CircuitBreakerService {
 
     // 默认配置
     const defaultOptions = {
-      timeout: 10000,                  // 10秒超时
-      errorThresholdPercentage: 50,    // 50%失败率触发熔断
-      resetTimeout: 30000,             // 30秒后尝试恢复
-      volumeThreshold: 10,             // 至少10个请求才计算错误率
+      timeout: 10000, // 10秒超时
+      errorThresholdPercentage: 50, // 50%失败率触发熔断
+      resetTimeout: 30000, // 30秒后尝试恢复
+      volumeThreshold: 10, // 至少10个请求才计算错误率
     };
 
     const config = { ...defaultOptions, ...options };

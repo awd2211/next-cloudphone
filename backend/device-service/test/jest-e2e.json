@@ -4,12 +4,15 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": ["ts-jest", {
-      "tsconfig": {
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "esModuleInterop": true,
+          "allowSyntheticDefaultImports": true
+        }
       }
-    }]
+    ]
   },
   "moduleNameMapper": {
     "^@cloudphone/shared$": "<rootDir>/../../shared/src",
@@ -17,9 +20,7 @@
     "^uuid$": "<rootDir>/../src/__mocks__/uuid.ts",
     "^p-limit$": "<rootDir>/../src/__mocks__/p-limit.ts"
   },
-  "transformIgnorePatterns": [
-    "node_modules/(?!(p-limit|yocto-queue)/)"
-  ],
+  "transformIgnorePatterns": ["node_modules/(?!(p-limit|yocto-queue)/)"],
   "testTimeout": 30000,
   "forceExit": true,
   "maxWorkers": 1

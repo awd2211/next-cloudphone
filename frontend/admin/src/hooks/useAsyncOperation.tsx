@@ -141,10 +141,7 @@ export function useAsyncOperation<T = any>() {
    * 使用Promise风格执行操作（会抛出错误）
    */
   const executeWithThrow = useCallback(
-    async (
-      operation: () => Promise<T>,
-      options: AsyncOperationOptions<T> = {}
-    ): Promise<T> => {
+    async (operation: () => Promise<T>, options: AsyncOperationOptions<T> = {}): Promise<T> => {
       const {
         successMessage,
         errorContext = '操作',

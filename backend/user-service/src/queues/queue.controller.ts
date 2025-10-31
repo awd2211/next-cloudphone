@@ -51,7 +51,7 @@ export class QueueController {
     @Param('queueName') queueName: QueueName,
     @Query('status') status: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed' = 'waiting',
     @Query('start') start: number = 0,
-    @Query('end') end: number = 10,
+    @Query('end') end: number = 10
   ) {
     const jobs = await this.queueService.getQueueJobs(queueName, status, start, end);
 
@@ -81,10 +81,7 @@ export class QueueController {
    * 获取任务详情
    */
   @Get(':queueName/jobs/:jobId')
-  async getJob(
-    @Param('queueName') queueName: QueueName,
-    @Param('jobId') jobId: string,
-  ) {
+  async getJob(@Param('queueName') queueName: QueueName, @Param('jobId') jobId: string) {
     const job = await this.queueService.getJob(queueName, jobId);
 
     if (!job) {
@@ -115,10 +112,7 @@ export class QueueController {
    */
   @Post(':queueName/jobs/:jobId/retry')
   @HttpCode(HttpStatus.OK)
-  async retryJob(
-    @Param('queueName') queueName: QueueName,
-    @Param('jobId') jobId: string,
-  ) {
+  async retryJob(@Param('queueName') queueName: QueueName, @Param('jobId') jobId: string) {
     await this.queueService.retryJob(queueName, jobId);
 
     return {
@@ -130,10 +124,7 @@ export class QueueController {
    * 删除任务
    */
   @Delete(':queueName/jobs/:jobId')
-  async removeJob(
-    @Param('queueName') queueName: QueueName,
-    @Param('jobId') jobId: string,
-  ) {
+  async removeJob(@Param('queueName') queueName: QueueName, @Param('jobId') jobId: string) {
     await this.queueService.removeJob(queueName, jobId);
 
     return {
@@ -187,7 +178,7 @@ export class QueueController {
   async cleanQueue(
     @Param('queueName') queueName: QueueName,
     @Body('grace') grace: number = 24 * 3600 * 1000, // 默认 24 小时
-    @Body('type') type: 'completed' | 'failed' = 'completed',
+    @Body('type') type: 'completed' | 'failed' = 'completed'
   ) {
     await this.queueService.cleanQueue(queueName, grace, type);
 
@@ -205,9 +196,7 @@ export class QueueController {
    */
   @Post('test/send-email')
   @HttpCode(HttpStatus.ACCEPTED)
-  async testSendEmail(
-    @Body() body: { to: string; subject: string; html: string },
-  ) {
+  async testSendEmail(@Body() body: { to: string; subject: string; html: string }) {
     const job = await this.queueService.sendEmail({
       to: body.to,
       subject: body.subject,
@@ -225,9 +214,7 @@ export class QueueController {
    */
   @Post('test/send-sms')
   @HttpCode(HttpStatus.ACCEPTED)
-  async testSendSms(
-    @Body() body: { phone: string; message: string },
-  ) {
+  async testSendSms(@Body() body: { phone: string; message: string }) {
     const job = await this.queueService.sendSms({
       phone: body.phone,
       message: body.message,
@@ -244,13 +231,8 @@ export class QueueController {
    */
   @Post('test/start-device')
   @HttpCode(HttpStatus.ACCEPTED)
-  async testStartDevice(
-    @Body() body: { deviceId: string; userId?: string },
-  ) {
-    const job = await this.queueService.startDevice(
-      body.deviceId,
-      body.userId,
-    );
+  async testStartDevice(@Body() body: { deviceId: string; userId?: string }) {
+    const job = await this.queueService.startDevice(body.deviceId, body.userId);
 
     return {
       message: 'Device start job created',

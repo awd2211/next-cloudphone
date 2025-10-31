@@ -1,9 +1,9 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Node, NodeStatus } from "../entities/node.entity";
-import { Device, DeviceStatus } from "../entities/device.entity";
-import { BusinessErrors } from "@cloudphone/shared";
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Node, NodeStatus } from '../entities/node.entity';
+import { Device, DeviceStatus } from '../entities/device.entity';
+import { BusinessErrors } from '@cloudphone/shared';
 
 export interface ScheduleRequest {
   cpuCores: number;
@@ -22,10 +22,10 @@ export interface ScheduleResult {
 }
 
 export enum SchedulingStrategy {
-  BALANCED = "balanced", // 均衡策略（默认）
-  BINPACK = "binpack", // 装箱策略（优先填满节点）
-  SPREAD = "spread", // 分散策略（尽量分散到不同节点）
-  LEAST_LOADED = "least_loaded", // 最小负载策略
+  BALANCED = 'balanced', // 均衡策略（默认）
+  BINPACK = 'binpack', // 装箱策略（优先填满节点）
+  SPREAD = 'spread', // 分散策略（尽量分散到不同节点）
+  LEAST_LOADED = 'least_loaded', // 最小负载策略
 }
 
 @Injectable()
@@ -37,7 +37,7 @@ export class SchedulerService {
     @InjectRepository(Node)
     private nodeRepository: Repository<Node>,
     @InjectRepository(Device)
-    private deviceRepository: Repository<Device>,
+    private deviceRepository: Repository<Device>
   ) {}
 
   /**
@@ -52,9 +52,7 @@ export class SchedulerService {
    * 为设备选择最佳节点
    */
   async scheduleDevice(request: ScheduleRequest): Promise<ScheduleResult> {
-    this.logger.log(
-      `Scheduling device: ${request.cpuCores} cores, ${request.memoryMB} MB`,
-    );
+    this.logger.log(`Scheduling device: ${request.cpuCores} cores, ${request.memoryMB} MB`);
 
     // 1. 获取所有可调度节点
     const candidateNodes = await this.getCandidateNodes();
@@ -64,9 +62,7 @@ export class SchedulerService {
     }
 
     // 2. 过滤不满足资源需求的节点
-    const feasibleNodes = candidateNodes.filter((node) =>
-      this.isFeasible(node, request),
-    );
+    const feasibleNodes = candidateNodes.filter((node) => this.isFeasible(node, request));
 
     if (feasibleNodes.length === 0) {
       throw BusinessErrors.noAvailableNodes();
@@ -83,9 +79,7 @@ export class SchedulerService {
 
     const bestNode = scoredNodes[0];
 
-    this.logger.log(
-      `Selected node: ${bestNode.node.name} (score: ${bestNode.score.toFixed(2)})`,
-    );
+    this.logger.log(`Selected node: ${bestNode.node.name} (score: ${bestNode.score.toFixed(2)})`);
 
     return {
       nodeId: bestNode.node.id,
@@ -98,9 +92,7 @@ export class SchedulerService {
   /**
    * 批量调度设备
    */
-  async scheduleDevices(
-    requests: ScheduleRequest[],
-  ): Promise<Map<string, ScheduleResult>> {
+  async scheduleDevices(requests: ScheduleRequest[]): Promise<Map<string, ScheduleResult>> {
     const results = new Map<string, ScheduleResult>();
 
     for (let i = 0; i < requests.length; i++) {
@@ -124,7 +116,7 @@ export class SchedulerService {
         status: NodeStatus.ONLINE,
       },
       order: {
-        priority: "DESC", // 优先级高的节点优先
+        priority: 'DESC', // 优先级高的节点优先
       },
     });
   }
@@ -135,10 +127,8 @@ export class SchedulerService {
   private isFeasible(node: Node, request: ScheduleRequest): boolean {
     // 检查资源容量
     const availableCpu = node.capacity.totalCpuCores - node.usage.usedCpuCores;
-    const availableMemory =
-      node.capacity.totalMemoryMB - node.usage.usedMemoryMB;
-    const availableDeviceSlots =
-      node.capacity.maxDevices - node.usage.activeDevices;
+    const availableMemory = node.capacity.totalMemoryMB - node.usage.usedMemoryMB;
+    const availableDeviceSlots = node.capacity.maxDevices - node.usage.activeDevices;
 
     if (
       request.cpuCores > availableCpu ||
@@ -151,12 +141,9 @@ export class SchedulerService {
     // 检查污点和容忍度
     if (node.taints && node.taints.length > 0) {
       for (const taint of node.taints) {
-        if (taint.effect === "NoSchedule") {
+        if (taint.effect === 'NoSchedule') {
           // 检查是否有匹配的容忍度
-          if (
-            !request.tolerations ||
-            !request.tolerations.includes(taint.key)
-          ) {
+          if (!request.tolerations || !request.tolerations.includes(taint.key)) {
             return false;
           }
         }
@@ -190,15 +177,10 @@ export class SchedulerService {
   private calculateBalancedScore(node: Node, request: ScheduleRequest): number {
     // 计算调度后的负载
     const afterCpuUsage =
-      ((node.usage.usedCpuCores + request.cpuCores) /
-        node.capacity.totalCpuCores) *
-      100;
+      ((node.usage.usedCpuCores + request.cpuCores) / node.capacity.totalCpuCores) * 100;
     const afterMemoryUsage =
-      ((node.usage.usedMemoryMB + request.memoryMB) /
-        node.capacity.totalMemoryMB) *
-      100;
-    const afterDeviceUsage =
-      ((node.usage.activeDevices + 1) / node.capacity.maxDevices) * 100;
+      ((node.usage.usedMemoryMB + request.memoryMB) / node.capacity.totalMemoryMB) * 100;
+    const afterDeviceUsage = ((node.usage.activeDevices + 1) / node.capacity.maxDevices) * 100;
 
     // 计算三种资源的方差（越小越均衡）
     const mean = (afterCpuUsage + afterMemoryUsage + afterDeviceUsage) / 3;
@@ -228,15 +210,10 @@ export class SchedulerService {
   private calculateBinpackScore(node: Node, request: ScheduleRequest): number {
     // 计算调度后的资源使用率
     const afterCpuUsage =
-      ((node.usage.usedCpuCores + request.cpuCores) /
-        node.capacity.totalCpuCores) *
-      100;
+      ((node.usage.usedCpuCores + request.cpuCores) / node.capacity.totalCpuCores) * 100;
     const afterMemoryUsage =
-      ((node.usage.usedMemoryMB + request.memoryMB) /
-        node.capacity.totalMemoryMB) *
-      100;
-    const afterDeviceUsage =
-      ((node.usage.activeDevices + 1) / node.capacity.maxDevices) * 100;
+      ((node.usage.usedMemoryMB + request.memoryMB) / node.capacity.totalMemoryMB) * 100;
+    const afterDeviceUsage = ((node.usage.activeDevices + 1) / node.capacity.maxDevices) * 100;
 
     // 使用率越高，得分越高（优先填满节点）
     let score = (afterCpuUsage + afterMemoryUsage + afterDeviceUsage) / 3;
@@ -252,12 +229,9 @@ export class SchedulerService {
    */
   private calculateSpreadScore(node: Node, request: ScheduleRequest): number {
     // 使用率越低，得分越高（优先选择空闲节点）
-    const cpuUsage =
-      (node.usage.usedCpuCores / node.capacity.totalCpuCores) * 100;
-    const memoryUsage =
-      (node.usage.usedMemoryMB / node.capacity.totalMemoryMB) * 100;
-    const deviceUsage =
-      (node.usage.activeDevices / node.capacity.maxDevices) * 100;
+    const cpuUsage = (node.usage.usedCpuCores / node.capacity.totalCpuCores) * 100;
+    const memoryUsage = (node.usage.usedMemoryMB / node.capacity.totalMemoryMB) * 100;
+    const deviceUsage = (node.usage.activeDevices / node.capacity.maxDevices) * 100;
 
     const avgUsage = (cpuUsage + memoryUsage + deviceUsage) / 3;
 
@@ -272,10 +246,7 @@ export class SchedulerService {
   /**
    * 最小负载策略：选择负载最小的节点
    */
-  private calculateLeastLoadedScore(
-    node: Node,
-    request: ScheduleRequest,
-  ): number {
+  private calculateLeastLoadedScore(node: Node, request: ScheduleRequest): number {
     // 直接使用节点的负载分数（越低越好）
     let score = 100 - node.loadScore;
 
@@ -292,7 +263,7 @@ export class SchedulerService {
     migrationsNeeded: number;
     migrationPlan: Array<{ deviceId: string; from: string; to: string }>;
   }> {
-    this.logger.log("Starting cluster rebalancing");
+    this.logger.log('Starting cluster rebalancing');
 
     const nodes = await this.nodeRepository.find({
       where: { status: NodeStatus.ONLINE },
@@ -303,40 +274,34 @@ export class SchedulerService {
     }
 
     // 计算平均负载
-    const avgLoad =
-      nodes.reduce((sum, node) => sum + node.loadScore, 0) / nodes.length;
+    const avgLoad = nodes.reduce((sum, node) => sum + node.loadScore, 0) / nodes.length;
 
     // 找出负载过高的节点（超过平均值20%以上）
-    const overloadedNodes = nodes.filter(
-      (node) => node.loadScore > avgLoad * 1.2,
-    );
+    const overloadedNodes = nodes.filter((node) => node.loadScore > avgLoad * 1.2);
 
     // 找出负载较低的节点（低于平均值20%以下）
-    const underloadedNodes = nodes.filter(
-      (node) => node.loadScore < avgLoad * 0.8,
-    );
+    const underloadedNodes = nodes.filter((node) => node.loadScore < avgLoad * 0.8);
 
     if (overloadedNodes.length === 0 || underloadedNodes.length === 0) {
-      this.logger.log("Cluster is already balanced");
+      this.logger.log('Cluster is already balanced');
       return { migrationsNeeded: 0, migrationPlan: [] };
     }
 
-    const migrationPlan: Array<{ deviceId: string; from: string; to: string }> =
-      [];
+    const migrationPlan: Array<{ deviceId: string; from: string; to: string }> = [];
 
     // 生成迁移计划（简化版）
     for (const overloadedNode of overloadedNodes) {
       // 获取该节点上的设备
       const devices = await this.deviceRepository.find({
         where: { status: DeviceStatus.RUNNING },
-        order: { cpuCores: "ASC" }, // 优先迁移小设备
+        order: { cpuCores: 'ASC' }, // 优先迁移小设备
         take: 5, // 限制迁移数量
       });
 
       for (const device of devices) {
         // 找到最合适的目标节点
         const bestTarget = underloadedNodes.reduce((best, current) =>
-          current.loadScore < best.loadScore ? current : best,
+          current.loadScore < best.loadScore ? current : best
         );
 
         migrationPlan.push({
@@ -355,9 +320,7 @@ export class SchedulerService {
       }
     }
 
-    this.logger.log(
-      `Generated migration plan: ${migrationPlan.length} migrations`,
-    );
+    this.logger.log(`Generated migration plan: ${migrationPlan.length} migrations`);
 
     return {
       migrationsNeeded: migrationPlan.length,

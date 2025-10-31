@@ -15,7 +15,7 @@ export class CachedUserServiceExample {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly cacheService: CacheService,
+    private readonly cacheService: CacheService
   ) {}
 
   /**
@@ -51,7 +51,7 @@ export class CachedUserServiceExample {
         ttl: 300,
         randomTTL: true, // 防止缓存雪崩
         nullValueCache: true, // 防止缓存穿透
-      },
+      }
     );
   }
 
@@ -120,7 +120,7 @@ export class CachedUserServiceExample {
       {
         layer: CacheLayer.L1_AND_L2,
         // 热点数据会自动识别前缀 'config:' 并永不过期
-      },
+      }
     );
   }
 
@@ -179,10 +179,9 @@ export class CachedUserServiceExample {
         }
 
         if (filters.keyword) {
-          query.andWhere(
-            '(user.username LIKE :keyword OR user.email LIKE :keyword)',
-            { keyword: `%${filters.keyword}%` },
-          );
+          query.andWhere('(user.username LIKE :keyword OR user.email LIKE :keyword)', {
+            keyword: `%${filters.keyword}%`,
+          });
         }
 
         return await query.getMany();
@@ -190,7 +189,7 @@ export class CachedUserServiceExample {
       {
         ttl: 120, // 2分钟
         randomTTL: true,
-      },
+      }
     );
   }
 }

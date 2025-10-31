@@ -136,9 +136,7 @@ const MyCoupons = () => {
                   {config.text}
                 </Tag>
                 <Tag
-                  color={
-                    isAvailable ? 'success' : isUsed ? 'default' : 'error'
-                  }
+                  color={isAvailable ? 'success' : isUsed ? 'default' : 'error'}
                   icon={
                     isAvailable ? (
                       <CheckCircleOutlined />
@@ -167,9 +165,7 @@ const MyCoupons = () => {
             </div>
 
             {/* 优惠券名称 */}
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-              {coupon.name}
-            </div>
+            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{coupon.name}</div>
 
             {/* 使用条件 */}
             {coupon.minAmount && (
@@ -262,11 +258,7 @@ const MyCoupons = () => {
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={6}>
           <Card>
-            <Statistic
-              title="全部优惠券"
-              value={stats.total}
-              prefix={<GiftOutlined />}
-            />
+            <Statistic title="全部优惠券" value={stats.total} prefix={<GiftOutlined />} />
           </Card>
         </Col>
         <Col xs={12} sm={6}>
@@ -281,11 +273,7 @@ const MyCoupons = () => {
         </Col>
         <Col xs={12} sm={6}>
           <Card>
-            <Statistic
-              title="已使用"
-              value={stats.used}
-              prefix={<CheckCircleOutlined />}
-            />
+            <Statistic title="已使用" value={stats.used} prefix={<CheckCircleOutlined />} />
           </Card>
         </Col>
         <Col xs={12} sm={6}>

@@ -12,7 +12,7 @@ import { hasAdminRole } from '@cloudphone/shared';
 export class DevicesAccessService {
   constructor(
     @InjectRepository(Device)
-    private readonly deviceRepository: Repository<Device>,
+    private readonly deviceRepository: Repository<Device>
   ) {}
 
   /**
@@ -55,7 +55,7 @@ export class DevicesAccessService {
    */
   async validateBatchDeviceAccess(deviceIds: string[], user: any): Promise<Device[]> {
     const devices = await this.deviceRepository.find({
-      where: deviceIds.map(id => ({ id })),
+      where: deviceIds.map((id) => ({ id })),
       relations: ['user'],
     });
 
@@ -69,11 +69,11 @@ export class DevicesAccessService {
     }
 
     // 检查所有设备是否都属于该用户
-    const unauthorizedDevices = devices.filter(device => device.userId !== user.id);
+    const unauthorizedDevices = devices.filter((device) => device.userId !== user.id);
 
     if (unauthorizedDevices.length > 0) {
       throw new ForbiddenException(
-        `您没有权限访问以下设备: ${unauthorizedDevices.map(d => d.id).join(', ')}`
+        `您没有权限访问以下设备: ${unauthorizedDevices.map((d) => d.id).join(', ')}`
       );
     }
 

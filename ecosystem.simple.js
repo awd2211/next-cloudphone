@@ -9,8 +9,8 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'development',
-        PORT: 30000
-      }
+        PORT: 30000,
+      },
     },
     {
       name: 'user-service',
@@ -21,8 +21,8 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'development',
-        PORT: 30001
-      }
+        PORT: 30001,
+      },
     },
     {
       name: 'device-service',
@@ -33,8 +33,8 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'development',
-        PORT: 30002
-      }
+        PORT: 30002,
+      },
     },
     {
       name: 'app-service',
@@ -45,8 +45,8 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'development',
-        PORT: 30003
-      }
+        PORT: 30003,
+      },
     },
     {
       name: 'billing-service',
@@ -57,8 +57,8 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'development',
-        PORT: 30005
-      }
+        PORT: 30005,
+      },
     },
     {
       name: 'notification-service',
@@ -69,10 +69,8 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'development',
-        PORT: 30006
-      }
-    }
-  ]
+        PORT: 30006,
+      },
+    },
+  ],
 };
-
-

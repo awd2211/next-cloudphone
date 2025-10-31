@@ -1,7 +1,7 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { spawn, ChildProcess } from "child_process";
-import * as path from "path";
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { spawn, ChildProcess } from 'child_process';
+import * as path from 'path';
 import {
   ScrcpyConfig,
   ScrcpySession,
@@ -9,7 +9,7 @@ import {
   ScrcpyProcessStatus,
   ScrcpyVideoCodec,
   ScrcpyAudioCodec,
-} from "./scrcpy.types";
+} from './scrcpy.types';
 
 /**
  * ScrcpyService
@@ -47,13 +47,10 @@ export class ScrcpyService {
   private readonly wsPort: number;
 
   constructor(private configService: ConfigService) {
-    this.scrcpyPath = this.configService.get<string>(
-      "SCRCPY_PATH",
-      "/usr/local/bin/scrcpy",
-    );
-    this.portStart = this.configService.get<number>("SCRCPY_PORT_START", 27183);
-    this.wsHost = this.configService.get<string>("WS_HOST", "localhost");
-    this.wsPort = this.configService.get<number>("WS_PORT", 8080);
+    this.scrcpyPath = this.configService.get<string>('SCRCPY_PATH', '/usr/local/bin/scrcpy');
+    this.portStart = this.configService.get<number>('SCRCPY_PORT_START', 27183);
+    this.wsHost = this.configService.get<string>('WS_HOST', 'localhost');
+    this.wsPort = this.configService.get<number>('WS_PORT', 8080);
 
     this.logger.log(`ScrcpyService initialized: ${this.scrcpyPath}`);
   }
@@ -69,7 +66,7 @@ export class ScrcpyService {
   async startSession(
     deviceId: string,
     serial: string,
-    config?: Partial<ScrcpyConfig>,
+    config?: Partial<ScrcpyConfig>
   ): Promise<ScrcpySession> {
     // 检查是否已有会话
     if (this.sessions.has(deviceId)) {
@@ -122,7 +119,7 @@ export class ScrcpyService {
     this.processes.set(deviceId, process);
 
     this.logger.log(
-      `SCRCPY session started for device ${deviceId}, port ${port}, PID ${process.pid}`,
+      `SCRCPY session started for device ${deviceId}, port ${port}, PID ${process.pid}`
     );
 
     return session;
@@ -141,18 +138,18 @@ export class ScrcpyService {
     }
 
     // 杀死进程
-    process.kill("SIGTERM");
+    process.kill('SIGTERM');
 
     // 等待进程退出（最多 5 秒）
     await new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
         if (!process.killed) {
-          process.kill("SIGKILL");
+          process.kill('SIGKILL');
         }
         resolve();
       }, 5000);
 
-      process.once("exit", () => {
+      process.once('exit', () => {
         clearTimeout(timeout);
         resolve();
       });
@@ -201,9 +198,7 @@ export class ScrcpyService {
     return {
       deviceId,
       pid: process.pid!,
-      status: process.killed
-        ? ScrcpyProcessStatus.STOPPED
-        : ScrcpyProcessStatus.RUNNING,
+      status: process.killed ? ScrcpyProcessStatus.STOPPED : ScrcpyProcessStatus.RUNNING,
       startedAt: session.createdAt,
       port: session.config.port!,
     };
@@ -248,39 +243,34 @@ export class ScrcpyService {
    * @param config SCRCPY 配置
    * @returns 子进程
    */
-  private async spawnScrcpyProcess(
-    deviceId: string,
-    config: ScrcpyConfig,
-  ): Promise<ChildProcess> {
+  private async spawnScrcpyProcess(deviceId: string, config: ScrcpyConfig): Promise<ChildProcess> {
     const args = this.buildScrcpyArgs(config);
 
-    this.logger.debug(`Starting SCRCPY: ${this.scrcpyPath} ${args.join(" ")}`);
+    this.logger.debug(`Starting SCRCPY: ${this.scrcpyPath} ${args.join(' ')}`);
 
     const process = spawn(this.scrcpyPath, args, {
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
     // 监听标准输出
-    process.stdout?.on("data", (data) => {
+    process.stdout?.on('data', (data) => {
       this.logger.debug(`[SCRCPY ${deviceId}] ${data.toString().trim()}`);
     });
 
     // 监听标准错误
-    process.stderr?.on("data", (data) => {
+    process.stderr?.on('data', (data) => {
       this.logger.error(`[SCRCPY ${deviceId}] ${data.toString().trim()}`);
     });
 
     // 监听进程退出
-    process.on("exit", (code, signal) => {
-      this.logger.log(
-        `[SCRCPY ${deviceId}] Process exited: code=${code}, signal=${signal}`,
-      );
+    process.on('exit', (code, signal) => {
+      this.logger.log(`[SCRCPY ${deviceId}] Process exited: code=${code}, signal=${signal}`);
       this.sessions.delete(deviceId);
       this.processes.delete(deviceId);
     });
 
     // 监听错误
-    process.on("error", (error) => {
+    process.on('error', (error) => {
       this.logger.error(`[SCRCPY ${deviceId}] Process error:`, error);
       this.sessions.delete(deviceId);
       this.processes.delete(deviceId);
@@ -302,46 +292,46 @@ export class ScrcpyService {
     const args: string[] = [];
 
     // 设备序列号
-    args.push("-s", config.serial);
+    args.push('-s', config.serial);
 
     // 视频配置
     if (!config.noVideo) {
-      args.push("--video-bit-rate", config.videoBitRate!.toString());
-      args.push("--video-codec", config.videoCodec!);
+      args.push('--video-bit-rate', config.videoBitRate!.toString());
+      args.push('--video-codec', config.videoCodec!);
       if (config.maxSize && config.maxSize > 0) {
-        args.push("--max-size", config.maxSize.toString());
+        args.push('--max-size', config.maxSize.toString());
       }
       if (config.maxFps && config.maxFps > 0) {
-        args.push("--max-fps", config.maxFps.toString());
+        args.push('--max-fps', config.maxFps.toString());
       }
     } else {
-      args.push("--no-video");
+      args.push('--no-video');
     }
 
     // 音频配置
     if (!config.noAudio) {
-      args.push("--audio-bit-rate", config.audioBitRate!.toString());
-      args.push("--audio-codec", config.audioCodec!);
+      args.push('--audio-bit-rate', config.audioBitRate!.toString());
+      args.push('--audio-codec', config.audioCodec!);
     } else {
-      args.push("--no-audio");
+      args.push('--no-audio');
     }
 
     // 其他选项
     if (config.showTouches) {
-      args.push("--show-touches");
+      args.push('--show-touches');
     }
     if (config.stayAwake) {
-      args.push("--stay-awake");
+      args.push('--stay-awake');
     }
     if (config.turnScreenOff) {
-      args.push("--turn-screen-off");
+      args.push('--turn-screen-off');
     }
 
     // 端口
-    args.push("--port", config.port!.toString());
+    args.push('--port', config.port!.toString());
 
     // 无窗口模式（服务器模式）
-    args.push("--no-display");
+    args.push('--no-display');
 
     return args;
   }
@@ -379,11 +369,11 @@ export class ScrcpyService {
    * 清理所有会话（服务停止时调用）
    */
   async cleanup(): Promise<void> {
-    this.logger.log("Cleaning up all SCRCPY sessions...");
+    this.logger.log('Cleaning up all SCRCPY sessions...');
 
     const deviceIds = Array.from(this.sessions.keys());
     await Promise.all(deviceIds.map((id) => this.stopSession(id)));
 
-    this.logger.log("All SCRCPY sessions cleaned up");
+    this.logger.log('All SCRCPY sessions cleaned up');
   }
 }

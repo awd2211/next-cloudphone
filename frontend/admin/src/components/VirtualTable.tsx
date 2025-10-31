@@ -102,7 +102,10 @@ export function VirtualTable<T extends Record<string, any>>({
 
   // 渲染表头
   const renderHeader = () => (
-    <div className="virtual-table-header" style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', background: '#fafafa' }}>
+    <div
+      className="virtual-table-header"
+      style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', background: '#fafafa' }}
+    >
       {columns.map((column) => (
         <div
           key={column.key}
@@ -129,7 +132,14 @@ export function VirtualTable<T extends Record<string, any>>({
     if (!isItemLoaded(index)) {
       return (
         <div style={style} className="virtual-table-row virtual-table-loading-row">
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100%',
+            }}
+          >
             <Spin size="small" />
             <span style={{ marginLeft: 8 }}>加载中...</span>
           </div>
@@ -150,9 +160,7 @@ export function VirtualTable<T extends Record<string, any>>({
         <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f0' }}>
           {columns.map((column) => {
             const value = record[column.key];
-            const content = column.render
-              ? column.render(value, record, index)
-              : value;
+            const content = column.render ? column.render(value, record, index) : value;
 
             return (
               <div
@@ -180,14 +188,20 @@ export function VirtualTable<T extends Record<string, any>>({
   // 空数据展示
   if (data.length === 0 && !isLoading) {
     return (
-      <div className="virtual-table-empty" style={{ textAlign: 'center', padding: '48px 0', color: '#999' }}>
+      <div
+        className="virtual-table-empty"
+        style={{ textAlign: 'center', padding: '48px 0', color: '#999' }}
+      >
         {emptyText}
       </div>
     );
   }
 
   return (
-    <div className="virtual-table-container" style={{ border: '1px solid #f0f0f0', borderRadius: 4 }}>
+    <div
+      className="virtual-table-container"
+      style={{ border: '1px solid #f0f0f0', borderRadius: 4 }}
+    >
       {renderHeader()}
 
       <InfiniteLoader

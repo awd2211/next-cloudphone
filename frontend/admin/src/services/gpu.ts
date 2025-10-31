@@ -28,7 +28,11 @@ export const getGPUStatus = (id: string) => {
 // ========== GPU 分配管理 ==========
 
 // 分配 GPU 到设备
-export const allocateGPU = (gpuId: string, deviceId: string, mode: 'exclusive' | 'shared' = 'exclusive') => {
+export const allocateGPU = (
+  gpuId: string,
+  deviceId: string,
+  mode: 'exclusive' | 'shared' = 'exclusive'
+) => {
   return request.post<GPUAllocation>(`/resources/gpu/${gpuId}/allocate`, { deviceId, mode });
 };
 

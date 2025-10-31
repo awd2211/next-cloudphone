@@ -7,7 +7,7 @@ import {
   usePermissions,
   useCreatePermission,
   useUpdatePermission,
-  useDeletePermission
+  useDeletePermission,
 } from '@/hooks/useRoles';
 
 /**
@@ -34,26 +34,35 @@ const PermissionList = () => {
   const deleteMutation = useDeletePermission();
 
   // ✅ useCallback 优化事件处理函数
-  const handleSubmit = useCallback(async (values: { resource: string; action: string; description?: string }) => {
-    if (editingPermission) {
-      await updateMutation.mutateAsync({ id: editingPermission.id, data: values });
-    } else {
-      await createMutation.mutateAsync(values);
-    }
-    setModalVisible(false);
-    setEditingPermission(null);
-    form.resetFields();
-  }, [editingPermission, createMutation, updateMutation, form]);
+  const handleSubmit = useCallback(
+    async (values: { resource: string; action: string; description?: string }) => {
+      if (editingPermission) {
+        await updateMutation.mutateAsync({ id: editingPermission.id, data: values });
+      } else {
+        await createMutation.mutateAsync(values);
+      }
+      setModalVisible(false);
+      setEditingPermission(null);
+      form.resetFields();
+    },
+    [editingPermission, createMutation, updateMutation, form]
+  );
 
-  const handleEdit = useCallback((permission: Permission) => {
-    setEditingPermission(permission);
-    form.setFieldsValue(permission);
-    setModalVisible(true);
-  }, [form]);
+  const handleEdit = useCallback(
+    (permission: Permission) => {
+      setEditingPermission(permission);
+      form.setFieldsValue(permission);
+      setModalVisible(true);
+    },
+    [form]
+  );
 
-  const handleDelete = useCallback(async (id: string) => {
-    await deleteMutation.mutateAsync(id);
-  }, [deleteMutation]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteMutation.mutateAsync(id);
+    },
+    [deleteMutation]
+  );
 
   const handleCreate = useCallback(() => {
     setEditingPermission(null);
@@ -69,101 +78,107 @@ const PermissionList = () => {
 
   // ✅ useMemo 优化按资源分组
   const groupedPermissions = useMemo(() => {
-    return (Array.isArray(permissions) ? permissions : []).reduce((acc, permission) => {
-      const resource = permission.resource;
-      if (!acc[resource]) {
-        acc[resource] = [];
-      }
-      acc[resource].push(permission);
-      return acc;
-    }, {} as Record<string, Permission[]>);
+    return (Array.isArray(permissions) ? permissions : []).reduce(
+      (acc, permission) => {
+        const resource = permission.resource;
+        if (!acc[resource]) {
+          acc[resource] = [];
+        }
+        acc[resource].push(permission);
+        return acc;
+      },
+      {} as Record<string, Permission[]>
+    );
   }, [permissions]);
 
   // ✅ useMemo 优化表格列配置
-  const columns: ColumnsType<Permission> = useMemo(() => [
-    {
-      title: '资源',
-      dataIndex: 'resource',
-      key: 'resource',
-      width: 200,
-      sorter: (a, b) => a.resource.localeCompare(b.resource),
-    },
-    {
-      title: '操作',
-      dataIndex: 'action',
-      key: 'action',
-      width: 150,
-      sorter: (a, b) => a.action.localeCompare(b.action),
-    },
-    {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-    },
-    {
-      title: '权限标识',
-      key: 'identifier',
-      render: (_, record) => `${record.resource}:${record.action}`,
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 150,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定要删除这个权限吗?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" size="small" icon={<DeleteOutlined />} danger>
-              删除
+  const columns: ColumnsType<Permission> = useMemo(
+    () => [
+      {
+        title: '资源',
+        dataIndex: 'resource',
+        key: 'resource',
+        width: 200,
+        sorter: (a, b) => a.resource.localeCompare(b.resource),
+      },
+      {
+        title: '操作',
+        dataIndex: 'action',
+        key: 'action',
+        width: 150,
+        sorter: (a, b) => a.action.localeCompare(b.action),
+      },
+      {
+        title: '描述',
+        dataIndex: 'description',
+        key: 'description',
+        ellipsis: true,
+      },
+      {
+        title: '权限标识',
+        key: 'identifier',
+        render: (_, record) => `${record.resource}:${record.action}`,
+      },
+      {
+        title: '操作',
+        key: 'actions',
+        width: 150,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="small">
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            >
+              编辑
             </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ], [handleEdit, handleDelete]);
+            <Popconfirm
+              title="确定要删除这个权限吗?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" size="small" icon={<DeleteOutlined />} danger>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [handleEdit, handleDelete]
+  );
 
   return (
     <div>
       <h2>权限管理</h2>
 
       <div style={{ marginBottom: 16 }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
           创建权限
         </Button>
       </div>
 
       {/* 按资源分组显示 */}
-      {Object.keys(groupedPermissions).sort().map((resource) => (
-        <div key={resource} style={{ marginBottom: 24 }}>
-          <h3>{resource} ({groupedPermissions[resource].length} 个权限)</h3>
-          <Table
-            columns={columns}
-            dataSource={groupedPermissions[resource]}
-            rowKey="id"
-            loading={isLoading}
-            pagination={false}
-            size="small"
-          />
-        </div>
-      ))}
+      {Object.keys(groupedPermissions)
+        .sort()
+        .map((resource) => (
+          <div key={resource} style={{ marginBottom: 24 }}>
+            <h3>
+              {resource} ({groupedPermissions[resource].length} 个权限)
+            </h3>
+            <Table
+              columns={columns}
+              dataSource={groupedPermissions[resource]}
+              rowKey="id"
+              loading={isLoading}
+              pagination={false}
+              size="small"
+            />
+          </div>
+        ))}
 
       {/* 创建/编辑权限对话框 */}
       <Modal
@@ -198,7 +213,8 @@ const PermissionList = () => {
             <p style={{ margin: 0, fontSize: 12, color: '#666' }}>
               <strong>权限标识预览：</strong>
               <br />
-              {form.getFieldValue('resource') || 'resource'}:{form.getFieldValue('action') || 'action'}
+              {form.getFieldValue('resource') || 'resource'}:
+              {form.getFieldValue('action') || 'action'}
             </p>
           </div>
         </Form>

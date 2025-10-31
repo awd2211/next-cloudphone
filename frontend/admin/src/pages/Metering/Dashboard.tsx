@@ -182,9 +182,7 @@ const MeteringDashboard = () => {
       align: 'right',
       sorter: (a, b) => a.cost - b.cost,
       render: (cost) => (
-        <span style={{ color: '#1890ff', fontWeight: 500 }}>
-          ¥{cost.toFixed(2)}
-        </span>
+        <span style={{ color: '#1890ff', fontWeight: 500 }}>¥{cost.toFixed(2)}</span>
       ),
     },
   ];
@@ -297,8 +295,8 @@ const MeteringDashboard = () => {
                   (overview?.cpuUsage || 0) > 80
                     ? 'exception'
                     : (overview?.cpuUsage || 0) > 60
-                    ? 'normal'
-                    : 'success'
+                      ? 'normal'
+                      : 'success'
                 }
               />
             </Col>
@@ -310,8 +308,8 @@ const MeteringDashboard = () => {
                   (overview?.memoryUsage || 0) > 80
                     ? 'exception'
                     : (overview?.memoryUsage || 0) > 60
-                    ? 'normal'
-                    : 'success'
+                      ? 'normal'
+                      : 'success'
                 }
               />
             </Col>
@@ -323,8 +321,8 @@ const MeteringDashboard = () => {
                   (overview?.storageUsage || 0) > 80
                     ? 'exception'
                     : (overview?.storageUsage || 0) > 60
-                    ? 'normal'
-                    : 'success'
+                      ? 'normal'
+                      : 'success'
                 }
               />
             </Col>
@@ -332,17 +330,18 @@ const MeteringDashboard = () => {
         </Card>
 
         <Card
-          title={<span><LineChartOutlined /> 计量详情</span>}
+          title={
+            <span>
+              <LineChartOutlined /> 计量详情
+            </span>
+          }
           extra={
             <Space>
               <RangePicker
                 value={[dayjs(dateRange[0]), dayjs(dateRange[1])]}
                 onChange={(dates) => {
                   if (dates) {
-                    setDateRange([
-                      dates[0]!.format('YYYY-MM-DD'),
-                      dates[1]!.format('YYYY-MM-DD'),
-                    ]);
+                    setDateRange([dates[0]!.format('YYYY-MM-DD'), dates[1]!.format('YYYY-MM-DD')]);
                   }
                 }}
               />

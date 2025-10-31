@@ -1,10 +1,4 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, BadRequestException, Logger } from '@nestjs/common';
 import { Response } from 'express';
 
 /**
@@ -36,9 +30,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
     };
 
     // 记录警告日志
-    this.logger.warn(
-      `Validation failed: ${JSON.stringify(validationErrors)}`,
-    );
+    this.logger.warn(`Validation failed: ${JSON.stringify(validationErrors)}`);
 
     response.status(status).json(errorResponse);
   }

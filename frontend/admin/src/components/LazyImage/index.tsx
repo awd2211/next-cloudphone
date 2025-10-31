@@ -85,9 +85,7 @@ const LazyImage: React.FC<LazyImageProps> = ({
   if (isError) {
     return (
       <div ref={imgRef} style={containerStyle} className={className}>
-        {placeholder || (
-          <div style={{ fontSize: '12px', color: '#999' }}>加载失败</div>
-        )}
+        {placeholder || <div style={{ fontSize: '12px', color: '#999' }}>加载失败</div>}
       </div>
     );
   }

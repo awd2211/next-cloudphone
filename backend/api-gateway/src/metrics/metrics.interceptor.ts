@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { MetricsService } from './metrics.service';
@@ -29,12 +24,7 @@ export class MetricsInterceptor implements NestInterceptor {
         const duration = (Date.now() - startTime) / 1000; // 转换为秒
         const statusCode = response.statusCode;
 
-        this.metricsService.recordHttpRequest(
-          method,
-          routePath,
-          statusCode,
-          duration,
-        );
+        this.metricsService.recordHttpRequest(method, routePath, statusCode, duration);
         this.metricsService.decrementActiveConnections();
       }),
       catchError((error) => {
@@ -43,22 +33,12 @@ export class MetricsInterceptor implements NestInterceptor {
         const statusCode = error.status || 500;
         const errorType = error.name || 'Error';
 
-        this.metricsService.recordHttpRequest(
-          method,
-          routePath,
-          statusCode,
-          duration,
-        );
-        this.metricsService.recordHttpError(
-          method,
-          routePath,
-          statusCode,
-          errorType,
-        );
+        this.metricsService.recordHttpRequest(method, routePath, statusCode, duration);
+        this.metricsService.recordHttpError(method, routePath, statusCode, errorType);
         this.metricsService.decrementActiveConnections();
 
         throw error;
-      }),
+      })
     );
   }
 }

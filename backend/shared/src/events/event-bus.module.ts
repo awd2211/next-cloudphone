@@ -48,7 +48,7 @@ export class EventBusModule {
           useFactory: (configService: ConfigService) => ({
             uri: configService.get<string>(
               'RABBITMQ_URL',
-              'amqp://admin:admin123@localhost:5672/cloudphone',
+              'amqp://admin:admin123@localhost:5672/cloudphone'
             ),
             connectionInitOptions: {
               wait: true,

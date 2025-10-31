@@ -90,7 +90,11 @@ export interface CacheableOptions {
  * @param options 缓存配置
  */
 export function Cacheable(options: CacheableOptions): MethodDecorator {
-  return (target: Record<string, unknown>, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
+  return (
+    target: Record<string, unknown>,
+    propertyKey: string | symbol,
+    descriptor: PropertyDescriptor
+  ) => {
     SetMetadata(CACHE_KEY_METADATA, options)(target, propertyKey, descriptor);
 
     const originalMethod = descriptor.value;
@@ -98,13 +102,15 @@ export function Cacheable(options: CacheableOptions): MethodDecorator {
 
     descriptor.value = async function (this: Record<string, unknown>, ...args: unknown[]) {
       // 获取缓存服务 (支持多种命名)
-      const cacheService = (this.cacheService || this.redis || this.cacheManager) as CacheService | undefined;
+      const cacheService = (this.cacheService || this.redis || this.cacheManager) as
+        | CacheService
+        | undefined;
 
       if (!cacheService) {
         if (enableLogging) {
           logger.warn(
             `Cache service not found in ${target.constructor.name}.${String(propertyKey)}, ` +
-            `executing original method without caching`
+              `executing original method without caching`
           );
         }
         return originalMethod.apply(this, args);
@@ -194,10 +200,7 @@ export function Cacheable(options: CacheableOptions): MethodDecorator {
 
         return result;
       } catch (error) {
-        logger.error(
-          `Error in ${target.constructor.name}.${String(propertyKey)}:`,
-          error
-        );
+        logger.error(`Error in ${target.constructor.name}.${String(propertyKey)}:`, error);
         // 缓存异常时降级到原方法
         return originalMethod.apply(this, args);
       }
@@ -251,7 +254,11 @@ export interface CacheEvictOptions {
  * @param options 缓存失效配置
  */
 export function CacheEvict(options: CacheEvictOptions): MethodDecorator {
-  return (target: Record<string, unknown>, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
+  return (
+    target: Record<string, unknown>,
+    propertyKey: string | symbol,
+    descriptor: PropertyDescriptor
+  ) => {
     const originalMethod = descriptor.value;
     const enableLogging = options.enableLogging !== false;
 
@@ -260,13 +267,15 @@ export function CacheEvict(options: CacheEvictOptions): MethodDecorator {
       const result = await originalMethod.apply(this, args);
 
       // 获取缓存服务
-      const cacheService = (this.cacheService || this.redis || this.cacheManager) as CacheService | undefined;
+      const cacheService = (this.cacheService || this.redis || this.cacheManager) as
+        | CacheService
+        | undefined;
 
       if (!cacheService) {
         if (enableLogging) {
           logger.warn(
             `Cache service not found in ${target.constructor.name}.${String(propertyKey)}, ` +
-            `skipping cache eviction`
+              `skipping cache eviction`
           );
         }
         return result;

@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
-import { ErrorNotificationService, ErrorEvent } from '../../notifications/error-notification.service';
+import {
+  ErrorNotificationService,
+  ErrorEvent,
+} from '../../notifications/error-notification.service';
 
 /**
  * 系统错误事件消费者
@@ -17,9 +20,7 @@ import { ErrorNotificationService, ErrorEvent } from '../../notifications/error-
 export class ErrorEventsConsumer {
   private readonly logger = new Logger(ErrorEventsConsumer.name);
 
-  constructor(
-    private readonly errorNotificationService: ErrorNotificationService,
-  ) {}
+  constructor(private readonly errorNotificationService: ErrorNotificationService) {}
 
   /**
    * 监听严重错误
@@ -62,9 +63,7 @@ export class ErrorEventsConsumer {
     },
   })
   async handleHighError(event: ErrorEvent): Promise<void> {
-    this.logger.warn(
-      `收到高优先级错误事件: ${event.errorCode} - ${event.serviceName}`
-    );
+    this.logger.warn(`收到高优先级错误事件: ${event.errorCode} - ${event.serviceName}`);
 
     try {
       await this.errorNotificationService.handleErrorEvent(event);
@@ -88,9 +87,7 @@ export class ErrorEventsConsumer {
     },
   })
   async handleMediumError(event: ErrorEvent): Promise<void> {
-    this.logger.log(
-      `收到中等优先级错误事件: ${event.errorCode} - ${event.serviceName}`
-    );
+    this.logger.log(`收到中等优先级错误事件: ${event.errorCode} - ${event.serviceName}`);
 
     try {
       await this.errorNotificationService.handleErrorEvent(event);
@@ -114,9 +111,7 @@ export class ErrorEventsConsumer {
     },
   })
   async handleLowError(event: ErrorEvent): Promise<void> {
-    this.logger.debug(
-      `收到低优先级错误事件: ${event.errorCode} - ${event.serviceName}`
-    );
+    this.logger.debug(`收到低优先级错误事件: ${event.errorCode} - ${event.serviceName}`);
 
     try {
       await this.errorNotificationService.handleErrorEvent(event);

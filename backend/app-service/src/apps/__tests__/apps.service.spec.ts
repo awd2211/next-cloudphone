@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { of } from 'rxjs';
 import { AppsService } from '../apps.service';
 import { Application, AppStatus, AppCategory } from '../../entities/application.entity';
@@ -232,7 +236,7 @@ describe('AppsService', () => {
           packageName: 'com.test.app',
           versionName: '1.0.0',
           versionCode: 1,
-        }),
+        })
       );
     });
 
@@ -252,11 +256,9 @@ describe('AppsService', () => {
       };
       mockAppsRepository.findOne.mockResolvedValue(existingApp);
 
+      await expect(service.uploadApp(mockFile, createAppDto)).rejects.toThrow(BadRequestException);
       await expect(service.uploadApp(mockFile, createAppDto)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.uploadApp(mockFile, createAppDto)).rejects.toThrow(
-        '应用 com.test.app 版本 1.0.0 (1) 已存在',
+        '应用 com.test.app 版本 1.0.0 (1) 已存在'
       );
       expect(mockSagaOrchestrator.executeSaga).not.toHaveBeenCalled();
     });
@@ -266,7 +268,7 @@ describe('AppsService', () => {
       mockAppsRepository.findOne.mockResolvedValue(null);
 
       await expect(service.uploadApp(mockFile, createAppDto)).rejects.toThrow(
-        'App record creation failed',
+        'App record creation failed'
       );
     });
   });
@@ -342,7 +344,7 @@ describe('AppsService', () => {
         expect.objectContaining({
           skip: 40, // (3 - 1) * 20
           take: 20,
-        }),
+        })
       );
     });
   });
@@ -396,7 +398,7 @@ describe('AppsService', () => {
         expect.objectContaining({
           name: 'New Name',
           description: 'New description',
-        }),
+        })
       );
     });
   });
@@ -418,7 +420,7 @@ describe('AppsService', () => {
       expect(mockAppsRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           status: AppStatus.DELETED,
-        }),
+        })
       );
     });
   });
@@ -457,7 +459,7 @@ describe('AppsService', () => {
           deviceId: 'device-123',
           appId: 'app-123',
           downloadUrl: mockApp.downloadUrl,
-        }),
+        })
       );
     });
 
@@ -477,10 +479,10 @@ describe('AppsService', () => {
       mockDeviceAppsRepository.findOne.mockResolvedValue(existingInstallation);
 
       await expect(service.installToDevice('app-123', 'device-123')).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
       await expect(service.installToDevice('app-123', 'device-123')).rejects.toThrow(
-        '应用已安装在该设备上',
+        '应用已安装在该设备上'
       );
       expect(mockEventBus.publishAppEvent).not.toHaveBeenCalled();
     });
@@ -512,7 +514,7 @@ describe('AppsService', () => {
       expect(mockDeviceAppsRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           status: InstallStatus.UNINSTALLING,
-        }),
+        })
       );
       expect(mockEventBus.publishAppEvent).toHaveBeenCalledWith(
         'uninstall.requested',
@@ -520,7 +522,7 @@ describe('AppsService', () => {
           deviceId: 'device-123',
           appId: 'app-123',
           packageName: 'com.test.app',
-        }),
+        })
       );
     });
 
@@ -533,10 +535,10 @@ describe('AppsService', () => {
       mockDeviceAppsRepository.findOne.mockResolvedValue(null);
 
       await expect(service.uninstallFromDevice('app-123', 'device-123')).rejects.toThrow(
-        NotFoundException,
+        NotFoundException
       );
       await expect(service.uninstallFromDevice('app-123', 'device-123')).rejects.toThrow(
-        '应用未安装在该设备上',
+        '应用未安装在该设备上'
       );
       expect(mockEventBus.publishAppEvent).not.toHaveBeenCalled();
     });
@@ -684,7 +686,7 @@ describe('AppsService', () => {
       mockAppsRepository.findOne.mockResolvedValue(mockApp);
 
       await expect(service.submitForReview('app-123', { comment: 'Review' })).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
     });
   });
@@ -721,7 +723,7 @@ describe('AppsService', () => {
           packageName: 'com.test.app',
           versionName: '1.0.0',
           reviewerId: 'reviewer-123',
-        }),
+        })
       );
     });
 
@@ -733,7 +735,7 @@ describe('AppsService', () => {
       mockAppsRepository.findOne.mockResolvedValue(mockApp);
 
       await expect(
-        service.approveApp('app-123', { reviewerId: 'reviewer-123', comment: 'Approve' }),
+        service.approveApp('app-123', { reviewerId: 'reviewer-123', comment: 'Approve' })
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -768,7 +770,7 @@ describe('AppsService', () => {
         expect.objectContaining({
           appId: 'app-123',
           reason: 'Security issues',
-        }),
+        })
       );
     });
   });

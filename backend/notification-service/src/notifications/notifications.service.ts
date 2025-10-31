@@ -4,10 +4,19 @@ import { Repository, LessThan } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { CreateNotificationDto } from './notification.interface';
-import { Notification, NotificationStatus, NotificationCategory, NotificationChannel } from '../entities/notification.entity';
+import {
+  Notification,
+  NotificationStatus,
+  NotificationCategory,
+  NotificationChannel,
+} from '../entities/notification.entity';
 import { NotificationGateway } from '../gateway/notification.gateway';
 import { NotificationPreferencesService } from './preferences.service';
-import { NotificationChannel as PrefChannel, NotificationType as PrefType, getNotificationCategory } from '@cloudphone/shared';
+import {
+  NotificationChannel as PrefChannel,
+  NotificationType as PrefType,
+  getNotificationCategory,
+} from '@cloudphone/shared';
 import { EmailService } from '../email/email.service';
 import { SmsService } from '../sms/sms.service';
 
@@ -23,7 +32,7 @@ export class NotificationsService {
     private cacheManager: Cache,
     private readonly preferencesService: NotificationPreferencesService,
     private readonly emailService: EmailService,
-    private readonly smsService: SmsService,
+    private readonly smsService: SmsService
   ) {}
 
   /**
@@ -51,13 +60,13 @@ export class NotificationsService {
       savedNotification.status = NotificationStatus.SENT;
       savedNotification.sentAt = new Date();
       await this.notificationRepository.save(savedNotification);
-      
+
       this.logger.log(`通知已发送: ${savedNotification.id} -> 用户: ${dto.userId}`);
     } catch (error) {
       savedNotification.status = NotificationStatus.FAILED;
       savedNotification.errorMessage = error.message;
       await this.notificationRepository.save(savedNotification);
-      
+
       this.logger.error(`通知发送失败: ${savedNotification.id}`, error.stack);
     }
 
@@ -95,7 +104,7 @@ export class NotificationsService {
 
     notification.status = NotificationStatus.READ;
     notification.readAt = new Date();
-    
+
     const updated = await this.notificationRepository.save(notification);
     this.logger.log(`通知已标记为已读: ${notificationId}`);
 
@@ -111,12 +120,12 @@ export class NotificationsService {
   async getUserNotifications(
     userId: string,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 10
   ): Promise<{ data: Notification[]; total: number }> {
     // 尝试从缓存获取
     const cacheKey = `user:${userId}:notifications:${page}:${limit}`;
     const cached = await this.cacheManager.get<{ data: Notification[]; total: number }>(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
@@ -189,7 +198,7 @@ export class NotificationsService {
       {
         status: NotificationStatus.READ,
         readAt: new Date(),
-      },
+      }
     );
 
     const updated = result.affected || 0;
@@ -222,7 +231,7 @@ export class NotificationsService {
    */
   async cleanupExpiredNotifications(): Promise<number> {
     const now = new Date();
-    
+
     const result = await this.notificationRepository.delete({
       expiresAt: LessThan(now),
     });
@@ -252,7 +261,7 @@ export class NotificationsService {
     const activeUsers = await this.notificationRepository
       .createQueryBuilder('notification')
       .select('COUNT(DISTINCT notification.userId)', 'count')
-      .where('notification.createdAt > NOW() - INTERVAL \'7 days\'')
+      .where("notification.createdAt > NOW() - INTERVAL '7 days'")
       .getRawOne();
 
     return {
@@ -291,7 +300,7 @@ export class NotificationsService {
       userPhone?: string;
       template?: string;
       templateContext?: Record<string, unknown>;
-    },
+    }
   ): Promise<void> {
     try {
       // 获取用户偏好
@@ -312,7 +321,7 @@ export class NotificationsService {
         const shouldSend = await this.preferencesService.shouldReceiveNotification(
           userId,
           type,
-          PrefChannel.WEBSOCKET,
+          PrefChannel.WEBSOCKET
         );
 
         if (shouldSend) {
@@ -325,7 +334,7 @@ export class NotificationsService {
         const shouldSend = await this.preferencesService.shouldReceiveNotification(
           userId,
           type,
-          PrefChannel.EMAIL,
+          PrefChannel.EMAIL
         );
 
         if (shouldSend) {
@@ -333,7 +342,7 @@ export class NotificationsService {
             this.sendEmailNotification(userId, {
               ...payload,
               userEmail: payload.userEmail!,
-            }),
+            })
           );
         }
       }
@@ -343,7 +352,7 @@ export class NotificationsService {
         const shouldSend = await this.preferencesService.shouldReceiveNotification(
           userId,
           type,
-          PrefChannel.SMS,
+          PrefChannel.SMS
         );
 
         if (shouldSend) {
@@ -351,7 +360,7 @@ export class NotificationsService {
             this.sendSmsNotification(userId, {
               ...payload,
               userPhone: payload.userPhone!,
-            }),
+            })
           );
         }
       }
@@ -360,13 +369,10 @@ export class NotificationsService {
       await Promise.allSettled(promises);
 
       this.logger.log(
-        `Multi-channel notification sent for user ${userId}, type ${type}, channels: ${channels.join(', ')}`,
+        `Multi-channel notification sent for user ${userId}, type ${type}, channels: ${channels.join(', ')}`
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to send multi-channel notification for user ${userId}:`,
-        error,
-      );
+      this.logger.error(`Failed to send multi-channel notification for user ${userId}:`, error);
       throw error;
     }
   }
@@ -381,7 +387,7 @@ export class NotificationsService {
       title: string;
       message: string;
       data?: Record<string, unknown>;
-    },
+    }
   ): Promise<void> {
     const notification = await this.createAndSend({
       userId,
@@ -405,15 +411,13 @@ export class NotificationsService {
       userEmail: string;
       template?: string;
       templateContext?: Record<string, unknown>;
-    },
+    }
   ): Promise<void> {
     try {
       await this.emailService.sendEmail({
         to: payload.userEmail,
         subject: payload.title,
-        html: payload.template
-          ? undefined
-          : `<p>${payload.message}</p>`,
+        html: payload.template ? undefined : `<p>${payload.message}</p>`,
         template: payload.template,
         context: payload.templateContext || {
           title: payload.title,
@@ -436,7 +440,7 @@ export class NotificationsService {
       title: string;
       message: string;
       userPhone: string;
-    },
+    }
   ): Promise<void> {
     try {
       await this.smsService.sendNotification(payload.userPhone, payload.message);

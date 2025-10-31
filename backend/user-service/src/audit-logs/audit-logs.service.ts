@@ -27,7 +27,7 @@ export class AuditLogsService {
 
   constructor(
     @InjectRepository(AuditLog)
-    private auditLogRepository: Repository<AuditLog>,
+    private auditLogRepository: Repository<AuditLog>
   ) {}
 
   /**
@@ -56,9 +56,7 @@ export class AuditLogsService {
 
     // 如果是严重级别，记录到日志文件
     if (dto.level === AuditLevel.CRITICAL || dto.level === AuditLevel.ERROR) {
-      this.logger.error(
-        `[审计] ${dto.action} - ${dto.description} - 用户: ${dto.userId}`,
-      );
+      this.logger.error(`[审计] ${dto.action} - ${dto.description} - 用户: ${dto.userId}`);
     }
 
     return savedLog;
@@ -76,7 +74,7 @@ export class AuditLogsService {
       endDate?: Date;
       limit?: number;
       offset?: number;
-    },
+    }
   ): Promise<{ logs: AuditLog[]; total: number }> {
     const queryBuilder = this.auditLogRepository
       .createQueryBuilder('log')
@@ -127,7 +125,7 @@ export class AuditLogsService {
   async getResourceLogs(
     resourceType: string,
     resourceId: string,
-    limit: number = 50,
+    limit: number = 50
   ): Promise<AuditLog[]> {
     return await this.auditLogRepository.find({
       where: { resourceType, resourceId },

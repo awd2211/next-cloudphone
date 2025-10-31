@@ -24,8 +24,8 @@ const TransactionHistory: React.FC = () => {
     {
       id: 'txn-001',
       type: 'recharge',
-      amount: 5000.00,
-      balance: 15620.50,
+      amount: 5000.0,
+      balance: 15620.5,
       description: '在线充值',
       status: 'success',
       createdAt: '2025-10-20 14:30:25',
@@ -35,8 +35,8 @@ const TransactionHistory: React.FC = () => {
     {
       id: 'txn-002',
       type: 'consumption',
-      amount: -320.50,
-      balance: 10620.50,
+      amount: -320.5,
+      balance: 10620.5,
       description: '设备租赁费用',
       status: 'success',
       createdAt: '2025-10-19 10:15:42',
@@ -44,8 +44,8 @@ const TransactionHistory: React.FC = () => {
     {
       id: 'txn-003',
       type: 'freeze',
-      amount: -500.00,
-      balance: 10941.00,
+      amount: -500.0,
+      balance: 10941.0,
       description: '资源预留冻结',
       status: 'success',
       createdAt: '2025-10-18 16:20:10',
@@ -53,8 +53,8 @@ const TransactionHistory: React.FC = () => {
     {
       id: 'txn-004',
       type: 'consumption',
-      amount: -1250.00,
-      balance: 11441.00,
+      amount: -1250.0,
+      balance: 11441.0,
       description: 'CPU 和内存使用费',
       status: 'success',
       createdAt: '2025-10-17 09:45:33',
@@ -62,8 +62,8 @@ const TransactionHistory: React.FC = () => {
     {
       id: 'txn-005',
       type: 'refund',
-      amount: 150.00,
-      balance: 12691.00,
+      amount: 150.0,
+      balance: 12691.0,
       description: '服务退款',
       status: 'success',
       createdAt: '2025-10-16 11:22:18',
@@ -71,8 +71,8 @@ const TransactionHistory: React.FC = () => {
     {
       id: 'txn-006',
       type: 'recharge',
-      amount: 3000.00,
-      balance: 12541.00,
+      amount: 3000.0,
+      balance: 12541.0,
       description: '在线充值',
       status: 'success',
       createdAt: '2025-10-15 13:10:05',
@@ -82,8 +82,8 @@ const TransactionHistory: React.FC = () => {
     {
       id: 'txn-007',
       type: 'consumption',
-      amount: -680.00,
-      balance: 9541.00,
+      amount: -680.0,
+      balance: 9541.0,
       description: '存储费用',
       status: 'success',
       createdAt: '2025-10-14 15:35:50',
@@ -91,8 +91,8 @@ const TransactionHistory: React.FC = () => {
     {
       id: 'txn-008',
       type: 'unfreeze',
-      amount: 500.00,
-      balance: 10221.00,
+      amount: 500.0,
+      balance: 10221.0,
       description: '解冻预留资源',
       status: 'success',
       createdAt: '2025-10-13 08:50:15',
@@ -194,17 +194,18 @@ const TransactionHistory: React.FC = () => {
     let filtered = transactions;
 
     if (typeFilter !== 'all') {
-      filtered = filtered.filter(t => t.type === typeFilter);
+      filtered = filtered.filter((t) => t.type === typeFilter);
     }
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(t => t.status === statusFilter);
+      filtered = filtered.filter((t) => t.status === statusFilter);
     }
 
     if (searchText) {
-      filtered = filtered.filter(t =>
-        t.description.toLowerCase().includes(searchText.toLowerCase()) ||
-        t.orderId?.toLowerCase().includes(searchText.toLowerCase())
+      filtered = filtered.filter(
+        (t) =>
+          t.description.toLowerCase().includes(searchText.toLowerCase()) ||
+          t.orderId?.toLowerCase().includes(searchText.toLowerCase())
       );
     }
 
@@ -230,15 +231,17 @@ const TransactionHistory: React.FC = () => {
 
     const csvContent = [
       headers.join(','),
-      ...filteredTransactions.map(tx => [
-        tx.id,
-        typeMap[tx.type] || tx.type,
-        tx.amount,
-        tx.balance,
-        statusMap[tx.status] || tx.status,
-        `"${(tx.description || '').replace(/"/g, '""')}"`, // 转义 CSV 中的引号
-        dayjs(tx.createdAt).format('YYYY-MM-DD HH:mm:ss')
-      ].join(','))
+      ...filteredTransactions.map((tx) =>
+        [
+          tx.id,
+          typeMap[tx.type] || tx.type,
+          tx.amount,
+          tx.balance,
+          statusMap[tx.status] || tx.status,
+          `"${(tx.description || '').replace(/"/g, '""')}"`, // 转义 CSV 中的引号
+          dayjs(tx.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+        ].join(',')
+      ),
     ].join('\n');
 
     // 添加 UTF-8 BOM 以支持中文
@@ -302,7 +305,7 @@ const TransactionHistory: React.FC = () => {
           prefix={<SearchOutlined />}
           style={{ width: 220 }}
           value={searchText}
-          onChange={e => setSearchText(e.target.value)}
+          onChange={(e) => setSearchText(e.target.value)}
         />
         <Button icon={<FilterOutlined />} onClick={handleReset}>
           重置

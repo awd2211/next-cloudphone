@@ -248,9 +248,7 @@ const BillList: React.FC = () => {
       key: 'finalAmount',
       width: 120,
       render: (amount: number) => (
-        <span style={{ fontWeight: 500, color: '#1890ff' }}>
-          {formatAmount(amount)}
-        </span>
+        <span style={{ fontWeight: 500, color: '#1890ff' }}>{formatAmount(amount)}</span>
       ),
     },
     {
@@ -286,7 +284,8 @@ const BillList: React.FC = () => {
         if (!record.periodStart || !record.periodEnd) return '-';
         return (
           <span style={{ fontSize: 12 }}>
-            {dayjs(record.periodStart).format('YYYY-MM-DD')} ~ {dayjs(record.periodEnd).format('YYYY-MM-DD')}
+            {dayjs(record.periodStart).format('YYYY-MM-DD')} ~{' '}
+            {dayjs(record.periodEnd).format('YYYY-MM-DD')}
           </span>
         );
       },
@@ -306,19 +305,12 @@ const BillList: React.FC = () => {
       render: (_: any, record: Bill) => (
         <Space size="small">
           {record.status === BillStatus.PENDING && (
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => handlePay(record)}
-            >
+            <Button type="primary" size="small" onClick={() => handlePay(record)}>
               支付
             </Button>
           )}
           {(record.status === BillStatus.PENDING || record.status === BillStatus.OVERDUE) && (
-            <Popconfirm
-              title="确认取消此账单？"
-              onConfirm={() => handleCancel(record.id)}
-            >
+            <Popconfirm title="确认取消此账单？" onConfirm={() => handleCancel(record.id)}>
               <Button size="small" danger>
                 取消
               </Button>
@@ -333,10 +325,7 @@ const BillList: React.FC = () => {
               />
             </Tooltip>
           )}
-          <Button
-            size="small"
-            onClick={() => navigate(`/billing/${record.id}`)}
-          >
+          <Button size="small" onClick={() => navigate(`/billing/${record.id}`)}>
             详情
           </Button>
         </Space>
@@ -351,11 +340,7 @@ const BillList: React.FC = () => {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={12} lg={6}>
             <Card>
-              <Statistic
-                title="总账单数"
-                value={stats.total}
-                prefix={<FileTextOutlined />}
-              />
+              <Statistic title="总账单数" value={stats.total} prefix={<FileTextOutlined />} />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
@@ -475,7 +460,11 @@ const BillList: React.FC = () => {
 
       {/* 支付 Modal */}
       <Modal
-        title={<Space><WalletOutlined /> 支付账单</Space>}
+        title={
+          <Space>
+            <WalletOutlined /> 支付账单
+          </Space>
+        }
         open={paymentModalVisible}
         onOk={handleConfirmPay}
         onCancel={() => setPaymentModalVisible(false)}

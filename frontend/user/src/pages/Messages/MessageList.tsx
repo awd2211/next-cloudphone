@@ -268,11 +268,7 @@ const MessageList: React.FC = () => {
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
           <Card>
-            <Statistic
-              title="全部消息"
-              value={stats?.total || 0}
-              prefix={<BellOutlined />}
-            />
+            <Statistic title="全部消息" value={stats?.total || 0} prefix={<BellOutlined />} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
@@ -357,10 +353,7 @@ const MessageList: React.FC = () => {
               </Select>
             </Space>
 
-            <Button
-              icon={<SettingOutlined />}
-              onClick={() => navigate('/messages/settings')}
-            >
+            <Button icon={<SettingOutlined />} onClick={() => navigate('/messages/settings')}>
               消息设置
             </Button>
           </Space>
@@ -483,12 +476,8 @@ const MessageList: React.FC = () => {
                   }
                   title={
                     <Space>
-                      {isUnread && (
-                        <Badge status="processing" />
-                      )}
-                      <span style={{ fontWeight: isUnread ? 600 : 400 }}>
-                        {notification.title}
-                      </span>
+                      {isUnread && <Badge status="processing" />}
+                      <span style={{ fontWeight: isUnread ? 600 : 400 }}>{notification.title}</span>
                       <Tag color={typeConfig.color}>{typeConfig.label}</Tag>
                       {notification.priority !== NotificationPriority.NORMAL && (
                         <Tag color={priorityConfig[notification.priority].color}>

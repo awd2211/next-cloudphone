@@ -50,10 +50,9 @@ export const checkMenuAccess = (path: string) => {
  * 获取面包屑导航
  */
 export const getBreadcrumb = (path: string) => {
-  return request.get<Array<{ name: string; path: string }>>(
-    '/menu-permissions/breadcrumb',
-    { params: { path } }
-  );
+  return request.get<Array<{ name: string; path: string }>>('/menu-permissions/breadcrumb', {
+    params: { path },
+  });
 };
 
 /**

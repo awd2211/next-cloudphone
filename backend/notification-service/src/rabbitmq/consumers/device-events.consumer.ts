@@ -32,7 +32,7 @@ export class DeviceEventsConsumer {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
-    private readonly templatesService: TemplatesService,
+    private readonly templatesService: TemplatesService
   ) {}
 
   /**
@@ -71,7 +71,7 @@ export class DeviceEventsConsumer {
           providerType: event.providerType, // ✅ 新增
           providerDisplayName, // ✅ 新增
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -121,7 +121,7 @@ export class DeviceEventsConsumer {
           providerType: event.providerType, // ✅ 新增
           providerDisplayName, // ✅ 新增
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -170,7 +170,7 @@ export class DeviceEventsConsumer {
           providerType: event.providerType,
           providerDisplayName,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -216,7 +216,7 @@ export class DeviceEventsConsumer {
           stoppedAt: event.stoppedAt,
           reason: event.reason,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -249,7 +249,9 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceError(event: DeviceErrorEvent, msg: ConsumeMessage) {
-    this.logger.error(`收到设备故障事件: ${event.deviceName} (${event.providerType}) - ${event.errorMessage}`);
+    this.logger.error(
+      `收到设备故障事件: ${event.deviceName} (${event.providerType}) - ${event.errorMessage}`
+    );
 
     try {
       // 渲染模板
@@ -261,7 +263,7 @@ export class DeviceEventsConsumer {
           errorType: event.errorType,
           occurredAt: event.occurredAt,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -308,7 +310,7 @@ export class DeviceEventsConsumer {
           lastSeenAt: event.lastSeenAt,
           lostAt: event.lostAt,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -352,7 +354,7 @@ export class DeviceEventsConsumer {
           deviceId: event.deviceId,
           deletedAt: event.deletedAt,
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({

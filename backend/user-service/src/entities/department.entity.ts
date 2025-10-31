@@ -9,7 +9,7 @@ import {
 
 /**
  * 部门实体
- * 
+ *
  * 用于组织架构和数据权限控制
  */
 @Entity('departments')
@@ -55,4 +55,3 @@ export class Department {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

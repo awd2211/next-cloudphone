@@ -1,7 +1,7 @@
-import { Module } from "@nestjs/common";
-import { RedroidProvider } from "./redroid.provider";
-import { DockerModule } from "../../docker/docker.module";
-import { AdbModule } from "../../adb/adb.module";
+import { Module } from '@nestjs/common';
+import { RedroidProvider } from './redroid.provider';
+import { DockerModule } from '../../docker/docker.module';
+import { AdbModule } from '../../adb/adb.module';
 
 /**
  * RedroidModule

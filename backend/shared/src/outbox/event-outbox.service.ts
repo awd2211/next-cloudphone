@@ -25,7 +25,7 @@ export class EventOutboxService implements OnModuleInit {
     @InjectRepository(EventOutbox)
     private readonly outboxRepository: Repository<EventOutbox>,
     private readonly eventBus: EventBusService,
-    private readonly dataSource: DataSource,
+    private readonly dataSource: DataSource
   ) {}
 
   async onModuleInit() {
@@ -52,7 +52,7 @@ export class EventOutboxService implements OnModuleInit {
     payload: Record<string, any>,
     options?: {
       maxRetries?: number;
-    },
+    }
   ): Promise<EventOutbox> {
     const event = queryRunner.manager.create(EventOutbox, {
       aggregateType,
@@ -66,9 +66,7 @@ export class EventOutboxService implements OnModuleInit {
 
     await queryRunner.manager.save(EventOutbox, event);
 
-    this.logger.debug(
-      `Event written to outbox: ${eventType} for ${aggregateType}:${aggregateId}`,
-    );
+    this.logger.debug(`Event written to outbox: ${eventType} for ${aggregateType}:${aggregateId}`);
 
     return event;
   }
@@ -107,11 +105,7 @@ export class EventOutboxService implements OnModuleInit {
       for (const event of pendingEvents) {
         try {
           // Publish to RabbitMQ
-          await this.eventBus.publish(
-            'cloudphone.events',
-            event.eventType,
-            event.payload,
-          );
+          await this.eventBus.publish('cloudphone.events', event.eventType, event.payload);
 
           // Mark as published
           event.status = 'published';
@@ -129,11 +123,11 @@ export class EventOutboxService implements OnModuleInit {
           if (event.retryCount >= event.maxRetries) {
             event.status = 'failed';
             this.logger.error(
-              `Event ${event.id} (${event.eventType}) failed after ${event.retryCount} retries: ${error.message}`,
+              `Event ${event.id} (${event.eventType}) failed after ${event.retryCount} retries: ${error.message}`
             );
           } else {
             this.logger.warn(
-              `Event ${event.id} (${event.eventType}) publish failed (attempt ${event.retryCount}/${event.maxRetries}): ${error.message}`,
+              `Event ${event.id} (${event.eventType}) publish failed (attempt ${event.retryCount}/${event.maxRetries}): ${error.message}`
             );
           }
 
@@ -143,7 +137,7 @@ export class EventOutboxService implements OnModuleInit {
       }
 
       this.logger.log(
-        `Event publishing completed: ${successCount} succeeded, ${failureCount} failed`,
+        `Event publishing completed: ${successCount} succeeded, ${failureCount} failed`
       );
     } catch (error) {
       this.logger.error('Error in publishPendingEvents', error.stack);
@@ -169,9 +163,9 @@ export class EventOutboxService implements OnModuleInit {
           // Exponential backoff: wait 2^retryCount minutes
           {
             retryAfter: new Date(
-              Date.now() - Math.pow(2, 0) * 60000, // Start with 1 min, doubles each retry
+              Date.now() - Math.pow(2, 0) * 60000 // Start with 1 min, doubles each retry
             ),
-          },
+          }
         )
         .take(50)
         .getMany();
@@ -210,9 +204,7 @@ export class EventOutboxService implements OnModuleInit {
         publishedAt: LessThan(sevenDaysAgo),
       });
 
-      this.logger.log(
-        `Cleaned up ${result.affected || 0} old published events`,
-      );
+      this.logger.log(`Cleaned up ${result.affected || 0} old published events`);
     } catch (error) {
       this.logger.error('Error in cleanupOldEvents', error.stack);
     }

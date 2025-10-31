@@ -47,10 +47,7 @@ const getQualityPercent = (quality: WebRTCQuality): number => {
   }
 };
 
-export const QualityIndicator: React.FC<QualityIndicatorProps> = ({
-  stats,
-  compact = false,
-}) => {
+export const QualityIndicator: React.FC<QualityIndicatorProps> = ({ stats, compact = false }) => {
   if (!stats) {
     return (
       <Card size="small">

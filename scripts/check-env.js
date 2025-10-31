@@ -143,17 +143,17 @@ function validateEnvVars(serviceName) {
   if (process.env.JWT_SECRET) {
     printInfo('');
     printInfo('Validating JWT_SECRET strength:');
-    
+
     if (process.env.JWT_SECRET.length < 32) {
       printWarning('JWT_SECRET is too short (< 32 chars). Recommended: 64+ chars');
       warnings++;
     }
-    
+
     if (process.env.JWT_SECRET.includes('your-secret-key-change-in-production')) {
       printError('JWT_SECRET is using default value. Please change it!');
       errors++;
     }
-    
+
     if (process.env.NODE_ENV === 'production' && process.env.JWT_SECRET.includes('dev')) {
       printError('JWT_SECRET contains "dev" in production environment');
       errors++;
@@ -164,7 +164,9 @@ function validateEnvVars(serviceName) {
   if (process.env.NODE_ENV) {
     const validEnvs = ['development', 'production', 'test'];
     if (!validEnvs.includes(process.env.NODE_ENV)) {
-      printWarning(`NODE_ENV="${process.env.NODE_ENV}" is not standard. Expected: ${validEnvs.join(', ')}`);
+      printWarning(
+        `NODE_ENV="${process.env.NODE_ENV}" is not standard. Expected: ${validEnvs.join(', ')}`
+      );
       warnings++;
     }
   }
@@ -189,13 +191,13 @@ function validateEnvVars(serviceName) {
  */
 function main() {
   const serviceName = process.argv[2] || 'unknown';
-  
+
   console.log('');
   console.log('========================================');
   console.log('  Environment Variables Validation');
   console.log('========================================');
   console.log('');
-  
+
   // 加载 .env 文件 (如果存在)
   const envPath = path.join(process.cwd(), '.env');
   if (fs.existsSync(envPath)) {
@@ -204,7 +206,7 @@ function main() {
   } else {
     printWarning('No .env file found, using system environment variables');
   }
-  
+
   printInfo('');
   validateEnvVars(serviceName);
   console.log('');

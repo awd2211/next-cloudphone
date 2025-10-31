@@ -213,7 +213,13 @@ const PaymentConfigContent: React.FC = () => {
 
           {/* 支付提供商状态 */}
           {config && (
-            <Card title={<><ApiOutlined /> 支付提供商状态</>}>
+            <Card
+              title={
+                <>
+                  <ApiOutlined /> 支付提供商状态
+                </>
+              }
+            >
               <Row gutter={[16, 16]}>
                 {Object.entries(config.providers).map(([provider, providerConfig]) => (
                   <Col xs={24} sm={12} md={8} key={provider}>
@@ -271,7 +277,13 @@ const PaymentConfigContent: React.FC = () => {
 
           {/* 支付方式管理 */}
           {config && (
-            <Card title={<><DollarOutlined /> 支付方式管理</>}>
+            <Card
+              title={
+                <>
+                  <DollarOutlined /> 支付方式管理
+                </>
+              }
+            >
               <Alert
                 message="提示"
                 description="启用或禁用支付方式会立即生效，用户将只能看到已启用的支付方式。"
@@ -321,9 +333,7 @@ const PaymentConfigContent: React.FC = () => {
                     <Card size="small">
                       <Space style={{ width: '100%', justifyContent: 'space-between' }}>
                         <Space>
-                          <span style={{ fontWeight: 500 }}>
-                            {getCurrencyName(currency)}
-                          </span>
+                          <span style={{ fontWeight: 500 }}>{getCurrencyName(currency)}</span>
                           {config.enabledCurrencies.includes(currency) ? (
                             <Tag color="green">已启用</Tag>
                           ) : (

@@ -1,9 +1,9 @@
-import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
-import { PassportModule } from "@nestjs/passport";
-import { ConfigModule, ConfigService } from "@nestjs/config";
-import { JwtStrategy } from "./jwt.strategy";
-import { PermissionsGuard } from "./guards/permissions.guard";
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtStrategy } from './jwt.strategy';
+import { PermissionsGuard } from './guards/permissions.guard';
 
 @Module({
   imports: [
@@ -11,9 +11,9 @@ import { PermissionsGuard } from "./guards/permissions.guard";
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get("JWT_SECRET"),
+        secret: configService.get('JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.get("JWT_EXPIRES_IN") || "24h",
+          expiresIn: configService.get('JWT_EXPIRES_IN') || '24h',
         },
       }),
       inject: [ConfigService],

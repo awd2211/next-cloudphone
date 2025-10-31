@@ -27,9 +27,7 @@ export interface DeviceOperationJobData {
 export class DeviceOperationProcessor {
   private readonly logger = new Logger(DeviceOperationProcessor.name);
 
-  constructor(
-    private readonly pinoLogger: PinoLogger,
-  ) {
+  constructor(private readonly pinoLogger: PinoLogger) {
     this.pinoLogger.setContext(DeviceOperationProcessor.name);
   }
 
@@ -162,7 +160,7 @@ export class DeviceOperationProcessor {
    */
   @Process('install-app')
   async handleInstallApp(
-    job: Job<{ deviceId: string; appPackage: string; apkUrl: string }>,
+    job: Job<{ deviceId: string; appPackage: string; apkUrl: string }>
   ): Promise<void> {
     const { id, data } = job;
 
@@ -191,13 +189,9 @@ export class DeviceOperationProcessor {
 
       await job.progress(100);
 
-      this.logger.log(
-        `✅ App ${data.appPackage} installed on device ${data.deviceId}`,
-      );
+      this.logger.log(`✅ App ${data.appPackage} installed on device ${data.deviceId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to install app on device ${data.deviceId}: ${error.message}`,
-      );
+      this.logger.error(`Failed to install app on device ${data.deviceId}: ${error.message}`);
       throw error;
     }
   }
@@ -206,25 +200,17 @@ export class DeviceOperationProcessor {
    * 处理应用卸载操作
    */
   @Process('uninstall-app')
-  async handleUninstallApp(
-    job: Job<{ deviceId: string; appPackage: string }>,
-  ): Promise<void> {
+  async handleUninstallApp(job: Job<{ deviceId: string; appPackage: string }>): Promise<void> {
     const { id, data } = job;
 
-    this.logger.log(
-      `🗑️ Uninstalling app ${data.appPackage} from device ${data.deviceId}`,
-    );
+    this.logger.log(`🗑️ Uninstalling app ${data.appPackage} from device ${data.deviceId}`);
 
     try {
       await this.uninstallAppFromDevice(data.deviceId, data.appPackage);
 
-      this.logger.log(
-        `✅ App ${data.appPackage} uninstalled from device ${data.deviceId}`,
-      );
+      this.logger.log(`✅ App ${data.appPackage} uninstalled from device ${data.deviceId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to uninstall app from device ${data.deviceId}: ${error.message}`,
-      );
+      this.logger.error(`Failed to uninstall app from device ${data.deviceId}: ${error.message}`);
       throw error;
     }
   }
@@ -255,7 +241,7 @@ export class DeviceOperationProcessor {
 
   private async initializeDeviceConfig(
     deviceId: string,
-    params?: Record<string, any>,
+    params?: Record<string, any>
   ): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 800));
     this.logger.debug(`Initialized config for device ${deviceId}`, params);
@@ -296,26 +282,17 @@ export class DeviceOperationProcessor {
     this.logger.debug(`Pushed APK to device ${deviceId}`);
   }
 
-  private async installApkOnDevice(
-    deviceId: string,
-    apkPath: string,
-  ): Promise<void> {
+  private async installApkOnDevice(deviceId: string, apkPath: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 3000));
     this.logger.debug(`Installed APK on device ${deviceId}`);
   }
 
-  private async verifyAppInstalled(
-    deviceId: string,
-    appPackage: string,
-  ): Promise<void> {
+  private async verifyAppInstalled(deviceId: string, appPackage: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 500));
     this.logger.debug(`Verified app ${appPackage} installed on device ${deviceId}`);
   }
 
-  private async uninstallAppFromDevice(
-    deviceId: string,
-    appPackage: string,
-  ): Promise<void> {
+  private async uninstallAppFromDevice(deviceId: string, appPackage: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     this.logger.debug(`Uninstalled app ${appPackage} from device ${deviceId}`);
   }

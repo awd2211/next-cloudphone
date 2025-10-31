@@ -180,9 +180,7 @@ export class AwsSnsProvider implements SmsProvider {
 
     // AWS SNS 支持批量发布，但短信需要逐个发送
     // 我们使用 Promise.all 并发发送
-    const promises = recipients.map((to) =>
-      this.send({ to, message }),
-    );
+    const promises = recipients.map((to) => this.send({ to, message }));
 
     return Promise.all(promises);
   }

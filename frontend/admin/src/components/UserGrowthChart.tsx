@@ -118,13 +118,7 @@ const UserGrowthChart = ({ data, loading }: UserGrowthChartProps) => {
     ],
   };
 
-  return (
-    <ReactECharts
-      option={option}
-      style={{ height: '400px' }}
-      showLoading={loading}
-    />
-  );
+  return <ReactECharts option={option} style={{ height: '400px' }} showLoading={loading} />;
 };
 
 export default UserGrowthChart;

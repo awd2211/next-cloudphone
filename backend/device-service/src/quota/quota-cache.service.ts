@@ -31,7 +31,7 @@ export class QuotaCacheService {
   constructor(
     private readonly quotaClient: QuotaClientService,
     private readonly redis: Redis,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService
   ) {}
 
   /**
@@ -62,7 +62,7 @@ export class QuotaCacheService {
       // 4. user-service 不可用，尝试从过期缓存恢复
       this.logger.warn(
         `Failed to fetch quota for user ${userId}, trying stale cache...`,
-        error.message,
+        error.message
       );
 
       const staleCached = await this.redis.get(cacheKey);
@@ -88,7 +88,7 @@ export class QuotaCacheService {
       cpuCores?: number;
       memoryMB?: number;
       diskGB?: number;
-    },
+    }
   ): Promise<QuotaCheckResult> {
     try {
       // 获取缓存的配额
@@ -165,20 +165,17 @@ export class QuotaCacheService {
         remainingDevices: maxDevices - currentDevices,
       };
     } catch (error) {
-      this.logger.error(
-        `Error checking device creation quota for user ${userId}`,
-        error.stack,
-      );
+      this.logger.error(`Error checking device creation quota for user ${userId}`, error.stack);
 
       // 降级策略：根据配置决定是否允许
       const allowOnError = this.configService.get<boolean>(
         'QUOTA_ALLOW_ON_ERROR',
-        true, // ✅ 默认允许（降级模式）
+        true // ✅ 默认允许（降级模式）
       );
 
       if (allowOnError) {
         this.logger.warn(
-          `Quota check failed, allowing device creation due to QUOTA_ALLOW_ON_ERROR=true`,
+          `Quota check failed, allowing device creation due to QUOTA_ALLOW_ON_ERROR=true`
         );
         return {
           allowed: true,
@@ -210,7 +207,7 @@ export class QuotaCacheService {
       cpuCores?: number;
       memoryMB?: number;
       diskGB?: number;
-    },
+    }
   ): Promise<void> {
     // 1. 立即更新本地缓存（乐观更新）
     await this.optimisticallyUpdateCache(userId, operation, specs);
@@ -226,14 +223,9 @@ export class QuotaCacheService {
           storageGB: specs?.diskGB || 0,
         });
 
-        this.logger.debug(
-          `Quota usage reported asynchronously for user ${userId}: ${operation}`,
-        );
+        this.logger.debug(`Quota usage reported asynchronously for user ${userId}: ${operation}`);
       } catch (error) {
-        this.logger.error(
-          `Failed to report quota usage for user ${userId}`,
-          error.stack,
-        );
+        this.logger.error(`Failed to report quota usage for user ${userId}`, error.stack);
         // 失败时不影响主流程，后台会定期对账
       }
     });
@@ -252,7 +244,7 @@ export class QuotaCacheService {
       cpuCores?: number;
       memoryMB?: number;
       diskGB?: number;
-    },
+    }
   ): Promise<void> {
     const cacheKey = this.buildCacheKey('quota', userId);
 
@@ -266,30 +258,27 @@ export class QuotaCacheService {
       const delta = operation === 'increment' ? 1 : -1;
 
       // 更新设备数量
-      quota.usage.currentDevices = Math.max(
-        0,
-        (quota.usage.currentDevices || 0) + delta,
-      );
+      quota.usage.currentDevices = Math.max(0, (quota.usage.currentDevices || 0) + delta);
 
       // 更新资源使用量
       if (specs) {
         if (specs.cpuCores) {
           quota.usage.usedCpuCores = Math.max(
             0,
-            (quota.usage.usedCpuCores || 0) + delta * specs.cpuCores,
+            (quota.usage.usedCpuCores || 0) + delta * specs.cpuCores
           );
         }
         if (specs.memoryMB) {
           const memoryGB = specs.memoryMB / 1024;
           quota.usage.usedMemoryGB = Math.max(
             0,
-            (quota.usage.usedMemoryGB || 0) + delta * memoryGB,
+            (quota.usage.usedMemoryGB || 0) + delta * memoryGB
           );
         }
         if (specs.diskGB) {
           quota.usage.usedStorageGB = Math.max(
             0,
-            (quota.usage.usedStorageGB || 0) + delta * specs.diskGB,
+            (quota.usage.usedStorageGB || 0) + delta * specs.diskGB
           );
         }
       }
@@ -299,10 +288,7 @@ export class QuotaCacheService {
 
       this.logger.debug(`Optimistically updated quota cache for user ${userId}`);
     } catch (error) {
-      this.logger.warn(
-        `Failed to optimistically update cache for user ${userId}`,
-        error.message,
-      );
+      this.logger.warn(`Failed to optimistically update cache for user ${userId}`, error.message);
       // 忽略错误，不影响主流程
     }
   }
@@ -314,9 +300,7 @@ export class QuotaCacheService {
    * @returns 降级配额
    */
   private getFallbackQuota(userId: string): QuotaResponse {
-    this.logger.warn(
-      `Using fallback quota for user ${userId} (user-service unavailable)`,
-    );
+    this.logger.warn(`Using fallback quota for user ${userId} (user-service unavailable)`);
 
     return {
       id: 'fallback-' + userId,
@@ -368,10 +352,7 @@ export class QuotaCacheService {
       await this.redis.setex(cacheKey, this.CACHE_TTL, JSON.stringify(quota));
       this.logger.log(`Refreshed quota cache for user ${userId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to refresh quota cache for user ${userId}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to refresh quota cache for user ${userId}`, error.stack);
     }
   }
 

@@ -31,7 +31,7 @@ export class PayPalProvider implements IPaymentProvider {
 
   constructor(
     private configService: ConfigService,
-    private readonly httpService: HttpService,
+    private readonly httpService: HttpService
   ) {
     const mode = this.configService.get('PAYPAL_MODE', 'sandbox') as 'sandbox' | 'production';
 
@@ -49,9 +49,7 @@ export class PayPalProvider implements IPaymentProvider {
     };
 
     this.baseUrl =
-      mode === 'sandbox'
-        ? 'https://api-m.sandbox.paypal.com'
-        : 'https://api-m.paypal.com';
+      mode === 'sandbox' ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
 
     if (this.config.clientId && this.config.secret) {
       try {
@@ -90,9 +88,7 @@ export class PayPalProvider implements IPaymentProvider {
 
     const { amount, currency, description, paymentNo, returnUrl, metadata } = params;
 
-    this.logger.log(
-      `Creating PayPal order: ${paymentNo}, amount: ${amount} ${currency}`,
-    );
+    this.logger.log(`Creating PayPal order: ${paymentNo}, amount: ${amount} ${currency}`);
 
     try {
       const request = new paypal.orders.OrdersCreateRequest();
@@ -112,8 +108,7 @@ export class PayPalProvider implements IPaymentProvider {
         ],
         application_context: {
           brand_name: this.configService.get('APP_NAME', 'Cloud Phone Platform'),
-          return_url:
-            returnUrl || `${this.configService.get('FRONTEND_URL')}/payment/success`,
+          return_url: returnUrl || `${this.configService.get('FRONTEND_URL')}/payment/success`,
           cancel_url: `${this.configService.get('FRONTEND_URL')}/payment/cancel`,
           user_action: 'PAY_NOW',
         },
@@ -174,8 +169,7 @@ export class PayPalProvider implements IPaymentProvider {
           brand_name: this.configService.get('APP_NAME', 'Cloud Phone Platform'),
           return_url:
             successUrl || `${this.configService.get('FRONTEND_URL')}/subscription/success`,
-          cancel_url:
-            cancelUrl || `${this.configService.get('FRONTEND_URL')}/subscription/cancel`,
+          cancel_url: cancelUrl || `${this.configService.get('FRONTEND_URL')}/subscription/cancel`,
           user_action: 'SUBSCRIBE_NOW',
         },
       };
@@ -190,7 +184,7 @@ export class PayPalProvider implements IPaymentProvider {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-        }),
+        })
       );
 
       const subscription = response.data;
@@ -269,7 +263,7 @@ export class PayPalProvider implements IPaymentProvider {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-        }),
+        })
       );
 
       const subscription = response.data;
@@ -333,8 +327,7 @@ export class PayPalProvider implements IPaymentProvider {
         refundId: refund.id,
         status: refund.status,
         amount: parseFloat(refund.amount?.value || '0'),
-        refundedAt:
-          refund.status === 'COMPLETED' ? new Date(refund.create_time) : undefined,
+        refundedAt: refund.status === 'COMPLETED' ? new Date(refund.create_time) : undefined,
         metadata: refund,
       };
     } catch (error) {
@@ -360,15 +353,17 @@ export class PayPalProvider implements IPaymentProvider {
         this.httpService.post(
           `${this.baseUrl}/v1/billing/subscriptions/${subscriptionId}/cancel`,
           {
-            reason: immediately ? 'Customer requested immediate cancellation' : 'Customer requested cancellation',
+            reason: immediately
+              ? 'Customer requested immediate cancellation'
+              : 'Customer requested cancellation',
           },
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
             },
-          },
-        ),
+          }
+        )
       );
 
       return true;
@@ -424,16 +419,12 @@ export class PayPalProvider implements IPaymentProvider {
     const auth = Buffer.from(`${this.config.clientId}:${this.config.secret}`).toString('base64');
 
     const response = await firstValueFrom(
-      this.httpService.post(
-        `${this.baseUrl}/v1/oauth2/token`,
-        'grant_type=client_credentials',
-        {
-          headers: {
-            Authorization: `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
+      this.httpService.post(`${this.baseUrl}/v1/oauth2/token`, 'grant_type=client_credentials', {
+        headers: {
+          Authorization: `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-      ),
+      })
     );
 
     return response.data.access_token;

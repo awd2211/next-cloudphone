@@ -1,6 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, message, Tag, Select, Popconfirm, Progress, Badge } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, AppstoreAddOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Table,
+  Button,
+  Space,
+  Modal,
+  Form,
+  Input,
+  message,
+  Tag,
+  Select,
+  Popconfirm,
+  Progress,
+  Badge,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlayCircleOutlined,
+  PauseCircleOutlined,
+  AppstoreAddOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import request from '@/utils/request';
 import dayjs from 'dayjs';
@@ -184,7 +205,12 @@ const DeviceGroupManagement = () => {
           >
             批量操作
           </Button>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openModal(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openModal(record)}
+          >
             编辑
           </Button>
           <Popconfirm title="确定删除此分组？" onConfirm={() => handleDelete(record.id)}>

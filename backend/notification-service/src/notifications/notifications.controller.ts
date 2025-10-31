@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './notification.interface';
 
@@ -30,13 +21,9 @@ export class NotificationsController {
    */
   @Post('broadcast')
   async broadcast(
-    @Body() body: { title: string; message: string; data?: Record<string, unknown> },
+    @Body() body: { title: string; message: string; data?: Record<string, unknown> }
   ) {
-    await this.notificationsService.broadcast(
-      body.title,
-      body.message,
-      body.data,
-    );
+    await this.notificationsService.broadcast(body.title, body.message, body.data);
     return { success: true, message: '广播已发送' };
   }
 
@@ -64,10 +51,7 @@ export class NotificationsController {
    * GET /notifications/user/:userId
    */
   @Get('user/:userId')
-  getUserNotifications(
-    @Param('userId') userId: string,
-    @Query('unreadOnly') unreadOnly?: string,
-  ) {
+  getUserNotifications(@Param('userId') userId: string, @Query('unreadOnly') unreadOnly?: string) {
     if (unreadOnly === 'true') {
       return this.notificationsService.getUnreadNotifications(userId);
     }

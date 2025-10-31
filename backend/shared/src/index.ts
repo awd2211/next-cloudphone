@@ -1,6 +1,6 @@
 /**
  * Shared 模块统一导出
- * 
+ *
  * 此包提供跨服务共享的通用功能模块
  */
 
@@ -51,11 +51,7 @@ export * from './config/database.config';
 export * from './config/redis.config';
 
 // ========== JWT 配置工厂 ==========
-export {
-  JwtConfigFactory,
-  createJwtConfig,
-  generateStrongJwtSecret,
-} from './config/jwt.config';
+export { JwtConfigFactory, createJwtConfig, generateStrongJwtSecret } from './config/jwt.config';
 export type { JwtConfigOptions } from './config/jwt.config';
 
 // ========== 缓存模块 ==========
@@ -76,9 +72,17 @@ export { HealthCheckService } from './health/health-check.service';
 export type { HealthCheckResult, ComponentHealth } from './health/health-check.service';
 
 // ========== 输入验证和安全 ==========
-export { SanitizationPipe, StrictSanitizationPipe, LooseSanitizationPipe } from './validators/sanitization.pipe';
+export {
+  SanitizationPipe,
+  StrictSanitizationPipe,
+  LooseSanitizationPipe,
+} from './validators/sanitization.pipe';
 export type { SanitizationOptions } from './validators/sanitization.pipe';
-export { SqlInjectionGuard, StrictSqlInjectionGuard, SqlInjectionCheck } from './validators/sql-injection-guard';
+export {
+  SqlInjectionGuard,
+  StrictSqlInjectionGuard,
+  SqlInjectionCheck,
+} from './validators/sql-injection-guard';
 export { SqlInjectionSeverity } from './validators/sql-injection-guard';
 export type { SqlInjectionDetectionResult } from './validators/sql-injection-guard';
 export * from './validators/custom-validators';
@@ -98,10 +102,7 @@ export {
 export type { TransactionOptions } from './database/transaction.decorator';
 
 // ========== 分页工具 ==========
-export {
-  CursorPaginationDto,
-  CursorPagination,
-} from './pagination/cursor-pagination';
+export { CursorPaginationDto, CursorPagination } from './pagination/cursor-pagination';
 export type { CursorPaginatedResponse } from './pagination/cursor-pagination';
 
 // ========== 分布式锁 ==========
@@ -143,15 +144,27 @@ export { EventOutbox, EventOutboxService, EventOutboxModule } from './outbox';
 // export * from './testing/mock-factories';
 
 // ========== 安全中间件 ==========
-export { RateLimitMiddleware, IPBlacklistMiddleware, AutoBanMiddleware } from './middleware/rate-limit.middleware';
-export { XssProtectionMiddleware, StrictXssProtectionMiddleware, LooseXssProtectionMiddleware } from './middleware/xss-protection.middleware';
+export {
+  RateLimitMiddleware,
+  IPBlacklistMiddleware,
+  AutoBanMiddleware,
+} from './middleware/rate-limit.middleware';
+export {
+  XssProtectionMiddleware,
+  StrictXssProtectionMiddleware,
+  LooseXssProtectionMiddleware,
+} from './middleware/xss-protection.middleware';
 export type { XssProtectionConfig } from './middleware/xss-protection.middleware';
-export { CsrfProtectionMiddleware, CsrfProtected, CsrfExempt } from './middleware/csrf-protection.middleware';
+export {
+  CsrfProtectionMiddleware,
+  CsrfProtected,
+  CsrfExempt,
+} from './middleware/csrf-protection.middleware';
 export type { CsrfProtectionConfig } from './middleware/csrf-protection.middleware';
 export {
   SecurityHeadersMiddleware,
   DevelopmentSecurityHeadersMiddleware,
-  ProductionSecurityHeadersMiddleware
+  ProductionSecurityHeadersMiddleware,
 } from './middleware/security-headers.middleware';
 export type { SecurityHeadersConfig } from './middleware/security-headers.middleware';
 export { SecurityModule, SecurityModuleManual } from './middleware/security.module';
@@ -163,10 +176,6 @@ export type { ServiceTokenPayload } from './auth/service-auth.guard';
 
 // ========== RBAC & Data Scope ==========
 export { UserRole, isAdminRole, hasAdminRole, isSuperAdmin } from './constants/roles';
-export {
-  DataScope,
-  DataScopeType,
-} from './decorators/data-scope.decorator';
+export { DataScope, DataScopeType } from './decorators/data-scope.decorator';
 export type { DataScopeConfig } from './decorators/data-scope.decorator';
 export { DataScopeGuard } from './guards/data-scope.guard';
-

@@ -19,7 +19,7 @@ export class NotificationPreferencesService {
 
   constructor(
     @InjectRepository(NotificationPreference)
-    private readonly preferencesRepository: Repository<NotificationPreference>,
+    private readonly preferencesRepository: Repository<NotificationPreference>
   ) {}
 
   /**
@@ -47,7 +47,7 @@ export class NotificationPreferencesService {
    */
   async getUserPreference(
     userId: string,
-    notificationType: NotificationType,
+    notificationType: NotificationType
   ): Promise<NotificationPreference> {
     let preference = await this.preferencesRepository.findOne({
       where: { userId, notificationType },
@@ -55,9 +55,7 @@ export class NotificationPreferencesService {
 
     // 如果不存在，使用默认配置创建
     if (!preference) {
-      this.logger.log(
-        `Creating default preference for user ${userId}, type ${notificationType}`,
-      );
+      this.logger.log(`Creating default preference for user ${userId}, type ${notificationType}`);
       preference = await this.createSinglePreference(userId, notificationType);
     }
 
@@ -74,7 +72,7 @@ export class NotificationPreferencesService {
       enabled?: boolean;
       enabledChannels?: NotificationChannel[];
       customSettings?: Record<string, any>;
-    },
+    }
   ): Promise<NotificationPreference> {
     let preference = await this.preferencesRepository.findOne({
       where: { userId, notificationType },
@@ -101,9 +99,7 @@ export class NotificationPreferencesService {
     }
 
     const saved = await this.preferencesRepository.save(preference);
-    this.logger.log(
-      `Updated preference for user ${userId}, type ${notificationType}`,
-    );
+    this.logger.log(`Updated preference for user ${userId}, type ${notificationType}`);
 
     return saved;
   }
@@ -118,26 +114,20 @@ export class NotificationPreferencesService {
       enabled?: boolean;
       enabledChannels?: NotificationChannel[];
       customSettings?: Record<string, any>;
-    }>,
+    }>
   ): Promise<NotificationPreference[]> {
     const results: NotificationPreference[] = [];
 
     for (const pref of preferences) {
-      const result = await this.updateUserPreference(
-        userId,
-        pref.notificationType,
-        {
-          enabled: pref.enabled,
-          enabledChannels: pref.enabledChannels,
-          customSettings: pref.customSettings,
-        },
-      );
+      const result = await this.updateUserPreference(userId, pref.notificationType, {
+        enabled: pref.enabled,
+        enabledChannels: pref.enabledChannels,
+        customSettings: pref.customSettings,
+      });
       results.push(result);
     }
 
-    this.logger.log(
-      `Batch updated ${preferences.length} preferences for user ${userId}`,
-    );
+    this.logger.log(`Batch updated ${preferences.length} preferences for user ${userId}`);
 
     return results;
   }
@@ -160,9 +150,7 @@ export class NotificationPreferencesService {
   /**
    * 创建用户的默认偏好设置
    */
-  private async createDefaultPreferences(
-    userId: string,
-  ): Promise<NotificationPreference[]> {
+  private async createDefaultPreferences(userId: string): Promise<NotificationPreference[]> {
     const preferences: NotificationPreference[] = [];
 
     for (const [type, config] of Object.entries(DEFAULT_NOTIFICATION_PREFERENCES)) {
@@ -183,13 +171,13 @@ export class NotificationPreferencesService {
    */
   private async createSinglePreference(
     userId: string,
-    notificationType: NotificationType,
+    notificationType: NotificationType
   ): Promise<NotificationPreference> {
     const config = DEFAULT_NOTIFICATION_PREFERENCES[notificationType];
 
     if (!config) {
       throw new NotFoundException(
-        `No default configuration for notification type: ${notificationType}`,
+        `No default configuration for notification type: ${notificationType}`
       );
     }
 
@@ -211,7 +199,7 @@ export class NotificationPreferencesService {
   async shouldReceiveNotification(
     userId: string,
     notificationType: NotificationType,
-    channel: NotificationChannel,
+    channel: NotificationChannel
   ): Promise<boolean> {
     const preference = await this.getUserPreference(userId, notificationType);
 
@@ -248,11 +236,7 @@ export class NotificationPreferencesService {
   /**
    * 检查当前是否在静默时间段
    */
-  private isInQuietHours(quietHours: {
-    start: string;
-    end: string;
-    timezone?: string;
-  }): boolean {
+  private isInQuietHours(quietHours: { start: string; end: string; timezone?: string }): boolean {
     try {
       const now = new Date();
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -276,7 +260,7 @@ export class NotificationPreferencesService {
    */
   async getEnabledNotificationTypes(
     userId: string,
-    channel: NotificationChannel,
+    channel: NotificationChannel
   ): Promise<NotificationType[]> {
     const preferences = await this.getUserPreferences(userId);
 

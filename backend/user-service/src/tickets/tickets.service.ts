@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Ticket, TicketStatus, TicketPriority, TicketCategory } from './entities/ticket.entity';
@@ -44,7 +39,7 @@ export class TicketsService {
     @InjectRepository(Ticket)
     private ticketRepository: Repository<Ticket>,
     @InjectRepository(TicketReply)
-    private replyRepository: Repository<TicketReply>,
+    private replyRepository: Repository<TicketReply>
   ) {}
 
   /**
@@ -68,7 +63,7 @@ export class TicketsService {
 
     const savedTicket = await this.ticketRepository.save(ticket);
     this.logger.log(
-      `工单已创建 - 编号: ${ticketNumber}, 用户: ${dto.userId}, 主题: ${dto.subject}`,
+      `工单已创建 - 编号: ${ticketNumber}, 用户: ${dto.userId}, 主题: ${dto.subject}`
     );
 
     return savedTicket;
@@ -101,7 +96,7 @@ export class TicketsService {
       priority?: TicketPriority;
       limit?: number;
       offset?: number;
-    },
+    }
   ): Promise<{ tickets: Ticket[]; total: number }> {
     const queryBuilder = this.ticketRepository
       .createQueryBuilder('ticket')
@@ -284,9 +279,7 @@ export class TicketsService {
 
     await this.ticketRepository.save(ticket);
 
-    this.logger.log(
-      `工单回复已添加 - 工单编号: ${ticket.ticketNumber}, 类型: ${dto.type}`,
-    );
+    this.logger.log(`工单回复已添加 - 工单编号: ${ticket.ticketNumber}, 类型: ${dto.type}`);
 
     return savedReply;
   }
@@ -296,7 +289,7 @@ export class TicketsService {
    */
   async getTicketReplies(
     ticketId: string,
-    includeInternal: boolean = false,
+    includeInternal: boolean = false
   ): Promise<TicketReply[]> {
     const queryBuilder = this.replyRepository
       .createQueryBuilder('reply')
@@ -315,11 +308,7 @@ export class TicketsService {
   /**
    * 工单评分
    */
-  async rateTicket(
-    ticketId: string,
-    rating: number,
-    feedback?: string,
-  ): Promise<Ticket> {
+  async rateTicket(ticketId: string, rating: number, feedback?: string): Promise<Ticket> {
     const ticket = await this.ticketRepository.findOne({
       where: { id: ticketId },
     });
@@ -361,13 +350,7 @@ export class TicketsService {
   }> {
     const where = userId ? { userId } : {};
 
-    const [
-      total,
-      open,
-      inProgress,
-      resolved,
-      closed,
-    ] = await Promise.all([
+    const [total, open, inProgress, resolved, closed] = await Promise.all([
       this.ticketRepository.count({ where }),
       this.ticketRepository.count({ where: { ...where, status: TicketStatus.OPEN } }),
       this.ticketRepository.count({

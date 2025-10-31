@@ -70,21 +70,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
       // 记录数据库错误
       this.logger.error(
         `Database Error: ${(exception as any).message}`,
-        exception instanceof Error ? exception.stack : undefined,
+        exception instanceof Error ? exception.stack : undefined
       );
     }
     // 处理其他未知错误
     else if (exception instanceof Error) {
       message = exception.message || 'Internal server error';
-      details = process.env.NODE_ENV === 'development' ? {
-        stack: exception.stack,
-      } : undefined;
+      details =
+        process.env.NODE_ENV === 'development'
+          ? {
+              stack: exception.stack,
+            }
+          : undefined;
 
       // 记录未知错误
-      this.logger.error(
-        `Unhandled Exception: ${exception.message}`,
-        exception.stack,
-      );
+      this.logger.error(`Unhandled Exception: ${exception.message}`, exception.stack);
     }
 
     // 构建错误响应
@@ -106,12 +106,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (status >= 500) {
       this.logger.error(
         `${request.method} ${request.url} - ${status} - ${message}`,
-        exception instanceof Error ? exception.stack : undefined,
+        exception instanceof Error ? exception.stack : undefined
       );
     } else if (status >= 400) {
-      this.logger.warn(
-        `${request.method} ${request.url} - ${status} - ${message}`,
-      );
+      this.logger.warn(`${request.method} ${request.url} - ${status} - ${message}`);
     }
 
     // 发送响应

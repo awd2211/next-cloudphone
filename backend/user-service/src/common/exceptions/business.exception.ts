@@ -96,7 +96,7 @@ export class BusinessException extends HttpException {
   constructor(
     public readonly code: BusinessErrorCode,
     message: string,
-    public readonly details?: any,
+    public readonly details?: any
   ) {
     const httpStatus = errorCodeToHttpStatus[code] || HttpStatus.INTERNAL_SERVER_ERROR;
 
@@ -108,7 +108,7 @@ export class BusinessException extends HttpException {
         details,
         timestamp: new Date().toISOString(),
       },
-      httpStatus,
+      httpStatus
     );
   }
 
@@ -119,15 +119,18 @@ export class BusinessException extends HttpException {
     return new BusinessException(
       BusinessErrorCode.USER_NOT_FOUND,
       `用户不存在${userId ? `: ${userId}` : ''}`,
-      { userId },
+      { userId }
     );
   }
 
-  static userAlreadyExists(field: 'username' | 'email' | 'phone', value: string): BusinessException {
+  static userAlreadyExists(
+    field: 'username' | 'email' | 'phone',
+    value: string
+  ): BusinessException {
     return new BusinessException(
       BusinessErrorCode.USER_ALREADY_EXISTS,
       `${field === 'username' ? '用户名' : field === 'email' ? '邮箱' : '手机号'}已存在`,
-      { field, value },
+      { field, value }
     );
   }
 
@@ -136,22 +139,19 @@ export class BusinessException extends HttpException {
     return new BusinessException(
       BusinessErrorCode.ACCOUNT_LOCKED,
       `账户已被锁定，请在 ${minutes} 分钟后重试`,
-      { lockedUntil: lockedUntil.toISOString(), remainingMinutes: minutes },
+      { lockedUntil: lockedUntil.toISOString(), remainingMinutes: minutes }
     );
   }
 
   static invalidCredentials(): BusinessException {
-    return new BusinessException(
-      BusinessErrorCode.INVALID_CREDENTIALS,
-      '用户名或密码错误',
-    );
+    return new BusinessException(BusinessErrorCode.INVALID_CREDENTIALS, '用户名或密码错误');
   }
 
   static permissionDenied(permission?: string): BusinessException {
     return new BusinessException(
       BusinessErrorCode.PERMISSION_DENIED,
       `权限不足${permission ? `: 需要 ${permission} 权限` : ''}`,
-      { requiredPermission: permission },
+      { requiredPermission: permission }
     );
   }
 }

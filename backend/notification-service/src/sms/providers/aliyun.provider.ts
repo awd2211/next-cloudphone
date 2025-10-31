@@ -1,11 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  SmsProvider,
-  SmsOptions,
-  SmsResult,
-  SmsProviderConfig,
-} from '../sms.interface';
+import { SmsProvider, SmsOptions, SmsResult, SmsProviderConfig } from '../sms.interface';
 import * as crypto from 'crypto';
 import axios from 'axios';
 
@@ -66,28 +61,19 @@ export class AliyunSmsProvider implements SmsProvider {
     this.config = {
       provider: 'aliyun',
       accessKeyId: this.configService.get<string>('ALIYUN_SMS_ACCESS_KEY_ID'),
-      accessKeySecret: this.configService.get<string>(
-        'ALIYUN_SMS_ACCESS_KEY_SECRET',
-      ),
+      accessKeySecret: this.configService.get<string>('ALIYUN_SMS_ACCESS_KEY_SECRET'),
       signName: this.configService.get<string>('ALIYUN_SMS_SIGN_NAME'),
-      templateCodeOtp: this.configService.get<string>(
-        'ALIYUN_SMS_TEMPLATE_CODE_OTP',
-      ),
+      templateCodeOtp: this.configService.get<string>('ALIYUN_SMS_TEMPLATE_CODE_OTP'),
       templateCodeNotification: this.configService.get<string>(
-        'ALIYUN_SMS_TEMPLATE_CODE_NOTIFICATION',
+        'ALIYUN_SMS_TEMPLATE_CODE_NOTIFICATION'
       ),
       enabled: this.configService.get<boolean>('ALIYUN_SMS_ENABLED', false),
-      endpoint: this.configService.get<string>(
-        'ALIYUN_SMS_ENDPOINT',
-        'dysmsapi.aliyuncs.com',
-      ),
+      endpoint: this.configService.get<string>('ALIYUN_SMS_ENDPOINT', 'dysmsapi.aliyuncs.com'),
     };
 
     // 验证必需配置
     if (!this.config.accessKeyId || !this.config.accessKeySecret) {
-      this.logger.warn(
-        'Aliyun SMS credentials not configured. SMS sending will fail.',
-      );
+      this.logger.warn('Aliyun SMS credentials not configured. SMS sending will fail.');
     }
 
     if (!this.config.signName) {
@@ -103,11 +89,7 @@ export class AliyunSmsProvider implements SmsProvider {
       this.stats.pending++;
 
       // 验证配置
-      if (
-        !this.config.accessKeyId ||
-        !this.config.accessKeySecret ||
-        !this.config.signName
-      ) {
+      if (!this.config.accessKeyId || !this.config.accessKeySecret || !this.config.signName) {
         this.stats.pending--;
         this.stats.failed++;
         return {
@@ -167,7 +149,7 @@ export class AliyunSmsProvider implements SmsProvider {
       if (response.data.Code === 'OK') {
         this.stats.sent++;
         this.logger.log(
-          `SMS sent successfully via Aliyun to ${phoneNumber}, BizId: ${response.data.BizId}`,
+          `SMS sent successfully via Aliyun to ${phoneNumber}, BizId: ${response.data.BizId}`
         );
         return {
           success: true,
@@ -176,9 +158,7 @@ export class AliyunSmsProvider implements SmsProvider {
         };
       } else {
         this.stats.failed++;
-        this.logger.error(
-          `Aliyun SMS failed: ${response.data.Code} - ${response.data.Message}`,
-        );
+        this.logger.error(`Aliyun SMS failed: ${response.data.Code} - ${response.data.Message}`);
         return {
           success: false,
           error: `${response.data.Code}: ${response.data.Message}`,
@@ -267,10 +247,7 @@ export class AliyunSmsProvider implements SmsProvider {
   /**
    * 生成签名
    */
-  private generateSignature(
-    params: Record<string, any>,
-    method: string,
-  ): string {
+  private generateSignature(params: Record<string, any>, method: string): string {
     // 1. 按字典序排序参数
     const sortedKeys = Object.keys(params).sort();
     const sortedParams = sortedKeys
@@ -281,10 +258,7 @@ export class AliyunSmsProvider implements SmsProvider {
     const stringToSign = `${method}&${this.percentEncode('/')}&${this.percentEncode(sortedParams)}`;
 
     // 3. 计算签名
-    const hmac = crypto.createHmac(
-      'sha1',
-      `${this.config.accessKeySecret}&`,
-    );
+    const hmac = crypto.createHmac('sha1', `${this.config.accessKeySecret}&`);
     hmac.update(stringToSign);
     const signature = hmac.digest('base64');
 

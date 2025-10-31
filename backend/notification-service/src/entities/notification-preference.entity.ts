@@ -6,10 +6,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import {
-  NotificationChannel,
-  NotificationType,
-} from '@cloudphone/shared';
+import { NotificationChannel, NotificationType } from '@cloudphone/shared';
 
 // Re-export for convenience
 export { NotificationChannel, NotificationType };

@@ -2,18 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, Between, MoreThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import {
-  MeteringService,
-  DeviceUsageData,
-} from '../metering.service';
+import { MeteringService, DeviceUsageData } from '../metering.service';
 import { UsageRecord } from '../../billing/entities/usage-record.entity';
-import {
-  HttpClientService,
-  DeviceProviderType,
-  DeviceType,
-} from '@cloudphone/shared';
+import { HttpClientService, DeviceProviderType, DeviceType } from '@cloudphone/shared';
 import { PricingEngineService } from '../../billing/pricing-engine.service';
-import { createMockUsageRecord, createMockBillingCalculation } from '../../__tests__/helpers/mock-factories';
+import {
+  createMockUsageRecord,
+  createMockBillingCalculation,
+} from '../../__tests__/helpers/mock-factories';
 
 describe('MeteringService', () => {
   let service: MeteringService;
@@ -159,9 +155,7 @@ describe('MeteringService', () => {
     it('should throw error when device details fetch fails', async () => {
       httpClient.get.mockRejectedValue(new Error('Device not found'));
 
-      await expect(service.collectDeviceUsage('device-123')).rejects.toThrow(
-        'Device not found',
-      );
+      await expect(service.collectDeviceUsage('device-123')).rejects.toThrow('Device not found');
     });
   });
 
@@ -177,7 +171,7 @@ describe('MeteringService', () => {
       expect(pricingEngine.calculateCost).toHaveBeenCalledWith(
         DeviceProviderType.REDROID,
         mockUsageData.deviceConfig,
-        3600,
+        3600
       );
       expect(usageRecordRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -185,7 +179,7 @@ describe('MeteringService', () => {
           userId: 'user-123',
           cost: 2.5,
           billingRate: 2.5,
-        }),
+        })
       );
       expect(usageRecordRepository.save).toHaveBeenCalled();
     });
@@ -214,11 +208,7 @@ describe('MeteringService', () => {
 
       usageRecordRepository.find.mockResolvedValue([mockUsageRecord] as any);
 
-      const result = await service.getUserUsageStats(
-        'user-123',
-        startDate,
-        endDate,
-      );
+      const result = await service.getUserUsageStats('user-123', startDate, endDate);
 
       expect(usageRecordRepository.find).toHaveBeenCalledWith({
         where: {
@@ -285,7 +275,7 @@ describe('MeteringService', () => {
           deviceId: 'device-123',
           usageType: 'device_usage',
           isBilled: false,
-        }),
+        })
       );
     });
 
@@ -319,7 +309,7 @@ describe('MeteringService', () => {
       expect(pricingEngine.calculateCost).toHaveBeenCalledWith(
         DeviceProviderType.REDROID,
         mockUsageData.deviceConfig,
-        3600,
+        3600
       );
       expect(usageRecordRepository.save).toHaveBeenCalled();
     });
@@ -363,9 +353,7 @@ describe('MeteringService', () => {
         execute: jest.fn().mockResolvedValue({ affected: 10 }),
       };
 
-      usageRecordRepository.createQueryBuilder.mockReturnValue(
-        mockQueryBuilder as any,
-      );
+      usageRecordRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
       await service.cleanupOldRecords();
 

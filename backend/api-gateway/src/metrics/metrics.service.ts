@@ -125,51 +125,26 @@ export class MetricsService implements OnModuleInit {
   /**
    * 记录 HTTP 请求
    */
-  recordHttpRequest(
-    method: string,
-    route: string,
-    statusCode: number,
-    duration: number,
-  ) {
-    this.httpRequestDuration
-      .labels(method, route, statusCode.toString())
-      .observe(duration);
+  recordHttpRequest(method: string, route: string, statusCode: number, duration: number) {
+    this.httpRequestDuration.labels(method, route, statusCode.toString()).observe(duration);
 
-    this.httpRequestTotal
-      .labels(method, route, statusCode.toString())
-      .inc();
+    this.httpRequestTotal.labels(method, route, statusCode.toString()).inc();
   }
 
   /**
    * 记录 HTTP 错误
    */
-  recordHttpError(
-    method: string,
-    route: string,
-    statusCode: number,
-    errorType: string,
-  ) {
-    this.httpRequestErrors
-      .labels(method, route, statusCode.toString(), errorType)
-      .inc();
+  recordHttpError(method: string, route: string, statusCode: number, errorType: string) {
+    this.httpRequestErrors.labels(method, route, statusCode.toString(), errorType).inc();
   }
 
   /**
    * 记录代理请求
    */
-  recordProxyRequest(
-    service: string,
-    method: string,
-    statusCode: number,
-    duration: number,
-  ) {
-    this.proxyRequestDuration
-      .labels(service, method, statusCode.toString())
-      .observe(duration);
+  recordProxyRequest(service: string, method: string, statusCode: number, duration: number) {
+    this.proxyRequestDuration.labels(service, method, statusCode.toString()).observe(duration);
 
-    this.proxyRequestTotal
-      .labels(service, method, statusCode.toString())
-      .inc();
+    this.proxyRequestTotal.labels(service, method, statusCode.toString()).inc();
   }
 
   /**
@@ -206,8 +181,7 @@ export class MetricsService implements OnModuleInit {
 
       // CPU 使用率需要更复杂的计算，这里简化处理
       const usage = process.cpuUsage();
-      const cpuPercent =
-        ((usage.user + usage.system) / 1000000 / 30) * 100; // 30秒间隔
+      const cpuPercent = ((usage.user + usage.system) / 1000000 / 30) * 100; // 30秒间隔
       this.cpuUsage.set(cpuPercent);
     }, 30000);
   }

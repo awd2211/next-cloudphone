@@ -63,12 +63,8 @@ const Home = () => {
           marginBottom: 48,
         }}
       >
-        <h1 style={{ fontSize: 48, fontWeight: 'bold', color: '#fff', margin: 0 }}>
-          云手机平台
-        </h1>
-        <p style={{ fontSize: 20, marginTop: 16, opacity: 0.9 }}>
-          随时随地，轻松使用云端手机
-        </p>
+        <h1 style={{ fontSize: 48, fontWeight: 'bold', color: '#fff', margin: 0 }}>云手机平台</h1>
+        <p style={{ fontSize: 20, marginTop: 16, opacity: 0.9 }}>随时随地，轻松使用云端手机</p>
         <Button
           type="primary"
           size="large"
@@ -82,9 +78,7 @@ const Home = () => {
 
       {/* 套餐列表 */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-        <h2 style={{ textAlign: 'center', fontSize: 32, marginBottom: 48 }}>
-          选择适合您的套餐
-        </h2>
+        <h2 style={{ textAlign: 'center', fontSize: 32, marginBottom: 48 }}>选择适合您的套餐</h2>
 
         <Row gutter={[24, 24]}>
           {plans.map((plan) => (
@@ -110,9 +104,7 @@ const Home = () => {
                   <Tag color={getPlanTypeColor(plan.type)} style={{ marginBottom: 12 }}>
                     {getPlanTypeText(plan.type)}
                   </Tag>
-                  <h3 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 8 }}>
-                    {plan.name}
-                  </h3>
+                  <h3 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 8 }}>{plan.name}</h3>
                   <div style={{ marginBottom: 8 }}>
                     <span style={{ fontSize: 36, fontWeight: 'bold', color: '#1890ff' }}>
                       ¥{plan.price}
@@ -174,12 +166,7 @@ const Home = () => {
                   </div>
                 </div>
 
-                <Button
-                  type="primary"
-                  size="large"
-                  block
-                  onClick={() => handlePurchase(plan)}
-                >
+                <Button type="primary" size="large" block onClick={() => handlePurchase(plan)}>
                   立即购买
                 </Button>
               </Card>
@@ -189,9 +176,7 @@ const Home = () => {
 
         {/* 特性介绍 */}
         <div style={{ marginTop: 80, marginBottom: 80 }}>
-          <h2 style={{ textAlign: 'center', fontSize: 32, marginBottom: 48 }}>
-            为什么选择我们
-          </h2>
+          <h2 style={{ textAlign: 'center', fontSize: 32, marginBottom: 48 }}>为什么选择我们</h2>
 
           <Row gutter={[48, 48]}>
             <Col xs={24} md={8}>
@@ -215,9 +200,7 @@ const Home = () => {
                   />
                 </div>
                 <h3 style={{ fontSize: 20, marginBottom: 12 }}>高性能</h3>
-                <p style={{ color: '#666' }}>
-                  高性能云服务器，流畅运行 Android 系统
-                </p>
+                <p style={{ color: '#666' }}>高性能云服务器，流畅运行 Android 系统</p>
               </div>
             </Col>
 
@@ -242,9 +225,7 @@ const Home = () => {
                   />
                 </div>
                 <h3 style={{ fontSize: 20, marginBottom: 12 }}>安全可靠</h3>
-                <p style={{ color: '#666' }}>
-                  数据隔离存储，7x24 小时监控保障
-                </p>
+                <p style={{ color: '#666' }}>数据隔离存储，7x24 小时监控保障</p>
               </div>
             </Col>
 
@@ -269,9 +250,7 @@ const Home = () => {
                   />
                 </div>
                 <h3 style={{ fontSize: 20, marginBottom: 12 }}>价格实惠</h3>
-                <p style={{ color: '#666' }}>
-                  灵活的套餐选择，按需付费更省钱
-                </p>
+                <p style={{ color: '#666' }}>灵活的套餐选择，按需付费更省钱</p>
               </div>
             </Col>
           </Row>

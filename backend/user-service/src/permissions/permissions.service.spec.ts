@@ -1,15 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import {
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { NotFoundException, ConflictException } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
 import { Permission } from '../entities/permission.entity';
-import {
-  createMockRepository,
-  createMockPermission,
-} from '@cloudphone/shared/testing';
+import { createMockRepository, createMockPermission } from '@cloudphone/shared/testing';
 
 describe('PermissionsService', () => {
   let service: PermissionsService;
@@ -80,12 +74,8 @@ describe('PermissionsService', () => {
       permissionsRepository.findOne.mockResolvedValue(existingPermission);
 
       // Act & Assert
-      await expect(service.create(createDto)).rejects.toThrow(
-        ConflictException,
-      );
-      await expect(service.create(createDto)).rejects.toThrow(
-        '权限 existing-perm 已存在',
-      );
+      await expect(service.create(createDto)).rejects.toThrow(ConflictException);
+      await expect(service.create(createDto)).rejects.toThrow('权限 existing-perm 已存在');
       expect(permissionsRepository.save).not.toHaveBeenCalled();
     });
 
@@ -100,9 +90,7 @@ describe('PermissionsService', () => {
 
       permissionsRepository.findOne.mockResolvedValue(null);
       permissionsRepository.create.mockImplementation((dto) => dto as any);
-      permissionsRepository.save.mockImplementation((perm) =>
-        Promise.resolve(perm),
-      );
+      permissionsRepository.save.mockImplementation((perm) => Promise.resolve(perm));
 
       // Act
       await service.create(createDto);
@@ -117,16 +105,10 @@ describe('PermissionsService', () => {
       // Arrange
       const page = 1;
       const limit = 10;
-      const mockPermissions = [
-        createMockPermission(),
-        createMockPermission(),
-      ];
+      const mockPermissions = [createMockPermission(), createMockPermission()];
       const total = 25;
 
-      permissionsRepository.findAndCount.mockResolvedValue([
-        mockPermissions,
-        total,
-      ]);
+      permissionsRepository.findAndCount.mockResolvedValue([mockPermissions, total]);
 
       // Act
       const result = await service.findAll(page, limit);
@@ -154,10 +136,7 @@ describe('PermissionsService', () => {
         createMockPermission({ resource }),
       ];
 
-      permissionsRepository.findAndCount.mockResolvedValue([
-        mockPermissions,
-        2,
-      ]);
+      permissionsRepository.findAndCount.mockResolvedValue([mockPermissions, 2]);
 
       // Act
       await service.findAll(1, 10, resource);
@@ -166,7 +145,7 @@ describe('PermissionsService', () => {
       expect(permissionsRepository.findAndCount).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { resource },
-        }),
+        })
       );
     });
 
@@ -186,7 +165,7 @@ describe('PermissionsService', () => {
         expect.objectContaining({
           skip: expectedSkip,
           take: limit,
-        }),
+        })
       );
     });
 
@@ -202,7 +181,7 @@ describe('PermissionsService', () => {
         expect.objectContaining({
           skip: 0,
           take: 10,
-        }),
+        })
       );
     });
   });
@@ -233,21 +212,15 @@ describe('PermissionsService', () => {
       permissionsRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.findOne(permissionId)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.findOne(permissionId)).rejects.toThrow(
-        `权限 #${permissionId} 不存在`,
-      );
+      await expect(service.findOne(permissionId)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(permissionId)).rejects.toThrow(`权限 #${permissionId} 不存在`);
     });
 
     it('应该加载权限关联的角色', async () => {
       // Arrange
       const permissionId = 'perm-123';
 
-      permissionsRepository.findOne.mockResolvedValue(
-        createMockPermission({ id: permissionId }),
-      );
+      permissionsRepository.findOne.mockResolvedValue(createMockPermission({ id: permissionId }));
 
       // Act
       await service.findOne(permissionId);
@@ -256,7 +229,7 @@ describe('PermissionsService', () => {
       expect(permissionsRepository.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           relations: ['roles'],
-        }),
+        })
       );
     });
   });
@@ -286,12 +259,8 @@ describe('PermissionsService', () => {
       permissionsRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.findByName(permName)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.findByName(permName)).rejects.toThrow(
-        `权限 ${permName} 不存在`,
-      );
+      await expect(service.findByName(permName)).rejects.toThrow(NotFoundException);
+      await expect(service.findByName(permName)).rejects.toThrow(`权限 ${permName} 不存在`);
     });
   });
 
@@ -325,9 +294,7 @@ describe('PermissionsService', () => {
       permissionsRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.update(permissionId, updateDto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.update(permissionId, updateDto)).rejects.toThrow(NotFoundException);
     });
 
     it('应该检查更新后的权限名是否重复', async () => {
@@ -348,11 +315,9 @@ describe('PermissionsService', () => {
         .mockResolvedValueOnce(conflictPermission);
 
       // Act & Assert
+      await expect(service.update(permissionId, updateDto)).rejects.toThrow(ConflictException);
       await expect(service.update(permissionId, updateDto)).rejects.toThrow(
-        ConflictException,
-      );
-      await expect(service.update(permissionId, updateDto)).rejects.toThrow(
-        `权限 ${updateDto.name} 已存在`,
+        `权限 ${updateDto.name} 已存在`
       );
     });
 
@@ -393,9 +358,7 @@ describe('PermissionsService', () => {
       const mockPermission = createMockPermission({ id: permissionId });
 
       permissionsRepository.findOne.mockResolvedValue(mockPermission);
-      permissionsRepository.save.mockImplementation((perm) =>
-        Promise.resolve(perm),
-      );
+      permissionsRepository.save.mockImplementation((perm) => Promise.resolve(perm));
 
       // Act
       await service.update(permissionId, updateDto);
@@ -424,9 +387,7 @@ describe('PermissionsService', () => {
         where: { id: permissionId },
         relations: ['roles'],
       });
-      expect(permissionsRepository.remove).toHaveBeenCalledWith(
-        mockPermission,
-      );
+      expect(permissionsRepository.remove).toHaveBeenCalledWith(mockPermission);
     });
 
     it('应该在权限不存在时抛出 NotFoundException', async () => {
@@ -436,9 +397,7 @@ describe('PermissionsService', () => {
       permissionsRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.remove(permissionId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.remove(permissionId)).rejects.toThrow(NotFoundException);
     });
 
     it('应该能删除有关联角色的权限', async () => {
@@ -498,9 +457,7 @@ describe('PermissionsService', () => {
       // Arrange
       const resource = 'user';
       const actions = ['read', 'create', 'update', 'delete'];
-      const mockPermissions = actions.map((action) =>
-        createMockPermission({ resource, action }),
-      );
+      const mockPermissions = actions.map((action) => createMockPermission({ resource, action }));
 
       permissionsRepository.find.mockResolvedValue(mockPermissions);
 
@@ -522,9 +479,7 @@ describe('PermissionsService', () => {
         { name: 'perm3', resource: 'res3', action: 'delete' },
       ];
 
-      const mockPermissions = createDtos.map((dto) =>
-        createMockPermission(dto),
-      );
+      const mockPermissions = createDtos.map((dto) => createMockPermission(dto));
 
       permissionsRepository.create.mockImplementation((dto) => dto as any);
       permissionsRepository.save.mockResolvedValue(mockPermissions);
@@ -535,9 +490,7 @@ describe('PermissionsService', () => {
       // Assert
       expect(result).toHaveLength(3);
       expect(permissionsRepository.create).toHaveBeenCalledTimes(3);
-      expect(permissionsRepository.save).toHaveBeenCalledWith(
-        expect.arrayContaining(createDtos),
-      );
+      expect(permissionsRepository.save).toHaveBeenCalledWith(expect.arrayContaining(createDtos));
     });
 
     it('应该能处理空数组', async () => {
@@ -563,9 +516,7 @@ describe('PermissionsService', () => {
       ];
 
       permissionsRepository.create.mockImplementation((dto) => dto as any);
-      permissionsRepository.save.mockImplementation((perms) =>
-        Promise.resolve(perms),
-      );
+      permissionsRepository.save.mockImplementation((perms) => Promise.resolve(perms));
 
       // Act
       await service.bulkCreate(createDtos);

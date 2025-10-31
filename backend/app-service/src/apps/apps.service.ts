@@ -19,7 +19,12 @@ import { MinioService } from '../minio/minio.service';
 import { ApkParserService } from '../apk/apk-parser.service';
 import { CreateAppDto } from './dto/create-app.dto';
 import { UpdateAppDto } from './dto/update-app.dto';
-import { ApproveAppDto, RejectAppDto, RequestChangesDto, SubmitReviewDto } from './dto/audit-app.dto';
+import {
+  ApproveAppDto,
+  RejectAppDto,
+  RequestChangesDto,
+  SubmitReviewDto,
+} from './dto/audit-app.dto';
 import {
   EventBusService,
   SagaOrchestratorService,
@@ -49,7 +54,7 @@ export class AppsService {
     private eventBus: EventBusService,
     private sagaOrchestrator: SagaOrchestratorService,
     @InjectDataSource()
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
   /**
@@ -80,7 +85,7 @@ export class AppsService {
    */
   async uploadApp(
     file: Express.Multer.File,
-    createAppDto: CreateAppDto,
+    createAppDto: CreateAppDto
   ): Promise<{ sagaId: string; application: Application }> {
     let apkInfo: any;
     const filePath = file.path;
@@ -99,7 +104,7 @@ export class AppsService {
 
       if (existing) {
         throw new BadRequestException(
-          `应用 ${apkInfo.packageName} 版本 ${apkInfo.versionName} (${apkInfo.versionCode}) 已存在`,
+          `应用 ${apkInfo.packageName} 版本 ${apkInfo.versionName} (${apkInfo.versionCode}) 已存在`
         );
       }
     } catch (error) {
@@ -129,7 +134,6 @@ export class AppsService {
     }
 
     try {
-
       // 3. 生成对象键
       const objectKey = `apps/${apkInfo.packageName}/${apkInfo.versionName}_${Date.now()}.apk`;
       const bucketName = this.minioService.getBucketName();
@@ -208,14 +212,10 @@ export class AppsService {
             execute: async (state: any) => {
               this.logger.log(`Saga step 2: Uploading file to MinIO: ${objectKey}`);
 
-              const uploadResult = await this.minioService.uploadFile(
-                filePath,
-                objectKey,
-                {
-                  packageName: apkInfo.packageName,
-                  versionName: apkInfo.versionName,
-                },
-              );
+              const uploadResult = await this.minioService.uploadFile(filePath, objectKey, {
+                packageName: apkInfo.packageName,
+                versionName: apkInfo.versionName,
+              });
 
               this.logger.log(`Saga step 2 completed: File uploaded to MinIO`);
               return {
@@ -249,7 +249,8 @@ export class AppsService {
               try {
                 const downloadUrl = await this.minioService.getFileUrl(objectKey);
 
-                await queryRunner.manager.update(Application,
+                await queryRunner.manager.update(
+                  Application,
                   { id: state.appId },
                   {
                     status: AppStatus.AVAILABLE,
@@ -268,14 +269,17 @@ export class AppsService {
               }
             },
             compensate: async (state: any) => {
-              this.logger.log(`Saga step 3 compensation: Reverting app ${state.appId} to UPLOADING`);
+              this.logger.log(
+                `Saga step 3 compensation: Reverting app ${state.appId} to UPLOADING`
+              );
 
               const queryRunner = this.dataSource.createQueryRunner();
               await queryRunner.connect();
               await queryRunner.startTransaction();
 
               try {
-                await queryRunner.manager.update(Application,
+                await queryRunner.manager.update(
+                  Application,
                   { id: state.appId },
                   {
                     status: AppStatus.UPLOADING,
@@ -334,7 +338,7 @@ export class AppsService {
 
       // 6. 等待 App 记录创建（第一步必须同步完成）
       // 注意: 实际上 Saga 是异步执行的，但我们可以轮询等待第一步完成
-      await new Promise(resolve => setTimeout(resolve, 500)); // 等待 500ms
+      await new Promise((resolve) => setTimeout(resolve, 500)); // 等待 500ms
 
       const app = await this.appsRepository.findOne({
         where: { packageName: apkInfo.packageName, versionCode: apkInfo.versionCode },
@@ -370,7 +374,7 @@ export class AppsService {
     page: number = 1,
     limit: number = 10,
     tenantId?: string,
-    category?: string,
+    category?: string
   ): Promise<{ data: Application[]; total: number; page: number; limit: number }> {
     const skip = (page - 1) * limit;
 
@@ -399,7 +403,7 @@ export class AppsService {
   async findAllCursor(
     dto: CursorPaginationDto,
     tenantId?: string,
-    category?: string,
+    category?: string
   ): Promise<CursorPaginatedResponse<Application>> {
     const { cursor, limit = 20 } = dto;
 
@@ -425,8 +429,7 @@ export class AppsService {
     }
 
     // Order by createdAt DESC and fetch limit + 1
-    qb.orderBy('app.createdAt', 'DESC')
-      .limit(limit + 1);
+    qb.orderBy('app.createdAt', 'DESC').limit(limit + 1);
 
     const apps = await qb.getMany();
 
@@ -504,7 +507,7 @@ export class AppsService {
     });
 
     this.logger.log(
-      `App install request published: ${app.id} for device ${deviceId}, installationId: ${saved.id}`,
+      `App install request published: ${app.id} for device ${deviceId}, installationId: ${saved.id}`
     );
 
     return saved;
@@ -513,14 +516,15 @@ export class AppsService {
   private async performInstall(
     deviceAppId: string,
     app: Application,
-    deviceId: string,
+    deviceId: string
   ): Promise<void> {
     // 生成临时文件路径
     const tempApkPath = `/tmp/apk_${app.id}_${Date.now()}.apk`;
 
     try {
       // 调用设备服务安装应用（通过 HTTP）
-      const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:30002';
+      const deviceServiceUrl =
+        this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:30002';
 
       // 从 MinIO 下载 APK
       if (app.objectKey) {
@@ -591,21 +595,20 @@ export class AppsService {
       timestamp: new Date().toISOString(),
     });
 
-    this.logger.log(
-      `App uninstall request published: ${app.packageName} from device ${deviceId}`,
-    );
+    this.logger.log(`App uninstall request published: ${app.packageName} from device ${deviceId}`);
   }
 
   private async performUninstall(
     deviceAppId: string,
     deviceId: string,
-    applicationId: string,
+    applicationId: string
   ): Promise<void> {
     try {
       const app = await this.findOne(applicationId);
 
       // 调用设备服务卸载应用
-      const deviceServiceUrl = this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:30002';
+      const deviceServiceUrl =
+        this.configService.get('DEVICE_SERVICE_URL') || 'http://localhost:30002';
 
       const response = await firstValueFrom(
         this.httpService.post(`${deviceServiceUrl}/devices/${deviceId}/uninstall`, {
@@ -622,7 +625,7 @@ export class AppsService {
   private async updateInstallStatus(
     deviceAppId: string,
     status: InstallStatus,
-    errorMessage?: string,
+    errorMessage?: string
   ): Promise<void> {
     const update: any = { status };
 
@@ -670,17 +673,14 @@ export class AppsService {
     // 将所有版本的 isLatest 设置为 false
     await this.appsRepository.update(
       { packageName, status: AppStatus.AVAILABLE },
-      { isLatest: false },
+      { isLatest: false }
     );
 
     // 将最高版本标记为 isLatest
-    await this.appsRepository.update(
-      { id: latestVersion.id },
-      { isLatest: true },
-    );
+    await this.appsRepository.update({ id: latestVersion.id }, { isLatest: true });
 
     this.logger.log(
-      `已更新 ${packageName} 的最新版本标记: ${latestVersion.versionName} (${latestVersion.versionCode})`,
+      `已更新 ${packageName} 的最新版本标记: ${latestVersion.versionName} (${latestVersion.versionCode})`
     );
   }
 
@@ -716,7 +716,7 @@ export class AppsService {
     // 检查当前状态是否允许提交审核
     if (app.status !== AppStatus.UPLOADING && app.status !== AppStatus.REJECTED) {
       throw new BadRequestException(
-        `应用当前状态 (${app.status}) 不允许提交审核，只有 UPLOADING 或 REJECTED 状态可以提交`,
+        `应用当前状态 (${app.status}) 不允许提交审核，只有 UPLOADING 或 REJECTED 状态可以提交`
       );
     }
 
@@ -746,9 +746,7 @@ export class AppsService {
 
     // 检查当前状态
     if (app.status !== AppStatus.PENDING_REVIEW) {
-      throw new BadRequestException(
-        `应用当前状态 (${app.status}) 不是待审核状态，无法批准`,
-      );
+      throw new BadRequestException(`应用当前状态 (${app.status}) 不是待审核状态，无法批准`);
     }
 
     // 更新状态为已批准
@@ -787,9 +785,7 @@ export class AppsService {
 
     // 检查当前状态
     if (app.status !== AppStatus.PENDING_REVIEW) {
-      throw new BadRequestException(
-        `应用当前状态 (${app.status}) 不是待审核状态，无法拒绝`,
-      );
+      throw new BadRequestException(`应用当前状态 (${app.status}) 不是待审核状态，无法拒绝`);
     }
 
     // 更新状态为已拒绝
@@ -829,9 +825,7 @@ export class AppsService {
 
     // 检查当前状态
     if (app.status !== AppStatus.PENDING_REVIEW) {
-      throw new BadRequestException(
-        `应用当前状态 (${app.status}) 不是待审核状态，无法要求修改`,
-      );
+      throw new BadRequestException(`应用当前状态 (${app.status}) 不是待审核状态，无法要求修改`);
     }
 
     // 状态保持为 PENDING_REVIEW，但记录要求修改
@@ -886,7 +880,7 @@ export class AppsService {
       applicationId?: string;
       reviewerId?: string;
       action?: AuditAction;
-    },
+    }
   ) {
     const skip = (page - 1) * limit;
     const where: any = {};

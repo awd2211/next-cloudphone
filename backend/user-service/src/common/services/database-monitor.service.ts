@@ -3,10 +3,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PinoLogger } from 'nestjs-pino';
-import {
-  connectionPoolHealthConfig,
-  ConnectionPoolMetrics,
-} from '../config/database.config';
+import { connectionPoolHealthConfig, ConnectionPoolMetrics } from '../config/database.config';
 
 /**
  * 数据库连接池监控服务
@@ -54,7 +51,7 @@ export class DatabaseMonitorService {
 
   constructor(
     @InjectDataSource() private dataSource: DataSource,
-    private pinoLogger: PinoLogger,
+    private pinoLogger: PinoLogger
   ) {
     this.setupQueryLogging();
   }
@@ -88,14 +85,12 @@ export class DatabaseMonitorService {
 
         // 检查连接获取时间
         if (
-          acquisitionTime >
-          connectionPoolHealthConfig.CONNECTION_ACQUISITION_CRITICAL_THRESHOLD
+          acquisitionTime > connectionPoolHealthConfig.CONNECTION_ACQUISITION_CRITICAL_THRESHOLD
         ) {
           this.pinoLogger.error({
             type: 'slow_connection_acquisition',
             acquisitionTime,
-            threshold:
-              connectionPoolHealthConfig.CONNECTION_ACQUISITION_CRITICAL_THRESHOLD,
+            threshold: connectionPoolHealthConfig.CONNECTION_ACQUISITION_CRITICAL_THRESHOLD,
             message: `⚠️ 连接获取耗时过长: ${acquisitionTime}ms`,
           });
         }
@@ -155,9 +150,7 @@ export class DatabaseMonitorService {
       }
 
       const level =
-        duration > connectionPoolHealthConfig.SLOW_QUERY_CRITICAL_THRESHOLD
-          ? 'error'
-          : 'warn';
+        duration > connectionPoolHealthConfig.SLOW_QUERY_CRITICAL_THRESHOLD ? 'error' : 'warn';
 
       this.pinoLogger[level]({
         type: 'slow_query',
@@ -191,11 +184,9 @@ export class DatabaseMonitorService {
     // 计算使用率
     const usagePercentage = (totalConnections / poolMax) * 100;
     const isWarning =
-      usagePercentage >=
-      connectionPoolHealthConfig.POOL_USAGE_WARNING_THRESHOLD * 100;
+      usagePercentage >= connectionPoolHealthConfig.POOL_USAGE_WARNING_THRESHOLD * 100;
     const isCritical =
-      usagePercentage >=
-      connectionPoolHealthConfig.POOL_USAGE_CRITICAL_THRESHOLD * 100;
+      usagePercentage >= connectionPoolHealthConfig.POOL_USAGE_CRITICAL_THRESHOLD * 100;
 
     // 计算平均值
     const avgAcquisitionTime =
@@ -204,9 +195,7 @@ export class DatabaseMonitorService {
         : 0;
 
     const avgQueryTime =
-      this.stats.queryCount > 0
-        ? this.stats.totalQueryTime / this.stats.queryCount
-        : 0;
+      this.stats.queryCount > 0 ? this.stats.totalQueryTime / this.stats.queryCount : 0;
 
     return {
       poolSize: {
@@ -336,10 +325,7 @@ export class DatabaseMonitorService {
       const activeTime = now - info.startTime;
 
       // 如果连接活跃时间超过阈值，可能存在泄漏
-      if (
-        activeTime >
-        connectionPoolHealthConfig.ACTIVE_CONNECTION_CRITICAL_THRESHOLD
-      ) {
+      if (activeTime > connectionPoolHealthConfig.ACTIVE_CONNECTION_CRITICAL_THRESHOLD) {
         leakedConnections.push(connectionId);
 
         this.pinoLogger.error({
@@ -354,9 +340,7 @@ export class DatabaseMonitorService {
     }
 
     if (leakedConnections.length > 0) {
-      this.logger.error(
-        `检测到 ${leakedConnections.length} 个可能泄漏的连接`,
-      );
+      this.logger.error(`检测到 ${leakedConnections.length} 个可能泄漏的连接`);
     }
   }
 
@@ -367,9 +351,7 @@ export class DatabaseMonitorService {
   cleanupSlowQueryRecords(): void {
     const oneHourAgo = new Date(Date.now() - 3600000);
 
-    this.slowQueries = this.slowQueries.filter(
-      (record) => record.timestamp > oneHourAgo,
-    );
+    this.slowQueries = this.slowQueries.filter((record) => record.timestamp > oneHourAgo);
 
     this.logger.debug(`清理过期慢查询记录，剩余 ${this.slowQueries.length} 条`);
   }
@@ -392,13 +374,13 @@ export class DatabaseMonitorService {
 
       // 判断健康状态
       const isHealthy =
-        !metrics.usage.isCritical &&
-        metrics.connections.waiting < 10 &&
-        duration < 1000;
+        !metrics.usage.isCritical && metrics.connections.waiting < 10 && duration < 1000;
 
       return {
         isHealthy,
-        message: isHealthy ? 'Database connection pool is healthy' : 'Database connection pool has issues',
+        message: isHealthy
+          ? 'Database connection pool is healthy'
+          : 'Database connection pool has issues',
         metrics,
       };
     } catch (error) {

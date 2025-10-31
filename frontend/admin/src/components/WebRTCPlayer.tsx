@@ -59,9 +59,7 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
         } else if (data.type === 'ice-candidate') {
           // 收到 ICE candidate
           if (peerConnectionRef.current && data.candidate) {
-            await peerConnectionRef.current.addIceCandidate(
-              new RTCIceCandidate(data.candidate)
-            );
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
           }
         }
       };
@@ -88,7 +86,9 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
             30000 // 最大30秒
           );
 
-          console.log(`Will retry in ${delay}ms (attempt ${retryCountRef.current + 1}/${maxRetries})`);
+          console.log(
+            `Will retry in ${delay}ms (attempt ${retryCountRef.current + 1}/${maxRetries})`
+          );
 
           setError(`连接断开，${delay / 1000}秒后重连...`);
 

@@ -31,7 +31,7 @@ export const getQueueJobs = (
       count: number;
     };
   }>(`/queues/${queueName}/jobs`, {
-    params: { status, start, end }
+    params: { status, start, end },
   });
 };
 
@@ -46,18 +46,14 @@ export const getJobDetail = (queueName: string, jobId: string) => {
  * 重试失败的任务
  */
 export const retryJob = (queueName: string, jobId: string) => {
-  return request.post<{ message: string }>(
-    `/queues/${queueName}/jobs/${jobId}/retry`
-  );
+  return request.post<{ message: string }>(`/queues/${queueName}/jobs/${jobId}/retry`);
 };
 
 /**
  * 删除任务
  */
 export const removeJob = (queueName: string, jobId: string) => {
-  return request.delete<{ message: string }>(
-    `/queues/${queueName}/jobs/${jobId}`
-  );
+  return request.delete<{ message: string }>(`/queues/${queueName}/jobs/${jobId}`);
 };
 
 /**
@@ -91,7 +87,7 @@ export const cleanQueue = (
 ) => {
   return request.post<{ message: string }>(`/queues/${queueName}/clean`, {
     grace,
-    type
+    type,
   });
 };
 
@@ -106,7 +102,7 @@ export const testSendEmail = (to: string, subject: string, html: string) => {
   return request.post<{ message: string; jobId: string }>('/queues/test/send-email', {
     to,
     subject,
-    html
+    html,
   });
 };
 
@@ -116,7 +112,7 @@ export const testSendEmail = (to: string, subject: string, html: string) => {
 export const testSendSms = (phone: string, message: string) => {
   return request.post<{ message: string; jobId: string }>('/queues/test/send-sms', {
     phone,
-    message
+    message,
   });
 };
 
@@ -126,6 +122,6 @@ export const testSendSms = (phone: string, message: string) => {
 export const testStartDevice = (deviceId: string, userId?: string) => {
   return request.post<{ message: string; jobId: string }>('/queues/test/start-device', {
     deviceId,
-    userId
+    userId,
   });
 };

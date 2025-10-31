@@ -127,7 +127,7 @@ export class PricingEngineService {
   calculateCost(
     providerType: DeviceProviderType,
     deviceConfig: DeviceConfigSnapshot,
-    durationSeconds: number,
+    durationSeconds: number
   ): BillingCalculation {
     // 获取定价规则
     const pricingRule = this.getPricingRule(providerType, deviceConfig);
@@ -138,25 +138,16 @@ export class PricingEngineService {
     // 计算各项成本
     const baseCost = pricingRule.baseRate * durationHours;
 
-    const cpuCost =
-      (pricingRule.cpuRate || 0) *
-      (deviceConfig.cpuCores || 0) *
-      durationHours;
+    const cpuCost = (pricingRule.cpuRate || 0) * (deviceConfig.cpuCores || 0) * durationHours;
 
     const memoryCost =
-      (pricingRule.memoryRate || 0) *
-      (deviceConfig.memoryMB || 0) / 1024 * // 转换为 GB
+      (((pricingRule.memoryRate || 0) * (deviceConfig.memoryMB || 0)) / 1024) * // 转换为 GB
       durationHours;
 
-    const gpuCost =
-      (pricingRule.gpuRate || 0) *
-      (deviceConfig.gpuEnabled ? 1 : 0) *
-      durationHours;
+    const gpuCost = (pricingRule.gpuRate || 0) * (deviceConfig.gpuEnabled ? 1 : 0) * durationHours;
 
     const storageCost =
-      (pricingRule.storageRate || 0) *
-      (deviceConfig.storageGB || 0) *
-      durationHours;
+      (pricingRule.storageRate || 0) * (deviceConfig.storageGB || 0) * durationHours;
 
     // 计算总成本
     const totalCost = baseCost + cpuCost + memoryCost + gpuCost + storageCost;
@@ -165,7 +156,7 @@ export class PricingEngineService {
     const billingRate = totalCost / (durationHours || 1);
 
     this.logger.debug(
-      `Calculated cost for ${providerType}: ${totalCost.toFixed(4)} CNY (${durationHours}h @ ${billingRate.toFixed(4)} CNY/h)`,
+      `Calculated cost for ${providerType}: ${totalCost.toFixed(4)} CNY (${durationHours}h @ ${billingRate.toFixed(4)} CNY/h)`
     );
 
     return {
@@ -195,14 +186,12 @@ export class PricingEngineService {
    */
   getPricingRule(
     providerType: DeviceProviderType,
-    deviceConfig: DeviceConfigSnapshot,
+    deviceConfig: DeviceConfigSnapshot
   ): PricingRule {
     let rule = this.pricingMatrix[providerType];
 
     if (!rule) {
-      this.logger.warn(
-        `Unknown provider type: ${providerType}, using default pricing`,
-      );
+      this.logger.warn(`Unknown provider type: ${providerType}, using default pricing`);
       // 使用 Redroid 作为默认定价
       rule = this.pricingMatrix[DeviceProviderType.REDROID];
     }
@@ -261,16 +250,12 @@ export class PricingEngineService {
   estimateMonthlyCost(
     providerType: DeviceProviderType,
     deviceConfig: DeviceConfigSnapshot,
-    hoursPerDay: number = 8,
+    hoursPerDay: number = 8
   ): number {
     const daysPerMonth = 30;
     const totalSeconds = hoursPerDay * daysPerMonth * 3600;
 
-    const calculation = this.calculateCost(
-      providerType,
-      deviceConfig,
-      totalSeconds,
-    );
+    const calculation = this.calculateCost(providerType, deviceConfig, totalSeconds);
 
     return calculation.totalCost;
   }
@@ -284,17 +269,12 @@ export class PricingEngineService {
    */
   compareCosts(
     deviceConfig: DeviceConfigSnapshot,
-    durationSeconds: number,
+    durationSeconds: number
   ): Record<DeviceProviderType, BillingCalculation> {
-    const comparison: Partial<Record<DeviceProviderType, BillingCalculation>> =
-      {};
+    const comparison: Partial<Record<DeviceProviderType, BillingCalculation>> = {};
 
     for (const providerType of Object.values(DeviceProviderType)) {
-      comparison[providerType] = this.calculateCost(
-        providerType,
-        deviceConfig,
-        durationSeconds,
-      );
+      comparison[providerType] = this.calculateCost(providerType, deviceConfig, durationSeconds);
     }
 
     return comparison as Record<DeviceProviderType, BillingCalculation>;

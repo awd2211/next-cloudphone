@@ -17,11 +17,7 @@ import { StripeProvider } from './providers/stripe.provider';
 import { PayPalProvider } from './providers/paypal.provider';
 import { PaddleProvider } from './providers/paddle.provider';
 import { BalanceClientService } from './clients/balance-client.service';
-import {
-  CreatePaymentDto,
-  RefundPaymentDto,
-  QueryPaymentDto,
-} from './dto/create-payment.dto';
+import { CreatePaymentDto, RefundPaymentDto, QueryPaymentDto } from './dto/create-payment.dto';
 import {
   SagaOrchestratorService,
   SagaDefinition,
@@ -49,7 +45,7 @@ export class PaymentsService {
     private sagaOrchestrator: SagaOrchestratorService,
     private eventBus: EventBusService,
     @InjectDataSource()
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
   /**
@@ -77,10 +73,7 @@ export class PaymentsService {
   /**
    * 创建支付订单
    */
-  async createPayment(
-    createPaymentDto: CreatePaymentDto,
-    userId: string,
-  ): Promise<Payment> {
+  async createPayment(createPaymentDto: CreatePaymentDto, userId: string): Promise<Payment> {
     const { orderId, method, amount } = createPaymentDto;
 
     // 查询订单
@@ -97,9 +90,7 @@ export class PaymentsService {
     }
 
     if (Math.abs(order.amount - amount) > 0.01) {
-      throw new BadRequestException(
-        `支付金额与订单金额不一致: ${amount} vs ${order.amount}`,
-      );
+      throw new BadRequestException(`支付金额与订单金额不一致: ${amount} vs ${order.amount}`);
     }
 
     // 生成支付单号
@@ -169,7 +160,7 @@ export class PaymentsService {
           payment.paymentNo,
           `订单支付-${order.id}`,
           payment.amount,
-          notifyUrl,
+          notifyUrl
         );
         payment.transactionId = wechatResult.prepayId;
         payment.paymentUrl = wechatResult.codeUrl || '';
@@ -181,7 +172,7 @@ export class PaymentsService {
           payment.paymentNo,
           `订单支付-${order.id}`,
           payment.amount,
-          notifyUrl,
+          notifyUrl
         );
         payment.transactionId = alipayResult.tradeNo;
         payment.paymentUrl = alipayResult.qrCode || '';
@@ -215,14 +206,11 @@ export class PaymentsService {
         // 余额支付：先检查余额，再扣减
         try {
           // 1. 检查余额是否充足
-          const balanceCheck = await this.balanceClient.checkBalance(
-            order.userId,
-            payment.amount,
-          );
+          const balanceCheck = await this.balanceClient.checkBalance(order.userId, payment.amount);
 
           if (!balanceCheck.allowed) {
             throw new BadRequestException(
-              `余额不足。当前余额: ${balanceCheck.balance}, 需要: ${payment.amount}`,
+              `余额不足。当前余额: ${balanceCheck.balance}, 需要: ${payment.amount}`
             );
           }
 
@@ -230,7 +218,7 @@ export class PaymentsService {
           const deductResult = await this.balanceClient.deductBalance(
             order.userId,
             payment.amount,
-            order.id,
+            order.id
           );
 
           // 3. 标记支付成功
@@ -255,7 +243,7 @@ export class PaymentsService {
 
           this.logger.error(
             `Balance payment failed for order ${order.id}: ${error.message}`,
-            error.stack,
+            error.stack
           );
 
           // 重新抛出异常，让调用方知道支付失败
@@ -281,7 +269,7 @@ export class PaymentsService {
       headers['wechatpay-timestamp'],
       headers['wechatpay-nonce'],
       JSON.stringify(body),
-      headers['wechatpay-signature'],
+      headers['wechatpay-signature']
     );
 
     if (!isValid) {
@@ -398,10 +386,7 @@ export class PaymentsService {
           }
         } else if (payment.method === PaymentMethod.ALIPAY) {
           result = await this.alipayProvider.queryOrder(paymentNo);
-          if (
-            result.tradeStatus === 'TRADE_SUCCESS' ||
-            result.tradeStatus === 'TRADE_FINISHED'
-          ) {
+          if (result.tradeStatus === 'TRADE_SUCCESS' || result.tradeStatus === 'TRADE_FINISHED') {
             payment.status = PaymentStatus.SUCCESS;
             payment.paidAt = new Date();
             payment.transactionId = result.tradeNo;
@@ -443,7 +428,7 @@ export class PaymentsService {
    */
   async refundPayment(
     paymentId: string,
-    refundDto: RefundPaymentDto,
+    refundDto: RefundPaymentDto
   ): Promise<{ sagaId: string; payment: Payment }> {
     // 1. 验证支付记录
     const payment = await this.paymentsRepository.findOne({
@@ -497,14 +482,18 @@ export class PaymentsService {
               }
 
               if (paymentInTx.status !== PaymentStatus.SUCCESS) {
-                throw new Error(`Payment ${paymentId} status is ${paymentInTx.status}, expected SUCCESS`);
+                throw new Error(
+                  `Payment ${paymentId} status is ${paymentInTx.status}, expected SUCCESS`
+                );
               }
 
               paymentInTx.status = PaymentStatus.REFUNDING;
               await queryRunner.manager.save(Payment, paymentInTx);
               await queryRunner.commitTransaction();
 
-              this.logger.log(`Saga step 1 completed: Payment ${paymentId} status set to REFUNDING`);
+              this.logger.log(
+                `Saga step 1 completed: Payment ${paymentId} status set to REFUNDING`
+              );
               return { refundingStatusSet: true };
             } catch (error) {
               await queryRunner.rollbackTransaction();
@@ -514,7 +503,9 @@ export class PaymentsService {
             }
           },
           compensate: async (state: any) => {
-            this.logger.log(`Saga step 1 compensation: Reverting payment ${paymentId} to SUCCESS status`);
+            this.logger.log(
+              `Saga step 1 compensation: Reverting payment ${paymentId} to SUCCESS status`
+            );
 
             const queryRunner = this.dataSource.createQueryRunner();
             await queryRunner.connect();
@@ -531,7 +522,9 @@ export class PaymentsService {
               }
 
               await queryRunner.commitTransaction();
-              this.logger.log(`Saga step 1 compensation completed: Payment ${paymentId} reverted to SUCCESS`);
+              this.logger.log(
+                `Saga step 1 compensation completed: Payment ${paymentId} reverted to SUCCESS`
+              );
             } catch (error) {
               this.logger.error(`Saga step 1 compensation failed: ${error.message}`);
               await queryRunner.rollbackTransaction();
@@ -557,23 +550,23 @@ export class PaymentsService {
                 refundNo,
                 payment.amount,
                 refundDto.amount,
-                refundDto.reason,
+                refundDto.reason
               );
             } else if (payment.method === PaymentMethod.ALIPAY) {
               result = await this.alipayProvider.refund(
                 payment.paymentNo,
                 refundDto.amount,
-                refundDto.reason,
+                refundDto.reason
               );
             } else if (payment.method === PaymentMethod.BALANCE) {
               result = await this.balanceClient.refundBalance(
                 order.userId,
                 refundDto.amount,
-                order.id,
+                order.id
               );
 
               this.logger.log(
-                `Balance refunded for user ${order.userId}: amount=${refundDto.amount}, newBalance=${result.newBalance}`,
+                `Balance refunded for user ${order.userId}: amount=${refundDto.amount}, newBalance=${result.newBalance}`
               );
             } else {
               throw new Error(`Unsupported payment method for refund: ${payment.method}`);
@@ -586,7 +579,9 @@ export class PaymentsService {
             };
           },
           compensate: async (state: any) => {
-            this.logger.warn(`Saga step 2 compensation: Cannot undo provider refund (manual intervention required)`);
+            this.logger.warn(
+              `Saga step 2 compensation: Cannot undo provider refund (manual intervention required)`
+            );
             // 注意: 大多数支付平台的退款是不可逆的，无法自动补偿
             // 需要人工介入或记录到补偿队列
           },
@@ -633,7 +628,9 @@ export class PaymentsService {
             }
           },
           compensate: async (state: any) => {
-            this.logger.log(`Saga step 3 compensation: Reverting payment ${paymentId} to REFUNDING status`);
+            this.logger.log(
+              `Saga step 3 compensation: Reverting payment ${paymentId} to REFUNDING status`
+            );
 
             const queryRunner = this.dataSource.createQueryRunner();
             await queryRunner.connect();
@@ -684,7 +681,9 @@ export class PaymentsService {
               }
 
               await queryRunner.commitTransaction();
-              this.logger.log(`Saga step 4 completed: Order ${payment.orderId} status set to REFUNDED`);
+              this.logger.log(
+                `Saga step 4 completed: Order ${payment.orderId} status set to REFUNDED`
+              );
               return { orderStatusUpdated: true };
             } catch (error) {
               await queryRunner.rollbackTransaction();
@@ -785,9 +784,7 @@ export class PaymentsService {
 
         this.logger.log(`Closed expired payment: ${payment.paymentNo}`);
       } catch (error) {
-        this.logger.error(
-          `Failed to close payment ${payment.paymentNo}: ${error.message}`,
-        );
+        this.logger.error(`Failed to close payment ${payment.paymentNo}: ${error.message}`);
       }
     }
   }

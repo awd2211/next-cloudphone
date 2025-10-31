@@ -3,7 +3,11 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { PermissionCheckerService } from './permission-checker.service';
 import { Permission, DataScopeType } from '../entities/permission.entity';
 import { DataScope, ScopeType } from '../entities/data-scope.entity';
-import { FieldPermission, FieldAccessLevel, OperationType } from '../entities/field-permission.entity';
+import {
+  FieldPermission,
+  FieldAccessLevel,
+  OperationType,
+} from '../entities/field-permission.entity';
 import { User, UserStatus } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 import { createMockRepository } from '@cloudphone/shared/testing';
@@ -331,11 +335,7 @@ describe('PermissionCheckerService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act
-      const result = await service.checkDataPermission(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkDataPermission(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(true);
@@ -364,11 +364,7 @@ describe('PermissionCheckerService', () => {
       dataScopeRepository.find.mockResolvedValue([mockDataScope]);
 
       // Act
-      const result = await service.checkDataPermission(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkDataPermission(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(true);
@@ -396,11 +392,7 @@ describe('PermissionCheckerService', () => {
       dataScopeRepository.find.mockResolvedValue([mockDataScope]);
 
       // Act
-      const result = await service.checkDataPermission(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkDataPermission(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(false);
@@ -428,11 +420,7 @@ describe('PermissionCheckerService', () => {
       dataScopeRepository.find.mockResolvedValue([mockDataScope]);
 
       // Act
-      const result = await service.checkDataPermission(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkDataPermission(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(true);
@@ -447,11 +435,7 @@ describe('PermissionCheckerService', () => {
       userRepository.findOne.mockResolvedValue(null);
 
       // Act
-      const result = await service.checkDataPermission(
-        userId,
-        resourceType,
-        resourceData,
-      );
+      const result = await service.checkDataPermission(userId, resourceType, resourceData);
 
       // Assert
       expect(result).toBe(false);
@@ -473,11 +457,7 @@ describe('PermissionCheckerService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act
-      const result = await service.checkFieldPermission(
-        userId,
-        resourceType,
-        operation,
-      );
+      const result = await service.checkFieldPermission(userId, resourceType, operation);
 
       // Assert
       expect(result.visibleFields).toEqual([]);
@@ -520,11 +500,7 @@ describe('PermissionCheckerService', () => {
       fieldPermissionRepository.find.mockResolvedValue(mockFieldPermissions);
 
       // Act
-      const result = await service.checkFieldPermission(
-        userId,
-        resourceType,
-        operation,
-      );
+      const result = await service.checkFieldPermission(userId, resourceType, operation);
 
       // Assert
       expect(result.hiddenFields).toContain('password');
@@ -546,11 +522,7 @@ describe('PermissionCheckerService', () => {
       userRepository.findOne.mockResolvedValue(null);
 
       // Act
-      const result = await service.checkFieldPermission(
-        userId,
-        resourceType,
-        operation,
-      );
+      const result = await service.checkFieldPermission(userId, resourceType, operation);
 
       // Assert
       expect(result.visibleFields).toEqual([]);
@@ -562,11 +534,7 @@ describe('PermissionCheckerService', () => {
     it('应该在用户拥有任一权限时返回 true', async () => {
       // Arrange
       const userId = 'user-123';
-      const permissionNames = [
-        'system:user:create',
-        'system:user:delete',
-        'system:user:list',
-      ];
+      const permissionNames = ['system:user:create', 'system:user:delete', 'system:user:list'];
       const mockRole = {
         id: 'role-123',
         permissions: [
@@ -597,10 +565,7 @@ describe('PermissionCheckerService', () => {
     it('应该在用户不拥有任何权限时返回 false', async () => {
       // Arrange
       const userId = 'user-123';
-      const permissionNames = [
-        'system:user:create',
-        'system:user:delete',
-      ];
+      const permissionNames = ['system:user:create', 'system:user:delete'];
       const mockRole = {
         id: 'role-123',
         permissions: [

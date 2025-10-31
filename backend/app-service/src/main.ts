@@ -27,7 +27,7 @@ async function bootstrap() {
       },
       crossOriginEmbedderPolicy: false,
       crossOriginResourcePolicy: { policy: 'cross-origin' },
-    }),
+    })
   );
 
   // ========== 日志配置 ==========
@@ -43,7 +43,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    }),
+    })
   );
 
   // ========== CORS 配置 ==========
@@ -57,16 +57,10 @@ async function bootstrap() {
 
   // ========== API 版本控制 ==========
 
-  // 设置全局前缀和版本
-  app.setGlobalPrefix('api/v1', {
-    exclude: [
-      'health',           // 健康检查不需要版本
-      'health/detailed',
-      'health/liveness',
-      'health/readiness',
-      'metrics',          // Prometheus metrics 不需要版本
-    ],
-  });
+  // 微服务不设置全局前缀，由 API Gateway 统一处理版本路由
+  // app.setGlobalPrefix('api/v1', {
+  //   exclude: ['health', 'metrics'],
+  // });
 
   // ========== Swagger API 文档配置 ==========
 
@@ -84,7 +78,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/v1/docs', app, document, {
+  SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -110,10 +104,12 @@ async function bootstrap() {
   // ========== 服务启动日志 ==========
 
   console.log(`🚀 App Service is running on: http://localhost:${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
-  console.log(`🔗 API Base URL: http://localhost:${port}/api/v1`);
+  console.log(`📚 API Documentation: http://localhost:${port}/docs`);
+  console.log(`🔗 API Base URL: http://localhost:${port}`);
   console.log(`🔗 RabbitMQ: ${configService.get('RABBITMQ_URL', 'amqp://localhost:5672')}`);
-  console.log(`🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`);
+  console.log(
+    `🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`
+  );
   console.log(`🔒 Helmet security: ENABLED`);
   console.log(`🔄 Graceful shutdown: ENABLED`);
 }

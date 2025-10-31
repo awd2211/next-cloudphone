@@ -1,9 +1,9 @@
-import { Module } from "@nestjs/common";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { MetricsService } from "./metrics.service";
-import { MetricsController } from "./metrics.controller";
-import { Device } from "../entities/device.entity";
-import { DockerModule } from "../docker/docker.module";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { MetricsService } from './metrics.service';
+import { MetricsController } from './metrics.controller';
+import { Device } from '../entities/device.entity';
+import { DockerModule } from '../docker/docker.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Device]), DockerModule],

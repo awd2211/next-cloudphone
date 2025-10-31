@@ -119,7 +119,8 @@ const RevenueReport = () => {
       title: '占比',
       key: 'percentage',
       render: (_, record) => {
-        const percentage = totalRevenue > 0 ? ((record.revenue || 0) / totalRevenue * 100).toFixed(2) : 0;
+        const percentage =
+          totalRevenue > 0 ? (((record.revenue || 0) / totalRevenue) * 100).toFixed(2) : 0;
         return `${percentage}%`;
       },
     },
@@ -129,7 +130,14 @@ const RevenueReport = () => {
     <div>
       <h2>收入统计报表</h2>
 
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        style={{
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <RangePicker
           value={dateRange}
           onChange={(dates) => dates && setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs])}
@@ -143,10 +151,7 @@ const RevenueReport = () => {
           >
             导出 Excel
           </Button>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={() => handleExport('csv')}
-          >
+          <Button icon={<DownloadOutlined />} onClick={() => handleExport('csv')}>
             导出 CSV
           </Button>
         </div>

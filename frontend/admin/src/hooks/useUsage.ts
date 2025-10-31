@@ -5,12 +5,8 @@ import { getUsageRecords } from '@/services/billing';
 export const usageKeys = {
   all: ['usage'] as const,
   lists: () => [...usageKeys.all, 'list'] as const,
-  list: (params?: {
-    page?: number;
-    pageSize?: number;
-    userId?: string;
-    deviceId?: string;
-  }) => [...usageKeys.lists(), params] as const,
+  list: (params?: { page?: number; pageSize?: number; userId?: string; deviceId?: string }) =>
+    [...usageKeys.lists(), params] as const,
 };
 
 // Queries

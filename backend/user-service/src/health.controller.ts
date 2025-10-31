@@ -62,7 +62,7 @@ export class HealthController {
     private databaseMonitorService: DatabaseMonitorService,
     private partitionManagerService: PartitionManagerService,
     private gracefulShutdownService: GracefulShutdownService,
-    private healthCheckService: HealthCheckService,
+    private healthCheckService: HealthCheckService
   ) {}
 
   @Get()

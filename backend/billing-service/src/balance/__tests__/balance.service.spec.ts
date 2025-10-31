@@ -1,9 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import {
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { BalanceService } from '../balance.service';
 import { UserBalance, BalanceStatus } from '../entities/user-balance.entity';
@@ -107,12 +104,8 @@ describe('BalanceService', () => {
       balanceRepository.findOne.mockResolvedValue(null);
       balanceRepository.create.mockReturnValue(mockBalance as UserBalance);
       balanceRepository.save.mockResolvedValue(mockBalance as UserBalance);
-      transactionRepository.create.mockReturnValue(
-        mockTransaction as BalanceTransaction,
-      );
-      transactionRepository.save.mockResolvedValue(
-        mockTransaction as BalanceTransaction,
-      );
+      transactionRepository.create.mockReturnValue(mockTransaction as BalanceTransaction);
+      transactionRepository.save.mockResolvedValue(mockTransaction as BalanceTransaction);
 
       const result = await service.createBalance({
         userId: 'user-123',
@@ -131,9 +124,9 @@ describe('BalanceService', () => {
     it('should throw BadRequestException if balance already exists', async () => {
       balanceRepository.findOne.mockResolvedValue(mockBalance as UserBalance);
 
-      await expect(
-        service.createBalance({ userId: 'user-123' }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createBalance({ userId: 'user-123' })).rejects.toThrow(
+        BadRequestException
+      );
     });
 
     it('should create balance with zero initial balance', async () => {
@@ -165,9 +158,7 @@ describe('BalanceService', () => {
     it('should throw NotFoundException if balance not found', async () => {
       balanceRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.getUserBalance('nonexistent')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.getUserBalance('nonexistent')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -200,7 +191,7 @@ describe('BalanceService', () => {
         service.recharge({
           userId: 'user-123',
           amount: -100,
-        }),
+        })
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -211,7 +202,7 @@ describe('BalanceService', () => {
         service.recharge({
           userId: 'nonexistent',
           amount: 100,
-        }),
+        })
       ).rejects.toThrow(NotFoundException);
 
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
@@ -220,15 +211,13 @@ describe('BalanceService', () => {
 
     it('should rollback transaction on error', async () => {
       mockQueryRunner.manager.findOne.mockResolvedValue(mockBalance);
-      mockQueryRunner.manager.save.mockRejectedValue(
-        new Error('Database error'),
-      );
+      mockQueryRunner.manager.save.mockRejectedValue(new Error('Database error'));
 
       await expect(
         service.recharge({
           userId: 'user-123',
           amount: 100,
-        }),
+        })
       ).rejects.toThrow('Database error');
 
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
@@ -264,7 +253,7 @@ describe('BalanceService', () => {
         service.consume({
           userId: 'user-123',
           amount: 0,
-        }),
+        })
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -279,7 +268,7 @@ describe('BalanceService', () => {
         service.consume({
           userId: 'user-123',
           amount: 100,
-        }),
+        })
       ).rejects.toThrow(BadRequestException);
 
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
@@ -293,7 +282,7 @@ describe('BalanceService', () => {
         service.consume({
           userId: 'user-123',
           amount: 100,
-        }),
+        })
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -327,7 +316,7 @@ describe('BalanceService', () => {
           userId: 'user-123',
           amount: 500,
           reason: 'Test',
-        }),
+        })
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -337,7 +326,7 @@ describe('BalanceService', () => {
           userId: 'user-123',
           amount: -100,
           reason: 'Test',
-        }),
+        })
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -346,7 +335,7 @@ describe('BalanceService', () => {
     it('should successfully unfreeze balance', async () => {
       const balance = {
         ...mockBalance,
-        frozenAmount: 300
+        frozenAmount: 300,
       };
       mockQueryRunner.manager.findOne.mockResolvedValue(balance);
       mockQueryRunner.manager.create.mockReturnValue(mockTransaction);
@@ -362,17 +351,17 @@ describe('BalanceService', () => {
       const balance = { ...mockBalance, frozenAmount: 100 };
       mockQueryRunner.manager.findOne.mockResolvedValue(balance);
 
-      await expect(
-        service.unfreezeBalance('user-123', 200, 'Release'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.unfreezeBalance('user-123', 200, 'Release')).rejects.toThrow(
+        BadRequestException
+      );
     });
 
     it('should throw NotFoundException if user not found', async () => {
       mockQueryRunner.manager.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.unfreezeBalance('nonexistent', 100, 'Release'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.unfreezeBalance('nonexistent', 100, 'Release')).rejects.toThrow(
+        NotFoundException
+      );
     });
   });
 
@@ -429,17 +418,14 @@ describe('BalanceService', () => {
           amount: 100,
           operatorId: 'admin',
           reason: 'Test',
-        }),
+        })
       ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('getTransactions', () => {
     it('should return paginated transactions', async () => {
-      const mockTransactions = [
-        mockTransaction,
-        { ...mockTransaction, id: 'txn-456' },
-      ];
+      const mockTransactions = [mockTransaction, { ...mockTransaction, id: 'txn-456' }];
 
       const mockQueryBuilder = {
         where: jest.fn().mockReturnThis(),
@@ -451,9 +437,7 @@ describe('BalanceService', () => {
         getMany: jest.fn().mockResolvedValue(mockTransactions),
       };
 
-      transactionRepository.createQueryBuilder.mockReturnValue(
-        mockQueryBuilder as any,
-      );
+      transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
       const result = await service.getTransactions('user-123', {
         limit: 10,
@@ -463,10 +447,7 @@ describe('BalanceService', () => {
       expect(result.transactions).toEqual(mockTransactions);
       expect(result.total).toBe(2);
       expect(mockQueryBuilder.where).toHaveBeenCalled();
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'transaction.createdAt',
-        'DESC',
-      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('transaction.createdAt', 'DESC');
     });
 
     it('should filter transactions by type', async () => {
@@ -478,18 +459,15 @@ describe('BalanceService', () => {
         getMany: jest.fn().mockResolvedValue([mockTransaction]),
       };
 
-      transactionRepository.createQueryBuilder.mockReturnValue(
-        mockQueryBuilder as any,
-      );
+      transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
       await service.getTransactions('user-123', {
         type: TransactionType.RECHARGE,
       });
 
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'transaction.type = :type',
-        { type: TransactionType.RECHARGE },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('transaction.type = :type', {
+        type: TransactionType.RECHARGE,
+      });
     });
 
     it('should filter transactions by status', async () => {
@@ -501,18 +479,15 @@ describe('BalanceService', () => {
         getMany: jest.fn().mockResolvedValue([mockTransaction]),
       };
 
-      transactionRepository.createQueryBuilder.mockReturnValue(
-        mockQueryBuilder as any,
-      );
+      transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
       await service.getTransactions('user-123', {
         status: TransactionStatus.SUCCESS,
       });
 
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'transaction.status = :status',
-        { status: TransactionStatus.SUCCESS },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('transaction.status = :status', {
+        status: TransactionStatus.SUCCESS,
+      });
     });
   });
 
@@ -534,9 +509,7 @@ describe('BalanceService', () => {
         getRawOne: jest.fn().mockResolvedValue({ total: '500' }),
       };
 
-      transactionRepository.createQueryBuilder.mockReturnValue(
-        mockQueryBuilder as any,
-      );
+      transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
       const result = await service.getBalanceStatistics('user-123');
 
@@ -562,9 +535,7 @@ describe('BalanceService', () => {
         getRawOne: jest.fn().mockResolvedValue({ total: null }),
       };
 
-      transactionRepository.createQueryBuilder.mockReturnValue(
-        mockQueryBuilder as any,
-      );
+      transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
       const result = await service.getBalanceStatistics('user-123');
 

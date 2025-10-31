@@ -33,31 +33,30 @@ export class NotificationTemplate {
   @Column({ type: 'text' })
   body: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, name: 'email_template' })
   emailTemplate: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, name: 'sms_template' })
   smsTemplate: string;
 
-  @Column({ type: 'simple-array' })
+  @Column({ type: 'text', array: true })
   channels: NotificationChannel[];
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'jsonb', nullable: true, name: 'default_data' })
   defaultData: Record<string, any>;
 
   @Column({ type: 'varchar', length: 10, default: 'zh-CN' })
   language: string;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive: boolean;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
-

@@ -1,22 +1,20 @@
-import { Injectable, Logger, NestMiddleware } from "@nestjs/common";
-import { Request, Response, NextFunction } from "express";
+import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  private logger = new Logger("HTTP");
+  private logger = new Logger('HTTP');
 
   use(req: Request, res: Response, next: NextFunction): void {
     const { method, originalUrl, ip } = req;
-    const userAgent = req.get("user-agent") || "";
+    const userAgent = req.get('user-agent') || '';
     const startTime = Date.now();
 
     // 记录请求信息
-    this.logger.log(
-      `[Request] ${method} ${originalUrl} - ${ip} - ${userAgent}`,
-    );
+    this.logger.log(`[Request] ${method} ${originalUrl} - ${ip} - ${userAgent}`);
 
     // 监听响应完成
-    res.on("finish", () => {
+    res.on('finish', () => {
       const { statusCode } = res;
       const responseTime = Date.now() - startTime;
 

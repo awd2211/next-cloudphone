@@ -134,21 +134,13 @@ const AuditLogListVirtual: React.FC = () => {
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: 200 }}
             />
-            <Select
-              value={levelFilter}
-              onChange={setLevelFilter}
-              style={{ width: 120 }}
-            >
+            <Select value={levelFilter} onChange={setLevelFilter} style={{ width: 120 }}>
               <Option value="all">所有级别</Option>
               <Option value="info">Info</Option>
               <Option value="warning">Warning</Option>
               <Option value="error">Error</Option>
             </Select>
-            <Select
-              value={actionFilter}
-              onChange={setActionFilter}
-              style={{ width: 120 }}
-            >
+            <Select value={actionFilter} onChange={setActionFilter} style={{ width: 120 }}>
               <Option value="all">所有操作</Option>
               <Option value="登录">登录</Option>
               <Option value="登出">登出</Option>
@@ -160,8 +152,12 @@ const AuditLogListVirtual: React.FC = () => {
       >
         <div className="log-stats">
           <Space size="large">
-            <span>总记录数: <strong>{allLogs.length.toLocaleString()}</strong></span>
-            <span>过滤后: <strong>{filteredLogs.length.toLocaleString()}</strong></span>
+            <span>
+              总记录数: <strong>{allLogs.length.toLocaleString()}</strong>
+            </span>
+            <span>
+              过滤后: <strong>{filteredLogs.length.toLocaleString()}</strong>
+            </span>
             <Tag color="green">✅ 虚拟滚动已启用</Tag>
           </Space>
         </div>

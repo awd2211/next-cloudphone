@@ -1,11 +1,11 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { AllocationService } from "./allocation.service";
-import { NotificationClientService } from "./notification-client.service";
-import { DeviceAllocation, AllocationStatus } from "../entities/device-allocation.entity";
-import { Device } from "../entities/device.entity";
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AllocationService } from './allocation.service';
+import { NotificationClientService } from './notification-client.service';
+import { DeviceAllocation, AllocationStatus } from '../entities/device-allocation.entity';
+import { Device } from '../entities/device.entity';
 
 @Injectable()
 export class AllocationSchedulerService {
@@ -17,7 +17,7 @@ export class AllocationSchedulerService {
     @InjectRepository(DeviceAllocation)
     private allocationRepository: Repository<DeviceAllocation>,
     @InjectRepository(Device)
-    private deviceRepository: Repository<Device>,
+    private deviceRepository: Repository<Device>
   ) {}
 
   /**
@@ -25,10 +25,10 @@ export class AllocationSchedulerService {
    * 同时发送过期通知给用户
    */
   @Cron(CronExpression.EVERY_5_MINUTES, {
-    name: "release-expired-allocations",
+    name: 'release-expired-allocations',
   })
   async handleReleaseExpiredAllocations(): Promise<void> {
-    this.logger.debug("Running cron: release expired allocations");
+    this.logger.debug('Running cron: release expired allocations');
 
     try {
       // 1. 获取即将过期的分配（提前通知）
@@ -37,16 +37,16 @@ export class AllocationSchedulerService {
       // 2. 释放过期的分配并发送通知
       const now = new Date();
       const expiredAllocations = await this.allocationRepository
-        .createQueryBuilder("allocation")
-        .leftJoinAndSelect("allocation.device", "device")
-        .where("allocation.status = :status", {
+        .createQueryBuilder('allocation')
+        .leftJoinAndSelect('allocation.device', 'device')
+        .where('allocation.status = :status', {
           status: AllocationStatus.ALLOCATED,
         })
-        .andWhere("allocation.expiresAt < :now", { now })
+        .andWhere('allocation.expiresAt < :now', { now })
         .getMany();
 
       if (expiredAllocations.length === 0) {
-        this.logger.debug("No expired allocations found");
+        this.logger.debug('No expired allocations found');
         return;
       }
 
@@ -100,10 +100,7 @@ export class AllocationSchedulerService {
         `✅ Released ${successCount} expired allocations, sent ${notificationCount} notifications`
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to release expired allocations: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to release expired allocations: ${error.message}`, error.stack);
     }
   }
 
@@ -117,12 +114,12 @@ export class AllocationSchedulerService {
 
       // 查找10分钟内即将过期的分配
       const expiringSoon = await this.allocationRepository
-        .createQueryBuilder("allocation")
-        .where("allocation.status = :status", {
+        .createQueryBuilder('allocation')
+        .where('allocation.status = :status', {
           status: AllocationStatus.ALLOCATED,
         })
-        .andWhere("allocation.expiresAt > :now", { now })
-        .andWhere("allocation.expiresAt <= :tenMinutesLater", { tenMinutesLater })
+        .andWhere('allocation.expiresAt > :now', { now })
+        .andWhere('allocation.expiresAt <= :tenMinutesLater', { tenMinutesLater })
         .getMany();
 
       if (expiringSoon.length === 0) {
@@ -160,10 +157,7 @@ export class AllocationSchedulerService {
         }
       }
     } catch (error) {
-      this.logger.error(
-        `Failed to notify expiring soon: ${error.message}`,
-        error.stack
-      );
+      this.logger.error(`Failed to notify expiring soon: ${error.message}`, error.stack);
     }
   }
 
@@ -171,7 +165,7 @@ export class AllocationSchedulerService {
    * 每小时统计分配信息
    */
   @Cron(CronExpression.EVERY_HOUR, {
-    name: "log-allocation-stats",
+    name: 'log-allocation-stats',
   })
   async handleLogAllocationStats(): Promise<void> {
     try {
@@ -179,39 +173,30 @@ export class AllocationSchedulerService {
 
       this.logger.log(
         `📊 Allocation Stats: Total=${stats.totalAllocations}, Active=${stats.activeAllocations}, ` +
-          `Released=${stats.releasedAllocations}, Expired=${stats.expiredAllocations}, Strategy=${stats.strategy}`,
+          `Released=${stats.releasedAllocations}, Expired=${stats.expiredAllocations}, Strategy=${stats.strategy}`
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to log allocation stats: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to log allocation stats: ${error.message}`, error.stack);
     }
   }
 
   /**
    * 每天凌晨2点清理30天前的已释放/过期记录（可选）
    */
-  @Cron("0 2 * * *", {
-    name: "cleanup-old-allocations",
+  @Cron('0 2 * * *', {
+    name: 'cleanup-old-allocations',
   })
   async handleCleanupOldAllocations(): Promise<void> {
-    this.logger.log("Running cron: cleanup old allocations");
+    this.logger.log('Running cron: cleanup old allocations');
 
     try {
-      const count =
-        await this.allocationService.cleanupOldAllocations(30);
+      const count = await this.allocationService.cleanupOldAllocations(30);
 
       if (count > 0) {
-        this.logger.log(
-          `🗑️  Cleaned up ${count} old allocation records (>30 days)`,
-        );
+        this.logger.log(`🗑️  Cleaned up ${count} old allocation records (>30 days)`);
       }
     } catch (error) {
-      this.logger.error(
-        `Failed to cleanup old allocations: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to cleanup old allocations: ${error.message}`, error.stack);
     }
   }
 }

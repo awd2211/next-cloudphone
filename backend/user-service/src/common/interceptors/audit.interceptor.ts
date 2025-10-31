@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
@@ -19,15 +14,12 @@ import { AuditLogService } from '../services/audit-log.service';
 export class AuditInterceptor implements NestInterceptor {
   constructor(
     private reflector: Reflector,
-    private auditLogService: AuditLogService,
+    private auditLogService: AuditLogService
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     // 获取审计配置
-    const auditConfig = this.reflector.get<AuditConfig>(
-      AUDIT_METADATA_KEY,
-      context.getHandler(),
-    );
+    const auditConfig = this.reflector.get<AuditConfig>(AUDIT_METADATA_KEY, context.getHandler());
 
     // 如果没有审计配置，跳过
     if (!auditConfig) {
@@ -45,7 +37,7 @@ export class AuditInterceptor implements NestInterceptor {
         // 操作成功，记录审计日志
         await this.auditLogService.log({
           eventType: auditConfig.eventType,
-          severity: auditConfig.severity as any || 'info',
+          severity: (auditConfig.severity as any) || 'info',
           userId,
           username,
           ip,
@@ -60,7 +52,7 @@ export class AuditInterceptor implements NestInterceptor {
         // 操作失败，也记录审计日志
         await this.auditLogService.log({
           eventType: auditConfig.eventType,
-          severity: auditConfig.severity as any || 'warn',
+          severity: (auditConfig.severity as any) || 'warn',
           userId,
           username,
           ip,
@@ -73,7 +65,7 @@ export class AuditInterceptor implements NestInterceptor {
         });
 
         throw error;
-      }),
+      })
     );
   }
 

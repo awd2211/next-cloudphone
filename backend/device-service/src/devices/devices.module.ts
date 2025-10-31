@@ -1,23 +1,23 @@
-import { Module } from "@nestjs/common";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { DevicesService } from "./devices.service";
-import { DevicesController } from "./devices.controller";
-import { DevicesConsumer } from './devices.consumer';  // ✅ V2: 启用消费者 (现在 @RabbitSubscribe 可以工作)
-import { BatchOperationsService } from "./batch-operations.service";
-import { BatchOperationsController } from "./batch-operations.controller";
-import { CloudDeviceTokenService } from "./cloud-device-token.service";
-import { CloudDeviceSyncService } from "./cloud-device-sync.service";
-import { Device } from "../entities/device.entity";
-import { DockerModule } from "../docker/docker.module";
-import { AdbModule } from "../adb/adb.module";
-import { PortManagerModule } from "../port-manager/port-manager.module";
-import { QuotaModule } from "../quota/quota.module";
-import { ProvidersModule } from "../providers/providers.module";
-import { PhysicalModule } from "../providers/physical/physical.module";
-import { ScrcpyModule } from "../scrcpy/scrcpy.module";
-import { AliyunModule } from "../providers/aliyun/aliyun.module";
-import { HuaweiModule } from "../providers/huawei/huawei.module";
-import { EventOutboxModule, SagaModule } from "@cloudphone/shared";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DevicesService } from './devices.service';
+import { DevicesController } from './devices.controller';
+import { DevicesConsumer } from './devices.consumer'; // ✅ V2: 启用消费者 (现在 @RabbitSubscribe 可以工作)
+import { BatchOperationsService } from './batch-operations.service';
+import { BatchOperationsController } from './batch-operations.controller';
+import { CloudDeviceTokenService } from './cloud-device-token.service';
+import { CloudDeviceSyncService } from './cloud-device-sync.service';
+import { Device } from '../entities/device.entity';
+import { DockerModule } from '../docker/docker.module';
+import { AdbModule } from '../adb/adb.module';
+import { PortManagerModule } from '../port-manager/port-manager.module';
+import { QuotaModule } from '../quota/quota.module';
+import { ProvidersModule } from '../providers/providers.module';
+import { PhysicalModule } from '../providers/physical/physical.module';
+import { ScrcpyModule } from '../scrcpy/scrcpy.module';
+import { AliyunModule } from '../providers/aliyun/aliyun.module';
+import { HuaweiModule } from '../providers/huawei/huawei.module';
+import { EventOutboxModule, SagaModule } from '@cloudphone/shared';
 
 @Module({
   imports: [
@@ -43,6 +43,11 @@ import { EventOutboxModule, SagaModule } from "@cloudphone/shared";
     CloudDeviceTokenService, // ✅ 云设备 Token 自动刷新
     CloudDeviceSyncService, // ✅ 云设备状态同步
   ],
-  exports: [DevicesService, BatchOperationsService, CloudDeviceTokenService, CloudDeviceSyncService],
+  exports: [
+    DevicesService,
+    BatchOperationsService,
+    CloudDeviceTokenService,
+    CloudDeviceSyncService,
+  ],
 })
 export class DevicesModule {}

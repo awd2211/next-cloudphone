@@ -31,10 +31,10 @@ export class DataScopeGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // 获取数据范围配置
-    const dataScopeConfig = this.reflector.getAllAndOverride<DataScopeConfig>(
-      DATA_SCOPE_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const dataScopeConfig = this.reflector.getAllAndOverride<DataScopeConfig>(DATA_SCOPE_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // 如果没有配置数据范围，允许访问
     if (!dataScopeConfig) {
@@ -64,9 +64,7 @@ export class DataScopeGuard implements CanActivate {
         // 所有数据 - 只有管理员可访问
         if (!isAdmin) {
           this.logger.warn(`用户 ${user.id} 尝试访问需要管理员权限的资源`);
-          throw new ForbiddenException(
-            dataScopeConfig.errorMessage || '需要管理员权限',
-          );
+          throw new ForbiddenException(dataScopeConfig.errorMessage || '需要管理员权限');
         }
         return true;
 
@@ -95,7 +93,7 @@ export class DataScopeGuard implements CanActivate {
     request: any,
     user: any,
     config: DataScopeConfig,
-    isAdmin: boolean,
+    isAdmin: boolean
   ): boolean {
     // 管理员可以访问所有租户数据
     if (isAdmin) {
@@ -116,11 +114,9 @@ export class DataScopeGuard implements CanActivate {
 
     if (targetTenantId !== userTenantId) {
       this.logger.warn(
-        `用户 ${user.id}(租户:${userTenantId}) 尝试访问其他租户(${targetTenantId})的资源`,
+        `用户 ${user.id}(租户:${userTenantId}) 尝试访问其他租户(${targetTenantId})的资源`
       );
-      throw new ForbiddenException(
-        config.errorMessage || '您没有权限访问其他租户的资源',
-      );
+      throw new ForbiddenException(config.errorMessage || '您没有权限访问其他租户的资源');
     }
 
     return true;
@@ -133,7 +129,7 @@ export class DataScopeGuard implements CanActivate {
     request: any,
     user: any,
     config: DataScopeConfig,
-    isAdmin: boolean,
+    isAdmin: boolean
   ): boolean {
     // 管理员可以访问所有用户数据
     if (isAdmin) {
@@ -151,12 +147,8 @@ export class DataScopeGuard implements CanActivate {
 
     // 检查是否为用户自己的资源
     if (resourceOwnerId !== user.id) {
-      this.logger.warn(
-        `用户 ${user.id} 尝试访问其他用户(${resourceOwnerId})的资源`,
-      );
-      throw new ForbiddenException(
-        config.errorMessage || '您只能访问自己的资源',
-      );
+      this.logger.warn(`用户 ${user.id} 尝试访问其他用户(${resourceOwnerId})的资源`);
+      throw new ForbiddenException(config.errorMessage || '您只能访问自己的资源');
     }
 
     return true;
@@ -169,7 +161,7 @@ export class DataScopeGuard implements CanActivate {
     request: any,
     user: any,
     config: DataScopeConfig,
-    isAdmin: boolean,
+    isAdmin: boolean
   ): boolean {
     // 管理员可以访问所有数据
     if (isAdmin) {
@@ -188,9 +180,7 @@ export class DataScopeGuard implements CanActivate {
 
     if (!hasAccess) {
       this.logger.warn(`用户 ${user.id} 未通过自定义数据范围检查`);
-      throw new ForbiddenException(
-        config.errorMessage || '您没有权限访问此资源',
-      );
+      throw new ForbiddenException(config.errorMessage || '您没有权限访问此资源');
     }
 
     return true;
@@ -203,12 +193,7 @@ export class DataScopeGuard implements CanActivate {
   private extractTenantId(request: any, config: DataScopeConfig): string | null {
     const field = config.tenantField || 'tenantId';
 
-    return (
-      request.params?.[field] ||
-      request.query?.[field] ||
-      request.body?.[field] ||
-      null
-    );
+    return request.params?.[field] || request.query?.[field] || request.body?.[field] || null;
   }
 
   /**
@@ -225,11 +210,6 @@ export class DataScopeGuard implements CanActivate {
       return paramId;
     }
 
-    return (
-      request.params?.[field] ||
-      request.query?.[field] ||
-      request.body?.[field] ||
-      null
-    );
+    return request.params?.[field] || request.query?.[field] || request.body?.[field] || null;
   }
 }

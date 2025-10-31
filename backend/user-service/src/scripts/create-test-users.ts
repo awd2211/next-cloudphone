@@ -121,7 +121,7 @@ async function createTestUsers(connection: DataSource): Promise<void> {
       await userRepo.save(user);
 
       console.log(
-        `  ✅ 创建用户: ${testUser.username} / ${testUser.password} (${testUser.roleName})`,
+        `  ✅ 创建用户: ${testUser.username} / ${testUser.password} (${testUser.roleName})`
       );
       console.log(`     描述: ${testUser.description}`);
       console.log(`     邮箱: ${testUser.email}`);
@@ -158,7 +158,7 @@ async function main() {
     console.log('╠════════════════╬═══════════════╬══════════════════════════╣');
     TEST_USERS.forEach((user) => {
       console.log(
-        `║ ${user.username.padEnd(14)} ║ ${user.password.padEnd(13)} ║ ${user.roleName.padEnd(24)} ║`,
+        `║ ${user.username.padEnd(14)} ║ ${user.password.padEnd(13)} ║ ${user.roleName.padEnd(24)} ║`
       );
     });
     console.log('╚════════════════╩═══════════════╩══════════════════════════╝');
@@ -172,4 +172,3 @@ async function main() {
 }
 
 main();
-

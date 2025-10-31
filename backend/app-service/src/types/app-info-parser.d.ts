@@ -4,4 +4,3 @@ declare module 'app-info-parser' {
     parse(): Promise<any>;
   }
 }
-

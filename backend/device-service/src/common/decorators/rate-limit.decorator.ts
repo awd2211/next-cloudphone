@@ -1,6 +1,6 @@
-import { SetMetadata } from "@nestjs/common";
+import { SetMetadata } from '@nestjs/common';
 
-export const RATE_LIMIT_KEY = "rate_limit";
+export const RATE_LIMIT_KEY = 'rate_limit';
 
 /**
  * 限流配置

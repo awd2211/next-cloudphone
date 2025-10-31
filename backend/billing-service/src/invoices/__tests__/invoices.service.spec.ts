@@ -1,17 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import {
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { InvoicesService, CreateInvoiceDto } from '../invoices.service';
-import {
-  Invoice,
-  InvoiceStatus,
-  InvoiceType,
-  InvoiceItem,
-} from '../entities/invoice.entity';
+import { Invoice, InvoiceStatus, InvoiceType, InvoiceItem } from '../entities/invoice.entity';
 import { createMockInvoice } from '../../__tests__/helpers/mock-factories';
 
 describe('InvoicesService', () => {
@@ -111,9 +103,7 @@ describe('InvoicesService', () => {
         getOne: jest.fn().mockResolvedValue(null),
       };
 
-      invoiceRepository.createQueryBuilder.mockReturnValue(
-        mockQueryBuilder as any,
-      );
+      invoiceRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
       invoiceRepository.create.mockReturnValue(createdInvoice);
       invoiceRepository.save.mockResolvedValue(createdInvoice);
 
@@ -127,7 +117,7 @@ describe('InvoicesService', () => {
           userId: 'user-123',
           type: InvoiceType.MONTHLY,
           status: InvoiceStatus.DRAFT,
-        }),
+        })
       );
     });
 
@@ -151,9 +141,7 @@ describe('InvoicesService', () => {
         getOne: jest.fn().mockResolvedValue(lastInvoice),
       };
 
-      invoiceRepository.createQueryBuilder.mockReturnValue(
-        mockQueryBuilder as any,
-      );
+      invoiceRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
       const createdInvoice = createMockInvoice({
         ...mockInvoice,
@@ -185,12 +173,8 @@ describe('InvoicesService', () => {
     it('should throw NotFoundException when invoice does not exist', async () => {
       invoiceRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.getInvoice('non-existent')).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.getInvoice('non-existent')).rejects.toThrow(
-        '账单 non-existent 未找到',
-      );
+      await expect(service.getInvoice('non-existent')).rejects.toThrow(NotFoundException);
+      await expect(service.getInvoice('non-existent')).rejects.toThrow('账单 non-existent 未找到');
     });
 
     it('should update invoice to OVERDUE if past due date', async () => {
@@ -202,10 +186,12 @@ describe('InvoicesService', () => {
       });
 
       invoiceRepository.findOne.mockResolvedValue(overdueInvoice);
-      invoiceRepository.save.mockResolvedValue(createMockInvoice({
-        ...overdueInvoice,
-        status: InvoiceStatus.OVERDUE,
-      }));
+      invoiceRepository.save.mockResolvedValue(
+        createMockInvoice({
+          ...overdueInvoice,
+          status: InvoiceStatus.OVERDUE,
+        })
+      );
 
       const result = await service.getInvoice('invoice-123');
 
@@ -213,7 +199,7 @@ describe('InvoicesService', () => {
       expect(invoiceRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           status: InvoiceStatus.OVERDUE,
-        }),
+        })
       );
     });
 
@@ -228,9 +214,7 @@ describe('InvoicesService', () => {
         getMany: jest.fn().mockResolvedValue([mockInvoice]),
       };
 
-      invoiceRepository.createQueryBuilder.mockReturnValue(
-        mockQueryBuilder as any,
-      );
+      invoiceRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
       const result = await service.getUserInvoices('user-123', {
         status: InvoiceStatus.PENDING,
@@ -253,10 +237,12 @@ describe('InvoicesService', () => {
       });
 
       invoiceRepository.findOne.mockResolvedValue(draftInvoice);
-      invoiceRepository.save.mockResolvedValue(createMockInvoice({
-        ...draftInvoice,
-        status: InvoiceStatus.PENDING,
-      }));
+      invoiceRepository.save.mockResolvedValue(
+        createMockInvoice({
+          ...draftInvoice,
+          status: InvoiceStatus.PENDING,
+        })
+      );
 
       const result = await service.publishInvoice('invoice-123');
 
@@ -272,12 +258,8 @@ describe('InvoicesService', () => {
 
       invoiceRepository.findOne.mockResolvedValue(pendingInvoice);
 
-      await expect(service.publishInvoice('invoice-123')).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.publishInvoice('invoice-123')).rejects.toThrow(
-        '只能发布草稿账单',
-      );
+      await expect(service.publishInvoice('invoice-123')).rejects.toThrow(BadRequestException);
+      await expect(service.publishInvoice('invoice-123')).rejects.toThrow('只能发布草稿账单');
     });
 
     it('should pay invoice successfully', async () => {
@@ -287,13 +269,15 @@ describe('InvoicesService', () => {
       });
 
       invoiceRepository.findOne.mockResolvedValue(pendingInvoice);
-      invoiceRepository.save.mockResolvedValue(createMockInvoice({
-        ...pendingInvoice,
-        status: InvoiceStatus.PAID,
-        paidAt: new Date(),
-        paymentId: 'payment-123',
-        paymentMethod: 'wechat' as any,
-      }));
+      invoiceRepository.save.mockResolvedValue(
+        createMockInvoice({
+          ...pendingInvoice,
+          status: InvoiceStatus.PAID,
+          paidAt: new Date(),
+          paymentId: 'payment-123',
+          paymentMethod: 'wechat' as any,
+        })
+      );
 
       const result = await service.payInvoice({
         invoiceId: 'invoice-123',
@@ -319,14 +303,14 @@ describe('InvoicesService', () => {
           invoiceId: 'invoice-123',
           paymentId: 'payment-123',
           paymentMethod: 'wechat',
-        }),
+        })
       ).rejects.toThrow(BadRequestException);
       await expect(
         service.payInvoice({
           invoiceId: 'invoice-123',
           paymentId: 'payment-123',
           paymentMethod: 'wechat',
-        }),
+        })
       ).rejects.toThrow('只能支付待支付状态的账单');
     });
 
@@ -338,11 +322,13 @@ describe('InvoicesService', () => {
       });
 
       invoiceRepository.findOne.mockResolvedValue(cancelableInvoice);
-      invoiceRepository.save.mockResolvedValue(createMockInvoice({
-        ...cancelableInvoice,
-        status: InvoiceStatus.CANCELLED,
-        notes: '取消原因: User request',
-      }));
+      invoiceRepository.save.mockResolvedValue(
+        createMockInvoice({
+          ...cancelableInvoice,
+          status: InvoiceStatus.CANCELLED,
+          notes: '取消原因: User request',
+        })
+      );
 
       const result = await service.cancelInvoice('invoice-123', 'User request');
 
@@ -359,12 +345,10 @@ describe('InvoicesService', () => {
 
       invoiceRepository.findOne.mockResolvedValue(paidInvoice);
 
-      await expect(
-        service.cancelInvoice('invoice-123', 'Test'),
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.cancelInvoice('invoice-123', 'Test'),
-      ).rejects.toThrow('该账单无法取消');
+      await expect(service.cancelInvoice('invoice-123', 'Test')).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.cancelInvoice('invoice-123', 'Test')).rejects.toThrow('该账单无法取消');
     });
   });
 
@@ -413,9 +397,7 @@ describe('InvoicesService', () => {
       ];
 
       invoiceRepository.find.mockResolvedValue(overdueInvoices as any);
-      invoiceRepository.save.mockImplementation((invoice: any) =>
-        Promise.resolve(invoice as any),
-      );
+      invoiceRepository.save.mockImplementation((invoice: any) => Promise.resolve(invoice as any));
 
       await service.checkOverdueInvoices();
 

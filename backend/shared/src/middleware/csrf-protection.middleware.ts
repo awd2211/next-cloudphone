@@ -1,4 +1,11 @@
-import { Injectable, NestMiddleware, ForbiddenException, Logger, Optional, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NestMiddleware,
+  ForbiddenException,
+  Logger,
+  Optional,
+  Inject,
+} from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -77,12 +84,7 @@ const DEFAULT_CONFIG: CsrfProtectionConfig = {
     maxAge: 3600000, // 1 小时
   },
   protectedMethods: ['POST', 'PUT', 'PATCH', 'DELETE'],
-  excludedPaths: [
-    /^\/api\/auth\/login$/,
-    /^\/api\/auth\/register$/,
-    /^\/health$/,
-    /^\/metrics$/,
-  ],
+  excludedPaths: [/^\/api\/auth\/login$/, /^\/api\/auth\/register$/, /^\/health$/, /^\/metrics$/],
 };
 
 /**
@@ -190,10 +192,11 @@ export class CsrfProtectionMiddleware implements NestMiddleware {
   private tokenStore: CsrfTokenStore;
 
   constructor(
-    @Optional() @Inject(ConfigService) 
+    @Optional()
+    @Inject(ConfigService)
     configService?: ConfigService,
-    @Optional() 
-    redis?: any,
+    @Optional()
+    redis?: any
   ) {
     this.config = {
       ...DEFAULT_CONFIG,
@@ -273,7 +276,7 @@ export class CsrfProtectionMiddleware implements NestMiddleware {
   private async generateToken(req: Request, res: Response): Promise<void> {
     // 检查是否已有有效 token
     const existingToken = req.cookies?.[this.config.cookieName];
-    if (existingToken && await this.isValidToken(existingToken, req)) {
+    if (existingToken && (await this.isValidToken(existingToken, req))) {
       return;
     }
 

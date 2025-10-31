@@ -17,7 +17,7 @@ import {
   Col,
   Statistic,
   Popconfirm,
-  Descriptions
+  Descriptions,
 } from 'antd';
 import {
   PlusOutlined,
@@ -26,7 +26,7 @@ import {
   DeleteOutlined,
   EyeOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 import {
   getAllDataScopes,
@@ -35,7 +35,7 @@ import {
   createDataScope,
   updateDataScope,
   deleteDataScope,
-  toggleDataScope
+  toggleDataScope,
 } from '@/services/dataScope';
 import type { DataScope, ScopeType, CreateDataScopeDto, UpdateDataScopeDto } from '@/types';
 import dayjs from 'dayjs';
@@ -163,7 +163,7 @@ const DataScopeManagement = () => {
       description: record.description,
       isActive: record.isActive,
       priority: record.priority,
-      includeSubDepartments: record.includeSubDepartments
+      includeSubDepartments: record.includeSubDepartments,
     });
     setEditModalVisible(true);
   };
@@ -177,12 +177,12 @@ const DataScopeManagement = () => {
   // 获取范围类型标签颜色
   const getScopeTypeColor = (type: ScopeType) => {
     const colors: Record<ScopeType, string> = {
-      'all': 'red',
-      'tenant': 'orange',
-      'department': 'blue',
-      'department_only': 'cyan',
-      'self': 'green',
-      'custom': 'purple'
+      all: 'red',
+      tenant: 'orange',
+      department: 'blue',
+      department_only: 'cyan',
+      self: 'green',
+      custom: 'purple',
     };
     return colors[type] || 'default';
   };
@@ -190,12 +190,15 @@ const DataScopeManagement = () => {
   // 统计数据
   const stats = {
     total: dataScopes.length,
-    active: dataScopes.filter(s => s.isActive).length,
-    inactive: dataScopes.filter(s => !s.isActive).length,
-    byType: dataScopes.reduce((acc, s) => {
-      acc[s.scopeType] = (acc[s.scopeType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>)
+    active: dataScopes.filter((s) => s.isActive).length,
+    inactive: dataScopes.filter((s) => !s.isActive).length,
+    byType: dataScopes.reduce(
+      (acc, s) => {
+        acc[s.scopeType] = (acc[s.scopeType] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    ),
   };
 
   // 表格列
@@ -205,20 +208,20 @@ const DataScopeManagement = () => {
       dataIndex: 'id',
       key: 'id',
       width: 120,
-      render: (id: string) => id.substring(0, 8)
+      render: (id: string) => id.substring(0, 8),
     },
     {
       title: '角色ID',
       dataIndex: 'roleId',
       key: 'roleId',
       width: 120,
-      render: (roleId: string) => roleId.substring(0, 8)
+      render: (roleId: string) => roleId.substring(0, 8),
     },
     {
       title: '资源类型',
       dataIndex: 'resourceType',
       key: 'resourceType',
-      width: 120
+      width: 120,
     },
     {
       title: '范围类型',
@@ -226,27 +229,23 @@ const DataScopeManagement = () => {
       key: 'scopeType',
       width: 150,
       render: (type: ScopeType) => {
-        const typeObj = scopeTypes.find(t => t.value === type);
-        return (
-          <Tag color={getScopeTypeColor(type)}>
-            {typeObj?.label || type}
-          </Tag>
-        );
-      }
+        const typeObj = scopeTypes.find((t) => t.value === type);
+        return <Tag color={getScopeTypeColor(type)}>{typeObj?.label || type}</Tag>;
+      },
     },
     {
       title: '描述',
       dataIndex: 'description',
       key: 'description',
       width: 200,
-      ellipsis: true
+      ellipsis: true,
     },
     {
       title: '优先级',
       dataIndex: 'priority',
       key: 'priority',
       width: 80,
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       title: '状态',
@@ -254,17 +253,20 @@ const DataScopeManagement = () => {
       key: 'isActive',
       width: 100,
       render: (isActive: boolean) => (
-        <Tag color={isActive ? 'success' : 'default'} icon={isActive ? <CheckCircleOutlined /> : <CloseCircleOutlined />}>
+        <Tag
+          color={isActive ? 'success' : 'default'}
+          icon={isActive ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+        >
           {isActive ? '启用' : '禁用'}
         </Tag>
-      )
+      ),
     },
     {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 160,
-      render: (time: string) => dayjs(time).format('MM-DD HH:mm')
+      render: (time: string) => dayjs(time).format('MM-DD HH:mm'),
     },
     {
       title: '操作',
@@ -289,11 +291,7 @@ const DataScopeManagement = () => {
           >
             编辑
           </Button>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => handleToggle(record.id)}
-          >
+          <Button type="link" size="small" onClick={() => handleToggle(record.id)}>
             {record.isActive ? '禁用' : '启用'}
           </Button>
           <Popconfirm
@@ -302,18 +300,13 @@ const DataScopeManagement = () => {
             okText="确定"
             cancelText="取消"
           >
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-            >
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
           </Popconfirm>
         </Space>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -330,29 +323,17 @@ const DataScopeManagement = () => {
         <Row gutter={16}>
           <Col span={6}>
             <Card>
-              <Statistic
-                title="总配置数"
-                value={stats.total}
-                prefix={<CheckCircleOutlined />}
-              />
+              <Statistic title="总配置数" value={stats.total} prefix={<CheckCircleOutlined />} />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic
-                title="已启用"
-                value={stats.active}
-                valueStyle={{ color: '#52c41a' }}
-              />
+              <Statistic title="已启用" value={stats.active} valueStyle={{ color: '#52c41a' }} />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic
-                title="已禁用"
-                value={stats.inactive}
-                valueStyle={{ color: '#999' }}
-              />
+              <Statistic title="已禁用" value={stats.inactive} valueStyle={{ color: '#999' }} />
             </Card>
           </Col>
           <Col span={6}>
@@ -376,10 +357,7 @@ const DataScopeManagement = () => {
             >
               新建配置
             </Button>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={loadDataScopes}
-            >
+            <Button icon={<ReloadOutlined />} onClick={loadDataScopes}>
               刷新
             </Button>
           </Space>
@@ -437,7 +415,7 @@ const DataScopeManagement = () => {
             rules={[{ required: true, message: '请选择范围类型' }]}
           >
             <Select placeholder="请选择范围类型">
-              {scopeTypes.map(type => (
+              {scopeTypes.map((type) => (
                 <Select.Option key={type.value} value={type.value}>
                   <Tag color={getScopeTypeColor(type.value)}>{type.label}</Tag>
                 </Select.Option>
@@ -454,19 +432,11 @@ const DataScopeManagement = () => {
             <Switch />
           </Form.Item>
 
-          <Form.Item
-            name="priority"
-            label="优先级"
-            initialValue={100}
-            tooltip="数字越小优先级越高"
-          >
+          <Form.Item name="priority" label="优先级" initialValue={100} tooltip="数字越小优先级越高">
             <InputNumber min={1} max={999} style={{ width: '100%' }} />
           </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="描述"
-          >
+          <Form.Item name="description" label="描述">
             <TextArea rows={3} placeholder="请输入配置描述" />
           </Form.Item>
         </Form>
@@ -487,12 +457,9 @@ const DataScopeManagement = () => {
         width={600}
       >
         <Form form={editForm} layout="vertical">
-          <Form.Item
-            name="scopeType"
-            label="范围类型"
-          >
+          <Form.Item name="scopeType" label="范围类型">
             <Select placeholder="请选择范围类型">
-              {scopeTypes.map(type => (
+              {scopeTypes.map((type) => (
                 <Select.Option key={type.value} value={type.value}>
                   <Tag color={getScopeTypeColor(type.value)}>{type.label}</Tag>
                 </Select.Option>
@@ -500,34 +467,19 @@ const DataScopeManagement = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item
-            name="includeSubDepartments"
-            label="包含子部门"
-            valuePropName="checked"
-          >
+          <Form.Item name="includeSubDepartments" label="包含子部门" valuePropName="checked">
             <Switch />
           </Form.Item>
 
-          <Form.Item
-            name="priority"
-            label="优先级"
-            tooltip="数字越小优先级越高"
-          >
+          <Form.Item name="priority" label="优先级" tooltip="数字越小优先级越高">
             <InputNumber min={1} max={999} style={{ width: '100%' }} />
           </Form.Item>
 
-          <Form.Item
-            name="isActive"
-            label="启用状态"
-            valuePropName="checked"
-          >
+          <Form.Item name="isActive" label="启用状态" valuePropName="checked">
             <Switch />
           </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="描述"
-          >
+          <Form.Item name="description" label="描述">
             <TextArea rows={3} placeholder="请输入配置描述" />
           </Form.Item>
         </Form>
@@ -551,7 +503,8 @@ const DataScopeManagement = () => {
             <Descriptions.Item label="资源类型">{selectedScope.resourceType}</Descriptions.Item>
             <Descriptions.Item label="范围类型">
               <Tag color={getScopeTypeColor(selectedScope.scopeType)}>
-                {scopeTypes.find(t => t.value === selectedScope.scopeType)?.label || selectedScope.scopeType}
+                {scopeTypes.find((t) => t.value === selectedScope.scopeType)?.label ||
+                  selectedScope.scopeType}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="包含子部门">
@@ -572,14 +525,16 @@ const DataScopeManagement = () => {
             </Descriptions.Item>
             {selectedScope.filter && (
               <Descriptions.Item label="自定义过滤条件">
-                <pre style={{
-                  maxHeight: '200px',
-                  overflow: 'auto',
-                  background: '#f5f5f5',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  margin: 0
-                }}>
+                <pre
+                  style={{
+                    maxHeight: '200px',
+                    overflow: 'auto',
+                    background: '#f5f5f5',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    margin: 0,
+                  }}
+                >
                   {JSON.stringify(selectedScope.filter, null, 2)}
                 </pre>
               </Descriptions.Item>

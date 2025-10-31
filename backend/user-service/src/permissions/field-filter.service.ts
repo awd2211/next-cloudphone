@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { FieldPermission, FieldAccessLevel, OperationType } from '../entities/field-permission.entity';
+import {
+  FieldPermission,
+  FieldAccessLevel,
+  OperationType,
+} from '../entities/field-permission.entity';
 import { User } from '../entities/user.entity';
 
 /**
@@ -27,7 +31,7 @@ export class FieldFilterService {
     @InjectRepository(FieldPermission)
     private fieldPermissionRepository: Repository<FieldPermission>,
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private userRepository: Repository<User>
   ) {}
 
   /**
@@ -42,7 +46,7 @@ export class FieldFilterService {
     userId: string,
     resourceType: string,
     data: any,
-    operation: OperationType = OperationType.VIEW,
+    operation: OperationType = OperationType.VIEW
   ): Promise<any> {
     if (!data) {
       return data;
@@ -58,11 +62,7 @@ export class FieldFilterService {
       return data;
     }
 
-    const fieldPermissions = await this.getFieldPermissions(
-      user,
-      resourceType,
-      operation,
-    );
+    const fieldPermissions = await this.getFieldPermissions(user, resourceType, operation);
 
     if (fieldPermissions.length === 0) {
       return data;
@@ -84,7 +84,7 @@ export class FieldFilterService {
     userId: string,
     resourceType: string,
     dataArray: any[],
-    operation: OperationType = OperationType.VIEW,
+    operation: OperationType = OperationType.VIEW
   ): Promise<any[]> {
     if (!dataArray || dataArray.length === 0) {
       return dataArray;
@@ -100,11 +100,7 @@ export class FieldFilterService {
       return dataArray;
     }
 
-    const fieldPermissions = await this.getFieldPermissions(
-      user,
-      resourceType,
-      operation,
-    );
+    const fieldPermissions = await this.getFieldPermissions(user, resourceType, operation);
 
     if (fieldPermissions.length === 0) {
       return dataArray;
@@ -124,7 +120,7 @@ export class FieldFilterService {
   async getVisibleFields(
     userId: string,
     resourceType: string,
-    operation: OperationType = OperationType.VIEW,
+    operation: OperationType = OperationType.VIEW
   ): Promise<string[]> {
     const fieldLists = await this.getFieldLists(userId, resourceType, operation);
     return fieldLists.visible;
@@ -140,7 +136,7 @@ export class FieldFilterService {
   async getEditableFields(
     userId: string,
     resourceType: string,
-    operation: OperationType = OperationType.UPDATE,
+    operation: OperationType = OperationType.UPDATE
   ): Promise<string[]> {
     const fieldLists = await this.getFieldLists(userId, resourceType, operation);
     return fieldLists.editable;
@@ -156,7 +152,7 @@ export class FieldFilterService {
   async getFieldLists(
     userId: string,
     resourceType: string,
-    operation: OperationType,
+    operation: OperationType
   ): Promise<FieldLists> {
     const user = await this.getUserWithRoles(userId);
     if (!user) {
@@ -174,11 +170,7 @@ export class FieldFilterService {
       };
     }
 
-    const fieldPermissions = await this.getFieldPermissions(
-      user,
-      resourceType,
-      operation,
-    );
+    const fieldPermissions = await this.getFieldPermissions(user, resourceType, operation);
 
     if (fieldPermissions.length === 0) {
       return this.emptyFieldLists();
@@ -194,7 +186,7 @@ export class FieldFilterService {
 
     // 计算可见字段（非隐藏字段）
     const visibleFields = [...writableFields, ...readOnlyFields].filter(
-      (f) => !hiddenFields.includes(f),
+      (f) => !hiddenFields.includes(f)
     );
 
     return {
@@ -220,7 +212,7 @@ export class FieldFilterService {
     resourceType: string,
     fieldName: string,
     accessLevel: FieldAccessLevel,
-    operation: OperationType,
+    operation: OperationType
   ): Promise<boolean> {
     const user = await this.getUserWithRoles(userId);
     if (!user) {
@@ -232,11 +224,7 @@ export class FieldFilterService {
       return true;
     }
 
-    const fieldPermissions = await this.getFieldPermissions(
-      user,
-      resourceType,
-      operation,
-    );
+    const fieldPermissions = await this.getFieldPermissions(user, resourceType, operation);
 
     if (fieldPermissions.length === 0) {
       return true; // 无限制
@@ -257,8 +245,7 @@ export class FieldFilterService {
       case FieldAccessLevel.READ:
         return (
           !merged.hiddenFields?.includes(fieldName) &&
-          (merged.readOnlyFields?.includes(fieldName) ||
-            merged.writableFields?.includes(fieldName))
+          (merged.readOnlyFields?.includes(fieldName) || merged.writableFields?.includes(fieldName))
         );
       case FieldAccessLevel.WRITE:
         return merged.writableFields?.includes(fieldName);
@@ -275,10 +262,7 @@ export class FieldFilterService {
    * @param fieldTransforms 转换规则
    * @returns 转换后的数据
    */
-  private applyFieldTransforms(
-    data: any,
-    fieldTransforms: Record<string, any>,
-  ): any {
+  private applyFieldTransforms(data: any, fieldTransforms: Record<string, any>): any {
     if (!fieldTransforms || Object.keys(fieldTransforms).length === 0) {
       return data;
     }
@@ -354,7 +338,7 @@ export class FieldFilterService {
   private applyFieldFilter(
     data: any,
     fieldPermission: FieldPermission,
-    operation: OperationType,
+    operation: OperationType
   ): any {
     const filtered = { ...data };
     const hiddenFields = fieldPermission.hiddenFields || [];
@@ -396,7 +380,7 @@ export class FieldFilterService {
   private async getFieldPermissions(
     user: User,
     resourceType: string,
-    operation: OperationType,
+    operation: OperationType
   ): Promise<FieldPermission[]> {
     if (!user.roles || user.roles.length === 0) {
       return [];
@@ -478,10 +462,7 @@ export class FieldFilterService {
   /**
    * 检查访问级别
    */
-  private checkAccessLevel(
-    current: FieldAccessLevel,
-    required: FieldAccessLevel,
-  ): boolean {
+  private checkAccessLevel(current: FieldAccessLevel, required: FieldAccessLevel): boolean {
     const levels = {
       [FieldAccessLevel.HIDDEN]: 0,
       [FieldAccessLevel.READ]: 1,

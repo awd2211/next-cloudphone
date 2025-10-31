@@ -15,12 +15,8 @@ import request from 'supertest';
  * @param moduleMetadata - NestJS 模块元数据
  * @returns 配置好的 NestApplication
  */
-export async function createTestApp(
-  moduleMetadata: any,
-): Promise<INestApplication> {
-  const moduleFixture: TestingModule = await Test.createTestingModule(
-    moduleMetadata,
-  ).compile();
+export async function createTestApp(moduleMetadata: any): Promise<INestApplication> {
+  const moduleFixture: TestingModule = await Test.createTestingModule(moduleMetadata).compile();
 
   const app = moduleFixture.createNestApplication();
 
@@ -30,7 +26,7 @@ export async function createTestApp(
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    }),
+    })
   );
 
   await app.init();
@@ -54,7 +50,7 @@ export function generateTestJwt(
     permissions?: string[];
     tenantId?: string;
   },
-  secret: string = 'test-secret',
+  secret: string = 'test-secret'
 ): string {
   const jwtService = new JwtService({ secret });
   return jwtService.sign(payload);
@@ -67,10 +63,7 @@ export function generateTestJwt(
  * @param permissions - 权限列表 (可选)
  * @returns JWT Token 字符串
  */
-export function createAuthToken(
-  roles: string[] = [],
-  permissions: string[] = [],
-): string {
+export function createAuthToken(roles: string[] = [], permissions: string[] = []): string {
   return generateTestJwt({
     sub: 'test-user-id',
     username: 'testuser',
@@ -111,21 +104,27 @@ export const createMockRolesGuard = () => {
  * @deprecated Use createMockAuthGuard() instead
  * This export is kept for backward compatibility but should not be used
  */
-export const mockAuthGuard = typeof jest !== 'undefined' ? {
-  canActivate: jest.fn(() => true),
-} : {
-  canActivate: () => true,
-};
+export const mockAuthGuard =
+  typeof jest !== 'undefined'
+    ? {
+        canActivate: jest.fn(() => true),
+      }
+    : {
+        canActivate: () => true,
+      };
 
 /**
  * @deprecated Use createMockRolesGuard() instead
  * This export is kept for backward compatibility but should not be used
  */
-export const mockRolesGuard = typeof jest !== 'undefined' ? {
-  canActivate: jest.fn(() => true),
-} : {
-  canActivate: () => true,
-};
+export const mockRolesGuard =
+  typeof jest !== 'undefined'
+    ? {
+        canActivate: jest.fn(() => true),
+      }
+    : {
+        canActivate: () => true,
+      };
 
 /**
  * 生成服务间认证 Token
@@ -136,7 +135,7 @@ export const mockRolesGuard = typeof jest !== 'undefined' ? {
  */
 export function generateServiceToken(
   serviceName: string,
-  secret: string = 'test-service-secret',
+  secret: string = 'test-service-secret'
 ): string {
   const jwtService = new JwtService({ secret });
   return jwtService.sign(
@@ -144,7 +143,7 @@ export function generateServiceToken(
       service: serviceName,
       type: 'service',
     },
-    { expiresIn: '1h' },
+    { expiresIn: '1h' }
   );
 }
 
@@ -161,7 +160,7 @@ export function authenticatedRequest(
   app: INestApplication,
   method: 'get' | 'post' | 'put' | 'patch' | 'delete',
   path: string,
-  token: string,
+  token: string
 ) {
   const server = app.getHttpServer();
   const req = request(server);
@@ -240,8 +239,7 @@ export const assertHttpResponse = {
  *
  * @param ms - 毫秒数
  */
-export const sleep = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * 重试函数 (用于测试最终一致性场景)
@@ -253,7 +251,7 @@ export const sleep = (ms: number) =>
 export async function retryUntil(
   fn: () => Promise<boolean>,
   maxAttempts: number = 10,
-  delay: number = 100,
+  delay: number = 100
 ): Promise<void> {
   for (let i = 0; i < maxAttempts; i++) {
     if (await fn()) {
@@ -270,7 +268,9 @@ export async function retryUntil(
  * @param repository - TypeORM Repository
  */
 export async function clearRepository(repository: any): Promise<void> {
-  await repository.query(`TRUNCATE TABLE "${repository.metadata.tableName}" RESTART IDENTITY CASCADE`);
+  await repository.query(
+    `TRUNCATE TABLE "${repository.metadata.tableName}" RESTART IDENTITY CASCADE`
+  );
 }
 
 /**
@@ -311,17 +311,11 @@ export function mockRabbitMQMessage<T>(payload: T) {
  * @param eventType - 事件类型
  * @param expectedPayload - 期望的载荷 (可选)
  */
-export function assertEventPublished(
-  eventBusMock: any,
-  eventType: string,
-  expectedPayload?: any,
-) {
+export function assertEventPublished(eventBusMock: any, eventType: string, expectedPayload?: any) {
   expect(eventBusMock.publish).toHaveBeenCalled();
 
   const calls = eventBusMock.publish.mock.calls;
-  const matchingCall = calls.find(
-    (call: any) => call[1] === eventType,
-  );
+  const matchingCall = calls.find((call: any) => call[1] === eventType);
 
   expect(matchingCall).toBeDefined();
 
@@ -336,7 +330,7 @@ export function assertEventPublished(
 export function createPaginationParams(
   page: number = 1,
   limit: number = 10,
-  additionalParams?: Record<string, any>,
+  additionalParams?: Record<string, any>
 ) {
   return {
     page,
@@ -349,7 +343,9 @@ export function createPaginationParams(
  * 生成随机字符串
  */
 export function randomString(length: number = 10): string {
-  return Math.random().toString(36).substring(2, length + 2);
+  return Math.random()
+    .toString(36)
+    .substring(2, length + 2);
 }
 
 /**
@@ -382,8 +378,7 @@ export function toBeRecentDate(received: Date | string) {
 
   return {
     pass: diff < maxDiff,
-    message: () =>
-      `Expected date to be recent (within ${maxDiff}ms), but difference was ${diff}ms`,
+    message: () => `Expected date to be recent (within ${maxDiff}ms), but difference was ${diff}ms`,
   };
 }
 
@@ -403,10 +398,7 @@ export class DatabaseTestHelper {
   /**
    * 等待数据库连接就绪
    */
-  static async waitForConnection(
-    dataSource: any,
-    maxAttempts: number = 10,
-  ): Promise<void> {
+  static async waitForConnection(dataSource: any, maxAttempts: number = 10): Promise<void> {
     for (let i = 0; i < maxAttempts; i++) {
       try {
         await dataSource.query('SELECT 1');
@@ -429,9 +421,7 @@ export class DatabaseTestHelper {
 
     for (const { tablename } of tables) {
       if (tablename !== 'migrations') {
-        await dataSource.query(
-          `TRUNCATE TABLE "${tablename}" RESTART IDENTITY CASCADE`,
-        );
+        await dataSource.query(`TRUNCATE TABLE "${tablename}" RESTART IDENTITY CASCADE`);
       }
     }
   }
@@ -444,10 +434,7 @@ export class RedisTestHelper {
   /**
    * 清理 Redis 测试键
    */
-  static async clearTestKeys(
-    redis: any,
-    pattern: string = 'test:*',
-  ): Promise<void> {
+  static async clearTestKeys(redis: any, pattern: string = 'test:*'): Promise<void> {
     const keys = await redis.keys(pattern);
     if (keys.length > 0) {
       await redis.del(...keys);
@@ -457,11 +444,7 @@ export class RedisTestHelper {
   /**
    * 等待 Redis 键存在
    */
-  static async waitForKey(
-    redis: any,
-    key: string,
-    maxAttempts: number = 10,
-  ): Promise<void> {
+  static async waitForKey(redis: any, key: string, maxAttempts: number = 10): Promise<void> {
     await retryUntil(async () => {
       const exists = await redis.exists(key);
       return exists === 1;

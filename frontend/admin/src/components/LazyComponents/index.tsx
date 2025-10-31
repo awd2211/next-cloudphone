@@ -32,8 +32,8 @@ export const withLazyLoad = <P extends object>(
  * ECharts 图表组件 (~500KB)
  * 只在需要显示图表时加载
  */
-export const LazyECharts = lazy(
-  () => import('echarts-for-react').catch(() => {
+export const LazyECharts = lazy(() =>
+  import('echarts-for-react').catch(() => {
     console.warn('[LazyLoad] Failed to load ECharts');
     return {
       default: () => <div>图表加载失败</div>,
@@ -47,8 +47,8 @@ export const EChartsLazy = withLazyLoad(LazyECharts);
  * WebRTC 播放器组件 (~300KB WebRTC 库)
  * 只在需要实时查看设备屏幕时加载
  */
-export const LazyWebRTCPlayer = lazy(
-  () => import('@/components/WebRTCPlayer').catch(() => {
+export const LazyWebRTCPlayer = lazy(() =>
+  import('@/components/WebRTCPlayer').catch(() => {
     console.warn('[LazyLoad] Failed to load WebRTCPlayer');
     return {
       default: () => <div>视频播放器加载失败</div>,
@@ -56,30 +56,33 @@ export const LazyWebRTCPlayer = lazy(
   })
 );
 
-export const WebRTCPlayerLazy = withLazyLoad(LazyWebRTCPlayer, (
-  <div style={{
-    padding: '48px',
-    textAlign: 'center',
-    background: '#000',
-    borderRadius: '8px',
-    minHeight: '400px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  }}>
+export const WebRTCPlayerLazy = withLazyLoad(
+  LazyWebRTCPlayer,
+  <div
+    style={{
+      padding: '48px',
+      textAlign: 'center',
+      background: '#000',
+      borderRadius: '8px',
+      minHeight: '400px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
     <div>
       <Spin size="large" />
       <div style={{ color: '#fff', marginTop: '16px' }}>加载播放器中...</div>
     </div>
   </div>
-));
+);
 
 /**
  * ADB 控制台组件 (~150KB 终端库)
  * 只在需要执行 ADB 命令时加载
  */
-export const LazyADBConsole = lazy(
-  () => import('@/components/ADBConsole').catch(() => {
+export const LazyADBConsole = lazy(() =>
+  import('@/components/ADBConsole').catch(() => {
     console.warn('[LazyLoad] Failed to load ADBConsole');
     return {
       default: () => <div>控制台加载失败</div>,
@@ -87,24 +90,27 @@ export const LazyADBConsole = lazy(
   })
 );
 
-export const ADBConsoleLazy = withLazyLoad(LazyADBConsole, (
-  <div style={{
-    padding: '24px',
-    textAlign: 'center',
-    border: '1px solid #d9d9d9',
-    borderRadius: '4px',
-    background: '#fafafa'
-  }}>
+export const ADBConsoleLazy = withLazyLoad(
+  LazyADBConsole,
+  <div
+    style={{
+      padding: '24px',
+      textAlign: 'center',
+      border: '1px solid #d9d9d9',
+      borderRadius: '4px',
+      background: '#fafafa',
+    }}
+  >
     <Spin />
     <div style={{ marginTop: '12px', color: '#666' }}>加载控制台中...</div>
   </div>
-));
+);
 
 /**
  * 收入图表组件 (ECharts)
  */
-export const LazyRevenueChart = lazy(
-  () => import('@/components/RevenueChart').catch(() => {
+export const LazyRevenueChart = lazy(() =>
+  import('@/components/RevenueChart').catch(() => {
     console.warn('[LazyLoad] Failed to load RevenueChart');
     return {
       default: () => <div>图表加载失败</div>,
@@ -117,8 +123,8 @@ export const RevenueChartLazy = withLazyLoad(LazyRevenueChart);
 /**
  * 设备状态图表组件 (ECharts)
  */
-export const LazyDeviceStatusChart = lazy(
-  () => import('@/components/DeviceStatusChart').catch(() => {
+export const LazyDeviceStatusChart = lazy(() =>
+  import('@/components/DeviceStatusChart').catch(() => {
     console.warn('[LazyLoad] Failed to load DeviceStatusChart');
     return {
       default: () => <div>图表加载失败</div>,
@@ -131,8 +137,8 @@ export const DeviceStatusChartLazy = withLazyLoad(LazyDeviceStatusChart);
 /**
  * 用户增长图表组件 (ECharts)
  */
-export const LazyUserGrowthChart = lazy(
-  () => import('@/components/UserGrowthChart').catch(() => {
+export const LazyUserGrowthChart = lazy(() =>
+  import('@/components/UserGrowthChart').catch(() => {
     console.warn('[LazyLoad] Failed to load UserGrowthChart');
     return {
       default: () => <div>图表加载失败</div>,
@@ -145,8 +151,8 @@ export const UserGrowthChartLazy = withLazyLoad(LazyUserGrowthChart);
 /**
  * 套餐分布图表组件 (ECharts)
  */
-export const LazyPlanDistributionChart = lazy(
-  () => import('@/components/PlanDistributionChart').catch(() => {
+export const LazyPlanDistributionChart = lazy(() =>
+  import('@/components/PlanDistributionChart').catch(() => {
     console.warn('[LazyLoad] Failed to load PlanDistributionChart');
     return {
       default: () => <div>图表加载失败</div>,

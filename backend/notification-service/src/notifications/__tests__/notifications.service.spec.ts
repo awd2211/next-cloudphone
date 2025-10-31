@@ -2,12 +2,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { NotificationsService } from '../notifications.service';
-import { Notification, NotificationStatus, NotificationCategory, NotificationChannel } from '../../entities/notification.entity';
+import {
+  Notification,
+  NotificationStatus,
+  NotificationCategory,
+  NotificationChannel,
+} from '../../entities/notification.entity';
 import { NotificationGateway } from '../../gateway/notification.gateway';
 import { NotificationPreferencesService } from '../preferences.service';
 import { EmailService } from '../../email/email.service';
 import { SmsService } from '../../sms/sms.service';
-import { NotificationType as PrefType, NotificationChannel as PrefChannel } from '../../entities/notification-preference.entity';
+import {
+  NotificationType as PrefType,
+  NotificationChannel as PrefChannel,
+} from '../../entities/notification-preference.entity';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -130,7 +138,7 @@ describe('NotificationsService', () => {
           type: NotificationCategory.SYSTEM,
           title: 'Test Notification',
           message: 'This is a test message',
-        }),
+        })
       );
       expect(mockGateway.sendToUser).toHaveBeenCalledWith('user-123', expect.any(Object));
       expect(mockCacheManager.del).toHaveBeenCalledWith('user:user-123:notifications');
@@ -157,7 +165,7 @@ describe('NotificationsService', () => {
           type: 'system',
           title: 'System Update',
           message: 'System will be down for maintenance',
-        }),
+        })
       );
     });
   });
@@ -222,7 +230,7 @@ describe('NotificationsService', () => {
       expect(mockCacheManager.set).toHaveBeenCalledWith(
         'user:user-123:notifications:1:10',
         expect.any(Object),
-        60,
+        60
       );
     });
   });

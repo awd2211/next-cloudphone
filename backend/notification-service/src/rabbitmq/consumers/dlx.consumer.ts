@@ -87,16 +87,12 @@ export class DlxConsumer {
   /**
    * 通用失败消息处理
    */
-  private async handleFailedMessage(
-    category: string,
-    msg: FailedMessage,
-    amqpMsg: ConsumeMessage,
-  ) {
+  private async handleFailedMessage(category: string, msg: FailedMessage, amqpMsg: ConsumeMessage) {
     const retryCount = this.getRetryCount(amqpMsg);
     const maxRetries = 3; // 最大重试次数
 
     this.logger.warn(
-      `处理失败消息 [${category}]: ${amqpMsg.fields.routingKey}, 重试次数: ${retryCount}/${maxRetries}`,
+      `处理失败消息 [${category}]: ${amqpMsg.fields.routingKey}, 重试次数: ${retryCount}/${maxRetries}`
     );
 
     try {
@@ -105,23 +101,18 @@ export class DlxConsumer {
 
       // 如果超过最大重试次数，发送告警
       if (retryCount >= maxRetries) {
-        this.logger.error(
-          `消息处理失败超过最大重试次数: ${amqpMsg.fields.routingKey}`,
-        );
+        this.logger.error(`消息处理失败超过最大重试次数: ${amqpMsg.fields.routingKey}`);
         await this.sendFailureAlert(category, msg, amqpMsg, retryCount);
 
         // 标记为永久失败
         await this.markAsPermanentFailure(category, msg, amqpMsg);
       } else {
         this.logger.log(
-          `消息将在稍后重试: ${amqpMsg.fields.routingKey}, 下次重试: ${retryCount + 1}/${maxRetries}`,
+          `消息将在稍后重试: ${amqpMsg.fields.routingKey}, 下次重试: ${retryCount + 1}/${maxRetries}`
         );
       }
     } catch (error) {
-      this.logger.error(
-        `处理死信消息时发生错误: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`处理死信消息时发生错误: ${error.message}`, error.stack);
     }
   }
 
@@ -143,7 +134,7 @@ export class DlxConsumer {
     category: string,
     msg: FailedMessage,
     amqpMsg: ConsumeMessage,
-    retryCount: number,
+    retryCount: number
   ) {
     try {
       // 这里可以扩展为将失败消息存储到专门的失败消息表
@@ -155,13 +146,10 @@ export class DlxConsumer {
           eventId: msg.eventId,
           eventType: msg.eventType,
           timestamp: new Date().toISOString(),
-        })}`,
+        })}`
       );
     } catch (error) {
-      this.logger.error(
-        `记录失败消息时出错: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`记录失败消息时出错: ${error.message}`, error.stack);
     }
   }
 
@@ -172,7 +160,7 @@ export class DlxConsumer {
     category: string,
     msg: FailedMessage,
     amqpMsg: ConsumeMessage,
-    retryCount: number,
+    retryCount: number
   ) {
     try {
       // 向系统管理员发送告警通知
@@ -193,10 +181,7 @@ export class DlxConsumer {
 
       this.logger.log(`已发送失败告警通知: ${category}/${amqpMsg.fields.routingKey}`);
     } catch (error) {
-      this.logger.error(
-        `发送失败告警时出错: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`发送失败告警时出错: ${error.message}`, error.stack);
     }
   }
 
@@ -206,18 +191,13 @@ export class DlxConsumer {
   private async markAsPermanentFailure(
     category: string,
     msg: FailedMessage,
-    amqpMsg: ConsumeMessage,
+    amqpMsg: ConsumeMessage
   ) {
     try {
       // 这里可以将消息移到永久失败存储，用于后续人工处理
-      this.logger.warn(
-        `消息已标记为永久失败: ${category}/${amqpMsg.fields.routingKey}`,
-      );
+      this.logger.warn(`消息已标记为永久失败: ${category}/${amqpMsg.fields.routingKey}`);
     } catch (error) {
-      this.logger.error(
-        `标记永久失败时出错: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`标记永久失败时出错: ${error.message}`, error.stack);
     }
   }
 }

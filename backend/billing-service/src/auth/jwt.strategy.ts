@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { JwtConfigFactory } from "@cloudphone/shared";
+import { JwtConfigFactory } from '@cloudphone/shared';
 
 export interface JwtPayload {
   sub: string;

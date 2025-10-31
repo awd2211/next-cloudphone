@@ -1,6 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { EventBusService } from "@cloudphone/shared";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { EventBusService } from '@cloudphone/shared';
 
 /**
  * 重试统计信息
@@ -24,10 +24,10 @@ export interface RetryStatistics {
  * 重试策略类型
  */
 export enum RetryStrategy {
-  EXPONENTIAL_BACKOFF = "exponential_backoff",
-  LINEAR_BACKOFF = "linear_backoff",
-  FIXED_DELAY = "fixed_delay",
-  FIBONACCI_BACKOFF = "fibonacci_backoff",
+  EXPONENTIAL_BACKOFF = 'exponential_backoff',
+  LINEAR_BACKOFF = 'linear_backoff',
+  FIXED_DELAY = 'fixed_delay',
+  FIBONACCI_BACKOFF = 'fibonacci_backoff',
 }
 
 /**
@@ -51,9 +51,9 @@ export class RetryService {
 
   constructor(
     private configService: ConfigService,
-    private eventBusService: EventBusService,
+    private eventBusService: EventBusService
   ) {
-    this.logger.log("RetryService initialized");
+    this.logger.log('RetryService initialized');
   }
 
   /**
@@ -66,7 +66,7 @@ export class RetryService {
       maxAttempts?: number;
       baseDelayMs?: number;
       strategy?: RetryStrategy;
-    },
+    }
   ): Promise<T> {
     const maxAttempts = options?.maxAttempts || 3;
     const baseDelayMs = options?.baseDelayMs || 1000;
@@ -85,12 +85,10 @@ export class RetryService {
         this.recordRetry(context.operation, attempts, true);
 
         if (attempts > 1) {
-          this.logger.log(
-            `Operation '${context.operation}' succeeded after ${attempts} attempts`,
-          );
+          this.logger.log(`Operation '${context.operation}' succeeded after ${attempts} attempts`);
 
           // 发布重试成功事件
-          this.eventBusService.publish("cloudphone.events", "retry.success", {
+          this.eventBusService.publish('cloudphone.events', 'retry.success', {
             operation: context.operation,
             attempts,
             entityId: context.entityId,
@@ -108,11 +106,11 @@ export class RetryService {
           this.recordRetry(context.operation, attempts, false, error.message);
 
           this.logger.error(
-            `Operation '${context.operation}' failed after ${maxAttempts} attempts: ${error.message}`,
+            `Operation '${context.operation}' failed after ${maxAttempts} attempts: ${error.message}`
           );
 
           // 发布重试失败事件
-          this.eventBusService.publish("cloudphone.events", "retry.failed", {
+          this.eventBusService.publish('cloudphone.events', 'retry.failed', {
             operation: context.operation,
             attempts: maxAttempts,
             error: error.message,
@@ -128,11 +126,11 @@ export class RetryService {
         const delayMs = this.calculateDelay(attempt, baseDelayMs, strategy);
 
         this.logger.warn(
-          `Attempt ${attempt}/${maxAttempts} for '${context.operation}' failed: ${error.message}. Retrying in ${delayMs}ms...`,
+          `Attempt ${attempt}/${maxAttempts} for '${context.operation}' failed: ${error.message}. Retrying in ${delayMs}ms...`
         );
 
         // 发布重试中事件
-        this.eventBusService.publish("cloudphone.events", "retry.attempt", {
+        this.eventBusService.publish('cloudphone.events', 'retry.attempt', {
           operation: context.operation,
           attempt,
           maxAttempts,
@@ -153,11 +151,7 @@ export class RetryService {
   /**
    * 计算延迟时间（根据不同策略）
    */
-  private calculateDelay(
-    attempt: number,
-    baseDelayMs: number,
-    strategy: RetryStrategy,
-  ): number {
+  private calculateDelay(attempt: number, baseDelayMs: number, strategy: RetryStrategy): number {
     let delay: number;
 
     switch (strategy) {
@@ -211,12 +205,7 @@ export class RetryService {
   /**
    * 记录重试统计
    */
-  private recordRetry(
-    operation: string,
-    attempts: number,
-    success: boolean,
-    error?: string,
-  ): void {
+  private recordRetry(operation: string, attempts: number, success: boolean, error?: string): void {
     let stats = this.statistics.get(operation);
 
     if (!stats) {
@@ -238,8 +227,7 @@ export class RetryService {
       stats.failedRetries++;
     }
 
-    stats.averageAttempts =
-      stats.totalAttempts / (stats.successfulRetries + stats.failedRetries);
+    stats.averageAttempts = stats.totalAttempts / (stats.successfulRetries + stats.failedRetries);
     stats.lastRetryAt = new Date();
 
     // 记录最近的重试
@@ -253,10 +241,7 @@ export class RetryService {
 
     // 限制最近重试记录数量
     if (stats.recentRetries.length > this.MAX_RECENT_RETRIES) {
-      stats.recentRetries = stats.recentRetries.slice(
-        0,
-        this.MAX_RECENT_RETRIES,
-      );
+      stats.recentRetries = stats.recentRetries.slice(0, this.MAX_RECENT_RETRIES);
     }
 
     this.statistics.set(operation, stats);
@@ -265,9 +250,7 @@ export class RetryService {
   /**
    * 获取操作的重试统计
    */
-  getStatistics(
-    operation?: string,
-  ): Map<string, RetryStatistics> | RetryStatistics {
+  getStatistics(operation?: string): Map<string, RetryStatistics> | RetryStatistics {
     if (operation) {
       return this.statistics.get(operation) || this.createEmptyStatistics();
     }
@@ -283,7 +266,7 @@ export class RetryService {
       this.logger.log(`Reset statistics for operation: ${operation}`);
     } else {
       this.statistics.clear();
-      this.logger.log("Reset all retry statistics");
+      this.logger.log('Reset all retry statistics');
     }
   }
 
@@ -302,8 +285,7 @@ export class RetryService {
     let totalSuccessful = 0;
     let totalFailed = 0;
 
-    const failedOperations: Array<{ operation: string; failedCount: number }> =
-      [];
+    const failedOperations: Array<{ operation: string; failedCount: number }> = [];
 
     for (const [operation, stats] of this.statistics.entries()) {
       totalAttempts += stats.totalAttempts;
@@ -327,9 +309,7 @@ export class RetryService {
       totalSuccessful,
       totalFailed,
       overallAverageAttempts:
-        totalSuccessful + totalFailed > 0
-          ? totalAttempts / (totalSuccessful + totalFailed)
-          : 0,
+        totalSuccessful + totalFailed > 0 ? totalAttempts / (totalSuccessful + totalFailed) : 0,
       topFailedOperations: failedOperations.slice(0, 10),
     };
   }

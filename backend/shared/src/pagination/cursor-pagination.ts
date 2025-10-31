@@ -108,14 +108,13 @@ export class CursorPagination {
   static paginate<T extends { createdAt?: Date }>(
     items: T[],
     limit: number,
-    getCursorValue: (item: T) => Date = (item) => item.createdAt || new Date(),
+    getCursorValue: (item: T) => Date = (item) => item.createdAt || new Date()
   ): CursorPaginatedResponse<T> {
     const hasMore = items.length > limit;
     const data = hasMore ? items.slice(0, limit) : items;
 
-    const nextCursor = hasMore && data.length > 0
-      ? this.encodeCursor(getCursorValue(data[data.length - 1]))
-      : null;
+    const nextCursor =
+      hasMore && data.length > 0 ? this.encodeCursor(getCursorValue(data[data.length - 1])) : null;
 
     return {
       data,
@@ -138,7 +137,7 @@ export class CursorPagination {
   static applyCursorCondition<T>(
     cursor: string | undefined,
     alias: string,
-    field: string = 'createdAt',
+    field: string = 'createdAt'
   ): { condition: string; parameters: Record<string, any> } | null {
     if (!cursor) {
       return null;

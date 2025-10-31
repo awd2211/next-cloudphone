@@ -146,11 +146,11 @@ const DEFAULT_CONFIG: SecurityHeadersConfig = {
       camera: [],
       microphone: [],
       geolocation: [],
-      'payment': [],
-      'usb': [],
-      'magnetometer': [],
-      'gyroscope': [],
-      'accelerometer': [],
+      payment: [],
+      usb: [],
+      magnetometer: [],
+      gyroscope: [],
+      accelerometer: [],
     },
   },
 
@@ -230,9 +230,7 @@ export class SecurityHeadersMiddleware implements NestMiddleware {
 
     // X-XSS-Protection
     if (this.config.xssProtection.enabled) {
-      const value = this.config.xssProtection.mode === 'block'
-        ? '1; mode=block'
-        : '1';
+      const value = this.config.xssProtection.mode === 'block' ? '1; mode=block' : '1';
       res.setHeader('X-XSS-Protection', value);
     }
 

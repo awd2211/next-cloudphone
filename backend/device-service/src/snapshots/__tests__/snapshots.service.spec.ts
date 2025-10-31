@@ -1,21 +1,18 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { getRepositoryToken } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { HttpStatus } from "@nestjs/common";
-import { BusinessException, BusinessErrors } from "@cloudphone/shared";
-import { SnapshotsService } from "../snapshots.service";
-import {
-  DeviceSnapshot,
-  SnapshotStatus,
-} from "../../entities/device-snapshot.entity";
-import { Device, DeviceStatus } from "../../entities/device.entity";
-import { DockerService } from "../../docker/docker.service";
-import { DevicesService } from "../../devices/devices.service";
-import { PortManagerService } from "../../port-manager/port-manager.service";
-import { CreateSnapshotDto } from "../dto/create-snapshot.dto";
-import { RestoreSnapshotDto } from "../dto/restore-snapshot.dto";
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { HttpStatus } from '@nestjs/common';
+import { BusinessException, BusinessErrors } from '@cloudphone/shared';
+import { SnapshotsService } from '../snapshots.service';
+import { DeviceSnapshot, SnapshotStatus } from '../../entities/device-snapshot.entity';
+import { Device, DeviceStatus } from '../../entities/device.entity';
+import { DockerService } from '../../docker/docker.service';
+import { DevicesService } from '../../devices/devices.service';
+import { PortManagerService } from '../../port-manager/port-manager.service';
+import { CreateSnapshotDto } from '../dto/create-snapshot.dto';
+import { RestoreSnapshotDto } from '../dto/restore-snapshot.dto';
 
-describe("SnapshotsService", () => {
+describe('SnapshotsService', () => {
   let service: SnapshotsService;
   let snapshotRepository: jest.Mocked<Repository<DeviceSnapshot>>;
   let deviceRepository: jest.Mocked<Repository<Device>>;
@@ -23,41 +20,41 @@ describe("SnapshotsService", () => {
   let devicesService: jest.Mocked<DevicesService>;
   let portManagerService: jest.Mocked<PortManagerService>;
 
-  const mockUserId = "user-123";
-  const mockDeviceId = "device-123";
-  const mockContainerId = "container-abc";
-  const mockSnapshotId = "snapshot-456";
+  const mockUserId = 'user-123';
+  const mockDeviceId = 'device-123';
+  const mockContainerId = 'container-abc';
+  const mockSnapshotId = 'snapshot-456';
 
   const mockDevice: Device = {
     id: mockDeviceId,
-    name: "TestDevice",
+    name: 'TestDevice',
     containerId: mockContainerId,
     status: DeviceStatus.RUNNING,
     adbPort: 5555,
     cpuCores: 2,
     memoryMB: 4096,
-    resolution: "1080x1920",
-    androidVersion: "11",
+    resolution: '1080x1920',
+    androidVersion: '11',
   } as Device;
 
   const mockSnapshot: DeviceSnapshot = {
     id: mockSnapshotId,
-    name: "Test Snapshot",
-    description: "Test description",
+    name: 'Test Snapshot',
+    description: 'Test description',
     deviceId: mockDeviceId,
     status: SnapshotStatus.READY,
-    imageId: "img-123",
-    imageName: "cloudphone-snapshot:snapshot-456",
+    imageId: 'img-123',
+    imageName: 'cloudphone-snapshot:snapshot-456',
     imageSize: 1000000000,
     metadata: {
-      deviceName: "TestDevice",
+      deviceName: 'TestDevice',
       cpuCores: 2,
       memoryMB: 4096,
-      resolution: "1080x1920",
-      androidVersion: "11",
+      resolution: '1080x1920',
+      androidVersion: '11',
     },
     version: 1,
-    tags: ["production"],
+    tags: ['production'],
     createdBy: mockUserId,
     isCompressed: false,
     restoreCount: 0,
@@ -70,13 +67,13 @@ describe("SnapshotsService", () => {
   // Mock Docker container
   const mockContainer = {
     id: mockContainerId,
-    commit: jest.fn().mockResolvedValue({ Id: "img-123" }),
+    commit: jest.fn().mockResolvedValue({ Id: 'img-123' }),
     start: jest.fn().mockResolvedValue(undefined),
   };
 
   // Mock Docker image
   const mockImage = {
-    Id: "img-123",
+    Id: 'img-123',
     inspect: jest.fn().mockResolvedValue({ Size: 1000000000 }),
     remove: jest.fn().mockResolvedValue(undefined),
   };
@@ -156,14 +153,14 @@ describe("SnapshotsService", () => {
     jest.clearAllMocks();
   });
 
-  describe("createSnapshot", () => {
+  describe('createSnapshot', () => {
     const createDto: CreateSnapshotDto = {
-      name: "Snapshot 1",
-      description: "Test snapshot",
-      tags: ["test"],
+      name: 'Snapshot 1',
+      description: 'Test snapshot',
+      tags: ['test'],
     };
 
-    it("should create a snapshot successfully", async () => {
+    it('should create a snapshot successfully', async () => {
       const creatingSnapshot = { ...mockSnapshot, status: SnapshotStatus.CREATING };
       deviceRepository.findOne.mockResolvedValue(mockDevice);
       snapshotRepository.create.mockReturnValue(creatingSnapshot);
@@ -182,31 +179,29 @@ describe("SnapshotsService", () => {
           status: SnapshotStatus.CREATING,
           tags: createDto.tags,
           createdBy: mockUserId,
-        }),
+        })
       );
       expect(snapshotRepository.save).toHaveBeenCalled();
       expect(result.status).toBe(SnapshotStatus.CREATING);
     });
 
-    it("should throw error if device not found", async () => {
+    it('should throw error if device not found', async () => {
       deviceRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.createSnapshot(mockDeviceId, createDto, mockUserId),
-      ).rejects.toThrow();
+      await expect(service.createSnapshot(mockDeviceId, createDto, mockUserId)).rejects.toThrow();
     });
 
-    it("should throw error if device is not running", async () => {
+    it('should throw error if device is not running', async () => {
       const stoppedDevice = { ...mockDevice, status: DeviceStatus.STOPPED };
       deviceRepository.findOne.mockResolvedValue(stoppedDevice);
 
-      await expect(
-        service.createSnapshot(mockDeviceId, createDto, mockUserId),
-      ).rejects.toThrow(BusinessException);
+      await expect(service.createSnapshot(mockDeviceId, createDto, mockUserId)).rejects.toThrow(
+        BusinessException
+      );
     });
 
-    it("should include custom metadata in snapshot", async () => {
-      const customMetadata = { appVersion: "1.0.0", environment: "prod" };
+    it('should include custom metadata in snapshot', async () => {
+      const customMetadata = { appVersion: '1.0.0', environment: 'prod' };
       const dtoWithMetadata = { ...createDto, metadata: customMetadata };
 
       deviceRepository.findOne.mockResolvedValue(mockDevice);
@@ -218,73 +213,73 @@ describe("SnapshotsService", () => {
       expect(snapshotRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining(customMetadata),
-        }),
+        })
       );
     });
   });
 
-  describe("restoreSnapshot", () => {
+  describe('restoreSnapshot', () => {
     const restoreDto: RestoreSnapshotDto = {
       replaceOriginal: false,
-      deviceName: "Restored Device",
+      deviceName: 'Restored Device',
     };
 
-    it("should restore snapshot to new device", async () => {
+    it('should restore snapshot to new device', async () => {
       snapshotRepository.findOne.mockResolvedValue(mockSnapshot);
-      dockerService["docker"].getImage = jest.fn().mockReturnValue(mockImage);
-      dockerService["docker"].createContainer = jest.fn().mockResolvedValue(mockContainer);
+      dockerService['docker'].getImage = jest.fn().mockReturnValue(mockImage);
+      dockerService['docker'].createContainer = jest.fn().mockResolvedValue(mockContainer);
       portManagerService.allocatePorts.mockResolvedValue({ adbPort: 5556 });
-      deviceRepository.create.mockReturnValue({ ...mockDevice, id: "new-device-id" } as Device);
-      deviceRepository.save.mockResolvedValue({ ...mockDevice, id: "new-device-id" } as Device);
+      deviceRepository.create.mockReturnValue({ ...mockDevice, id: 'new-device-id' } as Device);
+      deviceRepository.save.mockResolvedValue({ ...mockDevice, id: 'new-device-id' } as Device);
 
       const result = await service.restoreSnapshot(mockSnapshotId, restoreDto, mockUserId);
 
       expect(snapshotRepository.findOne).toHaveBeenCalledWith({
         where: { id: mockSnapshotId },
-        relations: ["device"],
+        relations: ['device'],
       });
       expect(deviceRepository.create).toHaveBeenCalled();
-      expect(result.id).toBe("new-device-id");
+      expect(result.id).toBe('new-device-id');
       expect(snapshotRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           restoreCount: 1,
-        }),
+        })
       );
     });
 
-    it("should throw error if snapshot not found", async () => {
+    it('should throw error if snapshot not found', async () => {
       snapshotRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.restoreSnapshot(mockSnapshotId, restoreDto, mockUserId),
+        service.restoreSnapshot(mockSnapshotId, restoreDto, mockUserId)
       ).rejects.toThrow();
     });
 
-    it("should throw error if snapshot is not ready", async () => {
+    it('should throw error if snapshot is not ready', async () => {
       const creatingSnapshot = { ...mockSnapshot, status: SnapshotStatus.CREATING };
       snapshotRepository.findOne.mockResolvedValue(creatingSnapshot);
 
       await expect(
-        service.restoreSnapshot(mockSnapshotId, restoreDto, mockUserId),
+        service.restoreSnapshot(mockSnapshotId, restoreDto, mockUserId)
       ).rejects.toThrow();
     });
 
-    it("should throw error if Docker image does not exist", async () => {
+    it('should throw error if Docker image does not exist', async () => {
       snapshotRepository.findOne.mockResolvedValue(mockSnapshot);
-      dockerService["docker"].getImage = jest.fn().mockReturnValue({
-        inspect: jest.fn().mockRejectedValue(new Error("Image not found")),
+      dockerService['docker'].getImage = jest.fn().mockReturnValue({
+        inspect: jest.fn().mockRejectedValue(new Error('Image not found')),
       });
 
-      await expect(
-        service.restoreSnapshot(mockSnapshotId, restoreDto, mockUserId),
-      ).rejects.toThrow(BusinessException);
+      await expect(service.restoreSnapshot(mockSnapshotId, restoreDto, mockUserId)).rejects.toThrow(
+        BusinessException
+      );
     });
 
-    it("should replace original device if replaceOriginal is true", async () => {
+    it('should replace original device if replaceOriginal is true', async () => {
       const replaceDto = { ...restoreDto, replaceOriginal: true };
       snapshotRepository.findOne.mockResolvedValue(mockSnapshot);
-      dockerService["docker"].getImage = jest.fn().mockReturnValue(mockImage);
-      dockerService["docker"].createContainer = jest.fn().mockResolvedValue(mockContainer);
+      dockerService['docker'].getImage = jest.fn().mockReturnValue(mockImage);
+      dockerService['docker'].createContainer = jest.fn().mockResolvedValue(mockContainer);
       devicesService.stop.mockResolvedValue(undefined);
       dockerService.removeContainer.mockResolvedValue(undefined);
       deviceRepository.save.mockResolvedValue(mockDevice);
@@ -296,11 +291,11 @@ describe("SnapshotsService", () => {
       expect(result.id).toBe(mockDeviceId);
     });
 
-    it("should increment restore count", async () => {
+    it('should increment restore count', async () => {
       const freshSnapshot = { ...mockSnapshot, restoreCount: 0 };
       snapshotRepository.findOne.mockResolvedValue(freshSnapshot);
-      dockerService["docker"].getImage = jest.fn().mockReturnValue(mockImage);
-      dockerService["docker"].createContainer = jest.fn().mockResolvedValue(mockContainer);
+      dockerService['docker'].getImage = jest.fn().mockReturnValue(mockImage);
+      dockerService['docker'].createContainer = jest.fn().mockResolvedValue(mockContainer);
       portManagerService.allocatePorts.mockResolvedValue({ adbPort: 5556 });
       deviceRepository.create.mockReturnValue(mockDevice);
       deviceRepository.save.mockResolvedValue(mockDevice);
@@ -320,8 +315,8 @@ describe("SnapshotsService", () => {
     });
   });
 
-  describe("compressSnapshot", () => {
-    it("should compress snapshot successfully", async () => {
+  describe('compressSnapshot', () => {
+    it('should compress snapshot successfully', async () => {
       snapshotRepository.findOne.mockResolvedValue(mockSnapshot);
       snapshotRepository.save.mockResolvedValue({
         ...mockSnapshot,
@@ -329,7 +324,7 @@ describe("SnapshotsService", () => {
       });
 
       // Mock execAsync (actual compression would be tested in integration tests)
-      jest.spyOn(service as any, "compressSnapshot").mockResolvedValue({
+      jest.spyOn(service as any, 'compressSnapshot').mockResolvedValue({
         ...mockSnapshot,
         isCompressed: true,
         compressedSize: 500000000,
@@ -340,13 +335,13 @@ describe("SnapshotsService", () => {
       expect(result.isCompressed).toBe(true);
     });
 
-    it("should throw error if snapshot not found", async () => {
+    it('should throw error if snapshot not found', async () => {
       snapshotRepository.findOne.mockResolvedValue(null);
 
       await expect(service.compressSnapshot(mockSnapshotId)).rejects.toThrow();
     });
 
-    it("should skip compression if already compressed", async () => {
+    it('should skip compression if already compressed', async () => {
       const compressedSnapshot = { ...mockSnapshot, isCompressed: true };
       snapshotRepository.findOne.mockResolvedValue(compressedSnapshot);
 
@@ -356,10 +351,10 @@ describe("SnapshotsService", () => {
     });
   });
 
-  describe("deleteSnapshot", () => {
-    it("should delete snapshot successfully", async () => {
+  describe('deleteSnapshot', () => {
+    it('should delete snapshot successfully', async () => {
       snapshotRepository.findOne.mockResolvedValue(mockSnapshot);
-      dockerService["docker"].getImage = jest.fn().mockReturnValue(mockImage);
+      dockerService['docker'].getImage = jest.fn().mockReturnValue(mockImage);
       snapshotRepository.remove.mockResolvedValue(mockSnapshot);
 
       await service.deleteSnapshot(mockSnapshotId, mockUserId);
@@ -368,86 +363,84 @@ describe("SnapshotsService", () => {
       expect(snapshotRepository.remove).toHaveBeenCalledWith(mockSnapshot);
     });
 
-    it("should throw error if snapshot not found", async () => {
+    it('should throw error if snapshot not found', async () => {
       snapshotRepository.findOne.mockResolvedValue(null);
 
       await expect(service.deleteSnapshot(mockSnapshotId, mockUserId)).rejects.toThrow();
     });
 
-    it("should throw error if user is not the owner", async () => {
+    it('should throw error if user is not the owner', async () => {
       snapshotRepository.findOne.mockResolvedValue(mockSnapshot);
 
-      await expect(
-        service.deleteSnapshot(mockSnapshotId, "different-user"),
-      ).rejects.toThrow(BusinessException);
+      await expect(service.deleteSnapshot(mockSnapshotId, 'different-user')).rejects.toThrow(
+        BusinessException
+      );
     });
 
-    it("should handle Docker image deletion failure gracefully", async () => {
+    it('should handle Docker image deletion failure gracefully', async () => {
       snapshotRepository.findOne.mockResolvedValue(mockSnapshot);
-      dockerService["docker"].getImage = jest.fn().mockReturnValue({
-        remove: jest.fn().mockRejectedValue(new Error("Image not found")),
+      dockerService['docker'].getImage = jest.fn().mockReturnValue({
+        remove: jest.fn().mockRejectedValue(new Error('Image not found')),
       });
       snapshotRepository.remove.mockResolvedValue(mockSnapshot);
 
       // Should not throw, just log warning
-      await expect(
-        service.deleteSnapshot(mockSnapshotId, mockUserId),
-      ).resolves.not.toThrow();
+      await expect(service.deleteSnapshot(mockSnapshotId, mockUserId)).resolves.not.toThrow();
 
       expect(snapshotRepository.remove).toHaveBeenCalledWith(mockSnapshot);
     });
   });
 
-  describe("findByDevice", () => {
-    it("should return all snapshots for a device", async () => {
-      const snapshots = [mockSnapshot, { ...mockSnapshot, id: "snapshot-2" }];
+  describe('findByDevice', () => {
+    it('should return all snapshots for a device', async () => {
+      const snapshots = [mockSnapshot, { ...mockSnapshot, id: 'snapshot-2' }];
       snapshotRepository.find.mockResolvedValue(snapshots);
 
       const result = await service.findByDevice(mockDeviceId);
 
       expect(snapshotRepository.find).toHaveBeenCalledWith({
         where: { deviceId: mockDeviceId },
-        order: { createdAt: "DESC" },
+        order: { createdAt: 'DESC' },
       });
       expect(result).toHaveLength(2);
     });
   });
 
-  describe("findByUser", () => {
-    it("should return all snapshots created by user", async () => {
-      const snapshots = [mockSnapshot, { ...mockSnapshot, id: "snapshot-2" }];
+  describe('findByUser', () => {
+    it('should return all snapshots created by user', async () => {
+      const snapshots = [mockSnapshot, { ...mockSnapshot, id: 'snapshot-2' }];
       snapshotRepository.find.mockResolvedValue(snapshots);
 
       const result = await service.findByUser(mockUserId);
 
       expect(snapshotRepository.find).toHaveBeenCalledWith({
         where: { createdBy: mockUserId },
-        order: { createdAt: "DESC" },
+        order: { createdAt: 'DESC' },
       });
       expect(result).toHaveLength(2);
     });
   });
 
-  describe("findOne", () => {
-    it("should return snapshot with relations", async () => {
+  describe('findOne', () => {
+    it('should return snapshot with relations', async () => {
       snapshotRepository.findOne.mockResolvedValue(mockSnapshot);
 
       const result = await service.findOne(mockSnapshotId);
 
       expect(snapshotRepository.findOne).toHaveBeenCalledWith({
         where: { id: mockSnapshotId },
-        relations: ["device"],
+        relations: ['device'],
       });
       expect(result.id).toBe(mockSnapshotId);
     });
 
-    it("should throw error if snapshot not found", async () => {
+    it('should throw error if snapshot not found', async () => {
       snapshotRepository.findOne.mockResolvedValue(null);
 
       await expect(service.findOne(mockSnapshotId)).rejects.toThrow();
     });
 
-    it("should check user permission when userId is provided", async () => {
+    it('should check user permission when userId is provided', async () => {
       snapshotRepository.findOne.mockResolvedValue(mockSnapshot);
 
       const result = await service.findOne(mockSnapshotId, mockUserId);
@@ -455,15 +448,15 @@ describe("SnapshotsService", () => {
       expect(result.createdBy).toBe(mockUserId);
     });
 
-    it("should throw error if user is not the owner", async () => {
+    it('should throw error if user is not the owner', async () => {
       snapshotRepository.findOne.mockResolvedValue(mockSnapshot);
 
-      await expect(service.findOne(mockSnapshotId, "different-user")).rejects.toThrow();
+      await expect(service.findOne(mockSnapshotId, 'different-user')).rejects.toThrow();
     });
   });
 
-  describe("getStatistics", () => {
-    it("should return statistics for all snapshots", async () => {
+  describe('getStatistics', () => {
+    it('should return statistics for all snapshots', async () => {
       const mockQueryBuilder = {
         where: jest.fn().mockReturnThis(),
         getCount: jest.fn().mockResolvedValue(10),
@@ -471,10 +464,10 @@ describe("SnapshotsService", () => {
         addSelect: jest.fn().mockReturnThis(),
         groupBy: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockResolvedValue([
-          { status: "ready", count: "8" },
-          { status: "creating", count: "2" },
+          { status: 'ready', count: '8' },
+          { status: 'creating', count: '2' },
         ]),
-        getRawOne: jest.fn().mockResolvedValue({ totalSize: "5000000000" }),
+        getRawOne: jest.fn().mockResolvedValue({ totalSize: '5000000000' }),
       };
 
       snapshotRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
@@ -486,22 +479,22 @@ describe("SnapshotsService", () => {
       expect(result.totalSize).toBe(5000000000);
     });
 
-    it("should filter statistics by userId when provided", async () => {
+    it('should filter statistics by userId when provided', async () => {
       const mockQueryBuilder = {
         where: jest.fn().mockReturnThis(),
         getCount: jest.fn().mockResolvedValue(5),
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         groupBy: jest.fn().mockReturnThis(),
-        getRawMany: jest.fn().mockResolvedValue([{ status: "ready", count: "5" }]),
-        getRawOne: jest.fn().mockResolvedValue({ totalSize: "2000000000" }),
+        getRawMany: jest.fn().mockResolvedValue([{ status: 'ready', count: '5' }]),
+        getRawOne: jest.fn().mockResolvedValue({ totalSize: '2000000000' }),
       };
 
       snapshotRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
       const result = await service.getStatistics(mockUserId);
 
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith("snapshot.createdBy = :userId", {
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('snapshot.createdBy = :userId', {
         userId: mockUserId,
       });
       expect(result.total).toBe(5);

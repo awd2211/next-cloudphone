@@ -6,10 +6,7 @@ import { StatsService } from './stats.service';
 import { Order } from '../billing/entities/order.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Order]),
-    HttpClientModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Order]), HttpClientModule],
   controllers: [StatsController],
   providers: [StatsService],
   exports: [StatsService],

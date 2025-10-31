@@ -33,10 +33,12 @@ export const togglePlanStatus = (id: string, isActive: boolean) => {
 
 // 套餐统计
 export const getPlanStats = () => {
-  return request.get<{
-    planId: string;
-    planName: string;
-    orderCount: number;
-    revenue: number;
-  }[]>('/reports/plans/stats');
+  return request.get<
+    {
+      planId: string;
+      planName: string;
+      orderCount: number;
+      revenue: number;
+    }[]
+  >('/reports/plans/stats');
 };

@@ -303,9 +303,7 @@ const TicketManagement: React.FC = () => {
       dataIndex: 'category',
       key: 'category',
       width: 120,
-      render: (category: TicketCategory) => (
-        <Tag color="cyan">{getCategoryLabel(category)}</Tag>
-      ),
+      render: (category: TicketCategory) => <Tag color="cyan">{getCategoryLabel(category)}</Tag>,
     },
     {
       title: '优先级',
@@ -313,9 +311,7 @@ const TicketManagement: React.FC = () => {
       key: 'priority',
       width: 100,
       render: (priority: TicketPriority) => (
-        <Tag color={getPriorityColor(priority)}>
-          {getPriorityLabel(priority)}
-        </Tag>
+        <Tag color={getPriorityColor(priority)}>{getPriorityLabel(priority)}</Tag>
       ),
     },
     {
@@ -324,9 +320,7 @@ const TicketManagement: React.FC = () => {
       key: 'status',
       width: 120,
       render: (status: TicketStatus) => (
-        <Tag color={getStatusColor(status)}>
-          {getStatusLabel(status)}
-        </Tag>
+        <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
       ),
     },
     {
@@ -349,18 +343,15 @@ const TicketManagement: React.FC = () => {
       dataIndex: 'replyCount',
       key: 'replyCount',
       width: 80,
-      render: (count: number) => (
-        <Badge count={count} showZero />
-      ),
+      render: (count: number) => <Badge count={count} showZero />,
     },
     {
       title: '评分',
       dataIndex: 'rating',
       key: 'rating',
       width: 120,
-      render: (rating?: number) => (
-        rating ? <Rate disabled value={rating} /> : <span style={{ color: '#999' }}>未评分</span>
-      ),
+      render: (rating?: number) =>
+        rating ? <Rate disabled value={rating} /> : <span style={{ color: '#999' }}>未评分</span>,
     },
     {
       title: '创建时间',
@@ -544,10 +535,7 @@ const TicketManagement: React.FC = () => {
             label="描述"
             rules={[{ required: true, message: '请输入工单描述' }]}
           >
-            <Input.TextArea
-              placeholder="请详细描述问题"
-              rows={4}
-            />
+            <Input.TextArea placeholder="请详细描述问题" rows={4} />
           </Form.Item>
 
           <Row gutter={16}>
@@ -647,10 +635,7 @@ const TicketManagement: React.FC = () => {
             label="回复内容"
             rules={[{ required: true, message: '请输入回复内容' }]}
           >
-            <Input.TextArea
-              placeholder="请输入回复内容"
-              rows={4}
-            />
+            <Input.TextArea placeholder="请输入回复内容" rows={4} />
           </Form.Item>
 
           <Form.Item name="isInternal" valuePropName="checked">
@@ -687,15 +672,11 @@ const TicketManagement: React.FC = () => {
                   {getStatusLabel(selectedTicket.status)}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="用户ID">
-                {selectedTicket.userId}
-              </Descriptions.Item>
+              <Descriptions.Item label="用户ID">{selectedTicket.userId}</Descriptions.Item>
               <Descriptions.Item label="分配给">
                 {selectedTicket.assignedTo || <span style={{ color: '#999' }}>未分配</span>}
               </Descriptions.Item>
-              <Descriptions.Item label="回复数">
-                {selectedTicket.replyCount}
-              </Descriptions.Item>
+              <Descriptions.Item label="回复数">{selectedTicket.replyCount}</Descriptions.Item>
               <Descriptions.Item label="评分">
                 {selectedTicket.rating ? (
                   <Rate disabled value={selectedTicket.rating} />
@@ -709,7 +690,7 @@ const TicketManagement: React.FC = () => {
               {selectedTicket.tags && selectedTicket.tags.length > 0 && (
                 <Descriptions.Item label="标签" span={2}>
                   <Space wrap>
-                    {selectedTicket.tags.map(tag => (
+                    {selectedTicket.tags.map((tag) => (
                       <Tag key={tag}>{tag}</Tag>
                     ))}
                   </Space>
@@ -737,9 +718,7 @@ const TicketManagement: React.FC = () => {
                       <Space>
                         <Avatar icon={<UserOutlined />} />
                         <span>{reply.userId}</span>
-                        <Tag color={getReplyTypeColor(reply.type)}>
-                          {reply.type}
-                        </Tag>
+                        <Tag color={getReplyTypeColor(reply.type)}>{reply.type}</Tag>
                         {reply.isInternal && <Tag color="orange">内部备注</Tag>}
                       </Space>
                       <div>{reply.content}</div>

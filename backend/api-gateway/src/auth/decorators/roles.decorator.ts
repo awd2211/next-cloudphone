@@ -1,6 +1,6 @@
-import { SetMetadata } from "@nestjs/common";
+import { SetMetadata } from '@nestjs/common';
 
-export const ROLES_KEY = "roles";
+export const ROLES_KEY = 'roles';
 
 /**
  * 角色装饰器 - 声明接口所需的角色
@@ -10,5 +10,4 @@ export const ROLES_KEY = "roles";
  * @Get('users')
  * async getUsers() {}
  */
-export const RequireRole = (...roles: string[]) =>
-  SetMetadata(ROLES_KEY, roles);
+export const RequireRole = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);

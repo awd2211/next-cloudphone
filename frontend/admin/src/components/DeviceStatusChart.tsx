@@ -75,13 +75,7 @@ const DeviceStatusChart = ({ data, loading }: DeviceStatusChartProps) => {
     ],
   };
 
-  return (
-    <ReactECharts
-      option={option}
-      style={{ height: '400px' }}
-      showLoading={loading}
-    />
-  );
+  return <ReactECharts option={option} style={{ height: '400px' }} showLoading={loading} />;
 };
 
 export default DeviceStatusChart;

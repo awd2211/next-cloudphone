@@ -44,7 +44,7 @@ export class BillingDeviceEventsHandler {
     @InjectRepository(UsageRecord)
     private usageRepository: Repository<UsageRecord>,
     private meteringService: MeteringService,
-    private balanceService: BalanceService,
+    private balanceService: BalanceService
   ) {}
 
   /**
@@ -62,7 +62,7 @@ export class BillingDeviceEventsHandler {
       // 更新订单中的设备名称
       const orderResult = await this.orderRepository.update(
         { deviceId: event.deviceId },
-        { deviceName: event.name },
+        { deviceName: event.name }
       );
 
       this.logger.log(`已同步设备 ${event.deviceId} 的信息到 ${orderResult.affected} 个订单`);
@@ -92,10 +92,7 @@ export class BillingDeviceEventsHandler {
 
       this.logger.log(`已开始追踪设备 ${event.deviceId} 的用量`);
     } catch (error) {
-      this.logger.error(
-        `开始用量追踪失败 - 设备: ${event.deviceId}`,
-        error.stack,
-      );
+      this.logger.error(`开始用量追踪失败 - 设备: ${event.deviceId}`, error.stack);
     }
   }
 
@@ -109,15 +106,12 @@ export class BillingDeviceEventsHandler {
   })
   async handleDeviceStopped(event: DeviceStoppedEvent) {
     this.logger.log(
-      `收到设备停止事件: ${event.deviceId}, 用户: ${event.userId}, 运行时长: ${event.duration}秒`,
+      `收到设备停止事件: ${event.deviceId}, 用户: ${event.userId}, 运行时长: ${event.duration}秒`
     );
 
     try {
       // 1. 停止用量追踪并计算费用
-      await this.meteringService.stopUsageTracking(
-        event.deviceId,
-        event.duration,
-      );
+      await this.meteringService.stopUsageTracking(event.deviceId, event.duration);
 
       // 2. 查找刚创建的用量记录
       const usageRecord = await this.usageRepository.findOne({
@@ -166,23 +160,20 @@ export class BillingDeviceEventsHandler {
         await this.usageRepository.save(updatedRecord);
 
         this.logger.log(
-          `设备 ${event.deviceId} 计费完成 - 用户: ${event.userId}, 费用: ${updatedRecord.cost} 元, 余额: ${balance.balance} 元`,
+          `设备 ${event.deviceId} 计费完成 - 用户: ${event.userId}, 费用: ${updatedRecord.cost} 元, 余额: ${balance.balance} 元`
         );
       } catch (balanceError) {
         // 余额不足或其他错误
         this.logger.error(
           `扣费失败 - 用户: ${event.userId}, 设备: ${event.deviceId}, 费用: ${updatedRecord.cost} 元`,
-          balanceError.stack,
+          balanceError.stack
         );
 
         // 可以发送余额不足通知
         // await this.notificationService.send(...)
       }
     } catch (error) {
-      this.logger.error(
-        `处理设备停止事件失败 - 设备: ${event.deviceId}`,
-        error.stack,
-      );
+      this.logger.error(`处理设备停止事件失败 - 设备: ${event.deviceId}`, error.stack);
     }
   }
 
@@ -207,15 +198,10 @@ export class BillingDeviceEventsHandler {
       });
 
       if (unpaidRecords.length > 0) {
-        this.logger.warn(
-          `设备 ${event.deviceId} 有 ${unpaidRecords.length} 条未计费的用量记录`,
-        );
+        this.logger.warn(`设备 ${event.deviceId} 有 ${unpaidRecords.length} 条未计费的用量记录`);
 
         // 计算总费用并尝试扣费
-        const totalCost = unpaidRecords.reduce(
-          (sum, record) => sum + Number(record.cost || 0),
-          0,
-        );
+        const totalCost = unpaidRecords.reduce((sum, record) => sum + Number(record.cost || 0), 0);
 
         if (totalCost > 0) {
           try {
@@ -229,26 +215,20 @@ export class BillingDeviceEventsHandler {
             // 标记所有记录为已计费
             await this.usageRepository.update(
               { deviceId: event.deviceId, isBilled: false },
-              { isBilled: true },
+              { isBilled: true }
             );
 
-            this.logger.log(
-              `设备 ${event.deviceId} 删除时结算完成 - 总费用: ${totalCost} 元`,
-            );
+            this.logger.log(`设备 ${event.deviceId} 删除时结算完成 - 总费用: ${totalCost} 元`);
           } catch (error) {
             this.logger.error(
               `设备删除时结算失败 - 设备: ${event.deviceId}, 费用: ${totalCost} 元`,
-              error.stack,
+              error.stack
             );
           }
         }
       }
     } catch (error) {
-      this.logger.error(
-        `处理设备删除事件失败 - 设备: ${event.deviceId}`,
-        error.stack,
-      );
+      this.logger.error(`处理设备删除事件失败 - 设备: ${event.deviceId}`, error.stack);
     }
   }
 }
-

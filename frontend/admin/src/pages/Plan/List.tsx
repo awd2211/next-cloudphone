@@ -1,5 +1,18 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Tag, Space, Button, Modal, Form, Input, InputNumber, message, Popconfirm, Select, Switch } from 'antd';
+import {
+  Table,
+  Tag,
+  Space,
+  Button,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  message,
+  Popconfirm,
+  Select,
+  Switch,
+} from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Plan, CreatePlanDto } from '@/types';
@@ -9,7 +22,7 @@ import {
   useCreatePlan,
   useUpdatePlan,
   useDeletePlan,
-  useTogglePlanStatus
+  useTogglePlanStatus,
 } from '@/hooks/usePlans';
 
 /**
@@ -43,30 +56,42 @@ const PlanList = () => {
   const total = data?.total || 0;
 
   // ✅ useCallback 优化事件处理函数
-  const handleSubmit = useCallback(async (values: CreatePlanDto) => {
-    if (editingPlan) {
-      await updateMutation.mutateAsync({ id: editingPlan.id, data: values });
-    } else {
-      await createMutation.mutateAsync(values);
-    }
-    setModalVisible(false);
-    setEditingPlan(null);
-    form.resetFields();
-  }, [editingPlan, createMutation, updateMutation, form]);
+  const handleSubmit = useCallback(
+    async (values: CreatePlanDto) => {
+      if (editingPlan) {
+        await updateMutation.mutateAsync({ id: editingPlan.id, data: values });
+      } else {
+        await createMutation.mutateAsync(values);
+      }
+      setModalVisible(false);
+      setEditingPlan(null);
+      form.resetFields();
+    },
+    [editingPlan, createMutation, updateMutation, form]
+  );
 
-  const handleEdit = useCallback((plan: Plan) => {
-    setEditingPlan(plan);
-    form.setFieldsValue(plan);
-    setModalVisible(true);
-  }, [form]);
+  const handleEdit = useCallback(
+    (plan: Plan) => {
+      setEditingPlan(plan);
+      form.setFieldsValue(plan);
+      setModalVisible(true);
+    },
+    [form]
+  );
 
-  const handleDelete = useCallback(async (id: string) => {
-    await deleteMutation.mutateAsync(id);
-  }, [deleteMutation]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteMutation.mutateAsync(id);
+    },
+    [deleteMutation]
+  );
 
-  const handleToggleStatus = useCallback(async (id: string, isActive: boolean) => {
-    await toggleStatusMutation.mutateAsync({ id, isActive });
-  }, [toggleStatusMutation]);
+  const handleToggleStatus = useCallback(
+    async (id: string, isActive: boolean) => {
+      await toggleStatusMutation.mutateAsync({ id, isActive });
+    },
+    [toggleStatusMutation]
+  );
 
   const handleCreate = useCallback(() => {
     setEditingPlan(null);
@@ -81,115 +106,117 @@ const PlanList = () => {
   }, [form]);
 
   // ✅ useMemo 优化类型映射
-  const typeMap = useMemo(() => ({
-    monthly: '月付',
-    yearly: '年付',
-    'one-time': '一次性',
-  }), []);
+  const typeMap = useMemo(
+    () => ({
+      monthly: '月付',
+      yearly: '年付',
+      'one-time': '一次性',
+    }),
+    []
+  );
 
   // ✅ useMemo 优化表格列配置
-  const columns: ColumnsType<Plan> = useMemo(() => [
-    {
-      title: '套餐名称',
-      dataIndex: 'name',
-      key: 'name',
-      fixed: 'left',
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-    },
-    {
-      title: '类型',
-      dataIndex: 'type',
-      key: 'type',
-      render: (type: string) => typeMap[type] || type,
-      sorter: (a, b) => a.type.localeCompare(b.type),
-    },
-    {
-      title: '价格',
-      dataIndex: 'price',
-      key: 'price',
-      render: (price: number) => `¥${(price || 0).toFixed(2)}`,
-      sorter: (a, b) => a.price - b.price,
-    },
-    {
-      title: '时长(天)',
-      dataIndex: 'duration',
-      key: 'duration',
-      sorter: (a, b) => a.duration - b.duration,
-    },
-    {
-      title: '设备数量',
-      dataIndex: 'deviceLimit',
-      key: 'deviceLimit',
-      sorter: (a, b) => a.deviceLimit - b.deviceLimit,
-    },
-    {
-      title: '状态',
-      dataIndex: 'isActive',
-      key: 'isActive',
-      render: (isActive: boolean, record) => (
-        <Switch
-          checked={isActive}
-          onChange={(checked) => handleToggleStatus(record.id, checked)}
-          checkedChildren="启用"
-          unCheckedChildren="禁用"
-          loading={toggleStatusMutation.isPending}
-        />
-      ),
-      sorter: (a, b) => Number(a.isActive) - Number(b.isActive),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
-      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 150,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定要删除这个套餐吗?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" size="small" icon={<DeleteOutlined />} danger>
-              删除
+  const columns: ColumnsType<Plan> = useMemo(
+    () => [
+      {
+        title: '套餐名称',
+        dataIndex: 'name',
+        key: 'name',
+        fixed: 'left',
+        sorter: (a, b) => a.name.localeCompare(b.name),
+      },
+      {
+        title: '描述',
+        dataIndex: 'description',
+        key: 'description',
+        ellipsis: true,
+      },
+      {
+        title: '类型',
+        dataIndex: 'type',
+        key: 'type',
+        render: (type: string) => typeMap[type] || type,
+        sorter: (a, b) => a.type.localeCompare(b.type),
+      },
+      {
+        title: '价格',
+        dataIndex: 'price',
+        key: 'price',
+        render: (price: string | number) => `¥${(Number(price) || 0).toFixed(2)}`,
+        sorter: (a, b) => Number(a.price) - Number(b.price),
+      },
+      {
+        title: '时长(天)',
+        dataIndex: 'duration',
+        key: 'duration',
+        sorter: (a, b) => a.duration - b.duration,
+      },
+      {
+        title: '设备数量',
+        dataIndex: 'deviceLimit',
+        key: 'deviceLimit',
+        sorter: (a, b) => a.deviceLimit - b.deviceLimit,
+      },
+      {
+        title: '状态',
+        dataIndex: 'isActive',
+        key: 'isActive',
+        render: (isActive: boolean, record) => (
+          <Switch
+            checked={isActive}
+            onChange={(checked) => handleToggleStatus(record.id, checked)}
+            checkedChildren="启用"
+            unCheckedChildren="禁用"
+            loading={toggleStatusMutation.isPending}
+          />
+        ),
+        sorter: (a, b) => Number(a.isActive) - Number(b.isActive),
+      },
+      {
+        title: '创建时间',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      },
+      {
+        title: '操作',
+        key: 'action',
+        width: 150,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="small">
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            >
+              编辑
             </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ], [typeMap, handleEdit, handleDelete, handleToggleStatus, toggleStatusMutation.isPending]);
+            <Popconfirm
+              title="确定要删除这个套餐吗?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" size="small" icon={<DeleteOutlined />} danger>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [typeMap, handleEdit, handleDelete, handleToggleStatus, toggleStatusMutation.isPending]
+  );
 
   return (
     <div>
       <h2>套餐管理</h2>
 
       <div style={{ marginBottom: 16 }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
           创建套餐
         </Button>
       </div>
@@ -252,12 +279,7 @@ const PlanList = () => {
             name="price"
             rules={[{ required: true, message: '请输入价格' }]}
           >
-            <InputNumber
-              min={0}
-              precision={2}
-              style={{ width: '100%' }}
-              placeholder="0.00"
-            />
+            <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0.00" />
           </Form.Item>
 
           <Form.Item
@@ -265,11 +287,7 @@ const PlanList = () => {
             name="duration"
             rules={[{ required: true, message: '请输入时长' }]}
           >
-            <InputNumber
-              min={1}
-              style={{ width: '100%' }}
-              placeholder="30"
-            />
+            <InputNumber min={1} style={{ width: '100%' }} placeholder="30" />
           </Form.Item>
 
           <Form.Item
@@ -277,11 +295,7 @@ const PlanList = () => {
             name="deviceLimit"
             rules={[{ required: true, message: '请输入设备数量' }]}
           >
-            <InputNumber
-              min={1}
-              style={{ width: '100%' }}
-              placeholder="5"
-            />
+            <InputNumber min={1} style={{ width: '100%' }} placeholder="5" />
           </Form.Item>
         </Form>
       </Modal>

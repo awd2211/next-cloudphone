@@ -62,6 +62,10 @@ export class ApiClient {
 // Service-specific clients
 export const apiGateway = new ApiClient(process.env.API_GATEWAY_URL || 'http://localhost:30000');
 export const userService = new ApiClient(process.env.USER_SERVICE_URL || 'http://localhost:30001');
-export const deviceService = new ApiClient(process.env.DEVICE_SERVICE_URL || 'http://localhost:30002');
+export const deviceService = new ApiClient(
+  process.env.DEVICE_SERVICE_URL || 'http://localhost:30002'
+);
 export const appService = new ApiClient(process.env.APP_SERVICE_URL || 'http://localhost:30003');
-export const billingService = new ApiClient(process.env.BILLING_SERVICE_URL || 'http://localhost:30005');
+export const billingService = new ApiClient(
+  process.env.BILLING_SERVICE_URL || 'http://localhost:30005'
+);

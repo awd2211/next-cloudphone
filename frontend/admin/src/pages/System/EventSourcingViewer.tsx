@@ -17,7 +17,7 @@ import {
   Timeline,
   Alert,
   Form,
-  Tabs
+  Tabs,
 } from 'antd';
 import {
   SearchOutlined,
@@ -26,7 +26,7 @@ import {
   EyeOutlined,
   HistoryOutlined,
   ClockCircleOutlined,
-  LineChartOutlined
+  LineChartOutlined,
 } from '@ant-design/icons';
 import {
   getUserEventHistory,
@@ -34,7 +34,7 @@ import {
   replayToVersion,
   timeTravel,
   getEventStats,
-  getRecentEvents
+  getRecentEvents,
 } from '@/services/events';
 import type { UserEvent, EventStats } from '@/types';
 import dayjs from 'dayjs';
@@ -65,7 +65,7 @@ const EventSourcingViewer = () => {
     'PasswordChanged',
     'UserDeleted',
     'LoginInfoUpdated',
-    'AccountLocked'
+    'AccountLocked',
   ];
 
   // 加载事件统计
@@ -199,37 +199,35 @@ const EventSourcingViewer = () => {
       dataIndex: 'id',
       key: 'id',
       width: 120,
-      render: (id: string) => id.substring(0, 12)
+      render: (id: string) => id.substring(0, 12),
     },
     {
       title: '用户ID',
       dataIndex: 'aggregateId',
       key: 'aggregateId',
       width: 120,
-      render: (id: string) => id.substring(0, 12)
+      render: (id: string) => id.substring(0, 12),
     },
     {
       title: '事件类型',
       dataIndex: 'eventType',
       key: 'eventType',
       width: 180,
-      render: (type: string) => (
-        <Tag color={getEventTypeColor(type)}>{type}</Tag>
-      )
+      render: (type: string) => <Tag color={getEventTypeColor(type)}>{type}</Tag>,
     },
     {
       title: '版本',
       dataIndex: 'version',
       key: 'version',
       width: 80,
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       title: '时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 160,
-      render: (t: string) => dayjs(t).format('MM-DD HH:mm:ss')
+      render: (t: string) => dayjs(t).format('MM-DD HH:mm:ss'),
     },
     {
       title: '操作',
@@ -247,8 +245,8 @@ const EventSourcingViewer = () => {
         >
           查看
         </Button>
-      )
-    }
+      ),
+    },
   ];
 
   // 用户事件历史表格列
@@ -258,30 +256,28 @@ const EventSourcingViewer = () => {
       dataIndex: 'id',
       key: 'id',
       width: 120,
-      render: (id: string) => id.substring(0, 12)
+      render: (id: string) => id.substring(0, 12),
     },
     {
       title: '事件类型',
       dataIndex: 'eventType',
       key: 'eventType',
       width: 180,
-      render: (type: string) => (
-        <Tag color={getEventTypeColor(type)}>{type}</Tag>
-      )
+      render: (type: string) => <Tag color={getEventTypeColor(type)}>{type}</Tag>,
     },
     {
       title: '版本',
       dataIndex: 'version',
       key: 'version',
       width: 80,
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       title: '时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 160,
-      render: (t: string) => dayjs(t).format('YYYY-MM-DD HH:mm:ss')
+      render: (t: string) => dayjs(t).format('YYYY-MM-DD HH:mm:ss'),
     },
     {
       title: '操作',
@@ -311,8 +307,8 @@ const EventSourcingViewer = () => {
             重放到此
           </Button>
         </Space>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -377,7 +373,7 @@ const EventSourcingViewer = () => {
                   value={selectedEventType || undefined}
                   onChange={setSelectedEventType}
                 >
-                  {eventTypes.map(type => (
+                  {eventTypes.map((type) => (
                     <Select.Option key={type} value={type}>
                       {type}
                     </Select.Option>
@@ -409,11 +405,7 @@ const EventSourcingViewer = () => {
                   onPressEnter={loadUserHistory}
                 />
 
-                <Button
-                  type="primary"
-                  icon={<SearchOutlined />}
-                  onClick={loadUserHistory}
-                >
+                <Button type="primary" icon={<SearchOutlined />} onClick={loadUserHistory}>
                   查询历史
                 </Button>
 
@@ -466,27 +458,45 @@ const EventSourcingViewer = () => {
                 <Col span={12}>
                   <Card title="按类型统计">
                     <Space direction="vertical" style={{ width: '100%' }}>
-                      {stats && Object.entries(stats.eventsByType).map(([type, count]) => (
-                        <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
-                          <Tag color={getEventTypeColor(type)}>{type}</Tag>
-                          <strong>{count}</strong>
-                        </div>
-                      ))}
+                      {stats &&
+                        Object.entries(stats.eventsByType).map(([type, count]) => (
+                          <div
+                            key={type}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              padding: '8px 0',
+                            }}
+                          >
+                            <Tag color={getEventTypeColor(type)}>{type}</Tag>
+                            <strong>{count}</strong>
+                          </div>
+                        ))}
                     </Space>
                   </Card>
                 </Col>
                 <Col span={12}>
                   <Card title="系统说明">
                     <Space direction="vertical">
-                      <div><strong>Event Sourcing (事件溯源)</strong></div>
+                      <div>
+                        <strong>Event Sourcing (事件溯源)</strong>
+                      </div>
                       <div>• 所有状态变更都保存为事件</div>
                       <div>• 可以重放事件重建任意时间点的状态</div>
                       <div>• 提供完整的审计日志</div>
                       <div>• 支持时间旅行查看历史状态</div>
-                      <div style={{ marginTop: 16 }}><strong>功能说明</strong></div>
-                      <div>• <strong>重放事件</strong>: 重建用户当前完整状态</div>
-                      <div>• <strong>重放到版本</strong>: 查看用户在特定版本的状态</div>
-                      <div>• <strong>时间旅行</strong>: 查看用户在特定时间点的状态</div>
+                      <div style={{ marginTop: 16 }}>
+                        <strong>功能说明</strong>
+                      </div>
+                      <div>
+                        • <strong>重放事件</strong>: 重建用户当前完整状态
+                      </div>
+                      <div>
+                        • <strong>重放到版本</strong>: 查看用户在特定版本的状态
+                      </div>
+                      <div>
+                        • <strong>时间旅行</strong>: 查看用户在特定时间点的状态
+                      </div>
                     </Space>
                   </Card>
                 </Col>
@@ -518,14 +528,16 @@ const EventSourcingViewer = () => {
               {dayjs(selectedEvent.createdAt).format('YYYY-MM-DD HH:mm:ss')}
             </Descriptions.Item>
             <Descriptions.Item label="事件数据">
-              <pre style={{
-                maxHeight: '400px',
-                overflow: 'auto',
-                background: '#f5f5f5',
-                padding: '12px',
-                borderRadius: '4px',
-                margin: 0
-              }}>
+              <pre
+                style={{
+                  maxHeight: '400px',
+                  overflow: 'auto',
+                  background: '#f5f5f5',
+                  padding: '12px',
+                  borderRadius: '4px',
+                  margin: 0,
+                }}
+              >
                 {JSON.stringify(selectedEvent.eventData, null, 2)}
               </pre>
             </Descriptions.Item>
@@ -552,14 +564,16 @@ const EventSourcingViewer = () => {
             />
             <Descriptions bordered column={1}>
               <Descriptions.Item label="用户状态">
-                <pre style={{
-                  maxHeight: '500px',
-                  overflow: 'auto',
-                  background: '#f5f5f5',
-                  padding: '12px',
-                  borderRadius: '4px',
-                  margin: 0
-                }}>
+                <pre
+                  style={{
+                    maxHeight: '500px',
+                    overflow: 'auto',
+                    background: '#f5f5f5',
+                    padding: '12px',
+                    borderRadius: '4px',
+                    margin: 0,
+                  }}
+                >
                   {JSON.stringify(replayResult, null, 2)}
                 </pre>
               </Descriptions.Item>
@@ -586,7 +600,7 @@ const EventSourcingViewer = () => {
             label="目标版本号"
             rules={[
               { required: true, message: '请输入版本号' },
-              { type: 'number', min: 1, message: '版本号必须大于0' }
+              { type: 'number', min: 1, message: '版本号必须大于0' },
             ]}
           >
             <Input type="number" placeholder="例如: 5" />

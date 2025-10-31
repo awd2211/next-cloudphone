@@ -3,16 +3,20 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationsService } from './notifications.service';
-import { Notification, NotificationCategory, NotificationChannel } from '../entities/notification.entity';
+import {
+  Notification,
+  NotificationCategory,
+  NotificationChannel,
+} from '../entities/notification.entity';
 import { UserServiceClient } from '../clients/user-service.client';
 
 /**
  * 错误严重程度
  */
 export enum ErrorSeverity {
-  LOW = 'low',           // 低 - 一般错误，不影响核心功能
-  MEDIUM = 'medium',     // 中 - 影响部分功能
-  HIGH = 'high',         // 高 - 影响核心功能
+  LOW = 'low', // 低 - 一般错误，不影响核心功能
+  MEDIUM = 'medium', // 中 - 影响部分功能
+  HIGH = 'high', // 高 - 影响核心功能
   CRITICAL = 'critical', // 严重 - 系统级故障
 }
 
@@ -20,27 +24,27 @@ export enum ErrorSeverity {
  * 错误通知配置
  */
 export interface ErrorNotificationConfig {
-  errorCode: string;              // 错误代码
-  severity: ErrorSeverity;        // 严重程度
-  threshold: number;              // 触发阈值（次数）
-  windowMinutes: number;          // 时间窗口（分钟）
+  errorCode: string; // 错误代码
+  severity: ErrorSeverity; // 严重程度
+  threshold: number; // 触发阈值（次数）
+  windowMinutes: number; // 时间窗口（分钟）
   notifyChannels: NotificationChannel[]; // 通知渠道
-  aggregateKey?: string;          // 聚合键（用于去重）
+  aggregateKey?: string; // 聚合键（用于去重）
 }
 
 /**
  * 错误事件
  */
 export interface ErrorEvent {
-  errorCode: string;              // 错误代码
-  errorMessage: string;           // 错误消息
-  userMessage?: string;           // 用户友好消息
-  serviceName: string;            // 服务名称
-  requestId?: string;             // Request ID
-  userId?: string;                // 用户ID（如果有）
-  stackTrace?: string;            // 堆栈跟踪
+  errorCode: string; // 错误代码
+  errorMessage: string; // 错误消息
+  userMessage?: string; // 用户友好消息
+  serviceName: string; // 服务名称
+  requestId?: string; // Request ID
+  userId?: string; // 用户ID（如果有）
+  stackTrace?: string; // 堆栈跟踪
   metadata?: Record<string, any>; // 额外元数据
-  timestamp: Date;                // 发生时间
+  timestamp: Date; // 发生时间
 }
 
 /**
@@ -79,177 +83,237 @@ export class ErrorNotificationService {
   // 错误通知配置（可从配置文件或数据库加载）
   private errorConfigs: Map<string, ErrorNotificationConfig> = new Map([
     // 严重错误 - 立即通知
-    ['INTERNAL_SERVER_ERROR', {
-      errorCode: 'INTERNAL_SERVER_ERROR',
-      severity: ErrorSeverity.CRITICAL,
-      threshold: 1,
-      windowMinutes: 5,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-    }],
-    ['DATABASE_CONNECTION_FAILED', {
-      errorCode: 'DATABASE_CONNECTION_FAILED',
-      severity: ErrorSeverity.CRITICAL,
-      threshold: 1,
-      windowMinutes: 5,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-    }],
-    ['REDIS_CONNECTION_FAILED', {
-      errorCode: 'REDIS_CONNECTION_FAILED',
-      severity: ErrorSeverity.CRITICAL,
-      threshold: 1,
-      windowMinutes: 5,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-    }],
-    ['RABBITMQ_CONNECTION_FAILED', {
-      errorCode: 'RABBITMQ_CONNECTION_FAILED',
-      severity: ErrorSeverity.CRITICAL,
-      threshold: 1,
-      windowMinutes: 5,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-    }],
+    [
+      'INTERNAL_SERVER_ERROR',
+      {
+        errorCode: 'INTERNAL_SERVER_ERROR',
+        severity: ErrorSeverity.CRITICAL,
+        threshold: 1,
+        windowMinutes: 5,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+      },
+    ],
+    [
+      'DATABASE_CONNECTION_FAILED',
+      {
+        errorCode: 'DATABASE_CONNECTION_FAILED',
+        severity: ErrorSeverity.CRITICAL,
+        threshold: 1,
+        windowMinutes: 5,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+      },
+    ],
+    [
+      'REDIS_CONNECTION_FAILED',
+      {
+        errorCode: 'REDIS_CONNECTION_FAILED',
+        severity: ErrorSeverity.CRITICAL,
+        threshold: 1,
+        windowMinutes: 5,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+      },
+    ],
+    [
+      'RABBITMQ_CONNECTION_FAILED',
+      {
+        errorCode: 'RABBITMQ_CONNECTION_FAILED',
+        severity: ErrorSeverity.CRITICAL,
+        threshold: 1,
+        windowMinutes: 5,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+      },
+    ],
 
     // 高优先级错误 - 3次后通知
-    ['DEVICE_START_FAILED', {
-      errorCode: 'DEVICE_START_FAILED',
-      severity: ErrorSeverity.HIGH,
-      threshold: 3,
-      windowMinutes: 10,
-      notifyChannels: [NotificationChannel.WEBSOCKET],
-      aggregateKey: 'errorCode', // 按错误代码聚合
-    }],
-    ['DEVICE_STOP_FAILED', {
-      errorCode: 'DEVICE_STOP_FAILED',
-      severity: ErrorSeverity.HIGH,
-      threshold: 3,
-      windowMinutes: 10,
-      notifyChannels: [NotificationChannel.WEBSOCKET],
-      aggregateKey: 'errorCode',
-    }],
-    ['PAYMENT_FAILED', {
-      errorCode: 'PAYMENT_FAILED',
-      severity: ErrorSeverity.HIGH,
-      threshold: 5,
-      windowMinutes: 15,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-      aggregateKey: 'errorCode',
-    }],
+    [
+      'DEVICE_START_FAILED',
+      {
+        errorCode: 'DEVICE_START_FAILED',
+        severity: ErrorSeverity.HIGH,
+        threshold: 3,
+        windowMinutes: 10,
+        notifyChannels: [NotificationChannel.WEBSOCKET],
+        aggregateKey: 'errorCode', // 按错误代码聚合
+      },
+    ],
+    [
+      'DEVICE_STOP_FAILED',
+      {
+        errorCode: 'DEVICE_STOP_FAILED',
+        severity: ErrorSeverity.HIGH,
+        threshold: 3,
+        windowMinutes: 10,
+        notifyChannels: [NotificationChannel.WEBSOCKET],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'PAYMENT_FAILED',
+      {
+        errorCode: 'PAYMENT_FAILED',
+        severity: ErrorSeverity.HIGH,
+        threshold: 5,
+        windowMinutes: 15,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+        aggregateKey: 'errorCode',
+      },
+    ],
 
     // 高优先级错误 - 3-5次后通知（设备服务）
-    ['DEVICE_START_FAILED', {
-      errorCode: 'DEVICE_START_FAILED',
-      severity: ErrorSeverity.HIGH,
-      threshold: 3,
-      windowMinutes: 15,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-      aggregateKey: 'errorCode',
-    }],
-    ['DEVICE_STOP_FAILED', {
-      errorCode: 'DEVICE_STOP_FAILED',
-      severity: ErrorSeverity.HIGH,
-      threshold: 3,
-      windowMinutes: 15,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-      aggregateKey: 'errorCode',
-    }],
-    ['DOCKER_CONNECTION_FAILED', {
-      errorCode: 'DOCKER_CONNECTION_FAILED',
-      severity: ErrorSeverity.HIGH,
-      threshold: 5,
-      windowMinutes: 15,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-      aggregateKey: 'errorCode',
-    }],
-    ['PAYMENT_INITIATION_FAILED', {
-      errorCode: 'PAYMENT_INITIATION_FAILED',
-      severity: ErrorSeverity.HIGH,
-      threshold: 5,
-      windowMinutes: 15,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-      aggregateKey: 'errorCode',
-    }],
-    ['PAYMENT_GATEWAY_UNAVAILABLE', {
-      errorCode: 'PAYMENT_GATEWAY_UNAVAILABLE',
-      severity: ErrorSeverity.HIGH,
-      threshold: 3,
-      windowMinutes: 10,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-      aggregateKey: 'errorCode',
-    }],
+    [
+      'DEVICE_START_FAILED',
+      {
+        errorCode: 'DEVICE_START_FAILED',
+        severity: ErrorSeverity.HIGH,
+        threshold: 3,
+        windowMinutes: 15,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'DEVICE_STOP_FAILED',
+      {
+        errorCode: 'DEVICE_STOP_FAILED',
+        severity: ErrorSeverity.HIGH,
+        threshold: 3,
+        windowMinutes: 15,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'DOCKER_CONNECTION_FAILED',
+      {
+        errorCode: 'DOCKER_CONNECTION_FAILED',
+        severity: ErrorSeverity.HIGH,
+        threshold: 5,
+        windowMinutes: 15,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'PAYMENT_INITIATION_FAILED',
+      {
+        errorCode: 'PAYMENT_INITIATION_FAILED',
+        severity: ErrorSeverity.HIGH,
+        threshold: 5,
+        windowMinutes: 15,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'PAYMENT_GATEWAY_UNAVAILABLE',
+      {
+        errorCode: 'PAYMENT_GATEWAY_UNAVAILABLE',
+        severity: ErrorSeverity.HIGH,
+        threshold: 3,
+        windowMinutes: 10,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+        aggregateKey: 'errorCode',
+      },
+    ],
 
     // 中等优先级错误 - 10次后通知
-    ['APK_UPLOAD_FAILED', {
-      errorCode: 'APK_UPLOAD_FAILED',
-      severity: ErrorSeverity.MEDIUM,
-      threshold: 10,
-      windowMinutes: 30,
-      notifyChannels: [NotificationChannel.WEBSOCKET],
-      aggregateKey: 'errorCode',
-    }],
-    ['MINIO_CONNECTION_FAILED', {
-      errorCode: 'MINIO_CONNECTION_FAILED',
-      severity: ErrorSeverity.HIGH,
-      threshold: 5,
-      windowMinutes: 15,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-      aggregateKey: 'errorCode',
-    }],
-    ['REDIS_CONNECTION_FAILED', {
-      errorCode: 'REDIS_CONNECTION_FAILED',
-      severity: ErrorSeverity.HIGH,
-      threshold: 5,
-      windowMinutes: 15,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-      aggregateKey: 'errorCode',
-    }],
-    ['RABBITMQ_CONNECTION_FAILED', {
-      errorCode: 'RABBITMQ_CONNECTION_FAILED',
-      severity: ErrorSeverity.CRITICAL,
-      threshold: 3,
-      windowMinutes: 10,
-      notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
-      aggregateKey: 'errorCode',
-    }],
-    ['ACCOUNT_LOCKED', {
-      errorCode: 'ACCOUNT_LOCKED',
-      severity: ErrorSeverity.MEDIUM,
-      threshold: 10,
-      windowMinutes: 30,
-      notifyChannels: [NotificationChannel.WEBSOCKET],
-      aggregateKey: 'errorCode',
-    }],
-    ['QUOTA_EXCEEDED', {
-      errorCode: 'QUOTA_EXCEEDED',
-      severity: ErrorSeverity.MEDIUM,
-      threshold: 10,
-      windowMinutes: 30,
-      notifyChannels: [NotificationChannel.WEBSOCKET],
-      aggregateKey: 'errorCode',
-    }],
-    ['INSUFFICIENT_BALANCE', {
-      errorCode: 'INSUFFICIENT_BALANCE',
-      severity: ErrorSeverity.MEDIUM,
-      threshold: 10,
-      windowMinutes: 30,
-      notifyChannels: [NotificationChannel.WEBSOCKET],
-      aggregateKey: 'errorCode',
-    }],
+    [
+      'APK_UPLOAD_FAILED',
+      {
+        errorCode: 'APK_UPLOAD_FAILED',
+        severity: ErrorSeverity.MEDIUM,
+        threshold: 10,
+        windowMinutes: 30,
+        notifyChannels: [NotificationChannel.WEBSOCKET],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'MINIO_CONNECTION_FAILED',
+      {
+        errorCode: 'MINIO_CONNECTION_FAILED',
+        severity: ErrorSeverity.HIGH,
+        threshold: 5,
+        windowMinutes: 15,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'REDIS_CONNECTION_FAILED',
+      {
+        errorCode: 'REDIS_CONNECTION_FAILED',
+        severity: ErrorSeverity.HIGH,
+        threshold: 5,
+        windowMinutes: 15,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'RABBITMQ_CONNECTION_FAILED',
+      {
+        errorCode: 'RABBITMQ_CONNECTION_FAILED',
+        severity: ErrorSeverity.CRITICAL,
+        threshold: 3,
+        windowMinutes: 10,
+        notifyChannels: [NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'ACCOUNT_LOCKED',
+      {
+        errorCode: 'ACCOUNT_LOCKED',
+        severity: ErrorSeverity.MEDIUM,
+        threshold: 10,
+        windowMinutes: 30,
+        notifyChannels: [NotificationChannel.WEBSOCKET],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'QUOTA_EXCEEDED',
+      {
+        errorCode: 'QUOTA_EXCEEDED',
+        severity: ErrorSeverity.MEDIUM,
+        threshold: 10,
+        windowMinutes: 30,
+        notifyChannels: [NotificationChannel.WEBSOCKET],
+        aggregateKey: 'errorCode',
+      },
+    ],
+    [
+      'INSUFFICIENT_BALANCE',
+      {
+        errorCode: 'INSUFFICIENT_BALANCE',
+        severity: ErrorSeverity.MEDIUM,
+        threshold: 10,
+        windowMinutes: 30,
+        notifyChannels: [NotificationChannel.WEBSOCKET],
+        aggregateKey: 'errorCode',
+      },
+    ],
 
     // 低优先级错误 - 50次后通知
-    ['VALIDATION_ERROR', {
-      errorCode: 'VALIDATION_ERROR',
-      severity: ErrorSeverity.LOW,
-      threshold: 50,
-      windowMinutes: 60,
-      notifyChannels: [NotificationChannel.WEBSOCKET],
-      aggregateKey: 'errorCode',
-    }],
+    [
+      'VALIDATION_ERROR',
+      {
+        errorCode: 'VALIDATION_ERROR',
+        severity: ErrorSeverity.LOW,
+        threshold: 50,
+        windowMinutes: 60,
+        notifyChannels: [NotificationChannel.WEBSOCKET],
+        aggregateKey: 'errorCode',
+      },
+    ],
   ]);
 
   constructor(
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
     private readonly notificationsService: NotificationsService,
-    private readonly userServiceClient: UserServiceClient,
+    private readonly userServiceClient: UserServiceClient
   ) {}
 
   /**
@@ -487,8 +551,13 @@ export class ErrorNotificationService {
       // 如果没有找到管理员，尝试环境变量 fallback
       const fallbackIds = process.env.ADMIN_USER_IDS || '';
       if (fallbackIds) {
-        const ids = fallbackIds.split(',').map(id => id.trim()).filter(Boolean);
-        this.logger.warn(`No admin users from user-service, using ${ids.length} fallback admin IDs from environment`);
+        const ids = fallbackIds
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean);
+        this.logger.warn(
+          `No admin users from user-service, using ${ids.length} fallback admin IDs from environment`
+        );
         return ids;
       }
 
@@ -500,7 +569,10 @@ export class ErrorNotificationService {
       // Fallback: 从环境变量读取
       const fallbackIds = process.env.ADMIN_USER_IDS || '';
       if (fallbackIds) {
-        const ids = fallbackIds.split(',').map(id => id.trim()).filter(Boolean);
+        const ids = fallbackIds
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean);
         this.logger.warn(`Using ${ids.length} fallback admin IDs from environment due to error`);
         return ids;
       }
@@ -519,7 +591,7 @@ export class ErrorNotificationService {
 
     const now = new Date();
     const maxWindowMinutes = Math.max(
-      ...Array.from(this.errorConfigs.values()).map(c => c.windowMinutes)
+      ...Array.from(this.errorConfigs.values()).map((c) => c.windowMinutes)
     );
     const expiryTime = new Date(now.getTime() - maxWindowMinutes * 60 * 1000);
 
@@ -543,7 +615,7 @@ export class ErrorNotificationService {
         notifyKeysToDelete.push(key);
       }
     }
-    notifyKeysToDelete.forEach(key => this.notifiedErrors.delete(key));
+    notifyKeysToDelete.forEach((key) => this.notifiedErrors.delete(key));
 
     this.logger.log(
       `清理完成: 删除 ${cleanedCount} 个过期聚合, ${notifyKeysToDelete.length} 个过期通知键`
@@ -570,8 +642,7 @@ export class ErrorNotificationService {
       // 按严重程度统计
       const config = this.errorConfigs.get(aggregate.errorCode);
       if (config) {
-        aggregatesBySeverity[config.severity] =
-          (aggregatesBySeverity[config.severity] || 0) + 1;
+        aggregatesBySeverity[config.severity] = (aggregatesBySeverity[config.severity] || 0) + 1;
       }
     }
 

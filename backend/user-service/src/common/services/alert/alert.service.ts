@@ -98,7 +98,7 @@ export class AlertService {
     const promises = this.channels.map((channel) =>
       this.sendToChannel(channel, alertMessage).catch((error) => {
         this.logger.error(`发送告警到 ${channel} 失败: ${error.message}`);
-      }),
+      })
     );
 
     await Promise.allSettled(promises);
@@ -291,7 +291,9 @@ export class AlertService {
   /**
    * 格式化 Slack 字段
    */
-  private formatSlackFields(metadata?: Record<string, any>): Array<{ title: string; value: string; short: boolean }> {
+  private formatSlackFields(
+    metadata?: Record<string, any>
+  ): Array<{ title: string; value: string; short: boolean }> {
     if (!metadata) return [];
 
     return Object.entries(metadata).map(([key, value]) => ({

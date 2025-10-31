@@ -6,9 +6,21 @@ const dotenv = require('dotenv');
 dotenv.config({ path: '.env.test' });
 
 const SERVICES = [
-  { name: 'User Service', url: process.env.USER_SERVICE_URL || 'http://localhost:30001', endpoint: '/health' },
-  { name: 'Device Service', url: process.env.DEVICE_SERVICE_URL || 'http://localhost:30002', endpoint: '/health' },
-  { name: 'Billing Service', url: process.env.BILLING_SERVICE_URL || 'http://localhost:30005', endpoint: '/health' },
+  {
+    name: 'User Service',
+    url: process.env.USER_SERVICE_URL || 'http://localhost:30001',
+    endpoint: '/health',
+  },
+  {
+    name: 'Device Service',
+    url: process.env.DEVICE_SERVICE_URL || 'http://localhost:30002',
+    endpoint: '/health',
+  },
+  {
+    name: 'Billing Service',
+    url: process.env.BILLING_SERVICE_URL || 'http://localhost:30005',
+    endpoint: '/health',
+  },
 ];
 
 const MAX_RETRIES = 30;
@@ -37,7 +49,7 @@ async function waitForService(service) {
     }
 
     if (i < MAX_RETRIES - 1) {
-      await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
+      await new Promise((resolve) => setTimeout(resolve, RETRY_INTERVAL));
     }
   }
 
@@ -48,11 +60,9 @@ async function waitForService(service) {
 async function waitForAllServices() {
   console.log('Waiting for services to be ready...\n');
 
-  const results = await Promise.all(
-    SERVICES.map(service => waitForService(service))
-  );
+  const results = await Promise.all(SERVICES.map((service) => waitForService(service)));
 
-  const allReady = results.every(result => result === true);
+  const allReady = results.every((result) => result === true);
 
   if (allReady) {
     console.log('\n✓ All services are ready!');

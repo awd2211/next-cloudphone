@@ -52,81 +52,84 @@ const UsageList = () => {
     return usage ? `${(usage || 0).toFixed(2)}%` : '-';
   }, []);
 
-  const columns: ColumnsType<UsageRecord> = useMemo(() => [
-    {
-      title: '记录 ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 100,
-      ellipsis: true,
-    },
-    {
-      title: '用户 ID',
-      dataIndex: 'userId',
-      key: 'userId',
-      width: 120,
-      ellipsis: true,
-    },
-    {
-      title: '设备 ID',
-      dataIndex: 'deviceId',
-      key: 'deviceId',
-      width: 120,
-      ellipsis: true,
-    },
-    {
-      title: '设备名称',
-      dataIndex: 'device',
-      key: 'device',
-      render: (device: any) => device?.name || '-',
-    },
-    {
-      title: '开始时间',
-      dataIndex: 'startTime',
-      key: 'startTime',
-      render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
-    },
-    {
-      title: '结束时间',
-      dataIndex: 'endTime',
-      key: 'endTime',
-      render: (date: string) => date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : '使用中',
-    },
-    {
-      title: '使用时长',
-      dataIndex: 'duration',
-      key: 'duration',
-      render: (duration: number) => formatDuration(duration),
-    },
-    {
-      title: 'CPU 使用率',
-      dataIndex: 'cpuUsage',
-      key: 'cpuUsage',
-      render: formatCpuUsage,
-      sorter: (a, b) => (a.cpuUsage || 0) - (b.cpuUsage || 0),
-    },
-    {
-      title: '内存使用',
-      dataIndex: 'memoryUsage',
-      key: 'memoryUsage',
-      render: formatMemory,
-      sorter: (a, b) => (a.memoryUsage || 0) - (b.memoryUsage || 0),
-    },
-    {
-      title: '流量使用',
-      dataIndex: 'networkUsage',
-      key: 'networkUsage',
-      render: formatNetwork,
-      sorter: (a, b) => (a.networkUsage || 0) - (b.networkUsage || 0),
-    },
-    {
-      title: '费用',
-      dataIndex: 'cost',
-      key: 'cost',
-      render: formatCost,
-      sorter: (a, b) => (a.cost || 0) - (b.cost || 0),
-    },
-  ], [formatDuration, formatCpuUsage, formatMemory, formatNetwork, formatCost]);
+  const columns: ColumnsType<UsageRecord> = useMemo(
+    () => [
+      {
+        title: '记录 ID',
+        dataIndex: 'id',
+        key: 'id',
+        width: 100,
+        ellipsis: true,
+      },
+      {
+        title: '用户 ID',
+        dataIndex: 'userId',
+        key: 'userId',
+        width: 120,
+        ellipsis: true,
+      },
+      {
+        title: '设备 ID',
+        dataIndex: 'deviceId',
+        key: 'deviceId',
+        width: 120,
+        ellipsis: true,
+      },
+      {
+        title: '设备名称',
+        dataIndex: 'device',
+        key: 'device',
+        render: (device: any) => device?.name || '-',
+      },
+      {
+        title: '开始时间',
+        dataIndex: 'startTime',
+        key: 'startTime',
+        render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
+      },
+      {
+        title: '结束时间',
+        dataIndex: 'endTime',
+        key: 'endTime',
+        render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : '使用中'),
+      },
+      {
+        title: '使用时长',
+        dataIndex: 'duration',
+        key: 'duration',
+        render: (duration: number) => formatDuration(duration),
+      },
+      {
+        title: 'CPU 使用率',
+        dataIndex: 'cpuUsage',
+        key: 'cpuUsage',
+        render: formatCpuUsage,
+        sorter: (a, b) => (a.cpuUsage || 0) - (b.cpuUsage || 0),
+      },
+      {
+        title: '内存使用',
+        dataIndex: 'memoryUsage',
+        key: 'memoryUsage',
+        render: formatMemory,
+        sorter: (a, b) => (a.memoryUsage || 0) - (b.memoryUsage || 0),
+      },
+      {
+        title: '流量使用',
+        dataIndex: 'networkUsage',
+        key: 'networkUsage',
+        render: formatNetwork,
+        sorter: (a, b) => (a.networkUsage || 0) - (b.networkUsage || 0),
+      },
+      {
+        title: '费用',
+        dataIndex: 'cost',
+        key: 'cost',
+        render: formatCost,
+        sorter: (a, b) => (a.cost || 0) - (b.cost || 0),
+      },
+    ],
+    [formatDuration, formatCpuUsage, formatMemory, formatNetwork, formatCost]
+  );
 
   return (
     <div style={{ padding: '24px' }}>

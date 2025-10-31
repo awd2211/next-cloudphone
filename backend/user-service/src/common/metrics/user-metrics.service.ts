@@ -183,7 +183,7 @@ export class UserMetricsService implements OnModuleInit {
         tenant_id: tenantId || 'default',
         status: success ? 'success' : 'failed',
       },
-      durationSeconds,
+      durationSeconds
     );
   }
 
@@ -193,7 +193,7 @@ export class UserMetricsService implements OnModuleInit {
         operation,
         tenant_id: tenantId || 'default',
       },
-      durationSeconds,
+      durationSeconds
     );
   }
 
@@ -202,7 +202,7 @@ export class UserMetricsService implements OnModuleInit {
       {
         tenant_id: tenantId || 'default',
       },
-      durationSeconds,
+      durationSeconds
     );
   }
 
@@ -213,7 +213,7 @@ export class UserMetricsService implements OnModuleInit {
       {
         tenant_id: tenantId || 'default',
       },
-      count,
+      count
     );
   }
 
@@ -222,7 +222,7 @@ export class UserMetricsService implements OnModuleInit {
       {
         tenant_id: tenantId || 'default',
       },
-      count,
+      count
     );
   }
 
@@ -231,7 +231,7 @@ export class UserMetricsService implements OnModuleInit {
       {
         tenant_id: tenantId || 'default',
       },
-      count,
+      count
     );
   }
 
@@ -239,11 +239,14 @@ export class UserMetricsService implements OnModuleInit {
    * 批量更新用户统计指标
    * 通常在 getStats 方法中调用
    */
-  updateUserStats(tenantId: string, stats: {
-    totalUsers: number;
-    activeUsers: number;
-    lockedUsers?: number;
-  }): void {
+  updateUserStats(
+    tenantId: string,
+    stats: {
+      totalUsers: number;
+      activeUsers: number;
+      lockedUsers?: number;
+    }
+  ): void {
     this.updateTotalUsersCount(tenantId, stats.totalUsers);
     this.updateActiveUsersCount(tenantId, stats.activeUsers);
     if (stats.lockedUsers !== undefined) {

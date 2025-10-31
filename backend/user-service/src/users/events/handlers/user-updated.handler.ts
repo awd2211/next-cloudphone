@@ -10,7 +10,7 @@ export class UserUpdatedEventHandler implements IEventHandler<UserUpdatedEvent> 
 
   constructor(
     private readonly eventStore: EventStoreService,
-    private readonly eventBusService: EventBusService,
+    private readonly eventBusService: EventBusService
   ) {}
 
   async handle(event: UserUpdatedEvent) {
@@ -29,10 +29,7 @@ export class UserUpdatedEventHandler implements IEventHandler<UserUpdatedEvent> 
 
       this.logger.log(`UserUpdatedEvent processed for user: ${event.aggregateId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to handle UserUpdatedEvent for user: ${event.aggregateId}`,
-        error,
-      );
+      this.logger.error(`Failed to handle UserUpdatedEvent for user: ${event.aggregateId}`, error);
     }
   }
 }

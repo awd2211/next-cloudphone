@@ -38,7 +38,7 @@ export class QueryOptimizationService {
 
   constructor(
     @InjectDataSource()
-    private readonly dataSource: DataSource,
+    private readonly dataSource: DataSource
   ) {}
 
   /**
@@ -52,9 +52,7 @@ export class QueryOptimizationService {
     try {
       this.logger.log('开始刷新所有物化视图...');
 
-      const results = await this.dataSource.query(
-        'SELECT * FROM refresh_all_materialized_views()',
-      );
+      const results = await this.dataSource.query('SELECT * FROM refresh_all_materialized_views()');
 
       this.logger.log(
         `✓ 物化视图刷新完成 - 数量: ${results.length}`,
@@ -62,7 +60,7 @@ export class QueryOptimizationService {
           view: r.view_name,
           time: r.refresh_time,
           rows: r.rows_affected,
-        })),
+        }))
       );
 
       return results.map((r: any) => ({
@@ -85,10 +83,7 @@ export class QueryOptimizationService {
     try {
       this.logger.log(`刷新物化视图: ${viewName}`);
 
-      await this.dataSource.query(
-        'SELECT refresh_materialized_view($1)',
-        [viewName],
-      );
+      await this.dataSource.query('SELECT refresh_materialized_view($1)', [viewName]);
 
       this.logger.log(`✓ 物化视图刷新完成: ${viewName}`);
     } catch (error) {
@@ -102,9 +97,7 @@ export class QueryOptimizationService {
    */
   async getMaterializedViewStatus(): Promise<MaterializedViewInfo[]> {
     try {
-      const results = await this.dataSource.query(
-        'SELECT * FROM get_materialized_view_status()',
-      );
+      const results = await this.dataSource.query('SELECT * FROM get_materialized_view_status()');
 
       return results.map((r: any) => ({
         viewName: r.view_name,
@@ -136,9 +129,7 @@ export class QueryOptimizationService {
     lastRefreshed: Date;
   }> {
     try {
-      const result = await this.dataSource.query(
-        'SELECT * FROM mv_user_stats LIMIT 1',
-      );
+      const result = await this.dataSource.query('SELECT * FROM mv_user_stats LIMIT 1');
 
       if (!result || result.length === 0) {
         throw new Error('用户统计物化视图为空');
@@ -201,10 +192,7 @@ export class QueryOptimizationService {
   /**
    * 获取用户事件统计（从物化视图）
    */
-  async getUserEventStats(
-    startDate?: Date,
-    endDate?: Date,
-  ): Promise<any[]> {
+  async getUserEventStats(startDate?: Date, endDate?: Date): Promise<any[]> {
     try {
       let query = 'SELECT * FROM mv_user_event_stats WHERE 1=1';
       const params: any[] = [];
@@ -252,7 +240,7 @@ export class QueryOptimizationService {
     try {
       const result = await this.dataSource.query(
         'SELECT * FROM mv_user_activity WHERE user_id = $1',
-        [userId],
+        [userId]
       );
 
       if (!result || result.length === 0) {
@@ -285,7 +273,7 @@ export class QueryOptimizationService {
       const results = await this.dataSource.query(
         `SELECT * FROM daily_user_stats
          WHERE stat_date >= CURRENT_DATE - INTERVAL '${days} days'
-         ORDER BY stat_date DESC`,
+         ORDER BY stat_date DESC`
       );
 
       return results.map((r: any) => ({
@@ -314,7 +302,7 @@ export class QueryOptimizationService {
       const results = await this.dataSource.query(
         `SELECT * FROM hourly_event_stats
          WHERE stat_hour >= CURRENT_TIMESTAMP - INTERVAL '${hours} hours'
-         ORDER BY stat_hour DESC, event_count DESC`,
+         ORDER BY stat_hour DESC, event_count DESC`
       );
 
       return results.map((r: any) => ({
@@ -349,9 +337,7 @@ export class QueryOptimizationService {
         totalUsers: parseInt(r.total_users, 10),
         totalDevices: parseInt(r.total_devices, 10),
         totalStorageBytes: parseInt(r.total_storage_bytes, 10),
-        lastActivityAt: r.last_activity_at
-          ? new Date(r.last_activity_at)
-          : null,
+        lastActivityAt: r.last_activity_at ? new Date(r.last_activity_at) : null,
         createdAt: new Date(r.created_at),
         updatedAt: new Date(r.updated_at),
       }));
@@ -392,13 +378,13 @@ export class QueryOptimizationService {
 
       // 获取预计算表统计
       const dailyStatsCount = await this.dataSource.query(
-        'SELECT COUNT(*) as count FROM daily_user_stats',
+        'SELECT COUNT(*) as count FROM daily_user_stats'
       );
       const hourlyStatsCount = await this.dataSource.query(
-        'SELECT COUNT(*) as count FROM hourly_event_stats',
+        'SELECT COUNT(*) as count FROM hourly_event_stats'
       );
       const tenantStatsCount = await this.dataSource.query(
-        'SELECT COUNT(*) as count FROM tenant_quota_stats',
+        'SELECT COUNT(*) as count FROM tenant_quota_stats'
       );
 
       return {
@@ -435,7 +421,7 @@ export class QueryOptimizationService {
       if (staleViews.length > 0) {
         this.logger.warn(
           `检测到 ${staleViews.length} 个过期物化视图`,
-          staleViews.map((v) => v.viewName),
+          staleViews.map((v) => v.viewName)
         );
 
         // 刷新过期视图

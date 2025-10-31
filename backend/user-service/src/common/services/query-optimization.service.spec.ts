@@ -42,7 +42,7 @@ describe('QueryOptimizationService', () => {
 
       // Assert
       expect(mockDataSource.query).toHaveBeenCalledWith(
-        'SELECT * FROM refresh_all_materialized_views()',
+        'SELECT * FROM refresh_all_materialized_views()'
       );
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({
@@ -62,9 +62,7 @@ describe('QueryOptimizationService', () => {
       mockDataSource.query.mockRejectedValue(new Error('Refresh failed'));
 
       // Act & Assert
-      await expect(service.refreshAllMaterializedViews()).rejects.toThrow(
-        'Refresh failed',
-      );
+      await expect(service.refreshAllMaterializedViews()).rejects.toThrow('Refresh failed');
     });
   });
 
@@ -78,10 +76,9 @@ describe('QueryOptimizationService', () => {
       await service.refreshMaterializedView(viewName);
 
       // Assert
-      expect(mockDataSource.query).toHaveBeenCalledWith(
-        'SELECT refresh_materialized_view($1)',
-        [viewName],
-      );
+      expect(mockDataSource.query).toHaveBeenCalledWith('SELECT refresh_materialized_view($1)', [
+        viewName,
+      ]);
     });
 
     it('应该在刷新失败时抛出错误', async () => {
@@ -90,9 +87,7 @@ describe('QueryOptimizationService', () => {
       mockDataSource.query.mockRejectedValue(new Error('View not found'));
 
       // Act & Assert
-      await expect(service.refreshMaterializedView(viewName)).rejects.toThrow(
-        'View not found',
-      );
+      await expect(service.refreshMaterializedView(viewName)).rejects.toThrow('View not found');
     });
   });
 
@@ -122,7 +117,7 @@ describe('QueryOptimizationService', () => {
 
       // Assert
       expect(mockDataSource.query).toHaveBeenCalledWith(
-        'SELECT * FROM get_materialized_view_status()',
+        'SELECT * FROM get_materialized_view_status()'
       );
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
@@ -144,9 +139,7 @@ describe('QueryOptimizationService', () => {
       mockDataSource.query.mockRejectedValue(new Error('Query failed'));
 
       // Act & Assert
-      await expect(service.getMaterializedViewStatus()).rejects.toThrow(
-        'Query failed',
-      );
+      await expect(service.getMaterializedViewStatus()).rejects.toThrow('Query failed');
     });
   });
 
@@ -174,9 +167,7 @@ describe('QueryOptimizationService', () => {
       const result = await service.getUserStats();
 
       // Assert
-      expect(mockDataSource.query).toHaveBeenCalledWith(
-        'SELECT * FROM mv_user_stats LIMIT 1',
-      );
+      expect(mockDataSource.query).toHaveBeenCalledWith('SELECT * FROM mv_user_stats LIMIT 1');
       expect(result).toMatchObject({
         totalUsers: 1000,
         activeUsers: 800,
@@ -197,9 +188,7 @@ describe('QueryOptimizationService', () => {
       mockDataSource.query.mockResolvedValue([]);
 
       // Act & Assert
-      await expect(service.getUserStats()).rejects.toThrow(
-        '用户统计物化视图为空',
-      );
+      await expect(service.getUserStats()).rejects.toThrow('用户统计物化视图为空');
     });
   });
 
@@ -231,7 +220,7 @@ describe('QueryOptimizationService', () => {
       // Assert
       expect(mockDataSource.query).toHaveBeenCalledWith(
         'SELECT * FROM mv_user_stats_by_tenant WHERE tenant_id = $1',
-        [tenantId],
+        [tenantId]
       );
       expect(result).toHaveLength(1);
       expect(result[0].tenantId).toBe(tenantId);
@@ -264,7 +253,7 @@ describe('QueryOptimizationService', () => {
       // Assert
       expect(mockDataSource.query).toHaveBeenCalledWith(
         'SELECT * FROM mv_user_stats_by_tenant ORDER BY total_users DESC',
-        [],
+        []
       );
       expect(result).toHaveLength(1);
     });
@@ -307,10 +296,7 @@ describe('QueryOptimizationService', () => {
       const query = mockDataSource.query.mock.calls[0][0];
       expect(query).toContain('event_date >= $1');
       expect(query).toContain('event_date <= $2');
-      expect(mockDataSource.query).toHaveBeenCalledWith(
-        expect.any(String),
-        [startDate, endDate],
-      );
+      expect(mockDataSource.query).toHaveBeenCalledWith(expect.any(String), [startDate, endDate]);
     });
   });
 
@@ -338,7 +324,7 @@ describe('QueryOptimizationService', () => {
       // Assert
       expect(mockDataSource.query).toHaveBeenCalledWith(
         'SELECT * FROM mv_user_activity WHERE user_id = $1',
-        [userId],
+        [userId]
       );
       expect(result).not.toBeNull();
       expect(result?.userId).toBe(userId);
@@ -450,7 +436,7 @@ describe('QueryOptimizationService', () => {
       // Assert
       expect(mockDataSource.query).toHaveBeenCalledWith(
         'SELECT * FROM tenant_quota_stats WHERE tenant_id = $1',
-        [tenantId],
+        [tenantId]
       );
       expect(result).toHaveLength(1);
       expect(result[0].tenantId).toBe(tenantId);
@@ -468,7 +454,7 @@ describe('QueryOptimizationService', () => {
       // Assert
       expect(mockDataSource.query).toHaveBeenCalledWith(
         'SELECT * FROM tenant_quota_stats ORDER BY total_users DESC',
-        [],
+        []
       );
     });
   });
@@ -501,7 +487,7 @@ describe('QueryOptimizationService', () => {
             is_stale: v.is_stale,
             row_count: String(v.row_count),
             size: v.size,
-          })),
+          }))
         )
         .mockResolvedValueOnce([{ count: '100' }]) // daily stats
         .mockResolvedValueOnce([{ count: '200' }]) // hourly stats
@@ -552,7 +538,7 @@ describe('QueryOptimizationService', () => {
             is_stale: v.is_stale,
             row_count: String(v.row_count),
             size: v.size,
-          })),
+          }))
         )
         .mockResolvedValueOnce([
           { view_name: 'mv_user_activity', refresh_time: '200ms', rows_affected: '5000' },
@@ -564,7 +550,7 @@ describe('QueryOptimizationService', () => {
             is_stale: false,
             row_count: String(v.row_count),
             size: v.size,
-          })),
+          }))
         )
         .mockResolvedValueOnce([{ count: '100' }])
         .mockResolvedValueOnce([{ count: '200' }])
@@ -576,11 +562,11 @@ describe('QueryOptimizationService', () => {
       // Assert
       // 应该调用 getMaterializedViewStatus
       expect(mockDataSource.query).toHaveBeenCalledWith(
-        'SELECT * FROM get_materialized_view_status()',
+        'SELECT * FROM get_materialized_view_status()'
       );
       // 应该调用 refreshAllMaterializedViews（因为有过期视图）
       expect(mockDataSource.query).toHaveBeenCalledWith(
-        'SELECT * FROM refresh_all_materialized_views()',
+        'SELECT * FROM refresh_all_materialized_views()'
       );
     });
 

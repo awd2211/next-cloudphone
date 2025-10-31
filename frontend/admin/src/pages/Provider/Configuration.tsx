@@ -24,11 +24,7 @@ import {
   SaveOutlined,
   TestTubeOutlined,
 } from '@ant-design/icons';
-import {
-  DeviceProvider,
-  ProviderNames,
-  ProviderIcons,
-} from '@/types/provider';
+import { DeviceProvider, ProviderNames, ProviderIcons } from '@/types/provider';
 import {
   getProviderConfig,
   updateProviderConfig,
@@ -208,19 +204,11 @@ const ProviderConfiguration = () => {
           <Input placeholder="输入华为云 Project ID" />
         </Form.Item>
 
-        <Form.Item
-          name="accessKeyId"
-          label="Access Key ID"
-          rules={[{ required: true }]}
-        >
+        <Form.Item name="accessKeyId" label="Access Key ID" rules={[{ required: true }]}>
           <Input placeholder="AK****************" />
         </Form.Item>
 
-        <Form.Item
-          name="secretAccessKey"
-          label="Secret Access Key"
-          rules={[{ required: true }]}
-        >
+        <Form.Item name="secretAccessKey" label="Secret Access Key" rules={[{ required: true }]}>
           <Input.Password placeholder="SK****************" />
         </Form.Item>
 
@@ -287,19 +275,11 @@ const ProviderConfiguration = () => {
         layout="vertical"
         onFinish={(values) => handleSave(DeviceProvider.ALIYUN, values)}
       >
-        <Form.Item
-          name="accessKeyId"
-          label="Access Key ID"
-          rules={[{ required: true }]}
-        >
+        <Form.Item name="accessKeyId" label="Access Key ID" rules={[{ required: true }]}>
           <Input placeholder="LTAI****************" />
         </Form.Item>
 
-        <Form.Item
-          name="accessKeySecret"
-          label="Access Key Secret"
-          rules={[{ required: true }]}
-        >
+        <Form.Item name="accessKeySecret" label="Access Key Secret" rules={[{ required: true }]}>
           <Input.Password placeholder="输入 Access Key Secret" />
         </Form.Item>
 
@@ -417,9 +397,7 @@ const ProviderConfiguration = () => {
                     title={`${ProviderIcons[provider]} ${ProviderNames[provider]}`}
                     value={status?.healthy ? '正常' : '异常'}
                     valueStyle={{ color: status?.healthy ? '#3f8600' : '#cf1322' }}
-                    prefix={
-                      status?.healthy ? <CheckCircleOutlined /> : <CloseCircleOutlined />
-                    }
+                    prefix={status?.healthy ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
                   />
                 </Card>
               </Col>

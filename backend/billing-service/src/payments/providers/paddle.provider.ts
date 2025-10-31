@@ -71,9 +71,7 @@ export class PaddleProvider implements IPaymentProvider {
 
     const { amount, currency, description, paymentNo, returnUrl, customerId, metadata } = params;
 
-    this.logger.log(
-      `Creating Paddle transaction: ${paymentNo}, amount: ${amount} ${currency}`,
-    );
+    this.logger.log(`Creating Paddle transaction: ${paymentNo}, amount: ${amount} ${currency}`);
 
     try {
       // Paddle 主要使用托管页面
@@ -173,7 +171,9 @@ export class PaddleProvider implements IPaymentProvider {
         scheduledChange: trialPeriodDays
           ? {
               action: 'pause' as any,
-              effectiveAt: new Date(Date.now() + trialPeriodDays * 24 * 60 * 60 * 1000).toISOString(),
+              effectiveAt: new Date(
+                Date.now() + trialPeriodDays * 24 * 60 * 60 * 1000
+              ).toISOString(),
             }
           : undefined,
       });
@@ -350,7 +350,9 @@ export class PaddleProvider implements IPaymentProvider {
       throw new Error('Paddle not initialized');
     }
 
-    this.logger.log(`Canceling Paddle subscription: ${subscriptionId}, immediately: ${immediately}`);
+    this.logger.log(
+      `Canceling Paddle subscription: ${subscriptionId}, immediately: ${immediately}`
+    );
 
     try {
       if (immediately) {

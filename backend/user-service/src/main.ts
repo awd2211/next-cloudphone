@@ -21,14 +21,14 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],  // Swagger需要
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],  // Swagger需要
+          styleSrc: ["'self'", "'unsafe-inline'"], // Swagger需要
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Swagger需要
           imgSrc: ["'self'", 'data:', 'https:'],
         },
       },
-      crossOriginEmbedderPolicy: false,  // Swagger需要
-      crossOriginResourcePolicy: { policy: 'cross-origin' },  // API需要
-    }),
+      crossOriginEmbedderPolicy: false, // Swagger需要
+      crossOriginResourcePolicy: { policy: 'cross-origin' }, // API需要
+    })
   );
 
   // Cookie Parser
@@ -48,31 +48,26 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    }),
+    })
   );
 
   // ========== API 版本控制 ==========
 
-  // 设置全局前缀和版本
-  app.setGlobalPrefix('api/v1', {
-    exclude: [
-      'health',           // 健康检查不需要版本
-      'health/detailed',
-      'health/liveness',
-      'health/readiness',
-      'health/pool',
-      'health/circuit-breakers',
-      'metrics',          // Prometheus metrics 不需要版本
-    ],
-  });
+  // 微服务不设置全局前缀，由 API Gateway 统一处理版本路由
+  // app.setGlobalPrefix('api/v1', {
+  //   exclude: ['health', 'metrics'],
+  // });
 
   // ========== CORS 配置 ==========
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void
+    ) => {
       // 允许所有 localhost 和配置的域名
       const allowedOrigins = configService.get('CORS_ORIGINS')?.split(',') || [];
-      
+
       // 开发环境：允许所有 localhost 端口
       if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
         callback(null, true);
@@ -88,7 +83,7 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposedHeaders: ['X-Total-Count'],  // 暴露分页总数头
+    exposedHeaders: ['X-Total-Count'], // 暴露分页总数头
   });
 
   // ========== Swagger API 文档配置 ==========
@@ -108,7 +103,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/v1/docs', app, document, {
+  SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -135,9 +130,11 @@ async function bootstrap() {
   // ========== 服务启动日志 ==========
 
   console.log(`🚀 User Service is running on: http://localhost:${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
-  console.log(`🔗 API Base URL: http://localhost:${port}/api/v1`);
-  console.log(`🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`);
+  console.log(`📚 API Documentation: http://localhost:${port}/docs`);
+  console.log(`🔗 API Base URL: http://localhost:${port}`);
+  console.log(
+    `🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`
+  );
   console.log(`🔒 Helmet security: ENABLED`);
   console.log(`🔄 Graceful shutdown: ENABLED`);
 }

@@ -85,8 +85,7 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateUserDto }) =>
-      updateUser(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateUserDto }) => updateUser(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: userKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
@@ -124,7 +123,11 @@ export function useUpdateUserBalance() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ userId, amount, type }: {
+    mutationFn: ({
+      userId,
+      amount,
+      type,
+    }: {
       userId: string;
       amount: number;
       type: 'recharge' | 'deduct';
@@ -132,9 +135,7 @@ export function useUpdateUserBalance() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: userKeys.balance(variables.userId) });
       queryClient.invalidateQueries({ queryKey: userKeys.detail(variables.userId) });
-      message.success(
-        variables.type === 'recharge' ? '充值成功' : '扣款成功'
-      );
+      message.success(variables.type === 'recharge' ? '充值成功' : '扣款成功');
     },
     onError: (error: any) => {
       message.error(error.response?.data?.message || '操作失败');

@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ConflictException, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import * as Handlebars from 'handlebars';
@@ -10,13 +16,29 @@ import { CreateTemplateDto, UpdateTemplateDto, QueryTemplateDto, RenderTemplateD
  * 只允许访问这些预定义的字段
  */
 const ALLOWED_TEMPLATE_VARIABLES = [
-  'userName', 'userEmail', 'userId',
-  'deviceName', 'deviceId', 'deviceStatus',
-  'appName', 'appVersion',
-  'amount', 'planName', 'expireDate', 'orderNo',
-  'title', 'content', 'link', 'time', 'date',
-  'verificationCode', 'code', 'message',
-  'quotaUsed', 'quotaTotal', 'quotaPercent',
+  'userName',
+  'userEmail',
+  'userId',
+  'deviceName',
+  'deviceId',
+  'deviceStatus',
+  'appName',
+  'appVersion',
+  'amount',
+  'planName',
+  'expireDate',
+  'orderNo',
+  'title',
+  'content',
+  'link',
+  'time',
+  'date',
+  'verificationCode',
+  'code',
+  'message',
+  'quotaUsed',
+  'quotaTotal',
+  'quotaPercent',
 ] as const;
 
 /**
@@ -46,7 +68,7 @@ export class TemplatesService {
 
   constructor(
     @InjectRepository(NotificationTemplate)
-    private templateRepository: Repository<NotificationTemplate>,
+    private templateRepository: Repository<NotificationTemplate>
   ) {
     // 🔒 安全初始化：创建独立的沙箱 Handlebars 实例
     this.sandboxedHandlebars = Handlebars.create();
@@ -110,9 +132,7 @@ export class TemplatesService {
     for (const pattern of DANGEROUS_PATTERNS) {
       if (pattern.test(templateString)) {
         this.logger.error(`Template contains dangerous pattern: ${pattern.source}`);
-        throw new BadRequestException(
-          `模板包含不安全的表达式，请检查后重试`,
-        );
+        throw new BadRequestException(`模板包含不安全的表达式，请检查后重试`);
       }
     }
 
@@ -132,8 +152,18 @@ export class TemplatesService {
       const varName = expr.split(/[\s()]/)[0];
 
       // 检查是否在白名单中（允许内置 helpers）
-      const builtInHelpers = ['formatDate', 'ifEquals', 'formatNumber', 'formatCurrency', 'if', 'unless', 'each', 'with'];
-      const isAllowed = ALLOWED_TEMPLATE_VARIABLES.includes(varName as any) || builtInHelpers.includes(varName);
+      const builtInHelpers = [
+        'formatDate',
+        'ifEquals',
+        'formatNumber',
+        'formatCurrency',
+        'if',
+        'unless',
+        'each',
+        'with',
+      ];
+      const isAllowed =
+        ALLOWED_TEMPLATE_VARIABLES.includes(varName as any) || builtInHelpers.includes(varName);
 
       if (!isAllowed && !varName.includes('.')) {
         this.logger.warn(`Template uses non-whitelisted variable: ${varName}`);
@@ -228,7 +258,7 @@ export class TemplatesService {
     if (search) {
       queryBuilder.andWhere(
         '(template.name LIKE :search OR template.code LIKE :search OR template.description LIKE :search)',
-        { search: `%${search}%` },
+        { search: `%${search}%` }
       );
     }
 
@@ -310,7 +340,9 @@ export class TemplatesService {
       });
 
       if (existing) {
-        throw new ConflictException(`Template with code "${updateTemplateDto.code}" already exists`);
+        throw new ConflictException(
+          `Template with code "${updateTemplateDto.code}" already exists`
+        );
       }
     }
 
@@ -352,7 +384,11 @@ export class TemplatesService {
   /**
    * 渲染模板
    */
-  async render(templateCode: string, data: Record<string, any>, language?: string): Promise<{
+  async render(
+    templateCode: string,
+    data: Record<string, any>,
+    language?: string
+  ): Promise<{
     title: string;
     body: string;
     emailHtml?: string;
@@ -371,14 +407,14 @@ export class TemplatesService {
       const title = this.compileAndRender(
         template.title,
         mergedData,
-        `${templateCode}:title:${language}`,
+        `${templateCode}:title:${language}`
       );
 
       // 渲染内容
       const body = this.compileAndRender(
         template.body,
         mergedData,
-        `${templateCode}:body:${language}`,
+        `${templateCode}:body:${language}`
       );
 
       // 渲染邮件模板（如果有）
@@ -387,7 +423,7 @@ export class TemplatesService {
         emailHtml = this.compileAndRender(
           template.emailTemplate,
           mergedData,
-          `${templateCode}:email:${language}`,
+          `${templateCode}:email:${language}`
         );
       }
 
@@ -397,7 +433,7 @@ export class TemplatesService {
         smsText = this.compileAndRender(
           template.smsTemplate,
           mergedData,
-          `${templateCode}:sms:${language}`,
+          `${templateCode}:sms:${language}`
         );
       }
 
@@ -423,7 +459,7 @@ export class TemplatesService {
   private compileAndRender(
     templateString: string,
     data: Record<string, any>,
-    cacheKey: string,
+    cacheKey: string
   ): string {
     // 🔒 安全验证：检查模板安全性
     this.validateTemplateSecurity(templateString);

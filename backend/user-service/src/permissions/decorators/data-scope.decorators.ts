@@ -41,23 +41,11 @@ export const SkipDataScope = () => SetMetadata(SKIP_DATA_SCOPE_KEY, true);
  */
 export const FieldFilterResource = (
   resourceType: string,
-  operation: OperationType = OperationType.VIEW,
+  operation: OperationType = OperationType.VIEW
 ) => {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) {
-    SetMetadata(FIELD_FILTER_RESOURCE_KEY, resourceType)(
-      target,
-      propertyKey,
-      descriptor,
-    );
-    SetMetadata(FIELD_FILTER_OPERATION_KEY, operation)(
-      target,
-      propertyKey,
-      descriptor,
-    );
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    SetMetadata(FIELD_FILTER_RESOURCE_KEY, resourceType)(target, propertyKey, descriptor);
+    SetMetadata(FIELD_FILTER_OPERATION_KEY, operation)(target, propertyKey, descriptor);
     return descriptor;
   };
 };
@@ -82,30 +70,14 @@ export const SkipFieldFilter = () => SetMetadata(SKIP_FIELD_FILTER_KEY, true);
  */
 export const FullDataControl = (
   resourceType: string,
-  operation: OperationType = OperationType.VIEW,
+  operation: OperationType = OperationType.VIEW
 ) => {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     // 应用数据范围过滤
-    SetMetadata(DATA_SCOPE_RESOURCE_KEY, resourceType)(
-      target,
-      propertyKey,
-      descriptor,
-    );
+    SetMetadata(DATA_SCOPE_RESOURCE_KEY, resourceType)(target, propertyKey, descriptor);
     // 应用字段过滤
-    SetMetadata(FIELD_FILTER_RESOURCE_KEY, resourceType)(
-      target,
-      propertyKey,
-      descriptor,
-    );
-    SetMetadata(FIELD_FILTER_OPERATION_KEY, operation)(
-      target,
-      propertyKey,
-      descriptor,
-    );
+    SetMetadata(FIELD_FILTER_RESOURCE_KEY, resourceType)(target, propertyKey, descriptor);
+    SetMetadata(FIELD_FILTER_OPERATION_KEY, operation)(target, propertyKey, descriptor);
     return descriptor;
   };
 };

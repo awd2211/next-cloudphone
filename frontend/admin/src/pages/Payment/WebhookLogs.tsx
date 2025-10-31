@@ -171,9 +171,7 @@ const WebhookLogsContent: React.FC = () => {
       dataIndex: 'retryCount',
       key: 'retryCount',
       width: 100,
-      render: (count: number) => (
-        <Tag color={count > 0 ? 'orange' : 'default'}>{count}</Tag>
-      ),
+      render: (count: number) => <Tag color={count > 0 ? 'orange' : 'default'}>{count}</Tag>,
     },
     {
       title: '接收时间',
@@ -187,8 +185,7 @@ const WebhookLogsContent: React.FC = () => {
       dataIndex: 'processedAt',
       key: 'processedAt',
       width: 180,
-      render: (date: string) =>
-        date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : '-',
+      render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
     {
       title: '操作',
@@ -219,9 +216,7 @@ const WebhookLogsContent: React.FC = () => {
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
             <div>
               <h2 style={{ margin: 0 }}>Webhook 日志</h2>
-              <p style={{ margin: '8px 0 0', color: '#666' }}>
-                查看和监控支付平台的 Webhook 事件
-              </p>
+              <p style={{ margin: '8px 0 0', color: '#666' }}>查看和监控支付平台的 Webhook 事件</p>
             </div>
             <Space>
               <Select
@@ -287,15 +282,11 @@ const WebhookLogsContent: React.FC = () => {
               <Descriptions.Item label="提供商">
                 {getProviderTag(selectedLog.provider)}
               </Descriptions.Item>
-              <Descriptions.Item label="状态">
-                {getStatusTag(selectedLog.status)}
-              </Descriptions.Item>
+              <Descriptions.Item label="状态">{getStatusTag(selectedLog.status)}</Descriptions.Item>
               <Descriptions.Item label="事件类型" span={2}>
                 {selectedLog.event}
               </Descriptions.Item>
-              <Descriptions.Item label="重试次数">
-                {selectedLog.retryCount}
-              </Descriptions.Item>
+              <Descriptions.Item label="重试次数">{selectedLog.retryCount}</Descriptions.Item>
               <Descriptions.Item label="接收时间">
                 {dayjs(selectedLog.createdAt).format('YYYY-MM-DD HH:mm:ss')}
               </Descriptions.Item>
@@ -308,10 +299,7 @@ const WebhookLogsContent: React.FC = () => {
 
             {selectedLog.errorMessage && (
               <Card title="错误信息" size="small">
-                <Paragraph
-                  copyable
-                  style={{ margin: 0, color: '#ff4d4f', whiteSpace: 'pre-wrap' }}
-                >
+                <Paragraph copyable style={{ margin: 0, color: '#ff4d4f', whiteSpace: 'pre-wrap' }}>
                   {selectedLog.errorMessage}
                 </Paragraph>
               </Card>

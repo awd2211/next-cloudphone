@@ -215,10 +215,9 @@ export class SqlInjectionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
 
     // 获取装饰器配置的严重程度
-    const severity = this.reflector.get<SqlInjectionSeverity>(
-      SQL_INJECTION_CHECK_KEY,
-      context.getHandler(),
-    ) || SqlInjectionSeverity.MEDIUM;
+    const severity =
+      this.reflector.get<SqlInjectionSeverity>(SQL_INJECTION_CHECK_KEY, context.getHandler()) ||
+      SqlInjectionSeverity.MEDIUM;
 
     // 扫描所有输入
     const allInputs = this.extractAllInputs(request);
@@ -244,14 +243,14 @@ export class SqlInjectionGuard implements CanActivate {
           // 记录并标记请求（但允许通过）
           (request as any).sqlInjectionWarning = detectionResult;
           this.logger.warn(
-            `SQL 注入警告 [${request.method} ${request.url}]: 风险评分 ${detectionResult.riskScore}`,
+            `SQL 注入警告 [${request.method} ${request.url}]: 风险评分 ${detectionResult.riskScore}`
           );
           break;
 
         case SqlInjectionSeverity.LOW:
           // 仅记录日志
           this.logger.log(
-            `SQL 注入检测 [${request.method} ${request.url}]: 风险评分 ${detectionResult.riskScore}`,
+            `SQL 注入检测 [${request.method} ${request.url}]: 风险评分 ${detectionResult.riskScore}`
           );
           break;
       }
@@ -396,10 +395,7 @@ export class SqlInjectionGuard implements CanActivate {
   /**
    * 记录可疑请求
    */
-  private logSuspiciousRequest(
-    request: Request,
-    result: SqlInjectionDetectionResult,
-  ): void {
+  private logSuspiciousRequest(request: Request, result: SqlInjectionDetectionResult): void {
     this.logger.warn({
       message: 'SQL 注入检测警告',
       method: request.method,

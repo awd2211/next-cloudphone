@@ -10,7 +10,7 @@ export class UserDeletedEventHandler implements IEventHandler<UserDeletedEvent> 
 
   constructor(
     private readonly eventStore: EventStoreService,
-    private readonly eventBusService: EventBusService,
+    private readonly eventBusService: EventBusService
   ) {}
 
   async handle(event: UserDeletedEvent) {
@@ -29,10 +29,7 @@ export class UserDeletedEventHandler implements IEventHandler<UserDeletedEvent> 
 
       this.logger.log(`UserDeletedEvent processed for user: ${event.aggregateId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to handle UserDeletedEvent for user: ${event.aggregateId}`,
-        error,
-      );
+      this.logger.error(`Failed to handle UserDeletedEvent for user: ${event.aggregateId}`, error);
     }
   }
 }

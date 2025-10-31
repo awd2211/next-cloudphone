@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
@@ -35,31 +29,32 @@ export class FieldFilterInterceptor implements NestInterceptor {
 
   constructor(
     private reflector: Reflector,
-    private fieldFilterService: FieldFilterService,
+    private fieldFilterService: FieldFilterService
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     // 检查是否跳过字段过滤
-    const skipFieldFilter = this.reflector.getAllAndOverride<boolean>(
-      SKIP_FIELD_FILTER_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const skipFieldFilter = this.reflector.getAllAndOverride<boolean>(SKIP_FIELD_FILTER_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (skipFieldFilter) {
       return next.handle();
     }
 
     // 获取资源类型
-    const resourceType = this.reflector.getAllAndOverride<string>(
-      FIELD_FILTER_RESOURCE_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const resourceType = this.reflector.getAllAndOverride<string>(FIELD_FILTER_RESOURCE_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // 获取操作类型
-    const operation = this.reflector.getAllAndOverride<OperationType>(
-      FIELD_FILTER_OPERATION_KEY,
-      [context.getHandler(), context.getClass()],
-    ) || OperationType.VIEW;
+    const operation =
+      this.reflector.getAllAndOverride<OperationType>(FIELD_FILTER_OPERATION_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) || OperationType.VIEW;
 
     // 如果没有配置资源类型，跳过字段过滤
     if (!resourceType) {
@@ -78,21 +73,13 @@ export class FieldFilterInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map(async (data) => {
         try {
-          return await this.filterResponseData(
-            user.id,
-            resourceType,
-            operation,
-            data,
-          );
+          return await this.filterResponseData(user.id, resourceType, operation, data);
         } catch (error) {
-          this.logger.error(
-            `过滤响应字段失败: ${error.message}`,
-            error.stack,
-          );
+          this.logger.error(`过滤响应字段失败: ${error.message}`, error.stack);
           // 失败时返回原始数据
           return data;
         }
-      }),
+      })
     );
   }
 
@@ -103,7 +90,7 @@ export class FieldFilterInterceptor implements NestInterceptor {
     userId: string,
     resourceType: string,
     operation: OperationType,
-    data: any,
+    data: any
   ): Promise<any> {
     if (!data) {
       return data;
@@ -115,7 +102,7 @@ export class FieldFilterInterceptor implements NestInterceptor {
         userId,
         resourceType,
         data.data || data.items || data.list,
-        operation,
+        operation
       );
       return {
         ...data,
@@ -127,22 +114,12 @@ export class FieldFilterInterceptor implements NestInterceptor {
 
     // 处理数组数据
     if (Array.isArray(data)) {
-      return this.fieldFilterService.filterFieldsArray(
-        userId,
-        resourceType,
-        data,
-        operation,
-      );
+      return this.fieldFilterService.filterFieldsArray(userId, resourceType, data, operation);
     }
 
     // 处理单个对象
     if (typeof data === 'object') {
-      return this.fieldFilterService.filterFields(
-        userId,
-        resourceType,
-        data,
-        operation,
-      );
+      return this.fieldFilterService.filterFields(userId, resourceType, data, operation);
     }
 
     // 其他类型直接返回

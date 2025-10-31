@@ -106,7 +106,7 @@ const MenuPermission = () => {
       setFilteredMenus(data);
 
       // 默认展开第一层
-      const firstLevelKeys = data.map(item => item.id);
+      const firstLevelKeys = data.map((item) => item.id);
       setExpandedKeys(firstLevelKeys);
     } catch (error: any) {
       message.error(error.message || '加载菜单失败');
@@ -133,9 +133,10 @@ const MenuPermission = () => {
   const filterMenusByName = (items: MenuItem[], keyword: string): MenuItem[] => {
     const filtered: MenuItem[] = [];
 
-    items.forEach(item => {
-      const match = item.name.toLowerCase().includes(keyword.toLowerCase()) ||
-                    item.path.toLowerCase().includes(keyword.toLowerCase());
+    items.forEach((item) => {
+      const match =
+        item.name.toLowerCase().includes(keyword.toLowerCase()) ||
+        item.path.toLowerCase().includes(keyword.toLowerCase());
 
       let children: MenuItem[] = [];
       if (item.children) {
@@ -159,7 +160,7 @@ const MenuPermission = () => {
   const getAllParentKeys = (items: MenuItem[], parentKeys: string[] = []): string[] => {
     const keys = [...parentKeys];
 
-    items.forEach(item => {
+    items.forEach((item) => {
       keys.push(item.id);
       if (item.children) {
         keys.push(...getAllParentKeys(item.children, []));
@@ -173,7 +174,7 @@ const MenuPermission = () => {
    * 转换菜单为Tree节点
    */
   const convertToTreeData = (items: MenuItem[]): DataNode[] => {
-    return items.map(item => {
+    return items.map((item) => {
       const hasChildren = item.children && item.children.length > 0;
       const icon = getMenuIcon(item.icon);
 
@@ -182,9 +183,7 @@ const MenuPermission = () => {
         title: (
           <Space>
             {icon}
-            <span style={{ fontWeight: hasChildren ? 600 : 400 }}>
-              {item.name}
-            </span>
+            <span style={{ fontWeight: hasChildren ? 600 : 400 }}>{item.name}</span>
             {item.permission && (
               <Tag color="blue" style={{ fontSize: 11 }}>
                 <LockOutlined style={{ fontSize: 10, marginRight: 2 }} />
@@ -196,9 +195,7 @@ const MenuPermission = () => {
                 公开
               </Tag>
             )}
-            <span style={{ fontSize: 12, color: '#999' }}>
-              {item.path}
-            </span>
+            <span style={{ fontSize: 12, color: '#999' }}>{item.path}</span>
           </Space>
         ),
         children: item.children ? convertToTreeData(item.children) : undefined,
@@ -213,10 +210,10 @@ const MenuPermission = () => {
     if (!iconName) return <AppstoreOutlined style={{ fontSize: 14, color: '#1890ff' }} />;
 
     const iconMap: Record<string, React.ReactNode> = {
-      'DashboardOutlined': <DashboardOutlined style={{ fontSize: 14, color: '#1890ff' }} />,
-      'AppstoreOutlined': <AppstoreOutlined style={{ fontSize: 14, color: '#52c41a' }} />,
-      'UserOutlined': <UserOutlined style={{ fontSize: 14, color: '#722ed1' }} />,
-      'default': <AppstoreOutlined style={{ fontSize: 14, color: '#1890ff' }} />,
+      DashboardOutlined: <DashboardOutlined style={{ fontSize: 14, color: '#1890ff' }} />,
+      AppstoreOutlined: <AppstoreOutlined style={{ fontSize: 14, color: '#52c41a' }} />,
+      UserOutlined: <UserOutlined style={{ fontSize: 14, color: '#722ed1' }} />,
+      default: <AppstoreOutlined style={{ fontSize: 14, color: '#1890ff' }} />,
     };
 
     return iconMap[iconName] || iconMap['default'];
@@ -269,10 +266,7 @@ const MenuPermission = () => {
         content: (
           <div>
             <p>请输入要刷新缓存的用户ID：</p>
-            <Input
-              placeholder="用户ID"
-              onChange={(e) => setTestUserId(e.target.value)}
-            />
+            <Input placeholder="用户ID" onChange={(e) => setTestUserId(e.target.value)} />
           </div>
         ),
         onOk: async () => {
@@ -405,7 +399,7 @@ const MenuPermission = () => {
    */
   const countMenus = (items: MenuItem[]): number => {
     let count = items.length;
-    items.forEach(item => {
+    items.forEach((item) => {
       if (item.children) {
         count += countMenus(item.children);
       }
@@ -414,7 +408,9 @@ const MenuPermission = () => {
   };
 
   const totalMenuCount = countMenus(menus);
-  const menusWithPermission = menus.filter(m => m.permission || (m.children?.some(c => c.permission))).length;
+  const menusWithPermission = menus.filter(
+    (m) => m.permission || m.children?.some((c) => c.permission)
+  ).length;
 
   return (
     <div style={{ padding: '24px' }}>
@@ -428,7 +424,9 @@ const MenuPermission = () => {
           message="系统说明"
           description={
             <div>
-              <p>📋 当前为<strong>只读模式</strong>，可以查看菜单结构和权限配置，但不支持直接编辑。</p>
+              <p>
+                📋 当前为<strong>只读模式</strong>，可以查看菜单结构和权限配置，但不支持直接编辑。
+              </p>
               <p>🔧 菜单结构当前在后端代码中定义，完整的CRUD功能需要后端实现数据库持久化。</p>
               <p>✨ 您可以：查看菜单树、测试用户访问权限、管理权限缓存。</p>
             </div>
@@ -442,11 +440,7 @@ const MenuPermission = () => {
         <Row gutter={16}>
           <Col span={6}>
             <Card>
-              <Statistic
-                title="菜单总数"
-                value={totalMenuCount}
-                prefix={<AppstoreOutlined />}
-              />
+              <Statistic title="菜单总数" value={totalMenuCount} prefix={<AppstoreOutlined />} />
             </Card>
           </Col>
           <Col span={6}>
@@ -477,7 +471,9 @@ const MenuPermission = () => {
                 suffix="%"
                 precision={1}
                 prefix={<DashboardOutlined />}
-                valueStyle={{ color: cacheStats && cacheStats.hitRate > 80 ? '#52c41a' : '#faad14' }}
+                valueStyle={{
+                  color: cacheStats && cacheStats.hitRate > 80 ? '#52c41a' : '#faad14',
+                }}
               />
             </Card>
           </Col>
@@ -542,9 +538,7 @@ const MenuPermission = () => {
           <Card title="菜单详情" style={{ marginBottom: 16 }}>
             {selectedMenu ? (
               <Descriptions column={1} bordered size="small">
-                <Descriptions.Item label="菜单名称">
-                  {selectedMenu.name}
-                </Descriptions.Item>
+                <Descriptions.Item label="菜单名称">{selectedMenu.name}</Descriptions.Item>
                 <Descriptions.Item label="路由路径">
                   <code>{selectedMenu.path}</code>
                 </Descriptions.Item>
@@ -556,9 +550,7 @@ const MenuPermission = () => {
                   )}
                 </Descriptions.Item>
                 {selectedMenu.icon && (
-                  <Descriptions.Item label="图标">
-                    {selectedMenu.icon}
-                  </Descriptions.Item>
+                  <Descriptions.Item label="图标">{selectedMenu.icon}</Descriptions.Item>
                 )}
                 {selectedMenu.component && (
                   <Descriptions.Item label="组件">
@@ -579,25 +571,20 @@ const MenuPermission = () => {
                 )}
               </Descriptions>
             ) : (
-              <Empty description="请从左侧选择菜单项查看详情" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              <Empty
+                description="请从左侧选择菜单项查看详情"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
             )}
           </Card>
 
           {/* 快捷操作 */}
           <Card title="快捷操作">
             <Space direction="vertical" style={{ width: '100%' }}>
-              <Button
-                block
-                icon={<UserOutlined />}
-                onClick={handleTestUserAccess}
-              >
+              <Button block icon={<UserOutlined />} onClick={handleTestUserAccess}>
                 测试用户菜单访问
               </Button>
-              <Button
-                block
-                icon={<DashboardOutlined />}
-                onClick={() => setStatsModalVisible(true)}
-              >
+              <Button block icon={<DashboardOutlined />} onClick={() => setStatsModalVisible(true)}>
                 查看缓存统计详情
               </Button>
             </Space>
@@ -623,11 +610,7 @@ const MenuPermission = () => {
             />
           </Col>
           <Col span={6}>
-            <Statistic
-              title="缓存大小"
-              value={cacheStats?.cacheSize || 0}
-              suffix="KB"
-            />
+            <Statistic title="缓存大小" value={cacheStats?.cacheSize || 0} suffix="KB" />
           </Col>
           <Col span={6}>
             <Statistic
@@ -675,11 +658,7 @@ const MenuPermission = () => {
           </Tooltip>
 
           <Tooltip title="导出缓存数据为JSON文件">
-            <Button
-              icon={<ExportOutlined />}
-              onClick={handleExportCache}
-              loading={cacheLoading}
-            >
+            <Button icon={<ExportOutlined />} onClick={handleExportCache} loading={cacheLoading}>
               导出缓存数据
             </Button>
           </Tooltip>
@@ -702,11 +681,7 @@ const MenuPermission = () => {
               onChange={(e) => setTestUserId(e.target.value)}
               style={{ width: 300 }}
             />
-            <Button
-              type="primary"
-              onClick={handleLoadUserMenus}
-              loading={testLoading}
-            >
+            <Button type="primary" onClick={handleLoadUserMenus} loading={testLoading}>
               加载菜单
             </Button>
           </Space>
@@ -716,12 +691,10 @@ const MenuPermission = () => {
           <Spin spinning={testLoading}>
             {testUserMenus.length > 0 ? (
               <div>
-                <p><strong>该用户可访问的菜单：</strong></p>
-                <Tree
-                  showIcon
-                  defaultExpandAll
-                  treeData={convertToTreeData(testUserMenus)}
-                />
+                <p>
+                  <strong>该用户可访问的菜单：</strong>
+                </p>
+                <Tree showIcon defaultExpandAll treeData={convertToTreeData(testUserMenus)} />
               </div>
             ) : (
               <Empty description="请输入用户ID并加载" image={Empty.PRESENTED_IMAGE_SIMPLE} />
@@ -740,12 +713,8 @@ const MenuPermission = () => {
       >
         {cacheStats ? (
           <Descriptions column={1} bordered>
-            <Descriptions.Item label="已缓存用户数">
-              {cacheStats.totalCached}
-            </Descriptions.Item>
-            <Descriptions.Item label="活跃用户数">
-              {cacheStats.activeUsers}
-            </Descriptions.Item>
+            <Descriptions.Item label="已缓存用户数">{cacheStats.totalCached}</Descriptions.Item>
+            <Descriptions.Item label="活跃用户数">{cacheStats.activeUsers}</Descriptions.Item>
             <Descriptions.Item label="缓存命中率">
               <Badge
                 status={cacheStats.hitRate > 80 ? 'success' : 'warning'}
@@ -758,11 +727,10 @@ const MenuPermission = () => {
             <Descriptions.Item label="平均加载时间">
               {cacheStats.avgLoadTime.toFixed(0)} ms
             </Descriptions.Item>
-            <Descriptions.Item label="缓存大小">
-              {cacheStats.cacheSize} KB
-            </Descriptions.Item>
+            <Descriptions.Item label="缓存大小">{cacheStats.cacheSize} KB</Descriptions.Item>
             <Descriptions.Item label="运行时间">
-              {Math.floor(cacheStats.uptime / 3600)} 小时 {Math.floor((cacheStats.uptime % 3600) / 60)} 分钟
+              {Math.floor(cacheStats.uptime / 3600)} 小时{' '}
+              {Math.floor((cacheStats.uptime % 3600) / 60)} 分钟
             </Descriptions.Item>
             {cacheStats.lastClearTime && (
               <Descriptions.Item label="上次清理时间">

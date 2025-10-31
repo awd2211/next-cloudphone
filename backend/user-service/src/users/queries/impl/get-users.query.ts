@@ -3,6 +3,6 @@ export class GetUsersQuery {
     public readonly page: number = 1,
     public readonly limit: number = 10,
     public readonly tenantId?: string,
-    public readonly includeRoles?: boolean,
+    public readonly includeRoles?: boolean
   ) {}
 }

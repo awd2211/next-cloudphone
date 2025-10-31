@@ -238,9 +238,7 @@ const ActivityCenter = () => {
                     justifyContent: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 48, color: '#fff', opacity: 0.8 }}>
-                    {typeConfig.icon}
-                  </div>
+                  <div style={{ fontSize: 48, color: '#fff', opacity: 0.8 }}>{typeConfig.icon}</div>
                 </div>
               )}
               <div style={{ position: 'absolute', top: 12, right: 12 }}>
@@ -318,8 +316,8 @@ const ActivityCenter = () => {
                   {activity.status === ActivityStatus.ONGOING
                     ? '立即参与'
                     : activity.status === ActivityStatus.UPCOMING
-                    ? '敬请期待'
-                    : '活动已结束'}
+                      ? '敬请期待'
+                      : '活动已结束'}
                 </Button>
               </div>
             }

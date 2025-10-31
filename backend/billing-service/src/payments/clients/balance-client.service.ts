@@ -38,11 +38,10 @@ export class BalanceClientService {
 
   constructor(
     private readonly httpClient: HttpClientService,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService
   ) {
     this.userServiceUrl =
-      this.configService.get<string>('USER_SERVICE_URL') ||
-      'http://localhost:30001';
+      this.configService.get<string>('USER_SERVICE_URL') || 'http://localhost:30001';
   }
 
   /**
@@ -52,10 +51,7 @@ export class BalanceClientService {
    * @param amount - 需要的金额
    * @returns 余额检查结果
    */
-  async checkBalance(
-    userId: string,
-    amount: number,
-  ): Promise<BalanceCheckResponse> {
+  async checkBalance(userId: string, amount: number): Promise<BalanceCheckResponse> {
     this.logger.log(`Checking balance for user ${userId}, amount: ${amount}`);
 
     try {
@@ -66,38 +62,32 @@ export class BalanceClientService {
           timeout: 5000,
           retries: 3,
           circuitBreaker: true,
-        },
+        }
       );
 
       this.logger.log(
-        `Balance check result for user ${userId}: allowed=${data.allowed}, balance=${data.balance}`,
+        `Balance check result for user ${userId}: allowed=${data.allowed}, balance=${data.balance}`
       );
 
       return data;
     } catch (error) {
       this.logger.error(
         `Failed to check balance for user ${userId}: ${error.message}`,
-        error.stack,
+        error.stack
       );
 
       // 如果是熔断器打开，说明 user-service 不可用
       if (error.message?.includes('Circuit breaker is open')) {
-        throw new ServiceUnavailableException(
-          '用户服务暂时不可用，请稍后重试',
-        );
+        throw new ServiceUnavailableException('用户服务暂时不可用，请稍后重试');
       }
 
       // 如果是 400 错误，说明余额不足
       if (error.response?.status === 400) {
-        throw new BadRequestException(
-          error.response.data?.message || '余额不足',
-        );
+        throw new BadRequestException(error.response.data?.message || '余额不足');
       }
 
       // 其他错误
-      throw new ServiceUnavailableException(
-        '余额检查失败，请稍后重试',
-      );
+      throw new ServiceUnavailableException('余额检查失败，请稍后重试');
     }
   }
 
@@ -112,11 +102,9 @@ export class BalanceClientService {
   async deductBalance(
     userId: string,
     amount: number,
-    orderId: string,
+    orderId: string
   ): Promise<BalanceDeductResponse> {
-    this.logger.log(
-      `Deducting balance for user ${userId}, amount: ${amount}, orderId: ${orderId}`,
-    );
+    this.logger.log(`Deducting balance for user ${userId}, amount: ${amount}, orderId: ${orderId}`);
 
     try {
       const data = await this.httpClient.post<BalanceDeductResponse>(
@@ -131,46 +119,38 @@ export class BalanceClientService {
           timeout: 5000,
           retries: 3,
           circuitBreaker: true,
-        },
+        }
       );
 
       this.logger.log(
-        `Balance deducted for user ${userId}: newBalance=${data.newBalance}, transactionId=${data.transactionId}`,
+        `Balance deducted for user ${userId}: newBalance=${data.newBalance}, transactionId=${data.transactionId}`
       );
 
       return data;
     } catch (error) {
       this.logger.error(
         `Failed to deduct balance for user ${userId}: ${error.message}`,
-        error.stack,
+        error.stack
       );
 
       // 如果是熔断器打开，说明 user-service 不可用
       if (error.message?.includes('Circuit breaker is open')) {
-        throw new ServiceUnavailableException(
-          '用户服务暂时不可用，请稍后重试',
-        );
+        throw new ServiceUnavailableException('用户服务暂时不可用，请稍后重试');
       }
 
       // 如果是 400 错误，说明余额不足或参数错误
       if (error.response?.status === 400) {
-        throw new BadRequestException(
-          error.response.data?.message || '余额扣减失败',
-        );
+        throw new BadRequestException(error.response.data?.message || '余额扣减失败');
       }
 
       // 如果是 409 冲突，说明订单已经扣过款（幂等性保护）
       if (error.response?.status === 409) {
-        this.logger.warn(
-          `Order ${orderId} already deducted, returning cached result`,
-        );
+        this.logger.warn(`Order ${orderId} already deducted, returning cached result`);
         return error.response.data;
       }
 
       // 其他错误
-      throw new ServiceUnavailableException(
-        '余额扣减失败，请稍后重试',
-      );
+      throw new ServiceUnavailableException('余额扣减失败，请稍后重试');
     }
   }
 
@@ -185,11 +165,9 @@ export class BalanceClientService {
   async refundBalance(
     userId: string,
     amount: number,
-    orderId: string,
+    orderId: string
   ): Promise<BalanceDeductResponse> {
-    this.logger.log(
-      `Refunding balance for user ${userId}, amount: ${amount}, orderId: ${orderId}`,
-    );
+    this.logger.log(`Refunding balance for user ${userId}, amount: ${amount}, orderId: ${orderId}`);
 
     try {
       const data = await this.httpClient.post<BalanceDeductResponse>(
@@ -204,24 +182,20 @@ export class BalanceClientService {
           timeout: 5000,
           retries: 3,
           circuitBreaker: true,
-        },
+        }
       );
 
-      this.logger.log(
-        `Balance refunded for user ${userId}: newBalance=${data.newBalance}`,
-      );
+      this.logger.log(`Balance refunded for user ${userId}: newBalance=${data.newBalance}`);
 
       return data;
     } catch (error) {
       this.logger.error(
         `Failed to refund balance for user ${userId}: ${error.message}`,
-        error.stack,
+        error.stack
       );
 
       // 退款失败需要记录，以便人工处理
-      throw new ServiceUnavailableException(
-        '退款失败，请联系客服处理',
-      );
+      throw new ServiceUnavailableException('退款失败，请联系客服处理');
     }
   }
 }

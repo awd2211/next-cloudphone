@@ -43,10 +43,7 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   }
 
   @SubscribeMessage('subscribe')
-  handleSubscribe(
-    @MessageBody() data: { userId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
+  handleSubscribe(@MessageBody() data: { userId: string }, @ConnectedSocket() client: Socket) {
     this.logger.log(`用户 ${data.userId} 订阅通知，客户端: ${client.id}`);
 
     // 将客户端加入用户特定的房间
@@ -62,10 +59,7 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   }
 
   @SubscribeMessage('unsubscribe')
-  handleUnsubscribe(
-    @MessageBody() data: { userId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
+  handleUnsubscribe(@MessageBody() data: { userId: string }, @ConnectedSocket() client: Socket) {
     this.logger.log(`用户 ${data.userId} 取消订阅通知，客户端: ${client.id}`);
     client.leave(`user:${data.userId}`);
 

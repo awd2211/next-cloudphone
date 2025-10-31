@@ -150,7 +150,11 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
               name="account"
               rules={[
                 { required: true, message: '请输入支付宝账号' },
-                { pattern: /^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z0-9]{2,6}$|^1[3-9]\d{9}$/, message: '请输入正确的支付宝账号' },
+                {
+                  pattern:
+                    /^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z0-9]{2,6}$|^1[3-9]\d{9}$/,
+                  message: '请输入正确的支付宝账号',
+                },
               ]}
             >
               <Input placeholder="手机号或邮箱" />

@@ -1,9 +1,9 @@
-import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
-import { PassportModule } from "@nestjs/passport";
-import { ConfigService } from "@nestjs/config";
-import { JwtStrategy } from "./strategies/jwt.strategy";
-import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 /**
  * API Gateway 认证模块（重构后）
@@ -19,14 +19,12 @@ import { JwtAuthGuard } from "./guards/jwt-auth.guard";
  */
 @Module({
   imports: [
-    PassportModule.register({ defaultStrategy: "jwt" }),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret:
-          configService.get<string>("JWT_SECRET") ||
-          "dev-secret-key-change-in-production",
-        signOptions: { expiresIn: "7d" },
+        secret: configService.get<string>('JWT_SECRET') || 'dev-secret-key-change-in-production',
+        signOptions: { expiresIn: '7d' },
       }),
     }),
   ],

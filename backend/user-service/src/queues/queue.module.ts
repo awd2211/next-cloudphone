@@ -29,7 +29,7 @@ import { User } from '../entities/user.entity';
       { name: QueueName.DATA_EXPORT },
       { name: QueueName.REPORT_GENERATION },
       { name: QueueName.IMAGE_PROCESSING },
-      { name: QueueName.LOG_PROCESSING },
+      { name: QueueName.LOG_PROCESSING }
     ),
 
     // TypeORM 实体访问
@@ -39,12 +39,7 @@ import { User } from '../entities/user.entity';
     SmsModule,
   ],
   controllers: [QueueController],
-  providers: [
-    QueueService,
-    EmailProcessor,
-    SmsProcessor,
-    DeviceOperationProcessor,
-  ],
+  providers: [QueueService, EmailProcessor, SmsProcessor, DeviceOperationProcessor],
   exports: [QueueService, BullModule],
 })
 export class QueueModule {}

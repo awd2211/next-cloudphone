@@ -1,10 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  Index,
-} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index } from 'typeorm';
 
 export enum TransactionType {
   RECHARGE = 'recharge', // 充值
@@ -101,8 +95,6 @@ export class BalanceTransaction {
   }
 
   isDecrease(): boolean {
-    return [TransactionType.CONSUME, TransactionType.FREEZE].includes(
-      this.type,
-    );
+    return [TransactionType.CONSUME, TransactionType.FREEZE].includes(this.type);
   }
 }

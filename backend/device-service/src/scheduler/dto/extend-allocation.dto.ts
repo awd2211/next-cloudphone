@@ -1,18 +1,12 @@
-import {
-  IsString,
-  IsNumber,
-  IsOptional,
-  Min,
-  Max,
-} from "class-validator";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsString, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * 单设备续期请求 DTO
  */
 export class ExtendAllocationDto {
   @ApiProperty({
-    description: "延长时长（分钟）",
+    description: '延长时长（分钟）',
     example: 30,
     minimum: 1,
     maximum: 1440,
@@ -23,8 +17,8 @@ export class ExtendAllocationDto {
   additionalMinutes: number;
 
   @ApiPropertyOptional({
-    description: "续期原因（可选）",
-    example: "需要更多时间完成任务",
+    description: '续期原因（可选）',
+    example: '需要更多时间完成任务',
   })
   @IsOptional()
   @IsString()
@@ -36,61 +30,61 @@ export class ExtendAllocationDto {
  */
 export class ExtendAllocationResult {
   @ApiProperty({
-    description: "分配ID",
-    example: "alloc-abc123",
+    description: '分配ID',
+    example: 'alloc-abc123',
   })
   allocationId: string;
 
   @ApiProperty({
-    description: "用户ID",
-    example: "user-001",
+    description: '用户ID',
+    example: 'user-001',
   })
   userId: string;
 
   @ApiProperty({
-    description: "设备ID",
-    example: "device-xyz789",
+    description: '设备ID',
+    example: 'device-xyz789',
   })
   deviceId: string;
 
   @ApiProperty({
-    description: "设备名称",
-    example: "Device-001",
+    description: '设备名称',
+    example: 'Device-001',
   })
   deviceName: string;
 
   @ApiProperty({
-    description: "原过期时间",
-    example: "2025-10-30T14:00:00Z",
+    description: '原过期时间',
+    example: '2025-10-30T14:00:00Z',
   })
   oldExpiresAt: string;
 
   @ApiProperty({
-    description: "新过期时间",
-    example: "2025-10-30T14:30:00Z",
+    description: '新过期时间',
+    example: '2025-10-30T14:30:00Z',
   })
   newExpiresAt: string;
 
   @ApiProperty({
-    description: "延长时长（分钟）",
+    description: '延长时长（分钟）',
     example: 30,
   })
   additionalMinutes: number;
 
   @ApiProperty({
-    description: "当前续期次数",
+    description: '当前续期次数',
     example: 2,
   })
   extendCount: number;
 
   @ApiProperty({
-    description: "剩余续期次数",
+    description: '剩余续期次数',
     example: 3,
   })
   remainingExtends: number;
 
   @ApiProperty({
-    description: "总使用时长（分钟）",
+    description: '总使用时长（分钟）',
     example: 150,
   })
   totalDurationMinutes: number;
@@ -164,56 +158,56 @@ export interface ExtendHistoryEntry {
  */
 export class AllocationExtendInfo {
   @ApiProperty({
-    description: "分配ID",
-    example: "alloc-abc123",
+    description: '分配ID',
+    example: 'alloc-abc123',
   })
   allocationId: string;
 
   @ApiProperty({
-    description: "当前续期次数",
+    description: '当前续期次数',
     example: 2,
   })
   extendCount: number;
 
   @ApiProperty({
-    description: "剩余续期次数（-1表示无限制）",
+    description: '剩余续期次数（-1表示无限制）',
     example: 3,
   })
   remainingExtends: number;
 
   @ApiProperty({
-    description: "总使用时长（分钟）",
+    description: '总使用时长（分钟）',
     example: 150,
   })
   totalDurationMinutes: number;
 
   @ApiProperty({
-    description: "最大允许总时长（分钟，-1表示无限制）",
+    description: '最大允许总时长（分钟，-1表示无限制）',
     example: 480,
   })
   maxTotalMinutes: number;
 
   @ApiProperty({
-    description: "是否可以续期",
+    description: '是否可以续期',
     example: true,
   })
   canExtend: boolean;
 
   @ApiProperty({
-    description: "不能续期的原因（如果不能续期）",
-    example: "已达到最大续期次数",
+    description: '不能续期的原因（如果不能续期）',
+    example: '已达到最大续期次数',
   })
   cannotExtendReason?: string;
 
   @ApiProperty({
-    description: "续期历史",
-    type: "array",
+    description: '续期历史',
+    type: 'array',
   })
   extendHistory: ExtendHistoryEntry[];
 
   @ApiProperty({
-    description: "下次可续期时间（冷却时间）",
-    example: "2025-10-30T13:35:00Z",
+    description: '下次可续期时间（冷却时间）',
+    example: '2025-10-30T13:35:00Z',
   })
   nextExtendAvailableAt?: string;
 }

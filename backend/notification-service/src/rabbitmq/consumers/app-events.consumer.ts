@@ -23,7 +23,7 @@ export class AppEventsConsumer {
 
   constructor(
     private readonly notificationsService: NotificationsService,
-    private readonly templatesService: TemplatesService,
+    private readonly templatesService: TemplatesService
   ) {}
 
   @RabbitSubscribe({
@@ -44,7 +44,7 @@ export class AppEventsConsumer {
           deviceName: event.payload.deviceName || '云手机',
           installedAt: event.payload.installedAt || new Date(),
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -79,7 +79,7 @@ export class AppEventsConsumer {
           reason: event.payload.reason,
           failedAt: event.payload.failedAt || new Date(),
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({
@@ -114,7 +114,7 @@ export class AppEventsConsumer {
           oldVersion: event.payload.oldVersion || '未知',
           updatedAt: event.payload.updatedAt || new Date(),
         },
-        'zh-CN',
+        'zh-CN'
       );
 
       await this.notificationsService.createAndSend({

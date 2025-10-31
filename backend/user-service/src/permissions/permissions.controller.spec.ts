@@ -3,7 +3,11 @@ import { INestApplication, NotFoundException, ConflictException } from '@nestjs/
 import * as request from 'supertest';
 import { PermissionsController } from './permissions.controller';
 import { PermissionsService } from './permissions.service';
-import { createTestApp, generateTestJwt, assertHttpResponse } from '@cloudphone/shared/testing/test-helpers';
+import {
+  createTestApp,
+  generateTestJwt,
+  assertHttpResponse,
+} from '@cloudphone/shared/testing/test-helpers';
 import { createMockPermission } from '@cloudphone/shared/testing/mock-factories';
 
 describe('PermissionsController', () => {
@@ -21,7 +25,14 @@ describe('PermissionsController', () => {
   };
 
   // Helper to generate auth token with specific permissions
-  const createAuthToken = (permissions: string[] = ['permission.read', 'permission.create', 'permission.update', 'permission.delete']) => {
+  const createAuthToken = (
+    permissions: string[] = [
+      'permission.read',
+      'permission.create',
+      'permission.update',
+      'permission.delete',
+    ]
+  ) => {
     return generateTestJwt({
       sub: 'test-admin-id',
       username: 'admin',
@@ -33,9 +44,7 @@ describe('PermissionsController', () => {
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       controllers: [PermissionsController],
-      providers: [
-        { provide: PermissionsService, useValue: mockPermissionsService },
-      ],
+      providers: [{ provide: PermissionsService, useValue: mockPermissionsService }],
     }).compile();
 
     app = await createTestApp(moduleRef);
@@ -103,10 +112,7 @@ describe('PermissionsController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .post('/permissions')
-        .send(createPermissionDto)
-        .expect(401);
+      await request(app.getHttpServer()).post('/permissions').send(createPermissionDto).expect(401);
     });
 
     it('should return 400 when validation fails', async () => {
@@ -189,7 +195,7 @@ describe('PermissionsController', () => {
 
     it('should create multiple permissions successfully', async () => {
       // Arrange
-      const mockPermissions = bulkCreateDto.map(dto => createMockPermission(dto));
+      const mockPermissions = bulkCreateDto.map((dto) => createMockPermission(dto));
       mockPermissionsService.bulkCreate.mockResolvedValue(mockPermissions);
       const token = createAuthToken(['permission.create']);
 
@@ -268,14 +274,14 @@ describe('PermissionsController', () => {
 
     it('should create CRUD permissions for a resource', async () => {
       // Arrange
-      const crudPermissions = ['create', 'read', 'update', 'delete'].map(action => ({
+      const crudPermissions = ['create', 'read', 'update', 'delete'].map((action) => ({
         name: `user.${action}`,
         resource: 'user',
         action,
         displayName: `${action.charAt(0).toUpperCase() + action.slice(1)} User`,
       }));
 
-      const mockPermissions = crudPermissions.map(p => createMockPermission(p));
+      const mockPermissions = crudPermissions.map((p) => createMockPermission(p));
       mockPermissionsService.bulkCreate.mockResolvedValue(mockPermissions);
       const token = createAuthToken(['permission.create']);
 
@@ -527,9 +533,7 @@ describe('PermissionsController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .get('/permissions/perm-123')
-        .expect(401);
+      await request(app.getHttpServer()).get('/permissions/perm-123').expect(401);
     });
   });
 
@@ -612,9 +616,7 @@ describe('PermissionsController', () => {
 
     it('should prevent updating system permissions', async () => {
       // Arrange
-      mockPermissionsService.update.mockRejectedValue(
-        new Error('Cannot modify system permission')
-      );
+      mockPermissionsService.update.mockRejectedValue(new Error('Cannot modify system permission'));
       const token = createAuthToken(['permission.update']);
 
       // Act
@@ -687,16 +689,12 @@ describe('PermissionsController', () => {
 
     it('should return 401 when not authenticated', async () => {
       // Act
-      await request(app.getHttpServer())
-        .delete('/permissions/perm-123')
-        .expect(401);
+      await request(app.getHttpServer()).delete('/permissions/perm-123').expect(401);
     });
 
     it('should prevent deleting system permissions', async () => {
       // Arrange
-      mockPermissionsService.remove.mockRejectedValue(
-        new Error('Cannot delete system permission')
-      );
+      mockPermissionsService.remove.mockRejectedValue(new Error('Cannot delete system permission'));
       const token = createAuthToken(['permission.delete']);
 
       // Act
@@ -800,7 +798,12 @@ describe('PermissionsController', () => {
 
     it('should handle concurrent permission creation', async () => {
       // Arrange
-      const permDto = { name: 'device.create', resource: 'device', action: 'create', displayName: 'Test' };
+      const permDto = {
+        name: 'device.create',
+        resource: 'device',
+        action: 'create',
+        displayName: 'Test',
+      };
       mockPermissionsService.create
         .mockResolvedValueOnce(createMockPermission(permDto))
         .mockRejectedValueOnce(new ConflictException('Permission already exists'));

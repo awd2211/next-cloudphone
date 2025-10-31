@@ -7,7 +7,7 @@ import { Permission } from '../entities/permission.entity';
 
 /**
  * 缓存预热服务
- * 
+ *
  * 应用启动时预热常用数据到缓存
  */
 @Injectable()
@@ -19,13 +19,13 @@ export class CacheWarmupService implements OnModuleInit {
     private roleRepository: Repository<Role>,
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
-    private cacheService: CacheService,
+    private cacheService: CacheService
   ) {}
 
   async onModuleInit() {
     // 延迟5秒后预热，等待所有服务初始化完成
     setTimeout(() => {
-      this.warmupCache().catch(err => {
+      this.warmupCache().catch((err) => {
         this.logger.error(`Cache warmup failed: ${err.message}`);
       });
     }, 5000);
@@ -36,16 +36,13 @@ export class CacheWarmupService implements OnModuleInit {
    */
   private async warmupCache() {
     this.logger.log('🔥 Starting cache warmup...');
-    
+
     const startTime = Date.now();
-    
+
     try {
       // 并行预热
-      await Promise.all([
-        this.warmupRoles(),
-        this.warmupPermissions(),
-      ]);
-      
+      await Promise.all([this.warmupRoles(), this.warmupPermissions()]);
+
       const duration = Date.now() - startTime;
       this.logger.log(`✅ Cache warmup completed in ${duration}ms`);
     } catch (error) {
@@ -60,14 +57,14 @@ export class CacheWarmupService implements OnModuleInit {
     try {
       const roles = await this.roleRepository.find({
         relations: ['permissions'],
-        take: 100,  // 最多预热100个角色
+        take: 100, // 最多预热100个角色
       });
-      
+
       for (const role of roles) {
         const cacheKey = `role:${role.id}`;
-        await this.cacheService.set(cacheKey, role, { ttl: 600 });  // 10分钟
+        await this.cacheService.set(cacheKey, role, { ttl: 600 }); // 10分钟
       }
-      
+
       this.logger.log(`  ✅ Warmed up ${roles.length} roles`);
     } catch (error) {
       this.logger.warn(`Failed to warmup roles: ${error.message}`);
@@ -80,14 +77,14 @@ export class CacheWarmupService implements OnModuleInit {
   private async warmupPermissions() {
     try {
       const permissions = await this.permissionRepository.find({
-        take: 200,  // 最多预热200个权限
+        take: 200, // 最多预热200个权限
       });
-      
+
       for (const permission of permissions) {
         const cacheKey = `permission:${permission.id}`;
         await this.cacheService.set(cacheKey, permission, { ttl: 600 });
       }
-      
+
       this.logger.log(`  ✅ Warmed up ${permissions.length} permissions`);
     } catch (error) {
       this.logger.warn(`Failed to warmup permissions: ${error.message}`);
@@ -107,14 +104,13 @@ export class CacheWarmupService implements OnModuleInit {
    */
   async clearAndWarmup(): Promise<void> {
     this.logger.log('Clearing cache and rewarming...');
-    
+
     // 清除所有缓存
     await this.cacheService.delPattern('user:*');
     await this.cacheService.delPattern('role:*');
     await this.cacheService.delPattern('permission:*');
-    
+
     // 重新预热
     await this.warmupCache();
   }
 }
-

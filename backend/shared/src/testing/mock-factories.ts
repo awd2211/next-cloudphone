@@ -150,8 +150,8 @@ export function createMockPermission(overrides: Partial<any> = {}) {
 
   return {
     id: randomUUID(),
-    name: merged.name || permissionCode,  // Use code as name if not provided
-    code: permissionCode,  // Add code field for JWT payload
+    name: merged.name || permissionCode, // Use code as name if not provided
+    code: permissionCode, // Add code field for JWT payload
     description: 'Test permission description',
     resource: merged.resource,
     action: merged.action,
@@ -323,10 +323,7 @@ export function createMockTemplate(overrides: Partial<any> = {}) {
 /**
  * 创建 Mock 事件载荷
  */
-export function createMockEventPayload(
-  eventType: string,
-  data: Record<string, any> = {},
-) {
+export function createMockEventPayload(eventType: string, data: Record<string, any> = {}) {
   return {
     eventId: randomUUID(),
     eventType,
@@ -427,7 +424,7 @@ export function createMockHttpClientService() {
 export function createMockConfigService(config: Record<string, any> = {}) {
   return {
     get: jest.fn((key: string, defaultValue?: any) =>
-      config[key] !== undefined ? config[key] : defaultValue,
+      config[key] !== undefined ? config[key] : defaultValue
     ),
     getOrThrow: jest.fn((key: string) => {
       if (config[key] === undefined) {
@@ -492,9 +489,7 @@ export function createMockRedisClient() {
     exists: jest.fn((key) => Promise.resolve(store.has(key) ? 1 : 0)),
     keys: jest.fn((pattern) => {
       const regex = new RegExp(pattern.replace('*', '.*'));
-      return Promise.resolve(
-        Array.from(store.keys()).filter((k) => regex.test(k as string)),
-      );
+      return Promise.resolve(Array.from(store.keys()).filter((k) => regex.test(k as string)));
     }),
     zadd: jest.fn().mockResolvedValue(1),
     zremrangebyscore: jest.fn().mockResolvedValue(1),
@@ -505,7 +500,12 @@ export function createMockRedisClient() {
       zremrangebyscore: jest.fn().mockReturnThis(),
       zcard: jest.fn().mockReturnThis(),
       expire: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue([[null, 1], [null, 1], [null, 0], [null, 1]]),
+      exec: jest.fn().mockResolvedValue([
+        [null, 1],
+        [null, 1],
+        [null, 0],
+        [null, 1],
+      ]),
     })),
   };
 }
@@ -648,8 +648,14 @@ export function createMockTicket(overrides: Partial<any> = {}) {
     replies: [],
     createdAt: now,
     updatedAt: now,
-    isOpen: () => [MockTicketStatus.OPEN, MockTicketStatus.IN_PROGRESS, MockTicketStatus.PENDING].includes(overrides.status || MockTicketStatus.OPEN),
-    isClosed: () => [MockTicketStatus.RESOLVED, MockTicketStatus.CLOSED].includes(overrides.status || MockTicketStatus.OPEN),
+    isOpen: () =>
+      [MockTicketStatus.OPEN, MockTicketStatus.IN_PROGRESS, MockTicketStatus.PENDING].includes(
+        overrides.status || MockTicketStatus.OPEN
+      ),
+    isClosed: () =>
+      [MockTicketStatus.RESOLVED, MockTicketStatus.CLOSED].includes(
+        overrides.status || MockTicketStatus.OPEN
+      ),
     canReply: () => (overrides.status || MockTicketStatus.OPEN) !== MockTicketStatus.CLOSED,
     getResponseTime: () => {
       const firstResponse = overrides.firstResponseAt;

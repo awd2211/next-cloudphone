@@ -1,6 +1,6 @@
-import { Module, OnModuleDestroy } from "@nestjs/common";
-import { ScrcpyService } from "./scrcpy.service";
-import { ScrcpyGateway } from "./scrcpy.gateway";
+import { Module, OnModuleDestroy } from '@nestjs/common';
+import { ScrcpyService } from './scrcpy.service';
+import { ScrcpyGateway } from './scrcpy.gateway';
 
 /**
  * ScrcpyModule

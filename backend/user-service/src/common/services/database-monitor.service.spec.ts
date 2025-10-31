@@ -106,7 +106,7 @@ describe('DatabaseMonitorService', () => {
         expect.objectContaining({
           type: 'database_query_error',
           error: 'Database error',
-        }),
+        })
       );
     });
 
@@ -125,7 +125,7 @@ describe('DatabaseMonitorService', () => {
         expect.objectContaining({
           type: 'slow_query',
           duration: 3000,
-        }),
+        })
       );
     });
 
@@ -144,7 +144,7 @@ describe('DatabaseMonitorService', () => {
         expect.objectContaining({
           type: 'slow_query',
           duration: 11000,
-        }),
+        })
       );
     });
 
@@ -400,7 +400,7 @@ describe('DatabaseMonitorService', () => {
         expect.objectContaining({
           type: 'connection_pool_health_check',
           metrics: expect.any(Object),
-        }),
+        })
       );
     });
 
@@ -416,7 +416,7 @@ describe('DatabaseMonitorService', () => {
       expect(mockPinoLogger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'connection_pool_warning',
-        }),
+        })
       );
     });
 
@@ -432,7 +432,7 @@ describe('DatabaseMonitorService', () => {
       expect(mockPinoLogger.error).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'connection_pool_critical',
-        }),
+        })
       );
     });
 
@@ -448,7 +448,7 @@ describe('DatabaseMonitorService', () => {
         expect.objectContaining({
           type: 'connection_pool_waiting',
           waiting: 10,
-        }),
+        })
       );
     });
   });

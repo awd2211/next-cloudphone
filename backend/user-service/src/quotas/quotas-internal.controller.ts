@@ -11,7 +11,12 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { ServiceAuthGuard } from '@cloudphone/shared';
-import { QuotasService, CheckQuotaRequest, DeductQuotaRequest, RestoreQuotaRequest } from './quotas.service';
+import {
+  QuotasService,
+  CheckQuotaRequest,
+  DeductQuotaRequest,
+  RestoreQuotaRequest,
+} from './quotas.service';
 
 /**
  * 内部配额 API
@@ -42,7 +47,7 @@ export class QuotasInternalController {
   @Get('user/:userId')
   @ApiOperation({
     summary: '获取用户配额（内部）',
-    description: '供其他服务调用，查询用户当前配额信息'
+    description: '供其他服务调用，查询用户当前配额信息',
   })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 404, description: '未找到配额' })
@@ -61,13 +66,13 @@ export class QuotasInternalController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '检查配额是否充足（内部）',
-    description: '供其他服务调用，检查用户配额是否足够'
+    description: '供其他服务调用，检查用户配额是否足够',
   })
   @ApiResponse({ status: 200, description: '检查完成' })
   @ApiResponse({ status: 401, description: '服务 Token 无效' })
   async checkQuota(@Body() request: CheckQuotaRequest) {
     this.logger.debug(
-      `[Internal] 检查配额 - userId: ${request.userId}, 类型: ${request.quotaType}, 数量: ${request.requestedAmount}`,
+      `[Internal] 检查配额 - userId: ${request.userId}, 类型: ${request.quotaType}, 数量: ${request.requestedAmount}`
     );
     return await this.quotasService.checkQuota(request);
   }
@@ -81,7 +86,7 @@ export class QuotasInternalController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '扣减配额（内部）',
-    description: '供其他服务调用，扣减用户配额'
+    description: '供其他服务调用，扣减用户配额',
   })
   @ApiResponse({ status: 200, description: '扣减成功' })
   @ApiResponse({ status: 404, description: '未找到配额' })
@@ -100,7 +105,7 @@ export class QuotasInternalController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '恢复配额（内部）',
-    description: '供其他服务调用，恢复用户配额'
+    description: '供其他服务调用，恢复用户配额',
   })
   @ApiResponse({ status: 200, description: '恢复成功' })
   @ApiResponse({ status: 401, description: '服务 Token 无效' })
@@ -132,10 +137,10 @@ export class QuotasInternalController {
       memoryGB: number;
       storageGB: number;
       operation: 'increment' | 'decrement';
-    },
+    }
   ) {
     this.logger.log(
-      `[Internal] 上报用量 - userId: ${userId}, 操作: ${usageReport.operation}, 设备: ${usageReport.deviceId}`,
+      `[Internal] 上报用量 - userId: ${userId}, 操作: ${usageReport.operation}, 设备: ${usageReport.deviceId}`
     );
 
     if (usageReport.operation === 'increment') {
@@ -168,16 +173,14 @@ export class QuotasInternalController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '批量检查配额（内部）',
-    description: '供其他服务调用，批量检查多个用户的配额'
+    description: '供其他服务调用，批量检查多个用户的配额',
   })
   @ApiResponse({ status: 200, description: '检查完成' })
   @ApiResponse({ status: 401, description: '服务 Token 无效' })
   async batchCheckQuota(@Body() requests: CheckQuotaRequest[]) {
     this.logger.debug(`[Internal] 批量检查配额 - 数量: ${requests.length}`);
 
-    const results = await Promise.all(
-      requests.map((req) => this.quotasService.checkQuota(req)),
-    );
+    const results = await Promise.all(requests.map((req) => this.quotasService.checkQuota(req)));
 
     return {
       total: results.length,
@@ -195,7 +198,7 @@ export class QuotasInternalController {
   @Get('usage-stats/:userId')
   @ApiOperation({
     summary: '获取用户使用统计（内部）',
-    description: '供其他服务调用，查询用户资源使用统计'
+    description: '供其他服务调用，查询用户资源使用统计',
   })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 401, description: '服务 Token 无效' })

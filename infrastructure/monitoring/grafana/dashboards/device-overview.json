@@ -11,7 +11,7 @@
     "panels": [
       {
         "id": 1,
-        "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+        "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
         "type": "stat",
         "title": "设备总数",
         "targets": [
@@ -23,13 +23,13 @@
         ],
         "fieldConfig": {
           "defaults": {
-            "color": {"mode": "thresholds"},
+            "color": { "mode": "thresholds" },
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "green"},
-                {"value": 50, "color": "yellow"},
-                {"value": 100, "color": "red"}
+                { "value": null, "color": "green" },
+                { "value": 50, "color": "yellow" },
+                { "value": 100, "color": "red" }
               ]
             }
           }
@@ -37,7 +37,7 @@
       },
       {
         "id": 2,
-        "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+        "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
         "type": "stat",
         "title": "运行中设备",
         "targets": [
@@ -49,19 +49,17 @@
         ],
         "fieldConfig": {
           "defaults": {
-            "color": {"mode": "palette-classic"},
+            "color": { "mode": "palette-classic" },
             "thresholds": {
               "mode": "absolute",
-              "steps": [
-                {"value": null, "color": "green"}
-              ]
+              "steps": [{ "value": null, "color": "green" }]
             }
           }
         }
       },
       {
         "id": 3,
-        "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+        "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
         "type": "stat",
         "title": "故障设备",
         "targets": [
@@ -73,12 +71,12 @@
         ],
         "fieldConfig": {
           "defaults": {
-            "color": {"mode": "thresholds"},
+            "color": { "mode": "thresholds" },
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "green"},
-                {"value": 1, "color": "red"}
+                { "value": null, "color": "green" },
+                { "value": 1, "color": "red" }
               ]
             }
           }
@@ -86,7 +84,7 @@
       },
       {
         "id": 4,
-        "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+        "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
         "type": "stat",
         "title": "ADB 连接数",
         "targets": [
@@ -99,7 +97,7 @@
       },
       {
         "id": 5,
-        "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+        "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
         "type": "timeseries",
         "title": "设备 CPU 使用率",
         "targets": [
@@ -114,13 +112,13 @@
             "unit": "percent",
             "min": 0,
             "max": 100,
-            "color": {"mode": "palette-classic"},
+            "color": { "mode": "palette-classic" },
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "green"},
-                {"value": 80, "color": "yellow"},
-                {"value": 95, "color": "red"}
+                { "value": null, "color": "green" },
+                { "value": 80, "color": "yellow" },
+                { "value": 95, "color": "red" }
               ]
             }
           }
@@ -134,7 +132,7 @@
       },
       {
         "id": 6,
-        "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+        "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
         "type": "timeseries",
         "title": "设备内存使用量",
         "targets": [
@@ -147,13 +145,13 @@
         "fieldConfig": {
           "defaults": {
             "unit": "decmbytes",
-            "color": {"mode": "palette-classic"}
+            "color": { "mode": "palette-classic" }
           }
         }
       },
       {
         "id": 7,
-        "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+        "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
         "type": "timeseries",
         "title": "网络流量（接收）",
         "targets": [
@@ -166,13 +164,13 @@
         "fieldConfig": {
           "defaults": {
             "unit": "Bps",
-            "color": {"mode": "palette-classic"}
+            "color": { "mode": "palette-classic" }
           }
         }
       },
       {
         "id": 8,
-        "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+        "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
         "type": "timeseries",
         "title": "网络流量（发送）",
         "targets": [
@@ -185,13 +183,13 @@
         "fieldConfig": {
           "defaults": {
             "unit": "Bps",
-            "color": {"mode": "palette-classic"}
+            "color": { "mode": "palette-classic" }
           }
         }
       },
       {
         "id": 9,
-        "gridPos": {"x": 0, "y": 20, "w": 12, "h": 8},
+        "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
         "type": "piechart",
         "title": "设备状态分布",
         "targets": [
@@ -212,7 +210,7 @@
       },
       {
         "id": 10,
-        "gridPos": {"x": 12, "y": 20, "w": 12, "h": 8},
+        "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
         "type": "heatmap",
         "title": "操作耗时分布",
         "targets": [
@@ -239,7 +237,7 @@
       },
       {
         "id": 11,
-        "gridPos": {"x": 0, "y": 28, "w": 12, "h": 8},
+        "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 },
         "type": "timeseries",
         "title": "操作错误率",
         "targets": [
@@ -252,13 +250,13 @@
         "fieldConfig": {
           "defaults": {
             "unit": "ops",
-            "color": {"mode": "palette-classic"}
+            "color": { "mode": "palette-classic" }
           }
         }
       },
       {
         "id": 12,
-        "gridPos": {"x": 12, "y": 28, "w": 12, "h": 8},
+        "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 },
         "type": "histogram",
         "title": "批量操作规模分布",
         "targets": [

@@ -65,8 +65,8 @@ export const Audit = (config: AuditConfig) =>
     severity: config.severity || AuditSeverity.INFO,
     resource: config.resource,
     action: config.action,
-    logParameters: config.logParameters !== false,  // 默认记录
-    logResponse: config.logResponse !== false,       // 默认记录
+    logParameters: config.logParameters !== false, // 默认记录
+    logResponse: config.logResponse !== false, // 默认记录
   });
 
 /**

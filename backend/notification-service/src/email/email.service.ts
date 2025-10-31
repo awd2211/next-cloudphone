@@ -24,7 +24,7 @@ export class EmailService {
 
   private initializeTransporter() {
     const smtpHost = this.configService.get('SMTP_HOST');
-    
+
     if (!smtpHost) {
       this.logger.warn('SMTP 未配置，邮件功能已禁用');
       this.enabled = false;
@@ -234,7 +234,7 @@ export class EmailService {
     userEmail: string,
     deviceName: string,
     expiresAt: Date,
-    daysRemaining: number,
+    daysRemaining: number
   ) {
     const expiresAtStr = new Date(expiresAt).toLocaleString('zh-CN', {
       year: 'numeric',
@@ -246,11 +246,7 @@ export class EmailService {
 
     const urgencyColor = daysRemaining <= 3 ? '#ff4d4f' : '#faad14';
     const urgencyText =
-      daysRemaining <= 1
-        ? '即将到期！'
-        : daysRemaining <= 3
-          ? '紧急提醒'
-          : '到期提醒';
+      daysRemaining <= 1 ? '即将到期！' : daysRemaining <= 3 ? '紧急提醒' : '到期提醒';
 
     const template = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -292,4 +288,3 @@ export class EmailService {
     });
   }
 }
-

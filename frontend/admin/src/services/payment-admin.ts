@@ -226,11 +226,7 @@ export const testProviderConnection = (provider: string) => {
 /**
  * 获取 Webhook 日志
  */
-export const getWebhookLogs = (params: {
-  page?: number;
-  limit?: number;
-  provider?: string;
-}) => {
+export const getWebhookLogs = (params: { page?: number; limit?: number; provider?: string }) => {
   return request.get('/admin/payments/webhooks/logs', { params });
 };
 

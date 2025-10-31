@@ -1,6 +1,8 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { SKIP_MASK_KEY } from '../decorators/skip-mask.decorator';
 
 /**
  * 敏感数据脱敏拦截器
@@ -8,6 +10,8 @@ import { map } from 'rxjs/operators';
  */
 @Injectable()
 export class SensitiveDataInterceptor implements NestInterceptor {
+  constructor(private reflector: Reflector) {}
+
   // 需要移除的敏感字段列表
   private readonly sensitiveFields = [
     'password',
@@ -27,15 +31,19 @@ export class SensitiveDataInterceptor implements NestInterceptor {
   ]);
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    return next.handle().pipe(
-      map(data => this.removeSensitiveData(data))
+    // 检查是否跳过脱敏
+    const skipMask = this.reflector.getAllAndOverride<string | string[] | undefined>(
+      SKIP_MASK_KEY,
+      [context.getHandler(), context.getClass()]
     );
+
+    return next.handle().pipe(map((data) => this.removeSensitiveData(data, skipMask)));
   }
 
   /**
    * 递归移除敏感数据
    */
-  private removeSensitiveData(data: any): any {
+  private removeSensitiveData(data: any, skipMask?: string | string[]): any {
     // 处理 null 和 undefined
     if (data === null || data === undefined) {
       return data;
@@ -43,12 +51,16 @@ export class SensitiveDataInterceptor implements NestInterceptor {
 
     // 处理数组
     if (Array.isArray(data)) {
-      return data.map(item => this.removeSensitiveData(item));
+      return data.map((item) => this.removeSensitiveData(item, skipMask));
     }
 
     // 处理对象
     if (data && typeof data === 'object') {
       const sanitized: any = {};
+
+      // 如果skipMask为undefined，跳过所有脱敏
+      const shouldSkipAll = skipMask === undefined;
+      const skipFields = typeof skipMask === 'string' ? [skipMask] : skipMask || [];
 
       for (const key of Object.keys(data)) {
         // 完全移除敏感字段
@@ -56,13 +68,16 @@ export class SensitiveDataInterceptor implements NestInterceptor {
           continue; // 跳过敏感字段
         }
 
+        // 检查是否跳过该字段的脱敏
+        const shouldSkipField = shouldSkipAll || skipFields.includes(key);
+
         // 部分脱敏字段
-        if (this.partialMaskFields.has(key) && typeof data[key] === 'string') {
+        if (!shouldSkipField && this.partialMaskFields.has(key) && typeof data[key] === 'string') {
           const maskFunction = this.partialMaskFields.get(key);
           sanitized[key] = maskFunction ? maskFunction(data[key]) : data[key];
         } else {
           // 递归处理嵌套对象
-          sanitized[key] = this.removeSensitiveData(data[key]);
+          sanitized[key] = this.removeSensitiveData(data[key], skipMask);
         }
       }
 

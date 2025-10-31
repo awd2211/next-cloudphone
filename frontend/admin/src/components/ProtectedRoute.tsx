@@ -15,10 +15,7 @@ interface ProtectedRouteProps {
  * - 未登录用户重定向到登录页
  * - 无权限用户显示 403 页面
  */
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  children,
-  requiredPermission,
-}) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredPermission }) => {
   // 检查是否已登录
   const token = localStorage.getItem('token');
   const isAuthenticated = !!token;
@@ -32,9 +29,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (requiredPermission) {
     // 从 localStorage 或 store 中获取用户权限
     const userPermissionsStr = localStorage.getItem('permissions');
-    const userPermissions: string[] = userPermissionsStr
-      ? JSON.parse(userPermissionsStr)
-      : [];
+    const userPermissions: string[] = userPermissionsStr ? JSON.parse(userPermissionsStr) : [];
 
     const hasPermission = userPermissions.includes(requiredPermission);
 

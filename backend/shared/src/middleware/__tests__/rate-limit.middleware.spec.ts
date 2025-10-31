@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { RateLimitMiddleware, IPBlacklistMiddleware, AutoBanMiddleware } from '../rate-limit.middleware';
+import {
+  RateLimitMiddleware,
+  IPBlacklistMiddleware,
+  AutoBanMiddleware,
+} from '../rate-limit.middleware';
 import Redis from 'ioredis';
 
 // Mock Redis
@@ -87,14 +91,20 @@ describe('RateLimitMiddleware', () => {
 
       expect(mockNext).toHaveBeenCalled();
       expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', expect.any(String));
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', expect.any(String));
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        'X-RateLimit-Remaining',
+        expect.any(String)
+      );
     });
 
     it('应该正确设置速率限制头', async () => {
       await middleware.use(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', '100');
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', expect.any(String));
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        'X-RateLimit-Remaining',
+        expect.any(String)
+      );
     });
   });
 
@@ -117,7 +127,7 @@ describe('RateLimitMiddleware', () => {
 
     it('应该拒绝超过限制的请求', async () => {
       await expect(
-        middleware.use(mockRequest as Request, mockResponse as Response, mockNext),
+        middleware.use(mockRequest as Request, mockResponse as Response, mockNext)
       ).rejects.toThrow(HttpException);
 
       expect(mockNext).not.toHaveBeenCalled();
@@ -272,7 +282,7 @@ describe('IPBlacklistMiddleware', () => {
     mockRedis.sismember = jest.fn().mockResolvedValue(1); // 在黑名单中
 
     await expect(
-      middleware.use(mockRequest as Request, mockResponse as Response, mockNext),
+      middleware.use(mockRequest as Request, mockResponse as Response, mockNext)
     ).rejects.toThrow(HttpException);
 
     expect(mockNext).not.toHaveBeenCalled();
@@ -368,7 +378,7 @@ describe('AutoBanMiddleware', () => {
     (mockResponse.send as jest.Mock).mock.calls[0][0];
 
     // 等待异步操作
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     expect(mockRedis.incr).toHaveBeenCalled();
   });
@@ -383,7 +393,7 @@ describe('AutoBanMiddleware', () => {
     (mockResponse.send as jest.Mock).mock.calls[0][0];
 
     // 等待异步操作
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     expect(mockRedis.sadd).toHaveBeenCalledWith('banned', '127.0.0.1');
   });

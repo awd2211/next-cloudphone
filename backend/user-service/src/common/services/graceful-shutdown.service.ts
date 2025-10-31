@@ -35,7 +35,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
 
   constructor(
     @InjectDataSource() private dataSource: DataSource,
-    private pinoLogger: PinoLogger,
+    private pinoLogger: PinoLogger
   ) {
     this.setupSignalHandlers();
   }
@@ -161,9 +161,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
    * 等待现有请求完成
    */
   private async waitForActiveRequests(): Promise<void> {
-    this.logger.log(
-      `⏳ Step 2: Waiting for ${this.activeRequests} active requests to complete`,
-    );
+    this.logger.log(`⏳ Step 2: Waiting for ${this.activeRequests} active requests to complete`);
 
     const startTime = Date.now();
     const maxWaitTime = 15000; // 最多等待15秒
@@ -172,9 +170,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
       const elapsed = Date.now() - startTime;
 
       if (elapsed > maxWaitTime) {
-        this.logger.warn(
-          `⚠️ Timeout waiting for requests, ${this.activeRequests} still active`,
-        );
+        this.logger.warn(`⚠️ Timeout waiting for requests, ${this.activeRequests} still active`);
         break;
       }
 
@@ -192,9 +188,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
     this.logger.log(`🪝 Step 3: Executing ${this.shutdownHooks.length} shutdown hooks`);
 
     // 按优先级排序（优先级高的先执行）
-    const sortedHooks = [...this.shutdownHooks].sort(
-      (a, b) => b.priority - a.priority,
-    );
+    const sortedHooks = [...this.shutdownHooks].sort((a, b) => b.priority - a.priority);
 
     for (const hook of sortedHooks) {
       try {
@@ -264,11 +258,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
    * @param callback 回调函数
    * @param priority 优先级（数字越大优先级越高）
    */
-  registerShutdownHook(
-    name: string,
-    callback: () => Promise<void>,
-    priority: number = 0,
-  ): void {
+  registerShutdownHook(name: string, callback: () => Promise<void>, priority: number = 0): void {
     this.shutdownHooks.push({ name, callback, priority });
     this.logger.log(`Registered shutdown hook: ${name} (priority: ${priority})`);
   }

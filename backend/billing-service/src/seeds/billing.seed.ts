@@ -2,8 +2,17 @@ import { DataSource } from 'typeorm';
 import { Plan, PlanType, BillingCycle } from '../billing/entities/plan.entity';
 import { Order, OrderStatus } from '../billing/entities/order.entity';
 import { UserBalance } from '../balance/entities/user-balance.entity';
-import { BalanceTransaction, TransactionType, TransactionStatus } from '../balance/entities/balance-transaction.entity';
-import { BillingRule, ResourceType, RuleType, BillingUnit } from '../billing-rules/entities/billing-rule.entity';
+import {
+  BalanceTransaction,
+  TransactionType,
+  TransactionStatus,
+} from '../balance/entities/balance-transaction.entity';
+import {
+  BillingRule,
+  ResourceType,
+  RuleType,
+  BillingUnit,
+} from '../billing-rules/entities/billing-rule.entity';
 
 export async function seedBilling(dataSource: DataSource, userIds: string[]) {
   const planRepository = dataSource.getRepository(Plan);
@@ -178,7 +187,7 @@ export async function seedBilling(dataSource: DataSource, userIds: string[]) {
     const plan = createdPlans[planIndex];
 
     const existingOrder = await orderRepository.findOne({
-      where: { userId, planId: plan.id }
+      where: { userId, planId: plan.id },
     });
 
     if (!existingOrder) {

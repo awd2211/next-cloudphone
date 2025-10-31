@@ -195,7 +195,7 @@ export interface Plan {
   name: string;
   description?: string;
   type: 'monthly' | 'yearly' | 'one-time';
-  price: number;
+  price: string | number; // PostgreSQL numeric(10,2) serializes as string in JSON
   duration: number;
   deviceLimit: number;
   features?: Record<string, any>;
@@ -222,7 +222,7 @@ export interface Order {
   user?: User;
   planId: string;
   plan?: Plan;
-  amount: number;
+  amount: string | number; // PostgreSQL numeric serializes as string in JSON
   status: 'pending' | 'paid' | 'cancelled' | 'refunded' | 'expired';
   paymentMethod?: 'wechat' | 'alipay' | 'balance';
   paidAt?: string;
@@ -244,7 +244,7 @@ export interface Payment {
   paymentNo: string;
   orderId: string;
   order?: Order;
-  amount: number;
+  amount: string | number; // PostgreSQL numeric serializes as string in JSON
   method: 'wechat' | 'alipay' | 'balance';
   status: 'pending' | 'processing' | 'success' | 'failed' | 'refunding' | 'refunded' | 'cancelled';
   transactionId?: string;
@@ -275,7 +275,7 @@ export interface UsageRecord {
   memoryUsage?: number;
   storageUsage?: number;
   networkUsage?: number;
-  cost: number;
+  cost: string | number; // PostgreSQL numeric serializes as string in JSON
   createdAt: string;
 }
 
@@ -932,10 +932,13 @@ export interface FieldPermission {
   writableFields?: string[];
   requiredFields?: string[];
   fieldAccessMap?: Record<string, FieldAccessLevel>;
-  fieldTransforms?: Record<string, {
-    type: 'mask' | 'hash' | 'encrypt' | 'truncate';
-    config?: Record<string, any>;
-  }>;
+  fieldTransforms?: Record<
+    string,
+    {
+      type: 'mask' | 'hash' | 'encrypt' | 'truncate';
+      config?: Record<string, any>;
+    }
+  >;
   description?: string;
   isActive: boolean;
   priority: number;
@@ -952,10 +955,13 @@ export interface CreateFieldPermissionDto {
   writableFields?: string[];
   requiredFields?: string[];
   fieldAccessMap?: Record<string, FieldAccessLevel>;
-  fieldTransforms?: Record<string, {
-    type: 'mask' | 'hash' | 'encrypt' | 'truncate';
-    config?: Record<string, any>;
-  }>;
+  fieldTransforms?: Record<
+    string,
+    {
+      type: 'mask' | 'hash' | 'encrypt' | 'truncate';
+      config?: Record<string, any>;
+    }
+  >;
   description?: string;
   priority?: number;
 }
@@ -967,10 +973,13 @@ export interface UpdateFieldPermissionDto {
   writableFields?: string[];
   requiredFields?: string[];
   fieldAccessMap?: Record<string, FieldAccessLevel>;
-  fieldTransforms?: Record<string, {
-    type: 'mask' | 'hash' | 'encrypt' | 'truncate';
-    config?: Record<string, any>;
-  }>;
+  fieldTransforms?: Record<
+    string,
+    {
+      type: 'mask' | 'hash' | 'encrypt' | 'truncate';
+      config?: Record<string, any>;
+    }
+  >;
   description?: string;
   isActive?: boolean;
   priority?: number;

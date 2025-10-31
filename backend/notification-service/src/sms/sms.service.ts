@@ -1,4 +1,6 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { SmsProvider, SmsOptions, SmsResult } from './sms.interface';
 import { TwilioSmsProvider } from './providers/twilio.provider';
@@ -6,6 +8,7 @@ import { AwsSnsProvider } from './providers/aws-sns.provider';
 import { MessageBirdProvider } from './providers/messagebird.provider';
 import { AliyunSmsProvider } from './providers/aliyun.provider';
 import { TencentSmsProvider } from './providers/tencent.provider';
+import { SmsRecord, SmsStatus } from './entities/sms-record.entity';
 
 /**
  * SMS 服务主类
@@ -37,12 +40,14 @@ export class SmsService implements OnModuleInit {
   private fallbackProviders: string[] = [];
 
   constructor(
+    @InjectRepository(SmsRecord)
+    private readonly smsRecordRepository: Repository<SmsRecord>,
     private configService: ConfigService,
     private twilioProvider: TwilioSmsProvider,
     private awsSnsProvider: AwsSnsProvider,
     private messageBirdProvider: MessageBirdProvider,
     private aliyunProvider: AliyunSmsProvider,
-    private tencentProvider: TencentSmsProvider,
+    private tencentProvider: TencentSmsProvider
   ) {
     this.registerProviders();
     this.configureFailover();
@@ -72,14 +77,11 @@ export class SmsService implements OnModuleInit {
    */
   private configureFailover(): void {
     // 从环境变量读取主提供商和备用提供商
-    this.primaryProvider = this.configService.get<string>(
-      'SMS_PRIMARY_PROVIDER',
-      'twilio',
-    )!;
+    this.primaryProvider = this.configService.get<string>('SMS_PRIMARY_PROVIDER', 'twilio')!;
 
     const fallbackConfig = this.configService.get<string>(
       'SMS_FALLBACK_PROVIDERS',
-      'aws-sns,messagebird',
+      'aws-sns,messagebird'
     )!;
 
     this.fallbackProviders = fallbackConfig.split(',').map((p) => p.trim());
@@ -98,7 +100,7 @@ export class SmsService implements OnModuleInit {
     // 如果主提供商失败，尝试备用提供商
     if (!result.success) {
       this.logger.warn(
-        `Primary provider ${this.primaryProvider} failed, trying fallback providers`,
+        `Primary provider ${this.primaryProvider} failed, trying fallback providers`
       );
 
       for (const providerName of this.fallbackProviders) {
@@ -116,10 +118,7 @@ export class SmsService implements OnModuleInit {
   /**
    * 使用指定提供商发送
    */
-  private async sendWithProvider(
-    providerName: string,
-    options: SmsOptions,
-  ): Promise<SmsResult> {
+  private async sendWithProvider(providerName: string, options: SmsOptions): Promise<SmsResult> {
     const provider = this.providers.get(providerName);
 
     if (!provider) {
@@ -187,7 +186,7 @@ export class SmsService implements OnModuleInit {
   async sendPaymentSuccess(
     phoneNumber: string,
     amount: number,
-    currency: string,
+    currency: string
   ): Promise<SmsResult> {
     const message = `Payment successful! Amount: ${currency} ${amount}. Thank you for using our service.`;
     return this.sendNotification(phoneNumber, message);
@@ -196,11 +195,7 @@ export class SmsService implements OnModuleInit {
   /**
    * 发送设备异常通知
    */
-  async sendDeviceAlert(
-    phoneNumber: string,
-    deviceId: string,
-    issue: string,
-  ): Promise<SmsResult> {
+  async sendDeviceAlert(phoneNumber: string, deviceId: string, issue: string): Promise<SmsResult> {
     const message = `ALERT: Device ${deviceId} is experiencing an issue: ${issue}. Please check your dashboard for details.`;
     return this.sendNotification(phoneNumber, message);
   }
@@ -211,7 +206,7 @@ export class SmsService implements OnModuleInit {
   async sendDeviceExpiration(
     phoneNumber: string,
     deviceId: string,
-    daysUntilExpiry: number,
+    daysUntilExpiry: number
   ): Promise<SmsResult> {
     const message = `Reminder: Your device ${deviceId} will expire in ${daysUntilExpiry} days. Please renew to avoid service interruption.`;
     return this.sendNotification(phoneNumber, message);
@@ -220,9 +215,7 @@ export class SmsService implements OnModuleInit {
   /**
    * 获取所有提供商的统计信息
    */
-  async getAllStats(): Promise<
-    Record<string, { sent: number; failed: number; pending: number }>
-  > {
+  async getAllStats(): Promise<Record<string, { sent: number; failed: number; pending: number }>> {
     const stats: Record<string, any> = {};
 
     for (const [name, provider] of this.providers.entries()) {
@@ -280,5 +273,60 @@ export class SmsService implements OnModuleInit {
       healthy,
       providers: providerHealth,
     };
+  }
+
+  /**
+   * 查询 SMS 记录列表
+   */
+  async findAll(query: any) {
+    const { page = 1, limit = 10, status, provider, phone, userId } = query;
+
+    const qb = this.smsRecordRepository.createQueryBuilder('sms');
+
+    if (status) {
+      qb.andWhere('sms.status = :status', { status });
+    }
+
+    if (provider) {
+      qb.andWhere('sms.provider = :provider', { provider });
+    }
+
+    if (phone) {
+      qb.andWhere('sms.phone LIKE :phone', { phone: `%${phone}%` });
+    }
+
+    if (userId) {
+      qb.andWhere('sms.userId = :userId', { userId });
+    }
+
+    qb.orderBy('sms.createdAt', 'DESC');
+
+    const skip = (page - 1) * limit;
+    qb.skip(skip).take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * 根据 ID 查询 SMS 记录
+   */
+  async findOne(id: string): Promise<SmsRecord> {
+    const record = await this.smsRecordRepository.findOne({ where: { id } });
+
+    if (!record) {
+      throw new NotFoundException(`SMS record with ID "${id}" not found`);
+    }
+
+    return record;
   }
 }

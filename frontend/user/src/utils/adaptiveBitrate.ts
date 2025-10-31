@@ -32,9 +32,7 @@ export class AdaptiveBitrateController {
 
     if (Math.abs(targetBitrate - this.currentBitrate) > this.currentBitrate * 0.1) {
       // 变化超过 10% 才调整
-      console.log(
-        `[Bitrate] Adjusting: ${this.currentBitrate} → ${targetBitrate} kbps`
-      );
+      console.log(`[Bitrate] Adjusting: ${this.currentBitrate} → ${targetBitrate} kbps`);
       this.currentBitrate = targetBitrate;
       return targetBitrate;
     }

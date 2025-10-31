@@ -33,7 +33,7 @@ export class PurchasePlanSagaV2 {
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(Plan)
     private readonly planRepository: Repository<Plan>,
-    private readonly eventBus: EventBusService,
+    private readonly eventBus: EventBusService
   ) {}
 
   /**
@@ -44,11 +44,7 @@ export class PurchasePlanSagaV2 {
    * @param amount 金额
    * @returns Saga ID
    */
-  async startPurchase(
-    userId: string,
-    planId: string,
-    amount: number,
-  ): Promise<string> {
+  async startPurchase(userId: string, planId: string, amount: number): Promise<string> {
     const initialState: PurchasePlanSagaState = {
       userId,
       planId,
@@ -58,10 +54,7 @@ export class PurchasePlanSagaV2 {
     };
 
     const sagaDefinition = this.createSagaDefinition();
-    const sagaId = await this.sagaOrchestrator.executeSaga(
-      sagaDefinition,
-      initialState,
-    );
+    const sagaId = await this.sagaOrchestrator.executeSaga(sagaDefinition, initialState);
 
     this.logger.log(`Purchase Saga started: ${sagaId} for user ${userId}`);
     return sagaId;
@@ -111,7 +104,7 @@ export class PurchasePlanSagaV2 {
    * 验证套餐有效性
    */
   private async validatePlan(
-    state: PurchasePlanSagaState,
+    state: PurchasePlanSagaState
   ): Promise<Partial<PurchasePlanSagaState>> {
     this.logger.log(`[VALIDATE_PLAN] Validating plan ${state.planId}`);
 
@@ -124,9 +117,7 @@ export class PurchasePlanSagaV2 {
     }
 
     if (plan.price !== state.amount) {
-      throw new Error(
-        `Price mismatch: expected ${plan.price}, got ${state.amount}`,
-      );
+      throw new Error(`Price mismatch: expected ${plan.price}, got ${state.amount}`);
     }
 
     this.logger.log(`[VALIDATE_PLAN] Plan validated: ${plan.name}`);
@@ -138,9 +129,7 @@ export class PurchasePlanSagaV2 {
   /**
    * 创建订单
    */
-  private async createOrder(
-    state: PurchasePlanSagaState,
-  ): Promise<Partial<PurchasePlanSagaState>> {
+  private async createOrder(state: PurchasePlanSagaState): Promise<Partial<PurchasePlanSagaState>> {
     this.logger.log(`[CREATE_ORDER] Creating order for user ${state.userId}`);
 
     const orderNumber = `ORD${Date.now()}${Math.floor(Math.random() * 1000)}`;
@@ -192,7 +181,7 @@ export class PurchasePlanSagaV2 {
    * 分配设备
    */
   private async allocateDevice(
-    state: PurchasePlanSagaState,
+    state: PurchasePlanSagaState
   ): Promise<Partial<PurchasePlanSagaState>> {
     this.logger.log(`[ALLOCATE_DEVICE] Requesting device for order ${state.orderId}`);
 
@@ -246,7 +235,7 @@ export class PurchasePlanSagaV2 {
    * 处理支付
    */
   private async processPayment(
-    state: PurchasePlanSagaState,
+    state: PurchasePlanSagaState
   ): Promise<Partial<PurchasePlanSagaState>> {
     this.logger.log(`[PROCESS_PAYMENT] Processing payment for order ${state.orderId}`);
 
@@ -291,7 +280,7 @@ export class PurchasePlanSagaV2 {
    * 激活订单
    */
   private async activateOrder(
-    state: PurchasePlanSagaState,
+    state: PurchasePlanSagaState
   ): Promise<Partial<PurchasePlanSagaState>> {
     this.logger.log(`[ACTIVATE_ORDER] Activating order ${state.orderId}`);
 

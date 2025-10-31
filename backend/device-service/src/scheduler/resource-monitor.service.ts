@@ -1,11 +1,11 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Node, NodeStatus, ResourceUsage } from "../entities/node.entity";
-import { Device, DeviceStatus } from "../entities/device.entity";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import * as os from "os";
-import Dockerode = require("dockerode");
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Node, NodeStatus, ResourceUsage } from '../entities/node.entity';
+import { Device, DeviceStatus } from '../entities/device.entity';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import * as os from 'os';
+import Dockerode = require('dockerode');
 
 @Injectable()
 export class ResourceMonitorService {
@@ -15,7 +15,7 @@ export class ResourceMonitorService {
     @InjectRepository(Node)
     private nodeRepository: Repository<Node>,
     @InjectRepository(Device)
-    private deviceRepository: Repository<Device>,
+    private deviceRepository: Repository<Device>
   ) {}
 
   /**
@@ -81,8 +81,7 @@ export class ResourceMonitorService {
 
       // 获取系统实际 CPU 和内存使用率
       const cpuUsagePercent = await this.getCurrentCpuUsage();
-      const memoryUsagePercent =
-        ((os.totalmem() - os.freemem()) / os.totalmem()) * 100;
+      const memoryUsagePercent = ((os.totalmem() - os.freemem()) / os.totalmem()) * 100;
 
       const usage: ResourceUsage = {
         usedCpuCores,
@@ -91,8 +90,7 @@ export class ResourceMonitorService {
         activeDevices: devices.length,
         cpuUsagePercent,
         memoryUsagePercent,
-        storageUsagePercent:
-          (usedStorageGB / node.capacity.totalStorageGB) * 100,
+        storageUsagePercent: (usedStorageGB / node.capacity.totalStorageGB) * 100,
       };
 
       // 计算负载分数 (0-100)
@@ -107,7 +105,7 @@ export class ResourceMonitorService {
       await this.nodeRepository.save(node);
 
       this.logger.log(
-        `Node ${node.name} usage updated: ${usage.activeDevices} devices, load score: ${loadScore.toFixed(2)}`,
+        `Node ${node.name} usage updated: ${usage.activeDevices} devices, load score: ${loadScore.toFixed(2)}`
       );
     } catch (error) {
       this.logger.error(`Failed to update node usage: ${error.message}`);
@@ -139,8 +137,7 @@ export class ResourceMonitorService {
         const endMeasure = this.cpuAverage();
         const idleDifference = endMeasure.idle - startMeasure.idle;
         const totalDifference = endMeasure.total - startMeasure.total;
-        const percentageCPU =
-          100 - ~~((100 * idleDifference) / totalDifference);
+        const percentageCPU = 100 - ~~((100 * idleDifference) / totalDifference);
         resolve(percentageCPU);
       }, 1000);
     });
@@ -174,7 +171,7 @@ export class ResourceMonitorService {
    */
   @Cron(CronExpression.EVERY_30_SECONDS)
   async updateAllNodesUsage(): Promise<void> {
-    this.logger.log("Updating resource usage for all nodes");
+    this.logger.log('Updating resource usage for all nodes');
 
     const nodes = await this.nodeRepository.find({
       where: { status: NodeStatus.ONLINE },
@@ -191,22 +188,17 @@ export class ResourceMonitorService {
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async checkNodesHealth(): Promise<void> {
-    this.logger.log("Checking nodes health");
+    this.logger.log('Checking nodes health');
 
     const nodes = await this.nodeRepository.find();
 
     for (const node of nodes) {
       const now = new Date();
-      const lastHeartbeat = node.lastHeartbeat
-        ? new Date(node.lastHeartbeat)
-        : new Date(0);
+      const lastHeartbeat = node.lastHeartbeat ? new Date(node.lastHeartbeat) : new Date(0);
       const timeSinceLastHeartbeat = now.getTime() - lastHeartbeat.getTime();
 
       // 如果超过3分钟没有心跳，标记为离线
-      if (
-        timeSinceLastHeartbeat > 3 * 60 * 1000 &&
-        node.status === NodeStatus.ONLINE
-      ) {
+      if (timeSinceLastHeartbeat > 3 * 60 * 1000 && node.status === NodeStatus.ONLINE) {
         this.logger.warn(`Node ${node.name} is offline (no heartbeat)`);
         node.status = NodeStatus.OFFLINE;
         await this.nodeRepository.save(node);
@@ -215,7 +207,7 @@ export class ResourceMonitorService {
       // 如果健康检查失败超过5次，标记为离线
       if (node.failedHealthChecks >= 5 && node.status === NodeStatus.ONLINE) {
         this.logger.warn(
-          `Node ${node.name} is offline (health check failures: ${node.failedHealthChecks})`,
+          `Node ${node.name} is offline (health check failures: ${node.failedHealthChecks})`
         );
         node.status = NodeStatus.OFFLINE;
         await this.nodeRepository.save(node);
@@ -272,22 +264,13 @@ export class ResourceMonitorService {
       capacity: totalCapacity,
       usage: totalUsage,
       utilization: {
-        cpu:
-          totalCapacity.cpuCores > 0
-            ? (totalUsage.cpuCores / totalCapacity.cpuCores) * 100
-            : 0,
+        cpu: totalCapacity.cpuCores > 0 ? (totalUsage.cpuCores / totalCapacity.cpuCores) * 100 : 0,
         memory:
-          totalCapacity.memoryMB > 0
-            ? (totalUsage.memoryMB / totalCapacity.memoryMB) * 100
-            : 0,
+          totalCapacity.memoryMB > 0 ? (totalUsage.memoryMB / totalCapacity.memoryMB) * 100 : 0,
         storage:
-          totalCapacity.storageGB > 0
-            ? (totalUsage.storageGB / totalCapacity.storageGB) * 100
-            : 0,
+          totalCapacity.storageGB > 0 ? (totalUsage.storageGB / totalCapacity.storageGB) * 100 : 0,
         devices:
-          totalCapacity.maxDevices > 0
-            ? (totalUsage.devices / totalCapacity.maxDevices) * 100
-            : 0,
+          totalCapacity.maxDevices > 0 ? (totalUsage.devices / totalCapacity.maxDevices) * 100 : 0,
       },
     };
   }

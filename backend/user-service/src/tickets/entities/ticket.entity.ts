@@ -138,7 +138,7 @@ export class Ticket {
   // Helper methods
   isOpen(): boolean {
     return [TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.PENDING].includes(
-      this.status,
+      this.status
     );
   }
 

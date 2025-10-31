@@ -35,11 +35,7 @@ class RequestLogger {
   /**
    * 记录响应日志
    */
-  static logResponse(
-    response: AxiosResponse,
-    duration: number,
-    requestId: string
-  ) {
+  static logResponse(response: AxiosResponse, duration: number, requestId: string) {
     const log = {
       type: 'api_response',
       requestId,
@@ -61,11 +57,7 @@ class RequestLogger {
   /**
    * 记录错误日志
    */
-  static logError(
-    error: AxiosError,
-    duration: number,
-    requestId: string
-  ) {
+  static logError(error: AxiosError, duration: number, requestId: string) {
     const log = {
       type: 'api_error',
       requestId,
@@ -96,7 +88,7 @@ class RequestLogger {
     const sanitized = { ...headers };
     const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
 
-    sensitiveHeaders.forEach(header => {
+    sensitiveHeaders.forEach((header) => {
       if (sanitized[header]) {
         sanitized[header] = '***REDACTED***';
       }
@@ -112,16 +104,9 @@ class RequestLogger {
     if (!data || typeof data !== 'object') return data;
 
     const sanitized = { ...data };
-    const sensitiveFields = [
-      'password',
-      'token',
-      'secret',
-      'apiKey',
-      'creditCard',
-      'cvv',
-    ];
+    const sensitiveFields = ['password', 'token', 'secret', 'apiKey', 'creditCard', 'cvv'];
 
-    sensitiveFields.forEach(field => {
+    sensitiveFields.forEach((field) => {
       if (sanitized[field]) {
         sanitized[field] = '***REDACTED***';
       }
@@ -210,7 +195,10 @@ function isRetryableRequest(error: AxiosError): boolean {
   }
 
   // 检查状态码
-  if (error.response?.status && defaultRetryConfig.retryableStatuses.includes(error.response.status)) {
+  if (
+    error.response?.status &&
+    defaultRetryConfig.retryableStatuses.includes(error.response.status)
+  ) {
     return true;
   }
 
@@ -239,7 +227,7 @@ function getRetryDelay(retryCount: number): number {
  * 执行延迟
  */
 function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // 请求拦截器
@@ -306,9 +294,7 @@ axiosInstance.interceptors.response.use(
     config.retryCount = config.retryCount || 0;
 
     // 检查是否应该重试
-    const shouldRetry =
-      isRetryableRequest(error) &&
-      config.retryCount < defaultRetryConfig.retries;
+    const shouldRetry = isRetryableRequest(error) && config.retryCount < defaultRetryConfig.retries;
 
     if (shouldRetry) {
       config.retryCount += 1;

@@ -38,4 +38,3 @@ export class UserStatusChangedEvent {
   reason?: string;
   timestamp: string;
 }
-

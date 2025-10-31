@@ -74,7 +74,7 @@ export class MessageBirdProvider implements SmsProvider {
         baseURL: this.BASE_URL,
         timeout: this.config.timeout,
         headers: {
-          'Authorization': `AccessKey ${this.config.apiKey}`,
+          Authorization: `AccessKey ${this.config.apiKey}`,
           'Content-Type': 'application/json',
         },
       });

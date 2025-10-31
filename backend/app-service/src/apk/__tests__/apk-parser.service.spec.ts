@@ -76,12 +76,8 @@ describe('ApkParserService', () => {
     it('should throw BadRequestException if APK file does not exist', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
 
-      await expect(service.parseApk(testApkPath)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.parseApk(testApkPath)).rejects.toThrow(
-        'APK 文件不存在',
-      );
+      await expect(service.parseApk(testApkPath)).rejects.toThrow(BadRequestException);
+      await expect(service.parseApk(testApkPath)).rejects.toThrow('APK 文件不存在');
     });
 
     it('should handle APK with missing fields', async () => {
@@ -122,12 +118,8 @@ describe('ApkParserService', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       mockParse.mockRejectedValue(new Error('Parse failed'));
 
-      await expect(service.parseApk(testApkPath)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.parseApk(testApkPath)).rejects.toThrow(
-        'APK 解析失败',
-      );
+      await expect(service.parseApk(testApkPath)).rejects.toThrow(BadRequestException);
+      await expect(service.parseApk(testApkPath)).rejects.toThrow('APK 解析失败');
     });
 
     it('should extract icon when available', async () => {

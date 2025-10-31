@@ -66,7 +66,7 @@ export class HealthCheckService {
   constructor(
     @InjectDataSource() private dataSource: DataSource,
     private pinoLogger: PinoLogger,
-    private configService: ConfigService,
+    private configService: ConfigService
   ) {}
 
   /**
@@ -102,8 +102,7 @@ export class HealthCheckService {
     try {
       // 简单的内存检查
       const memUsage = process.memoryUsage();
-      const heapUsagePercent =
-        (memUsage.heapUsed / memUsage.heapTotal) * 100;
+      const heapUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
 
       // 如果堆内存使用超过 95%，认为不健康
       if (heapUsagePercent > 95) {
@@ -257,7 +256,7 @@ export class HealthCheckService {
   private async checkTcpConnection(
     host: string,
     port: number,
-    timeout: number = 3000,
+    timeout: number = 3000
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const net = require('net');
@@ -313,7 +312,7 @@ export class HealthCheckService {
 
       // 并发检查所有微服务
       const results = await Promise.allSettled(
-        services.map((service) => this.checkMicroservice(service.name, service.url)),
+        services.map((service) => this.checkMicroservice(service.name, service.url))
       );
 
       // 统计健康状态
@@ -372,7 +371,7 @@ export class HealthCheckService {
    */
   private async checkMicroservice(
     serviceName: string,
-    baseUrl: string,
+    baseUrl: string
   ): Promise<{ status: 'healthy' | 'unhealthy'; responseTime: number }> {
     const startTime = Date.now();
 
@@ -393,9 +392,7 @@ export class HealthCheckService {
       }
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      this.logger.warn(
-        `Microservice ${serviceName} health check failed: ${error.message}`,
-      );
+      this.logger.warn(`Microservice ${serviceName} health check failed: ${error.message}`);
       return { status: 'unhealthy', responseTime };
     }
   }
@@ -404,7 +401,7 @@ export class HealthCheckService {
    * 确定整体健康状态
    */
   private determineOverallStatus(
-    dependencies: DependencyHealth[],
+    dependencies: DependencyHealth[]
   ): 'healthy' | 'degraded' | 'unhealthy' {
     // 如果有任何依赖不健康，整体为不健康
     if (dependencies.some((d) => d.status === 'unhealthy')) {
@@ -441,9 +438,7 @@ export class HealthCheckService {
         usagePercent: Math.floor((usedMemory / totalMemory) * 100),
         heapTotal: Math.floor(memUsage.heapTotal / 1024 / 1024),
         heapUsed: Math.floor(memUsage.heapUsed / 1024 / 1024),
-        heapUsagePercent: Math.floor(
-          (memUsage.heapUsed / memUsage.heapTotal) * 100,
-        ),
+        heapUsagePercent: Math.floor((memUsage.heapUsed / memUsage.heapTotal) * 100),
       },
       cpu: {
         cores: os.cpus().length,

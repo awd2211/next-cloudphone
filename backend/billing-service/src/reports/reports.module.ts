@@ -7,9 +7,7 @@ import { UsageRecord } from '../billing/entities/usage-record.entity';
 import { Plan } from '../billing/entities/plan.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Order, UsageRecord, Plan]),
-  ],
+  imports: [TypeOrmModule.forFeature([Order, UsageRecord, Plan])],
   controllers: [ReportsController],
   providers: [ReportsService],
   exports: [ReportsService],

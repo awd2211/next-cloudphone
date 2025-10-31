@@ -60,7 +60,7 @@ class UpdateDataScopeDto {
 export class DataScopeController {
   constructor(
     @InjectRepository(DataScope)
-    private dataScopeRepository: Repository<DataScope>,
+    private dataScopeRepository: Repository<DataScope>
   ) {}
 
   /**
@@ -86,7 +86,7 @@ export class DataScopeController {
   async findAll(
     @Query('roleId') roleId?: string,
     @Query('resourceType') resourceType?: string,
-    @Query('isActive') isActive?: string,
+    @Query('isActive') isActive?: string
   ) {
     const where: any = {};
     if (roleId) where.roleId = roleId;
@@ -141,13 +141,16 @@ export class DataScopeController {
     });
 
     // 按资源类型分组
-    const grouped = scopes.reduce((acc, scope) => {
-      if (!acc[scope.resourceType]) {
-        acc[scope.resourceType] = [];
-      }
-      acc[scope.resourceType].push(scope);
-      return acc;
-    }, {} as Record<string, DataScope[]>);
+    const grouped = scopes.reduce(
+      (acc, scope) => {
+        if (!acc[scope.resourceType]) {
+          acc[scope.resourceType] = [];
+        }
+        acc[scope.resourceType].push(scope);
+        return acc;
+      },
+      {} as Record<string, DataScope[]>
+    );
 
     return {
       success: true,
@@ -259,7 +262,7 @@ export class DataScopeController {
         ...dto,
         isActive: true,
         priority: dto.priority ?? 100,
-      }),
+      })
     );
 
     await this.dataScopeRepository.save(scopes);

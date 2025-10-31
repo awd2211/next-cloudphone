@@ -71,10 +71,7 @@ const ImageLazyLoadDemo: React.FC = () => {
                   </div>
                 }
               >
-                <Card.Meta
-                  title={image.title}
-                  description={image.description}
-                />
+                <Card.Meta title={image.title} description={image.description} />
               </Card>
             </Col>
           ))}

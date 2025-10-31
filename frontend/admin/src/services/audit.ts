@@ -45,8 +45,15 @@ export const getUserAuditLogs = (userId: string, params?: PaginationParams) => {
 };
 
 // 获取资源操作历史
-export const getResourceAuditLogs = (resourceType: string, resourceId: string, params?: PaginationParams) => {
-  return request.get<PaginatedResponse<AuditLog>>(`/audit-logs/resource/${resourceType}/${resourceId}`, { params });
+export const getResourceAuditLogs = (
+  resourceType: string,
+  resourceId: string,
+  params?: PaginationParams
+) => {
+  return request.get<PaginatedResponse<AuditLog>>(
+    `/audit-logs/resource/${resourceType}/${resourceId}`,
+    { params }
+  );
 };
 
 // 导出审计日志

@@ -1,10 +1,5 @@
 import request from '@/utils/request';
-import type {
-  AuditLog,
-  AuditAction,
-  AuditLevel,
-  AuditLogStatistics,
-} from '@/types';
+import type { AuditLog, AuditAction, AuditLevel, AuditLogStatistics } from '@/types';
 
 /**
  * 获取用户审计日志
@@ -30,11 +25,7 @@ export const getUserAuditLogs = (
 /**
  * 获取资源的审计日志
  */
-export const getResourceAuditLogs = (
-  resourceType: string,
-  resourceId: string,
-  limit?: number
-) => {
+export const getResourceAuditLogs = (resourceType: string, resourceId: string, limit?: number) => {
   return request.get<{
     success: boolean;
     data: AuditLog[];

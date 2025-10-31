@@ -85,7 +85,7 @@ describe('ProxyService', () => {
             expect.objectContaining({
               method: 'GET',
               url: 'http://localhost:30001/api/users',
-            }),
+            })
           );
           done();
         },
@@ -113,7 +113,7 @@ describe('ProxyService', () => {
             expect.objectContaining({
               method: 'POST',
               data: postData,
-            }),
+            })
           );
           done();
         },

@@ -136,9 +136,9 @@ describe('TenantIsolationService', () => {
       userRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(
-        service.applyTenantFilter(mockQueryBuilder, userId),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.applyTenantFilter(mockQueryBuilder, userId)).rejects.toThrow(
+        ForbiddenException
+      );
     });
   });
 
@@ -311,9 +311,7 @@ describe('TenantIsolationService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act & Assert
-      await expect(
-        service.validateDataTenant(userId, data),
-      ).resolves.toBeUndefined();
+      await expect(service.validateDataTenant(userId, data)).resolves.toBeUndefined();
     });
 
     it('应该允许访问同租户数据', async () => {
@@ -330,9 +328,7 @@ describe('TenantIsolationService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act & Assert
-      await expect(
-        service.validateDataTenant(userId, data),
-      ).resolves.toBeUndefined();
+      await expect(service.validateDataTenant(userId, data)).resolves.toBeUndefined();
     });
 
     it('应该拒绝访问其他租户数据', async () => {
@@ -348,11 +344,9 @@ describe('TenantIsolationService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act & Assert
+      await expect(service.validateDataTenant(userId, data)).rejects.toThrow(ForbiddenException);
       await expect(service.validateDataTenant(userId, data)).rejects.toThrow(
-        ForbiddenException,
-      );
-      await expect(service.validateDataTenant(userId, data)).rejects.toThrow(
-        '无权访问其他租户的数据',
+        '无权访问其他租户的数据'
       );
     });
 
@@ -362,9 +356,7 @@ describe('TenantIsolationService', () => {
       const data = { id: 'data-123' }; // 没有 tenantId
 
       // Act & Assert
-      await expect(
-        service.validateDataTenant(userId, data),
-      ).resolves.toBeUndefined();
+      await expect(service.validateDataTenant(userId, data)).resolves.toBeUndefined();
     });
 
     it('应该在用户不存在时抛出ForbiddenException', async () => {
@@ -375,9 +367,7 @@ describe('TenantIsolationService', () => {
       userRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.validateDataTenant(userId, data)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.validateDataTenant(userId, data)).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -398,9 +388,7 @@ describe('TenantIsolationService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act & Assert
-      await expect(
-        service.validateDataArrayTenant(userId, dataArray),
-      ).resolves.toBeUndefined();
+      await expect(service.validateDataArrayTenant(userId, dataArray)).resolves.toBeUndefined();
     });
 
     it('应该允许访问同租户数据数组', async () => {
@@ -420,9 +408,7 @@ describe('TenantIsolationService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act & Assert
-      await expect(
-        service.validateDataArrayTenant(userId, dataArray),
-      ).resolves.toBeUndefined();
+      await expect(service.validateDataArrayTenant(userId, dataArray)).resolves.toBeUndefined();
     });
 
     it('应该拒绝包含其他租户数据的数组', async () => {
@@ -441,9 +427,9 @@ describe('TenantIsolationService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act & Assert
-      await expect(
-        service.validateDataArrayTenant(userId, dataArray),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.validateDataArrayTenant(userId, dataArray)).rejects.toThrow(
+        ForbiddenException
+      );
     });
 
     it('应该对空数组跳过验证', async () => {
@@ -452,9 +438,7 @@ describe('TenantIsolationService', () => {
       const dataArray: any[] = [];
 
       // Act & Assert
-      await expect(
-        service.validateDataArrayTenant(userId, dataArray),
-      ).resolves.toBeUndefined();
+      await expect(service.validateDataArrayTenant(userId, dataArray)).resolves.toBeUndefined();
     });
   });
 
@@ -511,12 +495,8 @@ describe('TenantIsolationService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
       // Act & Assert
-      await expect(service.setDataTenant(userId, data)).rejects.toThrow(
-        ForbiddenException,
-      );
-      await expect(service.setDataTenant(userId, data)).rejects.toThrow(
-        '无权为其他租户创建数据',
-      );
+      await expect(service.setDataTenant(userId, data)).rejects.toThrow(ForbiddenException);
+      await expect(service.setDataTenant(userId, data)).rejects.toThrow('无权为其他租户创建数据');
     });
 
     it('应该在用户不存在时抛出ForbiddenException', async () => {
@@ -527,9 +507,7 @@ describe('TenantIsolationService', () => {
       userRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.setDataTenant(userId, data)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.setDataTenant(userId, data)).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -538,10 +516,7 @@ describe('TenantIsolationService', () => {
       // Arrange
       const userId = 'user-123';
       const tenantId = 'tenant-123';
-      const dataArray = [
-        { id: 'data-1' },
-        { id: 'data-2' },
-      ];
+      const dataArray = [{ id: 'data-1' }, { id: 'data-2' }];
       const mockUser = {
         id: userId,
         isSuperAdmin: false,
@@ -554,7 +529,7 @@ describe('TenantIsolationService', () => {
       const result = await service.setDataArrayTenant(userId, dataArray);
 
       // Assert
-      expect(result.every(item => item.tenantId === tenantId)).toBe(true);
+      expect(result.every((item) => item.tenantId === tenantId)).toBe(true);
     });
 
     it('应该对空数组返回空数组', async () => {

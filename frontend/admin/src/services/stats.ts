@@ -38,36 +38,44 @@ export const getDeviceStatusDistribution = () => {
 
 // 用户活跃度
 export const getUserActivityStats = (days: number = 7) => {
-  return request.get<{
-    date: string;
-    activeUsers: number;
-    newUsers: number;
-  }[]>('/stats/users/activity', { params: { days } });
+  return request.get<
+    {
+      date: string;
+      activeUsers: number;
+      newUsers: number;
+    }[]
+  >('/stats/users/activity', { params: { days } });
 };
 
 // 收入趋势
 export const getRevenueTrend = (days: number = 30) => {
-  return request.get<{
-    date: string;
-    revenue: number;
-    orders: number;
-  }[]>('/stats/revenue/trend', { params: { days } });
+  return request.get<
+    {
+      date: string;
+      revenue: number;
+      orders: number;
+    }[]
+  >('/stats/revenue/trend', { params: { days } });
 };
 
 // 用户增长统计
 export const getUserGrowthStats = (days: number = 30) => {
-  return request.get<{
-    date: string;
-    newUsers: number;
-    totalUsers: number;
-  }[]>('/stats/users/growth', { params: { days } });
+  return request.get<
+    {
+      date: string;
+      newUsers: number;
+      totalUsers: number;
+    }[]
+  >('/stats/users/growth', { params: { days } });
 };
 
 // 套餐分布统计
 export const getPlanDistributionStats = () => {
-  return request.get<{
-    planName: string;
-    userCount: number;
-    revenue: number;
-  }[]>('/stats/plans/distribution');
+  return request.get<
+    {
+      planName: string;
+      userCount: number;
+      revenue: number;
+    }[]
+  >('/stats/plans/distribution');
 };

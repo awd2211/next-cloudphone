@@ -1,18 +1,24 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { DeviceAllocation, AllocationStatus } from "../entities/device-allocation.entity";
-import { Device, DeviceStatus } from "../entities/device.entity";
-import { EventBusService, Cacheable, CacheEvict, Lock } from "@cloudphone/shared";
-import { QuotaClientService } from "../quota/quota-client.service";
-import { BillingClientService } from "./billing-client.service";
-import { NotificationClientService } from "./notification-client.service";
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { DeviceAllocation, AllocationStatus } from '../entities/device-allocation.entity';
+import { Device, DeviceStatus } from '../entities/device.entity';
+import { EventBusService, Cacheable, CacheEvict, Lock } from '@cloudphone/shared';
+import { QuotaClientService } from '../quota/quota-client.service';
+import { BillingClientService } from './billing-client.service';
+import { NotificationClientService } from './notification-client.service';
 
 export enum SchedulingStrategy {
-  ROUND_ROBIN = "round_robin",
-  LEAST_CONNECTION = "least_connection",
-  WEIGHTED_ROUND_ROBIN = "weighted_round_robin",
-  RESOURCE_BASED = "resource_based",
+  ROUND_ROBIN = 'round_robin',
+  LEAST_CONNECTION = 'least_connection',
+  WEIGHTED_ROUND_ROBIN = 'weighted_round_robin',
+  RESOURCE_BASED = 'resource_based',
 }
 
 export interface AllocationRequest {
@@ -56,7 +62,7 @@ export class AllocationService {
     private eventBus: EventBusService,
     private quotaClient: QuotaClientService,
     private billingClient: BillingClientService,
-    private notificationClient: NotificationClientService,
+    private notificationClient: NotificationClientService
   ) {}
 
   /**
@@ -73,28 +79,26 @@ export class AllocationService {
    * 分配后清除可用设备缓存
    */
   // ✅ 使用正确的 LockConfig 对象
-  @Lock({ key: "allocation:user:{{request.userId}}", ttl: 10000 })
-  @CacheEvict({ keys: ["scheduler:available-devices"] })
-  async allocateDevice(
-    request: AllocationRequest,
-  ): Promise<AllocationResponse> {
+  @Lock({ key: 'allocation:user:{{request.userId}}', ttl: 10000 })
+  @CacheEvict({ keys: ['scheduler:available-devices'] })
+  async allocateDevice(request: AllocationRequest): Promise<AllocationResponse> {
     this.logger.log(
-      `Allocating device for user: ${request.userId}, tenant: ${request.tenantId || "default"}`,
+      `Allocating device for user: ${request.userId}, tenant: ${request.tenantId || 'default'}`
     );
 
     // 1. 获取可用设备列表
     const availableDevices = await this.getAvailableDevices();
 
     if (availableDevices.length === 0) {
-      this.logger.warn("No available devices for allocation");
+      this.logger.warn('No available devices for allocation');
 
-      const reason = "当前没有可用设备，请稍后重试";
+      const reason = '当前没有可用设备，请稍后重试';
 
       // 发布分配失败事件
-      await this.eventBus.publish("cloudphone.events", "scheduler.allocation.failed", {
+      await this.eventBus.publish('cloudphone.events', 'scheduler.allocation.failed', {
         userId: request.userId,
         tenantId: request.tenantId,
-        reason: "no_available_devices",
+        reason: 'no_available_devices',
         timestamp: new Date().toISOString(),
       });
 
@@ -109,34 +113,29 @@ export class AllocationService {
         this.logger.warn(`Failed to send allocation failed notification: ${error.message}`);
       }
 
-      throw new BadRequestException("No available devices");
+      throw new BadRequestException('No available devices');
     }
 
     // 2. 根据策略选择设备
     const selectedDevice = this.selectDevice(availableDevices, request);
 
     if (!selectedDevice) {
-      throw new BadRequestException("No suitable device found");
+      throw new BadRequestException('No suitable device found');
     }
 
     // 3. 配额验证（Phase 2: 服务集成）
     try {
-      const quotaCheck = await this.quotaClient.checkDeviceCreationQuota(
-        request.userId,
-        {
-          cpuCores: selectedDevice.cpuCores,
-          memoryMB: selectedDevice.memoryMB,
-          storageMB: selectedDevice.storageMB,
-        },
-      );
+      const quotaCheck = await this.quotaClient.checkDeviceCreationQuota(request.userId, {
+        cpuCores: selectedDevice.cpuCores,
+        memoryMB: selectedDevice.memoryMB,
+        storageMB: selectedDevice.storageMB,
+      });
 
       if (!quotaCheck.allowed) {
-        this.logger.warn(
-          `Quota check failed for user ${request.userId}: ${quotaCheck.reason}`,
-        );
+        this.logger.warn(`Quota check failed for user ${request.userId}: ${quotaCheck.reason}`);
 
         // 发布配额超限事件
-        await this.eventBus.publish("cloudphone.events", "scheduler.allocation.quota_exceeded", {
+        await this.eventBus.publish('cloudphone.events', 'scheduler.allocation.quota_exceeded', {
           userId: request.userId,
           tenantId: request.tenantId,
           reason: quotaCheck.reason,
@@ -147,43 +146,35 @@ export class AllocationService {
         try {
           await this.notificationClient.notifyAllocationFailed({
             userId: request.userId,
-            reason: quotaCheck.reason || "配额已达上限",
+            reason: quotaCheck.reason || '配额已达上限',
             timestamp: new Date().toISOString(),
           });
         } catch (error) {
           this.logger.warn(`Failed to send quota exceeded notification: ${error.message}`);
         }
 
-        throw new ForbiddenException(
-          quotaCheck.reason || "Quota limit exceeded",
-        );
+        throw new ForbiddenException(quotaCheck.reason || 'Quota limit exceeded');
       }
 
       this.logger.log(
-        `Quota check passed for user ${request.userId}. Remaining devices: ${quotaCheck.remainingDevices}`,
+        `Quota check passed for user ${request.userId}. Remaining devices: ${quotaCheck.remainingDevices}`
       );
     } catch (error) {
       if (error instanceof ForbiddenException) {
         throw error;
       }
       // 配额服务不可用时的错误处理
-      this.logger.error(
-        `Quota check error for user ${request.userId}: ${error.message}`,
-      );
+      this.logger.error(`Quota check error for user ${request.userId}: ${error.message}`);
       // 根据配置决定是否允许继续（已在 QuotaClientService 中处理）
       throw error;
     }
 
-    this.logger.log(
-      `Selected device: ${selectedDevice.id} using strategy: ${this.strategy}`,
-    );
+    this.logger.log(`Selected device: ${selectedDevice.id} using strategy: ${this.strategy}`);
 
     // 4. 创建分配记录
     const durationMinutes = request.durationMinutes || 60;
     const allocatedAt = new Date();
-    const expiresAt = new Date(
-      allocatedAt.getTime() + durationMinutes * 60 * 1000,
-    );
+    const expiresAt = new Date(allocatedAt.getTime() + durationMinutes * 60 * 1000);
 
     const allocation = this.allocationRepository.create({
       deviceId: selectedDevice.id,
@@ -204,20 +195,18 @@ export class AllocationService {
         cpuCores: selectedDevice.cpuCores,
         memoryGB: selectedDevice.memoryMB / 1024,
         storageGB: selectedDevice.storageMB / 1024,
-        operation: "increment",
+        operation: 'increment',
       });
       this.logger.log(
-        `Quota usage reported for user ${request.userId}, device ${selectedDevice.id}`,
+        `Quota usage reported for user ${request.userId}, device ${selectedDevice.id}`
       );
     } catch (error) {
       // 使用量上报失败不应阻止分配，但记录警告
-      this.logger.warn(
-        `Failed to report quota usage for user ${request.userId}: ${error.message}`,
-      );
+      this.logger.warn(`Failed to report quota usage for user ${request.userId}: ${error.message}`);
     }
 
     // 6. 发布分配成功事件
-    await this.eventBus.publishDeviceEvent("allocated", {
+    await this.eventBus.publishDeviceEvent('allocated', {
       deviceId: selectedDevice.id,
       userId: request.userId,
       tenantId: request.tenantId,
@@ -228,7 +217,7 @@ export class AllocationService {
     });
 
     this.logger.log(
-      `Device allocated successfully: ${allocation.id} (device: ${selectedDevice.id})`,
+      `Device allocated successfully: ${allocation.id} (device: ${selectedDevice.id})`
     );
 
     // 发送分配成功通知（Phase 2: Notification Service 集成）
@@ -272,38 +261,36 @@ export class AllocationService {
    * 释放后清除可用设备缓存
    */
   // ✅ 使用正确的 LockConfig 对象
-  @Lock({ key: "allocation:device:{{deviceId}}", ttl: 10000 })
-  @CacheEvict({ keys: ["scheduler:available-devices"] })
+  @Lock({ key: 'allocation:device:{{deviceId}}', ttl: 10000 })
+  @CacheEvict({ keys: ['scheduler:available-devices'] })
   async releaseDevice(
     deviceId: string,
-    userId?: string,
+    userId?: string
   ): Promise<{ deviceId: string; durationSeconds: number }> {
-    this.logger.log(`Releasing device: ${deviceId}, user: ${userId || "any"}`);
+    this.logger.log(`Releasing device: ${deviceId}, user: ${userId || 'any'}`);
 
     // 查找活跃的分配记录
     const query = this.allocationRepository
-      .createQueryBuilder("allocation")
-      .where("allocation.deviceId = :deviceId", { deviceId })
-      .andWhere("allocation.status = :status", {
+      .createQueryBuilder('allocation')
+      .where('allocation.deviceId = :deviceId', { deviceId })
+      .andWhere('allocation.status = :status', {
         status: AllocationStatus.ALLOCATED,
       });
 
     if (userId) {
-      query.andWhere("allocation.userId = :userId", { userId });
+      query.andWhere('allocation.userId = :userId', { userId });
     }
 
     const allocation = await query.getOne();
 
     if (!allocation) {
-      throw new NotFoundException(
-        `No active allocation found for device: ${deviceId}`,
-      );
+      throw new NotFoundException(`No active allocation found for device: ${deviceId}`);
     }
 
     // 更新分配记录
     const releasedAt = new Date();
     const durationSeconds = Math.floor(
-      (releasedAt.getTime() - allocation.allocatedAt.getTime()) / 1000,
+      (releasedAt.getTime() - allocation.allocatedAt.getTime()) / 1000
     );
 
     allocation.status = AllocationStatus.RELEASED;
@@ -318,9 +305,7 @@ export class AllocationService {
     });
 
     if (!device) {
-      this.logger.warn(
-        `Device ${deviceId} not found, skipping quota restoration and billing`,
-      );
+      this.logger.warn(`Device ${deviceId} not found, skipping quota restoration and billing`);
     } else {
       // 上报配额恢复（Phase 2: User Service 集成）
       try {
@@ -329,15 +314,13 @@ export class AllocationService {
           cpuCores: device.cpuCores,
           memoryGB: device.memoryMB / 1024,
           storageGB: device.storageMB / 1024,
-          operation: "decrement",
+          operation: 'decrement',
         });
-        this.logger.log(
-          `Quota usage restored for user ${allocation.userId}, device ${deviceId}`,
-        );
+        this.logger.log(`Quota usage restored for user ${allocation.userId}, device ${deviceId}`);
       } catch (error) {
         // 使用量恢复失败记录警告
         this.logger.warn(
-          `Failed to restore quota usage for user ${allocation.userId}: ${error.message}`,
+          `Failed to restore quota usage for user ${allocation.userId}: ${error.message}`
         );
       }
 
@@ -356,12 +339,12 @@ export class AllocationService {
           releasedAt,
         });
         this.logger.log(
-          `💰 Billing data reported for user ${allocation.userId}: ${durationSeconds}s`,
+          `💰 Billing data reported for user ${allocation.userId}: ${durationSeconds}s`
         );
       } catch (error) {
         // 计费上报失败记录严重警告
         this.logger.error(
-          `❌ Failed to report billing data for allocation ${allocation.id}: ${error.message}`,
+          `❌ Failed to report billing data for allocation ${allocation.id}: ${error.message}`
         );
 
         // 将失败的计费数据写入死信队列供人工处理
@@ -383,7 +366,7 @@ export class AllocationService {
     }
 
     // 发布释放事件
-    await this.eventBus.publishDeviceEvent("released", {
+    await this.eventBus.publishDeviceEvent('released', {
       deviceId,
       userId: allocation.userId,
       allocationId: allocation.id,
@@ -392,7 +375,7 @@ export class AllocationService {
     });
 
     this.logger.log(
-      `Device released successfully: ${allocation.id} (duration: ${durationSeconds}s)`,
+      `Device released successfully: ${allocation.id} (duration: ${durationSeconds}s)`
     );
 
     // 发送设备释放通知（Phase 2: Notification Service 集成）
@@ -421,7 +404,7 @@ export class AllocationService {
    * 使用Redis缓存10秒，减少数据库查询压力
    */
   // ✅ 使用正确的 CacheableOptions 对象
-  @Cacheable({ keyTemplate: "scheduler:available-devices", ttl: 10 })
+  @Cacheable({ keyTemplate: 'scheduler:available-devices', ttl: 10 })
   async getAvailableDevices(): Promise<Device[]> {
     // 获取所有运行中的设备
     const runningDevices = await this.deviceRepository.find({
@@ -429,20 +412,16 @@ export class AllocationService {
         status: DeviceStatus.RUNNING,
       },
       order: {
-        createdAt: "ASC",
+        createdAt: 'ASC',
       },
     });
 
     // 过滤掉已分配的设备
     const allocatedDeviceIds = await this.getAllocatedDeviceIds();
 
-    const available = runningDevices.filter(
-      (device) => !allocatedDeviceIds.has(device.id),
-    );
+    const available = runningDevices.filter((device) => !allocatedDeviceIds.has(device.id));
 
-    this.logger.debug(
-      `Available devices: ${available.length}/${runningDevices.length}`,
-    );
+    this.logger.debug(`Available devices: ${available.length}/${runningDevices.length}`);
 
     return available;
   }
@@ -455,7 +434,7 @@ export class AllocationService {
       where: {
         status: AllocationStatus.ALLOCATED,
       },
-      select: ["deviceId"],
+      select: ['deviceId'],
     });
 
     return new Set(allocations.map((a) => a.deviceId));
@@ -464,16 +443,13 @@ export class AllocationService {
   /**
    * 根据策略选择设备
    */
-  private selectDevice(
-    devices: Device[],
-    request: AllocationRequest,
-  ): Device | null {
+  private selectDevice(devices: Device[], request: AllocationRequest): Device | null {
     if (devices.length === 0) {
       return null;
     }
 
     this.logger.debug(
-      `Selecting device using strategy: ${this.strategy}, candidates: ${devices.length}`,
+      `Selecting device using strategy: ${this.strategy}, candidates: ${devices.length}`
     );
 
     switch (this.strategy) {
@@ -528,10 +504,7 @@ export class AllocationService {
   /**
    * 基于资源的策略（选择资源最充足的设备）
    */
-  private resourceBasedSelect(
-    devices: Device[],
-    request: AllocationRequest,
-  ): Device {
+  private resourceBasedSelect(devices: Device[], request: AllocationRequest): Device {
     const devicesWithScore = devices.map((device) => {
       const cpuAvailable = 100 - (device.cpuUsage || 0);
       const memoryAvailable = 100 - (device.memoryUsage || 0);
@@ -542,10 +515,7 @@ export class AllocationService {
 
       // 如果有最小资源要求，检查是否满足
       if (request.preferredSpecs) {
-        if (
-          request.preferredSpecs.minCpu &&
-          device.cpuCores < request.preferredSpecs.minCpu
-        ) {
+        if (request.preferredSpecs.minCpu && device.cpuCores < request.preferredSpecs.minCpu) {
           score -= 50;
         }
         if (
@@ -598,15 +568,12 @@ export class AllocationService {
   /**
    * 获取用户的分配记录
    */
-  async getUserAllocations(
-    userId: string,
-    limit: number = 10,
-  ): Promise<DeviceAllocation[]> {
+  async getUserAllocations(userId: string, limit: number = 10): Promise<DeviceAllocation[]> {
     return this.allocationRepository.find({
       where: { userId },
-      order: { allocatedAt: "DESC" },
+      order: { allocatedAt: 'DESC' },
       take: limit,
-      relations: ["device"],
+      relations: ['device'],
     });
   }
 
@@ -614,7 +581,7 @@ export class AllocationService {
    * 检查并释放过期的分配
    * 释放后清除可用设备缓存
    */
-  @CacheEvict({ keys: ["scheduler:available-devices"] })
+  @CacheEvict({ keys: ['scheduler:available-devices'] })
   /**
    * 释放单个设备分配
    * @param allocationId 分配ID
@@ -638,7 +605,10 @@ export class AllocationService {
       }
 
       // 检查分配状态
-      if (allocation.status === AllocationStatus.RELEASED || allocation.status === AllocationStatus.EXPIRED) {
+      if (
+        allocation.status === AllocationStatus.RELEASED ||
+        allocation.status === AllocationStatus.EXPIRED
+      ) {
         this.logger.warn(`Allocation already released/expired: ${allocationId}`);
         return true;
       }
@@ -655,7 +625,7 @@ export class AllocationService {
       await this.allocationRepository.save(allocation);
 
       // 发布释放事件
-      await this.eventBus.publish("cloudphone.events", "scheduler.allocation.released", {
+      await this.eventBus.publish('cloudphone.events', 'scheduler.allocation.released', {
         deviceId: allocation.deviceId,
         userId: allocation.userId,
         allocationId: allocation.id,
@@ -666,9 +636,10 @@ export class AllocationService {
         automatic: options?.automatic || false,
       });
 
-      this.logger.log(`Successfully released allocation: ${allocationId}${options?.reason ? ` (${options.reason})` : ''}`);
+      this.logger.log(
+        `Successfully released allocation: ${allocationId}${options?.reason ? ` (${options.reason})` : ''}`
+      );
       return true;
-
     } catch (error) {
       this.logger.error(`Failed to release allocation ${allocationId}:`, error);
       throw error;
@@ -682,32 +653,30 @@ export class AllocationService {
     const now = new Date();
 
     const expiredAllocations = await this.allocationRepository
-      .createQueryBuilder("allocation")
-      .where("allocation.status = :status", {
+      .createQueryBuilder('allocation')
+      .where('allocation.status = :status', {
         status: AllocationStatus.ALLOCATED,
       })
-      .andWhere("allocation.expiresAt < :now", { now })
+      .andWhere('allocation.expiresAt < :now', { now })
       .getMany();
 
     if (expiredAllocations.length === 0) {
       return 0;
     }
 
-    this.logger.log(
-      `Found ${expiredAllocations.length} expired allocations, releasing...`,
-    );
+    this.logger.log(`Found ${expiredAllocations.length} expired allocations, releasing...`);
 
     for (const allocation of expiredAllocations) {
       allocation.status = AllocationStatus.EXPIRED;
       allocation.releasedAt = now;
       allocation.durationSeconds = Math.floor(
-        (now.getTime() - allocation.allocatedAt.getTime()) / 1000,
+        (now.getTime() - allocation.allocatedAt.getTime()) / 1000
       );
 
       await this.allocationRepository.save(allocation);
 
       // 发布过期事件
-      await this.eventBus.publish("cloudphone.events", "scheduler.allocation.expired", {
+      await this.eventBus.publish('cloudphone.events', 'scheduler.allocation.expired', {
         deviceId: allocation.deviceId,
         userId: allocation.userId,
         allocationId: allocation.id,
@@ -730,10 +699,10 @@ export class AllocationService {
       .createQueryBuilder()
       .delete()
       .from(DeviceAllocation)
-      .where("status IN (:...statuses)", {
+      .where('status IN (:...statuses)', {
         statuses: [AllocationStatus.RELEASED, AllocationStatus.EXPIRED],
       })
-      .andWhere("releasedAt < :cutoffDate", { cutoffDate })
+      .andWhere('releasedAt < :cutoffDate', { cutoffDate })
       .execute();
 
     return result.affected || 0;
@@ -745,11 +714,14 @@ export class AllocationService {
    * 批量分配设备
    * 支持一次性为多个用户分配设备
    */
-  async batchAllocate(requests: Array<{
-    userId: string;
-    durationMinutes: number;
-    devicePreferences?: any;
-  }>, continueOnError: boolean = true): Promise<{
+  async batchAllocate(
+    requests: Array<{
+      userId: string;
+      durationMinutes: number;
+      devicePreferences?: any;
+    }>,
+    continueOnError: boolean = true
+  ): Promise<{
     successCount: number;
     failedCount: number;
     totalCount: number;
@@ -790,21 +762,19 @@ export class AllocationService {
           allocationId: result.allocationId,
           deviceId: result.deviceId,
           deviceName: device?.name || `Device-${result.deviceId.substring(0, 8)}`,
-          expiresAt: result.expiresAt?.toISOString() || "",
+          expiresAt: result.expiresAt?.toISOString() || '',
         });
 
         this.logger.debug(`✅ Allocated device for user ${request.userId}`);
       } catch (error) {
         const failure = {
           userId: request.userId,
-          reason: error.message || "Unknown error",
-          error: error.name || "Error",
+          reason: error.message || 'Unknown error',
+          error: error.name || 'Error',
         };
         failures.push(failure);
 
-        this.logger.warn(
-          `❌ Failed to allocate for user ${request.userId}: ${error.message}`
-        );
+        this.logger.warn(`❌ Failed to allocate for user ${request.userId}: ${error.message}`);
 
         // 如果不允许继续，直接返回
         if (!continueOnError) {
@@ -858,7 +828,7 @@ export class AllocationService {
     for (const allocationId of allocationIds) {
       try {
         await this.releaseAllocation(allocationId, {
-          reason: reason || "批量释放操作",
+          reason: reason || '批量释放操作',
           automatic: false,
         });
 
@@ -867,14 +837,12 @@ export class AllocationService {
       } catch (error) {
         const failure = {
           allocationId,
-          reason: error.message || "Unknown error",
-          error: error.name || "Error",
+          reason: error.message || 'Unknown error',
+          error: error.name || 'Error',
         };
         failures.push(failure);
 
-        this.logger.warn(
-          `❌ Failed to release allocation ${allocationId}: ${error.message}`
-        );
+        this.logger.warn(`❌ Failed to release allocation ${allocationId}: ${error.message}`);
 
         // 如果不允许继续，直接返回
         if (!continueOnError) {
@@ -949,9 +917,7 @@ export class AllocationService {
         }
 
         const oldExpiresAt = allocation.expiresAt;
-        const newExpiresAt = new Date(
-          oldExpiresAt.getTime() + additionalMinutes * 60 * 1000
-        );
+        const newExpiresAt = new Date(oldExpiresAt.getTime() + additionalMinutes * 60 * 1000);
 
         allocation.expiresAt = newExpiresAt;
         await this.allocationRepository.save(allocation);
@@ -964,18 +930,14 @@ export class AllocationService {
         });
 
         // 发布续期事件
-        await this.eventBus.publish(
-          "cloudphone.events",
-          "scheduler.allocation.extended",
-          {
-            allocationId,
-            userId: allocation.userId,
-            deviceId: allocation.deviceId,
-            oldExpiresAt: oldExpiresAt.toISOString(),
-            newExpiresAt: newExpiresAt.toISOString(),
-            additionalMinutes,
-          }
-        );
+        await this.eventBus.publish('cloudphone.events', 'scheduler.allocation.extended', {
+          allocationId,
+          userId: allocation.userId,
+          deviceId: allocation.deviceId,
+          oldExpiresAt: oldExpiresAt.toISOString(),
+          newExpiresAt: newExpiresAt.toISOString(),
+          additionalMinutes,
+        });
 
         // 发送续期通知
         try {
@@ -987,8 +949,8 @@ export class AllocationService {
             await this.notificationClient.sendBatchNotifications([
               {
                 userId: allocation.userId,
-                type: "allocation_extended" as any,
-                title: "⏰ 设备使用时间已延长",
+                type: 'allocation_extended' as any,
+                title: '⏰ 设备使用时间已延长',
                 message: `设备 ${device.name || device.id.substring(0, 8)} 使用时间已延长 ${additionalMinutes} 分钟。`,
                 data: {
                   allocationId,
@@ -997,7 +959,7 @@ export class AllocationService {
                   additionalMinutes,
                   newExpiresAt: newExpiresAt.toISOString(),
                 },
-                channels: ["websocket"],
+                channels: ['websocket'],
               },
             ]);
           }
@@ -1011,14 +973,12 @@ export class AllocationService {
       } catch (error) {
         const failure = {
           allocationId,
-          reason: error.message || "Unknown error",
-          error: error.name || "Error",
+          reason: error.message || 'Unknown error',
+          error: error.name || 'Error',
         };
         failures.push(failure);
 
-        this.logger.warn(
-          `❌ Failed to extend allocation ${allocationId}: ${error.message}`
-        );
+        this.logger.warn(`❌ Failed to extend allocation ${allocationId}: ${error.message}`);
 
         // 如果不允许继续，直接返回
         if (!continueOnError) {
@@ -1051,26 +1011,29 @@ export class AllocationService {
     userIds: string[],
     activeOnly: boolean = true
   ): Promise<{
-    allocations: Record<string, Array<{
-      allocationId: string;
-      deviceId: string;
-      deviceName: string;
-      status: string;
-      allocatedAt: string;
-      expiresAt: string;
-    }>>;
+    allocations: Record<
+      string,
+      Array<{
+        allocationId: string;
+        deviceId: string;
+        deviceName: string;
+        status: string;
+        allocatedAt: string;
+        expiresAt: string;
+      }>
+    >;
     userCount: number;
     totalAllocations: number;
   }> {
     this.logger.log(`🔍 Batch querying allocations for ${userIds.length} users...`);
 
     const queryBuilder = this.allocationRepository
-      .createQueryBuilder("allocation")
-      .leftJoinAndSelect("allocation.device", "device")
-      .where("allocation.userId IN (:...userIds)", { userIds });
+      .createQueryBuilder('allocation')
+      .leftJoinAndSelect('allocation.device', 'device')
+      .where('allocation.userId IN (:...userIds)', { userIds });
 
     if (activeOnly) {
-      queryBuilder.andWhere("allocation.status = :status", {
+      queryBuilder.andWhere('allocation.status = :status', {
         status: AllocationStatus.ALLOCATED,
       });
     }
@@ -1094,7 +1057,7 @@ export class AllocationService {
         deviceName: device?.name || `Device-${allocation.deviceId.substring(0, 8)}`,
         status: allocation.status,
         allocatedAt: allocation.allocatedAt.toISOString(),
-        expiresAt: allocation.expiresAt?.toISOString() || "",
+        expiresAt: allocation.expiresAt?.toISOString() || '',
       });
     }
 
@@ -1156,9 +1119,7 @@ export class AllocationService {
     remainingExtends: number;
     totalDurationMinutes: number;
   }> {
-    this.logger.log(
-      `Extending allocation ${allocationId} by ${additionalMinutes} minutes...`
-    );
+    this.logger.log(`Extending allocation ${allocationId} by ${additionalMinutes} minutes...`);
 
     // 1. 查找分配
     const allocation = await this.allocationRepository.findOne({
@@ -1171,9 +1132,7 @@ export class AllocationService {
 
     // 2. 验证分配状态
     if (allocation.status !== AllocationStatus.ALLOCATED) {
-      throw new BadRequestException(
-        `Allocation is not active (status: ${allocation.status})`
-      );
+      throw new BadRequestException(`Allocation is not active (status: ${allocation.status})`);
     }
 
     // 3. 获取续期策略
@@ -1191,9 +1150,7 @@ export class AllocationService {
 
     // 6. 检查续期次数限制
     if (policy.maxExtendCount !== -1 && extendCount >= policy.maxExtendCount) {
-      throw new ForbiddenException(
-        `Maximum extend count reached (${policy.maxExtendCount})`
-      );
+      throw new ForbiddenException(`Maximum extend count reached (${policy.maxExtendCount})`);
     }
 
     // 7. 检查单次续期时长限制
@@ -1256,17 +1213,13 @@ export class AllocationService {
         );
       } catch (error) {
         this.logger.warn(`Billing check failed: ${error.message}`);
-        throw new ForbiddenException(
-          `Insufficient balance to extend ${additionalMinutes} minutes`
-        );
+        throw new ForbiddenException(`Insufficient balance to extend ${additionalMinutes} minutes`);
       }
     }
 
     // 13. 执行续期
     const oldExpiresAt = allocation.expiresAt;
-    const newExpiresAt = new Date(
-      oldExpiresAt.getTime() + additionalMinutes * 60 * 1000
-    );
+    const newExpiresAt = new Date(oldExpiresAt.getTime() + additionalMinutes * 60 * 1000);
 
     allocation.expiresAt = newExpiresAt;
 
@@ -1282,7 +1235,7 @@ export class AllocationService {
       additionalMinutes,
       oldExpiresAt: oldExpiresAt.toISOString(),
       newExpiresAt: newExpiresAt.toISOString(),
-      reason: reason || "User requested",
+      reason: reason || 'User requested',
     });
     allocation.metadata.extendHistory = extendHistory;
 
@@ -1294,7 +1247,7 @@ export class AllocationService {
     );
 
     // 17. 发布事件
-    await this.eventBus.publish("cloudphone.events", "scheduler.allocation.extended", {
+    await this.eventBus.publish('cloudphone.events', 'scheduler.allocation.extended', {
       allocationId,
       userId: allocation.userId,
       deviceId: allocation.deviceId,
@@ -1315,9 +1268,9 @@ export class AllocationService {
         await this.notificationClient.sendBatchNotifications([
           {
             userId: allocation.userId,
-            type: "allocation_extended" as any,
-            title: "⏰ 设备使用时间已延长",
-            message: `设备 ${device.name || device.id.substring(0, 8)} 使用时间已延长 ${additionalMinutes} 分钟。新过期时间：${newExpiresAt.toLocaleString("zh-CN")}`,
+            type: 'allocation_extended' as any,
+            title: '⏰ 设备使用时间已延长',
+            message: `设备 ${device.name || device.id.substring(0, 8)} 使用时间已延长 ${additionalMinutes} 分钟。新过期时间：${newExpiresAt.toLocaleString('zh-CN')}`,
             data: {
               allocationId,
               deviceId: device.id,
@@ -1330,14 +1283,12 @@ export class AllocationService {
                   ? -1
                   : policy.maxExtendCount - allocation.metadata.extendCount,
             },
-            channels: ["websocket"],
+            channels: ['websocket'],
           },
         ]);
       }
     } catch (notificationError) {
-      this.logger.warn(
-        `Failed to send extend notification: ${notificationError.message}`
-      );
+      this.logger.warn(`Failed to send extend notification: ${notificationError.message}`);
     }
 
     // 19. 返回结果
@@ -1355,11 +1306,8 @@ export class AllocationService {
       additionalMinutes,
       extendCount: allocation.metadata.extendCount,
       remainingExtends:
-        policy.maxExtendCount === -1
-          ? -1
-          : policy.maxExtendCount - allocation.metadata.extendCount,
-      totalDurationMinutes:
-        allocation.durationMinutes + allocation.metadata.totalExtendedMinutes,
+        policy.maxExtendCount === -1 ? -1 : policy.maxExtendCount - allocation.metadata.extendCount,
+      totalDurationMinutes: allocation.durationMinutes + allocation.metadata.totalExtendedMinutes,
     };
   }
 
@@ -1411,11 +1359,7 @@ export class AllocationService {
     }
 
     // 检查续期次数
-    if (
-      canExtend &&
-      policy.maxExtendCount !== -1 &&
-      extendCount >= policy.maxExtendCount
-    ) {
+    if (canExtend && policy.maxExtendCount !== -1 && extendCount >= policy.maxExtendCount) {
       canExtend = false;
       cannotExtendReason = `Maximum extend count reached (${policy.maxExtendCount})`;
     }
@@ -1452,7 +1396,7 @@ export class AllocationService {
     const expiresAt = new Date(allocation.expiresAt);
     if (canExtend && now > expiresAt) {
       canExtend = false;
-      cannotExtendReason = "Allocation has expired";
+      cannotExtendReason = 'Allocation has expired';
     }
 
     // 检查是否在允许续期的时间窗口内
@@ -1467,8 +1411,7 @@ export class AllocationService {
     return {
       allocationId,
       extendCount,
-      remainingExtends:
-        policy.maxExtendCount === -1 ? -1 : policy.maxExtendCount - extendCount,
+      remainingExtends: policy.maxExtendCount === -1 ? -1 : policy.maxExtendCount - extendCount,
       totalDurationMinutes,
       maxTotalMinutes: policy.maxTotalMinutes,
       canExtend,
@@ -1529,17 +1472,17 @@ export class AllocationService {
         {
           persistent: true,
           priority: 8, // High priority for billing data
-        },
+        }
       );
 
       this.logger.log(
-        `📨 Published failed billing data to DLX: allocation ${billingData.allocationId}`,
+        `📨 Published failed billing data to DLX: allocation ${billingData.allocationId}`
       );
     } catch (dlxError) {
       // 如果发布到 DLX 也失败，记录严重错误
       this.logger.error(
         `🚨 CRITICAL: Failed to publish billing data to DLX for allocation ${billingData.allocationId}: ${dlxError.message}`,
-        dlxError.stack,
+        dlxError.stack
       );
 
       // 尝试发布系统错误事件通知管理员
@@ -1558,12 +1501,12 @@ export class AllocationService {
               originalFailure: billingData.failureReason,
               dlxFailure: dlxError.message,
             },
-          },
+          }
         );
       } catch (errorNotificationFailure) {
         // 最后的防御：如果连错误通知都失败，只能记录日志
         this.logger.error(
-          `🚨 CRITICAL: Failed to notify system error: ${errorNotificationFailure.message}`,
+          `🚨 CRITICAL: Failed to notify system error: ${errorNotificationFailure.message}`
         );
       }
     }

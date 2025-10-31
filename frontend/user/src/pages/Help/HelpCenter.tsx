@@ -48,23 +48,23 @@ const { Search } = Input;
 // 分类图标映射
 const categoryIcons: Record<string, React.ReactNode> = {
   'getting-started': <BookOutlined />,
-  'account': <BookOutlined />,
-  'device': <BookOutlined />,
-  'app': <BookOutlined />,
-  'billing': <BookOutlined />,
-  'technical': <BookOutlined />,
-  'security': <BookOutlined />,
+  account: <BookOutlined />,
+  device: <BookOutlined />,
+  app: <BookOutlined />,
+  billing: <BookOutlined />,
+  technical: <BookOutlined />,
+  security: <BookOutlined />,
 };
 
 // 分类颜色映射
 const categoryColors: Record<string, string> = {
   'getting-started': '#1890ff',
-  'account': '#52c41a',
-  'device': '#faad14',
-  'app': '#13c2c2',
-  'billing': '#eb2f96',
-  'technical': '#722ed1',
-  'security': '#f5222d',
+  account: '#52c41a',
+  device: '#faad14',
+  app: '#13c2c2',
+  billing: '#eb2f96',
+  technical: '#722ed1',
+  security: '#f5222d',
 };
 
 const HelpCenter: React.FC = () => {
@@ -259,9 +259,7 @@ const HelpCenter: React.FC = () => {
                           {icon}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                            {category.name}
-                          </div>
+                          <div style={{ fontWeight: 500, marginBottom: 4 }}>{category.name}</div>
                           <Text type="secondary" style={{ fontSize: 12 }}>
                             {category.articleCount} 篇文章
                           </Text>
@@ -366,9 +364,7 @@ const HelpCenter: React.FC = () => {
                       }
                       description={
                         <Space size="large" style={{ fontSize: 12 }}>
-                          <Text type="secondary">
-                            {dayjs(article.createdAt).fromNow()}
-                          </Text>
+                          <Text type="secondary">{dayjs(article.createdAt).fromNow()}</Text>
                         </Space>
                       }
                     />
@@ -400,11 +396,7 @@ const HelpCenter: React.FC = () => {
           <List
             dataSource={popularFAQs}
             renderItem={(faq, index) => (
-              <List.Item
-                key={faq.id}
-                style={{ cursor: 'pointer' }}
-                onClick={() => goToFAQ(faq.id)}
-              >
+              <List.Item key={faq.id} style={{ cursor: 'pointer' }} onClick={() => goToFAQ(faq.id)}>
                 <List.Item.Meta
                   avatar={
                     <div
@@ -454,9 +446,7 @@ const HelpCenter: React.FC = () => {
             <Title level={4} style={{ marginBottom: 8 }}>
               找不到您需要的帮助？
             </Title>
-            <Paragraph type="secondary">
-              我们的客服团队随时准备为您提供帮助
-            </Paragraph>
+            <Paragraph type="secondary">我们的客服团队随时准备为您提供帮助</Paragraph>
           </div>
           <Space>
             <Button type="primary" size="large" onClick={() => navigate('/tickets')}>

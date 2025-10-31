@@ -1,7 +1,7 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Device, DeviceStatus } from "../entities/device.entity";
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Device, DeviceStatus } from '../entities/device.entity';
 
 export interface PortAllocation {
   adbPort: number;
@@ -28,7 +28,7 @@ export class PortManagerService {
 
   constructor(
     @InjectRepository(Device)
-    private devicesRepository: Repository<Device>,
+    private devicesRepository: Repository<Device>
   ) {
     this.initializePortCache();
   }
@@ -60,10 +60,10 @@ export class PortManagerService {
       });
 
       this.logger.log(
-        `Port cache initialized: ${this.usedAdbPorts.size} ADB ports, ${this.usedWebrtcPorts.size} WebRTC ports`,
+        `Port cache initialized: ${this.usedAdbPorts.size} ADB ports, ${this.usedWebrtcPorts.size} WebRTC ports`
       );
     } catch (error) {
-      this.logger.error("Failed to initialize port cache", error);
+      this.logger.error('Failed to initialize port cache', error);
     }
   }
 
@@ -92,20 +92,14 @@ export class PortManagerService {
       }
     }
 
-    throw new Error(
-      `No available ADB ports in range ${this.ADB_PORT_START}-${this.ADB_PORT_END}`,
-    );
+    throw new Error(`No available ADB ports in range ${this.ADB_PORT_START}-${this.ADB_PORT_END}`);
   }
 
   /**
    * 分配 WebRTC 端口
    */
   private allocateWebrtcPort(): number {
-    for (
-      let port = this.WEBRTC_PORT_START;
-      port <= this.WEBRTC_PORT_END;
-      port++
-    ) {
+    for (let port = this.WEBRTC_PORT_START; port <= this.WEBRTC_PORT_END; port++) {
       if (!this.usedWebrtcPorts.has(port)) {
         this.usedWebrtcPorts.add(port);
         this.logger.debug(`Allocated WebRTC port: ${port}`);
@@ -114,7 +108,7 @@ export class PortManagerService {
     }
 
     throw new Error(
-      `No available WebRTC ports in range ${this.WEBRTC_PORT_START}-${this.WEBRTC_PORT_END}`,
+      `No available WebRTC ports in range ${this.WEBRTC_PORT_START}-${this.WEBRTC_PORT_END}`
     );
   }
 
@@ -122,11 +116,7 @@ export class PortManagerService {
    * 分配 SCRCPY 端口
    */
   allocateScrcpyPort(): number {
-    for (
-      let port = this.SCRCPY_PORT_START;
-      port <= this.SCRCPY_PORT_END;
-      port++
-    ) {
+    for (let port = this.SCRCPY_PORT_START; port <= this.SCRCPY_PORT_END; port++) {
       if (!this.usedScrcpyPorts.has(port)) {
         this.usedScrcpyPorts.add(port);
         this.logger.debug(`Allocated SCRCPY port: ${port}`);
@@ -135,7 +125,7 @@ export class PortManagerService {
     }
 
     throw new Error(
-      `No available SCRCPY ports in range ${this.SCRCPY_PORT_START}-${this.SCRCPY_PORT_END}`,
+      `No available SCRCPY ports in range ${this.SCRCPY_PORT_START}-${this.SCRCPY_PORT_END}`
     );
   }
 
@@ -162,21 +152,19 @@ export class PortManagerService {
   /**
    * 检查端口是否可用
    */
-  isPortAvailable(port: number, type: "adb" | "webrtc" | "scrcpy"): boolean {
+  isPortAvailable(port: number, type: 'adb' | 'webrtc' | 'scrcpy'): boolean {
     switch (type) {
-      case "adb":
+      case 'adb':
         return (
-          port >= this.ADB_PORT_START &&
-          port <= this.ADB_PORT_END &&
-          !this.usedAdbPorts.has(port)
+          port >= this.ADB_PORT_START && port <= this.ADB_PORT_END && !this.usedAdbPorts.has(port)
         );
-      case "webrtc":
+      case 'webrtc':
         return (
           port >= this.WEBRTC_PORT_START &&
           port <= this.WEBRTC_PORT_END &&
           !this.usedWebrtcPorts.has(port)
         );
-      case "scrcpy":
+      case 'scrcpy':
         return (
           port >= this.SCRCPY_PORT_START &&
           port <= this.SCRCPY_PORT_END &&
@@ -195,28 +183,19 @@ export class PortManagerService {
       adb: {
         total: this.ADB_PORT_END - this.ADB_PORT_START + 1,
         used: this.usedAdbPorts.size,
-        available:
-          this.ADB_PORT_END - this.ADB_PORT_START + 1 - this.usedAdbPorts.size,
+        available: this.ADB_PORT_END - this.ADB_PORT_START + 1 - this.usedAdbPorts.size,
         range: `${this.ADB_PORT_START}-${this.ADB_PORT_END}`,
       },
       webrtc: {
         total: this.WEBRTC_PORT_END - this.WEBRTC_PORT_START + 1,
         used: this.usedWebrtcPorts.size,
-        available:
-          this.WEBRTC_PORT_END -
-          this.WEBRTC_PORT_START +
-          1 -
-          this.usedWebrtcPorts.size,
+        available: this.WEBRTC_PORT_END - this.WEBRTC_PORT_START + 1 - this.usedWebrtcPorts.size,
         range: `${this.WEBRTC_PORT_START}-${this.WEBRTC_PORT_END}`,
       },
       scrcpy: {
         total: this.SCRCPY_PORT_END - this.SCRCPY_PORT_START + 1,
         used: this.usedScrcpyPorts.size,
-        available:
-          this.SCRCPY_PORT_END -
-          this.SCRCPY_PORT_START +
-          1 -
-          this.usedScrcpyPorts.size,
+        available: this.SCRCPY_PORT_END - this.SCRCPY_PORT_START + 1 - this.usedScrcpyPorts.size,
         range: `${this.SCRCPY_PORT_START}-${this.SCRCPY_PORT_END}`,
       },
     };

@@ -45,12 +45,12 @@ export const defaultCacheConfig: CacheConfig = {
     randomTTLRange: 60, // 0-60秒随机（从30秒增加）
     nullValueTTL: 120, // 空值缓存2分钟（从60秒增加）
     hotDataPrefixes: [
-      'user:',       // 用户信息
-      'role:',       // 角色信息
+      'user:', // 用户信息
+      'role:', // 角色信息
       'permission:', // 权限信息
-      'plan:',       // 套餐信息
-      'config:',     // 系统配置
-      'device:',     // 设备信息
+      'plan:', // 套餐信息
+      'config:', // 系统配置
+      'device:', // 设备信息
     ],
   },
 };

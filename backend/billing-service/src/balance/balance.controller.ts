@@ -101,15 +101,9 @@ export class BalanceController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '解冻余额' })
   @ApiResponse({ status: 200, description: '解冻成功' })
-  async unfreezeBalance(
-    @Body() body: { userId: string; amount: number; reason: string },
-  ) {
+  async unfreezeBalance(@Body() body: { userId: string; amount: number; reason: string }) {
     this.logger.log(`解冻余额 - 用户: ${body.userId}, 金额: ${body.amount}`);
-    return await this.balanceService.unfreezeBalance(
-      body.userId,
-      body.amount,
-      body.reason,
-    );
+    return await this.balanceService.unfreezeBalance(body.userId, body.amount, body.reason);
   }
 
   /**
@@ -122,7 +116,7 @@ export class BalanceController {
   @ApiResponse({ status: 200, description: '调整成功' })
   async adjustBalance(@Body() dto: AdjustBalanceDto) {
     this.logger.log(
-      `余额调整 - 用户: ${dto.userId}, 金额: ${dto.amount}, 操作人: ${dto.operatorId}`,
+      `余额调整 - 用户: ${dto.userId}, 金额: ${dto.amount}, 操作人: ${dto.operatorId}`
     );
     return await this.balanceService.adjustBalance(dto);
   }
@@ -138,7 +132,7 @@ export class BalanceController {
     @Query('type') type?: TransactionType,
     @Query('status') status?: TransactionStatus,
     @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('offset') offset?: number
   ) {
     return await this.balanceService.getTransactions(userId, {
       type,

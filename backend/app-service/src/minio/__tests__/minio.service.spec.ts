@@ -122,7 +122,7 @@ describe('MinioService', () => {
         1024,
         expect.objectContaining({
           'Content-Type': 'application/vnd.android.package-archive',
-        }),
+        })
       );
     });
 
@@ -145,7 +145,7 @@ describe('MinioService', () => {
         expect.objectContaining({
           'Content-Type': 'application/vnd.android.package-archive',
           'x-app-version': '1.0.0',
-        }),
+        })
       );
     });
 
@@ -158,11 +158,9 @@ describe('MinioService', () => {
       mockMinioClient.putObject.mockRejectedValue(new Error('Upload failed'));
 
       await expect(service.uploadFile(filePath, objectName)).rejects.toThrow(
-        InternalServerErrorException,
+        InternalServerErrorException
       );
-      await expect(service.uploadFile(filePath, objectName)).rejects.toThrow(
-        '文件上传失败',
-      );
+      await expect(service.uploadFile(filePath, objectName)).rejects.toThrow('文件上传失败');
     });
   });
 
@@ -173,22 +171,15 @@ describe('MinioService', () => {
 
       await service.deleteFile(objectName);
 
-      expect(mockMinioClient.removeObject).toHaveBeenCalledWith(
-        'cloudphone-apps',
-        objectName,
-      );
+      expect(mockMinioClient.removeObject).toHaveBeenCalledWith('cloudphone-apps', objectName);
     });
 
     it('should throw InternalServerErrorException on delete failure', async () => {
       const objectName = 'apps/test.apk';
       mockMinioClient.removeObject.mockRejectedValue(new Error('Delete failed'));
 
-      await expect(service.deleteFile(objectName)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-      await expect(service.deleteFile(objectName)).rejects.toThrow(
-        '文件删除失败',
-      );
+      await expect(service.deleteFile(objectName)).rejects.toThrow(InternalServerErrorException);
+      await expect(service.deleteFile(objectName)).rejects.toThrow('文件删除失败');
     });
   });
 
@@ -205,7 +196,7 @@ describe('MinioService', () => {
       expect(mockMinioClient.presignedGetObject).toHaveBeenCalledWith(
         'cloudphone-apps',
         objectName,
-        7 * 24 * 60 * 60, // 7 days
+        7 * 24 * 60 * 60 // 7 days
       );
     });
 
@@ -222,7 +213,7 @@ describe('MinioService', () => {
       expect(mockMinioClient.presignedGetObject).toHaveBeenCalledWith(
         'cloudphone-apps',
         objectName,
-        expirySeconds,
+        expirySeconds
       );
     });
 
@@ -230,12 +221,8 @@ describe('MinioService', () => {
       const objectName = 'apps/test.apk';
       mockMinioClient.presignedGetObject.mockRejectedValue(new Error('URL generation failed'));
 
-      await expect(service.getFileUrl(objectName)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-      await expect(service.getFileUrl(objectName)).rejects.toThrow(
-        '获取文件 URL 失败',
-      );
+      await expect(service.getFileUrl(objectName)).rejects.toThrow(InternalServerErrorException);
+      await expect(service.getFileUrl(objectName)).rejects.toThrow('获取文件 URL 失败');
     });
   });
 
@@ -254,22 +241,15 @@ describe('MinioService', () => {
       const result = await service.getFileInfo(objectName);
 
       expect(result).toEqual(fileInfo);
-      expect(mockMinioClient.statObject).toHaveBeenCalledWith(
-        'cloudphone-apps',
-        objectName,
-      );
+      expect(mockMinioClient.statObject).toHaveBeenCalledWith('cloudphone-apps', objectName);
     });
 
     it('should throw InternalServerErrorException on stat failure', async () => {
       const objectName = 'apps/test.apk';
       mockMinioClient.statObject.mockRejectedValue(new Error('Stat failed'));
 
-      await expect(service.getFileInfo(objectName)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-      await expect(service.getFileInfo(objectName)).rejects.toThrow(
-        '获取文件信息失败',
-      );
+      await expect(service.getFileInfo(objectName)).rejects.toThrow(InternalServerErrorException);
+      await expect(service.getFileInfo(objectName)).rejects.toThrow('获取文件信息失败');
     });
   });
 
@@ -297,11 +277,7 @@ describe('MinioService', () => {
 
       expect(result).toHaveLength(2);
       expect(result).toEqual(mockFiles);
-      expect(mockMinioClient.listObjects).toHaveBeenCalledWith(
-        'cloudphone-apps',
-        undefined,
-        true,
-      );
+      expect(mockMinioClient.listObjects).toHaveBeenCalledWith('cloudphone-apps', undefined, true);
     });
 
     it('should list files with prefix', async () => {
@@ -324,11 +300,7 @@ describe('MinioService', () => {
       const result = await service.listFiles(prefix);
 
       expect(result).toHaveLength(1);
-      expect(mockMinioClient.listObjects).toHaveBeenCalledWith(
-        'cloudphone-apps',
-        prefix,
-        true,
-      );
+      expect(mockMinioClient.listObjects).toHaveBeenCalledWith('cloudphone-apps', prefix, true);
     });
 
     it('should handle list files error', async () => {
@@ -357,22 +329,15 @@ describe('MinioService', () => {
       const result = await service.getFileStream(objectName);
 
       expect(result).toBe(mockStream);
-      expect(mockMinioClient.getObject).toHaveBeenCalledWith(
-        'cloudphone-apps',
-        objectName,
-      );
+      expect(mockMinioClient.getObject).toHaveBeenCalledWith('cloudphone-apps', objectName);
     });
 
     it('should throw InternalServerErrorException on stream failure', async () => {
       const objectName = 'apps/test.apk';
       mockMinioClient.getObject.mockRejectedValue(new Error('Stream failed'));
 
-      await expect(service.getFileStream(objectName)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-      await expect(service.getFileStream(objectName)).rejects.toThrow(
-        '获取文件流失败',
-      );
+      await expect(service.getFileStream(objectName)).rejects.toThrow(InternalServerErrorException);
+      await expect(service.getFileStream(objectName)).rejects.toThrow('获取文件流失败');
     });
   });
 });

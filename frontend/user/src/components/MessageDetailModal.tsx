@@ -31,7 +31,10 @@ interface MessageDetailModalProps {
 }
 
 // 通知类型配置
-const notificationTypeConfig: Record<NotificationType, { label: string; color: string; icon: React.ReactNode }> = {
+const notificationTypeConfig: Record<
+  NotificationType,
+  { label: string; color: string; icon: React.ReactNode }
+> = {
   [NotificationType.SYSTEM]: {
     label: '系统通知',
     color: 'blue',
@@ -160,12 +163,7 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
       onCancel={onClose}
       footer={[
         notification.actionUrl && notification.actionText && (
-          <Button
-            key="action"
-            type="primary"
-            icon={<LinkOutlined />}
-            onClick={handleAction}
-          >
+          <Button key="action" type="primary" icon={<LinkOutlined />} onClick={handleAction}>
             {notification.actionText}
           </Button>
         ),
@@ -198,12 +196,14 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
       <Divider style={{ margin: '16px 0' }} />
 
       {/* 通知内容 */}
-      <Paragraph style={{
-        fontSize: '14px',
-        lineHeight: '1.8',
-        whiteSpace: 'pre-wrap',
-        marginBottom: '24px'
-      }}>
+      <Paragraph
+        style={{
+          fontSize: '14px',
+          lineHeight: '1.8',
+          whiteSpace: 'pre-wrap',
+          marginBottom: '24px',
+        }}
+      >
         {notification.content}
       </Paragraph>
 
@@ -211,11 +211,13 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
       {notification.metadata && Object.keys(notification.metadata).length > 0 && (
         <>
           <Divider style={{ margin: '16px 0' }} />
-          <div style={{
-            background: '#f5f5f5',
-            padding: '12px',
-            borderRadius: '4px',
-          }}>
+          <div
+            style={{
+              background: '#f5f5f5',
+              padding: '12px',
+              borderRadius: '4px',
+            }}
+          >
             <Text type="secondary" style={{ fontSize: '12px' }}>
               <strong>相关信息：</strong>
             </Text>
@@ -234,19 +236,22 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
       <Divider style={{ margin: '16px 0' }} />
       <Space direction="vertical" size={4}>
         <Text type="secondary" style={{ fontSize: '12px' }}>
-          <ClockCircleOutlined /> 发送时间: {dayjs(notification.createdAt).format('YYYY-MM-DD HH:mm:ss')}
-          {' '}({dayjs(notification.createdAt).fromNow()})
+          <ClockCircleOutlined /> 发送时间:{' '}
+          {dayjs(notification.createdAt).format('YYYY-MM-DD HH:mm:ss')} (
+          {dayjs(notification.createdAt).fromNow()})
         </Text>
 
         {notification.readAt && (
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            <CheckCircleOutlined /> 阅读时间: {dayjs(notification.readAt).format('YYYY-MM-DD HH:mm:ss')}
+            <CheckCircleOutlined /> 阅读时间:{' '}
+            {dayjs(notification.readAt).format('YYYY-MM-DD HH:mm:ss')}
           </Text>
         )}
 
         {notification.expiresAt && (
           <Text type="warning" style={{ fontSize: '12px' }}>
-            <ExclamationCircleOutlined /> 过期时间: {dayjs(notification.expiresAt).format('YYYY-MM-DD HH:mm:ss')}
+            <ExclamationCircleOutlined /> 过期时间:{' '}
+            {dayjs(notification.expiresAt).format('YYYY-MM-DD HH:mm:ss')}
           </Text>
         )}
       </Space>

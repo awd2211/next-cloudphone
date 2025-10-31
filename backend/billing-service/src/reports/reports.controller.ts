@@ -1,5 +1,12 @@
 import { Controller, Get, Query, Param, Res, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { ReportsService } from './reports.service';
@@ -14,7 +21,7 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('bills/:userId')
-  @RequirePermission('billing.read')
+  @RequirePermission('billing:read')
   @ApiOperation({ summary: '生成用户账单报表', description: '生成指定用户的账单报表' })
   @ApiParam({ name: 'userId', description: '用户 ID' })
   @ApiQuery({ name: 'startDate', description: '开始日期（ISO 8601）' })
@@ -24,7 +31,7 @@ export class ReportsController {
   async getUserBillReport(
     @Param('userId') userId: string,
     @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
+    @Query('endDate') endDate: string
   ) {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -37,7 +44,7 @@ export class ReportsController {
   }
 
   @Get('revenue')
-  @RequirePermission('billing.read')
+  @RequirePermission('billing:read')
   @ApiOperation({ summary: '生成收入统计报表', description: '生成指定时间段的收入统计报表' })
   @ApiQuery({ name: 'startDate', description: '开始日期（ISO 8601）' })
   @ApiQuery({ name: 'endDate', description: '结束日期（ISO 8601）' })
@@ -47,7 +54,7 @@ export class ReportsController {
   async getRevenueReport(
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
-    @Query('tenantId') tenantId?: string,
+    @Query('tenantId') tenantId?: string
   ) {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -60,7 +67,7 @@ export class ReportsController {
   }
 
   @Get('usage-trend')
-  @RequirePermission('billing.read')
+  @RequirePermission('billing:read')
   @ApiOperation({ summary: '生成使用趋势报表', description: '生成资源使用趋势分析报表' })
   @ApiQuery({ name: 'startDate', description: '开始日期（ISO 8601）' })
   @ApiQuery({ name: 'endDate', description: '结束日期（ISO 8601）' })
@@ -72,7 +79,7 @@ export class ReportsController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('userId') userId?: string,
-    @Query('tenantId') tenantId?: string,
+    @Query('tenantId') tenantId?: string
   ) {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -85,12 +92,17 @@ export class ReportsController {
   }
 
   @Get('bills/:userId/export')
-  @RequirePermission('billing.read')
+  @RequirePermission('billing:read')
   @ApiOperation({ summary: '导出用户账单', description: '导出用户账单为 Excel 文件' })
   @ApiParam({ name: 'userId', description: '用户 ID' })
   @ApiQuery({ name: 'startDate', description: '开始日期（ISO 8601）' })
   @ApiQuery({ name: 'endDate', description: '结束日期（ISO 8601）' })
-  @ApiQuery({ name: 'format', required: false, description: '导出格式（excel/csv）', example: 'excel' })
+  @ApiQuery({
+    name: 'format',
+    required: false,
+    description: '导出格式（excel/csv）',
+    example: 'excel',
+  })
   @ApiResponse({ status: 200, description: '导出成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async exportUserBill(
@@ -98,7 +110,7 @@ export class ReportsController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('format') format: string = 'excel',
-    @Res() res: Response,
+    @Res() res: Response
   ) {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -108,17 +120,13 @@ export class ReportsController {
     const fileName = `bill_${userId}_${start.toISOString().split('T')[0]}_${end.toISOString().split('T')[0]}`;
 
     if (format === 'csv' && report.orders) {
-      const filePath = await this.reportsService.exportToCSV(
-        report.orders,
-        fileName,
-        [
-          { id: 'id', title: 'Order ID' },
-          { id: 'amount', title: 'Amount' },
-          { id: 'status', title: 'Status' },
-          { id: 'createdAt', title: 'Created At' },
-          { id: 'paidAt', title: 'Paid At' },
-        ],
-      );
+      const filePath = await this.reportsService.exportToCSV(report.orders, fileName, [
+        { id: 'id', title: 'Order ID' },
+        { id: 'amount', title: 'Amount' },
+        { id: 'status', title: 'Status' },
+        { id: 'createdAt', title: 'Created At' },
+        { id: 'paidAt', title: 'Paid At' },
+      ]);
       res.download(filePath);
     } else {
       const filePath = await this.reportsService.exportToExcel(report, fileName);
@@ -127,7 +135,7 @@ export class ReportsController {
   }
 
   @Get('revenue/export')
-  @RequirePermission('billing.read')
+  @RequirePermission('billing:read')
   @ApiOperation({ summary: '导出收入报表', description: '导出收入统计报表为 Excel 文件' })
   @ApiQuery({ name: 'startDate', description: '开始日期（ISO 8601）' })
   @ApiQuery({ name: 'endDate', description: '结束日期（ISO 8601）' })
@@ -138,7 +146,7 @@ export class ReportsController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('tenantId') tenantId: string | undefined,
-    @Res() res: Response,
+    @Res() res: Response
   ) {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -152,7 +160,7 @@ export class ReportsController {
   }
 
   @Get('plans/stats')
-  @RequirePermission('billing.read')
+  @RequirePermission('billing:read')
   @ApiOperation({ summary: '获取套餐统计', description: '获取所有套餐的订单和收入统计' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })

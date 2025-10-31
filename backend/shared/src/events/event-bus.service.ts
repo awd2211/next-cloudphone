@@ -48,7 +48,7 @@ export class EventBusService {
 
   constructor(
     private readonly configService: ConfigService,
-    @Optional() private readonly amqpConnection?: AmqpConnection,
+    @Optional() private readonly amqpConnection?: AmqpConnection
   ) {}
 
   /**
@@ -62,7 +62,7 @@ export class EventBusService {
     exchange: string,
     routingKey: string,
     message: T,
-    options?: PublishOptions,
+    options?: PublishOptions
   ): Promise<void> {
     if (!this.amqpConnection) {
       throw new Error('AmqpConnection not available. Make sure RabbitMQModule is imported.');
@@ -90,7 +90,7 @@ export class EventBusService {
    */
   async publishDeviceEvent<T extends Record<string, unknown>>(
     eventType: string,
-    payload: T,
+    payload: T
   ): Promise<void> {
     await this.publish('cloudphone.events', `device.${eventType}`, {
       type: `device.${eventType}`,
@@ -106,7 +106,7 @@ export class EventBusService {
    */
   async publishAppEvent<T extends Record<string, unknown>>(
     eventType: string,
-    payload: T,
+    payload: T
   ): Promise<void> {
     await this.publish('cloudphone.events', `app.${eventType}`, {
       type: `app.${eventType}`,
@@ -122,7 +122,7 @@ export class EventBusService {
    */
   async publishOrderEvent<T extends Record<string, unknown>>(
     eventType: string,
-    payload: T,
+    payload: T
   ): Promise<void> {
     await this.publish('cloudphone.events', `order.${eventType}`, {
       type: `order.${eventType}`,
@@ -138,7 +138,7 @@ export class EventBusService {
    */
   async publishUserEvent<T extends Record<string, unknown>>(
     eventType: string,
-    payload: T,
+    payload: T
   ): Promise<void> {
     await this.publish('cloudphone.events', `user.${eventType}`, {
       type: `user.${eventType}`,
@@ -154,7 +154,7 @@ export class EventBusService {
    */
   async publishNotificationEvent<T extends Record<string, unknown>>(
     eventType: string,
-    payload: T,
+    payload: T
   ): Promise<void> {
     await this.publish('cloudphone.events', `notification.${eventType}`, {
       type: `notification.${eventType}`,
@@ -170,7 +170,7 @@ export class EventBusService {
    */
   async publishBillingEvent<T extends Record<string, unknown>>(
     eventType: string,
-    payload: T,
+    payload: T
   ): Promise<void> {
     await this.publish('cloudphone.events', `billing.${eventType}`, {
       type: `billing.${eventType}`,
@@ -199,7 +199,7 @@ export class EventBusService {
       userId?: string;
       stackTrace?: string;
       metadata?: Record<string, any>;
-    },
+    }
   ): Promise<void> {
     const routingKey = `system.error.${severity}`;
 
@@ -225,8 +225,6 @@ export class EventBusService {
       }
     );
 
-    this.logger.log(
-      `System error published: ${errorCode} (${severity}) - ${serviceName}`
-    );
+    this.logger.log(`System error published: ${errorCode} (${severity}) - ${serviceName}`);
   }
 }

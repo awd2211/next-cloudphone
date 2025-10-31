@@ -8,23 +8,23 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
  * OTP 验证码类型
  */
 export enum OtpType {
-  REGISTRATION = 'registration',      // 用户注册
-  LOGIN = 'login',                    // 登录验证
-  PASSWORD_RESET = 'password_reset',  // 密码重置
-  PHONE_VERIFY = 'phone_verify',      // 手机号验证
-  PAYMENT = 'payment',                // 支付确认
-  DEVICE_OPERATION = 'device_op',     // 设备操作
+  REGISTRATION = 'registration', // 用户注册
+  LOGIN = 'login', // 登录验证
+  PASSWORD_RESET = 'password_reset', // 密码重置
+  PHONE_VERIFY = 'phone_verify', // 手机号验证
+  PAYMENT = 'payment', // 支付确认
+  DEVICE_OPERATION = 'device_op', // 设备操作
 }
 
 /**
  * OTP 配置
  */
 interface OtpConfig {
-  length: number;           // 验证码长度
-  expiryMinutes: number;    // 过期时间（分钟）
-  maxRetries: number;       // 最大重试次数
-  resendCooldown: number;   // 重发冷却时间（秒）
-  rateLimit: number;        // 速率限制（每小时）
+  length: number; // 验证码长度
+  expiryMinutes: number; // 过期时间（分钟）
+  maxRetries: number; // 最大重试次数
+  resendCooldown: number; // 重发冷却时间（秒）
+  rateLimit: number; // 速率限制（每小时）
 }
 
 /**
@@ -102,7 +102,7 @@ export class OtpService {
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly smsService: SmsService,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService
   ) {}
 
   /**
@@ -111,7 +111,7 @@ export class OtpService {
   async sendOtp(
     phoneNumber: string,
     type: OtpType,
-    customMessage?: string,
+    customMessage?: string
   ): Promise<{ success: boolean; error?: string }> {
     const config = DEFAULT_CONFIGS[type];
 
@@ -136,7 +136,9 @@ export class OtpService {
     const cooldownRemaining = await this.redis.ttl(cooldownKey);
 
     if (cooldownRemaining > 0) {
-      this.logger.warn(`Resend cooldown active for ${phoneNumber}, ${cooldownRemaining}s remaining`);
+      this.logger.warn(
+        `Resend cooldown active for ${phoneNumber}, ${cooldownRemaining}s remaining`
+      );
       return {
         success: false,
         error: `Please wait ${cooldownRemaining} seconds before requesting a new code.`,
@@ -186,7 +188,7 @@ export class OtpService {
   async verifyOtp(
     phoneNumber: string,
     code: string,
-    type: OtpType,
+    type: OtpType
   ): Promise<{ valid: boolean; error?: string }> {
     const config = DEFAULT_CONFIGS[type];
     const otpKey = this.getOtpKey(phoneNumber, type);

@@ -16,13 +16,13 @@ export const throttlerConfig: ThrottlerModuleOptions = {
   throttlers: [
     {
       name: 'default',
-      ttl: 60000,   // 60 秒
-      limit: 100,   // 100 次请求
+      ttl: 60000, // 60 秒
+      limit: 100, // 100 次请求
     },
     {
       name: 'strict',
-      ttl: 60000,   // 60 秒
-      limit: 10,    // 10 次请求（严格模式）
+      ttl: 60000, // 60 秒
+      limit: 10, // 10 次请求（严格模式）
     },
   ],
 };

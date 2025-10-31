@@ -3,7 +3,12 @@ import { Layout, Card, Space, Select, Input, Button, message } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import VirtualizedDeviceList from '@/components/DeviceList/VirtualizedDeviceList';
 import { useDeviceList } from '@/hooks/useDeviceList';
-import { ProviderDisplayNamesCN, DeviceProviderType, StatusDisplayNamesCN, DeviceStatus } from '@/types/device';
+import {
+  ProviderDisplayNamesCN,
+  DeviceProviderType,
+  StatusDisplayNamesCN,
+  DeviceStatus,
+} from '@/types/device';
 
 const { Content } = Layout;
 const { Search } = Input;
@@ -47,9 +52,7 @@ const DeviceListPage: React.FC = () => {
         {/* 页面标题 */}
         <div style={{ marginBottom: '16px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 600, margin: 0 }}>设备管理</h1>
-          <div style={{ color: '#666', marginTop: '4px' }}>
-            管理和监控所有云手机设备
-          </div>
+          <div style={{ color: '#666', marginTop: '4px' }}>管理和监控所有云手机设备</div>
         </div>
 
         {/* 顶部操作栏 */}
@@ -59,18 +62,14 @@ const DeviceListPage: React.FC = () => {
               <Search
                 placeholder="搜索设备名称"
                 style={{ width: 300 }}
-                onSearch={(value) =>
-                  setFilters({ ...filters, search: value || undefined })
-                }
+                onSearch={(value) => setFilters({ ...filters, search: value || undefined })}
                 allowClear
               />
               <Select
                 placeholder="设备状态"
                 style={{ width: 120 }}
                 allowClear
-                onChange={(value) =>
-                  setFilters({ ...filters, status: value })
-                }
+                onChange={(value) => setFilters({ ...filters, status: value })}
               >
                 {Object.entries(StatusDisplayNamesCN).map(([key, name]) => (
                   <Select.Option key={key} value={key.toLowerCase()}>
@@ -82,9 +81,7 @@ const DeviceListPage: React.FC = () => {
                 placeholder="Provider 类型"
                 style={{ width: 150 }}
                 allowClear
-                onChange={(value) =>
-                  setFilters({ ...filters, providerType: value })
-                }
+                onChange={(value) => setFilters({ ...filters, providerType: value })}
               >
                 {Object.entries(ProviderDisplayNamesCN).map(([key, name]) => (
                   <Select.Option key={key} value={key}>
@@ -108,8 +105,10 @@ const DeviceListPage: React.FC = () => {
             ) : (
               <>
                 共 <strong>{totalCount}</strong> 台设备
-                {filters.status && ` · 状态: ${StatusDisplayNamesCN[filters.status.toUpperCase() as DeviceStatus]}`}
-                {filters.providerType && ` · 类型: ${ProviderDisplayNamesCN[filters.providerType as DeviceProviderType]}`}
+                {filters.status &&
+                  ` · 状态: ${StatusDisplayNamesCN[filters.status.toUpperCase() as DeviceStatus]}`}
+                {filters.providerType &&
+                  ` · 类型: ${ProviderDisplayNamesCN[filters.providerType as DeviceProviderType]}`}
                 {filters.search && ` · 搜索: ${filters.search}`}
               </>
             )}

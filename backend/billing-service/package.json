@@ -20,7 +20,8 @@
     "migrate:lint": "atlas migrate lint --env local",
     "migrate:validate": "atlas migrate validate --env local",
     "schema:inspect": "atlas schema inspect --url \"postgres://postgres:postgres@localhost:5432/cloudphone?sslmode=disable\" --format '{{ sql . }}' > schema.sql",
-    "schema:apply": "atlas schema apply --env local --auto-approve"
+    "schema:apply": "atlas schema apply --env local --auto-approve",
+    "seed": "ts-node -r tsconfig-paths/register src/seeds/seed.ts"
   },
   "dependencies": {
     "@cloudphone/shared": "workspace:*",

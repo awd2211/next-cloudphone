@@ -117,11 +117,7 @@ const LiveChatWidget: React.FC = () => {
             dataSource={quickActions}
             renderItem={(action) => (
               <List.Item>
-                <Card
-                  hoverable
-                  onClick={action.action}
-                  style={{ cursor: 'pointer' }}
-                >
+                <Card hoverable onClick={action.action} style={{ cursor: 'pointer' }}>
                   <Space style={{ width: '100%' }}>
                     <div
                       style={{
@@ -138,9 +134,7 @@ const LiveChatWidget: React.FC = () => {
                       {action.icon}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                        {action.title}
-                      </div>
+                      <div style={{ fontWeight: 500, marginBottom: 4 }}>{action.title}</div>
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         {action.description}
                       </Text>
@@ -194,9 +188,7 @@ const LiveChatWidget: React.FC = () => {
             <Button type="primary" onClick={() => navigate('/tickets')}>
               立即提交工单
             </Button>
-            <Button onClick={() => navigate('/help')}>
-              前往帮助中心
-            </Button>
+            <Button onClick={() => navigate('/help')}>前往帮助中心</Button>
           </Space>
         </Space>
       </Modal>

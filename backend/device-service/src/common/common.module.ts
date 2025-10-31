@@ -1,7 +1,7 @@
-import { Module, Global } from "@nestjs/common";
-import { RetryService } from "./retry.service";
-import { RetryController } from "./retry.controller";
-import { RateLimiterService } from "./rate-limiter.service";
+import { Module, Global } from '@nestjs/common';
+import { RetryService } from './retry.service';
+import { RetryController } from './retry.controller';
+import { RateLimiterService } from './rate-limiter.service';
 
 /**
  * 通用模块：提供跨模块共享的工具和服务

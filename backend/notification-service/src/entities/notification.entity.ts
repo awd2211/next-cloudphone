@@ -6,11 +6,7 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
-import {
-  NotificationStatus,
-  NotificationChannel,
-  NotificationCategory,
-} from '@cloudphone/shared';
+import { NotificationStatus, NotificationChannel, NotificationCategory } from '@cloudphone/shared';
 
 /**
  * @deprecated 使用 NotificationCategory 代替
@@ -100,4 +96,3 @@ export class Notification {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

@@ -33,9 +33,7 @@ const calculateOptimalPoolSize = (): { min: number; max: number } => {
  * - 慢查询日志和监控
  * - 连接健康检查
  */
-export const getDatabaseConfig = (
-  configService: ConfigService,
-): TypeOrmModuleOptions => {
+export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => {
   const isProduction = configService.get('NODE_ENV') === 'production';
   const isDevelopment = configService.get('NODE_ENV') === 'development';
 
@@ -78,45 +76,33 @@ export const getDatabaseConfig = (
 
       // 连接池最小连接数（动态计算）
       // 保持最少的活跃连接，减少连接建立开销
-      min: parseInt(
-        configService.get('DB_POOL_MIN', String(optimalPoolSize.min)),
-        10,
-      ),
+      min: parseInt(configService.get('DB_POOL_MIN', String(optimalPoolSize.min)), 10),
 
       // 连接池最大连接数（动态计算）
       // 公式：(CPU 核心数 × 2) + 有效磁盘数
       // 例如：4核心 + 1个SSD = 4 × 2 + 1 = 9
       // 例如：8核心 + 1个SSD = 8 × 2 + 1 = 17
-      max: parseInt(
-        configService.get('DB_POOL_MAX', String(optimalPoolSize.max)),
-        10,
-      ),
+      max: parseInt(configService.get('DB_POOL_MAX', String(optimalPoolSize.max)), 10),
 
       // 连接获取超时时间（毫秒）
       // 当连接池耗尽时，等待多久抛出超时错误
-      connectionTimeoutMillis: parseInt(
-        configService.get('DB_CONNECTION_TIMEOUT', '10000'),
-        10,
-      ),
+      connectionTimeoutMillis: parseInt(configService.get('DB_CONNECTION_TIMEOUT', '10000'), 10),
 
       // 空闲连接超时时间（毫秒）
       // 空闲超过此时间的连接将被回收
-      idleTimeoutMillis: parseInt(
-        configService.get('DB_IDLE_TIMEOUT', '30000'),
-        10,
-      ),
+      idleTimeoutMillis: parseInt(configService.get('DB_IDLE_TIMEOUT', '30000'), 10),
 
       // 语句超时时间（毫秒）
       // 单个 SQL 查询的最大执行时间
       statement_timeout: parseInt(
         configService.get('DB_STATEMENT_TIMEOUT', isProduction ? '30000' : '60000'),
-        10,
+        10
       ),
 
       // 查询超时时间（毫秒）
       query_timeout: parseInt(
         configService.get('DB_QUERY_TIMEOUT', isProduction ? '30000' : '60000'),
-        10,
+        10
       ),
 
       // 连接参数
@@ -132,13 +118,13 @@ export const getDatabaseConfig = (
       // 对于频繁执行的查询，性能提升可达 30-50%
       preparedStatementCacheQueries: parseInt(
         configService.get('DB_PREPARED_STATEMENT_CACHE_QUERIES', '256'),
-        10,
+        10
       ),
 
       // Prepared Statement 缓存大小（MB）
       preparedStatementCacheSizeMiB: parseInt(
         configService.get('DB_PREPARED_STATEMENT_CACHE_SIZE', '25'),
-        10,
+        10
       ),
 
       // ====================================================================
@@ -149,22 +135,19 @@ export const getDatabaseConfig = (
       // 定期检查连接池资源，清理无效连接
       evictionRunIntervalMillis: parseInt(
         configService.get('DB_EVICTION_RUN_INTERVAL', '10000'),
-        10,
+        10
       ),
 
       // 软空闲时间限制（毫秒）
       // 超过此时间的空闲连接可能被回收（如果超过 min 连接数）
-      softIdleTimeoutMillis: parseInt(
-        configService.get('DB_SOFT_IDLE_TIMEOUT', '60000'),
-        10,
-      ),
+      softIdleTimeoutMillis: parseInt(configService.get('DB_SOFT_IDLE_TIMEOUT', '60000'), 10),
 
       // 最大连接生命周期（毫秒）
       // 连接最多存活时间，防止长时间连接导致的问题
       // 0 表示无限制，生产环境建议设置
       maxLifetimeSeconds: parseInt(
         configService.get('DB_MAX_LIFETIME', isProduction ? '1800' : '0'),
-        10,
+        10
       ),
 
       // ====================================================================
@@ -199,7 +182,7 @@ export const getDatabaseConfig = (
     // ========================================================================
     maxQueryExecutionTime: parseInt(
       configService.get('DB_SLOW_QUERY_THRESHOLD', isProduction ? '1000' : '5000'),
-      10,
+      10
     ), // 慢查询阈值（毫秒）
 
     // ========================================================================

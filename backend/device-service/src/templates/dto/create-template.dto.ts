@@ -8,9 +8,9 @@ import {
   IsOptional,
   IsArray,
   ValidateNested,
-} from "class-validator";
-import { Type } from "class-transformer";
-import { TemplateCategory } from "../../entities/device-template.entity";
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { TemplateCategory } from '../../entities/device-template.entity';
 
 class PreInstalledAppDto {
   @IsString()

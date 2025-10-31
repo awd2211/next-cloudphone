@@ -1,12 +1,12 @@
-import { Controller, Get, HttpStatus, Logger } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { ConfigService } from "@nestjs/config";
-import * as os from "os";
-import { ProxyService } from "./proxy/proxy.service";
-import { ConsulService } from "@cloudphone/shared";
+import { Controller, Get, HttpStatus, Logger } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+import * as os from 'os';
+import { ProxyService } from './proxy/proxy.service';
+import { ConsulService } from '@cloudphone/shared';
 
 interface HealthCheckResult {
-  status: "ok" | "degraded" | "unhealthy";
+  status: 'ok' | 'degraded' | 'unhealthy';
   service: string;
   version: string;
   timestamp: string;
@@ -31,7 +31,7 @@ interface HealthCheckResult {
 interface DetailedHealthCheckResult extends HealthCheckResult {
   dependencies: {
     consul?: {
-      status: "healthy" | "unhealthy";
+      status: 'healthy' | 'unhealthy';
       message?: string;
     };
     backendServices: Record<string, any>;
@@ -43,8 +43,8 @@ interface DetailedHealthCheckResult extends HealthCheckResult {
   };
 }
 
-@ApiTags("health")
-@Controller("health")
+@ApiTags('health')
+@Controller('health')
 export class HealthController {
   private readonly startTime: number = Date.now();
   private readonly logger = new Logger(HealthController.name);
@@ -52,29 +52,29 @@ export class HealthController {
   constructor(
     private readonly proxyService: ProxyService,
     private readonly consulService: ConsulService,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService
   ) {}
 
   @Get()
-  @ApiOperation({ summary: "Simple health check" })
-  @ApiResponse({ status: 200, description: "Service is healthy" })
+  @ApiOperation({ summary: 'Simple health check' })
+  @ApiResponse({ status: 200, description: 'Service is healthy' })
   check(): HealthCheckResult {
     return {
-      status: "ok",
-      service: "api-gateway",
-      version: "1.0.0",
+      status: 'ok',
+      service: 'api-gateway',
+      version: '1.0.0',
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - this.startTime) / 1000),
-      environment: process.env.NODE_ENV || "development",
+      environment: process.env.NODE_ENV || 'development',
       system: this.getSystemInfo(),
     };
   }
 
-  @Get("detailed")
-  @ApiOperation({ summary: "Detailed health check with dependency status" })
+  @Get('detailed')
+  @ApiOperation({ summary: 'Detailed health check with dependency status' })
   @ApiResponse({
     status: 200,
-    description: "Detailed health information",
+    description: 'Detailed health information',
   })
   async detailedCheck(): Promise<DetailedHealthCheckResult> {
     const baseHealth = this.check();
@@ -83,14 +83,10 @@ export class HealthController {
     const consulHealth = await this.checkConsul();
 
     // 检查所有后端服务
-    const servicesHealth =
-      await this.proxyService.checkServicesHealth();
+    const servicesHealth = await this.proxyService.checkServicesHealth();
 
     // 计算健康检查统计
-    const healthChecks = this.calculateHealthStats(
-      consulHealth,
-      servicesHealth,
-    );
+    const healthChecks = this.calculateHealthStats(consulHealth, servicesHealth);
 
     // 确定整体状态
     const overallStatus = this.determineOverallStatus(healthChecks);
@@ -110,17 +106,16 @@ export class HealthController {
    * 检查 Consul 连接
    */
   private async checkConsul(): Promise<{
-    status: "healthy" | "unhealthy";
+    status: 'healthy' | 'unhealthy';
     message?: string;
   }> {
     try {
-      const useConsul =
-        this.configService.get("USE_CONSUL", "false") === "true";
+      const useConsul = this.configService.get('USE_CONSUL', 'false') === 'true';
 
       if (!useConsul) {
         return {
-          status: "healthy",
-          message: "Consul is disabled",
+          status: 'healthy',
+          message: 'Consul is disabled',
         };
       }
 
@@ -128,16 +123,13 @@ export class HealthController {
       await this.consulService.getAllServices();
 
       return {
-        status: "healthy",
-        message: "Consul is reachable",
+        status: 'healthy',
+        message: 'Consul is reachable',
       };
     } catch (error) {
-      this.logger.error(
-        `Consul health check failed: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Consul health check failed: ${error.message}`, error.stack);
       return {
-        status: "unhealthy",
+        status: 'unhealthy',
         message: error.message,
       };
     }
@@ -148,7 +140,7 @@ export class HealthController {
    */
   private calculateHealthStats(
     consulHealth: any,
-    servicesHealth: Record<string, any>,
+    servicesHealth: Record<string, any>
   ): {
     passed: number;
     failed: number;
@@ -159,16 +151,16 @@ export class HealthController {
     let total = 0;
 
     // Consul 检查
-    if (consulHealth.status === "healthy") {
+    if (consulHealth.status === 'healthy') {
       passed++;
-    } else if (consulHealth.status === "unhealthy") {
+    } else if (consulHealth.status === 'unhealthy') {
       failed++;
     }
     total++;
 
     // 后端服务检查
     for (const service of Object.values(servicesHealth)) {
-      if (service.status === "healthy") {
+      if (service.status === 'healthy') {
         passed++;
       } else {
         failed++;
@@ -186,19 +178,19 @@ export class HealthController {
     passed: number;
     failed: number;
     total: number;
-  }): "ok" | "degraded" | "unhealthy" {
+  }): 'ok' | 'degraded' | 'unhealthy' {
     const passRate = healthChecks.passed / healthChecks.total;
 
     if (passRate === 1) {
-      return "ok";
+      return 'ok';
     } else if (passRate >= 0.5) {
-      return "degraded";
+      return 'degraded';
     } else {
-      return "unhealthy";
+      return 'unhealthy';
     }
   }
 
-  private getSystemInfo(): HealthCheckResult["system"] {
+  private getSystemInfo(): HealthCheckResult['system'] {
     const totalMemory = os.totalmem();
     const freeMemory = os.freemem();
     const usedMemory = totalMemory - freeMemory;
@@ -214,7 +206,7 @@ export class HealthController {
       },
       cpu: {
         cores: os.cpus().length,
-        model: os.cpus()[0]?.model || "unknown",
+        model: os.cpus()[0]?.model || 'unknown',
       },
     };
   }
@@ -223,13 +215,13 @@ export class HealthController {
    * Kubernetes liveness probe
    * Indicates if the service is alive and should not be restarted
    */
-  @Get("liveness")
-  @ApiOperation({ summary: "Kubernetes liveness probe" })
-  @ApiResponse({ status: 200, description: "Service is alive" })
+  @Get('liveness')
+  @ApiOperation({ summary: 'Kubernetes liveness probe' })
+  @ApiResponse({ status: 200, description: 'Service is alive' })
   liveness() {
     // Basic liveness check - service is running
     return {
-      status: "ok",
+      status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - this.startTime) / 1000),
     };
@@ -239,20 +231,19 @@ export class HealthController {
    * Kubernetes readiness probe
    * Indicates if the service is ready to accept traffic
    */
-  @Get("readiness")
-  @ApiOperation({ summary: "Kubernetes readiness probe" })
-  @ApiResponse({ status: 200, description: "Service is ready" })
-  @ApiResponse({ status: 503, description: "Service is not ready" })
+  @Get('readiness')
+  @ApiOperation({ summary: 'Kubernetes readiness probe' })
+  @ApiResponse({ status: 200, description: 'Service is ready' })
+  @ApiResponse({ status: 503, description: 'Service is not ready' })
   async readiness() {
     try {
       // Check critical dependencies for readiness
       const consulHealth = await this.checkConsul();
-      const servicesHealth =
-        await this.proxyService.checkServicesHealth();
+      const servicesHealth = await this.proxyService.checkServicesHealth();
 
       // Count healthy services
       const healthyServices = Object.values(servicesHealth).filter(
-        (s: any) => s.status === "healthy"
+        (s: any) => s.status === 'healthy'
       ).length;
       const totalServices = Object.keys(servicesHealth).length;
 
@@ -261,8 +252,8 @@ export class HealthController {
 
       if (!isReady) {
         return {
-          status: "error",
-          message: "Service not ready - insufficient healthy backend services",
+          status: 'error',
+          message: 'Service not ready - insufficient healthy backend services',
           consul: consulHealth.status,
           backendServices: {
             healthy: healthyServices,
@@ -273,7 +264,7 @@ export class HealthController {
       }
 
       return {
-        status: "ok",
+        status: 'ok',
         timestamp: new Date().toISOString(),
         consul: consulHealth.status,
         backendServices: {
@@ -284,7 +275,7 @@ export class HealthController {
     } catch (error) {
       this.logger.error(`Readiness check failed: ${error.message}`);
       return {
-        status: "error",
+        status: 'error',
         message: error.message,
       };
     }

@@ -6,9 +6,9 @@ import { ConsulService } from '@cloudphone/shared';
 
 describe('HealthController', () => {
   let controller: HealthController;
-  let proxyService: ProxyService;
-  let consulService: ConsulService;
-  let configService: ConfigService;
+  let _proxyService: ProxyService;
+  let _consulService: ConsulService;
+  let _configService: ConfigService;
 
   const mockProxyService = {
     checkServicesHealth: jest.fn(),
@@ -42,9 +42,9 @@ describe('HealthController', () => {
     }).compile();
 
     controller = module.get<HealthController>(HealthController);
-    proxyService = module.get<ProxyService>(ProxyService);
-    consulService = module.get<ConsulService>(ConsulService);
-    configService = module.get<ConfigService>(ConfigService);
+    _proxyService = module.get<ProxyService>(ProxyService);
+    _consulService = module.get<ConsulService>(ConsulService);
+    _configService = module.get<ConfigService>(ConfigService);
   });
 
   afterEach(() => {
@@ -138,7 +138,7 @@ describe('HealthController', () => {
 
       const result = await controller.detailedCheck();
 
-      expect(result.status).toBe('degraded');  // 3/4 checks passed (75%) -> degraded
+      expect(result.status).toBe('degraded'); // 3/4 checks passed (75%) -> degraded
       expect(result.healthChecks.passed).toBeGreaterThan(0);
       expect(result.healthChecks.failed).toBeGreaterThan(0);
     });

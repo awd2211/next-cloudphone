@@ -59,10 +59,10 @@ export const ExternalServiceCall = (serviceName: string, timeout: number = 5000)
 export const ThirdPartyApiCall = (apiName: string) =>
   UseCircuitBreaker({
     name: `third-party-${apiName}`,
-    timeout: 10000,           // 10秒超时
-    errorThresholdPercentage: 30,  // 30%失败率即熔断
-    resetTimeout: 60000,      // 1分钟后尝试恢复
-    volumeThreshold: 5,       // 至少5个请求
+    timeout: 10000, // 10秒超时
+    errorThresholdPercentage: 30, // 30%失败率即熔断
+    resetTimeout: 60000, // 1分钟后尝试恢复
+    volumeThreshold: 5, // 至少5个请求
   });
 
 /**
@@ -73,10 +73,10 @@ export const ThirdPartyApiCall = (apiName: string) =>
 export const DatabaseOperation = (operationName: string) =>
   UseCircuitBreaker({
     name: `db-${operationName}`,
-    timeout: 3000,            // 3秒超时
-    errorThresholdPercentage: 70,  // 70%失败率才熔断（数据库较稳定）
-    resetTimeout: 20000,      // 20秒后尝试恢复
-    volumeThreshold: 20,      // 至少20个请求
+    timeout: 3000, // 3秒超时
+    errorThresholdPercentage: 70, // 70%失败率才熔断（数据库较稳定）
+    resetTimeout: 20000, // 20秒后尝试恢复
+    volumeThreshold: 20, // 至少20个请求
   });
 
 /**
@@ -87,8 +87,8 @@ export const DatabaseOperation = (operationName: string) =>
 export const CacheOperation = (operationName: string) =>
   UseCircuitBreaker({
     name: `cache-${operationName}`,
-    timeout: 2000,            // 2秒超时
-    errorThresholdPercentage: 60,  // 60%失败率触发熔断
-    resetTimeout: 15000,      // 15秒后尝试恢复
-    volumeThreshold: 15,      // 至少15个请求
+    timeout: 2000, // 2秒超时
+    errorThresholdPercentage: 60, // 60%失败率触发熔断
+    resetTimeout: 15000, // 15秒后尝试恢复
+    volumeThreshold: 15, // 至少15个请求
   });

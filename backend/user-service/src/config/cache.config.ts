@@ -32,8 +32,10 @@ export default registerAs('cache', () => ({
     nullValueTTL: parseInt(process.env.CACHE_NULL_VALUE_TTL || '120', 10),
 
     // 热点数据前缀 (永不过期)
-    hotDataPrefixes: (process.env.CACHE_HOT_PREFIXES || 'user:,role:,permission:,plan:,config:,device:')
+    hotDataPrefixes: (
+      process.env.CACHE_HOT_PREFIXES || 'user:,role:,permission:,plan:,config:,device:'
+    )
       .split(',')
-      .map(p => p.trim()),
+      .map((p) => p.trim()),
   },
 }));

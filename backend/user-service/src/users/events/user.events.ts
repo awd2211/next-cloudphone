@@ -12,7 +12,7 @@ export abstract class UserDomainEvent implements IEvent {
   constructor(
     public readonly aggregateId: string,
     public readonly version: number,
-    public readonly occurredAt: Date = new Date(),
+    public readonly occurredAt: Date = new Date()
   ) {}
 
   abstract getEventType(): string;
@@ -31,7 +31,7 @@ export class UserCreatedEvent extends UserDomainEvent {
     public readonly fullName: string,
     public readonly phone?: string,
     public readonly tenantId?: string,
-    public readonly roleIds?: string[],
+    public readonly roleIds?: string[]
   ) {
     super(aggregateId, version);
   }
@@ -66,7 +66,7 @@ export class UserUpdatedEvent extends UserDomainEvent {
       avatar?: string;
       status?: string;
       roleIds?: string[];
-    },
+    }
   ) {
     super(aggregateId, version);
   }
@@ -87,7 +87,7 @@ export class PasswordChangedEvent extends UserDomainEvent {
   constructor(
     aggregateId: string,
     version: number,
-    public readonly changedBy: string, // 执行修改的用户ID
+    public readonly changedBy: string // 执行修改的用户ID
   ) {
     super(aggregateId, version);
   }
@@ -111,7 +111,7 @@ export class UserDeletedEvent extends UserDomainEvent {
   constructor(
     aggregateId: string,
     version: number,
-    public readonly deletedBy: string,
+    public readonly deletedBy: string
   ) {
     super(aggregateId, version);
   }
@@ -135,7 +135,7 @@ export class LoginInfoUpdatedEvent extends UserDomainEvent {
     aggregateId: string,
     version: number,
     public readonly ipAddress: string,
-    public readonly loginAt: Date,
+    public readonly loginAt: Date
   ) {
     super(aggregateId, version);
   }
@@ -161,7 +161,7 @@ export class AccountLockedEvent extends UserDomainEvent {
     version: number,
     public readonly reason: string,
     public readonly loginAttempts: number,
-    public readonly lockedUntil: Date,
+    public readonly lockedUntil: Date
   ) {
     super(aggregateId, version);
   }
@@ -186,7 +186,7 @@ export class AccountUnlockedEvent extends UserDomainEvent {
   constructor(
     aggregateId: string,
     version: number,
-    public readonly unlockedBy: string,
+    public readonly unlockedBy: string
   ) {
     super(aggregateId, version);
   }
@@ -210,7 +210,7 @@ export class RolesAssignedEvent extends UserDomainEvent {
     aggregateId: string,
     version: number,
     public readonly roleIds: string[],
-    public readonly assignedBy: string,
+    public readonly assignedBy: string
   ) {
     super(aggregateId, version);
   }

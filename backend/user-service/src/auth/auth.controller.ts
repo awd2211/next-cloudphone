@@ -4,13 +4,19 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { Enable2FADto } from './dto/enable-2fa.dto';
+import { Disable2FADto } from './dto/disable-2fa.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
+import { TwoFactorService } from './two-factor.service';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly twoFactorService: TwoFactorService
+  ) {}
 
   /**
    * 获取验证码
@@ -102,5 +108,61 @@ export class AuthController {
   async refreshToken(@Req() req: any) {
     return this.authService.refreshToken(req.user.id);
   }
-}
 
+  /**
+   * 生成2FA密钥
+   * 🔒 需要登录
+   */
+  @Get('2fa/generate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '生成2FA密钥', description: '生成双因素认证密钥和二维码' })
+  @ApiResponse({ status: 200, description: '生成成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async generate2FA(@Req() req: any) {
+    const result = await this.twoFactorService.generate2FASecret(req.user.id);
+    return {
+      success: true,
+      data: result,
+      message: '2FA密钥生成成功',
+    };
+  }
+
+  /**
+   * 启用2FA
+   * 🔒 需要登录
+   */
+  @Post('2fa/enable')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '启用2FA', description: '验证并启用双因素认证' })
+  @ApiResponse({ status: 200, description: '启用成功' })
+  @ApiResponse({ status: 400, description: '验证码错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async enable2FA(@Req() req: any, @Body() dto: Enable2FADto) {
+    await this.twoFactorService.enable2FA(req.user.id, dto.token);
+    return {
+      success: true,
+      message: '双因素认证已启用',
+    };
+  }
+
+  /**
+   * 禁用2FA
+   * 🔒 需要登录
+   */
+  @Post('2fa/disable')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '禁用2FA', description: '验证并禁用双因素认证' })
+  @ApiResponse({ status: 200, description: '禁用成功' })
+  @ApiResponse({ status: 400, description: '验证码错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async disable2FA(@Req() req: any, @Body() dto: Disable2FADto) {
+    await this.twoFactorService.disable2FA(req.user.id, dto.token);
+    return {
+      success: true,
+      message: '双因素认证已禁用',
+    };
+  }
+}

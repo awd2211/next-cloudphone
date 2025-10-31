@@ -24,7 +24,12 @@ import {
   EyeOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { useDataScope, type DataScope, ScopeType, type CreateDataScopeDto } from '@/hooks/useDataScope';
+import {
+  useDataScope,
+  type DataScope,
+  ScopeType,
+  type CreateDataScopeDto,
+} from '@/hooks/useDataScope';
 import { getRoles } from '@/services/role';
 import type { Role } from '@/types';
 import dayjs from 'dayjs';
@@ -361,11 +366,7 @@ const DataScopeConfig = () => {
         width={700}
       >
         <Form form={form} onFinish={handleSubmit} layout="vertical">
-          <Form.Item
-            label="角色"
-            name="roleId"
-            rules={[{ required: true, message: '请选择角色' }]}
-          >
+          <Form.Item label="角色" name="roleId" rules={[{ required: true, message: '请选择角色' }]}>
             <Select placeholder="选择角色" disabled={!!editingScope}>
               {roles.map((role) => (
                 <Select.Option key={role.id} value={role.id}>
@@ -512,9 +513,7 @@ const DataScopeConfig = () => {
                 </pre>
               </Descriptions.Item>
             )}
-            <Descriptions.Item label="描述">
-              {viewingScope.description || '-'}
-            </Descriptions.Item>
+            <Descriptions.Item label="描述">{viewingScope.description || '-'}</Descriptions.Item>
             <Descriptions.Item label="创建时间">
               {viewingScope.createdAt
                 ? dayjs(viewingScope.createdAt).format('YYYY-MM-DD HH:mm:ss')

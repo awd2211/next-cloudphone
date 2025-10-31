@@ -45,7 +45,7 @@ export class HealthCheckService {
   async check(
     serviceName: string,
     dataSource?: DataSource,
-    redisClient?: Redis,
+    redisClient?: Redis
   ): Promise<HealthCheckResult> {
     const checks: HealthCheckResult['checks'] = {};
 
@@ -192,7 +192,7 @@ export class HealthCheckService {
    * 计算整体健康状态
    */
   private calculateOverallStatus(
-    checks: HealthCheckResult['checks'],
+    checks: HealthCheckResult['checks']
   ): 'healthy' | 'unhealthy' | 'degraded' {
     const statuses = Object.values(checks).map((check) => check.status);
 
@@ -207,4 +207,3 @@ export class HealthCheckService {
     return 'healthy';
   }
 }
-

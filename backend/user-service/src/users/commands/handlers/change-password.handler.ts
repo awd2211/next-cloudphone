@@ -8,7 +8,7 @@ import { EventStoreService } from '../../events/event-store.service';
 export class ChangePasswordHandler implements ICommandHandler<ChangePasswordCommand> {
   constructor(
     private readonly usersService: UsersService,
-    private readonly eventStore: EventStoreService,
+    private readonly eventStore: EventStoreService
   ) {}
 
   async execute(command: ChangePasswordCommand): Promise<void> {
@@ -20,7 +20,7 @@ export class ChangePasswordHandler implements ICommandHandler<ChangePasswordComm
     const event = new PasswordChangedEvent(
       command.id,
       version + 1,
-      command.id, // changedBy - 当前用户自己修改密码
+      command.id // changedBy - 当前用户自己修改密码
     );
 
     await this.eventStore.saveEvent(event);
