@@ -1075,10 +1075,111 @@ export class AllocationService {
   // ==================== 单设备续期功能 ====================
 
   /**
-   * 获取续期策略配置
-   * 可根据用户等级返回不同策略
+   * 用户等级枚举
    */
-  private getExtendPolicy(userId: string): {
+  private readonly USER_TIERS = {
+    FREE: 'free',
+    BASIC: 'basic',
+    PRO: 'pro',
+    ENTERPRISE: 'enterprise',
+  } as const;
+
+  /**
+   * 续期策略配置表
+   * 根据用户等级定义不同的续期策略
+   */
+  private readonly EXTEND_POLICIES = {
+    [this.USER_TIERS.FREE]: {
+      maxExtendCount: 2, // 免费用户最多续期2次
+      maxExtendMinutes: 30, // 单次续期最多30分钟
+      maxTotalMinutes: 120, // 总使用时长最多2小时
+      cooldownSeconds: 300, // 续期冷却时间5分钟
+      allowExtendBeforeExpireMinutes: 30, // 过期前30分钟内才能续期
+      requireQuotaCheck: true, // 需要配额检查
+      requireBilling: false, // 免费用户不计费
+    },
+    [this.USER_TIERS.BASIC]: {
+      maxExtendCount: 5, // 基础用户最多续期5次
+      maxExtendMinutes: 60, // 单次续期最多1小时
+      maxTotalMinutes: 480, // 总使用时长最多8小时
+      cooldownSeconds: 120, // 续期冷却时间2分钟
+      allowExtendBeforeExpireMinutes: 60, // 过期前1小时内才能续期
+      requireQuotaCheck: true, // 需要配额检查
+      requireBilling: true, // 需要计费
+    },
+    [this.USER_TIERS.PRO]: {
+      maxExtendCount: 10, // 专业用户最多续期10次
+      maxExtendMinutes: 120, // 单次续期最多2小时
+      maxTotalMinutes: 1440, // 总使用时长最多24小时
+      cooldownSeconds: 60, // 续期冷却时间1分钟
+      allowExtendBeforeExpireMinutes: 120, // 过期前2小时内才能续期
+      requireQuotaCheck: false, // 不需要配额检查
+      requireBilling: true, // 需要计费
+    },
+    [this.USER_TIERS.ENTERPRISE]: {
+      maxExtendCount: -1, // 企业用户无限续期
+      maxExtendMinutes: 240, // 单次续期最多4小时
+      maxTotalMinutes: -1, // 总使用时长不限制
+      cooldownSeconds: 0, // 无冷却时间
+      allowExtendBeforeExpireMinutes: 240, // 过期前4小时内才能续期
+      requireQuotaCheck: false, // 不需要配额检查
+      requireBilling: true, // 需要计费
+    },
+  };
+
+  /**
+   * 默认策略（当无法获取用户等级时使用）
+   */
+  private readonly DEFAULT_POLICY = this.EXTEND_POLICIES[this.USER_TIERS.BASIC];
+
+  /**
+   * 获取用户等级
+   * 从用户服务获取用户信息，提取用户等级
+   * 如果无法获取，返回默认等级 'basic'
+   */
+  private async getUserTier(userId: string): Promise<string> {
+    try {
+      // ✅ 从用户服务获取用户信息（通过 QuotaClientService 间接获取）
+      // 注意：这里假设 quotaClient 可以提供用户等级信息
+      // 如果不行，可以创建一个新的 UserClientService 专门获取用户信息
+
+      // 方案1: 尝试从配额数据中推断用户等级
+      const quotaCheck = await this.quotaClient.checkDeviceCreationQuota(userId, {
+        cpuCores: 1,
+        memoryMB: 1024,
+        storageMB: 10240,
+      });
+
+      // 根据配额限制推断用户等级
+      if (quotaCheck.maxDevices) {
+        if (quotaCheck.maxDevices <= 1) {
+          return this.USER_TIERS.FREE;
+        } else if (quotaCheck.maxDevices <= 5) {
+          return this.USER_TIERS.BASIC;
+        } else if (quotaCheck.maxDevices <= 20) {
+          return this.USER_TIERS.PRO;
+        } else {
+          return this.USER_TIERS.ENTERPRISE;
+        }
+      }
+
+      // 方案2: 如果无法从配额推断，返回默认等级
+      this.logger.debug(`Unable to determine user tier for ${userId}, using default: BASIC`);
+      return this.USER_TIERS.BASIC;
+    } catch (error) {
+      // 如果获取失败，记录警告并返回默认等级
+      this.logger.warn(
+        `Failed to get user tier for ${userId}: ${error.message}, using default: BASIC`
+      );
+      return this.USER_TIERS.BASIC;
+    }
+  }
+
+  /**
+   * 获取续期策略配置
+   * 根据用户等级返回对应的续期策略
+   */
+  private async getExtendPolicy(userId: string): Promise<{
     maxExtendCount: number;
     maxExtendMinutes: number;
     maxTotalMinutes: number;
@@ -1086,18 +1187,18 @@ export class AllocationService {
     allowExtendBeforeExpireMinutes: number;
     requireQuotaCheck: boolean;
     requireBilling: boolean;
-  } {
-    // TODO: 从配置或数据库获取用户等级，返回对应策略
-    // 这里先返回默认策略
-    return {
-      maxExtendCount: 5,
-      maxExtendMinutes: 120,
-      maxTotalMinutes: 480,
-      cooldownSeconds: 60,
-      allowExtendBeforeExpireMinutes: 60,
-      requireQuotaCheck: false,
-      requireBilling: true,
-    };
+  }> {
+    // ✅ 从用户服务获取用户等级
+    const userTier = await this.getUserTier(userId);
+
+    // 根据等级返回对应策略
+    const policy = this.EXTEND_POLICIES[userTier] || this.DEFAULT_POLICY;
+
+    this.logger.debug(
+      `User ${userId} tier: ${userTier}, extend policy: ${JSON.stringify(policy)}`
+    );
+
+    return policy;
   }
 
   /**
@@ -1136,7 +1237,7 @@ export class AllocationService {
     }
 
     // 3. 获取续期策略
-    const policy = this.getExtendPolicy(allocation.userId);
+    const policy = await this.getExtendPolicy(allocation.userId);
 
     // 4. 初始化 metadata（如果不存在）
     if (!allocation.metadata) {
@@ -1339,7 +1440,7 @@ export class AllocationService {
       throw new NotFoundException(`Allocation ${allocationId} not found`);
     }
 
-    const policy = this.getExtendPolicy(allocation.userId);
+    const policy = await this.getExtendPolicy(allocation.userId);
     const metadata = allocation.metadata || {};
     const extendCount = (metadata.extendCount || 0) as number;
     const extendHistory = (metadata.extendHistory || []) as any[];

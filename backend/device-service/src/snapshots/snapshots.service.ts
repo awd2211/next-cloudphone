@@ -159,11 +159,25 @@ export class SnapshotsService {
   ): Promise<Device> {
     this.logger.log(`Restoring from snapshot ${snapshotId}`);
 
-    // 1. 验证快照存在且可用
-    const snapshot = await this.snapshotRepository.findOne({
-      where: { id: snapshotId },
-      relations: ['device'],
-    });
+    // 1. 验证快照存在且可用（优化：只查询需要的字段，避免加载完整 device 关系）
+    const snapshot = await this.snapshotRepository
+      .createQueryBuilder('snapshot')
+      .leftJoinAndSelect('snapshot.device', 'device')
+      .where('snapshot.id = :id', { id: snapshotId })
+      .select([
+        'snapshot.id',
+        'snapshot.name',
+        'snapshot.deviceId',
+        'snapshot.status',
+        'snapshot.imageId',
+        'snapshot.imageName',
+        'snapshot.metadata',
+        'device.id',
+        'device.name',
+        'device.containerId',
+        'device.status',
+      ])
+      .getOne();
 
     if (!snapshot) {
       throw BusinessErrors.snapshotNotFound(snapshotId);

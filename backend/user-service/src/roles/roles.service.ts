@@ -125,25 +125,48 @@ export class RolesService {
       throw new BadRequestException('系统角色不允许修改');
     }
 
+    // 并行化：同时检查角色名重复和获取权限（性能优化）
+    const tasks: Promise<any>[] = [];
+
     // 检查角色名是否重复
     if (updateRoleDto.name && updateRoleDto.name !== role.name) {
-      const existingRole = await this.rolesRepository.findOne({
-        where: { name: updateRoleDto.name },
-      });
-      if (existingRole) {
-        throw new ConflictException(`角色 ${updateRoleDto.name} 已存在`);
-      }
+      tasks.push(
+        this.rolesRepository.findOne({
+          where: { name: updateRoleDto.name },
+        })
+      );
+    } else {
+      tasks.push(Promise.resolve(null));
     }
 
     // 更新权限
     if (updateRoleDto.permissionIds) {
-      const permissions = await this.permissionsRepository.find({
-        where: { id: In(updateRoleDto.permissionIds) },
-      });
+      tasks.push(
+        this.permissionsRepository.find({
+          where: { id: In(updateRoleDto.permissionIds) },
+        })
+      );
+    } else {
+      tasks.push(Promise.resolve(null));
+    }
+
+    const [existingRole, permissions] = await Promise.all(tasks);
+
+    if (existingRole) {
+      throw new ConflictException(`角色 ${updateRoleDto.name} 已存在`);
+    }
+
+    if (permissions) {
       role.permissions = permissions;
     }
 
     Object.assign(role, updateRoleDto);
+
+    // 清除缓存
+    if (this.cacheService) {
+      await this.cacheService.del(`role:${id}`);
+    }
+
     return await this.rolesRepository.save(role);
   }
 

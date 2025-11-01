@@ -24,9 +24,20 @@ export class DevicesAccessService {
    * @throws ForbiddenException 无权访问
    */
   async validateDeviceAccess(deviceId: string, user: any): Promise<Device> {
+    // 优化：只查询需要的字段，不加载完整 user 关系（消除 N+1 问题）
     const device = await this.deviceRepository.findOne({
       where: { id: deviceId },
-      relations: ['user'],
+      select: [
+        'id',
+        'name',
+        'userId',
+        'status',
+        'provider',
+        'externalId',
+        'spec',
+        'createdAt',
+        'updatedAt',
+      ],
     });
 
     if (!device) {
@@ -54,10 +65,22 @@ export class DevicesAccessService {
    * @throws ForbiddenException 部分设备无权访问
    */
   async validateBatchDeviceAccess(deviceIds: string[], user: any): Promise<Device[]> {
-    const devices = await this.deviceRepository.find({
-      where: deviceIds.map((id) => ({ id })),
-      relations: ['user'],
-    });
+    // 优化：使用 IN 查询 + select，避免加载完整 user 关系（消除 N+1 问题）
+    const devices = await this.deviceRepository
+      .createQueryBuilder('device')
+      .where('device.id IN (:...ids)', { ids: deviceIds })
+      .select([
+        'device.id',
+        'device.name',
+        'device.userId',
+        'device.status',
+        'device.provider',
+        'device.externalId',
+        'device.spec',
+        'device.createdAt',
+        'device.updatedAt',
+      ])
+      .getMany();
 
     if (devices.length !== deviceIds.length) {
       throw new NotFoundException('部分设备不存在');

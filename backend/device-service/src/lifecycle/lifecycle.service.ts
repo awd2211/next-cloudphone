@@ -449,7 +449,7 @@ export class LifecycleService {
 
     // 释放端口
     if (device.adbPort || device.metadata?.webrtcPort) {
-      this.portManager.releasePorts({
+      await this.portManager.releasePorts({
         adbPort: device.adbPort || undefined,
         webrtcPort: device.metadata?.webrtcPort,
       });

@@ -453,40 +453,59 @@ export class UsersService {
 
       this.tracingService?.setTag(span, 'cache.hit', false);
 
-      // 缓存未命中，查询数据库
+      // 缓存未命中，使用 QueryBuilder 优化查询（消除 N+1 问题）
+      const userQueryFn = () =>
+        this.usersRepository
+          .createQueryBuilder('user')
+          .leftJoinAndSelect('user.roles', 'role')
+          .leftJoinAndSelect('role.permissions', 'permission')
+          .where('user.id = :id', { id })
+          .select([
+            'user.id',
+            'user.username',
+            'user.email',
+            'user.fullName',
+            'user.avatar',
+            'user.phone',
+            'user.status',
+            'user.tenantId',
+            'user.departmentId',
+            'user.isSuperAdmin',
+            'user.lastLoginAt',
+            'user.lastLoginIp',
+            'user.createdAt',
+            'user.updatedAt',
+            'user.metadata',
+            'role.id',
+            'role.name',
+            'role.displayName',
+            'permission.id',
+            'permission.name',
+            'permission.resource',
+            'permission.action',
+          ])
+          .getOne();
+
       const user =
-        (await this.tracingService?.traceDbQuery(
-          'findOne',
-          () =>
-            this.usersRepository.findOne({
-              where: { id },
-              relations: ['roles', 'roles.permissions'],
-            }),
-          span?.context()
-        )) ||
-        (await this.usersRepository.findOne({
-          where: { id },
-          relations: ['roles', 'roles.permissions'],
-        }));
+        (await this.tracingService?.traceDbQuery('findOne', userQueryFn, span?.context())) ||
+        (await userQueryFn());
 
       if (!user) {
         throw new NotFoundException(`用户 #${id} 不存在`);
       }
-
-      const { password, ...userWithoutPassword } = user;
 
       // 存入缓存，5分钟过期
       if (this.cacheService) {
         (await this.tracingService?.traceCacheOperation(
           'set',
           cacheKey,
-          () => this.cacheService.set(cacheKey, userWithoutPassword, { ttl: 300 }),
+          () => this.cacheService.set(cacheKey, user, { ttl: 300 }),
           span?.context()
-        )) || (await this.cacheService.set(cacheKey, userWithoutPassword, { ttl: 300 }));
+        )) || (await this.cacheService.set(cacheKey, user, { ttl: 300 }));
       }
 
       this.tracingService?.finishSpan(span);
-      return userWithoutPassword as User;
+      return user as User;
     } catch (error) {
       this.tracingService?.finishSpan(span, error as Error);
       throw error;
@@ -494,29 +513,115 @@ export class UsersService {
   }
 
   async findByUsername(username: string): Promise<User> {
-    const user = await this.usersRepository.findOne({
-      where: { username },
-      relations: ['roles', 'roles.permissions'],
-    });
+    // 先从缓存获取
+    const cacheKey = `user:username:${username}`;
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<User>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // 使用 QueryBuilder 优化查询（消除 N+1 问题）
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.roles', 'role')
+      .leftJoinAndSelect('role.permissions', 'permission')
+      .where('user.username = :username', { username })
+      .select([
+        'user.id',
+        'user.username',
+        'user.email',
+        'user.fullName',
+        'user.avatar',
+        'user.phone',
+        'user.status',
+        'user.tenantId',
+        'user.departmentId',
+        'user.isSuperAdmin',
+        'user.lastLoginAt',
+        'user.lastLoginIp',
+        'user.createdAt',
+        'user.updatedAt',
+        'user.metadata',
+        'role.id',
+        'role.name',
+        'role.displayName',
+        'permission.id',
+        'permission.name',
+        'permission.resource',
+        'permission.action',
+      ])
+      .getOne();
 
     if (!user) {
       throw new NotFoundException(`用户 ${username} 不存在`);
     }
 
-    return user;
+    // 存入缓存，5分钟过期
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, user, { ttl: 300 });
+      // 同时缓存 user:id
+      await this.cacheService.set(`user:${user.id}`, user, { ttl: 300 });
+    }
+
+    return user as User;
   }
 
   async findByEmail(email: string): Promise<User> {
-    const user = await this.usersRepository.findOne({
-      where: { email },
-      relations: ['roles', 'roles.permissions'],
-    });
+    // 先从缓存获取
+    const cacheKey = `user:email:${email}`;
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<User>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // 使用 QueryBuilder 优化查询（消除 N+1 问题）
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.roles', 'role')
+      .leftJoinAndSelect('role.permissions', 'permission')
+      .where('user.email = :email', { email })
+      .select([
+        'user.id',
+        'user.username',
+        'user.email',
+        'user.fullName',
+        'user.avatar',
+        'user.phone',
+        'user.status',
+        'user.tenantId',
+        'user.departmentId',
+        'user.isSuperAdmin',
+        'user.lastLoginAt',
+        'user.lastLoginIp',
+        'user.createdAt',
+        'user.updatedAt',
+        'user.metadata',
+        'role.id',
+        'role.name',
+        'role.displayName',
+        'permission.id',
+        'permission.name',
+        'permission.resource',
+        'permission.action',
+      ])
+      .getOne();
 
     if (!user) {
       throw new NotFoundException(`邮箱 ${email} 对应的用户不存在`);
     }
 
-    return user;
+    // 存入缓存，5分钟过期
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, user, { ttl: 300 });
+      // 同时缓存 user:id
+      await this.cacheService.set(`user:${user.id}`, user, { ttl: 300 });
+    }
+
+    return user as User;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
@@ -526,21 +631,38 @@ export class UsersService {
       throw new NotFoundException(`用户 #${id} 不存在`);
     }
 
+    // 并行化：同时检查邮箱重复和获取角色（性能优化）
+    const tasks: Promise<any>[] = [];
+
     // 检查邮箱是否重复
     if (updateUserDto.email && updateUserDto.email !== user.email) {
-      const existingUser = await this.usersRepository.findOne({
-        where: { email: updateUserDto.email },
-      });
-      if (existingUser) {
-        throw new ConflictException('该邮箱已被使用');
-      }
+      tasks.push(
+        this.usersRepository.findOne({
+          where: { email: updateUserDto.email },
+        })
+      );
+    } else {
+      tasks.push(Promise.resolve(null));
     }
 
     // 更新角色
     if (updateUserDto.roleIds) {
-      const roles = await this.rolesRepository.find({
-        where: { id: In(updateUserDto.roleIds) },
-      });
+      tasks.push(
+        this.rolesRepository.find({
+          where: { id: In(updateUserDto.roleIds) },
+        })
+      );
+    } else {
+      tasks.push(Promise.resolve(null));
+    }
+
+    const [existingUser, roles] = await Promise.all(tasks);
+
+    if (existingUser) {
+      throw new ConflictException('该邮箱已被使用');
+    }
+
+    if (roles) {
       user.roles = roles;
     }
 

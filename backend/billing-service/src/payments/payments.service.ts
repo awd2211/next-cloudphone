@@ -346,16 +346,14 @@ export class PaymentsService {
   private async handlePaymentSuccess(payment: Payment): Promise<void> {
     this.logger.log(`Payment success: ${payment.paymentNo}`);
 
-    // 更新订单状态
-    const order = await this.ordersRepository.findOne({
-      where: { id: payment.orderId },
-    });
-
-    if (order) {
-      order.status = OrderStatus.PAID;
-      order.paidAt = new Date();
-      await this.ordersRepository.save(order);
-    }
+    // 优化：直接使用 update，避免先查询再更新（减少一次数据库往返）
+    await this.ordersRepository.update(
+      { id: payment.orderId },
+      {
+        status: OrderStatus.PAID,
+        paidAt: new Date(),
+      }
+    );
   }
 
   /**
@@ -760,6 +758,9 @@ export class PaymentsService {
       },
     });
 
+    // 优化：收集所有需要更新的 orderId，批量更新（减少 N+1 查询）
+    const orderIdsToUpdate: string[] = [];
+
     for (const payment of expiredPayments) {
       try {
         // 关闭第三方订单
@@ -773,19 +774,28 @@ export class PaymentsService {
         payment.status = PaymentStatus.CANCELLED;
         await this.paymentsRepository.save(payment);
 
-        // 更新订单状态
-        const order = await this.ordersRepository.findOne({
-          where: { id: payment.orderId },
-        });
-        if (order && order.status === OrderStatus.PENDING) {
-          order.status = OrderStatus.CANCELLED;
-          await this.ordersRepository.save(order);
-        }
+        // 记录需要更新的订单 ID
+        orderIdsToUpdate.push(payment.orderId);
 
         this.logger.log(`Closed expired payment: ${payment.paymentNo}`);
       } catch (error) {
         this.logger.error(`Failed to close payment ${payment.paymentNo}: ${error.message}`);
       }
+    }
+
+    // 批量更新订单状态（一次查询，避免循环中的 N 次查询）
+    if (orderIdsToUpdate.length > 0) {
+      await this.ordersRepository
+        .createQueryBuilder()
+        .update(Order)
+        .set({ status: OrderStatus.CANCELLED })
+        .where('id IN (:...ids) AND status = :status', {
+          ids: orderIdsToUpdate,
+          status: OrderStatus.PENDING,
+        })
+        .execute();
+
+      this.logger.log(`Bulk updated ${orderIdsToUpdate.length} orders to CANCELLED status`);
     }
   }
 
@@ -820,10 +830,37 @@ export class PaymentsService {
    * 获取支付详情
    */
   async findOne(id: string): Promise<Payment> {
-    const payment = await this.paymentsRepository.findOne({
-      where: { id },
-      relations: ['order'],
-    });
+    // 优化：使用 QueryBuilder + leftJoinAndSelect，只查询需要的字段（消除 N+1 问题）
+    const payment = await this.paymentsRepository
+      .createQueryBuilder('payment')
+      .leftJoinAndSelect('payment.order', 'order')
+      .where('payment.id = :id', { id })
+      .select([
+        'payment.id',
+        'payment.orderId',
+        'payment.userId',
+        'payment.amount',
+        'payment.currency',
+        'payment.method',
+        'payment.status',
+        'payment.paymentNo',
+        'payment.transactionId',
+        'payment.paymentUrl',
+        'payment.expiresAt',
+        'payment.paidAt',
+        'payment.refundAmount',
+        'payment.refundReason',
+        'payment.refundedAt',
+        'payment.createdAt',
+        'payment.updatedAt',
+        'order.id',
+        'order.userId',
+        'order.planId',
+        'order.amount',
+        'order.status',
+        'order.createdAt',
+      ])
+      .getOne();
 
     if (!payment) {
       throw new NotFoundException(`支付记录不存在: ${id}`);

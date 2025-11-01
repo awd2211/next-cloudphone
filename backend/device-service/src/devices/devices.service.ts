@@ -169,7 +169,7 @@ export class DevicesService {
             this.logger.warn(`[SAGA] Compensate: Releasing allocated ports`);
 
             try {
-              this.portManager.releasePorts(state.ports);
+              await this.portManager.releasePorts(state.ports);
               this.logger.log(`[SAGA] Ports released: ADB=${state.ports.adbPort}`);
             } catch (error) {
               this.logger.error(`[SAGA] Failed to release ports`, error.stack);
@@ -1024,7 +1024,7 @@ export class DevicesService {
       device.providerType === DeviceProviderType.REDROID &&
       (device.adbPort || device.metadata?.webrtcPort)
     ) {
-      this.portManager.releasePorts({
+      await this.portManager.releasePorts({
         adbPort: device.adbPort ?? undefined, // Convert null to undefined
         webrtcPort: device.metadata?.webrtcPort,
       });
@@ -1131,45 +1131,63 @@ export class DevicesService {
       return;
     }
 
-    // ✅ Redroid/云设备：原有健康检查逻辑
+    // ✅ Redroid/云设备：原有健康检查逻辑（并行优化）
     const checks = {
       container: false,
       adb: false,
       android: false,
     };
 
+    // 并行执行所有健康检查（性能优化）
+    const checkTasks: Promise<void>[] = [];
+
     // 1. 检查容器状态（仅 Redroid）
     if (device.providerType === DeviceProviderType.REDROID && device.containerId) {
-      try {
-        const info = await this.dockerService.getContainerInfo(device.containerId);
-        checks.container = info.State.Running && info.State.Health?.Status !== 'unhealthy';
-      } catch (error) {
-        this.logger.warn(`Container check failed for device ${device.id}`);
-      }
+      checkTasks.push(
+        (async () => {
+          try {
+            const info = await this.dockerService.getContainerInfo(device.containerId);
+            checks.container = info.State.Running && info.State.Health?.Status !== 'unhealthy';
+          } catch (error) {
+            this.logger.warn(`Container check failed for device ${device.id}`);
+          }
+        })()
+      );
     } else {
       // 云设备默认容器检查通过
       checks.container = true;
     }
 
     // 2. 检查 ADB 连接
-    try {
-      const devices = await this.adbService.executeShellCommand(device.id, 'echo test', 3000);
-      checks.adb = devices.includes('test');
-    } catch (error) {
-      this.logger.warn(`ADB check failed for device ${device.id}`);
-    }
+    checkTasks.push(
+      (async () => {
+        try {
+          const devices = await this.adbService.executeShellCommand(device.id, 'echo test', 3000);
+          checks.adb = devices.includes('test');
+        } catch (error) {
+          this.logger.warn(`ADB check failed for device ${device.id}`);
+        }
+      })()
+    );
 
     // 3. 检查 Android 系统
-    try {
-      const output = await this.adbService.executeShellCommand(
-        device.id,
-        'getprop sys.boot_completed',
-        3000
-      );
-      checks.android = output.trim() === '1';
-    } catch (error) {
-      this.logger.warn(`Android check failed for device ${device.id}`);
-    }
+    checkTasks.push(
+      (async () => {
+        try {
+          const output = await this.adbService.executeShellCommand(
+            device.id,
+            'getprop sys.boot_completed',
+            3000
+          );
+          checks.android = output.trim() === '1';
+        } catch (error) {
+          this.logger.warn(`Android check failed for device ${device.id}`);
+        }
+      })()
+    );
+
+    // 等待所有检查完成
+    await Promise.all(checkTasks);
 
     // 判断设备是否健康
     const isHealthy = checks.container && checks.adb && checks.android;
