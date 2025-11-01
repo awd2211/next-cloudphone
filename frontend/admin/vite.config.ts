@@ -59,33 +59,57 @@ export default defineConfig({
 
     rollupOptions: {
       output: {
-        // 手动代码分割
+        // ✅ 优化的代码分割策略（更细粒度）
         manualChunks: (id) => {
-          // 核心框架
-          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-            return 'react-vendor';
+          // 核心框架（最高优先级缓存）
+          if (id.includes('react/') || id.includes('react-dom/')) {
+            return 'react-core';
           }
-          // React Query
+          if (id.includes('react-router')) {
+            return 'react-router';
+          }
+
+          // React Query（数据管理）
           if (id.includes('@tanstack/react-query')) {
-            return 'react-query-vendor';
+            return 'react-query';
           }
-          // UI 组件库
-          if (id.includes('antd') || id.includes('@ant-design')) {
-            return 'antd-vendor';
+
+          // Ant Design（分离 icons 和 core）
+          if (id.includes('@ant-design/icons')) {
+            return 'antd-icons';
           }
-          // 图表库
-          if (id.includes('echarts')) {
-            return 'charts-vendor';
+          if (id.includes('antd') || id.includes('@ant-design/pro')) {
+            return 'antd-core';
           }
-          // Socket.IO
-          if (id.includes('socket.io-client')) {
-            return 'socket-vendor';
+
+          // ✅ 重量级库单独分离（按需加载）
+          // ECharts（~500KB）- 图表页面才加载
+          if (id.includes('echarts') || id.includes('zrender')) {
+            return 'echarts';
           }
-          // 工具库
-          if (id.includes('axios') || id.includes('dayjs') || id.includes('zustand')) {
-            return 'utils-vendor';
+
+          // XLSX（~800KB）- 导出时才加载
+          if (id.includes('xlsx')) {
+            return 'xlsx';
           }
-          // node_modules 中的其他依赖
+
+          // Socket.IO（~200KB）- WebSocket 功能才加载
+          if (id.includes('socket.io-client') || id.includes('engine.io-client')) {
+            return 'socketio';
+          }
+
+          // 工具库（常用工具）
+          if (id.includes('axios')) {
+            return 'axios';
+          }
+          if (id.includes('dayjs')) {
+            return 'dayjs';
+          }
+          if (id.includes('lodash')) {
+            return 'lodash';
+          }
+
+          // 其他 node_modules 依赖
           if (id.includes('node_modules')) {
             return 'vendor';
           }

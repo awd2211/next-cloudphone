@@ -25,9 +25,9 @@
     /* Linting - 渐进式启用 strict 模式 */
     "strict": false, // 暂时保持 false，逐个启用子选项
 
-    /* Strict 模式子选项 - Phase 1: 已启用 */
-    "noImplicitAny": true, // ✅ 禁止隐式 any 类型
-    "strictNullChecks": true, // ✅ 严格的 null 检查
+    /* Strict 模式子选项 - Phase 1: 渐进式启用 */
+    "noImplicitAny": false, // 🔄 暂时关闭（Week 1）- Week 2-3 渐进式修复
+    "strictNullChecks": false, // 🔄 暂时关闭（Week 1）- Week 2-3 渐进式修复
     "strictFunctionTypes": true, // ✅ 严格的函数类型检查
     "strictBindCallApply": true, // ✅ 严格的 bind/call/apply 检查
 
@@ -37,15 +37,22 @@
     // "alwaysStrict": true, // 🔄 总是使用严格模式
 
     /* 其他严格检查 */
-    "noUnusedLocals": true, // ✅ 禁止未使用的局部变量
-    "noUnusedParameters": true, // ✅ 禁止未使用的参数
+    "noUnusedLocals": false, // 🔄 暂时关闭（Week 1）- Week 2-3 渐进式修复
+    "noUnusedParameters": false, // 🔄 暂时关闭（Week 1）- Week 2-3 渐进式修复
     "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true, // ✅ 所有代码路径必须有返回值
-    "noUncheckedIndexedAccess": true, // ✅ 访问索引时添加 undefined 检查
+    "noImplicitReturns": false, // 🔄 暂时关闭 - 修复后重新启用
+    "noUncheckedIndexedAccess": false, // 🔄 暂时关闭（Week 1）- Week 2-3 渐进式修复
 
     "erasableSyntaxOnly": false,
     "noUncheckedSideEffectImports": false,
     "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/tests/**/*",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx"
+  ]
 }

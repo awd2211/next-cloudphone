@@ -91,7 +91,8 @@ const NetworkPolicyConfiguration = lazy(() => import('@/pages/NetworkPolicy/Conf
 const SMSManagement = lazy(() => import('@/pages/SMS/Management'));
 
 // 统计仪表板
-const StatsDashboard = lazy(() => import('@/pages/Stats/Dashboard'));
+// 🔄 临时注释（缺少 recharts 依赖）- Week 2 恢复
+// const StatsDashboard = lazy(() => import('@/pages/Stats/Dashboard'));
 
 // 故障转移管理
 const FailoverManagement = lazy(() => import('@/pages/Failover/Management'));
@@ -99,38 +100,25 @@ const FailoverManagement = lazy(() => import('@/pages/Failover/Management'));
 // 状态恢复管理
 const StateRecoveryManagement = lazy(() => import('@/pages/StateRecovery/Management'));
 
-// Loading 组件
-const PageLoading = () => (
-  <div
-    style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '100vh',
-    }}
-  >
-    <Spin size="large" tip="加载中...">
-      <div style={{ minHeight: 100 }} />
-    </Spin>
-  </div>
-);
+// ✅ 导入优化的页面加载骨架屏
+import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 
-// Suspense 包裹组件（同时包裹 ErrorBoundary）
+// ✅ Suspense 包裹组件（使用骨架屏替代 Spin）
 const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => (
   <ErrorBoundary>
-    <Suspense fallback={<PageLoading />}>
+    <Suspense fallback={<PageLoadingSkeleton />}>
       <Component />
     </Suspense>
   </ErrorBoundary>
 );
 
-// 管理员路由包裹（Suspense + AdminRoute）
+// ✅ 管理员路由包裹（使用骨架屏）
 const withAdminRoute = (
   Component: React.LazyExoticComponent<React.ComponentType<any>>,
   requireSuperAdmin = false
 ) => (
   <ErrorBoundary>
-    <Suspense fallback={<PageLoading />}>
+    <Suspense fallback={<PageLoadingSkeleton />}>
       <AdminRoute requireSuperAdmin={requireSuperAdmin} showForbidden>
         <Component />
       </AdminRoute>
@@ -388,10 +376,11 @@ export const router = createBrowserRouter([
         element: withSuspense(SMSManagement),
       },
       // 统计仪表板
-      {
-        path: 'stats',
-        element: withSuspense(StatsDashboard),
-      },
+      // 🔄 临时注释（缺少 recharts 依赖）- Week 2 恢复
+      // {
+      //   path: 'stats',
+      //   element: withSuspense(StatsDashboard),
+      // },
       // 故障转移管理
       {
         path: 'devices/failover',

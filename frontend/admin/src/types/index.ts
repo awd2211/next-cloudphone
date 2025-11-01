@@ -145,6 +145,29 @@ export interface Application {
   updatedAt: string;
 }
 
+// 类型别名，为了兼容性
+export type App = Application;
+
+export interface CreateAppDto {
+  name: string;
+  packageName: string;
+  versionName: string;
+  versionCode: number;
+  file: File | Blob;
+  description?: string;
+  category?: string;
+  iconUrl?: string;
+}
+
+export interface UpdateAppDto {
+  name?: string;
+  description?: string;
+  category?: string;
+  iconUrl?: string;
+  reviewStatus?: 'pending' | 'approved' | 'rejected' | 'changes_requested';
+  reviewComment?: string;
+}
+
 // 应用审核相关
 export interface AppReviewRecord {
   id: string;
