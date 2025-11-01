@@ -12,3 +12,15 @@ export { CreateUserModal } from './CreateUserModal';
 export { EditUserModal } from './EditUserModal';
 export { BalanceModal } from './BalanceModal';
 export { ResetPasswordModal } from './ResetPasswordModal';
+export { UserTable } from './UserTable';
+export { UserStatsCards } from './UserStatsCards';
+
+/**
+ * Hooks
+ */
+export { useUserOperations } from './useUserOperations';
+
+/**
+ * Constants
+ */
+export * from './constants';
