@@ -816,4 +816,41 @@ export class DevicesController {
       message: '快照恢复成功，设备将重启',
     };
   }
+
+  @Get(':id/snapshots')
+  @RequirePermission('device:read')
+  @ApiOperation({
+    summary: '获取设备快照列表',
+    description: '获取设备的所有快照 (仅阿里云 ECP 支持)',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '快照列表获取成功' })
+  @ApiResponse({ status: 400, description: '设备不支持快照功能' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async listSnapshots(@Param('id') id: string) {
+    const snapshots = await this.devicesService.listSnapshots(id);
+    return {
+      success: true,
+      data: snapshots,
+    };
+  }
+
+  @Delete(':id/snapshots/:snapshotId')
+  @RequirePermission('device:snapshot:delete')
+  @ApiOperation({
+    summary: '删除设备快照',
+    description: '删除指定的设备快照 (仅阿里云 ECP 支持)',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiParam({ name: 'snapshotId', description: '快照 ID' })
+  @ApiResponse({ status: 200, description: '快照删除成功' })
+  @ApiResponse({ status: 400, description: '设备不支持快照功能' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async deleteSnapshot(@Param('id') id: string, @Param('snapshotId') snapshotId: string) {
+    await this.devicesService.deleteSnapshot(id, snapshotId);
+    return {
+      success: true,
+      message: '快照删除成功',
+    };
+  }
 }

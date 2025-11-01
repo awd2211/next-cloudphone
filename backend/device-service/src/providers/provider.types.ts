@@ -521,3 +521,29 @@ export interface ProviderConfig {
   /** 提供商特定配置 */
   config: Record<string, any>;
 }
+
+/**
+ * 设备快照信息
+ */
+export interface DeviceSnapshot {
+  /** 快照 ID */
+  id: string;
+
+  /** 快照名称 */
+  name: string;
+
+  /** 快照描述 */
+  description?: string;
+
+  /** 设备 ID */
+  deviceId: string;
+
+  /** 创建时间 */
+  createdAt: string;
+
+  /** 状态 */
+  status: 'creating' | 'available' | 'error';
+
+  /** 快照大小 (字节) */
+  size?: number;
+}

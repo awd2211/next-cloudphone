@@ -1072,6 +1072,126 @@ export class AliyunEcpClient {
     }
   }
 
+  /**
+   * 获取快照列表
+   *
+   * API: ListSnapshots
+   *
+   * 获取指定实例的快照列表
+   *
+   * @param instanceId 实例 ID
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 10,
+    refillRate: 5,
+  })
+  async listSnapshots(
+    instanceId: string
+  ): Promise<AliyunOperationResult<AliyunSnapshotInfo[]>> {
+    this.logger.log(`Listing snapshots for instance ${instanceId}`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params = {
+        RegionId: this.config.regionId,
+        InstanceId: instanceId,
+        MaxResults: 100, // 最多返回 100 个快照
+      };
+
+      const response = await this.client.request('ListSnapshots', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      const snapshots: AliyunSnapshotInfo[] = response.Snapshots?.Snapshot || [];
+
+      return {
+        success: true,
+        data: snapshots,
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to list snapshots: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'ListSnapshotsFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 删除快照
+   *
+   * API: DeleteSnapshot
+   *
+   * 删除指定的快照
+   *
+   * @param instanceId 实例 ID
+   * @param snapshotId 快照 ID
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 10,
+    refillRate: 5,
+  })
+  async deleteSnapshot(
+    instanceId: string,
+    snapshotId: string
+  ): Promise<AliyunOperationResult<void>> {
+    this.logger.log(`Deleting snapshot ${snapshotId} for instance ${instanceId}`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params = {
+        RegionId: this.config.regionId,
+        SnapshotId: snapshotId,
+      };
+
+      const response = await this.client.request('DeleteSnapshot', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      return {
+        success: true,
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to delete snapshot: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'DeleteSnapshotFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
   // ============================================================
   // 远程命令执行 - Phase 4 新增功能
   // ============================================================

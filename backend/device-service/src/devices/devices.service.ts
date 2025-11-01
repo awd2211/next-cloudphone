@@ -1143,10 +1143,11 @@ export class DevicesService {
 
     // 1. 检查容器状态（仅 Redroid）
     if (device.providerType === DeviceProviderType.REDROID && device.containerId) {
+      const containerId = device.containerId; // 类型缩小
       checkTasks.push(
         (async () => {
           try {
-            const info = await this.dockerService.getContainerInfo(device.containerId);
+            const info = await this.dockerService.getContainerInfo(containerId);
             checks.container = info.State.Running && info.State.Health?.Status !== 'unhealthy';
           } catch (error) {
             this.logger.warn(`Container check failed for device ${device.id}`);
@@ -2178,6 +2179,107 @@ export class DevicesService {
       throw new BusinessException(
         BusinessErrorCode.SNAPSHOT_RESTORE_FAILED,
         `恢复快照失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * 获取设备快照列表
+   * @param deviceId 设备 ID
+   * @returns 快照列表
+   */
+  async listSnapshots(deviceId: string): Promise<any[]> {
+    const device = await this.findOne(deviceId);
+
+    if (!device.externalId) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备缺少 externalId`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const provider = this.providerFactory.getProvider(device.providerType);
+
+    // 检查能力
+    const capabilities = provider.getCapabilities();
+    if (!capabilities.supportsSnapshot) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 不支持快照功能`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!provider.listSnapshots) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 未实现 listSnapshots 方法`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const snapshots = await provider.listSnapshots(device.externalId);
+
+      this.logger.log(`Listed ${snapshots.length} snapshots for device ${deviceId}`);
+      return snapshots;
+    } catch (error) {
+      this.logger.error(`Failed to list snapshots for device ${deviceId}: ${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `获取快照列表失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * 删除设备快照
+   * @param deviceId 设备 ID
+   * @param snapshotId 快照 ID
+   */
+  async deleteSnapshot(deviceId: string, snapshotId: string): Promise<void> {
+    const device = await this.findOne(deviceId);
+
+    if (!device.externalId) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备缺少 externalId`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const provider = this.providerFactory.getProvider(device.providerType);
+
+    // 检查能力
+    const capabilities = provider.getCapabilities();
+    if (!capabilities.supportsSnapshot) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 不支持快照功能`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!provider.deleteSnapshot) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 未实现 deleteSnapshot 方法`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      await provider.deleteSnapshot(device.externalId, snapshotId);
+
+      this.logger.log(`Snapshot ${snapshotId} deleted for device ${deviceId}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete snapshot for device ${deviceId}: ${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `删除快照失败: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

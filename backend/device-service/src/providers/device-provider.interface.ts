@@ -18,6 +18,7 @@ import {
   FileTransferOptions,
   DeviceProperties,
   DeviceMetrics,
+  DeviceSnapshot,
 } from './provider.types';
 
 /**
@@ -263,6 +264,20 @@ export interface IDeviceProvider {
    * @param snapshotId 快照 ID
    */
   restoreSnapshot?(deviceId: string, snapshotId: string): Promise<void>;
+
+  /**
+   * 获取设备快照列表
+   * @param deviceId 设备 ID
+   * @returns 快照列表
+   */
+  listSnapshots?(deviceId: string): Promise<DeviceSnapshot[]>;
+
+  /**
+   * 删除设备快照
+   * @param deviceId 设备 ID
+   * @param snapshotId 快照 ID
+   */
+  deleteSnapshot?(deviceId: string, snapshotId: string): Promise<void>;
 }
 
 /**

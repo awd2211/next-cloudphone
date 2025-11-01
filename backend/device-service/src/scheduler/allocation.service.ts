@@ -1088,7 +1088,15 @@ export class AllocationService {
    * 续期策略配置表
    * 根据用户等级定义不同的续期策略
    */
-  private readonly EXTEND_POLICIES = {
+  private readonly EXTEND_POLICIES: Record<string, {
+    maxExtendCount: number;
+    maxExtendMinutes: number;
+    maxTotalMinutes: number;
+    cooldownSeconds: number;
+    allowExtendBeforeExpireMinutes: number;
+    requireQuotaCheck: boolean;
+    requireBilling: boolean;
+  }> = {
     [this.USER_TIERS.FREE]: {
       maxExtendCount: 2, // 免费用户最多续期2次
       maxExtendMinutes: 30, // 单次续期最多30分钟
@@ -1151,12 +1159,14 @@ export class AllocationService {
       });
 
       // 根据配额限制推断用户等级
-      if (quotaCheck.maxDevices) {
-        if (quotaCheck.maxDevices <= 1) {
+      // 注意：这里使用 remainingDevices 作为间接指标，实际应该从 user-service 获取用户等级
+      if (quotaCheck.remainingDevices !== undefined) {
+        // 如果剩余配额很少，推断为较低等级
+        if (quotaCheck.remainingDevices <= 1) {
           return this.USER_TIERS.FREE;
-        } else if (quotaCheck.maxDevices <= 5) {
+        } else if (quotaCheck.remainingDevices <= 5) {
           return this.USER_TIERS.BASIC;
-        } else if (quotaCheck.maxDevices <= 20) {
+        } else if (quotaCheck.remainingDevices <= 20) {
           return this.USER_TIERS.PRO;
         } else {
           return this.USER_TIERS.ENTERPRISE;

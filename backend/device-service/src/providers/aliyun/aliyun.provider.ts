@@ -658,6 +658,79 @@ export class AliyunProvider implements IDeviceProvider {
   }
 
   /**
+   * 获取快照列表
+   *
+   * 使用阿里云 ListSnapshots API 获取设备的快照列表
+   *
+   * @param deviceId 设备 ID
+   * @returns 快照列表
+   */
+  async listSnapshots(deviceId: string): Promise<import('../provider.types').DeviceSnapshot[]> {
+    this.logger.log(`Listing snapshots for Aliyun phone ${deviceId}`);
+
+    try {
+      const result = await this.ecpClient.listSnapshots(deviceId);
+
+      if (!result.success || !result.data) {
+        throw new InternalServerErrorException(
+          `Failed to list snapshots: ${result.errorMessage}`
+        );
+      }
+
+      // 转换阿里云快照格式到统一格式
+      return result.data.map((snapshot) => ({
+        id: snapshot.snapshotId,
+        name: snapshot.snapshotName,
+        description: undefined, // 阿里云快照可能没有描述字段
+        deviceId,
+        createdAt: snapshot.gmtCreate,
+        status: this.mapSnapshotStatus(snapshot.status),
+        size: snapshot.size ? snapshot.size * 1024 * 1024 * 1024 : undefined, // GB 转 bytes
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to list snapshots: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 删除快照
+   *
+   * 使用阿里云 DeleteSnapshot API 删除快照
+   *
+   * @param deviceId 设备 ID
+   * @param snapshotId 快照 ID
+   */
+  async deleteSnapshot(deviceId: string, snapshotId: string): Promise<void> {
+    this.logger.log(`Deleting snapshot ${snapshotId} for Aliyun phone ${deviceId}`);
+
+    try {
+      const result = await this.ecpClient.deleteSnapshot(deviceId, snapshotId);
+
+      if (!result.success) {
+        throw new InternalServerErrorException(
+          `Failed to delete snapshot: ${result.errorMessage}`
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to delete snapshot: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 映射阿里云快照状态到统一状态
+   */
+  private mapSnapshotStatus(status: 'CREATING' | 'AVAILABLE' | 'FAILED'): 'creating' | 'available' | 'error' {
+    const statusMap = {
+      CREATING: 'creating' as const,
+      AVAILABLE: 'available' as const,
+      FAILED: 'error' as const,
+    };
+    return statusMap[status] || 'error';
+  }
+
+  /**
    * 截图
    *
    * 可通过 WebRTC 视频帧截图，或通过 ADB screencap 实现
