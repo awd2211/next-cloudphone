@@ -18,7 +18,7 @@ export class IpFilterMiddleware implements NestMiddleware {
 
     // 检查 IP 是否在黑名单中
     if (this.isBlacklisted(clientIp)) {
-      console.warn(`🚫 Blocked request from blacklisted IP: ${clientIp}`);
+      this.logger.warn(`Blocked request from blacklisted IP: ${clientIp}`);
 
       throw new HttpException(
         {

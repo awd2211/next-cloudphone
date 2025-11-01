@@ -5,24 +5,46 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  Inject,
+  Optional,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-// TODO: Install @liaoliaots/nestjs-redis or use alternative Redis injection
-// import { InjectRedis } from "@liaoliaots/nestjs-redis";
 import Redis from 'ioredis';
 import { THROTTLE_KEY, ThrottleOptions } from '../decorators/throttle.decorator';
 
 @Injectable()
 export class ThrottleGuard implements CanActivate {
   private readonly logger = new Logger(ThrottleGuard.name);
-  private readonly redis: any = null; // TODO: Inject actual Redis instance
+  private readonly redis: Redis | null = null;
 
   constructor(
-    private readonly reflector: Reflector
-    // @InjectRedis() private readonly redis: Redis,
+    private readonly reflector: Reflector,
+    private readonly configService: ConfigService,
+    @Optional() @Inject('REDIS_CLIENT') redisClient?: Redis,
   ) {
-    // TODO: Inject Redis instance when @liaoliaots/nestjs-redis is installed
+    // 使用注入的Redis客户端，如果没有则创建新实例
+    if (redisClient) {
+      this.redis = redisClient;
+    } else {
+      try {
+        this.redis = new Redis({
+          host: this.configService.get('REDIS_HOST', 'localhost'),
+          port: this.configService.get('REDIS_PORT', 6379),
+          password: this.configService.get('REDIS_PASSWORD'),
+          db: this.configService.get('REDIS_DB', 0),
+          retryStrategy: (times) => {
+            const delay = Math.min(times * 50, 2000);
+            return delay;
+          },
+        });
+        this.logger.log('Redis client initialized for throttle guard');
+      } catch (error) {
+        this.logger.error('Failed to initialize Redis client', error);
+        this.redis = null;
+      }
+    }
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -34,9 +56,9 @@ export class ThrottleGuard implements CanActivate {
       return true;
     }
 
-    // TODO: Temporarily bypass throttling until Redis is properly configured
+    // 如果Redis未配置，降级为允许请求（记录警告）
     if (!this.redis) {
-      this.logger.warn('Throttling bypassed - Redis not configured');
+      this.logger.warn('Throttling disabled - Redis not available');
       return true;
     }
 

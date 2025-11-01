@@ -6,9 +6,10 @@ module.exports = {
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/api-gateway',
 
-      // 🚀 开发模式: 单实例(热重载), 生产模式: 集群模式
-      instances: process.env.NODE_ENV === 'production' ? 4 : 1,
-      exec_mode: process.env.NODE_ENV === 'production' ? 'cluster' : 'fork',
+      // 🚀 优化：开发环境也启用集群模式（验证集群兼容性）
+      // 生产模式: 更多实例以充分利用多核 CPU
+      instances: process.env.NODE_ENV === 'production' ? 'max' : 2, // max = CPU 核心数
+      exec_mode: 'cluster', // 始终使用集群模式
 
       autorestart: true,
       watch: false, // 使用NestJS内置的热重载,不需要PM2监视
@@ -50,9 +51,9 @@ module.exports = {
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/user-service',
 
-      // 🚀 开发模式: 单实例(热重载), 生产模式: 集群模式
-      instances: process.env.NODE_ENV === 'production' ? 2 : 1,
-      exec_mode: process.env.NODE_ENV === 'production' ? 'cluster' : 'fork',
+      // 🚀 优化：开发环境也启用集群模式，生产模式使用更多实例
+      instances: process.env.NODE_ENV === 'production' ? 4 : 2,
+      exec_mode: 'cluster', // 始终使用集群模式
 
       autorestart: true,
       watch: false, // 使用NestJS内置的热重载
@@ -94,9 +95,9 @@ module.exports = {
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/device-service',
 
-      // ⚠️ 单实例模式 - 端口管理使用内存缓存，集群会冲突
-      instances: 1,
-      exec_mode: 'fork',
+      // 🚀 优化：启用集群模式（端口管理已改为 Redis 分布式锁）
+      instances: process.env.NODE_ENV === 'production' ? 3 : 2,
+      exec_mode: 'cluster', // ✅ 现在支持集群模式
 
       autorestart: true,
       watch: false, // 使用NestJS内置的热重载
@@ -164,9 +165,9 @@ module.exports = {
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/billing-service',
 
-      // 💰 单实例模式（计费服务，避免并发问题）
-      instances: 1,
-      exec_mode: 'fork',
+      // 🚀 优化：启用集群模式（Saga 模式已确保事务一致性）
+      instances: process.env.NODE_ENV === 'production' ? 2 : 1,
+      exec_mode: process.env.NODE_ENV === 'production' ? 'cluster' : 'fork',
 
       autorestart: true,
       watch: false, // 使用NestJS内置的热重载

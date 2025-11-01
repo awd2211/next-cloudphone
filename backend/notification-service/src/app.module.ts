@@ -55,7 +55,7 @@ import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusM
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('DB_DATABASE', 'cloudphone_notification'), // ✅ 迁移到独立数据库
         entities: [Notification, NotificationTemplate, NotificationPreference, SmsRecord],
-        synchronize: configService.get('NODE_ENV') === 'development', // ✅ 开发环境自动创建表
+        synchronize: false, // ✅ 使用 TypeORM Migrations 管理数据库架构
         logging: configService.get('NODE_ENV') === 'development',
         autoLoadEntities: false,
       }),

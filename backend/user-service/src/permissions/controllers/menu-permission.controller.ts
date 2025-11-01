@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, Request, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { MenuPermissionService } from '../menu-permission.service';
 import { PermissionCacheService } from '../permission-cache.service';
@@ -12,6 +12,8 @@ import { RequirePermissions, SkipPermission } from '../decorators';
 @Controller('menu-permissions')
 @UseGuards(AuthGuard('jwt'), EnhancedPermissionsGuard)
 export class MenuPermissionController {
+  private readonly logger = new Logger(MenuPermissionController.name);
+
   constructor(
     private menuPermissionService: MenuPermissionService,
     private permissionCacheService: PermissionCacheService
@@ -47,19 +49,17 @@ export class MenuPermissionController {
   @Get('my-permissions')
   @SkipPermission()
   async getMyPermissions(@Request() req: any) {
-    console.log('[DEBUG] req.user:', req.user);
-    console.log('[DEBUG] req.headers.authorization:', req.headers?.authorization?.substring(0, 20));
-
     const userId = req.user?.id;
 
     if (!userId) {
-      console.log('[DEBUG] userId is empty, returning 未登录');
+      this.logger.warn('Unauthorized access attempt to my-permissions endpoint');
       return {
         success: false,
         message: '未登录',
       };
     }
 
+    this.logger.debug(`Fetching permissions for user: ${userId}`);
     const permissions = await this.menuPermissionService.getUserPermissionNames(userId);
 
     return {
