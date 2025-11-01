@@ -1,21 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Space, Form, message, Card } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import type { Device, CreateDeviceDto } from '@/types';
-import dayjs from 'dayjs';
-import { exportToExcel, exportToCSV } from '@/utils/export';
-import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useRole } from '@/hooks/useRole';
 
-// ✅ 导入优化的子组件（React.memo）
-import { DeviceActions, DeviceStatusTag, STATUS_CONFIG } from '@/components/Device';
+// ✅ 导入优化的子组件
+import { DeviceStatusTag } from '@/components/Device';
 import {
   DeviceStatsCards,
   DeviceFilterBar,
   DeviceBatchActions,
   DeviceTable,
   CreateDeviceModal,
+  useDeviceColumns,
 } from '@/components/DeviceList';
 
 // ✅ 使用 React Query hooks
@@ -29,13 +26,13 @@ import {
   useDeleteDevice,
 } from '@/hooks/useDevices';
 
-// ✅ 导入批量操作服务（暂时保留直接调用，后续可以改造为 hooks）
-import {
-  batchStartDevices,
-  batchStopDevices,
-  batchRebootDevices,
-  batchDeleteDevices,
-} from '@/services/device';
+// ✅ 批量操作 hook
+import { useDeviceBatchOperations } from '@/hooks/useDeviceBatchOperations';
+
+// ✅ 导出工具函数
+import { exportDevicesAsExcel, exportDevicesAsCSV, exportDevicesAsJSON } from '@/utils/deviceExport';
+
+// ✅ React Query 相关
 import { queryClient } from '@/lib/react-query';
 import { deviceKeys } from '@/hooks/useDevices';
 
@@ -46,8 +43,9 @@ import { deviceKeys } from '@/hooks/useDevices';
  * 1. ✅ 使用 React Query 自动管理状态和缓存
  * 2. ✅ 使用 useMemo 优化重复计算
  * 3. ✅ 使用 useCallback 优化事件处理函数
- * 4. ✅ 自动请求去重和缓存
- * 5. ✅ 乐观更新支持
+ * 4. ✅ 提取导出逻辑到 utils
+ * 5. ✅ 提取表格列定义到 components
+ * 6. ✅ 提取批量操作到 hooks
  */
 const DeviceList = () => {
   const { isAdmin } = useRole();
@@ -88,21 +86,11 @@ const DeviceList = () => {
   const rebootDeviceMutation = useRebootDevice();
   const deleteDeviceMutation = useDeleteDevice();
 
-  // 解构数据 (API Gateway包装了两层)
+  // 解构数据
   const devices = devicesData?.data?.data || [];
   const total = devicesData?.data?.total || 0;
 
-  // Real-time updates via Socket.IO
-  // ✅ Backend uses Socket.IO (notification-service on port 30006)
-  // For Socket.IO integration, install: pnpm add socket.io-client
-  // Then create a useSocketIO hook similar to:
-  //
-  // import { io, Socket } from 'socket.io-client';
-  // const socket = io('http://localhost:30006');
-  // socket.on('notification', (data) => { /* handle device updates */ });
-  // socket.emit('subscribe', { userId: currentUserId });
-  //
-  // For now, using polling via React Query's refetchInterval
+  // Real-time updates via Socket.IO (placeholder)
   const isConnected = false;
   const lastMessage = null;
 
@@ -111,9 +99,7 @@ const DeviceList = () => {
     if (lastMessage) {
       const { type, data } = lastMessage;
 
-      // 设备状态更新 - 乐观更新 UI
       if (type === 'device:status') {
-        // ✅ 直接更新缓存中的数据
         queryClient.setQueryData(deviceKeys.list(params), (old: any) => {
           if (!old) return old;
           return {
@@ -123,11 +109,8 @@ const DeviceList = () => {
             ),
           };
         });
-        // 失效统计缓存
         queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
-      }
-      // 设备创建/删除 - 失效列表缓存
-      else if (type === 'device:created') {
+      } else if (type === 'device:created') {
         message.info(`新设备已创建: ${data.name}`);
         queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
       } else if (type === 'device:deleted') {
@@ -137,7 +120,7 @@ const DeviceList = () => {
     }
   }, [lastMessage, params]);
 
-  // ✅ 使用 useCallback 优化事件处理函数
+  // ✅ 设备操作事件处理
   const handleCreate = useCallback(
     async (values: CreateDeviceDto) => {
       await createDeviceMutation.mutateAsync(values);
@@ -175,121 +158,27 @@ const DeviceList = () => {
     [deleteDeviceMutation]
   );
 
-  // ✅ 批量操作（使用 useAsyncOperation 消除静默失败）
-  const { execute: executeBatchOperation } = useAsyncOperation();
-
-  const handleBatchStart = useCallback(async () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning('请选择要启动的设备');
-      return;
-    }
-
-    await executeBatchOperation(() => batchStartDevices(selectedRowKeys as string[]), {
-      successMessage: `成功启动 ${selectedRowKeys.length} 台设备`,
-      errorContext: `批量启动${selectedRowKeys.length}台设备`,
-      onSuccess: () => {
-        setSelectedRowKeys([]);
-        queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-        queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
-      },
+  // ✅ 批量操作（使用 hook）
+  const { handleBatchStart, handleBatchStop, handleBatchReboot, handleBatchDelete } =
+    useDeviceBatchOperations({
+      selectedRowKeys,
+      onSuccess: () => setSelectedRowKeys([]),
     });
-  }, [selectedRowKeys, executeBatchOperation]);
 
-  const handleBatchStop = useCallback(async () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning('请选择要停止的设备');
-      return;
-    }
-
-    await executeBatchOperation(() => batchStopDevices(selectedRowKeys as string[]), {
-      successMessage: `成功停止 ${selectedRowKeys.length} 台设备`,
-      errorContext: `批量停止${selectedRowKeys.length}台设备`,
-      onSuccess: () => {
-        setSelectedRowKeys([]);
-        queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-        queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
-      },
-    });
-  }, [selectedRowKeys, executeBatchOperation]);
-
-  const handleBatchReboot = useCallback(async () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning('请选择要重启的设备');
-      return;
-    }
-
-    await executeBatchOperation(() => batchRebootDevices(selectedRowKeys as string[]), {
-      successMessage: `成功重启 ${selectedRowKeys.length} 台设备`,
-      errorContext: `批量重启${selectedRowKeys.length}台设备`,
-      onSuccess: () => {
-        setSelectedRowKeys([]);
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-        }, 2000);
-      },
-    });
-  }, [selectedRowKeys, executeBatchOperation]);
-
-  const handleBatchDelete = useCallback(async () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning('请选择要删除的设备');
-      return;
-    }
-
-    await executeBatchOperation(() => batchDeleteDevices(selectedRowKeys as string[]), {
-      successMessage: `成功删除 ${selectedRowKeys.length} 台设备`,
-      errorContext: `批量删除${selectedRowKeys.length}台设备`,
-      onSuccess: () => {
-        setSelectedRowKeys([]);
-        queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
-        queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
-      },
-    });
-  }, [selectedRowKeys, executeBatchOperation]);
-
-  // ✅ 使用 useMemo 优化导出数据转换（使用 STATUS_CONFIG 代替本地 statusMap）
-  const exportData = useMemo(
-    () =>
-      devices.map((device) => ({
-        设备ID: device.id,
-        设备名称: device.name,
-        状态: STATUS_CONFIG[device.status as keyof typeof STATUS_CONFIG]?.text || device.status,
-        Android版本: device.androidVersion,
-        CPU核心数: device.cpuCores,
-        '内存(MB)': device.memoryMB,
-        '存储(MB)': device.storageMB,
-        IP地址: device.ipAddress || '-',
-        VNC端口: device.vncPort || '-',
-        创建时间: dayjs(device.createdAt).format('YYYY-MM-DD HH:mm:ss'),
-      })),
-    [devices]
-  );
-
-  // ✅ 使用 useCallback 优化导出函数
+  // ✅ 导出函数（使用 useCallback）
   const handleExportExcel = useCallback(() => {
-    exportToExcel(exportData, '设备列表');
-    message.success('导出成功');
-  }, [exportData]);
+    exportDevicesAsExcel(devices);
+  }, [devices]);
 
   const handleExportCSV = useCallback(() => {
-    exportToCSV(exportData, '设备列表');
-    message.success('导出成功');
-  }, [exportData]);
+    exportDevicesAsCSV(devices);
+  }, [devices]);
 
   const handleExportJSON = useCallback(() => {
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const exportFileDefaultName = `设备列表_${dayjs().format('YYYYMMDD_HHmmss')}.json`;
+    exportDevicesAsJSON(devices);
+  }, [devices]);
 
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-
-    message.success('导出成功');
-  }, [exportData]);
-
-  // ✅ 使用 useMemo 优化导出菜单
+  // ✅ 导出菜单
   const exportMenuItems: MenuProps['items'] = useMemo(
     () => [
       { key: 'excel', label: '导出为 Excel', onClick: handleExportExcel },
@@ -299,108 +188,19 @@ const DeviceList = () => {
     [handleExportExcel, handleExportCSV, handleExportJSON]
   );
 
-  // ✅ 使用 useMemo 优化表格列配置（避免每次渲染都重新创建）
-  const columns: ColumnsType<Device> = useMemo(
-    () => [
-      {
-        title: 'ID',
-        dataIndex: 'id',
-        key: 'id',
-        width: 120,
-        ellipsis: true,
-        render: (id: string) => (
-          <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{id.substring(0, 8)}...</span>
-        ),
-      },
-      {
-        title: '设备名称',
-        dataIndex: 'name',
-        key: 'name',
-        width: 150,
-        ellipsis: true,
-      },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        key: 'status',
-        width: 100,
-        // ✅ 使用 memo 化的 DeviceStatusTag 组件
-        render: (status: string) => <DeviceStatusTag status={status as any} />,
-        responsive: ['md'],
-      },
-      {
-        title: 'Android版本',
-        dataIndex: 'androidVersion',
-        key: 'androidVersion',
-        width: 120,
-        responsive: ['lg'],
-      },
-      {
-        title: 'CPU',
-        dataIndex: 'cpuCores',
-        key: 'cpuCores',
-        width: 80,
-        render: (cores: number) => `${cores}核`,
-        responsive: ['lg'],
-      },
-      {
-        title: '内存',
-        dataIndex: 'memoryMB',
-        key: 'memoryMB',
-        width: 100,
-        render: (memory: number) => `${(memory / 1024).toFixed(1)}GB`,
-        responsive: ['lg'],
-      },
-      {
-        title: 'IP地址',
-        dataIndex: 'ipAddress',
-        key: 'ipAddress',
-        width: 130,
-        ellipsis: true,
-        responsive: ['xl'],
-      },
-      {
-        title: '创建时间',
-        dataIndex: 'createdAt',
-        key: 'createdAt',
-        width: 160,
-        render: (date: string) => dayjs(date).format('MM-DD HH:mm'),
-        responsive: ['xl'],
-      },
-      {
-        title: '操作',
-        key: 'actions',
-        width: 250,
-        fixed: 'right',
-        // ✅ 使用 memo 化的 DeviceActions 组件
-        render: (_: any, record: Device) => (
-          <DeviceActions
-            device={record}
-            onStart={handleStart}
-            onStop={handleStop}
-            onReboot={handleReboot}
-            onDelete={handleDelete}
-            loading={{
-              start: startDeviceMutation.isPending,
-              stop: stopDeviceMutation.isPending,
-              reboot: rebootDeviceMutation.isPending,
-              delete: deleteDeviceMutation.isPending,
-            }}
-          />
-        ),
-      },
-    ],
-    [
-      handleStart,
-      handleStop,
-      handleReboot,
-      handleDelete,
-      startDeviceMutation.isPending,
-      stopDeviceMutation.isPending,
-      rebootDeviceMutation.isPending,
-      deleteDeviceMutation.isPending,
-    ]
-  );
+  // ✅ 使用提取的表格列定义 hook
+  const columns = useDeviceColumns({
+    onStart: handleStart,
+    onStop: handleStop,
+    onReboot: handleReboot,
+    onDelete: handleDelete,
+    loading: {
+      start: startDeviceMutation.isPending,
+      stop: stopDeviceMutation.isPending,
+      reboot: rebootDeviceMutation.isPending,
+      delete: deleteDeviceMutation.isPending,
+    },
+  });
 
   return (
     <div style={{ padding: '24px' }}>

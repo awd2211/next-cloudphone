@@ -6,3 +6,4 @@ export { DeviceFilterBar } from './DeviceFilterBar';
 export { DeviceBatchActions } from './DeviceBatchActions';
 export { DeviceTable } from './DeviceTable';
 export { CreateDeviceModal } from './CreateDeviceModal';
+export { useDeviceColumns } from './columns';
