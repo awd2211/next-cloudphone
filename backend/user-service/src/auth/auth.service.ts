@@ -451,8 +451,7 @@ export class AuthService {
       email: user.email,
       tenantId: user.tenantId,
       roles: user.roles?.map((r) => r.name) || [],
-      permissions:
-        user.roles?.flatMap((r) => r.permissions?.map((p) => `${p.resource}:${p.action}`)) || [],
+      permissions: user.roles?.flatMap((r) => r.permissions?.map((p) => p.name)) || [],  // 修复：使用 p.name 保持一致
     };
 
     const token = this.jwtService.sign(payload);

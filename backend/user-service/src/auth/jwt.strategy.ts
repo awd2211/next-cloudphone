@@ -55,11 +55,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('用户不存在');
     }
 
+    // 提取权限列表
+    const permissions = user.roles?.flatMap((r) =>
+      r.permissions?.map((p) => p.name) || []
+    ) || [];
+
     return {
       id: user.id,
+      userId: user.id,  // 添加 userId 字段供 device-service 使用
       username: user.username,
       email: user.email,
       roles: user.roles,
+      permissions,  // 添加 permissions 数组
       tenantId: user.tenantId,
     };
   }

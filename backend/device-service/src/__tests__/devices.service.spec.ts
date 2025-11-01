@@ -5,17 +5,17 @@ import { BadRequestException } from '@nestjs/common';
 import { BusinessException } from '@cloudphone/shared';
 import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
-import { DevicesService } from '../devices.service';
-import { Device, DeviceStatus } from '../../entities/device.entity';
-import { DockerService } from '../../docker/docker.service';
-import { AdbService } from '../../adb/adb.service';
-import { PortManagerService } from '../../port-manager/port-manager.service';
+import { DevicesService } from '../devices/devices.service';
+import { Device, DeviceStatus } from '../entities/device.entity';
+import { DockerService } from '../docker/docker.service';
+import { AdbService } from '../adb/adb.service';
+import { PortManagerService } from '../port-manager/port-manager.service';
 import { EventBusService, EventOutboxService, SagaOrchestratorService } from '@cloudphone/shared';
-import { QuotaClientService } from '../../quota/quota-client.service';
-import { CacheService } from '../../cache/cache.service';
-import { DeviceProviderFactory } from '../../providers/device-provider.factory';
-import { CreateDeviceDto } from '../dto/create-device.dto';
-import { UpdateDeviceDto } from '../dto/update-device.dto';
+import { QuotaClientService } from '../quota/quota-client.service';
+import { CacheService } from '../cache/cache.service';
+import { DeviceProviderFactory } from '../providers/device-provider.factory';
+import { CreateDeviceDto } from '../devices/dto/create-device.dto';
+import { UpdateDeviceDto } from '../devices/dto/update-device.dto';
 
 describe('DevicesService', () => {
   let service: DevicesService;

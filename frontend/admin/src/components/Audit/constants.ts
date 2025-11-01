@@ -1,63 +1,149 @@
-/**
- * Audit 模块常量定义
- */
-import type { AuditLevel, AuditAction } from '@/types';
+export interface AuditLog {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;
+  resource: string;
+  resourceType: 'user' | 'device' | 'plan' | 'quota' | 'billing' | 'ticket' | 'apikey' | 'system';
+  resourceId?: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  ipAddress: string;
+  userAgent: string;
+  status: 'success' | 'failed' | 'warning';
+  details?: string;
+  changes?: any;
+  createdAt: string;
+}
 
-// 默认配置
-export const TABLE_SCROLL_X = 1600;
+export const RESOURCE_TYPE_CONFIG = {
+  user: { color: 'blue', text: '用户' },
+  device: { color: 'green', text: '设备' },
+  plan: { color: 'purple', text: '套餐' },
+  quota: { color: 'orange', text: '配额' },
+  billing: { color: 'gold', text: '账单' },
+  ticket: { color: 'cyan', text: '工单' },
+  apikey: { color: 'magenta', text: 'API密钥' },
+  system: { color: 'red', text: '系统' },
+} as const;
 
-// 级别颜色映射
-export const LEVEL_COLOR_MAP: Record<AuditLevel, string> = {
-  info: 'blue',
-  warning: 'orange',
-  error: 'red',
-  critical: 'purple',
-};
+export const METHOD_CONFIG = {
+  GET: { color: 'default', text: 'GET' },
+  POST: { color: 'green', text: 'POST' },
+  PUT: { color: 'blue', text: 'PUT' },
+  DELETE: { color: 'red', text: 'DELETE' },
+  PATCH: { color: 'orange', text: 'PATCH' },
+} as const;
 
-// 级别标签映射
-export const LEVEL_LABEL_MAP: Record<AuditLevel, string> = {
-  info: '信息',
-  warning: '警告',
-  error: '错误',
-  critical: '严重',
-};
+export const STATUS_CONFIG = {
+  success: { color: 'success', text: '成功' },
+  failed: { color: 'error', text: '失败' },
+  warning: { color: 'warning', text: '警告' },
+} as const;
 
-// 操作标签映射
-export const ACTION_LABEL_MAP: Record<AuditAction, string> = {
-  // 用户操作
-  user_login: '用户登录',
-  user_logout: '用户登出',
-  user_register: '用户注册',
-  user_update: '用户更新',
-  user_delete: '用户删除',
-  password_change: '密码修改',
-  password_reset: '密码重置',
-  // 配额操作
-  quota_create: '配额创建',
-  quota_update: '配额更新',
-  quota_deduct: '配额扣除',
-  quota_restore: '配额恢复',
-  // 余额操作
-  balance_recharge: '余额充值',
-  balance_consume: '余额消费',
-  balance_adjust: '余额调整',
-  balance_freeze: '余额冻结',
-  balance_unfreeze: '余额解冻',
-  // 设备操作
-  device_create: '设备创建',
-  device_start: '设备启动',
-  device_stop: '设备停止',
-  device_delete: '设备删除',
-  device_update: '设备更新',
-  // 权限操作
-  role_assign: '角色分配',
-  role_revoke: '角色撤销',
-  permission_grant: '权限授予',
-  permission_revoke: '权限撤销',
-  // 系统操作
-  config_update: '配置更新',
-  system_maintenance: '系统维护',
-  // API 操作
-  api_key_create: 'API密钥创建',
-  api_key_revoke: 'API密钥撤销',
-};
+export const MOCK_AUDIT_LOGS: AuditLog[] = [
+  {
+    id: 'log-001',
+    userId: 'admin-001',
+    userName: '李管理员',
+    action: '更新用户配额',
+    resource: 'quotas',
+    resourceType: 'quota',
+    resourceId: 'quota-123',
+    method: 'PUT',
+    ipAddress: '192.168.1.100',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+    status: 'success',
+    details: '将用户 张三 的设备配额从 10 增加到 20',
+    changes: { maxDevices: { from: 10, to: 20 } },
+    createdAt: '2025-10-20 14:30:25',
+  },
+  {
+    id: 'log-002',
+    userId: 'admin-002',
+    userName: '赵管理员',
+    action: '创建新用户',
+    resource: 'users',
+    resourceType: 'user',
+    resourceId: 'user-456',
+    method: 'POST',
+    ipAddress: '192.168.1.105',
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+    status: 'success',
+    details: '创建新用户: wangwu@example.com',
+    createdAt: '2025-10-20 13:15:42',
+  },
+  {
+    id: 'log-003',
+    userId: 'user-001',
+    userName: '张三',
+    action: '启动设备',
+    resource: 'devices',
+    resourceType: 'device',
+    resourceId: 'device-789',
+    method: 'POST',
+    ipAddress: '58.220.45.123',
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)',
+    status: 'success',
+    details: '成功启动设备 DEV-12345',
+    createdAt: '2025-10-20 12:45:10',
+  },
+  {
+    id: 'log-004',
+    userId: 'admin-001',
+    userName: '李管理员',
+    action: '删除 API 密钥',
+    resource: 'apikeys',
+    resourceType: 'apikey',
+    resourceId: 'key-321',
+    method: 'DELETE',
+    ipAddress: '192.168.1.100',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+    status: 'success',
+    details: '删除 API 密钥: ak_test_xxxx',
+    createdAt: '2025-10-20 11:20:33',
+  },
+  {
+    id: 'log-005',
+    userId: 'user-002',
+    userName: '王五',
+    action: '账户充值',
+    resource: 'billing',
+    resourceType: 'billing',
+    resourceId: 'txn-654',
+    method: 'POST',
+    ipAddress: '112.80.248.75',
+    userAgent: 'Mozilla/5.0 (Linux; Android 13; SM-G991B)',
+    status: 'success',
+    details: '充值金额: ¥5000.00',
+    createdAt: '2025-10-20 10:10:05',
+  },
+  {
+    id: 'log-006',
+    userId: 'admin-002',
+    userName: '赵管理员',
+    action: '修改系统配置',
+    resource: 'system',
+    resourceType: 'system',
+    method: 'PUT',
+    ipAddress: '192.168.1.105',
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+    status: 'warning',
+    details: '修改系统邮件配置',
+    createdAt: '2025-10-20 09:35:50',
+  },
+  {
+    id: 'log-007',
+    userId: 'user-003',
+    userName: '李四',
+    action: '删除设备',
+    resource: 'devices',
+    resourceType: 'device',
+    resourceId: 'device-999',
+    method: 'DELETE',
+    ipAddress: '61.140.25.180',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+    status: 'failed',
+    details: '删除设备失败: 设备正在运行中',
+    createdAt: '2025-10-20 08:50:15',
+  },
+];

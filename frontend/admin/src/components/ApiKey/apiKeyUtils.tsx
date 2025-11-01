@@ -44,6 +44,11 @@ export const getMaskedKey = (apiKey: ApiKey): string => {
   return `${apiKey.prefix}***${apiKey.key.slice(-4)}`;
 };
 
+export const isKeyExpired = (expiresAt?: string): boolean => {
+  if (!expiresAt) return false;
+  return new Date(expiresAt) < new Date();
+};
+
 export const commonScopes = [
   { value: '*', label: '所有权限' },
   { value: 'devices:read', label: '设备-读取' },

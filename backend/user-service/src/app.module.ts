@@ -42,7 +42,6 @@ import { getDatabaseConfig } from './common/config/database.config';
 import {
   ConsulModule,
   createLoggerConfig,
-  SecurityModule,
   EventBusModule,
 } from '@cloudphone/shared';
 import { CacheWarmupService } from './cache/cache-warmup.service';

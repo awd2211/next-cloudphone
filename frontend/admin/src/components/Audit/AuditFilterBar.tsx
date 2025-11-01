@@ -1,80 +1,86 @@
-import { memo } from 'react';
-import { Space, Input, Select, DatePicker, Button } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
-import type { AuditLevel } from '@/types';
+import React from 'react';
+import { Space, DatePicker, Select, Input, Button } from 'antd';
+import { SearchOutlined, FilterOutlined } from '@ant-design/icons';
 
 const { RangePicker } = DatePicker;
+const { Option } = Select;
 
-export interface AuditFilterBarProps {
-  filterUserId: string;
-  filterLevel: AuditLevel | undefined;
-  filterResourceType: string;
-  filterSuccess: boolean | undefined;
-  onUserIdChange: (value: string) => void;
-  onLevelChange: (value: AuditLevel | undefined) => void;
+interface AuditFilterBarProps {
+  resourceTypeFilter: string;
+  methodFilter: string;
+  statusFilter: string;
+  searchText: string;
   onResourceTypeChange: (value: string) => void;
-  onSuccessChange: (value: boolean | undefined) => void;
-  onDateRangeChange: (dates: any) => void;
-  onRefresh: () => void;
+  onMethodChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
+  onSearchChange: (value: string) => void;
+  onReset: () => void;
 }
 
-/**
- * 审计日志筛选栏组件
- */
-export const AuditFilterBar = memo<AuditFilterBarProps>(
+export const AuditFilterBar: React.FC<AuditFilterBarProps> = React.memo(
   ({
-    filterUserId,
-    filterLevel,
-    filterResourceType,
-    filterSuccess,
-    onUserIdChange,
-    onLevelChange,
+    resourceTypeFilter,
+    methodFilter,
+    statusFilter,
+    searchText,
     onResourceTypeChange,
-    onSuccessChange,
-    onDateRangeChange,
-    onRefresh,
+    onMethodChange,
+    onStatusChange,
+    onSearchChange,
+    onReset,
   }) => {
     return (
-      <Space wrap>
-        <Input
-          placeholder="用户ID"
-          value={filterUserId}
-          onChange={(e) => onUserIdChange(e.target.value)}
-          style={{ width: 150 }}
-          allowClear
-        />
+      <Space style={{ marginBottom: 16 }} wrap>
+        <RangePicker />
         <Select
-          placeholder="级别"
-          value={filterLevel}
-          onChange={onLevelChange}
           style={{ width: 120 }}
-          allowClear
-        >
-          <Select.Option value="info">信息</Select.Option>
-          <Select.Option value="warning">警告</Select.Option>
-          <Select.Option value="error">错误</Select.Option>
-          <Select.Option value="critical">严重</Select.Option>
-        </Select>
-        <Input
+          value={resourceTypeFilter}
+          onChange={onResourceTypeChange}
           placeholder="资源类型"
-          value={filterResourceType}
-          onChange={(e) => onResourceTypeChange(e.target.value)}
-          style={{ width: 120 }}
-          allowClear
-        />
-        <Select
-          placeholder="状态"
-          value={filterSuccess}
-          onChange={onSuccessChange}
-          style={{ width: 100 }}
-          allowClear
         >
-          <Select.Option value={true}>成功</Select.Option>
-          <Select.Option value={false}>失败</Select.Option>
+          <Option value="all">全部类型</Option>
+          <Option value="user">用户</Option>
+          <Option value="device">设备</Option>
+          <Option value="plan">套餐</Option>
+          <Option value="quota">配额</Option>
+          <Option value="billing">账单</Option>
+          <Option value="ticket">工单</Option>
+          <Option value="apikey">API密钥</Option>
+          <Option value="system">系统</Option>
         </Select>
-        <RangePicker showTime onChange={onDateRangeChange} style={{ width: 350 }} />
-        <Button icon={<ReloadOutlined />} onClick={onRefresh}>
-          刷新
+        <Select
+          style={{ width: 100 }}
+          value={methodFilter}
+          onChange={onMethodChange}
+          placeholder="方法"
+        >
+          <Option value="all">全部方法</Option>
+          <Option value="GET">GET</Option>
+          <Option value="POST">POST</Option>
+          <Option value="PUT">PUT</Option>
+          <Option value="DELETE">DELETE</Option>
+          <Option value="PATCH">PATCH</Option>
+        </Select>
+        <Select
+          style={{ width: 100 }}
+          value={statusFilter}
+          onChange={onStatusChange}
+          placeholder="状态"
+        >
+          <Option value="all">全部状态</Option>
+          <Option value="success">成功</Option>
+          <Option value="failed">失败</Option>
+          <Option value="warning">警告</Option>
+        </Select>
+        <Input
+          placeholder="搜索操作、操作人或详情"
+          prefix={<SearchOutlined />}
+          style={{ width: 250 }}
+          value={searchText}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
+        <Button icon={<FilterOutlined />} onClick={onReset}>
+          重置
         </Button>
       </Space>
     );

@@ -5,6 +5,7 @@ import {
   PauseCircleOutlined,
   ReloadOutlined,
   EyeOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +17,7 @@ import {
   getMyDeviceStats,
 } from '@/services/device';
 import type { Device } from '@/types';
+import { CreateDeviceDialog } from '@/components/CreateDeviceDialog';
 import dayjs from 'dayjs';
 
 const MyDevices = () => {
@@ -26,13 +28,14 @@ const MyDevices = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const loadDevices = async () => {
     setLoading(true);
     try {
       const res = await getMyDevices({ page, pageSize });
-      setDevices(res.data);
-      setTotal(res.total);
+      setDevices(res.data.data);
+      setTotal(res.data.total);
     } catch (error) {
       message.error('加载设备列表失败');
     } finally {
@@ -84,6 +87,12 @@ const MyDevices = () => {
     } catch (error) {
       message.error('设备重启失败');
     }
+  };
+
+  const handleCreateSuccess = (device: Device) => {
+    message.success(`设备 "${device.name}" 创建成功！`);
+    loadDevices();
+    loadStats();
   };
 
   const getStatusTag = (status: string) => {
@@ -181,7 +190,16 @@ const MyDevices = () => {
 
   return (
     <div>
-      <h2>我的设备</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0 }}>我的设备</h2>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => setCreateDialogOpen(true)}
+        >
+          创建云手机
+        </Button>
+      </div>
 
       {stats && (
         <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -230,6 +248,12 @@ const MyDevices = () => {
           }}
         />
       </Card>
+
+      <CreateDeviceDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onSuccess={handleCreateSuccess}
+      />
     </div>
   );
 };
