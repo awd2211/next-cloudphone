@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:analyze": "ANALYZE=true tsc -b && vite build",
-    "build:report": "tsc -b && vite build --mode production && node scripts/build-report.js",
+    "build": "vite build",
+    "build:check": "tsc -b && vite build",
+    "build:analyze": "ANALYZE=true vite build",
+    "build:report": "vite build --mode production && node scripts/build-report.js",
+    "typecheck": "tsc -b",
     "lint": "eslint .",
     "preview": "vite preview"
   },
