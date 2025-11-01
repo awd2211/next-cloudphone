@@ -33,6 +33,11 @@ export const deleteRole = (id: string) => {
   return request.delete(`/roles/${id}`);
 };
 
+// 批量删除角色
+export const batchDeleteRoles = (roleIds: string[]) => {
+  return request.post('/roles/batch-delete', { roleIds });
+};
+
 // 获取所有权限
 export const getPermissions = () => {
   // 获取所有权限，设置一个很大的 limit

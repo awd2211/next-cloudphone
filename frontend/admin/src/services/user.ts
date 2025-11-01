@@ -71,3 +71,13 @@ export const changePassword = (
 ) => {
   return request.post(`/users/${userId}/change-password`, data);
 };
+
+// 重置密码
+export const resetPassword = (userId: string, newPassword: string) => {
+  return request.post(`/users/${userId}/reset-password`, { newPassword });
+};
+
+// 批量删除用户
+export const batchDeleteUsers = (userIds: string[]) => {
+  return request.post('/users/batch-delete', { userIds });
+};

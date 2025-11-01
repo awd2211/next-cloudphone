@@ -51,9 +51,24 @@ export const uploadApp = (file: File, onProgress?: (percent: number) => void) =>
   });
 };
 
+// 更新应用
+export const updateApp = (id: string, data: Partial<Application>) => {
+  return request.patch<Application>(`/apps/${id}`, data);
+};
+
 // 删除应用
 export const deleteApp = (id: string) => {
   return request.delete(`/apps/${id}`);
+};
+
+// 发布应用
+export const publishApp = (id: string) => {
+  return request.post(`/apps/${id}/publish`);
+};
+
+// 取消发布应用
+export const unpublishApp = (id: string) => {
+  return request.post(`/apps/${id}/unpublish`);
 };
 
 // 安装应用到设备

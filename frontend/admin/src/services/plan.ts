@@ -26,6 +26,11 @@ export const deletePlan = (id: string) => {
   return request.delete(`/billing/plans/${id}`);
 };
 
+// 批量删除套餐
+export const batchDeletePlans = (planIds: string[]) => {
+  return request.post('/billing/plans/batch-delete', { planIds });
+};
+
 // 启用/禁用套餐
 export const togglePlanStatus = (id: string, isActive: boolean) => {
   return request.patch<Plan>(`/billing/plans/${id}`, { isActive });

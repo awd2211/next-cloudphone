@@ -47,6 +47,11 @@ export const deleteSnapshot = (id: string) => {
   return request.delete(`/snapshots/${id}`);
 };
 
+// 批量删除快照
+export const batchDeleteSnapshots = (snapshotIds: string[]) => {
+  return request.post('/snapshots/batch-delete', { snapshotIds });
+};
+
 // 获取快照统计
 export const getSnapshotStats = () => {
   return request.get<SnapshotStats>('/snapshots/stats/summary');

@@ -43,3 +43,36 @@ export const updateOrder = (id: string, data: any) => {
 export const deleteOrder = (id: string) => {
   return request.delete(`/billing/orders/${id}`);
 };
+
+/**
+ * 获取订单详情（别名）
+ */
+export const getOrder = getOrderById;
+
+/**
+ * 获取订单统计
+ */
+export const getOrderStats = () => {
+  return request.get('/billing/orders/stats');
+};
+
+/**
+ * 取消订单
+ */
+export const cancelOrder = (id: string, reason?: string) => {
+  return request.post(`/billing/orders/${id}/cancel`, { reason });
+};
+
+/**
+ * 退款订单
+ */
+export const refundOrder = (id: string, amount?: number, reason?: string) => {
+  return request.post(`/billing/orders/${id}/refund`, { amount, reason });
+};
+
+/**
+ * 确认订单
+ */
+export const confirmOrder = (id: string) => {
+  return request.post(`/billing/orders/${id}/confirm`);
+};
