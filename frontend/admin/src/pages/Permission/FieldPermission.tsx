@@ -1,31 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Table,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Tag,
-  Switch,
-  message,
-  Popconfirm,
-  Descriptions,
-  Row,
-  Col,
-  Statistic,
-  Tabs,
-  InputNumber,
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
+import { Card, Table, Button, Space, Form, Tag, Switch, message, Popconfirm } from 'antd';
+import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import type {
   FieldPermission,
   FieldAccessLevel,
@@ -42,8 +17,14 @@ import {
   getAccessLevels,
   getOperationTypes,
 } from '@/services/fieldPermission';
-
-const { TabPane } = Tabs;
+import {
+  FieldPermissionStatsCards,
+  FieldPermissionToolbar,
+  CreateEditFieldPermissionModal,
+  FieldPermissionDetailModal,
+  getOperationColor,
+  getOperationLabel,
+} from '@/components/FieldPermission';
 
 const FieldPermissionManagement: React.FC = () => {
   const [permissions, setPermissions] = useState<FieldPermission[]>([]);
@@ -206,21 +187,6 @@ const FieldPermissionManagement: React.FC = () => {
     }
   };
 
-  const getOperationColor = (operation: OperationType) => {
-    const colors: Record<OperationType, string> = {
-      create: 'green',
-      update: 'blue',
-      view: 'cyan',
-      export: 'purple',
-    };
-    return colors[operation] || 'default';
-  };
-
-  const getOperationLabel = (operation: OperationType) => {
-    const operationType = operationTypes.find((t) => t.value === operation);
-    return operationType?.label || operation;
-  };
-
   const statistics = {
     total: permissions.length,
     active: permissions.filter((p) => p.isActive).length,
@@ -352,74 +318,22 @@ const FieldPermissionManagement: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="总配置数"
-              value={statistics.total}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="启用中" value={statistics.active} valueStyle={{ color: '#52c41a' }} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="已禁用"
-              value={statistics.inactive}
-              valueStyle={{ color: '#ff4d4f' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="创建操作"
-              value={statistics.byOperation.create}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <FieldPermissionStatsCards statistics={statistics} />
 
       <Card
         title="字段权限管理"
         extra={
-          <Space>
-            <Input
-              placeholder="角色ID"
-              value={filterRoleId}
-              onChange={(e) => setFilterRoleId(e.target.value)}
-              style={{ width: 150 }}
-              allowClear
-            />
-            <Input
-              placeholder="资源类型"
-              value={filterResourceType}
-              onChange={(e) => setFilterResourceType(e.target.value)}
-              style={{ width: 150 }}
-              allowClear
-            />
-            <Select
-              placeholder="操作类型"
-              value={filterOperation}
-              onChange={setFilterOperation}
-              style={{ width: 150 }}
-              allowClear
-              options={operationTypes}
-            />
-            <Button icon={<ReloadOutlined />} onClick={loadPermissions}>
-              刷新
-            </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-              新建配置
-            </Button>
-          </Space>
+          <FieldPermissionToolbar
+            filterRoleId={filterRoleId}
+            filterResourceType={filterResourceType}
+            filterOperation={filterOperation}
+            operationTypes={operationTypes}
+            onFilterRoleIdChange={(e) => setFilterRoleId(e.target.value)}
+            onFilterResourceTypeChange={(e) => setFilterResourceType(e.target.value)}
+            onFilterOperationChange={setFilterOperation}
+            onRefresh={loadPermissions}
+            onCreate={handleCreate}
+          />
         }
       >
         <Table
@@ -436,195 +350,23 @@ const FieldPermissionManagement: React.FC = () => {
         />
       </Card>
 
-      <Modal
-        title={editingPermission ? '编辑字段权限配置' : '新建字段权限配置'}
-        open={isModalVisible}
+      <CreateEditFieldPermissionModal
+        visible={isModalVisible}
+        editingPermission={editingPermission}
+        form={form}
+        operationTypes={operationTypes}
         onOk={handleSubmit}
         onCancel={() => setIsModalVisible(false)}
-        width={700}
-        okText="确定"
-        cancelText="取消"
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="roleId"
-            label="角色ID"
-            rules={[{ required: true, message: '请输入角色ID' }]}
-          >
-            <Input placeholder="请输入角色ID" disabled={!!editingPermission} />
-          </Form.Item>
+      />
 
-          <Form.Item
-            name="resourceType"
-            label="资源类型"
-            rules={[{ required: true, message: '请输入资源类型' }]}
-          >
-            <Input placeholder="如: user, device, app" disabled={!!editingPermission} />
-          </Form.Item>
-
-          <Form.Item
-            name="operation"
-            label="操作类型"
-            rules={[{ required: true, message: '请选择操作类型' }]}
-          >
-            <Select placeholder="请选择操作类型" options={operationTypes} />
-          </Form.Item>
-
-          <Tabs defaultActiveKey="basic">
-            <TabPane tab="基础字段配置" key="basic">
-              <Form.Item name="hiddenFields" label="隐藏字段" tooltip="多个字段用逗号分隔">
-                <Input.TextArea placeholder="如: password, secret, 多个用逗号分隔" rows={2} />
-              </Form.Item>
-
-              <Form.Item name="readOnlyFields" label="只读字段" tooltip="多个字段用逗号分隔">
-                <Input.TextArea placeholder="如: id, createdAt, 多个用逗号分隔" rows={2} />
-              </Form.Item>
-
-              <Form.Item name="writableFields" label="可写字段" tooltip="多个字段用逗号分隔">
-                <Input.TextArea placeholder="如: name, email, 多个用逗号分隔" rows={2} />
-              </Form.Item>
-
-              <Form.Item name="requiredFields" label="必填字段" tooltip="多个字段用逗号分隔">
-                <Input.TextArea placeholder="如: name, email, 多个用逗号分隔" rows={2} />
-              </Form.Item>
-            </TabPane>
-
-            <TabPane tab="高级配置" key="advanced">
-              <Form.Item
-                name="priority"
-                label="优先级"
-                tooltip="数值越小优先级越高"
-                initialValue={100}
-              >
-                <InputNumber min={1} max={999} style={{ width: '100%' }} />
-              </Form.Item>
-
-              <Form.Item name="description" label="描述">
-                <Input.TextArea placeholder="请输入配置描述" rows={3} />
-              </Form.Item>
-            </TabPane>
-          </Tabs>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="字段权限详情"
-        open={isDetailModalVisible}
-        onCancel={() => setIsDetailModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={800}
-      >
-        {detailPermission && (
-          <Descriptions bordered column={2}>
-            <Descriptions.Item label="ID" span={2}>
-              {detailPermission.id}
-            </Descriptions.Item>
-            <Descriptions.Item label="角色ID">{detailPermission.roleId}</Descriptions.Item>
-            <Descriptions.Item label="资源类型">{detailPermission.resourceType}</Descriptions.Item>
-            <Descriptions.Item label="操作类型">
-              <Tag color={getOperationColor(detailPermission.operation)}>
-                {getOperationLabel(detailPermission.operation)}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="优先级">{detailPermission.priority}</Descriptions.Item>
-            <Descriptions.Item label="状态" span={2}>
-              <Tag color={detailPermission.isActive ? 'success' : 'error'}>
-                {detailPermission.isActive ? '启用' : '禁用'}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="隐藏字段" span={2}>
-              {detailPermission.hiddenFields?.length ? (
-                <Space wrap>
-                  {detailPermission.hiddenFields.map((field) => (
-                    <Tag key={field} color="red">
-                      {field}
-                    </Tag>
-                  ))}
-                </Space>
-              ) : (
-                <span style={{ color: '#999' }}>无</span>
-              )}
-            </Descriptions.Item>
-            <Descriptions.Item label="只读字段" span={2}>
-              {detailPermission.readOnlyFields?.length ? (
-                <Space wrap>
-                  {detailPermission.readOnlyFields.map((field) => (
-                    <Tag key={field} color="orange">
-                      {field}
-                    </Tag>
-                  ))}
-                </Space>
-              ) : (
-                <span style={{ color: '#999' }}>无</span>
-              )}
-            </Descriptions.Item>
-            <Descriptions.Item label="可写字段" span={2}>
-              {detailPermission.writableFields?.length ? (
-                <Space wrap>
-                  {detailPermission.writableFields.map((field) => (
-                    <Tag key={field} color="blue">
-                      {field}
-                    </Tag>
-                  ))}
-                </Space>
-              ) : (
-                <span style={{ color: '#999' }}>无</span>
-              )}
-            </Descriptions.Item>
-            <Descriptions.Item label="必填字段" span={2}>
-              {detailPermission.requiredFields?.length ? (
-                <Space wrap>
-                  {detailPermission.requiredFields.map((field) => (
-                    <Tag key={field} color="purple">
-                      {field}
-                    </Tag>
-                  ))}
-                </Space>
-              ) : (
-                <span style={{ color: '#999' }}>无</span>
-              )}
-            </Descriptions.Item>
-            {detailPermission.fieldAccessMap &&
-              Object.keys(detailPermission.fieldAccessMap).length > 0 && (
-                <Descriptions.Item label="字段访问映射" span={2}>
-                  <Space wrap>
-                    {Object.entries(detailPermission.fieldAccessMap).map(([field, level]) => (
-                      <Tag key={field} color="cyan">
-                        {field}: {level}
-                      </Tag>
-                    ))}
-                  </Space>
-                </Descriptions.Item>
-              )}
-            {detailPermission.fieldTransforms &&
-              Object.keys(detailPermission.fieldTransforms).length > 0 && (
-                <Descriptions.Item label="字段转换规则" span={2}>
-                  <Space direction="vertical">
-                    {Object.entries(detailPermission.fieldTransforms).map(([field, transform]) => (
-                      <div key={field}>
-                        <Tag color="geekblue">{field}</Tag>
-                        <span>类型: {transform.type}</span>
-                      </div>
-                    ))}
-                  </Space>
-                </Descriptions.Item>
-              )}
-            <Descriptions.Item label="描述" span={2}>
-              {detailPermission.description || <span style={{ color: '#999' }}>无</span>}
-            </Descriptions.Item>
-            <Descriptions.Item label="创建时间">
-              {new Date(detailPermission.createdAt).toLocaleString('zh-CN')}
-            </Descriptions.Item>
-            <Descriptions.Item label="更新时间">
-              {new Date(detailPermission.updatedAt).toLocaleString('zh-CN')}
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Modal>
+      <FieldPermissionDetailModal
+        visible={isDetailModalVisible}
+        detailPermission={detailPermission}
+        operationTypes={operationTypes}
+        getOperationColor={getOperationColor}
+        getOperationLabel={(op) => getOperationLabel(op, operationTypes)}
+        onClose={() => setIsDetailModalVisible(false)}
+      />
     </div>
   );
 };

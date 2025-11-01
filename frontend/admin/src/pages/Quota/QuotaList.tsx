@@ -2,33 +2,28 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Card,
   Table,
-  Tag,
-  Progress,
   Button,
   Space,
-  Modal,
   Form,
-  Input,
-  InputNumber,
   message,
-  Statistic,
-  Row,
-  Col,
-  Alert,
-  Badge,
   Tooltip,
-  Drawer,
 } from 'antd';
 import {
   PlusOutlined,
-  WarningOutlined,
   ReloadOutlined,
-  LineChartOutlined,
-  BellOutlined,
 } from '@ant-design/icons';
-import ReactECharts from 'echarts-for-react';
 import type { Quota, CreateQuotaDto, UpdateQuotaDto, QuotaAlert, QuotaStatistics } from '@/types';
 import * as quotaService from '@/services/quota';
+import {
+  QuotaStatusTag,
+  QuotaUsageProgress,
+  QuotaActions,
+  QuotaAlertPanel,
+  QuotaStatisticsRow,
+  CreateQuotaModal,
+  EditQuotaModal,
+  QuotaDetailDrawer,
+} from '@/components/Quota';
 
 const QuotaList: React.FC = () => {
   const [quotas, setQuotas] = useState<Quota[]>([]);
@@ -152,33 +147,6 @@ const QuotaList: React.FC = () => {
     [editForm]
   );
 
-  // 计算使用率百分比
-  const calculateUsagePercent = (used: number, total: number) => {
-    if (total === 0) return 0;
-    return Math.round((used / total) * 100);
-  };
-
-  // 获取状态颜色
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      active: 'green',
-      exceeded: 'red',
-      suspended: 'orange',
-      expired: 'gray',
-    };
-    return colors[status] || 'default';
-  };
-
-  // 获取状态文本
-  const getStatusText = (status: string) => {
-    const texts: Record<string, string> = {
-      active: '正常',
-      exceeded: '超限',
-      suspended: '暂停',
-      expired: '过期',
-    };
-    return texts[status] || status;
-  };
 
   // 表格列配置
   const columns = useMemo(
@@ -194,90 +162,59 @@ const QuotaList: React.FC = () => {
         title: '设备配额',
         key: 'devices',
         width: 180,
-        render: (record: Quota) => {
-          const percent = calculateUsagePercent(
-            record.usage.currentDevices,
-            record.limits.maxDevices
-          );
-          return (
-            <div>
-              <div>
-                {record.usage.currentDevices} / {record.limits.maxDevices}
-              </div>
-              <Progress
-                percent={percent}
-                size="small"
-                status={percent > 90 ? 'exception' : percent > 70 ? 'normal' : 'success'}
-              />
-            </div>
-          );
-        },
+        render: (record: Quota) => (
+          <QuotaUsageProgress
+            used={record.usage.currentDevices}
+            total={record.limits.maxDevices}
+            showException
+          />
+        ),
       },
       {
         title: 'CPU 配额',
         key: 'cpu',
         width: 180,
-        render: (record: Quota) => {
-          const percent = calculateUsagePercent(
-            record.usage.usedCpuCores,
-            record.limits.totalCpuCores
-          );
-          return (
-            <div>
-              <div>
-                {record.usage.usedCpuCores} / {record.limits.totalCpuCores} 核
-              </div>
-              <Progress percent={percent} size="small" />
-            </div>
-          );
-        },
+        render: (record: Quota) => (
+          <QuotaUsageProgress
+            used={record.usage.usedCpuCores}
+            total={record.limits.totalCpuCores}
+            unit="核"
+            showException={false}
+          />
+        ),
       },
       {
         title: '内存配额',
         key: 'memory',
         width: 180,
-        render: (record: Quota) => {
-          const percent = calculateUsagePercent(
-            record.usage.usedMemoryGB,
-            record.limits.totalMemoryGB
-          );
-          return (
-            <div>
-              <div>
-                {record.usage.usedMemoryGB} / {record.limits.totalMemoryGB} GB
-              </div>
-              <Progress percent={percent} size="small" />
-            </div>
-          );
-        },
+        render: (record: Quota) => (
+          <QuotaUsageProgress
+            used={record.usage.usedMemoryGB}
+            total={record.limits.totalMemoryGB}
+            unit="GB"
+            showException={false}
+          />
+        ),
       },
       {
         title: '存储配额',
         key: 'storage',
         width: 180,
-        render: (record: Quota) => {
-          const percent = calculateUsagePercent(
-            record.usage.usedStorageGB,
-            record.limits.totalStorageGB
-          );
-          return (
-            <div>
-              <div>
-                {record.usage.usedStorageGB} / {record.limits.totalStorageGB} GB
-              </div>
-              <Progress percent={percent} size="small" />
-            </div>
-          );
-        },
+        render: (record: Quota) => (
+          <QuotaUsageProgress
+            used={record.usage.usedStorageGB}
+            total={record.limits.totalStorageGB}
+            unit="GB"
+            showException={false}
+          />
+        ),
       },
       {
         title: '状态',
         dataIndex: 'status',
         key: 'status',
         width: 100,
-        render: (status: string) => (
-          <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
-        ),
+        render: (status: string) => <QuotaStatusTag status={status} />,
       },
       {
         title: '操作',
@@ -285,205 +222,24 @@ const QuotaList: React.FC = () => {
         width: 150,
         fixed: 'right' as const,
         render: (record: Quota) => (
-          <Space>
-            <Button type="link" size="small" onClick={() => handleEdit(record)}>
-              编辑
-            </Button>
-            <Button type="link" size="small" onClick={() => handleViewDetail(record)}>
-              详情
-            </Button>
-          </Space>
+          <QuotaActions
+            onEdit={() => handleEdit(record)}
+            onDetail={() => handleViewDetail(record)}
+          />
         ),
       },
     ],
     [handleEdit, handleViewDetail]
   );
 
-  // 配额告警组件
-  const AlertPanel = useMemo(() => {
-    if (alerts.length === 0) return null;
-
-    return (
-      <Alert
-        message={
-          <Space>
-            <WarningOutlined />
-            <span>配额告警 ({alerts.length})</span>
-          </Space>
-        }
-        description={
-          <div>
-            {alerts.slice(0, 3).map((alert, index) => (
-              <div key={index} style={{ marginBottom: 8 }}>
-                <Tag color="orange">{alert.quotaType}</Tag>
-                <span>用户 {alert.userId}: </span>
-                <span>
-                  {alert.message} (使用率: {alert.usagePercent}%)
-                </span>
-              </div>
-            ))}
-            {alerts.length > 3 && (
-              <Button type="link" size="small">
-                查看全部 {alerts.length} 条告警
-              </Button>
-            )}
-          </div>
-        }
-        type="warning"
-        showIcon
-        closable
-        style={{ marginBottom: 16 }}
-      />
-    );
-  }, [alerts]);
-
-  // 使用趋势图表配置
-  const usageTrendOption = useMemo(() => {
-    if (!statistics) return null;
-
-    return {
-      title: {
-        text: '配额使用趋势',
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow',
-        },
-      },
-      legend: {
-        data: ['设备', 'CPU(核)', '内存(GB)', '存储(GB)'],
-        bottom: 10,
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '15%',
-        containLabel: true,
-      },
-      xAxis: {
-        type: 'category',
-        data: statistics.dailyUsage?.map((item) => item.date) || [],
-      },
-      yAxis: {
-        type: 'value',
-      },
-      series: [
-        {
-          name: '设备',
-          type: 'line',
-          data: statistics.dailyUsage?.map((item) => item.devices) || [],
-          smooth: true,
-        },
-        {
-          name: 'CPU(核)',
-          type: 'line',
-          data: statistics.dailyUsage?.map((item) => item.cpuCores) || [],
-          smooth: true,
-        },
-        {
-          name: '内存(GB)',
-          type: 'line',
-          data: statistics.dailyUsage?.map((item) => item.memoryGB) || [],
-          smooth: true,
-        },
-        {
-          name: '存储(GB)',
-          type: 'line',
-          data: statistics.dailyUsage?.map((item) => item.storageGB) || [],
-          smooth: true,
-        },
-      ],
-    };
-  }, [statistics]);
-
-  // 配额分布饼图配置
-  const distributionOption = useMemo(() => {
-    if (!statistics) return null;
-
-    return {
-      title: {
-        text: '当前资源使用分布',
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'item',
-        formatter: '{a} <br/>{b}: {c} ({d}%)',
-      },
-      legend: {
-        orient: 'vertical',
-        left: 'left',
-      },
-      series: [
-        {
-          name: '资源使用',
-          type: 'pie',
-          radius: '50%',
-          data: [
-            { value: statistics.currentUsage?.devices || 0, name: '设备数' },
-            { value: statistics.currentUsage?.cpuCores || 0, name: 'CPU核数' },
-            { value: statistics.currentUsage?.memoryGB || 0, name: '内存(GB)' },
-            { value: statistics.currentUsage?.storageGB || 0, name: '存储(GB)' },
-          ],
-          emphasis: {
-            itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.5)',
-            },
-          },
-        },
-      ],
-    };
-  }, [statistics]);
 
   return (
     <div>
       {/* 配额告警面板 */}
-      {AlertPanel}
+      <QuotaAlertPanel alerts={alerts} />
 
       {/* 统计卡片 */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic title="总配额数" value={quotas.length} prefix={<LineChartOutlined />} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="正常状态"
-              value={quotas.filter((q) => q.status === 'active').length}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="超限配额"
-              value={quotas.filter((q) => q.status === 'exceeded').length}
-              valueStyle={{ color: '#cf1322' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={
-                <Space>
-                  <span>配额告警</span>
-                  <Badge count={alerts.length} />
-                </Space>
-              }
-              value={alerts.length}
-              prefix={<BellOutlined />}
-              valueStyle={{ color: alerts.length > 0 ? '#faad14' : undefined }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <QuotaStatisticsRow quotas={quotas} alerts={alerts} />
 
       {/* 配额列表 */}
       <Card
@@ -518,262 +274,37 @@ const QuotaList: React.FC = () => {
       </Card>
 
       {/* 创建配额模态框 */}
-      <Modal
-        title="创建配额"
-        open={createModalVisible}
+      <CreateQuotaModal
+        visible={createModalVisible}
+        form={form}
         onCancel={() => {
           setCreateModalVisible(false);
           form.resetFields();
         }}
-        onOk={() => form.submit()}
-        width={700}
-      >
-        <Form form={form} layout="vertical" onFinish={handleCreateQuota}>
-          <Form.Item
-            label="用户ID"
-            name="userId"
-            rules={[{ required: true, message: '请输入用户ID' }]}
-          >
-            <Input placeholder="输入用户ID" />
-          </Form.Item>
-
-          <Form.Item label="设备限制">
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name={['limits', 'maxDevices']}
-                  rules={[{ required: true, message: '请输入最大设备数' }]}
-                >
-                  <InputNumber placeholder="最大设备数" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name={['limits', 'maxConcurrentDevices']}
-                  rules={[{ required: true, message: '请输入最大并发设备数' }]}
-                >
-                  <InputNumber placeholder="最大并发设备数" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form.Item>
-
-          <Form.Item label="资源限制">
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item
-                  name={['limits', 'totalCpuCores']}
-                  rules={[{ required: true, message: '请输入总CPU核数' }]}
-                >
-                  <InputNumber placeholder="总CPU核数" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name={['limits', 'totalMemoryGB']}
-                  rules={[{ required: true, message: '请输入总内存(GB)' }]}
-                >
-                  <InputNumber placeholder="总内存(GB)" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name={['limits', 'totalStorageGB']}
-                  rules={[{ required: true, message: '请输入总存储(GB)' }]}
-                >
-                  <InputNumber placeholder="总存储(GB)" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form.Item>
-
-          <Form.Item label="带宽限制">
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name={['limits', 'maxBandwidthMbps']}
-                  rules={[{ required: true, message: '请输入最大带宽(Mbps)' }]}
-                >
-                  <InputNumber placeholder="最大带宽(Mbps)" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name={['limits', 'monthlyTrafficGB']}
-                  rules={[{ required: true, message: '请输入月流量(GB)' }]}
-                >
-                  <InputNumber placeholder="月流量(GB)" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form.Item>
-        </Form>
-      </Modal>
+        onFinish={handleCreateQuota}
+      />
 
       {/* 编辑配额模态框 */}
-      <Modal
-        title="编辑配额"
-        open={editModalVisible}
+      <EditQuotaModal
+        visible={editModalVisible}
+        form={editForm}
         onCancel={() => {
           setEditModalVisible(false);
           editForm.resetFields();
         }}
-        onOk={() => editForm.submit()}
-        width={700}
-      >
-        <Form form={editForm} layout="vertical" onFinish={handleUpdateQuota}>
-          <Form.Item label="设备限制">
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name={['limits', 'maxDevices']}>
-                  <InputNumber placeholder="最大设备数" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name={['limits', 'maxConcurrentDevices']}>
-                  <InputNumber placeholder="最大并发设备数" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form.Item>
-
-          <Form.Item label="资源限制">
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item name={['limits', 'totalCpuCores']}>
-                  <InputNumber placeholder="总CPU核数" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name={['limits', 'totalMemoryGB']}>
-                  <InputNumber placeholder="总内存(GB)" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name={['limits', 'totalStorageGB']}>
-                  <InputNumber placeholder="总存储(GB)" min={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form.Item>
-        </Form>
-      </Modal>
+        onFinish={handleUpdateQuota}
+      />
 
       {/* 配额详情抽屉 */}
-      <Drawer
-        title="配额详情"
-        width={720}
-        open={detailDrawerVisible}
+      <QuotaDetailDrawer
+        visible={detailDrawerVisible}
+        quota={selectedQuota}
+        statistics={statistics}
         onClose={() => {
           setDetailDrawerVisible(false);
           setStatistics(null);
         }}
-      >
-        {selectedQuota && (
-          <div>
-            <Card title="基本信息" size="small" style={{ marginBottom: 16 }}>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <p>
-                    <strong>用户ID:</strong> {selectedQuota.userId}
-                  </p>
-                  <p>
-                    <strong>状态:</strong>{' '}
-                    <Tag color={getStatusColor(selectedQuota.status)}>
-                      {getStatusText(selectedQuota.status)}
-                    </Tag>
-                  </p>
-                </Col>
-                <Col span={12}>
-                  <p>
-                    <strong>创建时间:</strong> {new Date(selectedQuota.createdAt).toLocaleString()}
-                  </p>
-                  <p>
-                    <strong>更新时间:</strong> {new Date(selectedQuota.updatedAt).toLocaleString()}
-                  </p>
-                </Col>
-              </Row>
-            </Card>
-
-            <Card title="配额限制" size="small" style={{ marginBottom: 16 }}>
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <Statistic title="最大设备数" value={selectedQuota.limits.maxDevices} />
-                </Col>
-                <Col span={12}>
-                  <Statistic
-                    title="最大并发设备"
-                    value={selectedQuota.limits.maxConcurrentDevices}
-                  />
-                </Col>
-                <Col span={8}>
-                  <Statistic title="总CPU(核)" value={selectedQuota.limits.totalCpuCores} />
-                </Col>
-                <Col span={8}>
-                  <Statistic title="总内存(GB)" value={selectedQuota.limits.totalMemoryGB} />
-                </Col>
-                <Col span={8}>
-                  <Statistic title="总存储(GB)" value={selectedQuota.limits.totalStorageGB} />
-                </Col>
-              </Row>
-            </Card>
-
-            <Card title="当前使用" size="small" style={{ marginBottom: 16 }}>
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <Statistic
-                    title="当前设备数"
-                    value={selectedQuota.usage.currentDevices}
-                    suffix={`/ ${selectedQuota.limits.maxDevices}`}
-                  />
-                </Col>
-                <Col span={12}>
-                  <Statistic
-                    title="并发设备"
-                    value={selectedQuota.usage.currentConcurrentDevices}
-                    suffix={`/ ${selectedQuota.limits.maxConcurrentDevices}`}
-                  />
-                </Col>
-                <Col span={8}>
-                  <Statistic
-                    title="已用CPU(核)"
-                    value={selectedQuota.usage.usedCpuCores}
-                    suffix={`/ ${selectedQuota.limits.totalCpuCores}`}
-                  />
-                </Col>
-                <Col span={8}>
-                  <Statistic
-                    title="已用内存(GB)"
-                    value={selectedQuota.usage.usedMemoryGB}
-                    suffix={`/ ${selectedQuota.limits.totalMemoryGB}`}
-                  />
-                </Col>
-                <Col span={8}>
-                  <Statistic
-                    title="已用存储(GB)"
-                    value={selectedQuota.usage.usedStorageGB}
-                    suffix={`/ ${selectedQuota.limits.totalStorageGB}`}
-                  />
-                </Col>
-              </Row>
-            </Card>
-
-            {/* 使用趋势图 */}
-            {usageTrendOption && (
-              <Card title="使用趋势" size="small" style={{ marginBottom: 16 }}>
-                <ReactECharts option={usageTrendOption} style={{ height: 300 }} />
-              </Card>
-            )}
-
-            {/* 资源分布图 */}
-            {distributionOption && (
-              <Card title="资源分布" size="small">
-                <ReactECharts option={distributionOption} style={{ height: 300 }} />
-              </Card>
-            )}
-          </div>
-        )}
-      </Drawer>
+      />
     </div>
   );
 };

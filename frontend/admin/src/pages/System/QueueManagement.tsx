@@ -1,35 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   Card,
-  Row,
-  Col,
-  Statistic,
-  Table,
-  Button,
   Space,
   message,
-  Tag,
-  Popconfirm,
-  Modal,
-  Descriptions,
-  Progress,
   Alert,
   Form,
-  Input,
-  Select,
   Tabs,
 } from 'antd';
-import {
-  DatabaseOutlined,
-  ReloadOutlined,
-  DeleteOutlined,
-  PlayCircleOutlined,
-  PauseCircleOutlined,
-  RetweetOutlined,
-  EyeOutlined,
-  ClearOutlined,
-  SendOutlined,
-} from '@ant-design/icons';
 import {
   getAllQueuesStatus,
   getQueueJobs,
@@ -45,7 +22,13 @@ import {
   testStartDevice,
 } from '@/services/queue';
 import type { QueueStatus, QueueJob, QueueJobDetail, QueueSummary } from '@/types';
-import dayjs from 'dayjs';
+import {
+  QueueStatsCards,
+  QueueOverviewTab,
+  JobListTab,
+  JobDetailModal,
+  TestJobModal,
+} from '@/components/Queue';
 
 const { TabPane } = Tabs;
 
@@ -216,192 +199,6 @@ const QueueManagement = () => {
     }
   }, [selectedQueue, jobStatus]);
 
-  // 队列表格列
-  const queueColumns = [
-    {
-      title: '队列名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 200,
-      render: (name: string) => <Tag color="blue">{name}</Tag>,
-    },
-    {
-      title: '状态',
-      dataIndex: 'isPaused',
-      key: 'isPaused',
-      width: 100,
-      render: (isPaused: boolean) => (
-        <Tag color={isPaused ? 'red' : 'green'}>{isPaused ? '已暂停' : '运行中'}</Tag>
-      ),
-    },
-    {
-      title: '等待',
-      dataIndex: ['counts', 'waiting'],
-      key: 'waiting',
-      width: 80,
-      render: (count: number) => <Tag color="orange">{count}</Tag>,
-    },
-    {
-      title: '处理中',
-      dataIndex: ['counts', 'active'],
-      key: 'active',
-      width: 80,
-      render: (count: number) => <Tag color="blue">{count}</Tag>,
-    },
-    {
-      title: '已完成',
-      dataIndex: ['counts', 'completed'],
-      key: 'completed',
-      width: 80,
-      render: (count: number) => <Tag color="green">{count}</Tag>,
-    },
-    {
-      title: '失败',
-      dataIndex: ['counts', 'failed'],
-      key: 'failed',
-      width: 80,
-      render: (count: number) => <Tag color="red">{count}</Tag>,
-    },
-    {
-      title: '延迟',
-      dataIndex: ['counts', 'delayed'],
-      key: 'delayed',
-      width: 80,
-      render: (count: number) => <Tag>{count}</Tag>,
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 250,
-      render: (_: any, record: QueueStatus) => (
-        <Space size="small">
-          {record.isPaused ? (
-            <Button
-              type="link"
-              size="small"
-              icon={<PlayCircleOutlined />}
-              onClick={() => handleResumeQueue(record.name)}
-            >
-              恢复
-            </Button>
-          ) : (
-            <Button
-              type="link"
-              size="small"
-              icon={<PauseCircleOutlined />}
-              onClick={() => handlePauseQueue(record.name)}
-            >
-              暂停
-            </Button>
-          )}
-
-          <Popconfirm
-            title="清空队列"
-            description="确定清空此队列的所有任务？"
-            onConfirm={() => handleEmptyQueue(record.name)}
-            okButtonProps={{ danger: true }}
-          >
-            <Button type="link" size="small" danger icon={<ClearOutlined />}>
-              清空
-            </Button>
-          </Popconfirm>
-
-          <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              setSelectedQueue(record.name);
-              setJobStatus('waiting');
-            }}
-          >
-            查看任务
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
-  // 任务表格列
-  const jobColumns = [
-    {
-      title: '任务ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 100,
-      render: (id: string) => id.substring(0, 8),
-    },
-    {
-      title: '任务名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 150,
-    },
-    {
-      title: '进度',
-      dataIndex: 'progress',
-      key: 'progress',
-      width: 150,
-      render: (progress: number) => <Progress percent={progress} size="small" />,
-    },
-    {
-      title: '尝试次数',
-      dataIndex: 'attemptsMade',
-      key: 'attemptsMade',
-      width: 100,
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'timestamp',
-      key: 'timestamp',
-      width: 160,
-      render: (timestamp: number) => dayjs(timestamp).format('MM-DD HH:mm:ss'),
-    },
-    {
-      title: '失败原因',
-      dataIndex: 'failedReason',
-      key: 'failedReason',
-      width: 200,
-      ellipsis: true,
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 180,
-      render: (_: any, record: QueueJob) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => viewJobDetail(selectedQueue, record.id)}
-          >
-            详情
-          </Button>
-
-          {jobStatus === 'failed' && (
-            <Button
-              type="link"
-              size="small"
-              icon={<RetweetOutlined />}
-              onClick={() => handleRetryJob(selectedQueue, record.id)}
-            >
-              重试
-            </Button>
-          )}
-
-          <Popconfirm
-            title="确定删除此任务？"
-            onConfirm={() => handleRemoveJob(selectedQueue, record.id)}
-          >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
   return (
     <div style={{ padding: '24px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -412,230 +209,60 @@ const QueueManagement = () => {
           showIcon
         />
 
-        {/* 统计信息 */}
-        <Row gutter={16}>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="队列总数"
-                value={summary?.totalQueues || 0}
-                prefix={<DatabaseOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="等待任务"
-                value={summary?.totalWaiting || 0}
-                valueStyle={{ color: '#faad14' }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="处理中任务"
-                value={summary?.totalActive || 0}
-                valueStyle={{ color: '#1890ff' }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="失败任务"
-                value={summary?.totalFailed || 0}
-                valueStyle={{ color: '#ff4d4f' }}
-              />
-            </Card>
-          </Col>
-        </Row>
+        <QueueStatsCards summary={summary} />
 
-        {/* 队列列表和任务列表 */}
         <Card>
           <Tabs>
             <TabPane tab="队列概览" key="queues">
-              <Space style={{ marginBottom: 16 }}>
-                <Button icon={<ReloadOutlined />} onClick={loadQueuesStatus}>
-                  刷新
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<SendOutlined />}
-                  onClick={() => setTestModalVisible(true)}
-                >
-                  测试任务
-                </Button>
-              </Space>
-
-              <Table
-                columns={queueColumns}
-                dataSource={queues}
-                rowKey="name"
-                pagination={{ pageSize: 10 }}
+              <QueueOverviewTab
+                queues={queues}
+                onRefresh={loadQueuesStatus}
+                onTestJob={() => setTestModalVisible(true)}
+                onPauseQueue={handlePauseQueue}
+                onResumeQueue={handleResumeQueue}
+                onEmptyQueue={handleEmptyQueue}
+                onSelectQueue={(queueName) => {
+                  setSelectedQueue(queueName);
+                  setJobStatus('waiting');
+                }}
               />
             </TabPane>
 
             <TabPane tab="任务列表" key="jobs" disabled={!selectedQueue}>
-              <Space style={{ marginBottom: 16 }} wrap>
-                <span>
-                  当前队列: <Tag color="blue">{selectedQueue}</Tag>
-                </span>
-
-                <Select value={jobStatus} onChange={setJobStatus} style={{ width: 120 }}>
-                  <Select.Option value="waiting">等待中</Select.Option>
-                  <Select.Option value="active">处理中</Select.Option>
-                  <Select.Option value="completed">已完成</Select.Option>
-                  <Select.Option value="failed">失败</Select.Option>
-                  <Select.Option value="delayed">延迟</Select.Option>
-                </Select>
-
-                <Button icon={<ReloadOutlined />} onClick={loadJobs}>
-                  刷新
-                </Button>
-
-                {jobStatus === 'completed' && (
-                  <Button onClick={() => handleCleanQueue(selectedQueue, 'completed')}>
-                    清理已完成
-                  </Button>
-                )}
-
-                {jobStatus === 'failed' && (
-                  <Button danger onClick={() => handleCleanQueue(selectedQueue, 'failed')}>
-                    清理失败任务
-                  </Button>
-                )}
-              </Space>
-
-              <Table
-                columns={jobColumns}
-                dataSource={jobs}
-                rowKey="id"
+              <JobListTab
+                selectedQueue={selectedQueue}
+                jobStatus={jobStatus}
+                jobs={jobs}
                 loading={loading}
-                pagination={{ pageSize: 20 }}
+                onJobStatusChange={setJobStatus}
+                onRefresh={loadJobs}
+                onCleanQueue={handleCleanQueue}
+                onViewJobDetail={viewJobDetail}
+                onRetryJob={handleRetryJob}
+                onRemoveJob={handleRemoveJob}
               />
             </TabPane>
           </Tabs>
         </Card>
       </Space>
 
-      {/* 任务详情 Modal */}
-      <Modal
-        title="任务详情"
-        open={jobDetailVisible}
-        onCancel={() => setJobDetailVisible(false)}
-        footer={null}
-        width={800}
-      >
-        {jobDetail && (
-          <Descriptions bordered column={1}>
-            <Descriptions.Item label="任务ID">{jobDetail.id}</Descriptions.Item>
-            <Descriptions.Item label="任务名称">{jobDetail.name}</Descriptions.Item>
-            <Descriptions.Item label="进度">
-              <Progress percent={jobDetail.progress} />
-            </Descriptions.Item>
-            <Descriptions.Item label="尝试次数">{jobDetail.attemptsMade}</Descriptions.Item>
-            <Descriptions.Item label="延迟">{jobDetail.delay}ms</Descriptions.Item>
-            <Descriptions.Item label="创建时间">
-              {dayjs(jobDetail.timestamp).format('YYYY-MM-DD HH:mm:ss')}
-            </Descriptions.Item>
-            {jobDetail.processedOn && (
-              <Descriptions.Item label="处理时间">
-                {dayjs(jobDetail.processedOn).format('YYYY-MM-DD HH:mm:ss')}
-              </Descriptions.Item>
-            )}
-            {jobDetail.finishedOn && (
-              <Descriptions.Item label="完成时间">
-                {dayjs(jobDetail.finishedOn).format('YYYY-MM-DD HH:mm:ss')}
-              </Descriptions.Item>
-            )}
-            {jobDetail.failedReason && (
-              <Descriptions.Item label="失败原因">
-                <Alert message={jobDetail.failedReason} type="error" />
-              </Descriptions.Item>
-            )}
-            {jobDetail.stacktrace && jobDetail.stacktrace.length > 0 && (
-              <Descriptions.Item label="堆栈跟踪">
-                <pre style={{ maxHeight: '200px', overflow: 'auto' }}>
-                  {jobDetail.stacktrace.join('\n')}
-                </pre>
-              </Descriptions.Item>
-            )}
-            <Descriptions.Item label="任务数据">
-              <pre style={{ maxHeight: '300px', overflow: 'auto' }}>
-                {JSON.stringify(jobDetail.data, null, 2)}
-              </pre>
-            </Descriptions.Item>
-            {jobDetail.returnvalue && (
-              <Descriptions.Item label="返回值">
-                <pre style={{ maxHeight: '200px', overflow: 'auto' }}>
-                  {JSON.stringify(jobDetail.returnvalue, null, 2)}
-                </pre>
-              </Descriptions.Item>
-            )}
-          </Descriptions>
-        )}
-      </Modal>
+      <JobDetailModal
+        visible={jobDetailVisible}
+        jobDetail={jobDetail}
+        onClose={() => setJobDetailVisible(false)}
+      />
 
-      {/* 测试任务 Modal */}
-      <Modal
-        title="创建测试任务"
-        open={testModalVisible}
+      <TestJobModal
+        visible={testModalVisible}
+        testType={testType}
+        form={testForm}
+        onTestTypeChange={setTestType}
         onOk={handleTestJob}
         onCancel={() => {
           setTestModalVisible(false);
           testForm.resetFields();
         }}
-        okText="创建"
-        cancelText="取消"
-      >
-        <Form form={testForm} layout="vertical">
-          <Form.Item label="任务类型">
-            <Select value={testType} onChange={setTestType}>
-              <Select.Option value="email">发送邮件</Select.Option>
-              <Select.Option value="sms">发送短信</Select.Option>
-              <Select.Option value="device">启动设备</Select.Option>
-            </Select>
-          </Form.Item>
-
-          {testType === 'email' && (
-            <>
-              <Form.Item name="to" label="收件人邮箱" rules={[{ required: true }]}>
-                <Input placeholder="test@example.com" />
-              </Form.Item>
-              <Form.Item name="subject" label="邮件主题" rules={[{ required: true }]}>
-                <Input placeholder="测试邮件" />
-              </Form.Item>
-              <Form.Item name="html" label="邮件内容" rules={[{ required: true }]}>
-                <Input.TextArea rows={4} placeholder="<h1>测试邮件</h1>" />
-              </Form.Item>
-            </>
-          )}
-
-          {testType === 'sms' && (
-            <>
-              <Form.Item name="phone" label="手机号" rules={[{ required: true }]}>
-                <Input placeholder="13800138000" />
-              </Form.Item>
-              <Form.Item name="message" label="短信内容" rules={[{ required: true }]}>
-                <Input.TextArea rows={3} placeholder="这是一条测试短信" />
-              </Form.Item>
-            </>
-          )}
-
-          {testType === 'device' && (
-            <>
-              <Form.Item name="deviceId" label="设备ID" rules={[{ required: true }]}>
-                <Input placeholder="device-uuid" />
-              </Form.Item>
-              <Form.Item name="userId" label="用户ID (可选)">
-                <Input placeholder="user-uuid" />
-              </Form.Item>
-            </>
-          )}
-        </Form>
-      </Modal>
+      />
     </div>
   );
 };

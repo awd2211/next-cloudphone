@@ -1,37 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Card,
-  Tree,
-  Space,
-  Button,
-  Modal,
-  Input,
-  message,
-  Tag,
-  Alert,
-  Row,
-  Col,
-  Descriptions,
-  Statistic,
-  Spin,
-  Empty,
-  Divider,
-  Badge,
-  Tooltip,
-} from 'antd';
-import {
-  ReloadOutlined,
-  ClearOutlined,
-  FireOutlined,
-  ExportOutlined,
-  SearchOutlined,
-  InfoCircleOutlined,
-  AppstoreOutlined,
-  LockOutlined,
-  UserOutlined,
-  DashboardOutlined,
-} from '@ant-design/icons';
-import type { DataNode } from 'antd/es/tree';
+import { Row, Col, Modal, Input, message } from 'antd';
 import type { MenuItem, MenuCacheStats } from '@/types';
 import {
   getAllMenus,
@@ -43,8 +11,19 @@ import {
   exportCacheData,
 } from '@/services/menu';
 import dayjs from 'dayjs';
-
-const { Search } = Input;
+import {
+  PageHeaderSection,
+  MenuTreeCard,
+  MenuDetailCard,
+  QuickActionsCard,
+  CacheManagementCard,
+  UserAccessTestModal,
+  CacheStatsModal,
+  filterMenusByName,
+  getAllParentKeys,
+  findMenuById,
+  countMenus,
+} from '@/components/MenuPermission';
 
 /**
  * 菜单权限管理页面
@@ -127,97 +106,6 @@ const MenuPermission = () => {
     }
   };
 
-  /**
-   * 递归过滤菜单
-   */
-  const filterMenusByName = (items: MenuItem[], keyword: string): MenuItem[] => {
-    const filtered: MenuItem[] = [];
-
-    items.forEach((item) => {
-      const match =
-        item.name.toLowerCase().includes(keyword.toLowerCase()) ||
-        item.path.toLowerCase().includes(keyword.toLowerCase());
-
-      let children: MenuItem[] = [];
-      if (item.children) {
-        children = filterMenusByName(item.children, keyword);
-      }
-
-      if (match || children.length > 0) {
-        filtered.push({
-          ...item,
-          children: children.length > 0 ? children : item.children,
-        });
-      }
-    });
-
-    return filtered;
-  };
-
-  /**
-   * 获取所有父节点的key
-   */
-  const getAllParentKeys = (items: MenuItem[], parentKeys: string[] = []): string[] => {
-    const keys = [...parentKeys];
-
-    items.forEach((item) => {
-      keys.push(item.id);
-      if (item.children) {
-        keys.push(...getAllParentKeys(item.children, []));
-      }
-    });
-
-    return keys;
-  };
-
-  /**
-   * 转换菜单为Tree节点
-   */
-  const convertToTreeData = (items: MenuItem[]): DataNode[] => {
-    return items.map((item) => {
-      const hasChildren = item.children && item.children.length > 0;
-      const icon = getMenuIcon(item.icon);
-
-      return {
-        key: item.id,
-        title: (
-          <Space>
-            {icon}
-            <span style={{ fontWeight: hasChildren ? 600 : 400 }}>{item.name}</span>
-            {item.permission && (
-              <Tag color="blue" style={{ fontSize: 11 }}>
-                <LockOutlined style={{ fontSize: 10, marginRight: 2 }} />
-                {item.permission}
-              </Tag>
-            )}
-            {!item.permission && (
-              <Tag color="default" style={{ fontSize: 11 }}>
-                公开
-              </Tag>
-            )}
-            <span style={{ fontSize: 12, color: '#999' }}>{item.path}</span>
-          </Space>
-        ),
-        children: item.children ? convertToTreeData(item.children) : undefined,
-      };
-    });
-  };
-
-  /**
-   * 获取菜单图标
-   */
-  const getMenuIcon = (iconName?: string) => {
-    if (!iconName) return <AppstoreOutlined style={{ fontSize: 14, color: '#1890ff' }} />;
-
-    const iconMap: Record<string, React.ReactNode> = {
-      DashboardOutlined: <DashboardOutlined style={{ fontSize: 14, color: '#1890ff' }} />,
-      AppstoreOutlined: <AppstoreOutlined style={{ fontSize: 14, color: '#52c41a' }} />,
-      UserOutlined: <UserOutlined style={{ fontSize: 14, color: '#722ed1' }} />,
-      default: <AppstoreOutlined style={{ fontSize: 14, color: '#1890ff' }} />,
-    };
-
-    return iconMap[iconName] || iconMap['default'];
-  };
 
   /**
    * 菜单节点选择
@@ -230,19 +118,6 @@ const MenuPermission = () => {
     }
   };
 
-  /**
-   * 递归查找菜单
-   */
-  const findMenuById = (items: MenuItem[], id: string): MenuItem | null => {
-    for (const item of items) {
-      if (item.id === id) return item;
-      if (item.children) {
-        const found = findMenuById(item.children, id);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
 
   /**
    * 展开/折叠所有节点
@@ -394,18 +269,6 @@ const MenuPermission = () => {
     }
   };
 
-  /**
-   * 统计菜单数量
-   */
-  const countMenus = (items: MenuItem[]): number => {
-    let count = items.length;
-    items.forEach((item) => {
-      if (item.children) {
-        count += countMenus(item.children);
-      }
-    });
-    return count;
-  };
 
   const totalMenuCount = countMenus(menus);
   const menusWithPermission = menus.filter(
@@ -415,333 +278,77 @@ const MenuPermission = () => {
   return (
     <div style={{ padding: '24px' }}>
       {/* 页面标题和说明 */}
-      <Card bordered={false}>
-        <h2 style={{ marginBottom: 16 }}>
-          <AppstoreOutlined style={{ marginRight: 8 }} />
-          菜单权限管理
-        </h2>
-        <Alert
-          message="系统说明"
-          description={
-            <div>
-              <p>
-                📋 当前为<strong>只读模式</strong>，可以查看菜单结构和权限配置，但不支持直接编辑。
-              </p>
-              <p>🔧 菜单结构当前在后端代码中定义，完整的CRUD功能需要后端实现数据库持久化。</p>
-              <p>✨ 您可以：查看菜单树、测试用户访问权限、管理权限缓存。</p>
-            </div>
-          }
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-
-        {/* 统计信息 */}
-        <Row gutter={16}>
-          <Col span={6}>
-            <Card>
-              <Statistic title="菜单总数" value={totalMenuCount} prefix={<AppstoreOutlined />} />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="需要权限"
-                value={menusWithPermission}
-                prefix={<LockOutlined />}
-                valueStyle={{ color: '#1890ff' }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="公开菜单"
-                value={totalMenuCount - menusWithPermission}
-                prefix={<InfoCircleOutlined />}
-                valueStyle={{ color: '#52c41a' }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="缓存命中率"
-                value={cacheStats?.hitRate || 0}
-                suffix="%"
-                precision={1}
-                prefix={<DashboardOutlined />}
-                valueStyle={{
-                  color: cacheStats && cacheStats.hitRate > 80 ? '#52c41a' : '#faad14',
-                }}
-              />
-            </Card>
-          </Col>
-        </Row>
-      </Card>
+      <PageHeaderSection
+        totalMenuCount={totalMenuCount}
+        menusWithPermission={menusWithPermission}
+        cacheStats={cacheStats}
+      />
 
       {/* 主内容区 */}
       <Row gutter={16} style={{ marginTop: 16 }}>
         {/* 左侧：菜单树 */}
         <Col span={15}>
-          <Card
-            title="菜单结构"
-            extra={
-              <Space>
-                <Search
-                  placeholder="搜索菜单名称或路径"
-                  allowClear
-                  style={{ width: 250 }}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  prefix={<SearchOutlined />}
-                />
-                <Button size="small" onClick={handleExpandAll}>
-                  展开全部
-                </Button>
-                <Button size="small" onClick={handleCollapseAll}>
-                  折叠全部
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<ReloadOutlined />}
-                  onClick={loadMenus}
-                  loading={loading}
-                >
-                  刷新
-                </Button>
-              </Space>
-            }
-          >
-            <Spin spinning={loading}>
-              {filteredMenus.length > 0 ? (
-                <Tree
-                  showIcon
-                  expandedKeys={expandedKeys}
-                  autoExpandParent={autoExpandParent}
-                  onExpand={(keys) => {
-                    setExpandedKeys(keys as string[]);
-                    setAutoExpandParent(false);
-                  }}
-                  onSelect={handleMenuSelect}
-                  treeData={convertToTreeData(filteredMenus)}
-                  style={{ fontSize: 14 }}
-                />
-              ) : (
-                <Empty description="暂无菜单数据" />
-              )}
-            </Spin>
-          </Card>
+          <MenuTreeCard
+            filteredMenus={filteredMenus}
+            loading={loading}
+            expandedKeys={expandedKeys}
+            autoExpandParent={autoExpandParent}
+            searchValue={searchValue}
+            onSearchChange={setSearchValue}
+            onExpandAll={handleExpandAll}
+            onCollapseAll={handleCollapseAll}
+            onRefresh={loadMenus}
+            onExpand={(keys) => {
+              setExpandedKeys(keys);
+              setAutoExpandParent(false);
+            }}
+            onSelect={handleMenuSelect}
+          />
         </Col>
 
         {/* 右侧：详情面板 */}
         <Col span={9}>
-          <Card title="菜单详情" style={{ marginBottom: 16 }}>
-            {selectedMenu ? (
-              <Descriptions column={1} bordered size="small">
-                <Descriptions.Item label="菜单名称">{selectedMenu.name}</Descriptions.Item>
-                <Descriptions.Item label="路由路径">
-                  <code>{selectedMenu.path}</code>
-                </Descriptions.Item>
-                <Descriptions.Item label="权限代码">
-                  {selectedMenu.permission ? (
-                    <Tag color="blue">{selectedMenu.permission}</Tag>
-                  ) : (
-                    <Tag color="default">无需权限（公开）</Tag>
-                  )}
-                </Descriptions.Item>
-                {selectedMenu.icon && (
-                  <Descriptions.Item label="图标">{selectedMenu.icon}</Descriptions.Item>
-                )}
-                {selectedMenu.component && (
-                  <Descriptions.Item label="组件">
-                    <code>{selectedMenu.component}</code>
-                  </Descriptions.Item>
-                )}
-                {selectedMenu.children && (
-                  <Descriptions.Item label="子菜单">
-                    {selectedMenu.children.length} 个
-                  </Descriptions.Item>
-                )}
-                {selectedMenu.meta && (
-                  <Descriptions.Item label="元数据">
-                    <pre style={{ fontSize: 12, margin: 0, maxHeight: 200, overflow: 'auto' }}>
-                      {JSON.stringify(selectedMenu.meta, null, 2)}
-                    </pre>
-                  </Descriptions.Item>
-                )}
-              </Descriptions>
-            ) : (
-              <Empty
-                description="请从左侧选择菜单项查看详情"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              />
-            )}
-          </Card>
+          <div style={{ marginBottom: 16 }}>
+            <MenuDetailCard selectedMenu={selectedMenu} />
+          </div>
 
           {/* 快捷操作 */}
-          <Card title="快捷操作">
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Button block icon={<UserOutlined />} onClick={handleTestUserAccess}>
-                测试用户菜单访问
-              </Button>
-              <Button block icon={<DashboardOutlined />} onClick={() => setStatsModalVisible(true)}>
-                查看缓存统计详情
-              </Button>
-            </Space>
-          </Card>
+          <QuickActionsCard
+            onTestUserAccess={handleTestUserAccess}
+            onViewStats={() => setStatsModalVisible(true)}
+          />
         </Col>
       </Row>
 
       {/* 缓存管理 */}
-      <Card title="缓存管理" style={{ marginTop: 16 }}>
-        <Row gutter={16}>
-          <Col span={6}>
-            <Statistic
-              title="已缓存用户"
-              value={cacheStats?.totalCached || 0}
-              prefix={<UserOutlined />}
-            />
-          </Col>
-          <Col span={6}>
-            <Statistic
-              title="活跃用户"
-              value={cacheStats?.activeUsers || 0}
-              prefix={<Badge status="processing" />}
-            />
-          </Col>
-          <Col span={6}>
-            <Statistic title="缓存大小" value={cacheStats?.cacheSize || 0} suffix="KB" />
-          </Col>
-          <Col span={6}>
-            <Statistic
-              title="平均加载时间"
-              value={cacheStats?.avgLoadTime || 0}
-              suffix="ms"
-              precision={0}
-            />
-          </Col>
-        </Row>
-
-        <Divider />
-
-        <Space wrap>
-          <Tooltip title="刷新指定用户的权限缓存">
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => handleRefreshCache()}
-              loading={cacheLoading}
-            >
-              刷新用户缓存
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="清空所有缓存，建议在非高峰期操作">
-            <Button
-              danger
-              icon={<ClearOutlined />}
-              onClick={handleClearAllCache}
-              loading={cacheLoading}
-            >
-              清空所有缓存
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="为活跃用户预加载权限数据">
-            <Button
-              type="primary"
-              icon={<FireOutlined />}
-              onClick={handleWarmupCache}
-              loading={cacheLoading}
-            >
-              预热缓存
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="导出缓存数据为JSON文件">
-            <Button icon={<ExportOutlined />} onClick={handleExportCache} loading={cacheLoading}>
-              导出缓存数据
-            </Button>
-          </Tooltip>
-        </Space>
-      </Card>
+      <div style={{ marginTop: 16 }}>
+        <CacheManagementCard
+          cacheStats={cacheStats}
+          cacheLoading={cacheLoading}
+          onRefreshCache={() => handleRefreshCache()}
+          onClearAllCache={handleClearAllCache}
+          onWarmupCache={handleWarmupCache}
+          onExportCache={handleExportCache}
+        />
+      </div>
 
       {/* 用户访问测试弹窗 */}
-      <Modal
-        title="测试用户菜单访问"
-        open={testModalVisible}
-        onCancel={() => setTestModalVisible(false)}
-        footer={null}
-        width={700}
-      >
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Space>
-            <Input
-              placeholder="输入用户ID"
-              value={testUserId}
-              onChange={(e) => setTestUserId(e.target.value)}
-              style={{ width: 300 }}
-            />
-            <Button type="primary" onClick={handleLoadUserMenus} loading={testLoading}>
-              加载菜单
-            </Button>
-          </Space>
-
-          <Divider style={{ margin: '16px 0' }} />
-
-          <Spin spinning={testLoading}>
-            {testUserMenus.length > 0 ? (
-              <div>
-                <p>
-                  <strong>该用户可访问的菜单：</strong>
-                </p>
-                <Tree showIcon defaultExpandAll treeData={convertToTreeData(testUserMenus)} />
-              </div>
-            ) : (
-              <Empty description="请输入用户ID并加载" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            )}
-          </Spin>
-        </Space>
-      </Modal>
+      <UserAccessTestModal
+        visible={testModalVisible}
+        testUserId={testUserId}
+        testUserMenus={testUserMenus}
+        testLoading={testLoading}
+        onClose={() => setTestModalVisible(false)}
+        onUserIdChange={setTestUserId}
+        onLoadUserMenus={handleLoadUserMenus}
+      />
 
       {/* 缓存统计详情弹窗 */}
-      <Modal
-        title="缓存统计详情"
-        open={statsModalVisible}
-        onCancel={() => setStatsModalVisible(false)}
-        footer={null}
-        width={600}
-      >
-        {cacheStats ? (
-          <Descriptions column={1} bordered>
-            <Descriptions.Item label="已缓存用户数">{cacheStats.totalCached}</Descriptions.Item>
-            <Descriptions.Item label="活跃用户数">{cacheStats.activeUsers}</Descriptions.Item>
-            <Descriptions.Item label="缓存命中率">
-              <Badge
-                status={cacheStats.hitRate > 80 ? 'success' : 'warning'}
-                text={`${cacheStats.hitRate.toFixed(2)}%`}
-              />
-            </Descriptions.Item>
-            <Descriptions.Item label="缓存未命中率">
-              {cacheStats.missRate.toFixed(2)}%
-            </Descriptions.Item>
-            <Descriptions.Item label="平均加载时间">
-              {cacheStats.avgLoadTime.toFixed(0)} ms
-            </Descriptions.Item>
-            <Descriptions.Item label="缓存大小">{cacheStats.cacheSize} KB</Descriptions.Item>
-            <Descriptions.Item label="运行时间">
-              {Math.floor(cacheStats.uptime / 3600)} 小时{' '}
-              {Math.floor((cacheStats.uptime % 3600) / 60)} 分钟
-            </Descriptions.Item>
-            {cacheStats.lastClearTime && (
-              <Descriptions.Item label="上次清理时间">
-                {dayjs(cacheStats.lastClearTime).format('YYYY-MM-DD HH:mm:ss')}
-              </Descriptions.Item>
-            )}
-          </Descriptions>
-        ) : (
-          <Empty description="暂无缓存统计数据" />
-        )}
-      </Modal>
+      <CacheStatsModal
+        visible={statsModalVisible}
+        cacheStats={cacheStats}
+        onClose={() => setStatsModalVisible(false)}
+      />
     </div>
   );
 };

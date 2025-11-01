@@ -1,38 +1,5 @@
-import { useState, useEffect } from 'react';
-import {
-  Card,
-  Row,
-  Col,
-  Table,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Switch,
-  message,
-  Tag,
-  Tabs,
-  Divider,
-  Alert,
-  Popconfirm,
-  Drawer,
-  Timeline,
-  Badge,
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  SendOutlined,
-  EyeOutlined,
-  HistoryOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  CodeOutlined,
-} from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import { useState, useEffect, useMemo } from 'react';
+import { Card, Form, message } from 'antd';
 import {
   getNotificationTemplates,
   createNotificationTemplate,
@@ -52,11 +19,15 @@ import type {
   NotificationTemplateVersion,
   PaginationParams,
 } from '@/types';
-import dayjs from 'dayjs';
-
-const { Option } = Select;
-const { TextArea } = Input;
-const { TabPane } = Tabs;
+import {
+  TemplateFilterBar,
+  TemplateTable,
+  TemplateFormModal,
+  TemplatePreviewModal,
+  TemplateTestModal,
+  TemplateVersionDrawer,
+  createTemplateColumns,
+} from '@/components/NotificationTemplate';
 
 const NotificationTemplateEditor = () => {
   const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
@@ -291,420 +262,79 @@ const NotificationTemplateEditor = () => {
     }
   };
 
-  // 插入变量到内容
-  const insertVariable = (varName: string) => {
-    const content = form.getFieldValue('content') || '';
-    const newContent = content + `{{${varName}}}`;
-    form.setFieldsValue({ content: newContent });
-  };
-
-  const getTypeTag = (type: string) => {
-    const map: Record<string, { color: string; text: string }> = {
-      email: { color: 'blue', text: '邮件' },
-      sms: { color: 'green', text: '短信' },
-      websocket: { color: 'orange', text: '站内' },
-    };
-    const config = map[type] || map.email;
-    return <Tag color={config.color}>{config.text}</Tag>;
-  };
-
-  const getContentTypeTag = (type: string) => {
-    const map: Record<string, { color: string; text: string }> = {
-      plain: { color: 'default', text: '纯文本' },
-      html: { color: 'blue', text: 'HTML' },
-      markdown: { color: 'green', text: 'Markdown' },
-    };
-    const config = map[type] || map.plain;
-    return <Tag color={config.color}>{config.text}</Tag>;
-  };
-
-  const columns: ColumnsType<NotificationTemplate> = [
-    {
-      title: '模板名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 200,
-      render: (name, record) => (
-        <Space direction="vertical" size={0}>
-          <strong>{name}</strong>
-          {record.description && (
-            <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.description}</span>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: '类型',
-      dataIndex: 'type',
-      key: 'type',
-      width: 100,
-      render: (type) => getTypeTag(type),
-    },
-    {
-      title: '内容类型',
-      dataIndex: 'contentType',
-      key: 'contentType',
-      width: 120,
-      render: (type) => getContentTypeTag(type),
-    },
-    {
-      title: '分类',
-      dataIndex: 'category',
-      key: 'category',
-      width: 120,
-      render: (cat) => cat || '-',
-    },
-    {
-      title: '语言',
-      dataIndex: 'language',
-      key: 'language',
-      width: 100,
-    },
-    {
-      title: '版本',
-      dataIndex: 'version',
-      key: 'version',
-      width: 80,
-      align: 'center',
-      render: (ver) => <Badge count={`v${ver}`} style={{ backgroundColor: '#52c41a' }} />,
-    },
-    {
-      title: '状态',
-      dataIndex: 'isActive',
-      key: 'isActive',
-      width: 100,
-      render: (isActive, record) => (
-        <Switch
-          checked={isActive}
-          checkedChildren={<CheckCircleOutlined />}
-          unCheckedChildren={<CloseCircleOutlined />}
-          onChange={(checked) => handleToggle(record.id, checked)}
-        />
-      ),
-    },
-    {
-      title: '更新时间',
-      dataIndex: 'updatedAt',
-      key: 'updatedAt',
-      width: 160,
-      render: (time) => dayjs(time).format('MM-DD HH:mm'),
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 300,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => openPreview(record)}
-          >
-            预览
-          </Button>
-          <Button type="link" size="small" icon={<SendOutlined />} onClick={() => openTest(record)}>
-            测试
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<HistoryOutlined />}
-            onClick={() => openVersionHistory(record)}
-          >
-            历史
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => openModal(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm title="确定删除此模板？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  // 使用 useMemo 优化表格列定义
+  const columns = useMemo(
+    () =>
+      createTemplateColumns({
+        onPreview: openPreview,
+        onTest: openTest,
+        onHistory: openVersionHistory,
+        onEdit: openModal,
+        onDelete: handleDelete,
+        onToggle: handleToggle,
+      }),
+    []
+  );
 
   return (
     <div style={{ padding: '24px' }}>
       <Card>
-        <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
-          <Space>
-            <Select
-              placeholder="筛选类型"
-              style={{ width: 120 }}
-              allowClear
-              value={filterType}
-              onChange={setFilterType}
-            >
-              <Option value="email">邮件</Option>
-              <Option value="sms">短信</Option>
-              <Option value="websocket">站内</Option>
-            </Select>
-            <Select
-              placeholder="筛选状态"
-              style={{ width: 120 }}
-              allowClear
-              value={filterActive}
-              onChange={setFilterActive}
-            >
-              <Option value={true}>已激活</Option>
-              <Option value={false}>已停用</Option>
-            </Select>
-          </Space>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
-            新建模板
-          </Button>
-        </div>
+        <TemplateFilterBar
+          filterType={filterType}
+          filterActive={filterActive}
+          onTypeChange={setFilterType}
+          onActiveChange={setFilterActive}
+          onCreate={() => openModal()}
+        />
 
-        <Table
+        <TemplateTable
           columns={columns}
           dataSource={templates}
-          rowKey="id"
           loading={loading}
-          pagination={{
-            current: page,
-            pageSize,
-            total,
-            onChange: (newPage, newPageSize) => {
-              setPage(newPage);
-              setPageSize(newPageSize || 10);
-            },
-            showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`,
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={(newPage, newPageSize) => {
+            setPage(newPage);
+            setPageSize(newPageSize || 10);
           }}
-          scroll={{ x: 1400 }}
         />
       </Card>
 
-      {/* 创建/编辑模态框 */}
-      <Modal
-        title={editingTemplate ? '编辑模板' : '创建模板'}
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
+      <TemplateFormModal
+        visible={modalVisible}
+        editingTemplate={editingTemplate}
+        form={form}
+        availableVariables={availableVariables}
         onOk={handleSubmit}
-        width={900}
-        destroyOnClose
-      >
-        <Alert
-          message="使用 {{variableName}} 语法插入变量"
-          type="info"
-          showIcon
-          style={{ marginBottom: '16px' }}
-        />
-        <Form form={form} layout="vertical">
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="模板名称"
-                name="name"
-                rules={[{ required: true, message: '请输入模板名称' }]}
-              >
-                <Input placeholder="例如: 设备创建成功通知" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="分类" name="category">
-                <Input placeholder="例如: 设备通知" />
-              </Form.Item>
-            </Col>
-          </Row>
+        onCancel={() => setModalVisible(false)}
+        onTypeChange={loadVariables}
+      />
 
-          <Form.Item label="描述" name="description">
-            <TextArea rows={2} placeholder="模板说明" />
-          </Form.Item>
-
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                label="通知类型"
-                name="type"
-                rules={[{ required: !editingTemplate, message: '请选择类型' }]}
-              >
-                <Select
-                  placeholder="选择类型"
-                  disabled={!!editingTemplate}
-                  onChange={(val) => loadVariables(val)}
-                >
-                  <Option value="email">邮件</Option>
-                  <Option value="sms">短信</Option>
-                  <Option value="websocket">站内通知</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="内容类型" name="contentType">
-                <Select>
-                  <Option value="plain">纯文本</Option>
-                  <Option value="html">HTML</Option>
-                  <Option value="markdown">Markdown</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="语言" name="language">
-                <Select>
-                  <Option value="zh-CN">简体中文</Option>
-                  <Option value="en-US">English</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.type !== curr.type}>
-            {({ getFieldValue }) =>
-              getFieldValue('type') === 'email' && (
-                <Form.Item label="邮件主题" name="subject">
-                  <Input placeholder="例如: 您的设备已创建成功" />
-                </Form.Item>
-              )
-            }
-          </Form.Item>
-
-          {availableVariables.length > 0 && (
-            <>
-              <Divider>可用变量</Divider>
-              <Space wrap style={{ marginBottom: '16px' }}>
-                {availableVariables.map((varName) => (
-                  <Button
-                    key={varName}
-                    size="small"
-                    icon={<CodeOutlined />}
-                    onClick={() => insertVariable(varName)}
-                  >
-                    {varName}
-                  </Button>
-                ))}
-              </Space>
-            </>
-          )}
-
-          <Form.Item
-            label="模板内容"
-            name="content"
-            rules={[{ required: true, message: '请输入模板内容' }]}
-          >
-            <TextArea rows={10} placeholder="输入模板内容，使用 {{variableName}} 插入变量" />
-          </Form.Item>
-
-          <Form.Item label="激活模板" name="isActive" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* 预览模态框 */}
-      <Modal
-        title={`预览: ${selectedTemplate?.name}`}
-        open={previewVisible}
+      <TemplatePreviewModal
+        visible={previewVisible}
+        template={selectedTemplate}
+        previewContent={previewContent}
+        form={previewForm}
         onCancel={() => setPreviewVisible(false)}
-        footer={null}
-        width={800}
-      >
-        <Form form={previewForm} layout="vertical">
-          {selectedTemplate?.variables.map((varName) => (
-            <Form.Item key={varName} label={varName} name={varName}>
-              <Input placeholder={`输入 ${varName} 的值`} />
-            </Form.Item>
-          ))}
-          <Button type="primary" onClick={handlePreview} style={{ marginBottom: '16px' }}>
-            生成预览
-          </Button>
-        </Form>
+        onPreview={handlePreview}
+      />
 
-        {previewContent && (
-          <Card size="small" title="预览结果">
-            <div
-              dangerouslySetInnerHTML={
-                selectedTemplate?.contentType === 'html' ? { __html: previewContent } : undefined
-              }
-            >
-              {selectedTemplate?.contentType !== 'html' && previewContent}
-            </div>
-          </Card>
-        )}
-      </Modal>
-
-      {/* 测试发送模态框 */}
-      <Modal
-        title={`测试发送: ${selectedTemplate?.name}`}
-        open={testVisible}
-        onCancel={() => setTestVisible(false)}
+      <TemplateTestModal
+        visible={testVisible}
+        template={selectedTemplate}
+        form={testForm}
         onOk={handleTest}
-      >
-        <Form form={testForm} layout="vertical">
-          <Form.Item
-            label={
-              selectedTemplate?.type === 'email'
-                ? '收件人邮箱'
-                : selectedTemplate?.type === 'sms'
-                  ? '手机号'
-                  : '用户ID'
-            }
-            name="recipient"
-            rules={[{ required: true, message: '请输入接收方' }]}
-          >
-            <Input placeholder="输入测试接收方" />
-          </Form.Item>
+        onCancel={() => setTestVisible(false)}
+      />
 
-          <Divider>变量值</Divider>
-
-          {selectedTemplate?.variables.map((varName) => (
-            <Form.Item key={varName} label={varName} name={varName}>
-              <Input placeholder={`输入 ${varName} 的测试值`} />
-            </Form.Item>
-          ))}
-        </Form>
-      </Modal>
-
-      {/* 版本历史抽屉 */}
-      <Drawer
-        title={`版本历史: ${selectedTemplate?.name}`}
-        open={versionDrawerVisible}
+      <TemplateVersionDrawer
+        visible={versionDrawerVisible}
+        template={selectedTemplate}
+        versions={versions}
         onClose={() => setVersionDrawerVisible(false)}
-        width={600}
-      >
-        <Timeline>
-          {versions.map((version) => (
-            <Timeline.Item
-              key={version.id}
-              color={version.version === selectedTemplate?.version ? 'green' : 'blue'}
-            >
-              <div>
-                <Space>
-                  <strong>v{version.version}</strong>
-                  {version.version === selectedTemplate?.version && (
-                    <Tag color="green">当前版本</Tag>
-                  )}
-                </Space>
-                <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
-                  {dayjs(version.createdAt).format('YYYY-MM-DD HH:mm:ss')}
-                  {version.createdBy && ` · ${version.createdBy}`}
-                </div>
-                {version.changeNote && <div style={{ marginTop: '4px' }}>{version.changeNote}</div>}
-                {version.version !== selectedTemplate?.version && (
-                  <Button
-                    type="link"
-                    size="small"
-                    onClick={() => handleRevert(version.id)}
-                    style={{ marginTop: '8px', padding: 0 }}
-                  >
-                    回滚到此版本
-                  </Button>
-                )}
-              </div>
-            </Timeline.Item>
-          ))}
-        </Timeline>
-      </Drawer>
+        onRevert={handleRevert}
+      />
     </div>
   );
 };

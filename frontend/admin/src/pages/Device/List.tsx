@@ -1,49 +1,22 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  Table,
-  Tag,
-  Space,
-  Button,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  message,
-  Popconfirm,
-  Card,
-  Statistic,
-  Row,
-  Col,
-  Select,
-  DatePicker,
-  Dropdown,
-  Badge,
-} from 'antd';
-import {
-  PlusOutlined,
-  PlayCircleOutlined,
-  StopOutlined,
-  ReloadOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  SearchOutlined,
-  DownloadOutlined,
-  DownOutlined,
-  WifiOutlined,
-} from '@ant-design/icons';
+import { Space, Form, message, Card } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import type { Device, CreateDeviceDto } from '@/types';
-import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { exportToExcel, exportToCSV } from '@/utils/export';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useRole } from '@/hooks/useRole';
-import { PermissionGuard } from '@/hooks/usePermission';
 
 // ✅ 导入优化的子组件（React.memo）
 import { DeviceActions, DeviceStatusTag, STATUS_CONFIG } from '@/components/Device';
+import {
+  DeviceStatsCards,
+  DeviceFilterBar,
+  DeviceBatchActions,
+  DeviceTable,
+  CreateDeviceModal,
+} from '@/components/DeviceList';
 
 // ✅ 使用 React Query hooks
 import {
@@ -66,9 +39,6 @@ import {
 import { queryClient } from '@/lib/react-query';
 import { deviceKeys } from '@/hooks/useDevices';
 
-const { Search } = Input;
-const { RangePicker } = DatePicker;
-
 /**
  * 设备列表页面（优化版 - 使用 React Query）
  *
@@ -80,7 +50,6 @@ const { RangePicker } = DatePicker;
  * 5. ✅ 乐观更新支持
  */
 const DeviceList = () => {
-  const navigate = useNavigate();
   const { isAdmin } = useRole();
 
   // 筛选和分页状态
@@ -330,15 +299,6 @@ const DeviceList = () => {
     [handleExportExcel, handleExportCSV, handleExportJSON]
   );
 
-  // 批量选择配置
-  const rowSelection = useMemo(
-    () => ({
-      selectedRowKeys,
-      onChange: setSelectedRowKeys,
-    }),
-    [selectedRowKeys]
-  );
-
   // ✅ 使用 useMemo 优化表格列配置（避免每次渲染都重新创建）
   const columns: ColumnsType<Device> = useMemo(
     () => [
@@ -445,229 +405,67 @@ const DeviceList = () => {
   return (
     <div style={{ padding: '24px' }}>
       {/* 统计卡片 */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="设备总数"
-              value={stats?.total || 0}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="运行中"
-              value={stats?.running || 0}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="空闲" value={stats?.idle || 0} valueStyle={{ color: '#faad14' }} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="已停止"
-              value={stats?.stopped || 0}
-              valueStyle={{ color: '#ff4d4f' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <DeviceStatsCards stats={stats} />
 
       {/* 筛选和操作栏 */}
       <Card style={{ marginBottom: '16px' }}>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           {/* 第一行：搜索和筛选 */}
-          <Space wrap>
-            <Search
-              placeholder="搜索设备名称或ID"
-              allowClear
-              style={{ width: 250 }}
-              onSearch={setSearchKeyword}
-              prefix={<SearchOutlined />}
-            />
-
-            <Select
-              placeholder="状态筛选"
-              allowClear
-              style={{ width: 120 }}
-              onChange={setStatusFilter}
-              options={[
-                { label: '空闲', value: 'idle' },
-                { label: '运行中', value: 'running' },
-                { label: '已停止', value: 'stopped' },
-                { label: '错误', value: 'error' },
-              ]}
-            />
-
-            <Select
-              placeholder="Android版本"
-              allowClear
-              style={{ width: 150 }}
-              onChange={setAndroidVersionFilter}
-              options={[
-                { label: 'Android 12', value: 'android-12' },
-                { label: 'Android 13', value: 'android-13' },
-                { label: 'Android 14', value: 'android-14' },
-              ]}
-            />
-
-            <RangePicker
-              onChange={(dates, dateStrings) => {
-                setDateRange(dates ? [dateStrings[0], dateStrings[1]] : null);
-              }}
-            />
-
-            <Badge dot={isConnected} status={isConnected ? 'success' : 'error'}>
-              <Button
-                icon={<WifiOutlined />}
-                onClick={() => setRealtimeEnabled(!realtimeEnabled)}
-                type={realtimeEnabled ? 'primary' : 'default'}
-              >
-                实时更新
-              </Button>
-            </Badge>
-          </Space>
+          <DeviceFilterBar
+            onSearch={setSearchKeyword}
+            onStatusChange={setStatusFilter}
+            onAndroidVersionChange={setAndroidVersionFilter}
+            onDateRangeChange={(dates, dateStrings) => {
+              setDateRange(dates ? [dateStrings[0], dateStrings[1]] : null);
+            }}
+            isConnected={isConnected}
+            realtimeEnabled={realtimeEnabled}
+            onRealtimeToggle={() => setRealtimeEnabled(!realtimeEnabled)}
+          />
 
           {/* 第二行：批量操作和导出 */}
-          <Space>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setCreateModalVisible(true)}
-            >
-              创建设备
-            </Button>
-
-            {selectedRowKeys.length > 0 && (
-              <>
-                <Button icon={<PlayCircleOutlined />} onClick={handleBatchStart}>
-                  批量启动 ({selectedRowKeys.length})
-                </Button>
-                <Button icon={<StopOutlined />} onClick={handleBatchStop}>
-                  批量停止
-                </Button>
-                <Button icon={<ReloadOutlined />} onClick={handleBatchReboot}>
-                  批量重启
-                </Button>
-                <PermissionGuard permission="device.delete">
-                  <Popconfirm
-                    title={`确定删除 ${selectedRowKeys.length} 台设备？`}
-                    onConfirm={handleBatchDelete}
-                    okText="确定"
-                    cancelText="取消"
-                  >
-                    <Button danger icon={<DeleteOutlined />}>
-                      批量删除
-                    </Button>
-                  </Popconfirm>
-                </PermissionGuard>
-              </>
-            )}
-
-            <Dropdown menu={{ items: exportMenuItems }} placement="bottomRight">
-              <Button icon={<DownloadOutlined />}>
-                导出 <DownOutlined />
-              </Button>
-            </Dropdown>
-          </Space>
+          <DeviceBatchActions
+            selectedCount={selectedRowKeys.length}
+            onCreateClick={() => setCreateModalVisible(true)}
+            onBatchStart={handleBatchStart}
+            onBatchStop={handleBatchStop}
+            onBatchReboot={handleBatchReboot}
+            onBatchDelete={handleBatchDelete}
+            exportMenuItems={exportMenuItems}
+          />
         </Space>
       </Card>
 
       {/* 设备列表表格 */}
       <Card>
-        <Table<Device>
-          rowKey="id"
+        <DeviceTable
           columns={columns}
           dataSource={devices}
           loading={isLoading}
-          rowSelection={rowSelection}
-          pagination={{
-            current: page,
-            pageSize,
-            total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 台设备`,
-            onChange: (page, pageSize) => {
-              setPage(page);
-              setPageSize(pageSize);
-            },
+          selectedRowKeys={selectedRowKeys}
+          onSelectionChange={setSelectedRowKeys}
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={(page, pageSize) => {
+            setPage(page);
+            setPageSize(pageSize);
           }}
-          scroll={{ x: 1200 }}
         />
       </Card>
 
       {/* 创建设备弹窗 */}
-      <Modal
-        title="创建设备"
-        open={createModalVisible}
+      <CreateDeviceModal
+        visible={createModalVisible}
+        form={form}
+        loading={createDeviceMutation.isPending}
+        onOk={() => form.submit()}
         onCancel={() => {
           setCreateModalVisible(false);
           form.resetFields();
         }}
-        onOk={() => form.submit()}
-        confirmLoading={createDeviceMutation.isPending}
-        width={600}
-      >
-        <Form form={form} layout="vertical" onFinish={handleCreate}>
-          <Form.Item
-            label="设备名称"
-            name="name"
-            rules={[{ required: true, message: '请输入设备名称' }]}
-          >
-            <Input placeholder="例如: MyDevice-001" />
-          </Form.Item>
-
-          <Form.Item
-            label="模板"
-            name="template"
-            rules={[{ required: true, message: '请选择模板' }]}
-          >
-            <Select
-              placeholder="选择Android版本模板"
-              options={[
-                { label: 'Android 12', value: 'android-12' },
-                { label: 'Android 13', value: 'android-13' },
-                { label: 'Android 14', value: 'android-14' },
-              ]}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="CPU 核心数"
-            name="cpuCores"
-            initialValue={2}
-            rules={[{ required: true, message: '请输入CPU核心数' }]}
-          >
-            <InputNumber min={1} max={16} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item
-            label="内存 (MB)"
-            name="memoryMB"
-            initialValue={4096}
-            rules={[{ required: true, message: '请输入内存大小' }]}
-          >
-            <InputNumber min={1024} max={32768} step={1024} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item
-            label="存储 (MB)"
-            name="storageMB"
-            initialValue={10240}
-            rules={[{ required: true, message: '请输入存储大小' }]}
-          >
-            <InputNumber min={2048} max={102400} step={1024} style={{ width: '100%' }} />
-          </Form.Item>
-        </Form>
-      </Modal>
+        onFinish={handleCreate}
+      />
     </div>
   );
 };

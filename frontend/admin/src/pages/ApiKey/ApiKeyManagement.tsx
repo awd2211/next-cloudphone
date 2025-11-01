@@ -4,36 +4,20 @@ import {
   Table,
   Button,
   Space,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Tag,
   message,
   Popconfirm,
-  Descriptions,
-  Row,
-  Col,
-  Statistic,
-  DatePicker,
   Alert,
-  Typography,
-  Divider,
   Badge,
   Tooltip,
+  Tag,
+  Form,
 } from 'antd';
 import {
-  PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
-  ReloadOutlined,
   CopyOutlined,
   StopOutlined,
-  KeyOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import type { ApiKey, ApiKeyStatus, CreateApiKeyDto, ApiKeyStatistics } from '@/types';
 import {
@@ -46,8 +30,17 @@ import {
   getApiKeyStatistics,
 } from '@/services/apiKey';
 import dayjs from 'dayjs';
-
-const { Text, Paragraph } = Typography;
+import {
+  ApiKeyStatsCards,
+  ApiKeyToolbar,
+  CreateEditApiKeyModal,
+  NewKeyDisplayModal,
+  ApiKeyDetailModal,
+  getStatusColor,
+  getStatusLabel,
+  getStatusIcon,
+  getMaskedKey,
+} from '@/components/ApiKey';
 
 const ApiKeyManagement: React.FC = () => {
   const [keys, setKeys] = useState<ApiKey[]>([]);
@@ -58,23 +51,10 @@ const ApiKeyManagement: React.FC = () => {
   const [isKeyModalVisible, setIsKeyModalVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<ApiKey | null>(null);
   const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null);
-  const [newKeyData, setNewKeyData] = useState<{ key: string; prefix: string } | null>(null);
+  const [newKeyData, setNewKeyData] = useState<{ name: string; key: string; prefix: string } | null>(null);
   const [form] = Form.useForm();
   const [filterUserId, setFilterUserId] = useState<string>('');
-
-  // 常用的权限范围
-  const commonScopes = [
-    { value: '*', label: '所有权限' },
-    { value: 'devices:read', label: '设备-读取' },
-    { value: 'devices:write', label: '设备-写入' },
-    { value: 'devices:*', label: '设备-所有' },
-    { value: 'users:read', label: '用户-读取' },
-    { value: 'users:write', label: '用户-写入' },
-    { value: 'quotas:read', label: '配额-读取' },
-    { value: 'quotas:write', label: '配额-写入' },
-    { value: 'apps:read', label: '应用-读取' },
-    { value: 'apps:write', label: '应用-写入' },
-  ];
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
     if (filterUserId) {
@@ -169,6 +149,7 @@ const ApiKeyManagement: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      setConfirmLoading(true);
       const values = await form.validateFields();
 
       const data: CreateApiKeyDto | any = {
@@ -192,6 +173,7 @@ const ApiKeyManagement: React.FC = () => {
         if (res.success) {
           message.success('API密钥创建成功!请妥善保存,仅显示一次');
           setNewKeyData({
+            name: values.name,
             key: res.data.plainKey,
             prefix: res.data.prefix,
           });
@@ -203,43 +185,9 @@ const ApiKeyManagement: React.FC = () => {
       }
     } catch (error) {
       message.error(editingKey ? '更新API密钥失败' : '创建API密钥失败');
+    } finally {
+      setConfirmLoading(false);
     }
-  };
-
-  const handleCopyKey = (key: string) => {
-    navigator.clipboard.writeText(key);
-    message.success('已复制到剪贴板');
-  };
-
-  const getStatusColor = (status: ApiKeyStatus) => {
-    const colors: Record<ApiKeyStatus, string> = {
-      active: 'success',
-      revoked: 'error',
-      expired: 'warning',
-    };
-    return colors[status] || 'default';
-  };
-
-  const getStatusLabel = (status: ApiKeyStatus) => {
-    const labels: Record<ApiKeyStatus, string> = {
-      active: '激活',
-      revoked: '已撤销',
-      expired: '已过期',
-    };
-    return labels[status] || status;
-  };
-
-  const getStatusIcon = (status: ApiKeyStatus) => {
-    const icons: Record<ApiKeyStatus, React.ReactNode> = {
-      active: <CheckCircleOutlined />,
-      revoked: <CloseCircleOutlined />,
-      expired: <ExclamationCircleOutlined />,
-    };
-    return icons[status];
-  };
-
-  const getMaskedKey = (apiKey: ApiKey) => {
-    return `${apiKey.prefix}***${apiKey.key.slice(-4)}`;
   };
 
   const isKeyExpired = (expiresAt?: string) => {
@@ -406,70 +354,17 @@ const ApiKeyManagement: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      {statistics && (
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="总密钥数"
-                value={statistics.total}
-                valueStyle={{ color: '#1890ff' }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="激活中"
-                value={statistics.active}
-                valueStyle={{ color: '#52c41a' }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="总使用次数"
-                value={statistics.totalUsage}
-                valueStyle={{ color: '#faad14' }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="今日使用"
-                value={statistics.recentUsage.day}
-                valueStyle={{ color: '#13c2c2' }}
-              />
-            </Card>
-          </Col>
-        </Row>
-      )}
+      <ApiKeyStatsCards statistics={statistics} />
 
       <Card
         title="API 密钥管理"
         extra={
-          <Space>
-            <Input
-              placeholder="用户ID"
-              value={filterUserId}
-              onChange={(e) => setFilterUserId(e.target.value)}
-              style={{ width: 200 }}
-              prefix={<KeyOutlined />}
-            />
-            <Button icon={<ReloadOutlined />} onClick={loadKeys} disabled={!filterUserId}>
-              刷新
-            </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-              disabled={!filterUserId}
-            >
-              新建密钥
-            </Button>
-          </Space>
+          <ApiKeyToolbar
+            filterUserId={filterUserId}
+            onFilterUserIdChange={setFilterUserId}
+            onRefresh={loadKeys}
+            onCreate={handleCreate}
+          />
         }
       >
         <Alert
@@ -494,157 +389,26 @@ const ApiKeyManagement: React.FC = () => {
         />
       </Card>
 
-      <Modal
-        title={editingKey ? '编辑API密钥' : '新建API密钥'}
-        open={isModalVisible}
+      <CreateEditApiKeyModal
+        visible={isModalVisible}
+        editingKey={editingKey}
+        form={form}
         onOk={handleSubmit}
         onCancel={() => setIsModalVisible(false)}
-        width={700}
-        okText="确定"
-        cancelText="取消"
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="密钥名称"
-            rules={[{ required: true, message: '请输入密钥名称' }]}
-          >
-            <Input placeholder="如: 生产环境API密钥" />
-          </Form.Item>
+        confirmLoading={confirmLoading}
+      />
 
-          <Form.Item
-            name="scopes"
-            label="权限范围"
-            rules={[{ required: true, message: '请选择权限范围' }]}
-          >
-            <Select mode="multiple" placeholder="请选择权限范围" options={commonScopes} />
-          </Form.Item>
+      <NewKeyDisplayModal
+        visible={isKeyModalVisible}
+        newKeyData={newKeyData}
+        onClose={() => setIsKeyModalVisible(false)}
+      />
 
-          <Form.Item name="expiresAt" label="过期时间">
-            <DatePicker showTime style={{ width: '100%' }} placeholder="不设置则永不过期" />
-          </Form.Item>
-
-          <Form.Item name="description" label="描述">
-            <Input.TextArea placeholder="请输入密钥用途描述" rows={3} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="API密钥创建成功"
-        open={isKeyModalVisible}
-        onOk={() => setIsKeyModalVisible(false)}
-        onCancel={() => setIsKeyModalVisible(false)}
-        width={600}
-        okText="我已保存"
-        cancelButtonProps={{ style: { display: 'none' } }}
-      >
-        {newKeyData && (
-          <>
-            <Alert
-              message="重要提示"
-              description="此密钥仅显示一次,关闭后将无法再次查看完整密钥,请立即复制保存!"
-              type="error"
-              showIcon
-              style={{ marginBottom: 16 }}
-            />
-
-            <Divider>完整密钥</Divider>
-
-            <Paragraph
-              copyable={{
-                text: newKeyData.key,
-                onCopy: () => message.success('已复制到剪贴板'),
-              }}
-            >
-              <Text code style={{ fontSize: 16 }}>
-                {newKeyData.key}
-              </Text>
-            </Paragraph>
-
-            <Divider>使用示例</Divider>
-
-            <Paragraph>
-              <pre style={{ background: '#f5f5f5', padding: 16, borderRadius: 4 }}>
-                {`# 在请求头中添加 API 密钥
-curl -H "X-API-Key: ${newKeyData.key}" \\
-  https://api.example.com/devices`}
-              </pre>
-            </Paragraph>
-          </>
-        )}
-      </Modal>
-
-      <Modal
-        title="API密钥详情"
-        open={isDetailModalVisible}
-        onCancel={() => setIsDetailModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={800}
-      >
-        {selectedKey && (
-          <Descriptions bordered column={2}>
-            <Descriptions.Item label="ID" span={2}>
-              {selectedKey.id}
-            </Descriptions.Item>
-            <Descriptions.Item label="名称">{selectedKey.name}</Descriptions.Item>
-            <Descriptions.Item label="状态">
-              <Tag
-                icon={getStatusIcon(selectedKey.status)}
-                color={getStatusColor(selectedKey.status)}
-              >
-                {getStatusLabel(selectedKey.status)}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="密钥前缀" span={2}>
-              <Text code>{getMaskedKey(selectedKey)}</Text>
-            </Descriptions.Item>
-            <Descriptions.Item label="用户ID">{selectedKey.userId}</Descriptions.Item>
-            <Descriptions.Item label="使用次数">
-              <Badge count={selectedKey.usageCount} showZero />
-            </Descriptions.Item>
-            <Descriptions.Item label="权限范围" span={2}>
-              <Space wrap>
-                {selectedKey.scopes.map((scope) => (
-                  <Tag key={scope} color="blue">
-                    {scope}
-                  </Tag>
-                ))}
-              </Space>
-            </Descriptions.Item>
-            <Descriptions.Item label="最后使用时间">
-              {selectedKey.lastUsedAt
-                ? new Date(selectedKey.lastUsedAt).toLocaleString('zh-CN')
-                : '从未使用'}
-            </Descriptions.Item>
-            <Descriptions.Item label="最后使用IP">
-              {selectedKey.lastUsedIp || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="过期时间" span={2}>
-              {selectedKey.expiresAt ? (
-                <Text type={isKeyExpired(selectedKey.expiresAt) ? 'danger' : undefined}>
-                  {new Date(selectedKey.expiresAt).toLocaleString('zh-CN')}
-                </Text>
-              ) : (
-                '永不过期'
-              )}
-            </Descriptions.Item>
-            <Descriptions.Item label="描述" span={2}>
-              {selectedKey.description || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="创建时间">
-              {new Date(selectedKey.createdAt).toLocaleString('zh-CN')}
-            </Descriptions.Item>
-            <Descriptions.Item label="更新时间">
-              {new Date(selectedKey.updatedAt).toLocaleString('zh-CN')}
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Modal>
+      <ApiKeyDetailModal
+        visible={isDetailModalVisible}
+        apiKey={selectedKey}
+        onClose={() => setIsDetailModalVisible(false)}
+      />
     </div>
   );
 };

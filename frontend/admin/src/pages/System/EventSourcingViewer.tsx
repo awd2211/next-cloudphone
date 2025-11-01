@@ -1,33 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Card,
-  Row,
-  Col,
-  Statistic,
-  Table,
-  Button,
-  Space,
-  Input,
-  Select,
-  DatePicker,
-  message,
-  Tag,
-  Modal,
-  Descriptions,
-  Timeline,
-  Alert,
-  Form,
-  Tabs,
-} from 'antd';
-import {
-  SearchOutlined,
-  ReloadOutlined,
-  PlayCircleOutlined,
-  EyeOutlined,
-  HistoryOutlined,
-  ClockCircleOutlined,
-  LineChartOutlined,
-} from '@ant-design/icons';
+import { Card, Space, Alert, Form, Tabs, message } from 'antd';
 import {
   getUserEventHistory,
   replayUserEvents,
@@ -37,7 +9,16 @@ import {
   getRecentEvents,
 } from '@/services/events';
 import type { UserEvent, EventStats } from '@/types';
-import dayjs from 'dayjs';
+import {
+  EventStatsCards,
+  RecentEventsTab,
+  UserHistoryTab,
+  EventStatsTab,
+  EventDetailModal,
+  ReplayResultModal,
+  ReplayToVersionModal,
+  TimeTravelModal,
+} from '@/components/EventSourcing';
 
 const { TabPane } = Tabs;
 
@@ -192,125 +173,6 @@ const EventSourcingViewer = () => {
     return 'default';
   };
 
-  // 最近事件表格列
-  const recentEventColumns = [
-    {
-      title: '事件ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 120,
-      render: (id: string) => id.substring(0, 12),
-    },
-    {
-      title: '用户ID',
-      dataIndex: 'aggregateId',
-      key: 'aggregateId',
-      width: 120,
-      render: (id: string) => id.substring(0, 12),
-    },
-    {
-      title: '事件类型',
-      dataIndex: 'eventType',
-      key: 'eventType',
-      width: 180,
-      render: (type: string) => <Tag color={getEventTypeColor(type)}>{type}</Tag>,
-    },
-    {
-      title: '版本',
-      dataIndex: 'version',
-      key: 'version',
-      width: 80,
-      align: 'center' as const,
-    },
-    {
-      title: '时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 160,
-      render: (t: string) => dayjs(t).format('MM-DD HH:mm:ss'),
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 100,
-      render: (_: any, record: UserEvent) => (
-        <Button
-          type="link"
-          size="small"
-          icon={<EyeOutlined />}
-          onClick={() => {
-            setSelectedEvent(record);
-            setDetailVisible(true);
-          }}
-        >
-          查看
-        </Button>
-      ),
-    },
-  ];
-
-  // 用户事件历史表格列
-  const userEventColumns = [
-    {
-      title: '事件ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 120,
-      render: (id: string) => id.substring(0, 12),
-    },
-    {
-      title: '事件类型',
-      dataIndex: 'eventType',
-      key: 'eventType',
-      width: 180,
-      render: (type: string) => <Tag color={getEventTypeColor(type)}>{type}</Tag>,
-    },
-    {
-      title: '版本',
-      dataIndex: 'version',
-      key: 'version',
-      width: 80,
-      align: 'center' as const,
-    },
-    {
-      title: '时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 160,
-      render: (t: string) => dayjs(t).format('YYYY-MM-DD HH:mm:ss'),
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 200,
-      render: (_: any, record: UserEvent) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setSelectedEvent(record);
-              setDetailVisible(true);
-            }}
-          >
-            查看
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              versionForm.setFieldsValue({ version: record.version });
-              setVersionModalVisible(true);
-            }}
-          >
-            重放到此
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
   return (
     <div style={{ padding: '24px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -322,331 +184,92 @@ const EventSourcingViewer = () => {
         />
 
         {/* 统计信息 */}
-        <Row gutter={16}>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="总事件数"
-                value={stats?.totalEvents || 0}
-                prefix={<LineChartOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="UserCreated"
-                value={stats?.eventsByType?.UserCreated || 0}
-                valueStyle={{ color: '#52c41a' }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="UserUpdated"
-                value={stats?.eventsByType?.UserUpdated || 0}
-                valueStyle={{ color: '#1890ff' }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="UserDeleted"
-                value={stats?.eventsByType?.UserDeleted || 0}
-                valueStyle={{ color: '#ff4d4f' }}
-              />
-            </Card>
-          </Col>
-        </Row>
+        <EventStatsCards stats={stats} />
 
         {/* 主要功能区 */}
         <Card>
           <Tabs>
             <TabPane tab="最近事件" key="recent">
-              <Space style={{ marginBottom: 16 }} wrap>
-                <Select
-                  placeholder="筛选事件类型"
-                  style={{ width: 200 }}
-                  allowClear
-                  value={selectedEventType || undefined}
-                  onChange={setSelectedEventType}
-                >
-                  {eventTypes.map((type) => (
-                    <Select.Option key={type} value={type}>
-                      {type}
-                    </Select.Option>
-                  ))}
-                </Select>
-
-                <Button icon={<ReloadOutlined />} onClick={loadRecentEvents}>
-                  刷新
-                </Button>
-              </Space>
-
-              <Table
-                columns={recentEventColumns}
-                dataSource={recentEvents}
-                rowKey="id"
+              <RecentEventsTab
+                eventTypes={eventTypes}
+                selectedEventType={selectedEventType}
+                onEventTypeChange={setSelectedEventType}
+                onRefresh={loadRecentEvents}
+                events={recentEvents}
                 loading={loading}
-                pagination={{ pageSize: 20 }}
+                onViewDetail={(event) => {
+                  setSelectedEvent(event);
+                  setDetailVisible(true);
+                }}
+                getEventTypeColor={getEventTypeColor}
               />
             </TabPane>
 
             <TabPane tab="用户事件历史" key="user">
-              <Space style={{ marginBottom: 16 }} wrap>
-                <Input
-                  placeholder="输入用户ID"
-                  style={{ width: 250 }}
-                  prefix={<SearchOutlined />}
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  onPressEnter={loadUserHistory}
-                />
-
-                <Button type="primary" icon={<SearchOutlined />} onClick={loadUserHistory}>
-                  查询历史
-                </Button>
-
-                <Button
-                  icon={<PlayCircleOutlined />}
-                  onClick={handleReplay}
-                  disabled={!selectedUserId}
-                >
-                  重放事件
-                </Button>
-
-                <Button
-                  icon={<HistoryOutlined />}
-                  onClick={() => setVersionModalVisible(true)}
-                  disabled={!selectedUserId || userEvents.length === 0}
-                >
-                  重放到版本
-                </Button>
-
-                <Button
-                  icon={<ClockCircleOutlined />}
-                  onClick={() => setTimeTravelModalVisible(true)}
-                  disabled={!selectedUserId}
-                >
-                  时间旅行
-                </Button>
-              </Space>
-
-              {userEvents.length > 0 && (
-                <Alert
-                  message={`当前查看用户: ${selectedUserId}`}
-                  description={`共 ${userEvents.length} 个事件，版本范围: 1 - ${userEvents[userEvents.length - 1]?.version}`}
-                  type="success"
-                  showIcon
-                  style={{ marginBottom: 16 }}
-                />
-              )}
-
-              <Table
-                columns={userEventColumns}
-                dataSource={userEvents}
-                rowKey="id"
+              <UserHistoryTab
+                selectedUserId={selectedUserId}
+                onUserIdChange={setSelectedUserId}
+                onLoadHistory={loadUserHistory}
+                onReplay={handleReplay}
+                onReplayToVersion={() => setVersionModalVisible(true)}
+                onTimeTravel={() => setTimeTravelModalVisible(true)}
+                onViewDetail={(event) => {
+                  setSelectedEvent(event);
+                  setDetailVisible(true);
+                }}
+                onSetVersionForReplay={(version) => {
+                  versionForm.setFieldsValue({ version });
+                }}
+                userEvents={userEvents}
                 loading={loading}
-                pagination={{ pageSize: 20 }}
+                getEventTypeColor={getEventTypeColor}
               />
             </TabPane>
 
             <TabPane tab="事件统计" key="stats">
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Card title="按类型统计">
-                    <Space direction="vertical" style={{ width: '100%' }}>
-                      {stats &&
-                        Object.entries(stats.eventsByType).map(([type, count]) => (
-                          <div
-                            key={type}
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              padding: '8px 0',
-                            }}
-                          >
-                            <Tag color={getEventTypeColor(type)}>{type}</Tag>
-                            <strong>{count}</strong>
-                          </div>
-                        ))}
-                    </Space>
-                  </Card>
-                </Col>
-                <Col span={12}>
-                  <Card title="系统说明">
-                    <Space direction="vertical">
-                      <div>
-                        <strong>Event Sourcing (事件溯源)</strong>
-                      </div>
-                      <div>• 所有状态变更都保存为事件</div>
-                      <div>• 可以重放事件重建任意时间点的状态</div>
-                      <div>• 提供完整的审计日志</div>
-                      <div>• 支持时间旅行查看历史状态</div>
-                      <div style={{ marginTop: 16 }}>
-                        <strong>功能说明</strong>
-                      </div>
-                      <div>
-                        • <strong>重放事件</strong>: 重建用户当前完整状态
-                      </div>
-                      <div>
-                        • <strong>重放到版本</strong>: 查看用户在特定版本的状态
-                      </div>
-                      <div>
-                        • <strong>时间旅行</strong>: 查看用户在特定时间点的状态
-                      </div>
-                    </Space>
-                  </Card>
-                </Col>
-              </Row>
+              <EventStatsTab stats={stats} getEventTypeColor={getEventTypeColor} />
             </TabPane>
           </Tabs>
         </Card>
       </Space>
 
       {/* 事件详情 Modal */}
-      <Modal
-        title="事件详情"
-        open={detailVisible}
-        onCancel={() => setDetailVisible(false)}
-        footer={null}
-        width={800}
-      >
-        {selectedEvent && (
-          <Descriptions bordered column={1}>
-            <Descriptions.Item label="事件ID">{selectedEvent.id}</Descriptions.Item>
-            <Descriptions.Item label="用户ID">{selectedEvent.aggregateId}</Descriptions.Item>
-            <Descriptions.Item label="事件类型">
-              <Tag color={getEventTypeColor(selectedEvent.eventType)}>
-                {selectedEvent.eventType}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="版本">{selectedEvent.version}</Descriptions.Item>
-            <Descriptions.Item label="创建时间">
-              {dayjs(selectedEvent.createdAt).format('YYYY-MM-DD HH:mm:ss')}
-            </Descriptions.Item>
-            <Descriptions.Item label="事件数据">
-              <pre
-                style={{
-                  maxHeight: '400px',
-                  overflow: 'auto',
-                  background: '#f5f5f5',
-                  padding: '12px',
-                  borderRadius: '4px',
-                  margin: 0,
-                }}
-              >
-                {JSON.stringify(selectedEvent.eventData, null, 2)}
-              </pre>
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Modal>
+      <EventDetailModal
+        visible={detailVisible}
+        event={selectedEvent}
+        onClose={() => setDetailVisible(false)}
+        getEventTypeColor={getEventTypeColor}
+      />
 
       {/* 重放结果 Modal */}
-      <Modal
-        title="重放结果"
-        open={replayModalVisible}
-        onCancel={() => setReplayModalVisible(false)}
-        footer={null}
-        width={800}
-      >
-        {replayResult && (
-          <>
-            <Alert
-              message="重放成功"
-              description="已通过事件重放重建用户状态"
-              type="success"
-              showIcon
-              style={{ marginBottom: 16 }}
-            />
-            <Descriptions bordered column={1}>
-              <Descriptions.Item label="用户状态">
-                <pre
-                  style={{
-                    maxHeight: '500px',
-                    overflow: 'auto',
-                    background: '#f5f5f5',
-                    padding: '12px',
-                    borderRadius: '4px',
-                    margin: 0,
-                  }}
-                >
-                  {JSON.stringify(replayResult, null, 2)}
-                </pre>
-              </Descriptions.Item>
-            </Descriptions>
-          </>
-        )}
-      </Modal>
+      <ReplayResultModal
+        visible={replayModalVisible}
+        result={replayResult}
+        onClose={() => setReplayModalVisible(false)}
+      />
 
       {/* 重放到版本 Modal */}
-      <Modal
-        title="重放到特定版本"
-        open={versionModalVisible}
+      <ReplayToVersionModal
+        visible={versionModalVisible}
+        form={versionForm}
+        userEventsCount={userEvents.length}
         onOk={handleReplayToVersion}
         onCancel={() => {
           setVersionModalVisible(false);
           versionForm.resetFields();
         }}
-        okText="重放"
-        cancelText="取消"
-      >
-        <Form form={versionForm} layout="vertical">
-          <Form.Item
-            name="version"
-            label="目标版本号"
-            rules={[
-              { required: true, message: '请输入版本号' },
-              { type: 'number', min: 1, message: '版本号必须大于0' },
-            ]}
-          >
-            <Input type="number" placeholder="例如: 5" />
-          </Form.Item>
-          <Alert
-            message="提示"
-            description={`当前用户有 ${userEvents.length} 个事件。重放到指定版本将显示用户在该版本时的状态。`}
-            type="info"
-            showIcon
-          />
-        </Form>
-      </Modal>
+      />
 
       {/* 时间旅行 Modal */}
-      <Modal
-        title="时间旅行"
-        open={timeTravelModalVisible}
+      <TimeTravelModal
+        visible={timeTravelModalVisible}
+        form={timeTravelForm}
         onOk={handleTimeTravel}
         onCancel={() => {
           setTimeTravelModalVisible(false);
           timeTravelForm.resetFields();
         }}
-        okText="开始旅行"
-        cancelText="取消"
-      >
-        <Form form={timeTravelForm} layout="vertical">
-          <Form.Item
-            name="timestamp"
-            label="目标时间点"
-            rules={[{ required: true, message: '请选择时间点' }]}
-          >
-            <DatePicker
-              showTime
-              style={{ width: '100%' }}
-              placeholder="选择日期和时间"
-              format="YYYY-MM-DD HH:mm:ss"
-            />
-          </Form.Item>
-          <Alert
-            message="时间旅行"
-            description="选择一个历史时间点，系统将重放该时间点之前的所有事件，显示用户在那个时间的状态。"
-            type="info"
-            showIcon
-          />
-        </Form>
-      </Modal>
+      />
     </div>
   );
 };

@@ -1,34 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import {
-  Card,
-  Table,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Switch,
-  Tag,
-  Descriptions,
-  DatePicker,
-  InputNumber,
-  Popconfirm,
-  Alert,
-  Divider,
-  Row,
-  Col,
-  Statistic,
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  ExperimentOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  CodeOutlined,
-} from '@ant-design/icons';
+import { Card, Table, Button, Space, Switch, Tag, Popconfirm } from 'antd';
+import { EditOutlined, DeleteOutlined, ExperimentOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
   useBillingRules,
@@ -45,11 +17,15 @@ import type {
   UpdateBillingRuleDto,
   BillingRuleTestResult,
 } from '@/types';
+import {
+  BillingRuleStatsCards,
+  BillingRuleToolbar,
+  CreateEditBillingRuleModal,
+  TestBillingRuleModal,
+  BillingRuleDetailModal,
+  typeMap,
+} from '@/components/BillingRule';
 import dayjs from 'dayjs';
-
-const { Option } = Select;
-const { TextArea } = Input;
-const { RangePicker } = DatePicker;
 
 const BillingRuleList = () => {
   const [page, setPage] = useState(1);
@@ -200,17 +176,6 @@ const BillingRuleList = () => {
     [form]
   );
 
-  // Optimized type map
-  const typeMap = useMemo(
-    () => ({
-      'time-based': { color: 'blue' as const, text: '按时长' },
-      'usage-based': { color: 'green' as const, text: '按用量' },
-      tiered: { color: 'orange' as const, text: '阶梯式' },
-      custom: { color: 'purple' as const, text: '自定义' },
-    }),
-    []
-  );
-
   const columns: ColumnsType<BillingRule> = useMemo(
     () => [
       {
@@ -327,45 +292,13 @@ const BillingRuleList = () => {
     <div style={{ padding: '24px' }}>
       <Card>
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Statistic title="总规则数" value={total} prefix={<CodeOutlined />} />
-            </Col>
-            <Col span={8}>
-              <Statistic
-                title="激活中"
-                value={rules.filter((r) => r.isActive).length}
-                valueStyle={{ color: '#52c41a' }}
-                prefix={<CheckCircleOutlined />}
-              />
-            </Col>
-            <Col span={8}>
-              <Statistic
-                title="已停用"
-                value={rules.filter((r) => !r.isActive).length}
-                valueStyle={{ color: '#ff4d4f' }}
-                prefix={<CloseCircleOutlined />}
-              />
-            </Col>
-          </Row>
+          <BillingRuleStatsCards total={total} rules={rules} />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Space>
-              <Select
-                placeholder="筛选状态"
-                style={{ width: 120 }}
-                allowClear
-                value={filterActive}
-                onChange={setFilterActive}
-              >
-                <Option value={true}>激活</Option>
-                <Option value={false}>停用</Option>
-              </Select>
-            </Space>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
-              新建规则
-            </Button>
-          </div>
+          <BillingRuleToolbar
+            filterActive={filterActive}
+            onFilterActiveChange={setFilterActive}
+            onCreate={() => openModal()}
+          />
 
           <Table
             columns={columns}
@@ -388,238 +321,30 @@ const BillingRuleList = () => {
         </Space>
       </Card>
 
-      {/* 创建/编辑模态框 */}
-      <Modal
-        title={editingRule ? '编辑计费规则' : '创建计费规则'}
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
+      <CreateEditBillingRuleModal
+        visible={modalVisible}
+        editingRule={editingRule}
+        form={form}
+        templates={templates}
         onOk={handleSubmit}
-        width={800}
-        destroyOnClose
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            label="规则名称"
-            name="name"
-            rules={[{ required: true, message: '请输入规则名称' }]}
-          >
-            <Input placeholder="例如: 标准时长计费" />
-          </Form.Item>
+        onCancel={() => setModalVisible(false)}
+        onApplyTemplate={applyTemplate}
+      />
 
-          <Form.Item label="描述" name="description">
-            <TextArea rows={2} placeholder="规则说明" />
-          </Form.Item>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="规则类型"
-                name="type"
-                rules={[{ required: true, message: '请选择规则类型' }]}
-              >
-                <Select placeholder="选择类型">
-                  <Option value="time-based">按时长计费</Option>
-                  <Option value="usage-based">按用量计费</Option>
-                  <Option value="tiered">阶梯式计费</Option>
-                  <Option value="custom">自定义公式</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="优先级" name="priority" initialValue={0}>
-                <InputNumber min={0} max={100} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            label={
-              <span>
-                计费公式{' '}
-                <a onClick={() => message.info('支持变量: hours, cpuCores, memoryMB, storageMB')}>
-                  查看帮助
-                </a>
-              </span>
-            }
-            name="formula"
-            rules={[{ required: true, message: '请输入计费公式' }]}
-          >
-            <Input placeholder="例如: hours * cpuCores * 0.5 + memoryMB * 0.001" />
-          </Form.Item>
-
-          <Form.Item
-            label="参数 (JSON格式)"
-            name="parameters"
-            rules={[
-              {
-                validator: async (_, value) => {
-                  if (value) {
-                    try {
-                      JSON.parse(value);
-                    } catch {
-                      throw new Error('JSON格式不正确');
-                    }
-                  }
-                },
-              },
-            ]}
-          >
-            <TextArea rows={4} placeholder='{"basePrice": 0.5, "cpuPricePerCore": 0.3}' />
-          </Form.Item>
-
-          <Form.Item label="有效期" name="validRange">
-            <RangePicker style={{ width: '100%' }} />
-          </Form.Item>
-
-          {templates.length > 0 && (
-            <>
-              <Divider>快速应用模板</Divider>
-              <Space wrap>
-                {templates.map((template: any) => (
-                  <Button key={template.id} size="small" onClick={() => applyTemplate(template)}>
-                    {template.name}
-                  </Button>
-                ))}
-              </Space>
-            </>
-          )}
-        </Form>
-      </Modal>
-
-      {/* 测试模态框 */}
-      <Modal
-        title={`测试规则: ${selectedRule?.name}`}
-        open={testModalVisible}
-        onCancel={() => setTestModalVisible(false)}
+      <TestBillingRuleModal
+        visible={testModalVisible}
+        selectedRule={selectedRule}
+        testForm={testForm}
+        testResult={testResult}
         onOk={handleTest}
-        width={700}
-      >
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Alert
-            message="输入测试数据以验证计费规则"
-            description={`公式: ${selectedRule?.formula}`}
-            type="info"
-            showIcon
-          />
+        onCancel={() => setTestModalVisible(false)}
+      />
 
-          <Form form={testForm} layout="vertical">
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  label="运行时长 (小时)"
-                  name="hours"
-                  rules={[{ required: true, message: '请输入时长' }]}
-                >
-                  <InputNumber min={0} step={0.1} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  label="CPU核心数"
-                  name="cpuCores"
-                  rules={[{ required: true, message: '请输入CPU核心数' }]}
-                >
-                  <InputNumber min={1} max={32} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  label="内存 (MB)"
-                  name="memoryMB"
-                  rules={[{ required: true, message: '请输入内存' }]}
-                >
-                  <InputNumber min={512} step={512} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  label="存储 (MB)"
-                  name="storageMB"
-                  rules={[{ required: true, message: '请输入存储' }]}
-                >
-                  <InputNumber min={1024} step={1024} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form>
-
-          {testResult && (
-            <>
-              <Divider>测试结果</Divider>
-              <Alert message={`计算费用: ¥${testResult.cost.toFixed(2)}`} type="success" showIcon />
-              <Descriptions bordered size="small" column={1}>
-                {testResult.breakdown.map((item, index) => (
-                  <Descriptions.Item key={index} label={item.component}>
-                    {item.value} {item.unit}
-                  </Descriptions.Item>
-                ))}
-              </Descriptions>
-            </>
-          )}
-        </Space>
-      </Modal>
-
-      {/* 详情模态框 */}
-      <Modal
-        title="规则详情"
-        open={detailModalVisible}
-        onCancel={() => setDetailModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setDetailModalVisible(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={700}
-      >
-        {selectedRule && (
-          <Descriptions bordered column={1}>
-            <Descriptions.Item label="规则名称">{selectedRule.name}</Descriptions.Item>
-            <Descriptions.Item label="描述">{selectedRule.description || '-'}</Descriptions.Item>
-            <Descriptions.Item label="类型">
-              <Tag
-                color={
-                  selectedRule.type === 'time-based'
-                    ? 'blue'
-                    : selectedRule.type === 'usage-based'
-                      ? 'green'
-                      : selectedRule.type === 'tiered'
-                        ? 'orange'
-                        : 'purple'
-                }
-              >
-                {selectedRule.type}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="计费公式">
-              <code>{selectedRule.formula}</code>
-            </Descriptions.Item>
-            <Descriptions.Item label="参数">
-              <pre style={{ margin: 0, fontSize: '12px' }}>
-                {JSON.stringify(selectedRule.parameters, null, 2)}
-              </pre>
-            </Descriptions.Item>
-            <Descriptions.Item label="优先级">{selectedRule.priority}</Descriptions.Item>
-            <Descriptions.Item label="状态">
-              {selectedRule.isActive ? (
-                <Tag color="success">激活</Tag>
-              ) : (
-                <Tag color="error">停用</Tag>
-              )}
-            </Descriptions.Item>
-            <Descriptions.Item label="有效期">
-              {selectedRule.validFrom && selectedRule.validUntil
-                ? `${dayjs(selectedRule.validFrom).format('YYYY-MM-DD')} 至 ${dayjs(selectedRule.validUntil).format('YYYY-MM-DD')}`
-                : '永久有效'}
-            </Descriptions.Item>
-            <Descriptions.Item label="创建时间">
-              {dayjs(selectedRule.createdAt).format('YYYY-MM-DD HH:mm:ss')}
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Modal>
+      <BillingRuleDetailModal
+        visible={detailModalVisible}
+        selectedRule={selectedRule}
+        onClose={() => setDetailModalVisible(false)}
+      />
     </div>
   );
 };

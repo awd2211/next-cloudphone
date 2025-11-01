@@ -1,36 +1,5 @@
-import { useState, useEffect } from 'react';
-import {
-  Table,
-  Tag,
-  Space,
-  Button,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  message,
-  Popconfirm,
-  Card,
-  Statistic,
-  Row,
-  Col,
-  Select,
-  Badge,
-  Tooltip,
-  Divider,
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  CopyOutlined,
-  AppstoreAddOutlined,
-  FireOutlined,
-  LockOutlined,
-  UnlockOutlined,
-} from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import { useState, useEffect, useMemo } from 'react';
+import { Form, message, Card } from 'antd';
 import {
   getTemplates,
   getPopularTemplates,
@@ -43,10 +12,17 @@ import {
 } from '@/services/template';
 import { getUsers } from '@/services/user';
 import type { DeviceTemplate, CreateTemplateDto, User } from '@/types';
-import dayjs from 'dayjs';
-
-const { Search, TextArea } = Input;
-const { Option } = Select;
+import {
+  TemplateStatsCard,
+  PopularTemplatesCard,
+  TemplateFilterBar,
+  TemplateTable,
+  CreateTemplateModal,
+  EditTemplateModal,
+  CreateDeviceModal,
+  BatchCreateDeviceModal,
+  createTemplateColumns,
+} from '@/components/Template';
 
 const TemplateList = () => {
   const [templates, setTemplates] = useState<DeviceTemplate[]>([]);
@@ -220,486 +196,92 @@ const TemplateList = () => {
     setBatchCreateModalVisible(true);
   };
 
-  const columns: ColumnsType<DeviceTemplate> = [
-    {
-      title: '模板名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 200,
-      render: (text, record) => (
-        <Space>
-          <span style={{ fontWeight: 500 }}>{text}</span>
-          {!record.isPublic && (
-            <Tooltip title="私有模板">
-              <LockOutlined style={{ color: '#faad14' }} />
-            </Tooltip>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-      render: (text) => text || '-',
-    },
-    {
-      title: '分类',
-      dataIndex: 'category',
-      key: 'category',
-      width: 100,
-      render: (text) => (text ? <Tag color="blue">{text}</Tag> : '-'),
-    },
-    {
-      title: '配置',
-      key: 'config',
-      width: 200,
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <span>Android {record.androidVersion}</span>
-          <span style={{ fontSize: '12px', color: '#999' }}>
-            {record.cpuCores} 核 / {record.memoryMB}MB / {record.storageMB}MB
-          </span>
-        </Space>
-      ),
-    },
-    {
-      title: '标签',
-      dataIndex: 'tags',
-      key: 'tags',
-      width: 150,
-      render: (tags: string[]) =>
-        tags && tags.length > 0 ? (
-          <Space wrap>
-            {tags.map((tag) => (
-              <Tag key={tag} style={{ margin: 0 }}>
-                {tag}
-              </Tag>
-            ))}
-          </Space>
-        ) : (
-          '-'
-        ),
-    },
-    {
-      title: '使用次数',
-      dataIndex: 'usageCount',
-      key: 'usageCount',
-      width: 100,
-      align: 'center',
-      sorter: (a, b) => a.usageCount - b.usageCount,
-      render: (count) => <Badge count={count} showZero style={{ backgroundColor: '#52c41a' }} />,
-    },
-    {
-      title: '可见性',
-      dataIndex: 'isPublic',
-      key: 'isPublic',
-      width: 100,
-      align: 'center',
-      filters: [
-        { text: '公开', value: true },
-        { text: '私有', value: false },
-      ],
-      render: (isPublic) =>
-        isPublic ? (
-          <Tag icon={<UnlockOutlined />} color="success">
-            公开
-          </Tag>
-        ) : (
-          <Tag icon={<LockOutlined />} color="warning">
-            私有
-          </Tag>
-        ),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 180,
-      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 280,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="创建单个设备">
-            <Button
-              type="link"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => openCreateDeviceModal(record)}
-            >
-              创建设备
-            </Button>
-          </Tooltip>
-          <Tooltip title="批量创建设备">
-            <Button
-              type="link"
-              size="small"
-              icon={<AppstoreAddOutlined />}
-              onClick={() => openBatchCreateModal(record)}
-            >
-              批量创建
-            </Button>
-          </Tooltip>
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => openEditModal(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm title="确定要删除这个模板吗？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  // 使用 useMemo 优化表格列定义
+  const columns = useMemo(
+    () =>
+      createTemplateColumns({
+        onCreateDevice: openCreateDeviceModal,
+        onBatchCreate: openBatchCreateModal,
+        onEdit: openEditModal,
+        onDelete: handleDelete,
+      }),
+    []
+  );
 
   return (
     <div style={{ padding: '24px' }}>
-      <Card style={{ marginBottom: '16px' }}>
-        <Row gutter={16}>
-          <Col span={6}>
-            <Statistic title="总模板数" value={stats?.totalTemplates || 0} />
-          </Col>
-          <Col span={6}>
-            <Statistic
-              title="公开模板"
-              value={stats?.publicTemplates || 0}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Col>
-          <Col span={6}>
-            <Statistic
-              title="私有模板"
-              value={stats?.privateTemplates || 0}
-              valueStyle={{ color: '#cf1322' }}
-            />
-          </Col>
-          <Col span={6}>
-            <Statistic
-              title="总使用次数"
-              value={stats?.totalUsage || 0}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Col>
-        </Row>
-      </Card>
+      <TemplateStatsCard stats={stats} />
 
-      {popularTemplates.length > 0 && (
-        <Card
-          title={
-            <span>
-              <FireOutlined /> 热门模板
-            </span>
-          }
-          style={{ marginBottom: '16px' }}
-        >
-          <Space wrap>
-            {popularTemplates.map((template) => (
-              <Tag
-                key={template.id}
-                color="orange"
-                style={{ cursor: 'pointer', fontSize: '14px', padding: '4px 12px' }}
-                onClick={() => openCreateDeviceModal(template)}
-              >
-                {template.name} ({template.usageCount} 次使用)
-              </Tag>
-            ))}
-          </Space>
-        </Card>
-      )}
+      <PopularTemplatesCard templates={popularTemplates} onTemplateClick={openCreateDeviceModal} />
 
       <Card>
-        <Space style={{ marginBottom: '16px' }}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setCreateModalVisible(true)}
-          >
-            新建模板
-          </Button>
-          <Search
-            placeholder="搜索模板名称或描述"
-            allowClear
-            style={{ width: 300 }}
-            onSearch={(value) => setSearchKeyword(value)}
-          />
-          <Select
-            placeholder="选择分类"
-            allowClear
-            style={{ width: 150 }}
-            onChange={(value) => setCategoryFilter(value)}
-          >
-            <Option value="开发测试">开发测试</Option>
-            <Option value="游戏">游戏</Option>
-            <Option value="社交">社交</Option>
-            <Option value="办公">办公</Option>
-            <Option value="其他">其他</Option>
-          </Select>
-          <Select
-            placeholder="可见性"
-            allowClear
-            style={{ width: 120 }}
-            onChange={(value) => setIsPublicFilter(value)}
-          >
-            <Option value={true}>公开</Option>
-            <Option value={false}>私有</Option>
-          </Select>
-        </Space>
+        <TemplateFilterBar
+          onCreateClick={() => setCreateModalVisible(true)}
+          onSearch={setSearchKeyword}
+          onCategoryChange={setCategoryFilter}
+          onVisibilityChange={setIsPublicFilter}
+        />
 
-        <Table
+        <TemplateTable
           columns={columns}
           dataSource={templates}
-          rowKey="id"
           loading={loading}
-          scroll={{ x: 1400 }}
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: (page, pageSize) => {
-              setPage(page);
-              setPageSize(pageSize);
-            },
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={(page, pageSize) => {
+            setPage(page);
+            setPageSize(pageSize);
           }}
         />
       </Card>
 
-      {/* 创建模板模态框 */}
-      <Modal
-        title="新建设备模板"
-        open={createModalVisible}
+      <CreateTemplateModal
+        visible={createModalVisible}
+        form={form}
+        onOk={() => form.submit()}
         onCancel={() => {
           setCreateModalVisible(false);
           form.resetFields();
         }}
-        onOk={() => form.submit()}
-        width={700}
-      >
-        <Form form={form} onFinish={handleCreate} layout="vertical">
-          <Form.Item
-            label="模板名称"
-            name="name"
-            rules={[{ required: true, message: '请输入模板名称' }]}
-          >
-            <Input placeholder="请输入模板名称" />
-          </Form.Item>
-          <Form.Item label="模板描述" name="description">
-            <TextArea rows={3} placeholder="请输入模板描述" />
-          </Form.Item>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label="分类" name="category">
-                <Select placeholder="请选择分类">
-                  <Option value="开发测试">开发测试</Option>
-                  <Option value="游戏">游戏</Option>
-                  <Option value="社交">社交</Option>
-                  <Option value="办公">办公</Option>
-                  <Option value="其他">其他</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="可见性" name="isPublic" initialValue={true}>
-                <Select>
-                  <Option value={true}>公开（所有用户可见）</Option>
-                  <Option value={false}>私有（仅自己可见）</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Divider>设备配置</Divider>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Android 版本"
-                name="androidVersion"
-                rules={[{ required: true, message: '请输入 Android 版本' }]}
-                initialValue="11"
-              >
-                <Select>
-                  <Option value="9">Android 9</Option>
-                  <Option value="10">Android 10</Option>
-                  <Option value="11">Android 11</Option>
-                  <Option value="12">Android 12</Option>
-                  <Option value="13">Android 13</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="CPU 核心数"
-                name="cpuCores"
-                rules={[{ required: true, message: '请输入 CPU 核心数' }]}
-                initialValue={2}
-              >
-                <InputNumber min={1} max={8} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="内存 (MB)"
-                name="memoryMB"
-                rules={[{ required: true, message: '请输入内存大小' }]}
-                initialValue={2048}
-              >
-                <InputNumber min={512} max={16384} step={512} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="存储 (MB)"
-                name="storageMB"
-                rules={[{ required: true, message: '请输入存储大小' }]}
-                initialValue={8192}
-              >
-                <InputNumber min={1024} max={102400} step={1024} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item label="标签" name="tags">
-            <Select mode="tags" placeholder="输入标签后按回车添加" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      />
 
-      {/* 编辑模板模态框 */}
-      <Modal
-        title="编辑模板"
-        open={editModalVisible}
+      <EditTemplateModal
+        visible={editModalVisible}
+        form={editForm}
+        onOk={() => editForm.submit()}
         onCancel={() => {
           setEditModalVisible(false);
           editForm.resetFields();
           setSelectedTemplate(null);
         }}
-        onOk={() => editForm.submit()}
-      >
-        <Form form={editForm} onFinish={handleEdit} layout="vertical">
-          <Form.Item
-            label="模板名称"
-            name="name"
-            rules={[{ required: true, message: '请输入模板名称' }]}
-          >
-            <Input placeholder="请输入模板名称" />
-          </Form.Item>
-          <Form.Item label="模板描述" name="description">
-            <TextArea rows={3} placeholder="请输入模板描述" />
-          </Form.Item>
-          <Form.Item label="分类" name="category">
-            <Select placeholder="请选择分类">
-              <Option value="开发测试">开发测试</Option>
-              <Option value="游戏">游戏</Option>
-              <Option value="社交">社交</Option>
-              <Option value="办公">办公</Option>
-              <Option value="其他">其他</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item label="可见性" name="isPublic">
-            <Select>
-              <Option value={true}>公开（所有用户可见）</Option>
-              <Option value={false}>私有（仅自己可见）</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item label="标签" name="tags">
-            <Select mode="tags" placeholder="输入标签后按回车添加" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      />
 
-      {/* 创建设备模态框 */}
-      <Modal
-        title={`从模板创建设备: ${selectedTemplate?.name}`}
-        open={createDeviceModalVisible}
+      <CreateDeviceModal
+        visible={createDeviceModalVisible}
+        templateName={selectedTemplate?.name || ''}
+        form={createDeviceForm}
+        users={users}
+        onOk={() => createDeviceForm.submit()}
         onCancel={() => {
           setCreateDeviceModalVisible(false);
           createDeviceForm.resetFields();
           setSelectedTemplate(null);
         }}
-        onOk={() => createDeviceForm.submit()}
-      >
-        <Form form={createDeviceForm} onFinish={handleCreateDevice} layout="vertical">
-          <Form.Item label="设备名称" name="name">
-            <Input placeholder="留空将自动生成" />
-          </Form.Item>
-          <Form.Item
-            label="分配给用户"
-            name="userId"
-            rules={[{ required: true, message: '请选择用户' }]}
-          >
-            <Select
-              showSearch
-              placeholder="请选择用户"
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-              options={users.map((user) => ({
-                label: `${user.username} (${user.email})`,
-                value: user.id,
-              }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      />
 
-      {/* 批量创建设备模态框 */}
-      <Modal
-        title={`批量创建设备: ${selectedTemplate?.name}`}
-        open={batchCreateModalVisible}
+      <BatchCreateDeviceModal
+        visible={batchCreateModalVisible}
+        templateName={selectedTemplate?.name || ''}
+        form={batchCreateForm}
+        users={users}
+        onOk={() => batchCreateForm.submit()}
         onCancel={() => {
           setBatchCreateModalVisible(false);
           batchCreateForm.resetFields();
           setSelectedTemplate(null);
         }}
-        onOk={() => batchCreateForm.submit()}
-      >
-        <Form form={batchCreateForm} onFinish={handleBatchCreate} layout="vertical">
-          <Form.Item
-            label="创建数量"
-            name="count"
-            rules={[{ required: true, message: '请输入创建数量' }]}
-            initialValue={5}
-          >
-            <InputNumber min={1} max={50} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item
-            label="分配给用户"
-            name="userId"
-            rules={[{ required: true, message: '请选择用户' }]}
-          >
-            <Select
-              showSearch
-              placeholder="请选择用户"
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-              options={users.map((user) => ({
-                label: `${user.username} (${user.email})`,
-                value: user.id,
-              }))}
-            />
-          </Form.Item>
-          <Form.Item label="设备名称前缀" name="name">
-            <Input placeholder="留空将使用模板名称" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      />
     </div>
   );
 };

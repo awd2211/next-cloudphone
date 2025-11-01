@@ -47,6 +47,13 @@ import {
   UserStatusTag,
   UserRolesTags,
   UserEmailCell,
+  BalanceDisplay,
+  UserFilterPanel,
+  UserToolbar,
+  CreateUserModal,
+  EditUserModal,
+  BalanceModal,
+  ResetPasswordModal,
   STATUS_CONFIG,
 } from '@/components/User';
 
@@ -439,7 +446,7 @@ const UserList = () => {
         dataIndex: 'balance',
         key: 'balance',
         sorter: (a, b) => (a.balance || 0) - (b.balance || 0),
-        render: (balance: number) => `¥${(balance || 0).toFixed(2)}`,
+        render: (balance: number) => <BalanceDisplay balance={balance} />,
       },
       {
         title: '角色',
@@ -499,171 +506,26 @@ const UserList = () => {
       <h2>用户管理</h2>
 
       {/* 筛选栏 */}
-      <Card
-        size="small"
-        style={{ marginBottom: 16 }}
-        title={
-          <Space>
-            <FilterOutlined />
-            <span>筛选条件</span>
-            {hasFilters && <Tag color="blue">已应用筛选</Tag>}
-          </Space>
-        }
-        extra={
-          <Space>
-            {hasFilters && (
-              <Button size="small" onClick={handleClearFilters}>
-                清空
-              </Button>
-            )}
-            <Button
-              type="text"
-              size="small"
-              icon={filterExpanded ? <UpOutlined /> : <DownOutlined />}
-              onClick={() => setFilterExpanded(!filterExpanded)}
-            >
-              {filterExpanded ? '收起' : '展开'}
-            </Button>
-          </Space>
-        }
-      >
-        {filterExpanded && (
-          <Form form={filterForm} layout="vertical">
-            <Row gutter={16}>
-              <Col span={6}>
-                <Form.Item label="用户名" name="username">
-                  <Input
-                    placeholder="模糊搜索用户名"
-                    allowClear
-                    onChange={(e) => handleFilterChange('username', e.target.value)}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item label="邮箱" name="email">
-                  <Input
-                    placeholder="模糊搜索邮箱"
-                    allowClear
-                    onChange={(e) => handleFilterChange('email', e.target.value)}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item label="手机号" name="phone">
-                  <Input
-                    placeholder="模糊搜索手机号"
-                    allowClear
-                    onChange={(e) => handleFilterChange('phone', e.target.value)}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item label="状态" name="status">
-                  <Select
-                    placeholder="选择状态"
-                    allowClear
-                    onChange={(value) => handleFilterChange('status', value)}
-                    options={[
-                      { label: '正常', value: 'active' },
-                      { label: '未激活', value: 'inactive' },
-                      { label: '已封禁', value: 'banned' },
-                    ]}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={6}>
-                <Form.Item label="角色" name="roleId">
-                  <Select
-                    placeholder="选择角色"
-                    allowClear
-                    onChange={(value) => handleFilterChange('roleId', value)}
-                    options={roles.map((role) => ({
-                      label: role.name,
-                      value: role.id,
-                    }))}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item label="最小余额" name="minBalance">
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    placeholder="最小余额"
-                    min={0}
-                    precision={2}
-                    onChange={(value) => handleFilterChange('minBalance', value)}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item label="最大余额" name="maxBalance">
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    placeholder="最大余额"
-                    min={0}
-                    precision={2}
-                    onChange={(value) => handleFilterChange('maxBalance', value)}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item label="注册时间" name="dateRange">
-                  <DatePicker.RangePicker
-                    style={{ width: '100%' }}
-                    onChange={(dates) => {
-                      if (dates) {
-                        handleFilterChange('startDate', dates[0]?.format('YYYY-MM-DD'));
-                        handleFilterChange('endDate', dates[1]?.format('YYYY-MM-DD'));
-                      } else {
-                        handleFilterChange('startDate', undefined);
-                        handleFilterChange('endDate', undefined);
-                      }
-                    }}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form>
-        )}
-      </Card>
+      <UserFilterPanel
+        form={filterForm}
+        roles={roles}
+        filterExpanded={filterExpanded}
+        hasFilters={hasFilters}
+        onFilterChange={handleFilterChange}
+        onClearFilters={handleClearFilters}
+        onToggleExpanded={() => setFilterExpanded(!filterExpanded)}
+      />
 
       {/* 操作按钮栏 */}
-      <Space style={{ marginBottom: 16 }} wrap>
-        <PermissionGuard permission="user:create">
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setCreateModalVisible(true)}
-          >
-            创建用户
-          </Button>
-        </PermissionGuard>
-
-        <Button icon={<DownloadOutlined />} onClick={handleExport}>
-          导出
-        </Button>
-
-        <Button icon={<UploadOutlined />} onClick={handleImport}>
-          导入
-        </Button>
-
-        {selectedRowKeys.length > 0 && (
-          <>
-            <PermissionGuard permission="user:delete">
-              <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
-                批量删除 ({selectedRowKeys.length})
-              </Button>
-            </PermissionGuard>
-
-            <PermissionGuard permission="user:update">
-              <Button onClick={() => handleBatchUpdateStatus('active')}>批量启用</Button>
-              <Button onClick={() => handleBatchUpdateStatus('banned')}>批量封禁</Button>
-            </PermissionGuard>
-          </>
-        )}
-      </Space>
+      <UserToolbar
+        selectedCount={selectedRowKeys.length}
+        onCreateUser={() => setCreateModalVisible(true)}
+        onExport={handleExport}
+        onImport={handleImport}
+        onBatchDelete={handleBatchDelete}
+        onBatchActivate={() => handleBatchUpdateStatus('active')}
+        onBatchBan={() => handleBatchUpdateStatus('banned')}
+      />
 
       <Table
         columns={columns}
@@ -686,205 +548,60 @@ const UserList = () => {
       />
 
       {/* 创建用户Modal */}
-      <Modal
-        title="创建用户"
-        open={createModalVisible}
+      <CreateUserModal
+        visible={createModalVisible}
+        form={form}
+        roles={roles}
         onCancel={() => {
           setCreateModalVisible(false);
           form.resetFields();
         }}
-        onOk={() => form.submit()}
-        width={600}
-      >
-        <Form form={form} onFinish={handleCreate} layout="vertical">
-          <Form.Item
-            label="用户名"
-            name="username"
-            rules={[{ required: true, message: '请输入用户名' }]}
-          >
-            <Input placeholder="请输入用户名" />
-          </Form.Item>
-
-          <Form.Item
-            label="邮箱"
-            name="email"
-            rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' },
-            ]}
-          >
-            <Input placeholder="请输入邮箱" />
-          </Form.Item>
-
-          <Form.Item
-            label="密码"
-            name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
-          >
-            <Input.Password placeholder="请输入密码" />
-          </Form.Item>
-
-          <Form.Item label="手机号" name="phone">
-            <Input placeholder="请输入手机号" />
-          </Form.Item>
-
-          <Form.Item label="角色" name="roleIds">
-            <Select
-              mode="multiple"
-              placeholder="请选择角色"
-              options={roles.map((role) => ({
-                label: role.name,
-                value: role.id,
-              }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+        onFinish={handleCreate}
+      />
 
       {/* 编辑用户Modal */}
-      <Modal
-        title="编辑用户"
-        open={editModalVisible}
+      <EditUserModal
+        visible={editModalVisible}
+        form={editForm}
+        roles={roles}
+        selectedUser={selectedUser}
         onCancel={() => {
           setEditModalVisible(false);
           editForm.resetFields();
           setSelectedUser(null);
         }}
-        onOk={() => editForm.submit()}
-        width={600}
-      >
-        <Form form={editForm} onFinish={handleUpdate} layout="vertical">
-          <Form.Item label="用户名">
-            <Input value={selectedUser?.username} disabled />
-          </Form.Item>
-
-          <Form.Item
-            label="邮箱"
-            name="email"
-            rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' },
-            ]}
-          >
-            <Input placeholder="请输入邮箱" />
-          </Form.Item>
-
-          <Form.Item label="手机号" name="phone">
-            <Input placeholder="请输入手机号" />
-          </Form.Item>
-
-          <Form.Item label="状态" name="status">
-            <Select placeholder="请选择状态">
-              <Select.Option value="active">正常</Select.Option>
-              <Select.Option value="inactive">未激活</Select.Option>
-              <Select.Option value="banned">已封禁</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item label="角色" name="roleIds">
-            <Select
-              mode="multiple"
-              placeholder="请选择角色"
-              options={roles.map((role) => ({
-                label: role.name,
-                value: role.id,
-              }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+        onFinish={handleUpdate}
+      />
 
       {/* 余额操作Modal */}
-      <Modal
-        title={balanceType === 'recharge' ? '充值余额' : '扣减余额'}
-        open={balanceModalVisible}
+      <BalanceModal
+        visible={balanceModalVisible}
+        form={balanceForm}
+        balanceType={balanceType}
+        selectedUser={selectedUser}
+        error={balanceError}
         onCancel={() => {
           setBalanceModalVisible(false);
           setBalanceError(null);
           balanceForm.resetFields();
         }}
-        onOk={() => balanceForm.submit()}
-      >
-        {/* 余额操作错误提示 */}
-        {balanceError && (
-          <EnhancedErrorAlert
-            error={balanceError}
-            onClose={() => setBalanceError(null)}
-            onRetry={() => balanceForm.submit()}
-            style={{ marginBottom: 16 }}
-          />
-        )}
-
-        <Form form={balanceForm} onFinish={handleBalanceOperation} layout="vertical">
-          <Form.Item label="当前余额">
-            <Input value={`¥${(selectedUser?.balance || 0).toFixed(2)}`} disabled />
-          </Form.Item>
-
-          <Form.Item label="金额" name="amount" rules={[{ required: true, message: '请输入金额' }]}>
-            <InputNumber
-              min={0.01}
-              precision={2}
-              style={{ width: '100%' }}
-              placeholder="请输入金额"
-              prefix="¥"
-            />
-          </Form.Item>
-
-          {balanceType === 'deduct' && (
-            <Form.Item label="原因" name="reason">
-              <Input.TextArea placeholder="请输入扣减原因" rows={3} />
-            </Form.Item>
-          )}
-        </Form>
-      </Modal>
+        onFinish={handleBalanceOperation}
+        onClearError={() => setBalanceError(null)}
+        onRetry={() => balanceForm.submit()}
+      />
 
       {/* 重置密码Modal */}
-      <Modal
-        title="重置密码"
-        open={resetPasswordModalVisible}
+      <ResetPasswordModal
+        visible={resetPasswordModalVisible}
+        form={resetPasswordForm}
+        selectedUser={selectedUser}
         onCancel={() => {
           setResetPasswordModalVisible(false);
           resetPasswordForm.resetFields();
           setSelectedUser(null);
         }}
-        onOk={() => resetPasswordForm.submit()}
-      >
-        <Form form={resetPasswordForm} onFinish={handleResetPassword} layout="vertical">
-          <Form.Item label="用户">
-            <Input value={selectedUser?.username} disabled />
-          </Form.Item>
-
-          <Form.Item
-            label="新密码"
-            name="newPassword"
-            rules={[
-              { required: true, message: '请输入新密码' },
-              { min: 6, message: '密码至少6位' },
-            ]}
-          >
-            <Input.Password placeholder="请输入新密码" />
-          </Form.Item>
-
-          <Form.Item
-            label="确认密码"
-            name="confirmPassword"
-            dependencies={['newPassword']}
-            rules={[
-              { required: true, message: '请确认新密码' },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('newPassword') === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error('两次输入的密码不一致'));
-                },
-              }),
-            ]}
-          >
-            <Input.Password placeholder="请再次输入新密码" />
-          </Form.Item>
-        </Form>
-      </Modal>
+        onFinish={handleResetPassword}
+      />
     </div>
   );
 };
