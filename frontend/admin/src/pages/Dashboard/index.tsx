@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Alert, Tag } from 'antd';
+import { Row, Col, Card, Alert, Tag } from 'antd';
 import {
   MobileOutlined,
   UserOutlined,
@@ -22,6 +22,9 @@ import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useRole } from '@/hooks/useRole';
 import { RoleGuard } from '@/hooks/useRole';
 import dayjs from 'dayjs';
+
+// ✅ 导入优化的子组件（React.memo）
+import { StatCard } from '@/components/Dashboard';
 
 const Dashboard = () => {
   const { isAdmin, roleDisplayName, roleColor } = useRole();
@@ -147,95 +150,87 @@ const Dashboard = () => {
       <Row gutter={[16, 16]}>
         {/* 设备统计 - 所有用户可见 */}
         <Col xs={24} sm={12} lg={6}>
-          <Card loading={statsLoading}>
-            <Statistic
-              title={isAdmin ? '总设备数' : '我的设备'}
-              value={stats?.totalDevices || 0}
-              prefix={<MobileOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
+          <StatCard
+            title={isAdmin ? '总设备数' : '我的设备'}
+            value={stats?.totalDevices || 0}
+            icon={<MobileOutlined />}
+            color="#3f8600"
+            loading={statsLoading}
+          />
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card loading={statsLoading}>
-            <Statistic
-              title="在线设备"
-              value={stats?.onlineDevices || 0}
-              prefix={<CloudServerOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
+          <StatCard
+            title="在线设备"
+            value={stats?.onlineDevices || 0}
+            icon={<CloudServerOutlined />}
+            color="#1890ff"
+            loading={statsLoading}
+          />
         </Col>
 
         {/* 用户统计 - 仅管理员可见 */}
         <RoleGuard adminOnly>
           <Col xs={24} sm={12} lg={6}>
-            <Card loading={statsLoading}>
-              <Statistic
-                title="用户总数"
-                value={stats?.totalUsers || 0}
-                prefix={<UserOutlined />}
-              />
-            </Card>
+            <StatCard
+              title="用户总数"
+              value={stats?.totalUsers || 0}
+              icon={<UserOutlined />}
+              loading={statsLoading}
+            />
           </Col>
         </RoleGuard>
 
         {/* 应用统计 - 仅管理员可见 */}
         <RoleGuard adminOnly>
           <Col xs={24} sm={12} lg={6}>
-            <Card loading={statsLoading}>
-              <Statistic
-                title="应用总数"
-                value={stats?.totalApps || 0}
-                prefix={<AppstoreOutlined />}
-              />
-            </Card>
+            <StatCard
+              title="应用总数"
+              value={stats?.totalApps || 0}
+              icon={<AppstoreOutlined />}
+              loading={statsLoading}
+            />
           </Col>
         </RoleGuard>
 
         {/* 收入统计 - 仅管理员可见 */}
         <RoleGuard adminOnly>
           <Col xs={24} sm={12} lg={6}>
-            <Card loading={statsLoading}>
-              <Statistic
-                title="今日收入"
-                value={stats?.todayRevenue || 0}
-                prefix="¥"
-                precision={2}
-                valueStyle={{ color: '#cf1322' }}
-              />
-            </Card>
+            <StatCard
+              title="今日收入"
+              value={stats?.todayRevenue || 0}
+              prefix="¥"
+              precision={2}
+              color="#cf1322"
+              loading={statsLoading}
+            />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card loading={statsLoading}>
-              <Statistic
-                title="本月收入"
-                value={stats?.monthRevenue || 0}
-                prefix="¥"
-                precision={2}
-                valueStyle={{ color: '#cf1322' }}
-              />
-            </Card>
+            <StatCard
+              title="本月收入"
+              value={stats?.monthRevenue || 0}
+              prefix="¥"
+              precision={2}
+              color="#cf1322"
+              loading={statsLoading}
+            />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card loading={statsLoading}>
-              <Statistic
-                title="今日订单"
-                value={stats?.todayOrders || 0}
-                prefix={<ShoppingOutlined />}
-                valueStyle={{ color: '#faad14' }}
-              />
-            </Card>
+            <StatCard
+              title="今日订单"
+              value={stats?.todayOrders || 0}
+              icon={<ShoppingOutlined />}
+              color="#faad14"
+              loading={statsLoading}
+            />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card loading={statsLoading}>
-              <Statistic
-                title="本月订单"
-                value={stats?.monthOrders || 0}
-                prefix={<ShoppingOutlined />}
-                valueStyle={{ color: '#faad14' }}
-              />
-            </Card>
+            <StatCard
+              title="本月订单"
+              value={stats?.monthOrders || 0}
+              icon={<ShoppingOutlined />}
+              color="#faad14"
+              loading={statsLoading}
+            />
           </Col>
         </RoleGuard>
       </Row>

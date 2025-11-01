@@ -60,6 +60,13 @@ import type {
   LifecycleStats,
   PaginationParams,
 } from '@/types';
+import {
+  LifecycleTypeTag,
+  LifecycleStatusTag,
+  LifecycleExecutionStats,
+  LifecycleRuleToggle,
+  LifecycleRuleActions,
+} from '@/components/Lifecycle';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -298,33 +305,8 @@ const LifecycleDashboard = () => {
     setHistoryDetailVisible(true);
   };
 
-  // 获取类型标签
-  const getTypeTag = (type: string) => {
-    const typeMap: Record<string, { color: string; text: string; icon: JSX.Element }> = {
-      cleanup: { color: 'orange', text: '自动清理', icon: <CloseCircleOutlined /> },
-      autoscaling: { color: 'blue', text: '自动扩缩', icon: <ThunderboltOutlined /> },
-      backup: { color: 'green', text: '自动备份', icon: <SyncOutlined /> },
-      'expiration-warning': { color: 'gold', text: '到期提醒', icon: <ClockCircleOutlined /> },
-    };
-    const config = typeMap[type] || typeMap.cleanup;
-    return (
-      <Tag color={config.color} icon={config.icon}>
-        {config.text}
-      </Tag>
-    );
-  };
-
-  // 获取状态标签
-  const getStatusTag = (status: string) => {
-    const statusMap: Record<string, { color: string; text: string }> = {
-      running: { color: 'processing', text: '执行中' },
-      success: { color: 'success', text: '成功' },
-      failed: { color: 'error', text: '失败' },
-      partial: { color: 'warning', text: '部分成功' },
-    };
-    const config = statusMap[status] || statusMap.failed;
-    return <Tag color={config.color}>{config.text}</Tag>;
-  };
+  // ✅ getTypeTag 和 getStatusTag 函数已提取为独立组件
+  // 使用 LifecycleTypeTag 和 LifecycleStatusTag 替代
 
   // 渲染配置表单
   const renderConfigForm = (type: string) => {
@@ -465,7 +447,7 @@ const LifecycleDashboard = () => {
       dataIndex: 'type',
       key: 'type',
       width: 120,
-      render: (type) => getTypeTag(type),
+      render: (type) => <LifecycleTypeTag type={type} />,
     },
     {
       title: '状态',
@@ -473,12 +455,7 @@ const LifecycleDashboard = () => {
       key: 'enabled',
       width: 100,
       render: (enabled, record) => (
-        <Switch
-          checked={enabled}
-          checkedChildren="启用"
-          unCheckedChildren="禁用"
-          onChange={(checked) => handleToggle(record.id, checked)}
-        />
+        <LifecycleRuleToggle ruleId={record.id} enabled={enabled} onToggle={handleToggle} />
       ),
     },
     {
@@ -501,14 +478,10 @@ const LifecycleDashboard = () => {
       key: 'execution',
       width: 150,
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <span>已执行: {record.executionCount} 次</span>
-          {record.lastExecutedAt && (
-            <span style={{ fontSize: '12px', color: '#8c8c8c' }}>
-              上次: {dayjs(record.lastExecutedAt).format('MM-DD HH:mm')}
-            </span>
-          )}
-        </Space>
+        <LifecycleExecutionStats
+          executionCount={record.executionCount}
+          lastExecutedAt={record.lastExecutedAt}
+        />
       ),
     },
     {
@@ -531,38 +504,13 @@ const LifecycleDashboard = () => {
       width: 260,
       fixed: 'right',
       render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<PlayCircleOutlined />}
-            onClick={() => handleExecute(record.id, record.name)}
-            disabled={!record.enabled}
-          >
-            执行
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<ExperimentOutlined />}
-            onClick={() => handleTest(record.id, record.name)}
-          >
-            测试
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => openModal(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm title="确定删除此规则？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
+        <LifecycleRuleActions
+          rule={record}
+          onExecute={handleExecute}
+          onTest={handleTest}
+          onEdit={openModal}
+          onDelete={handleDelete}
+        />
       ),
     },
   ];
@@ -579,7 +527,7 @@ const LifecycleDashboard = () => {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status) => getStatusTag(status),
+      render: (status) => <LifecycleStatusTag status={status} />,
     },
     {
       title: '开始时间',
@@ -878,7 +826,7 @@ const LifecycleDashboard = () => {
                 {selectedHistory.ruleName}
               </Descriptions.Item>
               <Descriptions.Item label="状态">
-                {getStatusTag(selectedHistory.status)}
+                <LifecycleStatusTag status={selectedHistory.status} />
               </Descriptions.Item>
               <Descriptions.Item label="触发方式">
                 {selectedHistory.executedBy === 'manual' ? '手动' : '自动'}

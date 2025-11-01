@@ -54,6 +54,12 @@ import {
   type CreateNodeDto,
   type UpdateNodeDto,
 } from '@/services/scheduler';
+import {
+  NodeStatusTag,
+  ResourceUsageProgress,
+  NodeDeviceCount,
+  NodeActions,
+} from '@/components/Scheduler';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -242,20 +248,8 @@ const SchedulerDashboard = () => {
   };
 
   // 获取状态标签
-  const getStatusTag = (status: string) => {
-    const statusMap: Record<string, { color: string; icon: JSX.Element }> = {
-      online: { color: 'success', icon: <CheckCircleOutlined /> },
-      offline: { color: 'error', icon: <CloseCircleOutlined /> },
-      maintenance: { color: 'warning', icon: <ToolOutlined /> },
-      draining: { color: 'processing', icon: <WarningOutlined /> },
-    };
-    const config = statusMap[status] || statusMap.offline;
-    return (
-      <Tag color={config.color} icon={config.icon}>
-        {status}
-      </Tag>
-    );
-  };
+  // ✅ getStatusTag 函数已提取为独立组件
+  // 使用 NodeStatusTag 替代
 
   const nodeColumns: ColumnsType<SchedulerNode> = [
     {
@@ -285,43 +279,32 @@ const SchedulerDashboard = () => {
       dataIndex: 'status',
       key: 'status',
       width: 120,
-      render: (status) => getStatusTag(status),
+      render: (status) => <NodeStatusTag status={status} />,
     },
     {
       title: 'CPU使用率',
       key: 'cpuUsage',
       width: 150,
-      render: (_, record) => {
-        const percent = (record.usage.cpu / record.capacity.cpu) * 100;
-        return (
-          <Tooltip title={`${record.usage.cpu}/${record.capacity.cpu} 核`}>
-            <Progress
-              percent={Math.round(percent)}
-              size="small"
-              status={percent > 80 ? 'exception' : percent > 60 ? 'normal' : 'success'}
-            />
-          </Tooltip>
-        );
-      },
+      render: (_, record) => (
+        <ResourceUsageProgress
+          type="cpu"
+          usage={record.usage.cpu}
+          capacity={record.capacity.cpu}
+        />
+      ),
     },
     {
       title: '内存使用率',
       key: 'memoryUsage',
       width: 150,
-      render: (_, record) => {
-        const percent = (record.usage.memory / record.capacity.memory) * 100;
-        return (
-          <Tooltip
-            title={`${(record.usage.memory / 1024).toFixed(1)}/${(record.capacity.memory / 1024).toFixed(1)} GB`}
-          >
-            <Progress
-              percent={Math.round(percent)}
-              size="small"
-              status={percent > 80 ? 'exception' : percent > 60 ? 'normal' : 'success'}
-            />
-          </Tooltip>
-        );
-      },
+      render: (_, record) => (
+        <ResourceUsageProgress
+          type="memory"
+          usage={record.usage.memory}
+          capacity={record.capacity.memory}
+          isMemoryInGB
+        />
+      ),
     },
     {
       title: '设备数',
@@ -329,9 +312,10 @@ const SchedulerDashboard = () => {
       width: 120,
       align: 'center',
       render: (_, record) => (
-        <span>
-          {record.usage.deviceCount}/{record.capacity.maxDevices}
-        </span>
+        <NodeDeviceCount
+          deviceCount={record.usage.deviceCount}
+          maxDevices={record.capacity.maxDevices}
+        />
       ),
     },
     {
@@ -347,48 +331,13 @@ const SchedulerDashboard = () => {
       width: 240,
       fixed: 'right',
       render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => openNodeModal(record)}
-          >
-            编辑
-          </Button>
-          {record.status === 'online' && (
-            <Button
-              type="link"
-              size="small"
-              icon={<ToolOutlined />}
-              onClick={() => handleToggleMaintenance(record.id, true)}
-            >
-              维护
-            </Button>
-          )}
-          {record.status === 'maintenance' && (
-            <Button
-              type="link"
-              size="small"
-              onClick={() => handleToggleMaintenance(record.id, false)}
-            >
-              恢复
-            </Button>
-          )}
-          <Popconfirm
-            title="排空节点将迁移所有设备，确定继续？"
-            onConfirm={() => handleDrainNode(record.id)}
-          >
-            <Button type="link" size="small" danger icon={<WarningOutlined />}>
-              排空
-            </Button>
-          </Popconfirm>
-          <Popconfirm title="确定删除此节点？" onConfirm={() => handleDeleteNode(record.id)}>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
+        <NodeActions
+          node={record}
+          onEdit={openNodeModal}
+          onToggleMaintenance={handleToggleMaintenance}
+          onDrain={handleDrainNode}
+          onDelete={handleDeleteNode}
+        />
       ),
     },
   ];
@@ -752,7 +701,7 @@ const SchedulerDashboard = () => {
             <Descriptions.Item label="区域">{selectedNode.region || '-'}</Descriptions.Item>
             <Descriptions.Item label="可用区">{selectedNode.zone || '-'}</Descriptions.Item>
             <Descriptions.Item label="状态" span={2}>
-              {getStatusTag(selectedNode.status)}
+              <NodeStatusTag status={selectedNode.status} />
             </Descriptions.Item>
             <Descriptions.Item label="CPU 容量">{selectedNode.capacity.cpu} 核</Descriptions.Item>
             <Descriptions.Item label="CPU 使用">

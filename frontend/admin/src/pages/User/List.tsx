@@ -18,16 +18,10 @@ import {
 } from 'antd';
 import {
   PlusOutlined,
-  DollarOutlined,
-  MinusOutlined,
-  EditOutlined,
-  KeyOutlined,
   DownloadOutlined,
   UploadOutlined,
   FilterOutlined,
   DeleteOutlined,
-  EyeOutlined,
-  EyeInvisibleOutlined,
   DownOutlined,
   UpOutlined,
 } from '@ant-design/icons';
@@ -46,6 +40,15 @@ import * as userService from '@/services/user';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { EnhancedErrorAlert, type EnhancedError } from '@/components/EnhancedErrorAlert';
 import { PermissionGuard } from '@/hooks/usePermission';
+
+// ✅ 导入优化的子组件（React.memo）
+import {
+  UserActions,
+  UserStatusTag,
+  UserRolesTags,
+  UserEmailCell,
+  STATUS_CONFIG,
+} from '@/components/User';
 
 /**
  * 用户列表页面（优化版 - 使用 React Query）
@@ -117,16 +120,6 @@ const UserList = () => {
 
   const users = data?.data || [];
   const total = data?.total || 0;
-
-  // ✅ useMemo 优化状态映射
-  const statusMap = useMemo(
-    () => ({
-      active: { color: 'green', text: '正常' },
-      inactive: { color: 'default', text: '未激活' },
-      banned: { color: 'red', text: '已封禁' },
-    }),
-    []
-  );
 
   // ✅ useCallback 优化事件处理函数
   const handleCreate = useCallback(
@@ -399,16 +392,6 @@ const UserList = () => {
     });
   }, []);
 
-  // 邮箱脱敏函数
-  const maskEmail = useCallback((email: string | undefined) => {
-    if (!email) return '';
-    const [username, domain] = email.split('@');
-    if (!domain) return email;
-    const visiblePart = username.slice(0, 3);
-    const maskedPart = '*'.repeat(Math.max(0, username.length - 3));
-    return `${visiblePart}${maskedPart}@${domain}`;
-  }, []);
-
   // 表格行选择配置
   const rowSelection: TableRowSelection<User> = {
     selectedRowKeys,
@@ -436,21 +419,14 @@ const UserList = () => {
         dataIndex: 'email',
         key: 'email',
         sorter: (a, b) => (a.email || '').localeCompare(b.email || ''),
-        render: (email: string, record: User) => {
-          const isVisible = visibleEmails.has(record.id);
-          return (
-            <Space>
-              <span>{isVisible ? email : maskEmail(email)}</span>
-              <Button
-                type="link"
-                size="small"
-                icon={isVisible ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                onClick={() => toggleEmailVisibility(record.id)}
-                style={{ padding: 0 }}
-              />
-            </Space>
-          );
-        },
+        // ✅ 使用 memo 化的 UserEmailCell 组件
+        render: (email: string, record: User) => (
+          <UserEmailCell
+            email={email}
+            isVisible={visibleEmails.has(record.id)}
+            onToggleVisibility={() => toggleEmailVisibility(record.id)}
+          />
+        ),
       },
       {
         title: '手机号',
@@ -469,25 +445,16 @@ const UserList = () => {
         title: '角色',
         dataIndex: 'roles',
         key: 'roles',
-        render: (roles: any[]) => (
-          <>
-            {roles?.map((role) => (
-              <Tag key={role.id} color="blue">
-                {role.name}
-              </Tag>
-            ))}
-          </>
-        ),
+        // ✅ 使用 memo 化的 UserRolesTags 组件
+        render: (roles: any[]) => <UserRolesTags roles={roles} />,
       },
       {
         title: '状态',
         dataIndex: 'status',
         key: 'status',
         sorter: (a, b) => a.status.localeCompare(b.status),
-        render: (status: string) => {
-          const config = statusMap[status] || { color: 'default', text: status };
-          return <Tag color={config.color}>{config.text}</Tag>;
-        },
+        // ✅ 使用 memo 化的 UserStatusTag 组件
+        render: (status: string) => <UserStatusTag status={status as any} />,
       },
       {
         title: '创建时间',
@@ -501,93 +468,28 @@ const UserList = () => {
         key: 'action',
         width: 250,
         fixed: 'right',
+        // ✅ 使用 memo 化的 UserActions 组件
         render: (_, record) => (
-          <Space size="small">
-            <PermissionGuard permission="user:update">
-              <Button
-                type="link"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => handleEdit(record)}
-              >
-                编辑
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                icon={<KeyOutlined />}
-                onClick={() => openResetPassword(record)}
-              >
-                重置密码
-              </Button>
-            </PermissionGuard>
-
-            <PermissionGuard permission="billing:manage">
-              <Button
-                type="link"
-                size="small"
-                icon={<DollarOutlined />}
-                onClick={() => openRecharge(record)}
-              >
-                充值
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                icon={<MinusOutlined />}
-                onClick={() => openDeduct(record)}
-              >
-                扣减
-              </Button>
-            </PermissionGuard>
-
-            <PermissionGuard permission="user:update">
-              {record.status === 'active' && (
-                <Button
-                  type="link"
-                  size="small"
-                  danger
-                  onClick={() => handleUpdateStatus(record.id, 'banned')}
-                >
-                  封禁
-                </Button>
-              )}
-              {record.status === 'banned' && (
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => handleUpdateStatus(record.id, 'active')}
-                >
-                  解封
-                </Button>
-              )}
-            </PermissionGuard>
-
-            <PermissionGuard permission="user:delete">
-              <Popconfirm
-                title="确定要删除这个用户吗?"
-                onConfirm={() => handleDelete(record.id)}
-                okText="确定"
-                cancelText="取消"
-              >
-                <Button type="link" size="small" danger>
-                  删除
-                </Button>
-              </Popconfirm>
-            </PermissionGuard>
-          </Space>
+          <UserActions
+            user={record}
+            onEdit={handleEdit}
+            onResetPassword={openResetPassword}
+            onRecharge={openRecharge}
+            onDeduct={openDeduct}
+            onUpdateStatus={handleUpdateStatus}
+            onDelete={handleDelete}
+          />
         ),
       },
     ],
     [
-      statusMap,
+      handleEdit,
+      openResetPassword,
       openRecharge,
       openDeduct,
-      handleEdit,
       handleUpdateStatus,
       handleDelete,
       visibleEmails,
-      maskEmail,
       toggleEmailVisibility,
     ]
   );

@@ -18,12 +18,9 @@ import {
   InputNumber,
 } from 'antd';
 import {
-  EyeOutlined,
-  CloseCircleOutlined,
   SearchOutlined,
   DownloadOutlined,
   DownOutlined,
-  DollarOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
@@ -32,6 +29,15 @@ import type { Order } from '@/types';
 import dayjs from 'dayjs';
 import { exportToExcel, exportToCSV } from '@/utils/export';
 import { useOrders, useCancelOrder, useRefundOrder } from '@/hooks/useOrders';
+
+// ✅ 导入优化的子组件（React.memo）
+import {
+  OrderActions,
+  OrderStatusTag,
+  PaymentMethodTag,
+  STATUS_CONFIG,
+  PAYMENT_METHOD_MAP,
+} from '@/components/Order';
 
 const { Search } = Input;
 const { RangePicker } = DatePicker;
@@ -121,28 +127,15 @@ const OrderList = () => {
     [selectedRowKeys]
   );
 
-  // ✅ useMemo 优化导出数据生成
+  // ✅ useMemo 优化导出数据生成（使用导入的配置对象）
   const exportData = useMemo(() => {
-    const paymentMethodMap: Record<string, string> = {
-      wechat: '微信支付',
-      alipay: '支付宝',
-      balance: '余额支付',
-    };
-    const statusMap: Record<string, string> = {
-      pending: '待支付',
-      paid: '已支付',
-      cancelled: '已取消',
-      refunded: '已退款',
-      expired: '已过期',
-    };
-
     return orders.map((order) => ({
       订单号: order.orderNo,
       用户: order.user?.username || '-',
       套餐: order.plan?.name || '-',
       金额: order.amount,
-      支付方式: paymentMethodMap[order.paymentMethod] || '-',
-      状态: statusMap[order.status] || order.status,
+      支付方式: PAYMENT_METHOD_MAP[order.paymentMethod as keyof typeof PAYMENT_METHOD_MAP] || '-',
+      状态: STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG]?.text || order.status,
       创建时间: dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss'),
       支付时间: order.paidAt ? dayjs(order.paidAt).format('YYYY-MM-DD HH:mm:ss') : '-',
     }));
@@ -188,27 +181,6 @@ const OrderList = () => {
     setRefundAmount(0);
     setRefundReason('');
   }, [selectedOrder, refundAmount, refundReason, refundMutation]);
-
-  // ✅ useMemo 优化映射对象
-  const paymentMethodMap = useMemo(
-    () => ({
-      wechat: '微信支付',
-      alipay: '支付宝',
-      balance: '余额支付',
-    }),
-    []
-  );
-
-  const statusMap = useMemo(
-    () => ({
-      pending: { color: 'orange', text: '待支付' },
-      paid: { color: 'green', text: '已支付' },
-      cancelled: { color: 'default', text: '已取消' },
-      refunded: { color: 'red', text: '已退款' },
-      expired: { color: 'default', text: '已过期' },
-    }),
-    []
-  );
 
   const handleViewDetail = useCallback((record: Order) => {
     setSelectedOrder(record);
@@ -263,17 +235,16 @@ const OrderList = () => {
         dataIndex: 'paymentMethod',
         key: 'paymentMethod',
         sorter: (a, b) => (a.paymentMethod || '').localeCompare(b.paymentMethod || ''),
-        render: (method: string) => paymentMethodMap[method] || '-',
+        // ✅ 使用 memo 化的 PaymentMethodTag 组件
+        render: (method: string) => <PaymentMethodTag method={method as any} />,
       },
       {
         title: '状态',
         dataIndex: 'status',
         key: 'status',
         sorter: (a, b) => a.status.localeCompare(b.status),
-        render: (status: string) => {
-          const config = statusMap[status] || { color: 'default', text: status };
-          return <Tag color={config.color}>{config.text}</Tag>;
-        },
+        // ✅ 使用 memo 化的 OrderStatusTag 组件
+        render: (status: string) => <OrderStatusTag status={status as any} />,
       },
       {
         title: '创建时间',
@@ -298,42 +269,18 @@ const OrderList = () => {
         key: 'action',
         width: 200,
         fixed: 'right',
+        // ✅ 使用 memo 化的 OrderActions 组件
         render: (_, record) => (
-          <Space size="small">
-            <Button
-              type="link"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewDetail(record)}
-            >
-              详情
-            </Button>
-            {record.status === 'pending' && (
-              <Button
-                type="link"
-                size="small"
-                danger
-                icon={<CloseCircleOutlined />}
-                onClick={() => handleOpenCancel(record)}
-              >
-                取消
-              </Button>
-            )}
-            {record.status === 'paid' && (
-              <Button
-                type="link"
-                size="small"
-                icon={<DollarOutlined />}
-                onClick={() => handleOpenRefund(record)}
-              >
-                退款
-              </Button>
-            )}
-          </Space>
+          <OrderActions
+            order={record}
+            onViewDetail={handleViewDetail}
+            onCancel={handleOpenCancel}
+            onRefund={handleOpenRefund}
+          />
         ),
       },
     ],
-    [paymentMethodMap, statusMap, handleViewDetail, handleOpenCancel, handleOpenRefund]
+    [handleViewDetail, handleOpenCancel, handleOpenRefund]
   );
 
   return (

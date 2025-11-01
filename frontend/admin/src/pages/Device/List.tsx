@@ -42,6 +42,9 @@ import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useRole } from '@/hooks/useRole';
 import { PermissionGuard } from '@/hooks/usePermission';
 
+// ✅ 导入优化的子组件（React.memo）
+import { DeviceActions, DeviceStatusTag, STATUS_CONFIG } from '@/components/Device';
+
 // ✅ 使用 React Query hooks
 import {
   useDevices,
@@ -275,24 +278,13 @@ const DeviceList = () => {
     });
   }, [selectedRowKeys, executeBatchOperation]);
 
-  // ✅ 使用 useMemo 优化状态映射（避免每次渲染都重新创建）
-  const statusMap = useMemo(
-    () => ({
-      idle: { color: 'default', text: '空闲' },
-      running: { color: 'green', text: '运行中' },
-      stopped: { color: 'red', text: '已停止' },
-      error: { color: 'error', text: '错误' },
-    }),
-    []
-  );
-
-  // ✅ 使用 useMemo 优化导出数据转换
+  // ✅ 使用 useMemo 优化导出数据转换（使用 STATUS_CONFIG 代替本地 statusMap）
   const exportData = useMemo(
     () =>
       devices.map((device) => ({
         设备ID: device.id,
         设备名称: device.name,
-        状态: statusMap[device.status as keyof typeof statusMap]?.text || device.status,
+        状态: STATUS_CONFIG[device.status as keyof typeof STATUS_CONFIG]?.text || device.status,
         Android版本: device.androidVersion,
         CPU核心数: device.cpuCores,
         '内存(MB)': device.memoryMB,
@@ -301,7 +293,7 @@ const DeviceList = () => {
         VNC端口: device.vncPort || '-',
         创建时间: dayjs(device.createdAt).format('YYYY-MM-DD HH:mm:ss'),
       })),
-    [devices, statusMap]
+    [devices]
   );
 
   // ✅ 使用 useCallback 优化导出函数
@@ -372,13 +364,8 @@ const DeviceList = () => {
         dataIndex: 'status',
         key: 'status',
         width: 100,
-        render: (status: string) => {
-          const config = statusMap[status as keyof typeof statusMap] || {
-            color: 'default',
-            text: status,
-          };
-          return <Tag color={config.color}>{config.text}</Tag>;
-        },
+        // ✅ 使用 memo 化的 DeviceStatusTag 组件
+        render: (status: string) => <DeviceStatusTag status={status as any} />,
         responsive: ['md'],
       },
       {
@@ -425,78 +412,29 @@ const DeviceList = () => {
         key: 'actions',
         width: 250,
         fixed: 'right',
+        // ✅ 使用 memo 化的 DeviceActions 组件
         render: (_: any, record: Device) => (
-          <Space size="small">
-            <Button
-              type="link"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => navigate(`/devices/${record.id}`)}
-            >
-              详情
-            </Button>
-
-            {record.status !== 'running' ? (
-              <Button
-                type="link"
-                size="small"
-                icon={<PlayCircleOutlined />}
-                onClick={() => handleStart(record.id)}
-                loading={startDeviceMutation.isPending}
-              >
-                启动
-              </Button>
-            ) : (
-              <Button
-                type="link"
-                size="small"
-                icon={<StopOutlined />}
-                onClick={() => handleStop(record.id)}
-                loading={stopDeviceMutation.isPending}
-              >
-                停止
-              </Button>
-            )}
-
-            <Button
-              type="link"
-              size="small"
-              icon={<ReloadOutlined />}
-              onClick={() => handleReboot(record.id)}
-              loading={rebootDeviceMutation.isPending}
-            >
-              重启
-            </Button>
-
-            <PermissionGuard permission="device.delete">
-              <Popconfirm
-                title="确定删除该设备？"
-                onConfirm={() => handleDelete(record.id)}
-                okText="确定"
-                cancelText="取消"
-              >
-                <Button
-                  type="link"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  loading={deleteDeviceMutation.isPending}
-                >
-                  删除
-                </Button>
-              </Popconfirm>
-            </PermissionGuard>
-          </Space>
+          <DeviceActions
+            device={record}
+            onStart={handleStart}
+            onStop={handleStop}
+            onReboot={handleReboot}
+            onDelete={handleDelete}
+            loading={{
+              start: startDeviceMutation.isPending,
+              stop: stopDeviceMutation.isPending,
+              reboot: rebootDeviceMutation.isPending,
+              delete: deleteDeviceMutation.isPending,
+            }}
+          />
         ),
       },
     ],
     [
-      navigate,
       handleStart,
       handleStop,
       handleReboot,
       handleDelete,
-      statusMap,
       startDeviceMutation.isPending,
       stopDeviceMutation.isPending,
       rebootDeviceMutation.isPending,
