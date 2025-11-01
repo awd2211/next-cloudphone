@@ -244,7 +244,7 @@ export class HuaweiProvider implements IDeviceProvider {
    */
   getCapabilities(): DeviceCapabilities {
     return {
-      supportsAdb: false, // 华为云手机不直接支持 ADB
+      supportsAdb: true, // ✅ 支持 ADB 命令执行
       supportsScreenCapture: true,
       supportsAudioCapture: true,
       supportedCaptureFormats: [CaptureFormat.WEBRTC], // 华为使用 WebRTC
@@ -254,8 +254,8 @@ export class HuaweiProvider implements IDeviceProvider {
       },
       supportsTouchControl: true, // 通过 WebRTC 控制
       supportsKeyboardInput: true,
-      supportsFileTransfer: false, // 需要通过华为云存储
-      supportsAppInstall: false, // 需要通过预装镜像
+      supportsFileTransfer: true, // ✅ 支持通过 OBS 文件传输 (tar 格式)
+      supportsAppInstall: true, // ✅ 支持通过 OBS 批量安装 APK
       supportsScreenshot: true,
       supportsRecording: false,
       supportsLocationMocking: true,
@@ -295,26 +295,174 @@ export class HuaweiProvider implements IDeviceProvider {
     throw new NotImplementedException('Text input should be sent via Huawei WebRTC channel');
   }
 
-  async installApp(deviceId: string, options: AppInstallOptions): Promise<void> {
-    throw new NotImplementedException(
-      'App installation requires pre-configured image or Huawei app market'
-    );
+  /**
+   * 安装应用
+   *
+   * 使用华为云 OBS 批量安装 APK
+   * APK 必须先上传到 OBS 存储桶
+   *
+   * @param deviceId 设备 ID
+   * @param options 安装选项
+   * @returns Job ID 用于查询安装进度
+   */
+  async installApp(deviceId: string, options: AppInstallOptions): Promise<string> {
+    this.logger.log(`Installing app on Huawei phone ${deviceId}: ${options.apkPath}`);
+
+    try {
+      // 从 apkPath 解析 OBS 路径
+      // 期望格式: obs://{bucketName}/{objectPath} 或 /{bucketName}/{objectPath}
+      const { bucketName, objectPath } = this.parseObsPath(options.apkPath);
+
+      // 调用 SDK 批量安装方法
+      const result = await this.cphClient.installApk([deviceId], bucketName, objectPath);
+
+      if (!result.success || !result.data) {
+        throw new InternalServerErrorException(
+          `Failed to install APK: ${result.errorMessage}`
+        );
+      }
+
+      // 返回 Job ID
+      return result.data.jobId;
+    } catch (error) {
+      this.logger.error(`Failed to install app: ${error.message}`);
+      throw error;
+    }
   }
 
+  /**
+   * 卸载应用
+   *
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
+   */
   async uninstallApp(deviceId: string, packageName: string): Promise<void> {
-    throw new NotImplementedException('App uninstallation not supported for Huawei CPH');
+    this.logger.log(`Uninstalling app from Huawei phone ${deviceId}: ${packageName}`);
+
+    const result = await this.cphClient.uninstallApk([deviceId], packageName);
+
+    if (!result.success) {
+      throw new InternalServerErrorException(
+        `Failed to uninstall app: ${result.errorMessage}`
+      );
+    }
   }
 
+  /**
+   * 获取已安装应用列表
+   *
+   * 通过 ADB 命令执行 pm list packages
+   */
   async getInstalledApps(deviceId: string): Promise<string[]> {
-    throw new NotImplementedException('Listing installed apps not supported for Huawei CPH');
+    this.logger.log(`Getting installed apps for Huawei phone ${deviceId}`);
+
+    try {
+      // 执行 ADB 命令列出已安装包
+      const result = await this.cphClient.executeAdbCommand(
+        deviceId,
+        'pm list packages',
+        60
+      );
+
+      if (!result.success || !result.data) {
+        throw new InternalServerErrorException(
+          `Failed to get installed apps: ${result.errorMessage}`
+        );
+      }
+
+      // 解析输出: "package:com.example.app\npackage:..."
+      const output = result.data.output || '';
+      const packages = output
+        .split('\n')
+        .filter((line) => line.startsWith('package:'))
+        .map((line) => line.replace('package:', '').trim())
+        .filter((pkg) => pkg.length > 0);
+
+      return packages;
+    } catch (error) {
+      this.logger.error(`Failed to get installed apps: ${error.message}`);
+      throw error;
+    }
   }
 
+  /**
+   * 推送文件到设备
+   *
+   * 使用华为云 OBS 推送 tar 格式文件
+   *
+   * 注意:
+   * - 只支持 tar 格式
+   * - 文件大小限制 6GB
+   * - 默认解压到 /data/local/tmp
+   *
+   * @param deviceId 设备 ID
+   * @param options 文件传输选项
+   */
   async pushFile(deviceId: string, options: FileTransferOptions): Promise<void> {
-    throw new NotImplementedException('File transfer should use Huawei cloud storage');
+    this.logger.log(`Pushing file to Huawei phone ${deviceId}: ${options.localPath}`);
+
+    try {
+      // 从 localPath 解析 OBS 路径
+      const { bucketName, objectPath } = this.parseObsPath(options.localPath);
+
+      // 验证文件格式 (必须是 tar)
+      if (!objectPath.toLowerCase().endsWith('.tar')) {
+        throw new InternalServerErrorException(
+          'Huawei CPH only supports tar format files. Please compress your data as .tar'
+        );
+      }
+
+      // 调用 SDK 推送文件
+      const result = await this.cphClient.pushFile(
+        [deviceId],
+        bucketName,
+        objectPath,
+        options.remotePath || '/data/local/tmp'
+      );
+
+      if (!result.success) {
+        throw new InternalServerErrorException(
+          `Failed to push file: ${result.errorMessage}`
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to push file: ${error.message}`);
+      throw error;
+    }
   }
 
+  /**
+   * 从设备拉取文件
+   *
+   * 使用华为云导出数据到 OBS
+   *
+   * @param deviceId 设备 ID
+   * @param options 文件传输选项
+   */
   async pullFile(deviceId: string, options: FileTransferOptions): Promise<void> {
-    throw new NotImplementedException('File transfer should use Huawei cloud storage');
+    this.logger.log(`Pulling file from Huawei phone ${deviceId}: ${options.remotePath}`);
+
+    try {
+      // 从 localPath 解析 OBS 目标路径
+      const { bucketName, objectPath } = this.parseObsPath(options.localPath);
+
+      // 调用 SDK 导出数据
+      const result = await this.cphClient.exportData(
+        deviceId,
+        options.remotePath,
+        bucketName,
+        objectPath
+      );
+
+      if (!result.success) {
+        throw new InternalServerErrorException(
+          `Failed to pull file: ${result.errorMessage}`
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to pull file: ${error.message}`);
+      throw error;
+    }
   }
 
   async takeScreenshot(deviceId: string): Promise<Buffer> {
@@ -333,7 +481,69 @@ export class HuaweiProvider implements IDeviceProvider {
     throw new NotImplementedException('Location simulation not yet implemented for Huawei CPH');
   }
 
+  /**
+   * 执行 Shell 命令
+   *
+   * 使用华为云 ADB 命令执行功能
+   *
+   * @param deviceId 设备 ID
+   * @param command Shell 命令
+   * @returns 命令输出
+   */
+  async executeShell(deviceId: string, command: string): Promise<string> {
+    this.logger.log(`Executing shell command on Huawei phone ${deviceId}: ${command}`);
+
+    try {
+      // 执行同步 ADB 命令
+      const result = await this.cphClient.executeAdbCommand(deviceId, command, 60);
+
+      if (!result.success || !result.data) {
+        throw new InternalServerErrorException(
+          `Failed to execute shell command: ${result.errorMessage}`
+        );
+      }
+
+      return result.data.output || '';
+    } catch (error) {
+      this.logger.error(`Failed to execute shell command: ${error.message}`);
+      throw error;
+    }
+  }
+
   // ==================== 私有辅助方法 ====================
+
+  /**
+   * 解析 OBS 路径
+   *
+   * 支持格式:
+   * - obs://bucket-name/path/to/file.tar
+   * - /bucket-name/path/to/file.tar
+   * - bucket-name/path/to/file.tar
+   *
+   * @param path OBS 路径
+   * @returns { bucketName, objectPath }
+   */
+  private parseObsPath(path: string): { bucketName: string; objectPath: string } {
+    // 移除 obs:// 前缀
+    let normalizedPath = path.replace(/^obs:\/\//, '');
+
+    // 移除开头的 /
+    normalizedPath = normalizedPath.replace(/^\//, '');
+
+    // 分割桶名和对象路径
+    const parts = normalizedPath.split('/');
+
+    if (parts.length < 2) {
+      throw new InternalServerErrorException(
+        `Invalid OBS path: ${path}. Expected format: obs://bucket-name/path/to/file or /bucket-name/path/to/file`
+      );
+    }
+
+    const bucketName = parts[0];
+    const objectPath = parts.slice(1).join('/');
+
+    return { bucketName, objectPath };
+  }
 
   /**
    * 根据配置选择规格

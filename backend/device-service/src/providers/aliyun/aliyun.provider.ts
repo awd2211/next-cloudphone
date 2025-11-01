@@ -273,7 +273,7 @@ export class AliyunProvider implements IDeviceProvider {
    */
   getCapabilities(): DeviceCapabilities {
     return {
-      supportsAdb: true, // 阿里云支持 ADB (需公网 IP)
+      supportsAdb: true, // ✅ 支持 ADB 和远程命令执行
       supportsScreenCapture: true,
       supportsAudioCapture: true,
       supportedCaptureFormats: [CaptureFormat.WEBRTC], // 阿里云使用 WebRTC
@@ -283,8 +283,8 @@ export class AliyunProvider implements IDeviceProvider {
       },
       supportsTouchControl: true, // 通过 WebRTC 数据通道
       supportsKeyboardInput: true,
-      supportsFileTransfer: true, // 通过 ADB
-      supportsAppInstall: true, // 通过 ADB
+      supportsFileTransfer: true, // ✅ 支持通过 OSS 文件传输
+      supportsAppInstall: true, // ✅ 支持应用管理 (CreateApp + InstallApp)
       supportsScreenshot: true,
       supportsRecording: false,
       supportsLocationMocking: true,
@@ -359,62 +359,192 @@ export class AliyunProvider implements IDeviceProvider {
   /**
    * 执行 Shell 命令
    *
-   * 需通过 ADB 实现: adb -s <instanceId> shell <command>
+   * 使用阿里云 RunCommand API 远程执行脚本
+   *
+   * @param deviceId 设备 ID
+   * @param command Shell 命令
+   * @returns 命令输出
    */
   async executeShell(deviceId: string, command: string): Promise<string> {
-    throw new NotImplementedException(
-      'Shell execution requires ADB connection. ' +
-        'Use ADB service: adb -s <instanceId> shell ' +
-        command
-    );
+    this.logger.log(`Executing shell command on Aliyun phone ${deviceId}`);
+
+    try {
+      // 使用 RunCommand API 执行命令
+      const result = await this.ecpClient.runCommand([deviceId], command, 120);
+
+      if (!result.success || !result.data) {
+        throw new InternalServerErrorException(
+          `Failed to execute shell command: ${result.errorMessage}`
+        );
+      }
+
+      const invokeId = result.data.invokeId;
+
+      // 等待命令执行完成并获取结果
+      // 简单实现: 等待 3 秒后查询结果
+      await this.sleep(3000);
+
+      const cmdResult = await this.ecpClient.getCommandResult(invokeId);
+
+      if (!cmdResult.success || !cmdResult.data || cmdResult.data.length === 0) {
+        throw new InternalServerErrorException(
+          `Failed to get command result: ${cmdResult.errorMessage}`
+        );
+      }
+
+      const output = cmdResult.data[0];
+
+      // 检查执行状态
+      if (output.invokeStatus === 'Failed') {
+        throw new InternalServerErrorException(
+          `Command execution failed: ${output.errorOutput || 'Unknown error'}`
+        );
+      }
+
+      return output.output || '';
+    } catch (error) {
+      this.logger.error(`Failed to execute shell command: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
    * 推送文件到设备
    *
-   * 需通过 ADB 实现: adb push
+   * 使用阿里云 SendFile API,从 OSS 推送文件到云手机
+   *
+   * @param deviceId 设备 ID
+   * @param options 文件传输选项
+   *
+   * localPath 格式: oss://bucket-name/path/to/file 或 /bucket-name/path/to/file
    */
   async pushFile(deviceId: string, options: FileTransferOptions): Promise<void> {
-    throw new NotImplementedException(
-      'File transfer requires ADB connection. ' +
-        `Use ADB service: adb push ${options.localPath} ${options.remotePath}`
-    );
+    this.logger.log(`Pushing file to Aliyun phone ${deviceId}: ${options.localPath}`);
+
+    try {
+      // 从 localPath 解析 OSS 路径
+      const ossFileUrl = this.normalizeOssPath(options.localPath);
+
+      // 提取文件名
+      const fileName = options.remotePath.split('/').pop() || 'file';
+
+      // 调用 SDK 发送文件
+      const result = await this.ecpClient.sendFile(
+        [deviceId],
+        ossFileUrl,
+        options.remotePath,
+        fileName
+      );
+
+      if (!result.success) {
+        throw new InternalServerErrorException(
+          `Failed to push file: ${result.errorMessage}`
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to push file: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
    * 从设备拉取文件
    *
-   * 需通过 ADB 实现: adb pull
+   * 使用阿里云 FetchFile API,从云手机拉取文件到 OSS
+   *
+   * @param deviceId 设备 ID
+   * @param options 文件传输选项
+   *
+   * localPath 格式: oss://bucket-name/path/to/file 或 /bucket-name/path/to/file
    */
   async pullFile(deviceId: string, options: FileTransferOptions): Promise<void> {
-    throw new NotImplementedException(
-      'File transfer requires ADB connection. ' +
-        `Use ADB service: adb pull ${options.remotePath} ${options.localPath}`
-    );
+    this.logger.log(`Pulling file from Aliyun phone ${deviceId}: ${options.remotePath}`);
+
+    try {
+      // 从 localPath 解析 OSS 目标路径
+      const ossPath = this.normalizeOssPath(options.localPath);
+
+      // 调用 SDK 拉取文件
+      const result = await this.ecpClient.fetchFile(deviceId, options.remotePath, ossPath);
+
+      if (!result.success) {
+        throw new InternalServerErrorException(
+          `Failed to pull file: ${result.errorMessage}`
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to pull file: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
    * 安装应用
    *
-   * 需通过 ADB 实现: adb install <apk>
+   * 使用阿里云应用管理 API 安装应用
+   *
+   * 流程:
+   * 1. 如果 APK 未注册,先调用 CreateApp 注册
+   * 2. 然后调用 InstallApp 安装到实例
+   *
+   * @param deviceId 设备 ID
+   * @param options 安装选项
+   * @returns Task ID 用于查询安装进度
    */
-  async installApp(deviceId: string, options: AppInstallOptions): Promise<string | void> {
-    throw new NotImplementedException(
-      'App installation requires ADB connection. ' +
-        'Use ADB service: adb -s <instanceId> install ' +
-        options.apkPath
-    );
+  async installApp(deviceId: string, options: AppInstallOptions): Promise<string> {
+    this.logger.log(`Installing app on Aliyun phone ${deviceId}: ${options.apkPath}`);
+
+    try {
+      // 从 apkPath 解析 OSS 路径
+      const ossAppUrl = this.normalizeOssPath(options.apkPath);
+
+      // 提取应用名称 (从 APK 文件名)
+      const appName = options.apkPath.split('/').pop()?.replace('.apk', '') || 'unknown-app';
+
+      // 1. 创建应用 (注册 APK 到 ECP 平台)
+      const createResult = await this.ecpClient.createApp(ossAppUrl, appName, options.packageName);
+
+      if (!createResult.success || !createResult.data) {
+        throw new InternalServerErrorException(
+          `Failed to create app: ${createResult.errorMessage}`
+        );
+      }
+
+      const appId = createResult.data.appId;
+
+      // 2. 安装应用到实例
+      const installResult = await this.ecpClient.installApp([deviceId], appId, 'install');
+
+      if (!installResult.success || !installResult.data) {
+        throw new InternalServerErrorException(
+          `Failed to install app: ${installResult.errorMessage}`
+        );
+      }
+
+      // 返回 Task ID
+      return installResult.data.taskId;
+    } catch (error) {
+      this.logger.error(`Failed to install app: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
    * 卸载应用
+   *
+   * 使用阿里云 UninstallApp API
+   *
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
    */
   async uninstallApp(deviceId: string, packageName: string): Promise<void> {
-    throw new NotImplementedException(
-      'App uninstallation requires ADB connection. ' +
-        'Use ADB service: adb -s <instanceId> uninstall ' +
-        packageName
-    );
+    this.logger.log(`Uninstalling app from Aliyun phone ${deviceId}: ${packageName}`);
+
+    const result = await this.ecpClient.uninstallApp([deviceId], packageName);
+
+    if (!result.success) {
+      throw new InternalServerErrorException(`Failed to uninstall app: ${result.errorMessage}`);
+    }
   }
 
   /**
@@ -477,6 +607,41 @@ export class AliyunProvider implements IDeviceProvider {
   // ============================================================
   // 私有辅助方法
   // ============================================================
+
+  /**
+   * 标准化 OSS 路径
+   *
+   * 支持格式:
+   * - oss://bucket-name/path/to/file
+   * - /bucket-name/path/to/file
+   * - bucket-name/path/to/file
+   *
+   * 统一转换为: oss://bucket-name/path/to/file
+   *
+   * @param path OSS 路径
+   * @returns 标准化的 OSS URL
+   */
+  private normalizeOssPath(path: string): string {
+    // 如果已经是 oss:// 格式,直接返回
+    if (path.startsWith('oss://')) {
+      return path;
+    }
+
+    // 移除开头的 /
+    const normalizedPath = path.replace(/^\//, '');
+
+    // 返回 oss:// 格式
+    return `oss://${normalizedPath}`;
+  }
+
+  /**
+   * 睡眠指定毫秒数
+   *
+   * @param ms 毫秒数
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
 
   /**
    * 根据配置选择阿里云规格

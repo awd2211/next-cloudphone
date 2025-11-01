@@ -620,10 +620,10 @@ export class HuaweiCphClient {
       return {
         success: true,
         data: {
-          output: response.output,
-          status: response.status || 'SUCCESS',
+          output: response.data?.output || '',
+          status: response.data?.status || 'SUCCESS',
         },
-        requestId: response.request_id,
+        requestId: response.requestId,
       };
     } catch (error) {
       this.logger.error(`Failed to execute ADB command: ${error.message}`);
@@ -662,9 +662,9 @@ export class HuaweiCphClient {
       return {
         success: true,
         data: {
-          commandId: response.command_id,
+          commandId: response.data?.command_id || '',
         },
-        requestId: response.request_id,
+        requestId: response.requestId,
       };
     } catch (error) {
       this.logger.error(`Failed to execute async ADB command: ${error.message}`);
@@ -694,11 +694,11 @@ export class HuaweiCphClient {
         success: true,
         data: {
           commandId,
-          output: response.output,
-          status: response.status,
-          errorMessage: response.error_message,
+          output: response.data?.output || '',
+          status: response.data?.status || 'RUNNING',
+          errorMessage: response.data?.error_message,
         },
-        requestId: response.request_id,
+        requestId: response.requestId,
       };
     } catch (error) {
       return {
@@ -761,13 +761,13 @@ export class HuaweiCphClient {
       return {
         success: true,
         data: {
-          jobId: response.job_id,
-          status: response.status || 'RUNNING',
-          successCount: response.success_count || 0,
-          failedCount: response.failed_count || 0,
+          jobId: response.data?.job_id || '',
+          status: response.data?.status || 'RUNNING',
+          successCount: response.data?.success_count || 0,
+          failedCount: response.data?.failed_count || 0,
           totalCount: phoneIds.length,
         },
-        requestId: response.request_id,
+        requestId: response.requestId,
       };
     } catch (error) {
       this.logger.error(`Failed to install APK: ${error.message}`);
@@ -818,13 +818,13 @@ export class HuaweiCphClient {
       return {
         success: true,
         data: {
-          jobId: response.job_id,
-          status: response.status || 'RUNNING',
-          successCount: response.success_count || 0,
-          failedCount: response.failed_count || 0,
+          jobId: response.data?.job_id || '',
+          status: response.data?.status || 'RUNNING',
+          successCount: response.data?.success_count || 0,
+          failedCount: response.data?.failed_count || 0,
           totalCount: phoneIds.length,
         },
-        requestId: response.request_id,
+        requestId: response.requestId,
       };
     } catch (error) {
       this.logger.error(`Failed to uninstall app: ${error.message}`);
@@ -854,13 +854,13 @@ export class HuaweiCphClient {
         success: true,
         data: {
           jobId,
-          status: response.status,
-          successCount: response.success_count || 0,
-          failedCount: response.failed_count || 0,
-          totalCount: response.total_count || 0,
-          results: response.results,
+          status: response.data?.status || 'RUNNING',
+          successCount: response.data?.success_count || 0,
+          failedCount: response.data?.failed_count || 0,
+          totalCount: response.data?.total_count || 0,
+          results: response.data?.results,
         },
-        requestId: response.request_id,
+        requestId: response.requestId,
       };
     } catch (error) {
       return {
@@ -928,13 +928,13 @@ export class HuaweiCphClient {
       return {
         success: true,
         data: {
-          jobId: response.job_id,
-          status: response.status || 'RUNNING',
-          successCount: response.success_count || 0,
-          failedCount: response.failed_count || 0,
+          jobId: response.data?.job_id || '',
+          status: response.data?.status || 'RUNNING',
+          successCount: response.data?.success_count || 0,
+          failedCount: response.data?.failed_count || 0,
           totalCount: phoneIds.length,
         },
-        requestId: response.request_id,
+        requestId: response.requestId,
       };
     } catch (error) {
       this.logger.error(`Failed to push file: ${error.message}`);
@@ -991,9 +991,9 @@ export class HuaweiCphClient {
       return {
         success: true,
         data: {
-          jobId: response.job_id,
+          jobId: response.data?.job_id || '',
         },
-        requestId: response.request_id,
+        requestId: response.requestId,
       };
     } catch (error) {
       this.logger.error(`Failed to export data: ${error.message}`);
