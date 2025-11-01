@@ -38,6 +38,12 @@ import {
 import type { Device } from '@/types';
 import dayjs from 'dayjs';
 import { WebRTCPlayerLazy, ADBConsoleLazy } from '@/components/LazyComponents';
+import { AppOperationModal } from '@/components/DeviceAppOperations';
+import {
+  CreateSnapshotModal,
+  RestoreSnapshotModal,
+  SnapshotListTable,
+} from '@/components/DeviceSnapshot';
 
 const DeviceDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +54,16 @@ const DeviceDetail = () => {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [form] = Form.useForm();
+
+  // 应用操作相关状态
+  const [appOperationModalVisible, setAppOperationModalVisible] = useState(false);
+  const [appOperationType, setAppOperationType] = useState<'start' | 'stop' | 'clear-data'>('start');
+
+  // 快照管理相关状态
+  const [createSnapshotModalVisible, setCreateSnapshotModalVisible] = useState(false);
+  const [restoreSnapshotModalVisible, setRestoreSnapshotModalVisible] = useState(false);
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState<string>();
+  const [selectedSnapshotName, setSelectedSnapshotName] = useState<string>();
 
   const loadDevice = async () => {
     if (!id) return;
@@ -158,6 +174,39 @@ const DeviceDetail = () => {
     }
   };
 
+  // 应用操作处理函数
+  const handleOpenAppOperation = (type: 'start' | 'stop' | 'clear-data') => {
+    setAppOperationType(type);
+    setAppOperationModalVisible(true);
+  };
+
+  const handleAppOperationSuccess = () => {
+    setAppOperationModalVisible(false);
+    loadDevice();
+  };
+
+  // 快照管理处理函数
+  const handleCreateSnapshotSuccess = () => {
+    setCreateSnapshotModalVisible(false);
+    message.success('快照创建成功');
+  };
+
+  const handleRestoreSnapshot = (snapshotId: string, snapshotName: string) => {
+    setSelectedSnapshotId(snapshotId);
+    setSelectedSnapshotName(snapshotName);
+    setRestoreSnapshotModalVisible(true);
+  };
+
+  const handleRestoreSnapshotSuccess = () => {
+    setRestoreSnapshotModalVisible(false);
+    setSelectedSnapshotId(undefined);
+    setSelectedSnapshotName(undefined);
+    message.success('快照恢复成功，设备将重启');
+    setTimeout(() => {
+      loadDevice();
+    }, 3000);
+  };
+
   const getStatusTag = (status: string) => {
     const statusMap: Record<string, { color: string; text: string }> = {
       idle: { color: 'default', text: '空闲' },
@@ -234,6 +283,72 @@ const DeviceDetail = () => {
               </List.Item>
             )}
           />
+        </Card>
+      ),
+    },
+    {
+      key: 'app-operations',
+      label: '应用操作',
+      children: (
+        <Card>
+          <Space>
+            <Button
+              type="primary"
+              icon={<PlayCircleOutlined />}
+              onClick={() => handleOpenAppOperation('start')}
+              disabled={device?.status !== 'running'}
+            >
+              启动应用
+            </Button>
+            <Button
+              icon={<PauseCircleOutlined />}
+              onClick={() => handleOpenAppOperation('stop')}
+              disabled={device?.status !== 'running'}
+            >
+              停止应用
+            </Button>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleOpenAppOperation('clear-data')}
+              disabled={device?.status !== 'running'}
+            >
+              清除应用数据
+            </Button>
+          </Space>
+          <div style={{ marginTop: 16, color: '#999' }}>
+            <p>💡 提示:</p>
+            <ul>
+              <li>这些功能仅支持阿里云 ECP 平台的设备</li>
+              <li>设备必须处于运行状态才能执行应用操作</li>
+              <li>需要输入应用的包名（例如: com.tencent.mm）</li>
+            </ul>
+          </div>
+        </Card>
+      ),
+    },
+    {
+      key: 'snapshots',
+      label: '快照管理',
+      children: (
+        <Card>
+          <div style={{ marginBottom: 16 }}>
+            <Button
+              type="primary"
+              onClick={() => setCreateSnapshotModalVisible(true)}
+            >
+              创建快照
+            </Button>
+          </div>
+          <SnapshotListTable deviceId={id!} onRestore={handleRestoreSnapshot} />
+          <div style={{ marginTop: 16, color: '#999' }}>
+            <p>💡 提示:</p>
+            <ul>
+              <li>快照功能仅支持阿里云 ECP 平台的设备</li>
+              <li>快照会保存设备的完整状态，包括系统和数据</li>
+              <li>恢复快照会覆盖设备当前的所有数据</li>
+            </ul>
+          </div>
         </Card>
       ),
     },
@@ -326,6 +441,40 @@ const DeviceDetail = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* 应用操作对话框 */}
+      <AppOperationModal
+        visible={appOperationModalVisible}
+        deviceId={id!}
+        deviceName={device?.name || ''}
+        operationType={appOperationType}
+        onClose={() => setAppOperationModalVisible(false)}
+        onSuccess={handleAppOperationSuccess}
+      />
+
+      {/* 创建快照对话框 */}
+      <CreateSnapshotModal
+        visible={createSnapshotModalVisible}
+        deviceId={id!}
+        deviceName={device?.name || ''}
+        onClose={() => setCreateSnapshotModalVisible(false)}
+        onSuccess={handleCreateSnapshotSuccess}
+      />
+
+      {/* 恢复快照对话框 */}
+      <RestoreSnapshotModal
+        visible={restoreSnapshotModalVisible}
+        deviceId={id!}
+        deviceName={device?.name || ''}
+        snapshotId={selectedSnapshotId}
+        snapshotName={selectedSnapshotName}
+        onClose={() => {
+          setRestoreSnapshotModalVisible(false);
+          setSelectedSnapshotId(undefined);
+          setSelectedSnapshotName(undefined);
+        }}
+        onSuccess={handleRestoreSnapshotSuccess}
+      />
     </div>
   );
 };
