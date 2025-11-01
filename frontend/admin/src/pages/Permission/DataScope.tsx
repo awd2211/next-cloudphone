@@ -1,28 +1,6 @@
 import { useState, useEffect } from 'react';
-import {
-  Table,
-  Space,
-  Button,
-  Modal,
-  Form,
-  Input,
-  message,
-  Popconfirm,
-  Select,
-  Tag,
-  Switch,
-  InputNumber,
-  Card,
-  Descriptions,
-  TreeSelect,
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  FilterOutlined,
-  EyeOutlined,
-} from '@ant-design/icons';
+import { Table, Space, Button, Form, message, Popconfirm, Tag, Card, Switch } from 'antd';
+import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
   useDataScope,
@@ -32,6 +10,12 @@ import {
 } from '@/hooks/useDataScope';
 import { getRoles } from '@/services/role';
 import type { Role } from '@/types';
+import {
+  DataScopeFilterBar,
+  CreateEditDataScopeModal,
+  DataScopeDetailModal,
+  resourceTypes,
+} from '@/components/PermissionDataScope';
 import dayjs from 'dayjs';
 
 /**
@@ -62,18 +46,6 @@ const DataScopeConfig = () => {
   // 查询参数
   const [filterRoleId, setFilterRoleId] = useState<string | undefined>();
   const [filterResourceType, setFilterResourceType] = useState<string | undefined>();
-
-  // 资源类型列表
-  const resourceTypes = [
-    { value: 'device', label: '云手机设备' },
-    { value: 'user', label: '用户' },
-    { value: 'app', label: '应用' },
-    { value: 'order', label: '订单' },
-    { value: 'billing', label: '账单' },
-    { value: 'plan', label: '套餐' },
-    { value: 'payment', label: '支付' },
-    { value: 'audit_log', label: '审计日志' },
-  ];
 
   /**
    * 加载数据
@@ -297,48 +269,18 @@ const DataScopeConfig = () => {
           配置不同角色对各类资源的数据访问范围，支持全部数据、租户数据、部门数据、本人数据等多种范围类型
         </p>
 
-        {/* 筛选栏 */}
-        <Space style={{ marginBottom: 16 }} size="middle">
-          <Select
-            placeholder="选择角色筛选"
-            style={{ width: 200 }}
-            allowClear
-            value={filterRoleId}
-            onChange={setFilterRoleId}
-          >
-            {roles.map((role) => (
-              <Select.Option key={role.id} value={role.id}>
-                {role.name}
-              </Select.Option>
-            ))}
-          </Select>
-
-          <Select
-            placeholder="选择资源类型筛选"
-            style={{ width: 200 }}
-            allowClear
-            value={filterResourceType}
-            onChange={setFilterResourceType}
-          >
-            {resourceTypes.map((type) => (
-              <Select.Option key={type.value} value={type.value}>
-                {type.label}
-              </Select.Option>
-            ))}
-          </Select>
-
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingScope(null);
-              form.resetFields();
-              setModalVisible(true);
-            }}
-          >
-            创建配置
-          </Button>
-        </Space>
+        <DataScopeFilterBar
+          roles={roles}
+          filterRoleId={filterRoleId}
+          filterResourceType={filterResourceType}
+          onRoleChange={setFilterRoleId}
+          onResourceTypeChange={setFilterResourceType}
+          onCreate={() => {
+            setEditingScope(null);
+            form.resetFields();
+            setModalVisible(true);
+          }}
+        />
 
         <Table
           columns={columns}
@@ -353,180 +295,29 @@ const DataScopeConfig = () => {
         />
       </Card>
 
-      {/* 创建/编辑对话框 */}
-      <Modal
-        title={editingScope ? '编辑数据范围配置' : '创建数据范围配置'}
-        open={modalVisible}
+      <CreateEditDataScopeModal
+        visible={modalVisible}
+        editingScope={editingScope}
+        form={form}
+        roles={roles}
+        scopeTypes={scopeTypes}
+        onFinish={handleSubmit}
+        onOk={() => form.submit()}
         onCancel={() => {
           setModalVisible(false);
           setEditingScope(null);
           form.resetFields();
         }}
-        onOk={() => form.submit()}
-        width={700}
-      >
-        <Form form={form} onFinish={handleSubmit} layout="vertical">
-          <Form.Item label="角色" name="roleId" rules={[{ required: true, message: '请选择角色' }]}>
-            <Select placeholder="选择角色" disabled={!!editingScope}>
-              {roles.map((role) => (
-                <Select.Option key={role.id} value={role.id}>
-                  {role.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
+      />
 
-          <Form.Item
-            label="资源类型"
-            name="resourceType"
-            rules={[{ required: true, message: '请选择资源类型' }]}
-          >
-            <Select placeholder="选择资源类型" disabled={!!editingScope}>
-              {resourceTypes.map((type) => (
-                <Select.Option key={type.value} value={type.value}>
-                  {type.label}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label="范围类型"
-            name="scopeType"
-            rules={[{ required: true, message: '请选择范围类型' }]}
-          >
-            <Select placeholder="选择范围类型">
-              {scopeTypes.map((type) => (
-                <Select.Option key={type.value} value={type.value}>
-                  <div>
-                    <div>{type.label}</div>
-                    {type.description && (
-                      <div style={{ fontSize: 12, color: '#999' }}>{type.description}</div>
-                    )}
-                  </div>
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.scopeType !== currentValues.scopeType
-            }
-          >
-            {({ getFieldValue }) => {
-              const scopeType = getFieldValue('scopeType');
-
-              return (
-                <>
-                  {scopeType === ScopeType.CUSTOM && (
-                    <Form.Item label="自定义过滤器" name="filter">
-                      <Input.TextArea
-                        placeholder='JSON 格式，例如：{"status": "active", "region": "cn"}'
-                        rows={4}
-                      />
-                    </Form.Item>
-                  )}
-
-                  {(scopeType === ScopeType.DEPARTMENT ||
-                    scopeType === ScopeType.DEPARTMENT_ONLY) && (
-                    <>
-                      <Form.Item label="部门ID列表" name="departmentIds">
-                        <Select mode="tags" placeholder="输入部门ID，回车添加" />
-                      </Form.Item>
-
-                      <Form.Item
-                        label="包含子部门"
-                        name="includeSubDepartments"
-                        valuePropName="checked"
-                      >
-                        <Switch checkedChildren="是" unCheckedChildren="否" />
-                      </Form.Item>
-                    </>
-                  )}
-                </>
-              );
-            }}
-          </Form.Item>
-
-          <Form.Item label="优先级" name="priority" initialValue={100}>
-            <InputNumber
-              min={0}
-              max={999}
-              style={{ width: '100%' }}
-              placeholder="数值越小优先级越高"
-            />
-          </Form.Item>
-
-          <Form.Item label="描述" name="description">
-            <Input.TextArea placeholder="配置描述" rows={3} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* 详情对话框 */}
-      <Modal
-        title="数据范围配置详情"
-        open={detailModalVisible}
-        onCancel={() => setDetailModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setDetailModalVisible(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={700}
-      >
-        {viewingScope && (
-          <Descriptions column={1} bordered>
-            <Descriptions.Item label="角色">
-              {roles.find((r) => r.id === viewingScope.roleId)?.name || viewingScope.roleId}
-            </Descriptions.Item>
-            <Descriptions.Item label="资源类型">
-              {resourceTypes.find((r) => r.value === viewingScope.resourceType)?.label ||
-                viewingScope.resourceType}
-            </Descriptions.Item>
-            <Descriptions.Item label="范围类型">
-              <Tag color="green">
-                {scopeTypes.find((s) => s.value === viewingScope.scopeType)?.label ||
-                  viewingScope.scopeType}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="范围描述">
-              {getScopeDescription(viewingScope)}
-            </Descriptions.Item>
-            <Descriptions.Item label="优先级">{viewingScope.priority}</Descriptions.Item>
-            <Descriptions.Item label="状态">
-              <Tag color={viewingScope.isActive ? 'green' : 'red'}>
-                {viewingScope.isActive ? '启用' : '禁用'}
-              </Tag>
-            </Descriptions.Item>
-            {viewingScope.departmentIds && viewingScope.departmentIds.length > 0 && (
-              <Descriptions.Item label="部门ID列表">
-                {viewingScope.departmentIds.join(', ')}
-              </Descriptions.Item>
-            )}
-            {viewingScope.filter && (
-              <Descriptions.Item label="自定义过滤器">
-                <pre style={{ margin: 0, fontSize: 12 }}>
-                  {JSON.stringify(viewingScope.filter, null, 2)}
-                </pre>
-              </Descriptions.Item>
-            )}
-            <Descriptions.Item label="描述">{viewingScope.description || '-'}</Descriptions.Item>
-            <Descriptions.Item label="创建时间">
-              {viewingScope.createdAt
-                ? dayjs(viewingScope.createdAt).format('YYYY-MM-DD HH:mm:ss')
-                : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="更新时间">
-              {viewingScope.updatedAt
-                ? dayjs(viewingScope.updatedAt).format('YYYY-MM-DD HH:mm:ss')
-                : '-'}
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Modal>
+      <DataScopeDetailModal
+        visible={detailModalVisible}
+        viewingScope={viewingScope}
+        roles={roles}
+        scopeTypes={scopeTypes}
+        getScopeDescription={getScopeDescription}
+        onClose={() => setDetailModalVisible(false)}
+      />
     </div>
   );
 };

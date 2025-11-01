@@ -1,53 +1,19 @@
 import { useState } from 'react';
-import {
-  Card,
-  Table,
-  Button,
-  Space,
-  Tag,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Switch,
-  message,
-  Popconfirm,
-  Tooltip,
-  Typography,
-  Row,
-  Col,
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  CopyOutlined,
-  CheckCircleOutlined,
-  StopOutlined,
-} from '@ant-design/icons';
+import { Card, Table, Button, message, Typography } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import request from '@/utils/request';
+import {
+  TemplateTypeTag,
+  ChannelTags,
+  TemplateStatusTag,
+  TemplateActions,
+  CreateEditTemplateModal,
+  TemplatePreviewModal,
+  type NotificationTemplate,
+} from '@/components/NotificationTemplates';
 
-const { TextArea } = Input;
-const { Paragraph, Text } = Typography;
-
-interface NotificationTemplate {
-  id: string;
-  code: string;
-  name: string;
-  type: string;
-  title: string;
-  body: string;
-  emailTemplate?: string;
-  smsTemplate?: string;
-  channels: string[];
-  language: string;
-  isActive: boolean;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+const { Text } = Typography;
 
 const NotificationTemplatesList = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);

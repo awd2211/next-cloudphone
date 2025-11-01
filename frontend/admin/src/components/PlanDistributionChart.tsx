@@ -1,4 +1,5 @@
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ReactECharts';
+import type { ECOption } from '@/utils/echarts';
 import { Empty } from 'antd';
 
 interface PlanDistributionData {
@@ -28,7 +29,7 @@ const PlanDistributionChart = ({ data, loading }: PlanDistributionChartProps) =>
     revenue: item.revenue,
   }));
 
-  const option = {
+  const option: ECOption = {
     title: {
       text: '套餐用户分布',
       left: 'center',

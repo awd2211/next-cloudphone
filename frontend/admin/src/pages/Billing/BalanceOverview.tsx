@@ -6,7 +6,8 @@ import {
   ArrowDownOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ReactECharts';
+import type { ECOption } from '@/utils/echarts';
 import { useNavigate } from 'react-router-dom';
 
 interface BalanceData {

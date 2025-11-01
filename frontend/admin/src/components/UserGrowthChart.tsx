@@ -1,4 +1,5 @@
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ReactECharts';
+import type { ECOption } from '@/utils/echarts';
 import { Empty } from 'antd';
 
 interface UserGrowthData {
@@ -21,7 +22,7 @@ const UserGrowthChart = ({ data, loading }: UserGrowthChartProps) => {
   const newUsers = data.map((item) => item.newUsers);
   const totalUsers = data.map((item) => item.totalUsers);
 
-  const option = {
+  const option: ECOption = {
     title: {
       text: '用户增长趋势',
       left: 'center',

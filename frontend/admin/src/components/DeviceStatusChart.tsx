@@ -1,4 +1,5 @@
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ReactECharts';
+import type { ECOption } from '@/utils/echarts';
 import { Empty } from 'antd';
 
 interface DeviceStatusData {
@@ -31,7 +32,7 @@ const DeviceStatusChart = ({ data, loading }: DeviceStatusChartProps) => {
     },
   }));
 
-  const option = {
+  const option: ECOption = {
     title: {
       text: '设备状态分布',
       left: 'center',

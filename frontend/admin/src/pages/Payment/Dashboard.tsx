@@ -21,7 +21,8 @@ import {
   RiseOutlined,
   LockOutlined,
 } from '@ant-design/icons';
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ReactECharts';
+import type { ECOption } from '@/utils/echarts';
 import dayjs, { Dayjs } from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { usePermission } from '@/hooks';

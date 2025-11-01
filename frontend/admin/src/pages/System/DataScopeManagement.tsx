@@ -1,33 +1,6 @@
 import { useState, useEffect } from 'react';
-import {
-  Card,
-  Table,
-  Button,
-  Space,
-  message,
-  Tag,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Switch,
-  InputNumber,
-  Alert,
-  Row,
-  Col,
-  Statistic,
-  Popconfirm,
-  Descriptions,
-} from 'antd';
-import {
-  PlusOutlined,
-  ReloadOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-} from '@ant-design/icons';
+import { Card, Table, Button, Space, message, Tag, Form, Alert, Popconfirm } from 'antd';
+import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import {
   getAllDataScopes,
   getScopeTypes,
@@ -38,9 +11,15 @@ import {
   toggleDataScope,
 } from '@/services/dataScope';
 import type { DataScope, ScopeType, CreateDataScopeDto, UpdateDataScopeDto } from '@/types';
+import {
+  DataScopeStatsCards,
+  DataScopeToolbar,
+  CreateDataScopeModal,
+  EditDataScopeModal,
+  DataScopeDetailModal,
+  getScopeTypeColor,
+} from '@/components/DataScope';
 import dayjs from 'dayjs';
-
-const { TextArea } = Input;
 
 const DataScopeManagement = () => {
   const [dataScopes, setDataScopes] = useState<DataScope[]>([]);
@@ -172,19 +151,6 @@ const DataScopeManagement = () => {
   const viewDetail = (record: DataScope) => {
     setSelectedScope(record);
     setDetailModalVisible(true);
-  };
-
-  // 获取范围类型标签颜色
-  const getScopeTypeColor = (type: ScopeType) => {
-    const colors: Record<ScopeType, string> = {
-      all: 'red',
-      tenant: 'orange',
-      department: 'blue',
-      department_only: 'cyan',
-      self: 'green',
-      custom: 'purple',
-    };
-    return colors[type] || 'default';
   };
 
   // 统计数据
@@ -319,48 +285,19 @@ const DataScopeManagement = () => {
           showIcon
         />
 
-        {/* 统计卡片 */}
-        <Row gutter={16}>
-          <Col span={6}>
-            <Card>
-              <Statistic title="总配置数" value={stats.total} prefix={<CheckCircleOutlined />} />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic title="已启用" value={stats.active} valueStyle={{ color: '#52c41a' }} />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic title="已禁用" value={stats.inactive} valueStyle={{ color: '#999' }} />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="自定义范围"
-                value={stats.byType['custom'] || 0}
-                valueStyle={{ color: '#722ed1' }}
-              />
-            </Card>
-          </Col>
-        </Row>
+        <DataScopeStatsCards
+          total={stats.total}
+          active={stats.active}
+          inactive={stats.inactive}
+          customCount={stats.byType['custom'] || 0}
+        />
 
         {/* 操作按钮和表格 */}
         <Card>
-          <Space style={{ marginBottom: 16 }}>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setCreateModalVisible(true)}
-            >
-              新建配置
-            </Button>
-            <Button icon={<ReloadOutlined />} onClick={loadDataScopes}>
-              刷新
-            </Button>
-          </Space>
+          <DataScopeToolbar
+            onCreate={() => setCreateModalVisible(true)}
+            onRefresh={loadDataScopes}
+          />
 
           <Table
             columns={columns}
@@ -373,175 +310,38 @@ const DataScopeManagement = () => {
         </Card>
       </Space>
 
-      {/* 创建模态框 */}
-      <Modal
-        title="创建数据范围配置"
-        open={createModalVisible}
+      <CreateDataScopeModal
+        visible={createModalVisible}
+        form={createForm}
+        scopeTypes={scopeTypes}
         onOk={handleCreate}
         onCancel={() => {
           setCreateModalVisible(false);
           createForm.resetFields();
         }}
-        okText="创建"
-        cancelText="取消"
-        width={600}
-      >
-        <Form form={createForm} layout="vertical">
-          <Form.Item
-            name="roleId"
-            label="角色ID"
-            rules={[{ required: true, message: '请输入角色ID' }]}
-          >
-            <Input placeholder="请输入角色ID" />
-          </Form.Item>
+      />
 
-          <Form.Item
-            name="resourceType"
-            label="资源类型"
-            rules={[{ required: true, message: '请输入资源类型' }]}
-          >
-            <Select placeholder="请选择资源类型">
-              <Select.Option value="user">用户 (user)</Select.Option>
-              <Select.Option value="device">设备 (device)</Select.Option>
-              <Select.Option value="order">订单 (order)</Select.Option>
-              <Select.Option value="billing">账单 (billing)</Select.Option>
-              <Select.Option value="ticket">工单 (ticket)</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="scopeType"
-            label="范围类型"
-            rules={[{ required: true, message: '请选择范围类型' }]}
-          >
-            <Select placeholder="请选择范围类型">
-              {scopeTypes.map((type) => (
-                <Select.Option key={type.value} value={type.value}>
-                  <Tag color={getScopeTypeColor(type.value)}>{type.label}</Tag>
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="includeSubDepartments"
-            label="包含子部门"
-            valuePropName="checked"
-            initialValue={false}
-          >
-            <Switch />
-          </Form.Item>
-
-          <Form.Item name="priority" label="优先级" initialValue={100} tooltip="数字越小优先级越高">
-            <InputNumber min={1} max={999} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item name="description" label="描述">
-            <TextArea rows={3} placeholder="请输入配置描述" />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* 编辑模态框 */}
-      <Modal
-        title="编辑数据范围配置"
-        open={editModalVisible}
+      <EditDataScopeModal
+        visible={editModalVisible}
+        form={editForm}
+        scopeTypes={scopeTypes}
         onOk={handleEdit}
         onCancel={() => {
           setEditModalVisible(false);
           setSelectedScope(null);
           editForm.resetFields();
         }}
-        okText="保存"
-        cancelText="取消"
-        width={600}
-      >
-        <Form form={editForm} layout="vertical">
-          <Form.Item name="scopeType" label="范围类型">
-            <Select placeholder="请选择范围类型">
-              {scopeTypes.map((type) => (
-                <Select.Option key={type.value} value={type.value}>
-                  <Tag color={getScopeTypeColor(type.value)}>{type.label}</Tag>
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
+      />
 
-          <Form.Item name="includeSubDepartments" label="包含子部门" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-
-          <Form.Item name="priority" label="优先级" tooltip="数字越小优先级越高">
-            <InputNumber min={1} max={999} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item name="isActive" label="启用状态" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-
-          <Form.Item name="description" label="描述">
-            <TextArea rows={3} placeholder="请输入配置描述" />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* 详情模态框 */}
-      <Modal
-        title="数据范围配置详情"
-        open={detailModalVisible}
-        onCancel={() => {
+      <DataScopeDetailModal
+        visible={detailModalVisible}
+        selectedScope={selectedScope}
+        scopeTypes={scopeTypes}
+        onClose={() => {
           setDetailModalVisible(false);
           setSelectedScope(null);
         }}
-        footer={null}
-        width={700}
-      >
-        {selectedScope && (
-          <Descriptions bordered column={1}>
-            <Descriptions.Item label="ID">{selectedScope.id}</Descriptions.Item>
-            <Descriptions.Item label="角色ID">{selectedScope.roleId}</Descriptions.Item>
-            <Descriptions.Item label="资源类型">{selectedScope.resourceType}</Descriptions.Item>
-            <Descriptions.Item label="范围类型">
-              <Tag color={getScopeTypeColor(selectedScope.scopeType)}>
-                {scopeTypes.find((t) => t.value === selectedScope.scopeType)?.label ||
-                  selectedScope.scopeType}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="包含子部门">
-              {selectedScope.includeSubDepartments ? '是' : '否'}
-            </Descriptions.Item>
-            <Descriptions.Item label="优先级">{selectedScope.priority}</Descriptions.Item>
-            <Descriptions.Item label="状态">
-              <Tag color={selectedScope.isActive ? 'success' : 'default'}>
-                {selectedScope.isActive ? '启用' : '禁用'}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="描述">{selectedScope.description || '-'}</Descriptions.Item>
-            <Descriptions.Item label="创建时间">
-              {dayjs(selectedScope.createdAt).format('YYYY-MM-DD HH:mm:ss')}
-            </Descriptions.Item>
-            <Descriptions.Item label="更新时间">
-              {dayjs(selectedScope.updatedAt).format('YYYY-MM-DD HH:mm:ss')}
-            </Descriptions.Item>
-            {selectedScope.filter && (
-              <Descriptions.Item label="自定义过滤条件">
-                <pre
-                  style={{
-                    maxHeight: '200px',
-                    overflow: 'auto',
-                    background: '#f5f5f5',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    margin: 0,
-                  }}
-                >
-                  {JSON.stringify(selectedScope.filter, null, 2)}
-                </pre>
-              </Descriptions.Item>
-            )}
-          </Descriptions>
-        )}
-      </Modal>
+      />
     </div>
   );
 };

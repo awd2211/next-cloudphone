@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Select, Spin, Empty, DatePicker, Space, Button } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ReactECharts';
+import type { ECOption } from '@/utils/echarts';
 import type { QuotaStatistics } from '@/types';
 import * as quotaService from '@/services/quota';
 import dayjs, { Dayjs } from 'dayjs';
@@ -91,7 +92,7 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
   ];
 
   // 图表配置
-  const chartOption = useMemo(() => {
+  const chartOption: ECOption | null = useMemo(() => {
     if (!statistics || !statistics.dailyUsage || statistics.dailyUsage.length === 0) {
       return null;
     }
@@ -202,7 +203,7 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
   }, [statistics, selectedMetrics, chartType, dateRange]);
 
   // 使用率统计卡片
-  const usageStatsOption = useMemo(() => {
+  const usageStatsOption: ECOption | null = useMemo(() => {
     if (!statistics || !statistics.currentUsage) {
       return null;
     }

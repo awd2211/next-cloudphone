@@ -1,4 +1,5 @@
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ReactECharts';
+import type { ECOption } from '@/utils/echarts';
 import { Empty } from 'antd';
 
 interface RevenueData {
@@ -17,7 +18,7 @@ const RevenueChart = ({ data, loading }: RevenueChartProps) => {
     return <Empty description="暂无数据" />;
   }
 
-  const option = {
+  const option: ECOption = {
     title: {
       text: '收入趋势',
       left: 'center',

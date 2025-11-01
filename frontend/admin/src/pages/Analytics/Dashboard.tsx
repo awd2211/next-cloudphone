@@ -6,7 +6,8 @@ import {
   UserOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ReactECharts';
+import type { ECOption } from '@/utils/echarts';
 
 const AnalyticsDashboard: React.FC = () => {
   // 费用趋势图

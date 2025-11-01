@@ -4,7 +4,8 @@
  */
 import { memo, useMemo } from 'react';
 import { Drawer, Card, Row, Col, Tag, Statistic } from 'antd';
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ReactECharts';
+import type { ECOption } from '@/utils/echarts';
 import type { Quota, QuotaStatistics } from '@/types';
 import { QUOTA_STATUS_CONFIG } from './QuotaStatusTag';
 
