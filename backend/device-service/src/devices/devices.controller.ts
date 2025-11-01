@@ -723,7 +723,7 @@ export class DevicesController {
   // ============================================================
 
   @Post(':id/apps/start')
-  @RequirePermission('device.app.operate')
+  @RequirePermission('device:app:operate')
   @ApiOperation({
     summary: '启动应用',
     description: '启动设备上的应用 (仅阿里云 ECP 支持)',
@@ -741,7 +741,7 @@ export class DevicesController {
   }
 
   @Post(':id/apps/stop')
-  @RequirePermission('device.app.operate')
+  @RequirePermission('device:app:operate')
   @ApiOperation({
     summary: '停止应用',
     description: '停止设备上的应用 (仅阿里云 ECP 支持)',
@@ -759,7 +759,7 @@ export class DevicesController {
   }
 
   @Post(':id/apps/clear-data')
-  @RequirePermission('device.app.operate')
+  @RequirePermission('device:app:operate')
   @ApiOperation({
     summary: '清除应用数据',
     description: '清除设备上应用的数据 (仅阿里云 ECP 支持)',
@@ -781,7 +781,7 @@ export class DevicesController {
   // ============================================================
 
   @Post(':id/snapshots')
-  @RequirePermission('device.snapshot.create')
+  @RequirePermission('device:snapshot:create')
   @ApiOperation({
     summary: '创建设备快照',
     description: '为设备创建快照备份 (仅阿里云 ECP 支持)',
@@ -800,7 +800,7 @@ export class DevicesController {
   }
 
   @Post(':id/snapshots/restore')
-  @RequirePermission('device.snapshot.restore')
+  @RequirePermission('device:snapshot:restore')
   @ApiOperation({
     summary: '恢复设备快照',
     description: '从快照恢复设备 (仅阿里云 ECP 支持)',

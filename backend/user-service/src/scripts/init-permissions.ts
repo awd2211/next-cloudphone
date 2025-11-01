@@ -39,6 +39,9 @@ const DEFAULT_PERMISSIONS = [
   { resource: 'device', action: 'delete', description: '删除设备' },
   { resource: 'device', action: 'control', description: '控制设备' },
   { resource: 'device', action: 'export', description: '导出设备数据' },
+  { resource: 'device', action: 'app:operate', description: '应用操作（启动/停止/清除数据）' },
+  { resource: 'device', action: 'snapshot:create', description: '创建设备快照' },
+  { resource: 'device', action: 'snapshot:restore', description: '恢复设备快照' },
 
   // 应用管理权限
   { resource: 'app', action: 'create', description: '创建应用' },
@@ -193,6 +196,9 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'device:delete',
     'device:control',
     'device:export',
+    'device:app:operate',
+    'device:snapshot:create',
+    'device:snapshot:restore',
     // 应用管理
     'app:create',
     'app:read',
@@ -239,6 +245,9 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'device:delete',
     'device:control',
     'device:export',
+    'device:app:operate',
+    'device:snapshot:create',
+    'device:snapshot:restore',
     'app:create',
     'app:read',
     'app:update',
