@@ -79,7 +79,7 @@ export function useRenderCount(componentName: string): void {
 export function useWhyDidYouUpdate(name: string, props: Record<string, any>): void {
   if (process.env.NODE_ENV !== 'development') return;
 
-  const previousProps = React.useRef<Record<string, any>>();
+  const previousProps = React.useRef<Record<string, any>>(props);
 
   React.useEffect(() => {
     if (previousProps.current) {
@@ -118,6 +118,8 @@ export function useComponentSize(ref: React.RefObject<HTMLElement>): {
 
     const resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
+      if (!entry) return; // ✅ 添加类型守卫
+
       setSize({
         width: entry.contentRect.width,
         height: entry.contentRect.height,
@@ -257,13 +259,18 @@ export class MemoryLeakDetector {
       // 检测内存泄漏（持续增长）
       if (this.snapshots.length >= 5) {
         const recentSnapshots = this.snapshots.slice(-5);
-        const increasing = recentSnapshots.every((val, i, arr) => i === 0 || val > arr[i - 1]);
+        const increasing = recentSnapshots.every((val, i, arr) => i === 0 || val > (arr[i - 1] ?? 0));
 
         if (increasing) {
-          const growth = recentSnapshots[recentSnapshots.length - 1] - recentSnapshots[0];
-          console.warn(
-            `⚠️ Potential memory leak detected! Memory increased by ${(growth / 1024 / 1024).toFixed(2)}MB`
-          );
+          const lastSnapshot = recentSnapshots[recentSnapshots.length - 1];
+          const firstSnapshot = recentSnapshots[0];
+          // ✅ 添加类型守卫
+          if (lastSnapshot !== undefined && firstSnapshot !== undefined) {
+            const growth = lastSnapshot - firstSnapshot;
+            console.warn(
+              `⚠️ Potential memory leak detected! Memory increased by ${(growth / 1024 / 1024).toFixed(2)}MB`
+            );
+          }
         }
       }
     }, intervalMs);
@@ -283,7 +290,7 @@ export class MemoryLeakDetector {
 export function useDependencyChecker(hookName: string, dependencies: any[]): void {
   if (process.env.NODE_ENV !== 'development') return;
 
-  const previousDeps = React.useRef<any[]>();
+  const previousDeps = React.useRef<any[]>(dependencies);
 
   React.useEffect(() => {
     if (previousDeps.current) {

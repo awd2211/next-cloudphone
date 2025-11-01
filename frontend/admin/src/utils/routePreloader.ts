@@ -81,7 +81,11 @@ export const preloadOnIdle = (routes: Array<{ importFn: PreloadFn; routeName: st
   const schedulePreload = () => {
     if (currentIndex >= routes.length) return;
 
-    const { importFn, routeName } = routes[currentIndex];
+    const route = routes[currentIndex];
+    // ✅ 添加类型守卫
+    if (!route) return;
+
+    const { importFn, routeName } = route;
     currentIndex++;
 
     requestIdleCallback(
@@ -108,22 +112,25 @@ export const preloadOnIdle = (routes: Array<{ importFn: PreloadFn; routeName: st
  * preloadCommonRoutes('admin');
  */
 export const preloadCommonRoutes = (userRole: string): void => {
+  // ✅ 显式声明类型，避免 TypeScript 推断过于具体的 import 类型
+  type RouteConfig = { importFn: PreloadFn; routeName: string };
+
   // 所有角色都可以访问的页面
-  const commonRoutes = [
+  const commonRoutes: RouteConfig[] = [
     { importFn: () => import('@/pages/Dashboard'), routeName: 'Dashboard' },
     { importFn: () => import('@/pages/Profile'), routeName: 'Profile' },
     { importFn: () => import('@/pages/Notifications'), routeName: 'Notifications' },
   ];
 
   // 管理员额外预加载的页面
-  const adminRoutes = [
+  const adminRoutes: RouteConfig[] = [
     { importFn: () => import('@/pages/Device/List'), routeName: 'DeviceList' },
     { importFn: () => import('@/pages/User/List'), routeName: 'UserList' },
     { importFn: () => import('@/pages/Report/Analytics'), routeName: 'Analytics' },
   ];
 
   // 普通用户额外预加载的页面
-  const userRoutes = [
+  const userRoutes: RouteConfig[] = [
     { importFn: () => import('@/pages/Device/List'), routeName: 'DeviceList' },
     { importFn: () => import('@/pages/Billing/BalanceOverview'), routeName: 'BalanceOverview' },
   ];
