@@ -31,6 +31,10 @@ export class LoggingInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const { method, url, body, query } = request;
     const requestId = request.headers['x-request-id'] || request.id;
+
+    // ✅ 获取追踪信息（来自 RequestTracingMiddleware）
+    const traceId = request.traceId || 'N/A';
+    const spanId = request.spanId || 'N/A';
     const now = Date.now();
 
     // 跳过排除路径
@@ -38,33 +42,76 @@ export class LoggingInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const requestLog = [`[${requestId || 'NO-ID'}]`, `Incoming Request: ${method} ${url}`];
+    // ✅ 结构化日志（包含追踪信息）
+    const requestLogData = {
+      type: 'INCOMING_REQUEST',
+      traceId,
+      spanId,
+      requestId: requestId || 'NO-ID',
+      method,
+      url,
+      query: Object.keys(query || {}).length > 0 ? query : undefined,
+      body: Object.keys(body || {}).length > 0 ? this.sanitizeBody(body) : undefined,
+    };
 
-    if (Object.keys(query || {}).length) {
-      requestLog.push(`Query: ${JSON.stringify(query)}`);
-    }
-
-    if (Object.keys(body || {}).length) {
-      // 避免记录敏感信息
-      const sanitizedBody = this.sanitizeBody(body);
-      requestLog.push(`Body: ${JSON.stringify(sanitizedBody)}`);
-    }
-
-    this.logger.debug(requestLog.join(' '));
+    this.logger.debug(JSON.stringify(requestLogData));
 
     return next.handle().pipe(
       tap({
         next: () => {
           const responseTime = Date.now() - now;
-          this.logger.debug(
-            `[${requestId || 'NO-ID'}] Response: ${method} ${url} - ${responseTime}ms`
-          );
+
+          // ✅ 结构化响应日志
+          const responseLogData = {
+            type: 'OUTGOING_RESPONSE',
+            traceId,
+            spanId,
+            requestId: requestId || 'NO-ID',
+            method,
+            url,
+            duration: `${responseTime}ms`,
+            durationMs: responseTime,
+          };
+
+          this.logger.debug(JSON.stringify(responseLogData));
+
+          // ✅ 慢请求警告（超过1秒）
+          if (responseTime > 1000) {
+            this.logger.warn(
+              JSON.stringify({
+                type: 'SLOW_REQUEST',
+                traceId,
+                spanId,
+                method,
+                url,
+                duration: `${responseTime}ms`,
+                threshold: '1000ms',
+              })
+            );
+          }
         },
         error: (error) => {
           const responseTime = Date.now() - now;
-          this.logger.error(
-            `[${requestId || 'NO-ID'}] Error Response: ${method} ${url} - ${responseTime}ms - ${error.message}`
-          );
+
+          // ✅ 结构化错误日志
+          const errorLogData = {
+            type: 'ERROR_RESPONSE',
+            traceId,
+            spanId,
+            requestId: requestId || 'NO-ID',
+            method,
+            url,
+            duration: `${responseTime}ms`,
+            durationMs: responseTime,
+            error: {
+              name: error.name,
+              message: error.message,
+              status: error.status || 500,
+              stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+            },
+          };
+
+          this.logger.error(JSON.stringify(errorLogData));
         },
       })
     );
