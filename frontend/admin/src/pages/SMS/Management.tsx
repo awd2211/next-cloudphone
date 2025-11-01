@@ -1,51 +1,26 @@
-import React, { useState } from 'react';
-import {
-  Card,
-  Table,
-  Button,
-  Space,
-  Tag,
-  Input,
-  Select,
-  DatePicker,
-  Modal,
-  Form,
-  message,
-  Drawer,
-  Descriptions,
-  Statistic,
-  Row,
-  Col,
-} from 'antd';
-import {
-  SendOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-  SettingOutlined,
-  EyeOutlined,
-} from '@ant-design/icons';
+import { useState, useCallback } from 'react';
+import { Card, Table, Form, message } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import request from '@/utils/request';
-import type { ColumnsType } from 'antd/es/table';
+import {
+  SMSStatsCards,
+  SMSSearchBar,
+  useSMSColumns,
+  SendSMSModal,
+  SMSDetailDrawer,
+  type SMSRecord,
+} from '@/components/SMS';
 
-const { RangePicker } = DatePicker;
-
-interface SMSRecord {
-  id: string;
-  phone: string;
-  content: string;
-  status: 'pending' | 'sent' | 'failed' | 'delivered';
-  provider: string;
-  userId?: string;
-  userName?: string;
-  templateCode?: string;
-  variables?: Record<string, any>;
-  errorMessage?: string;
-  sentAt?: string;
-  deliveredAt?: string;
-  createdAt: string;
-}
-
+/**
+ * SMS 管理页面（优化版 - 使用 React Query）
+ *
+ * 优化点：
+ * 1. ✅ 使用 React Query 自动管理状态和缓存
+ * 2. ✅ 使用 useCallback 优化事件处理函数
+ * 3. ✅ 组件拆分 - 提取 SMSStatsCards, SMSSearchBar, SendSMSModal, SMSDetailDrawer
+ * 4. ✅ 提取表格列定义到 hook
+ * 5. ✅ 提取常量和类型
+ */
 const SMSManagement: React.FC = () => {
   const [searchParams, setSearchParams] = useState({
     status: undefined as string | undefined,
@@ -109,97 +84,17 @@ const SMSManagement: React.FC = () => {
     },
   });
 
-  const columns: ColumnsType<SMSRecord> = [
-    {
-      title: '手机号',
-      dataIndex: 'phone',
-      key: 'phone',
-      width: 120,
-    },
-    {
-      title: '内容',
-      dataIndex: 'content',
-      key: 'content',
-      ellipsis: true,
-      width: 200,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status: string) => {
-        const statusMap: Record<string, { color: string; text: string }> = {
-          pending: { color: 'default', text: '等待发送' },
-          sent: { color: 'processing', text: '已发送' },
-          delivered: { color: 'success', text: '已送达' },
-          failed: { color: 'error', text: '发送失败' },
-        };
-        const config = statusMap[status] || { color: 'default', text: status };
-        return <Tag color={config.color}>{config.text}</Tag>;
-      },
-    },
-    {
-      title: '供应商',
-      dataIndex: 'provider',
-      key: 'provider',
-      width: 100,
-      render: (provider: string) => {
-        const providerMap: Record<string, string> = {
-          aliyun: '阿里云',
-          tencent: '腾讯云',
-          twilio: 'Twilio',
-        };
-        return providerMap[provider] || provider;
-      },
-    },
-    {
-      title: '用户',
-      dataIndex: 'userName',
-      key: 'userName',
-      width: 120,
-    },
-    {
-      title: '模板代码',
-      dataIndex: 'templateCode',
-      key: 'templateCode',
-      width: 120,
-    },
-    {
-      title: '发送时间',
-      dataIndex: 'sentAt',
-      key: 'sentAt',
-      width: 160,
-      render: (sentAt: string) => sentAt || '-',
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 100,
-      fixed: 'right',
-      render: (_: any, record: SMSRecord) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setSelectedRecord(record);
-              setDetailDrawerVisible(true);
-            }}
-          >
-            详情
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+  // ✅ useCallback 优化事件处理函数
+  const handleViewDetail = useCallback((record: SMSRecord) => {
+    setSelectedRecord(record);
+    setDetailDrawerVisible(true);
+  }, []);
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     setSearchParams({ ...searchParams, page: 1 });
-  };
+  }, [searchParams]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setSearchParams({
       status: undefined,
       provider: undefined,
@@ -208,109 +103,49 @@ const SMSManagement: React.FC = () => {
       page: 1,
       limit: 10,
     });
-  };
+  }, []);
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     sendForm.validateFields().then((values) => {
       sendMutation.mutate(values);
     });
-  };
+  }, [sendForm, sendMutation]);
+
+  // ✅ 使用提取的表格列定义 hook
+  const columns = useSMSColumns({ onViewDetail: handleViewDetail });
 
   return (
     <div>
       {/* 统计卡片 */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic title="今日发送" value={stats?.today || 0} suffix="条" />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="本月发送"
-              value={stats?.thisMonth || 0}
-              suffix="条"
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="发送成功率"
-              value={stats?.successRate || 0}
-              suffix="%"
-              precision={2}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="总发送量" value={stats?.total || 0} suffix="条" />
-          </Card>
-        </Col>
-      </Row>
+      <SMSStatsCards
+        today={stats?.today || 0}
+        thisMonth={stats?.thisMonth || 0}
+        successRate={stats?.successRate || 0}
+        total={stats?.total || 0}
+      />
 
       {/* 搜索区域 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Space wrap>
-          <Input
-            placeholder="手机号"
-            value={searchParams.phone}
-            onChange={(e) =>
-              setSearchParams({ ...searchParams, phone: e.target.value })
-            }
-            style={{ width: 150 }}
-          />
-          <Select
-            placeholder="状态"
-            value={searchParams.status}
-            onChange={(value) =>
-              setSearchParams({ ...searchParams, status: value })
-            }
-            style={{ width: 120 }}
-            allowClear
-          >
-            <Select.Option value="pending">等待发送</Select.Option>
-            <Select.Option value="sent">已发送</Select.Option>
-            <Select.Option value="delivered">已送达</Select.Option>
-            <Select.Option value="failed">发送失败</Select.Option>
-          </Select>
-          <Select
-            placeholder="供应商"
-            value={searchParams.provider}
-            onChange={(value) =>
-              setSearchParams({ ...searchParams, provider: value })
-            }
-            style={{ width: 120 }}
-            allowClear
-          >
-            <Select.Option value="aliyun">阿里云</Select.Option>
-            <Select.Option value="tencent">腾讯云</Select.Option>
-            <Select.Option value="twilio">Twilio</Select.Option>
-          </Select>
-          <RangePicker
-            value={searchParams.dateRange}
-            onChange={(dates) =>
-              setSearchParams({ ...searchParams, dateRange: dates })
-            }
-          />
-          <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
-            搜索
-          </Button>
-          <Button icon={<ReloadOutlined />} onClick={handleReset}>
-            重置
-          </Button>
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            onClick={() => setSendModalVisible(true)}
-          >
-            发送短信
-          </Button>
-          <Button icon={<SettingOutlined />}>供应商配置</Button>
-        </Space>
-      </Card>
+      <SMSSearchBar
+        phone={searchParams.phone}
+        status={searchParams.status}
+        provider={searchParams.provider}
+        dateRange={searchParams.dateRange}
+        onPhoneChange={(value) =>
+          setSearchParams({ ...searchParams, phone: value })
+        }
+        onStatusChange={(value) =>
+          setSearchParams({ ...searchParams, status: value })
+        }
+        onProviderChange={(value) =>
+          setSearchParams({ ...searchParams, provider: value })
+        }
+        onDateRangeChange={(dates) =>
+          setSearchParams({ ...searchParams, dateRange: dates })
+        }
+        onSearch={handleSearch}
+        onReset={handleReset}
+        onSendClick={() => setSendModalVisible(true)}
+      />
 
       {/* 表格 */}
       <Card>
@@ -335,105 +170,20 @@ const SMSManagement: React.FC = () => {
       </Card>
 
       {/* 发送短信弹窗 */}
-      <Modal
-        title="发送短信"
-        open={sendModalVisible}
+      <SendSMSModal
+        visible={sendModalVisible}
+        loading={sendMutation.isPending}
+        form={sendForm}
         onOk={handleSend}
         onCancel={() => setSendModalVisible(false)}
-        confirmLoading={sendMutation.isPending}
-      >
-        <Form form={sendForm} layout="vertical">
-          <Form.Item
-            label="手机号"
-            name="phone"
-            rules={[
-              { required: true, message: '请输入手机号' },
-              { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' },
-            ]}
-          >
-            <Input placeholder="请输入手机号" />
-          </Form.Item>
-          <Form.Item
-            label="短信内容"
-            name="content"
-            rules={[{ required: true, message: '请输入短信内容' }]}
-          >
-            <Input.TextArea rows={4} placeholder="请输入短信内容" />
-          </Form.Item>
-          <Form.Item label="供应商" name="provider" initialValue="aliyun">
-            <Select>
-              <Select.Option value="aliyun">阿里云</Select.Option>
-              <Select.Option value="tencent">腾讯云</Select.Option>
-              <Select.Option value="twilio">Twilio</Select.Option>
-            </Select>
-          </Form.Item>
-          <Form.Item label="模板代码" name="templateCode">
-            <Input placeholder="可选，使用模板时填写" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      />
 
       {/* 详情抽屉 */}
-      <Drawer
-        title="短信详情"
-        open={detailDrawerVisible}
+      <SMSDetailDrawer
+        visible={detailDrawerVisible}
+        record={selectedRecord}
         onClose={() => setDetailDrawerVisible(false)}
-        width={600}
-      >
-        {selectedRecord && (
-          <Descriptions column={1} bordered>
-            <Descriptions.Item label="手机号">
-              {selectedRecord.phone}
-            </Descriptions.Item>
-            <Descriptions.Item label="内容">
-              {selectedRecord.content}
-            </Descriptions.Item>
-            <Descriptions.Item label="状态">
-              <Tag
-                color={
-                  selectedRecord.status === 'delivered'
-                    ? 'success'
-                    : selectedRecord.status === 'failed'
-                      ? 'error'
-                      : 'processing'
-                }
-              >
-                {selectedRecord.status}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="供应商">
-              {selectedRecord.provider}
-            </Descriptions.Item>
-            <Descriptions.Item label="用户">
-              {selectedRecord.userName || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="模板代码">
-              {selectedRecord.templateCode || '-'}
-            </Descriptions.Item>
-            {selectedRecord.variables && (
-              <Descriptions.Item label="模板变量">
-                <pre>{JSON.stringify(selectedRecord.variables, null, 2)}</pre>
-              </Descriptions.Item>
-            )}
-            <Descriptions.Item label="发送时间">
-              {selectedRecord.sentAt || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="送达时间">
-              {selectedRecord.deliveredAt || '-'}
-            </Descriptions.Item>
-            {selectedRecord.errorMessage && (
-              <Descriptions.Item label="错误信息">
-                <span style={{ color: 'red' }}>
-                  {selectedRecord.errorMessage}
-                </span>
-              </Descriptions.Item>
-            )}
-            <Descriptions.Item label="创建时间">
-              {selectedRecord.createdAt}
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Drawer>
+      />
     </div>
   );
 };
