@@ -1,50 +1,23 @@
-import React, { useState } from 'react';
-import {
-  Card,
-  Table,
-  Tag,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
-  Select,
-  message,
-  Switch,
-  Tooltip,
-  Typography,
-} from 'antd';
-import {
-  PlusOutlined,
-  CopyOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  EyeInvisibleOutlined,
-  KeyOutlined,
-} from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import { useState, useCallback } from 'react';
+import { Card, Modal, Form, message, Typography, Space, Button } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import request from '../../utils/request';
+import { ApiKeyTable, CreateApiKeyModal } from '@/components/ApiKey';
+import type { ApiKey } from '@/components/ApiKey';
 
-const { Option } = Select;
-const { TextArea } = Input;
 const { Text, Paragraph } = Typography;
 
-interface ApiKey {
-  id: string;
-  name: string;
-  key: string;
-  secret: string;
-  scopes: string[];
-  status: 'active' | 'inactive' | 'expired';
-  usageCount: number;
-  lastUsedAt?: string;
-  expiresAt?: string;
-  createdAt: string;
-  createdBy: string;
-  description?: string;
-}
-
+/**
+ * API 密钥管理页面（优化版）
+ *
+ * 优化点：
+ * 1. ✅ 组件拆分 - 提取 ApiKeyTable, CreateApiKeyModal
+ * 2. ✅ 工具函数提取 - utils.tsx
+ * 3. ✅ 常量提取 - constants.ts
+ * 4. ✅ 使用 useCallback 优化事件处理
+ */
 const ApiKeyList: React.FC = () => {
+  // ===== 状态管理 =====
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([
     {
       id: 'key-001',
@@ -108,34 +81,13 @@ const ApiKeyList: React.FC = () => {
   const [visibleSecrets, setVisibleSecrets] = useState<Set<string>>(new Set());
   const [form] = Form.useForm();
 
-  const availableScopes = [
-    { value: 'devices:read', label: '设备-读取' },
-    { value: 'devices:write', label: '设备-写入' },
-    { value: 'users:read', label: '用户-读取' },
-    { value: 'users:write', label: '用户-写入' },
-    { value: 'billing:read', label: '账单-读取' },
-    { value: 'billing:write', label: '账单-写入' },
-    { value: 'quotas:read', label: '配额-读取' },
-    { value: 'quotas:write', label: '配额-写入' },
-    { value: 'admin:all', label: '管理员-全部权限' },
-  ];
-
-  const getStatusTag = (status: ApiKey['status']) => {
-    const statusConfig = {
-      active: { color: 'success', text: '活跃' },
-      inactive: { color: 'default', text: '未激活' },
-      expired: { color: 'error', text: '已过期' },
-    };
-    const config = statusConfig[status];
-    return <Tag color={config.color}>{config.text}</Tag>;
-  };
-
-  const handleCopyKey = (key: string) => {
+  // ===== 事件处理 =====
+  const handleCopyKey = useCallback((key: string) => {
     navigator.clipboard.writeText(key);
     message.success('密钥已复制到剪贴板');
-  };
+  }, []);
 
-  const toggleSecretVisibility = (id: string) => {
+  const toggleSecretVisibility = useCallback((id: string) => {
     setVisibleSecrets((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
@@ -145,12 +97,11 @@ const ApiKeyList: React.FC = () => {
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleCreateApiKey = async (values: any) => {
+  const handleCreateApiKey = useCallback(async (values: any) => {
     setLoading(true);
     try {
-      // 调用后端 API 创建密钥
       const response = await request.post('/api-keys', {
         name: values.name,
         scopes: values.scopes,
@@ -176,7 +127,6 @@ const ApiKeyList: React.FC = () => {
       setCreateModalVisible(false);
       form.resetFields();
 
-      // 显示新创建的密钥
       Modal.success({
         title: 'API 密钥创建成功',
         width: 600,
@@ -209,9 +159,9 @@ const ApiKeyList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiKeys, form]);
 
-  const handleDeleteApiKey = (record: ApiKey) => {
+  const handleDeleteApiKey = useCallback((record: ApiKey) => {
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除密钥 "${record.name}" 吗？此操作不可恢复。`,
@@ -223,149 +173,24 @@ const ApiKeyList: React.FC = () => {
         message.success('密钥已删除');
       },
     });
-  };
+  }, [apiKeys]);
 
-  const handleToggleStatus = (record: ApiKey) => {
+  const handleToggleStatus = useCallback((record: ApiKey) => {
     const newStatus = record.status === 'active' ? 'inactive' : 'active';
     setApiKeys(apiKeys.map((k) => (k.id === record.id ? { ...k, status: newStatus } : k)));
-    message.success(`密钥已${newStatus === 'active' ? '激活' : '禁用'}`);
-  };
+    message.success(`密钥已${'active' === newStatus ? '激活' : '禁用'}`);
+  }, [apiKeys]);
 
-  const columns: ColumnsType<ApiKey> = [
-    {
-      title: '名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 150,
-    },
-    {
-      title: 'Access Key',
-      dataIndex: 'key',
-      key: 'key',
-      width: 220,
-      render: (key: string) => (
-        <Space>
-          <code style={{ fontSize: 12 }}>{key}</code>
-          <Tooltip title="复制">
-            <Button
-              type="link"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => handleCopyKey(key)}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-    {
-      title: 'Secret Key',
-      dataIndex: 'secret',
-      key: 'secret',
-      width: 180,
-      render: (secret: string, record: ApiKey) => {
-        const isVisible = visibleSecrets.has(record.id);
-        return (
-          <Space>
-            <code style={{ fontSize: 12 }}>
-              {isVisible ? secret : secret.substring(0, 12) + '*********************'}
-            </code>
-            <Tooltip title={isVisible ? '隐藏' : '显示'}>
-              <Button
-                type="link"
-                size="small"
-                icon={isVisible ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                onClick={() => toggleSecretVisibility(record.id)}
-              />
-            </Tooltip>
-          </Space>
-        );
-      },
-    },
-    {
-      title: '权限范围',
-      dataIndex: 'scopes',
-      key: 'scopes',
-      width: 250,
-      render: (scopes: string[]) => (
-        <>
-          {scopes.slice(0, 2).map((scope) => (
-            <Tag key={scope} style={{ marginBottom: 4 }}>
-              {scope}
-            </Tag>
-          ))}
-          {scopes.length > 2 && (
-            <Tooltip title={scopes.slice(2).join(', ')}>
-              <Tag>+{scopes.length - 2}</Tag>
-            </Tooltip>
-          )}
-        </>
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status: ApiKey['status']) => getStatusTag(status),
-      filters: [
-        { text: '活跃', value: 'active' },
-        { text: '未激活', value: 'inactive' },
-        { text: '已过期', value: 'expired' },
-      ],
-      onFilter: (value, record) => record.status === value,
-    },
-    {
-      title: '使用次数',
-      dataIndex: 'usageCount',
-      key: 'usageCount',
-      width: 100,
-      align: 'right',
-      sorter: (a, b) => a.usageCount - b.usageCount,
-    },
-    {
-      title: '最后使用',
-      dataIndex: 'lastUsedAt',
-      key: 'lastUsedAt',
-      width: 160,
-      render: (time?: string) => time || '-',
-    },
-    {
-      title: '过期时间',
-      dataIndex: 'expiresAt',
-      key: 'expiresAt',
-      width: 120,
-      render: (time?: string) => time || '永不过期',
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 180,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space>
-          <Switch
-            size="small"
-            checked={record.status === 'active'}
-            disabled={record.status === 'expired'}
-            onChange={() => handleToggleStatus(record)}
-          />
-          <Tooltip title="查看详情">
-            <Button type="link" size="small" icon={<EyeOutlined />} />
-          </Tooltip>
-          <Tooltip title="删除">
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleDeleteApiKey(record)}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
+  const handleModalCancel = useCallback(() => {
+    setCreateModalVisible(false);
+    form.resetFields();
+  }, [form]);
 
+  const handleModalSubmit = useCallback(() => {
+    form.submit();
+  }, [form]);
+
+  // ===== 渲染 =====
   return (
     <>
       <Card
@@ -380,96 +205,26 @@ const ApiKeyList: React.FC = () => {
           </Button>
         }
       >
-        <Table
-          columns={columns}
-          dataSource={apiKeys}
+        <ApiKeyTable
+          apiKeys={apiKeys}
           loading={loading}
-          rowKey="id"
-          pagination={{
-            pageSize: 10,
-            showTotal: (total) => `共 ${total} 个密钥`,
-          }}
-          scroll={{ x: 1500 }}
+          visibleSecrets={visibleSecrets}
+          onCopyKey={handleCopyKey}
+          onToggleSecretVisibility={toggleSecretVisibility}
+          onToggleStatus={handleToggleStatus}
+          onDelete={handleDeleteApiKey}
         />
       </Card>
 
-      <Modal
-        title={
-          <>
-            <KeyOutlined /> 创建 API 密钥
-          </>
-        }
-        open={createModalVisible}
-        onCancel={() => {
-          setCreateModalVisible(false);
-          form.resetFields();
-        }}
-        onOk={() => form.submit()}
-        confirmLoading={loading}
-        width={600}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleCreateApiKey}
-          initialValues={{
-            environment: 'prod',
-            scopes: ['devices:read'],
-          }}
-        >
-          <Form.Item
-            name="name"
-            label="密钥名称"
-            rules={[{ required: true, message: '请输入密钥名称' }]}
-          >
-            <Input placeholder="例如: 生产环境密钥" />
-          </Form.Item>
+      <CreateApiKeyModal
+        visible={createModalVisible}
+        loading={loading}
+        form={form}
+        onCancel={handleModalCancel}
+        onSubmit={handleModalSubmit}
+      />
 
-          <Form.Item
-            name="environment"
-            label="环境"
-            rules={[{ required: true, message: '请选择环境' }]}
-          >
-            <Select>
-              <Option value="prod">生产环境</Option>
-              <Option value="test">测试环境</Option>
-              <Option value="dev">开发环境</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="scopes"
-            label="权限范围"
-            rules={[{ required: true, message: '请选择至少一个权限' }]}
-          >
-            <Select mode="multiple" placeholder="选择权限范围" options={availableScopes} />
-          </Form.Item>
-
-          <Form.Item name="expiresAt" label="过期时间（可选）">
-            <Input placeholder="例如: 2026-12-31" />
-          </Form.Item>
-
-          <Form.Item name="description" label="描述（可选）">
-            <TextArea rows={3} placeholder="密钥用途说明" />
-          </Form.Item>
-
-          <div
-            style={{
-              background: '#fff7e6',
-              border: '1px solid #ffd591',
-              borderRadius: 4,
-              padding: 12,
-            }}
-          >
-            <Text type="warning">⚠️ 注意事项：</Text>
-            <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
-              <li>Secret Key 创建后仅显示一次，请妥善保管</li>
-              <li>不要在公开场合或代码仓库中暴露密钥</li>
-              <li>建议定期轮换密钥以提高安全性</li>
-            </ul>
-          </div>
-        </Form>
-      </Modal>
+      <Form form={form} onFinish={handleCreateApiKey} style={{ display: 'none' }} />
     </>
   );
 };
