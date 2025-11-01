@@ -1,48 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Card, Button, Alert, Typography, message, Space } from 'antd';
+import { ReloadOutlined, ClusterOutlined } from '@ant-design/icons';
 import {
-  Card,
-  Table,
-  Tag,
-  Space,
-  Button,
-  Alert,
-  Statistic,
-  Row,
-  Col,
-  Descriptions,
-  Modal,
-  Typography,
-  message,
-} from 'antd';
-import {
-  ReloadOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  WarningOutlined,
-  ApiOutlined,
-  ClusterOutlined,
-} from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+  ServiceStatsCards,
+  ServiceDetailModal,
+  ServiceTable,
+  MOCK_SERVICES,
+  AUTO_REFRESH_INTERVAL,
+  CONSUL_URL,
+  type ServiceHealth,
+} from '@/components/ConsulMonitor';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
-interface ServiceInstance {
-  id: string;
-  name: string;
-  address: string;
-  port: number;
-  status: 'passing' | 'warning' | 'critical';
-  tags: string[];
-  meta?: Record<string, string>;
-}
-
-interface ServiceHealth {
-  service: string;
-  instances: ServiceInstance[];
-  healthyCount: number;
-  unhealthyCount: number;
-}
-
+/**
+ * Consul 服务监控页面（优化版）
+ *
+ * 优化点：
+ * 1. ✅ 组件拆分 - 提取 ServiceStatsCards, ServiceDetailModal, ServiceTable
+ * 2. ✅ 常量提取 - constants.ts
+ * 3. ✅ 类型提取 - types.ts
+ * 4. ✅ 工具函数提取 - utils.tsx
+ * 5. ✅ 使用 useCallback 优化事件处理
+ * 6. ✅ 使用 useMemo 优化统计计算
+ */
 const ConsulMonitor = () => {
   const [services, setServices] = useState<ServiceHealth[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,218 +35,54 @@ const ConsulMonitor = () => {
     loadServices();
 
     if (autoRefresh) {
-      const interval = setInterval(loadServices, 10000); // 每10秒刷新
+      const interval = setInterval(loadServices, AUTO_REFRESH_INTERVAL);
       return () => clearInterval(interval);
     }
   }, [autoRefresh]);
 
-  const loadServices = async () => {
+  const loadServices = useCallback(async () => {
     setLoading(true);
     try {
-      // 模拟数据 - 实际应该调用Consul API
-      const mockData: ServiceHealth[] = [
-        {
-          service: 'api-gateway',
-          instances: [
-            {
-              id: 'api-gateway-1',
-              name: 'api-gateway',
-              address: '172.18.0.5',
-              port: 30000,
-              status: 'passing',
-              tags: ['v1.0.0', 'cluster'],
-              meta: { version: '1.0.0', instances: '4' },
-            },
-          ],
-          healthyCount: 1,
-          unhealthyCount: 0,
-        },
-        {
-          service: 'user-service',
-          instances: [
-            {
-              id: 'user-service-1',
-              name: 'user-service',
-              address: '172.18.0.6',
-              port: 30001,
-              status: 'passing',
-              tags: ['v1.0.0', 'cluster'],
-              meta: { version: '1.0.0', instances: '2' },
-            },
-          ],
-          healthyCount: 1,
-          unhealthyCount: 0,
-        },
-        {
-          service: 'device-service',
-          instances: [
-            {
-              id: 'device-service-1',
-              name: 'device-service',
-              address: '172.18.0.7',
-              port: 30002,
-              status: 'passing',
-              tags: ['v1.0.0'],
-              meta: { version: '1.0.0' },
-            },
-          ],
-          healthyCount: 1,
-          unhealthyCount: 0,
-        },
-        {
-          service: 'app-service',
-          instances: [
-            {
-              id: 'app-service-1',
-              name: 'app-service',
-              address: '172.18.0.8',
-              port: 30003,
-              status: 'passing',
-              tags: ['v1.0.0'],
-              meta: { version: '1.0.0' },
-            },
-          ],
-          healthyCount: 1,
-          unhealthyCount: 0,
-        },
-        {
-          service: 'billing-service',
-          instances: [
-            {
-              id: 'billing-service-1',
-              name: 'billing-service',
-              address: '172.18.0.9',
-              port: 30005,
-              status: 'passing',
-              tags: ['v1.0.0'],
-              meta: { version: '1.0.0' },
-            },
-          ],
-          healthyCount: 1,
-          unhealthyCount: 0,
-        },
-        {
-          service: 'notification-service',
-          instances: [
-            {
-              id: 'notification-service-1',
-              name: 'notification-service',
-              address: '172.18.0.10',
-              port: 30006,
-              status: 'warning',
-              tags: ['v1.0.0'],
-              meta: { version: '1.0.0' },
-            },
-          ],
-          healthyCount: 0,
-          unhealthyCount: 1,
-        },
-      ];
-      setServices(mockData);
+      // 模拟数据 - 实际应该调用 Consul API
+      setServices(MOCK_SERVICES);
     } catch (error) {
       message.error('加载服务信息失败');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const getStatusTag = (status: string) => {
-    const statusConfig: Record<string, { color: string; icon: React.ReactNode; text: string }> = {
-      passing: {
-        color: 'success',
-        icon: <CheckCircleOutlined />,
-        text: '健康',
-      },
-      warning: {
-        color: 'warning',
-        icon: <WarningOutlined />,
-        text: '警告',
-      },
-      critical: {
-        color: 'error',
-        icon: <CloseCircleOutlined />,
-        text: '异常',
-      },
+  // ✅ 使用 useMemo 优化统计计算
+  const stats = useMemo(() => {
+    const totalServices = services.length;
+    const healthyServices = services.filter((s) => s.unhealthyCount === 0).length;
+    const unhealthyServices = services.filter((s) => s.healthyCount === 0).length;
+    const warningServices = services.filter(
+      (s) => s.healthyCount > 0 && s.unhealthyCount > 0,
+    ).length;
+
+    return {
+      totalServices,
+      healthyServices,
+      unhealthyServices,
+      warningServices,
     };
-    const config = statusConfig[status] || statusConfig.critical;
-    return (
-      <Tag icon={config.icon} color={config.color}>
-        {config.text}
-      </Tag>
-    );
-  };
+  }, [services]);
 
-  const columns: ColumnsType<ServiceHealth> = [
-    {
-      title: '服务名称',
-      dataIndex: 'service',
-      key: 'service',
-      width: 200,
-      render: (service: string) => (
-        <Space>
-          <ApiOutlined />
-          <Text strong>{service}</Text>
-        </Space>
-      ),
-    },
-    {
-      title: '实例数',
-      key: 'instances',
-      width: 120,
-      align: 'center',
-      render: (_, record) => <Text>{record.instances.length}</Text>,
-    },
-    {
-      title: '健康实例',
-      dataIndex: 'healthyCount',
-      key: 'healthyCount',
-      width: 120,
-      align: 'center',
-      render: (count: number) => <Text style={{ color: '#52c41a' }}>{count}</Text>,
-    },
-    {
-      title: '异常实例',
-      dataIndex: 'unhealthyCount',
-      key: 'unhealthyCount',
-      width: 120,
-      align: 'center',
-      render: (count: number) => (
-        <Text style={{ color: count > 0 ? '#ff4d4f' : '#999' }}>{count}</Text>
-      ),
-    },
-    {
-      title: '整体状态',
-      key: 'status',
-      width: 120,
-      render: (_, record) => {
-        const hasUnhealthy = record.unhealthyCount > 0;
-        const allUnhealthy = record.healthyCount === 0;
-        return getStatusTag(allUnhealthy ? 'critical' : hasUnhealthy ? 'warning' : 'passing');
-      },
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 150,
-      fixed: 'right',
-      render: (_, record) => (
-        <Button
-          type="link"
-          onClick={() => {
-            setSelectedService(record);
-            setDetailModalVisible(true);
-          }}
-        >
-          查看详情
-        </Button>
-      ),
-    },
-  ];
+  // ✅ 使用 useCallback 优化事件处理
+  const handleViewDetail = useCallback((service: ServiceHealth) => {
+    setSelectedService(service);
+    setDetailModalVisible(true);
+  }, []);
 
-  const totalServices = services.length;
-  const healthyServices = services.filter((s) => s.unhealthyCount === 0).length;
-  const unhealthyServices = services.filter((s) => s.healthyCount === 0).length;
-  const warningServices = services.filter((s) => s.healthyCount > 0 && s.unhealthyCount > 0).length;
+  const handleCloseDetail = useCallback(() => {
+    setDetailModalVisible(false);
+    setSelectedService(null);
+  }, []);
+
+  const handleToggleAutoRefresh = useCallback(() => {
+    setAutoRefresh((prev) => !prev);
+  }, []);
 
   return (
     <div style={{ padding: 24 }}>
@@ -282,54 +99,20 @@ const ConsulMonitor = () => {
         style={{ marginBottom: 24 }}
       />
 
-      {/* 统计信息 */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic title="服务总数" value={totalServices} prefix={<ApiOutlined />} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="健康服务"
-              value={healthyServices}
-              valueStyle={{ color: '#3f8600' }}
-              prefix={<CheckCircleOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="警告服务"
-              value={warningServices}
-              valueStyle={{ color: '#faad14' }}
-              prefix={<WarningOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="异常服务"
-              value={unhealthyServices}
-              valueStyle={{ color: '#cf1322' }}
-              prefix={<CloseCircleOutlined />}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {/* 统计卡片 */}
+      <ServiceStatsCards
+        totalServices={stats.totalServices}
+        healthyServices={stats.healthyServices}
+        warningServices={stats.warningServices}
+        unhealthyServices={stats.unhealthyServices}
+      />
 
       {/* 服务列表 */}
       <Card
         title="服务列表"
         extra={
           <Space>
-            <Button
-              type={autoRefresh ? 'primary' : 'default'}
-              onClick={() => setAutoRefresh(!autoRefresh)}
-            >
+            <Button type={autoRefresh ? 'primary' : 'default'} onClick={handleToggleAutoRefresh}>
               {autoRefresh ? '停止自动刷新' : '开启自动刷新'}
             </Button>
             <Button icon={<ReloadOutlined />} onClick={loadServices} loading={loading}>
@@ -338,106 +121,15 @@ const ConsulMonitor = () => {
           </Space>
         }
       >
-        <Table
-          columns={columns}
-          dataSource={services}
-          rowKey="service"
-          loading={loading}
-          pagination={false}
-        />
+        <ServiceTable services={services} loading={loading} onViewDetail={handleViewDetail} />
       </Card>
 
       {/* 服务详情模态框 */}
-      <Modal
-        title={`服务详情: ${selectedService?.service}`}
-        open={detailModalVisible}
-        onCancel={() => {
-          setDetailModalVisible(false);
-          setSelectedService(null);
-        }}
-        footer={[
-          <Button
-            key="close"
-            onClick={() => {
-              setDetailModalVisible(false);
-              setSelectedService(null);
-            }}
-          >
-            关闭
-          </Button>,
-        ]}
-        width={800}
-      >
-        {selectedService && (
-          <div>
-            <Descriptions bordered column={2} style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="服务名称" span={2}>
-                {selectedService.service}
-              </Descriptions.Item>
-              <Descriptions.Item label="实例总数">
-                {selectedService.instances.length}
-              </Descriptions.Item>
-              <Descriptions.Item label="健康实例">
-                <Text style={{ color: '#52c41a' }}>{selectedService.healthyCount}</Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="异常实例">
-                <Text style={{ color: selectedService.unhealthyCount > 0 ? '#ff4d4f' : '#999' }}>
-                  {selectedService.unhealthyCount}
-                </Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="整体状态">
-                {getStatusTag(
-                  selectedService.healthyCount === 0
-                    ? 'critical'
-                    : selectedService.unhealthyCount > 0
-                      ? 'warning'
-                      : 'passing'
-                )}
-              </Descriptions.Item>
-            </Descriptions>
-
-            <Title level={5}>实例列表</Title>
-            <Table
-              columns={[
-                {
-                  title: '实例ID',
-                  dataIndex: 'id',
-                  key: 'id',
-                  width: 200,
-                },
-                {
-                  title: '地址',
-                  key: 'address',
-                  render: (_, record) => `${record.address}:${record.port}`,
-                },
-                {
-                  title: '状态',
-                  dataIndex: 'status',
-                  key: 'status',
-                  width: 100,
-                  render: (status: string) => getStatusTag(status),
-                },
-                {
-                  title: '标签',
-                  dataIndex: 'tags',
-                  key: 'tags',
-                  render: (tags: string[]) => (
-                    <Space wrap>
-                      {tags.map((tag, index) => (
-                        <Tag key={index}>{tag}</Tag>
-                      ))}
-                    </Space>
-                  ),
-                },
-              ]}
-              dataSource={selectedService.instances}
-              rowKey="id"
-              pagination={false}
-              size="small"
-            />
-          </div>
-        )}
-      </Modal>
+      <ServiceDetailModal
+        visible={detailModalVisible}
+        service={selectedService}
+        onClose={handleCloseDetail}
+      />
 
       {/* 使用说明 */}
       <Card title="监控说明" style={{ marginTop: 24 }} bordered={false}>
@@ -446,7 +138,7 @@ const ConsulMonitor = () => {
           <li>健康检查每10秒自动刷新（可手动关闭）</li>
           <li>绿色表示服务健康，黄色表示部分实例异常，红色表示服务不可用</li>
           <li>点击"查看详情"可以看到每个服务实例的详细信息</li>
-          <li>Consul地址: http://localhost:8500</li>
+          <li>Consul地址: {CONSUL_URL}</li>
         </ul>
       </Card>
     </div>
