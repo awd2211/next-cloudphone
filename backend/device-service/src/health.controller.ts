@@ -5,6 +5,7 @@ import { Public } from './auth/decorators/public.decorator';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DockerService } from './docker/docker.service';
 import { AdbService } from './adb/adb.service';
+import { HttpClientService } from '@cloudphone/shared';
 import * as os from 'os';
 import { InjectConnection } from '@nestjs/typeorm';
 import { Connection } from 'typeorm';
@@ -54,7 +55,8 @@ export class HealthController {
   constructor(
     @InjectDataSource() private dataSource: DataSource,
     private dockerService: DockerService,
-    private adbService: AdbService
+    private adbService: AdbService,
+    private httpClientService: HttpClientService
   ) {}
 
   @Get()
@@ -301,5 +303,72 @@ export class HealthController {
         message: error.message,
       };
     }
+  }
+
+  /**
+   * ✅ 新增：HTTP客户端指标端点
+   * 暴露服务间通信的性能指标
+   */
+  @Get('http-metrics')
+  @Public()
+  @ApiOperation({
+    summary: 'HTTP客户端指标',
+    description: '查看服务间HTTP通信的性能指标（成功率、延迟、吞吐量）',
+  })
+  @ApiResponse({ status: 200, description: '返回所有服务的HTTP指标' })
+  async getHttpMetrics() {
+    const metrics = this.httpClientService.getAllMetrics();
+    const circuitBreakers = this.httpClientService.getAllCircuitBreakerStatus();
+
+    return {
+      timestamp: new Date().toISOString(),
+      metrics,
+      circuitBreakers,
+      summary: this.calculateHttpMetricsSummary(metrics),
+    };
+  }
+
+  /**
+   * ✅ 新增：HTTP客户端健康状态
+   * 检查服务间通信是否健康
+   */
+  @Get('http-health')
+  @Public()
+  @ApiOperation({
+    summary: 'HTTP客户端健康状态',
+    description: '检查服务间HTTP通信健康状态（基于成功率和断路器状态）',
+  })
+  @ApiResponse({ status: 200, description: '返回HTTP通信健康状态' })
+  async getHttpHealth() {
+    return this.httpClientService.getHealthStatus();
+  }
+
+  /**
+   * ✅ 新增：计算HTTP指标摘要
+   */
+  private calculateHttpMetricsSummary(metrics: Record<string, any>) {
+    let totalRequests = 0;
+    let totalSuccess = 0;
+    let totalFailed = 0;
+    let avgResponseTime = 0;
+
+    const serviceCount = Object.keys(metrics).length;
+
+    for (const [serviceName, serviceMetrics] of Object.entries(metrics)) {
+      totalRequests += serviceMetrics.totalRequests || 0;
+      totalSuccess += serviceMetrics.successRequests || 0;
+      totalFailed += serviceMetrics.failedRequests || 0;
+      avgResponseTime += serviceMetrics.avgDuration || 0;
+    }
+
+    return {
+      totalServices: serviceCount,
+      totalRequests,
+      totalSuccess,
+      totalFailed,
+      overallSuccessRate:
+        totalRequests > 0 ? ((totalSuccess / totalRequests) * 100).toFixed(2) + '%' : 'N/A',
+      avgResponseTime: serviceCount > 0 ? Math.round(avgResponseTime / serviceCount) : 0,
+    };
   }
 }
