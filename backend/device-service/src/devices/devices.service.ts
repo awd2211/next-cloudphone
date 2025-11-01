@@ -1880,4 +1880,306 @@ export class DevicesService {
       // 缓存失效失败不应该影响主流程
     }
   }
+
+  // ============================================================
+  // 应用操作 (阿里云专属)
+  // ============================================================
+
+  /**
+   * 启动应用
+   *
+   * 仅阿里云 ECP 支持
+   *
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
+   */
+  async startApp(deviceId: string, packageName: string): Promise<void> {
+    const device = await this.findOne(deviceId);
+
+    if (device.status !== DeviceStatus.RUNNING) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备未运行: ${deviceId}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!device.externalId) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备缺少 externalId`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // 获取 provider
+    const provider = this.providerFactory.getProvider(device.providerType);
+
+    // 检查能力
+    const capabilities = provider.getCapabilities();
+    if (!capabilities.supportsAppOperation) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 不支持应用操作`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!provider.startApp) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 未实现 startApp 方法`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      // 调用 provider 方法
+      await provider.startApp(device.externalId, packageName);
+
+      this.logger.log(`App ${packageName} started on device ${deviceId}`);
+    } catch (error) {
+      this.logger.error(`Failed to start app ${packageName} on device ${deviceId}: ${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `启动应用失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * 停止应用
+   *
+   * 仅阿里云 ECP 支持
+   *
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
+   */
+  async stopApp(deviceId: string, packageName: string): Promise<void> {
+    const device = await this.findOne(deviceId);
+
+    if (device.status !== DeviceStatus.RUNNING) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备未运行: ${deviceId}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!device.externalId) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备缺少 externalId`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const provider = this.providerFactory.getProvider(device.providerType);
+
+    const capabilities = provider.getCapabilities();
+    if (!capabilities.supportsAppOperation) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 不支持应用操作`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!provider.stopApp) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 未实现 stopApp 方法`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      await provider.stopApp(device.externalId, packageName);
+
+      this.logger.log(`App ${packageName} stopped on device ${deviceId}`);
+    } catch (error) {
+      this.logger.error(`Failed to stop app ${packageName} on device ${deviceId}: ${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `停止应用失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * 清除应用数据
+   *
+   * 仅阿里云 ECP 支持
+   *
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
+   */
+  async clearAppData(deviceId: string, packageName: string): Promise<void> {
+    const device = await this.findOne(deviceId);
+
+    if (device.status !== DeviceStatus.RUNNING) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备未运行: ${deviceId}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!device.externalId) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备缺少 externalId`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const provider = this.providerFactory.getProvider(device.providerType);
+
+    const capabilities = provider.getCapabilities();
+    if (!capabilities.supportsAppOperation) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 不支持应用操作`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!provider.clearAppData) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 未实现 clearAppData 方法`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      await provider.clearAppData(device.externalId, packageName);
+
+      this.logger.log(`App data cleared for ${packageName} on device ${deviceId}`);
+    } catch (error) {
+      this.logger.error(`Failed to clear app data for ${packageName} on device ${deviceId}: ${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `清除应用数据失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ============================================================
+  // 快照管理 (阿里云专属)
+  // ============================================================
+
+  /**
+   * 创建设备快照
+   *
+   * 仅阿里云 ECP 支持
+   *
+   * @param deviceId 设备 ID
+   * @param name 快照名称
+   * @param description 快照描述
+   * @returns 快照 ID
+   */
+  async createSnapshot(deviceId: string, name: string, description?: string): Promise<string> {
+    const device = await this.findOne(deviceId);
+
+    if (!device.externalId) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备缺少 externalId`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // 快照可以在任何状态下创建
+    const provider = this.providerFactory.getProvider(device.providerType);
+
+    // 检查能力
+    const capabilities = provider.getCapabilities();
+    if (!capabilities.supportsSnapshot) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 不支持快照功能`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!provider.createSnapshot) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 未实现 createSnapshot 方法`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const snapshotId = await provider.createSnapshot(device.externalId, name, description);
+
+      this.logger.log(`Snapshot ${snapshotId} created for device ${deviceId}`);
+
+      return snapshotId;
+    } catch (error) {
+      this.logger.error(`Failed to create snapshot for device ${deviceId}: ${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.SNAPSHOT_CREATION_FAILED,
+        `创建快照失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * 恢复设备快照
+   *
+   * 仅阿里云 ECP 支持
+   *
+   * @param deviceId 设备 ID
+   * @param snapshotId 快照 ID
+   */
+  async restoreSnapshot(deviceId: string, snapshotId: string): Promise<void> {
+    const device = await this.findOne(deviceId);
+
+    if (!device.externalId) {
+      throw new BusinessException(
+        BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+        `设备缺少 externalId`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const provider = this.providerFactory.getProvider(device.providerType);
+
+    // 检查能力
+    const capabilities = provider.getCapabilities();
+    if (!capabilities.supportsSnapshot) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 不支持快照功能`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!provider.restoreSnapshot) {
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+        `设备 Provider ${device.providerType} 未实现 restoreSnapshot 方法`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      await provider.restoreSnapshot(device.externalId, snapshotId);
+
+      this.logger.log(`Snapshot ${snapshotId} restored for device ${deviceId}`);
+    } catch (error) {
+      this.logger.error(`Failed to restore snapshot for device ${deviceId}: ${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.SNAPSHOT_RESTORE_FAILED,
+        `恢复快照失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

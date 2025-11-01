@@ -218,6 +218,51 @@ export interface IDeviceProvider {
    * @param charging 是否充电
    */
   setBatteryStatus?(deviceId: string, level: number, charging: boolean): Promise<void>;
+
+  // ========================================
+  // 应用操作 (阿里云 ECP 专属)
+  // ========================================
+
+  /**
+   * 启动应用
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
+   */
+  startApp?(deviceId: string, packageName: string): Promise<void>;
+
+  /**
+   * 停止应用
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
+   */
+  stopApp?(deviceId: string, packageName: string): Promise<void>;
+
+  /**
+   * 清除应用数据
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
+   */
+  clearAppData?(deviceId: string, packageName: string): Promise<void>;
+
+  // ========================================
+  // 快照管理 (阿里云 ECP 专属)
+  // ========================================
+
+  /**
+   * 创建设备快照
+   * @param deviceId 设备 ID
+   * @param name 快照名称
+   * @param description 快照描述
+   * @returns 快照 ID
+   */
+  createSnapshot?(deviceId: string, name: string, description?: string): Promise<string>;
+
+  /**
+   * 恢复设备快照
+   * @param deviceId 设备 ID
+   * @param snapshotId 快照 ID
+   */
+  restoreSnapshot?(deviceId: string, snapshotId: string): Promise<void>;
 }
 
 /**

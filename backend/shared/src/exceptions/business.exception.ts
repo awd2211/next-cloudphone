@@ -5,6 +5,7 @@ export enum BusinessErrorCode {
   UNKNOWN_ERROR = 1000,
   INVALID_PARAMETER = 1001,
   OPERATION_FAILED = 1002,
+  OPERATION_NOT_SUPPORTED = 1003,
 
   // 用户相关 (2xxx)
   USER_NOT_FOUND = 2001,

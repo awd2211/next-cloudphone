@@ -41,6 +41,13 @@ import {
   UninstallApkDto,
 } from '../adb/dto/shell-command.dto';
 import { QuotaGuard, QuotaCheck, QuotaCheckType } from '../quota/quota.guard';
+import {
+  StartAppDto,
+  StopAppDto,
+  ClearAppDataDto,
+  CreateSnapshotDto,
+  RestoreSnapshotDto,
+} from './dto/app-operations.dto';
 
 @ApiTags('devices')
 @ApiBearerAuth()
@@ -708,6 +715,105 @@ export class DevicesController {
       success: true,
       message: `批量删除完成：成功 ${succeeded} 个，失败 ${failed} 个`,
       data: { succeeded, failed, total: ids.length },
+    };
+  }
+
+  // ============================================================
+  // 应用操作端点 (阿里云专属)
+  // ============================================================
+
+  @Post(':id/apps/start')
+  @RequirePermission('device.app.operate')
+  @ApiOperation({
+    summary: '启动应用',
+    description: '启动设备上的应用 (仅阿里云 ECP 支持)',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '应用启动成功' })
+  @ApiResponse({ status: 400, description: '设备未运行或不支持此操作' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async startApp(@Param('id') id: string, @Body() dto: StartAppDto) {
+    await this.devicesService.startApp(id, dto.packageName);
+    return {
+      success: true,
+      message: `应用 ${dto.packageName} 启动成功`,
+    };
+  }
+
+  @Post(':id/apps/stop')
+  @RequirePermission('device.app.operate')
+  @ApiOperation({
+    summary: '停止应用',
+    description: '停止设备上的应用 (仅阿里云 ECP 支持)',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '应用停止成功' })
+  @ApiResponse({ status: 400, description: '设备未运行或不支持此操作' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async stopApp(@Param('id') id: string, @Body() dto: StopAppDto) {
+    await this.devicesService.stopApp(id, dto.packageName);
+    return {
+      success: true,
+      message: `应用 ${dto.packageName} 停止成功`,
+    };
+  }
+
+  @Post(':id/apps/clear-data')
+  @RequirePermission('device.app.operate')
+  @ApiOperation({
+    summary: '清除应用数据',
+    description: '清除设备上应用的数据 (仅阿里云 ECP 支持)',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '应用数据清除成功' })
+  @ApiResponse({ status: 400, description: '设备未运行或不支持此操作' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async clearAppData(@Param('id') id: string, @Body() dto: ClearAppDataDto) {
+    await this.devicesService.clearAppData(id, dto.packageName);
+    return {
+      success: true,
+      message: `应用 ${dto.packageName} 数据清除成功`,
+    };
+  }
+
+  // ============================================================
+  // 快照管理端点 (阿里云专属)
+  // ============================================================
+
+  @Post(':id/snapshots')
+  @RequirePermission('device.snapshot.create')
+  @ApiOperation({
+    summary: '创建设备快照',
+    description: '为设备创建快照备份 (仅阿里云 ECP 支持)',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '快照创建成功，返回快照 ID' })
+  @ApiResponse({ status: 400, description: '设备不支持快照功能' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async createSnapshot(@Param('id') id: string, @Body() dto: CreateSnapshotDto) {
+    const snapshotId = await this.devicesService.createSnapshot(id, dto.name, dto.description);
+    return {
+      success: true,
+      message: '快照创建成功',
+      data: { snapshotId },
+    };
+  }
+
+  @Post(':id/snapshots/restore')
+  @RequirePermission('device.snapshot.restore')
+  @ApiOperation({
+    summary: '恢复设备快照',
+    description: '从快照恢复设备 (仅阿里云 ECP 支持)',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '快照恢复成功，设备将重启' })
+  @ApiResponse({ status: 400, description: '设备不支持快照功能' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async restoreSnapshot(@Param('id') id: string, @Body() dto: RestoreSnapshotDto) {
+    await this.devicesService.restoreSnapshot(id, dto.snapshotId);
+    return {
+      success: true,
+      message: '快照恢复成功，设备将重启',
     };
   }
 }
