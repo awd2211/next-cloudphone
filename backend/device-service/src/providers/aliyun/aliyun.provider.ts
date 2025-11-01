@@ -285,6 +285,8 @@ export class AliyunProvider implements IDeviceProvider {
       supportsKeyboardInput: true,
       supportsFileTransfer: true, // ✅ 支持通过 OSS 文件传输
       supportsAppInstall: true, // ✅ 支持应用管理 (CreateApp + InstallApp)
+      supportsSnapshot: true, // ✅ 支持快照备份和恢复
+      supportsAppOperation: true, // ✅ 支持应用启动/停止/清除数据
       supportsScreenshot: true,
       supportsRecording: false,
       supportsLocationMocking: true,
@@ -544,6 +546,114 @@ export class AliyunProvider implements IDeviceProvider {
 
     if (!result.success) {
       throw new InternalServerErrorException(`Failed to uninstall app: ${result.errorMessage}`);
+    }
+  }
+
+  /**
+   * 启动应用
+   *
+   * 使用阿里云 OperateApp API 启动应用
+   *
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
+   */
+  async startApp(deviceId: string, packageName: string): Promise<void> {
+    this.logger.log(`Starting app on Aliyun phone ${deviceId}: ${packageName}`);
+
+    const result = await this.ecpClient.operateApp(deviceId, packageName, 'START');
+
+    if (!result.success) {
+      throw new InternalServerErrorException(`Failed to start app: ${result.errorMessage}`);
+    }
+  }
+
+  /**
+   * 停止应用
+   *
+   * 使用阿里云 OperateApp API 停止应用
+   *
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
+   */
+  async stopApp(deviceId: string, packageName: string): Promise<void> {
+    this.logger.log(`Stopping app on Aliyun phone ${deviceId}: ${packageName}`);
+
+    const result = await this.ecpClient.operateApp(deviceId, packageName, 'STOP');
+
+    if (!result.success) {
+      throw new InternalServerErrorException(`Failed to stop app: ${result.errorMessage}`);
+    }
+  }
+
+  /**
+   * 清除应用数据
+   *
+   * 使用阿里云 OperateApp API 清除应用数据
+   *
+   * @param deviceId 设备 ID
+   * @param packageName 应用包名
+   */
+  async clearAppData(deviceId: string, packageName: string): Promise<void> {
+    this.logger.log(`Clearing app data on Aliyun phone ${deviceId}: ${packageName}`);
+
+    const result = await this.ecpClient.operateApp(deviceId, packageName, 'CLEAR_DATA');
+
+    if (!result.success) {
+      throw new InternalServerErrorException(`Failed to clear app data: ${result.errorMessage}`);
+    }
+  }
+
+  /**
+   * 创建快照
+   *
+   * 使用阿里云 CreateSnapshot API 创建设备完整备份
+   *
+   * @param deviceId 设备 ID
+   * @param name 快照名称
+   * @param description 快照描述
+   * @returns 快照 ID
+   */
+  async createSnapshot(deviceId: string, name: string, description?: string): Promise<string> {
+    this.logger.log(`Creating snapshot for Aliyun phone ${deviceId}: ${name}`);
+
+    try {
+      const result = await this.ecpClient.createSnapshot(deviceId, name, description);
+
+      if (!result.success || !result.data) {
+        throw new InternalServerErrorException(
+          `Failed to create snapshot: ${result.errorMessage}`
+        );
+      }
+
+      return result.data.snapshotId;
+    } catch (error) {
+      this.logger.error(`Failed to create snapshot: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 恢复快照
+   *
+   * 使用阿里云 RestoreSnapshot API 从快照恢复设备
+   *
+   * @param deviceId 设备 ID
+   * @param snapshotId 快照 ID
+   */
+  async restoreSnapshot(deviceId: string, snapshotId: string): Promise<void> {
+    this.logger.log(`Restoring snapshot ${snapshotId} for Aliyun phone ${deviceId}`);
+
+    try {
+      const result = await this.ecpClient.restoreSnapshot(deviceId, snapshotId);
+
+      if (!result.success) {
+        throw new InternalServerErrorException(
+          `Failed to restore snapshot: ${result.errorMessage}`
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to restore snapshot: ${error.message}`);
+      throw error;
     }
   }
 

@@ -181,6 +181,12 @@ export interface DeviceCapabilities {
   /** 支持电池模拟 */
   supportsBatterySimulation?: boolean;
 
+  /** 支持快照备份和恢复 (阿里云 ECP) */
+  supportsSnapshot?: boolean;
+
+  /** 支持应用操作 (启动/停止/清除数据，阿里云 ECP) */
+  supportsAppOperation?: boolean;
+
   /** 扩展能力 */
   customCapabilities?: Record<string, boolean>;
 }
