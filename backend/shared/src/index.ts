@@ -144,30 +144,31 @@ export { EventOutbox, EventOutboxService, EventOutboxModule } from './outbox';
 // export * from './testing/mock-factories';
 
 // ========== 安全中间件 ==========
-export {
-  RateLimitMiddleware,
-  IPBlacklistMiddleware,
-  AutoBanMiddleware,
-} from './middleware/rate-limit.middleware';
-export {
-  XssProtectionMiddleware,
-  StrictXssProtectionMiddleware,
-  LooseXssProtectionMiddleware,
-} from './middleware/xss-protection.middleware';
-export type { XssProtectionConfig } from './middleware/xss-protection.middleware';
-export {
-  CsrfProtectionMiddleware,
-  CsrfProtected,
-  CsrfExempt,
-} from './middleware/csrf-protection.middleware';
-export type { CsrfProtectionConfig } from './middleware/csrf-protection.middleware';
-export {
-  SecurityHeadersMiddleware,
-  DevelopmentSecurityHeadersMiddleware,
-  ProductionSecurityHeadersMiddleware,
-} from './middleware/security-headers.middleware';
-export type { SecurityHeadersConfig } from './middleware/security-headers.middleware';
-export { SecurityModule, SecurityModuleManual } from './middleware/security.module';
+// TODO: 以下安全中间件尚未实现，暂时注释
+// export {
+//   RateLimitMiddleware,
+//   IPBlacklistMiddleware,
+//   AutoBanMiddleware,
+// } from './middlewares/rate-limit.middleware';
+// export {
+//   XssProtectionMiddleware,
+//   StrictXssProtectionMiddleware,
+//   LooseXssProtectionMiddleware,
+// } from './middlewares/xss-protection.middleware';
+// export type { XssProtectionConfig } from './middlewares/xss-protection.middleware';
+// export {
+//   CsrfProtectionMiddleware,
+//   CsrfProtected,
+//   CsrfExempt,
+// } from './middlewares/csrf-protection.middleware';
+// export type { CsrfProtectionConfig } from './middlewares/csrf-protection.middleware';
+// export {
+//   SecurityHeadersMiddleware,
+//   DevelopmentSecurityHeadersMiddleware,
+//   ProductionSecurityHeadersMiddleware,
+// } from './middlewares/security-headers.middleware';
+// export type { SecurityHeadersConfig } from './middlewares/security-headers.middleware';
+// export { SecurityModule, SecurityModuleManual } from './middlewares/security.module';
 
 // ========== Service-to-Service Authentication ==========
 export { ServiceAuthGuard } from './auth/service-auth.guard';

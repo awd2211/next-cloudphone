@@ -1,10 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { Observable, throwError, timer } from 'rxjs';
 import { catchError, retry, timeout, tap } from 'rxjs/operators';
 import CircuitBreaker from 'opossum';
+
+// 扩展 Axios 配置类型以支持自定义属性
+interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  _startTime?: number;
+}
 
 export interface HttpClientOptions {
   timeout?: number; // 超时时间（毫秒），默认：GET/DELETE=5000, POST/PUT=10000
@@ -77,8 +82,8 @@ export class HttpClientService {
 
     // ✅ 请求拦截器：记录开始时间
     axiosInstance.interceptors.request.use(
-      (config) => {
-        config['_startTime'] = Date.now();
+      (config: ExtendedAxiosRequestConfig) => {
+        config._startTime = Date.now();
         return config;
       },
       (error) => Promise.reject(error)
@@ -103,7 +108,7 @@ export class HttpClientService {
   /**
    * 记录请求统计数据
    */
-  private recordMetrics(config: any, success: boolean): void {
+  private recordMetrics(config: ExtendedAxiosRequestConfig | undefined, success: boolean): void {
     if (!config || !config.url) return;
 
     const serviceName = this.extractServiceName(config.url);

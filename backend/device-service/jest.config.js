@@ -23,6 +23,9 @@ module.exports = {
     '^uuid$': '<rootDir>/__mocks__/uuid.ts',
     '^p-limit$': '<rootDir>/__mocks__/p-limit.ts',
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(p-limit|uuid)/)',
+  ],
   coverageThreshold: {
     global: {
       branches: 50,

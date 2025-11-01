@@ -1,5 +1,5 @@
 // Mock for uuid to avoid ESM issues in Jest
-export function v4(): string {
+export function v4() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
