@@ -46,6 +46,15 @@ import {
 } from '@/services/app';
 import type { Application, AppReviewRecord } from '@/types';
 import dayjs from 'dayjs';
+import {
+  ReviewStatusTag,
+  AppIcon,
+  AppNameDisplay,
+  AppVersionTag,
+  PendingAppActions,
+  ReviewedAppActions,
+  ReviewActionTag,
+} from '@/components/AppReview';
 
 const { TextArea } = Input;
 const { TabPane } = Tabs;
@@ -185,22 +194,6 @@ const AppReviewList = () => {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
-  // 状态渲染
-  const renderStatus = (status?: string) => {
-    const statusConfig = {
-      pending: { color: 'processing', icon: <ClockCircleOutlined />, text: '待审核' },
-      approved: { color: 'success', icon: <CheckCircleOutlined />, text: '已批准' },
-      rejected: { color: 'error', icon: <CloseCircleOutlined />, text: '已拒绝' },
-      changes_requested: { color: 'warning', icon: <EditOutlined />, text: '需修改' },
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    return (
-      <Tag icon={config.icon} color={config.color}>
-        {config.text}
-      </Tag>
-    );
-  };
 
   // 待审核应用列
   const pendingColumns: ColumnsType<Application> = [
@@ -209,24 +202,14 @@ const AppReviewList = () => {
       dataIndex: 'iconUrl',
       key: 'iconUrl',
       width: 80,
-      render: (iconUrl, record) =>
-        iconUrl ? (
-          <Image src={iconUrl} width={48} height={48} style={{ borderRadius: '8px' }} />
-        ) : (
-          <Avatar size={48} icon={<AppstoreOutlined />} style={{ backgroundColor: '#1890ff' }} />
-        ),
+      render: (iconUrl) => <AppIcon iconUrl={iconUrl} />,
     },
     {
       title: '应用名称',
       dataIndex: 'name',
       key: 'name',
       width: 200,
-      render: (text, record) => (
-        <Space direction="vertical" size={0}>
-          <span style={{ fontWeight: 500 }}>{text}</span>
-          <span style={{ fontSize: '12px', color: '#999' }}>{record.packageName}</span>
-        </Space>
-      ),
+      render: (text, record) => <AppNameDisplay name={text} packageName={record.packageName} />,
     },
     {
       title: '版本',
@@ -234,9 +217,7 @@ const AppReviewList = () => {
       key: 'versionName',
       width: 100,
       render: (text, record) => (
-        <Tag color="blue">
-          v{text} ({record.versionCode})
-        </Tag>
+        <AppVersionTag versionName={text} versionCode={record.versionCode} />
       ),
     },
     {
