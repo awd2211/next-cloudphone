@@ -3,7 +3,7 @@
 ## 📊 进度概览
 
 **时间**: 2025-11-01
-**阶段**: Task 2.2 - 完成剩余大型页面拆分 (3/14 已完成)
+**阶段**: Task 2.2 - 完成剩余大型页面拆分 (4/14 已完成)
 
 ## ✅ 已完成的重构
 
@@ -66,16 +66,37 @@
 
 ---
 
+### 4. Snapshot/List.tsx
+- **原始行数**: 450 行
+- **重构后**: 204 行
+- **减少**: 246 行 (54.7%)
+- **创建文件**:
+  - `components/Snapshot/constants.tsx` (35 行)
+  - `components/Snapshot/utils.tsx` (37 行)
+  - `components/Snapshot/SnapshotStatsCards.tsx` (47 行)
+  - `components/Snapshot/columns.tsx` (137 行)
+  - `components/Snapshot/CreateSnapshotModal.tsx` (80 行)
+  - `components/Snapshot/index.ts` (8 行)
+
+**优化要点**:
+- 提取状态配置、筛选选项到常量
+- 提取格式化函数、状态渲染、存储使用率计算
+- 统计卡片组件化
+- 表格列定义封装为 Hook
+- 创建快照模态框组件化
+
+---
+
 ## 📈 统计数据
 
 | 指标 | 数值 |
 |------|------|
-| 已重构页面数 | 3 |
-| 总减少行数 | 753 行 |
-| 平均减少率 | 53.7% |
-| 创建组件数 | 15 个 |
-| 创建 Hook 数 | 2 个 |
-| 创建工具文件数 | 3 个 |
+| 已重构页面数 | 4 |
+| 总减少行数 | 999 行 |
+| 平均减少率 | 54.1% |
+| 创建组件数 | 21 个 |
+| 创建 Hook 数 | 3 个 |
+| 创建工具文件数 | 5 个 |
 
 ## 🎯 优化模式总结
 
@@ -113,13 +134,13 @@ utils/
 
 ## 📝 下一步计划
 
-### P0 优先级 (剩余 0/3)
+### P0 优先级 (已完成 3/3)
 - ✅ ApiKey/ApiKeyList.tsx (477行)
 - ✅ Device/List.tsx (473行)
 - ✅ System/ConsulMonitor.tsx (456行)
 
-### P1 优先级 (待完成 3/3)
-- ⏳ Snapshot/List.tsx (450行)
+### P1 优先级 (进行中 1/3)
+- ✅ Snapshot/List.tsx (450行)
 - ⏳ SMS/Management.tsx (442行)
 - ⏳ Provider/Configuration.tsx (438行)
 
