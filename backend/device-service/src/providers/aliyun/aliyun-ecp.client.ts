@@ -8,6 +8,10 @@ import {
   AliyunConnectionInfo,
   ListAliyunPhonesRequest,
   AliyunRebootOptions,
+  AliyunAppInfo,
+  AliyunBatchTaskInfo,
+  AliyunSnapshotInfo,
+  AliyunCommandResult,
 } from './aliyun.types';
 import { Retry, NetworkError, TimeoutError } from '../../common/retry.decorator';
 import { RateLimit } from '../../common/rate-limit.decorator';
@@ -517,6 +521,682 @@ export class AliyunEcpClient {
    */
   getConfig(): AliyunEcpConfig {
     return { ...this.config };
+  }
+
+  // ============================================================
+  // 应用管理 - Phase 4 新增功能
+  // ============================================================
+
+  /**
+   * 创建应用
+   *
+   * API: CreateApp
+   *
+   * 将 APK 文件注册到阿里云 ECP 平台
+   *
+   * @param appName 应用名称
+   * @param ossAppUrl APK 文件的 OSS 地址
+   * @param description 应用描述
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 20,
+    refillRate: 10,
+  })
+  async createApp(
+    appName: string,
+    ossAppUrl: string,
+    description?: string
+  ): Promise<AliyunOperationResult<AliyunAppInfo>> {
+    this.logger.log(`Creating app: ${appName} from ${ossAppUrl}`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params: any = {
+        RegionId: this.config.regionId,
+        AppName: appName,
+        OssAppUrl: ossAppUrl,
+      };
+
+      if (description) {
+        params.Description = description;
+      }
+
+      const response = await this.client.request('CreateApp', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      return {
+        success: true,
+        data: {
+          appId: response.AppId,
+          appName: response.AppName,
+          appPackage: response.AppPackage,
+          appVersion: response.AppVersion,
+          gmtCreate: response.GmtCreate,
+          status: response.Status,
+        },
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to create app: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'CreateAppFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 安装应用
+   *
+   * API: InstallApp
+   *
+   * 在云手机实例上安装已注册的应用
+   *
+   * @param instanceIds 实例 ID 列表
+   * @param appId 应用 ID
+   * @param installType 安装类型 (install / reinstall)
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 2000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 20,
+    refillRate: 10,
+  })
+  async installApp(
+    instanceIds: string[],
+    appId: string,
+    installType: 'install' | 'reinstall' = 'install'
+  ): Promise<AliyunOperationResult<AliyunBatchTaskInfo>> {
+    this.logger.log(`Installing app ${appId} on ${instanceIds.length} instances`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params = {
+        RegionId: this.config.regionId,
+        InstanceId: instanceIds, // API 接受数组
+        AppId: appId,
+        InstallType: installType,
+      };
+
+      const response = await this.client.request('InstallApp', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      return {
+        success: true,
+        data: {
+          taskId: response.TaskId,
+          taskStatus: response.TaskStatus || 'Processing',
+          successCount: response.SuccessCount || 0,
+          failedCount: response.FailedCount || 0,
+          totalCount: instanceIds.length,
+        },
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to install app: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'InstallAppFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 卸载应用
+   *
+   * API: UninstallApp
+   *
+   * @param instanceIds 实例 ID 列表
+   * @param appPackage 应用包名
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 20,
+    refillRate: 10,
+  })
+  async uninstallApp(
+    instanceIds: string[],
+    appPackage: string
+  ): Promise<AliyunOperationResult<AliyunBatchTaskInfo>> {
+    this.logger.log(`Uninstalling app ${appPackage} from ${instanceIds.length} instances`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params = {
+        RegionId: this.config.regionId,
+        InstanceId: instanceIds,
+        AppPackage: appPackage,
+      };
+
+      const response = await this.client.request('UninstallApp', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      return {
+        success: true,
+        data: {
+          taskId: response.TaskId,
+          taskStatus: response.TaskStatus || 'Processing',
+          successCount: response.SuccessCount || 0,
+          failedCount: response.FailedCount || 0,
+          totalCount: instanceIds.length,
+        },
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to uninstall app: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'UninstallAppFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 操作应用 (启动/停止/重启/清除数据)
+   *
+   * API: OperateApp
+   *
+   * @param instanceId 实例 ID
+   * @param appPackage 应用包名
+   * @param operateType 操作类型
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 20,
+    refillRate: 10,
+  })
+  async operateApp(
+    instanceId: string,
+    appPackage: string,
+    operateType: 'START' | 'STOP' | 'RESTART' | 'CLEAR_DATA'
+  ): Promise<AliyunOperationResult<void>> {
+    this.logger.log(`Operating app ${appPackage} on instance ${instanceId}: ${operateType}`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params = {
+        RegionId: this.config.regionId,
+        InstanceId: instanceId,
+        AppPackage: appPackage,
+        OperateType: operateType,
+      };
+
+      const response = await this.client.request('OperateApp', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      return {
+        success: true,
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to operate app: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'OperateAppFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  // ============================================================
+  // 文件操作 - Phase 4 新增功能
+  // ============================================================
+
+  /**
+   * 发送文件到云手机
+   *
+   * API: SendFile
+   *
+   * @param instanceIds 实例 ID 列表
+   * @param ossFileUrl OSS 文件地址
+   * @param targetPath 云手机目标路径
+   * @param fileName 文件名 (可选)
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 2000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 10,
+    refillRate: 5,
+  })
+  async sendFile(
+    instanceIds: string[],
+    ossFileUrl: string,
+    targetPath: string,
+    fileName?: string
+  ): Promise<AliyunOperationResult<AliyunBatchTaskInfo>> {
+    this.logger.log(`Sending file ${ossFileUrl} to ${instanceIds.length} instances`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params: any = {
+        RegionId: this.config.regionId,
+        InstanceId: instanceIds,
+        OssFileUrl: ossFileUrl,
+        TargetPath: targetPath,
+      };
+
+      if (fileName) {
+        params.FileName = fileName;
+      }
+
+      const response = await this.client.request('SendFile', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      return {
+        success: true,
+        data: {
+          taskId: response.TaskId,
+          taskStatus: response.TaskStatus || 'Processing',
+          successCount: response.SuccessCount || 0,
+          failedCount: response.FailedCount || 0,
+          totalCount: instanceIds.length,
+        },
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to send file: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'SendFileFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 从云手机拉取文件
+   *
+   * API: FetchFile
+   *
+   * @param instanceId 实例 ID
+   * @param sourcePath 云手机源路径
+   * @param ossPath OSS 目标路径
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 2000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 10,
+    refillRate: 5,
+  })
+  async fetchFile(
+    instanceId: string,
+    sourcePath: string,
+    ossPath: string
+  ): Promise<AliyunOperationResult<{ taskId: string }>> {
+    this.logger.log(`Fetching file from ${instanceId}:${sourcePath} to ${ossPath}`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params = {
+        RegionId: this.config.regionId,
+        InstanceId: instanceId,
+        SourcePath: sourcePath,
+        OssPath: ossPath,
+      };
+
+      const response = await this.client.request('FetchFile', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      return {
+        success: true,
+        data: {
+          taskId: response.TaskId,
+        },
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to fetch file: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'FetchFileFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  // ============================================================
+  // 备份与恢复 - Phase 4 新增功能
+  // ============================================================
+
+  /**
+   * 创建快照
+   *
+   * API: CreateSnapshot
+   *
+   * @param instanceId 实例 ID
+   * @param snapshotName 快照名称
+   * @param description 快照描述
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 2000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 10,
+    refillRate: 5,
+  })
+  async createSnapshot(
+    instanceId: string,
+    snapshotName: string,
+    description?: string
+  ): Promise<AliyunOperationResult<AliyunSnapshotInfo>> {
+    this.logger.log(`Creating snapshot for instance ${instanceId}: ${snapshotName}`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params: any = {
+        RegionId: this.config.regionId,
+        InstanceId: instanceId,
+        SnapshotName: snapshotName,
+      };
+
+      if (description) {
+        params.Description = description;
+      }
+
+      const response = await this.client.request('CreateSnapshot', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      return {
+        success: true,
+        data: {
+          snapshotId: response.SnapshotId,
+          snapshotName: response.SnapshotName,
+          instanceId,
+          gmtCreate: response.GmtCreate,
+          status: response.Status || 'CREATING',
+        },
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to create snapshot: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'CreateSnapshotFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 恢复快照
+   *
+   * API: RestoreSnapshot
+   *
+   * @param instanceId 实例 ID
+   * @param snapshotId 快照 ID
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 2000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 10,
+    refillRate: 5,
+  })
+  async restoreSnapshot(
+    instanceId: string,
+    snapshotId: string
+  ): Promise<AliyunOperationResult<void>> {
+    this.logger.log(`Restoring snapshot ${snapshotId} to instance ${instanceId}`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params = {
+        RegionId: this.config.regionId,
+        InstanceId: instanceId,
+        SnapshotId: snapshotId,
+      };
+
+      const response = await this.client.request('RestoreSnapshot', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      return {
+        success: true,
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to restore snapshot: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'RestoreSnapshotFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  // ============================================================
+  // 远程命令执行 - Phase 4 新增功能
+  // ============================================================
+
+  /**
+   * 运行命令
+   *
+   * API: RunCommand
+   *
+   * 在云手机实例上执行 Shell 命令
+   *
+   * @param instanceIds 实例 ID 列表
+   * @param commandContent 命令内容
+   * @param timeout 超时时间 (秒)
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'aliyun-api',
+    capacity: 20,
+    refillRate: 10,
+  })
+  async runCommand(
+    instanceIds: string[],
+    commandContent: string,
+    timeout: number = 60
+  ): Promise<AliyunOperationResult<{ invokeId: string }>> {
+    this.logger.log(`Running command on ${instanceIds.length} instances: ${commandContent}`);
+
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params = {
+        RegionId: this.config.regionId,
+        InstanceId: instanceIds,
+        CommandContent: Buffer.from(commandContent).toString('base64'), // Base64 编码
+        Type: 'RunShellScript',
+        Timeout: timeout,
+      };
+
+      const response = await this.client.request('RunCommand', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      return {
+        success: true,
+        data: {
+          invokeId: response.InvokeId,
+        },
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to run command: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'RunCommandFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 查询命令执行结果
+   *
+   * API: DescribeInvocationResults
+   *
+   * @param invokeId 调用 ID
+   */
+  async getCommandResult(
+    invokeId: string
+  ): Promise<AliyunOperationResult<AliyunCommandResult[]>> {
+    try {
+      if (!this.client) {
+        return {
+          success: false,
+          errorCode: 'CLIENT_NOT_INITIALIZED',
+          errorMessage: 'Aliyun client not initialized',
+        };
+      }
+
+      const params = {
+        RegionId: this.config.regionId,
+        InvokeId: invokeId,
+      };
+
+      const response = await this.client.request('DescribeInvocationResults', params, {
+        method: 'POST',
+        timeout: this.config.timeout,
+      });
+
+      const results: AliyunCommandResult[] = (response.InvocationResults || []).map(
+        (result: any) => ({
+          invokeId,
+          instanceId: result.InstanceId,
+          exitCode: result.ExitCode,
+          output: result.Output ? Buffer.from(result.Output, 'base64').toString('utf-8') : '',
+          errorOutput: result.ErrorOutput
+            ? Buffer.from(result.ErrorOutput, 'base64').toString('utf-8')
+            : '',
+          invokeStatus: result.InvokeRecordStatus,
+        })
+      );
+
+      return {
+        success: true,
+        data: results,
+        requestId: response.RequestId,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        errorCode: error.code || 'GetCommandResultFailed',
+        errorMessage: error.message,
+      };
+    }
   }
 
   // ============================================================

@@ -335,3 +335,266 @@ export const ALIYUN_REGIONS = {
   /** 美国西部1 (硅谷) */
   US_WEST_1: 'us-west-1',
 } as const;
+
+// ============================================================
+// 应用管理 - Phase 4 新增功能
+// ============================================================
+
+/**
+ * 创建应用请求
+ *
+ * API: CreateApp
+ */
+export interface AliyunCreateAppRequest {
+  /** 应用名称 */
+  appName: string;
+
+  /** APK 文件 OSS 地址 */
+  ossAppUrl: string;
+
+  /** 应用描述 */
+  description?: string;
+
+  /** 应用图标 OSS 地址 */
+  appIcon?: string;
+}
+
+/**
+ * 应用信息
+ */
+export interface AliyunAppInfo {
+  /** 应用 ID */
+  appId: string;
+
+  /** 应用名称 */
+  appName: string;
+
+  /** 应用包名 */
+  appPackage: string;
+
+  /** 应用版本 */
+  appVersion: string;
+
+  /** 创建时间 */
+  gmtCreate: string;
+
+  /** 状态 */
+  status: 'CREATING' | 'AVAILABLE' | 'FAILED';
+}
+
+/**
+ * 安装应用请求
+ *
+ * API: InstallApp
+ */
+export interface AliyunInstallAppRequest {
+  /** 实例 ID 列表 */
+  instanceIds: string[];
+
+  /** 应用 ID */
+  appId: string;
+
+  /** 安装类型 (install / reinstall) */
+  installType?: 'install' | 'reinstall';
+}
+
+/**
+ * 卸载应用请求
+ *
+ * API: UninstallApp
+ */
+export interface AliyunUninstallAppRequest {
+  /** 实例 ID 列表 */
+  instanceIds: string[];
+
+  /** 应用包名 */
+  appPackage: string;
+}
+
+/**
+ * 操作应用请求
+ *
+ * API: OperateApp
+ *
+ * 支持启动、停止、清除数据等操作
+ */
+export interface AliyunOperateAppRequest {
+  /** 实例 ID */
+  instanceId: string;
+
+  /** 应用包名 */
+  appPackage: string;
+
+  /** 操作类型 */
+  operateType: 'START' | 'STOP' | 'RESTART' | 'CLEAR_DATA';
+}
+
+// ============================================================
+// 文件操作 - Phase 4 新增功能
+// ============================================================
+
+/**
+ * 发送文件到云手机请求
+ *
+ * API: SendFile
+ */
+export interface AliyunSendFileRequest {
+  /** 实例 ID 列表 */
+  instanceIds: string[];
+
+  /** OSS 文件地址 */
+  ossFileUrl: string;
+
+  /** 云手机目标路径 */
+  targetPath: string;
+
+  /** 文件名 */
+  fileName?: string;
+}
+
+/**
+ * 从云手机拉取文件请求
+ *
+ * API: FetchFile
+ */
+export interface AliyunFetchFileRequest {
+  /** 实例 ID */
+  instanceId: string;
+
+  /** 云手机源路径 */
+  sourcePath: string;
+
+  /** OSS 目标路径 */
+  ossPath: string;
+}
+
+// ============================================================
+// 备份与恢复 - Phase 4 新增功能
+// ============================================================
+
+/**
+ * 创建快照请求
+ *
+ * API: CreateSnapshot
+ */
+export interface AliyunCreateSnapshotRequest {
+  /** 实例 ID */
+  instanceId: string;
+
+  /** 快照名称 */
+  snapshotName: string;
+
+  /** 快照描述 */
+  description?: string;
+}
+
+/**
+ * 快照信息
+ */
+export interface AliyunSnapshotInfo {
+  /** 快照 ID */
+  snapshotId: string;
+
+  /** 快照名称 */
+  snapshotName: string;
+
+  /** 实例 ID */
+  instanceId: string;
+
+  /** 创建时间 */
+  gmtCreate: string;
+
+  /** 状态 */
+  status: 'CREATING' | 'AVAILABLE' | 'FAILED';
+
+  /** 快照大小 (GB) */
+  size?: number;
+}
+
+/**
+ * 恢复快照请求
+ *
+ * API: RestoreSnapshot
+ */
+export interface AliyunRestoreSnapshotRequest {
+  /** 实例 ID */
+  instanceId: string;
+
+  /** 快照 ID */
+  snapshotId: string;
+}
+
+// ============================================================
+// 远程命令执行 - Phase 4 新增功能
+// ============================================================
+
+/**
+ * 运行命令请求
+ *
+ * API: RunCommand
+ *
+ * 在云手机实例上执行 Shell 命令
+ */
+export interface AliyunRunCommandRequest {
+  /** 实例 ID 列表 */
+  instanceIds: string[];
+
+  /** 命令内容 (Shell 脚本) */
+  commandContent: string;
+
+  /** 命令类型 (默认 RunShellScript) */
+  commandType?: 'RunShellScript';
+
+  /** 超时时间 (秒，默认 60) */
+  timeout?: number;
+}
+
+/**
+ * 命令执行结果
+ */
+export interface AliyunCommandResult {
+  /** 调用 ID */
+  invokeId: string;
+
+  /** 实例 ID */
+  instanceId: string;
+
+  /** 退出码 */
+  exitCode: number;
+
+  /** 标准输出 */
+  output: string;
+
+  /** 标准错误 */
+  errorOutput?: string;
+
+  /** 执行状态 */
+  invokeStatus: 'Running' | 'Finished' | 'Failed' | 'Timeout';
+}
+
+/**
+ * 批量任务信息
+ */
+export interface AliyunBatchTaskInfo {
+  /** 任务 ID */
+  taskId: string;
+
+  /** 任务状态 */
+  taskStatus: 'Processing' | 'Finished' | 'Failed';
+
+  /** 成功数量 */
+  successCount: number;
+
+  /** 失败数量 */
+  failedCount: number;
+
+  /** 总数量 */
+  totalCount: number;
+
+  /** 详细结果 */
+  results?: Array<{
+    instanceId: string;
+    success: boolean;
+    message?: string;
+  }>;
+}

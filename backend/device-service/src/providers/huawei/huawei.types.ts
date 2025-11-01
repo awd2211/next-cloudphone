@@ -203,3 +203,138 @@ export interface HuaweiOperationResult<T = any> {
   /** 请求 ID */
   requestId?: string;
 }
+
+/**
+ * ADB 命令执行请求 (同步)
+ *
+ * API: POST /v1/{project_id}/cloud-phone/phones/commands
+ */
+export interface HuaweiAdbCommandRequest {
+  /** 云手机 ID */
+  phoneId: string;
+
+  /** ADB Shell 命令 */
+  command: string;
+
+  /** 超时时间 (秒, 默认 60) */
+  timeout?: number;
+}
+
+/**
+ * ADB 命令执行响应
+ */
+export interface HuaweiAdbCommandResponse {
+  /** 命令 ID (异步时返回) */
+  commandId?: string;
+
+  /** 命令输出 (同步时返回) */
+  output?: string;
+
+  /** 执行状态 */
+  status: 'RUNNING' | 'SUCCESS' | 'FAILED';
+
+  /** 错误信息 */
+  errorMessage?: string;
+}
+
+/**
+ * APK 安装请求
+ *
+ * API: POST /v1/{project_id}/cloud-phone/phones/install
+ */
+export interface HuaweiInstallApkRequest {
+  /** 云手机 ID 列表 */
+  phoneIds: string[];
+
+  /** OBS 桶名 */
+  bucketName: string;
+
+  /** OBS 对象路径 (支持单个 APK 或多个 APK) */
+  objectPath: string;
+
+  /** 安装命令 (可选，默认为 install) */
+  command?: string;
+}
+
+/**
+ * APK 卸载请求
+ *
+ * API: POST /v1/{project_id}/cloud-phone/phones/uninstall
+ */
+export interface HuaweiUninstallApkRequest {
+  /** 云手机 ID 列表 */
+  phoneIds: string[];
+
+  /** 应用包名 */
+  packageName: string;
+}
+
+/**
+ * 文件推送请求
+ *
+ * API: POST /v1/{project_id}/cloud-phone/phones/push-file
+ *
+ * 注意：
+ * - 只支持 tar 格式压缩包
+ * - 文件大小限制 6GB
+ * - 解压后放置在云手机的 /data/local/tmp 目录
+ */
+export interface HuaweiPushFileRequest {
+  /** 云手机 ID 列表 */
+  phoneIds: string[];
+
+  /** OBS 桶名 */
+  bucketName: string;
+
+  /** OBS 对象路径 (tar 文件) */
+  objectPath: string;
+
+  /** 目标路径 (可选，默认 /data/local/tmp) */
+  targetPath?: string;
+}
+
+/**
+ * 数据导出请求
+ *
+ * API: POST /v1/{project_id}/cloud-phone/phones/export-data
+ */
+export interface HuaweiExportDataRequest {
+  /** 云手机 ID */
+  phoneId: string;
+
+  /** 导出路径 (云手机上的路径) */
+  sourcePath: string;
+
+  /** OBS 桶名 */
+  bucketName: string;
+
+  /** OBS 对象路径前缀 */
+  objectPath: string;
+}
+
+/**
+ * 批量操作任务状态
+ */
+export interface HuaweiBatchJobStatus {
+  /** 任务 ID */
+  jobId: string;
+
+  /** 任务状态 */
+  status: 'RUNNING' | 'SUCCESS' | 'FAILED' | 'PARTIAL';
+
+  /** 成功数量 */
+  successCount: number;
+
+  /** 失败数量 */
+  failedCount: number;
+
+  /** 总数量 */
+  totalCount: number;
+
+  /** 详细结果 */
+  results?: Array<{
+    phoneId: string;
+    success: boolean;
+    errorMessage?: string;
+  }>;
+}

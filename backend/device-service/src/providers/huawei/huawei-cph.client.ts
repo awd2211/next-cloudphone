@@ -7,6 +7,8 @@ import {
   CreateHuaweiPhoneRequest,
   HuaweiConnectionInfo,
   HuaweiOperationResult,
+  HuaweiAdbCommandResponse,
+  HuaweiBatchJobStatus,
 } from './huawei.types';
 import { Retry, NetworkError, TimeoutError } from '../../common/retry.decorator';
 import { RateLimit } from '../../common/rate-limit.decorator';
@@ -570,5 +572,436 @@ export class HuaweiCphClient {
     }
 
     throw new Error(`Timeout waiting for phone ${phoneId} to be ready`);
+  }
+
+  // ============================================================
+  // ADB 命令执行 - Phase 4 新增功能
+  // ============================================================
+
+  /**
+   * 执行 ADB 命令 (同步)
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones/commands
+   *
+   * @param phoneId 云手机 ID
+   * @param command ADB Shell 命令
+   * @param timeout 超时时间 (秒)
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'huawei-api',
+    capacity: 20,
+    refillRate: 10,
+  })
+  async executeAdbCommand(
+    phoneId: string,
+    command: string,
+    timeout: number = 60
+  ): Promise<HuaweiOperationResult<HuaweiAdbCommandResponse>> {
+    this.logger.log(`Executing ADB command on phone ${phoneId}: ${command}`);
+
+    try {
+      const body = {
+        phone_id: phoneId,
+        command,
+        timeout,
+      };
+
+      const response = await this.makeRequest(
+        'POST',
+        `/v1/${this.config.projectId}/cloud-phone/phones/commands`,
+        body
+      );
+
+      return {
+        success: true,
+        data: {
+          output: response.output,
+          status: response.status || 'SUCCESS',
+        },
+        requestId: response.request_id,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to execute ADB command: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'ExecuteCommandFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 执行 ADB 命令 (异步，适用于长时间运行的命令)
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones/commands/async
+   */
+  async executeAdbCommandAsync(
+    phoneId: string,
+    command: string
+  ): Promise<HuaweiOperationResult<{ commandId: string }>> {
+    this.logger.log(`Executing async ADB command on phone ${phoneId}: ${command}`);
+
+    try {
+      const body = {
+        phone_id: phoneId,
+        command,
+        async: true,
+      };
+
+      const response = await this.makeRequest(
+        'POST',
+        `/v1/${this.config.projectId}/cloud-phone/phones/commands`,
+        body
+      );
+
+      return {
+        success: true,
+        data: {
+          commandId: response.command_id,
+        },
+        requestId: response.request_id,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to execute async ADB command: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'ExecuteAsyncCommandFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 查询异步 ADB 命令执行结果
+   *
+   * API: GET /v1/{project_id}/cloud-phone/phones/commands/{command_id}
+   */
+  async getAdbCommandResult(
+    commandId: string
+  ): Promise<HuaweiOperationResult<HuaweiAdbCommandResponse>> {
+    try {
+      const response = await this.makeRequest(
+        'GET',
+        `/v1/${this.config.projectId}/cloud-phone/phones/commands/${commandId}`
+      );
+
+      return {
+        success: true,
+        data: {
+          commandId,
+          output: response.output,
+          status: response.status,
+          errorMessage: response.error_message,
+        },
+        requestId: response.request_id,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        errorCode: error.code || 'GetCommandResultFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  // ============================================================
+  // 应用管理 - Phase 4 新增功能
+  // ============================================================
+
+  /**
+   * 安装 APK 应用
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones/install
+   *
+   * 注意：
+   * - APK 文件必须先上传到华为云 OBS
+   * - 支持单个 APK 或多个 APK 同时安装
+   * - 支持批量在多个云手机上安装
+   *
+   * @param phoneIds 云手机 ID 列表
+   * @param bucketName OBS 桶名
+   * @param objectPath OBS 对象路径
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 2000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'huawei-api',
+    capacity: 20,
+    refillRate: 10,
+  })
+  async installApk(
+    phoneIds: string[],
+    bucketName: string,
+    objectPath: string
+  ): Promise<HuaweiOperationResult<HuaweiBatchJobStatus>> {
+    this.logger.log(`Installing APK on ${phoneIds.length} phones from ${bucketName}/${objectPath}`);
+
+    try {
+      const body = {
+        phone_ids: phoneIds,
+        bucket_name: bucketName,
+        object_path: objectPath,
+        command: 'install', // 安装命令
+      };
+
+      const response = await this.makeRequest(
+        'POST',
+        `/v1/${this.config.projectId}/cloud-phone/phones/install`,
+        body
+      );
+
+      return {
+        success: true,
+        data: {
+          jobId: response.job_id,
+          status: response.status || 'RUNNING',
+          successCount: response.success_count || 0,
+          failedCount: response.failed_count || 0,
+          totalCount: phoneIds.length,
+        },
+        requestId: response.request_id,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to install APK: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'InstallApkFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 卸载应用
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones/uninstall
+   *
+   * @param phoneIds 云手机 ID 列表
+   * @param packageName 应用包名
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'huawei-api',
+    capacity: 20,
+    refillRate: 10,
+  })
+  async uninstallApk(
+    phoneIds: string[],
+    packageName: string
+  ): Promise<HuaweiOperationResult<HuaweiBatchJobStatus>> {
+    this.logger.log(`Uninstalling app ${packageName} from ${phoneIds.length} phones`);
+
+    try {
+      const body = {
+        phone_ids: phoneIds,
+        package_name: packageName,
+      };
+
+      const response = await this.makeRequest(
+        'POST',
+        `/v1/${this.config.projectId}/cloud-phone/phones/uninstall`,
+        body
+      );
+
+      return {
+        success: true,
+        data: {
+          jobId: response.job_id,
+          status: response.status || 'RUNNING',
+          successCount: response.success_count || 0,
+          failedCount: response.failed_count || 0,
+          totalCount: phoneIds.length,
+        },
+        requestId: response.request_id,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to uninstall app: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'UninstallApkFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 查询批量操作任务状态
+   *
+   * API: GET /v1/{project_id}/cloud-phone/jobs/{job_id}
+   */
+  async getBatchJobStatus(
+    jobId: string
+  ): Promise<HuaweiOperationResult<HuaweiBatchJobStatus>> {
+    try {
+      const response = await this.makeRequest(
+        'GET',
+        `/v1/${this.config.projectId}/cloud-phone/jobs/${jobId}`
+      );
+
+      return {
+        success: true,
+        data: {
+          jobId,
+          status: response.status,
+          successCount: response.success_count || 0,
+          failedCount: response.failed_count || 0,
+          totalCount: response.total_count || 0,
+          results: response.results,
+        },
+        requestId: response.request_id,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        errorCode: error.code || 'GetJobStatusFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  // ============================================================
+  // 文件传输 - Phase 4 新增功能
+  // ============================================================
+
+  /**
+   * 推送文件到云手机
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones/push-file
+   *
+   * 注意：
+   * - 只支持 tar 格式压缩包
+   * - 文件大小限制 6GB
+   * - 解压后放置在云手机的 /data/local/tmp 目录或指定路径
+   *
+   * @param phoneIds 云手机 ID 列表
+   * @param bucketName OBS 桶名
+   * @param objectPath OBS 对象路径 (tar 文件)
+   * @param targetPath 目标路径 (可选)
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 2000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'huawei-api',
+    capacity: 10,
+    refillRate: 5,
+  })
+  async pushFile(
+    phoneIds: string[],
+    bucketName: string,
+    objectPath: string,
+    targetPath?: string
+  ): Promise<HuaweiOperationResult<HuaweiBatchJobStatus>> {
+    this.logger.log(`Pushing file ${bucketName}/${objectPath} to ${phoneIds.length} phones`);
+
+    try {
+      const body: any = {
+        phone_ids: phoneIds,
+        bucket_name: bucketName,
+        object_path: objectPath,
+      };
+
+      if (targetPath) {
+        body.target_path = targetPath;
+      }
+
+      const response = await this.makeRequest(
+        'POST',
+        `/v1/${this.config.projectId}/cloud-phone/phones/push-file`,
+        body
+      );
+
+      return {
+        success: true,
+        data: {
+          jobId: response.job_id,
+          status: response.status || 'RUNNING',
+          successCount: response.success_count || 0,
+          failedCount: response.failed_count || 0,
+          totalCount: phoneIds.length,
+        },
+        requestId: response.request_id,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to push file: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'PushFileFailed',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 导出云手机数据到 OBS
+   *
+   * API: POST /v1/{project_id}/cloud-phone/phones/export-data
+   *
+   * @param phoneId 云手机 ID
+   * @param sourcePath 云手机上的源路径
+   * @param bucketName OBS 桶名
+   * @param objectPath OBS 对象路径前缀
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 2000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'huawei-api',
+    capacity: 10,
+    refillRate: 5,
+  })
+  async exportData(
+    phoneId: string,
+    sourcePath: string,
+    bucketName: string,
+    objectPath: string
+  ): Promise<HuaweiOperationResult<{ jobId: string }>> {
+    this.logger.log(`Exporting data from ${phoneId}:${sourcePath} to ${bucketName}/${objectPath}`);
+
+    try {
+      const body = {
+        phone_id: phoneId,
+        source_path: sourcePath,
+        bucket_name: bucketName,
+        object_path: objectPath,
+      };
+
+      const response = await this.makeRequest(
+        'POST',
+        `/v1/${this.config.projectId}/cloud-phone/phones/export-data`,
+        body
+      );
+
+      return {
+        success: true,
+        data: {
+          jobId: response.job_id,
+        },
+        requestId: response.request_id,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to export data: ${error.message}`);
+      return {
+        success: false,
+        errorCode: error.code || 'ExportDataFailed',
+        errorMessage: error.message,
+      };
+    }
   }
 }
