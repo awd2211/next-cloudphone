@@ -5,23 +5,31 @@ import { Spin } from 'antd';
 // Layout 和 Login 保持同步导入(首屏必需)
 import MainLayout from '@/layouts/MainLayout';
 import Login from '@/pages/Login';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import SecurityCenter from '@/pages/SecurityCenter';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 // 使用 React.lazy 懒加载所有页面组件
 const Home = lazy(() => import('@/pages/Home'));
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const PlanPurchase = lazy(() => import('@/pages/PlanPurchase'));
 const MyDevices = lazy(() => import('@/pages/MyDevices'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const DeviceDetail = lazy(() => import('@/pages/DeviceDetail'));
 const DeviceMonitor = lazy(() => import('@/pages/DeviceMonitor'));
 const DeviceSnapshots = lazy(() => import('@/pages/DeviceSnapshots'));
+const DeviceTemplates = lazy(() => import('@/pages/DeviceTemplates'));
+const ApiKeys = lazy(() => import('@/pages/ApiKeys'));
+const AccountBalance = lazy(() => import('@/pages/AccountBalance'));
 const MyOrders = lazy(() => import('@/pages/MyOrders'));
 const Profile = lazy(() => import('@/pages/Profile'));
 const ProfilePreferences = lazy(() => import('@/pages/ProfilePreferences'));
 const PaymentMethods = lazy(() => import('@/pages/PaymentMethods'));
 const AppMarket = lazy(() => import('@/pages/AppMarket'));
 const AppDetail = lazy(() => import('@/pages/AppDetail'));
+const InstalledApps = lazy(() => import('@/pages/InstalledApps'));
 const Recharge = lazy(() => import('@/pages/Recharge'));
 const UsageRecords = lazy(() => import('@/pages/UsageRecords'));
 const TicketList = lazy(() => import('@/pages/Tickets/TicketList'));
@@ -41,6 +49,18 @@ const ActivityDetail = lazy(() => import('@/pages/Activities/ActivityDetail'));
 const MyCoupons = lazy(() => import('@/pages/Activities/MyCoupons'));
 const ReferralCenter = lazy(() => import('@/pages/Referral/ReferralCenter'));
 const ReferralRecords = lazy(() => import('@/pages/Referral/ReferralRecords'));
+
+// 法律合规页面（不需要登录）
+const TermsOfService = lazy(() => import('@/pages/Legal/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('@/pages/Legal/PrivacyPolicy'));
+const ServiceLevelAgreement = lazy(() => import('@/pages/Legal/ServiceLevelAgreement'));
+const RefundPolicy = lazy(() => import('@/pages/Legal/RefundPolicy'));
+
+// 营销页面（不需要登录）
+const Product = lazy(() => import('@/pages/Product'));
+const Pricing = lazy(() => import('@/pages/Pricing'));
+const Solutions = lazy(() => import('@/pages/Solutions'));
+const CaseStudies = lazy(() => import('@/pages/CaseStudies'));
 
 // Loading 组件
 const PageLoading = () => (
@@ -75,6 +95,22 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/forgot-password',
+    element: (
+      <ErrorBoundary>
+        <ForgotPassword />
+      </ErrorBoundary>
+    ),
+  },
+  {
+    path: '/reset-password/:token',
+    element: (
+      <ErrorBoundary>
+        <ResetPassword />
+      </ErrorBoundary>
+    ),
+  },
+  {
     path: '/',
     element: (
       <ErrorBoundary>
@@ -87,6 +123,10 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: withSuspense(Home),
+      },
+      {
+        path: 'dashboard',
+        element: withSuspense(Dashboard),
       },
       {
         path: 'plans/:id/purchase',
@@ -109,6 +149,10 @@ export const router = createBrowserRouter([
         element: withSuspense(DeviceSnapshots),
       },
       {
+        path: 'device-templates',
+        element: withSuspense(DeviceTemplates),
+      },
+      {
         path: 'orders',
         element: withSuspense(MyOrders),
       },
@@ -121,6 +165,14 @@ export const router = createBrowserRouter([
         element: withSuspense(ProfilePreferences),
       },
       {
+        path: 'security',
+        element: (
+          <ErrorBoundary>
+            <SecurityCenter />
+          </ErrorBoundary>
+        ),
+      },
+      {
         path: 'profile/payment-methods',
         element: withSuspense(PaymentMethods),
       },
@@ -131,6 +183,10 @@ export const router = createBrowserRouter([
       {
         path: 'apps/:id',
         element: withSuspense(AppDetail),
+      },
+      {
+        path: 'installed-apps',
+        element: withSuspense(InstalledApps),
       },
       {
         path: 'recharge',
@@ -177,12 +233,20 @@ export const router = createBrowserRouter([
         element: withSuspense(ExportCenter),
       },
       {
+        path: 'api-keys',
+        element: withSuspense(ApiKeys),
+      },
+      {
         path: 'billing',
         element: withSuspense(BillList),
       },
       {
         path: 'billing/:id',
         element: withSuspense(BillDetail),
+      },
+      {
+        path: 'billing/balance',
+        element: withSuspense(AccountBalance),
       },
       {
         path: 'invoices',
@@ -209,6 +273,40 @@ export const router = createBrowserRouter([
         element: withSuspense(ReferralRecords),
       },
     ],
+  },
+  // 营销页面路由（公开访问，不需要登录）
+  {
+    path: '/product',
+    element: withSuspense(Product),
+  },
+  {
+    path: '/pricing',
+    element: withSuspense(Pricing),
+  },
+  {
+    path: '/solutions',
+    element: withSuspense(Solutions),
+  },
+  {
+    path: '/case-studies',
+    element: withSuspense(CaseStudies),
+  },
+  // 法律合规页面路由（公开访问，不需要登录）
+  {
+    path: '/legal/terms',
+    element: withSuspense(TermsOfService),
+  },
+  {
+    path: '/legal/privacy',
+    element: withSuspense(PrivacyPolicy),
+  },
+  {
+    path: '/legal/sla',
+    element: withSuspense(ServiceLevelAgreement),
+  },
+  {
+    path: '/legal/refund',
+    element: withSuspense(RefundPolicy),
   },
   {
     path: '*',

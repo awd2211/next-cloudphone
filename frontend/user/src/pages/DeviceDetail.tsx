@@ -1,88 +1,25 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Descriptions, Tag, message, Row, Col, Statistic, Space } from 'antd';
+import { useParams } from 'react-router-dom';
 import {
-  ArrowLeftOutlined,
-  PlayCircleOutlined,
-  PauseCircleOutlined,
-  ReloadOutlined,
-  DashboardOutlined,
-  CameraOutlined,
-} from '@ant-design/icons';
-import { getDevice, startDevice, stopDevice, rebootDevice } from '@/services/device';
-import WebRTCPlayer from '@/components/WebRTCPlayer';
-import type { Device } from '@/types';
-import dayjs from 'dayjs';
+  DeviceHeaderActions,
+  DeviceStatsRow,
+  DeviceInfoCard,
+  DeviceControlButtons,
+  DevicePlayerCard,
+} from '@/components/Device';
+import { useDeviceDetail } from '@/hooks/useDeviceDetail';
 
 const DeviceDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [device, setDevice] = useState<Device | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const loadDevice = async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const data = await getDevice(id);
-      setDevice(data);
-    } catch (error) {
-      message.error('加载设备信息失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadDevice();
-    // 每30秒刷新一次设备状态
-    const interval = setInterval(loadDevice, 30000);
-    return () => clearInterval(interval);
-  }, [id]);
-
-  const handleStart = async () => {
-    if (!id) return;
-    try {
-      await startDevice(id);
-      message.success('设备启动成功');
-      loadDevice();
-    } catch (error) {
-      message.error('设备启动失败');
-    }
-  };
-
-  const handleStop = async () => {
-    if (!id) return;
-    try {
-      await stopDevice(id);
-      message.success('设备停止成功');
-      loadDevice();
-    } catch (error) {
-      message.error('设备停止失败');
-    }
-  };
-
-  const handleReboot = async () => {
-    if (!id) return;
-    try {
-      await rebootDevice(id);
-      message.success('设备重启中...');
-      setTimeout(() => loadDevice(), 2000);
-    } catch (error) {
-      message.error('设备重启失败');
-    }
-  };
-
-  const getStatusTag = (status: string) => {
-    const statusMap: Record<string, { color: string; text: string }> = {
-      idle: { color: 'default', text: '空闲' },
-      running: { color: 'green', text: '运行中' },
-      stopped: { color: 'red', text: '已停止' },
-      error: { color: 'red', text: '错误' },
-    };
-    const config = statusMap[status] || { color: 'default', text: status };
-    return <Tag color={config.color}>{config.text}</Tag>;
-  };
+  const {
+    device,
+    loading,
+    handleStart,
+    handleStop,
+    handleReboot,
+    handleBack,
+    handleMonitor,
+    handleSnapshots,
+  } = useDeviceDetail(id);
 
   if (!device) {
     return <div>加载中...</div>;
@@ -90,97 +27,29 @@ const DeviceDetail = () => {
 
   return (
     <div>
-      <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/devices')}>
-          返回设备列表
-        </Button>
-        <Button
-          type="primary"
-          icon={<DashboardOutlined />}
-          onClick={() => navigate(`/devices/${id}/monitor`)}
-        >
-          实时监控
-        </Button>
-        <Button icon={<CameraOutlined />} onClick={() => navigate(`/devices/${id}/snapshots`)}>
-          快照管理
-        </Button>
-      </Space>
+      <DeviceHeaderActions
+        onBack={handleBack}
+        onMonitor={handleMonitor}
+        onSnapshots={handleSnapshots}
+      />
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="设备状态"
-              value={getStatusTag(device.status).text}
-              valueStyle={{
-                color: device.status === 'running' ? '#3f8600' : '#999',
-              }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic title="CPU 核心数" value={device.cpuCores} suffix="核" />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic title="内存" value={(device.memoryMB / 1024).toFixed(1)} suffix="GB" />
-          </Card>
-        </Col>
-      </Row>
+      <DeviceStatsRow device={device} />
 
-      <Card title="设备信息" loading={loading} style={{ marginBottom: 24 }}>
-        <Descriptions column={2} bordered>
-          <Descriptions.Item label="设备名称">{device.name}</Descriptions.Item>
-          <Descriptions.Item label="状态">{getStatusTag(device.status)}</Descriptions.Item>
-          <Descriptions.Item label="Android 版本">{device.androidVersion}</Descriptions.Item>
-          <Descriptions.Item label="CPU 核心数">{device.cpuCores}</Descriptions.Item>
-          <Descriptions.Item label="内存">{device.memoryMB} MB</Descriptions.Item>
-          <Descriptions.Item label="存储">{device.storageMB} MB</Descriptions.Item>
-          <Descriptions.Item label="IP 地址">{device.ipAddress || '-'}</Descriptions.Item>
-          <Descriptions.Item label="VNC 端口">{device.vncPort || '-'}</Descriptions.Item>
-          <Descriptions.Item label="创建时间">
-            {dayjs(device.createdAt).format('YYYY-MM-DD HH:mm')}
-          </Descriptions.Item>
-          <Descriptions.Item label="最后启动时间">
-            {device.lastStartedAt ? dayjs(device.lastStartedAt).format('YYYY-MM-DD HH:mm') : '-'}
-          </Descriptions.Item>
-        </Descriptions>
+      <DeviceInfoCard device={device} loading={loading} />
 
-        <div style={{ marginTop: 24 }}>
-          {device.status !== 'running' ? (
-            <Button type="primary" size="large" icon={<PlayCircleOutlined />} onClick={handleStart}>
-              启动设备
-            </Button>
-          ) : (
-            <>
-              <Button
-                size="large"
-                icon={<PauseCircleOutlined />}
-                onClick={handleStop}
-                style={{ marginRight: 12 }}
-              >
-                停止设备
-              </Button>
-              <Button size="large" icon={<ReloadOutlined />} onClick={handleReboot}>
-                重启设备
-              </Button>
-            </>
-          )}
-        </div>
-      </Card>
+      <div style={{ marginTop: 24, marginBottom: 24 }}>
+        <DeviceControlButtons
+          status={device.status}
+          onStart={handleStart}
+          onStop={handleStop}
+          onReboot={handleReboot}
+        />
+      </div>
 
-      {device.status === 'running' ? (
-        <WebRTCPlayer deviceId={device.id} />
-      ) : (
-        <Card title="设备画面">
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
-            <p style={{ fontSize: 18, marginBottom: 16 }}>设备未运行</p>
-            <p>请先启动设备后再查看画面</p>
-          </div>
-        </Card>
-      )}
+      <DevicePlayerCard
+        deviceId={device.id}
+        isRunning={device.status === 'running'}
+      />
     </div>
   );
 };

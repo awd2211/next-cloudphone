@@ -74,3 +74,57 @@ export const getDeviceCreationStatus = (sagaId: string) => {
     error?: string;
   }>(`/devices/saga/${sagaId}`);
 };
+
+// ========== 批量操作相关 API ==========
+
+/**
+ * 批量启动设备
+ */
+export interface BatchDevicesDto {
+  deviceIds: string[];
+}
+
+export interface BatchOperationResponse {
+  results: Array<{
+    deviceId: string;
+    success: boolean;
+    error?: string;
+  }>;
+}
+
+export const batchStartDevices = (data: BatchDevicesDto) => {
+  return request.post<BatchOperationResponse>('/devices/batch/start', data);
+};
+
+/**
+ * 批量停止设备
+ */
+export const batchStopDevices = (data: BatchDevicesDto) => {
+  return request.post<BatchOperationResponse>('/devices/batch/stop', data);
+};
+
+/**
+ * 批量重启设备
+ */
+export const batchRestartDevices = (data: BatchDevicesDto) => {
+  return request.post<BatchOperationResponse>('/devices/batch/restart', data);
+};
+
+/**
+ * 批量删除设备
+ */
+export const batchDeleteDevices = (data: BatchDevicesDto) => {
+  return request.delete<BatchOperationResponse>('/devices/batch', { data });
+};
+
+/**
+ * 批量安装应用
+ */
+export interface BatchInstallAppDto {
+  appId: string;
+  deviceIds: string[];
+}
+
+export const batchInstallApp = (data: BatchInstallAppDto) => {
+  return request.post<BatchOperationResponse>('/devices/batch/install-app', data);
+};
