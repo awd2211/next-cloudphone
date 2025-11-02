@@ -102,6 +102,12 @@ export class RedroidProvider implements IDeviceProvider {
         androidVersion: config.androidVersion || '11',
         enableGpu: config.enableGpu !== false, // 默认启用 GPU
         enableAudio: config.enableAudio !== false,
+        // ✅ 代理配置（家宽代理，每台云手机独立 IP）
+        proxyHost: config.proxyHost,
+        proxyPort: config.proxyPort,
+        proxyType: config.proxyType,
+        proxyUsername: config.proxyUsername,
+        proxyPassword: config.proxyPassword,
       };
 
       // 调用 DockerService 创建容器

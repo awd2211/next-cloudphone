@@ -146,6 +146,40 @@ export class Device {
   @Column({ type: 'varchar', nullable: true })
   macAddress: string | null;
 
+  // ========== 代理配置（家宽代理，每台云手机独立 IP） ==========
+  /** 代理 ID（proxy-service 分配） */
+  @Column({ name: 'proxy_id', type: 'varchar', nullable: true })
+  @Index()
+  proxyId: string | null;
+
+  /** 代理主机地址 */
+  @Column({ name: 'proxy_host', type: 'varchar', nullable: true })
+  proxyHost: string | null;
+
+  /** 代理端口 */
+  @Column({ name: 'proxy_port', type: 'int', nullable: true })
+  proxyPort: number | null;
+
+  /** 代理类型 (HTTP/SOCKS5) */
+  @Column({ name: 'proxy_type', type: 'varchar', nullable: true, default: 'HTTP' })
+  proxyType: string | null;
+
+  /** 代理用户名（可选） */
+  @Column({ name: 'proxy_username', type: 'varchar', nullable: true })
+  proxyUsername: string | null;
+
+  /** 代理密码（加密存储，可选） */
+  @Column({ name: 'proxy_password', type: 'varchar', nullable: true })
+  proxyPassword: string | null;
+
+  /** 代理国家代码 (如 US, CN, JP) */
+  @Column({ name: 'proxy_country', type: 'varchar', length: 2, nullable: true })
+  proxyCountry: string | null;
+
+  /** 代理分配时间 */
+  @Column({ name: 'proxy_assigned_at', type: 'timestamp', nullable: true })
+  proxyAssignedAt: Date | null;
+
   // 状态信息
   @Column({ type: 'int', default: 0 })
   cpuUsage: number;

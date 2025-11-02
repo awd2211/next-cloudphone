@@ -18,6 +18,12 @@ import { PortManagerService } from '../port-manager/port-manager.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 import {
+  RequestSmsDto,
+  CancelSmsDto,
+  SmsNumberResponse,
+  SmsMessageDto,
+} from './dto/sms-request.dto';
+import {
   EventBusService,
   EventOutboxService,
   BusinessErrors,
@@ -30,6 +36,8 @@ import {
   CursorPagination,
   CursorPaginationDto,
   CursorPaginatedResponse,
+  ProxyClientService, // ✅ 导入代理客户端服务
+  HttpClientService, // ✅ 导入 HTTP 客户端服务（用于调用 SMS Receive Service）
 } from '@cloudphone/shared';
 import { QuotaClientService } from '../quota/quota-client.service';
 import { CacheService } from '../cache/cache.service';
@@ -63,7 +71,18 @@ interface DeviceCreationSagaState {
   // Step 1 specific
   portsAllocated?: boolean;
   ports?: { adbPort: number; scrcpyPort: number; webrtcPort?: number };
-  // Step 2 specific
+  // Step 2 specific (代理分配)
+  proxyAllocated?: boolean;
+  proxy?: {
+    proxyId: string;
+    proxyHost: string;
+    proxyPort: number;
+    proxyType?: string;
+    proxyUsername?: string;
+    proxyPassword?: string;
+    proxyCountry?: string;
+  };
+  // Step 3 specific
   providerDevice?: {
     id: string;
     connectionInfo?: {
@@ -71,9 +90,9 @@ interface DeviceCreationSagaState {
     };
     [key: string]: unknown;
   };
-  // Step 4 specific
-  quotaReported?: boolean;
   // Step 5 specific
+  quotaReported?: boolean;
+  // Step 6 specific
   deviceStarted?: boolean;
   // DTO for internal use
   createDeviceDto?: CreateDeviceDto;
@@ -94,6 +113,8 @@ export class DevicesService {
     @Optional() private eventBus: EventBusService,
     @Optional() private eventOutboxService: EventOutboxService, // ✅ Transactional Outbox
     @Optional() private quotaClient: QuotaClientService,
+    @Optional() private proxyClient: ProxyClientService, // ✅ 代理客户端服务
+    @Optional() private httpClient: HttpClientService, // ✅ HTTP 客户端服务（用于调用 SMS Receive Service）
     private cacheService: CacheService,
     private moduleRef: ModuleRef, // ✅ 用于延迟获取服务
     private sagaOrchestrator: SagaOrchestratorService,
@@ -177,7 +198,73 @@ export class DevicesService {
           },
         } as SagaStep,
 
-        // ========== Step 2: 调用 Provider 创建设备 ==========
+        // ========== Step 2: 分配家宽代理（为云手机提供独立 IP） ==========
+        {
+          name: 'ALLOCATE_PROXY',
+          execute: async (state: DeviceCreationSagaState) => {
+            // ✅ 仅为 Redroid 云手机分配代理（物理设备/华为云/阿里云不需要）
+            if (providerType !== DeviceProviderType.REDROID || !this.proxyClient) {
+              this.logger.debug(`[SAGA] Skipping proxy allocation for ${providerType}`);
+              return { proxyAllocated: false, proxy: null };
+            }
+
+            this.logger.log(`[SAGA] Step 2: Allocating proxy for cloud phone`);
+
+            try {
+              // 调用 proxy-service 分配代理
+              const proxySession = await this.proxyClient.acquireProxy({
+                criteria: {
+                  minQuality: 70, // 最低质量评分
+                  // 其他筛选条件可根据需要添加
+                },
+              });
+
+              const proxyInfo = proxySession.proxy;
+
+              this.logger.log(
+                `[SAGA] Proxy allocated: ${proxyInfo.id} (${proxyInfo.host}:${proxyInfo.port}) country=${proxyInfo.location.countryCode || 'any'}`
+              );
+
+              return {
+                proxyAllocated: true,
+                proxy: {
+                  proxyId: proxyInfo.id,
+                  proxyHost: proxyInfo.host,
+                  proxyPort: proxyInfo.port,
+                  proxyType: proxyInfo.protocol.toUpperCase(),
+                  proxyUsername: proxyInfo.username,
+                  proxyPassword: proxyInfo.password,
+                  proxyCountry: proxyInfo.location.countryCode,
+                },
+              };
+            } catch (error) {
+              // ✅ 代理分配失败不阻塞设备创建（降级模式）
+              this.logger.warn(
+                `[SAGA] Failed to allocate proxy, continuing without proxy: ${error.message}`
+              );
+              return { proxyAllocated: false, proxy: null };
+            }
+          },
+          compensate: async (state: DeviceCreationSagaState) => {
+            if (!state.proxyAllocated || !state.proxy || !this.proxyClient) {
+              return;
+            }
+
+            this.logger.warn(`[SAGA] Compensate: Releasing proxy ${state.proxy.proxyId}`);
+
+            try {
+              await this.proxyClient.releaseProxy(state.proxy.proxyId);
+              this.logger.log(`[SAGA] Proxy released: ${state.proxy.proxyId}`);
+            } catch (error) {
+              this.logger.error(
+                `[SAGA] Failed to release proxy ${state.proxy.proxyId}`,
+                error.stack
+              );
+            }
+          },
+        } as SagaStep,
+
+        // ========== Step 3: 调用 Provider 创建设备 ==========
         {
           name: 'CREATE_PROVIDER_DEVICE',
           execute: async (state: DeviceCreationSagaState) => {
@@ -197,6 +284,12 @@ export class DevicesService {
               adbPort: state.ports?.adbPort,
               enableGpu: this.configService.get('REDROID_ENABLE_GPU', 'false') === 'true',
               enableAudio: this.configService.get('REDROID_ENABLE_AUDIO', 'false') === 'true',
+              // ✅ 代理配置（家宽代理，每台云手机独立 IP）
+              proxyHost: state.proxy?.proxyHost,
+              proxyPort: state.proxy?.proxyPort,
+              proxyType: state.proxy?.proxyType,
+              proxyUsername: state.proxy?.proxyUsername,
+              proxyPassword: state.proxy?.proxyPassword,
               // Provider 特定配置
               providerSpecificConfig: createDeviceDto.providerSpecificConfig,
             };
@@ -269,6 +362,15 @@ export class DevicesService {
                     : null,
                 adbPort: state.providerDevice!.connectionInfo?.adb?.port || null,
                 adbHost: state.providerDevice!.connectionInfo?.adb?.host || null,
+                // ✅ 代理配置（家宽代理，每台云手机独立 IP）
+                proxyId: state.proxy?.proxyId || null,
+                proxyHost: state.proxy?.proxyHost || null,
+                proxyPort: state.proxy?.proxyPort || null,
+                proxyType: state.proxy?.proxyType || null,
+                proxyUsername: state.proxy?.proxyUsername || null,
+                proxyPassword: state.proxy?.proxyPassword || null,
+                proxyCountry: state.proxy?.proxyCountry || null,
+                proxyAssignedAt: state.proxy ? new Date() : null,
                 metadata: {
                   ...createDeviceDto.metadata,
                   webrtcPort: state.ports?.webrtcPort,
@@ -1029,6 +1131,19 @@ export class DevicesService {
         webrtcPort: device.metadata?.webrtcPort,
       });
       this.logger.debug(`Released ports for device ${id}`);
+    }
+
+    // ✅ 释放代理（仅 Redroid，如果有分配代理）
+    if (device.providerType === DeviceProviderType.REDROID && device.proxyId && this.proxyClient) {
+      try {
+        await this.proxyClient.releaseProxy(device.proxyId);
+        this.logger.log(`Released proxy ${device.proxyId} for device ${id}`);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to release proxy ${device.proxyId} for device ${id}`,
+          error.message
+        );
+      }
     }
 
     // ✅ 使用事务更新设备状态并发布事件到 Outbox
@@ -2280,6 +2395,220 @@ export class DevicesService {
       throw new BusinessException(
         BusinessErrorCode.OPERATION_FAILED,
         `删除快照失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * 更新设备元数据
+   * @param deviceId 设备 ID
+   * @param metadataUpdate 要更新的元数据（部分更新）
+   *
+   * 用途：
+   * - 记录 SMS 短信号码和验证码信息
+   * - 记录设备使用情况和统计信息
+   * - 记录自定义标签和配置
+   *
+   * 示例：
+   * ```typescript
+   * await this.devicesService.updateDeviceMetadata(deviceId, {
+   *   lastSmsReceived: {
+   *     messageId: '123',
+   *     phoneNumber: '+79123456789',
+   *     verificationCode: '654321',
+   *     service: 'telegram',
+   *     receivedAt: '2025-11-02T10:30:00Z',
+   *     pushedAt: '2025-11-02T10:30:01Z'
+   *   }
+   * });
+   * ```
+   */
+  async updateDeviceMetadata(
+    deviceId: string,
+    metadataUpdate: Record<string, any>,
+  ): Promise<Device> {
+    try {
+      // 1. 查找设备
+      const device = await this.findOne(deviceId);
+
+      // 2. 合并元数据（保留原有数据，更新或添加新字段）
+      const updatedMetadata = {
+        ...(device.metadata || {}),
+        ...metadataUpdate,
+      };
+
+      // 3. 更新数据库
+      await this.devicesRepository.update(deviceId, {
+        metadata: updatedMetadata,
+      });
+
+      // 4. 清除缓存
+      await this.cacheService.del(CacheKeys.device(deviceId));
+
+      this.logger.log(
+        `设备元数据已更新: deviceId=${deviceId}, keys=[${Object.keys(metadataUpdate).join(', ')}]`,
+      );
+
+      // 5. 返回更新后的设备
+      return this.findOne(deviceId);
+    } catch (error) {
+      this.logger.error(`更新设备元数据失败: deviceId=${deviceId}, error=${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `更新设备元数据失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ==================== SMS 虚拟号码管理 ====================
+
+  /**
+   * 为设备请求虚拟 SMS 号码
+   * @param deviceId 设备 ID
+   * @param dto 请求参数
+   * @returns 虚拟号码信息
+   */
+  async requestSms(deviceId: string, dto: RequestSmsDto): Promise<SmsNumberResponse> {
+    try {
+      // 1. 检查设备是否存在且状态为 RUNNING
+      const device = await this.findOne(deviceId);
+      if (device.status !== DeviceStatus.RUNNING) {
+        throw new BusinessException(
+          BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+          '设备必须处于运行状态才能请求虚拟号码',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 2. 获取 SMS Receive Service 的 URL
+      const smsServiceUrl = this.configService.get('SMS_RECEIVE_SERVICE_URL', 'http://localhost:30008');
+
+      // 3. 调用 SMS Receive Service API
+      const response = await this.httpClient.post<{ data: SmsNumberResponse }>(
+        `${smsServiceUrl}/sms-numbers/request`,
+        {
+          deviceId,
+          userId: device.userId,
+          country: dto.country,
+          service: dto.service,
+          operator: dto.operator,
+        },
+        {},
+        {
+          timeout: 15000, // 15 秒超时
+          retries: 2,
+          serviceName: 'sms-receive-service',
+        },
+      );
+
+      const smsNumber = response.data;
+
+      // 4. 更新设备元数据
+      await this.updateDeviceMetadata(deviceId, {
+        smsNumberRequest: smsNumber,
+      });
+
+      this.logger.log(
+        `虚拟号码请求成功: deviceId=${deviceId}, phone=${smsNumber.phoneNumber}, requestId=${smsNumber.requestId}`,
+      );
+
+      return smsNumber;
+    } catch (error) {
+      this.logger.error(`请求虚拟号码失败: deviceId=${deviceId}, error=${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `请求虚拟号码失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * 取消设备的虚拟 SMS 号码
+   * @param deviceId 设备 ID
+   * @param dto 取消参数
+   */
+  async cancelSms(deviceId: string, dto?: CancelSmsDto): Promise<void> {
+    try {
+      // 1. 检查设备是否存在
+      const device = await this.findOne(deviceId);
+
+      // 2. 检查是否有分配的虚拟号码
+      const smsNumberRequest = device.metadata?.smsNumberRequest;
+      if (!smsNumberRequest || !smsNumberRequest.requestId) {
+        throw new BusinessException(
+          BusinessErrorCode.DEVICE_NOT_AVAILABLE,
+          '设备未分配虚拟号码',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 3. 获取 SMS Receive Service 的 URL
+      const smsServiceUrl = this.configService.get('SMS_RECEIVE_SERVICE_URL', 'http://localhost:30008');
+
+      // 4. 调用 SMS Receive Service 取消 API
+      await this.httpClient.post(
+        `${smsServiceUrl}/sms-numbers/${smsNumberRequest.requestId}/cancel`,
+        {
+          reason: dto?.reason || 'User cancelled',
+        },
+        {},
+        {
+          timeout: 10000,
+          retries: 2,
+          serviceName: 'sms-receive-service',
+        },
+      );
+
+      // 5. 更新设备元数据（标记为已取消）
+      await this.updateDeviceMetadata(deviceId, {
+        smsNumberRequest: {
+          ...smsNumberRequest,
+          status: 'cancelled',
+          cancelledAt: new Date().toISOString(),
+          reason: dto?.reason,
+        },
+      });
+
+      this.logger.log(
+        `虚拟号码已取消: deviceId=${deviceId}, requestId=${smsNumberRequest.requestId}`,
+      );
+    } catch (error) {
+      this.logger.error(`取消虚拟号码失败: deviceId=${deviceId}, error=${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `取消虚拟号码失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * 获取设备收到的 SMS 消息历史
+   * @param deviceId 设备 ID
+   * @returns SMS 消息列表
+   */
+  async getSmsMessages(deviceId: string): Promise<SmsMessageDto[]> {
+    try {
+      // 1. 检查设备是否存在
+      const device = await this.findOne(deviceId);
+
+      // 2. 从设备元数据中获取最后一条 SMS
+      const lastSmsReceived = device.metadata?.lastSmsReceived;
+      if (!lastSmsReceived) {
+        return [];
+      }
+
+      // 返回最后一条 SMS 消息
+      // TODO: 如需完整历史，可以调用 SMS Receive Service 的 /devices/:deviceId/messages API
+      return [lastSmsReceived as SmsMessageDto];
+    } catch (error) {
+      this.logger.error(`获取 SMS 消息失败: deviceId=${deviceId}, error=${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `获取 SMS 消息失败: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

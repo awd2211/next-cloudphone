@@ -23,6 +23,12 @@ export { ConsulModule } from './consul/consul.module';
 export { HttpClientService } from './http/http-client.service';
 export { HttpClientModule } from './http/http-client.module';
 
+// ========== 代理客户端 ==========
+export { ProxyClientService } from './proxy/proxy-client.service';
+export { ProxyClientModule } from './proxy/proxy-client.module';
+export * from './proxy/proxy.interfaces';
+export * from './proxy/proxy.constants';
+
 // ========== 异常处理 ==========
 export * from './exceptions';
 

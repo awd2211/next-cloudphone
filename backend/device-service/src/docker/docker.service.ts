@@ -17,6 +17,12 @@ export interface RedroidConfig {
   enableGpu?: boolean;
   enableAudio?: boolean;
   gpuConfig?: GpuConfig;
+  // ✅ 代理配置（家宽代理，每台云手机独立 IP）
+  proxyHost?: string;
+  proxyPort?: number;
+  proxyType?: string; // HTTP 或 SOCKS5
+  proxyUsername?: string;
+  proxyPassword?: string;
 }
 
 @Injectable()
@@ -65,6 +71,29 @@ export class DockerService {
     // 音频配置
     if (config.enableAudio) {
       env.push('REDROID_AUDIO=1');
+    }
+
+    // ✅ 代理配置（家宽代理，每台云手机独立 IP）
+    if (config.proxyHost && config.proxyPort) {
+      // 构建代理 URL
+      let proxyUrl: string;
+      const proxyType = (config.proxyType || 'HTTP').toLowerCase();
+
+      if (config.proxyUsername && config.proxyPassword) {
+        // 带认证的代理
+        proxyUrl = `${proxyType}://${encodeURIComponent(config.proxyUsername)}:${encodeURIComponent(config.proxyPassword)}@${config.proxyHost}:${config.proxyPort}`;
+      } else {
+        // 不带认证的代理
+        proxyUrl = `${proxyType}://${config.proxyHost}:${config.proxyPort}`;
+      }
+
+      // 注入代理环境变量（Android 系统会自动识别）
+      env.push(`HTTP_PROXY=${proxyUrl}`);
+      env.push(`HTTPS_PROXY=${proxyUrl}`);
+      env.push(`http_proxy=${proxyUrl}`); // 小写版本（某些应用需要）
+      env.push(`https_proxy=${proxyUrl}`);
+
+      this.logger.log(`Proxy configured for container: ${config.proxyHost}:${config.proxyPort}`);
     }
 
     // 构建端口映射

@@ -260,6 +260,21 @@ export interface DeviceCreateConfig {
   /** 启用音频 (Redroid 使用) */
   enableAudio?: boolean;
 
+  /** 代理主机地址 (Redroid 家宽代理) */
+  proxyHost?: string;
+
+  /** 代理端口 (Redroid 家宽代理) */
+  proxyPort?: number;
+
+  /** 代理类型 (HTTP/SOCKS5) */
+  proxyType?: string;
+
+  /** 代理用户名（可选） */
+  proxyUsername?: string;
+
+  /** 代理密码（可选） */
+  proxyPassword?: string;
+
   /** 提供商特定配置 */
   providerSpecificConfig?: Record<string, any>;
 }
