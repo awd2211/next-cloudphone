@@ -55,12 +55,18 @@ const TermsOfService = lazy(() => import('@/pages/Legal/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/Legal/PrivacyPolicy'));
 const ServiceLevelAgreement = lazy(() => import('@/pages/Legal/ServiceLevelAgreement'));
 const RefundPolicy = lazy(() => import('@/pages/Legal/RefundPolicy'));
+const SecurityPage = lazy(() => import('@/pages/Legal/Security'));
 
 // 营销页面（不需要登录）
 const Product = lazy(() => import('@/pages/Product'));
 const Pricing = lazy(() => import('@/pages/Pricing'));
 const Solutions = lazy(() => import('@/pages/Solutions'));
 const CaseStudies = lazy(() => import('@/pages/CaseStudies'));
+
+// 公司信息页面（不需要登录）
+const About = lazy(() => import('@/pages/About'));
+const Contact = lazy(() => import('@/pages/Contact'));
+const Careers = lazy(() => import('@/pages/Careers'));
 
 // Loading 组件
 const PageLoading = () => (
@@ -110,8 +116,13 @@ export const router = createBrowserRouter([
       </ErrorBoundary>
     ),
   },
+  // 首页（公开访问，不需要登录）
   {
     path: '/',
+    element: withSuspense(Home),
+  },
+  // 认证后的路由（需要登录）
+  {
     element: (
       <ErrorBoundary>
         <ProtectedRoute>
@@ -120,10 +131,6 @@ export const router = createBrowserRouter([
       </ErrorBoundary>
     ),
     children: [
-      {
-        index: true,
-        element: withSuspense(Home),
-      },
       {
         path: 'dashboard',
         element: withSuspense(Dashboard),
@@ -307,6 +314,23 @@ export const router = createBrowserRouter([
   {
     path: '/legal/refund',
     element: withSuspense(RefundPolicy),
+  },
+  {
+    path: '/legal/security',
+    element: withSuspense(SecurityPage),
+  },
+  // 公司信息页面路由（公开访问，不需要登录）
+  {
+    path: '/about',
+    element: withSuspense(About),
+  },
+  {
+    path: '/contact',
+    element: withSuspense(Contact),
+  },
+  {
+    path: '/careers',
+    element: withSuspense(Careers),
   },
   {
     path: '*',
