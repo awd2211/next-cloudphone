@@ -8,6 +8,7 @@ import { Role } from '../entities/role.entity';
 import { UserEvent } from '../entities/user-event.entity';
 import { UserSnapshot } from '../entities/user-snapshot.entity';
 import { RolesModule } from '../roles/roles.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 import { CacheService } from '../cache/cache.service';
 import { CommandHandlers } from './commands/handlers';
 import { QueryHandlers } from './queries/handlers';
@@ -23,6 +24,7 @@ import { UserMetricsService } from '../common/metrics/user-metrics.service';
   imports: [
     TypeOrmModule.forFeature([User, Role, UserEvent, UserSnapshot]),
     RolesModule,
+    PermissionsModule,
     CqrsModule,
     EventBusModule.forRoot(), // ✅ V2: 使用 forRoot() 集成 RabbitMQModule
   ],

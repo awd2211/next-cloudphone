@@ -272,6 +272,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
   ],
   user: [
     'device:read',
+    'device:create',      // ✅ 添加设备创建权限（SaaS 核心功能）
     'device:control',
     'app:read',
     'app:install',

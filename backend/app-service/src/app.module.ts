@@ -12,10 +12,10 @@ import {
   createLoggerConfig,
   EventBusModule,
   SagaModule,
-  SecurityModule,
   EventOutboxModule,
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
+import { CacheModule } from './cache/cache.module';
 // import { AppRabbitMQModule } from './rabbitmq/rabbitmq.module'; // ❌ V2: 移除重复的 RabbitMQ 模块
 import { AppsConsumer } from './apps/apps.consumer'; // ✅ V2: 直接导入消费者
 import { DeviceApplication } from './entities/device-application.entity'; // ✅ V2: Consumer 需要的实体
@@ -45,6 +45,7 @@ import { DeviceApplication } from './entities/device-application.entity'; // ✅
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([DeviceApplication]), // ✅ V2: Consumer 需要的仓库
+    CacheModule, // ✅ Redis 缓存模块（全局模块）
     AuthModule,
     AppsModule,
     MinioModule,
@@ -53,7 +54,6 @@ import { DeviceApplication } from './entities/device-application.entity'; // ✅
     EventBusModule.forRoot(), // ✅ V2: 统一使用 EventBusModule.forRoot() (包含 RabbitMQModule)
     EventOutboxModule, // ✅ Transactional Outbox Pattern
     SagaModule, // Saga 编排模块（用于分布式事务）
-    SecurityModule, // ✅ 统一安全模块（已修复 AutoBanMiddleware）
   ],
   controllers: [HealthController],
   providers: [AppsConsumer], // ✅ V2: 直接注册消费者

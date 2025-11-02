@@ -24,6 +24,7 @@ import { Optional } from '@nestjs/common';
 import { CacheService, CacheLayer } from '../cache/cache.service';
 import { UserMetricsService } from '../common/metrics/user-metrics.service';
 import { TracingService } from '../common/tracing/tracing.service';
+import { PermissionCacheService } from '../permissions/permission-cache.service';
 
 @Injectable()
 export class UsersService {
@@ -35,7 +36,8 @@ export class UsersService {
     @Optional() private eventBus: EventBusService,
     @Optional() private cacheService: CacheService,
     @Optional() private metricsService: UserMetricsService,
-    @Optional() private tracingService: TracingService
+    @Optional() private tracingService: TracingService,
+    @Optional() private permissionCacheService: PermissionCacheService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -672,6 +674,11 @@ export class UsersService {
     // 清除缓存
     if (this.cacheService) {
       await this.cacheService.del(`user:${id}`);
+    }
+
+    // 如果更新了角色，清除该用户的权限缓存
+    if (roles && this.permissionCacheService) {
+      this.permissionCacheService.invalidateCache(id);
     }
 
     // 发布用户更新事件（同步到其他服务的冗余字段）

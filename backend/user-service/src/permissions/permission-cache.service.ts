@@ -108,12 +108,14 @@ export class PermissionCacheService implements OnModuleInit {
       const permissions = Array.from(permissionMap.values());
 
       // 加载数据范围配置
-      const dataScopes = await this.dataScopeRepository.find({
-        where: {
-          roleId: roleIds as any,
-          isActive: true,
-        },
-      });
+      const dataScopes = roleIds.length > 0
+        ? await this.dataScopeRepository.find({
+            where: {
+              roleId: In(roleIds),
+              isActive: true,
+            },
+          })
+        : [];
 
       // 按资源类型分组
       const dataScopesMap = new Map<string, DataScope[]>();
@@ -125,12 +127,14 @@ export class PermissionCacheService implements OnModuleInit {
       });
 
       // 加载字段权限配置
-      const fieldPermissions = await this.fieldPermissionRepository.find({
-        where: {
-          roleId: roleIds as any,
-          isActive: true,
-        },
-      });
+      const fieldPermissions = roleIds.length > 0
+        ? await this.fieldPermissionRepository.find({
+            where: {
+              roleId: In(roleIds),
+              isActive: true,
+            },
+          })
+        : [];
 
       // 按资源类型和操作类型分组
       const fieldPermissionsMap = new Map<string, Map<OperationType, FieldPermission[]>>();

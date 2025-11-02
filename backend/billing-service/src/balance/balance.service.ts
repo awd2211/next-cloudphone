@@ -7,6 +7,8 @@ import {
   TransactionType,
   TransactionStatus,
 } from './entities/balance-transaction.entity';
+import { CacheService } from '../cache/cache.service';
+import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 export interface CreateBalanceDto {
   userId: string;
@@ -57,7 +59,8 @@ export class BalanceService {
     private balanceRepository: Repository<UserBalance>,
     @InjectRepository(BalanceTransaction)
     private transactionRepository: Repository<BalanceTransaction>,
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    private cacheService: CacheService
   ) {}
 
   /**
@@ -109,18 +112,25 @@ export class BalanceService {
    * 获取用户余额
    */
   async getUserBalance(userId: string): Promise<UserBalance> {
-    const balance = await this.balanceRepository.findOne({
-      where: { userId },
-    });
+    // 使用缓存包装器：先查缓存，未命中则查数据库并缓存
+    return this.cacheService.wrap(
+      CacheKeys.userBalance(userId),
+      async () => {
+        const balance = await this.balanceRepository.findOne({
+          where: { userId },
+        });
 
-    if (!balance) {
-      throw new NotFoundException(`用户 ${userId} 余额账户未找到`);
-    }
+        if (!balance) {
+          throw new NotFoundException(`用户 ${userId} 余额账户未找到`);
+        }
 
-    // 更新状态
-    await this.updateBalanceStatus(balance);
+        // 更新状态
+        await this.updateBalanceStatus(balance);
 
-    return balance;
+        return balance;
+      },
+      CacheTTL.USER_BALANCE // 30 秒 TTL
+    );
   }
 
   /**
@@ -175,6 +185,9 @@ export class BalanceService {
       this.logger.log(
         `充值成功 - 用户: ${dto.userId}, 金额: ${dto.amount}, 余额: ${balance.balance}`
       );
+
+      // 清除缓存
+      await this.invalidateBalanceCache(dto.userId);
 
       return { balance, transaction };
     } catch (error) {
@@ -255,6 +268,9 @@ export class BalanceService {
           // 这里可以触发自动充值流程
         }
       }
+
+      // 清除缓存
+      await this.invalidateBalanceCache(dto.userId);
 
       return { balance, transaction };
     } catch (error) {
@@ -586,6 +602,28 @@ export class BalanceService {
       balance.status = newStatus;
       await this.balanceRepository.save(balance);
       this.logger.warn(`余额状态变更 - 用户: ${balance.userId}, 状态: ${balance.status}`);
+    }
+  }
+
+  /**
+   * 清除用户余额相关的所有缓存
+   * @param userId 用户 ID
+   */
+  private async invalidateBalanceCache(userId: string): Promise<void> {
+    try {
+      // 清除余额详情缓存
+      await this.cacheService.del(CacheKeys.userBalance(userId));
+
+      // 清除余额统计缓存
+      await this.cacheService.del(CacheKeys.balanceStats(userId));
+
+      // 清除交易列表缓存（所有分页）
+      await this.cacheService.delPattern(CacheKeys.userBalancePattern(userId));
+
+      this.logger.debug(`Cache invalidated for user balance ${userId}`);
+    } catch (error) {
+      this.logger.error(`Failed to invalidate cache for user ${userId}:`, error.message);
+      // 缓存失效失败不应该影响主流程
     }
   }
 }

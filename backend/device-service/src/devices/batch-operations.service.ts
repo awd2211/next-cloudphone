@@ -287,21 +287,23 @@ export class BatchOperationsService {
   async updateDeviceGroup(deviceIds: string[], groupName: string): Promise<void> {
     this.logger.log(`Updating ${deviceIds.length} devices to group "${groupName}"`);
 
-    await Promise.all(
-      deviceIds.map(async (deviceId) => {
-        const device = await this.devicesRepository.findOne({
-          where: { id: deviceId },
-        });
+    // ✅ 优化: 批量查询（1次 DB 操作，替代 N 次 findOne）
+    const devices = await this.devicesRepository.find({
+      where: { id: In(deviceIds) },
+    });
 
-        if (device) {
-          device.metadata = {
-            ...device.metadata,
-            groupName,
-          };
-          await this.devicesRepository.save(device);
-        }
-      })
-    );
+    // 批量更新元数据
+    devices.forEach((device) => {
+      device.metadata = {
+        ...device.metadata,
+        groupName,
+      };
+    });
+
+    // ✅ 优化: 批量保存（1次 DB 操作，替代 N 次 save）
+    await this.devicesRepository.save(devices);
+
+    this.logger.log(`✅ Updated ${devices.length} devices to group "${groupName}"`);
   }
 
   /**

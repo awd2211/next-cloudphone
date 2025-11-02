@@ -32,7 +32,6 @@ import {
   EventOutbox,
   RequestIdMiddleware,
   SagaModule,
-  SecurityModule,
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
@@ -85,7 +84,6 @@ import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
     FailoverModule, // 故障转移和自动恢复
     StateRecoveryModule, // 状态自愈和回滚
     SagaModule, // Saga 编排模块（用于分布式事务）
-    SecurityModule, // ✅ 已修复 AutoBanMiddleware 上下文绑定问题
   ],
   controllers: [HealthController],
   providers: [], // EventBusService 由 EventBusModule 提供

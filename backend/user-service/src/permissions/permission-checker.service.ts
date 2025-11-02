@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Permission, DataScopeType } from '../entities/permission.entity';
 import { DataScope, ScopeType } from '../entities/data-scope.entity';
 import {
@@ -9,7 +9,7 @@ import {
   OperationType,
 } from '../entities/field-permission.entity';
 import { User } from '../entities/user.entity';
-import { Role } from '../entities/role.entity';
+import { PermissionCacheService } from './permission-cache.service';
 
 /**
  * 权限检查结果
@@ -42,16 +42,9 @@ export class PermissionCheckerService {
   private readonly logger = new Logger(PermissionCheckerService.name);
 
   constructor(
-    @InjectRepository(Permission)
-    private permissionRepository: Repository<Permission>,
-    @InjectRepository(DataScope)
-    private dataScopeRepository: Repository<DataScope>,
-    @InjectRepository(FieldPermission)
-    private fieldPermissionRepository: Repository<FieldPermission>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(Role)
-    private roleRepository: Repository<Role>
+    private permissionCacheService: PermissionCacheService,
   ) {}
 
   /**
@@ -268,53 +261,44 @@ export class PermissionCheckerService {
   }
 
   /**
-   * 获取用户的所有权限
+   * 获取用户的所有权限（使用缓存）
    */
   private async getUserPermissions(user: User): Promise<Permission[]> {
     if (!user.roles || user.roles.length === 0) {
       return [];
     }
 
-    const roleIds = user.roles.map((r) => r.id);
-    const roles = await this.roleRepository.find({
-      where: { id: In(roleIds) },
-      relations: ['permissions'],
-    });
+    // 使用缓存服务获取权限
+    const cachedData = await this.permissionCacheService.getUserPermissions(user.id);
 
-    // 合并所有角色的权限（去重）
-    const permissionMap = new Map<string, Permission>();
-    roles.forEach((role) => {
-      role.permissions?.forEach((permission) => {
-        permissionMap.set(permission.id, permission);
-      });
-    });
+    if (!cachedData) {
+      this.logger.warn(`无法获取用户 ${user.id} 的权限数据`);
+      return [];
+    }
 
-    return Array.from(permissionMap.values());
+    return cachedData.permissions;
   }
 
   /**
-   * 获取用户的数据范围配置
+   * 获取用户的数据范围配置（使用缓存）
    */
   private async getUserDataScopes(user: User, resourceType: string): Promise<DataScope[]> {
     if (!user.roles || user.roles.length === 0) {
       return [];
     }
 
-    const roleIds = user.roles.map((r) => r.id);
-    return this.dataScopeRepository.find({
-      where: {
-        roleId: roleIds as any, // TypeORM In operator
-        resourceType,
-        isActive: true,
-      },
-      order: {
-        priority: 'ASC',
-      },
-    });
+    // 使用缓存服务获取数据范围
+    const cachedData = await this.permissionCacheService.getUserPermissions(user.id);
+
+    if (!cachedData) {
+      return [];
+    }
+
+    return cachedData.dataScopes.get(resourceType) || [];
   }
 
   /**
-   * 获取用户的字段权限配置
+   * 获取用户的字段权限配置（使用缓存）
    */
   private async getUserFieldPermissions(
     user: User,
@@ -325,18 +309,19 @@ export class PermissionCheckerService {
       return [];
     }
 
-    const roleIds = user.roles.map((r) => r.id);
-    return this.fieldPermissionRepository.find({
-      where: {
-        roleId: roleIds as any,
-        resourceType,
-        operation,
-        isActive: true,
-      },
-      order: {
-        priority: 'ASC',
-      },
-    });
+    // 使用缓存服务获取字段权限
+    const cachedData = await this.permissionCacheService.getUserPermissions(user.id);
+
+    if (!cachedData) {
+      return [];
+    }
+
+    const resourcePermissions = cachedData.fieldPermissions.get(resourceType);
+    if (!resourcePermissions) {
+      return [];
+    }
+
+    return resourcePermissions.get(operation) || [];
   }
 
   /**

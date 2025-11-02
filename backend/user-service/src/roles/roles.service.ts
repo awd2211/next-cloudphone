@@ -12,6 +12,7 @@ import { Permission } from '../entities/permission.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { CacheService } from '../cache/cache.service';
+import { PermissionCacheService } from '../permissions/permission-cache.service';
 
 @Injectable()
 export class RolesService {
@@ -20,7 +21,8 @@ export class RolesService {
     private rolesRepository: Repository<Role>,
     @InjectRepository(Permission)
     private permissionsRepository: Repository<Permission>,
-    @Optional() private cacheService: CacheService
+    @Optional() private cacheService: CacheService,
+    private permissionCacheService: PermissionCacheService,
   ) {}
 
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
@@ -162,10 +164,13 @@ export class RolesService {
 
     Object.assign(role, updateRoleDto);
 
-    // 清除缓存
+    // 清除角色缓存
     if (this.cacheService) {
       await this.cacheService.del(`role:${id}`);
     }
+
+    // 清除该角色相关的所有用户权限缓存
+    await this.permissionCacheService.invalidateCacheByRole(id);
 
     return await this.rolesRepository.save(role);
   }
@@ -190,6 +195,9 @@ export class RolesService {
       throw new BadRequestException('该角色下还有用户，无法删除');
     }
 
+    // 清除该角色相关的所有用户权限缓存
+    await this.permissionCacheService.invalidateCacheByRole(id);
+
     await this.rolesRepository.remove(role);
   }
 
@@ -212,6 +220,10 @@ export class RolesService {
     const permissionsToAdd = newPermissions.filter((p) => !existingPermissionIds.has(p.id));
 
     role.permissions = [...role.permissions, ...permissionsToAdd];
+
+    // 清除该角色相关的所有用户权限缓存
+    await this.permissionCacheService.invalidateCacheByRole(roleId);
+
     return await this.rolesRepository.save(role);
   }
 
@@ -227,6 +239,9 @@ export class RolesService {
 
     const permissionIdsSet = new Set(permissionIds);
     role.permissions = role.permissions.filter((p) => !permissionIdsSet.has(p.id));
+
+    // 清除该角色相关的所有用户权限缓存
+    await this.permissionCacheService.invalidateCacheByRole(roleId);
 
     return await this.rolesRepository.save(role);
   }

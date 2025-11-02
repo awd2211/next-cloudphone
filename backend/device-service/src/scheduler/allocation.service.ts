@@ -1046,10 +1046,10 @@ export class AllocationService {
       allocationsByUser[userId] = [];
     }
 
+    // ✅ 优化: 使用已经 JOIN 加载的 device，避免 N+1 查询
     for (const allocation of allocations) {
-      const device = await this.deviceRepository.findOne({
-        where: { id: allocation.deviceId },
-      });
+      // device 已通过 leftJoinAndSelect 加载，无需再次查询
+      const device = allocation.device;
 
       allocationsByUser[allocation.userId].push({
         allocationId: allocation.id,
