@@ -108,3 +108,40 @@ export const getActivityButtonText = (status: ActivityStatus): string => {
   };
   return textMap[status];
 };
+
+/**
+ * 格式化完整日期时间
+ */
+export const formatDateTime = (dateTime: string): string => {
+  return new Date(dateTime).toLocaleString();
+};
+
+/**
+ * 获取活动类型大图标（用于横幅）
+ */
+export const getTypeIcon = (type: ActivityType) => {
+  const iconMap: Record<ActivityType, any> = {
+    [ActivityType.GIFT]: <GiftOutlined />,
+    [ActivityType.DISCOUNT]: <PercentageOutlined />,
+    [ActivityType.FLASH_SALE]: <ThunderboltOutlined />,
+    [ActivityType.NEW_USER]: <TrophyOutlined />,
+  };
+  return iconMap[type] || <GiftOutlined />;
+};
+
+// ==================== 状态提示配置 ====================
+
+/**
+ * 获取状态提示配置
+ */
+export const getStatusAlertConfig = (status: ActivityStatus) => {
+  const configMap: Record<
+    ActivityStatus,
+    { message: string; type: 'info' | 'warning' | 'success' | 'error' }
+  > = {
+    [ActivityStatus.UPCOMING]: { message: '活动即将开始，敬请期待!', type: 'info' },
+    [ActivityStatus.ONGOING]: { message: '活动进行中，快来参与吧!', type: 'success' },
+    [ActivityStatus.ENDED]: { message: '活动已结束', type: 'warning' },
+  };
+  return configMap[status];
+};
