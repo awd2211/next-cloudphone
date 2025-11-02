@@ -1,8 +1,6 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 import { CreateNotificationDto } from './notification.interface';
 import {
   Notification,
@@ -19,6 +17,8 @@ import {
 } from '@cloudphone/shared';
 import { EmailService } from '../email/email.service';
 import { SmsService } from '../sms/sms.service';
+import { CacheService } from '../cache/cache.service';
+import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 @Injectable()
 export class NotificationsService {
@@ -28,8 +28,7 @@ export class NotificationsService {
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
     private readonly gateway: NotificationGateway,
-    @Inject(CACHE_MANAGER)
-    private cacheManager: Cache,
+    private cacheService: CacheService,
     private readonly preferencesService: NotificationPreferencesService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService
@@ -70,8 +69,8 @@ export class NotificationsService {
       this.logger.error(`通知发送失败: ${savedNotification.id}`, error.stack);
     }
 
-    // 清除用户通知缓存
-    await this.cacheManager.del(`user:${dto.userId}:notifications`);
+    // ✅ 清除用户通知相关的所有缓存
+    await this.invalidateUserNotificationCache(dto.userId);
 
     return savedNotification;
   }
@@ -108,78 +107,98 @@ export class NotificationsService {
     const updated = await this.notificationRepository.save(notification);
     this.logger.log(`通知已标记为已读: ${notificationId}`);
 
-    // 清除缓存
-    await this.cacheManager.del(`user:${notification.userId}:notifications`);
+    // ✅ 清除用户通知相关的所有缓存
+    await this.invalidateUserNotificationCache(notification.userId);
 
     return updated;
   }
 
   /**
    * 获取用户的所有通知（分页）
+   * ✅ 使用统一缓存优化查询性能
    */
   async getUserNotifications(
     userId: string,
     page: number = 1,
     limit: number = 10
   ): Promise<{ data: Notification[]; total: number }> {
-    // 尝试从缓存获取
-    const cacheKey = `user:${userId}:notifications:${page}:${limit}`;
-    const cached = await this.cacheManager.get<{ data: Notification[]; total: number }>(cacheKey);
+    return this.cacheService.wrap(
+      CacheKeys.notificationList(userId, undefined, page, limit),
+      async () => {
+        // 从数据库查询
+        const [data, total] = await this.notificationRepository.findAndCount({
+          where: { userId },
+          order: { createdAt: 'DESC' },
+          skip: (page - 1) * limit,
+          take: limit,
+        });
 
-    if (cached) {
-      return cached;
-    }
-
-    // 从数据库查询
-    const [data, total] = await this.notificationRepository.findAndCount({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    const result = { data, total };
-
-    // 缓存结果（1分钟 = 60000ms）
-    await this.cacheManager.set(cacheKey, result, 60000);
-
-    return result;
+        return { data, total };
+      },
+      CacheTTL.NOTIFICATION_LIST // 2 minutes
+    );
   }
 
   /**
    * 获取用户未读通知数量
+   * ✅ 使用缓存优化高频查询
    */
   async getUnreadCount(userId: string): Promise<number> {
-    return await this.notificationRepository.count({
-      where: {
-        userId,
-        status: NotificationStatus.SENT,
+    return this.cacheService.wrap(
+      CacheKeys.unreadCount(userId),
+      async () => {
+        return await this.notificationRepository.count({
+          where: {
+            userId,
+            status: NotificationStatus.SENT,
+          },
+        });
       },
-    });
+      CacheTTL.UNREAD_COUNT // 1 minute
+    );
   }
 
   /**
    * 获取用户未读通知
+   * ✅ 使用缓存优化高频查询
    */
   async getUnreadNotifications(userId: string): Promise<Notification[]> {
-    return await this.notificationRepository.find({
-      where: {
-        userId,
-        status: NotificationStatus.SENT,
+    return this.cacheService.wrap(
+      CacheKeys.notificationList(userId, false), // isRead = false (未读)
+      async () => {
+        return await this.notificationRepository.find({
+          where: {
+            userId,
+            status: NotificationStatus.SENT,
+          },
+          order: { createdAt: 'DESC' },
+          take: 50, // 最多返回50条未读
+        });
       },
-      order: { createdAt: 'DESC' },
-      take: 50, // 最多返回50条未读
-    });
+      CacheTTL.NOTIFICATION_LIST // 2 minutes
+    );
   }
 
   /**
    * 删除通知
    */
   async deleteNotification(notificationId: string): Promise<boolean> {
+    // 先查询通知获取 userId（用于清除缓存）
+    const notification = await this.notificationRepository.findOne({
+      where: { id: notificationId },
+      select: ['id', 'userId'],
+    });
+
     const result = await this.notificationRepository.delete(notificationId);
 
     if (result.affected && result.affected > 0) {
       this.logger.log(`通知已删除: ${notificationId}`);
+
+      // ✅ 清除用户通知相关的所有缓存
+      if (notification) {
+        await this.invalidateUserNotificationCache(notification.userId);
+      }
+
       return true;
     }
 
@@ -204,8 +223,8 @@ export class NotificationsService {
     const updated = result.affected || 0;
     this.logger.log(`用户 ${userId} 的 ${updated} 条通知已标记为已读`);
 
-    // 清除用户通知缓存
-    await this.cacheManager.del(`user:${userId}:notifications`);
+    // ✅ 清除用户通知相关的所有缓存
+    await this.invalidateUserNotificationCache(userId);
 
     return { updated };
   }
@@ -247,34 +266,41 @@ export class NotificationsService {
 
   /**
    * 获取统计信息
+   * ✅ 使用缓存优化统计查询
    */
   async getStats() {
-    const total = await this.notificationRepository.count();
-    const byStatus = await Promise.all([
-      this.notificationRepository.count({ where: { status: NotificationStatus.PENDING } }),
-      this.notificationRepository.count({ where: { status: NotificationStatus.SENT } }),
-      this.notificationRepository.count({ where: { status: NotificationStatus.READ } }),
-      this.notificationRepository.count({ where: { status: NotificationStatus.FAILED } }),
-    ]);
+    return this.cacheService.wrap(
+      CacheKeys.globalStats('all'),
+      async () => {
+        const total = await this.notificationRepository.count();
+        const byStatus = await Promise.all([
+          this.notificationRepository.count({ where: { status: NotificationStatus.PENDING } }),
+          this.notificationRepository.count({ where: { status: NotificationStatus.SENT } }),
+          this.notificationRepository.count({ where: { status: NotificationStatus.READ } }),
+          this.notificationRepository.count({ where: { status: NotificationStatus.FAILED } }),
+        ]);
 
-    // 统计最近活跃的用户
-    const activeUsers = await this.notificationRepository
-      .createQueryBuilder('notification')
-      .select('COUNT(DISTINCT notification.userId)', 'count')
-      .where("notification.createdAt > NOW() - INTERVAL '7 days'")
-      .getRawOne();
+        // 统计最近活跃的用户
+        const activeUsers = await this.notificationRepository
+          .createQueryBuilder('notification')
+          .select('COUNT(DISTINCT notification.userId)', 'count')
+          .where("notification.createdAt > NOW() - INTERVAL '7 days'")
+          .getRawOne();
 
-    return {
-      totalNotifications: total,
-      activeUsers: parseInt(activeUsers.count || 0),
-      connectedClients: this.gateway.getConnectedClientsCount(),
-      byStatus: {
-        pending: byStatus[0],
-        sent: byStatus[1],
-        read: byStatus[2],
-        failed: byStatus[3],
+        return {
+          totalNotifications: total,
+          activeUsers: parseInt(activeUsers.count || 0),
+          connectedClients: this.gateway.getConnectedClientsCount(),
+          byStatus: {
+            pending: byStatus[0],
+            sent: byStatus[1],
+            read: byStatus[2],
+            failed: byStatus[3],
+          },
+        };
       },
-    };
+      CacheTTL.GLOBAL_STATS // 10 minutes
+    );
   }
 
   /**
@@ -458,4 +484,18 @@ export class NotificationsService {
   // private mapToLegacyType(type: PrefType): string {
   //   return type.replace('.', '_').toUpperCase();
   // }
+
+  /**
+   * ✅ 清除用户通知相关的所有缓存
+   * @param userId 用户ID
+   */
+  private async invalidateUserNotificationCache(userId: string): Promise<void> {
+    // 清除未读计数缓存
+    await this.cacheService.del(CacheKeys.unreadCount(userId));
+
+    // 清除用户通知列表缓存（使用模式匹配）
+    await this.cacheService.delPattern(CacheKeys.userNotificationPattern(userId));
+
+    this.logger.debug(`User notification cache invalidated: ${userId}`);
+  }
 }

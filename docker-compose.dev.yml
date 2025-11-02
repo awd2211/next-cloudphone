@@ -219,6 +219,7 @@ services:
       BILLING_SERVICE_URL: http://billing-service:30005
       NOTIFICATION_SERVICE_URL: http://notification-service:30006
       MEDIA_SERVICE_URL: http://media-service:30007
+      SMS_RECEIVE_SERVICE_URL: http://sms-receive-service:30008
       JWT_SECRET: dev-secret-key-change-in-production
       JWT_EXPIRES_IN: 24h
       CONSUL_HOST: consul
@@ -239,7 +240,9 @@ services:
       - app-service
       - scheduler-service
       - billing-service
+      - notification-service
       - media-service
+      - sms-receive-service
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:30000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
@@ -549,6 +552,62 @@ services:
       - cloudphone-network
     command: go run main.go
 
+  # SMS 接收服务
+  sms-receive-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/sms-receive-service.Dockerfile
+      target: development
+    container_name: cloudphone-sms-receive-service
+    environment:
+      NODE_ENV: development
+      PORT: 30008
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: cloudphone_sms
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672/cloudphone
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      SMS_ACTIVATE_API_KEY: ${SMS_ACTIVATE_API_KEY:-}
+      SMS_ACTIVATE_BASE_URL: https://api.sms-activate.org/stubs/handler_api.php
+      FIVESIM_API_KEY: ${FIVESIM_API_KEY:-}
+      FIVESIM_BASE_URL: https://5sim.net/v1
+      PLATFORM_SELECTION_STRATEGY: balanced
+      NUMBER_POOL_ENABLED: true
+      POOL_MIN_SIZE: 5
+      POOL_MAX_SIZE: 20
+      POLLING_BATCH_SIZE: 50
+      MAX_ACTIVE_NUMBERS: 500
+      LOG_LEVEL: debug
+    ports:
+      - "30008:30008"
+    volumes:
+      - ./backend/sms-receive-service:/app/backend/sms-receive-service
+      - ./backend/shared:/app/backend/shared
+      - sms_receive_service_node_modules:/app/backend/sms-receive-service/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      consul:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:30008/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - cloudphone-network
+    command: pnpm run dev
+
   # ===== 前端服务 =====
 
   # 管理后台前端
@@ -628,6 +687,8 @@ volumes:
   billing_service_node_modules:
     driver: local
   notification_service_node_modules:
+    driver: local
+  sms_receive_service_node_modules:
     driver: local
   # 前端应用 node_modules
   admin_frontend_node_modules:

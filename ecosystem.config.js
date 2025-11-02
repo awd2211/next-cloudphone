@@ -230,6 +230,41 @@ module.exports = {
       merge_logs: true,
     },
     {
+      name: 'sms-receive-service',
+      script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
+      args: process.env.NODE_ENV === 'production' ? undefined : 'run start:prod',
+      cwd: './backend/sms-receive-service',
+
+      // 📱 单实例模式（SMS接收服务 - 管理号码池和轮询状态）
+      instances: 1,
+      exec_mode: 'fork',
+
+      autorestart: true,
+      watch: false, // 使用NestJS内置的热重载
+
+      // 资源限制
+      max_memory_restart: '512M',
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000,
+
+      env: {
+        NODE_ENV: 'development',
+        PORT: 30008,
+      },
+
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 30008,
+        LOG_LEVEL: 'info',
+      },
+
+      error_file: './logs/sms-receive-service-error.log',
+      out_file: './logs/sms-receive-service-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+    },
+    {
       name: 'frontend-admin',
       script: 'pnpm',
       args: 'run dev',

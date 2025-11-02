@@ -32,6 +32,7 @@ import { NotificationPreference } from './entities/notification-preference.entit
 import { SmsRecord } from './sms/entities/sms-record.entity';
 import { validate } from './common/config/env.validation';
 import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusModule
+import { CacheService } from './cache/cache.service'; // ✅ 缓存服务
 
 @Module({
   imports: [
@@ -127,6 +128,7 @@ import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusM
   ],
   controllers: [HealthController],
   providers: [
+    CacheService, // ✅ 统一缓存服务
     TasksService,
     NotificationEventsHandler,
     NotificationGateway, // ✅ WebSocket 网关

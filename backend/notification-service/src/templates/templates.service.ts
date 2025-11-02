@@ -10,6 +10,8 @@ import { Repository, Like } from 'typeorm';
 import * as Handlebars from 'handlebars';
 import { NotificationTemplate } from '../entities/notification-template.entity';
 import { CreateTemplateDto, UpdateTemplateDto, QueryTemplateDto, RenderTemplateDto } from './dto';
+import { CacheService } from '../cache/cache.service';
+import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 /**
  * 允许的模板变量白名单
@@ -68,7 +70,8 @@ export class TemplatesService {
 
   constructor(
     @InjectRepository(NotificationTemplate)
-    private templateRepository: Repository<NotificationTemplate>
+    private templateRepository: Repository<NotificationTemplate>,
+    private cacheService: CacheService
   ) {
     // 🔒 安全初始化：创建独立的沙箱 Handlebars 实例
     this.sandboxedHandlebars = Handlebars.create();
@@ -231,84 +234,114 @@ export class TemplatesService {
     const saved = await this.templateRepository.save(template);
     this.logger.log(`Template created: ${saved.code}`);
 
+    // ✅ 清除列表缓存（新模板会影响列表查询结果）
+    await this.invalidateListCache();
+
     return saved;
   }
 
   /**
    * 查询模板列表（分页）
+   * ✅ 使用缓存优化查询性能
    */
   async findAll(query: QueryTemplateDto) {
     const { type, language, isActive, search, page = 1, limit = 10 } = query;
 
-    const queryBuilder = this.templateRepository.createQueryBuilder('template');
+    // 生成缓存键（包含所有查询参数）
+    const cacheKey = `${CacheKeys.templateList(type)}:${language || 'all'}:${isActive ?? 'all'}:${search || 'none'}:${page}:${limit}`;
 
-    // 过滤条件
-    if (type) {
-      queryBuilder.andWhere('template.type = :type', { type });
-    }
+    return this.cacheService.wrap(
+      cacheKey,
+      async () => {
+        const queryBuilder = this.templateRepository.createQueryBuilder('template');
 
-    if (language) {
-      queryBuilder.andWhere('template.language = :language', { language });
-    }
+        // 过滤条件
+        if (type) {
+          queryBuilder.andWhere('template.type = :type', { type });
+        }
 
-    if (isActive !== undefined) {
-      queryBuilder.andWhere('template.isActive = :isActive', { isActive });
-    }
+        if (language) {
+          queryBuilder.andWhere('template.language = :language', { language });
+        }
 
-    if (search) {
-      queryBuilder.andWhere(
-        '(template.name LIKE :search OR template.code LIKE :search OR template.description LIKE :search)',
-        { search: `%${search}%` }
-      );
-    }
+        if (isActive !== undefined) {
+          queryBuilder.andWhere('template.isActive = :isActive', { isActive });
+        }
 
-    // 排序
-    queryBuilder.orderBy('template.createdAt', 'DESC');
+        if (search) {
+          queryBuilder.andWhere(
+            '(template.name LIKE :search OR template.code LIKE :search OR template.description LIKE :search)',
+            { search: `%${search}%` }
+          );
+        }
 
-    // 分页
-    const skip = (page - 1) * limit;
-    queryBuilder.skip(skip).take(limit);
+        // 排序
+        queryBuilder.orderBy('template.createdAt', 'DESC');
 
-    const [data, total] = await queryBuilder.getManyAndCount();
+        // 分页
+        const skip = (page - 1) * limit;
+        queryBuilder.skip(skip).take(limit);
 
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+        const [data, total] = await queryBuilder.getManyAndCount();
+
+        return {
+          data,
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        };
+      },
+      CacheTTL.TEMPLATE_LIST // 30 minutes
+    );
   }
 
   /**
    * 根据 ID 查找模板
+   * ✅ 使用缓存优化查询性能
    */
   async findOne(id: string): Promise<NotificationTemplate> {
-    const template = await this.templateRepository.findOne({ where: { id } });
+    return this.cacheService.wrap(
+      CacheKeys.template(id),
+      async () => {
+        const template = await this.templateRepository.findOne({ where: { id } });
 
-    if (!template) {
-      throw new NotFoundException(`Template with ID "${id}" not found`);
-    }
+        if (!template) {
+          throw new NotFoundException(`Template with ID "${id}" not found`);
+        }
 
-    return template;
+        return template;
+      },
+      CacheTTL.TEMPLATE // 1 hour
+    );
   }
 
   /**
    * 根据 code 查找模板
+   * ✅ 使用缓存优化查询性能
    */
   async findByCode(code: string, language?: string): Promise<NotificationTemplate> {
-    const where: any = { code, isActive: true };
-    if (language) {
-      where.language = language;
-    }
+    // 使用 code + language 组合作为缓存键
+    const cacheKey = CacheKeys.template(`code:${code}:${language || 'default'}`);
 
-    const template = await this.templateRepository.findOne({ where });
+    return this.cacheService.wrap(
+      cacheKey,
+      async () => {
+        const where: any = { code, isActive: true };
+        if (language) {
+          where.language = language;
+        }
 
-    if (!template) {
-      throw new NotFoundException(`Template with code "${code}" not found`);
-    }
+        const template = await this.templateRepository.findOne({ where });
 
-    return template;
+        if (!template) {
+          throw new NotFoundException(`Template with code "${code}" not found`);
+        }
+
+        return template;
+      },
+      CacheTTL.TEMPLATE // 1 hour
+    );
   }
 
   /**
@@ -353,6 +386,9 @@ export class TemplatesService {
     const cacheKey = `${template.code}:${template.language}`;
     this.compiledTemplates.delete(cacheKey);
 
+    // ✅ 清除模板相关的所有缓存
+    await this.invalidateTemplateCache(saved);
+
     this.logger.log(`Template updated: ${saved.code}`);
 
     return saved;
@@ -363,11 +399,15 @@ export class TemplatesService {
    */
   async remove(id: string): Promise<void> {
     const template = await this.findOne(id);
-    await this.templateRepository.remove(template);
 
     // 清除已编译的模板缓存
     const cacheKey = `${template.code}:${template.language}`;
     this.compiledTemplates.delete(cacheKey);
+
+    // ✅ 清除模板相关的所有缓存（在删除之前）
+    await this.invalidateTemplateCache(template);
+
+    await this.templateRepository.remove(template);
 
     this.logger.log(`Template deleted: ${template.code}`);
   }
@@ -378,7 +418,12 @@ export class TemplatesService {
   async toggleActive(id: string): Promise<NotificationTemplate> {
     const template = await this.findOne(id);
     template.isActive = !template.isActive;
-    return this.templateRepository.save(template);
+    const saved = await this.templateRepository.save(template);
+
+    // ✅ 清除模板相关的所有缓存
+    await this.invalidateTemplateCache(saved);
+
+    return saved;
   }
 
   /**
@@ -541,5 +586,34 @@ export class TemplatesService {
   clearCache() {
     this.compiledTemplates.clear();
     this.logger.log('Template compilation cache cleared');
+  }
+
+  /**
+   * ✅ 清除特定模板的所有缓存
+   * @param template 模板实体
+   */
+  private async invalidateTemplateCache(template: NotificationTemplate): Promise<void> {
+    // 清除 ID 缓存
+    await this.cacheService.del(CacheKeys.template(template.id));
+
+    // 清除 code 缓存
+    const codeCacheKey = CacheKeys.template(`code:${template.code}:${template.language}`);
+    await this.cacheService.del(codeCacheKey);
+
+    // 清除所有列表缓存
+    await this.invalidateListCache();
+
+    this.logger.debug(
+      `Template cache invalidated: ${template.code} (ID: ${template.id})`
+    );
+  }
+
+  /**
+   * ✅ 清除所有模板列表缓存
+   */
+  private async invalidateListCache(): Promise<void> {
+    // 使用模式匹配清除所有列表缓存
+    await this.cacheService.delPattern(CacheKeys.templatePattern());
+    this.logger.debug('Template list cache invalidated');
   }
 }
