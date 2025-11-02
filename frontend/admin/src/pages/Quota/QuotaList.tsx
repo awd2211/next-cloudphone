@@ -1,237 +1,49 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
+import { Card, Table, Button, Space, Tooltip } from 'antd';
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import {
-  Card,
-  Table,
-  Button,
-  Space,
-  Form,
-  message,
-  Tooltip,
-} from 'antd';
-import {
-  PlusOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
-import type { Quota, CreateQuotaDto, UpdateQuotaDto, QuotaAlert, QuotaStatistics } from '@/types';
-import * as quotaService from '@/services/quota';
-import {
-  QuotaStatusTag,
-  QuotaUsageProgress,
-  QuotaActions,
   QuotaAlertPanel,
   QuotaStatisticsRow,
   CreateQuotaModal,
   EditQuotaModal,
   QuotaDetailDrawer,
 } from '@/components/Quota';
+import { useQuotaList } from '@/hooks/useQuotaList';
+import { useQuotaDetail } from '@/hooks/useQuotaDetail';
+import { createQuotaColumns } from './columns';
 
 const QuotaList: React.FC = () => {
-  const [quotas, setQuotas] = useState<Quota[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
-  const [selectedQuota, setSelectedQuota] = useState<Quota | null>(null);
-  const [alerts, setAlerts] = useState<QuotaAlert[]>([]);
-  const [statistics, setStatistics] = useState<QuotaStatistics | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [form] = Form.useForm();
-  const [editForm] = Form.useForm();
+  // 配额列表管理
+  const {
+    quotas,
+    loading,
+    alerts,
+    createModalVisible,
+    editModalVisible,
+    form,
+    editForm,
+    loadQuotas,
+    handleCreateQuota,
+    handleUpdateQuota,
+    handleEdit,
+    setCreateModalVisible,
+    setEditModalVisible,
+  } = useQuotaList();
 
-  // 加载配额列表
-  const loadQuotas = useCallback(async () => {
-    setLoading(true);
-    try {
-      // 这里需要一个获取所有配额的API,暂时使用模拟数据
-      // 实际应该有一个 GET /quotas 接口
-      const mockQuotas: Quota[] = [];
-      setQuotas(mockQuotas);
-    } catch (error) {
-      message.error('加载配额列表失败');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // 加载配额告警
-  const loadAlerts = useCallback(async () => {
-    try {
-      const result = await quotaService.getQuotaAlerts(80);
-      if (result.success && result.data) {
-        setAlerts(result.data);
-      }
-    } catch (error) {
-      console.error('加载配额告警失败:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadQuotas();
-    loadAlerts();
-    // 每30秒刷新一次告警
-    const alertInterval = setInterval(loadAlerts, 30000);
-    return () => clearInterval(alertInterval);
-  }, [loadQuotas, loadAlerts]);
-
-  // 创建配额
-  const handleCreateQuota = useCallback(
-    async (values: CreateQuotaDto) => {
-      try {
-        const result = await quotaService.createQuota(values);
-        if (result.success) {
-          message.success('创建配额成功');
-          setCreateModalVisible(false);
-          form.resetFields();
-          loadQuotas();
-        } else {
-          message.error(result.message || '创建配额失败');
-        }
-      } catch (error) {
-        message.error('创建配额失败');
-        console.error(error);
-      }
-    },
-    [form, loadQuotas]
-  );
-
-  // 更新配额
-  const handleUpdateQuota = useCallback(
-    async (values: UpdateQuotaDto) => {
-      if (!selectedQuota) return;
-      try {
-        const result = await quotaService.updateQuota(selectedQuota.id, values);
-        if (result.success) {
-          message.success('更新配额成功');
-          setEditModalVisible(false);
-          editForm.resetFields();
-          loadQuotas();
-        } else {
-          message.error(result.message || '更新配额失败');
-        }
-      } catch (error) {
-        message.error('更新配额失败');
-        console.error(error);
-      }
-    },
-    [selectedQuota, editForm, loadQuotas]
-  );
-
-  // 查看配额详情
-  const handleViewDetail = useCallback(async (record: Quota) => {
-    setSelectedQuota(record);
-    setSelectedUserId(record.userId);
-    setDetailDrawerVisible(true);
-
-    // 加载使用统计
-    try {
-      const result = await quotaService.getUsageStats(record.userId);
-      if (result.success && result.data) {
-        setStatistics(result.data);
-      }
-    } catch (error) {
-      console.error('加载使用统计失败:', error);
-    }
-  }, []);
-
-  // 编辑配额
-  const handleEdit = useCallback(
-    (record: Quota) => {
-      setSelectedQuota(record);
-      editForm.setFieldsValue({
-        limits: record.limits,
-        autoRenew: record.autoRenew,
-      });
-      setEditModalVisible(true);
-    },
-    [editForm]
-  );
-
+  // 配额详情查看
+  const {
+    detailDrawerVisible,
+    selectedQuota,
+    statistics,
+    handleViewDetail,
+    handleCloseDetail,
+  } = useQuotaDetail();
 
   // 表格列配置
   const columns = useMemo(
-    () => [
-      {
-        title: '用户ID',
-        dataIndex: 'userId',
-        key: 'userId',
-        width: 200,
-        ellipsis: true,
-      },
-      {
-        title: '设备配额',
-        key: 'devices',
-        width: 180,
-        render: (record: Quota) => (
-          <QuotaUsageProgress
-            used={record.usage.currentDevices}
-            total={record.limits.maxDevices}
-            showException
-          />
-        ),
-      },
-      {
-        title: 'CPU 配额',
-        key: 'cpu',
-        width: 180,
-        render: (record: Quota) => (
-          <QuotaUsageProgress
-            used={record.usage.usedCpuCores}
-            total={record.limits.totalCpuCores}
-            unit="核"
-            showException={false}
-          />
-        ),
-      },
-      {
-        title: '内存配额',
-        key: 'memory',
-        width: 180,
-        render: (record: Quota) => (
-          <QuotaUsageProgress
-            used={record.usage.usedMemoryGB}
-            total={record.limits.totalMemoryGB}
-            unit="GB"
-            showException={false}
-          />
-        ),
-      },
-      {
-        title: '存储配额',
-        key: 'storage',
-        width: 180,
-        render: (record: Quota) => (
-          <QuotaUsageProgress
-            used={record.usage.usedStorageGB}
-            total={record.limits.totalStorageGB}
-            unit="GB"
-            showException={false}
-          />
-        ),
-      },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        key: 'status',
-        width: 100,
-        render: (status: string) => <QuotaStatusTag status={status} />,
-      },
-      {
-        title: '操作',
-        key: 'actions',
-        width: 150,
-        fixed: 'right' as const,
-        render: (record: Quota) => (
-          <QuotaActions
-            onEdit={() => handleEdit(record)}
-            onDetail={() => handleViewDetail(record)}
-          />
-        ),
-      },
-    ],
+    () => createQuotaColumns(handleEdit, handleViewDetail),
     [handleEdit, handleViewDetail]
   );
-
 
   return (
     <div>
@@ -300,10 +112,7 @@ const QuotaList: React.FC = () => {
         visible={detailDrawerVisible}
         quota={selectedQuota}
         statistics={statistics}
-        onClose={() => {
-          setDetailDrawerVisible(false);
-          setStatistics(null);
-        }}
+        onClose={handleCloseDetail}
       />
     </div>
   );
