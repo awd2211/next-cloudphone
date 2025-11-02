@@ -788,6 +788,22 @@ export class ProxyController {
   }
 
   /**
+   * SMS接收服务路由 (sms-receive-service)
+   * 虚拟号码请求和管理
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('sms-numbers')
+  async proxySmsNumbersExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('sms-receive-service', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('sms-numbers/*path')
+  async proxySmsNumbers(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('sms-receive-service', req, res);
+  }
+
+  /**
    * 通用代理处理方法
    */
   private async handleProxy(serviceName: string, req: Request, res: Response): Promise<void> {

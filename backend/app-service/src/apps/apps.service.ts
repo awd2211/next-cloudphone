@@ -35,6 +35,7 @@ import {
   CursorPagination,
   CursorPaginationDto,
   CursorPaginatedResponse,
+  ProxyClientService, // ✅ 导入代理客户端
 } from '@cloudphone/shared';
 import { CacheService } from '../cache/cache.service';
 import { CacheKeys, CacheTTL, CacheInvalidation } from '../cache/cache-keys';
@@ -58,7 +59,8 @@ export class AppsService {
     private sagaOrchestrator: SagaOrchestratorService,
     @InjectDataSource()
     private dataSource: DataSource,
-    private cacheService: CacheService  // ✅ Redis 缓存服务
+    private cacheService: CacheService,  // ✅ Redis 缓存服务
+    private proxyClient: ProxyClientService // ✅ 代理客户端服务
   ) {}
 
   /**
@@ -623,6 +625,96 @@ export class AppsService {
           this.logger.warn(`清理临时文件失败: ${tempApkPath}`, cleanupError.message);
         }
       }
+    }
+  }
+
+  /**
+   * 从外部 URL 下载 APK (使用代理绕过 IP 封禁)
+   *
+   * ✅ 使用场景:
+   * - 从第三方应用市场下载 APK
+   * - 从外部 CDN 下载 APK
+   * - 绕过 IP 封禁和地域限制
+   *
+   * @param url - APK 下载 URL
+   * @param savePath - 保存路径
+   * @returns 下载后的文件路径
+   */
+  async downloadExternalApk(url: string, savePath: string): Promise<string> {
+    this.logger.log(`Downloading external APK from ${url}`);
+
+    try {
+      // ✅ 使用代理下载（如果启用）
+      if (this.proxyClient.isEnabled()) {
+        this.logger.debug('Using proxy for external APK download');
+
+        await this.proxyClient.withProxy(
+          async (proxy) => {
+            const axios = require('axios');
+            const response = await axios.get(url, {
+              proxy: {
+                host: proxy.host,
+                port: proxy.port,
+                auth: proxy.username && proxy.password
+                  ? { username: proxy.username, password: proxy.password }
+                  : undefined,
+              },
+              responseType: 'stream',
+              timeout: 300000, // 5 分钟超时（大文件下载）
+            });
+
+            const writeStream = fs.createWriteStream(savePath);
+
+            return new Promise((resolve, reject) => {
+              response.data.pipe(writeStream);
+              response.data.on('end', () => {
+                this.logger.log(
+                  `External APK downloaded successfully (via proxy): ${savePath}`
+                );
+                resolve(savePath);
+              });
+              response.data.on('error', reject);
+              writeStream.on('error', reject);
+            });
+          },
+          {
+            // 代理筛选条件
+            criteria: {
+              minQuality: 70, // 中等质量
+              maxLatency: 1000, // 最大延迟 1s
+            },
+            validate: true, // 验证代理可用性
+          }
+        );
+      } else {
+        // 不使用代理的原有逻辑
+        this.logger.debug('Downloading external APK without proxy');
+
+        const response = await firstValueFrom(
+          this.httpService.get(url, {
+            responseType: 'stream',
+            timeout: 300000,
+          })
+        );
+
+        const writeStream = fs.createWriteStream(savePath);
+
+        await new Promise((resolve, reject) => {
+          response.data.pipe(writeStream);
+          response.data.on('end', resolve);
+          response.data.on('error', reject);
+          writeStream.on('error', reject);
+        });
+
+        this.logger.log(`External APK downloaded successfully: ${savePath}`);
+      }
+
+      return savePath;
+    } catch (error) {
+      this.logger.error(`Failed to download external APK: ${error.message}`, error.stack);
+      throw new InternalServerErrorException(
+        `下载外部 APK 失败: ${error.message}`
+      );
     }
   }
 

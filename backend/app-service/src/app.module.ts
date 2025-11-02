@@ -13,6 +13,7 @@ import {
   EventBusModule,
   SagaModule,
   EventOutboxModule,
+  ProxyClientModule, // ✅ 导入代理客户端模块
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 import { CacheModule } from './cache/cache.module';
@@ -54,6 +55,8 @@ import { DeviceApplication } from './entities/device-application.entity'; // ✅
     EventBusModule.forRoot(), // ✅ V2: 统一使用 EventBusModule.forRoot() (包含 RabbitMQModule)
     EventOutboxModule, // ✅ Transactional Outbox Pattern
     SagaModule, // Saga 编排模块（用于分布式事务）
+    // ✅ 代理客户端模块 - 用于外部APK下载和第三方API访问
+    ProxyClientModule.registerAsync(), // 从环境变量读取配置
   ],
   controllers: [HealthController],
   providers: [AppsConsumer], // ✅ V2: 直接注册消费者

@@ -108,6 +108,15 @@ export class ProxyService {
           timeout: 5000,
         },
       ],
+      [
+        'sms-receive-service',
+        {
+          name: 'SMS Receive Service',
+          consulName: 'sms-receive-service',
+          healthCheck: '/numbers/polling/status',
+          timeout: 10000,
+        },
+      ],
     ]);
 
     // 初始化微服务路由配置（静态配置，作为 fallback）
@@ -173,6 +182,15 @@ export class ProxyService {
           url: this.configService.get('MEDIA_SERVICE_URL') || 'http://localhost:30007',
           healthCheck: '/health',
           timeout: 5000,
+        },
+      ],
+      [
+        'sms-receive-service',
+        {
+          name: 'SMS Receive Service',
+          url: this.configService.get('SMS_RECEIVE_SERVICE_URL') || 'http://localhost:30008',
+          healthCheck: '/numbers/polling/status',
+          timeout: 10000,
         },
       ],
     ]);

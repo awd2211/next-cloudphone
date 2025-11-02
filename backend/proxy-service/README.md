@@ -227,6 +227,27 @@ pnpm test:e2e
 pnpm test:watch
 ```
 
+**测试状态**: ✅ 248/248 通过 | **覆盖率**: 72.62%
+
+### 测试文档
+
+本项目包含完整的单元测试和详细的测试文档：
+
+| 文档 | 说明 |
+|------|------|
+| [UNIT_TEST_REPORT.md](./UNIT_TEST_REPORT.md) | 详细测试报告（1000+行） - 测试用例、覆盖率、问题修复 |
+| [TEST_COMPLETION_SUMMARY.md](./TEST_COMPLETION_SUMMARY.md) | 测试完成总结 - 成果对比、技术亮点、命令速查 |
+| [POOLMANAGER_COVERAGE_IMPROVEMENT_GUIDE.md](./POOLMANAGER_COVERAGE_IMPROVEMENT_GUIDE.md) | PoolManager改进指南 - 未覆盖代码分析、示例代码 |
+| [FINAL_WORK_SUMMARY.md](./FINAL_WORK_SUMMARY.md) | 最终工作总结 - 完整成果、学习收获、后续建议 |
+
+**测试覆盖明细**:
+- ProxyService: 97.43% ⭐
+- IPRoyalAdapter: 97.82% ⭐
+- BrightDataAdapter: 95.00% ⭐
+- OxylabsAdapter: 95.28% ⭐
+- BaseAdapter: 84.12% ✅
+- PoolManager: 54.54% ⚠️
+
 ### 代码规范
 
 ```bash

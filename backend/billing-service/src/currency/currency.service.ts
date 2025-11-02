@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HttpClientService } from '@cloudphone/shared';
+import { HttpClientService, ProxyClientService } from '@cloudphone/shared';
 
 export interface CurrencyInfo {
   code: string;
@@ -40,7 +40,8 @@ export class CurrencyService {
 
   constructor(
     private configService: ConfigService,
-    private readonly httpClient: HttpClientService
+    private readonly httpClient: HttpClientService,
+    private readonly proxyClient: ProxyClientService // ✅ 注入代理客户端
   ) {}
 
   /**
@@ -80,7 +81,7 @@ export class CurrencyService {
       return this.exchangeRates;
     }
 
-    // 获取新汇率
+    // 获取新汇率（使用代理绕过 IP 限流）
     try {
       const apiKey = this.configService.get('EXCHANGE_RATE_API_KEY');
       const apiUrl = apiKey
@@ -89,15 +90,52 @@ export class CurrencyService {
 
       this.logger.log(`Fetching exchange rates from ${apiUrl.replace(apiKey || '', '***')}`);
 
-      const response = await this.httpClient.get<{ rates: Record<string, number> }>(
-        apiUrl,
-        {},
-        {
-          timeout: 10000,
-          retries: 3,
-          circuitBreaker: true,
-        }
-      );
+      // ✅ 使用代理获取汇率（如果启用）
+      let response: { rates: Record<string, number> };
+
+      if (this.proxyClient.isEnabled()) {
+        this.logger.debug('Using proxy for exchange rate API');
+
+        // 使用代理的便捷方法
+        response = await this.proxyClient.withProxy(
+          async (proxy) => {
+            // 通过代理发送请求
+            const axios = require('axios');
+            const result = await axios.get(apiUrl, {
+              proxy: {
+                host: proxy.host,
+                port: proxy.port,
+                auth: proxy.username && proxy.password
+                  ? { username: proxy.username, password: proxy.password }
+                  : undefined,
+              },
+              timeout: 10000,
+            });
+
+            return result.data;
+          },
+          {
+            // 代理筛选条件
+            criteria: {
+              country: 'US', // 使用美国代理（汇率 API 通常在美国）
+              minQuality: 75, // 中等质量即可
+              maxLatency: 800, // 最大延迟 800ms
+            },
+            validate: true, // 验证代理可用性
+          }
+        );
+      } else {
+        // 不使用代理的原有逻辑
+        response = await this.httpClient.get<{ rates: Record<string, number> }>(
+          apiUrl,
+          {},
+          {
+            timeout: 10000,
+            retries: 3,
+            circuitBreaker: true,
+          }
+        );
+      }
 
       if (response && response.rates) {
         this.exchangeRates = {
@@ -106,7 +144,9 @@ export class CurrencyService {
           timestamp: now,
         };
         this.lastFetchTime = now;
-        this.logger.log(`Exchange rates updated successfully`);
+        this.logger.log(
+          `Exchange rates updated successfully${this.proxyClient.isEnabled() ? ' (via proxy)' : ''}`
+        );
         return this.exchangeRates;
       }
     } catch (error) {

@@ -50,19 +50,54 @@ export class MeteringService {
       // 获取所有运行中的设备
       const devices = await this.getRunningDevices();
 
-      for (const device of devices) {
-        try {
-          // 采集设备使用量
-          const usageData = await this.collectDeviceUsage(device.id);
-
-          // 保存使用记录
-          await this.saveUsageRecord(usageData);
-        } catch (error) {
-          this.logger.error(`Failed to collect usage for device ${device.id}:`, error);
-        }
+      if (devices.length === 0) {
+        this.logger.log('No running devices to collect usage data');
+        return;
       }
 
-      this.logger.log(`Collected usage data for ${devices.length} devices`);
+      // ✅ 优化：并行采集所有设备的使用量（避免 N+1 串行请求）
+      const usageDataPromises = devices.map((device) =>
+        this.collectDeviceUsage(device.id)
+          .then((usageData) => ({ status: 'fulfilled' as const, value: usageData }))
+          .catch((error) => ({
+            status: 'rejected' as const,
+            reason: error,
+            deviceId: device.id,
+          }))
+      );
+
+      const results = await Promise.all(usageDataPromises);
+
+      // ✅ 优化：并行保存所有成功采集的使用记录
+      const savePromises = results
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) =>
+          this.saveUsageRecord((result as any).value).catch((error) => {
+            this.logger.error(
+              `Failed to save usage record for device ${(result as any).value.deviceId}:`,
+              error
+            );
+          })
+        );
+
+      await Promise.all(savePromises);
+
+      // 统计结果
+      const successCount = results.filter((r) => r.status === 'fulfilled').length;
+      const failureCount = results.filter((r) => r.status === 'rejected').length;
+
+      this.logger.log(
+        `Collected usage data: ${successCount} succeeded, ${failureCount} failed (total: ${devices.length})`
+      );
+
+      // 记录失败的设备
+      if (failureCount > 0) {
+        const failedDeviceIds = results
+          .filter((r) => r.status === 'rejected')
+          .map((r) => (r as any).deviceId)
+          .join(', ');
+        this.logger.warn(`Failed devices: ${failedDeviceIds}`);
+      }
     } catch (error) {
       this.logger.error('Failed to collect usage data:', error);
     }

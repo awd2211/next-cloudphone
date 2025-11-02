@@ -315,6 +315,57 @@ export class ProxyClientService {
   }
 
   /**
+   * 检查代理健康状态
+   *
+   * @param proxyId - 代理ID
+   * @returns 健康检查结果
+   */
+  async checkProxyHealth(proxyId: string): Promise<{
+    healthy: boolean;
+    latencyMs: number;
+    error?: string;
+  }> {
+    if (!this.config.enabled) {
+      throw new Error('Proxy client is disabled');
+    }
+
+    try {
+      this.logger.debug(`Checking health for proxy: ${proxyId}`);
+
+      const response = await this.httpClient.get<{
+        healthy: boolean;
+        latencyMs: number;
+        error?: string;
+      }>(
+        `${this.config.serviceUrl}/proxy/health/${proxyId}`,
+        {}, // empty AxiosRequestConfig
+        {
+          timeout: 10000, // 健康检查超时 10 秒
+          retries: 1,
+          circuitBreaker: false, // 健康检查不使用熔断器
+        }
+      );
+
+      this.logger.debug(
+        `Health check result for ${proxyId}: healthy=${response.healthy}, latency=${response.latencyMs}ms`
+      );
+
+      return response;
+    } catch (error) {
+      this.logger.warn(
+        `Health check failed for proxy ${proxyId}: ${error.message}`
+      );
+
+      // 健康检查失败，返回不健康状态
+      return {
+        healthy: false,
+        latencyMs: 0,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * 检查代理客户端是否启用
    *
    * @returns 是否启用

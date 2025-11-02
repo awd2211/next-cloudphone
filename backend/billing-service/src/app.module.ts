@@ -26,6 +26,7 @@ import {
   EventBusModule,
   createLoggerConfig,
   SagaModule,
+  ProxyClientModule, // ✅ 导入代理客户端模块
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 
@@ -68,6 +69,8 @@ import { validate } from './common/config/env.validation';
     ConsulModule, // ✅ 已修复 DiscoveryService 依赖问题
     EventBusModule.forRoot(), // ✅ V2: 统一使用 EventBusModule.forRoot() (替换 BillingRabbitMQModule + EventBusModule)
     SagaModule, // Saga 编排模块（用于分布式事务）
+    // ✅ 代理客户端模块 - 用于汇率API和支付网关
+    ProxyClientModule.registerAsync(), // 从环境变量读取配置
   ],
   controllers: [AppController, HealthController],
   providers: [
