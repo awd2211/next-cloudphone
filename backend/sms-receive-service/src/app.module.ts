@@ -1,0 +1,87 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { HttpModule } from '@nestjs/axios';
+import { ScheduleModule } from '@nestjs/schedule';
+import {
+  EventBusModule,
+  ConsulModule,
+  AppCacheModule,
+  createLoggerConfig,
+} from '@cloudphone/shared';
+
+// Entities
+import { VirtualNumber, SmsMessage, ProviderConfig, NumberPool } from './entities';
+
+// Providers
+import { SmsActivateAdapter } from './providers/sms-activate.adapter';
+
+// Services
+import { NumberManagementService } from './services/number-management.service';
+import { MessagePollingService } from './services/message-polling.service';
+
+// Controllers
+import { NumbersController } from './controllers/numbers.controller';
+
+@Module({
+  imports: [
+    // Configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+
+    // Database
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST', 'localhost'),
+        port: configService.get<number>('DB_PORT', 5432),
+        username: configService.get<string>('DB_USERNAME', 'postgres'),
+        password: configService.get<string>('DB_PASSWORD', 'postgres'),
+        database: configService.get<string>('DB_DATABASE', 'cloudphone'),
+        entities: [VirtualNumber, SmsMessage, ProviderConfig, NumberPool],
+        synchronize: configService.get<boolean>('DB_SYNCHRONIZE', false),
+        logging: configService.get<string>('NODE_ENV') === 'development',
+        ssl: configService.get<string>('NODE_ENV') === 'production' ? {
+          rejectUnauthorized: false
+        } : false,
+      }),
+    }),
+
+    // TypeORM Repositories
+    TypeOrmModule.forFeature([
+      VirtualNumber,
+      SmsMessage,
+      ProviderConfig,
+      NumberPool,
+    ]),
+
+    // HTTP Client
+    HttpModule.register({
+      timeout: 10000,
+      maxRedirects: 5,
+    }),
+
+    // Schedule (for cron jobs)
+    ScheduleModule.forRoot(),
+
+    // Shared Modules from @cloudphone/shared
+    EventBusModule.forRoot(),
+    ConsulModule,
+    AppCacheModule,
+  ],
+
+  controllers: [NumbersController],
+
+  providers: [
+    // Adapters
+    SmsActivateAdapter,
+
+    // Services
+    NumberManagementService,
+    MessagePollingService,
+  ],
+})
+export class AppModule {}
