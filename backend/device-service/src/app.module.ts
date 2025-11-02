@@ -23,6 +23,7 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
 import { CacheModule } from './cache/cache.module';
 import { ProvidersModule } from './providers/providers.module';
 import { PhysicalDevicesModule } from './physical-devices/physical-devices.module';
+import { ProxyModule } from './proxy/proxy.module';
 
 import {
   ConsulModule,
@@ -32,7 +33,6 @@ import {
   EventOutbox,
   RequestIdMiddleware,
   SagaModule,
-  ProxyClientModule, // ✅ 导入代理客户端模块
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
@@ -85,7 +85,7 @@ import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
     FailoverModule, // 故障转移和自动恢复
     StateRecoveryModule, // 状态自愈和回滚
     SagaModule, // Saga 编排模块（用于分布式事务）
-    ProxyClientModule.registerAsync(), // ✅ 代理客户端模块（云手机家宽代理）
+    ProxyModule, // ✅ 代理管理模块（统计、健康检查、客户端）
   ],
   controllers: [HealthController],
   providers: [], // EventBusService 由 EventBusModule 提供

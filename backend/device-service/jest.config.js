@@ -21,7 +21,7 @@ module.exports = {
     '^@cloudphone/shared$': '<rootDir>/../../shared/src',
     '^@cloudphone/shared/(.*)$': '<rootDir>/../../shared/src/$1',
     '^uuid$': '<rootDir>/__mocks__/uuid.ts',
-    '^p-limit$': '<rootDir>/__mocks__/p-limit.ts',
+    '^p-limit$': '<rootDir>/__mocks__/p-limit.js',
   },
   transformIgnorePatterns: [
     'node_modules/(?!(p-limit|uuid)/)',

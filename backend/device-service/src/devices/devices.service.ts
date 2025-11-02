@@ -50,6 +50,8 @@ import {
 } from '../providers/provider.types';
 import { IDeviceProvider } from '../providers/device-provider.interface';
 import { ScrcpyVideoCodec } from '../scrcpy/scrcpy.types';
+import { ProxyStatsService } from '../proxy/proxy-stats.service';
+import { ProxyReleaseReason } from '../entities/proxy-usage.entity';
 
 /**
  * 设备创建 Saga State 接口
@@ -114,6 +116,7 @@ export class DevicesService {
     @Optional() private eventOutboxService: EventOutboxService, // ✅ Transactional Outbox
     @Optional() private quotaClient: QuotaClientService,
     @Optional() private proxyClient: ProxyClientService, // ✅ 代理客户端服务
+    @Optional() private proxyStats: ProxyStatsService, // ✅ 代理统计服务
     @Optional() private httpClient: HttpClientService, // ✅ HTTP 客户端服务（用于调用 SMS Receive Service）
     private cacheService: CacheService,
     private moduleRef: ModuleRef, // ✅ 用于延迟获取服务
@@ -404,6 +407,29 @@ export class DevicesService {
               await queryRunner.commitTransaction();
 
               this.logger.log(`[SAGA] Database record created: ${savedDevice.id}`);
+
+              // ✅ 记录代理分配统计（异步，不阻塞 Saga）
+              if (state.proxy && this.proxyStats) {
+                this.proxyStats
+                  .recordProxyAssignment({
+                    deviceId: savedDevice.id,
+                    deviceName: savedDevice.name,
+                    userId: savedDevice.userId ?? undefined, // ✅ null → undefined
+                    proxyId: state.proxy.proxyId,
+                    proxyHost: state.proxy.proxyHost,
+                    proxyPort: state.proxy.proxyPort,
+                    proxyType: state.proxy.proxyType,
+                    proxyCountry: state.proxy.proxyCountry,
+                  })
+                  .catch((error) => {
+                    this.logger.warn(
+                      `Failed to record proxy assignment: ${error.message}`,
+                    );
+                  });
+                this.logger.debug(
+                  `[SAGA] Proxy assignment statistics recorded for ${state.proxy.proxyId}`,
+                );
+              }
 
               return { deviceId: savedDevice.id as string };
             } catch (error) {
@@ -1138,6 +1164,24 @@ export class DevicesService {
       try {
         await this.proxyClient.releaseProxy(device.proxyId);
         this.logger.log(`Released proxy ${device.proxyId} for device ${id}`);
+
+        // ✅ 记录代理释放统计（异步，不阻塞删除流程）
+        if (this.proxyStats) {
+          this.proxyStats
+            .recordProxyRelease(
+              device.id,
+              device.proxyId,
+              ProxyReleaseReason.DEVICE_DELETED,
+            )
+            .catch((error) => {
+              this.logger.warn(
+                `Failed to record proxy release: ${error.message}`,
+              );
+            });
+          this.logger.debug(
+            `[ProxyStats] Recorded proxy release for ${device.proxyId}`,
+          );
+        }
       } catch (error) {
         this.logger.warn(
           `Failed to release proxy ${device.proxyId} for device ${id}`,

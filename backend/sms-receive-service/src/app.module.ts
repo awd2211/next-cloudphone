@@ -15,13 +15,18 @@ import { VirtualNumber, SmsMessage, ProviderConfig, NumberPool } from './entitie
 
 // Providers
 import { SmsActivateAdapter } from './providers/sms-activate.adapter';
+import { FiveSimAdapter } from './providers/5sim.adapter';
 
 // Services
 import { NumberManagementService } from './services/number-management.service';
 import { MessagePollingService } from './services/message-polling.service';
+import { PlatformSelectorService } from './services/platform-selector.service';
 
 // Controllers
 import { NumbersController } from './controllers/numbers.controller';
+
+// Modules
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -71,6 +76,9 @@ import { NumbersController } from './controllers/numbers.controller';
     EventBusModule.forRoot(),
     ConsulModule,
     AppCacheModule,
+
+    // Health & Monitoring
+    HealthModule,
   ],
 
   controllers: [NumbersController],
@@ -78,8 +86,10 @@ import { NumbersController } from './controllers/numbers.controller';
   providers: [
     // Adapters
     SmsActivateAdapter,
+    FiveSimAdapter,
 
     // Services
+    PlatformSelectorService,
     NumberManagementService,
     MessagePollingService,
   ],

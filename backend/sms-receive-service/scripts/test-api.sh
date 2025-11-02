@@ -1,85 +1,185 @@
 #!/bin/bash
 
-# Test SMS Receive Service API
-# Usage: ./scripts/test-api.sh
+# ========================================
+# SMS Receive Service API 测试脚本
+# ========================================
 
-set -e
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-BASE_URL="http://localhost:30007"
-DEVICE_ID="550e8400-e29b-41d4-a716-446655440000"
+# 配置
+BASE_URL="${SMS_SERVICE_URL:-http://localhost:30008}"
+TEST_DEVICE_ID="550e8400-e29b-41d4-a716-446655440000"
+TEST_SERVICE="telegram"
+TEST_COUNTRY="RU"
 
-echo "========================================"
-echo " Testing SMS Receive Service API"
-echo "========================================"
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}  SMS Receive Service API 测试${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+echo -e "Base URL: ${YELLOW}${BASE_URL}${NC}"
 echo ""
 
-# Test 1: Health check (via polling status)
-echo "Test 1: Checking service status..."
-echo "-----------------------------------"
-RESPONSE=$(curl -s "$BASE_URL/numbers/polling/status")
-echo "$RESPONSE" | jq '.'
+# 测试计数器
+TOTAL_TESTS=0
+PASSED_TESTS=0
+FAILED_TESTS=0
 
-if echo "$RESPONSE" | jq -e '.success' > /dev/null; then
-  echo "✅ Service is running"
-else
-  echo "❌ Service is not running properly"
-  exit 1
-fi
+# 测试函数
+test_endpoint() {
+    local name=$1
+    local method=$2
+    local endpoint=$3
+    local data=$4
+    local expected_status=$5
 
-echo ""
-echo "Test 2: Request a virtual number for Telegram..."
-echo "------------------------------------------------"
-REQUEST_DATA=$(cat <<EOF
-{
-  "service": "telegram",
-  "country": "RU",
-  "deviceId": "$DEVICE_ID"
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+    echo -e "${BLUE}[TEST $TOTAL_TESTS]${NC} $name"
+    echo -e "  ${YELLOW}→${NC} $method $endpoint"
+
+    if [ -z "$data" ]; then
+        response=$(curl -s -w "\n%{http_code}" -X $method "${BASE_URL}${endpoint}")
+    else
+        response=$(curl -s -w "\n%{http_code}" -X $method "${BASE_URL}${endpoint}" \
+            -H "Content-Type: application/json" \
+            -d "$data")
+    fi
+
+    # 分离响应体和状态码
+    status_code=$(echo "$response" | tail -n1)
+    body=$(echo "$response" | sed '$d')
+
+    if [ "$status_code" = "$expected_status" ]; then
+        echo -e "  ${GREEN}✓${NC} Status: $status_code"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+
+        # 美化 JSON 输出
+        if command -v jq &> /dev/null; then
+            echo "$body" | jq '.' 2>/dev/null | head -20
+        else
+            echo "$body" | head -10
+        fi
+    else
+        echo -e "  ${RED}✗${NC} Expected: $expected_status, Got: $status_code"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        echo "  Response: $body"
+    fi
+
+    echo ""
+    sleep 0.5
 }
-EOF
-)
 
-RESPONSE=$(curl -s -X POST "$BASE_URL/numbers/request" \
-  -H "Content-Type: application/json" \
-  -d "$REQUEST_DATA")
-
-echo "$RESPONSE" | jq '.'
-
-if echo "$RESPONSE" | jq -e '.success' > /dev/null; then
-  NUMBER_ID=$(echo "$RESPONSE" | jq -r '.data.id')
-  PHONE_NUMBER=$(echo "$RESPONSE" | jq -r '.data.phoneNumber')
-  echo "✅ Number requested successfully"
-  echo "   Number ID: $NUMBER_ID"
-  echo "   Phone: $PHONE_NUMBER"
-
-  echo ""
-  echo "Test 3: Check number status..."
-  echo "------------------------------"
-  sleep 2
-  STATUS_RESPONSE=$(curl -s "$BASE_URL/numbers/$NUMBER_ID")
-  echo "$STATUS_RESPONSE" | jq '.'
-
-  echo ""
-  echo "Test 4: Cancel number (cleanup)..."
-  echo "----------------------------------"
-  sleep 1
-  CANCEL_RESPONSE=$(curl -s -X POST "$BASE_URL/numbers/$NUMBER_ID/cancel")
-  echo "$CANCEL_RESPONSE" | jq '.'
-
-  if echo "$CANCEL_RESPONSE" | jq -e '.success' > /dev/null; then
-    echo "✅ Number cancelled successfully"
-  fi
-else
-  echo "❌ Failed to request number"
-  echo "$RESPONSE" | jq -r '.error'
-
-  echo ""
-  echo "Common reasons:"
-  echo "  1. SMS_ACTIVATE_API_KEY not configured in .env"
-  echo "  2. Insufficient balance on SMS-Activate account"
-  echo "  3. No numbers available for selected service/country"
-fi
-
+# ========================================
+# 1. 健康检查测试
+# ========================================
+echo -e "${GREEN}=== 健康检查测试 ===${NC}"
 echo ""
-echo "========================================"
-echo " Test Complete"
-echo "========================================"
+
+test_endpoint \
+    "基础健康检查" \
+    "GET" \
+    "/health" \
+    "" \
+    "200"
+
+test_endpoint \
+    "详细健康检查" \
+    "GET" \
+    "/health/detailed" \
+    "" \
+    "200"
+
+test_endpoint \
+    "Liveness 探针" \
+    "GET" \
+    "/health/live" \
+    "" \
+    "200"
+
+test_endpoint \
+    "Readiness 探针" \
+    "GET" \
+    "/health/ready" \
+    "" \
+    "200"
+
+# ========================================
+# 2. Prometheus Metrics 测试
+# ========================================
+echo -e "${GREEN}=== Prometheus Metrics 测试 ===${NC}"
+echo ""
+
+test_endpoint \
+    "获取 Prometheus metrics" \
+    "GET" \
+    "/metrics" \
+    "" \
+    "200"
+
+# ========================================
+# 3. 统计 API 测试
+# ========================================
+echo -e "${GREEN}=== 统计 API 测试 ===${NC}"
+echo ""
+
+test_endpoint \
+    "获取轮询统计" \
+    "GET" \
+    "/numbers/stats/polling" \
+    "" \
+    "200"
+
+test_endpoint \
+    "获取平台统计" \
+    "GET" \
+    "/numbers/stats/providers" \
+    "" \
+    "200"
+
+# ========================================
+# 4. 管理功能测试
+# ========================================
+echo -e "${GREEN}=== 管理功能测试 ===${NC}"
+echo ""
+
+test_endpoint \
+    "手动触发轮询" \
+    "POST" \
+    "/numbers/poll/trigger" \
+    "" \
+    "200"
+
+# ========================================
+# 5. Swagger UI 测试
+# ========================================
+echo -e "${GREEN}=== Swagger UI 测试 ===${NC}"
+echo ""
+
+echo -e "${BLUE}[INFO]${NC} Swagger UI: ${YELLOW}${BASE_URL}/api/docs${NC}"
+echo ""
+
+# ========================================
+# 测试摘要
+# ========================================
+echo ""
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}  测试结果摘要${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+echo -e "总测试数: ${YELLOW}$TOTAL_TESTS${NC}"
+echo -e "通过: ${GREEN}$PASSED_TESTS${NC}"
+echo -e "失败: ${RED}$FAILED_TESTS${NC}"
+echo ""
+
+if [ $FAILED_TESTS -eq 0 ]; then
+    echo -e "${GREEN}✓ 所有测试通过!${NC}"
+    exit 0
+else
+    echo -e "${RED}✗ 有 $FAILED_TESTS 个测试失败${NC}"
+    exit 1
+fi

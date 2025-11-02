@@ -1074,4 +1074,87 @@ export class AdbService implements OnModuleInit {
       });
     }
   }
+
+  /**
+   * 通过 ADB 广播推送短信验证码到设备
+   * @param deviceId 设备 ID
+   * @param code 验证码（如 "123456"）
+   * @param phoneNumber 虚拟手机号（如 "+79123456789"）
+   * @param service 服务名称（如 "telegram", "whatsapp"）
+   *
+   * ⚠️ SECURITY: 验证验证码格式，防止命令注入
+   *
+   * 原理：使用 Android Broadcast 机制推送验证码到设备，
+   * 设备端 APK 通过 BroadcastReceiver 接收并处理（自动填充或显示）
+   */
+  async broadcastSmsCode(
+    deviceId: string,
+    code: string,
+    phoneNumber: string,
+    service?: string,
+  ): Promise<void> {
+    try {
+      // 🔒 安全验证：验证验证码格式（只允许数字和短横线）
+      if (!/^[0-9-]+$/.test(code)) {
+        this.logger.error(`Invalid verification code format: ${code}`);
+        throw BusinessErrors.adbOperationFailed('验证码格式不正确（只允许数字和短横线）', {
+          code,
+        });
+      }
+
+      // 🔒 安全验证：验证手机号格式（国际格式，如 +86、+1 等）
+      if (!/^\+?\d{10,15}$/.test(phoneNumber)) {
+        this.logger.error(`Invalid phone number format: ${phoneNumber}`);
+        throw BusinessErrors.adbOperationFailed('手机号格式不正确（应为国际格式，如 +79123456789）', {
+          phoneNumber,
+        });
+      }
+
+      // 🔒 安全验证：限制验证码长度（防止超长输入）
+      if (code.length > 20) {
+        this.logger.error(`Verification code too long: ${code.length} characters`);
+        throw BusinessErrors.adbOperationFailed('验证码长度超过限制（最多20字符）', {
+          codeLength: code.length,
+        });
+      }
+
+      // 构建 ADB broadcast 命令
+      // Action: com.cloudphone.SMS_RECEIVED（设备端 APK 需要监听此 action）
+      // Extras:
+      //   - code: 验证码
+      //   - phone: 手机号
+      //   - service: 服务名称（可选）
+      //   - timestamp: 时间戳（用于去重）
+      let command = `am broadcast -a com.cloudphone.SMS_RECEIVED --es code "${code}" --es phone "${phoneNumber}"`;
+
+      if (service) {
+        // 验证服务名称（只允许字母、数字、下划线、短横线）
+        if (!/^[a-zA-Z0-9_-]+$/.test(service)) {
+          this.logger.error(`Invalid service name format: ${service}`);
+          throw BusinessErrors.adbOperationFailed('服务名称格式不正确（只允许字母、数字、下划线、短横线）', {
+            service,
+          });
+        }
+        command += ` --es service "${service}"`;
+      }
+
+      // 添加时间戳（毫秒）
+      command += ` --el timestamp ${Date.now()}`;
+
+      // 执行广播命令
+      await this.executeShellCommand(deviceId, command, 5000);
+
+      this.logger.log(
+        `SMS verification code broadcasted to ${deviceId}: code=${code}, phone=${phoneNumber}, service=${service || 'unknown'}`
+      );
+    } catch (error) {
+      this.logger.error(`Failed to broadcast SMS code to ${deviceId}`, error);
+      throw BusinessErrors.adbOperationFailed(`推送短信验证码失败: ${error.message}`, {
+        deviceId,
+        code,
+        phoneNumber,
+        service,
+      });
+    }
+  }
 }

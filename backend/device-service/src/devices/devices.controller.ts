@@ -48,6 +48,14 @@ import {
   CreateSnapshotDto,
   RestoreSnapshotDto,
 } from './dto/app-operations.dto';
+import {
+  RequestSmsDto,
+  BatchRequestSmsDto,
+  CancelSmsDto,
+  SmsNumberResponse,
+  BatchSmsNumberResponse,
+  SmsMessageDto,
+} from './dto/sms-request.dto';
 
 @ApiTags('devices')
 @ApiBearerAuth()
@@ -852,5 +860,65 @@ export class DevicesController {
       success: true,
       message: '快照删除成功',
     };
+  }
+
+  // ==================== SMS 虚拟号码管理 ====================
+
+  @Post(':id/request-sms')
+  @RequirePermission('device:sms:request')
+  @ApiOperation({
+    summary: '为设备请求虚拟 SMS 号码',
+    description: '为指定设备请求一个虚拟手机号码，用于接收短信验证码。号码由 SMS Receive Service 管理。',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiBody({ type: RequestSmsDto })
+  @ApiResponse({ status: 200, description: '虚拟号码请求成功', type: Object })
+  @ApiResponse({ status: 400, description: '请求参数错误或设备状态不允许' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 404, description: '设备不存在' })
+  async requestSms(@Param('id') deviceId: string, @Body() dto: RequestSmsDto): Promise<SmsNumberResponse> {
+    return this.devicesService.requestSms(deviceId, dto);
+  }
+
+  @Get(':id/sms-number')
+  @RequirePermission('device:read')
+  @ApiOperation({
+    summary: '获取设备的虚拟 SMS 号码信息',
+    description: '获取设备当前分配的虚拟手机号码信息（如果有）',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '虚拟号码信息获取成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未分配虚拟号码' })
+  async getSmsNumber(@Param('id') deviceId: string): Promise<SmsNumberResponse | null> {
+    const device = await this.devicesService.findOne(deviceId);
+    const smsNumberRequest = device.metadata?.smsNumberRequest;
+    return smsNumberRequest ? (smsNumberRequest as SmsNumberResponse) : null;
+  }
+
+  @Delete(':id/sms-number')
+  @RequirePermission('device:sms:cancel')
+  @ApiOperation({
+    summary: '取消设备的虚拟 SMS 号码',
+    description: '取消设备当前分配的虚拟手机号码（主动释放或使用完毕）',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiBody({ type: CancelSmsDto, required: false })
+  @ApiResponse({ status: 200, description: '虚拟号码取消成功' })
+  @ApiResponse({ status: 404, description: '设备不存在或未分配虚拟号码' })
+  async cancelSms(@Param('id') deviceId: string, @Body() dto?: CancelSmsDto) {
+    return this.devicesService.cancelSms(deviceId, dto);
+  }
+
+  @Get(':id/sms-messages')
+  @RequirePermission('device:read')
+  @ApiOperation({
+    summary: '获取设备收到的 SMS 消息历史',
+    description: '获取设备收到的所有短信验证码消息历史记录',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: 'SMS 消息历史获取成功', type: [Object] })
+  @ApiResponse({ status: 404, description: '设备不存在' })
+  async getSmsMessages(@Param('id') deviceId: string): Promise<SmsMessageDto[]> {
+    return this.devicesService.getSmsMessages(deviceId);
   }
 }

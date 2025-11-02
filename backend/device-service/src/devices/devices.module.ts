@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DevicesService } from './devices.service';
 import { DevicesController } from './devices.controller';
 import { DevicesConsumer } from './devices.consumer'; // ✅ V2: 启用消费者 (现在 @RabbitSubscribe 可以工作)
+import { SmsEventsConsumer } from '../rabbitmq/consumers/sms-events.consumer'; // ✅ SMS 事件消费者
 import { BatchOperationsService } from './batch-operations.service';
 import { BatchOperationsController } from './batch-operations.controller';
 import { CloudDeviceTokenService } from './cloud-device-token.service';
@@ -39,6 +40,7 @@ import { EventOutboxModule, SagaModule } from '@cloudphone/shared';
   providers: [
     DevicesService,
     DevicesConsumer, // ✅ V2: 启用 RabbitMQ 消费者
+    SmsEventsConsumer, // ✅ SMS 事件消费者
     BatchOperationsService,
     CloudDeviceTokenService, // ✅ 云设备 Token 自动刷新
     CloudDeviceSyncService, // ✅ 云设备状态同步

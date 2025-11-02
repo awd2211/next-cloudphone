@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { MessagePollingService } from './services/message-polling.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -28,18 +28,24 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Graceful shutdown
-  const pollingService = app.get(MessagePollingService);
+  // Swagger API Documentation
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('SMS Receive Service API')
+    .setDescription('Virtual phone number and SMS receiving service for Cloud Phone Platform')
+    .setVersion('1.0')
+    .addTag('Virtual Numbers', 'Manage virtual phone numbers for SMS reception')
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document);
 
+  // Graceful shutdown
   process.on('SIGTERM', async () => {
-    logger.log('SIGTERM received, stopping all polling tasks...');
-    pollingService.stopAllPolling();
+    logger.log('SIGTERM received, shutting down...');
     await app.close();
   });
 
   process.on('SIGINT', async () => {
-    logger.log('SIGINT received, stopping all polling tasks...');
-    pollingService.stopAllPolling();
+    logger.log('SIGINT received, shutting down...');
     await app.close();
   });
 
@@ -47,6 +53,7 @@ async function bootstrap() {
   await app.listen(port);
 
   logger.log(`🚀 SMS Receive Service is running on: http://localhost:${port}`);
+  logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
   logger.log(`📊 Environment: ${configService.get<string>('NODE_ENV')}`);
   logger.log(`💾 Database: ${configService.get<string>('DB_DATABASE')}`);
 }

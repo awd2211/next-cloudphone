@@ -32,7 +32,9 @@ export class SmsActivateAdapter implements ISmsProvider {
    * @param service 服务代码 (go=Google, tg=Telegram等)
    * @param country 国家代码 (0=俄罗斯, 1=乌克兰, 12=美国等)
    */
-  async getNumber(service: string, country: number = 0): Promise<GetNumberResult> {
+  async getNumber(service: string, country: string | number = 0): Promise<GetNumberResult> {
+    // 确保country是数字
+    const countryCode = typeof country === 'string' ? 0 : country;
     try {
       const response = await firstValueFrom(
         this.httpService.get(this.baseUrl, {
@@ -40,7 +42,7 @@ export class SmsActivateAdapter implements ISmsProvider {
             api_key: this.apiKey,
             action: 'getNumber',
             service,
-            country,
+            country: countryCode,
           },
         }),
       );
@@ -56,7 +58,7 @@ export class SmsActivateAdapter implements ISmsProvider {
         }
 
         // 获取价格
-        const cost = await this.getServicePrice(service, country);
+        const cost = await this.getServicePrice(service, countryCode);
 
         return {
           activationId: parts[1],
@@ -155,7 +157,7 @@ export class SmsActivateAdapter implements ISmsProvider {
   /**
    * 获取余额
    */
-  async getBalance(): Promise<number> {
+  async getBalance(): Promise<ProviderBalance> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(this.baseUrl, {
@@ -244,7 +246,9 @@ export class SmsActivateAdapter implements ISmsProvider {
   /**
    * 租赁号码（24小时）
    */
-  async rentNumber(service: string, country: number = 0): Promise<GetNumberResult> {
+  async rentNumber(service: string, country: string | number = 0, hours: number = 24): Promise<GetNumberResult> {
+    // SMS-Activate只支持固定租期，忽略hours参数
+    const countryCode = typeof country === 'string' ? 0 : country;
     try {
       const response = await firstValueFrom(
         this.httpService.get(this.baseUrl, {
@@ -252,8 +256,8 @@ export class SmsActivateAdapter implements ISmsProvider {
             api_key: this.apiKey,
             action: 'getRentNumber',
             service,
-            country,
-            rent_time: 24, // 24小时
+            country: countryCode,
+            rent_time: hours || 24, // 使用指定时长或默认24小时
           },
         }),
       );
@@ -270,7 +274,7 @@ export class SmsActivateAdapter implements ISmsProvider {
         return {
           activationId: parts[1],
           phoneNumber: `+${parts[2]}`,
-          cost: await this.getRentPrice(service, country),
+          cost: await this.getRentPrice(service, countryCode),
           raw: data,
         };
       }
@@ -289,18 +293,5 @@ export class SmsActivateAdapter implements ISmsProvider {
     // 租赁价格通常是单次购买的2-3倍
     const singlePrice = await this.getServicePrice(service, country);
     return singlePrice * 2.5;
-  }
-
-  /**
-   * 健康检查
-   */
-  async healthCheck(): Promise<boolean> {
-    try {
-      const balance = await this.getBalance();
-      return balance > 0;
-    } catch (error) {
-      this.logger.error('Health check failed', error.stack);
-      return false;
-    }
   }
 }

@@ -7,19 +7,22 @@ SMS验证码接收服务 - 为云手机平台提供虚拟号码和验证码接�
 ### 核心功能
 - ✅ **单个号码请求** - 为单个设备请求虚拟号码
 - ✅ **批量号码请求** - 一次性为最多100个设备批量请求
-- ✅ **智能轮询** - 指数退避算法自动检查验证码（1s→60s）
+- ✅ **批量轮询** - 每10秒批量检查最多500个活跃号码(50个一批)
 - ✅ **自动取消退款** - 超时未收到验证码自动取消并退款
+- ✅ **号码池支持** - 预分配号码池,提高请求速度
+- ✅ **健康检查** - 定时检查数据库/Redis/RabbitMQ健康状态
+- ✅ **Prometheus Metrics** - 完整的性能指标监控
 
 ### 平台支持
 - ✅ **SMS-Activate** - 主平台（180+国家，5000+应用）
-- 🔲 **5sim** - 备用平台（即将支持）
-- 🔲 **SMSPool** - 高风险平台支持（即将支持）
+- ✅ **5sim** - 备用平台（已支持）
+- ✅ **智能路由** - 自动选择最佳平台(成本优化/可靠性优先/负载均衡/轮询)
 
-### 高级功能（计划中）
-- 🔲 号码池预热
-- 🔲 成本统计分析
-- 🔲 余额监控告警
-- 🔲 号码租赁支持
+### 监控能力
+- ✅ REST API 完整文档 (Swagger UI)
+- ✅ Prometheus metrics 端点
+- ✅ 详细健康检查 (数据库/Redis/RabbitMQ)
+- ✅ Kubernetes 就绪性探针 (liveness/readiness)
 
 ## 🚀 快速开始
 
@@ -69,14 +72,16 @@ pnpm build
 pnpm start:prod
 ```
 
-服务将在 `http://localhost:30007` 启动
+服务将在 `http://localhost:30008` 启动
+
+**Swagger API 文档**: `http://localhost:30008/api/docs`
 
 ## 📡 API 使用示例
 
 ### 请求虚拟号码
 
 ```bash
-curl -X POST http://localhost:30007/numbers/request \
+curl -X POST http://localhost:30008/numbers \
   -H "Content-Type: application/json" \
   -d '{
     "service": "telegram",
@@ -88,36 +93,47 @@ curl -X POST http://localhost:30007/numbers/request \
 响应：
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "phoneNumber": "+79123456789",
-    "provider": "sms-activate",
-    "service": "telegram",
-    "country": "RU",
-    "cost": 0.10,
-    "status": "active",
-    "expiresAt": "2025-11-02T12:10:00Z"
-  }
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "phoneNumber": "+79123456789",
+  "provider": "sms-activate",
+  "serviceCode": "tg",
+  "serviceName": "telegram",
+  "countryCode": "RU",
+  "cost": 0.10,
+  "status": "active",
+  "deviceId": "550e8400-e29b-41d4-a716-446655440000",
+  "activatedAt": "2025-11-02T12:00:00Z",
+  "expiresAt": "2025-11-02T12:20:00Z",
+  "fromPool": false,
+  "selectedByAlgorithm": "smart-routing"
 }
 ```
 
 ### 检查号码状态
 
 ```bash
-curl http://localhost:30007/numbers/123e4567-e89b-12d3-a456-426614174000
+curl http://localhost:30008/numbers/123e4567-e89b-12d3-a456-426614174000
 ```
 
 ### 取消号码
 
 ```bash
-curl -X POST http://localhost:30007/numbers/123e4567-e89b-12d3-a456-426614174000/cancel
+curl -X DELETE http://localhost:30008/numbers/123e4567-e89b-12d3-a456-426614174000
+```
+
+响应：
+```json
+{
+  "refunded": true,
+  "amount": 0.10,
+  "message": "Number cancelled and refunded $0.10"
+}
 ```
 
 ### 批量请求号码
 
 ```bash
-curl -X POST http://localhost:30007/numbers/batch-request \
+curl -X POST http://localhost:30008/numbers/batch \
   -H "Content-Type: application/json" \
   -d '{
     "service": "telegram",
@@ -130,6 +146,50 @@ curl -X POST http://localhost:30007/numbers/batch-request \
   }'
 ```
 
+响应：
+```json
+{
+  "total": 3,
+  "successful": 2,
+  "failed": 1,
+  "numbers": [
+    {
+      "deviceId": "device-uuid-1",
+      "numberId": "num-id-1",
+      "phoneNumber": "+79123456789",
+      "provider": "sms-activate",
+      "error": null
+    },
+    {
+      "deviceId": "device-uuid-2",
+      "numberId": "num-id-2",
+      "phoneNumber": "+79123456790",
+      "provider": "5sim",
+      "error": null
+    },
+    {
+      "deviceId": "device-uuid-3",
+      "numberId": null,
+      "phoneNumber": null,
+      "provider": null,
+      "error": "No numbers available"
+    }
+  ]
+}
+```
+
+### 获取号码的短信消息
+
+```bash
+curl http://localhost:30008/numbers/123e4567-e89b-12d3-a456-426614174000/messages
+```
+
+### 手动触发轮询 (管理员功能)
+
+```bash
+curl -X POST http://localhost:30008/numbers/poll/trigger
+```
+
 ## 🔧 开发指南
 
 ### 项目结构
@@ -138,24 +198,34 @@ curl -X POST http://localhost:30007/numbers/batch-request \
 sms-receive-service/
 ├── src/
 │   ├── entities/          # TypeORM实体
-│   │   ├── virtual-number.entity.ts
-│   │   ├── sms-message.entity.ts
-│   │   ├── provider-config.entity.ts
-│   │   └── number-pool.entity.ts
+│   │   ├── virtual-number.entity.ts   # 虚拟号码
+│   │   ├── sms-message.entity.ts      # 短信消息
+│   │   ├── provider-config.entity.ts  # 平台配置
+│   │   └── number-pool.entity.ts      # 号码池
 │   ├── providers/         # 平台适配器
-│   │   ├── sms-activate.adapter.ts
-│   │   ├── fivesim.adapter.ts (待实现)
-│   │   └── smspool.adapter.ts (待实现)
+│   │   ├── provider.interface.ts      # 统一接口
+│   │   ├── sms-activate.adapter.ts    # SMS-Activate ✅
+│   │   └── 5sim.adapter.ts            # 5sim ✅
 │   ├── services/          # 业务逻辑
-│   │   ├── number-management.service.ts
-│   │   └── message-polling.service.ts
+│   │   ├── number-management.service.ts  # 号码管理
+│   │   ├── message-polling.service.ts    # 批量轮询
+│   │   └── platform-selector.service.ts  # 智能路由
 │   ├── controllers/       # API控制器
-│   │   └── numbers.controller.ts
+│   │   └── numbers.controller.ts      # REST API
+│   ├── health/            # 健康检查与监控
+│   │   ├── health-check.service.ts    # 定时健康检查
+│   │   ├── metrics.service.ts         # Prometheus指标
+│   │   ├── health.controller.ts       # 监控端点
+│   │   └── health.module.ts
 │   ├── dto/              # 数据传输对象
+│   │   ├── request-number.dto.ts      # 请求DTO
+│   │   └── number-response.dto.ts     # 响应DTO
+│   ├── app.module.ts     # 应用模块
 │   └── main.ts           # 入口文件
 ├── database/             # 数据库脚本
 │   └── init-database.sql
 ├── test/                 # 测试文件
+├── .env.example          # 环境变量模板
 └── README.md
 ```
 
@@ -211,48 +281,183 @@ pnpm format
 
 ## 📊 监控和指标
 
-### 健康检查
+### 健康检查端点
 
+#### 基础健康检查
 ```bash
-curl http://localhost:30007/health
+curl http://localhost:30008/health
+```
+
+响应：
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-11-02T12:00:00Z"
+}
+```
+
+#### 详细健康检查
+```bash
+curl http://localhost:30008/health/detailed
+```
+
+响应：
+```json
+{
+  "overall": "healthy",
+  "database": {
+    "healthy": true,
+    "lastCheck": "2025-11-02T12:00:00Z",
+    "error": null
+  },
+  "redis": {
+    "healthy": true,
+    "lastCheck": "2025-11-02T12:00:00Z",
+    "error": null
+  },
+  "rabbitmq": {
+    "healthy": true,
+    "lastCheck": "2025-11-02T12:00:00Z",
+    "error": null
+  },
+  "timestamp": "2025-11-02T12:00:00Z"
+}
+```
+
+#### Kubernetes 探针
+```bash
+# Liveness probe - 进程是否存活
+curl http://localhost:30008/health/live
+
+# Readiness probe - 是否就绪接收流量
+curl http://localhost:30008/health/ready
 ```
 
 ### Prometheus Metrics
 
 ```bash
-curl http://localhost:30007/metrics
+curl http://localhost:30008/metrics
 ```
 
-关键指标：
-- `sms_number_requests_total` - 号码请求总数
-- `sms_receive_duration_seconds` - 验证码接收时长
-- `sms_active_numbers` - 当前活跃号码数
-- `sms_provider_balance_usd` - 平台余额
+**关键指标**：
+
+#### Counters (累积计数器)
+- `sms_number_requests_total{provider,service,status}` - 号码请求总数
+- `sms_messages_received_total{provider,service}` - 短信接收总数
+- `sms_number_cancellations_total{provider,reason}` - 号码取消总数
+- `sms_errors_total{type,provider}` - 错误总数
+
+#### Gauges (实时状态)
+- `sms_active_numbers{provider,status}` - 活跃号码数
+- `sms_waiting_numbers` - 等待短信的号码数
+- `sms_provider_health{provider}` - 提供商健康状态(1=healthy, 0=unhealthy)
+
+#### Histograms (分布统计)
+- `sms_polling_duration_seconds` - 轮询持续时间
+- `sms_number_request_duration_seconds{provider}` - 号码请求持续时间
+
+### 监控统计 API
+
+#### 轮询统计
+```bash
+curl http://localhost:30008/numbers/stats/polling
+```
+
+响应：
+```json
+{
+  "isPolling": true,
+  "activeNumbers": 45,
+  "receivedToday": 120,
+  "expiredToday": 8
+}
+```
+
+#### 平台统计
+```bash
+curl http://localhost:30008/numbers/stats/providers
+```
+
+响应：
+```json
+[
+  {
+    "providerName": "sms-activate",
+    "totalRequests": 1000,
+    "successCount": 950,
+    "failureCount": 50,
+    "averageResponseTime": 1.2,
+    "averageCost": 0.12,
+    "successRate": 95.0,
+    "isHealthy": true,
+    "consecutiveFailures": 0
+  },
+  {
+    "providerName": "5sim",
+    "totalRequests": 500,
+    "successCount": 480,
+    "failureCount": 20,
+    "averageResponseTime": 0.8,
+    "averageCost": 0.15,
+    "successRate": 96.0,
+    "isHealthy": true,
+    "consecutiveFailures": 0
+  }
+]
+```
 
 ## 🔌 系统集成
 
 ### RabbitMQ 事件
 
-**发布的事件**:
-- `sms.number.requested` - 号码请求成功
-- `sms.code.received` - 验证码接收成功
-- `sms.number.expired` - 号码过期
-- `sms.number.cancelled` - 号码取消
+SMS Receive Service 通过 RabbitMQ 发布以下事件：
 
-**事件格式**:
+#### 1. `sms.message.received` - 短信接收成功
 ```json
 {
-  "numberId": "uuid",
-  "deviceId": "uuid",
+  "messageId": "msg-uuid",
+  "numberId": "num-uuid",
+  "deviceId": "device-uuid",
+  "userId": "user-uuid",
   "phoneNumber": "+79123456789",
   "verificationCode": "123456",
-  "service": "telegram"
+  "messageText": "Your verification code is 123456",
+  "service": "telegram",
+  "provider": "sms-activate",
+  "receivedAt": "2025-11-02T12:00:00Z"
+}
+```
+
+#### 2. `sms.number.expired` - 号码过期
+```json
+{
+  "numberId": "num-uuid",
+  "deviceId": "device-uuid",
+  "userId": "user-uuid",
+  "phoneNumber": "+79123456789",
+  "service": "telegram",
+  "provider": "sms-activate",
+  "reason": "expired",
+  "expiredAt": "2025-11-02T12:20:00Z"
 }
 ```
 
 ### Device Service 集成
 
-Device Service 可以监听 `sms.code.received` 事件，自动推送验证码到设备。
+Device Service 应该监听 `sms.message.received` 事件，自动推送验证码到对应的云手机设备：
+
+```typescript
+@RabbitSubscribe({
+  exchange: 'cloudphone.events',
+  routingKey: 'sms.message.received',
+  queue: 'device-service.sms-received',
+})
+async handleSmsReceived(event: SmsReceivedEvent) {
+  const { deviceId, verificationCode } = event;
+  // 将验证码推送到设备
+  await this.deviceService.pushVerificationCode(deviceId, verificationCode);
+}
+```
 
 ## 🐛 故障排查
 

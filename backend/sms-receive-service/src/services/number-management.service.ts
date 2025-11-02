@@ -7,8 +7,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { VirtualNumber, ProviderConfig, NumberPool } from '../entities';
-import { SmsActivateAdapter } from '../providers/sms-activate.adapter';
+import { PlatformSelectorService } from './platform-selector.service';
 import { EventBusService } from '@cloudphone/shared';
+import { ProviderError } from '../providers/provider.interface';
 
 interface RequestNumberDto {
   service: string;
@@ -16,11 +17,16 @@ interface RequestNumberDto {
   deviceId: string;
   provider?: string;
   usePool?: boolean;
+  forceProvider?: boolean;
 }
 
+/**
+ * 虚拟号码管理服务
+ */
 @Injectable()
 export class NumberManagementService {
   private readonly logger = new Logger(NumberManagementService.name);
+  private readonly MAX_RETRY_ATTEMPTS = 3;
 
   constructor(
     @InjectRepository(VirtualNumber)
@@ -29,43 +35,69 @@ export class NumberManagementService {
     private readonly providerRepo: Repository<ProviderConfig>,
     @InjectRepository(NumberPool)
     private readonly poolRepo: Repository<NumberPool>,
-    private readonly smsActivate: SmsActivateAdapter,
+    private readonly platformSelector: PlatformSelectorService,
     private readonly eventBus: EventBusService,
   ) {}
 
-  /**
-   * 请求虚拟号码
-   */
   async requestNumber(dto: RequestNumberDto): Promise<VirtualNumber> {
-    const { service, country, deviceId, provider, usePool } = dto;
+    const { service, country, deviceId, provider, usePool, forceProvider } = dto;
 
-    // 1. 如果使用号码池，先尝试从池中获取
+    this.logger.log(`Request number for ${service}/${country || 'default'} by device ${deviceId}`);
+
     if (usePool) {
       const pooledNumber = await this.getFromPool(service, country);
       if (pooledNumber) {
+        this.logger.log(`Pool hit: ${pooledNumber.phoneNumber}`);
         return await this.assignPooledNumber(pooledNumber, deviceId);
       }
       this.logger.log(`Pool miss for ${service}/${country}, buying new number`);
     }
 
-    // 2. 选择平台（目前只支持SMS-Activate，后续扩展）
-    const selectedProvider = provider || 'sms-activate';
+    let selectedPlatform;
+    let selectionMethod = 'manual';
 
-    if (selectedProvider !== 'sms-activate') {
-      throw new BadRequestException(`Provider ${selectedProvider} not supported yet`);
+    if (forceProvider && provider) {
+      selectedPlatform = { providerName: provider, fallbackLevel: 0 };
+      selectionMethod = 'forced';
+      this.logger.log(`Force using provider: ${provider}`);
+    } else if (provider) {
+      selectedPlatform = { providerName: provider, fallbackLevel: 0 };
+      selectionMethod = 'manual-with-fallback';
+      this.logger.log(`Prefer provider: ${provider} (with fallback)`);
+    } else {
+      selectedPlatform = await this.platformSelector.selectBestPlatform(service, country || 'RU');
+      selectionMethod = 'smart-routing';
+      this.logger.log(`Smart routing selected: ${selectedPlatform.providerName} (score=${selectedPlatform.score.toFixed(2)})`);
     }
 
-    // 3. 将服务名转换为平台代码
-    const serviceCode = this.getServiceCode(service);
-    const countryCode = this.getCountryCode(country);
+    return await this.requestNumberWithRetry(selectedPlatform.providerName, service, country, deviceId, selectionMethod, 0);
+  }
 
-    // 4. 调用平台API获取号码
+  private async requestNumberWithRetry(
+    providerName: string,
+    service: string,
+    country: string | undefined,
+    deviceId: string,
+    selectionMethod: string,
+    attempt: number,
+  ): Promise<VirtualNumber> {
+    const startTime = Date.now();
+
     try {
-      const result = await this.smsActivate.getNumber(serviceCode, countryCode);
+      const selection = await this.platformSelector.selectBestPlatform(service, country || 'RU');
+      const provider = selection.provider;
+      const serviceCode = this.getServiceCode(service);
+      const countryCode = country || 'RU';
 
-      // 5. 保存到数据库
+      this.logger.log(`Attempting to get number from ${providerName} (attempt ${attempt + 1}/${this.MAX_RETRY_ATTEMPTS})`);
+
+      const result = await provider.getNumber(serviceCode, countryCode);
+      const responseTime = Date.now() - startTime;
+
+      await this.platformSelector.recordSuccess(providerName, responseTime, result.cost);
+
       const virtualNumber = this.numberRepo.create({
-        provider: selectedProvider,
+        provider: providerName,
         providerActivationId: result.activationId,
         phoneNumber: result.phoneNumber,
         countryCode: country || 'RU',
@@ -76,38 +108,57 @@ export class NumberManagementService {
         status: 'active',
         deviceId,
         activatedAt: new Date(),
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10分钟
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
         fromPool: false,
-        selectedByAlgorithm: 'manual',
-        metadata: { providerResponse: result.raw },
+        selectedByAlgorithm: selectionMethod,
+        metadata: {
+          providerResponse: result.raw,
+          selectionDetails: {
+            method: selectionMethod,
+            providerName,
+            score: selection.score,
+            reason: selection.reason,
+            fallbackLevel: selection.fallbackLevel,
+            responseTime,
+          },
+        },
       });
 
       await this.numberRepo.save(virtualNumber);
 
-      // 6. 发布事件
       await this.eventBus.publish('cloudphone.events', 'sms.number.requested', {
         numberId: virtualNumber.id,
         deviceId,
         service,
-        provider: selectedProvider,
+        provider: providerName,
         phoneNumber: virtualNumber.phoneNumber,
         cost: virtualNumber.cost,
+        selectionMethod,
+        responseTime,
       });
 
-      this.logger.log(
-        `Virtual number requested: ${virtualNumber.phoneNumber} for device ${deviceId}`,
-      );
+      this.logger.log(`Successfully obtained number ${virtualNumber.phoneNumber} from ${providerName} in ${responseTime}ms`);
 
       return virtualNumber;
     } catch (error) {
-      this.logger.error(`Failed to request number: ${error.message}`, error.stack);
-      throw new BadRequestException(`Failed to request virtual number: ${error.message}`);
+      const responseTime = Date.now() - startTime;
+      this.logger.error(`Failed to get number from ${providerName} (attempt ${attempt + 1}): ${error.message}`);
+
+      await this.platformSelector.recordFailure(providerName, error);
+
+      const canRetry = attempt < this.MAX_RETRY_ATTEMPTS - 1;
+      const isRetryableError = error instanceof ProviderError && error.retryable;
+
+      if (canRetry && isRetryableError) {
+        this.logger.log(`Retrying with fallback platform (attempt ${attempt + 2}/${this.MAX_RETRY_ATTEMPTS})`);
+        const fallbackSelection = await this.platformSelector.selectBestPlatform(service, country || 'RU');
+        return await this.requestNumberWithRetry(fallbackSelection.providerName, service, country, deviceId, `${selectionMethod}-fallback-${attempt + 1}`, attempt + 1);
+      }
+
+      throw new BadRequestException(`Failed to request virtual number after ${attempt + 1} attempts: ${error.message}`);
     }
   }
 
-  /**
-   * 获取号码状态
-   */
   async getNumberStatus(numberId: string): Promise<VirtualNumber> {
     const number = await this.numberRepo.findOne({ where: { id: numberId } });
     if (!number) {
@@ -116,41 +167,33 @@ export class NumberManagementService {
     return number;
   }
 
-  /**
-   * 取消号码（退款）
-   */
   async cancelNumber(numberId: string): Promise<{ refunded: boolean; amount: number }> {
     const number = await this.numberRepo.findOne({ where: { id: numberId } });
     if (!number) {
       throw new NotFoundException(`Virtual number ${numberId} not found`);
     }
 
-    // 只有active或waiting_sms状态才能取消
     if (!['active', 'waiting_sms'].includes(number.status)) {
       throw new BadRequestException(`Cannot cancel number in status: ${number.status}`);
     }
 
     try {
-      // 调用平台API取消
-      if (number.provider === 'sms-activate') {
-        await this.smsActivate.cancel(number.providerActivationId);
-      }
+      const selection = await this.platformSelector.selectBestPlatform(number.serviceName, number.countryCode);
+      await selection.provider.cancel(number.providerActivationId);
 
-      // 更新状态
       number.status = 'cancelled';
       number.completedAt = new Date();
       await this.numberRepo.save(number);
 
-      // 发布事件
       await this.eventBus.publish('cloudphone.events', 'sms.number.cancelled', {
         numberId,
         deviceId: number.deviceId,
+        provider: number.provider,
         refunded: true,
         amount: number.cost,
       });
 
       this.logger.log(`Number ${number.phoneNumber} cancelled and refunded`);
-
       return { refunded: true, amount: number.cost };
     } catch (error) {
       this.logger.error(`Failed to cancel number ${numberId}`, error.stack);
@@ -158,13 +201,11 @@ export class NumberManagementService {
     }
   }
 
-  /**
-   * 批量请求号码
-   */
   async batchRequest(
     service: string,
     country: string | undefined,
     deviceIds: string[],
+    provider?: string,
   ): Promise<{
     total: number;
     successful: number;
@@ -173,6 +214,7 @@ export class NumberManagementService {
       deviceId: string;
       numberId: string | null;
       phoneNumber: string | null;
+      provider: string | null;
       error: string | null;
     }>;
   }> {
@@ -180,42 +222,43 @@ export class NumberManagementService {
       throw new BadRequestException('Maximum batch size is 100');
     }
 
+    this.logger.log(`Batch request for ${deviceIds.length} devices (${service}/${country})`);
+
     const results: Array<{
       deviceId: string;
       numberId: string | null;
       phoneNumber: string | null;
+      provider: string | null;
       error: string | null;
     }> = [];
 
     for (const deviceId of deviceIds) {
       try {
-        const number = await this.requestNumber({
-          service,
-          country,
-          deviceId,
-        });
-
+        const number = await this.requestNumber({ service, country, deviceId, provider });
         results.push({
           deviceId,
           numberId: number.id,
           phoneNumber: number.phoneNumber,
+          provider: number.provider,
           error: null,
         });
-
-        // 避免触发限流，每个请求间隔500ms
         await this.sleep(500);
       } catch (error) {
         results.push({
           deviceId,
           numberId: null,
           phoneNumber: null,
+          provider: null,
           error: error.message,
         });
+        this.logger.warn(`Failed to request number for device ${deviceId}: ${error.message}`);
       }
     }
 
     const successful = results.filter((r) => r.numberId !== null).length;
     const failed = results.filter((r) => r.numberId === null).length;
+
+    this.logger.log(`Batch request completed: ${successful} successful, ${failed} failed`);
 
     return {
       total: deviceIds.length,
@@ -225,9 +268,6 @@ export class NumberManagementService {
     };
   }
 
-  /**
-   * 从号码池获取号码
-   */
   private async getFromPool(service: string, country?: string): Promise<NumberPool | null> {
     const serviceCode = this.getServiceCode(service);
 
@@ -244,7 +284,6 @@ export class NumberManagementService {
     });
 
     if (poolNumber && poolNumber.expiresAt > new Date()) {
-      // 标记为已预留
       poolNumber.status = 'reserved';
       poolNumber.reservedAt = new Date();
       poolNumber.reservedCount += 1;
@@ -257,13 +296,7 @@ export class NumberManagementService {
     return null;
   }
 
-  /**
-   * 分配池中的号码给设备
-   */
-  private async assignPooledNumber(
-    poolNumber: NumberPool,
-    deviceId: string,
-  ): Promise<VirtualNumber> {
+  private async assignPooledNumber(poolNumber: NumberPool, deviceId: string): Promise<VirtualNumber> {
     const virtualNumber = this.numberRepo.create({
       provider: poolNumber.provider,
       providerActivationId: poolNumber.providerActivationId,
@@ -278,24 +311,28 @@ export class NumberManagementService {
       expiresAt: poolNumber.expiresAt,
       fromPool: true,
       poolId: poolNumber.id,
-      metadata: { fromPool: true },
+      selectedByAlgorithm: 'pool',
+      metadata: { fromPool: true, poolId: poolNumber.id },
     });
 
     await this.numberRepo.save(virtualNumber);
 
-    // 更新池状态
     poolNumber.status = 'used';
     poolNumber.usedCount += 1;
     await this.poolRepo.save(poolNumber);
 
+    await this.eventBus.publish('cloudphone.events', 'sms.number.from_pool', {
+      numberId: virtualNumber.id,
+      deviceId,
+      poolId: poolNumber.id,
+      phoneNumber: virtualNumber.phoneNumber,
+    });
+
     return virtualNumber;
   }
 
-  /**
-   * 服务名 -> 平台代码映射
-   */
   private getServiceCode(service: string): string {
-    const mapping = {
+    const mapping: Record<string, string> = {
       google: 'go',
       telegram: 'tg',
       whatsapp: 'wa',
@@ -306,16 +343,14 @@ export class NumberManagementService {
       tiktok: 'tk',
       discord: 'ds',
       uber: 'ub',
+      amazon: 'am',
+      microsoft: 'mm',
     };
-
     return mapping[service.toLowerCase()] || service;
   }
 
-  /**
-   * 平台代码 -> 服务名映射
-   */
   private getServiceName(code: string): string {
-    const mapping = {
+    const mapping: Record<string, string> = {
       go: 'google',
       tg: 'telegram',
       wa: 'whatsapp',
@@ -326,33 +361,12 @@ export class NumberManagementService {
       tk: 'tiktok',
       ds: 'discord',
       ub: 'uber',
+      am: 'amazon',
+      mm: 'microsoft',
     };
-
     return mapping[code] || code;
   }
 
-  /**
-   * 国家名 -> 代码映射
-   */
-  private getCountryCode(country?: string): number {
-    if (!country) return 0; // 默认俄罗斯
-
-    const mapping = {
-      RU: 0,
-      UA: 1,
-      CN: 3,
-      IN: 6,
-      US: 12,
-      GB: 16,
-      UK: 16,
-    };
-
-    return mapping[country.toUpperCase()] || 0;
-  }
-
-  /**
-   * 国家代码 -> 名称
-   */
   private getCountryName(country?: string): string {
     const mapping: Record<string, string> = {
       RU: 'Russia',
@@ -362,8 +376,13 @@ export class NumberManagementService {
       US: 'United States',
       GB: 'United Kingdom',
       UK: 'United Kingdom',
+      FR: 'France',
+      DE: 'Germany',
+      PH: 'Philippines',
+      ID: 'Indonesia',
+      VN: 'Vietnam',
+      MY: 'Malaysia',
     };
-
     const countryCode = country?.toUpperCase();
     return (countryCode && mapping[countryCode]) || 'Russia';
   }

@@ -1,235 +1,226 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
+import { Repository, In, MoreThan } from 'typeorm';
 import { VirtualNumber, SmsMessage } from '../entities';
-import { SmsActivateAdapter } from '../providers/sms-activate.adapter';
+import { PlatformSelectorService } from './platform-selector.service';
 import { EventBusService } from '@cloudphone/shared';
 
+/**
+ * 短信消息轮询服务（批量定时轮询版）
+ */
 @Injectable()
 export class MessagePollingService {
   private readonly logger = new Logger(MessagePollingService.name);
-  private readonly pollingTasks = new Map<string, NodeJS.Timeout>();
 
-  private readonly initialDelay: number;
-  private readonly maxDelay: number;
-  private readonly backoffFactor: number;
-  private readonly maxAttempts: number;
+  private readonly BATCH_SIZE = 50;
+  private isPolling = false;
 
   constructor(
     @InjectRepository(VirtualNumber)
     private readonly numberRepo: Repository<VirtualNumber>,
     @InjectRepository(SmsMessage)
     private readonly messageRepo: Repository<SmsMessage>,
-    private readonly smsActivate: SmsActivateAdapter,
+    private readonly platformSelector: PlatformSelectorService,
     private readonly eventBus: EventBusService,
-    private readonly configService: ConfigService,
-  ) {
-    this.initialDelay = this.configService.get<number>('POLLING_INITIAL_DELAY_MS', 1000);
-    this.maxDelay = this.configService.get<number>('POLLING_MAX_DELAY_MS', 60000);
-    this.backoffFactor = this.configService.get<number>('POLLING_BACKOFF_FACTOR', 1.5);
-    this.maxAttempts = this.configService.get<number>('POLLING_MAX_ATTEMPTS', 60);
-  }
+  ) {}
 
-  /**
-   * 启动轮询检查验证码
-   */
-  startPolling(numberId: string): void {
-    if (this.pollingTasks.has(numberId)) {
-      this.logger.warn(`Polling already started for ${numberId}`);
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  async pollMessages() {
+    if (this.isPolling) {
+      this.logger.debug('Previous polling still in progress, skipping');
       return;
     }
 
-    this.logger.log(`Starting polling for virtual number ${numberId}`);
+    this.isPolling = true;
+    const startTime = Date.now();
 
-    let attempts = 0;
-
-    const poll = async () => {
-      try {
-        const number = await this.numberRepo.findOne({ where: { id: numberId } });
-
-        // 如果号码不存在或已完成，停止轮询
-        if (!number || ['completed', 'cancelled', 'expired'].includes(number.status)) {
-          this.stopPolling(numberId);
-          return;
-        }
-
-        // 检查是否超时
-        if (attempts >= this.maxAttempts || new Date() > number.expiresAt) {
-          await this.handleTimeout(number);
-          this.stopPolling(numberId);
-          return;
-        }
-
-        // 更新状态为waiting_sms（如果还是active）
-        if (number.status === 'active') {
-          number.status = 'waiting_sms';
-          await this.numberRepo.save(number);
-        }
-
-        // 调用平台API检查状态
-        let status;
-        if (number.provider === 'sms-activate') {
-          status = await this.smsActivate.getStatus(number.providerActivationId);
-        } else {
-          this.logger.error(`Unsupported provider: ${number.provider}`);
-          this.stopPolling(numberId);
-          return;
-        }
-
-        if (status.status === 'received') {
-          // 收到验证码
-          await this.handleSmsReceived(number, status.code, status.message);
-          this.stopPolling(numberId);
-          return;
-        }
-
-        // 继续轮询（指数退避）
-        attempts++;
-        const delay = this.calculateDelay(attempts);
-
-        const timeout = setTimeout(poll, delay);
-        this.pollingTasks.set(numberId, timeout);
-      } catch (error) {
-        this.logger.error(`Polling error for ${numberId}: ${error.message}`, error.stack);
-
-        // 错误时也继续重试，但增加延迟
-        attempts++;
-        if (attempts < this.maxAttempts) {
-          const timeout = setTimeout(poll, 5000);
-          this.pollingTasks.set(numberId, timeout);
-        } else {
-          this.stopPolling(numberId);
-        }
+    try {
+      const activeNumbers = await this.getActiveNumbers();
+      if (activeNumbers.length === 0) {
+        return;
       }
-    };
 
-    // 首次立即执行
-    poll();
-  }
+      this.logger.log(`Polling ${activeNumbers.length} active numbers`);
 
-  /**
-   * 停止轮询
-   */
-  stopPolling(numberId: string): void {
-    const timeout = this.pollingTasks.get(numberId);
-    if (timeout) {
-      clearTimeout(timeout);
-      this.pollingTasks.delete(numberId);
-      this.logger.log(`Stopped polling for ${numberId}`);
+      const batches = this.chunkArray(activeNumbers, this.BATCH_SIZE);
+      let totalChecked = 0;
+      let totalReceived = 0;
+      let totalExpired = 0;
+      let totalErrors = 0;
+
+      for (const batch of batches) {
+        const results = await Promise.allSettled(batch.map((number) => this.checkNumberStatus(number)));
+        results.forEach((result, index) => {
+          totalChecked++;
+          if (result.status === 'fulfilled') {
+            const { received, expired } = result.value;
+            if (received) totalReceived++;
+            if (expired) totalExpired++;
+          } else {
+            totalErrors++;
+            this.logger.error(`Failed to check number ${batch[index].id}: ${result.reason}`);
+          }
+        });
+      }
+
+      const duration = Date.now() - startTime;
+      this.logger.log(`Polling completed in ${duration}ms: checked=${totalChecked}, received=${totalReceived}, expired=${totalExpired}, errors=${totalErrors}`);
+    } catch (error) {
+      this.logger.error(`Polling task failed: ${error.message}`, error.stack);
+    } finally {
+      this.isPolling = false;
     }
   }
 
-  /**
-   * 处理收到短信
-   */
-  private async handleSmsReceived(
-    number: VirtualNumber,
-    code: string,
-    messageText: string,
-  ): Promise<void> {
-    this.logger.log(`SMS received for ${number.phoneNumber}: ${code}`);
-
-    // 1. 更新虚拟号码状态
-    number.status = 'received';
-    number.smsReceivedAt = new Date();
-    await this.numberRepo.save(number);
-
-    // 2. 保存短信记录
-    const message = this.messageRepo.create({
-      virtualNumberId: number.id,
-      verificationCode: code,
-      messageText,
-      receivedAt: new Date(),
-    });
-    await this.messageRepo.save(message);
-
-    // 3. 通知设备（通过RabbitMQ）
-    await this.eventBus.publish('cloudphone.events', 'sms.code.received', {
-      numberId: number.id,
-      deviceId: number.deviceId,
-      phoneNumber: number.phoneNumber,
-      verificationCode: code,
-      messageText,
-      service: number.serviceName,
-    });
-
-    // 4. 调用平台API确认完成
+  private async checkNumberStatus(number: VirtualNumber): Promise<{ received: boolean; expired: boolean }> {
     try {
-      if (number.provider === 'sms-activate') {
-        await this.smsActivate.finish(number.providerActivationId);
+      const selection = await this.platformSelector.selectBestPlatform(number.serviceName, number.countryCode);
+      const provider = selection.provider;
+      const status = await provider.getStatus(number.providerActivationId);
+
+      switch (status.status) {
+        case 'received':
+          await this.handleMessageReceived(number, status.code, status.message);
+          return { received: true, expired: false };
+        case 'expired':
+        case 'cancelled':
+          await this.handleNumberExpired(number, status.status);
+          return { received: false, expired: true };
+        case 'waiting':
+          if (Date.now() > number.expiresAt.getTime()) {
+            await this.handleNumberExpired(number, 'expired');
+            return { received: false, expired: true };
+          }
+          return { received: false, expired: false };
+        default:
+          this.logger.warn(`Unknown status '${status.status}' for number ${number.id}`);
+          return { received: false, expired: false };
+      }
+    } catch (error) {
+      this.logger.error(`Error checking number ${number.id}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  private async handleMessageReceived(number: VirtualNumber, code: string | null, messageText?: string): Promise<void> {
+    try {
+      const existingMessage = await this.messageRepo.findOne({ where: { virtualNumberId: number.id } });
+      if (existingMessage) {
+        this.logger.debug(`Message already processed for number ${number.id}`);
+        return;
       }
 
-      number.status = 'completed';
+      const smsMessage = new SmsMessage();
+      smsMessage.virtualNumberId = number.id;
+      if (code) smsMessage.verificationCode = code;
+      if (messageText) smsMessage.messageText = messageText;
+      const sender = this.extractSender(messageText);
+      if (sender) smsMessage.sender = sender;
+      await this.messageRepo.save(smsMessage);
+
+      number.status = 'received';
+      number.smsReceivedAt = new Date();
+      if (number.rentalType !== 'one_time') {
+        number.rentalSmsCount += 1;
+      }
+      await this.numberRepo.save(number);
+
+      await this.eventBus.publish('cloudphone.events', 'sms.message.received', {
+        messageId: smsMessage.id,
+        numberId: number.id,
+        deviceId: number.deviceId,
+        userId: number.userId,
+        phoneNumber: number.phoneNumber,
+        verificationCode: code,
+        messageText: messageText,
+        service: number.serviceName,
+        provider: number.provider,
+        receivedAt: smsMessage.receivedAt.toISOString(),
+      });
+
+      this.logger.log(`SMS received for ${number.phoneNumber}: code=${code || 'N/A'}`);
+    } catch (error) {
+      this.logger.error(`Failed to handle received message for number ${number.id}`, error.stack);
+      throw error;
+    }
+  }
+
+  private async handleNumberExpired(number: VirtualNumber, reason: string): Promise<void> {
+    try {
+      number.status = 'expired';
       number.completedAt = new Date();
       await this.numberRepo.save(number);
 
-      this.logger.log(`Activation completed for ${number.phoneNumber}`);
+      await this.eventBus.publish('cloudphone.events', 'sms.number.expired', {
+        numberId: number.id,
+        deviceId: number.deviceId,
+        userId: number.userId,
+        phoneNumber: number.phoneNumber,
+        service: number.serviceName,
+        provider: number.provider,
+        reason,
+        expiredAt: number.completedAt.toISOString(),
+      });
+
+      this.logger.debug(`Number ${number.phoneNumber} expired: reason=${reason}`);
     } catch (error) {
-      this.logger.error(`Failed to finish activation ${number.id}`, error.stack);
+      this.logger.error(`Failed to handle expired number ${number.id}`, error.stack);
+      throw error;
     }
   }
 
-  /**
-   * 处理超时
-   */
-  private async handleTimeout(number: VirtualNumber): Promise<void> {
-    this.logger.warn(`Number ${number.phoneNumber} timed out`);
+  private async getActiveNumbers(): Promise<VirtualNumber[]> {
+    const now = new Date();
+    return await this.numberRepo.find({
+      where: {
+        status: In(['active', 'waiting_sms']),
+        expiresAt: MoreThan(now),
+      },
+      order: { createdAt: 'ASC' },
+      take: 500,
+    });
+  }
 
-    // 1. 取消号码（退款）
-    try {
-      if (number.provider === 'sms-activate') {
-        await this.smsActivate.cancel(number.providerActivationId);
-      }
-    } catch (error) {
-      this.logger.error('Failed to cancel timed out number', error.stack);
+  private extractSender(messageText?: string): string | null {
+    if (!messageText) return null;
+    const senderMatch = messageText.match(/From:\s*([^\n]+)/i);
+    return senderMatch ? senderMatch[1].trim() : null;
+  }
+
+  private chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
     }
-
-    // 2. 更新状态
-    number.status = 'expired';
-    number.completedAt = new Date();
-    await this.numberRepo.save(number);
-
-    // 3. 发布事件
-    await this.eventBus.publish('cloudphone.events', 'sms.number.expired', {
-      numberId: number.id,
-      deviceId: number.deviceId,
-      phoneNumber: number.phoneNumber,
-    });
+    return chunks;
   }
 
-  /**
-   * 计算轮询延迟（指数退避）
-   * 第1次: 1秒
-   * 第2次: 1.5秒
-   * 第3次: 2.25秒
-   * ...
-   * 最大: 60秒
-   */
-  private calculateDelay(attempts: number): number {
-    const delay = Math.min(
-      this.initialDelay * Math.pow(this.backoffFactor, attempts - 1),
-      this.maxDelay,
-    );
-
-    return Math.floor(delay);
+  async triggerPoll(): Promise<void> {
+    this.logger.log('Manual poll triggered');
+    await this.pollMessages();
   }
 
-  /**
-   * 获取活跃轮询数量
-   */
-  getActivePollingCount(): number {
-    return this.pollingTasks.size;
-  }
+  async getPollingStats(): Promise<{
+    isPolling: boolean;
+    activeNumbers: number;
+    receivedToday: number;
+    expiredToday: number;
+  }> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  /**
-   * 停止所有轮询（用于优雅关闭）
-   */
-  stopAllPolling(): void {
-    this.logger.log(`Stopping all ${this.pollingTasks.size} active pollings`);
-    this.pollingTasks.forEach((timeout, numberId) => {
-      clearTimeout(timeout);
-    });
-    this.pollingTasks.clear();
+    const [activeNumbers, receivedToday, expiredToday] = await Promise.all([
+      this.numberRepo.count({ where: { status: In(['active', 'waiting_sms']) } }),
+      this.messageRepo.count({ where: { receivedAt: MoreThan(today) } }),
+      this.numberRepo.count({ where: { status: 'expired', completedAt: MoreThan(today) } }),
+    ]);
+
+    return {
+      isPolling: this.isPolling,
+      activeNumbers,
+      receivedToday,
+      expiredToday,
+    };
   }
 }
