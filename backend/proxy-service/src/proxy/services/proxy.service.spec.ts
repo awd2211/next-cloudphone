@@ -67,6 +67,7 @@ describe('ProxyService', () => {
       setLoadBalancingStrategy: jest.fn(),
       refreshPool: jest.fn().mockResolvedValue(100),
       cleanupUnhealthyProxies: jest.fn().mockReturnValue(10),
+      getProxyByIdFromPool: jest.fn().mockReturnValue(mockProxyInfo),
     } as any;
 
     mockConfigService = {
@@ -150,7 +151,7 @@ describe('ProxyService', () => {
       const result = await service.acquireProxy(dto);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('No available proxy');
+      expect(result.message).toBe('No available proxy');
     });
 
     it('应该正确转换 DTO 参数', async () => {
@@ -212,7 +213,7 @@ describe('ProxyService', () => {
       const result = await service.releaseProxy('non-existent-proxy');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Proxy not found');
+      expect(result.message).toBe('Proxy not found');
     });
   });
 
@@ -244,7 +245,7 @@ describe('ProxyService', () => {
       const result = await service.reportSuccess('test-proxy-1', dto);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Report failed');
+      expect(result.message).toBe('Report failed');
     });
   });
 
@@ -317,7 +318,7 @@ describe('ProxyService', () => {
       const result = await service.getPoolStats();
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Stats unavailable');
+      expect(result.message).toBe('Stats unavailable');
     });
   });
 
@@ -404,7 +405,7 @@ describe('ProxyService', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid strategy');
+      expect(result.message).toBe('Invalid strategy');
     });
   });
 
@@ -425,7 +426,7 @@ describe('ProxyService', () => {
       const result = await service.forceRefreshPool();
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Refresh failed');
+      expect(result.message).toBe('Refresh failed');
     });
   });
 
@@ -441,10 +442,13 @@ describe('ProxyService', () => {
     });
 
     it('应该抛出 NotFoundException 当代理不存在', async () => {
+      // Mock: 从池中找不到代理
+      mockPoolManager.getProxyByIdFromPool.mockReturnValueOnce(null);
+
       const result = await service.getProxyById('non-existent-proxy');
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Proxy not found');
+      expect(result.message).toContain('Proxy not found');
     });
   });
 

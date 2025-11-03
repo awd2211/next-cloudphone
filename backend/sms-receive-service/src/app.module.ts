@@ -11,7 +11,14 @@ import {
 } from '@cloudphone/shared';
 
 // Entities
-import { VirtualNumber, SmsMessage, ProviderConfig, NumberPool } from './entities';
+import {
+  VirtualNumber,
+  SmsMessage,
+  ProviderConfig,
+  NumberPool,
+  ProviderBlacklist,
+  ABTestConfig,
+} from './entities';
 
 // Providers
 import { SmsActivateAdapter } from './providers/sms-activate.adapter';
@@ -21,12 +28,20 @@ import { FiveSimAdapter } from './providers/5sim.adapter';
 import { NumberManagementService } from './services/number-management.service';
 import { MessagePollingService } from './services/message-polling.service';
 import { PlatformSelectorService } from './services/platform-selector.service';
+import { BlacklistManagerService } from './services/blacklist-manager.service';
+import { ABTestManagerService } from './services/ab-test-manager.service';
+import { NumberPoolManagerService } from './services/number-pool-manager.service';
+import { VerificationCodeExtractorService } from './services/verification-code-extractor.service';
+import { VerificationCodeCacheService } from './services/verification-code-cache.service';
 
 // Controllers
 import { NumbersController } from './controllers/numbers.controller';
+import { StatisticsController } from './controllers/statistics.controller';
+import { VerificationCodeController } from './controllers/verification-code.controller';
 
 // Modules
 import { HealthModule } from './health/health.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -46,7 +61,14 @@ import { HealthModule } from './health/health.module';
         username: configService.get<string>('DB_USERNAME', 'postgres'),
         password: configService.get<string>('DB_PASSWORD', 'postgres'),
         database: configService.get<string>('DB_DATABASE', 'cloudphone'),
-        entities: [VirtualNumber, SmsMessage, ProviderConfig, NumberPool],
+        entities: [
+          VirtualNumber,
+          SmsMessage,
+          ProviderConfig,
+          NumberPool,
+          ProviderBlacklist,
+          ABTestConfig,
+        ],
         synchronize: configService.get<boolean>('DB_SYNCHRONIZE', false),
         logging: configService.get<string>('NODE_ENV') === 'development',
         ssl: configService.get<string>('NODE_ENV') === 'production' ? {
@@ -61,6 +83,8 @@ import { HealthModule } from './health/health.module';
       SmsMessage,
       ProviderConfig,
       NumberPool,
+      ProviderBlacklist,
+      ABTestConfig,
     ]),
 
     // HTTP Client
@@ -77,11 +101,14 @@ import { HealthModule } from './health/health.module';
     ConsulModule,
     AppCacheModule,
 
+    // Authentication
+    AuthModule,
+
     // Health & Monitoring
     HealthModule,
   ],
 
-  controllers: [NumbersController],
+  controllers: [NumbersController, StatisticsController, VerificationCodeController],
 
   providers: [
     // Adapters
@@ -92,6 +119,11 @@ import { HealthModule } from './health/health.module';
     PlatformSelectorService,
     NumberManagementService,
     MessagePollingService,
+    BlacklistManagerService,
+    ABTestManagerService,
+    NumberPoolManagerService,
+    VerificationCodeExtractorService,
+    VerificationCodeCacheService,
   ],
 })
 export class AppModule {}

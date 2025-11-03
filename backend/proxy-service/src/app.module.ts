@@ -2,10 +2,19 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
-import { CacheModule } from '@nestjs/cache-manager';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
-import * as redisStore from 'cache-manager-redis-store';
 
+// ✅ 导入共享模块
+import {
+  ConsulModule,
+  EventBusModule,
+  AppCacheModule,
+  createLoggerConfig,
+  RequestIdMiddleware,
+} from '@cloudphone/shared';
+
+import { AuthModule } from './auth/auth.module';
+import { HealthModule } from './health/health.module';
 import { AdaptersModule } from './adapters/adapters.module';
 import { PoolModule } from './pool/pool.module';
 import { ProxyModule } from './proxy/proxy.module';
@@ -23,14 +32,29 @@ import { CostRecord } from './entities/cost-record.entity';
 
 @Module({
   imports: [
-    // 配置模块 - 全局可用
+    // ===== 配置模块 - 全局可用 =====
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '.env.local'],
       cache: true,
     }),
 
-    // 数据库模块
+    // ===== 共享模块集成 =====
+    // ✅ Consul 服务注册与发现
+    ConsulModule,
+
+    // ⚠️ EventBusModule 暂不启用
+    // 原因：proxy-service 不需要消费或发布事件（独立服务）
+    // 说明：proxy-service 只提供代理管理功能，不参与事件驱动架构
+    // EventBusModule.forRoot(),
+
+    // ✅ Redis 缓存 (ProxyPoolManager 需要)
+    AppCacheModule,
+
+    // ⚠️ SecurityModule 暂时禁用（在共享模块中未启用）
+    // SecurityModule,
+
+    // ===== 数据库模块 =====
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -59,24 +83,10 @@ import { CostRecord } from './entities/cost-record.entity';
       }),
     }),
 
-    // Redis缓存模块
-    CacheModule.registerAsync({
-      isGlobal: true,
-      inject: [ConfigService],
-      useFactory: async (config: ConfigService) => ({
-        store: redisStore as any,
-        host: config.get('REDIS_HOST', 'localhost'),
-        port: config.get<number>('REDIS_PORT', 6379),
-        password: config.get('REDIS_PASSWORD'),
-        ttl: 600, // 默认TTL: 10分钟
-        max: 10000, // 最大缓存条目数
-      }),
-    }),
-
-    // 定时任务模块
+    // ===== 定时任务模块 =====
     ScheduleModule.forRoot(),
 
-    // Prometheus监控模块
+    // ===== Prometheus 监控模块 =====
     PrometheusModule.register({
       defaultMetrics: {
         enabled: true,
@@ -86,10 +96,16 @@ import { CostRecord } from './entities/cost-record.entity';
       },
     }),
 
-    // 业务模块
-    AdaptersModule,    // 供应商适配器
-    PoolModule,        // 代理池管理
-    ProxyModule,       // 代理业务逻辑
+    // ===== 认证模块 =====
+    AuthModule, // JWT 认证
+
+    // ===== 健康检查模块 =====
+    HealthModule, // 服务健康状态监控
+
+    // ===== 业务模块 =====
+    AdaptersModule, // 供应商适配器
+    PoolModule, // 代理池管理
+    ProxyModule, // 代理业务逻辑
     // TODO: 待实现的模块
     // StatisticsModule,  // 统计分析
     // MonitoringModule,  // 监控告警

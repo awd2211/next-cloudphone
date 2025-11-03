@@ -324,13 +324,22 @@ export class ProxyService {
 
   /**
    * 获取代理详情（通过ID）
+   * Phase 3.1: 改进为从代理池获取
    */
   async getProxyById(proxyId: string): Promise<ApiResponse<ProxyResponseDto>> {
     try {
-      const proxy = this.activeProxies.get(proxyId);
+      // Phase 3.1: 优先从代理池获取（包含所有代理）
+      const proxy = this.poolManager.getProxyByIdFromPool(proxyId);
 
       if (!proxy) {
-        throw new NotFoundException(`Proxy not found: ${proxyId}`);
+        // Fallback: 从活跃缓存查找
+        const activeProxy = this.activeProxies.get(proxyId);
+        if (!activeProxy) {
+          throw new NotFoundException(`Proxy not found: ${proxyId}`);
+        }
+
+        const response = ProxyResponseDto.fromProxyInfo(activeProxy);
+        return ApiResponse.success(response);
       }
 
       const response = ProxyResponseDto.fromProxyInfo(proxy);
@@ -339,6 +348,81 @@ export class ProxyService {
     } catch (error) {
       this.logger.error(`Failed to get proxy: ${error.message}`, error.stack);
       return ApiResponse.error(error.message, 'GET_PROXY_FAILED');
+    }
+  }
+
+  /**
+   * 列出所有代理（用于 Phase 3.1 智能选择）
+   * @param criteria - 筛选条件
+   * @param availableOnly - 是否只返回可用代理
+   * @param limit - 返回数量限制
+   * @param offset - 偏移量
+   */
+  async listProxies(
+    criteria?: ProxyCriteria,
+    availableOnly: boolean = false,
+    limit?: number,
+    offset: number = 0,
+  ): Promise<ApiResponse<ProxyResponseDto[]>> {
+    try {
+      this.logger.debug(
+        `Listing proxies - availableOnly: ${availableOnly}, limit: ${limit}, offset: ${offset}`,
+      );
+
+      const proxies = this.poolManager.listProxies(
+        criteria,
+        availableOnly,
+        limit,
+        offset,
+      );
+
+      const responses = proxies.map((proxy) =>
+        ProxyResponseDto.fromProxyInfo(proxy),
+      );
+
+      this.logger.log(`Listed ${responses.length} proxies`);
+
+      return ApiResponse.success(responses);
+    } catch (error) {
+      this.logger.error(`Failed to list proxies: ${error.message}`, error.stack);
+      return ApiResponse.error(error.message, 'LIST_PROXIES_FAILED');
+    }
+  }
+
+  /**
+   * 分配指定的代理（用于 Phase 3.1 智能选择）
+   * @param proxyId - 代理ID
+   * @param validate - 是否验证代理可用性
+   */
+  async assignSpecificProxy(
+    proxyId: string,
+    validate: boolean = true,
+  ): Promise<ApiResponse<ProxyResponseDto>> {
+    try {
+      this.logger.log(
+        `Assigning specific proxy: ${proxyId}, validate: ${validate}`,
+      );
+
+      // 从池中分配指定代理
+      const proxy = await this.poolManager.assignSpecificProxy(proxyId, validate);
+
+      // 添加到活跃代理列表
+      this.activeProxies.set(proxy.id, proxy);
+
+      // 转换为响应DTO
+      const response = ProxyResponseDto.fromProxyInfo(proxy);
+
+      this.logger.log(
+        `Specific proxy assigned successfully: ${proxy.id} (${proxy.provider})`,
+      );
+
+      return ApiResponse.success(response);
+    } catch (error) {
+      this.logger.error(
+        `Failed to assign specific proxy: ${error.message}`,
+        error.stack,
+      );
+      return ApiResponse.error(error.message, 'ASSIGN_PROXY_FAILED');
     }
   }
 }

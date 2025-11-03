@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { ConsulService } from '@cloudphone/shared';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -32,11 +33,12 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('SMS Receive Service API')
     .setDescription('Virtual phone number and SMS receiving service for Cloud Phone Platform')
-    .setVersion('1.0')
+    .setVersion('1.0.0')
+    .addBearerAuth()
     .addTag('Virtual Numbers', 'Manage virtual phone numbers for SMS reception')
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('docs', app, document);
 
   // Graceful shutdown
   process.on('SIGTERM', async () => {
@@ -49,11 +51,23 @@ async function bootstrap() {
     await app.close();
   });
 
-  const port = configService.get<number>('PORT', 30007);
+  const port = parseInt(configService.get<string>('PORT', '30008'), 10);
   await app.listen(port);
 
+  // ========== 注册到 Consul ==========
+
+  try {
+    const consulService = app.get(ConsulService);
+    await consulService.registerService('sms-receive-service', port, ['v1', 'sms']);
+    logger.log(`✅ Service registered to Consul`);
+  } catch (error) {
+    logger.warn(`⚠️  Failed to register to Consul: ${error.message}`);
+  }
+
+  // ========== 服务启动日志 ==========
+
   logger.log(`🚀 SMS Receive Service is running on: http://localhost:${port}`);
-  logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  logger.log(`📚 API Documentation: http://localhost:${port}/docs`);
   logger.log(`📊 Environment: ${configService.get<string>('NODE_ENV')}`);
   logger.log(`💾 Database: ${configService.get<string>('DB_DATABASE')}`);
 }

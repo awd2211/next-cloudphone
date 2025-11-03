@@ -167,4 +167,20 @@ export class CreateDeviceDto {
   })
   @IsOptional()
   providerSpecificConfig?: Record<string, any>;
+
+  @ApiPropertyOptional({
+    description: '代理国家/地区偏好（ISO 3166-1 alpha-2 代码，如：US, CN, JP）',
+    example: 'US',
+  })
+  @IsString({ message: '代理国家必须是字符串' })
+  @IsOptional()
+  proxyCountry?: string;
+
+  @ApiPropertyOptional({
+    description: '代理选择策略（least_connections=最少连接, weighted_round_robin=加权轮询, latency_first=延迟优先, success_rate_first=成功率优先, random=随机, highest_score=最高评分）',
+    example: 'highest_score',
+  })
+  @IsString({ message: '代理策略必须是字符串' })
+  @IsOptional()
+  proxyStrategy?: string;
 }

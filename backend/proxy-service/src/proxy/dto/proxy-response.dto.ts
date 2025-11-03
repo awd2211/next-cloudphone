@@ -120,53 +120,5 @@ export class ProxyResponseDto {
   }
 }
 
-/**
- * 通用API响应包装
- */
-export class ApiResponse<T> {
-  @ApiProperty({
-    description: '是否成功',
-    example: true,
-  })
-  success: boolean;
-
-  @ApiPropertyOptional({
-    description: '响应数据',
-  })
-  data?: T;
-
-  @ApiPropertyOptional({
-    description: '错误信息',
-    example: 'Failed to acquire proxy',
-  })
-  error?: string;
-
-  @ApiPropertyOptional({
-    description: '错误代码',
-    example: 'NO_PROVIDER_AVAILABLE',
-  })
-  errorCode?: string;
-
-  @ApiProperty({
-    description: '时间戳',
-    example: '2025-11-02T10:30:00.000Z',
-  })
-  timestamp: Date;
-
-  static success<T>(data: T): ApiResponse<T> {
-    return {
-      success: true,
-      data,
-      timestamp: new Date(),
-    };
-  }
-
-  static error(error: string, errorCode?: string): ApiResponse<null> {
-    return {
-      success: false,
-      error,
-      errorCode,
-      timestamp: new Date(),
-    };
-  }
-}
+// ApiResponse已移至api-response.dto.ts以避免重复定义
+// 如需使用，请从 './api-response.dto' 导入

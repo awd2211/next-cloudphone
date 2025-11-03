@@ -1384,12 +1384,12 @@ export class AllocationService {
       totalDurationMinutes: allocation.durationMinutes + allocation.metadata.totalExtendedMinutes,
     });
 
-    // 18. 发送通知
-    try {
-      const device = await this.deviceRepository.findOne({
-        where: { id: allocation.deviceId },
-      });
+    // 18. 发送通知 (✅ 优化: 只查询一次 device，后续复用)
+    const device = await this.deviceRepository.findOne({
+      where: { id: allocation.deviceId },
+    });
 
+    try {
       if (device) {
         await this.notificationClient.sendBatchNotifications([
           {
@@ -1417,11 +1417,7 @@ export class AllocationService {
       this.logger.warn(`Failed to send extend notification: ${notificationError.message}`);
     }
 
-    // 19. 返回结果
-    const device = await this.deviceRepository.findOne({
-      where: { id: allocation.deviceId },
-    });
-
+    // 19. 返回结果 (✅ 复用已查询的 device，避免重复查询)
     return {
       allocationId,
       userId: allocation.userId,

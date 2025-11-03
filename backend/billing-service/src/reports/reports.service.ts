@@ -300,31 +300,58 @@ export class ReportsService {
 
   /**
    * 获取套餐统计
+   * ✅ 优化: 使用 QueryBuilder 聚合查询，从 2N+1 次查询降至 2 次查询
    */
   async getPlanStats(): Promise<any> {
+    // ✅ 1. 获取所有套餐 (1 次查询)
     const plans = await this.planRepository.find();
-    const planStats = [];
 
-    for (const plan of plans) {
-      const orderCount = await this.orderRepository.count({
-        where: { planId: plan.id },
-      });
+    // ✅ 2. 使用 QueryBuilder 聚合统计所有订单数据 (1 次查询，避免 N+1)
+    const orderStats = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('order.planId', 'planId')
+      .addSelect('COUNT(*)', 'orderCount')
+      .addSelect(
+        'SUM(CASE WHEN order.status = :status THEN 1 ELSE 0 END)',
+        'paidCount'
+      )
+      .addSelect(
+        'COALESCE(SUM(CASE WHEN order.status = :status THEN order.amount ELSE 0 END), 0)',
+        'totalRevenue'
+      )
+      .where('order.planId IS NOT NULL')
+      .setParameter('status', OrderStatus.PAID)
+      .groupBy('order.planId')
+      .getRawMany();
 
-      const paidOrders = await this.orderRepository.find({
-        where: { planId: plan.id, status: OrderStatus.PAID },
-      });
+    // ✅ 3. 创建 Map 用于 O(1) 查找
+    const statsMap = new Map(
+      orderStats.map(s => [s.planId, {
+        orderCount: parseInt(s.orderCount),
+        paidCount: parseInt(s.paidCount),
+        totalRevenue: parseFloat(s.totalRevenue)
+      }])
+    );
 
-      const totalRevenue = paidOrders.reduce((sum, order) => sum + order.amount, 0);
+    // ✅ 4. 在内存中组装结果（无数据库查询）
+    const planStats = plans.map(plan => {
+      const stats = statsMap.get(plan.id) || {
+        orderCount: 0,
+        paidCount: 0,
+        totalRevenue: 0
+      };
 
-      planStats.push({
+      return {
         planId: plan.id,
         planName: plan.name,
         price: plan.price,
-        orderCount,
-        paidCount: paidOrders.length,
-        totalRevenue: totalRevenue.toFixed(2),
-      });
-    }
+        orderCount: stats.orderCount,
+        paidCount: stats.paidCount,
+        totalRevenue: stats.totalRevenue.toFixed(2),
+      };
+    });
+
+    this.logger.log(`✅ Plan stats computed: ${plans.length} plans, 2 DB queries instead of ${plans.length * 2 + 1}`);
 
     return planStats;
   }

@@ -178,3 +178,29 @@ export interface ProxyOperationResult<T = void> {
   /** 错误代码 */
   errorCode?: string;
 }
+
+/**
+ * 列出代理的选项
+ */
+export interface ListProxiesOptions {
+  /** 筛选条件 */
+  criteria?: ProxyCriteria;
+  /** 每页数量 */
+  limit?: number;
+  /** 偏移量 */
+  offset?: number;
+  /** 是否只返回可用代理 */
+  availableOnly?: boolean;
+}
+
+/**
+ * 分配指定代理的请求
+ */
+export interface AssignProxyRequest {
+  /** 代理ID */
+  proxyId: string;
+  /** 是否验证代理可用性 */
+  validate?: boolean;
+  /** 超时时间 (ms) */
+  timeout?: number;
+}

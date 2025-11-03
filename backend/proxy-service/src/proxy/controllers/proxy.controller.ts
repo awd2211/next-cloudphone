@@ -4,9 +4,11 @@ import {
   Get,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   UseInterceptors,
+  UseGuards,
   ClassSerializerInterceptor,
 } from '@nestjs/common';
 import {
@@ -25,17 +27,29 @@ import {
   PoolStatsResponseDto,
   HealthResponseDto,
   ApiResponse,
+  ListProxiesDto,
+  AssignProxyDto,
 } from '../dto';
 import { LoadBalancingStrategy } from '../../common/interfaces';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { RequirePermission } from '../../auth/decorators/permissions.decorator';
+import { Public } from '../../auth/decorators/public.decorator';
 
 /**
  * 代理控制器
  *
  * 提供代理管理的 REST API 端点
+ *
+ * 使用双层守卫：
+ * 1. JwtAuthGuard - 验证 JWT token，设置 request.user
+ * 2. PermissionsGuard - 检查用户权限
  */
 @ApiTags('proxy')
 @Controller('proxy')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiBearerAuth() // Swagger 文档显示需要 Bearer Token
 export class ProxyController {
   constructor(private readonly proxyService: ProxyService) {}
 
@@ -43,6 +57,7 @@ export class ProxyController {
    * 获取代理
    */
   @Post('acquire')
+  @RequirePermission('proxy.acquire')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '获取代理',
@@ -64,8 +79,79 @@ export class ProxyController {
   }
 
   /**
+   * 列出所有代理（Phase 3.1）
+   */
+  @RequirePermission('proxy.list')
+  @Get('list')
+  @ApiOperation({
+    summary: '列出所有代理',
+    description: '获取代理池中的所有代理列表（支持筛选和分页）',
+  })
+  @SwaggerApiResponse({
+    status: 200,
+    description: '成功获取代理列表',
+    type: [ProxyResponseDto],
+  })
+  async listProxies(
+    @Query() dto: ListProxiesDto,
+  ): Promise<ApiResponse<ProxyResponseDto[]>> {
+    const criteria = dto.country || dto.city || dto.state || dto.protocol || dto.minQuality || dto.maxLatency || dto.maxCostPerGB || dto.provider
+      ? {
+          country: dto.country,
+          city: dto.city,
+          state: dto.state,
+          protocol: dto.protocol,
+          minQuality: dto.minQuality,
+          maxLatency: dto.maxLatency,
+          maxCostPerGB: dto.maxCostPerGB,
+          provider: dto.provider,
+        }
+      : undefined;
+
+    return this.proxyService.listProxies(
+      criteria,
+      dto.availableOnly ?? false,
+      dto.limit,
+      dto.offset ?? 0,
+    );
+  }
+
+  /**
+   * 分配指定代理（Phase 3.1）
+   */
+  @RequirePermission('proxy.assign')
+  @Post('assign')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '分配指定代理',
+    description: '根据代理ID分配特定的代理（用于智能代理选择）',
+  })
+  @SwaggerApiResponse({
+    status: 200,
+    description: '成功分配代理',
+    type: ProxyResponseDto,
+  })
+  @SwaggerApiResponse({
+    status: 404,
+    description: '代理不存在',
+  })
+  @SwaggerApiResponse({
+    status: 400,
+    description: '代理不可用',
+  })
+  async assignProxy(
+    @Body() dto: AssignProxyDto,
+  ): Promise<ApiResponse<ProxyResponseDto>> {
+    return this.proxyService.assignSpecificProxy(
+      dto.proxyId,
+      dto.validate ?? true,
+    );
+  }
+
+  /**
    * 释放代理
    */
+  @RequirePermission('proxy.release')
   @Post('release/:proxyId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -94,6 +180,7 @@ export class ProxyController {
   /**
    * 报告代理使用成功
    */
+  @RequirePermission('proxy.report')
   @Post('report-success/:proxyId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -119,6 +206,7 @@ export class ProxyController {
   /**
    * 报告代理使用失败
    */
+  @RequirePermission('proxy.report')
   @Post('report-failure/:proxyId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -144,6 +232,7 @@ export class ProxyController {
   /**
    * 获取池统计信息
    */
+  @RequirePermission('proxy.stats')
   @Get('stats/pool')
   @ApiOperation({
     summary: '获取代理池统计',
@@ -161,6 +250,7 @@ export class ProxyController {
   /**
    * 健康检查
    */
+  @Public()
   @Get('health')
   @ApiOperation({
     summary: '健康检查',
@@ -178,6 +268,7 @@ export class ProxyController {
   /**
    * 设置负载均衡策略
    */
+  @RequirePermission('proxy.strategy')
   @Post('strategy/:strategy')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
@@ -204,6 +295,7 @@ export class ProxyController {
   /**
    * 强制刷新代理池
    */
+  @RequirePermission('proxy.refresh')
   @Post('admin/refresh-pool')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
@@ -222,6 +314,7 @@ export class ProxyController {
   /**
    * 获取活跃代理数量
    */
+  @RequirePermission('proxy.stats')
   @Get('stats/active')
   @ApiOperation({
     summary: '获取活跃代理数量',
@@ -240,6 +333,7 @@ export class ProxyController {
    * 获取代理详情
    * ⚠️ 注意：此路由必须放在最后，因为它是参数化路由，会匹配任何字符串
    */
+  @RequirePermission('proxy.read')
   @Get(':proxyId')
   @ApiOperation({
     summary: '获取代理详情',

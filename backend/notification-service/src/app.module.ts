@@ -3,11 +3,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
-import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { redisStore } from 'cache-manager-redis-yet';
-import { createLoggerConfig, ConsulModule, SecurityModule } from '@cloudphone/shared';
+import { createLoggerConfig, ConsulModule } from '@cloudphone/shared';
 import { HealthController } from './health/health.controller';
 import { TasksService } from './tasks/tasks.service';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -26,13 +24,13 @@ import { MediaEventsConsumer } from './rabbitmq/consumers/media-events.consumer'
 import { SystemEventsConsumer } from './rabbitmq/consumers/system-events.consumer';
 import { DlxConsumer } from './rabbitmq/consumers/dlx.consumer';
 import { AuthModule } from './auth/auth.module';
+import { CacheModule } from './cache/cache.module'; // ✅ 使用自定义的 @Global() CacheModule
 import { Notification } from './entities/notification.entity';
 import { NotificationTemplate } from './entities/notification-template.entity';
 import { NotificationPreference } from './entities/notification-preference.entity';
 import { SmsRecord } from './sms/entities/sms-record.entity';
 import { validate } from './common/config/env.validation';
 import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusModule
-import { CacheService } from './cache/cache.service'; // ✅ 缓存服务
 
 @Module({
   imports: [
@@ -63,24 +61,8 @@ import { CacheService } from './cache/cache.service'; // ✅ 缓存服务
       inject: [ConfigService],
     }),
 
-    // ========== Redis 缓存 ==========
-    CacheModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
-        const store = await redisStore({
-          socket: {
-            host: configService.get('REDIS_HOST', 'localhost'),
-            port: configService.get('REDIS_PORT', 6379),
-          },
-          password: configService.get('REDIS_PASSWORD'),
-          database: configService.get('REDIS_CACHE_DB', 1),
-          ttl: 60 * 1000, // milliseconds
-        });
-        return { store };
-      },
-      inject: [ConfigService],
-      isGlobal: true,
-    }),
+    // ========== Redis 缓存 (使用自定义 @Global CacheModule) ==========
+    CacheModule,
 
     // ========== Redis 直接连接 (用于 OTP) ==========
     RedisModule.forRootAsync({
@@ -128,7 +110,6 @@ import { CacheService } from './cache/cache.service'; // ✅ 缓存服务
   ],
   controllers: [HealthController],
   providers: [
-    CacheService, // ✅ 统一缓存服务
     TasksService,
     NotificationEventsHandler,
     NotificationGateway, // ✅ WebSocket 网关

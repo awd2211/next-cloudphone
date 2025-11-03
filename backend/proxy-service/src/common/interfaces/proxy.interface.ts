@@ -1,4 +1,13 @@
 /**
+ * 代理协议类型
+ */
+export enum ProxyProtocol {
+  HTTP = 'http',
+  HTTPS = 'https',
+  SOCKS5 = 'socks5',
+}
+
+/**
  * 代理信息接口
  * 统一的代理对象结构，供所有供应商适配器使用
  */
@@ -19,7 +28,7 @@ export interface ProxyInfo {
   password?: string;
 
   /** 协议类型 */
-  protocol: 'http' | 'https' | 'socks5';
+  protocol: ProxyProtocol | 'http' | 'https' | 'socks5';
 
   /** 供应商名称 */
   provider: string;
@@ -67,6 +76,32 @@ export interface ProxyInfo {
 
   /** 过期时间 */
   expiresAt?: Date;
+
+  // ========== 以下为扩展字段，提供给 Services 直接访问 ==========
+
+  /** 成功率 (0-100) - 直接访问 */
+  successRate?: number;
+
+  /** 国家代码 - 直接访问（与 location.country 同步） */
+  country?: string;
+
+  /** 城市名称 - 直接访问（与 location.city 同步） */
+  city?: string;
+
+  /** ISP 类型 */
+  ispType?: string; // residential, datacenter, mobile
+
+  /** 匿名级别 */
+  anonymityLevel?: string; // elite, anonymous, transparent
+
+  /** 总请求数 */
+  totalRequests?: number;
+
+  /** 成功请求数 */
+  successfulRequests?: number;
+
+  /** 失败请求数 */
+  failedRequests?: number;
 }
 
 /**
@@ -83,7 +118,7 @@ export interface ProxyCriteria {
   state?: string;
 
   /** 协议类型 */
-  protocol?: 'http' | 'https' | 'socks5';
+  protocol?: ProxyProtocol | 'http' | 'https' | 'socks5';
 
   /** 最低质量分数 */
   minQuality?: number;
@@ -115,7 +150,7 @@ export interface GetProxyOptions {
   limit?: number;
 
   /** 协议类型 */
-  protocol?: 'http' | 'https' | 'socks5';
+  protocol?: ProxyProtocol | 'http' | 'https' | 'socks5';
 
   /** 会话类型 */
   session?: 'rotating' | 'sticky';
