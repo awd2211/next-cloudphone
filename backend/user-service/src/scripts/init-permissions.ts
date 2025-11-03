@@ -38,11 +38,12 @@ const DEFAULT_PERMISSIONS = [
   { resource: 'device', action: 'update', description: '更新设备' },
   { resource: 'device', action: 'delete', description: '删除设备' },
   { resource: 'device', action: 'control', description: '控制设备' },
+  { resource: 'device', action: 'manage', description: '管理设备（综合权限）' },
   { resource: 'device', action: 'export', description: '导出设备数据' },
-  { resource: 'device', action: 'app:operate', description: '应用操作（启动/停止/清除数据）' },
-  { resource: 'device', action: 'snapshot:create', description: '创建设备快照' },
-  { resource: 'device', action: 'snapshot:restore', description: '恢复设备快照' },
-  { resource: 'device', action: 'snapshot:delete', description: '删除设备快照' },
+  { resource: 'device', action: 'app-operate', description: '应用操作（启动/停止/清除数据）' },
+  { resource: 'device', action: 'snapshot-create', description: '创建设备快照' },
+  { resource: 'device', action: 'snapshot-restore', description: '恢复设备快照' },
+  { resource: 'device', action: 'snapshot-delete', description: '删除设备快照' },
 
   // 应用管理权限
   { resource: 'app', action: 'create', description: '创建应用' },
@@ -51,6 +52,7 @@ const DEFAULT_PERMISSIONS = [
   { resource: 'app', action: 'delete', description: '删除应用' },
   { resource: 'app', action: 'install', description: '安装应用' },
   { resource: 'app', action: 'uninstall', description: '卸载应用' },
+  { resource: 'app', action: 'approve', description: '审批应用' },
 
   // 订单管理权限
   { resource: 'order', action: 'create', description: '创建订单' },
@@ -92,48 +94,129 @@ const DEFAULT_PERMISSIONS = [
   { resource: 'permission', action: 'assign', description: '分配权限' },
 
   // 数据范围管理
-  { resource: 'permission', action: 'dataScope:list', description: '查看数据范围配置' },
-  { resource: 'permission', action: 'dataScope:create', description: '创建数据范围配置' },
-  { resource: 'permission', action: 'dataScope:update', description: '更新数据范围配置' },
-  { resource: 'permission', action: 'dataScope:delete', description: '删除数据范围配置' },
+  { resource: 'permission', action: 'dataScope-list', description: '查看数据范围配置' },
+  { resource: 'permission', action: 'dataScope-create', description: '创建数据范围配置' },
+  { resource: 'permission', action: 'dataScope-update', description: '更新数据范围配置' },
+  { resource: 'permission', action: 'dataScope-delete', description: '删除数据范围配置' },
 
   // 字段权限管理
   {
     resource: 'permission',
-    action: 'fieldPermission:list',
+    action: 'fieldPermission-list',
     description: '查看字段权限配置',
   },
   {
     resource: 'permission',
-    action: 'fieldPermission:create',
+    action: 'fieldPermission-create',
     description: '创建字段权限配置',
   },
   {
     resource: 'permission',
-    action: 'fieldPermission:update',
+    action: 'fieldPermission-update',
     description: '更新字段权限配置',
   },
   {
     resource: 'permission',
-    action: 'fieldPermission:delete',
+    action: 'fieldPermission-delete',
     description: '删除字段权限配置',
   },
 
   // 菜单权限管理
-  { resource: 'permission', action: 'menu:list', description: '查看菜单权限' },
-  { resource: 'permission', action: 'menu:view', description: '查看用户菜单' },
+  { resource: 'permission', action: 'menu-list', description: '查看菜单权限' },
+  { resource: 'permission', action: 'menu-view', description: '查看用户菜单' },
 
-  // 审计日志权限
-  { resource: 'audit_log', action: 'read', description: '查看审计日志' },
-  { resource: 'audit_log', action: 'export', description: '导出审计日志' },
+  // 审计日志权限（统一使用 audit-log 格式）
+  { resource: 'audit-log', action: 'read', description: '查看审计日志' },
+  { resource: 'audit-log', action: 'export', description: '导出审计日志' },
+  { resource: 'audit-log', action: 'search', description: '搜索审计日志' },
+  { resource: 'audit-log', action: 'user-view', description: '查看用户审计日志' },
+  { resource: 'audit-log', action: 'resource-view', description: '查看资源审计日志' },
+  { resource: 'audit-log', action: 'stats', description: '审计日志统计' },
 
   // 系统设置权限
-  { resource: 'system', action: 'settings:read', description: '查看系统设置' },
-  { resource: 'system', action: 'settings:update', description: '更新系统设置' },
+  { resource: 'system', action: 'settings-read', description: '查看系统设置' },
+  { resource: 'system', action: 'settings-update', description: '更新系统设置' },
 
   // 缓存管理权限
-  { resource: 'permission', action: 'cache:view', description: '查看权限缓存' },
-  { resource: 'permission', action: 'cache:manage', description: '管理权限缓存' },
+  { resource: 'permission', action: 'cache-view', description: '查看权限缓存' },
+  { resource: 'permission', action: 'cache-manage', description: '管理权限缓存' },
+
+  // ========== 新增服务权限 ==========
+
+  // Proxy Service - 代理管理服务
+  { resource: 'proxy', action: 'acquire', description: '获取代理IP' },
+  { resource: 'proxy', action: 'list', description: '查看代理列表' },
+  { resource: 'proxy', action: 'read', description: '查看代理详情' },
+  { resource: 'proxy', action: 'assign', description: '分配代理' },
+  { resource: 'proxy', action: 'release', description: '释放代理' },
+  { resource: 'proxy', action: 'report', description: '报告代理状态' },
+  { resource: 'proxy', action: 'stats', description: '查看代理统计' },
+  { resource: 'proxy', action: 'refresh', description: '刷新代理池（管理员）' },
+  { resource: 'proxy', action: 'strategy', description: '设置代理策略（管理员）' },
+  { resource: 'proxy', action: 'health', description: '查看健康状态' },
+
+  // SMS Receive Service - 短信验证码服务
+  { resource: 'sms', action: 'request', description: '请求虚拟号码' },
+  { resource: 'sms', action: 'read', description: '查看号码信息' },
+  { resource: 'sms', action: 'cancel', description: '取消号码' },
+  { resource: 'sms', action: 'batch', description: '批量号码操作' },
+  { resource: 'sms', action: 'messages', description: '查看验证码消息' },
+  { resource: 'sms', action: 'stats', description: '查看SMS统计' },
+  { resource: 'sms', action: 'trigger-poll', description: '触发轮询（管理员）' },
+  { resource: 'sms', action: 'provider-stats', description: '查看供应商统计' },
+
+  // SMS 通知服务 - 短信发送功能 (notification-service)
+  { resource: 'sms', action: 'send', description: '发送单条短信' },
+  { resource: 'sms', action: 'send-batch', description: '批量发送短信' },
+  { resource: 'sms', action: 'validate', description: '验证手机号格式' },
+
+  // SMS OTP 验证码功能
+  { resource: 'sms', action: 'otp-send', description: '发送OTP验证码' },
+  { resource: 'sms', action: 'otp-verify', description: '验证OTP验证码' },
+  { resource: 'sms', action: 'otp-active', description: '检查活跃OTP' },
+  { resource: 'sms', action: 'otp-retries', description: '查看OTP重试次数' },
+  { resource: 'sms', action: 'otp-stats', description: '查看OTP统计' },
+  { resource: 'sms', action: 'otp-clear', description: '清除OTP（管理员）' },
+
+  // Notification Service - 通知服务
+  { resource: 'notification', action: 'create', description: '创建通知' },
+  { resource: 'notification', action: 'broadcast', description: '广播通知' },
+  { resource: 'notification', action: 'read', description: '查看通知' },
+  { resource: 'notification', action: 'update', description: '更新通知状态' },
+  { resource: 'notification', action: 'delete', description: '删除通知' },
+  { resource: 'notification', action: 'batch-delete', description: '批量删除通知' },
+  { resource: 'notification', action: 'stats', description: '查看通知统计' },
+  { resource: 'notification', action: 'unread-count', description: '查看未读数量' },
+
+  // Notification Preferences - 通知偏好
+  { resource: 'notification', action: 'preference-read', description: '查看通知偏好' },
+  { resource: 'notification', action: 'preference-update', description: '更新通知偏好' },
+  { resource: 'notification', action: 'preference-reset', description: '重置通知偏好' },
+  { resource: 'notification', action: 'preference-batch', description: '批量更新通知偏好' },
+
+  // Notification Templates - 通知模板（管理员）
+  { resource: 'notification', action: 'template-create', description: '创建通知模板' },
+  { resource: 'notification', action: 'template-read', description: '查看通知模板' },
+  { resource: 'notification', action: 'template-update', description: '更新通知模板' },
+  { resource: 'notification', action: 'template-delete', description: '删除通知模板' },
+  { resource: 'notification', action: 'template-toggle', description: '启用/禁用模板' },
+  { resource: 'notification', action: 'template-render', description: '渲染模板' },
+
+  // Media Service - 媒体流服务（WebRTC）
+  { resource: 'media', action: 'stream-create', description: '创建媒体流' },
+  { resource: 'media', action: 'stream-view', description: '查看媒体流' },
+  { resource: 'media', action: 'stream-control', description: '控制媒体流' },
+  { resource: 'media', action: 'stream-close', description: '关闭媒体流' },
+  { resource: 'media', action: 'record-start', description: '开始屏幕录制' },
+  { resource: 'media', action: 'record-stop', description: '停止屏幕录制' },
+  { resource: 'media', action: 'record-list', description: '查看录制列表' },
+  { resource: 'media', action: 'record-download', description: '下载录制文件' },
+  { resource: 'media', action: 'stats', description: '查看媒体统计' },
+
+  // 事件管理权限（Event Sourcing）
+  { resource: 'event', action: 'read', description: '查看事件' },
+  { resource: 'event', action: 'replay', description: '重放事件' },
+  { resource: 'event', action: 'view-store', description: '查看事件存储' },
 ];
 
 /**
@@ -196,11 +279,12 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'device:update',
     'device:delete',
     'device:control',
+    'device:manage',         // 新增：设备管理综合权限
     'device:export',
-    'device:app:operate',
-    'device:snapshot:create',
-    'device:snapshot:restore',
-    'device:snapshot:delete',
+    'device:app-operate',
+    'device:snapshot-create',
+    'device:snapshot-restore',
+    'device:snapshot-delete',
     // 应用管理
     'app:create',
     'app:read',
@@ -208,6 +292,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'app:delete',
     'app:install',
     'app:uninstall',
+    'app:approve',
     // 订单管理
     'order:create',
     'order:read',
@@ -233,42 +318,263 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'role:delete',
     'role:assign',
     'permission:read',
-    'permission:dataScope:list',
-    'permission:fieldPermission:list',
-    'permission:menu:list',
-    // 审计日志
-    'audit_log:read',
-    'audit_log:export',
+    'permission:dataScope-list',
+    'permission:fieldPermission-list',
+    'permission:menu-list',
+    // 审计日志（统一使用 audit-log 格式）
+    'audit-log:read',
+    'audit-log:export',
+    'audit-log:search',
+    'audit-log:user-view',
+    'audit-log:resource-view',
+    'audit-log:stats',
+    // ========== 新增服务权限 ==========
+    // Proxy Service - 代理管理
+    'proxy:acquire',
+    'proxy:list',
+    'proxy:read',
+    'proxy:assign',
+    'proxy:release',
+    'proxy:report',
+    'proxy:stats',
+    'proxy:refresh',
+    'proxy:strategy',
+    'proxy:health',
+    // SMS Receive Service - 短信服务
+    'sms:request',
+    'sms:read',
+    'sms:cancel',
+    'sms:batch',
+    'sms:messages',
+    'sms:stats',
+    'sms:trigger-poll',
+    'sms:provider-stats',
+    // SMS 发送和OTP功能
+    'sms:send',
+    'sms:send-batch',
+    'sms:validate',
+    'sms:otp-send',
+    'sms:otp-verify',
+    'sms:otp-active',
+    'sms:otp-retries',
+    'sms:otp-stats',
+    'sms:otp-clear',
+    // Notification Service - 通知服务
+    'notification:create',
+    'notification:broadcast',
+    'notification:read',
+    'notification:update',
+    'notification:delete',
+    'notification:batch-delete',
+    'notification:stats',
+    'notification:unread-count',
+    'notification:preference-read',
+    'notification:preference-update',
+    'notification:preference-reset',
+    'notification:preference-batch',
+    'notification:template-create',
+    'notification:template-read',
+    'notification:template-update',
+    'notification:template-delete',
+    'notification:template-toggle',
+    'notification:template-render',
+    // Media Service - 媒体服务
+    'media:stream-create',
+    'media:stream-view',
+    'media:stream-control',
+    'media:stream-close',
+    'media:record-start',
+    'media:record-stop',
+    'media:record-list',
+    'media:record-download',
+    'media:stats',
+    // Event Sourcing - 事件管理
+    'event:read',            // 新增：查看事件
+    'event:view-store',      // 新增：查看事件存储
   ],
   device_manager: [
+    // 设备管理完整权限
     'device:create',
     'device:read',
     'device:update',
     'device:delete',
     'device:control',
+    'device:manage',         // 新增：设备管理综合权限
     'device:export',
-    'device:app:operate',
-    'device:snapshot:create',
-    'device:snapshot:restore',
-    'device:snapshot:delete',
+    'device:app-operate',
+    'device:snapshot-create',
+    'device:snapshot-restore',
+    'device:snapshot-delete',
+    // 应用管理权限
     'app:create',
     'app:read',
     'app:update',
     'app:delete',
     'app:install',
     'app:uninstall',
+    'app:approve',        // 新增：应用审批权限
+    // 代理服务权限
+    'proxy:acquire',
+    'proxy:list',
+    'proxy:read',
+    'proxy:assign',
+    'proxy:release',
+    'proxy:report',       // 新增：代理状态报告
+    'proxy:stats',
+    // SMS 设备短信服务权限
+    'sms:request',        // 新增：为设备请求短信号码
+    'sms:read',
+    'sms:cancel',
+    'sms:batch',          // 新增：批量操作
+    'sms:messages',
+    'sms:stats',
+    // 媒体服务权限
+    'media:stream-create',
+    'media:stream-view',
+    'media:stream-control',
+    'media:stream-close', // 新增：关闭媒体流
+    'media:record-start',
+    'media:record-stop',
+    'media:record-list',
+    'media:record-download', // 新增：下载录制文件
+    'media:stats',        // 新增：查看媒体统计
+    // 通知权限（设备相关通知）
+    'notification:read',
+    'notification:unread-count',
   ],
-  user_manager: ['user:create', 'user:read', 'user:update', 'user:delete', 'user:export'],
+  user_manager: [
+    // 用户管理完整权限
+    'user:create',
+    'user:read',
+    'user:update',
+    'user:delete',
+    'user:export',
+    'user:list',
+    // 角色与权限管理
+    'role:create',
+    'role:read',
+    'role:update',
+    'role:delete',
+    'role:list',
+    'permission:read',
+    'permission:menu-list',
+    'permission:menu-view',
+    // 工单管理（客户支持）
+    'ticket:create',
+    'ticket:read',
+    'ticket:update',
+    'ticket:list',
+    'ticket:reply',
+    'ticket:stats',
+    // API密钥管理
+    'api-key:create',
+    'api-key:read',
+    'api-key:update',
+    'api-key:delete',
+    'api-key:revoke',
+    'api-key:list',
+    'api-key:stats',
+    // 审计日志查看
+    'audit-log:search',
+    'audit-log:user-view',
+    'audit-log:resource-view',
+    'audit-log:stats',
+    // 通知模板管理
+    'notification:template-create',
+    'notification:template-read',
+    'notification:template-update',
+    'notification:template-delete',
+    'notification:template-toggle',
+    'notification:list',
+    'notification:create',      // 可以创建系统通知
+    'notification:broadcast',   // 可以广播通知
+    // 用户配额查看
+    'quota:read',
+    'quota:usage-view',
+    'quota:alert-view',
+    // 统计信息查看
+    'stats:user-today',
+    'stats:user-activity',
+    'stats:user-growth',
+  ],
   finance_manager: [
+    // 订单管理
     'order:read',
     'order:update',
     'order:cancel',
     'order:export',
+    // 账单与计费
     'billing:read',
+    'billing:create',
+    'billing:update',
     'billing:export',
+    'billing:stats',
+    'billing:orders',
+    'billing:order-cancel',
+    'billing:usage-view',
+    'billing:usage-start',
+    // 支付管理完整权限
+    'payment:create',
     'payment:read',
+    'payment:list',
+    'payment:query',
     'payment:refund',
+    'payment:refunds',
+    'payment:refund-approve',    // 新增：审批退款
+    'payment:refund-reject',     // 新增：拒绝退款
+    'payment:refund-pending',    // 新增：查看待处理退款
+    'payment:exception-list',    // 新增：异常支付查看
+    'payment:sync',              // 新增：同步支付状态
+    'payment:export',            // 新增：导出支付记录
+    'payment:config',            // 新增：查看支付配置
+    'payment:stats',
+    'payment:daily-stats',
+    'payment:method-stats',
+    // 发票管理
+    'invoice:create',
+    'invoice:read',
+    'invoice:publish',
+    'invoice:pay',
+    'invoice:cancel',
+    'invoice:list',
+    'invoice:stats',
+    // 余额管理
+    'balance:create',
+    'balance:read',
+    'balance:recharge',
+    'balance:consume',
+    'balance:freeze',
+    'balance:unfreeze',
+    'balance:adjust',
+    'balance:transactions',
+    'balance:stats',
+    // 套餐管理
     'plan:read',
+    // 用量计费查看
+    'metering:user-view',
+    'metering:device-view',
+    'metering:tenant-view',
+    // 财务报表
+    'report:bills',
+    'report:revenue',
+    'report:usage-trend',
+    'report:bills-export',
+    'report:revenue-export',
+    'report:plan-stats',
+    // 账单规则查看
+    'billing-rule:read',
+    'billing-rule:list',
+    'billing-rule:calculate',
+    // 统计仪表盘
+    'stats:dashboard',
+    'stats:revenue-today',
+    'stats:revenue-month',
+    'stats:revenue-trend',
+    'stats:plan-distribution',
+    // 配额查看（财务需要了解用量）
+    'quota:read',
+    'quota:usage-view',
+    'quota:alert-view',
   ],
   user: [
     'device:read',
@@ -283,6 +589,27 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'payment:create',
     'payment:read',
     'plan:read',
+    // 新增：用户可用的基本服务权限
+    'proxy:acquire',      // 用户可以为自己的设备获取代理
+    'proxy:read',
+    'sms:request',        // 用户可以为自己的设备请求短信号码
+    'sms:read',
+    'sms:messages',
+    'sms:cancel',
+    'sms:otp-send',       // 用户可以发送OTP验证码
+    'sms:otp-verify',     // 用户可以验证OTP
+    'sms:otp-active',     // 用户可以检查活跃OTP
+    'sms:otp-retries',    // 用户可以查看重试次数
+    'notification:read',  // 用户可以查看自己的通知
+    'notification:update',
+    'notification:delete',
+    'notification:unread-count',
+    'notification:preference-read',
+    'notification:preference-update',
+    'media:stream-view',  // 用户可以查看自己设备的媒体流
+    'media:record-start',
+    'media:record-stop',
+    'media:record-list',
   ],
 };
 
@@ -319,6 +646,24 @@ async function initPermissions(connection: Connection): Promise<Map<string, Perm
 
     permissionMap.set(permissionName, permission);
   }
+
+  // 🔍 加载数据库中所有其他现有权限（不在 DEFAULT_PERMISSIONS 中的权限）
+  console.log('\n🔍 加载数据库中的所有现有权限...');
+  const allPermissions = await permissionRepo.find();
+  let loadedCount = 0;
+
+  for (const permission of allPermissions) {
+    const permissionName = `${permission.resource}:${permission.action}`;
+    if (!permissionMap.has(permissionName)) {
+      permissionMap.set(permissionName, permission);
+      loadedCount++;
+    }
+  }
+
+  if (loadedCount > 0) {
+    console.log(`  ✅ 从数据库加载了 ${loadedCount} 个额外权限`);
+  }
+  console.log(`  📊 总计: ${permissionMap.size} 个权限可用于分配`);
 
   return permissionMap;
 }

@@ -18,7 +18,7 @@
     "^@cloudphone/shared$": "<rootDir>/../../shared/src",
     "^@cloudphone/shared/(.*)$": "<rootDir>/../../shared/src/$1",
     "^uuid$": "<rootDir>/../src/__mocks__/uuid.ts",
-    "^p-limit$": "<rootDir>/../src/__mocks__/p-limit.ts"
+    "^p-limit$": "<rootDir>/../src/__mocks__/p-limit.js"
   },
   "transformIgnorePatterns": ["node_modules/(?!(p-limit|yocto-queue)/)"],
   "testTimeout": 30000,
