@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Tag, Progress, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UserMetering, DeviceMetering } from './constants';

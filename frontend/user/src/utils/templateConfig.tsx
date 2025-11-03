@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   AppstoreOutlined,
   MobileOutlined,
@@ -10,7 +9,9 @@ import {
   ThunderboltOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons';
-import { Space, Tag, Text, Button, Tooltip, Popconfirm } from 'antd';
+import { Space, Tag, Button, Tooltip, Popconfirm, Typography } from 'antd';
+
+const { Text } = Typography;
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 

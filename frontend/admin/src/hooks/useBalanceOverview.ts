@@ -28,7 +28,7 @@ export const useBalanceOverview = () => {
 
   // ===== 状态管理 =====
   const [loading, setLoading] = useState(false);
-  const [balanceData, setBalanceData] = useState<BalanceData>({
+  const [balanceData, _setBalanceData] = useState<BalanceData>({
     currentBalance: 15620.5,
     frozenBalance: 320.0,
     totalRecharge: 50000.0,

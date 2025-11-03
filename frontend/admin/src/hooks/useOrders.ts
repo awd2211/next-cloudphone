@@ -77,7 +77,7 @@ export function useCancelOrder() {
       queryClient.invalidateQueries({ queryKey: orderKeys.stats() });
       message.success('订单已取消');
     },
-    onError: (error: any, id, context) => {
+    onError: (error: any, id, context?: { previousOrder?: Order }) => {
       if (context?.previousOrder) {
         queryClient.setQueryData(orderKeys.detail(id), context.previousOrder);
       }

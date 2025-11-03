@@ -1,5 +1,5 @@
 import React from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Tag } from 'antd';
 import type { AuditLog } from '@/types/auditLog';
@@ -12,6 +12,7 @@ interface VirtualLogListProps {
 export const VirtualLogList: React.FC<VirtualLogListProps> = ({ logs }) => {
   const renderRow = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const log = logs[index];
+    if (!log) return null; // Type guard for undefined
     return <LogRow log={log} style={style} />;
   };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Badge, Dropdown, List, Button, Empty, Spin } from 'antd';
-import { BellOutlined, CheckOutlined } from '@ant-design/icons';
+import { BellOutlined } from '@ant-design/icons';
 import {
   getNotifications,
   getUnreadCount,

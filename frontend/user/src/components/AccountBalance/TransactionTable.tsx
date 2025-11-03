@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Card, Space, Button, Table, Typography } from 'antd';
 import { LineChartOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';

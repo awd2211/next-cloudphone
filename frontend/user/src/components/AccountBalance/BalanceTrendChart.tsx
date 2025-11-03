@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Card, Space, Typography } from 'antd';
 import { LineChartOutlined } from '@ant-design/icons';
 import { Line } from '@ant-design/charts';

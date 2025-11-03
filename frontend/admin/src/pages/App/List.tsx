@@ -3,7 +3,6 @@ import { Table, Space, Button, Image, Upload, Modal, message, Popconfirm, Progre
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
-import * as appService from '@/services/app';
 import type { Application } from '@/types';
 import dayjs from 'dayjs';
 import { useApps, useUploadApp, useDeleteApp } from '@/hooks/useApps';

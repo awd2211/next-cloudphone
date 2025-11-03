@@ -1,4 +1,4 @@
-import { Space, Image, Tag } from 'antd';
+import { Space, Image } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Application, AppReviewRecord } from '@/types';
 import {

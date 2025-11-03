@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Modal, Descriptions } from 'antd';
-import type { GPUDevice } from '@/services/gpu';
+import type { GPUDevice } from '@/types';
 import { getStatusTag, getAllocationModeTag } from './utils';
 
 export interface GPUDetailModalProps {

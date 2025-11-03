@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from 'react';
-import { FixedSizeList } from 'react-window';
-import { InfiniteLoader } from 'react-window-infinite-loader';
+import { List } from 'react-window';
+import { useInfiniteLoader } from 'react-window-infinite-loader';
 // @ts-ignore
 import AutoSizer from 'react-virtualized-auto-sizer';
 import DeviceCard from './DeviceCard';
@@ -38,7 +38,7 @@ export const VirtualizedDeviceList: React.FC<VirtualizedDeviceListProps> = ({
   loadNextPage,
   onDeviceClick,
 }) => {
-  const listRef = useRef<FixedSizeList>(null);
+  const listRef = useRef<List>(null);
 
   // 计算总项数 (已加载 + 加载中占位符)
   const itemCount = hasNextPage ? devices.length + 1 : devices.length;
@@ -60,6 +60,7 @@ export const VirtualizedDeviceList: React.FC<VirtualizedDeviceListProps> = ({
       }
 
       const device = devices[index];
+      if (!device) return null; // Type guard for undefined
       return (
         <div style={style}>
           <DeviceCard device={device} onClick={() => onDeviceClick(device)} />
@@ -69,37 +70,35 @@ export const VirtualizedDeviceList: React.FC<VirtualizedDeviceListProps> = ({
     [devices, isItemLoaded, onDeviceClick]
   );
 
+  // 使用 useInfiniteLoader hook
+  const infiniteLoaderRef = useInfiniteLoader({
+    isItemLoaded,
+    itemCount,
+    loadMoreItems: isNextPageLoading ? () => Promise.resolve() : loadNextPage,
+    threshold: 15,
+    minimumBatchSize: 10,
+  });
+
   return (
     <div style={{ height: '100%', width: '100%' }}>
       <AutoSizer>
         {({ height, width }) => (
-          <InfiniteLoader
-            isItemLoaded={isItemLoaded}
+          <List
+            ref={(list) => {
+              // 合并 refs
+              if (infiniteLoaderRef && typeof infiniteLoaderRef === 'object' && 'current' in infiniteLoaderRef) {
+                (infiniteLoaderRef as any).current = list;
+              }
+              (listRef as any).current = list;
+            }}
+            height={height}
+            width={width}
             itemCount={itemCount}
-            loadMoreItems={isNextPageLoading ? () => Promise.resolve() : loadNextPage}
-            threshold={15}
-            minimumBatchSize={10}
+            itemSize={120} // 每个设备卡片高度 120px
+            overscanCount={5} // 预渲染上下各 5 项
           >
-            {({ onItemsRendered, ref }) => (
-              <FixedSizeList
-                ref={(list) => {
-                  // 合并 refs
-                  if (typeof ref === 'function') {
-                    ref(list);
-                  }
-                  (listRef as any).current = list;
-                }}
-                height={height}
-                width={width}
-                itemCount={itemCount}
-                itemSize={120} // 每个设备卡片高度 120px
-                onItemsRendered={onItemsRendered}
-                overscanCount={5} // 预渲染上下各 5 项
-              >
-                {Row}
-              </FixedSizeList>
-            )}
-          </InfiniteLoader>
+            {Row}
+          </List>
         )}
       </AutoSizer>
     </div>

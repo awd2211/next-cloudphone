@@ -9,7 +9,7 @@ import {
   type GPUDevice,
   type GPUStats,
   type GPUAllocation,
-} from '@/services/gpu';
+} from '@/types';
 import {
   GPUStatsCards,
   GPUDevicesTable,

@@ -2,7 +2,13 @@ import { memo } from 'react';
 import { Drawer, Descriptions, Tag, Typography } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import type { AuditLog } from '@/types';
-import { getLevelIcon, getLevelColor, getLevelLabel, getActionLabel, getActionCategory } from './utils';
+import {
+  getLevelIcon,
+  getLevelColor,
+  getLevelLabel,
+  getActionLabel,
+  getActionCategory,
+} from './utils';
 
 const { Text } = Typography;
 

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Row, Col, Typography, Button, Space } from 'antd';
 import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 

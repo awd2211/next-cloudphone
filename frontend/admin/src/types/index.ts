@@ -130,10 +130,13 @@ export interface Application {
   versionCode: number;
   size: number;
   iconUrl?: string;
+  icon?: string; // 应用图标（别名，兼容旧代码）
   description?: string;
   category?: string;
   uploadedBy: string;
   objectKey: string;
+  apkPath?: string; // APK 文件路径
+  version?: string; // 版本号（可能与 versionName 重复）
   minSdkVersion?: number;
   targetSdkVersion?: number;
   permissions?: string[];
@@ -178,6 +181,7 @@ export interface AppReviewRecord {
   comment?: string;
   reviewedBy?: string;
   reviewer?: User;
+  reviewerName?: string; // 审核者名称（兼容旧代码）
   createdAt: string;
 }
 
@@ -1220,6 +1224,8 @@ export interface ApiKey {
   lastUsedIp?: string;
   description?: string;
   metadata?: Record<string, any>;
+  revokedAt?: string; // 撤销时间
+  revokedBy?: string; // 撤销者 ID
   createdAt: string;
   updatedAt: string;
 }
@@ -1381,6 +1387,14 @@ export interface RestoreQuotaRequest {
 export interface QuotaStatistics {
   userId: string;
   quota: Quota;
+  currentUsage?: {
+    devices: number;
+    cpuCores: number;
+    memoryGB: number;
+    storageGB: number;
+    bandwidth?: number;
+    monthlyTrafficGB?: number;
+  };
   usagePercentages: {
     devices: number;
     cpu: number;
@@ -1399,6 +1413,13 @@ export interface QuotaStatistics {
     daysUntilDeviceLimit?: number;
     daysUntilResourceLimit?: number;
   };
+  dailyUsage?: Array<{
+    date: string;
+    devices: number;
+    cpuCores: number;
+    memoryGB: number;
+    storageGB: number;
+  }>;
 }
 
 export interface QuotaAlert {

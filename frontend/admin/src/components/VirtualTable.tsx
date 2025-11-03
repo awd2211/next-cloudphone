@@ -26,9 +26,9 @@
  * ```
  */
 
-import React, { useMemo } from 'react';
-import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
-import InfiniteLoader from 'react-window-infinite-loader';
+import React, { useRef } from 'react';
+import { List, type ListChildComponentProps } from 'react-window';
+import { useInfiniteLoader } from 'react-window-infinite-loader';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Spin } from 'antd';
 import './VirtualTable.css';
@@ -99,6 +99,14 @@ export function VirtualTable<T extends Record<string, any>>({
 
   // 判断某个索引的项目是否已加载
   const isItemLoaded = (index: number) => !hasMore || index < data.length;
+
+  // 使用 useInfiniteLoader hook
+  const listRef = useRef<List>(null);
+  const infiniteLoaderRef = useInfiniteLoader({
+    isItemLoaded,
+    itemCount,
+    loadMoreItems: onLoadMore || (() => Promise.resolve()),
+  });
 
   // 渲染表头
   const renderHeader = () => (
@@ -204,31 +212,27 @@ export function VirtualTable<T extends Record<string, any>>({
     >
       {renderHeader()}
 
-      <InfiniteLoader
-        isItemLoaded={isItemLoaded}
-        itemCount={itemCount}
-        loadMoreItems={onLoadMore || (() => Promise.resolve())}
-      >
-        {({ onItemsRendered, ref }) => (
-          <div style={{ height: height - 50 }}>
-            <AutoSizer>
-              {({ height: autoHeight, width }) => (
-                <List
-                  ref={ref}
-                  height={autoHeight}
-                  itemCount={itemCount}
-                  itemSize={rowHeight}
-                  width={width}
-                  onItemsRendered={onItemsRendered}
-                  className="virtual-table-list"
-                >
-                  {Row}
-                </List>
-              )}
-            </AutoSizer>
-          </div>
-        )}
-      </InfiniteLoader>
+      <div style={{ height: height - 50 }}>
+        <AutoSizer>
+          {({ height: autoHeight, width }) => (
+            <List
+              ref={(list) => {
+                if (infiniteLoaderRef && typeof infiniteLoaderRef === 'object' && 'current' in infiniteLoaderRef) {
+                  (infiniteLoaderRef as any).current = list;
+                }
+                (listRef as any).current = list;
+              }}
+              height={autoHeight}
+              itemCount={itemCount}
+              itemSize={rowHeight}
+              width={width}
+              className="virtual-table-list"
+            >
+              {Row}
+            </List>
+          )}
+        </AutoSizer>
+      </div>
 
       {isLoading && data.length > 0 && (
         <div style={{ textAlign: 'center', padding: '12px', borderTop: '1px solid #f0f0f0' }}>

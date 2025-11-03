@@ -5,7 +5,6 @@ import {
   getHighestRole,
   getRoleColor,
   getRoleDisplayName,
-  UserRole,
 } from '@/utils/role';
 
 /**

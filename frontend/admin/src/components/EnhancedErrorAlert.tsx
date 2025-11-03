@@ -8,7 +8,6 @@ import {
 } from '@ant-design/icons';
 
 const { Text, Link } = Typography;
-const { Panel } = Collapse;
 
 /**
  * 恢复建议

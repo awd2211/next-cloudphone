@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Tag, Button } from 'antd';
 import { EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';

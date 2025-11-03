@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Row, Col, Card, Statistic, Tag, Progress, Space, Typography } from 'antd';
 import {
   ArrowUpOutlined,

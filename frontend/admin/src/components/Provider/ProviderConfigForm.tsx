@@ -2,18 +2,15 @@ import React, { useCallback } from 'react';
 import {
   Card,
   Form,
-  Input,
   Button,
   Space,
   Alert,
   Badge,
   Descriptions,
-  Switch,
-  InputNumber,
   FormInstance,
 } from 'antd';
 import { SaveOutlined, TestTubeOutlined } from '@ant-design/icons';
-import { DeviceProvider, ProviderNames } from '@/types/provider';
+import { DeviceProvider } from '@/types/provider';
 import { ALERT_MESSAGES } from './constants';
 
 interface HealthData {

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button, Tag, Space, Popconfirm, Tooltip } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';

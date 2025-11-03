@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Modal, Form, Switch, InputNumber, Select, Alert } from 'antd';
 import type { FormInstance } from 'antd';
 

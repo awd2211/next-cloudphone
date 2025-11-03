@@ -2,8 +2,15 @@ import { memo, useMemo } from 'react';
 import { Table, Tag, Space, Button, Typography } from 'antd';
 import { EyeOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import type { AuditLog, AuditLevel, AuditAction } from '@/types';
-import { getLevelIcon, getLevelColor, getLevelLabel, getActionLabel, getActionCategory } from './utils';
-import { TABLE_SCROLL_X } from './constants';
+import {
+  getLevelIcon,
+  getLevelColor,
+  getLevelLabel,
+  getActionLabel,
+  getActionCategory
+} from './utils';
+
+const TABLE_SCROLL_X = 1800; // 表格横向滚动宽度
 
 const { Text } = Typography;
 

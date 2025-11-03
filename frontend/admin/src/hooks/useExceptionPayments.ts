@@ -20,9 +20,9 @@ export const useExceptionPayments = () => {
   const loadExceptionPayments = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getExceptionPayments(page, pageSize);
-      setPayments(res.data.data || []);
-      setTotal(res.data.pagination?.total || 0);
+      const result = await getExceptionPayments(page, pageSize);
+      setPayments(result.data || []);
+      setTotal(result.pagination?.total || 0);
     } catch (error) {
       message.error('加载异常支付记录失败');
     } finally {

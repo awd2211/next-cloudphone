@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { Table, Button } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { GPUAllocation } from '@/services/gpu';
+import type { GPUAllocation } from '@/types';
 import dayjs from 'dayjs';
 import { ALLOCATION_TABLE_SCROLL_X } from './constants';
 

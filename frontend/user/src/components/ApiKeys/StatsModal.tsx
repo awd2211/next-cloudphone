@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Modal, Button, Card, Space, Row, Col, Statistic, Tag, Alert, Typography } from 'antd';
 import { LineChartOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -75,7 +75,7 @@ export const StatsModal = memo<StatsModalProps>(({ visible, selectedApiKey, onCl
 
           <Alert
             message="详细使用统计"
-            description="查看过去30天的详细请求日志和统计图表，请访问 "使用记录" 页面。"
+            description="查看过去30天的详细请求日志和统计图表，请访问「使用记录」页面。"
             type="info"
             showIcon
           />

@@ -31,9 +31,9 @@ export const usePaymentDashboard = () => {
         getDailyStatistics(30),
       ]);
 
-      setStatistics(statsRes.data);
-      setMethodStats(methodsRes.data);
-      setDailyStats(dailyRes.data);
+      setStatistics(statsRes);
+      setMethodStats(methodsRes);
+      setDailyStats(dailyRes);
     } catch (error) {
       message.error('加载统计数据失败');
     } finally {

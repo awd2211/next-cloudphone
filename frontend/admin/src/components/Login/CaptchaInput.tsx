@@ -6,6 +6,8 @@ interface CaptchaInputProps {
   captchaSvg: string;
   captchaLoading: boolean;
   onRefresh: () => void;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
 /**
@@ -13,7 +15,7 @@ interface CaptchaInputProps {
  * 包含验证码输入框和 SVG 验证码图片
  */
 export const CaptchaInput = memo<CaptchaInputProps>(
-  ({ captchaSvg, captchaLoading, onRefresh }) => {
+  ({ captchaSvg, captchaLoading, onRefresh, value, onChange }) => {
     return (
       <Row gutter={8}>
         <Col span={14}>
@@ -22,6 +24,8 @@ export const CaptchaInput = memo<CaptchaInputProps>(
             placeholder="验证码"
             maxLength={4}
             autoComplete="off"
+            value={value}
+            onChange={(e) => onChange?.(e.target.value)}
           />
         </Col>
         <Col span={10}>

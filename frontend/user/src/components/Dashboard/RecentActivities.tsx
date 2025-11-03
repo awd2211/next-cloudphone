@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Col, Card, List, Avatar, Badge, Button, Space, Typography } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';

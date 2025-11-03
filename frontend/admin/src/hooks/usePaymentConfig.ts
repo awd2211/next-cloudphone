@@ -16,8 +16,8 @@ export const usePaymentConfig = () => {
   const loadConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getPaymentConfig();
-      setConfig(res.data);
+      const config = await getPaymentConfig();
+      setConfig(config);
     } catch (error) {
       message.error('加载配置失败');
     } finally {

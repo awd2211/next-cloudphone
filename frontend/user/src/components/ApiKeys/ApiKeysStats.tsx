@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Row, Col, Card, Statistic } from 'antd';
 import {
   KeyOutlined,

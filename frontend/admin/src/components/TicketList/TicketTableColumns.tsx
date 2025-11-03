@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Space, Tag, Badge, Button, Tooltip } from 'antd';
 import { EyeOutlined, MessageOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Modal, Alert, Form, Select } from 'antd';
-import type { GPUDevice } from '@/services/gpu';
+import type { GPUDevice } from '@/types';
 
 const { Option } = Select;
 

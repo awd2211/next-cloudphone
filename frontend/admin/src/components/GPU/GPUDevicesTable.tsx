@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react';
 import { Table, Space, Button, Tag, Progress, Tooltip } from 'antd';
 import { LinkOutlined, DisconnectOutlined, FireOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import type { GPUDevice } from '@/services/gpu';
+import type { GPUDevice } from '@/types';
 import { getStatusTag, getAllocationModeTag, getTemperatureColor } from './utils';
 import { GPU_TABLE_SCROLL_X, UTILIZATION_WARNING } from './constants';
 

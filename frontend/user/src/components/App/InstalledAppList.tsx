@@ -185,7 +185,7 @@ export const InstalledAppList: React.FC<InstalledAppListProps> = React.memo(
         {stats.updatable > 0 && (
           <Alert
             message={`有 ${stats.updatable} 个应用可以更新`}
-            description="点击应用卡片上的"更新"按钮可更新到最新版本"
+            description="点击应用卡片上的「更新」按钮可更新到最新版本"
             type="info"
             showIcon
             closable
@@ -220,7 +220,7 @@ export const InstalledAppList: React.FC<InstalledAppListProps> = React.memo(
         {filteredApps.length === 0 && !showSystemApps && (
           <Alert
             message="无用户应用"
-            description="该设备暂无用户安装的应用。勾选"显示系统应用"可查看系统预装应用。"
+            description="该设备暂无用户安装的应用。勾选「显示系统应用」可查看系统预装应用。"
             type="info"
             showIcon
           />

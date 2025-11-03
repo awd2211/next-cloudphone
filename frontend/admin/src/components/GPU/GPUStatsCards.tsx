@@ -6,7 +6,7 @@ import {
   DashboardOutlined,
   FireOutlined,
 } from '@ant-design/icons';
-import type { GPUStats } from '@/services/gpu';
+import type { GPUStats } from '@/types';
 
 export interface GPUStatsCardsProps {
   stats: GPUStats | null;

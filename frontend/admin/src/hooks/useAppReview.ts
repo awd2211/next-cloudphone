@@ -22,8 +22,8 @@ export const useAppReview = (id: string | undefined) => {
     if (!id) return;
     setLoading(true);
     try {
-      const res = await getApp(id);
-      setApp(res.data);
+      const app = await getApp(id);
+      setApp(app);
     } catch (error) {
       message.error('加载应用信息失败');
     } finally {
@@ -34,8 +34,8 @@ export const useAppReview = (id: string | undefined) => {
   const loadReviewHistory = useCallback(async () => {
     if (!id) return;
     try {
-      const res = await getAppReviewHistory(id);
-      setReviewHistory(res.data || []);
+      const history = await getAppReviewHistory(id);
+      setReviewHistory(history || []);
     } catch (error) {
       console.error('加载审核历史失败', error);
     }

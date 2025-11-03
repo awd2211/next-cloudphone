@@ -1,5 +1,5 @@
 import React from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 // react-window 的类型定义

@@ -19,8 +19,8 @@ export const useRefundManagement = () => {
   const loadRefunds = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getPendingRefunds();
-      setRefunds(res.data);
+      const refunds = await getPendingRefunds();
+      setRefunds(refunds);  // response已被拦截器unwrapped，直接使用
     } catch (error) {
       message.error('加载退款列表失败');
     } finally {

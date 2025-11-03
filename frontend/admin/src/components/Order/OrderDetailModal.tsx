@@ -30,7 +30,7 @@ export const OrderDetailModal = memo<OrderDetailModalProps>(({ visible, order, o
             {order.plan?.name}
           </p>
           <p>
-            <strong>金额：</strong>¥{order.amount.toFixed(2)}
+            <strong>金额：</strong>¥{Number(order.amount).toFixed(2)}
           </p>
           <p>
             <strong>支付方式：</strong>

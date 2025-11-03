@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Space, Typography, Paragraph as AntParagraph, Radio, Tag } from 'antd';
 
 const { Title, Paragraph } = Typography;

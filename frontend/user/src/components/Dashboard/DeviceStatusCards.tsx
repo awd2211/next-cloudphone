@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Row, Col, Card, Statistic, Alert, Space, Button, Typography } from 'antd';
 import { SyncOutlined, StopOutlined, CloseCircleOutlined, MobileOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';

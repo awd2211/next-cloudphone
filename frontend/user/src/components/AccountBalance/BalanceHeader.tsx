@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Row, Col, Space, Button, Typography } from 'antd';
 import { ReloadOutlined, SettingOutlined, DollarOutlined } from '@ant-design/icons';
 

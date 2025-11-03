@@ -25,8 +25,8 @@ export function usePayments(params?: PaymentListParams) {
     queryFn: async () => {
       const response = await getAdminPayments(params || {});
       return {
-        data: response.data.data,
-        pagination: response.data.pagination,
+        data: response.data,
+        pagination: response.pagination,
       };
     },
     staleTime: 30 * 1000, // 30 seconds

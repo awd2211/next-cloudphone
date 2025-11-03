@@ -64,7 +64,7 @@ export function useLogin() {
         localStorage.setItem('token', result.token);
         localStorage.setItem('user', JSON.stringify(result.user));
         message.success('登录成功');
-        navigate('/');
+        navigate('/dashboard');
       } catch (error: any) {
         console.error('Login error:', error);
         message.error(error.response?.data?.message || '登录失败');
@@ -97,7 +97,7 @@ export function useLogin() {
       message.success('登录成功');
       setTwoFactorModalVisible(false);
       setTwoFactorToken('');
-      navigate('/');
+      navigate('/dashboard');
     } catch (error: any) {
       message.error(error.response?.data?.message || '验证码错误');
     } finally {

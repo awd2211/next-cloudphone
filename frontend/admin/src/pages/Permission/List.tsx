@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Space, Button, Modal, Form, Input, message, Popconfirm } from 'antd';
+import { Table, Space, Button, Modal, Form, Input, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Permission } from '@/types';

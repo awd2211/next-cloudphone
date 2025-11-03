@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Row, Col, Card, Space, Statistic, Alert, Button, Typography } from 'antd';
 import { WalletOutlined, BellOutlined, DollarOutlined } from '@ant-design/icons';
 import type { BalanceData } from '@/hooks/useAccountBalance';

@@ -50,14 +50,13 @@ export function useInfiniteUsers(filters?: UserFilters, enabled: boolean = true)
         includeRoles: filters?.includeRoles,
       });
 
-      // API Gateway 双重包装处理
-      const actualData = response.data?.data || response.data || response;
-
+      // response已被拦截器unwrapped，直接使用
+      // response类型: CursorPaginatedResponse<User>
       return {
-        data: actualData.data || [],
-        nextCursor: actualData.nextCursor,
-        hasMore: actualData.hasMore,
-        count: actualData.count,
+        data: response.data || [],
+        nextCursor: response.nextCursor,
+        hasMore: response.hasMore,
+        count: response.count,
       };
     },
 

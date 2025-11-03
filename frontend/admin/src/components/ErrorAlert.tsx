@@ -3,7 +3,6 @@
  * 提供更友好和详细的错误信息
  */
 
-import React from 'react';
 import { Alert, Button, Space, Typography, Collapse } from 'antd';
 import { ReloadOutlined, BugOutlined } from '@ant-design/icons';
 

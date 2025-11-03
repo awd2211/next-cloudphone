@@ -5,7 +5,7 @@ import { useInvoiceTableColumns, type Invoice } from '@/components/Billing';
 
 export const useInvoiceList = () => {
   // Mock 数据状态
-  const [invoices, setInvoices] = useState<Invoice[]>([
+  const [invoices, _setInvoices] = useState<Invoice[]>([
     {
       id: 'inv-001',
       invoiceNo: 'INV-202510-001',
@@ -55,7 +55,7 @@ export const useInvoiceList = () => {
     },
   ]);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 

@@ -8,7 +8,6 @@
  */
 import { memo, ReactNode } from 'react';
 import { Card, Statistic } from 'antd';
-import type { StatisticProps } from 'antd';
 
 interface StatCardProps {
   title: string;

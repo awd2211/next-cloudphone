@@ -4,7 +4,6 @@
  */
 
 import { Card, Skeleton, Space } from 'antd';
-import React from 'react';
 
 /**
  * 表格骨架屏

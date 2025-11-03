@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Alert, Space, Typography } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import type { BalanceData } from '@/hooks/useAccountBalance';

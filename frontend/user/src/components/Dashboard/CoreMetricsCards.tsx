@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Row, Col, Card, Statistic, Progress, Tag, Typography, Button } from 'antd';
 import {
   MobileOutlined,

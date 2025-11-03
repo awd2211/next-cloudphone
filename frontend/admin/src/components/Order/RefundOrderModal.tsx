@@ -37,7 +37,7 @@ export const RefundOrderModal = memo<RefundOrderModalProps>(
                 {order?.orderNo}
               </p>
               <p>
-                <strong>订单金额：</strong>¥{order?.amount.toFixed(2)}
+                <strong>订单金额：</strong>¥{order ? Number(order.amount).toFixed(2) : '0.00'}
               </p>
               <p>
                 <strong>支付方式：</strong>
@@ -56,7 +56,7 @@ export const RefundOrderModal = memo<RefundOrderModalProps>(
               prefix="¥"
             />
             <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
-              最多可退款 ¥{order?.amount.toFixed(2)}
+              最多可退款 ¥{order ? Number(order.amount).toFixed(2) : '0.00'}
             </div>
           </Form.Item>
           <Form.Item label="退款原因" required>

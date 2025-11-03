@@ -1,7 +1,6 @@
 import { memo } from 'react';
 import { Card, Row, Col, Input, Select, DatePicker } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import type { DatePickerProps } from 'antd';
 
 const { Search } = Input;
 const { RangePicker } = DatePicker;
