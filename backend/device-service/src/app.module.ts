@@ -36,6 +36,7 @@ import {
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
+import { SmsEventsConsumer } from './rabbitmq/consumers/sms-events.consumer';
 
 @Module({
   imports: [
@@ -88,7 +89,9 @@ import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
     ProxyModule, // ✅ 代理管理模块（统计、健康检查、客户端）
   ],
   controllers: [HealthController],
-  providers: [], // EventBusService 由 EventBusModule 提供
+  providers: [
+    SmsEventsConsumer, // ✅ SMS 事件消费者 - 监听短信验证码事件
+  ], // EventBusService 由 EventBusModule 提供
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
