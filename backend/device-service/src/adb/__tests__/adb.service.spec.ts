@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
+import { BusinessException } from '@cloudphone/shared';
 import { AdbService } from '../adb.service';
 import * as fs from 'fs';
 
@@ -106,11 +107,11 @@ describe('AdbService', () => {
       expect(mockAdbClient.connect).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw InternalServerErrorException on connection failure', async () => {
+    it('should throw BusinessException on connection failure', async () => {
       mockAdbClient.connect.mockRejectedValue(new Error('Connection refused'));
 
       await expect(service.connectToDevice('device-123', 'localhost', 5555)).rejects.toThrow(
-        InternalServerErrorException
+        BusinessException
       );
     });
   });
@@ -138,9 +139,9 @@ describe('AdbService', () => {
       await service.connectToDevice('device-123', 'localhost', 5555);
     });
 
-    it('should throw NotFoundException if device not connected', async () => {
+    it('should throw BusinessException if device not connected', async () => {
       await expect(service.executeShellCommand('nonexistent', 'ls /sdcard')).rejects.toThrow(
-        NotFoundException
+        BusinessException
       );
     });
   });
@@ -164,11 +165,11 @@ describe('AdbService', () => {
       });
     });
 
-    it('should throw NotFoundException if APK file does not exist', async () => {
+    it('should throw BusinessException if APK file does not exist', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
 
       await expect(service.installApk('device-123', '/path/to/nonexistent.apk')).rejects.toThrow(
-        NotFoundException
+        BusinessException
       );
     });
   });
@@ -188,9 +189,9 @@ describe('AdbService', () => {
       expect(mockAdbClient.uninstall).toHaveBeenCalledWith('localhost:5555', 'com.example.app');
     });
 
-    it('should throw NotFoundException if device not connected', async () => {
+    it('should throw BusinessException if device not connected', async () => {
       await expect(service.uninstallApp('nonexistent', 'com.example.app')).rejects.toThrow(
-        NotFoundException
+        BusinessException
       );
     });
   });
@@ -222,8 +223,8 @@ describe('AdbService', () => {
       expect(service.isDeviceConnected('device-123')).toBe(false);
     });
 
-    it('should throw NotFoundException if device not connected', async () => {
-      await expect(service.rebootDevice('nonexistent')).rejects.toThrow(NotFoundException);
+    it('should throw BusinessException if device not connected', async () => {
+      await expect(service.rebootDevice('nonexistent')).rejects.toThrow(BusinessException);
     });
   });
 

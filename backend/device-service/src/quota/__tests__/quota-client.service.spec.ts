@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
+import { HttpClientService, ServiceTokenService } from '@cloudphone/shared';
 import { QuotaClientService, QuotaStatus } from '../quota-client.service';
-import { of, throwError } from 'rxjs';
 import { AxiosResponse } from 'axios';
 
 describe('QuotaClientService', () => {
   let service: QuotaClientService;
-  let httpService: HttpService;
+  let httpClient: HttpClientService;
   let configService: ConfigService;
+  let serviceTokenService: ServiceTokenService;
 
   const mockQuotaResponse = {
     id: 'quota-123',
@@ -52,10 +52,12 @@ describe('QuotaClientService', () => {
       providers: [
         QuotaClientService,
         {
-          provide: HttpService,
+          provide: HttpClientService,
           useValue: {
             get: jest.fn(),
             post: jest.fn(),
+            patch: jest.fn(),
+            delete: jest.fn(),
           },
         },
         {
@@ -68,12 +70,19 @@ describe('QuotaClientService', () => {
             }),
           },
         },
+        {
+          provide: ServiceTokenService,
+          useValue: {
+            generateToken: jest.fn().mockReturnValue('mock-service-token'),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<QuotaClientService>(QuotaClientService);
-    httpService = module.get<HttpService>(HttpService);
+    httpClient = module.get<HttpClientService>(HttpClientService);
     configService = module.get<ConfigService>(ConfigService);
+    serviceTokenService = module.get<ServiceTokenService>(ServiceTokenService);
   });
 
   afterEach(() => {
@@ -92,14 +101,14 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const result = await service.getUserQuota(userId);
 
       // Assert
       expect(result).toEqual(mockQuotaResponse);
-      expect(httpService.get).toHaveBeenCalledWith(
+      expect(httpClient.get).toHaveBeenCalledWith(
         `http://localhost:30001/api/quotas/user/${userId}`
       );
     });
@@ -107,11 +116,9 @@ describe('QuotaClientService', () => {
     it('should throw 404 error when user quota not found', async () => {
       // Arrange
       const userId = 'nonexistent-user';
-      jest.spyOn(httpService, 'get').mockReturnValue(
-        throwError(() => ({
-          response: { status: 404 },
-        }))
-      );
+      jest.spyOn(httpClient, 'get').mockRejectedValue({
+        response: { status: 404 },
+      });
 
       // Act & Assert
       await expect(service.getUserQuota(userId)).rejects.toThrow('User quota not found');
@@ -120,7 +127,7 @@ describe('QuotaClientService', () => {
     it('should throw internal error on service failure', async () => {
       // Arrange
       const userId = 'user-456';
-      jest.spyOn(httpService, 'get').mockReturnValue(
+      jest.spyOn(httpClient, 'get').mockReturnValue(
         throwError(() => ({
           response: { status: 500 },
         }))
@@ -149,7 +156,7 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const result = await service.checkDeviceCreationQuota(userId, deviceSpecs);
@@ -181,7 +188,7 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const result = await service.checkDeviceCreationQuota(userId, deviceSpecs);
@@ -208,7 +215,7 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const result = await service.checkDeviceCreationQuota(userId, deviceSpecs);
@@ -234,7 +241,7 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const result = await service.checkDeviceCreationQuota(userId, deviceSpecs);
@@ -261,7 +268,7 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const result = await service.checkDeviceCreationQuota(userId, oversizedSpecs);
@@ -296,7 +303,7 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const result = await service.checkDeviceCreationQuota(userId, highCpuSpecs);
@@ -310,7 +317,7 @@ describe('QuotaClientService', () => {
     it('should allow operation on error when QUOTA_ALLOW_ON_ERROR is true', async () => {
       // Arrange
       const userId = 'user-456';
-      jest.spyOn(httpService, 'get').mockReturnValue(throwError(() => new Error('Network error')));
+      jest.spyOn(httpClient, 'get').mockRejectedValue(new Error('Network error'));
       jest.spyOn(configService, 'get').mockReturnValue(true); // QUOTA_ALLOW_ON_ERROR=true
 
       // Act
@@ -323,7 +330,7 @@ describe('QuotaClientService', () => {
     it('should deny operation on error when QUOTA_ALLOW_ON_ERROR is false', async () => {
       // Arrange
       const userId = 'user-456';
-      jest.spyOn(httpService, 'get').mockReturnValue(throwError(() => new Error('Network error')));
+      jest.spyOn(httpClient, 'get').mockRejectedValue(new Error('Network error'));
 
       // Act
       const result = await service.checkDeviceCreationQuota(userId, deviceSpecs);
@@ -354,13 +361,13 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'post').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'post').mockResolvedValue(mockResponse);
 
       // Act
       await service.reportDeviceUsage(userId, usageReport);
 
       // Assert
-      expect(httpService.post).toHaveBeenCalledWith(
+      expect(httpClient.post).toHaveBeenCalledWith(
         `http://localhost:30001/api/quotas/user/${userId}/usage`,
         usageReport
       );
@@ -378,8 +385,8 @@ describe('QuotaClientService', () => {
       };
 
       jest
-        .spyOn(httpService, 'post')
-        .mockReturnValue(throwError(() => new Error('Service unavailable')));
+        .spyOn(httpClient, 'post')
+        .mockRejectedValue(new Error('Service unavailable'));
 
       // Act & Assert - 应该不抛出异常，只记录警告
       await expect(service.reportDeviceUsage(userId, usageReport)).resolves.not.toThrow();
@@ -398,7 +405,7 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const result = await service.checkConcurrentQuota(userId);
@@ -426,7 +433,7 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const result = await service.checkConcurrentQuota(userId);
@@ -439,7 +446,7 @@ describe('QuotaClientService', () => {
     it('should allow on error (default fallback)', async () => {
       // Arrange
       const userId = 'user-456';
-      jest.spyOn(httpService, 'get').mockReturnValue(throwError(() => new Error('Network error')));
+      jest.spyOn(httpClient, 'get').mockRejectedValue(new Error('Network error'));
 
       // Act
       const result = await service.checkConcurrentQuota(userId);
@@ -461,7 +468,7 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const stats = await service.getQuotaUsageStats(userId);
@@ -499,7 +506,7 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'get').mockResolvedValue(mockResponse);
 
       // Act
       const stats = await service.getQuotaUsageStats(userId);
@@ -526,13 +533,13 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'post').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'post').mockResolvedValue(mockResponse);
 
       // Act
       await service.incrementConcurrentDevices(userId);
 
       // Assert
-      expect(httpService.post).toHaveBeenCalledWith('http://localhost:30001/api/quotas/deduct', {
+      expect(httpClient.post).toHaveBeenCalledWith('http://localhost:30001/api/quotas/deduct', {
         userId,
         deviceCount: 0,
         concurrent: true,
@@ -542,7 +549,7 @@ describe('QuotaClientService', () => {
     it('should not throw error on failure', async () => {
       // Arrange
       const userId = 'user-456';
-      jest.spyOn(httpService, 'post').mockReturnValue(throwError(() => new Error('Service error')));
+      jest.spyOn(httpClient, 'post').mockRejectedValue(new Error('Service error'));
 
       // Act & Assert
       await expect(service.incrementConcurrentDevices(userId)).resolves.not.toThrow();
@@ -561,13 +568,13 @@ describe('QuotaClientService', () => {
         config: {} as any,
       };
 
-      jest.spyOn(httpService, 'post').mockReturnValue(of(mockResponse));
+      jest.spyOn(httpClient, 'post').mockResolvedValue(mockResponse);
 
       // Act
       await service.decrementConcurrentDevices(userId);
 
       // Assert
-      expect(httpService.post).toHaveBeenCalledWith('http://localhost:30001/api/quotas/restore', {
+      expect(httpClient.post).toHaveBeenCalledWith('http://localhost:30001/api/quotas/restore', {
         userId,
         deviceCount: 0,
         concurrent: true,

@@ -16,7 +16,7 @@ import { StripeProvider } from '../providers/stripe.provider';
 import { PayPalProvider } from '../providers/paypal.provider';
 import { PaddleProvider } from '../providers/paddle.provider';
 import { BalanceClientService } from '../clients/balance-client.service';
-import { SagaOrchestratorService } from '@cloudphone/shared';
+import { SagaOrchestratorService, EventBusService } from '@cloudphone/shared';
 import { createMockPayment, createMockOrder } from '../../__tests__/helpers/mock-factories';
 
 describe('PaymentsService - Core Functions', () => {
@@ -27,9 +27,12 @@ describe('PaymentsService - Core Functions', () => {
   let wechatPayProvider: jest.Mocked<WeChatPayProvider>;
   let alipayProvider: jest.Mocked<AlipayProvider>;
   let stripeProvider: jest.Mocked<StripeProvider>;
+  let paypalProvider: jest.Mocked<PayPalProvider>;
+  let paddleProvider: jest.Mocked<PaddleProvider>;
   let sagaOrchestrator: jest.Mocked<SagaOrchestratorService>;
   let configService: jest.Mocked<ConfigService>;
   let dataSource: jest.Mocked<DataSource>;
+  let eventBus: jest.Mocked<EventBusService>;
 
   const mockOrder: Order = createMockOrder({
     id: 'order-123',
@@ -58,6 +61,7 @@ describe('PaymentsService - Core Functions', () => {
     const mockOrdersRepository = {
       findOne: jest.fn(),
       save: jest.fn(),
+      update: jest.fn().mockResolvedValue({ affected: 1 }), // TypeORM update 返回 UpdateResult
     };
 
     const mockBalanceClient = {
@@ -69,11 +73,13 @@ describe('PaymentsService - Core Functions', () => {
     const mockWeChatPayProvider = {
       createNativeOrder: jest.fn(),
       queryOrder: jest.fn(),
+      verifyNotification: jest.fn(),
     };
 
     const mockAlipayProvider = {
       createQrCodeOrder: jest.fn(),
       queryOrder: jest.fn(),
+      verifyNotification: jest.fn(),
     };
 
     const mockStripeProvider = {
@@ -116,6 +122,13 @@ describe('PaymentsService - Core Functions', () => {
 
     const mockDataSource = {
       createQueryRunner: jest.fn(() => mockQueryRunner),
+    };
+
+    const mockEventBus = {
+      publishPaymentEvent: jest.fn().mockResolvedValue(undefined),
+      publishBillingEvent: jest.fn().mockResolvedValue(undefined),
+      publish: jest.fn().mockResolvedValue(undefined),
+      publishSystemError: jest.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -162,6 +175,10 @@ describe('PaymentsService - Core Functions', () => {
           useValue: mockSagaOrchestrator,
         },
         {
+          provide: EventBusService,
+          useValue: mockEventBus,
+        },
+        {
           provide: getDataSourceToken(),
           useValue: mockDataSource,
         },
@@ -175,9 +192,12 @@ describe('PaymentsService - Core Functions', () => {
     wechatPayProvider = module.get(WeChatPayProvider);
     alipayProvider = module.get(AlipayProvider);
     stripeProvider = module.get(StripeProvider);
+    paypalProvider = module.get(PayPalProvider);
+    paddleProvider = module.get(PaddleProvider);
     sagaOrchestrator = module.get(SagaOrchestratorService);
     configService = module.get(ConfigService);
     dataSource = module.get(getDataSourceToken());
+    eventBus = module.get(EventBusService);
   });
 
   afterEach(() => {
@@ -292,6 +312,182 @@ describe('PaymentsService - Core Functions', () => {
         })
       );
     });
+
+    it('should create a Stripe payment successfully', async () => {
+      const createDto = {
+        orderId: 'order-123',
+        method: PaymentMethod.STRIPE,
+        amount: 99.99,
+        currency: 'USD',
+      };
+
+      ordersRepository.findOne.mockResolvedValue(mockOrder);
+      paymentsRepository.create.mockReturnValue(
+        createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.STRIPE,
+        })
+      );
+      paymentsRepository.save.mockResolvedValue(
+        createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.STRIPE,
+          status: PaymentStatus.PROCESSING,
+          transactionId: 'pi_stripe_123',
+          paymentUrl: 'https://checkout.stripe.com/pay/cs_test_123',
+          clientSecret: 'pi_stripe_123_secret_abc',
+          customerId: 'cus_stripe_user123',
+        })
+      );
+      stripeProvider.createOneTimePayment.mockResolvedValue({
+        transactionId: 'pi_stripe_123',
+        paymentUrl: 'https://checkout.stripe.com/pay/cs_test_123',
+        clientSecret: 'pi_stripe_123_secret_abc',
+        customerId: 'cus_stripe_user123',
+        metadata: { orderId: 'order-123' },
+      });
+
+      const result = await service.createPayment(createDto, 'user-123');
+
+      expect(result.status).toBe(PaymentStatus.PROCESSING);
+      expect(result.transactionId).toBe('pi_stripe_123');
+      expect(result.paymentUrl).toBeDefined();
+      expect(result.clientSecret).toBe('pi_stripe_123_secret_abc');
+      expect(result.customerId).toBe('cus_stripe_user123');
+      expect(stripeProvider.createOneTimePayment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 99.99,
+          currency: 'USD',
+          description: '订单支付-order-123',
+          metadata: { orderId: 'order-123' },
+        })
+      );
+    });
+
+    it('should create a PayPal payment successfully', async () => {
+      const createDto = {
+        orderId: 'order-123',
+        method: PaymentMethod.PAYPAL,
+        amount: 99.99,
+        currency: 'USD',
+      };
+
+      ordersRepository.findOne.mockResolvedValue(mockOrder);
+      paymentsRepository.create.mockReturnValue(
+        createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.PAYPAL,
+        })
+      );
+      paymentsRepository.save.mockResolvedValue(
+        createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.PAYPAL,
+          status: PaymentStatus.PROCESSING,
+          transactionId: 'paypal_order_123',
+          paymentUrl: 'https://www.paypal.com/checkoutnow?token=abc123',
+        })
+      );
+      paypalProvider.createOneTimePayment.mockResolvedValue({
+        transactionId: 'paypal_order_123',
+        paymentUrl: 'https://www.paypal.com/checkoutnow?token=abc123',
+        metadata: { orderId: 'order-123' },
+      });
+
+      const result = await service.createPayment(createDto, 'user-123');
+
+      expect(result.status).toBe(PaymentStatus.PROCESSING);
+      expect(result.transactionId).toBe('paypal_order_123');
+      expect(result.paymentUrl).toBeDefined();
+      expect(paypalProvider.createOneTimePayment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 99.99,
+          currency: 'USD',
+          description: '订单支付-order-123',
+        })
+      );
+    });
+
+    it('should create a Paddle payment successfully', async () => {
+      const createDto = {
+        orderId: 'order-123',
+        method: PaymentMethod.PADDLE,
+        amount: 99.99,
+        currency: 'USD',
+      };
+
+      ordersRepository.findOne.mockResolvedValue(mockOrder);
+      paymentsRepository.create.mockReturnValue(
+        createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.PADDLE,
+        })
+      );
+      paymentsRepository.save.mockResolvedValue(
+        createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.PADDLE,
+          status: PaymentStatus.PROCESSING,
+          transactionId: 'paddle_txn_123',
+          paymentUrl: 'https://pay.paddle.com/checkout/abc123',
+        })
+      );
+      paddleProvider.createOneTimePayment.mockResolvedValue({
+        transactionId: 'paddle_txn_123',
+        paymentUrl: 'https://pay.paddle.com/checkout/abc123',
+        metadata: { orderId: 'order-123' },
+      });
+
+      const result = await service.createPayment(createDto, 'user-123');
+
+      expect(result.status).toBe(PaymentStatus.PROCESSING);
+      expect(result.transactionId).toBe('paddle_txn_123');
+      expect(result.paymentUrl).toBeDefined();
+      expect(paddleProvider.createOneTimePayment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 99.99,
+          currency: 'USD',
+          description: '订单支付-order-123',
+        })
+      );
+    });
+
+    it('should handle international payment provider failure', async () => {
+      const createDto = {
+        orderId: 'order-123',
+        method: PaymentMethod.STRIPE,
+        amount: 99.99,
+        currency: 'USD',
+      };
+
+      ordersRepository.findOne.mockResolvedValue(mockOrder);
+      paymentsRepository.create.mockReturnValue(
+        createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.STRIPE,
+        })
+      );
+
+      // Mock save to capture the payment object
+      let savedPayment: any;
+      paymentsRepository.save.mockImplementation((payment: any) => {
+        savedPayment = payment;
+        return Promise.resolve(payment);
+      });
+
+      stripeProvider.createOneTimePayment.mockRejectedValue(new Error('Stripe API error'));
+
+      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow(
+        InternalServerErrorException
+      );
+      await expect(service.createPayment(createDto, 'user-123')).rejects.toThrow('支付创建失败');
+
+      // Verify payment was marked as failed (check last saved state)
+      const savedCalls = (paymentsRepository.save as jest.Mock).mock.calls;
+      const lastSave = savedCalls[savedCalls.length - 1][0];
+      expect(lastSave.status).toBe(PaymentStatus.FAILED);
+      expect(lastSave.failureReason).toBe('Stripe API error');
+    });
   });
 
   describe('Balance Payment', () => {
@@ -345,7 +541,9 @@ describe('PaymentsService - Core Functions', () => {
       expect(result.transactionId).toBe('bal_tx_123');
       expect(balanceClient.checkBalance).toHaveBeenCalledWith('user-123', 99.99);
       expect(balanceClient.deductBalance).toHaveBeenCalledWith('user-123', 99.99, 'order-123');
-      expect(ordersRepository.save).toHaveBeenCalledWith(
+      // 验证订单状态被更新为已支付（使用 update 而不是 save，性能优化）
+      expect(ordersRepository.update).toHaveBeenCalledWith(
+        { id: 'order-123' },
         expect.objectContaining({
           status: OrderStatus.PAID,
         })
@@ -575,6 +773,388 @@ describe('PaymentsService - Core Functions', () => {
       expect(() => service['getPaymentProvider']('INVALID' as any)).toThrow(
         'Unsupported payment method'
       );
+    });
+  });
+
+  describe('Payment Notifications', () => {
+    describe('handleWeChatNotification', () => {
+      it('should process successful WeChat payment notification', async () => {
+        const processingPayment = createMockPayment({
+          ...mockPayment,
+          status: PaymentStatus.PROCESSING,
+        });
+
+        const notificationBody = {
+          resource: {
+            out_trade_no: processingPayment.paymentNo,
+            trade_state: 'SUCCESS',
+            transaction_id: 'wx_tx_123456',
+          },
+        };
+
+        const headers = {
+          'wechatpay-timestamp': '1234567890',
+          'wechatpay-nonce': 'abc123',
+          'wechatpay-signature': 'valid_signature',
+        };
+
+        paymentsRepository.findOne.mockResolvedValue(processingPayment);
+        wechatPayProvider.verifyNotification.mockReturnValue(true);
+        paymentsRepository.save.mockResolvedValue({
+          ...processingPayment,
+          status: PaymentStatus.SUCCESS,
+          transactionId: 'wx_tx_123456',
+        });
+        ordersRepository.update.mockResolvedValue({ affected: 1 } as any);
+
+        await service.handleWeChatNotification(notificationBody, headers);
+
+        expect(wechatPayProvider.verifyNotification).toHaveBeenCalledWith(
+          headers['wechatpay-timestamp'],
+          headers['wechatpay-nonce'],
+          JSON.stringify(notificationBody),
+          headers['wechatpay-signature']
+        );
+        expect(paymentsRepository.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: PaymentStatus.SUCCESS,
+            transactionId: 'wx_tx_123456',
+          })
+        );
+        expect(ordersRepository.update).toHaveBeenCalledWith(
+          { id: processingPayment.orderId },
+          expect.objectContaining({
+            status: OrderStatus.PAID,
+          })
+        );
+      });
+
+      it('should handle closed WeChat payment', async () => {
+        const processingPayment = createMockPayment({
+          ...mockPayment,
+          status: PaymentStatus.PROCESSING,
+        });
+
+        const notificationBody = {
+          resource: {
+            out_trade_no: processingPayment.paymentNo,
+            trade_state: 'CLOSED',
+            transaction_id: 'wx_tx_closed',
+          },
+        };
+
+        const headers = {
+          'wechatpay-timestamp': '1234567890',
+          'wechatpay-nonce': 'abc123',
+          'wechatpay-signature': 'valid_signature',
+        };
+
+        paymentsRepository.findOne.mockResolvedValue(processingPayment);
+        wechatPayProvider.verifyNotification.mockReturnValue(true);
+        paymentsRepository.save.mockResolvedValue({
+          ...processingPayment,
+          status: PaymentStatus.CANCELLED,
+        });
+
+        await service.handleWeChatNotification(notificationBody, headers);
+
+        expect(paymentsRepository.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: PaymentStatus.CANCELLED,
+          })
+        );
+      });
+
+      it('should throw BadRequestException when signature is invalid', async () => {
+        const notificationBody = { resource: {} };
+        const headers = {
+          'wechatpay-timestamp': '1234567890',
+          'wechatpay-nonce': 'abc123',
+          'wechatpay-signature': 'invalid_signature',
+        };
+
+        wechatPayProvider.verifyNotification.mockReturnValue(false);
+
+        await expect(service.handleWeChatNotification(notificationBody, headers)).rejects.toThrow(
+          BadRequestException
+        );
+        await expect(service.handleWeChatNotification(notificationBody, headers)).rejects.toThrow(
+          '签名验证失败'
+        );
+      });
+
+      it('should throw NotFoundException when payment does not exist', async () => {
+        const notificationBody = {
+          resource: {
+            out_trade_no: 'non-existent',
+            trade_state: 'SUCCESS',
+          },
+        };
+
+        const headers = {
+          'wechatpay-timestamp': '1234567890',
+          'wechatpay-nonce': 'abc123',
+          'wechatpay-signature': 'valid_signature',
+        };
+
+        wechatPayProvider.verifyNotification.mockReturnValue(true);
+        paymentsRepository.findOne.mockResolvedValue(null);
+
+        await expect(service.handleWeChatNotification(notificationBody, headers)).rejects.toThrow(
+          NotFoundException
+        );
+        await expect(service.handleWeChatNotification(notificationBody, headers)).rejects.toThrow(
+          '支付记录不存在: non-existent'
+        );
+      });
+    });
+
+    describe('handleAlipayNotification', () => {
+      it('should process successful Alipay payment notification', async () => {
+        const processingPayment = createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.ALIPAY,
+          status: PaymentStatus.PROCESSING,
+        });
+
+        const notificationParams = {
+          out_trade_no: processingPayment.paymentNo,
+          trade_status: 'TRADE_SUCCESS',
+          trade_no: 'alipay_tx_123456',
+        };
+
+        paymentsRepository.findOne.mockResolvedValue(processingPayment);
+        alipayProvider.verifyNotification.mockReturnValue(true);
+        paymentsRepository.save.mockResolvedValue({
+          ...processingPayment,
+          status: PaymentStatus.SUCCESS,
+          transactionId: 'alipay_tx_123456',
+        });
+        ordersRepository.update.mockResolvedValue({ affected: 1 } as any);
+
+        await service.handleAlipayNotification(notificationParams);
+
+        expect(alipayProvider.verifyNotification).toHaveBeenCalledWith(notificationParams);
+        expect(paymentsRepository.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: PaymentStatus.SUCCESS,
+            transactionId: 'alipay_tx_123456',
+          })
+        );
+        expect(ordersRepository.update).toHaveBeenCalled();
+      });
+
+      it('should handle TRADE_FINISHED status', async () => {
+        const processingPayment = createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.ALIPAY,
+          status: PaymentStatus.PROCESSING,
+        });
+
+        const notificationParams = {
+          out_trade_no: processingPayment.paymentNo,
+          trade_status: 'TRADE_FINISHED',
+          trade_no: 'alipay_tx_finished',
+        };
+
+        paymentsRepository.findOne.mockResolvedValue(processingPayment);
+        alipayProvider.verifyNotification.mockReturnValue(true);
+        paymentsRepository.save.mockResolvedValue({
+          ...processingPayment,
+          status: PaymentStatus.SUCCESS,
+        });
+        ordersRepository.update.mockResolvedValue({ affected: 1 } as any);
+
+        await service.handleAlipayNotification(notificationParams);
+
+        expect(paymentsRepository.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: PaymentStatus.SUCCESS,
+          })
+        );
+      });
+
+      it('should handle closed Alipay payment', async () => {
+        const processingPayment = createMockPayment({
+          ...mockPayment,
+          method: PaymentMethod.ALIPAY,
+          status: PaymentStatus.PROCESSING,
+        });
+
+        const notificationParams = {
+          out_trade_no: processingPayment.paymentNo,
+          trade_status: 'TRADE_CLOSED',
+          trade_no: 'alipay_tx_closed',
+        };
+
+        paymentsRepository.findOne.mockResolvedValue(processingPayment);
+        alipayProvider.verifyNotification.mockReturnValue(true);
+        paymentsRepository.save.mockResolvedValue({
+          ...processingPayment,
+          status: PaymentStatus.CANCELLED,
+        });
+
+        await service.handleAlipayNotification(notificationParams);
+
+        expect(paymentsRepository.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: PaymentStatus.CANCELLED,
+          })
+        );
+      });
+
+      it('should throw BadRequestException when signature is invalid', async () => {
+        const notificationParams = {
+          out_trade_no: 'test',
+          trade_status: 'TRADE_SUCCESS',
+        };
+
+        alipayProvider.verifyNotification.mockReturnValue(false);
+
+        await expect(service.handleAlipayNotification(notificationParams)).rejects.toThrow(
+          BadRequestException
+        );
+        await expect(service.handleAlipayNotification(notificationParams)).rejects.toThrow(
+          '签名验证失败'
+        );
+      });
+
+      it('should throw NotFoundException when payment does not exist', async () => {
+        const notificationParams = {
+          out_trade_no: 'non-existent',
+          trade_status: 'TRADE_SUCCESS',
+          trade_no: 'alipay_tx_123',
+        };
+
+        alipayProvider.verifyNotification.mockReturnValue(true);
+        paymentsRepository.findOne.mockResolvedValue(null);
+
+        await expect(service.handleAlipayNotification(notificationParams)).rejects.toThrow(
+          NotFoundException
+        );
+        await expect(service.handleAlipayNotification(notificationParams)).rejects.toThrow(
+          '支付记录不存在: non-existent'
+        );
+      });
+    });
+  });
+
+  describe('Payment Query with Third-Party Sync', () => {
+    it('should sync WeChat payment status when PROCESSING', async () => {
+      const processingPayment = createMockPayment({
+        ...mockPayment,
+        method: PaymentMethod.WECHAT,
+        status: PaymentStatus.PROCESSING,
+      });
+
+      paymentsRepository.findOne.mockResolvedValue(processingPayment);
+      wechatPayProvider.queryOrder.mockResolvedValue({
+        tradeState: 'SUCCESS',
+        transactionId: 'wx_sync_tx_123',
+      });
+      paymentsRepository.save.mockResolvedValue({
+        ...processingPayment,
+        status: PaymentStatus.SUCCESS,
+        transactionId: 'wx_sync_tx_123',
+      });
+      ordersRepository.update.mockResolvedValue({ affected: 1 } as any);
+
+      const result = await service.queryPayment(processingPayment.paymentNo);
+
+      expect(wechatPayProvider.queryOrder).toHaveBeenCalledWith(processingPayment.paymentNo);
+      expect(paymentsRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: PaymentStatus.SUCCESS,
+          transactionId: 'wx_sync_tx_123',
+        })
+      );
+      expect(result.status).toBe(PaymentStatus.SUCCESS);
+    });
+
+    it('should sync Alipay payment status when PROCESSING', async () => {
+      const processingPayment = createMockPayment({
+        ...mockPayment,
+        method: PaymentMethod.ALIPAY,
+        status: PaymentStatus.PROCESSING,
+      });
+
+      paymentsRepository.findOne.mockResolvedValue(processingPayment);
+      alipayProvider.queryOrder.mockResolvedValue({
+        tradeStatus: 'TRADE_SUCCESS',
+        tradeNo: 'alipay_sync_tx_123',
+      });
+      paymentsRepository.save.mockResolvedValue({
+        ...processingPayment,
+        status: PaymentStatus.SUCCESS,
+        transactionId: 'alipay_sync_tx_123',
+      });
+      ordersRepository.update.mockResolvedValue({ affected: 1 } as any);
+
+      const result = await service.queryPayment(processingPayment.paymentNo);
+
+      expect(alipayProvider.queryOrder).toHaveBeenCalledWith(processingPayment.paymentNo);
+      expect(paymentsRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: PaymentStatus.SUCCESS,
+          transactionId: 'alipay_sync_tx_123',
+        })
+      );
+      expect(result.status).toBe(PaymentStatus.SUCCESS);
+    });
+
+    it('should handle Alipay TRADE_FINISHED status during sync', async () => {
+      const processingPayment = createMockPayment({
+        ...mockPayment,
+        method: PaymentMethod.ALIPAY,
+        status: PaymentStatus.PROCESSING,
+      });
+
+      paymentsRepository.findOne.mockResolvedValue(processingPayment);
+      alipayProvider.queryOrder.mockResolvedValue({
+        tradeStatus: 'TRADE_FINISHED',
+        tradeNo: 'alipay_finished_tx',
+      });
+      paymentsRepository.save.mockResolvedValue({
+        ...processingPayment,
+        status: PaymentStatus.SUCCESS,
+      });
+      ordersRepository.update.mockResolvedValue({ affected: 1 } as any);
+
+      const result = await service.queryPayment(processingPayment.paymentNo);
+
+      expect(result.status).toBe(PaymentStatus.SUCCESS);
+    });
+
+    it('should not sync when payment is already completed', async () => {
+      const completedPayment = createMockPayment({
+        ...mockPayment,
+        status: PaymentStatus.SUCCESS,
+      });
+
+      paymentsRepository.findOne.mockResolvedValue(completedPayment);
+
+      const result = await service.queryPayment(completedPayment.paymentNo);
+
+      expect(wechatPayProvider.queryOrder).not.toHaveBeenCalled();
+      expect(alipayProvider.queryOrder).not.toHaveBeenCalled();
+      expect(result.status).toBe(PaymentStatus.SUCCESS);
+    });
+
+    it('should handle third-party query errors gracefully', async () => {
+      const processingPayment = createMockPayment({
+        ...mockPayment,
+        method: PaymentMethod.WECHAT,
+        status: PaymentStatus.PROCESSING,
+      });
+
+      paymentsRepository.findOne.mockResolvedValue(processingPayment);
+      wechatPayProvider.queryOrder.mockRejectedValue(new Error('Third-party API error'));
+
+      // 应该返回原始支付状态，不抛出异常
+      const result = await service.queryPayment(processingPayment.paymentNo);
+
+      expect(result.status).toBe(PaymentStatus.PROCESSING);
+      expect(wechatPayProvider.queryOrder).toHaveBeenCalled();
     });
   });
 });

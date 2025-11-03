@@ -5,7 +5,7 @@ import { NotFoundException, BadRequestException, ForbiddenException } from '@nes
 import { AllocationService, SchedulingStrategy } from './allocation.service';
 import { DeviceAllocation, AllocationStatus } from '../entities/device-allocation.entity';
 import { Device, DeviceStatus } from '../entities/device.entity';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, DistributedLockService } from '@cloudphone/shared';
 import { QuotaClientService } from '../quota/quota-client.service';
 import { BillingClientService } from './billing-client.service';
 import { NotificationClientService } from './notification-client.service';
@@ -22,7 +22,7 @@ describe('AllocationService', () => {
   const mockAllocationRepository = {
     create: jest.fn(),
     save: jest.fn(),
-    find: jest.fn(),
+    find: jest.fn().mockResolvedValue([]), // 默认返回空数组
     findOne: jest.fn(),
     count: jest.fn(),
     createQueryBuilder: jest.fn(),
@@ -55,6 +55,14 @@ describe('AllocationService', () => {
     sendBatchNotifications: jest.fn(),
   };
 
+  const mockDistributedLockService = {
+    acquireLock: jest.fn().mockResolvedValue(true),
+    releaseLock: jest.fn().mockResolvedValue(undefined),
+    withLock: jest.fn(async (key, ttl, callback, retries, retryDelay) => {
+      return await callback();
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -82,6 +90,10 @@ describe('AllocationService', () => {
         {
           provide: NotificationClientService,
           useValue: mockNotificationClient,
+        },
+        {
+          provide: DistributedLockService,
+          useValue: mockDistributedLockService,
         },
       ],
     }).compile();

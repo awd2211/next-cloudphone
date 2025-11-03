@@ -15,8 +15,9 @@ import { MinioService } from '../../minio/minio.service';
 import { ApkParserService } from '../../apk/apk-parser.service';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, ProxyClientService } from '@cloudphone/shared';
 import { SagaOrchestratorService } from '@cloudphone/shared';
+import { CacheService } from '../../cache/cache.service';
 import { CreateAppDto } from '../dto/create-app.dto';
 import { UpdateAppDto } from '../dto/update-app.dto';
 
@@ -33,6 +34,8 @@ describe('AppsService', () => {
   let mockSagaOrchestrator: any;
   let mockDataSource: any;
   let mockQueryRunner: any;
+  let mockCacheService: any;
+  let mockProxyClient: any;
 
   beforeEach(async () => {
     // Mock QueryRunner
@@ -129,6 +132,27 @@ describe('AppsService', () => {
       createQueryRunner: jest.fn(() => mockQueryRunner),
     };
 
+    // Mock Cache Service
+    mockCacheService = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+      del: jest.fn().mockResolvedValue(undefined),
+      invalidate: jest.fn().mockResolvedValue(undefined),
+      wrap: jest.fn((key, callback) => callback()), // 缓存包装器：直接执行回调函数
+    };
+
+    // Mock Proxy Client Service
+    mockProxyClient = {
+      assignProxy: jest.fn().mockResolvedValue({
+        proxyId: 'proxy-123',
+        host: '1.2.3.4',
+        port: 8080,
+        type: 'HTTP',
+      }),
+      releaseProxy: jest.fn().mockResolvedValue(undefined),
+      getProxyStatus: jest.fn().mockResolvedValue({ status: 'active' }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AppsService,
@@ -171,6 +195,14 @@ describe('AppsService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: CacheService,
+          useValue: mockCacheService,
+        },
+        {
+          provide: ProxyClientService,
+          useValue: mockProxyClient,
         },
       ],
     }).compile();

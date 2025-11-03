@@ -19,7 +19,7 @@ describe('ReservationService', () => {
   let reservationRepository: Repository<DeviceReservation>;
   let allocationService: AllocationService;
   let eventBus: EventBusService;
-  let notificationClient: NotificationClient;
+  let notificationClient: NotificationClientService;
 
   const now = new Date();
   const futureTime = new Date(now.getTime() + 3600000); // 1 hour from now
@@ -68,7 +68,7 @@ describe('ReservationService', () => {
           },
         },
         {
-          provide: NotificationClient,
+          provide: NotificationClientService,
           useValue: {
             sendBatchNotifications: jest.fn(),
           },
@@ -82,7 +82,7 @@ describe('ReservationService', () => {
     );
     allocationService = module.get<AllocationService>(AllocationService);
     eventBus = module.get<EventBusService>(EventBusService);
-    notificationClient = module.get<NotificationClient>(NotificationClient);
+    notificationClient = module.get<NotificationClientService>(NotificationClientService);
   });
 
   afterEach(() => {
@@ -223,11 +223,14 @@ describe('ReservationService', () => {
     };
 
     it('should successfully update a reservation', async () => {
+      // Ensure status is PENDING (not mutated from other tests)
+      const pendingReservation = { ...mockReservation, status: ReservationStatus.PENDING };
+
       jest
         .spyOn(reservationRepository, 'findOne')
-        .mockResolvedValue(mockReservation as DeviceReservation);
+        .mockResolvedValue(pendingReservation as DeviceReservation);
       jest.spyOn(reservationRepository, 'save').mockResolvedValue({
-        ...mockReservation,
+        ...pendingReservation,
         durationMinutes: 90,
       } as DeviceReservation);
       jest.spyOn(eventBus, 'publish').mockResolvedValue(undefined);
@@ -267,16 +270,19 @@ describe('ReservationService', () => {
         reservedStartTime: newStartTime,
       };
 
+      // Ensure status is PENDING
+      const pendingReservation = { ...mockReservation, status: ReservationStatus.PENDING };
+
       jest
         .spyOn(reservationRepository, 'findOne')
-        .mockResolvedValue(mockReservation as DeviceReservation);
+        .mockResolvedValue(pendingReservation as DeviceReservation);
       jest.spyOn(service, 'checkConflict').mockResolvedValue({
         hasConflict: false,
         message: 'Time slot is available',
       });
       jest
         .spyOn(reservationRepository, 'save')
-        .mockResolvedValue(mockReservation as DeviceReservation);
+        .mockResolvedValue(pendingReservation as DeviceReservation);
       jest.spyOn(eventBus, 'publish').mockResolvedValue(undefined);
 
       await service.updateReservation('reservation-1', timeUpdateDto);
@@ -335,12 +341,15 @@ describe('ReservationService', () => {
 
   describe('executeReservation', () => {
     it('should successfully execute a reservation', async () => {
+      // Ensure status is PENDING (executable status)
+      const pendingReservation = { ...mockReservation, status: ReservationStatus.PENDING };
+
       jest
         .spyOn(reservationRepository, 'findOne')
-        .mockResolvedValue(mockReservation as DeviceReservation);
+        .mockResolvedValue(pendingReservation as DeviceReservation);
       jest
         .spyOn(reservationRepository, 'save')
-        .mockResolvedValue(mockReservation as DeviceReservation);
+        .mockResolvedValue(pendingReservation as DeviceReservation);
       jest.spyOn(allocationService, 'allocateDevice').mockResolvedValue({
         allocationId: 'allocation-1',
         deviceId: 'device-1',
@@ -370,15 +379,18 @@ describe('ReservationService', () => {
     });
 
     it('should mark reservation as failed when allocation fails', async () => {
+      // Ensure status is PENDING
+      const pendingReservation = { ...mockReservation, status: ReservationStatus.PENDING };
+
       jest
         .spyOn(reservationRepository, 'findOne')
-        .mockResolvedValue(mockReservation as DeviceReservation);
+        .mockResolvedValue(pendingReservation as DeviceReservation);
       jest
         .spyOn(allocationService, 'allocateDevice')
         .mockRejectedValue(new Error('No devices available'));
       jest
         .spyOn(reservationRepository, 'save')
-        .mockResolvedValue(mockReservation as DeviceReservation);
+        .mockResolvedValue(pendingReservation as DeviceReservation);
       jest.spyOn(eventBus, 'publish').mockResolvedValue(undefined);
       jest.spyOn(notificationClient, 'sendBatchNotifications').mockResolvedValue(undefined);
 

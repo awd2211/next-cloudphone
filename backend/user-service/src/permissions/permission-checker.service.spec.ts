@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { PermissionCheckerService } from './permission-checker.service';
+import { PermissionCacheService } from './permission-cache.service';
 import { Permission, DataScopeType } from '../entities/permission.entity';
 import { DataScope, ScopeType } from '../entities/data-scope.entity';
 import {
@@ -19,6 +20,7 @@ describe('PermissionCheckerService', () => {
   let fieldPermissionRepository: ReturnType<typeof createMockRepository>;
   let userRepository: ReturnType<typeof createMockRepository>;
   let roleRepository: ReturnType<typeof createMockRepository>;
+  let permissionCacheService: jest.Mocked<PermissionCacheService>;
 
   beforeEach(async () => {
     permissionRepository = createMockRepository();
@@ -26,6 +28,17 @@ describe('PermissionCheckerService', () => {
     fieldPermissionRepository = createMockRepository();
     userRepository = createMockRepository();
     roleRepository = createMockRepository();
+
+    // Mock PermissionCacheService
+    const mockPermissionCacheService = {
+      getUserPermissions: jest.fn().mockResolvedValue(null),
+      loadAndCacheUserPermissions: jest.fn().mockResolvedValue(null),
+      invalidateCache: jest.fn(),
+      invalidateCacheByRole: jest.fn().mockResolvedValue(undefined),
+      invalidateCacheByTenant: jest.fn().mockResolvedValue(undefined),
+      warmupCache: jest.fn().mockResolvedValue(undefined),
+      getCacheStats: jest.fn().mockReturnValue({ size: 0, hits: 0, misses: 0 }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -50,10 +63,15 @@ describe('PermissionCheckerService', () => {
           provide: getRepositoryToken(Role),
           useValue: roleRepository,
         },
+        {
+          provide: PermissionCacheService,
+          useValue: mockPermissionCacheService,
+        },
       ],
     }).compile();
 
     service = module.get<PermissionCheckerService>(PermissionCheckerService);
+    permissionCacheService = module.get(PermissionCacheService);
   });
 
   beforeEach(() => {

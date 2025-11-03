@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DevicesController } from '../devices.controller';
 import { DevicesService } from '../devices.service';
+import { DeviceDeletionSaga } from '../deletion.saga';
 import { PermissionGuard } from '@cloudphone/shared';
 import { QuotaGuard } from '../../quota/quota.guard';
 import { QuotaClientService } from '../../quota/quota-client.service';
@@ -69,12 +70,21 @@ describe('DevicesController - SMS Endpoints', () => {
       getSmsMessages: jest.fn().mockResolvedValue([mockSmsMessage]),
     };
 
+    const mockDeletionSaga = {
+      startDeletion: jest.fn().mockResolvedValue({ sagaId: 'saga-123' }),
+      getSagaStatus: jest.fn().mockResolvedValue({ status: 'completed' }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DevicesController],
       providers: [
         {
           provide: DevicesService,
           useValue: mockDevicesService,
+        },
+        {
+          provide: DeviceDeletionSaga,
+          useValue: mockDeletionSaga,
         },
         {
           provide: QuotaClientService,

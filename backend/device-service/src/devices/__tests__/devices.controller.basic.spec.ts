@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DevicesController } from '../devices.controller';
 import { DevicesService } from '../devices.service';
+import { DeviceDeletionSaga } from '../deletion.saga';
 import { PermissionGuard } from '@cloudphone/shared';
 import { QuotaGuard } from '../../quota/quota.guard';
 import { QuotaClientService } from '../../quota/quota-client.service';
@@ -16,6 +17,7 @@ import { DeviceStatus, DeviceProviderType } from '../../entities/device.entity';
 describe('DevicesController - Basic CRUD', () => {
   let controller: DevicesController;
   let service: jest.Mocked<DevicesService>;
+  let module: TestingModule;
 
   const mockDeviceId = 'device-123';
   const mockUserId = 'user-456';
@@ -52,12 +54,21 @@ describe('DevicesController - Basic CRUD', () => {
       restart: jest.fn().mockResolvedValue(mockDevice),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
+    const mockDeletionSaga = {
+      startDeletion: jest.fn().mockResolvedValue({ sagaId: mockSagaId }),
+      getSagaStatus: jest.fn().mockResolvedValue({ status: 'completed' }),
+    };
+
+    module = await Test.createTestingModule({
       controllers: [DevicesController],
       providers: [
         {
           provide: DevicesService,
           useValue: mockDevicesService,
+        },
+        {
+          provide: DeviceDeletionSaga,
+          useValue: mockDeletionSaga,
         },
         {
           provide: QuotaClientService,
@@ -350,22 +361,29 @@ describe('DevicesController - Basic CRUD', () => {
   });
 
   describe('DELETE /devices/:id - 删除设备', () => {
-    it('应该成功删除设备', async () => {
-      const result = await controller.remove(mockDeviceId);
+    const mockReq = {
+      user: {
+        userId: mockUserId,
+        sub: mockUserId,
+      },
+    };
 
-      expect(service.remove).toHaveBeenCalledWith(mockDeviceId);
+    it('应该成功删除设备', async () => {
+      const result = await controller.remove(mockDeviceId, mockReq);
+
       expect(result).toEqual({
         success: true,
-        message: '设备删除成功',
+        message: '设备删除 Saga 已启动',
+        sagaId: mockSagaId,
       });
     });
 
     it('设备不存在时应该传播异常', async () => {
       const error = new Error('设备不存在');
-      service.remove.mockRejectedValue(error);
+      const mockDeletionSaga = module.get(DeviceDeletionSaga);
+      mockDeletionSaga.startDeletion = jest.fn().mockRejectedValue(error);
 
-      await expect(controller.remove('nonexistent')).rejects.toThrow(error);
-      expect(service.remove).toHaveBeenCalledWith('nonexistent');
+      await expect(controller.remove('nonexistent', mockReq)).rejects.toThrow(error);
     });
   });
 

@@ -9,6 +9,7 @@ import {
   TransactionType,
   TransactionStatus,
 } from '../entities/balance-transaction.entity';
+import { CacheService } from '../../cache/cache.service';
 
 describe('BalanceService', () => {
   let service: BalanceService;
@@ -84,6 +85,20 @@ describe('BalanceService', () => {
           provide: DataSource,
           useValue: {
             createQueryRunner: jest.fn(() => mockQueryRunner),
+          },
+        },
+        {
+          provide: CacheService,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue('OK'),
+            del: jest.fn().mockResolvedValue(1),
+            delPattern: jest.fn().mockResolvedValue(1),
+            ttl: jest.fn().mockResolvedValue(3600),
+            wrap: jest.fn().mockImplementation(async (key, fn) => {
+              // wrap 方法先查缓存，未命中则执行函数并缓存结果
+              return await fn();
+            }),
           },
         },
       ],
