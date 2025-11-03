@@ -42,15 +42,21 @@ export class PermissionsGuard implements CanActivate {
     const requiredPermissions = permissionRequirement.permissions;
     const operator = permissionRequirement.operator || PermissionOperator.AND;
 
+    // 🔧 格式标准化：支持冒号和点号两种格式
+    // 数据库存储: 'device:create', 控制器可能使用: 'device.create'
+    const normalizePermission = (perm: string) => perm.replace(/[:.]/g, ':');
+    const normalizedUserPerms = userPermissions.map(normalizePermission);
+    const normalizedRequiredPerms = requiredPermissions.map(normalizePermission);
+
     let hasPermission: boolean;
 
     if (operator === PermissionOperator.OR) {
-      hasPermission = requiredPermissions.some((permission) =>
-        userPermissions.includes(permission)
+      hasPermission = normalizedRequiredPerms.some((permission) =>
+        normalizedUserPerms.includes(permission)
       );
     } else {
-      hasPermission = requiredPermissions.every((permission) =>
-        userPermissions.includes(permission)
+      hasPermission = normalizedRequiredPerms.every((permission) =>
+        normalizedUserPerms.includes(permission)
       );
     }
 
