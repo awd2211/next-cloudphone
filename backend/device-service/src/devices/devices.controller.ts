@@ -11,6 +11,7 @@ import {
   UploadedFile,
   UseInterceptors,
   Res,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,6 +27,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { DevicesService } from './devices.service';
+import { DeviceDeletionSaga } from './deletion.saga';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 import { DeviceStatus } from '../entities/device.entity';
@@ -62,7 +64,10 @@ import {
 @Controller('devices')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard, DataScopeGuard)
 export class DevicesController {
-  constructor(private readonly devicesService: DevicesService) {}
+  constructor(
+    private readonly devicesService: DevicesService,
+    private readonly deletionSaga: DeviceDeletionSaga,
+  ) {}
 
   @Post()
   @RequirePermission('device.create')
@@ -367,16 +372,34 @@ export class DevicesController {
 
   @Delete(':id')
   @RequirePermission('device.delete')
-  @ApiOperation({ summary: '删除设备', description: '删除设备并清理相关容器' })
+  @ApiOperation({ summary: '删除设备', description: '通过 Saga 模式删除设备并清理相关资源' })
   @ApiParam({ name: 'id', description: '设备 ID' })
-  @ApiResponse({ status: 200, description: '删除成功' })
+  @ApiResponse({ status: 200, description: '删除 Saga 已启动' })
   @ApiResponse({ status: 404, description: '设备不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async remove(@Param('id') id: string) {
-    await this.devicesService.remove(id);
+  async remove(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user?.userId || req.user?.sub || 'system';
+
+    // 启动设备删除 Saga
+    const { sagaId } = await this.deletionSaga.startDeletion(id, userId);
+
     return {
       success: true,
-      message: '设备删除成功',
+      message: '设备删除 Saga 已启动',
+      sagaId,
+    };
+  }
+
+  @Get('deletion/saga/:sagaId')
+  @RequirePermission('device.read')
+  @ApiOperation({ summary: '查询设备删除 Saga 状态' })
+  @ApiParam({ name: 'sagaId', description: 'Saga ID' })
+  @ApiResponse({ status: 200, description: '查询成功' })
+  async getDeletionSagaStatus(@Param('sagaId') sagaId: string) {
+    const state = await this.deletionSaga.getSagaStatus(sagaId);
+    return {
+      success: true,
+      data: state,
     };
   }
 
@@ -702,11 +725,11 @@ export class DevicesController {
   @RequirePermission('device.delete')
   @ApiOperation({
     summary: '批量删除设备',
-    description: '批量删除多个设备',
+    description: '通过 Saga 模式批量删除多个设备',
   })
-  @ApiResponse({ status: 200, description: '批量删除成功' })
+  @ApiResponse({ status: 200, description: '批量删除 Saga 已启动' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async batchDelete(@Body('ids') ids: string[]) {
+  async batchDelete(@Body('ids') ids: string[], @Req() req: any) {
     if (!ids || ids.length === 0) {
       return {
         success: false,
@@ -714,15 +737,88 @@ export class DevicesController {
       };
     }
 
-    const results = await Promise.allSettled(ids.map((id) => this.devicesService.remove(id)));
+    const userId = req.user?.userId || req.user?.sub || 'system';
+
+    // 为每个设备启动删除 Saga
+    const results = await Promise.allSettled(
+      ids.map((id) => this.deletionSaga.startDeletion(id, userId))
+    );
 
     const succeeded = results.filter((r) => r.status === 'fulfilled').length;
     const failed = results.filter((r) => r.status === 'rejected').length;
 
+    // 收集所有 Saga ID
+    const sagaIds = results
+      .filter((r) => r.status === 'fulfilled')
+      .map((r: any) => r.value.sagaId);
+
     return {
       success: true,
-      message: `批量删除完成：成功 ${succeeded} 个，失败 ${failed} 个`,
-      data: { succeeded, failed, total: ids.length },
+      message: `批量删除 Saga 已启动：成功 ${succeeded} 个，失败 ${failed} 个`,
+      data: { succeeded, failed, total: ids.length, sagaIds },
+    };
+  }
+
+  @Post('batch/stats')
+  @RequirePermission('device:read')
+  @ApiOperation({
+    summary: '批量获取设备统计信息',
+    description: '一次性获取多个设备的统计数据，避免 N+1 查询问题',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '批量获取成功',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          description: '设备统计映射 (deviceId => stats)',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              deviceId: { type: 'string' },
+              providerType: { type: 'string' },
+              timestamp: { type: 'string', format: 'date-time' },
+              cpuUsage: { type: 'number' },
+              memoryUsage: { type: 'number' },
+              memoryUsed: { type: 'number' },
+              storageUsed: { type: 'number' },
+              storageUsage: { type: 'number' },
+              networkRx: { type: 'number' },
+              networkTx: { type: 'number' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async batchStats(@Body('deviceIds') deviceIds: string[]) {
+    if (!deviceIds || deviceIds.length === 0) {
+      return {
+        success: false,
+        message: '请提供设备ID列表',
+        data: {},
+      };
+    }
+
+    if (deviceIds.length > 200) {
+      return {
+        success: false,
+        message: '单次最多支持查询 200 个设备',
+        data: {},
+      };
+    }
+
+    const stats = await this.devicesService.getStatsBatch(deviceIds);
+
+    return {
+      success: true,
+      message: `成功获取 ${Object.keys(stats).length}/${deviceIds.length} 个设备的统计信息`,
+      data: stats,
     };
   }
 
@@ -731,7 +827,7 @@ export class DevicesController {
   // ============================================================
 
   @Post(':id/apps/start')
-  @RequirePermission('device:app:operate')
+  @RequirePermission('device:app-operate')
   @ApiOperation({
     summary: '启动应用',
     description: '启动设备上的应用 (仅阿里云 ECP 支持)',
@@ -749,7 +845,7 @@ export class DevicesController {
   }
 
   @Post(':id/apps/stop')
-  @RequirePermission('device:app:operate')
+  @RequirePermission('device:app-operate')
   @ApiOperation({
     summary: '停止应用',
     description: '停止设备上的应用 (仅阿里云 ECP 支持)',
@@ -767,7 +863,7 @@ export class DevicesController {
   }
 
   @Post(':id/apps/clear-data')
-  @RequirePermission('device:app:operate')
+  @RequirePermission('device:app-operate')
   @ApiOperation({
     summary: '清除应用数据',
     description: '清除设备上应用的数据 (仅阿里云 ECP 支持)',
@@ -789,7 +885,7 @@ export class DevicesController {
   // ============================================================
 
   @Post(':id/snapshots')
-  @RequirePermission('device:snapshot:create')
+  @RequirePermission('device:snapshot-create')
   @ApiOperation({
     summary: '创建设备快照',
     description: '为设备创建快照备份 (仅阿里云 ECP 支持)',
@@ -808,7 +904,7 @@ export class DevicesController {
   }
 
   @Post(':id/snapshots/restore')
-  @RequirePermission('device:snapshot:restore')
+  @RequirePermission('device:snapshot-restore')
   @ApiOperation({
     summary: '恢复设备快照',
     description: '从快照恢复设备 (仅阿里云 ECP 支持)',
@@ -844,7 +940,7 @@ export class DevicesController {
   }
 
   @Delete(':id/snapshots/:snapshotId')
-  @RequirePermission('device:snapshot:delete')
+  @RequirePermission('device:snapshot-delete')
   @ApiOperation({
     summary: '删除设备快照',
     description: '删除指定的设备快照 (仅阿里云 ECP 支持)',

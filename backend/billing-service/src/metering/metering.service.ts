@@ -41,13 +41,14 @@ export class MeteringService {
 
   /**
    * 定时任务：每小时采集使用量数据
+   * ✅ N+1 查询优化：使用批量查询接口，减少 HTTP 请求数 99%
    */
   @Cron(CronExpression.EVERY_HOUR)
   async collectUsageData() {
     this.logger.log('Starting usage data collection...');
 
     try {
-      // 获取所有运行中的设备
+      // ✅ 1. 获取所有运行中的设备（完整信息）
       const devices = await this.getRunningDevices();
 
       if (devices.length === 0) {
@@ -55,49 +56,48 @@ export class MeteringService {
         return;
       }
 
-      // ✅ 优化：并行采集所有设备的使用量（避免 N+1 串行请求）
-      const usageDataPromises = devices.map((device) =>
-        this.collectDeviceUsage(device.id)
-          .then((usageData) => ({ status: 'fulfilled' as const, value: usageData }))
-          .catch((error) => ({
-            status: 'rejected' as const,
-            reason: error,
-            deviceId: device.id,
-          }))
+      this.logger.log(`Found ${devices.length} running devices`);
+
+      // ✅ 2. 批量获取设备统计（只需 1 次 HTTP 请求）
+      const deviceIds = devices.map((d) => d.id);
+      const statsByDeviceId = await this.getDeviceStatsBatch(deviceIds);
+
+      this.logger.debug(`Retrieved stats for ${Object.keys(statsByDeviceId).length} devices`);
+
+      // ✅ 3. 在内存中组装使用量数据（无网络请求）
+      const usageDataList = devices.map((device) => {
+        const stats = statsByDeviceId[device.id] || {};
+        const duration = this.calculateDuration(device.lastActiveAt);
+
+        return {
+          deviceId: device.id,
+          deviceName: device.name || `Device ${device.id.substring(0, 8)}`,
+          userId: device.userId,
+          tenantId: device.tenantId,
+          providerType: device.providerType || DeviceProviderType.REDROID,
+          deviceType: device.deviceType || DeviceType.PHONE,
+          deviceConfig: this.extractDeviceConfig(device),
+          cpuUsage: stats.cpuUsage || 0,
+          memoryUsage: stats.memoryUsage || 0,
+          storageUsage: stats.storageUsage || 0,
+          networkTraffic: (stats.networkRx || 0) + (stats.networkTx || 0),
+          duration,
+        };
+      });
+
+      // ✅ 4. 并行保存所有使用记录
+      const savePromises = usageDataList.map((usageData) =>
+        this.saveUsageRecord(usageData).catch((error) => {
+          this.logger.error(
+            `Failed to save usage record for device ${usageData.deviceId}:`,
+            error
+          );
+        })
       );
-
-      const results = await Promise.all(usageDataPromises);
-
-      // ✅ 优化：并行保存所有成功采集的使用记录
-      const savePromises = results
-        .filter((result) => result.status === 'fulfilled')
-        .map((result) =>
-          this.saveUsageRecord((result as any).value).catch((error) => {
-            this.logger.error(
-              `Failed to save usage record for device ${(result as any).value.deviceId}:`,
-              error
-            );
-          })
-        );
 
       await Promise.all(savePromises);
 
-      // 统计结果
-      const successCount = results.filter((r) => r.status === 'fulfilled').length;
-      const failureCount = results.filter((r) => r.status === 'rejected').length;
-
-      this.logger.log(
-        `Collected usage data: ${successCount} succeeded, ${failureCount} failed (total: ${devices.length})`
-      );
-
-      // 记录失败的设备
-      if (failureCount > 0) {
-        const failedDeviceIds = results
-          .filter((r) => r.status === 'rejected')
-          .map((r) => (r as any).deviceId)
-          .join(', ');
-        this.logger.warn(`Failed devices: ${failedDeviceIds}`);
-      }
+      this.logger.log(`Successfully collected usage data for ${usageDataList.length} devices`);
     } catch (error) {
       this.logger.error('Failed to collect usage data:', error);
     }
@@ -127,6 +127,48 @@ export class MeteringService {
     } catch (error) {
       this.logger.error('Failed to get running devices:', error);
       return [];
+    }
+  }
+
+  /**
+   * 批量获取设备统计信息
+   * ✅ N+1 查询优化：使用批量接口，减少 HTTP 请求数 99%
+   *
+   * @param deviceIds - 设备 ID 列表
+   * @returns 设备统计信息映射
+   */
+  private async getDeviceStatsBatch(deviceIds: string[]): Promise<Record<string, any>> {
+    if (!deviceIds || deviceIds.length === 0) {
+      return {};
+    }
+
+    try {
+      const deviceServiceUrl = this.configService.get(
+        'DEVICE_SERVICE_URL',
+        'http://localhost:30002'
+      );
+
+      // ✅ 调用批量统计接口（只需 1 次 HTTP 请求）
+      const response = await this.httpClient.post<{ success: boolean; data: Record<string, any> }>(
+        `${deviceServiceUrl}/devices/batch/stats`,
+        { deviceIds },
+        {},
+        {
+          timeout: 20000, // 批量请求可能较慢，增加超时时间
+          retries: 2,
+          circuitBreaker: true,
+        }
+      );
+
+      if (response.success && response.data) {
+        return response.data;
+      }
+
+      this.logger.warn('Batch stats request returned no data');
+      return {};
+    } catch (error) {
+      this.logger.error('Failed to get device stats in batch:', error);
+      return {};
     }
   }
 

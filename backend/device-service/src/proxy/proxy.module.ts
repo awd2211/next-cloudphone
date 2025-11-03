@@ -8,6 +8,9 @@ import { ProxyHealthService } from './proxy-health.service';
 import { ProxyCleanupService } from './proxy-cleanup.service';
 import { ProxyAdminController } from './proxy-admin.controller';
 import { ProxyMetricsService } from './proxy-metrics.service';
+import { ProxyPoolService } from './proxy-pool.service';
+import { ProxySelectionService } from './proxy-selection.service';
+import { ProxyFailoverService } from './proxy-failover.service';
 import { MetricsModule } from '../metrics/metrics.module';
 
 /**
@@ -19,6 +22,9 @@ import { MetricsModule } from '../metrics/metrics.module';
  * - 代理孤儿清理 (ProxyCleanupService)
  * - 代理管理 API (ProxyAdminController)
  * - 代理 Prometheus 指标 (ProxyMetricsService)
+ * - 代理池管理 (ProxyPoolService)
+ * - 智能代理选择 (ProxySelectionService)
+ * - 代理故障转移 (ProxyFailoverService)
  * - 代理客户端 (ProxyClientModule from @cloudphone/shared)
  */
 @Module({
@@ -41,12 +47,18 @@ import { MetricsModule } from '../metrics/metrics.module';
     ProxyHealthService,
     ProxyCleanupService,
     ProxyMetricsService,
+    ProxyPoolService,
+    ProxySelectionService,
+    ProxyFailoverService,
   ],
   exports: [
     ProxyStatsService,
     ProxyHealthService,
     ProxyCleanupService,
     ProxyMetricsService,
+    ProxyPoolService,
+    ProxySelectionService,
+    ProxyFailoverService,
     ProxyClientModule,
   ],
 })

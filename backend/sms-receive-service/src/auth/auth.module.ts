@@ -3,18 +3,19 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { RolesGuard } from './roles.guard';
 
 /**
  * 认证模块
  *
- * 提供 JWT 认证和基于角色的访问控制（RBAC）
- * 包含双重守卫架构：JwtAuthGuard + PermissionsGuard
+ * 提供 JWT 认证功能
+ * 配置 Passport 和 JWT 模块
  */
 @Module({
   imports: [
+    // 注册 Passport 模块，使用 JWT 作为默认策略
     PassportModule.register({ defaultStrategy: 'jwt' }),
+
+    // 配置 JWT 模块，从环境变量读取配置
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -28,7 +29,7 @@ import { RolesGuard } from './roles.guard';
       inject: [ConfigService],
     }),
   ],
-  providers: [JwtStrategy, JwtAuthGuard, RolesGuard],
-  exports: [JwtAuthGuard, RolesGuard, PassportModule, JwtModule],
+  providers: [JwtStrategy],
+  exports: [PassportModule, JwtModule],
 })
 export class AuthModule {}

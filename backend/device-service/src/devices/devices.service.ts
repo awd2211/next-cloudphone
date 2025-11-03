@@ -7,7 +7,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
-import { Repository, DataSource, FindOptionsWhere } from 'typeorm';
+import { Repository, DataSource, FindOptionsWhere, In } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ModuleRef } from '@nestjs/core';
@@ -51,6 +51,7 @@ import {
 import { IDeviceProvider } from '../providers/device-provider.interface';
 import { ScrcpyVideoCodec } from '../scrcpy/scrcpy.types';
 import { ProxyStatsService } from '../proxy/proxy-stats.service';
+import { ProxySelectionService, ProxySelectionStrategy, ProxySelectionResult } from '../proxy/proxy-selection.service';
 import { ProxyReleaseReason } from '../entities/proxy-usage.entity';
 
 /**
@@ -117,6 +118,7 @@ export class DevicesService {
     @Optional() private quotaClient: QuotaClientService,
     @Optional() private proxyClient: ProxyClientService, // ✅ 代理客户端服务
     @Optional() private proxyStats: ProxyStatsService, // ✅ 代理统计服务
+    @Optional() private proxySelection: ProxySelectionService, // ✅ 智能代理选择服务
     @Optional() private httpClient: HttpClientService, // ✅ HTTP 客户端服务（用于调用 SMS Receive Service）
     private cacheService: CacheService,
     private moduleRef: ModuleRef, // ✅ 用于延迟获取服务
@@ -201,7 +203,7 @@ export class DevicesService {
           },
         } as SagaStep,
 
-        // ========== Step 2: 分配家宽代理（为云手机提供独立 IP） ==========
+        // ========== Step 2: 分配家宽代理（为云手机提供独立 IP） - Phase 3 智能选择 ==========
         {
           name: 'ALLOCATE_PROXY',
           execute: async (state: DeviceCreationSagaState) => {
@@ -211,21 +213,72 @@ export class DevicesService {
               return { proxyAllocated: false, proxy: null };
             }
 
-            this.logger.log(`[SAGA] Step 2: Allocating proxy for cloud phone`);
+            this.logger.log(`[SAGA] Step 2: Allocating proxy for cloud phone (intelligent selection)`);
 
             try {
-              // 调用 proxy-service 分配代理
-              const proxySession = await this.proxyClient.acquireProxy({
-                criteria: {
-                  minQuality: 70, // 最低质量评分
-                  // 其他筛选条件可根据需要添加
-                },
-              });
+              // ✅ Phase 3 MVP: 智能选择作为推荐，实际分配仍用 acquireProxy
+              let recommendedProxyId: string | undefined;
+
+              if (this.proxySelection) {
+                this.logger.debug(`[SAGA] Getting proxy recommendation from intelligent selection`);
+
+                // 1. 智能推荐最佳代理（仅作参考）
+                const selectionResult = await this.proxySelection.selectProxy({
+                  preferredCountry: createDeviceDto.proxyCountry, // 用户指定的国家
+                  strategy: (createDeviceDto.proxyStrategy as ProxySelectionStrategy) || ProxySelectionStrategy.HIGHEST_SCORE,
+                  minScore: 50, // 最低评分要求
+                  userId: createDeviceDto.userId,
+                }).catch(err => {
+                  this.logger.warn(`Proxy selection service error: ${err.message}`);
+                  return {
+                    success: false,
+                    proxy: null,
+                    strategy: ProxySelectionStrategy.HIGHEST_SCORE,
+                    reason: `Selection service error: ${err.message}`,
+                  } as ProxySelectionResult;
+                });
+
+                if (selectionResult.success && selectionResult.proxy) {
+                  recommendedProxyId = selectionResult.proxy.proxyId;
+                  this.logger.log(
+                    `[SAGA] Recommended proxy: ${recommendedProxyId} (score: ${selectionResult.proxy.score}, strategy: ${selectionResult.strategy})`
+                  );
+                } else {
+                  this.logger.debug(
+                    `[SAGA] No proxy recommendation available: ${selectionResult.reason || 'unknown'}`
+                  );
+                }
+              }
+
+              // 2. 使用推荐的代理进行分配（如果有），否则使用 acquireProxy
+              let proxySession: any;
+
+              if (recommendedProxyId) {
+                // ✅ Phase 3.1: 使用智能选择推荐的代理
+                this.logger.debug(`[SAGA] Assigning recommended proxy: ${recommendedProxyId}`);
+                proxySession = await this.proxyClient.assignProxy({
+                  proxyId: recommendedProxyId,
+                  validate: true, // 验证代理可用性
+                });
+                this.logger.log(
+                  `[SAGA] Intelligent proxy assigned: ${recommendedProxyId}`
+                );
+              } else {
+                // ⚠️ Fallback: 智能选择不可用时，使用 acquireProxy
+                this.logger.debug(`[SAGA] No recommendation, using acquireProxy fallback`);
+                proxySession = await this.proxyClient.acquireProxy({
+                  criteria: {
+                    minQuality: 70, // 最低质量评分
+                    country: createDeviceDto.proxyCountry, // 用户指定的国家
+                  },
+                });
+              }
 
               const proxyInfo = proxySession.proxy;
 
               this.logger.log(
-                `[SAGA] Proxy allocated: ${proxyInfo.id} (${proxyInfo.host}:${proxyInfo.port}) country=${proxyInfo.location.countryCode || 'any'}`
+                `[SAGA] Proxy allocated: ${proxyInfo.id} (${proxyInfo.host}:${proxyInfo.port}) country=${proxyInfo.location.countryCode || 'any'}` +
+                (recommendedProxyId ? ` [via intelligent selection]` : ` [via fallback]`)
               );
 
               return {
@@ -1797,6 +1850,108 @@ export class DevicesService {
       memoryUsage: 0,
       message: 'Provider does not support metrics',
     };
+  }
+
+  /**
+   * 批量获取设备统计信息
+   * ✅ N+1 查询优化：一次性获取多个设备的统计数据
+   *
+   * @param deviceIds - 设备 ID 列表
+   * @returns 设备统计信息映射（deviceId => stats）
+   */
+  async getStatsBatch(deviceIds: string[]): Promise<Record<string, any>> {
+    if (!deviceIds || deviceIds.length === 0) {
+      return {};
+    }
+
+    this.logger.debug(`Getting stats for ${deviceIds.length} devices in batch`);
+
+    try {
+      // ✅ 批量查询设备（使用 In 操作符，避免 N+1）
+      const devices = await this.devicesRepository.find({
+        where: { id: In(deviceIds) },
+      });
+
+      if (devices.length === 0) {
+        this.logger.warn(`No devices found for batch stats query`);
+        return {};
+      }
+
+      // ✅ 并行获取所有设备的统计（Promise.allSettled 确保部分失败不影响整体）
+      const statsPromises = devices.map(async (device) => {
+        try {
+          const provider = this.providerFactory.getProvider(device.providerType);
+
+          // 如果 Provider 支持 getMetrics
+          if (device.externalId && provider.getMetrics) {
+            const metrics = await provider.getMetrics(device.externalId);
+            return {
+              deviceId: device.id,
+              stats: {
+                deviceId: device.id,
+                providerType: device.providerType,
+                timestamp: metrics.timestamp || new Date(),
+                cpuUsage: metrics.cpuUsage || 0,
+                memoryUsage: metrics.memoryUsage || 0,
+                memoryUsed: metrics.memoryUsed || 0,
+                storageUsed: metrics.storageUsed || 0,
+                storageUsage: metrics.storageUsage || 0,
+                networkRx: metrics.networkRx || 0,
+                networkTx: metrics.networkTx || 0,
+                fps: metrics.fps,
+                batteryLevel: metrics.batteryLevel,
+                temperature: metrics.temperature,
+              },
+            };
+          }
+
+          // Provider 不支持 getMetrics，返回默认值
+          return {
+            deviceId: device.id,
+            stats: {
+              deviceId: device.id,
+              providerType: device.providerType,
+              timestamp: new Date(),
+              cpuUsage: 0,
+              memoryUsage: 0,
+              message: 'Provider does not support metrics',
+            },
+          };
+        } catch (error) {
+          this.logger.warn(`Failed to get stats for device ${device.id}`, error.message);
+          return {
+            deviceId: device.id,
+            stats: {
+              deviceId: device.id,
+              providerType: device.providerType,
+              timestamp: new Date(),
+              cpuUsage: 0,
+              memoryUsage: 0,
+              error: error.message,
+            },
+          };
+        }
+      });
+
+      const results = await Promise.allSettled(statsPromises);
+
+      // 构建结果映射
+      const statsMap: Record<string, any> = {};
+      results.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          statsMap[result.value.deviceId] = result.value.stats;
+        }
+      });
+
+      this.logger.debug(
+        `Retrieved stats for ${Object.keys(statsMap).length}/${deviceIds.length} devices`
+      );
+
+      return statsMap;
+    } catch (error) {
+      this.logger.error('Failed to get batch stats', error);
+      return {};
+    }
   }
 
   // ADB 相关方法

@@ -12,6 +12,7 @@ import {
   BadRequestException,
   NotFoundException,
   UseGuards,
+  Req, // ✅ 添加 Request 装饰器
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -30,6 +31,7 @@ import { diskStorage } from 'multer';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AppsService } from './apps.service';
+import { AppInstallationSaga } from './installation.saga'; // ✅ 导入应用安装 Saga
 import { CreateAppDto } from './dto/create-app.dto';
 import { UpdateAppDto } from './dto/update-app.dto';
 import { InstallAppDto, UninstallAppDto } from './dto/install-app.dto';
@@ -55,7 +57,10 @@ if (!fs.existsSync(uploadDir)) {
 @Controller('apps')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class AppsController {
-  constructor(private readonly appsService: AppsService) {}
+  constructor(
+    private readonly appsService: AppsService,
+    private readonly installationSaga: AppInstallationSaga // ✅ 注入应用安装 Saga
+  ) {}
 
   /**
    * 上传 APK
@@ -281,25 +286,44 @@ export class AppsController {
     };
   }
 
+  /**
+   * 安装应用 (使用 Saga 模式)
+   *
+   * ✅ 改进: 使用 APP_INSTALLATION Saga 确保原子性
+   *
+   * 优势:
+   * - 失败自动回滚
+   * - 支持重试和超时
+   * - 补偿逻辑防止资源泄漏
+   * - 状态持久化支持崩溃恢复
+   */
   @Post('install')
   @RequirePermission('app.create')
-  @ApiOperation({ summary: '安装应用', description: '将应用安装到指定设备' })
-  @ApiResponse({ status: 201, description: '安装任务已创建' })
+  @ApiOperation({
+    summary: '安装应用',
+    description: '使用 Saga 模式将应用安装到指定设备，确保原子性和可靠性'
+  })
+  @ApiResponse({ status: 201, description: '安装 Saga 已启动' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async install(@Body() installAppDto: InstallAppDto) {
+  async install(@Body() installAppDto: InstallAppDto, @Req() req: any) {
+    const userId = req.user?.userId || req.user?.sub || 'system'; // 获取当前用户ID
     const results = [];
 
     for (const deviceId of installAppDto.deviceIds) {
       try {
-        const result = await this.appsService.installToDevice(
+        // ✅ 使用 Saga 代替原有逻辑
+        const { sagaId } = await this.installationSaga.startInstallation(
           installAppDto.applicationId,
-          deviceId
+          deviceId,
+          userId
         );
+
         results.push({
           deviceId,
           success: true,
-          data: result,
+          sagaId, // 返回 Saga ID 供查询
+          message: 'Installation Saga started',
         });
       } catch (error) {
         results.push({
@@ -313,8 +337,38 @@ export class AppsController {
     return {
       success: true,
       data: results,
-      message: '应用安装任务已创建',
+      message: '应用安装 Saga 已启动，可通过 sagaId 查询进度',
     };
+  }
+
+  /**
+   * 查询安装 Saga 状态
+   */
+  @Get('install/saga/:sagaId')
+  @RequirePermission('app.read')
+  @ApiOperation({ summary: '查询安装 Saga 状态', description: '查询应用安装 Saga 的执行状态' })
+  @ApiParam({ name: 'sagaId', description: 'Saga ID' })
+  @ApiResponse({ status: 200, description: '查询成功' })
+  @ApiResponse({ status: 404, description: 'Saga 不存在' })
+  async getInstallationSagaStatus(@Param('sagaId') sagaId: string) {
+    try {
+      const state = await this.installationSaga.getSagaStatus(sagaId);
+      return {
+        success: true,
+        data: {
+          sagaId: state.sagaId,
+          status: state.status,
+          currentStep: state.currentStep,
+          stepIndex: state.stepIndex,
+          startedAt: state.startedAt,
+          completedAt: state.completedAt,
+          errorMessage: state.errorMessage,
+          state: state.state,
+        },
+      };
+    } catch (error) {
+      throw new NotFoundException(`Saga ${sagaId} not found`);
+    }
   }
 
   @Post('uninstall')

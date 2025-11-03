@@ -9,12 +9,14 @@ import {
   HttpStatus,
   NotFoundException,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { NumberManagementService } from '../services/number-management.service';
 import { MessagePollingService } from '../services/message-polling.service';
@@ -33,12 +35,22 @@ import {
   StatsResponseDto,
   ProviderStatsResponseDto,
 } from '../dto/number-response.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 /**
  * 虚拟号码管理 REST API
+ *
+ * 使用双层守卫：
+ * 1. JwtAuthGuard - 验证 JWT token，设置 request.user
+ * 2. PermissionsGuard - 检查用户权限
  */
 @ApiTags('Virtual Numbers')
 @Controller('numbers')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@ApiBearerAuth()
 export class NumbersController {
   private readonly logger = new Logger(NumbersController.name);
 
@@ -56,6 +68,7 @@ export class NumbersController {
    * 请求虚拟号码
    */
   @Post()
+  @RequirePermission('sms.request')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: '请求虚拟号码',
@@ -80,6 +93,7 @@ export class NumbersController {
    * 查询号码状态
    */
   @Get(':id')
+  @RequirePermission('sms.read')
   @ApiOperation({
     summary: '查询号码状态',
     description: '根据号码ID查询虚拟号码的状态和短信接收情况',
@@ -100,6 +114,7 @@ export class NumbersController {
    * 取消号码（退款）
    */
   @Delete(':id')
+  @RequirePermission('sms.cancel')
   @ApiOperation({
     summary: '取消号码',
     description: '取消虚拟号码并申请退款（仅限active和waiting_sms状态）',
@@ -135,6 +150,7 @@ export class NumbersController {
    * 批量请求号码
    */
   @Post('batch')
+  @RequirePermission('sms.batch')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: '批量请求号码',
@@ -163,6 +179,7 @@ export class NumbersController {
    * 获取号码的短信消息
    */
   @Get(':id/messages')
+  @RequirePermission('sms.messages')
   @ApiOperation({
     summary: '获取号码的短信消息',
     description: '查询指定虚拟号码接收到的所有短信消息',
@@ -200,6 +217,7 @@ export class NumbersController {
    * 获取轮询统计
    */
   @Get('stats/polling')
+  @RequirePermission('sms.stats')
   @ApiOperation({
     summary: '获取轮询统计',
     description: '查询短信轮询服务的统计信息',
@@ -217,6 +235,7 @@ export class NumbersController {
    * 获取平台统计
    */
   @Get('stats/providers')
+  @RequirePermission('sms.provider-stats')
   @ApiOperation({
     summary: '获取平台统计',
     description: '查询各SMS平台的性能统计信息',
@@ -246,6 +265,7 @@ export class NumbersController {
    * 手动触发轮询（管理员功能）
    */
   @Post('poll/trigger')
+  @RequirePermission('sms.trigger-poll')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '手动触发轮询',

@@ -61,10 +61,8 @@ export class AllocationSchedulerService {
           await this.allocationService.releaseExpiredAllocations();
           successCount++;
 
-          // 发送过期通知（Phase 2: Notification Service 集成）
-          const device = await this.deviceRepository.findOne({
-            where: { id: allocation.deviceId },
-          });
+          // ✅ 优化：直接使用预加载的 device（leftJoinAndSelect 已加载），避免 N+1 查询
+          const device = allocation.device;
 
           if (device) {
             const durationSeconds = Math.floor(
@@ -112,9 +110,10 @@ export class AllocationSchedulerService {
       const now = new Date();
       const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
 
-      // 查找10分钟内即将过期的分配
+      // ✅ 优化：使用 leftJoinAndSelect 预加载 device，避免 N+1 查询
       const expiringSoon = await this.allocationRepository
         .createQueryBuilder('allocation')
+        .leftJoinAndSelect('allocation.device', 'device')
         .where('allocation.status = :status', {
           status: AllocationStatus.ALLOCATED,
         })
@@ -130,9 +129,8 @@ export class AllocationSchedulerService {
 
       for (const allocation of expiringSoon) {
         try {
-          const device = await this.deviceRepository.findOne({
-            where: { id: allocation.deviceId },
-          });
+          // ✅ 优化：直接使用预加载的 device，避免 N+1 查询
+          const device = allocation.device;
 
           if (device) {
             const remainingMinutes = Math.ceil(

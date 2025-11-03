@@ -1,8 +1,23 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './notification.interface';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
+/**
+ * 通知管理控制器
+ *
+ * 使用双层守卫：
+ * 1. JwtAuthGuard - 验证 JWT token，设置 request.user
+ * 2. PermissionsGuard - 检查用户权限
+ */
+@ApiTags('Notifications')
 @Controller('notifications')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@ApiBearerAuth()
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
@@ -11,6 +26,7 @@ export class NotificationsController {
    * POST /notifications
    */
   @Post()
+  @RequirePermission('notification.create')
   async create(@Body() dto: CreateNotificationDto) {
     return this.notificationsService.createAndSend(dto);
   }
@@ -20,6 +36,7 @@ export class NotificationsController {
    * POST /notifications/broadcast
    */
   @Post('broadcast')
+  @RequirePermission('notification.broadcast')
   async broadcast(
     @Body() body: { title: string; message: string; data?: Record<string, unknown> }
   ) {
@@ -32,6 +49,7 @@ export class NotificationsController {
    * GET /notifications/unread/count
    */
   @Get('unread/count')
+  @RequirePermission('notification.unread-count')
   async getUnreadCount(@Query('userId') userId?: string) {
     if (!userId) {
       return {
@@ -51,6 +69,7 @@ export class NotificationsController {
    * GET /notifications/user/:userId
    */
   @Get('user/:userId')
+  @RequirePermission('notification.read')
   getUserNotifications(@Param('userId') userId: string, @Query('unreadOnly') unreadOnly?: string) {
     if (unreadOnly === 'true') {
       return this.notificationsService.getUnreadNotifications(userId);
@@ -63,6 +82,7 @@ export class NotificationsController {
    * PATCH /notifications/:id/read
    */
   @Patch(':id/read')
+  @RequirePermission('notification.update')
   markAsRead(@Param('id') id: string) {
     const notification = this.notificationsService.markAsRead(id);
     if (!notification) {
@@ -76,6 +96,7 @@ export class NotificationsController {
    * POST /notifications/read-all
    */
   @Post('read-all')
+  @RequirePermission('notification.update')
   async markAllAsRead(@Body('userId') userId: string) {
     if (!userId) {
       return { success: false, message: '缺少userId参数' };
@@ -93,6 +114,7 @@ export class NotificationsController {
    * DELETE /notifications/:id
    */
   @Delete(':id')
+  @RequirePermission('notification.delete')
   delete(@Param('id') id: string) {
     const success = this.notificationsService.deleteNotification(id);
     if (!success) {
@@ -106,6 +128,7 @@ export class NotificationsController {
    * POST /notifications/batch/delete
    */
   @Post('batch/delete')
+  @RequirePermission('notification.batch-delete')
   async batchDelete(@Body('ids') ids: string[]) {
     if (!ids || ids.length === 0) {
       return { success: false, message: '请提供要删除的通知ID列表' };
@@ -123,6 +146,7 @@ export class NotificationsController {
    * GET /notifications/stats
    */
   @Get('stats')
+  @RequirePermission('notification.stats')
   getStats() {
     return this.notificationsService.getStats();
   }

@@ -6,10 +6,10 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { DeviceAllocation, AllocationStatus } from '../entities/device-allocation.entity';
 import { Device, DeviceStatus } from '../entities/device.entity';
-import { EventBusService, Cacheable, CacheEvict, Lock } from '@cloudphone/shared';
+import { EventBusService, Cacheable, CacheEvict, Lock, DistributedLockService } from '@cloudphone/shared';
 import { QuotaClientService } from '../quota/quota-client.service';
 import { BillingClientService } from './billing-client.service';
 import { NotificationClientService } from './notification-client.service';
@@ -62,7 +62,8 @@ export class AllocationService {
     private eventBus: EventBusService,
     private quotaClient: QuotaClientService,
     private billingClient: BillingClientService,
-    private notificationClient: NotificationClientService
+    private notificationClient: NotificationClientService,
+    private lockService: DistributedLockService,
   ) {}
 
   /**
@@ -900,11 +901,27 @@ export class AllocationService {
     const successes: any[] = [];
     const failures: any[] = [];
 
+    // ✅ 优化 #1: 批量加载所有 allocations (1 次查询，避免 N+1)
+    const allocations = await this.allocationRepository.find({
+      where: { id: In(allocationIds) },
+    });
+
+    // ✅ 优化 #2: 创建 allocation Map 用于 O(1) 查找
+    const allocationMap = new Map(allocations.map(a => [a.id, a]));
+
+    // ✅ 优化 #3: 提取所有 deviceId 并批量加载 devices (1 次查询，避免 N+1)
+    const deviceIds = allocations.map(a => a.deviceId).filter(Boolean);
+    const devices = deviceIds.length > 0
+      ? await this.deviceRepository.find({ where: { id: In(deviceIds) } })
+      : [];
+
+    // ✅ 优化 #4: 创建 device Map 用于 O(1) 查找
+    const deviceMap = new Map(devices.map(d => [d.id, d]));
+
+    // ✅ 优化 #5: 在内存中处理，无额外数据库查询
     for (const allocationId of allocationIds) {
       try {
-        const allocation = await this.allocationRepository.findOne({
-          where: { id: allocationId },
-        });
+        const allocation = allocationMap.get(allocationId);
 
         if (!allocation) {
           throw new NotFoundException(`Allocation ${allocationId} not found`);
@@ -939,11 +956,9 @@ export class AllocationService {
           additionalMinutes,
         });
 
-        // 发送续期通知
+        // 发送续期通知 (✅ 从 Map 获取 device，无数据库查询)
         try {
-          const device = await this.deviceRepository.findOne({
-            where: { id: allocation.deviceId },
-          });
+          const device = deviceMap.get(allocation.deviceId);
 
           if (device) {
             await this.notificationClient.sendBatchNotifications([
@@ -990,7 +1005,7 @@ export class AllocationService {
     const executionTimeMs = Date.now() - startTime;
 
     this.logger.log(
-      `✅ Batch extend completed: ${successes.length} success, ${failures.length} failed, ${executionTimeMs}ms`
+      `✅ Batch extend completed: ${successes.length} success, ${failures.length} failed, ${executionTimeMs}ms (optimized: 2 DB queries instead of ${allocationIds.length * 2})`
     );
 
     return {

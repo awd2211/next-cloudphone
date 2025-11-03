@@ -20,7 +20,7 @@ import { DeviceAllocation } from '../entities/device-allocation.entity';
 import { DeviceReservation } from '../entities/device-reservation.entity';
 import { AllocationQueue } from '../entities/allocation-queue.entity';
 import { AuthModule } from '../auth/auth.module';
-import { EventBusModule, ServiceTokenService } from '@cloudphone/shared';
+import { EventBusModule, ServiceTokenService, DistributedLockModule } from '@cloudphone/shared';
 import { QuotaModule } from '../quota/quota.module';
 
 @Module({
@@ -29,6 +29,7 @@ import { QuotaModule } from '../quota/quota.module';
     ScheduleModule.forRoot(), // 启用定时任务
     AuthModule,
     EventBusModule,
+    DistributedLockModule, // 分布式锁服务
     QuotaModule, // 配额服务集成（Phase 2）
   ],
   controllers: [SchedulerController],

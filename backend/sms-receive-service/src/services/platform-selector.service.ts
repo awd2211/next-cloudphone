@@ -6,6 +6,8 @@ import { ISmsProvider, ProviderError } from '../providers/provider.interface';
 import { SmsActivateAdapter } from '../providers/sms-activate.adapter';
 import { FiveSimAdapter } from '../providers/5sim.adapter';
 import { ProviderConfig } from '../entities/provider-config.entity';
+import { BlacklistManagerService } from './blacklist-manager.service';
+import { ABTestManagerService } from './ab-test-manager.service';
 
 /**
  * 平台选择结果
@@ -75,6 +77,8 @@ export class PlatformSelectorService {
     private readonly smsActivateAdapter: SmsActivateAdapter,
     private readonly fiveSimAdapter: FiveSimAdapter,
     private readonly configService: ConfigService,
+    private readonly blacklistManager: BlacklistManagerService,
+    private readonly abTestManager: ABTestManagerService,
   ) {
     this.initializeProviders();
   }
@@ -115,7 +119,33 @@ export class PlatformSelectorService {
     country: string,
   ): Promise<PlatformSelectionResult> {
     try {
-      // 获取所有可用的配置
+      // 1. 检查是否有运行中的 A/B 测试
+      const hasActiveTest = await this.abTestManager.hasActiveTest();
+
+      if (hasActiveTest) {
+        const testProvider = await this.abTestManager.selectProviderForTest();
+
+        if (testProvider) {
+          // 检查是否在黑名单中
+          const isBlacklisted = await this.blacklistManager.isBlacklisted(testProvider);
+
+          if (!isBlacklisted) {
+            this.logger.log(`Selected provider ${testProvider} from A/B test`);
+            return this.createSelectionResult(
+              testProvider,
+              100,
+              'Selected from A/B test',
+              0,
+            );
+          } else {
+            this.logger.warn(
+              `A/B test selected provider ${testProvider}, but it's blacklisted. Falling back to normal selection.`,
+            );
+          }
+        }
+      }
+
+      // 2. 获取所有可用的配置
       const configs = await this.providerConfigRepo.find({
         where: { enabled: true },
         order: { priority: 'ASC' },
@@ -125,30 +155,46 @@ export class PlatformSelectorService {
         throw new Error('No enabled SMS providers found');
       }
 
-      // 过滤出健康的平台
-      const healthyProviders = configs.filter((config) => {
+      // 3. 过滤掉黑名单中的平台
+      const nonBlacklistedConfigs: ProviderConfig[] = [];
+      for (const config of configs) {
+        const isBlacklisted = await this.blacklistManager.isBlacklisted(config.provider);
+        if (!isBlacklisted) {
+          nonBlacklistedConfigs.push(config);
+        } else {
+          this.logger.debug(`Provider ${config.provider} is blacklisted, skipping`);
+        }
+      }
+
+      if (nonBlacklistedConfigs.length === 0) {
+        this.logger.error('All providers are blacklisted!');
+        throw new Error('All SMS providers are blacklisted');
+      }
+
+      // 4. 过滤出健康的平台
+      const healthyProviders = nonBlacklistedConfigs.filter((config) => {
         const stats = this.performanceStats.get(config.provider);
         return stats?.isHealthy !== false;
       });
 
       if (healthyProviders.length === 0) {
-        // 所有平台都不健康，强制使用优先级最高的
+        // 所有平台都不健康，强制使用优先级最高的非黑名单平台
         this.logger.warn('All providers unhealthy, using highest priority provider');
-        const fallbackConfig = configs[0];
+        const fallbackConfig = nonBlacklistedConfigs[0];
         return this.createSelectionResult(
           fallbackConfig.provider,
           0,
           'All providers unhealthy, using fallback',
-          configs.length,
+          nonBlacklistedConfigs.length,
         );
       }
 
-      // 智能评分选择
+      // 5. 智能评分选择
       if (this.configService.get('ENABLE_SMART_ROUTING') === 'true') {
         return await this.selectByScore(healthyProviders);
       }
 
-      // 使用默认优先级
+      // 6. 使用默认优先级
       const defaultProvider = healthyProviders[0];
       return this.createSelectionResult(
         defaultProvider.provider,
@@ -159,7 +205,7 @@ export class PlatformSelectorService {
     } catch (error) {
       this.logger.error(`Platform selection failed: ${error.message}`, error.stack);
 
-      // 降级到默认平台
+      // 降级到默认平台（跳过黑名单检查，因为这是紧急情况）
       const defaultProvider = this.configService.get('DEFAULT_PROVIDER') || 'sms-activate';
       return this.createSelectionResult(defaultProvider, 0, 'Emergency fallback', 99);
     }
@@ -338,6 +384,13 @@ export class PlatformSelectorService {
       stats.successRate = (stats.successCount / stats.totalRequests) * 100;
     }
 
+    // 触发自动黑名单检查
+    await this.blacklistManager.handleConsecutiveFailures(
+      providerName,
+      stats.consecutiveFailures,
+      error.message,
+    );
+
     // 异步更新数据库
     this.updateProviderStatsInDb(providerName, stats).catch((err) => {
       this.logger.error(`Failed to update stats in DB: ${err.message}`);
@@ -409,9 +462,20 @@ export class PlatformSelectorService {
 
         const stats = this.performanceStats.get(name);
         if (stats) {
+          const wasUnhealthy = !stats.isHealthy;
           stats.isHealthy = isHealthy;
+
           if (isHealthy) {
             stats.consecutiveFailures = 0; // 健康检查通过，重置失败计数
+
+            // 如果从不健康恢复，尝试从黑名单移除
+            if (wasUnhealthy) {
+              await this.blacklistManager.removeFromBlacklist(
+                name,
+                'Recovered from health check',
+              );
+              this.logger.log(`Provider ${name} recovered and removed from blacklist`);
+            }
           }
         }
 
@@ -423,5 +487,50 @@ export class PlatformSelectorService {
     }
 
     return results;
+  }
+
+  /**
+   * 尝试恢复不健康的平台
+   * 定期调用此方法来检测平台是否已恢复
+   */
+  async attemptRecovery(): Promise<void> {
+    this.logger.log('Attempting to recover unhealthy providers...');
+
+    const unhealthyProviders = Array.from(this.performanceStats.entries())
+      .filter(([_, stats]) => !stats.isHealthy)
+      .map(([name, _]) => name);
+
+    if (unhealthyProviders.length === 0) {
+      this.logger.debug('No unhealthy providers to recover');
+      return;
+    }
+
+    for (const providerName of unhealthyProviders) {
+      try {
+        const provider = this.providers.get(providerName);
+        if (!provider) continue;
+
+        // 执行健康检查
+        const isHealthy = await provider.healthCheck();
+
+        if (isHealthy) {
+          const stats = this.performanceStats.get(providerName);
+          if (stats) {
+            stats.isHealthy = true;
+            stats.consecutiveFailures = 0;
+
+            // 从黑名单移除
+            await this.blacklistManager.removeFromBlacklist(
+              providerName,
+              'Auto-recovery successful',
+            );
+
+            this.logger.log(`✅ Provider ${providerName} auto-recovered successfully`);
+          }
+        }
+      } catch (error) {
+        this.logger.debug(`Recovery attempt failed for ${providerName}: ${error.message}`);
+      }
+    }
   }
 }

@@ -11,26 +11,35 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { TemplatesService } from './templates.service';
 import { CreateTemplateDto, UpdateTemplateDto, QueryTemplateDto, RenderTemplateDto } from './dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 
-// 🔒 整个控制器需要 JWT 认证
+/**
+ * 通知模板管理控制器
+ *
+ * 使用双层守卫：
+ * 1. JwtAuthGuard - 验证 JWT token，设置 request.user
+ * 2. PermissionsGuard - 检查用户权限
+ */
+@ApiTags('Notification Templates')
 @Controller('templates')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@ApiBearerAuth()
 export class TemplatesController {
   constructor(private readonly templatesService: TemplatesService) {}
 
   /**
    * 创建模板
    * POST /templates
-   * 🔒 需要 admin 或 template-manager 角色
+   * 🔒 需要 notification.template-create 权限
    */
   @Post()
-  @Roles('admin', 'template-manager')
+  @RequirePermission('notification.template-create')
   create(@Body() createTemplateDto: CreateTemplateDto) {
     return this.templatesService.create(createTemplateDto);
   }
@@ -38,9 +47,10 @@ export class TemplatesController {
   /**
    * 查询模板列表
    * GET /templates?type=system&language=zh-CN&page=1&limit=10
-   * 🔒 需要认证（任何登录用户都可以查看）
+   * 🔒 需要 notification.template-read 权限
    */
   @Get()
+  @RequirePermission('notification.template-read')
   findAll(@Query() query: QueryTemplateDto) {
     return this.templatesService.findAll(query);
   }
@@ -48,9 +58,10 @@ export class TemplatesController {
   /**
    * 根据 ID 查找模板
    * GET /templates/:id
-   * 🔒 需要认证（任何登录用户都可以查看）
+   * 🔒 需要 notification.template-read 权限
    */
   @Get(':id')
+  @RequirePermission('notification.template-read')
   findOne(@Param('id') id: string) {
     return this.templatesService.findOne(id);
   }
@@ -58,10 +69,10 @@ export class TemplatesController {
   /**
    * 更新模板
    * PATCH /templates/:id
-   * 🔒 需要 admin 或 template-manager 角色
+   * 🔒 需要 notification.template-update 权限
    */
   @Patch(':id')
-  @Roles('admin', 'template-manager')
+  @RequirePermission('notification.template-update')
   update(@Param('id') id: string, @Body() updateTemplateDto: UpdateTemplateDto) {
     return this.templatesService.update(id, updateTemplateDto);
   }
@@ -69,11 +80,11 @@ export class TemplatesController {
   /**
    * 删除模板
    * DELETE /templates/:id
-   * 🔒 需要 admin 或 template-manager 角色
+   * 🔒 需要 notification.template-delete 权限
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles('admin', 'template-manager')
+  @RequirePermission('notification.template-delete')
   async remove(@Param('id') id: string) {
     await this.templatesService.remove(id);
   }
@@ -81,10 +92,10 @@ export class TemplatesController {
   /**
    * 激活/停用模板
    * PATCH /templates/:id/toggle
-   * 🔒 需要 admin 或 template-manager 角色
+   * 🔒 需要 notification.template-toggle 权限
    */
   @Patch(':id/toggle')
-  @Roles('admin', 'template-manager')
+  @RequirePermission('notification.template-toggle')
   toggleActive(@Param('id') id: string) {
     return this.templatesService.toggleActive(id);
   }
@@ -92,9 +103,10 @@ export class TemplatesController {
   /**
    * 根据 code 查找模板
    * GET /templates/by-code/:code
-   * 🔒 需要认证（任何登录用户都可以查看）
+   * 🔒 需要 notification.template-read 权限
    */
   @Get('by-code/:code')
+  @RequirePermission('notification.template-read')
   findByCode(@Param('code') code: string, @Query('language') language?: string) {
     return this.templatesService.findByCode(code, language);
   }
@@ -102,9 +114,10 @@ export class TemplatesController {
   /**
    * 渲染模板
    * POST /templates/render
-   * 🔒 需要认证（任何登录用户都可以渲染）
+   * 🔒 需要 notification.template-render 权限
    */
   @Post('render')
+  @RequirePermission('notification.template-render')
   async render(@Body() renderDto: RenderTemplateDto) {
     return this.templatesService.render(renderDto.templateCode, renderDto.data, renderDto.language);
   }
@@ -112,10 +125,10 @@ export class TemplatesController {
   /**
    * 验证模板语法
    * POST /templates/validate
-   * 🔒 需要 admin 或 template-manager 角色
+   * 🔒 需要 notification.template-update 权限
    */
   @Post('validate')
-  @Roles('admin', 'template-manager')
+  @RequirePermission('notification.template-update')
   async validate(@Body('template') template: string) {
     return this.templatesService.validateTemplate(template);
   }
@@ -123,10 +136,10 @@ export class TemplatesController {
   /**
    * 批量创建模板
    * POST /templates/bulk
-   * 🔒 需要 admin 或 template-manager 角色
+   * 🔒 需要 notification.template-create 权限
    */
   @Post('bulk')
-  @Roles('admin', 'template-manager')
+  @RequirePermission('notification.template-create')
   async bulkCreate(@Body('templates') templates: CreateTemplateDto[]) {
     return this.templatesService.bulkCreate(templates);
   }
@@ -134,11 +147,11 @@ export class TemplatesController {
   /**
    * 清除模板缓存
    * POST /templates/clear-cache
-   * 🔒 需要 admin 角色
+   * 🔒 需要 notification.template-update 权限（管理员操作）
    */
   @Post('clear-cache')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles('admin')
+  @RequirePermission('notification.template-update')
   clearCache() {
     this.templatesService.clearCache();
   }

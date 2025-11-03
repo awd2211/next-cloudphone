@@ -93,44 +93,6 @@ export class CacheService {
   }
 
   /**
-   * 使用 SCAN 遍历匹配的键（替代 KEYS 命令）
-   * @param pattern 匹配模式（如 "notification:*"）
-   * @param count 每次扫描返回的键数量，默认 100
-   * @returns 匹配的键数组
-   */
-  async scan(pattern: string, count: number = 100): Promise<string[]> {
-    try {
-      const store: any = this.cacheManager.store;
-      if (!store || !store.client) {
-        this.logger.warn('Redis client not available for SCAN operation');
-        return [];
-      }
-
-      const keys: string[] = [];
-      let cursor = 0;
-
-      do {
-        // 使用 SCAN 迭代器遍历键
-        const result = await store.client.scan(cursor, {
-          MATCH: pattern,
-          COUNT: count,
-        });
-
-        cursor = result.cursor;
-        if (result.keys && result.keys.length > 0) {
-          keys.push(...result.keys);
-        }
-      } while (cursor !== 0);
-
-      this.logger.debug(`Cache SCAN: ${pattern} found ${keys.length} keys`);
-      return keys;
-    } catch (error) {
-      this.logger.error(`Cache SCAN error for pattern ${pattern}:`, error.message);
-      return [];
-    }
-  }
-
-  /**
    * 批量获取
    * @param keys 缓存键数组
    * @returns 缓存值数组

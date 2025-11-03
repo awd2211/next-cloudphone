@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HttpModule } from '@nestjs/axios';
 import { DevicesService } from './devices.service';
 import { DevicesController } from './devices.controller';
 import { DevicesConsumer } from './devices.consumer'; // ✅ V2: 启用消费者 (现在 @RabbitSubscribe 可以工作)
@@ -8,6 +9,7 @@ import { BatchOperationsService } from './batch-operations.service';
 import { BatchOperationsController } from './batch-operations.controller';
 import { CloudDeviceTokenService } from './cloud-device-token.service';
 import { CloudDeviceSyncService } from './cloud-device-sync.service';
+import { DeviceDeletionSaga } from './deletion.saga'; // ✅ 设备删除 Saga
 import { Device } from '../entities/device.entity';
 import { DockerModule } from '../docker/docker.module';
 import { AdbModule } from '../adb/adb.module';
@@ -23,6 +25,7 @@ import { EventOutboxModule, SagaModule } from '@cloudphone/shared';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Device]),
+    HttpModule, // ✅ For DeviceDeletionSaga HTTP calls
     ProvidersModule, // ✅ Provider 抽象层
     PhysicalModule, // ✅ 物理设备支持
     ScrcpyModule, // ✅ SCRCPY 投屏
@@ -44,6 +47,7 @@ import { EventOutboxModule, SagaModule } from '@cloudphone/shared';
     BatchOperationsService,
     CloudDeviceTokenService, // ✅ 云设备 Token 自动刷新
     CloudDeviceSyncService, // ✅ 云设备状态同步
+    DeviceDeletionSaga, // ✅ 设备删除 Saga
   ],
   exports: [
     DevicesService,

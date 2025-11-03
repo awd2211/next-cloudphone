@@ -19,10 +19,19 @@ export enum SagaStatus {
  * Saga Type Enum
  */
 export enum SagaType {
+  // ==================== 已实现 ====================
   PAYMENT_REFUND = 'PAYMENT_REFUND',
   PAYMENT_PURCHASE = 'PAYMENT_PURCHASE', // ✅ 订单购买流程
-  DEVICE_CREATION = 'DEVICE_CREATION',
-  APP_UPLOAD = 'APP_UPLOAD',
+  DEVICE_CREATION = 'DEVICE_CREATION',   // ✅ 设备创建流程
+  APP_UPLOAD = 'APP_UPLOAD',             // ✅ 应用上传流程
+
+  // ==================== 新增 ====================
+  APP_INSTALLATION = 'APP_INSTALLATION', // 应用安装流程
+  DEVICE_DELETION = 'DEVICE_DELETION',   // 设备删除流程
+  USER_REGISTRATION = 'USER_REGISTRATION', // 用户注册流程
+  PAYMENT_REFUND_V2 = 'PAYMENT_REFUND_V2', // 独立退款流程
+  SNAPSHOT_CREATE = 'SNAPSHOT_CREATE',   // 快照创建流程
+  SNAPSHOT_RESTORE = 'SNAPSHOT_RESTORE', // 快照恢复流程
 }
 
 /**

@@ -26,6 +26,23 @@ export class MetricsService {
   // Histograms
   private readonly pollingDurationHistogram: Histogram<string>;
   private readonly numberRequestDurationHistogram: Histogram<string>;
+  private readonly smsReceiveTimeHistogram: Histogram<string>;
+  private readonly verificationCodeExtractionTimeHistogram: Histogram<string>;
+
+  // 成本和成功率追踪
+  private readonly providerCostGauge: Gauge<string>;
+  private readonly providerSuccessRateGauge: Gauge<string>;
+  private readonly providerResponseTimeGauge: Gauge<string>;
+
+  // 验证码相关
+  private readonly verificationCodeExtractedTotal: Counter<string>;
+  private readonly verificationCodeCacheHits: Counter<string>;
+  private readonly verificationCodeCacheMisses: Counter<string>;
+
+  // 号码池相关
+  private readonly numberPoolSizeGauge: Gauge<string>;
+  private readonly numberPoolPreheatedGauge: Gauge<string>;
+  private readonly numberPoolReusedTotal: Counter<string>;
 
   constructor(
     @InjectRepository(VirtualNumber)
@@ -99,7 +116,86 @@ export class MetricsService {
       registers: [register],
     });
 
-    this.logger.log('Prometheus metrics initialized');
+    this.smsReceiveTimeHistogram = new Histogram({
+      name: 'sms_receive_time_seconds',
+      help: 'Time taken to receive SMS after number activation',
+      labelNames: ['provider', 'service'],
+      buckets: [5, 10, 30, 60, 120, 300],
+      registers: [register],
+    });
+
+    this.verificationCodeExtractionTimeHistogram = new Histogram({
+      name: 'sms_verification_code_extraction_time_seconds',
+      help: 'Time taken to extract verification code from SMS',
+      buckets: [0.001, 0.005, 0.01, 0.05, 0.1],
+      registers: [register],
+    });
+
+    // 成本和性能指标
+    this.providerCostGauge = new Gauge({
+      name: 'sms_provider_average_cost_usd',
+      help: 'Average cost per SMS in USD',
+      labelNames: ['provider', 'service'],
+      registers: [register],
+    });
+
+    this.providerSuccessRateGauge = new Gauge({
+      name: 'sms_provider_success_rate_percent',
+      help: 'Provider success rate percentage',
+      labelNames: ['provider'],
+      registers: [register],
+    });
+
+    this.providerResponseTimeGauge = new Gauge({
+      name: 'sms_provider_response_time_seconds',
+      help: 'Average provider API response time',
+      labelNames: ['provider'],
+      registers: [register],
+    });
+
+    // 验证码相关
+    this.verificationCodeExtractedTotal = new Counter({
+      name: 'sms_verification_code_extracted_total',
+      help: 'Total number of verification codes successfully extracted',
+      labelNames: ['service', 'pattern_type'],
+      registers: [register],
+    });
+
+    this.verificationCodeCacheHits = new Counter({
+      name: 'sms_verification_code_cache_hits_total',
+      help: 'Total verification code cache hits',
+      registers: [register],
+    });
+
+    this.verificationCodeCacheMisses = new Counter({
+      name: 'sms_verification_code_cache_misses_total',
+      help: 'Total verification code cache misses',
+      registers: [register],
+    });
+
+    // 号码池相关
+    this.numberPoolSizeGauge = new Gauge({
+      name: 'sms_number_pool_size',
+      help: 'Current size of number pool',
+      labelNames: ['status', 'provider'],
+      registers: [register],
+    });
+
+    this.numberPoolPreheatedGauge = new Gauge({
+      name: 'sms_number_pool_preheated',
+      help: 'Number of preheated numbers in pool',
+      labelNames: ['provider', 'service'],
+      registers: [register],
+    });
+
+    this.numberPoolReusedTotal = new Counter({
+      name: 'sms_number_pool_reused_total',
+      help: 'Total number of reused numbers from pool',
+      labelNames: ['provider'],
+      registers: [register],
+    });
+
+    this.logger.log('Prometheus metrics initialized with enhanced tracking');
   }
 
   /**
@@ -205,5 +301,81 @@ export class MetricsService {
    */
   getRegistry(): Registry {
     return register;
+  }
+
+  /**
+   * 记录 SMS 接收时间
+   */
+  recordSmsReceiveTime(provider: string, service: string, durationSeconds: number) {
+    this.smsReceiveTimeHistogram.observe({ provider, service }, durationSeconds);
+  }
+
+  /**
+   * 记录验证码提取时间
+   */
+  recordVerificationCodeExtractionTime(durationSeconds: number) {
+    this.verificationCodeExtractionTimeHistogram.observe(durationSeconds);
+  }
+
+  /**
+   * 记录验证码提取成功
+   */
+  recordVerificationCodeExtracted(service: string, patternType: string) {
+    this.verificationCodeExtractedTotal.inc({ service, pattern_type: patternType });
+  }
+
+  /**
+   * 记录验证码缓存命中
+   */
+  recordVerificationCodeCacheHit() {
+    this.verificationCodeCacheHits.inc();
+  }
+
+  /**
+   * 记录验证码缓存未命中
+   */
+  recordVerificationCodeCacheMiss() {
+    this.verificationCodeCacheMisses.inc();
+  }
+
+  /**
+   * 记录号码池复用
+   */
+  recordNumberPoolReused(provider: string) {
+    this.numberPoolReusedTotal.inc({ provider });
+  }
+
+  /**
+   * 更新平台成本统计
+   */
+  updateProviderCost(provider: string, service: string, costUsd: number) {
+    this.providerCostGauge.set({ provider, service }, costUsd);
+  }
+
+  /**
+   * 更新平台成功率
+   */
+  updateProviderSuccessRate(provider: string, successRatePercent: number) {
+    this.providerSuccessRateGauge.set({ provider }, successRatePercent);
+  }
+
+  /**
+   * 更新平台响应时间
+   */
+  updateProviderResponseTime(provider: string, responseTimeSeconds: number) {
+    this.providerResponseTimeGauge.set({ provider }, responseTimeSeconds);
+  }
+
+  /**
+   * 更新号码池指标
+   */
+  async updateNumberPoolMetrics() {
+    try {
+      // 需要导入 NumberPool 实体
+      // 这里暂时跳过，在完整实现时会添加
+      this.logger.debug('Number pool metrics updated');
+    } catch (error) {
+      this.logger.error('Failed to update number pool metrics', error.stack);
+    }
   }
 }

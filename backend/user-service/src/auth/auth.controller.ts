@@ -1,5 +1,5 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Headers } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Post, Get, Body, UseGuards, Req, Headers, Param } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -39,12 +39,20 @@ export class AuthController {
   @Public()
   @Post('register')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @ApiOperation({ summary: '用户注册', description: '注册新用户账号' })
-  @ApiResponse({ status: 201, description: '注册成功' })
+  @ApiOperation({ summary: '用户注册', description: '通过 Saga 模式注册新用户账号' })
+  @ApiResponse({ status: 201, description: '注册 Saga 已启动' })
   @ApiResponse({ status: 400, description: '注册失败' })
   @ApiResponse({ status: 429, description: '请求过于频繁，请稍后再试' })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @Get('register/saga/:sagaId')
+  @ApiOperation({ summary: '查询注册 Saga 状态' })
+  @ApiParam({ name: 'sagaId', description: 'Saga ID' })
+  @ApiResponse({ status: 200, description: '查询成功' })
+  async getRegistrationStatus(@Param('sagaId') sagaId: string) {
+    return this.authService.getRegistrationStatus(sagaId);
   }
 
   /**

@@ -8,6 +8,7 @@ import { DockerModule } from '../docker/docker.module';
 import { DevicesModule } from '../devices/devices.module';
 import { AuthModule } from '../auth/auth.module';
 import { PortManagerModule } from '../port-manager/port-manager.module';
+import { ProvidersModule } from '../providers/providers.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PortManagerModule } from '../port-manager/port-manager.module';
     DevicesModule,
     AuthModule,
     PortManagerModule,
+    ProvidersModule, // 添加 ProvidersModule 支持多 provider 快照
   ],
   controllers: [SnapshotsController],
   providers: [SnapshotsService],

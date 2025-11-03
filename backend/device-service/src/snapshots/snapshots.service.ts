@@ -8,6 +8,8 @@ import { RestoreSnapshotDto } from './dto/restore-snapshot.dto';
 import { DockerService } from '../docker/docker.service';
 import { DevicesService } from '../devices/devices.service';
 import { PortManagerService } from '../port-manager/port-manager.service';
+import { DeviceProviderFactory } from '../providers/device-provider.factory';
+import { DeviceProviderType } from '../providers/provider.types';
 import { BusinessErrors, BusinessException, BusinessErrorCode } from '@cloudphone/shared';
 import Dockerode = require('dockerode');
 import * as fs from 'fs';
@@ -29,7 +31,8 @@ export class SnapshotsService {
     private deviceRepository: Repository<Device>,
     private dockerService: DockerService,
     private devicesService: DevicesService,
-    private portManagerService: PortManagerService
+    private portManagerService: PortManagerService,
+    private providerFactory: DeviceProviderFactory
   ) {
     // 确保快照目录存在
     if (!fs.existsSync(this.snapshotDir)) {
@@ -65,7 +68,103 @@ export class SnapshotsService {
       );
     }
 
-    // 3. 创建快照记录
+    // 3. 根据 providerType 路由到不同的快照创建逻辑
+    const providerType = device.providerType || DeviceProviderType.REDROID;
+
+    // 3.1 云设备（阿里云 ECP、华为云 CPH）：调用 Provider API
+    if (
+      providerType === DeviceProviderType.ALIYUN_ECP ||
+      providerType === DeviceProviderType.HUAWEI_CPH
+    ) {
+      return await this.createCloudSnapshot(device, createSnapshotDto, userId);
+    }
+
+    // 3.2 本地设备（Redroid、物理设备）：使用 Docker 快照
+    return await this.createLocalSnapshot(device, createSnapshotDto, userId);
+  }
+
+  /**
+   * 创建云设备快照（阿里云 ECP、华为云 CPH）
+   */
+  private async createCloudSnapshot(
+    device: Device,
+    createSnapshotDto: CreateSnapshotDto,
+    userId: string
+  ): Promise<DeviceSnapshot> {
+    const providerType = device.providerType || DeviceProviderType.REDROID;
+
+    try {
+      // 获取对应的 provider
+      const provider = this.providerFactory.getProvider(providerType);
+
+      // 检查 provider 是否支持快照
+      if (!provider.createSnapshot) {
+        throw new BusinessException(
+          BusinessErrorCode.OPERATION_NOT_SUPPORTED,
+          `Provider ${providerType} does not support snapshot creation`,
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      // 调用 provider 创建快照
+      const snapshotId = await provider.createSnapshot(
+        device.externalId || device.containerId!,
+        createSnapshotDto.name,
+        createSnapshotDto.description
+      );
+
+      // 创建快照记录
+      const snapshot = this.snapshotRepository.create({
+        name: createSnapshotDto.name,
+        description: createSnapshotDto.description,
+        deviceId: device.id,
+        status: SnapshotStatus.CREATING, // 云快照可能需要时间
+        tags: createSnapshotDto.tags || [],
+        metadata: {
+          deviceName: device.name,
+          providerType: providerType,
+          providerSnapshotId: snapshotId, // 云 provider 返回的快照 ID
+          cpuCores: device.cpuCores,
+          memoryMB: device.memoryMB,
+          resolution: device.resolution,
+          androidVersion: device.androidVersion,
+          ...createSnapshotDto.metadata,
+        },
+        version: 1,
+        createdBy: userId,
+      });
+
+      const savedSnapshot = await this.snapshotRepository.save(snapshot);
+
+      this.logger.log(
+        `Cloud snapshot created: ${savedSnapshot.id} (provider: ${providerType}, providerSnapshotId: ${snapshotId})`
+      );
+
+      // 异步检查快照状态
+      this.checkCloudSnapshotStatus(savedSnapshot.id, snapshotId, providerType).catch((error) => {
+        this.logger.error(`Failed to check cloud snapshot status: ${error.message}`);
+      });
+
+      return savedSnapshot;
+    } catch (error) {
+      this.logger.error(`Failed to create cloud snapshot: ${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.SNAPSHOT_CREATION_FAILED,
+        `创建云设备快照失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * 创建本地设备快照（Redroid Docker）
+   */
+  private async createLocalSnapshot(
+    device: Device,
+    createSnapshotDto: CreateSnapshotDto,
+    userId: string
+  ): Promise<DeviceSnapshot> {
+    // 创建快照记录
     const snapshot = this.snapshotRepository.create({
       name: createSnapshotDto.name,
       description: createSnapshotDto.description,
@@ -74,6 +173,7 @@ export class SnapshotsService {
       tags: createSnapshotDto.tags || [],
       metadata: {
         deviceName: device.name,
+        providerType: device.providerType || DeviceProviderType.REDROID,
         cpuCores: device.cpuCores,
         memoryMB: device.memoryMB,
         resolution: device.resolution,
@@ -86,7 +186,7 @@ export class SnapshotsService {
 
     const savedSnapshot = await this.snapshotRepository.save(snapshot);
 
-    // 4. 异步创建 Docker 快照
+    // 异步创建 Docker 快照
     if (device.containerId) {
       this.createDockerSnapshot(savedSnapshot.id, device.containerId).catch((error) => {
         this.logger.error(
@@ -97,6 +197,70 @@ export class SnapshotsService {
     }
 
     return savedSnapshot;
+  }
+
+  /**
+   * 异步检查云快照状态
+   */
+  private async checkCloudSnapshotStatus(
+    snapshotId: string,
+    providerSnapshotId: string,
+    providerType: DeviceProviderType
+  ): Promise<void> {
+    try {
+      const provider = this.providerFactory.getProvider(providerType);
+
+      if (!provider.listSnapshots) {
+        this.logger.warn(`Provider ${providerType} does not support listSnapshots`);
+        return;
+      }
+
+      // 等待一段时间后检查
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
+      // 获取快照列表，查找对应的快照
+      const snapshot = await this.snapshotRepository.findOne({
+        where: { id: snapshotId },
+      });
+
+      if (!snapshot) {
+        this.logger.warn(`Snapshot ${snapshotId} not found`);
+        return;
+      }
+
+      const deviceId = snapshot.deviceId;
+      const device = await this.deviceRepository.findOne({
+        where: { id: deviceId },
+      });
+
+      if (!device) {
+        this.logger.warn(`Device ${deviceId} not found`);
+        return;
+      }
+
+      const cloudSnapshots = await provider.listSnapshots(
+        device.externalId || device.containerId!
+      );
+
+      const cloudSnapshot = cloudSnapshots.find((s) => s.id === providerSnapshotId);
+
+      if (cloudSnapshot) {
+        if (cloudSnapshot.status === 'available') {
+          snapshot.status = SnapshotStatus.READY;
+          if (cloudSnapshot.size !== undefined) {
+            snapshot.imageSize = cloudSnapshot.size;
+          }
+          await this.snapshotRepository.save(snapshot);
+          this.logger.log(`Cloud snapshot ${snapshotId} is ready`);
+        } else if (cloudSnapshot.status === 'error') {
+          snapshot.status = SnapshotStatus.FAILED;
+          await this.snapshotRepository.save(snapshot);
+          this.logger.error(`Cloud snapshot ${snapshotId} failed`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to check cloud snapshot status: ${error.message}`);
+    }
   }
 
   /**
@@ -382,6 +546,7 @@ export class SnapshotsService {
   async deleteSnapshot(snapshotId: string, userId: string): Promise<void> {
     const snapshot = await this.snapshotRepository.findOne({
       where: { id: snapshotId },
+      relations: ['device'],
     });
 
     if (!snapshot) {
@@ -397,13 +562,86 @@ export class SnapshotsService {
       );
     }
 
+    // 根据 providerType 路由到不同的删除逻辑
+    const providerType =
+      (snapshot.metadata?.providerType as DeviceProviderType) || DeviceProviderType.REDROID;
+
+    if (
+      providerType === DeviceProviderType.ALIYUN_ECP ||
+      providerType === DeviceProviderType.HUAWEI_CPH
+    ) {
+      // 云设备快照：调用 Provider API
+      await this.deleteCloudSnapshot(snapshot);
+    } else {
+      // 本地设备快照：删除 Docker 镜像和文件
+      await this.deleteLocalSnapshot(snapshot);
+    }
+
+    // 删除数据库记录
+    await this.snapshotRepository.remove(snapshot);
+
+    this.logger.log(`Snapshot ${snapshotId} deleted`);
+  }
+
+  /**
+   * 删除云设备快照
+   */
+  private async deleteCloudSnapshot(snapshot: DeviceSnapshot): Promise<void> {
+    const providerType =
+      (snapshot.metadata?.providerType as DeviceProviderType) || DeviceProviderType.REDROID;
+    const providerSnapshotId = snapshot.metadata?.providerSnapshotId;
+
+    if (!providerSnapshotId) {
+      this.logger.warn(`No providerSnapshotId found for snapshot ${snapshot.id}`);
+      return;
+    }
+
     try {
-      // 删除 Docker 镜像
-      const image = this.dockerService['docker'].getImage(snapshot.imageId);
-      await image.remove({ force: true });
-      this.logger.log(`Docker image deleted: ${snapshot.imageId}`);
+      const provider = this.providerFactory.getProvider(providerType);
+
+      if (!provider.deleteSnapshot) {
+        this.logger.warn(`Provider ${providerType} does not support deleteSnapshot`);
+        return;
+      }
+
+      // 获取设备信息
+      const device = snapshot.device || (await this.deviceRepository.findOne({
+        where: { id: snapshot.deviceId },
+      }));
+
+      if (!device) {
+        this.logger.warn(`Device ${snapshot.deviceId} not found, skipping provider deletion`);
+        return;
+      }
+
+      // 调用 provider 删除快照
+      await provider.deleteSnapshot(
+        device.externalId || device.containerId!,
+        providerSnapshotId
+      );
+
+      this.logger.log(
+        `Cloud snapshot deleted from provider: ${providerSnapshotId} (provider: ${providerType})`
+      );
     } catch (error) {
-      this.logger.warn(`Failed to delete Docker image: ${error.message}`);
+      this.logger.error(`Failed to delete cloud snapshot from provider: ${error.message}`);
+      // 不抛出错误，继续删除数据库记录
+    }
+  }
+
+  /**
+   * 删除本地设备快照（Docker 镜像和文件）
+   */
+  private async deleteLocalSnapshot(snapshot: DeviceSnapshot): Promise<void> {
+    // 删除 Docker 镜像
+    if (snapshot.imageId) {
+      try {
+        const image = this.dockerService['docker'].getImage(snapshot.imageId);
+        await image.remove({ force: true });
+        this.logger.log(`Docker image deleted: ${snapshot.imageId}`);
+      } catch (error) {
+        this.logger.warn(`Failed to delete Docker image: ${error.message}`);
+      }
     }
 
     // 删除压缩文件
@@ -417,21 +655,116 @@ export class SnapshotsService {
         this.logger.warn(`Failed to delete compressed file: ${error.message}`);
       }
     }
-
-    // 删除快照记录
-    await this.snapshotRepository.remove(snapshot);
-
-    this.logger.log(`Snapshot ${snapshotId} deleted`);
   }
 
   /**
    * 获取设备的所有快照
+   * 对于云设备，会合并数据库记录和云端快照列表
    */
   async findByDevice(deviceId: string): Promise<DeviceSnapshot[]> {
-    return await this.snapshotRepository.find({
+    // 1. 查询设备信息
+    const device = await this.deviceRepository.findOne({
+      where: { id: deviceId },
+    });
+
+    if (!device) {
+      throw BusinessErrors.deviceNotFound(deviceId);
+    }
+
+    // 2. 查询数据库中的快照记录
+    const dbSnapshots = await this.snapshotRepository.find({
       where: { deviceId },
       order: { createdAt: 'DESC' },
     });
+
+    // 3. 判断是否为云设备
+    const providerType = device.providerType || DeviceProviderType.REDROID;
+
+    if (
+      providerType !== DeviceProviderType.ALIYUN_ECP &&
+      providerType !== DeviceProviderType.HUAWEI_CPH
+    ) {
+      // 非云设备，直接返回数据库记录
+      return dbSnapshots;
+    }
+
+    // 4. 云设备：获取云端快照列表并合并
+    try {
+      const provider = this.providerFactory.getProvider(providerType);
+
+      if (!provider.listSnapshots) {
+        this.logger.warn(`Provider ${providerType} does not support listSnapshots`);
+        return dbSnapshots;
+      }
+
+      const cloudSnapshots = await provider.listSnapshots(
+        device.externalId || device.containerId!
+      );
+
+      // 5. 合并数据库快照和云端快照
+      // - 数据库快照优先显示（因为包含更多元数据）
+      // - 云端快照如果在数据库中不存在，则添加到列表
+      const dbSnapshotIds = new Set(
+        dbSnapshots
+          .filter((s) => s.metadata?.providerSnapshotId)
+          .map((s) => s.metadata!.providerSnapshotId)
+      );
+
+      const newCloudSnapshots: DeviceSnapshot[] = [];
+
+      for (const cloudSnapshot of cloudSnapshots) {
+        if (!dbSnapshotIds.has(cloudSnapshot.id)) {
+          // 云端快照在数据库中不存在，创建虚拟快照对象
+          const virtualSnapshot = this.snapshotRepository.create({
+            id: cloudSnapshot.id, // 使用云端快照 ID
+            name: cloudSnapshot.name,
+            description: cloudSnapshot.description,
+            deviceId: device.id,
+            status: this.mapCloudSnapshotStatus(cloudSnapshot.status),
+            imageSize: cloudSnapshot.size,
+            createdAt: new Date(cloudSnapshot.createdAt),
+            metadata: {
+              providerType: providerType,
+              providerSnapshotId: cloudSnapshot.id,
+              deviceName: device.name,
+              isCloudOnly: true, // 标记为仅云端快照
+            },
+            tags: [],
+            version: 1,
+            createdBy: 'system', // 云端快照没有 createdBy 信息
+          });
+
+          newCloudSnapshots.push(virtualSnapshot);
+        }
+      }
+
+      // 合并并按创建时间排序
+      const allSnapshots = [...dbSnapshots, ...newCloudSnapshots].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+      );
+
+      return allSnapshots;
+    } catch (error) {
+      this.logger.error(`Failed to list cloud snapshots: ${error.message}`);
+      // 出错时返回数据库记录
+      return dbSnapshots;
+    }
+  }
+
+  /**
+   * 映射云快照状态到数据库快照状态
+   */
+  private mapCloudSnapshotStatus(cloudStatus: string): SnapshotStatus {
+    switch (cloudStatus) {
+      case 'available':
+        return SnapshotStatus.READY;
+      case 'creating':
+        return SnapshotStatus.CREATING;
+      case 'error':
+        return SnapshotStatus.FAILED;
+      default:
+        return SnapshotStatus.CREATING;
+    }
   }
 
   /**

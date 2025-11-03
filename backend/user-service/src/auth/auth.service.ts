@@ -7,6 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { CaptchaService } from './services/captcha.service';
 import { CacheService, CacheLayer } from '../cache/cache.service';
+import { UserRegistrationSaga } from './registration.saga';
 import { EventBusService } from '@cloudphone/shared';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
@@ -26,6 +27,7 @@ export class AuthService {
     private jwtService: JwtService,
     private captchaService: CaptchaService,
     private cacheService: CacheService,
+    private registrationSaga: UserRegistrationSaga,
     @InjectDataSource()
     private dataSource: DataSource,
     private eventBus: EventBusService
@@ -98,47 +100,47 @@ export class AuthService {
   /**
    * 用户注册
    */
+  /**
+   * 用户注册（通过 Saga 模式）
+   *
+   * 使用 UserRegistrationSaga 协调多步骤注册流程：
+   * 1. 验证用户数据（检查重复）
+   * 2. 创建用户记录
+   * 3. 分配默认角色
+   * 4. 初始化默认配额
+   * 5. 发布 user.registered 事件
+   *
+   * 如果任何步骤失败，Saga 会自动执行补偿逻辑回滚已完成的步骤。
+   */
   async register(registerDto: RegisterDto) {
-    const { username, email, password } = registerDto;
+    const { username, email } = registerDto;
 
-    // 检查用户名是否已存在
-    const existingUser = await this.userRepository.findOne({
-      where: [{ username }, { email }],
-    });
+    this.logger.log(`Starting user registration for: ${username}`);
 
-    if (existingUser) {
-      if (existingUser.username === username) {
-        throw new ConflictException('用户名已存在');
-      }
-      if (existingUser.email === email) {
-        throw new ConflictException('邮箱已存在');
-      }
-    }
+    // 启动用户注册 Saga
+    const { sagaId } = await this.registrationSaga.startRegistration(registerDto);
 
-    // 加密密码
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 创建用户
-    const user = this.userRepository.create({
-      username,
-      email,
-      password: hashedPassword,
-      fullName: registerDto.fullName,
-      status: UserStatus.ACTIVE,
-    });
-
-    await this.userRepository.save(user);
-
-    this.logger.log(`User registered: ${username}`);
+    this.logger.log(`User registration Saga started: ${sagaId}`);
 
     return {
       success: true,
-      message: '注册成功',
+      message: '注册请求已提交，正在处理中',
+      sagaId,
       data: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
+        username,
+        email,
       },
+    };
+  }
+
+  /**
+   * 查询注册 Saga 状态
+   */
+  async getRegistrationStatus(sagaId: string) {
+    const state = await this.registrationSaga.getSagaStatus(sagaId);
+    return {
+      success: true,
+      data: state,
     };
   }
 

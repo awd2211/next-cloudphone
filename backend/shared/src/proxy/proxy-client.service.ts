@@ -8,6 +8,8 @@ import {
   AcquireProxyOptions,
   ProxyOperationResult,
   ProxyCriteria,
+  ListProxiesOptions,
+  AssignProxyRequest,
 } from './proxy.interfaces';
 import {
   PROXY_CLIENT_CONFIG,
@@ -415,6 +417,144 @@ export class ProxyClientService {
       if (session) {
         await this.releaseProxy(session.sessionId);
       }
+    }
+  }
+
+  /**
+   * 列出所有可用代理
+   *
+   * 用于智能代理选择，获取代理池中的所有代理信息
+   *
+   * @param options - 列表选项（筛选条件、分页等）
+   * @returns 代理列表
+   */
+  async listProxies(options?: ListProxiesOptions): Promise<ProxyInfo[]> {
+    if (!this.config.enabled) {
+      throw new Error('Proxy client is disabled');
+    }
+
+    try {
+      this.logger.debug(
+        `Listing proxies with options: ${JSON.stringify(options || {})}`
+      );
+
+      const params: any = {};
+      if (options?.criteria) {
+        // 将筛选条件展开到查询参数
+        if (options.criteria.country) params.country = options.criteria.country;
+        if (options.criteria.city) params.city = options.criteria.city;
+        if (options.criteria.protocol) params.protocol = options.criteria.protocol;
+        if (options.criteria.minQuality !== undefined) params.minQuality = options.criteria.minQuality;
+        if (options.criteria.maxLatency !== undefined) params.maxLatency = options.criteria.maxLatency;
+        if (options.criteria.maxCostPerGB !== undefined) params.maxCostPerGB = options.criteria.maxCostPerGB;
+        if (options.criteria.provider) params.provider = options.criteria.provider;
+      }
+      if (options?.limit !== undefined) params.limit = options.limit;
+      if (options?.offset !== undefined) params.offset = options.offset;
+      if (options?.availableOnly !== undefined) params.availableOnly = options.availableOnly;
+
+      const response = await this.httpClient.get<ProxyInfo[]>(
+        `${this.config.serviceUrl}/proxy/list`,
+        { params },
+        {
+          timeout: 10000,
+          retries: 1,
+          circuitBreaker: this.config.circuitBreaker !== false,
+        }
+      );
+
+      this.logger.debug(`Listed ${response.length} proxies`);
+
+      return response;
+    } catch (error) {
+      this.logger.error(`Failed to list proxies: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * 根据ID获取代理信息
+   *
+   * 用于故障转移时获取特定代理的详细信息
+   *
+   * @param proxyId - 代理ID
+   * @returns 代理信息
+   */
+  async getProxyById(proxyId: string): Promise<ProxyInfo> {
+    if (!this.config.enabled) {
+      throw new Error('Proxy client is disabled');
+    }
+
+    try {
+      this.logger.debug(`Getting proxy by ID: ${proxyId}`);
+
+      const response = await this.httpClient.get<ProxyInfo>(
+        `${this.config.serviceUrl}/proxy/${proxyId}`,
+        {},
+        {
+          timeout: 5000,
+          retries: 1,
+          circuitBreaker: this.config.circuitBreaker !== false,
+        }
+      );
+
+      this.logger.debug(`Got proxy ${proxyId}: ${response.host}:${response.port}`);
+
+      return response;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get proxy ${proxyId}: ${error.message}`,
+        error.stack
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 分配指定的代理
+   *
+   * 用于智能代理选择后，分配推荐的特定代理给设备使用
+   *
+   * @param request - 分配请求（包含代理ID）
+   * @returns 代理会话信息
+   */
+  async assignProxy(request: AssignProxyRequest): Promise<ProxySession> {
+    if (!this.config.enabled) {
+      throw new Error('Proxy client is disabled');
+    }
+
+    try {
+      const timeout = request.timeout || DEFAULT_ACQUIRE_TIMEOUT;
+
+      this.logger.debug(
+        `Assigning specific proxy: ${request.proxyId}, validate: ${request.validate !== false}`
+      );
+
+      const response = await this.httpClient.post<ProxySession>(
+        `${this.config.serviceUrl}/proxy/assign`,
+        {
+          proxyId: request.proxyId,
+          validate: request.validate !== false, // 默认验证
+        },
+        {},
+        {
+          timeout,
+          retries: this.config.maxRetries || 2,
+          circuitBreaker: this.config.circuitBreaker !== false,
+        }
+      );
+
+      this.logger.log(
+        `Proxy assigned: ${response.sessionId} (${response.proxy.host}:${response.proxy.port})`
+      );
+
+      return response;
+    } catch (error) {
+      this.logger.error(
+        `Failed to assign proxy ${request.proxyId}: ${error.message}`,
+        error.stack
+      );
+      throw error;
     }
   }
 }
