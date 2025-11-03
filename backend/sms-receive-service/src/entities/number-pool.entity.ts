@@ -36,10 +36,10 @@ export class NumberPool {
   status: string; // available, reserved, used
 
   @Column({ name: 'reserved_by_device', type: 'uuid', nullable: true })
-  reservedByDevice: string;
+  reservedByDevice: string | null;
 
   @Column({ name: 'reserved_at', type: 'timestamp', nullable: true })
-  reservedAt: Date;
+  reservedAt: Date | null;
 
   // Preheat Strategy
   @Column({ name: 'preheated', type: 'boolean', default: false })

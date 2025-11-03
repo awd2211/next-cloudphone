@@ -172,6 +172,33 @@ func (m *Manager) CloseSession(sessionID string) error {
 	return nil
 }
 
+// DeleteSession 删除会话（用于错误处理，不返回错误）
+func (m *Manager) DeleteSession(sessionID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	session, ok := m.sessions[sessionID]
+	if !ok {
+		// 会话不存在，无需处理
+		return
+	}
+
+	if session.PeerConnection != nil {
+		if err := session.PeerConnection.Close(); err != nil {
+			log.Printf("Error closing peer connection during cleanup: %v", err)
+		}
+	}
+
+	// 记录会话关闭指标 - 标记为错误清理
+	duration := time.Since(session.CreatedAt)
+	metrics.RecordSessionClosed(session.DeviceID, "error_cleanup", duration)
+
+	session.UpdateState(models.SessionStateClosed)
+	delete(m.sessions, sessionID)
+
+	log.Printf("Deleted session during error cleanup: %s", sessionID)
+}
+
 // CreateOffer 创建 SDP offer
 func (m *Manager) CreateOffer(sessionID string) (*webrtc.SessionDescription, error) {
 	session, err := m.GetSession(sessionID)

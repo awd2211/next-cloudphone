@@ -148,8 +148,9 @@ func main() {
 		}
 	}
 
-	// API 路由
+	// API 路由 (需要 JWT 认证)
 	api := router.Group("/api/media")
+	api.Use(middleware.JWTMiddleware())
 	{
 		// WebRTC 会话管理
 		api.POST("/sessions", handler.HandleCreateSession)
