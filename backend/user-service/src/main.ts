@@ -6,9 +6,17 @@ import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { ConsulService } from '@cloudphone/shared';
+import { ConsulService, setupMetricsEndpoint, initTracing } from '@cloudphone/shared';
 
 async function bootstrap() {
+  // ========== OpenTelemetry 追踪初始化 ==========
+  initTracing({
+    serviceName: 'user-service',
+    serviceVersion: '1.0.0',
+    jaegerEndpoint: process.env.JAEGER_ENDPOINT || 'http://localhost:4318/v1/traces',
+    enabled: process.env.OTEL_ENABLED !== 'false',
+  });
+
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   const configService = app.get(ConfigService);
@@ -90,16 +98,29 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('User Service API')
-    .setDescription('云手机平台 - 用户管理服务 API 文档')
+    .setDescription('云手机平台 - 用户管理服务 API 文档\n\n包含用户管理、角色权限、认证授权、配额管理等核心功能')
     .setVersion('1.0.0')
-    .addTag('users', '用户管理')
-    .addTag('roles', '角色管理')
-    .addTag('permissions', '权限管理')
-    .addTag('auth', '认证授权')
-    .addTag('quotas', '配额管理')
+    .addTag('users', '用户管理 - 用户CRUD、用户信息查询')
+    .addTag('roles', '角色管理 - 角色创建、角色权限分配')
+    .addTag('permissions', '权限管理 - 权限定义、权限查询')
+    .addTag('数据范围管理', '数据范围权限 - 控制用户可访问的数据范围')
+    .addTag('字段权限管理', '字段级权限 - 控制字段的可见性和可编辑性')
+    .addTag('菜单权限管理', '菜单权限 - 控制菜单和功能的访问权限')
+    .addTag('auth', '认证授权 - 登录、JWT、2FA')
+    .addTag('quotas', '配额管理 - 用户资源配额控制')
     .addServer('http://localhost:30001', '本地开发环境')
     .addServer('https://api.cloudphone.com', '生产环境')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: '输入JWT Token（不需要Bearer前缀）',
+        in: 'header',
+      },
+      'JWT-auth'
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -115,6 +136,9 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = parseInt(configService.get('PORT') || '30001');
+  // ========== Prometheus Metrics 端点 ==========
+  setupMetricsEndpoint(app);
+
   await app.listen(port);
 
   // ========== 注册到 Consul ==========

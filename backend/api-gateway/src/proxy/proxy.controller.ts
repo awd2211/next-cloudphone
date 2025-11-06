@@ -15,6 +15,7 @@ import { ProxyService } from './proxy.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { lastValueFrom } from 'rxjs';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 // 扩展 Request 类型以包含 JWT 用户信息和 Request ID
 interface RequestWithUser extends Request {
@@ -30,6 +31,7 @@ interface RequestWithUser extends Request {
 @Controller()
 export class ProxyController {
   private readonly logger = new Logger(ProxyController.name);
+  private readonly tracer = trace.getTracer('api-gateway');
 
   constructor(private readonly proxyService: ProxyService) {}
 
@@ -174,15 +176,6 @@ export class ProxyController {
   }
 
   /**
-   * 数据权限元数据路由（公开访问，无需认证）
-   */
-  @Public()
-  @All('data-scopes/meta/*path')
-  async proxyDataScopesMetaPublic(@Req() req: Request, @Res() res: Response) {
-    return this.handleProxy('users', req, res);
-  }
-
-  /**
    * 数据权限服务路由（精确匹配）
    */
   @UseGuards(JwtAuthGuard)
@@ -192,7 +185,8 @@ export class ProxyController {
   }
 
   /**
-   * 数据权限服务路由（通配符）
+   * 数据权限服务路由（通配符，包括元数据路由）
+   * 注意：已移除公开的 /data-scopes/meta/* 路由以符合安全最佳实践
    */
   @UseGuards(JwtAuthGuard)
   @All('data-scopes/*path')
@@ -652,18 +646,19 @@ export class ProxyController {
   }
 
   /**
-   * SMS 短信服务路由 (notification-service)
+   * SMS 短信验证码服务路由 (sms-receive-service)
+   * 处理短信验证码接收、查询、号码池管理等功能
    */
   @UseGuards(JwtAuthGuard)
   @All('sms')
   async proxySmsExact(@Req() req: Request, @Res() res: Response) {
-    return this.handleProxy('notifications', req, res);
+    return this.handleProxy('sms-receive-service', req, res);
   }
 
   @UseGuards(JwtAuthGuard)
   @All('sms/*path')
   async proxySms(@Req() req: Request, @Res() res: Response) {
-    return this.handleProxy('notifications', req, res);
+    return this.handleProxy('sms-receive-service', req, res);
   }
 
   /**
@@ -803,39 +798,310 @@ export class ProxyController {
     return this.handleProxy('sms-receive-service', req, res);
   }
 
+  // ============================================================================
+  // P0 高优先级路由 - 核心功能缺失路由补全
+  // ============================================================================
+
+  /**
+   * 帮助中心路由 (精确匹配)
+   * TODO: 需要创建 help-service 或临时路由到 notifications
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('help')
+  async proxyHelpExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('help/*path')
+  async proxyHelp(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  /**
+   * 数据导出路由 (精确匹配)
+   * TODO: 需要创建 export-service 或临时路由到相应业务服务
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('export')
+  async proxyExportExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('export/*path')
+  async proxyExport(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  /**
+   * 营销活动路由 (精确匹配)
+   * 路由到 billing-service 处理营销相关功能
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('api/activities')
+  async proxyActivitiesExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('api/activities/*path')
+  async proxyActivities(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  /**
+   * 优惠券路由 (精确匹配)
+   * 路由到 billing-service 处理优惠券功能
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('api/coupons')
+  async proxyCouponsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('api/coupons/*path')
+  async proxyCoupons(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  /**
+   * 邀请返利路由 (精确匹配)
+   * 路由到 billing-service 处理邀请返利功能
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('api/referral')
+  async proxyReferralExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('api/referral/*path')
+  async proxyReferral(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  /**
+   * 审计日志增强路由 (精确匹配)
+   * 路由到 user-service 的审计日志模块
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('logs/audit')
+  async proxyLogsAuditExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('logs/audit/*path')
+  async proxyLogsAudit(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * 设备提供商管理路由 (精确匹配)
+   * 路由到 device-service 的多提供商管理模块
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('admin/providers')
+  async proxyProvidersExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('admin/providers/*path')
+  async proxyProviders(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  /**
+   * 资源管理路由 (精确匹配) - GPU等资源
+   * 路由到 device-service 的资源管理模块
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('resources')
+  async proxyResourcesExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('resources/*path')
+  async proxyResources(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  // ============================================================================
+  // P1 中优先级路由 - 重要功能增强
+  // ============================================================================
+
+  /**
+   * 网络策略路由 (精确匹配)
+   * 路由到 device-service 的网络策略模块
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('network-policy')
+  async proxyNetworkPolicyExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('network-policy/*path')
+  async proxyNetworkPolicy(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  /**
+   * Prometheus 监控路由 (精确匹配)
+   * TODO: 需要创建 monitoring-service 或临时路由到 devices
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('prometheus')
+  async proxyPrometheusExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('prometheus/*path')
+  async proxyPrometheus(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  /**
+   * 通知偏好路由 (精确匹配)
+   * 路由到 notification-service 的用户偏好模块
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('notification-preferences')
+  async proxyNotificationPreferencesExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('notification-preferences/*path')
+  async proxyNotificationPreferences(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  // ============================================================================
+  // Proxy Service 路由 - 代理服务（IP代理、设备代理管理）
+  // ============================================================================
+
+  /**
+   * Proxy 服务路由 (精确匹配)
+   * 路由到 proxy-service 处理代理相关功能
+   * 包括: audit-logs, geo, reports, cost, sessions, alerts, device-groups, providers
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('proxy')
+  async proxyProxyServiceExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('proxy-service', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('proxy/*path')
+  async proxyProxyService(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('proxy-service', req, res);
+  }
+
+  // ============================================================================
+  // P0 紧急补充路由 - 前端调用但之前缺失的路由
+  // ============================================================================
+
+  /**
+   * API日志路由 (精确匹配)
+   * 路由到 user-service 的日志模块
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('api/logs')
+  async proxyApiLogsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('api/logs/*path')
+  async proxyApiLogs(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * 消息管理路由 (精确匹配)
+   * 路由到 notification-service 的消息模块
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('messages')
+  async proxyMessagesExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('messages/*path')
+  async proxyMessages(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  /**
+   * WebRTC信令路由 (精确匹配)
+   * 路由到 media-service 的WebRTC模块
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('api/webrtc')
+  async proxyWebrtcExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('media', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('api/webrtc/*path')
+  async proxyWebrtc(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('media', req, res);
+  }
+
   /**
    * 通用代理处理方法
    */
   private async handleProxy(serviceName: string, req: Request, res: Response): Promise<void> {
-    try {
-      // 构建目标路径
-      const urlParts = req.url.split('?');
-      const pathParts = urlParts[0].split('/').filter((p) => p);
+    return await this.tracer.startActiveSpan(
+      'gateway.proxy_request',
+      {
+        attributes: {
+          'http.method': req.method,
+          'http.url': req.url,
+          'gateway.target_service': serviceName,
+        },
+      },
+      async (span) => {
+        try {
+          // 构建目标路径
+          const urlParts = req.url.split('?');
+          const pathParts = urlParts[0].split('/').filter((p) => p);
 
-      // 后端服务已移除 app.setGlobalPrefix('api/v1')
-      // 统一由 API Gateway 处理路由，不再添加 /api/v1 前缀
-      // 直接转发路径即可
+          // 后端服务已移除 app.setGlobalPrefix('api/v1')
+          // 统一由 API Gateway 处理路由，不再添加 /api/v1 前缀
+          // 直接转发路径即可
 
-      let targetPath: string;
-      // 直接使用原始路径，不添加任何前缀
-      targetPath = `/${pathParts.join('/')}`;
+          let targetPath: string;
+          // 直接使用原始路径，不添加任何前缀
+          targetPath = `/${pathParts.join('/')}`;
 
-      // 不要拼接查询参数到 path，而是通过 params 传递
-      // if (urlParts[1]) {
-      //   targetPath += `?${urlParts[1]}`;
-      // }
+          // 获取 Request ID
+          const reqWithUser = req as RequestWithUser;
+          const requestId = reqWithUser.requestId || 'unknown';
 
-      // 获取 Request ID
-      const reqWithUser = req as RequestWithUser;
-      const requestId = reqWithUser.requestId || 'unknown';
+          // 添加追踪属性
+          span.setAttributes({
+            'http.target_path': targetPath,
+            'http.request_id': requestId,
+            'user.id': reqWithUser.user?.id || 'anonymous',
+            'user.username': reqWithUser.user?.username || 'anonymous',
+            'user.tenant_id': reqWithUser.user?.tenantId || 'none',
+          });
 
-      this.logger.log(
-        `[${requestId}] 🔀 Routing ${req.method} ${req.url} -> ${serviceName}${targetPath}`
-      );
-      this.logger.log(`[${requestId}] 📋 查询参数: ${JSON.stringify(req.query)}`);
-      this.logger.log(
-        `[${requestId}] 👤 用户信息: ${reqWithUser.user?.username} (${reqWithUser.user?.id})`
-      );
+          this.logger.log(
+            `[${requestId}] 🔀 Routing ${req.method} ${req.url} -> ${serviceName}${targetPath}`
+          );
+          this.logger.log(`[${requestId}] 📋 查询参数: ${JSON.stringify(req.query)}`);
+          this.logger.log(
+            `[${requestId}] 👤 用户信息: ${reqWithUser.user?.username} (${reqWithUser.user?.id})`
+          );
 
       // 转发请求到目标服务
       const result$ = this.proxyService.proxyRequest(
@@ -858,25 +1124,54 @@ export class ProxyController {
         req.query
       );
 
-      const result = await lastValueFrom(result$);
+          const result = await lastValueFrom(result$);
 
-      // 返回结果
-      res.status(200).json(result);
-    } catch (error) {
-      this.logger.error(`Proxy error: ${error.message}`, error.stack);
+          // 记录响应状态
+          span.setAttributes({
+            'http.status_code': 200,
+            'proxy.success': true,
+          });
+          span.setStatus({ code: SpanStatusCode.OK });
 
-      // 处理错误响应
-      if (error instanceof HttpException) {
-        const status = error.getStatus();
-        const response = error.getResponse();
-        res.status(status).json(response);
-      } else {
-        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: '网关内部错误',
-          timestamp: new Date().toISOString(),
-        });
+          // 返回结果
+          res.status(200).json(result);
+        } catch (error) {
+          this.logger.error(`Proxy error: ${error.message}`, error.stack);
+
+          // 记录错误
+          span.recordException(error);
+
+          // 处理错误响应
+          if (error instanceof HttpException) {
+            const status = error.getStatus();
+            const response = error.getResponse();
+
+            span.setAttributes({
+              'http.status_code': status,
+              'proxy.success': false,
+              'error.type': 'HttpException',
+            });
+            span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+
+            res.status(status).json(response);
+          } else {
+            span.setAttributes({
+              'http.status_code': HttpStatus.INTERNAL_SERVER_ERROR,
+              'proxy.success': false,
+              'error.type': 'InternalError',
+            });
+            span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+              statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+              message: '网关内部错误',
+              timestamp: new Date().toISOString(),
+            });
+          }
+        } finally {
+          span.end();
+        }
       }
-    }
+    );
   }
 }

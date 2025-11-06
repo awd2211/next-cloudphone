@@ -12,6 +12,7 @@ import { User, UserStatus } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 import { Quota, QuotaStatus, QuotaLimits } from '../entities/quota.entity';
 import { RegisterDto } from './dto/register.dto';
+import { UserMetricsService } from '../metrics/user-metrics.service';
 
 /**
  * 用户注册 Saga 状态
@@ -94,6 +95,7 @@ export class UserRegistrationSaga {
     private readonly quotaRepository: Repository<Quota>,
     private readonly eventBus: EventBusService,
     private readonly dataSource: DataSource,
+    private readonly userMetrics: UserMetricsService,
   ) {}
 
   /**
@@ -101,6 +103,9 @@ export class UserRegistrationSaga {
    */
   async startRegistration(registerDto: RegisterDto): Promise<{ sagaId: string }> {
     this.logger.log(`Starting user registration Saga for ${registerDto.username}`);
+
+    // ✅ 记录注册尝试
+    this.userMetrics.recordRegistrationAttempt();
 
     const initialState: UserRegistrationSagaState = {
       username: registerDto.username,
@@ -110,9 +115,16 @@ export class UserRegistrationSaga {
     };
 
     const sagaDefinition = this.createSagaDefinition();
-    const sagaId = await this.sagaOrchestrator.executeSaga(sagaDefinition, initialState);
 
-    return { sagaId };
+    try {
+      const sagaId = await this.sagaOrchestrator.executeSaga(sagaDefinition, initialState);
+      return { sagaId };
+    } catch (error) {
+      // ✅ 记录注册失败
+      const reason = error.message || 'unknown';
+      this.userMetrics.recordRegistrationFailure(reason);
+      throw error;
+    }
   }
 
   /**
@@ -162,7 +174,9 @@ export class UserRegistrationSaga {
 
   // ==================== Step 1: VALIDATE_USER ====================
 
-  private async validateUser(state: UserRegistrationSagaState): Promise<Partial<UserRegistrationSagaState>> {
+  private async validateUser(
+    state: UserRegistrationSagaState
+  ): Promise<Partial<UserRegistrationSagaState>> {
     this.logger.log(`[VALIDATE_USER] Validating user ${state.username}`);
 
     // 检查用户名和邮箱是否已存在
@@ -196,7 +210,9 @@ export class UserRegistrationSaga {
 
   // ==================== Step 2: CREATE_USER ====================
 
-  private async createUser(state: UserRegistrationSagaState): Promise<Partial<UserRegistrationSagaState>> {
+  private async createUser(
+    state: UserRegistrationSagaState
+  ): Promise<Partial<UserRegistrationSagaState>> {
     this.logger.log(`[CREATE_USER] Creating user ${state.username}`);
 
     const user = this.userRepository.create({
@@ -231,7 +247,9 @@ export class UserRegistrationSaga {
 
   // ==================== Step 3: ASSIGN_DEFAULT_ROLE ====================
 
-  private async assignDefaultRole(state: UserRegistrationSagaState): Promise<Partial<UserRegistrationSagaState>> {
+  private async assignDefaultRole(
+    state: UserRegistrationSagaState
+  ): Promise<Partial<UserRegistrationSagaState>> {
     this.logger.log(`[ASSIGN_DEFAULT_ROLE] Assigning default role to user ${state.userId}`);
 
     // 查找默认角色（"user" 角色）
@@ -250,6 +268,9 @@ export class UserRegistrationSaga {
       [state.userId, defaultRole.id]
     );
 
+    // ✅ 记录角色分配
+    this.userMetrics.recordRoleAssigned(state.userId!, defaultRole.name);
+
     this.logger.log(`[ASSIGN_DEFAULT_ROLE] Role assigned successfully`);
     return {
       roleAssigned: true,
@@ -262,10 +283,10 @@ export class UserRegistrationSaga {
 
     if (state.userId && state.defaultRoleId) {
       try {
-        await this.dataSource.query(
-          `DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2`,
-          [state.userId, state.defaultRoleId]
-        );
+        await this.dataSource.query(`DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2`, [
+          state.userId,
+          state.defaultRoleId,
+        ]);
         this.logger.log(`[COMPENSATE_ASSIGN_ROLE] Role assignment removed`);
       } catch (error) {
         this.logger.error(`[COMPENSATE_ASSIGN_ROLE] Failed to remove role: ${error.message}`);
@@ -275,7 +296,9 @@ export class UserRegistrationSaga {
 
   // ==================== Step 4: INITIALIZE_QUOTA ====================
 
-  private async initializeQuota(state: UserRegistrationSagaState): Promise<Partial<UserRegistrationSagaState>> {
+  private async initializeQuota(
+    state: UserRegistrationSagaState
+  ): Promise<Partial<UserRegistrationSagaState>> {
     this.logger.log(`[INITIALIZE_QUOTA] Initializing default quota for user ${state.userId}`);
 
     const quota = this.quotaRepository.create({
@@ -315,7 +338,9 @@ export class UserRegistrationSaga {
 
   // ==================== Step 5: PUBLISH_EVENT ====================
 
-  private async publishRegisteredEvent(state: UserRegistrationSagaState): Promise<Partial<UserRegistrationSagaState>> {
+  private async publishRegisteredEvent(
+    state: UserRegistrationSagaState
+  ): Promise<Partial<UserRegistrationSagaState>> {
     this.logger.log(`[PUBLISH_EVENT] Publishing user.registered event`);
 
     await this.eventBus.publishUserEvent('registered', {
@@ -325,6 +350,9 @@ export class UserRegistrationSaga {
       quotaId: state.quotaId,
       timestamp: new Date().toISOString(),
     });
+
+    // ✅ 记录注册成功
+    this.userMetrics.recordRegistrationSuccess();
 
     this.logger.log(`[PUBLISH_EVENT] Event published successfully`);
     return { eventPublished: true };
@@ -343,7 +371,9 @@ export class UserRegistrationSaga {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      this.logger.error(`[COMPENSATE_PUBLISH_EVENT] Failed to publish compensation event: ${error.message}`);
+      this.logger.error(
+        `[COMPENSATE_PUBLISH_EVENT] Failed to publish compensation event: ${error.message}`
+      );
     }
   }
 

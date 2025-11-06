@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Headers, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Headers, Param, Query, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -9,13 +9,16 @@ import { Disable2FADto } from './dto/disable-2fa.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
 import { TwoFactorService } from './two-factor.service';
+import { SocialProvider, SocialAuthCallbackDto, BindSocialAccountDto } from './dto/social-auth.dto';
+import { SocialAuthService } from './services/social-auth.service';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly twoFactorService: TwoFactorService
+    private readonly twoFactorService: TwoFactorService,
+    private readonly socialAuthService: SocialAuthService,
   ) {}
 
   /**
@@ -172,5 +175,102 @@ export class AuthController {
       success: true,
       message: '双因素认证已禁用',
     };
+  }
+
+  /**
+   * 获取社交登录授权URL
+   * 🔒 限流: 60秒内最多10次
+   */
+  @Public()
+  @Get('social/:provider/url')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: '获取社交登录授权URL' })
+  @ApiParam({ name: 'provider', enum: SocialProvider })
+  @ApiResponse({ status: 200, description: '返回授权URL' })
+  @ApiResponse({ status: 429, description: '请求过于频繁' })
+  async getSocialAuthUrl(
+    @Param('provider') provider: SocialProvider,
+    @Query('redirectUrl') redirectUrl?: string,
+  ) {
+    return this.socialAuthService.getAuthUrl(provider, redirectUrl);
+  }
+
+  /**
+   * 处理社交登录回调
+   * 🔒 限流: 60秒内最多10次
+   */
+  @Public()
+  @Post('social/:provider/callback')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: '处理社交登录回调' })
+  @ApiParam({ name: 'provider', enum: SocialProvider })
+  @ApiResponse({ status: 200, description: '登录成功' })
+  @ApiResponse({ status: 401, description: '社交登录失败' })
+  @ApiResponse({ status: 429, description: '请求过于频繁' })
+  async handleSocialCallback(
+    @Param('provider') provider: SocialProvider,
+    @Body() dto: SocialAuthCallbackDto,
+    @Query('redirectUrl') redirectUrl?: string,
+  ) {
+    return this.socialAuthService.handleCallback(provider, dto, redirectUrl);
+  }
+
+  /**
+   * 绑定社交账号
+   * 🔒 需要登录，限流: 60秒内最多5次
+   */
+  @Post('social/:provider/bind')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: '绑定社交账号' })
+  @ApiParam({ name: 'provider', enum: SocialProvider })
+  @ApiResponse({ status: 200, description: '绑定成功' })
+  @ApiResponse({ status: 400, description: '绑定失败' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 429, description: '请求过于频繁' })
+  async bindSocialAccount(
+    @Req() req: any,
+    @Param('provider') provider: SocialProvider,
+    @Body() dto: BindSocialAccountDto,
+    @Query('redirectUrl') redirectUrl?: string,
+  ) {
+    return this.socialAuthService.bindAccount(req.user.id, provider, dto, redirectUrl);
+  }
+
+  /**
+   * 解绑社交账号
+   * 🔒 需要登录，限流: 60秒内最多5次
+   */
+  @Delete('social/:provider/unbind')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: '解绑社交账号' })
+  @ApiParam({ name: 'provider', enum: SocialProvider })
+  @ApiResponse({ status: 200, description: '解绑成功' })
+  @ApiResponse({ status: 400, description: '解绑失败' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 429, description: '请求过于频繁' })
+  async unbindSocialAccount(
+    @Req() req: any,
+    @Param('provider') provider: SocialProvider,
+  ) {
+    await this.socialAuthService.unbindAccount(req.user.id, provider);
+    return { success: true, message: '解绑成功' };
+  }
+
+  /**
+   * 获取已绑定的社交账号列表
+   * 🔒 需要登录
+   */
+  @Get('social/bound')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取已绑定的社交账号' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async getBoundAccounts(@Req() req: any) {
+    return this.socialAuthService.getBoundAccounts(req.user.id);
   }
 }

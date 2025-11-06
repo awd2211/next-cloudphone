@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { Cron } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 
 /**
  * 物化视图信息
@@ -38,13 +39,14 @@ export class QueryOptimizationService {
 
   constructor(
     @InjectDataSource()
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**
    * 每小时刷新所有物化视图
    */
-  @Cron('0 * * * *', {
+  @ClusterSafeCron('0 * * * *', {
     name: 'refresh-materialized-views',
     timeZone: 'Asia/Shanghai',
   })

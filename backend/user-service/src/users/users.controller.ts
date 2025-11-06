@@ -25,6 +25,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
+import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
+import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
@@ -38,6 +40,8 @@ import {
 } from './commands/impl';
 import { GetUserQuery, GetUsersQuery, GetUserStatsQuery } from './queries/impl';
 import { SkipMask } from '../common/decorators/skip-mask.decorator';
+import { FilterMetadataQueryDto, UserFilterMetadataResponseDto } from './dto/filter-metadata.dto';
+import { QuickListQueryDto, QuickListResponseDto } from './dto/quick-list.dto';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -106,6 +110,63 @@ export class UsersController {
       success: true,
       data: stats,
       message: '用户统计获取成功',
+    };
+  }
+
+  @Get('filters/metadata')
+  @RequirePermission('user.read')
+  @ApiOperation({
+    summary: '用户筛选元数据',
+    description: '获取用户列表页所有可用的筛选选项及统计信息（用于生成动态筛选表单）',
+  })
+  @ApiQuery({
+    name: 'includeCount',
+    required: false,
+    description: '是否包含每个选项的记录数量',
+    example: true,
+  })
+  @ApiQuery({
+    name: 'onlyWithData',
+    required: false,
+    description: '是否只返回有数据的筛选选项',
+    example: false,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    type: UserFilterMetadataResponseDto,
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getFiltersMetadata(@Query() query: FilterMetadataQueryDto) {
+    const result = await this.usersService.getFiltersMetadata(query);
+    return {
+      success: true,
+      data: result,
+      message: '用户筛选元数据获取成功',
+    };
+  }
+
+  @Get('quick-list')
+  @RequirePermission('user.read')
+  @ApiOperation({
+    summary: '用户快速列表',
+    description: '返回轻量级用户列表，用于下拉框等UI组件（带缓存优化）',
+  })
+  @ApiQuery({ name: 'status', required: false, description: '状态过滤', example: 'active' })
+  @ApiQuery({ name: 'search', required: false, description: '搜索关键词', example: 'admin' })
+  @ApiQuery({ name: 'limit', required: false, description: '限制数量', example: 100 })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    type: QuickListResponseDto,
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getQuickList(@Query() query: QuickListQueryDto) {
+    const result = await this.usersService.getQuickList(query);
+    return {
+      success: true,
+      data: result,
+      message: '用户快速列表获取成功',
     };
   }
 
@@ -217,6 +278,45 @@ export class UsersController {
     };
   }
 
+  @Get('batch')
+  @RequirePermission('user.read')
+  @ApiOperation({ summary: '批量获取用户信息', description: '根据 ID 列表批量获取用户基本信息（用于服务间调用）' })
+  @ApiQuery({ name: 'ids', description: '用户 ID 列表（逗号分隔）', example: 'id1,id2,id3' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async batchFindUsers(@Query('ids') idsParam: string) {
+    if (!idsParam) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    const ids = idsParam.split(',').map((id) => id.trim()).filter(Boolean);
+
+    if (ids.length === 0) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    // 批量查询用户（最多100个）
+    const limitedIds = ids.slice(0, 100);
+    const users = await this.usersService.findByIds(limitedIds);
+
+    // 只返回基本信息（id, username, email）
+    const basicUsers = users.map((user) => ({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+    }));
+
+    return {
+      success: true,
+      data: basicUsers,
+    };
+  }
+
   @Get(':id')
   @RequirePermission('user.read')
   @DataScope(DataScopeType.SELF) // 管理员可查看所有，用户只能查看自己
@@ -301,6 +401,84 @@ export class UsersController {
     return {
       success: true,
       message: '用户删除成功',
+    };
+  }
+
+  // ============================================================================
+  // 支付方式管理接口
+  // ============================================================================
+
+  @Get('profile/payment-methods')
+  @RequirePermission('user.read')
+  @ApiOperation({ summary: '获取支付方式列表', description: '获取当前用户的所有支付方式' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getPaymentMethods(@Request() req: any) {
+    const paymentMethods = await this.usersService.getPaymentMethods(req.user.id);
+    return {
+      success: true,
+      data: paymentMethods,
+      message: '支付方式列表获取成功',
+    };
+  }
+
+  @Post('profile/payment-methods')
+  @RequirePermission('user.update')
+  @ApiOperation({ summary: '添加支付方式', description: '为当前用户添加新的支付方式' })
+  @ApiResponse({ status: 201, description: '添加成功' })
+  @ApiResponse({ status: 400, description: '请求参数错误' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async createPaymentMethod(
+    @Request() req: any,
+    @Body() createPaymentMethodDto: CreatePaymentMethodDto
+  ) {
+    const paymentMethod = await this.usersService.createPaymentMethod(
+      req.user.id,
+      createPaymentMethodDto
+    );
+    return {
+      success: true,
+      data: paymentMethod,
+      message: '支付方式添加成功',
+    };
+  }
+
+  @Patch('profile/payment-methods/:id')
+  @RequirePermission('user.update')
+  @ApiOperation({ summary: '更新支付方式', description: '更新支付方式信息' })
+  @ApiParam({ name: 'id', description: '支付方式 ID' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '支付方式不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async updatePaymentMethod(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() updatePaymentMethodDto: UpdatePaymentMethodDto
+  ) {
+    const paymentMethod = await this.usersService.updatePaymentMethod(
+      req.user.id,
+      id,
+      updatePaymentMethodDto
+    );
+    return {
+      success: true,
+      data: paymentMethod,
+      message: '支付方式更新成功',
+    };
+  }
+
+  @Delete('profile/payment-methods/:id')
+  @RequirePermission('user.update')
+  @ApiOperation({ summary: '删除支付方式', description: '删除指定的支付方式' })
+  @ApiParam({ name: 'id', description: '支付方式 ID' })
+  @ApiResponse({ status: 200, description: '删除成功' })
+  @ApiResponse({ status: 404, description: '支付方式不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async deletePaymentMethod(@Request() req: any, @Param('id') id: string) {
+    await this.usersService.deletePaymentMethod(req.user.id, id);
+    return {
+      success: true,
+      message: '支付方式删除成功',
     };
   }
 }

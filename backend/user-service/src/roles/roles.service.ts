@@ -22,7 +22,7 @@ export class RolesService {
     @InjectRepository(Permission)
     private permissionsRepository: Repository<Permission>,
     @Optional() private cacheService: CacheService,
-    private permissionCacheService: PermissionCacheService,
+    private permissionCacheService: PermissionCacheService
   ) {}
 
   async create(createRoleDto: CreateRoleDto): Promise<Role> {

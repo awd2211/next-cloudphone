@@ -9,6 +9,7 @@ import { CaptchaService } from './services/captcha.service';
 import { CacheService, CacheLayer } from '../cache/cache.service';
 import { UserRegistrationSaga } from './registration.saga';
 import { EventBusService } from '@cloudphone/shared';
+import { UserMetricsService } from '../metrics/user-metrics.service';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 
@@ -30,7 +31,8 @@ export class AuthService {
     private registrationSaga: UserRegistrationSaga,
     @InjectDataSource()
     private dataSource: DataSource,
-    private eventBus: EventBusService
+    private eventBus: EventBusService,
+    private userMetrics: UserMetricsService,
   ) {}
 
   /**
@@ -162,6 +164,9 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const { username, password, captcha, captchaId } = loginDto;
 
+    // ✅ 记录登录尝试
+    this.userMetrics.recordLoginAttempt(username);
+
     // 1. 验证验证码（开发环境可跳过）
     const isDev = process.env.NODE_ENV === 'development';
     const isCaptchaValid = isDev
@@ -216,6 +221,9 @@ export class AuthService {
             await queryRunner.manager.save(User, user);
             await queryRunner.commitTransaction();
 
+            // ✅ 记录用户锁定
+            this.userMetrics.recordUserLocked(user.id, 'too_many_login_attempts');
+
             // 🔒 添加随机延迟（200-400ms）防止时序攻击
             await this.addTimingDelay();
 
@@ -250,6 +258,10 @@ export class AuthService {
 
         // 提交事务（如果有更新）
         await queryRunner.commitTransaction();
+
+        // ✅ 记录登录失败
+        const failureReason = !user ? 'user_not_found' : 'invalid_password';
+        this.userMetrics.recordLoginFailure(username, failureReason);
 
         // 🔒 添加随机延迟（200-400ms）防止时序攻击
         // 这使得攻击者无法通过响应时间来判断：
@@ -302,6 +314,9 @@ export class AuthService {
       };
 
       const token = this.jwtService.sign(payload);
+
+      // ✅ 记录登录成功
+      this.userMetrics.recordLoginSuccess(username);
 
       this.logger.log(`User logged in successfully: ${username}`);
 
@@ -453,7 +468,7 @@ export class AuthService {
       email: user.email,
       tenantId: user.tenantId,
       roles: user.roles?.map((r) => r.name) || [],
-      permissions: user.roles?.flatMap((r) => r.permissions?.map((p) => p.name)) || [],  // 修复：使用 p.name 保持一致
+      permissions: user.roles?.flatMap((r) => r.permissions?.map((p) => p.name)) || [], // 修复：使用 p.name 保持一致
     };
 
     const token = this.jwtService.sign(payload);

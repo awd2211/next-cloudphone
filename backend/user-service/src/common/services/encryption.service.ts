@@ -226,7 +226,7 @@ export class EncryptionService {
     }
 
     if (name.length === 2) {
-      return name[0] + '*';
+      return `${name[0]}*`;
     }
 
     return name[0] + '*'.repeat(name.length - 1);

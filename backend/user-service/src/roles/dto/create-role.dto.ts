@@ -7,6 +7,10 @@ export class CreateRoleDto {
 
   @IsString()
   @IsOptional()
+  displayName?: string;
+
+  @IsString()
+  @IsOptional()
   description?: string;
 
   @IsString()

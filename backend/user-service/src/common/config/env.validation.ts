@@ -130,6 +130,7 @@ export const envValidationSchema = Joi.object({
   CACHE_ENABLED: Joi.boolean().default(true),
   CACHE_TTL: Joi.number().default(300),
   CACHE_WARMUP_ON_START: Joi.boolean().default(true),
+  CACHE_WARMUP_USER_LIMIT: Joi.number().min(1).max(1000).default(100),
 
   // ===== 熔断器配置 =====
   CIRCUIT_BREAKER_TIMEOUT: Joi.number().default(30000),

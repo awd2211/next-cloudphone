@@ -43,6 +43,7 @@ import {
   ConsulModule,
   createLoggerConfig,
   EventBusModule,
+  DistributedLockModule, // ✅ K8s 集群安全：分布式锁模块
 } from '@cloudphone/shared';
 import { CacheWarmupService } from './cache/cache-warmup.service';
 import { CacheService } from './cache/cache.service';
@@ -86,6 +87,7 @@ import { validate } from './common/config/env.validation';
     SettingsModule, // ✅ 系统设置管理
     ConsulModule, // ✅ 已修复 DiscoveryService 依赖问题
     EventBusModule.forRoot(), // ✅ 事件总线（用于错误通知）
+    DistributedLockModule.forRoot(), // ✅ K8s 集群安全：Redis 分布式锁（防止定时任务重复执行）
     // SecurityModule,  // ⚠️ 暂时禁用 CSRF 保护以便开发测试
     // ScheduleModule 放在最后，避免依赖问题
     ScheduleModule.forRoot(),

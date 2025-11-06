@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { PermissionCacheService } from '../permission-cache.service';
 import { PermissionCheckerService } from '../permission-checker.service';
 import { Permission } from '../../entities/permission.entity';
@@ -7,6 +7,7 @@ import { DataScope } from '../../entities/data-scope.entity';
 import { FieldPermission } from '../../entities/field-permission.entity';
 import { User } from '../../entities/user.entity';
 import { Role } from '../../entities/role.entity';
+import { CacheService } from '../../cache/cache.service';
 
 /**
  * 权限缓存集成测试
@@ -16,23 +17,63 @@ describe('PermissionCache Integration', () => {
   let cacheService: PermissionCacheService;
   let checkerService: PermissionCheckerService;
   let module: TestingModule;
+  let mockCacheService: jest.Mocked<CacheService>;
+
+  // Mock cache storage
+  let cacheStorage: Map<string, any>;
 
   beforeAll(async () => {
+    // Initialize cache storage
+    cacheStorage = new Map();
+
+    // Create mock CacheService
+    mockCacheService = {
+      get: jest.fn(async (key: string) => {
+        return cacheStorage.get(key) || null;
+      }),
+      set: jest.fn(async (key: string, value: any) => {
+        cacheStorage.set(key, value);
+      }),
+      del: jest.fn(async (key: string) => {
+        cacheStorage.delete(key);
+      }),
+      delPattern: jest.fn(async (pattern: string) => {
+        const keysToDelete = Array.from(cacheStorage.keys()).filter((k) =>
+          k.startsWith(pattern.replace('*', ''))
+        );
+        keysToDelete.forEach((k) => cacheStorage.delete(k));
+        return keysToDelete.length;
+      }),
+      getStats: jest.fn(() => ({
+        size: cacheStorage.size,
+        hits: 0,
+        misses: 0,
+        hitRate: 0,
+      })),
+    } as any;
+
+    // Create mock repositories
+    const mockRepository = {
+      find: jest.fn(),
+      findOne: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      create: jest.fn(),
+      count: jest.fn(),
+    };
+
     module = await Test.createTestingModule({
-      imports: [
-        TypeOrmModule.forRoot({
-          type: 'postgres',
-          host: process.env.DB_HOST || 'localhost',
-          port: parseInt(process.env.DB_PORT || '5432'),
-          username: process.env.DB_USERNAME || 'postgres',
-          password: process.env.DB_PASSWORD || 'postgres',
-          database: process.env.DB_DATABASE || 'cloudphone_user',
-          entities: [Permission, DataScope, FieldPermission, User, Role],
-          synchronize: false,
-        }),
-        TypeOrmModule.forFeature([Permission, DataScope, FieldPermission, User, Role]),
+      providers: [
+        PermissionCacheService,
+        PermissionCheckerService,
+        { provide: getRepositoryToken(Permission), useValue: mockRepository },
+        { provide: getRepositoryToken(DataScope), useValue: mockRepository },
+        { provide: getRepositoryToken(FieldPermission), useValue: mockRepository },
+        { provide: getRepositoryToken(User), useValue: mockRepository },
+        { provide: getRepositoryToken(Role), useValue: mockRepository },
+        { provide: CacheService, useValue: mockCacheService },
       ],
-      providers: [PermissionCacheService, PermissionCheckerService],
     }).compile();
 
     cacheService = module.get<PermissionCacheService>(PermissionCacheService);
@@ -54,133 +95,154 @@ describe('PermissionCache Integration', () => {
       expect(stats.enabled).toBe(true);
       expect(stats.ttl).toBe(300); // 5 minutes
     });
+
+    it('should have CacheService injected', () => {
+      expect(mockCacheService).toBeDefined();
+      expect(mockCacheService.get).toBeDefined();
+      expect(mockCacheService.set).toBeDefined();
+      expect(mockCacheService.del).toBeDefined();
+    });
   });
 
   describe('Cache Performance', () => {
     const testUserId = '10000000-0000-0000-0000-000000000001'; // admin user
 
     beforeEach(() => {
-      // 清除缓存
-      cacheService.invalidateCache();
+      // 清除缓存存储
+      cacheStorage.clear();
+      jest.clearAllMocks();
     });
 
-    it('should cache user permissions', async () => {
+    it('should call cache service methods', async () => {
+      // Mock successful cache miss -> load from DB
+      mockCacheService.get.mockResolvedValueOnce(null);
+
+      // Mock repository to return user data
+      const userRepo = module.get(getRepositoryToken(User));
+      const roleRepo = module.get(getRepositoryToken(Role));
+
+      userRepo.findOne = jest.fn().mockResolvedValue({
+        id: testUserId,
+        tenantId: 'tenant-1',
+        isSuperAdmin: false,
+        roles: [{ id: 'role-1' }],
+      });
+
+      roleRepo.find = jest.fn().mockResolvedValue([
+        {
+          id: 'role-1',
+          permissions: [{ id: 'perm-1', code: 'user:read', name: 'Read Users' }],
+        },
+      ]);
+
       // 第一次调用 - 从数据库加载
-      const start1 = Date.now();
       const cached1 = await cacheService.getUserPermissions(testUserId);
-      const duration1 = Date.now() - start1;
 
       expect(cached1).toBeDefined();
+      expect(mockCacheService.get).toHaveBeenCalledWith(
+        `permissions:user:${testUserId}`,
+        expect.any(Object)
+      );
+      expect(mockCacheService.set).toHaveBeenCalled();
 
       if (cached1) {
         expect(cached1.userId).toBe(testUserId);
         expect(cached1.permissions).toBeDefined();
         expect(Array.isArray(cached1.permissions)).toBe(true);
       }
+    });
+
+    it('should use cached data on second call', async () => {
+      const mockCachedData = {
+        userId: testUserId,
+        tenantId: 'tenant-1',
+        isSuperAdmin: false,
+        roles: ['role-1'],
+        permissions: [{ id: 'perm-1', code: 'user:read', name: 'Read Users' }],
+        dataScopes: {},
+        fieldPermissions: {},
+        cachedAt: new Date(),
+      };
+
+      // Mock cache hit
+      mockCacheService.get.mockResolvedValueOnce(mockCachedData);
 
       // 第二次调用 - 从缓存获取
-      const start2 = Date.now();
       const cached2 = await cacheService.getUserPermissions(testUserId);
-      const duration2 = Date.now() - start2;
 
       expect(cached2).toBeDefined();
-
-      // 缓存应该显著提高性能
-      console.log(`First call (DB):    ${duration1}ms`);
-      console.log(`Second call (Cache): ${duration2}ms`);
-
-      if (duration1 > 5) {
-        // 只有当第一次查询足够慢时才进行比较
-        const improvement = ((duration1 - duration2) / duration1) * 100;
-        console.log(`Performance improvement: ${improvement.toFixed(1)}%`);
-
-        // 缓存查询应该更快（但在单元测试中可能不明显）
-        expect(duration2).toBeLessThanOrEqual(duration1);
-      }
+      expect(cached2).toEqual(mockCachedData);
+      expect(mockCacheService.get).toHaveBeenCalledWith(
+        `permissions:user:${testUserId}`,
+        expect.any(Object)
+      );
+      // Should not call set since data came from cache
+      expect(mockCacheService.set).not.toHaveBeenCalled();
     });
 
     it('should invalidate cache correctly', async () => {
-      // 首先缓存数据
-      const cached1 = await cacheService.getUserPermissions(testUserId);
-      expect(cached1).toBeDefined();
+      // Invalidate cache
+      await cacheService.invalidateCache(testUserId);
 
-      const statsBefore = cacheService.getCacheStats();
-      expect(statsBefore.size).toBeGreaterThan(0);
-
-      // 失效缓存
-      cacheService.invalidateCache(testUserId);
-
-      const statsAfter = cacheService.getCacheStats();
-      expect(statsAfter.size).toBe(statsBefore.size - 1);
-
-      // 再次获取应该从数据库重新加载
-      const cached2 = await cacheService.getUserPermissions(testUserId);
-      expect(cached2).toBeDefined();
+      expect(mockCacheService.del).toHaveBeenCalledWith(`permissions:user:${testUserId}`);
     });
 
-    it('should handle cache expiration', async () => {
-      // 获取缓存统计
+    it('should handle cache stats', () => {
+      // Add some items to cache storage
+      cacheStorage.set('permissions:user:user-1', {});
+      cacheStorage.set('permissions:user:user-2', {});
+
       const stats = cacheService.getCacheStats();
 
-      expect(stats).toEqual({
-        size: expect.any(Number),
+      expect(stats).toMatchObject({
         enabled: true,
-        ttl: 300, // 5 minutes
+        ttl: 300,
+        prefix: 'permissions:user:',
       });
+      expect(stats.size).toBe(2);
     });
   });
 
   describe('Integration with PermissionChecker', () => {
     const testUserId = '10000000-0000-0000-0000-000000000001';
 
-    it('should use cache in permission checking', async () => {
-      // 清除缓存
-      cacheService.invalidateCache();
+    beforeEach(() => {
+      cacheStorage.clear();
+      jest.clearAllMocks();
+    });
 
-      // 第一次检查 - 应该加载缓存
-      const start1 = Date.now();
+    it('should integrate with permission checker', async () => {
+      // Setup mock data
+      const mockCachedData = {
+        userId: testUserId,
+        tenantId: 'tenant-1',
+        isSuperAdmin: false,
+        roles: ['role-1'],
+        permissions: [
+          { id: 'perm-1', code: 'user:read', name: 'Read Users' },
+          { id: 'perm-2', code: 'user:create', name: 'Create Users' },
+        ],
+        dataScopes: {},
+        fieldPermissions: {},
+        cachedAt: new Date(),
+      };
+
+      mockCacheService.get.mockResolvedValue(mockCachedData);
+
+      const userRepo = module.get(getRepositoryToken(User));
+      userRepo.findOne = jest.fn().mockResolvedValue({
+        id: testUserId,
+        tenantId: 'tenant-1',
+        isSuperAdmin: false,
+        roles: [{ id: 'role-1' }],
+      });
+
+      // Test permission checking
       const result1 = await checkerService.checkFunctionPermission(testUserId, 'user:read');
-      const duration1 = Date.now() - start1;
-
-      console.log(`First permission check: ${duration1}ms`);
       expect(typeof result1).toBe('boolean');
 
-      // 第二次检查 - 应该使用缓存
-      const start2 = Date.now();
-      const result2 = await checkerService.checkFunctionPermission(testUserId, 'user:read');
-      const duration2 = Date.now() - start2;
-
-      console.log(`Second permission check: ${duration2}ms`);
-      expect(result2).toBe(result1); // 结果应该一致
-
-      // 验证缓存被使用
-      const stats = cacheService.getCacheStats();
-      expect(stats.size).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Cache Export', () => {
-    it('should export cache snapshot', async () => {
-      // 清除缓存
-      cacheService.invalidateCache();
-
-      // 加载一些数据
-      await cacheService.getUserPermissions('10000000-0000-0000-0000-000000000001');
-
-      // 导出缓存
-      const snapshot = cacheService.exportCache();
-
-      expect(Array.isArray(snapshot)).toBe(true);
-      expect(snapshot.length).toBeGreaterThan(0);
-
-      if (snapshot.length > 0) {
-        const entry = snapshot[0];
-        expect(entry).toHaveProperty('userId');
-        expect(entry).toHaveProperty('tenantId');
-        expect(entry).toHaveProperty('rolesCount');
-        expect(entry).toHaveProperty('permissionsCount');
-        expect(entry).toHaveProperty('cachedAt');
-      }
+      // Verify cache was used
+      expect(mockCacheService.get).toHaveBeenCalled();
     });
   });
 });

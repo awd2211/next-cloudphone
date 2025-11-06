@@ -96,7 +96,7 @@ export class SensitiveDataInterceptor implements NestInterceptor {
     if (!phone || phone.length < 7) {
       return phone;
     }
-    return phone.slice(0, 3) + '****' + phone.slice(-4);
+    return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
   }
 
   /**
@@ -113,7 +113,7 @@ export class SensitiveDataInterceptor implements NestInterceptor {
       return email;
     }
 
-    return username[0] + '****' + '@' + domain;
+    return `${username[0]}****` + `@${domain}`;
   }
 
   /**

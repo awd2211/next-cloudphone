@@ -1,21 +1,15 @@
 import { IsString, IsOptional, IsObject, IsBoolean } from 'class-validator';
 
 export class UpdatePermissionDto {
+  // Note: name, resource, and action cannot be updated (they are immutable identifiers)
+
   @IsString()
   @IsOptional()
-  name?: string;
+  displayName?: string;
 
   @IsString()
   @IsOptional()
   description?: string;
-
-  @IsString()
-  @IsOptional()
-  resource?: string;
-
-  @IsString()
-  @IsOptional()
-  action?: string;
 
   @IsObject()
   @IsOptional()
@@ -24,4 +18,8 @@ export class UpdatePermissionDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isSystem?: boolean;
 }

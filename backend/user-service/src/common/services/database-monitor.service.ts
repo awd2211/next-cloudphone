@@ -1,7 +1,8 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { PinoLogger } from 'nestjs-pino';
 import { connectionPoolHealthConfig, ConnectionPoolMetrics } from '../config/database.config';
 
@@ -51,7 +52,8 @@ export class DatabaseMonitorService {
 
   constructor(
     @InjectDataSource() private dataSource: DataSource,
-    private pinoLogger: PinoLogger
+    private pinoLogger: PinoLogger,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {
     this.setupQueryLogging();
   }
@@ -274,7 +276,7 @@ export class DatabaseMonitorService {
   /**
    * 定时监控连接池健康状况（每分钟）
    */
-  @Cron(CronExpression.EVERY_MINUTE)
+  @ClusterSafeCron(CronExpression.EVERY_MINUTE)
   async checkConnectionPoolHealth(): Promise<void> {
     const metrics = await this.getConnectionPoolMetrics();
 
@@ -347,7 +349,7 @@ export class DatabaseMonitorService {
   /**
    * 定时清理过期的慢查询记录（每小时）
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @ClusterSafeCron(CronExpression.EVERY_HOUR)
   cleanupSlowQueryRecords(): void {
     const oneHourAgo = new Date(Date.now() - 3600000);
 
@@ -431,7 +433,7 @@ export class DatabaseMonitorService {
 
     // 截断过长的查询
     if (sanitized.length > 500) {
-      sanitized = sanitized.substring(0, 500) + '...';
+      sanitized = `${sanitized.substring(0, 500)}...`;
     }
 
     return sanitized;

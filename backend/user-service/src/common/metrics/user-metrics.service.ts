@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Counter, Histogram, Gauge, Registry, register } from 'prom-client';
+import { DistributedLockService } from '@cloudphone/shared';
 
 /**
  * 用户服务自定义指标服务
@@ -72,7 +73,9 @@ export class UserMetricsService implements OnModuleInit {
    */
   private readonly lockedUsersGauge: Gauge;
 
-  constructor() {
+  constructor(
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
+  ) {
     // 初始化计数器 - 使用 getSingleMetric 避免重复注册
     this.userCreatedCounter = this.getOrCreateCounter({
       name: 'user_created_total',

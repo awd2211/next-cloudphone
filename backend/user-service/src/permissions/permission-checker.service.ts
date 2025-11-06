@@ -44,7 +44,7 @@ export class PermissionCheckerService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private permissionCacheService: PermissionCacheService,
+    private permissionCacheService: PermissionCacheService
   ) {}
 
   /**
@@ -294,7 +294,7 @@ export class PermissionCheckerService {
       return [];
     }
 
-    return cachedData.dataScopes.get(resourceType) || [];
+    return cachedData.dataScopes[resourceType] || [];
   }
 
   /**
@@ -316,12 +316,12 @@ export class PermissionCheckerService {
       return [];
     }
 
-    const resourcePermissions = cachedData.fieldPermissions.get(resourceType);
+    const resourcePermissions = cachedData.fieldPermissions[resourceType];
     if (!resourcePermissions) {
       return [];
     }
 
-    return resourcePermissions.get(operation) || [];
+    return resourcePermissions[operation] || [];
   }
 
   /**

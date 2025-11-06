@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
 import { User, UserStatus } from '../entities/user.entity';
 import { CaptchaService } from './services/captcha.service';
 import { CacheService } from '../cache/cache.service';
+import { UserRegistrationSaga } from './registration.saga';
 import { EventBusService } from '@cloudphone/shared';
 import {
   createMockRepository,
@@ -36,6 +37,7 @@ describe('AuthService', () => {
   let jwtService: ReturnType<typeof createMockJwtService>;
   let captchaService: jest.Mocked<CaptchaService>;
   let cacheService: ReturnType<typeof createMockCacheService>;
+  let registrationSaga: any;
   let mockDataSource: any;
   let mockQueryRunner: any;
 
@@ -50,6 +52,14 @@ describe('AuthService', () => {
     publishDeviceEvent: jest.fn().mockResolvedValue(undefined),
     publishBillingEvent: jest.fn().mockResolvedValue(undefined),
     publishSystemError: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockUserRegistrationSaga = {
+    startRegistration: jest.fn().mockResolvedValue({ sagaId: 'test-saga-id' }),
+    completeRegistration: jest.fn().mockResolvedValue(undefined),
+    cancelRegistration: jest.fn().mockResolvedValue(undefined),
+    execute: jest.fn().mockResolvedValue(undefined),
+    compensate: jest.fn().mockResolvedValue(undefined),
   };
 
   // 创建可复用的 QueryBuilder Mock
@@ -104,6 +114,10 @@ describe('AuthService', () => {
           useValue: cacheService,
         },
         {
+          provide: UserRegistrationSaga,
+          useValue: mockUserRegistrationSaga,
+        },
+        {
           provide: getDataSourceToken(),
           useValue: mockDataSource,
         },
@@ -116,6 +130,7 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     captchaService = module.get(CaptchaService);
+    registrationSaga = module.get<UserRegistrationSaga>(UserRegistrationSaga);
   });
 
   beforeEach(() => {
@@ -141,6 +156,9 @@ describe('AuthService', () => {
     cacheService.get.mockClear();
     cacheService.set.mockClear();
     cacheService.del.mockClear();
+    mockUserRegistrationSaga.startRegistration.mockClear();
+    mockUserRegistrationSaga.completeRegistration.mockClear();
+    mockUserRegistrationSaga.cancelRegistration.mockClear();
 
     // 配置bcrypt mock的默认行为
     // bcrypt.hash - 总是返回固定的测试哈希
@@ -179,32 +197,24 @@ describe('AuthService', () => {
         fullName: 'Test User',
       };
 
-      userRepository.findOne.mockResolvedValue(null);
-      const mockUser = createMockUser({
-        id: 'user-123',
-        username: registerDto.username,
-        email: registerDto.email,
-      });
-      userRepository.create.mockReturnValue(mockUser);
-      userRepository.save.mockResolvedValue(mockUser);
+      const mockSagaId = 'saga-123';
+      registrationSaga.startRegistration.mockResolvedValue({ sagaId: mockSagaId });
 
       // Act
       const result = await service.register(registerDto);
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.message).toBe('注册成功');
-      expect(result.data).toHaveProperty('id');
+      expect(result.message).toBe('注册请求已提交，正在处理中');
+      expect(result.sagaId).toBe(mockSagaId);
       expect(result.data.username).toBe(registerDto.username);
       expect(result.data.email).toBe(registerDto.email);
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: [{ username: registerDto.username }, { email: registerDto.email }],
-      });
-      expect(userRepository.create).toHaveBeenCalled();
-      expect(userRepository.save).toHaveBeenCalled();
+      expect(registrationSaga.startRegistration).toHaveBeenCalledWith(registerDto);
     });
 
-    it('应该在用户名已存在时抛出 ConflictException', async () => {
+    // 注意：此测试已过时，因为 register 方法现在使用 Saga 异步处理，不会立即抛出异常
+    // 用户名/邮箱验证在 Saga 中进行
+    it.skip('应该在用户名已存在时抛出 ConflictException', async () => {
       // Arrange
       const registerDto = {
         username: 'existinguser',
@@ -226,7 +236,9 @@ describe('AuthService', () => {
       expect(userRepository.save).not.toHaveBeenCalled();
     });
 
-    it('应该在邮箱已存在时抛出 ConflictException', async () => {
+    // 注意：此测试已过时，因为 register 方法现在使用 Saga 异步处理，不会立即抛出异常
+    // 用户名/邮箱验证在 Saga 中进行
+    it.skip('应该在邮箱已存在时抛出 ConflictException', async () => {
       // Arrange
       const registerDto = {
         username: 'newuser',
@@ -248,7 +260,8 @@ describe('AuthService', () => {
       expect(userRepository.save).not.toHaveBeenCalled();
     });
 
-    it('应该对密码进行哈希处理', async () => {
+    // 注意：此测试已过时，因为密码哈希现在在 Saga 中进行，不在 AuthService.register 中
+    it.skip('应该对密码进行哈希处理', async () => {
       // Arrange
       const registerDto = {
         username: 'testuser',
@@ -271,7 +284,8 @@ describe('AuthService', () => {
       expect(createCall.password).toMatch(/^\$2[aby]\$\d{1,2}\$/); // bcrypt hash格式
     });
 
-    it('应该设置用户状态为 ACTIVE', async () => {
+    // 注意：此测试已过时，因为用户创建现在在 Saga 中进行，不在 AuthService.register 中
+    it.skip('应该设置用户状态为 ACTIVE', async () => {
       // Arrange
       const registerDto = {
         username: 'testuser',
@@ -940,7 +954,8 @@ describe('AuthService', () => {
   });
 
   describe('安全性特性', () => {
-    it('应该对密码进行 bcrypt 哈希', async () => {
+    // 注意：此测试已过时，因为密码哈希现在在 Saga 中进行
+    it.skip('应该对密码进行 bcrypt 哈希', async () => {
       // Arrange
       const password = 'test123456';
       const registerDto = {

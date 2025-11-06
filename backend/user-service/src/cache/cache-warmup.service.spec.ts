@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { CacheWarmupService } from './cache-warmup.service';
 import { CacheService } from './cache.service';
 import { Role } from '../entities/role.entity';
 import { Permission } from '../entities/permission.entity';
+import { PermissionCacheService } from '../permissions/permission-cache.service';
 import { createMockRepository } from '@cloudphone/shared/testing';
 
 describe('CacheWarmupService', () => {
@@ -24,6 +26,22 @@ describe('CacheWarmupService', () => {
           useValue: {
             set: jest.fn().mockResolvedValue(true),
             delPattern: jest.fn().mockResolvedValue(10),
+          },
+        },
+        {
+          provide: PermissionCacheService,
+          useValue: {
+            warmupActiveUsersCache: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string, defaultValue?: any) => {
+              if (key === 'CACHE_WARMUP_ON_START') return true;
+              if (key === 'CACHE_WARMUP_USER_LIMIT') return 100;
+              return defaultValue;
+            }),
           },
         },
         {

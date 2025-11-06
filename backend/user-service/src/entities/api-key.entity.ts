@@ -96,7 +96,7 @@ export class ApiKey {
       if (scope === '*') return true;
       if (scope === pattern) return true;
 
-      const regex = new RegExp('^' + scope.replace('*', '.*') + '$');
+      const regex = new RegExp(`^${scope.replace('*', '.*')}$`);
       return regex.test(pattern);
     });
   }

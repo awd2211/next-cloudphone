@@ -7,8 +7,10 @@ import {
   ManyToMany,
   JoinTable,
   Index,
+  OneToMany,
 } from 'typeorm';
 import { Role } from './role.entity';
+import { SocialAccount } from './social-account.entity';
 
 export enum UserStatus {
   ACTIVE = 'active',
@@ -119,6 +121,12 @@ export class User {
     inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
   })
   roles: Role[];
+
+  /**
+   * 用户绑定的社交账号
+   */
+  @OneToMany(() => SocialAccount, (socialAccount) => socialAccount.user)
+  socialAccounts: SocialAccount[];
 
   @CreateDateColumn()
   createdAt: Date;

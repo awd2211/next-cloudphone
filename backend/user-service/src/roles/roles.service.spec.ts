@@ -5,6 +5,7 @@ import { RolesService } from './roles.service';
 import { Role } from '../entities/role.entity';
 import { Permission } from '../entities/permission.entity';
 import { CacheService } from '../cache/cache.service';
+import { PermissionCacheService } from '../permissions/permission-cache.service';
 import {
   createMockRepository,
   createMockRole,
@@ -18,11 +19,22 @@ describe('RolesService', () => {
   let rolesRepository: ReturnType<typeof createMockRepository>;
   let permissionsRepository: ReturnType<typeof createMockRepository>;
   let cacheService: ReturnType<typeof createMockCacheService>;
+  let permissionCacheService: jest.Mocked<PermissionCacheService>;
 
   beforeEach(async () => {
     rolesRepository = createMockRepository();
     permissionsRepository = createMockRepository();
     cacheService = createMockCacheService();
+
+    // Mock PermissionCacheService
+    permissionCacheService = {
+      invalidateUserCache: jest.fn(),
+      invalidateCache: jest.fn(),
+      invalidateCacheByRole: jest.fn().mockResolvedValue(undefined),
+      loadAndCacheUserPermissions: jest.fn(),
+      warmupActiveUsersCache: jest.fn(),
+      getCacheStats: jest.fn(),
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -38,6 +50,10 @@ describe('RolesService', () => {
         {
           provide: CacheService,
           useValue: cacheService,
+        },
+        {
+          provide: PermissionCacheService,
+          useValue: permissionCacheService,
         },
       ],
     }).compile();

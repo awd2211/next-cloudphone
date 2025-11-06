@@ -12,6 +12,9 @@ import { Department } from '../entities/department.entity';
 import { Tenant } from '../entities/tenant.entity';
 import { AuditLog } from '../entities/audit-log.entity';
 
+// Modules
+import { CacheModule } from '../cache/cache.module';
+
 // Controllers
 import { PermissionsController } from './permissions.controller';
 import { DataScopeController } from './controllers/data-scope.controller';
@@ -38,7 +41,7 @@ import { AlertService } from '../common/services/alert/alert.service';
  * - 多租户隔离
  * - 数据范围控制
  * - 字段级权限
- * - 权限缓存
+ * - Redis 双层缓存
  * - 菜单权限
  */
 @Module({
@@ -54,6 +57,7 @@ import { AlertService } from '../common/services/alert/alert.service';
       Tenant,
       AuditLog,
     ]),
+    CacheModule, // 导入缓存模块
   ],
   controllers: [
     PermissionsController,

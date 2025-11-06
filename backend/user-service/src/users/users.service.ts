@@ -3,107 +3,187 @@ import {
   NotFoundException,
   ConflictException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, EntityManager } from 'typeorm';
+import { Repository, In, Not, EntityManager, DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User, UserStatus } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
+import { PaymentMethod } from '../entities/payment-method.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
+import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
+import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 import {
   EventBusService,
   CursorPagination,
   CursorPaginationDto,
   CursorPaginatedResponse,
+  EventOutboxService,
 } from '@cloudphone/shared';
 import { Optional } from '@nestjs/common';
 import { CacheService, CacheLayer } from '../cache/cache.service';
 import { UserMetricsService } from '../common/metrics/user-metrics.service';
 import { TracingService } from '../common/tracing/tracing.service';
 import { PermissionCacheService } from '../permissions/permission-cache.service';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+  private readonly tracer = trace.getTracer('user-service');
+
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     @InjectRepository(Role)
     private rolesRepository: Repository<Role>,
+    @InjectRepository(PaymentMethod)
+    private paymentMethodRepository: Repository<PaymentMethod>,
+    private dataSource: DataSource,
     @Optional() private eventBus: EventBusService,
+    @Optional() private eventOutboxService: EventOutboxService,
     @Optional() private cacheService: CacheService,
     @Optional() private metricsService: UserMetricsService,
     @Optional() private tracingService: TracingService,
-    @Optional() private permissionCacheService: PermissionCacheService,
+    @Optional() private permissionCacheService: PermissionCacheService
   ) {}
 
+  /**
+   * 创建用户
+   *
+   * ✅ 事务保护：用户创建、角色分配、事件发布在同一事务中
+   * ✅ Outbox 模式：事件写入 outbox 表，后台轮询发布到 RabbitMQ
+   */
   async create(createUserDto: CreateUserDto): Promise<User> {
-    // 优化：并行检查用户名和邮箱是否已存在（性能提升 30-50%）
-    const [userByUsername, userByEmail] = await Promise.all([
-      this.usersRepository.findOne({
-        where: { username: createUserDto.username },
-        select: ['id'], // 只查询 ID，减少数据传输
-      }),
-      this.usersRepository.findOne({
-        where: { email: createUserDto.email },
-        select: ['id'],
-      }),
-    ]);
+    // 创建自定义 span 用于追踪用户创建
+    return await this.tracer.startActiveSpan(
+      'user.create',
+      {
+        attributes: {
+          'user.username': createUserDto.username,
+          'user.email': createUserDto.email,
+          'user.tenant_id': createUserDto.tenantId || 'default',
+        },
+      },
+      async (span) => {
+        try {
+          // 优化：并行检查用户名和邮箱是否已存在（性能提升 30-50%）
+          const [userByUsername, userByEmail] = await Promise.all([
+            this.usersRepository.findOne({
+              where: { username: createUserDto.username },
+              select: ['id'], // 只查询 ID，减少数据传输
+            }),
+            this.usersRepository.findOne({
+              where: { email: createUserDto.email },
+              select: ['id'],
+            }),
+          ]);
 
-    if (userByUsername) {
-      throw BusinessException.userAlreadyExists('username', createUserDto.username);
-    }
-    if (userByEmail) {
-      throw BusinessException.userAlreadyExists('email', createUserDto.email);
-    }
+          if (userByUsername) {
+            throw BusinessException.userAlreadyExists('username', createUserDto.username);
+          }
+          if (userByEmail) {
+            throw BusinessException.userAlreadyExists('email', createUserDto.email);
+          }
 
-    // 加密密码
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+          // 加密密码
+          const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
-    // 获取角色
-    let roles: Role[] = [];
-    if (createUserDto.roleIds && createUserDto.roleIds.length > 0) {
-      roles = await this.rolesRepository.find({
-        where: { id: In(createUserDto.roleIds) },
-      });
-    } else {
-      // 默认分配 'user' 角色
-      const defaultRole = await this.rolesRepository.findOne({
-        where: { name: 'user' },
-      });
-      if (defaultRole) {
-        roles = [defaultRole];
-      }
-    }
+          // 开启事务
+          const queryRunner = this.dataSource.createQueryRunner();
+          await queryRunner.connect();
+          await queryRunner.startTransaction();
 
-    const user = this.usersRepository.create({
-      ...createUserDto,
-      password: hashedPassword,
-      roles,
-    });
+          let savedUser: User;
+          try {
+            // 在事务中获取角色
+            let roles: Role[] = [];
+            if (createUserDto.roleIds && createUserDto.roleIds.length > 0) {
+              roles = await queryRunner.manager.find(Role, {
+                where: { id: In(createUserDto.roleIds) },
+              });
+            } else {
+              // 默认分配 'user' 角色
+              const defaultRole = await queryRunner.manager.findOne(Role, {
+                where: { name: 'user' },
+              });
+              if (defaultRole) {
+                roles = [defaultRole];
+              }
+            }
 
-    const savedUser = await this.usersRepository.save(user);
+            // 在事务中创建用户
+            const user = queryRunner.manager.create(User, {
+              ...createUserDto,
+              password: hashedPassword,
+              roles,
+            });
 
-    // 记录用户创建指标
-    if (this.metricsService) {
-      this.metricsService.recordUserCreated(savedUser.tenantId || 'default', true);
-    }
+            savedUser = await queryRunner.manager.save(User, user);
 
-    // 发布用户创建事件
-    if (this.eventBus) {
-      await this.eventBus.publishUserEvent('created', {
-        userId: savedUser.id,
-        username: savedUser.username,
-        email: savedUser.email,
-        fullName: savedUser.fullName,
-        tenantId: savedUser.tenantId,
-      });
-    }
+            // 使用 Outbox 模式发布事件（在同一个事务中）
+            if (this.eventOutboxService) {
+              await this.eventOutboxService.writeEvent(
+                queryRunner,
+                'user',
+                savedUser.id,
+                'user.created',
+                {
+                  userId: savedUser.id,
+                  username: savedUser.username,
+                  email: savedUser.email,
+                  fullName: savedUser.fullName,
+                  tenantId: savedUser.tenantId,
+                }
+              );
+            }
 
-    return savedUser;
+            // 提交事务
+            await queryRunner.commitTransaction();
+
+            // 记录用户创建指标（事务外，不影响数据一致性）
+            if (this.metricsService) {
+              this.metricsService.recordUserCreated(savedUser.tenantId || 'default', true);
+            }
+          } catch (error) {
+            // 回滚事务
+            await queryRunner.rollbackTransaction();
+            throw error;
+          } finally {
+            // 释放 QueryRunner
+            await queryRunner.release();
+          }
+
+          // 添加用户 ID 到 span（事务成功后）
+          span.setAttributes({
+            'user.id': savedUser.id,
+            'user.status': savedUser.status,
+          });
+
+          // 设置成功状态
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          return savedUser;
+        } catch (error) {
+          // 记录错误到 span
+          span.recordException(error);
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message || 'User creation failed',
+          });
+
+          throw error;
+        } finally {
+          // 结束 span
+          span.end();
+        }
+      },
+    );
   }
 
   /**
@@ -511,6 +591,29 @@ export class UsersService {
     } catch (error) {
       this.tracingService?.finishSpan(span, error as Error);
       throw error;
+    }
+  }
+
+  /**
+   * 批量查询用户（根据ID列表）
+   * 用于服务间调用，返回基本信息
+   */
+  async findByIds(ids: string[]): Promise<User[]> {
+    if (!ids || ids.length === 0) {
+      return [];
+    }
+
+    try {
+      // 使用 In 查询批量获取用户
+      const users = await this.usersRepository.find({
+        where: { id: In(ids) },
+        select: ['id', 'username', 'email', 'fullName', 'avatar', 'status'],
+      });
+
+      return users;
+    } catch (error) {
+      this.logger.error(`Failed to batch find users: ${error.message}`, error.stack);
+      return [];
     }
   }
 
@@ -947,7 +1050,7 @@ export class UsersService {
       newUsersLast7Days,
       newUsersLast30Days,
       recentlyActiveUsers,
-      activeRate: totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(2) + '%' : '0%',
+      activeRate: totalUsers > 0 ? `${((activeUsers / totalUsers) * 100).toFixed(2)}%` : '0%',
       timestamp: new Date().toISOString(),
     };
 
@@ -992,6 +1095,472 @@ export class UsersService {
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  /**
+   * 获取用户筛选元数据
+   * 返回所有可用的筛选选项及其统计信息
+   */
+  async getFiltersMetadata(query: { includeCount?: boolean; onlyWithData?: boolean }): Promise<{
+    filters: Array<{
+      field: string;
+      label: string;
+      type: string;
+      options: Array<{ value: string; label: string; count: number }>;
+      required?: boolean;
+      placeholder?: string;
+      defaultValue?: any;
+    }>;
+    totalRecords: number;
+    lastUpdated: string;
+    cached: boolean;
+    quickFilters?: Record<string, any>;
+  }> {
+    const includeCount = query.includeCount !== false;
+    const onlyWithData = query.onlyWithData || false;
+    const cacheKey = `user-service:filters-metadata:${includeCount}:${onlyWithData}`;
+
+    // Try cache first
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<any>(cacheKey);
+      if (cached) {
+        return { ...cached, cached: true };
+      }
+    }
+
+    // Get total user count
+    const totalRecords = await this.usersRepository.count();
+
+    // Build filters array
+    const filters = [];
+
+    // 1. Status filter
+    const statusCounts = await this.usersRepository
+      .createQueryBuilder('user')
+      .select('user.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('user.status')
+      .getRawMany();
+
+    const statusOptions = statusCounts
+      .filter((item) => !onlyWithData || parseInt(item.count) > 0)
+      .map((item) => ({
+        value: item.status || 'unknown',
+        label: this.getStatusLabel(item.status),
+        count: includeCount ? parseInt(item.count) : 0,
+      }));
+
+    if (statusOptions.length > 0) {
+      filters.push({
+        field: 'status',
+        label: '用户状态',
+        type: 'select',
+        options: statusOptions,
+        required: false,
+        placeholder: '请选择用户状态',
+      });
+    }
+
+    // 2. Role filter (join with roles table)
+    const roleCounts = await this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.roles', 'role')
+      .select('role.name', 'role')
+      .addSelect('COUNT(DISTINCT user.id)', 'count')
+      .where('role.name IS NOT NULL')
+      .groupBy('role.name')
+      .getRawMany();
+
+    const roleOptions = roleCounts
+      .filter((item) => !onlyWithData || parseInt(item.count) > 0)
+      .map((item) => ({
+        value: item.role,
+        label: this.getRoleLabel(item.role),
+        count: includeCount ? parseInt(item.count) : 0,
+      }));
+
+    if (roleOptions.length > 0) {
+      filters.push({
+        field: 'role',
+        label: '用户角色',
+        type: 'multiSelect',
+        options: roleOptions,
+        required: false,
+        placeholder: '请选择用户角色',
+      });
+    }
+
+    // 3. Tenant filter (if multi-tenancy is enabled)
+    const tenantCounts = await this.usersRepository
+      .createQueryBuilder('user')
+      .select('user.tenantId', 'tenantId')
+      .addSelect('COUNT(*)', 'count')
+      .where('user.tenantId IS NOT NULL')
+      .groupBy('user.tenantId')
+      .getRawMany();
+
+    const tenantOptions = tenantCounts
+      .filter((item) => !onlyWithData || parseInt(item.count) > 0)
+      .map((item) => ({
+        value: item.tenantId,
+        label: `租户 ${item.tenantId}`,
+        count: includeCount ? parseInt(item.count) : 0,
+      }));
+
+    if (tenantOptions.length > 0) {
+      filters.push({
+        field: 'tenantId',
+        label: '所属租户',
+        type: 'select',
+        options: tenantOptions,
+        required: false,
+        placeholder: '请选择租户',
+      });
+    }
+
+    // 4. Registration date range
+    const dateStats = await this.usersRepository
+      .createQueryBuilder('user')
+      .select('MIN(user.createdAt)', 'min')
+      .addSelect('MAX(user.createdAt)', 'max')
+      .getRawOne();
+
+    if (dateStats?.min && dateStats?.max) {
+      filters.push({
+        field: 'createdAt',
+        label: '注册时间',
+        type: 'dateRange',
+        options: [
+          {
+            value: new Date(dateStats.min).toISOString(),
+            label: `最早: ${new Date(dateStats.min).toLocaleDateString()}`,
+            count: 0,
+          },
+          {
+            value: new Date(dateStats.max).toISOString(),
+            label: `最晚: ${new Date(dateStats.max).toLocaleDateString()}`,
+            count: 0,
+          },
+        ],
+        required: false,
+        placeholder: '请选择注册时间范围',
+      });
+    }
+
+    // 5. Last login date range
+    const lastLoginStats = await this.usersRepository
+      .createQueryBuilder('user')
+      .select('MIN(user.lastLoginAt)', 'min')
+      .addSelect('MAX(user.lastLoginAt)', 'max')
+      .where('user.lastLoginAt IS NOT NULL')
+      .getRawOne();
+
+    if (lastLoginStats?.min && lastLoginStats?.max) {
+      filters.push({
+        field: 'lastLoginAt',
+        label: '最后登录时间',
+        type: 'dateRange',
+        options: [
+          {
+            value: new Date(lastLoginStats.min).toISOString(),
+            label: `最早: ${new Date(lastLoginStats.min).toLocaleDateString()}`,
+            count: 0,
+          },
+          {
+            value: new Date(lastLoginStats.max).toISOString(),
+            label: `最晚: ${new Date(lastLoginStats.max).toLocaleDateString()}`,
+            count: 0,
+          },
+        ],
+        required: false,
+        placeholder: '请选择最后登录时间范围',
+      });
+    }
+
+    // Quick filters (predefined filter combinations)
+    const quickFilters = {
+      active: { status: UserStatus.ACTIVE, label: '活跃用户' },
+      inactive: { status: UserStatus.INACTIVE, label: '非活跃用户' },
+      suspended: { status: UserStatus.SUSPENDED, label: '已禁用用户' },
+      newUsers: {
+        createdAfter: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        label: '新用户(30天内)',
+      },
+      recentlyActive: {
+        lastLoginAfter: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        label: '近期活跃(7天内)',
+      },
+    };
+
+    const result = {
+      filters,
+      totalRecords,
+      lastUpdated: new Date().toISOString(),
+      cached: false,
+      quickFilters,
+    };
+
+    // Cache for 5 minutes (filters don't change frequently)
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, result, { ttl: 300 });
+    }
+
+    return result;
+  }
+
+  /**
+   * Get human-readable status label
+   */
+  private getStatusLabel(status: string): string {
+    const statusLabels: Record<string, string> = {
+      [UserStatus.ACTIVE]: '活跃',
+      [UserStatus.INACTIVE]: '非活跃',
+      [UserStatus.SUSPENDED]: '已禁用',
+      [UserStatus.DELETED]: '已删除',
+    };
+    return statusLabels[status] || status;
+  }
+
+  /**
+   * Get human-readable role label
+   */
+  private getRoleLabel(role: string): string {
+    const roleLabels: Record<string, string> = {
+      admin: '管理员',
+      user: '普通用户',
+      super_admin: '超级管理员',
+      tenant_admin: '租户管理员',
+      operator: '运维人员',
+    };
+    return roleLabels[role] || role;
+  }
+
+  /**
+   * 获取用户快速列表（轻量级，用于下拉框等UI组件）
+   */
+  async getQuickList(query: { status?: string; search?: string; limit?: number }): Promise<{
+    items: Array<{ id: string; name: string; status?: string; extra?: Record<string, any> }>;
+    total: number;
+    cached: boolean;
+  }> {
+    const limit = query.limit || 100;
+    const cacheKey = `user-service:users:quick-list:${JSON.stringify(query)}`;
+
+    // 1. 尝试从缓存获取
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<any>(cacheKey);
+      if (cached) {
+        this.logger.debug(`User quick list cache hit: ${cacheKey}`);
+        return { ...cached, cached: true };
+      }
+    }
+
+    // 2. 从数据库查询
+    const qb = this.usersRepository
+      .createQueryBuilder('user')
+      .select(['user.id', 'user.username', 'user.email', 'user.status'])
+      .orderBy('user.createdAt', 'DESC')
+      .limit(limit);
+
+    // 3. 状态过滤
+    if (query.status) {
+      qb.andWhere('user.status = :status', { status: query.status });
+    }
+
+    // 4. 关键词搜索（搜索用户名和邮箱）
+    if (query.search) {
+      qb.andWhere('(user.username LIKE :search OR user.email LIKE :search)', {
+        search: `%${query.search}%`,
+      });
+    }
+
+    const [users, total] = await qb.getManyAndCount();
+
+    const result = {
+      items: users.map((user) => ({
+        id: user.id,
+        name: user.username,
+        status: user.status,
+        extra: {
+          email: user.email,
+        },
+      })),
+      total,
+      cached: false,
+    };
+
+    // 5. 缓存结果（60秒）
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, result, { ttl: 60 });
+    }
+
+    return result;
+  }
+
+  // ============================================================================
+  // 支付方式管理
+  // ============================================================================
+
+  /**
+   * 获取用户的所有支付方式
+   */
+  async getPaymentMethods(userId: string): Promise<PaymentMethod[]> {
+    this.logger.log(`获取用户支付方式: ${userId}`);
+
+    const paymentMethods = await this.paymentMethodRepository.find({
+      where: {
+        userId,
+        deletedAt: null as any, // 只返回未删除的
+      },
+      order: {
+        isDefault: 'DESC', // 默认支付方式排在前面
+        createdAt: 'DESC',
+      },
+    });
+
+    return paymentMethods;
+  }
+
+  /**
+   * 创建新的支付方式
+   */
+  async createPaymentMethod(
+    userId: string,
+    createPaymentMethodDto: CreatePaymentMethodDto
+  ): Promise<PaymentMethod> {
+    this.logger.log(`创建支付方式: userId=${userId}, type=${createPaymentMethodDto.type}`);
+
+    // 验证用户存在
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`用户不存在: ${userId}`);
+    }
+
+    // 如果设置为默认支付方式，先将其他支付方式的 isDefault 设为 false
+    if (createPaymentMethodDto.isDefault) {
+      await this.paymentMethodRepository.update({ userId, isDefault: true }, { isDefault: false });
+    }
+
+    // 创建支付方式
+    const paymentMethod = this.paymentMethodRepository.create({
+      ...createPaymentMethodDto,
+      userId,
+      isVerified: false, // 新创建的支付方式默认未验证
+    });
+
+    const savedPaymentMethod = await this.paymentMethodRepository.save(paymentMethod);
+
+    // 发布事件
+    if (this.eventBus) {
+      await this.eventBus.publishUserEvent('payment_method_added', {
+        userId,
+        paymentMethodId: savedPaymentMethod.id,
+        type: savedPaymentMethod.type,
+        isDefault: savedPaymentMethod.isDefault,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return savedPaymentMethod;
+  }
+
+  /**
+   * 更新支付方式
+   */
+  async updatePaymentMethod(
+    userId: string,
+    paymentMethodId: string,
+    updatePaymentMethodDto: UpdatePaymentMethodDto
+  ): Promise<PaymentMethod> {
+    this.logger.log(`更新支付方式: userId=${userId}, paymentMethodId=${paymentMethodId}`);
+
+    // 查找支付方式
+    const paymentMethod = await this.paymentMethodRepository.findOne({
+      where: {
+        id: paymentMethodId,
+        userId,
+        deletedAt: null as any,
+      },
+    });
+
+    if (!paymentMethod) {
+      throw new NotFoundException(`支付方式不存在或已删除: ${paymentMethodId}`);
+    }
+
+    // 如果要设置为默认支付方式，先将其他支付方式的 isDefault 设为 false
+    if (updatePaymentMethodDto.isDefault && !paymentMethod.isDefault) {
+      await this.paymentMethodRepository.update({ userId, isDefault: true }, { isDefault: false });
+    }
+
+    // 更新支付方式
+    Object.assign(paymentMethod, updatePaymentMethodDto);
+    const updatedPaymentMethod = await this.paymentMethodRepository.save(paymentMethod);
+
+    // 发布事件
+    if (this.eventBus) {
+      await this.eventBus.publishUserEvent('payment_method_updated', {
+        userId,
+        paymentMethodId: updatedPaymentMethod.id,
+        changes: updatePaymentMethodDto,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return updatedPaymentMethod;
+  }
+
+  /**
+   * 删除支付方式 (软删除)
+   */
+  async deletePaymentMethod(userId: string, paymentMethodId: string): Promise<void> {
+    this.logger.log(`删除支付方式: userId=${userId}, paymentMethodId=${paymentMethodId}`);
+
+    // 查找支付方式
+    const paymentMethod = await this.paymentMethodRepository.findOne({
+      where: {
+        id: paymentMethodId,
+        userId,
+        deletedAt: null as any,
+      },
+    });
+
+    if (!paymentMethod) {
+      throw new NotFoundException(`支付方式不存在或已删除: ${paymentMethodId}`);
+    }
+
+    // 如果删除的是默认支付方式，需要提示用户
+    if (paymentMethod.isDefault) {
+      // 查看是否还有其他支付方式
+      const otherPaymentMethods = await this.paymentMethodRepository.find({
+        where: {
+          userId,
+          deletedAt: null as any,
+          id: Not(paymentMethodId) as any,
+        },
+      });
+
+      // 如果还有其他支付方式，将第一个设为默认
+      if (otherPaymentMethods.length > 0) {
+        await this.paymentMethodRepository.update(
+          { id: otherPaymentMethods[0].id },
+          { isDefault: true }
+        );
+      }
+    }
+
+    // 软删除
+    paymentMethod.deletedAt = new Date();
+    await this.paymentMethodRepository.save(paymentMethod);
+
+    // 发布事件
+    if (this.eventBus) {
+      await this.eventBus.publishUserEvent('payment_method_deleted', {
+        userId,
+        paymentMethodId,
+        wasDefault: paymentMethod.isDefault,
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 

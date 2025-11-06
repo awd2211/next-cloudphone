@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 
 /**
  * 分区统计信息
@@ -41,7 +42,8 @@ export class PartitionManagerService {
 
   constructor(
     @InjectDataSource()
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**
@@ -49,7 +51,7 @@ export class PartitionManagerService {
    *
    * 自动创建未来 3 个月的分区，防止分区不存在导致插入失败
    */
-  @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT, {
+  @ClusterSafeCron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT, {
     name: 'create-future-partitions',
     timeZone: 'Asia/Shanghai',
   })
@@ -73,7 +75,7 @@ export class PartitionManagerService {
    *
    * @param retentionMonths 保留月数（默认 12）
    */
-  @Cron('0 3 1 * *', {
+  @ClusterSafeCron('0 3 1 * *', {
     name: 'cleanup-old-partitions',
     timeZone: 'Asia/Shanghai',
   })

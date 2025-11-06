@@ -445,7 +445,7 @@ export class CacheService implements OnModuleDestroy {
 
   private matchPattern(key: string, pattern: string): boolean {
     // 简单的通配符匹配
-    const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
+    const regex = new RegExp(`^${pattern.replace(/\*/g, '.*').replace(/\?/g, '.')}$`);
     return regex.test(key);
   }
 

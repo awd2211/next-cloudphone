@@ -34,7 +34,7 @@ export class ApiKeysService {
     // 生成随机密钥
     const secret = this.generateSecret();
     const keyHash = this.hashKey(secret);
-    const prefix = 'cp_live_' + secret.slice(0, 7);
+    const prefix = `cp_live_${secret.slice(0, 7)}`;
 
     const apiKey = this.apiKeyRepository.create({
       userId: dto.userId,

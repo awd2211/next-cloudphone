@@ -10,9 +10,7 @@ dotenv.config();
  * 创建 TypeORM 配置
  * 用于 NestJS 模块
  */
-export const createTypeOrmConfig = (
-  configService: ConfigService,
-): DataSourceOptions => {
+export const createTypeOrmConfig = (configService: ConfigService): DataSourceOptions => {
   return {
     type: 'postgres',
     host: configService.get('DB_HOST'),
@@ -25,7 +23,8 @@ export const createTypeOrmConfig = (
     migrationsTableName: 'migrations_history',
     migrationsRun: false, // 不自动运行,手动控制
     synchronize: false, // 生产环境必须为 false
-    logging: configService.get('NODE_ENV') === 'development' ? ['error', 'warn', 'migration'] : ['error'],
+    logging:
+      configService.get('NODE_ENV') === 'development' ? ['error', 'warn', 'migration'] : ['error'],
     logger: 'advanced-console',
   };
 };

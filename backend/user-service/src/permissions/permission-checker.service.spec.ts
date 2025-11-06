@@ -30,8 +30,13 @@ describe('PermissionCheckerService', () => {
     roleRepository = createMockRepository();
 
     // Mock PermissionCacheService
+    // IMPORTANT: 默认返回空的权限数据结构，各测试用例会根据需要覆盖
     const mockPermissionCacheService = {
-      getUserPermissions: jest.fn().mockResolvedValue(null),
+      getUserPermissions: jest.fn().mockResolvedValue({
+        permissions: [],
+        dataScopes: {},
+        fieldPermissions: {},
+      }),
       loadAndCacheUserPermissions: jest.fn().mockResolvedValue(null),
       invalidateCache: jest.fn(),
       invalidateCacheByRole: jest.fn().mockResolvedValue(undefined),
@@ -128,6 +133,20 @@ describe('PermissionCheckerService', () => {
 
       userRepository.findOne.mockResolvedValue(mockUser);
       roleRepository.find.mockResolvedValue([mockRole]);
+
+      // Mock cache service to return permissions
+      permissionCacheService.getUserPermissions.mockResolvedValue({
+        permissions: [
+          {
+            id: 'perm-123',
+            name: functionCode,
+            isActive: true,
+            conditions: {},
+          } as Permission,
+        ],
+        dataScopes: {},
+        fieldPermissions: {},
+      });
 
       // Act
       const result = await service.checkFunctionPermission(userId, functionCode);
@@ -277,6 +296,23 @@ describe('PermissionCheckerService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
       roleRepository.find.mockResolvedValue([mockRole]);
 
+      // Mock cache service to return permissions
+      permissionCacheService.getUserPermissions.mockResolvedValue({
+        permissions: [
+          {
+            id: 'perm-123',
+            resource,
+            action,
+            isActive: true,
+            scope: DataScopeType.TENANT,
+            dataFilter: { status: 'active' },
+            conditions: {},
+          } as Permission,
+        ],
+        dataScopes: {},
+        fieldPermissions: {},
+      });
+
       // Act
       const result = await service.checkOperationPermission(userId, resource, action);
 
@@ -381,6 +417,15 @@ describe('PermissionCheckerService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
       dataScopeRepository.find.mockResolvedValue([mockDataScope]);
 
+      // Mock cache service to return data scopes
+      permissionCacheService.getUserPermissions.mockResolvedValue({
+        permissions: [],
+        dataScopes: {
+          [resourceType]: [mockDataScope as DataScope],
+        },
+        fieldPermissions: {},
+      });
+
       // Act
       const result = await service.checkDataPermission(userId, resourceType, resourceData);
 
@@ -436,6 +481,15 @@ describe('PermissionCheckerService', () => {
 
       userRepository.findOne.mockResolvedValue(mockUser);
       dataScopeRepository.find.mockResolvedValue([mockDataScope]);
+
+      // Mock cache service to return data scopes
+      permissionCacheService.getUserPermissions.mockResolvedValue({
+        permissions: [],
+        dataScopes: {
+          [resourceType]: [mockDataScope as DataScope],
+        },
+        fieldPermissions: {},
+      });
 
       // Act
       const result = await service.checkDataPermission(userId, resourceType, resourceData);
@@ -517,6 +571,17 @@ describe('PermissionCheckerService', () => {
       userRepository.findOne.mockResolvedValue(mockUser);
       fieldPermissionRepository.find.mockResolvedValue(mockFieldPermissions);
 
+      // Mock cache service to return field permissions
+      permissionCacheService.getUserPermissions.mockResolvedValue({
+        permissions: [],
+        dataScopes: {},
+        fieldPermissions: {
+          [resourceType]: {
+            [operation]: mockFieldPermissions as FieldPermission[],
+          },
+        },
+      });
+
       // Act
       const result = await service.checkFieldPermission(userId, resourceType, operation);
 
@@ -572,6 +637,20 @@ describe('PermissionCheckerService', () => {
 
       userRepository.findOne.mockResolvedValue(mockUser);
       roleRepository.find.mockResolvedValue([mockRole]);
+
+      // Mock cache service to return permissions
+      permissionCacheService.getUserPermissions.mockResolvedValue({
+        permissions: [
+          {
+            id: 'perm-123',
+            name: 'system:user:list',
+            isActive: true,
+            conditions: {},
+          } as Permission,
+        ],
+        dataScopes: {},
+        fieldPermissions: {},
+      });
 
       // Act
       const result = await service.hasAnyPermission(userId, permissionNames);
@@ -642,6 +721,26 @@ describe('PermissionCheckerService', () => {
 
       userRepository.findOne.mockResolvedValue(mockUser);
       roleRepository.find.mockResolvedValue([mockRole]);
+
+      // Mock cache service to return permissions
+      permissionCacheService.getUserPermissions.mockResolvedValue({
+        permissions: [
+          {
+            id: 'perm-123',
+            name: 'system:user:list',
+            isActive: true,
+            conditions: {},
+          } as Permission,
+          {
+            id: 'perm-456',
+            name: 'system:user:read',
+            isActive: true,
+            conditions: {},
+          } as Permission,
+        ],
+        dataScopes: {},
+        fieldPermissions: {},
+      });
 
       // Act
       const result = await service.hasAllPermissions(userId, permissionNames);

@@ -279,7 +279,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'device:update',
     'device:delete',
     'device:control',
-    'device:manage',         // 新增：设备管理综合权限
+    'device:manage', // 新增：设备管理综合权限
     'device:export',
     'device:app-operate',
     'device:snapshot-create',
@@ -389,8 +389,8 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'media:record-download',
     'media:stats',
     // Event Sourcing - 事件管理
-    'event:read',            // 新增：查看事件
-    'event:view-store',      // 新增：查看事件存储
+    'event:read', // 新增：查看事件
+    'event:view-store', // 新增：查看事件存储
   ],
   device_manager: [
     // 设备管理完整权限
@@ -399,7 +399,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'device:update',
     'device:delete',
     'device:control',
-    'device:manage',         // 新增：设备管理综合权限
+    'device:manage', // 新增：设备管理综合权限
     'device:export',
     'device:app-operate',
     'device:snapshot-create',
@@ -412,20 +412,20 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'app:delete',
     'app:install',
     'app:uninstall',
-    'app:approve',        // 新增：应用审批权限
+    'app:approve', // 新增：应用审批权限
     // 代理服务权限
     'proxy:acquire',
     'proxy:list',
     'proxy:read',
     'proxy:assign',
     'proxy:release',
-    'proxy:report',       // 新增：代理状态报告
+    'proxy:report', // 新增：代理状态报告
     'proxy:stats',
     // SMS 设备短信服务权限
-    'sms:request',        // 新增：为设备请求短信号码
+    'sms:request', // 新增：为设备请求短信号码
     'sms:read',
     'sms:cancel',
-    'sms:batch',          // 新增：批量操作
+    'sms:batch', // 新增：批量操作
     'sms:messages',
     'sms:stats',
     // 媒体服务权限
@@ -437,7 +437,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'media:record-stop',
     'media:record-list',
     'media:record-download', // 新增：下载录制文件
-    'media:stats',        // 新增：查看媒体统计
+    'media:stats', // 新增：查看媒体统计
     // 通知权限（设备相关通知）
     'notification:read',
     'notification:unread-count',
@@ -486,8 +486,8 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'notification:template-delete',
     'notification:template-toggle',
     'notification:list',
-    'notification:create',      // 可以创建系统通知
-    'notification:broadcast',   // 可以广播通知
+    'notification:create', // 可以创建系统通知
+    'notification:broadcast', // 可以广播通知
     // 用户配额查看
     'quota:read',
     'quota:usage-view',
@@ -520,13 +520,13 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'payment:query',
     'payment:refund',
     'payment:refunds',
-    'payment:refund-approve',    // 新增：审批退款
-    'payment:refund-reject',     // 新增：拒绝退款
-    'payment:refund-pending',    // 新增：查看待处理退款
-    'payment:exception-list',    // 新增：异常支付查看
-    'payment:sync',              // 新增：同步支付状态
-    'payment:export',            // 新增：导出支付记录
-    'payment:config',            // 新增：查看支付配置
+    'payment:refund-approve', // 新增：审批退款
+    'payment:refund-reject', // 新增：拒绝退款
+    'payment:refund-pending', // 新增：查看待处理退款
+    'payment:exception-list', // 新增：异常支付查看
+    'payment:sync', // 新增：同步支付状态
+    'payment:export', // 新增：导出支付记录
+    'payment:config', // 新增：查看支付配置
     'payment:stats',
     'payment:daily-stats',
     'payment:method-stats',
@@ -578,7 +578,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
   ],
   user: [
     'device:read',
-    'device:create',      // ✅ 添加设备创建权限（SaaS 核心功能）
+    'device:create', // ✅ 添加设备创建权限（SaaS 核心功能）
     'device:control',
     'app:read',
     'app:install',
@@ -590,23 +590,23 @@ const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     'payment:read',
     'plan:read',
     // 新增：用户可用的基本服务权限
-    'proxy:acquire',      // 用户可以为自己的设备获取代理
+    'proxy:acquire', // 用户可以为自己的设备获取代理
     'proxy:read',
-    'sms:request',        // 用户可以为自己的设备请求短信号码
+    'sms:request', // 用户可以为自己的设备请求短信号码
     'sms:read',
     'sms:messages',
     'sms:cancel',
-    'sms:otp-send',       // 用户可以发送OTP验证码
-    'sms:otp-verify',     // 用户可以验证OTP
-    'sms:otp-active',     // 用户可以检查活跃OTP
-    'sms:otp-retries',    // 用户可以查看重试次数
-    'notification:read',  // 用户可以查看自己的通知
+    'sms:otp-send', // 用户可以发送OTP验证码
+    'sms:otp-verify', // 用户可以验证OTP
+    'sms:otp-active', // 用户可以检查活跃OTP
+    'sms:otp-retries', // 用户可以查看重试次数
+    'notification:read', // 用户可以查看自己的通知
     'notification:update',
     'notification:delete',
     'notification:unread-count',
     'notification:preference-read',
     'notification:preference-update',
-    'media:stream-view',  // 用户可以查看自己设备的媒体流
+    'media:stream-view', // 用户可以查看自己设备的媒体流
     'media:record-start',
     'media:record-stop',
     'media:record-list',

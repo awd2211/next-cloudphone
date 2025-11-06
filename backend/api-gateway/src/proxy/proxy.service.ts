@@ -179,7 +179,7 @@ export class ProxyService {
         'media',
         {
           name: 'Media Service',
-          url: this.configService.get('MEDIA_SERVICE_URL') || 'http://localhost:30007',
+          url: this.configService.get('MEDIA_SERVICE_URL') || 'http://localhost:30009',
           healthCheck: '/health',
           timeout: 5000,
         },
@@ -338,7 +338,7 @@ export class ProxyService {
   /**
    * 异步代理请求（支持 Consul 服务发现）
    */
-  private async proxyRequestAsync(
+  async proxyRequestAsync(
     serviceName: string,
     path: string,
     method: string,

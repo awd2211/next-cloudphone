@@ -1085,7 +1085,7 @@ async function main() {
     // 5. 创建测试账号
     await createTestAccounts(connection, roleMap);
 
-    console.log('\n' + '='.repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
     console.log('✅ 定制化权限系统初始化完成！');
     console.log('='.repeat(60));
     console.log('\n📊 统计信息:');

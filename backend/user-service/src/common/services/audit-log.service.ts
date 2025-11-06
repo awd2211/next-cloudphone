@@ -406,7 +406,7 @@ export class AuditLogService {
     const now = Date.now();
 
     // 获取或创建记录
-    let record = this.failedLoginAttempts.get(key);
+    const record = this.failedLoginAttempts.get(key);
 
     if (!record) {
       // 首次失败尝试

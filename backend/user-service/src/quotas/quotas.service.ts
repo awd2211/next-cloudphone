@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Quota, QuotaStatus, QuotaType, QuotaLimits, QuotaUsage } from '../entities/quota.entity';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 
 export interface CheckQuotaRequest {
   userId: string;
@@ -68,7 +69,9 @@ export class QuotasService {
 
   constructor(
     @InjectRepository(Quota)
-    private quotaRepository: Repository<Quota>
+    private quotaRepository: Repository<Quota>,
+    private dataSource: DataSource,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**
@@ -249,104 +252,172 @@ export class QuotasService {
 
   /**
    * 扣减配额
+   *
+   * ✅ 事务保护：防止并发扣减导致配额统计错误
+   * ✅ 悲观锁：确保配额数据的一致性
    */
   async deductQuota(request: DeductQuotaRequest): Promise<Quota> {
-    const quota = await this.getUserQuota(request.userId);
-
-    if (request.deviceCount) {
-      quota.usage.currentDevices += request.deviceCount;
-      if (request.concurrent) {
-        quota.usage.currentConcurrentDevices += request.deviceCount;
-      }
-    }
-
-    if (request.cpuCores) {
-      quota.usage.usedCpuCores += request.cpuCores;
-    }
-
-    if (request.memoryGB) {
-      quota.usage.usedMemoryGB += request.memoryGB;
-    }
-
-    if (request.storageGB) {
-      quota.usage.usedStorageGB += request.storageGB;
-    }
-
-    if (request.trafficGB) {
-      quota.usage.monthlyTrafficUsedGB += request.trafficGB;
-    }
-
-    if (request.usageHours) {
-      quota.usage.todayUsageHours += request.usageHours;
-      quota.usage.monthlyUsageHours += request.usageHours;
-    }
-
-    quota.usage.lastUpdatedAt = new Date();
-
-    // 检查是否超额
-    if (
-      quota.usage.currentDevices > quota.limits.maxDevices ||
-      quota.usage.usedCpuCores > quota.limits.totalCpuCores ||
-      quota.usage.usedMemoryGB > quota.limits.totalMemoryGB ||
-      quota.usage.usedStorageGB > quota.limits.totalStorageGB
-    ) {
-      quota.status = QuotaStatus.EXCEEDED;
-    }
-
-    const updatedQuota = await this.quotaRepository.save(quota);
     this.logger.log(
-      `配额已扣减 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}, CPU: ${request.cpuCores || 0}`
+      `开始扣减配额 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}, CPU: ${request.cpuCores || 0}`
     );
 
-    return updatedQuota;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 使用悲观写锁获取配额，防止并发修改
+      const quota = await queryRunner.manager.findOne(Quota, {
+        where: { userId: request.userId, status: QuotaStatus.ACTIVE },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!quota) {
+        throw new NotFoundException(`用户 ${request.userId} 未找到活跃配额`);
+      }
+
+      // 在锁保护下修改配额
+      if (request.deviceCount) {
+        quota.usage.currentDevices += request.deviceCount;
+        if (request.concurrent) {
+          quota.usage.currentConcurrentDevices += request.deviceCount;
+        }
+      }
+
+      if (request.cpuCores) {
+        quota.usage.usedCpuCores += request.cpuCores;
+      }
+
+      if (request.memoryGB) {
+        quota.usage.usedMemoryGB += request.memoryGB;
+      }
+
+      if (request.storageGB) {
+        quota.usage.usedStorageGB += request.storageGB;
+      }
+
+      if (request.trafficGB) {
+        quota.usage.monthlyTrafficUsedGB += request.trafficGB;
+      }
+
+      if (request.usageHours) {
+        quota.usage.todayUsageHours += request.usageHours;
+        quota.usage.monthlyUsageHours += request.usageHours;
+      }
+
+      quota.usage.lastUpdatedAt = new Date();
+
+      // 检查是否超额
+      if (
+        quota.usage.currentDevices > quota.limits.maxDevices ||
+        quota.usage.usedCpuCores > quota.limits.totalCpuCores ||
+        quota.usage.usedMemoryGB > quota.limits.totalMemoryGB ||
+        quota.usage.usedStorageGB > quota.limits.totalStorageGB
+      ) {
+        quota.status = QuotaStatus.EXCEEDED;
+      }
+
+      const updatedQuota = await queryRunner.manager.save(Quota, quota);
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(
+        `配额已扣减 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}, CPU: ${request.cpuCores || 0}`
+      );
+
+      return updatedQuota;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(
+        `配额扣减失败 - 用户: ${request.userId}: ${error.message}`,
+        error.stack
+      );
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   /**
    * 恢复配额
+   *
+   * ✅ 事务保护：防止并发恢复导致配额统计错误
+   * ✅ 悲观锁：确保配额数据的一致性
    */
   async restoreQuota(request: RestoreQuotaRequest): Promise<Quota> {
-    const quota = await this.getUserQuota(request.userId);
+    this.logger.log(
+      `开始恢复配额 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}`
+    );
 
-    if (request.deviceCount) {
-      quota.usage.currentDevices = Math.max(0, quota.usage.currentDevices - request.deviceCount);
-      if (request.concurrent) {
-        quota.usage.currentConcurrentDevices = Math.max(
-          0,
-          quota.usage.currentConcurrentDevices - request.deviceCount
-        );
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 使用悲观写锁获取配额，防止并发修改
+      const quota = await queryRunner.manager.findOne(Quota, {
+        where: { userId: request.userId, status: QuotaStatus.ACTIVE },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!quota) {
+        throw new NotFoundException(`用户 ${request.userId} 未找到活跃配额`);
       }
-    }
 
-    if (request.cpuCores) {
-      quota.usage.usedCpuCores = Math.max(0, quota.usage.usedCpuCores - request.cpuCores);
-    }
-
-    if (request.memoryGB) {
-      quota.usage.usedMemoryGB = Math.max(0, quota.usage.usedMemoryGB - request.memoryGB);
-    }
-
-    if (request.storageGB) {
-      quota.usage.usedStorageGB = Math.max(0, quota.usage.usedStorageGB - request.storageGB);
-    }
-
-    quota.usage.lastUpdatedAt = new Date();
-
-    // 如果之前是超额状态，恢复后重新检查
-    if (quota.status === QuotaStatus.EXCEEDED) {
-      if (
-        quota.usage.currentDevices <= quota.limits.maxDevices &&
-        quota.usage.usedCpuCores <= quota.limits.totalCpuCores &&
-        quota.usage.usedMemoryGB <= quota.limits.totalMemoryGB &&
-        quota.usage.usedStorageGB <= quota.limits.totalStorageGB
-      ) {
-        quota.status = QuotaStatus.ACTIVE;
+      // 在锁保护下修改配额
+      if (request.deviceCount) {
+        quota.usage.currentDevices = Math.max(0, quota.usage.currentDevices - request.deviceCount);
+        if (request.concurrent) {
+          quota.usage.currentConcurrentDevices = Math.max(
+            0,
+            quota.usage.currentConcurrentDevices - request.deviceCount
+          );
+        }
       }
+
+      if (request.cpuCores) {
+        quota.usage.usedCpuCores = Math.max(0, quota.usage.usedCpuCores - request.cpuCores);
+      }
+
+      if (request.memoryGB) {
+        quota.usage.usedMemoryGB = Math.max(0, quota.usage.usedMemoryGB - request.memoryGB);
+      }
+
+      if (request.storageGB) {
+        quota.usage.usedStorageGB = Math.max(0, quota.usage.usedStorageGB - request.storageGB);
+      }
+
+      quota.usage.lastUpdatedAt = new Date();
+
+      // 如果之前是超额状态，恢复后重新检查
+      if (quota.status === QuotaStatus.EXCEEDED) {
+        if (
+          quota.usage.currentDevices <= quota.limits.maxDevices &&
+          quota.usage.usedCpuCores <= quota.limits.totalCpuCores &&
+          quota.usage.usedMemoryGB <= quota.limits.totalMemoryGB &&
+          quota.usage.usedStorageGB <= quota.limits.totalStorageGB
+        ) {
+          quota.status = QuotaStatus.ACTIVE;
+        }
+      }
+
+      const updatedQuota = await queryRunner.manager.save(Quota, quota);
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(`配额已恢复 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}`);
+
+      return updatedQuota;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(
+        `配额恢复失败 - 用户: ${request.userId}: ${error.message}`,
+        error.stack
+      );
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    const updatedQuota = await this.quotaRepository.save(quota);
-    this.logger.log(`配额已恢复 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}`);
-
-    return updatedQuota;
   }
 
   /**
@@ -446,7 +517,7 @@ export class QuotasService {
   /**
    * 每月重置流量和时长配额（每月1号凌晨）
    */
-  @Cron('0 0 1 * *')
+  @ClusterSafeCron('0 0 1 * *')
   async resetMonthlyQuotas(): Promise<void> {
     this.logger.log('开始重置月度配额...');
     const quotas = await this.quotaRepository.find({
@@ -465,7 +536,7 @@ export class QuotasService {
   /**
    * 每日重置日使用时长（每天凌晨）
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @ClusterSafeCron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async resetDailyQuotas(): Promise<void> {
     this.logger.log('开始重置每日配额...');
     const quotas = await this.quotaRepository.find({
@@ -483,7 +554,7 @@ export class QuotasService {
   /**
    * 检查过期配额（每小时）
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @ClusterSafeCron(CronExpression.EVERY_HOUR)
   async checkExpiredQuotas(): Promise<void> {
     const quotas = await this.quotaRepository.find({
       where: { status: QuotaStatus.ACTIVE },

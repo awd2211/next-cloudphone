@@ -15,12 +15,26 @@ describe('EventStoreService', () => {
   let repository: jest.Mocked<Repository<UserEvent>>;
   let eventBus: jest.Mocked<EventBus>;
 
+  const mockTransactionalEntityManager = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn(),
+  };
+
   const mockRepository = {
     create: jest.fn(),
     save: jest.fn(),
     find: jest.fn(),
     findOne: jest.fn(),
     createQueryBuilder: jest.fn(),
+    manager: {
+      transaction: jest.fn(async (callback) => {
+        return await callback(mockTransactionalEntityManager);
+      }),
+      find: jest.fn(),
+      save: jest.fn(),
+    },
   };
 
   const mockEventBus = {
@@ -265,14 +279,25 @@ describe('EventStoreService', () => {
         new UserUpdatedEvent(userId, 2, { fullName: 'Updated' }),
       ];
 
-      repository.findOne.mockResolvedValue(null);
-      repository.create.mockReturnValue({} as UserEvent);
-      repository.save.mockImplementation((event) => Promise.resolve(event));
+      // Setup transaction mocks
+      mockTransactionalEntityManager.find.mockResolvedValue([]); // No conflicts
+
+      const mockEventEntities = events.map((event, index) => ({
+        id: `event-${index}`,
+        aggregateId: event.aggregateId,
+        eventType: event.getEventType(),
+        eventData: event.getEventData(),
+        version: event.version,
+        createdAt: new Date(),
+      } as UserEvent));
+
+      repository.create.mockImplementation((data: any) => data as UserEvent);
+      mockTransactionalEntityManager.save.mockResolvedValue(mockEventEntities);
 
       const results = await service.saveEvents(events);
 
       expect(results).toHaveLength(2);
-      expect(repository.save).toHaveBeenCalledTimes(2);
+      expect(mockTransactionalEntityManager.save).toHaveBeenCalledTimes(1); // Batch save
       expect(eventBus.publish).toHaveBeenCalledTimes(2);
     });
   });

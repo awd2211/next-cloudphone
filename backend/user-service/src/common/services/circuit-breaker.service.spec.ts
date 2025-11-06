@@ -354,7 +354,7 @@ describe('CircuitBreakerService', () => {
       // Arrange
       const name = 'test-breaker';
       const action = jest.fn();
-      let eventHandlers: Record<string, Function> = {};
+      const eventHandlers: Record<string, Function> = {};
 
       // Capture event handlers
       mockBreaker.on.mockImplementation((event: string, handler: Function) => {

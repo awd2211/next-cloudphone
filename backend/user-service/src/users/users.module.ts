@@ -7,6 +7,7 @@ import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 import { UserEvent } from '../entities/user-event.entity';
 import { UserSnapshot } from '../entities/user-snapshot.entity';
+import { PaymentMethod } from '../entities/payment-method.entity';
 import { RolesModule } from '../roles/roles.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { CacheService } from '../cache/cache.service';
@@ -22,7 +23,7 @@ import { UserMetricsService } from '../common/metrics/user-metrics.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Role, UserEvent, UserSnapshot]),
+    TypeOrmModule.forFeature([User, Role, UserEvent, UserSnapshot, PaymentMethod]),
     RolesModule,
     PermissionsModule,
     CqrsModule,

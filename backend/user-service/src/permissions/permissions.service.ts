@@ -87,15 +87,7 @@ export class PermissionsService {
       throw new NotFoundException(`权限 #${id} 不存在`);
     }
 
-    // 检查权限名是否重复
-    if (updatePermissionDto.name && updatePermissionDto.name !== permission.name) {
-      const existingPermission = await this.permissionsRepository.findOne({
-        where: { name: updatePermissionDto.name },
-      });
-      if (existingPermission) {
-        throw new ConflictException(`权限 ${updatePermissionDto.name} 已存在`);
-      }
-    }
+    // Note: name, resource, and action cannot be updated (immutable identifiers per DTO)
 
     Object.assign(permission, updatePermissionDto);
     return await this.permissionsRepository.save(permission);

@@ -6,6 +6,7 @@ import { DataScope } from '../entities/data-scope.entity';
 import { FieldPermission, OperationType } from '../entities/field-permission.entity';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
+import { CacheService, CacheLayer } from '../cache/cache.service';
 
 /**
  * 缓存的用户权限数据
@@ -16,27 +17,33 @@ export interface CachedUserPermissions {
   isSuperAdmin: boolean;
   roles: string[];
   permissions: Permission[];
-  dataScopes: Map<string, DataScope[]>;
-  fieldPermissions: Map<string, Map<OperationType, FieldPermission[]>>;
+  dataScopes: Record<string, DataScope[]>; // 从Map改为Record以支持序列化
+  fieldPermissions: Record<string, Record<OperationType, FieldPermission[]>>; // 从Map改为Record
   cachedAt: Date;
 }
 
 /**
- * 权限缓存服务
+ * 权限缓存服务（Redis版本）
  * 负责缓存权限数据以提升性能
+ *
+ * 优化特性：
+ * - 使用Redis双层缓存（L1内存 + L2 Redis）
+ * - 支持集群部署
+ * - 缓存自动过期管理
+ * - 支持批量失效
  */
 @Injectable()
 export class PermissionCacheService implements OnModuleInit {
   private readonly logger = new Logger(PermissionCacheService.name);
-
-  // 内存缓存（生产环境应使用 Redis）
-  private userPermissionsCache = new Map<string, CachedUserPermissions>();
 
   // 缓存TTL（秒）
   private readonly CACHE_TTL = 300; // 5分钟
 
   // 是否启用缓存
   private readonly CACHE_ENABLED = true;
+
+  // 缓存键前缀
+  private readonly CACHE_PREFIX = 'permissions:user:';
 
   constructor(
     @InjectRepository(Permission)
@@ -48,13 +55,19 @@ export class PermissionCacheService implements OnModuleInit {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Role)
-    private roleRepository: Repository<Role>
+    private roleRepository: Repository<Role>,
+    private cacheService: CacheService
   ) {}
 
   async onModuleInit() {
-    this.logger.log('权限缓存服务已初始化');
-    // 启动缓存清理定时任务
-    this.startCacheCleanup();
+    this.logger.log('权限缓存服务已初始化（使用Redis双层缓存）');
+  }
+
+  /**
+   * 生成缓存键
+   */
+  private getCacheKey(userId: string): string {
+    return `${this.CACHE_PREFIX}${userId}`;
   }
 
   /**
@@ -65,8 +78,12 @@ export class PermissionCacheService implements OnModuleInit {
   async getUserPermissions(userId: string): Promise<CachedUserPermissions | null> {
     // 检查缓存
     if (this.CACHE_ENABLED) {
-      const cached = this.userPermissionsCache.get(userId);
-      if (cached && this.isCacheValid(cached.cachedAt)) {
+      const cacheKey = this.getCacheKey(userId);
+      const cached = await this.cacheService.get<CachedUserPermissions>(cacheKey, {
+        layer: CacheLayer.L1_AND_L2,
+      });
+
+      if (cached) {
         this.logger.debug(`从缓存加载用户 ${userId} 的权限`);
         return cached;
       }
@@ -108,45 +125,46 @@ export class PermissionCacheService implements OnModuleInit {
       const permissions = Array.from(permissionMap.values());
 
       // 加载数据范围配置
-      const dataScopes = roleIds.length > 0
-        ? await this.dataScopeRepository.find({
-            where: {
-              roleId: In(roleIds),
-              isActive: true,
-            },
-          })
-        : [];
+      const dataScopes =
+        roleIds.length > 0
+          ? await this.dataScopeRepository.find({
+              where: {
+                roleId: In(roleIds),
+                isActive: true,
+              },
+            })
+          : [];
 
-      // 按资源类型分组
-      const dataScopesMap = new Map<string, DataScope[]>();
+      // 按资源类型分组 (使用Record而非Map以支持序列化)
+      const dataScopesRecord: Record<string, DataScope[]> = {};
       dataScopes.forEach((ds) => {
-        if (!dataScopesMap.has(ds.resourceType)) {
-          dataScopesMap.set(ds.resourceType, []);
+        if (!dataScopesRecord[ds.resourceType]) {
+          dataScopesRecord[ds.resourceType] = [];
         }
-        dataScopesMap.get(ds.resourceType)!.push(ds);
+        dataScopesRecord[ds.resourceType].push(ds);
       });
 
       // 加载字段权限配置
-      const fieldPermissions = roleIds.length > 0
-        ? await this.fieldPermissionRepository.find({
-            where: {
-              roleId: In(roleIds),
-              isActive: true,
-            },
-          })
-        : [];
+      const fieldPermissions =
+        roleIds.length > 0
+          ? await this.fieldPermissionRepository.find({
+              where: {
+                roleId: In(roleIds),
+                isActive: true,
+              },
+            })
+          : [];
 
-      // 按资源类型和操作类型分组
-      const fieldPermissionsMap = new Map<string, Map<OperationType, FieldPermission[]>>();
+      // 按资源类型和操作类型分组 (使用Record而非Map)
+      const fieldPermissionsRecord: Record<string, Record<OperationType, FieldPermission[]>> = {};
       fieldPermissions.forEach((fp) => {
-        if (!fieldPermissionsMap.has(fp.resourceType)) {
-          fieldPermissionsMap.set(fp.resourceType, new Map());
+        if (!fieldPermissionsRecord[fp.resourceType]) {
+          fieldPermissionsRecord[fp.resourceType] = {} as Record<OperationType, FieldPermission[]>;
         }
-        const resourceMap = fieldPermissionsMap.get(fp.resourceType)!;
-        if (!resourceMap.has(fp.operation)) {
-          resourceMap.set(fp.operation, []);
+        if (!fieldPermissionsRecord[fp.resourceType][fp.operation]) {
+          fieldPermissionsRecord[fp.resourceType][fp.operation] = [];
         }
-        resourceMap.get(fp.operation)!.push(fp);
+        fieldPermissionsRecord[fp.resourceType][fp.operation].push(fp);
       });
 
       const cachedData: CachedUserPermissions = {
@@ -155,15 +173,20 @@ export class PermissionCacheService implements OnModuleInit {
         isSuperAdmin: user.isSuperAdmin,
         roles: roleIds,
         permissions,
-        dataScopes: dataScopesMap,
-        fieldPermissions: fieldPermissionsMap,
+        dataScopes: dataScopesRecord,
+        fieldPermissions: fieldPermissionsRecord,
         cachedAt: new Date(),
       };
 
-      // 存入缓存
+      // 存入Redis缓存 (双层缓存)
       if (this.CACHE_ENABLED) {
-        this.userPermissionsCache.set(userId, cachedData);
-        this.logger.debug(`已缓存用户 ${userId} 的权限`);
+        const cacheKey = this.getCacheKey(userId);
+        await this.cacheService.set(cacheKey, cachedData, {
+          ttl: this.CACHE_TTL,
+          layer: CacheLayer.L1_AND_L2,
+          randomTTL: true, // 防止缓存雪崩
+        });
+        this.logger.debug(`已缓存用户 ${userId} 的权限到Redis`);
       }
 
       return cachedData;
@@ -177,13 +200,15 @@ export class PermissionCacheService implements OnModuleInit {
    * 使缓存失效
    * @param userId 用户ID（如果不提供，则清空所有缓存）
    */
-  invalidateCache(userId?: string): void {
+  async invalidateCache(userId?: string): Promise<void> {
     if (userId) {
-      this.userPermissionsCache.delete(userId);
+      const cacheKey = this.getCacheKey(userId);
+      await this.cacheService.del(cacheKey);
       this.logger.debug(`已清除用户 ${userId} 的权限缓存`);
     } else {
-      this.userPermissionsCache.clear();
-      this.logger.log('已清空所有权限缓存');
+      // 使用模式匹配删除所有权限缓存
+      const deletedCount = await this.cacheService.delPattern(`${this.CACHE_PREFIX}*`);
+      this.logger.log(`已清空所有权限缓存 (共 ${deletedCount} 条)`);
     }
   }
 
@@ -196,13 +221,15 @@ export class PermissionCacheService implements OnModuleInit {
       relations: ['roles'],
     });
 
-    users.forEach((user) => {
-      if (user.roles?.some((r) => r.id === roleId)) {
-        this.invalidateCache(user.id);
-      }
-    });
+    const invalidationPromises = users
+      .filter((user) => user.roles?.some((r) => r.id === roleId))
+      .map((user) => this.invalidateCache(user.id));
 
-    this.logger.debug(`已清除角色 ${roleId} 相关的所有权限缓存`);
+    await Promise.all(invalidationPromises);
+
+    this.logger.debug(
+      `已清除角色 ${roleId} 相关的所有权限缓存 (共 ${invalidationPromises.length} 个用户)`
+    );
   }
 
   /**
@@ -215,11 +242,11 @@ export class PermissionCacheService implements OnModuleInit {
       select: ['id'],
     });
 
-    users.forEach((user) => {
-      this.invalidateCache(user.id);
-    });
+    const invalidationPromises = users.map((user) => this.invalidateCache(user.id));
 
-    this.logger.debug(`已清除租户 ${tenantId} 的所有权限缓存`);
+    await Promise.all(invalidationPromises);
+
+    this.logger.debug(`已清除租户 ${tenantId} 的所有权限缓存 (共 ${users.length} 个用户)`);
   }
 
   /**
@@ -229,9 +256,12 @@ export class PermissionCacheService implements OnModuleInit {
   async warmupCache(userIds: string[]): Promise<void> {
     this.logger.log(`开始预热 ${userIds.length} 个用户的权限缓存`);
 
-    const promises = userIds.map((userId) => this.loadAndCacheUserPermissions(userId));
-
-    await Promise.all(promises);
+    // 并发加载，但限制并发数量避免压垮数据库
+    const chunkSize = 10;
+    for (let i = 0; i < userIds.length; i += chunkSize) {
+      const chunk = userIds.slice(i, i + chunkSize);
+      await Promise.all(chunk.map((userId) => this.loadAndCacheUserPermissions(userId)));
+    }
 
     this.logger.log(`权限缓存预热完成`);
   }
@@ -256,81 +286,14 @@ export class PermissionCacheService implements OnModuleInit {
    * 获取缓存统计信息
    * @returns 缓存统计
    */
-  getCacheStats(): {
-    size: number;
-    enabled: boolean;
-    ttl: number;
-  } {
+  getCacheStats() {
+    const stats = this.cacheService.getStats();
+
     return {
-      size: this.userPermissionsCache.size,
+      ...stats,
       enabled: this.CACHE_ENABLED,
       ttl: this.CACHE_TTL,
+      prefix: this.CACHE_PREFIX,
     };
-  }
-
-  /**
-   * 检查缓存是否有效
-   * @param cachedAt 缓存时间
-   * @returns 是否有效
-   */
-  private isCacheValid(cachedAt: Date): boolean {
-    const now = new Date();
-    const diff = (now.getTime() - cachedAt.getTime()) / 1000;
-    return diff < this.CACHE_TTL;
-  }
-
-  /**
-   * 启动缓存清理定时任务
-   */
-  private startCacheCleanup(): void {
-    setInterval(() => {
-      this.cleanExpiredCache();
-    }, 60000); // 每分钟清理一次
-  }
-
-  /**
-   * 清理过期缓存
-   */
-  private cleanExpiredCache(): void {
-    const now = new Date();
-    let cleanedCount = 0;
-
-    this.userPermissionsCache.forEach((cached, userId) => {
-      const diff = (now.getTime() - cached.cachedAt.getTime()) / 1000;
-      if (diff >= this.CACHE_TTL) {
-        this.userPermissionsCache.delete(userId);
-        cleanedCount++;
-      }
-    });
-
-    if (cleanedCount > 0) {
-      this.logger.debug(`已清理 ${cleanedCount} 个过期权限缓存`);
-    }
-  }
-
-  /**
-   * 导出缓存数据（用于调试）
-   * @returns 缓存数据快照
-   */
-  exportCache(): Array<{
-    userId: string;
-    tenantId: string;
-    rolesCount: number;
-    permissionsCount: number;
-    cachedAt: Date;
-  }> {
-    const snapshot: Array<any> = [];
-
-    this.userPermissionsCache.forEach((cached) => {
-      snapshot.push({
-        userId: cached.userId,
-        tenantId: cached.tenantId,
-        rolesCount: cached.roles.length,
-        permissionsCount: cached.permissions.length,
-        cachedAt: cached.cachedAt,
-      });
-    });
-
-    return snapshot;
   }
 }

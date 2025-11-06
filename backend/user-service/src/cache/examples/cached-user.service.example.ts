@@ -131,7 +131,7 @@ export class CachedUserServiceExample {
     const cacheKey = 'users:active';
 
     // 对于高频访问的数据，只使用 L1 缓存
-    let cached = await this.cacheService.get<User[]>(cacheKey, {
+    const cached = await this.cacheService.get<User[]>(cacheKey, {
       layer: CacheLayer.L1_ONLY,
     });
 

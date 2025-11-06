@@ -106,7 +106,7 @@ export class PrometheusMiddleware implements NestMiddleware {
 
     // 限制路径长度（避免过长的路径）
     if (path.length > 100) {
-      path = path.substring(0, 100) + '...';
+      path = `${path.substring(0, 100)}...`;
     }
 
     return path;

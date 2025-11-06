@@ -1,14 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, NotFoundException, ConflictException } from '@nestjs/common';
-import * as request from 'supertest';
+import {
+  INestApplication,
+  NotFoundException,
+  ConflictException,
+  ExecutionContext,
+  ValidationPipe,
+  UnauthorizedException,
+} from '@nestjs/common';
+import request from 'supertest';
+import { AuthGuard } from '@nestjs/passport';
+import { JwtService } from '@nestjs/jwt';
 import { PermissionsController } from './permissions.controller';
 import { PermissionsService } from './permissions.service';
-import {
-  createTestApp,
-  generateTestJwt,
-  assertHttpResponse,
-} from '@cloudphone/shared/testing/test-helpers';
+import { createTestApp, generateTestJwt } from '@cloudphone/shared/testing/test-helpers';
 import { createMockPermission } from '@cloudphone/shared/testing/mock-factories';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { SanitizationPipe } from '@cloudphone/shared/validators/sanitization.pipe';
+
+// Helper function for response assertions
+const assertHttpResponse = (response: any, statusCode: number, expectedBody?: any) => {
+  expect(response.status).toBe(statusCode);
+  if (expectedBody) {
+    expect(response.body).toMatchObject(expectedBody);
+  }
+};
 
 describe('PermissionsController', () => {
   let app: INestApplication;
@@ -42,12 +57,116 @@ describe('PermissionsController', () => {
   };
 
   beforeAll(async () => {
+    // Create JwtService for token decoding
+    const jwtService = new JwtService({ secret: 'test-secret' });
+
+    // Mock guards with smart authentication check
+    const mockAuthGuard = {
+      canActivate: (context: ExecutionContext) => {
+        const req = context.switchToHttp().getRequest();
+
+        // Check if Authorization header exists
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          throw new UnauthorizedException('Authentication required'); // 抛出401异常
+        }
+
+        // Extract and decode JWT token
+        const token = authHeader.substring(7); // Remove 'Bearer '
+        try {
+          const payload = jwtService.decode(token) as any;
+
+          // Attach user with permissions from token
+          req.user = {
+            id: payload.sub || 'test-user-id',
+            username: payload.username || 'testuser',
+            roles: payload.roles || ['user'],
+            permissions: payload.permissions || [],
+          };
+          return true;
+        } catch (error) {
+          // Invalid token
+          throw new UnauthorizedException('Invalid token');
+        }
+      },
+    };
+
+    // Mock permissions guard to check user permissions
+    const mockPermissionsGuard = {
+      canActivate: (context: ExecutionContext) => {
+        const req = context.switchToHttp().getRequest();
+
+        // If no user (auth failed), let auth guard handle it
+        if (!req.user) {
+          return true;
+        }
+
+        // Map routes to required permissions
+        const method = req.method;
+        const url = req.url.split('?')[0]; // Remove query params
+
+        let requiredPermission: string | null = null;
+
+        // Determine required permission based on route and method
+        if (method === 'POST' && url === '/permissions') {
+          requiredPermission = 'permission.create';
+        } else if (method === 'POST' && url === '/permissions/bulk') {
+          requiredPermission = 'permission.create';
+        } else if (method === 'GET' && url === '/permissions') {
+          requiredPermission = 'permission.read';
+        } else if (method === 'GET' && url.startsWith('/permissions/resource/')) {
+          requiredPermission = 'permission.read';
+        } else if (method === 'GET' && url.match(/^\/permissions\/[^/]+$/)) {
+          requiredPermission = 'permission.read';
+        } else if (method === 'PATCH' && url.match(/^\/permissions\/[^/]+$/)) {
+          requiredPermission = 'permission.update';
+        } else if (method === 'DELETE' && url.match(/^\/permissions\/[^/]+$/)) {
+          requiredPermission = 'permission.delete';
+        }
+
+        // If no specific permission required, allow access
+        if (!requiredPermission) {
+          return true;
+        }
+
+        // Check if user has the required permission
+        const userPermissions = req.user.permissions || [];
+        return userPermissions.includes(requiredPermission);
+      },
+    };
+
     const moduleRef: TestingModule = await Test.createTestingModule({
       controllers: [PermissionsController],
       providers: [{ provide: PermissionsService, useValue: mockPermissionsService }],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard('jwt'))
+      .useValue(mockAuthGuard)
+      .overrideGuard(PermissionsGuard)
+      .useValue(mockPermissionsGuard)
+      .compile();
 
-    app = await createTestApp(moduleRef);
+    app = moduleRef.createNestApplication();
+
+    // 添加ValidationPipe用于DTO验证
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      })
+    );
+
+    // 添加SanitizationPipe用于XSS/SQL注入防护
+    app.useGlobalPipes(
+      new SanitizationPipe({
+        enableHtmlSanitization: true,
+        enableSqlKeywordDetection: true,
+        strictMode: false, // 使用宽松模式，仅清理不拒绝
+      })
+    );
+
+    await app.init();
+
     permissionsService = moduleRef.get<PermissionsService>(PermissionsService);
   });
 
@@ -55,8 +174,23 @@ describe('PermissionsController', () => {
     await app.close();
   });
 
-  afterEach(() => {
+  beforeEach(() => {
+    // 清空所有mocks
     jest.clearAllMocks();
+
+    // 设置默认的成功行为
+    mockPermissionsService.create.mockResolvedValue(createMockPermission());
+    mockPermissionsService.bulkCreate.mockResolvedValue([createMockPermission()]);
+    mockPermissionsService.findAll.mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 10,
+    });
+    mockPermissionsService.findOne.mockResolvedValue(createMockPermission());
+    mockPermissionsService.findByResource.mockResolvedValue([]);
+    mockPermissionsService.update.mockResolvedValue(createMockPermission());
+    mockPermissionsService.remove.mockResolvedValue(undefined);
   });
 
   describe('POST /permissions', () => {
@@ -203,7 +337,7 @@ describe('PermissionsController', () => {
       const response = await request(app.getHttpServer())
         .post('/permissions/bulk')
         .set('Authorization', `Bearer ${token}`)
-        .send(bulkCreateDto)
+        .send({ permissions: bulkCreateDto })
         .expect(201);
 
       // Assert
@@ -225,7 +359,7 @@ describe('PermissionsController', () => {
       await request(app.getHttpServer())
         .post('/permissions/bulk')
         .set('Authorization', `Bearer ${token}`)
-        .send(bulkCreateDto)
+        .send({ permissions: bulkCreateDto })
         .expect(403);
     });
 
@@ -237,7 +371,7 @@ describe('PermissionsController', () => {
       await request(app.getHttpServer())
         .post('/permissions/bulk')
         .set('Authorization', `Bearer ${token}`)
-        .send([])
+        .send({ permissions: [] })
         .expect(400);
     });
 
@@ -252,7 +386,7 @@ describe('PermissionsController', () => {
       await request(app.getHttpServer())
         .post('/permissions/bulk')
         .set('Authorization', `Bearer ${token}`)
-        .send(bulkCreateDto)
+        .send({ permissions: bulkCreateDto })
         .expect(500);
     });
 
@@ -268,7 +402,7 @@ describe('PermissionsController', () => {
       await request(app.getHttpServer())
         .post('/permissions/bulk')
         .set('Authorization', `Bearer ${token}`)
-        .send(invalidBulkDto)
+        .send({ permissions: invalidBulkDto })
         .expect(400);
     });
 
@@ -289,7 +423,7 @@ describe('PermissionsController', () => {
       const response = await request(app.getHttpServer())
         .post('/permissions/bulk')
         .set('Authorization', `Bearer ${token}`)
-        .send(crudPermissions)
+        .send({ permissions: crudPermissions })
         .expect(201);
 
       // Assert
@@ -723,7 +857,10 @@ describe('PermissionsController', () => {
     it('should require authentication for all endpoints', async () => {
       // Test all endpoints without token
       await request(app.getHttpServer()).post('/permissions').send({}).expect(401);
-      await request(app.getHttpServer()).post('/permissions/bulk').send([]).expect(401);
+      await request(app.getHttpServer())
+        .post('/permissions/bulk')
+        .send({ permissions: [] })
+        .expect(401);
       await request(app.getHttpServer()).get('/permissions').expect(401);
       await request(app.getHttpServer()).get('/permissions/resource/device').expect(401);
       await request(app.getHttpServer()).get('/permissions/perm-123').expect(401);

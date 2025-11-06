@@ -59,7 +59,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
     database: configService.get('DB_DATABASE', 'cloudphone_user'),
 
     // 实体配置
-    entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
+    entities: [`${__dirname}/../../**/*.entity{.ts,.js}`],
     // ✅ 使用迁移脚本管理数据库架构，禁用 synchronize
     synchronize: false,
     logging: isDevelopment ? 'all' : ['error', 'warn', 'schema'],

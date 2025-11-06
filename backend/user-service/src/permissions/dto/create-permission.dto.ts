@@ -1,9 +1,26 @@
-import { IsString, IsNotEmpty, IsOptional, IsObject, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsObject,
+  IsBoolean,
+  Matches,
+  IsArray,
+  ArrayMinSize,
+} from 'class-validator';
 
 export class CreatePermissionDto {
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[a-z][a-z0-9_-]*\.[a-z][a-z0-9_-]*$/, {
+    message:
+      'Permission name must follow the format: resource.action (e.g., user.create, device.read)',
+  })
   name: string;
+
+  @IsString()
+  @IsOptional()
+  displayName?: string;
 
   @IsString()
   @IsOptional()
@@ -24,4 +41,8 @@ export class CreatePermissionDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isSystem?: boolean;
 }
