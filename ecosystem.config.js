@@ -2,6 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'api-gateway',
+      version: '1.0.0',
       script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/api-gateway',
@@ -28,6 +29,7 @@ module.exports = {
       env: {
         NODE_ENV: 'development',
         PORT: 30000,
+        APP_VERSION: '1.0.0',
       },
 
       env_production: {
@@ -47,6 +49,7 @@ module.exports = {
     },
     {
       name: 'user-service',
+      version: '1.0.0',
       script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/user-service',
@@ -72,6 +75,7 @@ module.exports = {
       env: {
         NODE_ENV: 'development',
         PORT: 30001,
+        APP_VERSION: '1.0.0',
       },
 
       env_production: {
@@ -91,6 +95,7 @@ module.exports = {
     },
     {
       name: 'device-service',
+      version: '1.0.0',
       script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/device-service',
@@ -126,6 +131,7 @@ module.exports = {
     },
     {
       name: 'app-service',
+      version: '1.0.0',
       script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/app-service',
@@ -161,6 +167,7 @@ module.exports = {
     },
     {
       name: 'billing-service',
+      version: '1.0.0',
       script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/billing-service',
@@ -196,6 +203,7 @@ module.exports = {
     },
     {
       name: 'notification-service',
+      version: '1.0.0',
       script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/notification-service',
@@ -231,6 +239,7 @@ module.exports = {
     },
     {
       name: 'sms-receive-service',
+      version: '1.0.0',
       script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
       args: process.env.NODE_ENV === 'production' ? undefined : 'run start:prod',
       cwd: './backend/sms-receive-service',
@@ -312,6 +321,7 @@ module.exports = {
     },
     {
       name: 'frontend-admin',
+      version: '1.0.0',
       script: 'pnpm',
       args: 'run dev',
       cwd: './frontend/admin',
@@ -341,6 +351,7 @@ module.exports = {
     },
     {
       name: 'frontend-user',
+      version: '1.0.0',
       script: 'pnpm',
       args: 'run dev',
       cwd: './frontend/user',
@@ -365,6 +376,122 @@ module.exports = {
 
       error_file: './logs/frontend-user-error.log',
       out_file: './logs/frontend-user-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+    },
+    {
+      name: 'media-service',
+      version: '1.0.0',
+      script: './media-service',
+      cwd: './backend/media-service',
+
+      // 📹 Go 媒体服务 - WebRTC 流媒体
+      instances: 1,
+      exec_mode: 'fork',
+
+      autorestart: true,
+      watch: false,
+
+      // 资源限制
+      max_memory_restart: '512M',
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000,
+
+      env: {
+        NODE_ENV: 'development',
+        PORT: 30009,
+        GIN_MODE: 'debug',
+        JWT_SECRET: 'dev-secret-key-change-in-production',
+        JAEGER_ENDPOINT: 'localhost:4318',
+        TRACING_ENABLED: 'true',
+      },
+
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 30009,
+        GIN_MODE: 'release',
+        LOG_LEVEL: 'info',
+      },
+
+      error_file: './logs/media-service-error.log',
+      out_file: './logs/media-service-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+    },
+    {
+      name: 'alertmanager-telegram-bot',
+      version: '1.0.0',
+      script: 'dist/server.js',
+      cwd: './infrastructure/monitoring/alertmanager-telegram-bot',
+
+      // 📢 AlertManager Telegram 通知适配器
+      instances: 1,
+      exec_mode: 'fork',
+
+      autorestart: true,
+      watch: false,
+
+      // 资源限制
+      max_memory_restart: '256M',
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000,
+
+      env: {
+        NODE_ENV: 'development',
+        PORT: 5002,
+        LOG_LEVEL: 'info',
+        NODE_PATH: '/home/eric/next-cloudphone/node_modules',
+      },
+
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 5002,
+        LOG_LEVEL: 'warn',
+        NODE_PATH: '/home/eric/next-cloudphone/node_modules',
+      },
+
+      error_file: './logs/alertmanager-telegram-bot-error.log',
+      out_file: './logs/alertmanager-telegram-bot-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+    },
+    {
+      name: 'alertmanager-lark-webhook',
+      version: '1.0.0',
+      script: 'dist/server.js',
+      cwd: './infrastructure/monitoring/alertmanager-lark-webhook',
+
+      // 📢 AlertManager 飞书 Webhook 通知适配器
+      instances: 1,
+      exec_mode: 'fork',
+
+      autorestart: true,
+      watch: false,
+
+      // 资源限制
+      max_memory_restart: '256M',
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000,
+
+      env: {
+        NODE_ENV: 'development',
+        PORT: 5001,
+        LOG_LEVEL: 'info',
+        NODE_PATH: '/home/eric/next-cloudphone/node_modules',
+      },
+
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 5001,
+        LOG_LEVEL: 'warn',
+        NODE_PATH: '/home/eric/next-cloudphone/node_modules',
+      },
+
+      error_file: './logs/alertmanager-lark-webhook-error.log',
+      out_file: './logs/alertmanager-lark-webhook-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
       merge_logs: true,
     },

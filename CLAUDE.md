@@ -29,12 +29,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **This project uses PM2 for process management in the local development environment.**
 
 PM2 configuration is in `ecosystem.config.js` with cluster mode for scalable services:
-- **api-gateway**: 4 instances (cluster mode)
-- **user-service**: 2 instances (cluster mode)
-- **device-service**: 1 instance (fork mode - port management uses memory cache)
+- **api-gateway**: 2-max instances (cluster mode)
+- **user-service**: 2-4 instances (cluster mode)
+- **device-service**: 2-3 instances (cluster mode) - ✅ Now supports cluster mode with Redis distributed locks
 - **app-service**: 1 instance (fork mode)
 - **billing-service**: 1 instance (fork mode - avoids transaction conflicts)
 - **notification-service**: 1 instance (fork mode)
+- **sms-receive-service**: 1 instance (fork mode)
+- **proxy-service**: 2 instances (cluster mode)
+- **frontend-admin**: 1 instance (fork mode)
+- **frontend-user**: 1 instance (fork mode)
 
 Common PM2 commands:
 ```bash
@@ -1072,3 +1076,37 @@ max_memory_restart: '2G'
 ./scripts/rebuild-all-services.sh           # Rebuild all services
 ./scripts/clean-and-rebuild.sh              # Clean and rebuild
 ```
+
+## 服务版本管理
+
+### 查看服务版本
+
+使用以下命令查看所有服务的版本信息：
+
+```bash
+./scripts/show-versions.sh
+```
+
+### PM2 版本显示说明
+
+**开发环境**：
+- PM2 显示版本为 `N/A` 是正常的（使用 `pnpm run dev` 启动）
+- 这是 PM2 的设计限制，无法从包管理器子进程中获取版本信息
+- 只有直接运行编译文件的服务才显示版本（如 media-service, proxy-service）
+
+**生产环境**：
+- 使用编译后的文件启动（`dist/main.js`）
+- PM2 会正确显示所有服务的版本号
+
+### 更新服务版本
+
+修改各服务的 `package.json` 中的 `version` 字段，然后：
+
+```bash
+# 更新 ecosystem.config.js 中对应服务的 version 字段
+vim ecosystem.config.js
+
+# 重新部署
+pm2 restart ecosystem.config.js --update-env
+```
+

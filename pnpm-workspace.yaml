@@ -1,4 +1,6 @@
 packages:
   - 'backend/*'
   - 'frontend/*'
+  - 'infrastructure/monitoring/alertmanager-telegram-bot'
+  - 'infrastructure/monitoring/alertmanager-lark-webhook'
 
