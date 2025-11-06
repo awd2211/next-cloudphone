@@ -22,7 +22,7 @@ export const PaymentProviderCards: React.FC<PaymentProviderCardsProps> = React.m
         }
       >
         <Row gutter={[16, 16]}>
-          {Object.entries(config.providers).map(([provider, providerConfig]) => (
+          {config.providers && Object.entries(config.providers).map(([provider, providerConfig]) => (
             <Col xs={24} sm={12} md={8} key={provider}>
               <Card
                 size="small"

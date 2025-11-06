@@ -44,6 +44,7 @@ import {
   ThunderboltOutlined,
   SyncOutlined,
   LineChartOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -95,6 +96,30 @@ const BasicLayout = () => {
           icon: <MobileOutlined />,
           label: '设备列表',
           onClick: () => navigate('/devices'),
+        },
+        {
+          key: '/templates',
+          icon: <AppstoreOutlined />,
+          label: '设备模板',
+          onClick: () => navigate('/templates'),
+        },
+        {
+          key: '/snapshots',
+          icon: <CreditCardOutlined />,
+          label: '设备快照',
+          onClick: () => navigate('/snapshots'),
+        },
+        {
+          key: '/physical-devices',
+          icon: <SettingOutlined />,
+          label: '物理设备',
+          onClick: () => navigate('/physical-devices'),
+        },
+        {
+          key: '/devices/groups',
+          icon: <TeamOutlined />,
+          label: '设备分组',
+          onClick: () => navigate('/devices/groups'),
         },
         {
           key: '/devices/lifecycle',
@@ -257,10 +282,38 @@ const BasicLayout = () => {
           onClick: () => navigate('/notifications/templates'),
         },
         {
-          key: '/sms',
+          key: 'sms-menu',
           icon: <MessageOutlined />,
           label: 'SMS 管理',
-          onClick: () => navigate('/sms'),
+          children: [
+            {
+              key: '/sms',
+              label: 'SMS 监控',
+              onClick: () => navigate('/sms'),
+            },
+            {
+              key: '/sms/providers',
+              label: '供应商配置',
+              onClick: () => navigate('/sms/providers'),
+            },
+          ],
+        },
+        {
+          key: 'proxy-menu',
+          icon: <GlobalOutlined />,
+          label: '代理IP管理',
+          children: [
+            {
+              key: '/proxy',
+              label: '代理监控',
+              onClick: () => navigate('/proxy'),
+            },
+            {
+              key: '/proxy/providers',
+              label: '供应商配置',
+              onClick: () => navigate('/proxy/providers'),
+            },
+          ],
         },
         {
           key: '/roles',

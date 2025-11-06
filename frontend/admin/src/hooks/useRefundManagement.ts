@@ -1,36 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { message } from 'antd';
+import { z } from 'zod';
 import {
   getPendingRefunds,
   approveRefund,
   rejectRefund,
   type PaymentDetail,
 } from '@/services/payment-admin';
+import { useSafeApi } from './useSafeApi';
+import { PaymentDetailSchema } from '@/schemas/api.schemas';
+
+// 定义退款列表响应Schema
+const RefundsResponseSchema = z.array(PaymentDetailSchema);
 
 export const useRefundManagement = () => {
-  const [loading, setLoading] = useState(false);
-  const [refunds, setRefunds] = useState<PaymentDetail[]>([]);
   const [selectedRefund, setSelectedRefund] = useState<PaymentDetail | null>(null);
   const [approveModalVisible, setApproveModalVisible] = useState(false);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
-  // 加载待审核退款列表
-  const loadRefunds = useCallback(async () => {
-    setLoading(true);
-    try {
-      const refunds = await getPendingRefunds();
-      setRefunds(refunds);  // response已被拦截器unwrapped，直接使用
-    } catch (error) {
-      message.error('加载退款列表失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadRefunds();
-  }, [loadRefunds]);
+  // ✅ 使用 useSafeApi 进行类型安全的数据加载
+  const {
+    data: refundsData,
+    loading,
+    execute: loadRefunds,
+  } = useSafeApi(getPendingRefunds, RefundsResponseSchema, {
+    errorMessage: '加载退款列表失败',
+    fallbackValue: [], // 🛡️ 失败时返回空数组，避免 Table 崩溃
+  });
 
   // 批准退款
   const handleApprove = useCallback(
@@ -100,7 +97,7 @@ export const useRefundManagement = () => {
   return {
     // 状态
     loading,
-    refunds,
+    refunds: refundsData || [], // ✅ 确保永远返回数组
     selectedRefund,
     approveModalVisible,
     rejectModalVisible,

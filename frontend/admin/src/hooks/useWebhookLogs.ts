@@ -1,34 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
-import { message } from 'antd';
-import { getWebhookLogs } from '@/services/payment-admin';
 import type { WebhookLog } from '@/types/webhook';
+import { getWebhookLogs } from '@/services/payment-admin';
+import { useSafeApi } from './useSafeApi';
+import { WebhookLogsResponseSchema } from '@/schemas/api.schemas';
 
 export const useWebhookLogs = () => {
-  const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState<WebhookLog[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [provider, setProvider] = useState<string | undefined>(undefined);
   const [selectedLog, setSelectedLog] = useState<WebhookLog | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
-  const loadLogs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getWebhookLogs({
+  // ✅ 使用 useSafeApi 加载 Webhook 日志
+  const {
+    data: logsResponse,
+    loading,
+    execute: executeLoadLogs,
+  } = useSafeApi(
+    () =>
+      getWebhookLogs({
         page,
         limit: pageSize,
         provider,
-      });
-      setLogs(res.data.data || []);
-      setTotal(res.data.pagination?.total || 0);
-    } catch (error) {
-      message.error('加载 Webhook 日志失败');
-    } finally {
-      setLoading(false);
+      }),
+    WebhookLogsResponseSchema,
+    {
+      errorMessage: '加载 Webhook 日志失败',
+      fallbackValue: { data: { data: [], pagination: { total: 0 } } },
     }
-  }, [page, pageSize, provider]);
+  );
+
+  const logs = logsResponse?.data?.data || [];
+  const total = logsResponse?.data?.pagination?.total || 0;
+
+  const loadLogs = useCallback(async () => {
+    await executeLoadLogs();
+  }, [executeLoadLogs]);
 
   useEffect(() => {
     loadLogs();

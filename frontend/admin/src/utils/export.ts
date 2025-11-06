@@ -27,6 +27,8 @@ export const exportToExcel = async <T = any>(
 ) => {
   try {
     // ✅ 按需加载 XLSX 库（首次加载约 800KB）
+    // 这是动态 import，不是 API 调用，无需 useSafeApi
+    // eslint-disable-next-line local/no-unsafe-array-assignment
     const XLSX = await loadXLSX();
 
     // 创建工作表

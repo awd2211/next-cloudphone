@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, Form, message } from 'antd';
+import React, { useMemo, useCallback } from 'react';
+import { Card, message } from 'antd';
 import type {
   FieldPermission,
   FieldAccessLevel,
@@ -7,15 +7,12 @@ import type {
   CreateFieldPermissionDto,
 } from '@/types';
 import {
-  getAllFieldPermissions,
-  getFieldPermissionById,
   createFieldPermission,
   updateFieldPermission,
   deleteFieldPermission,
   toggleFieldPermission,
-  getAccessLevels,
-  getOperationTypes,
 } from '@/services/fieldPermission';
+import { useFieldPermission } from '@/hooks/useFieldPermission';
 import {
   FieldPermissionStatsCards,
   FieldPermissionToolbar,
@@ -26,88 +23,30 @@ import {
 } from '@/components/FieldPermission';
 
 const FieldPermissionManagement: React.FC = () => {
-  const [permissions, setPermissions] = useState<FieldPermission[]>([]);
-  const [accessLevels, setAccessLevels] = useState<
-    Array<{ value: FieldAccessLevel; label: string }>
-  >([]);
-  const [operationTypes, setOperationTypes] = useState<
-    Array<{ value: OperationType; label: string }>
-  >([]);
-  const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [editingPermission, setEditingPermission] = useState<FieldPermission | null>(null);
-  const [detailPermission, setDetailPermission] = useState<FieldPermission | null>(null);
-  const [form] = Form.useForm();
-  const [filterRoleId, setFilterRoleId] = useState<string>('');
-  const [filterResourceType, setFilterResourceType] = useState<string>('');
-  const [filterOperation, setFilterOperation] = useState<OperationType | undefined>(undefined);
-
-  useEffect(() => {
-    loadPermissions();
-    loadMetadata();
-  }, [filterRoleId, filterResourceType, filterOperation]);
-
-  const loadMetadata = async () => {
-    try {
-      const [accessLevelsRes, operationTypesRes] = await Promise.all([
-        getAccessLevels(),
-        getOperationTypes(),
-      ]);
-      if (accessLevelsRes.success) {
-        setAccessLevels(accessLevelsRes.data);
-      }
-      if (operationTypesRes.success) {
-        setOperationTypes(operationTypesRes.data);
-      }
-    } catch (error) {
-      message.error('加载元数据失败');
-    }
-  };
-
-  const loadPermissions = async () => {
-    setLoading(true);
-    try {
-      const params: any = {};
-      if (filterRoleId) params.roleId = filterRoleId;
-      if (filterResourceType) params.resourceType = filterResourceType;
-      if (filterOperation) params.operation = filterOperation;
-
-      const res = await getAllFieldPermissions(params);
-      if (res.success) {
-        setPermissions(res.data);
-      }
-    } catch (error) {
-      message.error('加载字段权限配置失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreate = useCallback(() => {
-    setEditingPermission(null);
-    form.resetFields();
-    setIsModalVisible(true);
-  }, [form]);
-
-  const handleEdit = useCallback(
-    (record: FieldPermission) => {
-      setEditingPermission(record);
-      form.setFieldsValue({
-        roleId: record.roleId,
-        resourceType: record.resourceType,
-        operation: record.operation,
-        hiddenFields: record.hiddenFields?.join(', '),
-        readOnlyFields: record.readOnlyFields?.join(', '),
-        writableFields: record.writableFields?.join(', '),
-        requiredFields: record.requiredFields?.join(', '),
-        description: record.description,
-        priority: record.priority,
-      });
-      setIsModalVisible(true);
-    },
-    [form]
-  );
+  // ✅ 使用重构后的 hook
+  const {
+    permissions,
+    accessLevels,
+    operationTypes,
+    loading,
+    isModalVisible,
+    setIsModalVisible,
+    isDetailModalVisible,
+    setIsDetailModalVisible,
+    editingPermission,
+    detailPermission,
+    filterRoleId,
+    setFilterRoleId,
+    filterResourceType,
+    setFilterResourceType,
+    filterOperation,
+    setFilterOperation,
+    form,
+    handleCreate,
+    handleEdit,
+    handleViewDetail,
+    loadPermissions,
+  } = useFieldPermission();
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -139,17 +78,6 @@ const FieldPermissionManagement: React.FC = () => {
     [loadPermissions]
   );
 
-  const handleViewDetail = useCallback(async (record: FieldPermission) => {
-    try {
-      const res = await getFieldPermissionById(record.id);
-      if (res.success) {
-        setDetailPermission(res.data);
-        setIsDetailModalVisible(true);
-      }
-    } catch (error) {
-      message.error('获取详情失败');
-    }
-  }, []);
 
   const handleSubmit = useCallback(async () => {
     try {

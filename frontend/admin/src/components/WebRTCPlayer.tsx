@@ -20,7 +20,7 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
   const shouldReconnectRef = useRef(true);
 
   useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:30006';
+    const wsUrl = import.meta.env.VITE_WEBRTC_WS_URL || 'ws://localhost:30009';
 
     // 创建 WebSocket 连接（带重连逻辑）
     const connectWebSocket = () => {

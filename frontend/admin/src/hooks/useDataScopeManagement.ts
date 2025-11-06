@@ -9,11 +9,33 @@ import {
   toggleDataScope,
 } from '@/services/dataScope';
 import type { DataScope, ScopeType, CreateDataScopeDto, UpdateDataScopeDto } from '@/types';
+import { useSafeApi } from './useSafeApi';
+import {
+  DataScopesResponseSchema,
+  ScopeTypesResponseSchema,
+} from '@/schemas/api.schemas';
 
 export const useDataScopeManagement = () => {
-  const [dataScopes, setDataScopes] = useState<DataScope[]>([]);
-  const [scopeTypes, setScopeTypes] = useState<Array<{ value: ScopeType; label: string }>>([]);
-  const [loading, setLoading] = useState(false);
+  // ✅ 使用 useSafeApi 加载范围类型
+  const {
+    data: scopeTypesResponse,
+    execute: executeScopeTypesLoad,
+  } = useSafeApi(getScopeTypes, ScopeTypesResponseSchema, {
+    errorMessage: '加载范围类型失败',
+    fallbackValue: { success: false, data: [] },
+  });
+
+  // ✅ 使用 useSafeApi 加载数据范围
+  const {
+    data: dataScopesResponse,
+    loading,
+    execute: executeDataScopesLoad,
+  } = useSafeApi(getAllDataScopes, DataScopesResponseSchema, {
+    errorMessage: '加载数据范围配置失败',
+    fallbackValue: { success: false, data: [] },
+  });
+
+  // 模态框和表单状态
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -22,32 +44,14 @@ export const useDataScopeManagement = () => {
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
-  // 加载范围类型元数据
+  // ✅ 简化的加载函数
   const loadScopeTypes = useCallback(async () => {
-    try {
-      const res = await getScopeTypes();
-      if (res.success) {
-        setScopeTypes(res.data);
-      }
-    } catch (error) {
-      message.error('加载范围类型失败');
-    }
-  }, []);
+    await executeScopeTypesLoad();
+  }, [executeScopeTypesLoad]);
 
-  // 加载数据范围配置
   const loadDataScopes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getAllDataScopes();
-      if (res.success) {
-        setDataScopes(res.data);
-      }
-    } catch (error) {
-      message.error('加载数据范围配置失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await executeDataScopesLoad();
+  }, [executeDataScopesLoad]);
 
   // 初始化加载
   useEffect(() => {
@@ -151,6 +155,10 @@ export const useDataScopeManagement = () => {
     setSelectedScope(record);
     setDetailModalVisible(true);
   }, []);
+
+  // ✅ 从响应中提取数据
+  const dataScopes = dataScopesResponse?.data || [];
+  const scopeTypes = scopeTypesResponse?.data || [];
 
   // 统计数据
   const stats = useMemo(

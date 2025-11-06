@@ -20,6 +20,7 @@ const PlanList = lazy(() => import('@/pages/Plan/List'));
 const RevenueReport = lazy(() => import('@/pages/Report/Revenue'));
 const Analytics = lazy(() => import('@/pages/Report/Analytics'));
 const UsageList = lazy(() => import('@/pages/Usage/List'));
+const UsageMonitor = lazy(() => import('@/pages/Usage/UsageMonitor'));
 const PaymentList = lazy(() => import('@/pages/Payment/List'));
 const PaymentDashboard = lazy(() => import('@/pages/Payment/Dashboard'));
 const RefundManagement = lazy(() => import('@/pages/Payment/RefundManagement'));
@@ -87,11 +88,15 @@ const DeviceGroupManagement = lazy(() => import('@/pages/DeviceGroups/Management
 const NetworkPolicyConfiguration = lazy(() => import('@/pages/NetworkPolicy/Configuration'));
 
 // SMS 管理
-const SMSManagement = lazy(() => import('@/pages/SMS/Management'));
+const SMSManagement = lazy(() => import('@/pages/SMS/SMSManagement'));
+const SMSProviderConfig = lazy(() => import('@/pages/SMS/ProviderConfig'));
+
+// 代理IP管理
+const ProxyManagement = lazy(() => import('@/pages/Proxy/ProxyManagement'));
+const ProxyProviderConfig = lazy(() => import('@/pages/Proxy/ProviderConfig'));
 
 // 统计仪表板
-// 🔄 临时注释（缺少 recharts 依赖）- Week 2 恢复
-// const StatsDashboard = lazy(() => import('@/pages/Stats/Dashboard'));
+const StatsDashboard = lazy(() => import('@/pages/Stats/Dashboard'));
 
 // 故障转移管理
 const FailoverManagement = lazy(() => import('@/pages/Failover/Management'));
@@ -158,15 +163,15 @@ export const router = createBrowserRouter([
       },
       {
         path: 'templates',
-        element: withSuspense(TemplateList),
+        element: withAdminRoute(TemplateList), // 管理员专属 - 设备模板管理
       },
       {
         path: 'snapshots',
-        element: withSuspense(SnapshotList),
+        element: withAdminRoute(SnapshotList), // 管理员专属 - 设备快照管理
       },
       {
         path: 'physical-devices',
-        element: withSuspense(PhysicalDeviceList),
+        element: withAdminRoute(PhysicalDeviceList), // 管理员专属 - 物理设备管理
       },
       {
         path: 'users',
@@ -206,7 +211,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'usage',
-        element: withSuspense(UsageList),
+        element: withAdminRoute(UsageMonitor), // 管理员专属 - 用户设备使用监控
       },
       {
         path: 'payments',
@@ -319,10 +324,10 @@ export const router = createBrowserRouter([
         path: 'scheduler',
         element: withSuspense(SchedulerDashboard),
       },
-      // 生命周期自动化
+      // 生命周期自动化 - 管理员专属
       {
         path: 'devices/lifecycle',
-        element: withSuspense(LifecycleDashboard),
+        element: withAdminRoute(LifecycleDashboard), // 管理员专属 - 设备生命周期自动化管理
       },
       // GPU 资源管理
       {
@@ -360,35 +365,47 @@ export const router = createBrowserRouter([
         path: 'system/monitoring',
         element: withAdminRoute(PrometheusMonitor, true), // Super Admin only
       },
-      // 设备高级功能
+      // 设备高级功能 - 管理员专属
       {
         path: 'devices/groups',
-        element: withSuspense(DeviceGroupManagement),
+        element: withAdminRoute(DeviceGroupManagement), // 管理员专属 - 设备分组管理
       },
       {
         path: 'devices/network-policies',
-        element: withSuspense(NetworkPolicyConfiguration),
+        element: withAdminRoute(NetworkPolicyConfiguration), // 管理员专属 - 网络策略配置
       },
       // SMS 管理
       {
         path: 'sms',
         element: withSuspense(SMSManagement),
       },
+      {
+        path: 'sms/providers',
+        element: withSuspense(SMSProviderConfig),
+      },
+      // 代理IP管理
+      {
+        path: 'proxy',
+        element: withSuspense(ProxyManagement),
+      },
+      {
+        path: 'proxy/providers',
+        element: withSuspense(ProxyProviderConfig),
+      },
       // 统计仪表板
-      // 🔄 临时注释（缺少 recharts 依赖）- Week 2 恢复
-      // {
-      //   path: 'stats',
-      //   element: withSuspense(StatsDashboard),
-      // },
-      // 故障转移管理
+      {
+        path: 'stats',
+        element: withSuspense(StatsDashboard),
+      },
+      // 故障转移管理 - 管理员专属
       {
         path: 'devices/failover',
-        element: withSuspense(FailoverManagement),
+        element: withAdminRoute(FailoverManagement), // 管理员专属 - 设备故障转移管理
       },
-      // 状态恢复管理
+      // 状态恢复管理 - 管理员专属
       {
         path: 'devices/state-recovery',
-        element: withSuspense(StateRecoveryManagement),
+        element: withAdminRoute(StateRecoveryManagement), // 管理员专属 - 设备状态恢复管理
       },
     ],
   },

@@ -6,6 +6,7 @@ import {
   registerPhysicalDevice,
   deleteDevice,
 } from '@/services/device';
+import { PhysicalDevicesResponseSchema } from '@/schemas/api.schemas';
 
 // Query Keys
 export const physicalDeviceKeys = {
@@ -21,10 +22,9 @@ export function usePhysicalDevices(params?: { page?: number; pageSize?: number }
     queryKey: physicalDeviceKeys.list(params),
     queryFn: async () => {
       const response = await getPhysicalDevices(params || {});
-      return {
-        data: response.data,
-        total: response.total,
-      };
+      // ✅ 添加 Zod 验证
+      const validated = PhysicalDevicesResponseSchema.parse(response);
+      return validated;
     },
     staleTime: 30 * 1000, // 30 seconds
   });

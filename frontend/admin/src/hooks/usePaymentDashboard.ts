@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
+import { z } from 'zod';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
   getPaymentStatistics,
@@ -9,41 +10,51 @@ import {
   type PaymentMethodStat,
   type DailyStat,
 } from '@/services/payment-admin';
+import { useSafeApi } from './useSafeApi';
+import { PaymentMethodStatSchema, DailyStatSchema } from '@/schemas/api.schemas';
+
+// 支付统计组合响应 Schema
+const PaymentDashboardDataSchema = z.tuple([
+  z.any(), // PaymentStatistics - 保持灵活，因为结构可能复杂
+  z.array(PaymentMethodStatSchema), // methodStats
+  z.array(DailyStatSchema), // dailyStats
+]);
 
 export const usePaymentDashboard = () => {
-  const [loading, setLoading] = useState(false);
-  const [statistics, setStatistics] = useState<PaymentStatistics | null>(null);
-  const [methodStats, setMethodStats] = useState<PaymentMethodStat[]>([]);
-  const [dailyStats, setDailyStats] = useState<DailyStat[]>([]);
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(30, 'days'),
     dayjs(),
   ]);
 
-  // 加载统计数据
-  const loadStatistics = useCallback(async () => {
-    setLoading(true);
-    try {
+  // ✅ 使用 useSafeApi 加载所有统计数据
+  const {
+    data: dashboardData,
+    loading,
+    execute: executeLoad,
+  } = useSafeApi(
+    async () => {
       const [startDate, endDate] = dateRange;
-      const [statsRes, methodsRes, dailyRes] = await Promise.all([
+      return await Promise.all([
         getPaymentStatistics(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD')),
         getPaymentMethodsStats(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD')),
         getDailyStatistics(30),
       ]);
-
-      setStatistics(statsRes);
-      setMethodStats(methodsRes);
-      setDailyStats(dailyRes);
-    } catch (error) {
-      message.error('加载统计数据失败');
-    } finally {
-      setLoading(false);
+    },
+    PaymentDashboardDataSchema,
+    {
+      errorMessage: '加载统计数据失败',
+      fallbackValue: [null, [], []], // [statistics, methodStats, dailyStats]
     }
-  }, [dateRange]);
+  );
 
+  const loadStatistics = useCallback(async () => {
+    await executeLoad();
+  }, [executeLoad]);
+
+  // 日期范围变更时自动重新加载
   useEffect(() => {
     loadStatistics();
-  }, [loadStatistics]);
+  }, [dateRange, loadStatistics]);
 
   // 日期范围变更
   const handleDateRangeChange = useCallback((dates: [Dayjs, Dayjs]) => {
@@ -52,9 +63,9 @@ export const usePaymentDashboard = () => {
 
   return {
     loading,
-    statistics,
-    methodStats,
-    dailyStats,
+    statistics: dashboardData?.[0] || null, // ✅ 从 tuple 中提取
+    methodStats: dashboardData?.[1] || [], // ✅ 从 tuple 中提取
+    dailyStats: dashboardData?.[2] || [], // ✅ 从 tuple 中提取
     dateRange,
     handleDateRangeChange,
   };

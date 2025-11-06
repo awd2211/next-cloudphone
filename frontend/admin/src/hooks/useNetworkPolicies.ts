@@ -3,13 +3,13 @@ import { Form, message, Modal } from 'antd';
 import type { NetworkPolicy, PolicyFormValues, TestFormValues, TestResult } from '@/components/NetworkPolicy';
 import { DEFAULT_FORM_VALUES } from '@/components/NetworkPolicy';
 import request from '@/utils/request';
+import { useSafeApi } from './useSafeApi';
+import { NetworkPoliciesResponseSchema } from '@/schemas/api.schemas';
 
 /**
  * 网络策略管理 Hook
  */
 export const useNetworkPolicies = () => {
-  const [policies, setPolicies] = useState<NetworkPolicy[]>([]);
-  const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [testModalVisible, setTestModalVisible] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<NetworkPolicy | null>(null);
@@ -17,20 +17,26 @@ export const useNetworkPolicies = () => {
   const [form] = Form.useForm<PolicyFormValues>();
   const [testForm] = Form.useForm<TestFormValues>();
 
+  // ✅ 使用 useSafeApi 加载策略列表
+  const {
+    data: policies,
+    loading,
+    execute: executeLoadPolicies,
+  } = useSafeApi(
+    () => request.get('/devices/network-policies'),
+    NetworkPoliciesResponseSchema,
+    {
+      errorMessage: '加载策略失败',
+      fallbackValue: [],
+    }
+  );
+
   /**
-   * 加载策略列表
+   * 加载策略列表的包装函数
    */
   const loadPolicies = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await request.get('/devices/network-policies');
-      setPolicies(res);
-    } catch (error) {
-      message.error('加载策略失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await executeLoadPolicies();
+  }, [executeLoadPolicies]);
 
   /**
    * 初始化加载

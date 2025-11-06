@@ -10,6 +10,10 @@ import {
   getBillingRuleTemplates,
 } from '@/services/billing';
 import type { CreateBillingRuleDto, UpdateBillingRuleDto, PaginationParams } from '@/types';
+import {
+  BillingRulesResponseSchema,
+  BillingRuleTemplatesResponseSchema,
+} from '@/schemas/api.schemas';
 
 // Query Keys
 export const billingRuleKeys = {
@@ -26,10 +30,9 @@ export function useBillingRules(params?: PaginationParams & { isActive?: boolean
     queryKey: billingRuleKeys.list(params),
     queryFn: async () => {
       const response = await getBillingRules(params || {});
-      return {
-        data: response.data,
-        total: response.total,
-      };
+      // ✅ 添加 Zod 验证
+      const validated = BillingRulesResponseSchema.parse(response);
+      return validated;
     },
     staleTime: 30 * 1000,
   });
@@ -38,7 +41,12 @@ export function useBillingRules(params?: PaginationParams & { isActive?: boolean
 export function useBillingRuleTemplates() {
   return useQuery({
     queryKey: billingRuleKeys.templates(),
-    queryFn: () => getBillingRuleTemplates(),
+    queryFn: async () => {
+      const response = await getBillingRuleTemplates();
+      // ✅ 添加 Zod 验证
+      const validated = BillingRuleTemplatesResponseSchema.parse(response);
+      return validated;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 }

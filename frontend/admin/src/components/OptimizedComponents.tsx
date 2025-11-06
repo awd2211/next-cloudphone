@@ -3,7 +3,7 @@
  * 包含常用的性能优化组件
  */
 
-import React, { memo, useCallback, useState, useEffect } from 'react';
+import React, { memo, useCallback, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 
 // ==================== 优化的列表组件 ====================
@@ -354,7 +354,11 @@ export const VisibilityToggle = memo(
     useEffect(() => {
       if (visible) {
         setShouldRender(true);
-      } else if (!unmountOnHide) {
+      } else if (unmountOnHide) {
+        // 立即卸载
+        setShouldRender(false);
+      } else {
+        // 延迟卸载以完成动画
         const timer = setTimeout(() => {
           setShouldRender(false);
         }, animationDuration);

@@ -1,397 +1,215 @@
-import { useState, useCallback } from 'react';
-import request from '../utils/request';
+import { useState, useEffect, useCallback } from 'react';
+import { Form, message } from 'antd';
+import type {
+  FieldPermission,
+  FieldAccessLevel,
+  OperationType,
+} from '@/types';
+import {
+  getAllFieldPermissions,
+  getFieldPermissionById,
+  getAccessLevels,
+  getOperationTypes,
+} from '@/services/fieldPermission';
+import { useSafeApi } from './useSafeApi';
+import {
+  FieldPermissionsResponseSchema,
+  FieldPermissionDetailResponseSchema,
+  AccessLevelsResponseSchema,
+  OperationTypesResponseSchema,
+} from '@/schemas/api.schemas';
 
 /**
- * 字段访问级别
- */
-export enum FieldAccessLevel {
-  HIDDEN = 'hidden',
-  READ = 'read',
-  WRITE = 'write',
-  REQUIRED = 'required',
-}
-
-/**
- * 操作类型
- */
-export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  VIEW = 'view',
-  EXPORT = 'export',
-}
-
-/**
- * 字段权限配置
- */
-export interface FieldPermission {
-  id: string;
-  roleId: string;
-  resourceType: string;
-  operation: OperationType;
-  hiddenFields?: string[];
-  readOnlyFields?: string[];
-  writableFields?: string[];
-  requiredFields?: string[];
-  fieldAccessMap?: Record<string, FieldAccessLevel>;
-  fieldTransforms?: Record<string, any>;
-  description?: string;
-  priority?: number;
-  isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/**
- * 创建字段权限 DTO
- */
-export interface CreateFieldPermissionDto {
-  roleId: string;
-  resourceType: string;
-  operation: OperationType;
-  hiddenFields?: string[];
-  readOnlyFields?: string[];
-  writableFields?: string[];
-  requiredFields?: string[];
-  fieldAccessMap?: Record<string, FieldAccessLevel>;
-  fieldTransforms?: Record<string, any>;
-  description?: string;
-  priority?: number;
-}
-
-/**
- * 更新字段权限 DTO
- */
-export interface UpdateFieldPermissionDto {
-  hiddenFields?: string[];
-  readOnlyFields?: string[];
-  writableFields?: string[];
-  requiredFields?: string[];
-  fieldAccessMap?: Record<string, FieldAccessLevel>;
-  fieldTransforms?: Record<string, any>;
-  description?: string;
-  isActive?: boolean;
-  priority?: number;
-}
-
-/**
- * 查询参数
- */
-export interface FieldPermissionQueryParams {
-  roleId?: string;
-  resourceType?: string;
-  operation?: OperationType;
-}
-
-/**
- * useFieldPermission Hook
- * 用于管理字段权限配置
+ * 字段权限管理业务逻辑 Hook
  *
- * @example
- * const {
- *   fieldPermissions,
- *   loading,
- *   fetchFieldPermissions,
- *   createFieldPermission,
- *   updateFieldPermission,
- *   deleteFieldPermission,
- * } = useFieldPermission();
+ * 功能:
+ * 1. 数据加载 (权限列表、访问级别、操作类型) - 使用 useSafeApi + Zod 验证
+ * 2. Modal 状态管理
+ * 3. 筛选条件管理
  */
 export const useFieldPermission = () => {
-  const [fieldPermissions, setFieldPermissions] = useState<FieldPermission[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  // ===== 状态管理 =====
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [editingPermission, setEditingPermission] = useState<FieldPermission | null>(null);
+  const [detailPermission, setDetailPermission] = useState<FieldPermission | null>(null);
+  const [form] = Form.useForm();
+
+  // ===== 筛选条件 =====
+  const [filterRoleId, setFilterRoleId] = useState<string>('');
+  const [filterResourceType, setFilterResourceType] = useState<string>('');
+  const [filterOperation, setFilterOperation] = useState<OperationType | undefined>(undefined);
+
+  // ===== 数据加载 (使用 useSafeApi) =====
 
   /**
-   * 获取字段权限列表
+   * 加载元数据 (访问级别和操作类型)
    */
-  const fetchFieldPermissions = useCallback(async (params?: FieldPermissionQueryParams) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const queryParams = new URLSearchParams();
-      if (params?.roleId) queryParams.append('roleId', params.roleId);
-      if (params?.resourceType) queryParams.append('resourceType', params.resourceType);
-      if (params?.operation) queryParams.append('operation', params.operation);
-
-      const response = await request.get(
-        `/field-permissions${queryParams.toString() ? `?${queryParams}` : ''}`
-      );
-
-      console.log('🔍 useFieldPermission fetchFieldPermissions 响应:', response);
-      console.log('📊 response.success:', response.success);
-      console.log('📊 response.data:', response.data);
-      console.log('📊 response.data 长度:', response.data?.length);
-
-      if (response.success) {
-        const permissionsData = response.data || [];
-        console.log('✅ 设置 fieldPermissions:', permissionsData);
-        setFieldPermissions(permissionsData);
-        return permissionsData as FieldPermission[];
-      } else {
-        throw new Error(response.message || '获取字段权限失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
+  const {
+    data: accessLevelsResponse,
+    execute: executeLoadAccessLevels,
+  } = useSafeApi(
+    getAccessLevels,
+    AccessLevelsResponseSchema,
+    {
+      errorMessage: '加载访问级别失败',
+      fallbackValue: { success: false, data: [] },
+      manual: true,
     }
-  }, []);
+  );
+
+  const {
+    data: operationTypesResponse,
+    execute: executeLoadOperationTypes,
+  } = useSafeApi(
+    getOperationTypes,
+    OperationTypesResponseSchema,
+    {
+      errorMessage: '加载操作类型失败',
+      fallbackValue: { success: false, data: [] },
+      manual: true,
+    }
+  );
+
+  const accessLevels = accessLevelsResponse?.success ? accessLevelsResponse.data : [];
+  const operationTypes = operationTypesResponse?.success ? operationTypesResponse.data : [];
 
   /**
-   * 根据 ID 获取字段权限
+   * 加载元数据
    */
-  const getFieldPermission = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await request.get(`/field-permissions/${id}`);
-
-      if (response.success) {
-        return response.data as FieldPermission;
-      } else {
-        throw new Error(response.message || '获取字段权限失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loadMetadata = useCallback(async () => {
+    await Promise.all([
+      executeLoadAccessLevels(),
+      executeLoadOperationTypes(),
+    ]);
+  }, [executeLoadAccessLevels, executeLoadOperationTypes]);
 
   /**
-   * 获取角色的字段权限配置
+   * 加载权限列表
    */
-  const getRoleFieldPermissions = useCallback(async (roleId: string, resourceType?: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const queryParams = resourceType ? `?resourceType=${resourceType}` : '';
-      const response = await request.get(`/field-permissions/role/${roleId}${queryParams}`);
-
-      if (response.success) {
-        return response.data as Record<string, FieldPermission[]>;
-      } else {
-        throw new Error(response.message || '获取角色字段权限失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
+  const {
+    data: permissionsResponse,
+    loading,
+    execute: executeLoadPermissions,
+  } = useSafeApi(
+    () => {
+      const params: any = {};
+      if (filterRoleId) params.roleId = filterRoleId;
+      if (filterResourceType) params.resourceType = filterResourceType;
+      if (filterOperation) params.operation = filterOperation;
+      return getAllFieldPermissions(params);
+    },
+    FieldPermissionsResponseSchema,
+    {
+      errorMessage: '加载字段权限配置失败',
+      fallbackValue: { success: false, data: [] },
     }
-  }, []);
+  );
+
+  const permissions = permissionsResponse?.success ? permissionsResponse.data : [];
 
   /**
-   * 创建字段权限配置
+   * 加载权限详情
    */
-  const createFieldPermission = useCallback(async (dto: CreateFieldPermissionDto) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await request.post('/field-permissions', dto);
-
-      if (response.success) {
-        return response.data as FieldPermission;
-      } else {
-        throw new Error(response.message || '创建字段权限失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
+  const {
+    execute: executeLoadPermissionDetail,
+  } = useSafeApi(
+    (id: string) => getFieldPermissionById(id),
+    FieldPermissionDetailResponseSchema,
+    {
+      errorMessage: '加载权限详情失败',
+      manual: true,
     }
-  }, []);
+  );
 
   /**
-   * 更新字段权限配置
+   * 初始化加载
    */
-  const updateFieldPermission = useCallback(async (id: string, dto: UpdateFieldPermissionDto) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await request.put(`/field-permissions/${id}`, dto);
-
-      if (response.success) {
-        return response.data as FieldPermission;
-      } else {
-        throw new Error(response.message || '更新字段权限失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => {
+    loadMetadata();
+  }, [loadMetadata]);
 
   /**
-   * 删除字段权限配置
+   * 筛选条件变化时重新加载
    */
-  const deleteFieldPermission = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    executeLoadPermissions();
+  }, [filterRoleId, filterResourceType, filterOperation, executeLoadPermissions]);
 
-    try {
-      const response = await request.delete(`/field-permissions/${id}`);
-
-      if (response.success) {
-        return true;
-      } else {
-        throw new Error(response.message || '删除字段权限失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // ===== 事件处理 =====
 
   /**
-   * 批量创建字段权限
+   * 打开创建模态框
    */
-  const batchCreateFieldPermissions = useCallback(async (dtos: CreateFieldPermissionDto[]) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await request.post('/field-permissions/batch', dtos);
-
-      if (response.success) {
-        return response.data as FieldPermission[];
-      } else {
-        throw new Error(response.message || '批量创建字段权限失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const handleCreate = useCallback(() => {
+    setEditingPermission(null);
+    form.resetFields();
+    setIsModalVisible(true);
+  }, [form]);
 
   /**
-   * 切换字段权限启用状态
+   * 打开编辑模态框
    */
-  const toggleFieldPermission = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await request.put(`/field-permissions/${id}/toggle`, {});
-
-      if (response.success) {
-        return response.data as FieldPermission;
-      } else {
-        throw new Error(response.message || '切换字段权限状态失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const handleEdit = useCallback(
+    (record: FieldPermission) => {
+      setEditingPermission(record);
+      form.setFieldsValue({
+        roleId: record.roleId,
+        resourceType: record.resourceType,
+        operation: record.operation,
+        hiddenFields: record.hiddenFields?.join(', '),
+        readOnlyFields: record.readOnlyFields?.join(', '),
+        writableFields: record.writableFields?.join(', '),
+        requiredFields: record.requiredFields?.join(', '),
+        description: record.description,
+        priority: record.priority,
+      });
+      setIsModalVisible(true);
+    },
+    [form]
+  );
 
   /**
-   * 获取字段访问级别元数据
+   * 查看详情
    */
-  const getAccessLevels = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await request.get('/field-permissions/meta/access-levels');
-
-      if (response.success) {
-        return response.data as Array<{ value: FieldAccessLevel; label: string }>;
-      } else {
-        throw new Error(response.message || '获取访问级别失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
+  const handleViewDetail = useCallback(async (record: FieldPermission) => {
+    const response = await executeLoadPermissionDetail(record.id);
+    if (response?.success) {
+      setDetailPermission(response.data);
+      setIsDetailModalVisible(true);
     }
-  }, []);
-
-  /**
-   * 获取操作类型元数据
-   */
-  const getOperationTypes = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await request.get('/field-permissions/meta/operation-types');
-
-      if (response.success) {
-        return response.data as Array<{ value: OperationType; label: string }>;
-      } else {
-        throw new Error(response.message || '获取操作类型失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * 获取字段转换规则示例
-   */
-  const getTransformExamples = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await request.get('/field-permissions/meta/transform-examples');
-
-      if (response.success) {
-        return response.data;
-      } else {
-        throw new Error(response.message || '获取转换示例失败');
-      }
-    } catch (err: any) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  }, [executeLoadPermissionDetail]);
 
   return {
-    // 状态
-    fieldPermissions,
+    // 数据
+    permissions,
+    accessLevels,
+    operationTypes,
     loading,
-    error,
 
-    // 查询方法
-    fetchFieldPermissions,
-    getFieldPermission,
-    getRoleFieldPermissions,
-    getAccessLevels,
-    getOperationTypes,
-    getTransformExamples,
+    // Modal 状态
+    isModalVisible,
+    setIsModalVisible,
+    isDetailModalVisible,
+    setIsDetailModalVisible,
+    editingPermission,
+    detailPermission,
 
-    // 修改方法
-    createFieldPermission,
-    updateFieldPermission,
-    deleteFieldPermission,
-    batchCreateFieldPermissions,
-    toggleFieldPermission,
+    // 筛选条件
+    filterRoleId,
+    setFilterRoleId,
+    filterResourceType,
+    setFilterResourceType,
+    filterOperation,
+    setFilterOperation,
+
+    // Form
+    form,
+
+    // 操作方法
+    handleCreate,
+    handleEdit,
+    handleViewDetail,
+    loadPermissions: executeLoadPermissions,
   };
 };
-
-export default useFieldPermission;

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Modal, Input, message } from 'antd';
+import { z } from 'zod';
 import type { MenuItem, MenuCacheStats } from '@/types';
 import {
   getAllMenus,
@@ -17,91 +18,99 @@ import {
   countMenus,
 } from '@/components/MenuPermission';
 import dayjs from 'dayjs';
+import { useSafeApi } from './useSafeApi';
+import { MenuItemSchema, MenuCacheStatsSchema } from '@/schemas/api.schemas';
 
 export const useMenuPermission = () => {
   // 菜单相关
-  const [menus, setMenus] = useState<MenuItem[]>([]);
-  const [filteredMenus, setFilteredMenus] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState('');
   const [autoExpandParent, setAutoExpandParent] = useState(true);
 
   // 缓存管理相关
-  const [cacheStats, setCacheStats] = useState<MenuCacheStats | null>(null);
   const [cacheLoading, setCacheLoading] = useState(false);
   const [statsModalVisible, setStatsModalVisible] = useState(false);
 
   // 用户访问测试
   const [testModalVisible, setTestModalVisible] = useState(false);
   const [testUserId, setTestUserId] = useState('');
-  const [testUserMenus, setTestUserMenus] = useState<MenuItem[]>([]);
   const [testLoading, setTestLoading] = useState(false);
 
   /**
-   * 加载所有菜单
+   * 加载所有菜单 - 使用 useSafeApi
    */
-  const loadMenus = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getAllMenus();
-      setMenus(data);
-      setFilteredMenus(data);
+  const {
+    data: menus,
+    loading,
+    execute: executeLoadMenus,
+  } = useSafeApi(getAllMenus, z.array(MenuItemSchema), {
+    errorMessage: '加载菜单失败',
+    fallbackValue: [],
+  });
 
-      // 默认展开第一层
-      const firstLevelKeys = data.map((item) => item.id);
+  /**
+   * 加载缓存统计 - 使用 useSafeApi
+   */
+  const { data: cacheStats } = useSafeApi(getCacheStats, MenuCacheStatsSchema, {
+    errorMessage: '加载缓存统计失败',
+    showError: false,
+  });
+
+  /**
+   * 测试用户菜单 - 使用 useSafeApi
+   */
+  const {
+    data: testUserMenus,
+    loading: testUserMenusLoading,
+    execute: executeLoadUserMenus,
+  } = useSafeApi(
+    (userId: string) => getUserMenus(userId),
+    z.array(MenuItemSchema),
+    {
+      errorMessage: '加载用户菜单失败',
+      fallbackValue: [],
+      manual: true,
+    }
+  );
+
+  /**
+   * 搜索过滤后的菜单列表
+   */
+  const filteredMenus = useMemo(() => {
+    if (searchValue && menus) {
+      return filterMenusByName(menus, searchValue);
+    }
+    return menus || [];
+  }, [searchValue, menus]);
+
+  /**
+   * 初始化加载 - 设置默认展开的键
+   */
+  useEffect(() => {
+    if (menus && menus.length > 0) {
+      const firstLevelKeys = menus.map((item) => item.id);
       setExpandedKeys(firstLevelKeys);
-    } catch (error: any) {
-      message.error(error.message || '加载菜单失败');
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [menus]);
 
   /**
-   * 加载缓存统计
-   */
-  const loadCacheStats = useCallback(async () => {
-    try {
-      const stats = await getCacheStats();
-      setCacheStats(stats);
-    } catch (error: any) {
-      console.error('加载缓存统计失败:', error);
-    }
-  }, []);
-
-  /**
-   * 初始化加载
+   * 搜索过滤 - 自动展开搜索结果
    */
   useEffect(() => {
-    loadMenus();
-    loadCacheStats();
-  }, [loadMenus, loadCacheStats]);
-
-  /**
-   * 搜索过滤
-   */
-  useEffect(() => {
-    if (searchValue) {
-      const filtered = filterMenusByName(menus, searchValue);
-      setFilteredMenus(filtered);
-
-      // 自动展开包含搜索结果的节点
-      const keys = getAllParentKeys(filtered);
+    if (searchValue && filteredMenus) {
+      const keys = getAllParentKeys(filteredMenus);
       setExpandedKeys(keys);
       setAutoExpandParent(true);
-    } else {
-      setFilteredMenus(menus);
     }
-  }, [searchValue, menus]);
+  }, [searchValue, filteredMenus]);
 
   /**
    * 菜单节点选择
    */
   const handleMenuSelect = useCallback(
     (selectedKeys: React.Key[]) => {
-      if (selectedKeys.length > 0) {
+      if (selectedKeys.length > 0 && menus) {
         const menuId = selectedKeys[0] as string;
         const menu = findMenuById(menus, menuId);
         setSelectedMenu(menu);
@@ -114,8 +123,10 @@ export const useMenuPermission = () => {
    * 展开所有节点
    */
   const handleExpandAll = useCallback(() => {
-    const allKeys = getAllParentKeys(menus);
-    setExpandedKeys(allKeys);
+    if (menus) {
+      const allKeys = getAllParentKeys(menus);
+      setExpandedKeys(allKeys);
+    }
   }, [menus]);
 
   /**
@@ -128,21 +139,17 @@ export const useMenuPermission = () => {
   /**
    * 刷新用户缓存
    */
-  const executeRefreshCache = useCallback(
-    async (userId: string) => {
-      setCacheLoading(true);
-      try {
-        const result = await refreshUserCache(userId);
-        message.success(result.message || '刷新成功');
-        await loadCacheStats();
-      } catch (error: any) {
-        message.error(error.message || '刷新缓存失败');
-      } finally {
-        setCacheLoading(false);
-      }
-    },
-    [loadCacheStats]
-  );
+  const executeRefreshCache = useCallback(async (userId: string) => {
+    setCacheLoading(true);
+    try {
+      const result = await refreshUserCache(userId);
+      message.success(result.message || '刷新成功');
+    } catch (error: any) {
+      message.error(error.message || '刷新缓存失败');
+    } finally {
+      setCacheLoading(false);
+    }
+  }, []);
 
   const handleRefreshCache = useCallback(
     async (userId?: string) => {
@@ -192,7 +199,6 @@ export const useMenuPermission = () => {
           message.success(
             `${result.message}，已清理 ${result.clearedCount} 条缓存`
           );
-          await loadCacheStats();
         } catch (error: any) {
           message.error(error.message || '清空缓存失败');
         } finally {
@@ -200,7 +206,7 @@ export const useMenuPermission = () => {
         }
       },
     });
-  }, [loadCacheStats]);
+  }, []);
 
   /**
    * 预热缓存
@@ -219,7 +225,6 @@ export const useMenuPermission = () => {
           message.success(
             `${result.message}，已预热 ${result.warmedUpCount} 个用户`
           );
-          await loadCacheStats();
         } catch (error: any) {
           message.error(error.message || '预热缓存失败');
         } finally {
@@ -227,7 +232,7 @@ export const useMenuPermission = () => {
         }
       },
     });
-  }, [loadCacheStats]);
+  }, []);
 
   /**
    * 导出缓存数据
@@ -259,7 +264,6 @@ export const useMenuPermission = () => {
   const handleTestUserAccess = useCallback(() => {
     setTestModalVisible(true);
     setTestUserId('');
-    setTestUserMenus([]);
   }, []);
 
   const handleLoadUserMenus = useCallback(async () => {
@@ -270,16 +274,14 @@ export const useMenuPermission = () => {
 
     setTestLoading(true);
     try {
-      const data = await getUserMenus(testUserId);
-      setTestUserMenus(data);
+      await executeLoadUserMenus(testUserId);
       message.success('加载成功');
     } catch (error: any) {
       message.error(error.message || '加载失败');
-      setTestUserMenus([]);
     } finally {
       setTestLoading(false);
     }
-  }, [testUserId]);
+  }, [testUserId, executeLoadUserMenus]);
 
   /**
    * 展开/折叠处理
@@ -290,12 +292,19 @@ export const useMenuPermission = () => {
   }, []);
 
   /**
+   * 重新加载菜单
+   */
+  const loadMenus = useCallback(() => {
+    executeLoadMenus();
+  }, [executeLoadMenus]);
+
+  /**
    * 计算统计数据
    */
-  const totalMenuCount = useMemo(() => countMenus(menus), [menus]);
+  const totalMenuCount = useMemo(() => countMenus(menus || []), [menus]);
   const menusWithPermission = useMemo(
     () =>
-      menus.filter(
+      (menus || []).filter(
         (m) => m.permission || m.children?.some((c) => c.permission)
       ).length,
     [menus]
@@ -303,7 +312,7 @@ export const useMenuPermission = () => {
 
   return {
     // 菜单数据
-    menus,
+    menus: menus || [],
     filteredMenus,
     loading,
     selectedMenu,
@@ -311,14 +320,14 @@ export const useMenuPermission = () => {
     searchValue,
     autoExpandParent,
     // 缓存数据
-    cacheStats,
+    cacheStats: cacheStats || null,
     cacheLoading,
     statsModalVisible,
     // 测试数据
     testModalVisible,
     testUserId,
-    testUserMenus,
-    testLoading,
+    testUserMenus: testUserMenus || [],
+    testLoading: testLoading || testUserMenusLoading,
     // 统计数据
     totalMenuCount,
     menusWithPermission,

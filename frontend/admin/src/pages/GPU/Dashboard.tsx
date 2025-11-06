@@ -1,15 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Space, Card, Tabs, Form, message } from 'antd';
-import {
-  getGPUDevices,
-  getGPUStats,
-  allocateGPU,
-  deallocateGPU,
-  getGPUAllocations,
-  type GPUDevice,
-  type GPUStats,
-  type GPUAllocation,
-} from '@/types';
+import { Space, Card, Tabs } from 'antd';
 import {
   GPUStatsCards,
   GPUDevicesTable,
@@ -17,6 +6,7 @@ import {
   AllocateGPUModal,
   GPUDetailModal,
 } from '@/components/GPU';
+import { useGPUDashboard } from '@/hooks/useGPUDashboard';
 
 const { TabPane } = Tabs;
 
@@ -28,109 +18,28 @@ const { TabPane } = Tabs;
  * 2. ✅ 工具函数提取 - utils.tsx
  * 3. ✅ 常量提取 - constants.ts
  * 4. ✅ 使用 useCallback 优化事件处理
+ * 5. ✅ 使用 useSafeApi + Zod 验证 API 响应
  */
 const GPUDashboard = () => {
-  // ===== 状态管理 =====
-  const [gpus, setGpus] = useState<GPUDevice[]>([]);
-  const [allocations, setAllocations] = useState<GPUAllocation[]>([]);
-  const [stats, setStats] = useState<GPUStats | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [allocateVisible, setAllocateVisible] = useState(false);
-  const [selectedGPU, setSelectedGPU] = useState<GPUDevice | null>(null);
-  const [detailVisible, setDetailVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('devices');
-
-  const [form] = Form.useForm();
-
-  // ===== 数据加载 =====
-  const loadGPUs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getGPUDevices({ page: 1, pageSize: 100 });
-      setGpus(res.data);
-    } catch (error) {
-      message.error('加载 GPU 列表失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const loadStats = useCallback(async () => {
-    try {
-      const statsData = await getGPUStats();
-      setStats(statsData);
-    } catch (error) {
-      message.error('加载统计失败');
-    }
-  }, []);
-
-  const loadAllocations = useCallback(async () => {
-    try {
-      const res = await getGPUAllocations({ page: 1, pageSize: 50, status: 'active' });
-      setAllocations(res.data);
-    } catch (error) {
-      message.error('加载分配记录失败');
-    }
-  }, []);
-
-  useEffect(() => {
-    loadGPUs();
-    loadStats();
-  }, [loadGPUs, loadStats]);
-
-  useEffect(() => {
-    if (activeTab === 'allocations') {
-      loadAllocations();
-    }
-  }, [activeTab, loadAllocations]);
-
-  // ===== 事件处理 =====
-  const openAllocateModal = useCallback(
-    (gpu: GPUDevice) => {
-      if (gpu.allocatedTo) {
-        message.warning('该 GPU 已被分配');
-        return;
-      }
-      setSelectedGPU(gpu);
-      setAllocateVisible(true);
-      form.resetFields();
-    },
-    [form],
-  );
-
-  const handleAllocate = useCallback(async () => {
-    try {
-      const values = await form.validateFields();
-      await allocateGPU(selectedGPU!.id, values.deviceId, values.mode);
-      message.success('GPU 分配成功');
-      setAllocateVisible(false);
-      loadGPUs();
-      loadStats();
-    } catch (error: any) {
-      if (error.errorFields) return;
-      message.error('分配失败');
-    }
-  }, [form, selectedGPU, loadGPUs, loadStats]);
-
-  const handleDeallocate = useCallback(
-    async (gpuId: string, deviceId?: string) => {
-      try {
-        await deallocateGPU(gpuId, deviceId);
-        message.success('GPU 已释放');
-        loadGPUs();
-        loadStats();
-        loadAllocations();
-      } catch (error) {
-        message.error('释放失败');
-      }
-    },
-    [loadGPUs, loadStats, loadAllocations],
-  );
-
-  const viewDetail = useCallback((gpu: GPUDevice) => {
-    setSelectedGPU(gpu);
-    setDetailVisible(true);
-  }, []);
+  // ✅ 使用重构后的 hook
+  const {
+    gpus,
+    stats,
+    allocations,
+    loading,
+    allocateVisible,
+    setAllocateVisible,
+    selectedGPU,
+    detailVisible,
+    setDetailVisible,
+    activeTab,
+    setActiveTab,
+    form,
+    openAllocateModal,
+    handleAllocate,
+    handleDeallocate,
+    viewDetail,
+  } = useGPUDashboard();
 
   // ===== 渲染 =====
   return (

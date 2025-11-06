@@ -1,173 +1,153 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Form, message } from 'antd';
+import { z } from 'zod';
 import {
   getNotifications,
-  createNotification,
+  getUnreadCount,
   markAsRead,
-  markAllAsRead,
-  deleteNotification,
+  notificationWS,
   type Notification,
-  type CreateNotificationDto,
 } from '@/services/notification';
+import { useSafeApi } from './useSafeApi';
+import { NotificationsResponseSchema } from '@/schemas/api.schemas';
 
-export const useNotificationCenter = () => {
+/**
+ * 未读数响应Schema
+ */
+const UnreadCountResponseSchema = z.object({
+  count: z.number().int().nonnegative(),
+});
+
+/**
+ * 通知中心业务逻辑 Hook
+ *
+ * 功能:
+ * 1. 数据加载 (通知列表、未读数) - 使用 useSafeApi + Zod 验证
+ * 2. WebSocket 实时通知
+ * 3. 标记已读
+ * 4. 浏览器通知权限管理
+ */
+export const useNotificationCenter = (userId: string) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [selectedTab, setSelectedTab] = useState('all');
-  const [form] = Form.useForm();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // ===== 数据加载 (使用 useSafeApi) =====
 
   /**
    * 加载通知列表
    */
-  const loadNotifications = useCallback(
-    async (isRead?: boolean) => {
-      setLoading(true);
-      try {
-        const params: any = { page, pageSize };
-        if (isRead !== undefined) params.isRead = isRead;
-        const res = await getNotifications(params);
-        setNotifications(res.data);
-        setTotal(res.total);
-      } catch (error) {
-        message.error('加载通知失败');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [page, pageSize]
+  const {
+    data: notificationsResponse,
+    loading,
+    execute: executeLoadNotifications,
+  } = useSafeApi(
+    () => getNotifications({ page: 1, limit: 10 }),
+    NotificationsResponseSchema,
+    {
+      errorMessage: '加载通知列表失败',
+      fallbackValue: { data: [], total: 0 },
+      showError: false,
+    }
   );
 
   /**
-   * 根据选中的Tab加载数据
+   * 加载未读数
+   */
+  const {
+    data: unreadCountResponse,
+    execute: executeLoadUnreadCount,
+  } = useSafeApi(
+    getUnreadCount,
+    UnreadCountResponseSchema,
+    {
+      errorMessage: '加载未读数失败',
+      fallbackValue: { count: 0 },
+      showError: false,
+    }
+  );
+
+  /**
+   * 同步数据到 state
    */
   useEffect(() => {
-    if (selectedTab === 'all') {
-      loadNotifications();
-    } else if (selectedTab === 'unread') {
-      loadNotifications(false);
-    } else {
-      loadNotifications(true);
+    if (notificationsResponse) {
+      setNotifications(notificationsResponse.data);
     }
-  }, [page, selectedTab, loadNotifications]);
+  }, [notificationsResponse]);
 
-  /**
-   * 创建通知
-   */
-  const handleCreate = useCallback(
-    async (values: CreateNotificationDto) => {
-      try {
-        await createNotification(values);
-        message.success('发送通知成功');
-        setCreateModalVisible(false);
-        form.resetFields();
-        loadNotifications();
-      } catch (error) {
-        message.error('发送通知失败');
-      }
-    },
-    [form, loadNotifications]
-  );
-
-  /**
-   * 标记单个为已读
-   */
-  const handleMarkAsRead = useCallback(
-    async (id: string) => {
-      try {
-        await markAsRead(id);
-        message.success('已标记为已读');
-        loadNotifications();
-      } catch (error) {
-        message.error('操作失败');
-      }
-    },
-    [loadNotifications]
-  );
-
-  /**
-   * 全部标记为已读
-   */
-  const handleMarkAllAsRead = useCallback(async () => {
-    try {
-      await markAllAsRead();
-      message.success('全部标记为已读');
-      loadNotifications();
-    } catch (error) {
-      message.error('操作失败');
+  useEffect(() => {
+    if (unreadCountResponse) {
+      setUnreadCount(unreadCountResponse.count);
     }
-  }, [loadNotifications]);
+  }, [unreadCountResponse]);
 
   /**
-   * 删除通知
+   * 加载所有数据
    */
-  const handleDelete = useCallback(
-    async (id: string) => {
-      try {
-        await deleteNotification(id);
-        message.success('删除成功');
-        loadNotifications();
-      } catch (error) {
-        message.error('删除失败');
-      }
-    },
-    [loadNotifications]
-  );
+  const loadData = useCallback(async () => {
+    await Promise.all([
+      executeLoadNotifications(),
+      executeLoadUnreadCount(),
+    ]);
+  }, [executeLoadNotifications, executeLoadUnreadCount]);
+
+  // ===== WebSocket 实时通知 =====
 
   /**
-   * 获取通知类型配置
+   * 处理新通知
    */
-  const getTypeConfig = useCallback((type: string) => {
-    const configs: Record<string, { color: string; text: string }> = {
-      info: { color: 'blue', text: '信息' },
-      warning: { color: 'orange', text: '警告' },
-      error: { color: 'red', text: '错误' },
-      success: { color: 'green', text: '成功' },
-      announcement: { color: 'purple', text: '公告' },
+  const handleNewNotification = useCallback((notification: Notification) => {
+    setNotifications((prev) => [notification, ...prev.slice(0, 9)]);
+    setUnreadCount((prev) => prev + 1);
+
+    // 浏览器通知
+    if (Notification.permission === 'granted') {
+      new Notification(notification.title, {
+        body: notification.content,
+        icon: '/logo.png',
+      });
+    }
+  }, []);
+
+  /**
+   * 初始化 WebSocket
+   */
+  useEffect(() => {
+    loadData();
+
+    // 连接 WebSocket
+    notificationWS.connect(userId);
+    notificationWS.on('notification', handleNewNotification);
+
+    // 请求浏览器通知权限
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    return () => {
+      notificationWS.off('notification', handleNewNotification);
     };
-    return configs[type] || configs.info;
-  }, []);
+  }, [userId, loadData, handleNewNotification]);
+
+  // ===== 标记已读 =====
 
   /**
-   * 打开创建模态框
+   * 标记通知为已读
    */
-  const handleOpenCreateModal = useCallback(() => {
-    setCreateModalVisible(true);
-  }, []);
-
-  /**
-   * 关闭创建模态框
-   */
-  const handleCloseCreateModal = useCallback(() => {
-    setCreateModalVisible(false);
-    form.resetFields();
-  }, [form]);
+  const handleMarkAsRead = useCallback(async (id: string) => {
+    try {
+      await markAsRead(id);
+      setNotifications(notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+      setUnreadCount(Math.max(0, unreadCount - 1));
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+    }
+  }, [notifications, unreadCount]);
 
   return {
-    // 数据状态
     notifications,
+    unreadCount,
     loading,
-    total,
-    page,
-    pageSize,
-    selectedTab,
-    // 模态框状态
-    createModalVisible,
-    form,
-    // 状态更新函数
-    setPage,
-    setSelectedTab,
-    // 操作函数
-    handleCreate,
     handleMarkAsRead,
-    handleMarkAllAsRead,
-    handleDelete,
-    handleOpenCreateModal,
-    handleCloseCreateModal,
-    // 工具函数
-    getTypeConfig,
+    loadData,
   };
 };

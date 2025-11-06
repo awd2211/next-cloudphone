@@ -1,10 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAsyncOperation } from './useAsyncOperation';
+import { useEffect, useCallback } from 'react';
 import { getDashboardStats, getUserGrowthStats, getPlanDistributionStats } from '@/services/stats';
 import { getRevenueStats } from '@/services/billing';
 import { getDeviceStats } from '@/services/device';
 import type { DashboardStats } from '@/types';
 import dayjs from 'dayjs';
+import { useSafeApi } from './useSafeApi';
+import {
+  DashboardStatsSchema,
+  ChartDataResponseSchema,
+} from '@/schemas/api.schemas';
 
 interface UseDashboardReturn {
   // 统计数据
@@ -30,90 +34,85 @@ interface UseDashboardReturn {
  * 封装控制台的所有数据加载逻辑
  */
 export const useDashboard = (): UseDashboardReturn => {
-  // 统计数据状态
-  const [stats, setStats] = useState<DashboardStats>();
-  const [hasStatsError, setHasStatsError] = useState(false);
+  // ✅ 使用 useSafeApi 加载统计数据
+  const {
+    data: stats,
+    loading: statsLoading,
+    error: statsError,
+    execute: executeStatsLoad,
+  } = useSafeApi(
+    async () => {
+      const response: any = await getDashboardStats();
+      return response?.data || response;
+    },
+    DashboardStatsSchema,
+    {
+      errorMessage: '加载仪表盘统计数据失败',
+      fallbackValue: undefined,
+    }
+  );
 
-  // 图表数据状态
-  const [revenueData, setRevenueData] = useState<any[]>([]);
-  const [deviceStatusData, setDeviceStatusData] = useState<any[]>([]);
-  const [userGrowthData, setUserGrowthData] = useState<any[]>([]);
-  const [planDistributionData, setPlanDistributionData] = useState<any[]>([]);
-  const [hasChartsError, setHasChartsError] = useState(false);
+  // ✅ 使用 useSafeApi 加载图表数据
+  const {
+    data: chartData,
+    loading: chartsLoading,
+    error: chartsError,
+    execute: executeChartsLoad,
+  } = useSafeApi(
+    async () => {
+      // 加载近7天收入数据
+      const endDate = dayjs().format('YYYY-MM-DD');
+      const startDate = dayjs().subtract(6, 'day').format('YYYY-MM-DD');
+      const revenueRes: any = await getRevenueStats(startDate, endDate);
+      const revenueDataResult = revenueRes?.data?.dailyStats || revenueRes?.dailyStats || [];
 
-  const { execute: executeStatsLoad, loading: statsLoading } = useAsyncOperation();
-  const { execute: executeChartsLoad, loading: chartsLoading } = useAsyncOperation();
+      // 加载设备状态数据
+      const deviceRes: any = await getDeviceStats();
+      const deviceData = deviceRes?.data || deviceRes;
+      const statusData = [
+        { status: 'idle', count: deviceData.idle || 0 },
+        { status: 'running', count: deviceData.running || 0 },
+        { status: 'stopped', count: deviceData.stopped || 0 },
+      ].filter((item) => item.count > 0);
 
-  // 加载统计数据
-  const loadStats = useCallback(async () => {
-    await executeStatsLoad(
-      async () => {
-        const response: any = await getDashboardStats();
-        return response?.data || response;
+      // 加载用户增长数据（近30天）
+      const userGrowthRes: any = await getUserGrowthStats(30);
+      const userGrowthResult = userGrowthRes?.data || userGrowthRes || [];
+
+      // 加载套餐分布数据
+      const planDistRes: any = await getPlanDistributionStats();
+      const planDistResult = planDistRes?.data || planDistRes || [];
+
+      return {
+        revenueData: revenueDataResult,
+        deviceStatusData: statusData,
+        userGrowthData: userGrowthResult,
+        planDistributionData: planDistResult,
+      };
+    },
+    ChartDataResponseSchema,
+    {
+      errorMessage: '加载图表数据失败',
+      fallbackValue: {
+        revenueData: [],
+        deviceStatusData: [],
+        userGrowthData: [],
+        planDistributionData: [],
       },
-      {
-        errorContext: '加载仪表盘统计数据',
-        showSuccessMessage: false,
-        onSuccess: (data) => {
-          setStats(data);
-          setHasStatsError(false);
-        },
-        onError: () => {
-          setHasStatsError(true);
-        },
-      }
-    );
+    }
+  );
+
+  // 计算错误状态
+  const hasStatsError = !!statsError;
+  const hasChartsError = !!chartsError;
+
+  // ✅ 简化的加载函数
+  const loadStats = useCallback(async () => {
+    await executeStatsLoad();
   }, [executeStatsLoad]);
 
-  // 加载图表数据
   const loadChartData = useCallback(async () => {
-    await executeChartsLoad(
-      async () => {
-        // 加载近7天收入数据
-        const endDate = dayjs().format('YYYY-MM-DD');
-        const startDate = dayjs().subtract(6, 'day').format('YYYY-MM-DD');
-        const revenueRes: any = await getRevenueStats(startDate, endDate);
-        const revenueDataResult = revenueRes?.data?.dailyStats || revenueRes?.dailyStats || [];
-
-        // 加载设备状态数据
-        const deviceRes: any = await getDeviceStats();
-        const deviceData = deviceRes?.data || deviceRes;
-        const statusData = [
-          { status: 'idle', count: deviceData.idle || 0 },
-          { status: 'running', count: deviceData.running || 0 },
-          { status: 'stopped', count: deviceData.stopped || 0 },
-        ].filter((item) => item.count > 0);
-
-        // 加载用户增长数据（近30天）
-        const userGrowthRes: any = await getUserGrowthStats(30);
-        const userGrowthResult = userGrowthRes?.data || userGrowthRes || [];
-
-        // 加载套餐分布数据
-        const planDistRes: any = await getPlanDistributionStats();
-        const planDistResult = planDistRes?.data || planDistRes || [];
-
-        return {
-          revenueData: revenueDataResult,
-          deviceStatusData: statusData,
-          userGrowthData: userGrowthResult,
-          planDistributionData: planDistResult,
-        };
-      },
-      {
-        errorContext: '加载图表数据',
-        showSuccessMessage: false,
-        onSuccess: (data) => {
-          setRevenueData(data.revenueData);
-          setDeviceStatusData(data.deviceStatusData);
-          setUserGrowthData(data.userGrowthData);
-          setPlanDistributionData(data.planDistributionData);
-          setHasChartsError(false);
-        },
-        onError: () => {
-          setHasChartsError(true);
-        },
-      }
-    );
+    await executeChartsLoad();
   }, [executeChartsLoad]);
 
   // 初始化加载 + 定时刷新统计数据
@@ -130,11 +129,11 @@ export const useDashboard = (): UseDashboardReturn => {
     statsLoading,
     hasStatsError,
 
-    // 图表数据
-    revenueData,
-    deviceStatusData,
-    userGrowthData,
-    planDistributionData,
+    // 图表数据 - ✅ 从 chartData 中提取
+    revenueData: chartData?.revenueData || [],
+    deviceStatusData: chartData?.deviceStatusData || [],
+    userGrowthData: chartData?.userGrowthData || [],
+    planDistributionData: chartData?.planDistributionData || [],
     chartsLoading,
     hasChartsError,
 

@@ -2,38 +2,45 @@ import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { getRevenueStats, exportRevenueReport } from '@/services/billing';
-import type { DailyStats, PlanStats } from '@/types/revenue';
+import { useSafeApi } from './useSafeApi';
+import { RevenueStatsSchema } from '@/schemas/api.schemas';
 
 export const useRevenueReport = () => {
-  const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(30, 'days'),
     dayjs(),
   ]);
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [avgOrderValue, setAvgOrderValue] = useState(0);
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
-  const [planStats, setPlanStats] = useState<PlanStats[]>([]);
+
+  // ✅ 使用 useSafeApi 加载收入统计
+  const {
+    data: revenueData,
+    loading,
+    execute: executeLoadStats,
+  } = useSafeApi(
+    () =>
+      getRevenueStats(dateRange[0].format('YYYY-MM-DD'), dateRange[1].format('YYYY-MM-DD')),
+    RevenueStatsSchema,
+    {
+      errorMessage: '加载收入统计失败',
+      fallbackValue: {
+        totalRevenue: 0,
+        totalOrders: 0,
+        avgOrderValue: 0,
+        dailyStats: [],
+        planStats: [],
+      },
+    }
+  );
+
+  const totalRevenue = revenueData?.totalRevenue ?? 0;
+  const totalOrders = revenueData?.totalOrders ?? 0;
+  const avgOrderValue = revenueData?.avgOrderValue ?? 0;
+  const dailyStats = revenueData?.dailyStats ?? [];
+  const planStats = revenueData?.planStats ?? [];
 
   const loadRevenueStats = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getRevenueStats(
-        dateRange[0].format('YYYY-MM-DD'),
-        dateRange[1].format('YYYY-MM-DD')
-      );
-      setTotalRevenue(data.totalRevenue);
-      setTotalOrders(data.totalOrders);
-      setAvgOrderValue(data.avgOrderValue);
-      setDailyStats(data.dailyStats || []);
-      setPlanStats(data.planStats || []);
-    } catch (error) {
-      message.error('加载收入统计失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [dateRange]);
+    await executeLoadStats();
+  }, [executeLoadStats]);
 
   useEffect(() => {
     loadRevenueStats();

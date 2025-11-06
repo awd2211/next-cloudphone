@@ -7,46 +7,60 @@ import {
   requestAppChanges,
   getAppReviewHistory,
 } from '@/services/app';
-import type { Application, AppReviewRecord } from '@/types';
+import { useSafeApi } from './useSafeApi';
+import {
+  ApplicationSchema,
+  AppReviewHistoryResponseSchema,
+} from '@/schemas/api.schemas';
 
 export const useAppReview = (id: string | undefined) => {
-  const [app, setApp] = useState<Application | null>(null);
-  const [reviewHistory, setReviewHistory] = useState<AppReviewRecord[]>([]);
-  const [loading, setLoading] = useState(false);
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [reviewAction, setReviewAction] = useState<'approve' | 'reject' | 'request_changes'>(
     'approve'
   );
 
-  const loadApp = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const app = await getApp(id);
-      setApp(app);
-    } catch (error) {
-      message.error('加载应用信息失败');
-    } finally {
-      setLoading(false);
+  // ✅ 使用 useSafeApi 加载应用详情
+  const {
+    data: app,
+    loading,
+    execute: executeLoadApp,
+  } = useSafeApi(
+    () => {
+      if (!id) throw new Error('No app ID');
+      return getApp(id);
+    },
+    ApplicationSchema,
+    {
+      errorMessage: '加载应用信息失败',
+      fallbackValue: null,
+      manual: true,
     }
-  }, [id]);
+  );
 
-  const loadReviewHistory = useCallback(async () => {
-    if (!id) return;
-    try {
-      const history = await getAppReviewHistory(id);
-      setReviewHistory(history || []);
-    } catch (error) {
-      console.error('加载审核历史失败', error);
+  // ✅ 使用 useSafeApi 加载审核历史
+  const {
+    data: reviewHistory,
+    execute: executeLoadReviewHistory,
+  } = useSafeApi(
+    () => {
+      if (!id) throw new Error('No app ID');
+      return getAppReviewHistory(id);
+    },
+    AppReviewHistoryResponseSchema,
+    {
+      errorMessage: '加载审核历史失败',
+      fallbackValue: [],
+      manual: true,
+      showError: false,
     }
-  }, [id]);
+  );
 
   useEffect(() => {
     if (id) {
-      loadApp();
-      loadReviewHistory();
+      executeLoadApp();
+      executeLoadReviewHistory();
     }
-  }, [id, loadApp, loadReviewHistory]);
+  }, [id, executeLoadApp, executeLoadReviewHistory]);
 
   const openReviewModal = useCallback(
     (action: 'approve' | 'reject' | 'request_changes') => {
@@ -75,20 +89,20 @@ export const useAppReview = (id: string | undefined) => {
           message.success('已要求开发者修改');
         }
         setReviewModalVisible(false);
-        loadApp();
-        loadReviewHistory();
+        executeLoadApp();
+        executeLoadReviewHistory();
         return true;
       } catch (error: any) {
         message.error(error.message || '操作失败');
         return false;
       }
     },
-    [id, reviewAction, loadApp, loadReviewHistory]
+    [id, reviewAction, executeLoadApp, executeLoadReviewHistory]
   );
 
   return {
     app,
-    reviewHistory,
+    reviewHistory: reviewHistory || [],
     loading,
     reviewModalVisible,
     reviewAction,

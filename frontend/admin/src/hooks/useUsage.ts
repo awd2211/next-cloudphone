@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getUsageRecords } from '@/services/billing';
+import { UsageRecordsResponseSchema } from '@/schemas/api.schemas';
 
 // Query Keys
 export const usageKeys = {
@@ -20,10 +21,9 @@ export function useUsageRecords(params?: {
     queryKey: usageKeys.list(params),
     queryFn: async () => {
       const response = await getUsageRecords(params || {});
-      return {
-        data: response.data,
-        total: response.total,
-      };
+      // ✅ 添加 Zod 验证
+      const validated = UsageRecordsResponseSchema.parse(response);
+      return validated;
     },
     staleTime: 30 * 1000, // 30 seconds
   });

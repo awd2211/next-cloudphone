@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Form, message } from 'antd';
-import type { CacheStats } from '@/components/CacheManagement';
 import {
   getCacheStats,
   resetCacheStats,
@@ -9,9 +8,10 @@ import {
   deleteCachePattern,
   checkCacheExists,
 } from '@/services/cache';
+import { useSafeApi } from './useSafeApi';
+import { CacheStatsResponseSchema } from '@/schemas/api.schemas';
 
 export const useCacheManagement = () => {
-  const [stats, setStats] = useState<CacheStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleteKeyModalVisible, setDeleteKeyModalVisible] = useState(false);
   const [deletePatternModalVisible, setDeletePatternModalVisible] = useState(false);
@@ -22,17 +22,26 @@ export const useCacheManagement = () => {
   const [patternForm] = Form.useForm();
   const [checkForm] = Form.useForm();
 
-  // 加载缓存统计
-  const loadStats = useCallback(async () => {
-    try {
-      const res = await getCacheStats();
-      if (res.success) {
-        setStats(res.data);
-      }
-    } catch (error) {
-      message.error('加载缓存统计失败');
+  // ✅ 使用 useSafeApi 加载缓存统计
+  const {
+    data: statsResponse,
+    execute: executeLoadStats,
+  } = useSafeApi(
+    getCacheStats,
+    CacheStatsResponseSchema,
+    {
+      errorMessage: '加载缓存统计失败',
+      fallbackValue: null,
+      manual: true,
     }
-  }, []);
+  );
+
+  const stats = statsResponse?.success ? statsResponse.data : null;
+
+  // 加载缓存统计的包装函数
+  const loadStats = useCallback(async () => {
+    await executeLoadStats();
+  }, [executeLoadStats]);
 
   // 自动刷新统计（每10秒）
   useEffect(() => {

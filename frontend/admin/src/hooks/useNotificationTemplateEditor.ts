@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Form, message } from 'antd';
+import { z } from 'zod';
 import {
   getNotificationTemplates,
   createNotificationTemplate,
@@ -16,80 +17,127 @@ import {
   createTemplateColumns,
 } from '@/components/NotificationTemplate';
 import type {
-  NotificationTemplate,
   CreateNotificationTemplateDto,
   UpdateNotificationTemplateDto,
-  NotificationTemplateVersion,
   PaginationParams,
 } from '@/types';
+import { useSafeApi } from './useSafeApi';
+import {
+  NotificationTemplateSchema,
+  NotificationTemplateVersionSchema,
+  PaginatedNotificationTemplatesResponseSchema,
+} from '@/schemas/api.schemas';
 
+/**
+ * 通知模板编辑器业务逻辑 Hook
+ *
+ * 功能:
+ * 1. 数据加载 (模板列表、版本历史、可用变量) - 使用 useSafeApi + Zod 验证
+ * 2. 模板管理 (CRUD、激活/停用)
+ * 3. 模板预览和测试发送
+ * 4. 版本管理和回滚
+ * 5. 分页和筛选
+ * 6. Modal 状态管理
+ */
 export const useNotificationTemplateEditor = () => {
-  // 状态管理
-  const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
+  // ===== 分页和筛选状态 =====
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [filterType, setFilterType] = useState<string | undefined>(undefined);
+  const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
+
+  // ===== Modal 状态 =====
   const [modalVisible, setModalVisible] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [testVisible, setTestVisible] = useState(false);
   const [versionDrawerVisible, setVersionDrawerVisible] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<NotificationTemplate | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<NotificationTemplate | null>(null);
-  const [versions, setVersions] = useState<NotificationTemplateVersion[]>([]);
-  const [availableVariables, setAvailableVariables] = useState<string[]>([]);
-  const [previewContent, setPreviewContent] = useState('');
-  const [filterType, setFilterType] = useState<string | undefined>(undefined);
-  const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
 
-  // Form 实例
+  // ===== 选中状态 =====
+  const [editingTemplate, setEditingTemplate] = useState<z.infer<typeof NotificationTemplateSchema> | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<z.infer<typeof NotificationTemplateSchema> | null>(null);
+  const [previewContent, setPreviewContent] = useState('');
+
+  // ===== Form 实例 =====
   const [form] = Form.useForm();
   const [testForm] = Form.useForm();
   const [previewForm] = Form.useForm();
 
-  // 加载模板列表
-  const loadTemplates = useCallback(async () => {
-    setLoading(true);
-    try {
+  // ===== 数据加载 (使用 useSafeApi) =====
+
+  /**
+   * 加载模板列表
+   */
+  const {
+    data: templatesResponse,
+    loading,
+    execute: executeLoadTemplates,
+  } = useSafeApi(
+    () => {
       const params: PaginationParams & { type?: string; isActive?: boolean } = {
         page,
         pageSize,
       };
       if (filterType) params.type = filterType;
       if (filterActive !== undefined) params.isActive = filterActive;
-
-      const res = await getNotificationTemplates(params);
-      setTemplates(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载模板失败');
-    } finally {
-      setLoading(false);
+      return getNotificationTemplates(params);
+    },
+    PaginatedNotificationTemplatesResponseSchema,
+    {
+      errorMessage: '加载模板失败',
+      fallbackValue: { data: [], total: 0 },
     }
-  }, [page, pageSize, filterType, filterActive]);
+  );
 
-  // 加载可用变量
-  const loadVariables = useCallback(async (type?: string) => {
-    try {
-      const vars = await getAvailableVariables(type);
-      setAvailableVariables(vars);
-    } catch (error) {
-      console.error('加载变量失败', error);
+  const templates = templatesResponse?.data || [];
+  const total = templatesResponse?.total || 0;
+
+  /**
+   * 加载可用变量
+   */
+  const {
+    data: availableVariables,
+    execute: executeLoadVariables,
+  } = useSafeApi(
+    (type?: string) => getAvailableVariables(type),
+    z.array(z.string()),
+    {
+      errorMessage: '加载变量失败',
+      fallbackValue: [],
+      showError: false,
+      manual: true,
     }
-  }, []);
+  );
 
-  // 初始化加载
+  /**
+   * 加载版本历史
+   */
+  const {
+    data: versions,
+    execute: executeLoadVersions,
+  } = useSafeApi(
+    (templateId: string) => getTemplateVersions(templateId),
+    z.array(NotificationTemplateVersionSchema),
+    {
+      errorMessage: '加载版本历史失败',
+      fallbackValue: [],
+      manual: true,
+    }
+  );
+
+  /**
+   * 初始化加载
+   */
   useEffect(() => {
-    loadTemplates();
-  }, [loadTemplates]);
+    executeLoadVariables();
+  }, [executeLoadVariables]);
 
-  useEffect(() => {
-    loadVariables();
-  }, [loadVariables]);
+  // ===== 模板操作 =====
 
-  // 打开创建/编辑模态框
+  /**
+   * 打开创建/编辑模态框
+   */
   const openModal = useCallback(
-    (template?: NotificationTemplate) => {
+    (template?: z.infer<typeof NotificationTemplateSchema>) => {
       if (template) {
         setEditingTemplate(template);
         form.setFieldsValue({
@@ -103,7 +151,7 @@ export const useNotificationTemplateEditor = () => {
           language: template.language,
           category: template.category,
         });
-        loadVariables(template.type);
+        executeLoadVariables(template.type);
       } else {
         setEditingTemplate(null);
         form.resetFields();
@@ -111,10 +159,12 @@ export const useNotificationTemplateEditor = () => {
       }
       setModalVisible(true);
     },
-    [form, loadVariables]
+    [form, executeLoadVariables]
   );
 
-  // 处理创建/更新
+  /**
+   * 处理创建/更新
+   */
   const handleSubmit = useCallback(async () => {
     try {
       const values = await form.validateFields();
@@ -148,46 +198,52 @@ export const useNotificationTemplateEditor = () => {
       }
 
       setModalVisible(false);
-      loadTemplates();
+      executeLoadTemplates();
     } catch (error: any) {
       if (error.errorFields) {
         return;
       }
       message.error(error.message || '操作失败');
     }
-  }, [form, editingTemplate, loadTemplates]);
+  }, [form, editingTemplate, executeLoadTemplates]);
 
-  // 删除模板
+  /**
+   * 删除模板
+   */
   const handleDelete = useCallback(
     async (id: string) => {
       try {
         await deleteNotificationTemplate(id);
         message.success('模板删除成功');
-        loadTemplates();
+        executeLoadTemplates();
       } catch (error) {
         message.error('删除失败');
       }
     },
-    [loadTemplates]
+    [executeLoadTemplates]
   );
 
-  // 切换激活状态
+  /**
+   * 切换激活状态
+   */
   const handleToggle = useCallback(
     async (id: string, isActive: boolean) => {
       try {
         await toggleNotificationTemplate(id, isActive);
         message.success(`模板已${isActive ? '激活' : '停用'}`);
-        loadTemplates();
+        executeLoadTemplates();
       } catch (error) {
         message.error('操作失败');
       }
     },
-    [loadTemplates]
+    [executeLoadTemplates]
   );
 
-  // 打开预览
+  /**
+   * 打开预览
+   */
   const openPreview = useCallback(
-    (template: NotificationTemplate) => {
+    (template: z.infer<typeof NotificationTemplateSchema>) => {
       setSelectedTemplate(template);
       setPreviewVisible(true);
       previewForm.resetFields();
@@ -195,7 +251,9 @@ export const useNotificationTemplateEditor = () => {
     [previewForm]
   );
 
-  // 预览渲染
+  /**
+   * 预览渲染
+   */
   const handlePreview = useCallback(async () => {
     try {
       const values = previewForm.getFieldsValue();
@@ -215,9 +273,11 @@ export const useNotificationTemplateEditor = () => {
     }
   }, [previewForm, selectedTemplate]);
 
-  // 打开测试发送
+  /**
+   * 打开测试发送
+   */
   const openTest = useCallback(
-    (template: NotificationTemplate) => {
+    (template: z.infer<typeof NotificationTemplateSchema>) => {
       setSelectedTemplate(template);
       setTestVisible(true);
       testForm.resetFields();
@@ -225,7 +285,9 @@ export const useNotificationTemplateEditor = () => {
     [testForm]
   );
 
-  // 测试发送
+  /**
+   * 测试发送
+   */
   const handleTest = useCallback(async () => {
     try {
       const values = await testForm.validateFields();
@@ -250,34 +312,35 @@ export const useNotificationTemplateEditor = () => {
     }
   }, [testForm, selectedTemplate]);
 
-  // 打开版本历史
-  const openVersionHistory = useCallback(async (template: NotificationTemplate) => {
+  /**
+   * 打开版本历史
+   */
+  const openVersionHistory = useCallback(async (template: z.infer<typeof NotificationTemplateSchema>) => {
     setSelectedTemplate(template);
     setVersionDrawerVisible(true);
-    try {
-      const versionList = await getTemplateVersions(template.id);
-      setVersions(versionList);
-    } catch (error) {
-      message.error('加载版本历史失败');
-    }
-  }, []);
+    await executeLoadVersions(template.id);
+  }, [executeLoadVersions]);
 
-  // 回滚版本
+  /**
+   * 回滚版本
+   */
   const handleRevert = useCallback(
     async (versionId: string) => {
       try {
         await revertTemplateVersion(selectedTemplate!.id, versionId);
         message.success('版本回滚成功');
         setVersionDrawerVisible(false);
-        loadTemplates();
+        executeLoadTemplates();
       } catch (error) {
         message.error('回滚失败');
       }
     },
-    [selectedTemplate, loadTemplates]
+    [selectedTemplate, executeLoadTemplates]
   );
 
-  // 表格列定义
+  /**
+   * 表格列定义
+   */
   const columns = useMemo(
     () =>
       createTemplateColumns({
@@ -291,7 +354,9 @@ export const useNotificationTemplateEditor = () => {
     [openPreview, openTest, openVersionHistory, openModal, handleDelete, handleToggle]
   );
 
-  // 分页处理
+  /**
+   * 分页处理
+   */
   const handlePageChange = useCallback((newPage: number, newPageSize?: number) => {
     setPage(newPage);
     setPageSize(newPageSize || 10);
@@ -304,26 +369,32 @@ export const useNotificationTemplateEditor = () => {
     total,
     page,
     pageSize,
+
     // 模态框状态
     modalVisible,
     previewVisible,
     testVisible,
     versionDrawerVisible,
+
     // 选中状态
     editingTemplate,
     selectedTemplate,
-    versions,
-    availableVariables,
+    versions: versions || [],
+    availableVariables: availableVariables || [],
     previewContent,
+
     // 筛选状态
     filterType,
     filterActive,
+
     // Form 实例
     form,
     testForm,
     previewForm,
+
     // 表格列
     columns,
+
     // 处理函数
     openModal,
     handleSubmit,
@@ -335,8 +406,9 @@ export const useNotificationTemplateEditor = () => {
     handleTest,
     openVersionHistory,
     handleRevert,
-    loadVariables,
+    loadVariables: executeLoadVariables,
     handlePageChange,
+
     // 状态设置
     setModalVisible,
     setPreviewVisible,

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Form, message } from 'antd';
+import { z } from 'zod';
 import {
   getApps,
   getPendingApps,
@@ -15,17 +16,68 @@ import {
   createRecordColumns,
 } from '@/components/AppReview';
 import type { Application, AppReviewRecord } from '@/types';
+import { useSafeApi } from './useSafeApi';
+import {
+  PaginatedAppsResponseSchema,
+  PaginatedAppReviewRecordsResponseSchema,
+  AppReviewRecordSchema,
+} from '@/schemas/api.schemas';
 
 export const useAppReviewList = () => {
-  // 状态管理
-  const [pendingApps, setPendingApps] = useState<Application[]>([]);
-  const [reviewedApps, setReviewedApps] = useState<Application[]>([]);
-  const [reviewRecords, setReviewRecords] = useState<AppReviewRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
+  // 分页和Tab状态
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [activeTab, setActiveTab] = useState('pending');
+
+  // ✅ 使用 useSafeApi 加载待审核应用
+  const {
+    data: pendingAppsResponse,
+    loading: pendingLoading,
+    execute: executePendingLoad,
+  } = useSafeApi(
+    () => getPendingApps({ page, pageSize }),
+    PaginatedAppsResponseSchema,
+    {
+      errorMessage: '加载待审核应用失败',
+      fallbackValue: { data: [], total: 0 },
+    }
+  );
+
+  // ✅ 使用 useSafeApi 加载已审核应用
+  const {
+    data: reviewedAppsResponse,
+    loading: reviewedLoading,
+    execute: executeReviewedLoad,
+  } = useSafeApi(
+    () =>
+      getApps({
+        page,
+        pageSize,
+        reviewStatus: activeTab === 'approved' ? 'approved' : 'rejected',
+      } as any),
+    PaginatedAppsResponseSchema,
+    {
+      errorMessage: '加载已审核应用失败',
+      fallbackValue: { data: [], total: 0 },
+    }
+  );
+
+  // ✅ 使用 useSafeApi 加载审核记录
+  const {
+    data: reviewRecordsResponse,
+    loading: recordsLoading,
+    execute: executeRecordsLoad,
+  } = useSafeApi(
+    () => getAppReviewRecords({ page, pageSize }),
+    PaginatedAppReviewRecordsResponseSchema,
+    {
+      errorMessage: '加载审核记录失败',
+      fallbackValue: { data: [], total: 0 },
+    }
+  );
+
+  // 计算当前loading状态
+  const loading = pendingLoading || reviewedLoading || recordsLoading;
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
@@ -38,51 +90,18 @@ export const useAppReviewList = () => {
   // Form 实例
   const [form] = Form.useForm();
 
-  // 加载待审核应用
+  // ✅ 简化的加载函数（调用 useSafeApi 的 execute）
   const loadPendingApps = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getPendingApps({ page, pageSize });
-      setPendingApps(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载待审核应用失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, pageSize]);
+    await executePendingLoad();
+  }, [executePendingLoad]);
 
-  // 加载已审核应用
   const loadReviewedApps = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getApps({
-        page,
-        pageSize,
-        reviewStatus: activeTab === 'approved' ? 'approved' : 'rejected',
-      } as any);
-      setReviewedApps(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载已审核应用失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, pageSize, activeTab]);
+    await executeReviewedLoad();
+  }, [executeReviewedLoad]);
 
-  // 加载审核记录
   const loadReviewRecords = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getAppReviewRecords({ page, pageSize });
-      setReviewRecords(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载审核记录失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, pageSize]);
+    await executeRecordsLoad();
+  }, [executeRecordsLoad]);
 
   // 根据activeTab加载对应数据
   useEffect(() => {
@@ -145,10 +164,18 @@ export const useAppReviewList = () => {
     setSelectedApp(app);
     try {
       const history = await getAppReviewHistory(app.id);
-      setReviewHistory(history);
+      // ✅ 使用 Zod 验证响应
+      const validationResult = z.array(AppReviewRecordSchema).safeParse(history);
+      if (validationResult.success) {
+        setReviewHistory(validationResult.data);
+      } else {
+        console.error('审核历史数据验证失败:', validationResult.error.issues);
+        setReviewHistory([]); // 验证失败时使用空数组
+      }
       setHistoryModalVisible(true);
     } catch (error) {
       message.error('加载审核历史失败');
+      setReviewHistory([]); // 错误时重置为空数组
     }
   }, []);
 
@@ -198,6 +225,20 @@ export const useAppReviewList = () => {
   );
 
   const recordColumns = useMemo(() => createRecordColumns(), []);
+
+  // ✅ 从响应中提取数据
+  const pendingApps = pendingAppsResponse?.data || [];
+  const reviewedApps = reviewedAppsResponse?.data || [];
+  const reviewRecords = reviewRecordsResponse?.data || [];
+
+  // ✅ 根据activeTab计算当前total
+  const total = useMemo(() => {
+    if (activeTab === 'pending') return pendingAppsResponse?.total || 0;
+    if (activeTab === 'approved' || activeTab === 'rejected')
+      return reviewedAppsResponse?.total || 0;
+    if (activeTab === 'history') return reviewRecordsResponse?.total || 0;
+    return 0;
+  }, [activeTab, pendingAppsResponse, reviewedAppsResponse, reviewRecordsResponse]);
 
   // 统计数据
   const stats = useMemo(

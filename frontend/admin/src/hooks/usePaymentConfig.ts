@@ -4,26 +4,27 @@ import {
   getPaymentConfig,
   updatePaymentConfig,
   testProviderConnection,
-  type PaymentConfig,
 } from '@/services/payment-admin';
+import { useSafeApi } from './useSafeApi';
+import { PaymentConfigSchema } from '@/schemas/api.schemas';
 
 export const usePaymentConfig = () => {
-  const [loading, setLoading] = useState(false);
-  const [config, setConfig] = useState<PaymentConfig | null>(null);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
 
-  // 加载配置
+  // ✅ 使用 useSafeApi 加载配置
+  const {
+    data: config,
+    loading,
+    execute: executeLoadConfig,
+  } = useSafeApi(getPaymentConfig, PaymentConfigSchema, {
+    errorMessage: '加载配置失败',
+    fallbackValue: null,
+  });
+
+  // 加载配置的包装函数
   const loadConfig = useCallback(async () => {
-    setLoading(true);
-    try {
-      const config = await getPaymentConfig();
-      setConfig(config);
-    } catch (error) {
-      message.error('加载配置失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await executeLoadConfig();
+  }, [executeLoadConfig]);
 
   // 初始加载
   useEffect(() => {

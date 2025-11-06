@@ -14,7 +14,9 @@ import {
   testSendSms,
   testStartDevice,
 } from '@/services/queue';
-import type { QueueStatus, QueueJob, QueueJobDetail, QueueSummary } from '@/types';
+import type { QueueJobDetail } from '@/types';
+import { useSafeApi } from './useSafeApi';
+import { QueuesStatusResponseSchema, QueueJobsResponseSchema, QueueJobDetailSchema } from '@/schemas/api.schemas';
 
 /**
  * 队列管理 Hook
@@ -27,14 +29,10 @@ import type { QueueStatus, QueueJob, QueueJobDetail, QueueSummary } from '@/type
  */
 export const useQueueManagement = () => {
   // ===== 状态管理 =====
-  const [summary, setSummary] = useState<QueueSummary | null>(null);
-  const [queues, setQueues] = useState<QueueStatus[]>([]);
   const [selectedQueue, setSelectedQueue] = useState<string>('');
-  const [jobs, setJobs] = useState<QueueJob[]>([]);
   const [jobStatus, setJobStatus] = useState<
     'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
   >('waiting');
-  const [loading, setLoading] = useState(false);
   const [jobDetailVisible, setJobDetailVisible] = useState(false);
   const [jobDetail, setJobDetail] = useState<QueueJobDetail | null>(null);
   const [testModalVisible, setTestModalVisible] = useState(false);
@@ -42,54 +40,77 @@ export const useQueueManagement = () => {
 
   const [testForm] = Form.useForm();
 
+  // ✅ 使用 useSafeApi 加载队列状态
+  const {
+    data: queuesStatusResponse,
+    execute: executeLoadQueuesStatus,
+  } = useSafeApi(getAllQueuesStatus, QueuesStatusResponseSchema, {
+    errorMessage: '加载队列状态失败',
+    fallbackValue: { queues: [], summary: undefined },
+  });
+
+  // ✅ 使用 useSafeApi 加载任务列表
+  const {
+    data: jobsResponse,
+    loading,
+    execute: executeLoadJobs,
+  } = useSafeApi(
+    () => {
+      if (!selectedQueue) return Promise.resolve({ jobs: [], total: 0 });
+      return getQueueJobs(selectedQueue, jobStatus, 0, 50);
+    },
+    QueueJobsResponseSchema,
+    {
+      errorMessage: '加载任务列表失败',
+      fallbackValue: { jobs: [], total: 0 },
+    }
+  );
+
+  // ✅ 使用 useSafeApi 加载任务详情
+  const {
+    execute: executeLoadJobDetail,
+  } = useSafeApi(
+    (queueName: string, jobId: string) => getJobDetail(queueName, jobId),
+    QueueJobDetailSchema,
+    {
+      errorMessage: '加载任务详情失败',
+      manual: true,
+    }
+  );
+
   // ===== 数据加载 =====
   /**
    * 加载所有队列状态
    */
   const loadQueuesStatus = useCallback(async () => {
-    try {
-      const res = await getAllQueuesStatus();
-      setQueues(res.queues);
-      setSummary(res.summary);
-
-      // 如果还没选择队列，自动选择第一个
-      if (!selectedQueue && res.queues.length > 0) {
-        setSelectedQueue(res.queues[0].name);
+    const response = await executeLoadQueuesStatus();
+    // 如果还没选择队列，自动选择第一个（使用可选链避免数组访问警告）
+    if (!selectedQueue && response?.queues && response.queues.length > 0) {
+      const firstQueueName = response.queues?.[0]?.name;
+      if (firstQueueName) {
+        setSelectedQueue(firstQueueName);
       }
-    } catch (error) {
-      message.error('加载队列状态失败');
     }
-  }, [selectedQueue]);
+  }, [executeLoadQueuesStatus, selectedQueue]);
 
   /**
    * 加载指定队列的任务列表
    */
   const loadJobs = useCallback(async () => {
     if (!selectedQueue) return;
-
-    setLoading(true);
-    try {
-      const res = await getQueueJobs(selectedQueue, jobStatus, 0, 50);
-      setJobs(res.jobs);
-    } catch (error) {
-      message.error('加载任务列表失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedQueue, jobStatus]);
+    await executeLoadJobs();
+  }, [selectedQueue, executeLoadJobs]);
 
   /**
    * 查看任务详情
    */
   const viewJobDetail = useCallback(async (queueName: string, jobId: string) => {
-    try {
-      const res = await getJobDetail(queueName, jobId);
-      setJobDetail(res);
+    const detail = await executeLoadJobDetail(queueName, jobId);
+    if (detail) {
+      setJobDetail(detail);
       setJobDetailVisible(true);
-    } catch (error) {
-      message.error('加载任务详情失败');
     }
-  }, []);
+  }, [executeLoadJobDetail]);
 
   // ===== 任务操作 =====
   /**
@@ -270,11 +291,11 @@ export const useQueueManagement = () => {
 
   // ===== 返回所有状态和方法 =====
   return {
-    // 状态
-    summary,
-    queues,
+    // 状态 - ✅ 从响应中提取
+    summary: queuesStatusResponse?.summary || null,
+    queues: queuesStatusResponse?.queues || [],
     selectedQueue,
-    jobs,
+    jobs: jobsResponse?.jobs || [],
     jobStatus,
     loading,
     jobDetailVisible,

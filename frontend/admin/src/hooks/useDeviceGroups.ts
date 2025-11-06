@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { message, Form } from 'antd';
+import { z } from 'zod';
 import request from '@/utils/request';
+import { useSafeApi } from './useSafeApi';
+import { DeviceGroupSchema } from '@/schemas/api.schemas';
 
 export interface DeviceGroup {
   id: string;
@@ -34,24 +37,29 @@ interface UseDeviceGroupsReturn {
  * 封装设备分组的 CRUD 操作
  */
 export const useDeviceGroups = (): UseDeviceGroupsReturn => {
-  const [groups, setGroups] = useState<DeviceGroup[]>([]);
-  const [loading, setLoading] = useState(false);
+  // ✅ 使用 useSafeApi 加载设备分组
+  const {
+    data: groupsData,
+    loading,
+    execute: executeLoadGroups,
+  } = useSafeApi(
+    () => request.get('/devices/groups'),
+    z.array(DeviceGroupSchema),
+    {
+      errorMessage: '加载分组失败',
+      fallbackValue: [],
+    }
+  );
+
+  // 模态框和编辑状态
   const [modalVisible, setModalVisible] = useState(false);
   const [editingGroup, setEditingGroup] = useState<DeviceGroup | null>(null);
   const [form] = Form.useForm();
 
-  // 加载分组列表
+  // ✅ 简化的加载函数
   const loadGroups = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await request.get('/devices/groups');
-      setGroups(res);
-    } catch (error) {
-      message.error('加载分组失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await executeLoadGroups();
+  }, [executeLoadGroups]);
 
   // 初始化加载
   useEffect(() => {
@@ -111,7 +119,7 @@ export const useDeviceGroups = (): UseDeviceGroupsReturn => {
   );
 
   return {
-    groups,
+    groups: groupsData || [], // ✅ 从响应中提取
     loading,
     modalVisible,
     editingGroup,

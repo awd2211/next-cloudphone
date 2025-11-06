@@ -1,50 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Badge, Dropdown, List, Button, Empty, Spin } from 'antd';
 import { BellOutlined } from '@ant-design/icons';
-import {
-  getNotifications,
-  getUnreadCount,
-  markAsRead,
-  notificationWS,
-  type Notification,
-} from '@/services/notification';
+import type { Notification } from '@/services/notification';
 import { useNavigate } from 'react-router-dom';
+import { useNotificationCenter } from '@/hooks/useNotificationCenter';
 
 const NotificationCenter: React.FC = () => {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // 获取当前用户 ID（从认证状态中获取）
   const userId = localStorage.getItem('userId') || 'test-user-id';
 
-  // 加载通知列表
-  const loadNotifications = async () => {
-    setLoading(true);
-    try {
-      const response = await getNotifications({ page: 1, limit: 10 });
-      setNotifications(response.data);
-      const countResponse = await getUnreadCount();
-      setUnreadCount(countResponse.count);
-    } catch (error) {
-      console.error('Failed to load notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 标记通知为已读
-  const handleMarkAsRead = async (id: string) => {
-    try {
-      await markAsRead(id);
-      setNotifications(notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
-      setUnreadCount(Math.max(0, unreadCount - 1));
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
-    }
-  };
+  // ✅ 使用重构后的 hook
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    handleMarkAsRead,
+  } = useNotificationCenter(userId);
 
   // 点击通知
   const handleNotificationClick = (notification: Notification) => {
@@ -56,39 +30,6 @@ const NotificationCenter: React.FC = () => {
       setDropdownOpen(false);
     }
   };
-
-  // 初始化 WebSocket 和加载通知
-  useEffect(() => {
-    loadNotifications();
-
-    // 连接 WebSocket
-    notificationWS.connect(userId);
-
-    // 监听新通知
-    const handleNewNotification = (notification: Notification) => {
-      setNotifications((prev) => [notification, ...prev.slice(0, 9)]);
-      setUnreadCount((prev) => prev + 1);
-
-      // 可以在这里显示浏览器通知
-      if (Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.content,
-          icon: '/logo.png',
-        });
-      }
-    };
-
-    notificationWS.on('notification', handleNewNotification);
-
-    // 请求浏览器通知权限
-    if (Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-
-    return () => {
-      notificationWS.off('notification', handleNewNotification);
-    };
-  }, [userId]);
 
   const dropdownMenu = (
     <div

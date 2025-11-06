@@ -17,7 +17,7 @@ export const EventStatsTab = memo<EventStatsTabProps>(({ stats, getEventTypeColo
       <Col span={12}>
         <Card title="按类型统计">
           <Space direction="vertical" style={{ width: '100%' }}>
-            {stats &&
+            {stats?.eventsByType &&
               Object.entries(stats.eventsByType).map(([type, count]) => (
                 <div
                   key={type}

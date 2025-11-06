@@ -1,72 +1,108 @@
 import { useState, useEffect, useCallback } from 'react';
-import { message } from 'antd';
+import { z } from 'zod';
 import dayjs from 'dayjs';
-import type { MeteringOverview, UserMetering, DeviceMetering, TrendType } from '@/components/Metering';
+import type { TrendType } from '@/components/Metering';
 import {
   getMeteringOverview,
   getUserMeterings,
   getDeviceMeterings,
 } from '@/services/billing';
+import { useSafeApi } from './useSafeApi';
+import {
+  MeteringOverviewSchema,
+  UserMeteringSchema,
+  DeviceMeteringSchema,
+} from '@/schemas/api.schemas';
 
+/**
+ * 计量仪表板业务逻辑 Hook
+ *
+ * 功能:
+ * 1. 数据加载 (概览、用户计量、设备计量) - 使用 useSafeApi + Zod 验证
+ * 2. 日期范围管理
+ * 3. 趋势类型管理
+ */
 export const useMeteringDashboard = () => {
-  const [overview, setOverview] = useState<MeteringOverview | null>(null);
-  const [userMeterings, setUserMeterings] = useState<UserMetering[]>([]);
-  const [deviceMeterings, setDeviceMeterings] = useState<DeviceMetering[]>([]);
-  const [loading, setLoading] = useState(false);
+  // ===== 日期和趋势状态 =====
   const [dateRange, setDateRange] = useState<[string, string]>([
     dayjs().subtract(30, 'days').format('YYYY-MM-DD'),
     dayjs().format('YYYY-MM-DD'),
   ]);
   const [trendType, setTrendType] = useState<TrendType>('daily');
 
-  // 加载概览数据
-  const loadOverview = useCallback(async () => {
-    try {
-      const data = await getMeteringOverview();
-      setOverview(data as MeteringOverview);
-    } catch (error) {
-      message.error('加载概览数据失败');
-    }
-  }, []);
+  // ===== 数据加载 (使用 useSafeApi) =====
 
-  // 加载用户计量
-  const loadUserMeterings = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getUserMeterings({
+  /**
+   * 加载概览数据
+   */
+  const { data: overview } = useSafeApi(
+    getMeteringOverview,
+    MeteringOverviewSchema,
+    {
+      errorMessage: '加载概览数据失败',
+      showError: false,
+    }
+  );
+
+  /**
+   * 加载用户计量
+   */
+  const {
+    data: userMeteringsResponse,
+    loading: userMeteringsLoading,
+    execute: executeLoadUserMeterings,
+  } = useSafeApi(
+    () =>
+      getUserMeterings({
         startDate: dateRange[0],
         endDate: dateRange[1],
-      });
-      setUserMeterings(res.data as UserMetering[]);
-    } catch (error) {
-      message.error('加载用户计量失败');
-    } finally {
-      setLoading(false);
+      }),
+    z.object({
+      data: z.array(UserMeteringSchema),
+    }),
+    {
+      errorMessage: '加载用户计量失败',
+      fallbackValue: { data: [] },
     }
-  }, [dateRange]);
+  );
 
-  // 加载设备计量
-  const loadDeviceMeterings = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getDeviceMeterings({
+  const userMeterings = userMeteringsResponse?.data || [];
+
+  /**
+   * 加载设备计量
+   */
+  const {
+    data: deviceMeteringsResponse,
+    loading: deviceMeteringsLoading,
+    execute: executeLoadDeviceMeterings,
+  } = useSafeApi(
+    () =>
+      getDeviceMeterings({
         startDate: dateRange[0],
         endDate: dateRange[1],
-      });
-      setDeviceMeterings(res.data as DeviceMetering[]);
-    } catch (error) {
-      message.error('加载设备计量失败');
-    } finally {
-      setLoading(false);
+      }),
+    z.object({
+      data: z.array(DeviceMeteringSchema),
+    }),
+    {
+      errorMessage: '加载设备计量失败',
+      fallbackValue: { data: [] },
     }
-  }, [dateRange]);
+  );
 
+  const deviceMeterings = deviceMeteringsResponse?.data || [];
+
+  /**
+   * 日期范围变化时重新加载数据
+   */
   useEffect(() => {
-    loadOverview();
-    loadUserMeterings();
-    loadDeviceMeterings();
-  }, [dateRange, loadOverview, loadUserMeterings, loadDeviceMeterings]);
+    executeLoadUserMeterings();
+    executeLoadDeviceMeterings();
+  }, [dateRange, executeLoadUserMeterings, executeLoadDeviceMeterings]);
 
+  /**
+   * 日期范围变更处理
+   */
   const handleDateRangeChange = useCallback((dates: any) => {
     if (dates) {
       setDateRange([dates[0]!.format('YYYY-MM-DD'), dates[1]!.format('YYYY-MM-DD')]);
@@ -74,10 +110,10 @@ export const useMeteringDashboard = () => {
   }, []);
 
   return {
-    overview,
+    overview: overview || null,
     userMeterings,
     deviceMeterings,
-    loading,
+    loading: userMeteringsLoading || deviceMeteringsLoading,
     dateRange,
     trendType,
     setTrendType,

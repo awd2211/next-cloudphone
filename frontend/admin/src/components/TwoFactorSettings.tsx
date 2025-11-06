@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Modal, Button, Steps, Input, message, Card, Alert, Space } from 'antd';
 import { SafetyOutlined, QrcodeOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { generate2FASecret, enable2FA, disable2FA } from '@/services/twoFactor';
-import type { TwoFactorSecret } from '@/services/twoFactor';
+import { useSafeApi } from '@/hooks/useSafeApi';
+import { TwoFactorSecretSchema } from '@/schemas/api.schemas';
 
 interface TwoFactorSettingsProps {
   isEnabled: boolean;
@@ -12,27 +13,31 @@ interface TwoFactorSettingsProps {
 const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [secret, setSecret] = useState<TwoFactorSecret | null>(null);
   const [verificationCode, setVerificationCode] = useState('');
   const [disableModalVisible, setDisableModalVisible] = useState(false);
   const [disableCode, setDisableCode] = useState('');
+
+  // ✅ 使用 useSafeApi 生成2FA密钥
+  const {
+    data: secret,
+    loading,
+    execute: executeGenerateSecret,
+  } = useSafeApi(generate2FASecret, TwoFactorSecretSchema, {
+    errorMessage: '生成2FA密钥失败',
+    fallbackValue: null,
+    manual: true,
+  });
 
   // 启用2FA流程
   const handleEnableClick = async () => {
     setModalVisible(true);
     setCurrentStep(0);
-    setLoading(true);
 
     try {
-      const data = await generate2FASecret();
-      setSecret(data);
+      await executeGenerateSecret();
       setCurrentStep(1);
     } catch (error) {
-      message.error('生成2FA密钥失败');
       setModalVisible(false);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -43,7 +48,6 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
       return;
     }
 
-    setLoading(true);
     try {
       await enable2FA({ token: verificationCode });
       message.success('双因素认证已启用！');
@@ -51,14 +55,11 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
       setTimeout(() => {
         setModalVisible(false);
         setVerificationCode('');
-        setSecret(null);
         setCurrentStep(0);
         onStatusChange();
       }, 2000);
     } catch (error: any) {
       message.error(error.response?.data?.message || '验证码错误，请重试');
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { message, Form } from 'antd';
-import type { Quota, CreateQuotaDto, UpdateQuotaDto, QuotaAlert } from '@/types';
+import type { Quota, CreateQuotaDto, UpdateQuotaDto } from '@/types';
 import * as quotaService from '@/services/quota';
+import { useSafeApi } from './useSafeApi';
+import { QuotaAlertsResponseSchema } from '@/schemas/api.schemas';
 
 interface UseQuotaListReturn {
   // 数据状态
   quotas: Quota[];
   loading: boolean;
-  alerts: QuotaAlert[];
+  alerts: ReturnType<typeof useSafeApi>['data'];
 
   // Modal 状态
   createModalVisible: boolean;
@@ -34,12 +36,27 @@ interface UseQuotaListReturn {
 export const useQuotaList = (): UseQuotaListReturn => {
   const [quotas, setQuotas] = useState<Quota[]>([]);
   const [loading, setLoading] = useState(false);
-  const [alerts, setAlerts] = useState<QuotaAlert[]>([]);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedQuota, setSelectedQuota] = useState<Quota | null>(null);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
+
+  // ✅ 使用 useSafeApi 加载配额告警
+  const {
+    data: alertsResponse,
+    execute: executeLoadAlerts,
+  } = useSafeApi(
+    () => quotaService.getQuotaAlerts(80),
+    QuotaAlertsResponseSchema,
+    {
+      errorMessage: '加载配额告警失败',
+      fallbackValue: { success: false, data: [] },
+      showError: false,
+    }
+  );
+
+  const alerts = alertsResponse?.success && alertsResponse.data ? alertsResponse.data : [];
 
   // 加载配额列表
   const loadQuotas = useCallback(async () => {
@@ -57,17 +74,10 @@ export const useQuotaList = (): UseQuotaListReturn => {
     }
   }, []);
 
-  // 加载配额告警
+  // 加载配额告警的包装函数
   const loadAlerts = useCallback(async () => {
-    try {
-      const result = await quotaService.getQuotaAlerts(80);
-      if (result.success && result.data) {
-        setAlerts(result.data);
-      }
-    } catch (error) {
-      console.error('加载配额告警失败:', error);
-    }
-  }, []);
+    await executeLoadAlerts();
+  }, [executeLoadAlerts]);
 
   // 初始化加载
   useEffect(() => {

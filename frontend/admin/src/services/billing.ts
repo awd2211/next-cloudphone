@@ -83,11 +83,68 @@ export const refundOrder = (orderId: string, amount: number, reason: string) => 
 
 // ========== 使用记录相关 ==========
 
-// 使用记录列表
+// 使用记录列表（原始接口 - 废弃，保留向后兼容）
 export const getUsageRecords = (
   params?: PaginationParams & { userId?: string; deviceId?: string }
 ) => {
   return request.get<PaginatedResponse<UsageRecord>>('/billing/usage', { params });
+};
+
+// 管理员专用 - 获取所有用户使用记录（高级筛选）
+export const getAdminUsageRecords = (
+  params?: PaginationParams & {
+    userId?: string;
+    deviceId?: string;
+    status?: 'active' | 'completed';
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  }
+) => {
+  return request.get<PaginatedResponse<UsageRecord>>('/billing/admin/usage/records', { params });
+};
+
+// 管理员专用 - 获取使用统计数据
+export const getAdminUsageStats = (
+  params?: {
+    userId?: string;
+    deviceId?: string;
+    status?: 'active' | 'completed';
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  }
+) => {
+  return request.get<{
+    totalDuration: number;
+    totalCost: number;
+    activeUsers: number;
+    activeDevices: number;
+    avgDuration: number;
+    totalRecords: number;
+    dateRange?: {
+      startDate: string;
+      endDate: string;
+    };
+  }>('/billing/admin/usage/stats', { params });
+};
+
+// 管理员专用 - 导出使用记录
+export const exportAdminUsageRecords = (
+  params?: {
+    userId?: string;
+    deviceId?: string;
+    status?: 'active' | 'completed';
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+    format?: 'csv' | 'excel' | 'json';
+  }
+) => {
+  return request.get('/billing/admin/usage/export', {
+    params,
+    responseType: 'blob',
+  });
 };
 
 // 用户使用统计

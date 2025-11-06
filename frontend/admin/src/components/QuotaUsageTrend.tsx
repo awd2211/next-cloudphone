@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, Select, Spin, Empty, DatePicker, Space, Button } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
-import type { QuotaStatistics } from '@/types';
 import * as quotaService from '@/services/quota';
 import dayjs, { Dayjs } from 'dayjs';
+import { useSafeApi } from '@/hooks/useSafeApi';
+import { QuotaStatisticsResponseSchema } from '@/schemas/api.schemas';
 
 const { RangePicker } = DatePicker;
 
@@ -47,8 +48,6 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
   showCard = true,
   chartType = 'line',
 }) => {
-  const [statistics, setStatistics] = useState<QuotaStatistics | null>(null);
-  const [loading, setLoading] = useState(false);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([
     'devices',
     'cpuCores',
@@ -60,26 +59,33 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
     dayjs(),
   ]);
 
-  // 加载使用统计
-  const loadStatistics = async () => {
-    if (!userId) return;
-
-    setLoading(true);
-    try {
-      const result = await quotaService.getUsageStats(userId);
-      if (result.success && result.data) {
-        setStatistics(result.data);
-      }
-    } catch (error) {
-      console.error('加载使用统计失败:', error);
-    } finally {
-      setLoading(false);
+  // ✅ 使用 useSafeApi 加载使用统计
+  const {
+    data: statisticsResponse,
+    loading,
+    execute: executeLoadStatistics,
+  } = useSafeApi(
+    (uid: string) => quotaService.getUsageStats(uid),
+    QuotaStatisticsResponseSchema,
+    {
+      errorMessage: '加载使用统计失败',
+      fallbackValue: null,
+      manual: true,
+      showError: false,
     }
-  };
+  );
+
+  const statistics = statisticsResponse?.success ? statisticsResponse.data : null;
+
+  // 加载使用统计
+  const loadStatistics = useCallback(async () => {
+    if (!userId) return;
+    await executeLoadStatistics(userId);
+  }, [userId, executeLoadStatistics]);
 
   useEffect(() => {
     loadStatistics();
-  }, [userId]);
+  }, [loadStatistics]);
 
   // 指标配置
   const metricOptions = [

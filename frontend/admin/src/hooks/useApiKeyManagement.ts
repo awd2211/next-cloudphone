@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Form, message } from 'antd';
+import { z } from 'zod';
 import dayjs from 'dayjs';
-import type { ApiKey, ApiKeyStatistics, CreateApiKeyDto } from '@/types';
+import type { ApiKey, CreateApiKeyDto } from '@/types';
 import {
   getUserApiKeys,
   getApiKeyById,
@@ -11,11 +12,16 @@ import {
   deleteApiKey,
   getApiKeyStatistics,
 } from '@/services/apiKey';
+import { useSafeApi } from './useSafeApi';
+import { ApiKeySchema, ApiKeyStatisticsResponseSchema } from '@/schemas/api.schemas';
+
+// API Keys 响应 Schema
+const ApiKeysResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.array(ApiKeySchema),
+});
 
 export const useApiKeyManagement = () => {
-  const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [statistics, setStatistics] = useState<ApiKeyStatistics | null>(null);
-  const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isKeyModalVisible, setIsKeyModalVisible] = useState(false);
@@ -28,34 +34,49 @@ export const useApiKeyManagement = () => {
   const [filterUserId, setFilterUserId] = useState<string>('');
   const [confirmLoading, setConfirmLoading] = useState(false);
 
+  // ✅ 使用 useSafeApi 加载 API Keys
+  const {
+    data: keysResponse,
+    loading,
+    execute: executeLoadKeys,
+  } = useSafeApi(
+    () => (filterUserId ? getUserApiKeys(filterUserId) : Promise.resolve({ success: false, data: [] })),
+    ApiKeysResponseSchema,
+    {
+      errorMessage: '加载API密钥列表失败',
+      fallbackValue: { success: false, data: [] },
+    }
+  );
+
+  // ✅ 使用 useSafeApi 加载统计数据
+  const {
+    data: statisticsResponse,
+    execute: executeLoadStatistics,
+  } = useSafeApi(
+    () => {
+      if (!filterUserId) throw new Error('No user ID');
+      return getApiKeyStatistics(filterUserId);
+    },
+    ApiKeyStatisticsResponseSchema,
+    {
+      errorMessage: '加载统计数据失败',
+      fallbackValue: null,
+      manual: true,
+      showError: false,
+    }
+  );
+
+  const statistics = statisticsResponse?.success ? statisticsResponse.data : null;
+
   const loadKeys = useCallback(async () => {
     if (!filterUserId) return;
-
-    setLoading(true);
-    try {
-      const res = await getUserApiKeys(filterUserId);
-      if (res.success) {
-        setKeys(res.data);
-      }
-    } catch (error) {
-      message.error('加载API密钥列表失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [filterUserId]);
+    await executeLoadKeys();
+  }, [filterUserId, executeLoadKeys]);
 
   const loadStatistics = useCallback(async () => {
     if (!filterUserId) return;
-
-    try {
-      const res = await getApiKeyStatistics(filterUserId);
-      if (res.success) {
-        setStatistics(res.data);
-      }
-    } catch (error) {
-      console.error('加载统计数据失败', error);
-    }
-  }, [filterUserId]);
+    await executeLoadStatistics();
+  }, [filterUserId, executeLoadStatistics]);
 
   useEffect(() => {
     if (filterUserId) {
@@ -185,7 +206,7 @@ export const useApiKeyManagement = () => {
 
   return {
     // State
-    keys,
+    keys: keysResponse?.data || [], // ✅ 确保永远返回数组
     statistics,
     loading,
     isModalVisible,

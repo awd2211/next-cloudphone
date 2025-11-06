@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Form, message } from 'antd';
+import { z } from 'zod';
 import {
   getNodes,
   getClusterStats,
@@ -12,94 +13,129 @@ import {
   getActiveStrategy,
   setActiveStrategy,
   getTasks,
-  type SchedulerNode,
-  type ClusterStats,
-  type SchedulingStrategy,
-  type SchedulingTask,
   type CreateNodeDto,
   type UpdateNodeDto,
 } from '@/services/scheduler';
+import { useSafeApi } from './useSafeApi';
+import {
+  SchedulerNodeSchema,
+  ClusterStatsSchema,
+  SchedulingStrategySchema,
+  SchedulingTaskSchema,
+} from '@/schemas/api.schemas';
 
 /**
  * 调度器仪表盘业务逻辑 Hook
  *
  * 功能:
- * 1. 数据加载 (节点、统计、策略、任务)
+ * 1. 数据加载 (节点、统计、策略、任务) - 使用 useSafeApi + Zod 验证
  * 2. 节点管理 (CRUD、维护模式、排空)
  * 3. 策略管理 (激活策略)
  * 4. Modal 状态管理
  */
 export const useSchedulerDashboard = () => {
-  // ===== 数据状态 =====
-  const [nodes, setNodes] = useState<SchedulerNode[]>([]);
-  const [clusterStats, setClusterStats] = useState<ClusterStats | null>(null);
-  const [strategies, setStrategies] = useState<SchedulingStrategy[]>([]);
-  const [activeStrategyState, setActiveStrategyState] = useState<SchedulingStrategy | null>(null);
-  const [tasks, setTasks] = useState<SchedulingTask[]>([]);
-  const [loading, setLoading] = useState(false);
-
   // ===== Modal 状态 =====
   const [nodeModalVisible, setNodeModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [editingNode, setEditingNode] = useState<SchedulerNode | null>(null);
-  const [selectedNode, setSelectedNode] = useState<SchedulerNode | null>(null);
+  const [editingNode, setEditingNode] = useState<z.infer<typeof SchedulerNodeSchema> | null>(null);
+  const [selectedNode, setSelectedNode] = useState<z.infer<typeof SchedulerNodeSchema> | null>(null);
   const [activeTab, setActiveTab] = useState('nodes');
 
   // ===== Form =====
   const [nodeForm] = Form.useForm();
 
-  // ===== 数据加载 =====
-  const loadNodes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getNodes({ page: 1, pageSize: 100 });
-      setNodes(res.data);
-    } catch (error) {
-      message.error('加载节点失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // ===== 数据加载 (使用 useSafeApi) =====
 
-  const loadClusterStats = useCallback(async () => {
-    try {
-      const stats = await getClusterStats();
-      setClusterStats(stats);
-    } catch (error) {
-      message.error('加载集群统计失败');
+  /**
+   * 加载节点列表
+   */
+  const {
+    data: nodesResponse,
+    loading,
+    execute: executeLoadNodes,
+  } = useSafeApi(
+    () => getNodes({ page: 1, pageSize: 100 }),
+    z.object({
+      data: z.array(SchedulerNodeSchema),
+      total: z.number(),
+    }),
+    {
+      errorMessage: '加载节点失败',
+      fallbackValue: { data: [], total: 0 },
     }
-  }, []);
+  );
 
-  const loadStrategies = useCallback(async () => {
-    try {
-      const strategies = await getStrategies();
-      setStrategies(strategies);
-      const active = await getActiveStrategy();
-      setActiveStrategyState(active);
-    } catch (error) {
-      message.error('加载调度策略失败');
+  const nodes = nodesResponse?.data || [];
+
+  /**
+   * 加载集群统计
+   */
+  const { data: clusterStats } = useSafeApi(
+    getClusterStats,
+    ClusterStatsSchema,
+    {
+      errorMessage: '加载集群统计失败',
+      showError: false,
     }
-  }, []);
+  );
 
-  const loadTasks = useCallback(async () => {
-    try {
-      const res = await getTasks({ page: 1, pageSize: 20 });
-      setTasks(res.data);
-    } catch (error) {
-      message.error('加载调度任务失败');
+  /**
+   * 加载调度策略和激活策略
+   */
+  const { data: strategiesData, execute: executeLoadStrategies } = useSafeApi(
+    async () => {
+      const [strategies, active] = await Promise.all([
+        getStrategies(),
+        getActiveStrategy(),
+      ]);
+      return { strategies, active };
+    },
+    z.object({
+      strategies: z.array(SchedulingStrategySchema),
+      active: SchedulingStrategySchema.nullable(),
+    }),
+    {
+      errorMessage: '加载调度策略失败',
+      fallbackValue: { strategies: [], active: null },
     }
-  }, []);
+  );
 
+  const strategies = strategiesData?.strategies || [];
+  const activeStrategy = strategiesData?.active || null;
+
+  /**
+   * 加载调度任务
+   */
+  const { data: tasksResponse, execute: executeLoadTasks } = useSafeApi(
+    () => getTasks({ page: 1, pageSize: 20 }),
+    z.object({
+      data: z.array(SchedulingTaskSchema),
+      total: z.number(),
+    }),
+    {
+      errorMessage: '加载调度任务失败',
+      fallbackValue: { data: [], total: 0 },
+    }
+  );
+
+  const tasks = tasksResponse?.data || [];
+
+  /**
+   * 初始化加载
+   */
   useEffect(() => {
-    loadNodes();
-    loadClusterStats();
-    loadStrategies();
-    loadTasks();
-  }, []);
+    executeLoadNodes();
+    executeLoadStrategies();
+    executeLoadTasks();
+  }, [executeLoadNodes, executeLoadStrategies, executeLoadTasks]);
 
   // ===== 节点操作 =====
+
+  /**
+   * 打开节点模态框（创建或编辑）
+   */
   const openNodeModal = useCallback(
-    (node?: SchedulerNode) => {
+    (node?: z.infer<typeof SchedulerNodeSchema>) => {
       if (node) {
         setEditingNode(node);
         nodeForm.setFieldsValue({
@@ -122,6 +158,9 @@ export const useSchedulerDashboard = () => {
     [nodeForm]
   );
 
+  /**
+   * 提交节点表单（创建或更新）
+   */
   const handleNodeSubmit = useCallback(async () => {
     try {
       const values = await nodeForm.validateFields();
@@ -151,81 +190,97 @@ export const useSchedulerDashboard = () => {
       }
 
       setNodeModalVisible(false);
-      loadNodes();
-      loadClusterStats();
+      executeLoadNodes();
+      // clusterStats 会自动重新加载
     } catch (error: any) {
       if (error.errorFields) {
         return;
       }
       message.error(error.message || '操作失败');
     }
-  }, [editingNode, nodeForm, loadNodes, loadClusterStats]);
+  }, [editingNode, nodeForm, executeLoadNodes]);
 
+  /**
+   * 删除节点
+   */
   const handleDeleteNode = useCallback(
     async (id: string) => {
       try {
         await deleteNode(id);
         message.success('节点删除成功');
-        loadNodes();
-        loadClusterStats();
+        executeLoadNodes();
+        // clusterStats 会自动重新加载
       } catch (error) {
         message.error('删除失败');
       }
     },
-    [loadNodes, loadClusterStats]
+    [executeLoadNodes]
   );
 
+  /**
+   * 切换维护模式
+   */
   const handleToggleMaintenance = useCallback(
     async (id: string, enable: boolean) => {
       try {
         await setNodeMaintenance(id, enable);
         message.success(`节点已${enable ? '进入' : '退出'}维护模式`);
-        loadNodes();
+        executeLoadNodes();
       } catch (error) {
         message.error('操作失败');
       }
     },
-    [loadNodes]
+    [executeLoadNodes]
   );
 
+  /**
+   * 排空节点
+   */
   const handleDrainNode = useCallback(
     async (id: string) => {
       try {
         await drainNode(id);
         message.success('节点排空任务已提交');
-        loadNodes();
+        executeLoadNodes();
       } catch (error) {
         message.error('操作失败');
       }
     },
-    [loadNodes]
+    [executeLoadNodes]
   );
 
-  const openNodeDetail = useCallback((node: SchedulerNode) => {
+  /**
+   * 打开节点详情模态框
+   */
+  const openNodeDetail = useCallback((node: z.infer<typeof SchedulerNodeSchema>) => {
     setSelectedNode(node);
     setDetailModalVisible(true);
   }, []);
 
   // ===== 策略操作 =====
+
+  /**
+   * 激活调度策略
+   */
   const handleActivateStrategy = useCallback(
     async (id: string) => {
       try {
         await setActiveStrategy(id);
         message.success('调度策略已激活');
-        loadStrategies();
+        executeLoadStrategies();
       } catch (error) {
         message.error('操作失败');
       }
     },
-    [loadStrategies]
+    [executeLoadStrategies]
   );
 
   return {
     // 数据
     nodes,
-    clusterStats,
+    clusterStats: clusterStats || null,
     strategies,
-    activeStrategy: activeStrategyState,
+    activeStrategy,
     tasks,
     loading,
 
@@ -243,8 +298,8 @@ export const useSchedulerDashboard = () => {
     nodeForm,
 
     // 操作
-    loadNodes,
-    loadTasks,
+    loadNodes: executeLoadNodes,
+    loadTasks: executeLoadTasks,
     openNodeModal,
     handleNodeSubmit,
     handleDeleteNode,

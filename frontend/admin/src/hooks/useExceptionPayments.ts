@@ -5,30 +5,37 @@ import {
   syncPaymentStatus,
   type PaymentDetail,
 } from '@/services/payment-admin';
+import { useSafeApi } from './useSafeApi';
+import { ExceptionPaymentsResponseSchema } from '@/schemas/api.schemas';
 
 export const useExceptionPayments = () => {
-  const [loading, setLoading] = useState(false);
-  const [payments, setPayments] = useState<PaymentDetail[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selectedPayment, setSelectedPayment] = useState<PaymentDetail | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  // 加载异常支付记录
-  const loadExceptionPayments = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await getExceptionPayments(page, pageSize);
-      setPayments(result.data || []);
-      setTotal(result.pagination?.total || 0);
-    } catch (error) {
-      message.error('加载异常支付记录失败');
-    } finally {
-      setLoading(false);
+  // ✅ 使用 useSafeApi 加载异常支付记录
+  const {
+    data: paymentsResponse,
+    loading,
+    execute: executeLoadPayments,
+  } = useSafeApi(
+    () => getExceptionPayments(page, pageSize),
+    ExceptionPaymentsResponseSchema,
+    {
+      errorMessage: '加载异常支付记录失败',
+      fallbackValue: { data: [], pagination: { total: 0 } },
     }
-  }, [page, pageSize]);
+  );
+
+  const payments = paymentsResponse?.data || [];
+  const total = paymentsResponse?.pagination?.total || 0;
+
+  // 加载异常支付记录的包装函数
+  const loadExceptionPayments = useCallback(async () => {
+    await executeLoadPayments();
+  }, [executeLoadPayments]);
 
   useEffect(() => {
     loadExceptionPayments();

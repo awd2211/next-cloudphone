@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Modal, message } from 'antd';
+import { z } from 'zod';
 import dayjs from 'dayjs';
 import {
   getAuditLogs,
@@ -8,11 +9,10 @@ import {
   type LogParams,
 } from '@/services/log';
 import { exportToExcel } from '@/utils/export';
+import { useSafeApi } from './useSafeApi';
+import { AuditLogsResponseSchema } from '@/schemas/api.schemas';
 
 export const useLogsAudit = () => {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -22,10 +22,13 @@ export const useLogsAudit = () => {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
-  // 加载日志
-  const loadLogs = useCallback(async () => {
-    setLoading(true);
-    try {
+  // ✅ 使用 useSafeApi 加载日志
+  const {
+    data: logsResponse,
+    loading,
+    execute: executeLoadLogs,
+  } = useSafeApi(
+    () => {
       const params: LogParams = { page, pageSize };
       if (searchKeyword) params.search = searchKeyword;
       if (actionFilter) params.action = actionFilter;
@@ -34,19 +37,23 @@ export const useLogsAudit = () => {
         params.startDate = dateRange[0];
         params.endDate = dateRange[1];
       }
-      const res = await getAuditLogs(params);
-      setLogs(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      message.error('加载日志失败');
-    } finally {
-      setLoading(false);
+      return getAuditLogs(params);
+    },
+    AuditLogsResponseSchema,
+    {
+      errorMessage: '加载日志失败',
+      fallbackValue: { data: [], total: 0 },
     }
-  }, [page, pageSize, searchKeyword, actionFilter, resourceFilter, dateRange]);
+  );
 
+  const loadLogs = useCallback(async () => {
+    await executeLoadLogs();
+  }, [executeLoadLogs]);
+
+  // 参数变化时自动重新加载
   useEffect(() => {
     loadLogs();
-  }, [loadLogs]);
+  }, [page, pageSize, searchKeyword, actionFilter, resourceFilter, dateRange]);
 
   // 搜索处理
   const handleSearch = useCallback((value: string) => {
@@ -81,6 +88,7 @@ export const useLogsAudit = () => {
 
   // 导出 Excel
   const handleExportExcel = useCallback(() => {
+    const logs = logsResponse?.data || [];
     const exportData = logs.map((log) => ({
       日志ID: log.id,
       用户: log.user?.username || '-',
@@ -96,7 +104,7 @@ export const useLogsAudit = () => {
     }));
     exportToExcel(exportData, `操作日志_${dayjs().format('YYYYMMDD_HHmmss')}`, '操作日志');
     message.success('导出成功');
-  }, [logs]);
+  }, [logsResponse]);
 
   // 清理过期日志
   const handleCleanLogs = useCallback(() => {
@@ -134,15 +142,16 @@ export const useLogsAudit = () => {
 
   return {
     // 数据
-    logs,
+    logs: logsResponse?.data || [], // ✅ 确保永远返回数组
     loading,
-    total,
+    total: logsResponse?.total || 0,
     page,
     pageSize,
     selectedLog,
     detailModalVisible,
 
     // 操作函数
+    loadLogs, // 新增：手动重新加载
     handleSearch,
     handleActionChange,
     handleResourceChange,
