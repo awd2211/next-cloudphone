@@ -3,7 +3,6 @@ import { Row, Col, Card, Statistic, Progress, Tag, Typography, Button } from 'an
 import {
   MobileOutlined,
   AppstoreOutlined,
-  DollarOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';

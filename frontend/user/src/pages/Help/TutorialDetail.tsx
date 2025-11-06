@@ -20,7 +20,6 @@ import {
   CheckCircleOutlined,
   LeftOutlined,
   RightOutlined,
-  PlayCircleOutlined,
   LikeFilled,
   BookOutlined,
 } from '@ant-design/icons';
@@ -118,6 +117,13 @@ const TutorialDetail: React.FC = () => {
 
   const diffConfig = difficultyConfig[tutorial.difficulty];
   const currentStepData = tutorial.steps[currentStep];
+
+  // Guard: If step data doesn't exist, reset to first step
+  if (!currentStepData) {
+    setCurrentStep(0);
+    return <Card loading={true} />;
+  }
+
   const isLastStep = currentStep === tutorial.steps.length - 1;
 
   return (
@@ -227,7 +233,7 @@ const TutorialDetail: React.FC = () => {
             title={
               <Space>
                 <span>步骤 {currentStep + 1}</span>
-                <Tag color="blue">{currentStepData.title}</Tag>
+                <Tag color="blue">{currentStepData!.title}</Tag>
               </Space>
             }
             extra={
@@ -246,23 +252,23 @@ const TutorialDetail: React.FC = () => {
                     whiteSpace: 'pre-wrap',
                   }}
                 >
-                  {currentStepData.description}
+                  {currentStepData!.description}
                 </Paragraph>
               </div>
 
               {/* 步骤图片 */}
-              {currentStepData.image && (
+              {currentStepData!.image && (
                 <div>
                   <Image
-                    src={currentStepData.image}
-                    alt={currentStepData.title}
+                    src={currentStepData!.image}
+                    alt={currentStepData!.title}
                     style={{ width: '100%', borderRadius: '8px' }}
                   />
                 </div>
               )}
 
               {/* 步骤视频 */}
-              {currentStepData.video && (
+              {currentStepData!.video && (
                 <div
                   style={{
                     position: 'relative',
@@ -282,14 +288,14 @@ const TutorialDetail: React.FC = () => {
                       height: '100%',
                     }}
                   >
-                    <source src={currentStepData.video} type="video/mp4" />
+                    <source src={currentStepData!.video} type="video/mp4" />
                     您的浏览器不支持视频播放
                   </video>
                 </div>
               )}
 
               {/* 代码示例 */}
-              {currentStepData.code && (
+              {currentStepData!.code && (
                 <div>
                   <Text strong style={{ marginBottom: 8, display: 'block' }}>
                     代码示例:
@@ -304,7 +310,7 @@ const TutorialDetail: React.FC = () => {
                       lineHeight: '1.6',
                     }}
                   >
-                    <code>{currentStepData.code}</code>
+                    <code>{currentStepData!.code}</code>
                   </pre>
                 </div>
               )}

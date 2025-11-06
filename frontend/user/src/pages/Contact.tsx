@@ -8,7 +8,6 @@ import {
   WechatOutlined,
   QqOutlined,
 } from '@ant-design/icons';
-import { Header, Footer } from '@/components/Home';
 import { useNavigate } from 'react-router-dom';
 
 const { TextArea } = Input;
@@ -21,7 +20,6 @@ const Contact: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
-  const isLoggedIn = !!localStorage.getItem('token');
 
   // 联系方式信息
   const contactMethods = [
@@ -91,14 +89,6 @@ const Contact: React.FC = () => {
 
   return (
     <div>
-      {/* 头部导航 */}
-      <Header
-        isLoggedIn={isLoggedIn}
-        onLogin={() => navigate('/login')}
-        onRegister={() => navigate('/login')}
-        onDashboard={() => navigate('/dashboard')}
-      />
-
       {/* 页面内容 */}
       <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 300px)' }}>
         {/* Hero Section */}
@@ -278,9 +268,6 @@ const Contact: React.FC = () => {
           </Card>
         </div>
       </div>
-
-      {/* 页脚 */}
-      <Footer />
     </div>
   );
 };

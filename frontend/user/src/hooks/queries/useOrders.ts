@@ -3,9 +3,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { PaginationParams } from '@/types';
 import { message } from 'antd';
 import * as orderService from '@/services/order';
-import type { Order, PaginationParams } from '@/types';
 
 export const orderKeys = {
   all: ['orders'] as const,
@@ -46,7 +46,7 @@ export function useCreateOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (planId: string) => orderService.createOrder(planId),
+    mutationFn: (planId: string) => orderService.createOrder({ planId }),
     onSuccess: () => {
       message.success('订单创建成功');
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });

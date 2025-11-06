@@ -5,7 +5,8 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
-import type { Coupon, CouponStatus } from '@/services/activity';
+import type { Coupon } from '@/services/activity';
+import { CouponStatus } from '@/services/activity';
 
 /**
  * 优惠券类型配置
@@ -27,7 +28,7 @@ export const couponTypeConfig = {
     icon: <GiftOutlined />,
     color: '#52c41a',
     text: '礼品券',
-    getValueText: (value: number, name: string) => name,
+    getValueText: (_value: number, name: string) => name,
   },
   full_discount: {
     icon: <PercentageOutlined />,
@@ -82,7 +83,7 @@ export const getCouponTypeConfig = (coupon: Coupon) => {
 export const getUsageRoute = (coupon: Coupon): { path: string; state: any } => {
   const couponType = coupon.type;
 
-  if (couponType === 'discount' || couponType === 'full_discount') {
+  if (couponType === 'discount') {
     // 折扣券：跳转到套餐购买页面
     return {
       path: '/plans',
@@ -109,7 +110,7 @@ export const getUsageRoute = (coupon: Coupon): { path: string; state: any } => {
 export const getUsageMessage = (coupon: Coupon): string => {
   const couponType = coupon.type;
 
-  if (couponType === 'discount' || couponType === 'full_discount') {
+  if (couponType === 'discount') {
     return '已选择优惠券，请选择套餐完成购买';
   } else if (couponType === 'cash') {
     return '已选择优惠券，请完成充值';

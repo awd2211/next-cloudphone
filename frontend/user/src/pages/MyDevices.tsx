@@ -116,7 +116,7 @@ const MyDevices = () => {
     onChange: (newSelectedRowKeys: React.Key[]) => {
       setSelectedRowKeys(newSelectedRowKeys);
     },
-    getCheckboxProps: (record: Device) => ({
+    getCheckboxProps: (_record: Device) => ({
       disabled: false, // 所有设备都可以选择
     }),
   };

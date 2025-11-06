@@ -1,8 +1,9 @@
 import React from 'react';
-import { Card, Row, Col, Typography, Button, Space, Divider, Tag, Timeline, Statistic } from 'antd';
-import { CheckCircleOutlined, StarFilled } from '@ant-design/icons';
+import { Card, Row, Col, Typography, Button, Space, Divider, Tag, Timeline, Statistic, Table, Avatar } from 'antd';
+import { CheckCircleOutlined, StarFilled, CloseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { coreFeatures, useCases, platformStats, techStack, roadmapItems } from '@/utils/productData';
+import { SEO } from '@/components';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -23,8 +24,76 @@ const { Title, Paragraph, Text } = Typography;
 const Product: React.FC = () => {
   const navigate = useNavigate();
 
+  // 竞品对比数据
+  const competitorComparison = [
+    {
+      feature: '部署方式',
+      ultrathink: '云端部署，即开即用',
+      competitor1: '需要自建机房',
+      competitor2: '混合云部署',
+    },
+    {
+      feature: '设备数量',
+      ultrathink: '弹性扩展，无上限',
+      competitor1: '受限于硬件数量',
+      competitor2: '最多500台',
+    },
+    {
+      feature: '成本',
+      ultrathink: '按需付费，低至 ¥0.5/小时',
+      competitor1: '高额硬件投入',
+      competitor2: '包年包月，¥5000/月起',
+    },
+    {
+      feature: '维护',
+      ultrathink: '零维护，自动更新',
+      competitor1: '需要专人维护',
+      competitor2: '半托管服务',
+    },
+    {
+      feature: 'API 支持',
+      ultrathink: '完整的 RESTful API',
+      competitor1: '仅提供基础接口',
+      competitor2: '需要额外付费',
+    },
+  ];
+
+  // 客户评价
+  const customerTestimonials = [
+    {
+      name: '张伟',
+      company: '某大型游戏公司',
+      position: '技术总监',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1',
+      content: '使用 Ultrathink 后，我们的游戏测试效率提升了 300%，成本降低了 60%。团队再也不用为设备管理发愁了。',
+      rating: 5,
+    },
+    {
+      name: '李娜',
+      company: '某电商平台',
+      position: '运营经理',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=2',
+      content: '云手机平台让我们的自动化运营变得简单高效，24小时不间断运行，稳定性非常好。客服响应也很及时。',
+      rating: 5,
+    },
+    {
+      name: '王强',
+      company: '某移动应用公司',
+      position: 'QA 负责人',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=3',
+      content: '兼容性测试从此变得轻松，可以同时在数十个不同版本的 Android 系统上测试，大大缩短了发版周期。',
+      rating: 5,
+    },
+  ];
+
   return (
     <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 80 }}>
+      <SEO
+        title="产品介绍 - Ultrathink 云手机平台"
+        description="Ultrathink 云手机平台采用先进的容器化技术，提供稳定、高效、可扩展的云端 Android 设备管理服务。支持应用测试、自动化运营、游戏托管等多种场景。"
+        keywords="云手机产品,Android容器化,应用测试平台,自动化运营,游戏托管,Ultrathink产品"
+        url="https://ultrathink.com/product"
+      />
       {/* Hero Section */}
       <div
         style={{
@@ -135,6 +204,168 @@ const Product: React.FC = () => {
                         <Text>{benefit}</Text>
                       </div>
                     ))}
+                  </Space>
+                </Space>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </div>
+
+      {/* 产品演示视频 */}
+      <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <Title level={2}>产品演示</Title>
+          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+            观看视频，快速了解 Ultrathink 云手机平台
+          </Paragraph>
+        </div>
+        <Card style={{ borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+            <iframe
+              src="https://ai.invideo.io/ai-mcp-video?video=ultrathink-android--lmmiii"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                border: 'none',
+              }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title="Ultrathink 产品演示"
+            />
+          </div>
+          <div style={{ padding: 24, background: '#fafafa', textAlign: 'center' }}>
+            <Space>
+              <PlayCircleOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              <Text>点击播放，了解 Ultrathink 如何帮助您提升效率</Text>
+            </Space>
+          </div>
+        </Card>
+      </div>
+
+      {/* 竞品对比 */}
+      <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <Title level={2}>为什么选择 Ultrathink？</Title>
+          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+            与竞品对比，Ultrathink 的优势一目了然
+          </Paragraph>
+        </div>
+        <Card style={{ borderRadius: 12 }}>
+          <Table
+            dataSource={competitorComparison}
+            pagination={false}
+            rowKey="feature"
+            columns={[
+              {
+                title: '功能特性',
+                dataIndex: 'feature',
+                key: 'feature',
+                width: '25%',
+                render: (text) => <Text strong>{text}</Text>,
+              },
+              {
+                title: (
+                  <Space>
+                    <span style={{
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      fontWeight: 700,
+                    }}>
+                      Ultrathink
+                    </span>
+                    <Tag color="success">推荐</Tag>
+                  </Space>
+                ),
+                dataIndex: 'ultrathink',
+                key: 'ultrathink',
+                render: (text) => (
+                  <Space>
+                    <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+                    <Text>{text}</Text>
+                  </Space>
+                ),
+              },
+              {
+                title: '竞品 A',
+                dataIndex: 'competitor1',
+                key: 'competitor1',
+                render: (text) => (
+                  <Space>
+                    <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 18 }} />
+                    <Text type="secondary">{text}</Text>
+                  </Space>
+                ),
+              },
+              {
+                title: '竞品 B',
+                dataIndex: 'competitor2',
+                key: 'competitor2',
+                render: (text) => (
+                  <Space>
+                    <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 18 }} />
+                    <Text type="secondary">{text}</Text>
+                  </Space>
+                ),
+              },
+            ]}
+          />
+        </Card>
+      </div>
+
+      {/* 客户评价 */}
+      <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <Title level={2}>客户评价</Title>
+          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+            听听我们的客户怎么说
+          </Paragraph>
+        </div>
+        <Row gutter={[24, 24]}>
+          {customerTestimonials.map((testimonial, index) => (
+            <Col xs={24} md={8} key={index}>
+              <Card
+                style={{
+                  height: '100%',
+                  borderRadius: 12,
+                  border: '1px solid #f0f0f0',
+                }}
+              >
+                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                  {/* 评分 */}
+                  <div>
+                    {Array.from({ length: testimonial.rating }).map((_, i) => (
+                      <StarFilled key={i} style={{ color: '#faad14', fontSize: 18 }} />
+                    ))}
+                  </div>
+
+                  {/* 评价内容 */}
+                  <Paragraph style={{ fontSize: 15, lineHeight: 1.8, marginBottom: 16 }}>
+                    "{testimonial.content}"
+                  </Paragraph>
+
+                  <Divider style={{ margin: '8px 0' }} />
+
+                  {/* 客户信息 */}
+                  <Space>
+                    <Avatar src={testimonial.avatar} size={48} />
+                    <div>
+                      <div><Text strong>{testimonial.name}</Text></div>
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 13 }}>
+                          {testimonial.position}
+                        </Text>
+                      </div>
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {testimonial.company}
+                        </Text>
+                      </div>
+                    </div>
                   </Space>
                 </Space>
               </Card>

@@ -29,7 +29,7 @@ import { getActiveSessions, terminateSession, terminateAllSessions } from '@/ser
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 interface Session {
   id: string;

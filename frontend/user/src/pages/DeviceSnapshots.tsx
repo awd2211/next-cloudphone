@@ -34,7 +34,6 @@ const DeviceSnapshots: React.FC = () => {
     restoreModalVisible,
     selectedSnapshot,
     form,
-    handleCreateSnapshot,
     handleRestoreSnapshot,
     handleDeleteSnapshot,
     openCreateModal,

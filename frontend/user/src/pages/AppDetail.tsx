@@ -54,7 +54,7 @@ const AppDetail = () => {
     setLoading(true);
     try {
       const res = await getApp(id);
-      setApp(res.data);
+      setApp(res);
     } catch (error) {
       message.error('加载应用详情失败');
     } finally {

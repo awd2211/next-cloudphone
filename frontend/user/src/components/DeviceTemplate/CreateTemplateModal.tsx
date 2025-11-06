@@ -1,7 +1,6 @@
 import React from 'react';
 import { Modal, Form, Input, Select, InputNumber, Row, Col, FormInstance } from 'antd';
 import {
-  type DeviceTemplate,
   androidVersionOptions,
   cpuCoresOptions,
   resolutionOptions,

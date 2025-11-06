@@ -3,7 +3,8 @@ import { Form, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { login, register, getCaptcha } from '@/services/auth';
 import { verify2FA } from '@/services/twoFactor';
-import type { LoginDto, RegisterDto } from '@/types';
+import { initiateSocialLogin } from '@/services/socialAuth';
+import type { LoginDto, RegisterDto, SocialProvider } from '@/types';
 
 /**
  * 登录页面业务逻辑 Hook
@@ -129,6 +130,31 @@ export function useLogin() {
     setLoginCredentials(null);
   }, []);
 
+  // 处理社交登录/注册
+  const handleSocialAuth = useCallback(async (provider: SocialProvider) => {
+    try {
+      message.loading({ content: `正在跳转到 ${getSocialProviderName(provider)} 登录...`, key: 'social-auth' });
+      await initiateSocialLogin(provider);
+    } catch (error: any) {
+      message.error({
+        content: error.response?.data?.message || `${getSocialProviderName(provider)} 登录失败`,
+        key: 'social-auth'
+      });
+    }
+  }, []);
+
+  // 获取社交平台中文名称
+  const getSocialProviderName = (provider: SocialProvider): string => {
+    const names: Record<SocialProvider, string> = {
+      google: 'Google',
+      facebook: 'Facebook',
+      twitter: 'X',
+      github: 'GitHub',
+      wechat: '微信',
+    };
+    return names[provider] || provider;
+  };
+
   return {
     // 表单实例
     loginForm,
@@ -148,5 +174,6 @@ export function useLogin() {
     handle2FAVerify,
     handle2FACancel,
     setTwoFactorToken,
+    handleSocialAuth,
   };
 }

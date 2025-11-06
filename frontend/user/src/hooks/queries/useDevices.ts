@@ -4,9 +4,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { PaginationParams } from '@/types';
 import { message } from 'antd';
 import * as deviceService from '@/services/device';
-import type { Device, PaginationParams } from '@/types';
 
 /**
  * Query Keys 定义

@@ -53,7 +53,7 @@ export function useDeviceMonitor(id: string | undefined) {
     if (!id) return;
     try {
       const res = await getDevice(id);
-      setDevice(res.data);
+      setDevice(res);
     } catch (error) {
       console.error('加载设备信息失败', error);
     }

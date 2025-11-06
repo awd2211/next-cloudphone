@@ -6,7 +6,6 @@ import {
   AlipayOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
-import { recharge } from '@/services/user';
 import { createPayment, queryPaymentStatus } from '@/services/order';
 import type { Payment } from '@/types';
 

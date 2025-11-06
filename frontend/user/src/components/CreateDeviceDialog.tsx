@@ -96,9 +96,9 @@ export const CreateDeviceDialog: React.FC<CreateDeviceDialogProps> = ({
 
       const res = await createDevice(createDto);
 
-      if (res.data.success) {
+      if (res.success) {
         // 轮询 Saga 状态
-        const { sagaId, device } = res.data.data;
+        const { sagaId, device } = res.data;
         await pollCreationStatus(sagaId, device);
       }
     } catch (err: any) {
@@ -117,16 +117,16 @@ export const CreateDeviceDialog: React.FC<CreateDeviceDialogProps> = ({
       try {
         const statusRes = await getDeviceCreationStatus(sagaId);
 
-        if (statusRes.data.status === 'completed') {
+        if (statusRes.status === 'completed') {
           clearInterval(interval);
           setCreating(false);
-          onSuccess(statusRes.data.device || initialDevice);
+          onSuccess(statusRes.device || initialDevice);
           handleReset();
           onClose();
-        } else if (statusRes.data.status === 'failed') {
+        } else if (statusRes.status === 'failed') {
           clearInterval(interval);
           setCreating(false);
-          setErrorMsg(`创建失败: ${statusRes.data.error}`);
+          setErrorMsg(`创建失败: ${statusRes.error}`);
         } else if (attempts >= maxAttempts) {
           clearInterval(interval);
           setCreating(false);
@@ -292,7 +292,7 @@ export const CreateDeviceDialog: React.FC<CreateDeviceDialogProps> = ({
           </>
         );
 
-      case 2:
+      case 2: {
         const finalData = { ...formData, ...form.getFieldsValue() };
         return (
           <div>
@@ -332,6 +332,7 @@ export const CreateDeviceDialog: React.FC<CreateDeviceDialogProps> = ({
             </Space>
           </div>
         );
+      }
 
       default:
         return null;

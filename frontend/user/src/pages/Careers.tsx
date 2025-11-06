@@ -10,16 +10,15 @@ import {
   SafetyOutlined,
   CoffeeOutlined,
 } from '@ant-design/icons';
-import { Header, Footer } from '@/components/Home';
 import { useNavigate } from 'react-router-dom';
 
 /**
- * 招聘/加入我们页面
+ * Ultrathink 招聘/加入我们页面
  * 展示公司文化、福利待遇和招聘职位
+ * Header 和 Footer 由 PublicLayout 提供
  */
 const Careers: React.FC = () => {
   const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem('token');
 
   // 公司文化价值观
   const cultureValues = [
@@ -175,14 +174,6 @@ const Careers: React.FC = () => {
 
   return (
     <div>
-      {/* 头部导航 */}
-      <Header
-        isLoggedIn={isLoggedIn}
-        onLogin={() => navigate('/login')}
-        onRegister={() => navigate('/login')}
-        onDashboard={() => navigate('/dashboard')}
-      />
-
       {/* 页面内容 */}
       <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 300px)' }}>
         {/* Hero Section */}
@@ -356,9 +347,6 @@ const Careers: React.FC = () => {
           </Card>
         </div>
       </div>
-
-      {/* 页脚 */}
-      <Footer />
     </div>
   );
 };

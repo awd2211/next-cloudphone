@@ -78,8 +78,8 @@ const TicketList: React.FC = () => {
           tickets={tickets}
           loading={loading}
           total={total}
-          page={query.page}
-          pageSize={query.pageSize}
+          page={query.page || 1}
+          pageSize={query.pageSize || 10}
           onPageChange={handlePageChange}
           onViewDetail={goToDetail}
           onCreateTicket={openCreateModal}

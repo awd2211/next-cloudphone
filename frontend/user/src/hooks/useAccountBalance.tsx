@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { Form } from 'antd';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
-import { Typography, Tag, Text as AntdText } from 'antd';
+import { Typography, Tag } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, DollarOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -63,7 +63,7 @@ export const useAccountBalance = () => {
   });
 
   // 余额趋势数据（最近30天）
-  const balanceTrend = useMemo<BalanceTrend[]>(() => {
+  const [balanceTrend] = useState<BalanceTrend[]>(() => {
     const data: BalanceTrend[] = [];
     let balance = 2050;
     for (let i = 30; i >= 0; i--) {
@@ -73,7 +73,7 @@ export const useAccountBalance = () => {
       data.push({ date, balance: parseFloat(balance.toFixed(2)) });
     }
     return data;
-  }, []);
+  });
 
   // 交易记录
   const [transactions] = useState<Transaction[]>([

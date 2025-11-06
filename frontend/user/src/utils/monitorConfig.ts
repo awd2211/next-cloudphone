@@ -81,7 +81,7 @@ export const createChartConfig = (
     tooltip: {
       formatter: (datum: HistoryData) => ({
         name,
-        value: `${datum[field].toFixed(1)}%`,
+        value: `${(datum[field] ?? 0).toFixed(1)}%`,
       }),
     },
   };

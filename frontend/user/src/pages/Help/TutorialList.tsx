@@ -11,7 +11,6 @@ import {
   Empty,
   Spin,
   Typography,
-  Progress,
   Pagination,
   message,
 } from 'antd';

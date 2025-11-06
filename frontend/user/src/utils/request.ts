@@ -212,15 +212,38 @@ request.interceptors.response.use(
           message.error((data as any)?.message || '请求参数错误');
           break;
         case 401:
-          message.error('登录已过期，请重新登录');
-          localStorage.removeItem('token');
-          localStorage.removeItem('userId');
-          // 延迟跳转，避免在拦截器中多次触发
-          setTimeout(() => {
-            if (!window.location.pathname.includes('/login')) {
-              window.location.href = '/login';
-            }
-          }, 1000);
+          // 公开路由列表（不需要登录）
+          const publicRoutes = [
+            '/',
+            '/product',
+            '/pricing',
+            '/solutions',
+            '/case-studies',
+            '/about',
+            '/contact',
+            '/careers',
+            '/help',
+            '/legal',
+          ];
+
+          // 检查当前路径是否为公开路由
+          const currentPath = window.location.pathname;
+          const isPublicRoute = publicRoutes.some(route =>
+            currentPath === route || currentPath.startsWith(route + '/')
+          );
+
+          // 如果是公开路由，不跳转到登录页
+          if (!isPublicRoute) {
+            message.error('登录已过期，请重新登录');
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            // 延迟跳转，避免在拦截器中多次触发
+            setTimeout(() => {
+              if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+              }
+            }, 1000);
+          }
           break;
         case 403:
           message.error('没有权限访问此资源');
@@ -268,6 +291,19 @@ request.interceptors.response.use(
   }
 );
 
-// 导出原始 axios 实例，但添加类型注释
-// 响应拦截器已经将 AxiosResponse<T> 转换为 T
-export default request;
+// 由于响应拦截器返回 response.data，需要重新定义类型
+// 创建类型覆盖接口
+interface CustomRequestInstance {
+  <T = any>(config: any): Promise<T>;
+  <T = any>(url: string, config?: any): Promise<T>;
+  get<T = any>(url: string, config?: any): Promise<T>;
+  delete<T = any>(url: string, config?: any): Promise<T>;
+  head<T = any>(url: string, config?: any): Promise<T>;
+  options<T = any>(url: string, config?: any): Promise<T>;
+  post<T = any>(url: string, data?: any, config?: any): Promise<T>;
+  put<T = any>(url: string, data?: any, config?: any): Promise<T>;
+  patch<T = any>(url: string, data?: any, config?: any): Promise<T>;
+}
+
+// 导出带有正确类型的 request
+export default request as CustomRequestInstance;

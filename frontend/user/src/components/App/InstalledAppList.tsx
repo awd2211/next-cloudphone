@@ -14,7 +14,6 @@ import {
 import {
   DeleteOutlined,
   ReloadOutlined,
-  CheckSquareOutlined,
   BorderOutlined,
 } from '@ant-design/icons';
 import { InstalledAppCard } from './InstalledAppCard';

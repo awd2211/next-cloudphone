@@ -6,29 +6,17 @@ import {
   TrophyOutlined,
   GlobalOutlined,
 } from '@ant-design/icons';
-import { Header, Footer } from '@/components/Home';
-import { useNavigate } from 'react-router-dom';
 
 /**
- * 关于我们页面
+ * Ultrathink 关于我们页面
  * 展示公司信息、团队、里程碑等
+ * Header 和 Footer 由 PublicLayout 提供
  */
 const About: React.FC = () => {
-  const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem('token');
-
   return (
     <div>
-      {/* 头部导航 */}
-      <Header
-        isLoggedIn={isLoggedIn}
-        onLogin={() => navigate('/login')}
-        onRegister={() => navigate('/login')}
-        onDashboard={() => navigate('/dashboard')}
-      />
-
       {/* 页面内容 */}
-      <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 300px)' }}>
+      <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 64px)' }}>
         {/* Hero Section */}
         <div
           style={{
@@ -209,9 +197,6 @@ const About: React.FC = () => {
           </Card>
         </div>
       </div>
-
-      {/* 页脚 */}
-      <Footer />
     </div>
   );
 };

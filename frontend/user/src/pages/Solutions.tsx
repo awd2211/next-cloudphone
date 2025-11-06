@@ -7,7 +7,6 @@ import {
   Button,
   Space,
   Tag,
-  Tabs,
   List,
   Statistic,
 } from 'antd';

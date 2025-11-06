@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, Form, Input, Select, Upload, Button, message, Tag, Space } from 'antd';
-import { UploadOutlined, InboxOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, Upload, message, Tag, Space } from 'antd';
+import { InboxOutlined } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
 import {
   createTicket,

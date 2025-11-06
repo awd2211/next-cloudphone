@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Form, Input, Select, InputNumber, message, Radio, Alert, Space } from 'antd';
+import { Modal, Form, Input, InputNumber, message, Radio, Alert, Space } from 'antd';
 import { DollarOutlined, AlipayOutlined, WechatOutlined, BankOutlined } from '@ant-design/icons';
 import { applyWithdraw } from '@/services/referral';
 

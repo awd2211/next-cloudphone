@@ -48,15 +48,15 @@ const ProfilePreferences = () => {
   const loadPreferences = async () => {
     try {
       const res = await getUserInfo();
-      const user = res.data;
+      const user = res;
 
       const preferences: UserPreferences = {
-        language: user.language || 'zh-CN',
-        theme: user.theme || 'light',
-        emailNotifications: user.preferences?.emailNotifications ?? true,
-        smsNotifications: user.preferences?.smsNotifications ?? false,
-        systemNotifications: user.preferences?.systemNotifications ?? true,
-        marketingEmails: user.preferences?.marketingEmails ?? false,
+        language: (user as any).language || 'zh-CN',
+        theme: (user as any).theme || 'light',
+        emailNotifications: (user as any).preferences?.emailNotifications ?? true,
+        smsNotifications: (user as any).preferences?.smsNotifications ?? false,
+        systemNotifications: (user as any).preferences?.systemNotifications ?? true,
+        marketingEmails: (user as any).preferences?.marketingEmails ?? false,
       };
 
       setInitialValues(preferences);

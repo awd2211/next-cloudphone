@@ -11,9 +11,6 @@ import {
   type Notification,
   type NotificationListQuery,
   type NotificationStats,
-  NotificationStatus,
-  NotificationType,
-  NotificationPriority,
 } from '@/services/notification';
 
 /**
@@ -73,7 +70,7 @@ export function useMessageList() {
   }, [loadNotifications, loadStats]);
 
   // 搜索
-  const handleSearch = useCallback((value: string) => {
+  const handleSearch = useCallback((_value: string) => {
     setQuery((prev) => ({ ...prev, page: 1 }));
     // Note: 这里需要后端支持搜索参数
     loadNotifications();

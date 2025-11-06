@@ -1,8 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Form, message, Modal, Input, Button, Space, Typography, Alert } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
-import type { ColumnsType } from 'antd/es/table';
 
 const { Text } = Typography;
 

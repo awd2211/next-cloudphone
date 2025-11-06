@@ -43,6 +43,24 @@ export interface RegisterDto {
   phone?: string;
 }
 
+// 社交登录相关
+export type SocialProvider = 'google' | 'facebook' | 'twitter' | 'github' | 'wechat';
+
+export interface SocialAuthResponse {
+  token: string;
+  user: User;
+  isNewUser?: boolean; // 是否是新用户（首次通过社交账号登录）
+}
+
+export interface BoundSocialAccount {
+  provider: SocialProvider;
+  providerId: string;
+  email?: string;
+  displayName?: string;
+  avatar?: string;
+  boundAt: string;
+}
+
 // 套餐相关
 export interface Plan {
   id: string;
@@ -122,4 +140,30 @@ export interface Application {
   size: number;
   description?: string;
   createdAt: string;
+}
+
+// 使用记录相关
+export interface UsageRecord {
+  id: string;
+  device?: {
+    id: string;
+    name: string;
+  };
+  startTime: string;
+  endTime?: string;
+  duration: number; // 秒
+  cpuUsage?: number; // 百分比
+  memoryUsage?: number; // 字节
+  networkUsage?: number; // 字节
+  cost: number; // 费用
+  createdAt: string;
+}
+
+// 监控历史数据
+export interface HistoryData {
+  time: string; // 时间戳
+  cpuUsage?: number; // CPU 使用率百分比 0-100
+  memoryUsage?: number; // 内存使用率百分比 0-100
+  networkIn?: number; // 入站流量字节数
+  networkOut?: number; // 出站流量字节数
 }

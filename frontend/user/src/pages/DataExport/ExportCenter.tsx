@@ -83,7 +83,7 @@ const ExportCenter: React.FC = () => {
         <Table
           rowSelection={{
             selectedRowKeys,
-            onChange: setSelectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys as string[]),
           }}
           columns={columns}
           dataSource={tasks}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Card, Button, Space, message, Spin, Alert, Statistic, Row, Col, Tag, Badge } from 'antd';
+import { Card, Button, Space, message, Spin, Alert, Statistic, Row, Col, Badge } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -317,7 +317,8 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
   useEffect(() => {
     if (isConnected) {
       statsIntervalRef.current = window.setInterval(collectStats, 1000);
-      setReconnectAttempts(0); // 连接成功后重置重连计数
+      // 使用 queueMicrotask 避免同步渲染问题
+      queueMicrotask(() => setReconnectAttempts(0)); // 连接成功后重置重连计数
     } else {
       if (statsIntervalRef.current) {
         clearInterval(statsIntervalRef.current);

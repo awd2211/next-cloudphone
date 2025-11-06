@@ -3,15 +3,12 @@ import { Card, Row, Col, Timeline, Collapse } from 'antd';
 import {
   SafetyOutlined,
   LockOutlined,
-  ShieldOutlined,
   AuditOutlined,
   CloudServerOutlined,
   EyeOutlined,
   FileProtectOutlined,
   ApiOutlined,
 } from '@ant-design/icons';
-import { Header, Footer } from '@/components/Home';
-import { useNavigate } from 'react-router-dom';
 
 const { Panel } = Collapse;
 
@@ -20,9 +17,6 @@ const { Panel } = Collapse;
  * 展示平台安全措施、合规认证、数据保护等信息
  */
 const Security: React.FC = () => {
-  const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem('token');
-
   // 安全特性
   const securityFeatures = [
     {
@@ -37,7 +31,7 @@ const Security: React.FC = () => {
       ],
     },
     {
-      icon: <ShieldOutlined style={{ fontSize: 48, color: '#52c41a' }} />,
+      icon: <SafetyOutlined style={{ fontSize: 48, color: '#52c41a' }} />,
       title: '访问控制',
       description: '多层次访问控制，确保数据访问安全',
       details: [
@@ -188,14 +182,6 @@ const Security: React.FC = () => {
 
   return (
     <div>
-      {/* 头部导航 */}
-      <Header
-        isLoggedIn={isLoggedIn}
-        onLogin={() => navigate('/login')}
-        onRegister={() => navigate('/login')}
-        onDashboard={() => navigate('/dashboard')}
-      />
-
       {/* 页面内容 */}
       <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 300px)' }}>
         {/* Hero Section */}
@@ -369,9 +355,6 @@ const Security: React.FC = () => {
           </Card>
         </div>
       </div>
-
-      {/* 页脚 */}
-      <Footer />
     </div>
   );
 };

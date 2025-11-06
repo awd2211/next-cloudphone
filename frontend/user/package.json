@@ -8,7 +8,11 @@
     "build": "tsc -b && vite build",
     "build:analyze": "ANALYZE=true tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
@@ -21,6 +25,7 @@
     "dayjs": "^1.11.18",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-helmet-async": "^2.0.5",
     "react-lazy-load-image-component": "^1.6.3",
     "react-router-dom": "^7.9.4",
     "react-virtualized-auto-sizer": "^1.0.26",
@@ -28,6 +33,7 @@
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
+    "@ant-design/charts": "^2.6.6",
     "@eslint/js": "^9.38.0",
     "@types/node": "^24.9.1",
     "@types/react": "^19.2.2",

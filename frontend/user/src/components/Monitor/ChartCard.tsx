@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Empty } from 'antd';
-import { Line } from '@ant-design/charts';
+// import { Line } from '@ant-design/charts'; // TODO: 需要安装 @ant-design/charts
+const Line: any = () => null; // 临时占位符
 
 interface ChartCardProps {
   title: string;

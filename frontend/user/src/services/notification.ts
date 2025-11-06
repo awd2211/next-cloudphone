@@ -212,10 +212,13 @@ export const getNotificationStats = (): Promise<NotificationStats> => {
 };
 
 // WebSocket 通知服务
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type EventHandler = (...args: any[]) => void;
+
 class NotificationWebSocket {
   private socket: Socket | null = null;
-  private userId: string | null = null;
-  private eventHandlers: Map<string, Function[]> = new Map();
+  // private _userId: string | null = null; // 未使用
+  private eventHandlers: Map<string, EventHandler[]> = new Map();
 
   /**
    * 连接 WebSocket
@@ -225,7 +228,6 @@ class NotificationWebSocket {
       return;
     }
 
-    this.userId = userId;
     const wsUrl = import.meta.env.VITE_NOTIFICATION_WS_URL || 'http://localhost:30006';
 
     this.socket = io(wsUrl, {
@@ -266,7 +268,6 @@ class NotificationWebSocket {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
-      this.userId = null;
       this.eventHandlers.clear();
     }
   }
@@ -274,7 +275,7 @@ class NotificationWebSocket {
   /**
    * 监听事件
    */
-  on(event: string, handler: Function) {
+  on(event: string, handler: EventHandler) {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, []);
     }
@@ -284,7 +285,7 @@ class NotificationWebSocket {
   /**
    * 移除事件监听
    */
-  off(event: string, handler?: Function) {
+  off(event: string, handler?: EventHandler) {
     if (!handler) {
       this.eventHandlers.delete(event);
     } else {

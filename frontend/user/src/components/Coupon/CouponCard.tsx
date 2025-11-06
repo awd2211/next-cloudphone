@@ -23,7 +23,6 @@ export const CouponCard: React.FC<CouponCardProps> = React.memo(
   ({ coupon, onShowDetail, onUseCoupon }) => {
     const isAvailable = coupon.status === CouponStatus.AVAILABLE;
     const isUsed = coupon.status === CouponStatus.USED;
-    const isExpired = coupon.status === CouponStatus.EXPIRED;
 
     const typeConfig = getCouponTypeConfig(coupon);
     const statusCfg = statusConfig[coupon.status];

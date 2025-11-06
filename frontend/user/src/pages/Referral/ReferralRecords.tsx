@@ -5,18 +5,15 @@ import {
   Table,
   Tag,
   Button,
-  Space,
   message,
   Tabs,
   Row,
   Col,
   Statistic,
-  DatePicker,
 } from 'antd';
 import {
   LeftOutlined,
   TeamOutlined,
-  DollarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
@@ -33,7 +30,6 @@ import {
 import WithdrawModal from '@/components/WithdrawModal';
 
 const { TabPane } = Tabs;
-const { RangePicker } = DatePicker;
 
 const ReferralRecords = () => {
   const navigate = useNavigate();

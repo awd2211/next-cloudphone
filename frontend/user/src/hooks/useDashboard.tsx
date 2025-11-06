@@ -48,7 +48,7 @@ export const useDashboard = () => {
   const [loading, setLoading] = useState(false);
 
   // 模拟数据（实际应从API获取）
-  const [dashboardData, setDashboardData] = useState<DashboardData>({
+  const [dashboardData] = useState<DashboardData>({
     devices: {
       total: 25,
       running: 18,
@@ -74,7 +74,7 @@ export const useDashboard = () => {
     },
   });
 
-  const [recentActivities, setRecentActivities] = useState<Activity[]>([
+  const [recentActivities] = useState<Activity[]>([
     {
       id: 1,
       type: 'device_start',

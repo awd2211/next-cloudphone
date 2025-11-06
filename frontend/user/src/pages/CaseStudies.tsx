@@ -7,17 +7,14 @@ import {
   Button,
   Space,
   Tag,
-  Avatar,
   Rate,
   Statistic,
-  Tabs,
 } from 'antd';
 import {
   TrophyOutlined,
   RocketOutlined,
   TeamOutlined,
   BarChartOutlined,
-  StarFilled,
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';

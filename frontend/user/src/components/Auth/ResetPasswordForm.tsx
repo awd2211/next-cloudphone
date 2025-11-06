@@ -33,30 +33,33 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
 
   // 密码强度计算
   useEffect(() => {
-    if (!password) {
-      setPasswordStrength(0);
-      return;
-    }
+    // 使用 requestAnimationFrame 避免同步渲染问题
+    requestAnimationFrame(() => {
+      if (!password) {
+        setPasswordStrength(0);
+        return;
+      }
 
-    let strength = 0;
+      let strength = 0;
 
-    // 长度检查
-    if (password.length >= 8) strength += 25;
-    if (password.length >= 12) strength += 15;
+      // 长度检查
+      if (password.length >= 8) strength += 25;
+      if (password.length >= 12) strength += 15;
 
-    // 包含数字
-    if (/\d/.test(password)) strength += 20;
+      // 包含数字
+      if (/\d/.test(password)) strength += 20;
 
-    // 包含小写字母
-    if (/[a-z]/.test(password)) strength += 15;
+      // 包含小写字母
+      if (/[a-z]/.test(password)) strength += 15;
 
-    // 包含大写字母
-    if (/[A-Z]/.test(password)) strength += 15;
+      // 包含大写字母
+      if (/[A-Z]/.test(password)) strength += 15;
 
-    // 包含特殊字符
-    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength += 10;
+      // 包含特殊字符
+      if (/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) strength += 10;
 
-    setPasswordStrength(Math.min(strength, 100));
+      setPasswordStrength(Math.min(strength, 100));
+    });
   }, [password]);
 
   // 密码强度颜色

@@ -41,7 +41,7 @@ export function useDeviceSnapshots() {
     if (!id) return;
     try {
       const res = await getDevice(id);
-      setDevice(res.data);
+      setDevice(res);
     } catch (error) {
       message.error('加载设备信息失败');
     }

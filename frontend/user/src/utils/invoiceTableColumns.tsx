@@ -36,7 +36,11 @@ const statusConfig: Record<string, { color: string; icon: React.ReactNode; text:
  * 渲染发票状态
  */
 const renderStatus = (status: string) => {
-  const config = statusConfig[status] || statusConfig.pending;
+  const config = statusConfig[status] || statusConfig.pending || {
+    color: 'default',
+    icon: <ClockCircleOutlined />,
+    text: status,
+  };
   return (
     <Tag icon={config.icon} color={config.color}>
       {config.text}

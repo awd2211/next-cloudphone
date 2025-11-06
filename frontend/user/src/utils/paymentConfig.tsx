@@ -284,7 +284,7 @@ export const getFormFieldsByType = (type: PaymentType | undefined): FormFieldCon
  */
 export const validatePaymentForm = async (
   form: FormInstance,
-  type: PaymentType
+  _type: PaymentType
 ): Promise<boolean> => {
   try {
     await form.validateFields();

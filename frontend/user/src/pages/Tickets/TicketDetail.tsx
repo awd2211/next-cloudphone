@@ -1,8 +1,6 @@
 import React from 'react';
 import { Spin } from 'antd';
 import { useParams } from 'react-router-dom';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
 import { TicketStatus } from '@/services/ticket';
 import {

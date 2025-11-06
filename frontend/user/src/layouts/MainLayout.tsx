@@ -18,6 +18,7 @@ import {
   AccountBookOutlined,
   GiftOutlined,
   TeamOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -78,10 +79,27 @@ const MainLayout = () => {
       onClick: () => navigate('/tickets'),
     },
     {
-      key: '/messages',
+      key: 'messages-menu',
       icon: <MessageOutlined />,
       label: '消息中心',
-      onClick: () => navigate('/messages'),
+      children: [
+        {
+          key: '/messages',
+          label: '消息列表',
+          onClick: () => navigate('/messages'),
+        },
+        {
+          key: '/messages/sms',
+          label: 'SMS验证码',
+          onClick: () => navigate('/messages/sms'),
+        },
+      ],
+    },
+    {
+      key: '/proxy',
+      icon: <GlobalOutlined />,
+      label: '我的代理',
+      onClick: () => navigate('/proxy'),
     },
     {
       key: '/activities',
