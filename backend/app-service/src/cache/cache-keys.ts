@@ -141,6 +141,21 @@ export class CacheKeys {
   static globalStats(): string {
     return `${this.PREFIX}:stats:global`;
   }
+
+  /**
+   * ==================== 筛选元数据缓存 ====================
+   */
+
+  /**
+   * 应用筛选元数据
+   * 格式: app-service:filters-metadata:{includeCount}:{onlyWithData}
+   *
+   * 使用场景: getFiltersMetadata() 方法
+   * 失效时机: 应用创建、删除、状态变更（较少变化，5分钟缓存）
+   */
+  static appFiltersMetadata(includeCount: boolean = true, onlyWithData: boolean = false): string {
+    return `${this.PREFIX}:filters-metadata:${includeCount}:${onlyWithData}`;
+  }
 }
 
 /**
@@ -205,6 +220,12 @@ export const CacheTTL = {
    * 原因: 全局统计数据变化缓慢
    */
   GLOBAL_STATS: 3600,
+
+  /**
+   * 筛选元数据: 5 分钟
+   * 原因: 筛选选项变化不频繁，但需要及时反映数据分布变化
+   */
+  FILTER_METADATA: 300,
 };
 
 /**

@@ -5,7 +5,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Device, DeviceStatus } from '../entities/device.entity';
 import { DockerService } from '../docker/docker.service';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, DistributedLockService } from '@cloudphone/shared';
 
 /**
  * 状态不一致类型
@@ -97,7 +97,8 @@ export class StateRecoveryService {
     private dockerService: DockerService,
     private eventBusService: EventBusService,
     private configService: ConfigService,
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {
     this.config = {
       enabled: this.configService.get<boolean>('STATE_RECOVERY_ENABLED', true),

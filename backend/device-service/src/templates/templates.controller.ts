@@ -19,6 +19,10 @@ import {
   CreateDeviceFromTemplateDto,
   BatchCreateFromTemplateDto,
 } from './dto/create-from-template.dto';
+import {
+  QuickListQueryDto,
+  QuickListResponseDto,
+} from './dto/quick-list.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TemplateCategory } from '../entities/device-template.entity';
 
@@ -94,6 +98,20 @@ export class TemplatesController {
     }
 
     return await this.templatesService.searchTemplates(query, userId);
+  }
+
+  /**
+   * 获取模板快速列表（用于下拉框等UI组件）
+   * GET /templates/quick-list?status=gaming&limit=10
+   */
+  @Get('quick-list')
+  async getQuickList(@Query() query: QuickListQueryDto) {
+    const result = await this.templatesService.getQuickList(query);
+    return {
+      success: true,
+      data: result,
+      message: '模板快速列表获取成功',
+    };
   }
 
   /**

@@ -5,7 +5,7 @@ import { Repository, IsNull } from 'typeorm';
 import { Device } from '../entities/device.entity';
 import { ProxyUsage, ProxyReleaseReason } from '../entities/proxy-usage.entity';
 import { ProxyStatsService } from './proxy-stats.service';
-import { ProxyClientService } from '@cloudphone/shared';
+import { ProxyClientService, DistributedLockService } from '@cloudphone/shared';
 
 /**
  * 代理清理服务
@@ -22,6 +22,7 @@ export class ProxyCleanupService {
     private readonly proxyUsageRepository: Repository<ProxyUsage>,
     private readonly proxyStats: ProxyStatsService,
     private readonly proxyClient: ProxyClientService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**

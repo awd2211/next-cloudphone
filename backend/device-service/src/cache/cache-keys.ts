@@ -96,6 +96,32 @@ export class CacheKeys {
   static allListsPattern(): string {
     return `${this.PREFIX}:device:list:*`;
   }
+
+  /**
+   * 设备快速列表缓存键（用于下拉框等UI组件）
+   */
+  static readonly DEVICE_QUICK_LIST = `${CacheKeys.PREFIX}:device:quick-list`;
+
+  /**
+   * 模板快速列表缓存键
+   */
+  static readonly TEMPLATE_QUICK_LIST = `${CacheKeys.PREFIX}:template:quick-list`;
+
+  /**
+   * 设备筛选元数据缓存键
+   * @param includeCount 是否包含数量统计
+   * @param onlyWithData 是否只返回有数据的选项
+   */
+  static deviceFiltersMetadata(includeCount: boolean, onlyWithData: boolean): string {
+    return `${this.PREFIX}:device:filters-metadata:${includeCount}:${onlyWithData}`;
+  }
+
+  /**
+   * 模板筛选元数据缓存键
+   */
+  static templateFiltersMetadata(includeCount: boolean, onlyWithData: boolean): string {
+    return `${this.PREFIX}:template:filters-metadata:${includeCount}:${onlyWithData}`;
+  }
 }
 
 /**
@@ -108,4 +134,6 @@ export const CacheTTL = {
   DEVICE_STATS: 180, // 设备统计: 3 分钟
   TEMPLATE: 600, // 模板: 10 分钟
   SNAPSHOT: 300, // 快照: 5 分钟
+  QUICK_LIST: 60, // 快速列表: 1 分钟（用于下拉框等UI组件）
+  FILTER_METADATA: 300, // 筛选元数据: 5 分钟（筛选选项变化较少）
 } as const;

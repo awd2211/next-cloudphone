@@ -1,4 +1,4 @@
-import { Injectable, Logger, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, HttpStatus, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DeviceTemplate, TemplateCategory } from '../entities/device-template.entity';
@@ -13,6 +13,8 @@ import { BatchOperationsService } from '../devices/batch-operations.service';
 import { CreateDeviceDto } from '../devices/dto/create-device.dto';
 import { BatchCreateDeviceDto } from '../devices/dto/batch-operation.dto';
 import { BusinessErrors } from '@cloudphone/shared';
+import { CacheService } from '../cache/cache.service';
+import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 @Injectable()
 export class TemplatesService {
@@ -22,7 +24,8 @@ export class TemplatesService {
     @InjectRepository(DeviceTemplate)
     private templateRepository: Repository<DeviceTemplate>,
     private devicesService: DevicesService,
-    private batchOperationsService: BatchOperationsService
+    private batchOperationsService: BatchOperationsService,
+    @Optional() private cacheService: CacheService
   ) {}
 
   /**
@@ -347,5 +350,73 @@ export class TemplatesService {
     }
 
     throw new Error(`Device ${deviceId} did not become ready in time`);
+  }
+
+  /**
+   * 获取模板快速列表（用于下拉框等UI组件）
+   */
+  async getQuickList(query: {
+    status?: string;
+    search?: string;
+    limit?: number;
+  }): Promise<{
+    items: Array<{ id: string; name: string; status?: string; extra?: Record<string, any> }>;
+    total: number;
+    cached: boolean;
+  }> {
+    const limit = query.limit || 100;
+    const cacheKey = `${CacheKeys.TEMPLATE_QUICK_LIST}:${JSON.stringify(query)}`;
+
+    // 1. 尝试从缓存获取
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<any>(cacheKey);
+      if (cached) {
+        this.logger.debug(`Template quick list cache hit: ${cacheKey}`);
+        return { ...cached, cached: true };
+      }
+    }
+
+    // 2. 数据库查询 - 只查询必要字段
+    const qb = this.templateRepository
+      .createQueryBuilder('template')
+      .select(['template.id', 'template.name', 'template.category', 'template.isPublic', 'template.usageCount'])
+      .orderBy('template.usageCount', 'DESC')
+      .addOrderBy('template.createdAt', 'DESC')
+      .limit(limit);
+
+    // 3. 分类过滤（使用 category 字段）
+    if (query.status) {
+      qb.andWhere('template.category = :category', { category: query.status });
+    }
+
+    // 4. 关键词搜索 - 搜索名称
+    if (query.search) {
+      qb.andWhere('template.name LIKE :search', {
+        search: `%${query.search}%`,
+      });
+    }
+
+    const [templates, total] = await qb.getManyAndCount();
+
+    const result = {
+      items: templates.map((template) => ({
+        id: template.id,
+        name: template.name,
+        status: template.category,
+        extra: {
+          isPublic: template.isPublic,
+          usageCount: template.usageCount,
+        },
+      })),
+      total,
+      cached: false,
+    };
+
+    // 5. 存入缓存（60秒）
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, result, CacheTTL.QUICK_LIST);
+    }
+
+    return result;
   }
 }

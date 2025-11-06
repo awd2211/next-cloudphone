@@ -6,6 +6,7 @@ import { Device, DeviceStatus } from '../entities/device.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as os from 'os';
 import Dockerode = require('dockerode');
+import { DistributedLockService } from '@cloudphone/shared';
 
 @Injectable()
 export class ResourceMonitorService {
@@ -15,7 +16,8 @@ export class ResourceMonitorService {
     @InjectRepository(Node)
     private nodeRepository: Repository<Node>,
     @InjectRepository(Device)
-    private deviceRepository: Repository<Device>
+    private deviceRepository: Repository<Device>,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**

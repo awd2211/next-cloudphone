@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { Device } from '../entities/device.entity';
 import { ProxyHealthStatus } from '../entities/proxy-usage.entity';
 import { ProxyStatsService } from './proxy-stats.service';
-import { ProxyClientService } from '@cloudphone/shared';
+import { ProxyClientService, DistributedLockService } from '@cloudphone/shared';
 import { DeviceProviderType } from '../providers/provider.types';
 
 /**
@@ -21,6 +21,7 @@ export class ProxyHealthService {
     private readonly deviceRepository: Repository<Device>,
     private readonly proxyStats: ProxyStatsService,
     private readonly proxyClient: ProxyClientService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**

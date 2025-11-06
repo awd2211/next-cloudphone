@@ -38,6 +38,7 @@ import {
   CursorPaginatedResponse,
   ProxyClientService, // ✅ 导入代理客户端服务
   HttpClientService, // ✅ 导入 HTTP 客户端服务（用于调用 SMS Receive Service）
+  DistributedLockService,
 } from '@cloudphone/shared';
 import { QuotaClientService } from '../quota/quota-client.service';
 import { CacheService } from '../cache/cache.service';
@@ -53,6 +54,7 @@ import { ScrcpyVideoCodec } from '../scrcpy/scrcpy.types';
 import { ProxyStatsService } from '../proxy/proxy-stats.service';
 import { ProxySelectionService, ProxySelectionStrategy, ProxySelectionResult } from '../proxy/proxy-selection.service';
 import { ProxyReleaseReason } from '../entities/proxy-usage.entity';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 /**
  * 设备创建 Saga State 接口
@@ -104,6 +106,7 @@ interface DeviceCreationSagaState {
 @Injectable()
 export class DevicesService {
   private readonly logger = new Logger(DevicesService.name);
+  private readonly tracer = trace.getTracer('device-service');
 
   constructor(
     @InjectRepository(Device)
@@ -124,7 +127,8 @@ export class DevicesService {
     private moduleRef: ModuleRef, // ✅ 用于延迟获取服务
     private sagaOrchestrator: SagaOrchestratorService,
     @InjectDataSource()
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   // ✅ 延迟获取 DevicePoolService 和 ScrcpyService (避免循环依赖)
@@ -149,12 +153,26 @@ export class DevicesService {
    * 5. START_DEVICE - 启动设备
    */
   async create(createDeviceDto: CreateDeviceDto): Promise<{ sagaId: string; device: Device }> {
-    // ✅ 验证 userId 必须存在
-    if (!createDeviceDto.userId) {
-      throw new BadRequestException('userId is required for device creation');
-    }
+    // 创建自定义 span 用于追踪设备创建
+    return await this.tracer.startActiveSpan(
+      'device.create',
+      {
+        attributes: {
+          'user.id': createDeviceDto.userId || 'unknown',
+          'device.name': createDeviceDto.name,
+          'device.provider_type': createDeviceDto.providerType || DeviceProviderType.REDROID,
+          'device.cpu_cores': createDeviceDto.cpuCores || 2,
+          'device.memory_mb': createDeviceDto.memoryMB || 4096,
+        },
+      },
+      async (span) => {
+        try {
+          // ✅ 验证 userId 必须存在
+          if (!createDeviceDto.userId) {
+            throw new BadRequestException('userId is required for device creation');
+          }
 
-    this.logger.log(`Creating device for user ${createDeviceDto.userId}`);
+          this.logger.log(`Creating device for user ${createDeviceDto.userId}`);
 
     // 确定 Provider 类型（默认 Redroid）
     const providerType = createDeviceDto.providerType || DeviceProviderType.REDROID;
@@ -704,7 +722,30 @@ export class DevicesService {
     // ✅ 事件已在 Saga Step 3 中通过 Outbox 发布（在数据库事务内）
     // 不再需要 setImmediate 异步发布，避免事件丢失风险
 
-    return { sagaId, device };
+          // 添加设备 ID 到 span attributes
+          span.setAttributes({
+            'saga.id': sagaId,
+            'device.id': device?.id || 'pending',
+            'device.status': device?.status || 'creating',
+          });
+
+          // 设置成功状态
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          return { sagaId, device };
+        } catch (error) {
+          // 记录错误
+          span.recordException(error);
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message || 'Device creation failed',
+          });
+          throw error;
+        } finally {
+          span.end();
+        }
+      },
+    );
   }
 
   /**
@@ -1127,6 +1168,29 @@ export class DevicesService {
     );
   }
 
+  /**
+   * 批量查询设备（根据ID列表）
+   * 用于服务间调用，返回基本信息
+   */
+  async findByIds(ids: string[]): Promise<Device[]> {
+    if (!ids || ids.length === 0) {
+      return [];
+    }
+
+    try {
+      // 使用 In 查询批量获取设备
+      const devices = await this.devicesRepository.find({
+        where: { id: In(ids) },
+        select: ['id', 'name', 'type', 'providerType', 'status', 'userId'],
+      });
+
+      return devices;
+    } catch (error) {
+      this.logger.error(`Failed to batch find devices: ${error.message}`, error.stack);
+      return [];
+    }
+  }
+
   async update(id: string, updateDeviceDto: UpdateDeviceDto): Promise<Device> {
     const device = await this.findOne(id);
 
@@ -1462,12 +1526,30 @@ export class DevicesService {
   }
 
   async start(id: string): Promise<Device> {
-    const device = await this.findOne(id);
+    // 创建自定义 span 用于追踪设备启动
+    return await this.tracer.startActiveSpan(
+      'device.start',
+      {
+        attributes: {
+          'device.id': id,
+        },
+      },
+      async (span) => {
+        try {
+          const device = await this.findOne(id);
 
-    this.logger.log(`Starting device ${id} (Provider: ${device.providerType})`);
+          // 添加设备详细信息到 attributes
+          span.setAttributes({
+            'device.name': device.name,
+            'device.provider_type': device.providerType,
+            'device.status': device.status,
+            'user.id': device.userId || 'unknown',
+          });
 
-    // 获取 Provider
-    const provider = this.providerFactory.getProvider(device.providerType);
+          this.logger.log(`Starting device ${id} (Provider: ${device.providerType})`);
+
+          // 获取 Provider
+          const provider = this.providerFactory.getProvider(device.providerType);
 
     // ✅ 调用 Provider 启动设备
     if (device.externalId) {
@@ -1597,26 +1679,70 @@ export class DevicesService {
       }
     }
 
-    // 上报并发设备增加（设备启动）
-    if (this.quotaClient && device.userId) {
-      await this.quotaClient.incrementConcurrentDevices(device.userId).catch((error) => {
-        this.logger.warn(
-          `Failed to increment concurrent devices for user ${device.userId}`,
-          error.message
-        );
-      });
-    }
+          // 上报并发设备增加（设备启动）
+          if (this.quotaClient && device.userId) {
+            await this.quotaClient.incrementConcurrentDevices(device.userId).catch((error) => {
+              this.logger.warn(
+                `Failed to increment concurrent devices for user ${device.userId}`,
+                error.message
+              );
+            });
+          }
 
-    return savedDevice;
+          // 添加最终状态到 span
+          span.setAttributes({
+            'device.final_status': savedDevice.status,
+          });
+
+          // 设置成功状态
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          return savedDevice;
+        } catch (error) {
+          // 记录错误
+          span.recordException(error);
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message || 'Device start failed',
+          });
+          throw error;
+        } finally {
+          span.end();
+        }
+      },
+    );
   }
 
   async stop(id: string): Promise<Device> {
-    const device = await this.findOne(id);
+    // 创建自定义 span 用于追踪设备停止
+    return await this.tracer.startActiveSpan(
+      'device.stop',
+      {
+        attributes: {
+          'device.id': id,
+        },
+      },
+      async (span) => {
+        try {
+          const device = await this.findOne(id);
 
-    this.logger.log(`Stopping device ${id} (Provider: ${device.providerType})`);
+          // 添加设备详细信息到 attributes
+          span.setAttributes({
+            'device.name': device.name,
+            'device.provider_type': device.providerType,
+            'device.status': device.status,
+            'user.id': device.userId || 'unknown',
+          });
 
-    const startTime = device.lastActiveAt || device.createdAt;
-    const duration = Math.floor((Date.now() - startTime.getTime()) / 1000);
+          this.logger.log(`Stopping device ${id} (Provider: ${device.providerType})`);
+
+          const startTime = device.lastActiveAt || device.createdAt;
+          const duration = Math.floor((Date.now() - startTime.getTime()) / 1000);
+
+          // 记录设备运行时长
+          span.setAttributes({
+            'device.runtime_seconds': duration,
+          });
 
     // ✅ 物理设备：停止 SCRCPY 会话
     if (device.providerType === DeviceProviderType.PHYSICAL) {
@@ -1715,17 +1841,38 @@ export class DevicesService {
       await queryRunner.release();
     }
 
-    // 上报并发设备减少（设备停止）
-    if (this.quotaClient && device.userId) {
-      await this.quotaClient.decrementConcurrentDevices(device.userId).catch((error) => {
-        this.logger.warn(
-          `Failed to decrement concurrent devices for user ${device.userId}`,
-          error.message
-        );
-      });
-    }
+          // 上报并发设备减少（设备停止）
+          if (this.quotaClient && device.userId) {
+            await this.quotaClient.decrementConcurrentDevices(device.userId).catch((error) => {
+              this.logger.warn(
+                `Failed to decrement concurrent devices for user ${device.userId}`,
+                error.message
+              );
+            });
+          }
 
-    return savedDevice;
+          // 添加最终状态到 span
+          span.setAttributes({
+            'device.final_status': savedDevice.status,
+          });
+
+          // 设置成功状态
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          return savedDevice;
+        } catch (error) {
+          // 记录错误
+          span.recordException(error);
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message || 'Device stop failed',
+          });
+          throw error;
+        } finally {
+          span.end();
+        }
+      },
+    );
   }
 
   async restart(id: string): Promise<Device> {

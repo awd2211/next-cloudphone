@@ -6,6 +6,7 @@ import { Device, DeviceStatus, DeviceProviderType } from '../entities/device.ent
 import { DeviceProviderFactory } from '../providers/device-provider.factory';
 import { AliyunEcpClient } from '../providers/aliyun/aliyun-ecp.client';
 import { HuaweiCphClient } from '../providers/huawei/huawei-cph.client';
+import { DistributedLockService } from '@cloudphone/shared';
 
 /**
  * 云设备 Token 自动刷新服务
@@ -28,7 +29,8 @@ export class CloudDeviceTokenService {
     private devicesRepository: Repository<Device>,
     private providerFactory: DeviceProviderFactory,
     private aliyunClient: AliyunEcpClient,
-    private huaweiClient: HuaweiCphClient
+    private huaweiClient: HuaweiCphClient,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**

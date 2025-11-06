@@ -5,7 +5,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Device, DeviceStatus } from '../entities/device.entity';
 import { DockerService } from '../docker/docker.service';
 import { AdbService } from '../adb/adb.service';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, DistributedLockService } from '@cloudphone/shared';
 import { MetricsService } from '../metrics/metrics.service';
 
 export interface HealthCheckResult {
@@ -37,7 +37,8 @@ export class EnhancedHealthService {
     private dockerService: DockerService,
     private adbService: AdbService,
     private eventBus: EventBusService,
-    private metricsService: MetricsService
+    private metricsService: MetricsService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**

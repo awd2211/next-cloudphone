@@ -7,7 +7,7 @@ import { Device, DeviceStatus } from '../entities/device.entity';
 import { DockerService } from '../docker/docker.service';
 import { AdbService } from '../adb/adb.service';
 import { PortManagerService } from '../port-manager/port-manager.service';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, DistributedLockService } from '@cloudphone/shared';
 import { MetricsService } from '../metrics/metrics.service';
 
 export interface CleanupResult {
@@ -48,7 +48,8 @@ export class LifecycleService {
     private portManager: PortManagerService,
     private configService: ConfigService,
     private eventBus: EventBusService,
-    private metricsService: MetricsService
+    private metricsService: MetricsService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {
     // 从环境变量读取配置
     this.IDLE_CLEANUP_HOURS = +this.configService.get('DEVICE_IDLE_CLEANUP_HOURS', 24);

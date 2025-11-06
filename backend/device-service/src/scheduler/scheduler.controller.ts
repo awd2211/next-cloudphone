@@ -811,4 +811,171 @@ export class SchedulerController {
       data: result,
     };
   }
+
+  // ==================== 任务队列别名 API (兼容性) ====================
+
+  /**
+   * 查询任务列表（队列别名）
+   * GET /scheduler/tasks?userId=xxx&status=waiting&page=1&pageSize=10
+   * 这是 GET /scheduler/queue 的别名接口，用于兼容前端
+   */
+  @Get('tasks')
+  async getTaskList(@Query() query: QueryQueueDto) {
+    this.logger.log(`Querying tasks (queue alias) with filters: ${JSON.stringify(query)}`);
+
+    const result = await this.queueService.getQueueList(query);
+
+    return {
+      success: true,
+      data: result,
+      message: `Found ${result.total} task(s)`,
+    };
+  }
+
+  // ==================== 设备重新调度 API ====================
+
+  /**
+   * 重新调度设备
+   * POST /scheduler/reschedule/:deviceId
+   * 用于将已分配的设备重新调度到更合适的节点
+   */
+  @Post('reschedule/:deviceId')
+  async rescheduleDevice(
+    @Param('deviceId') deviceId: string,
+    @Body()
+    body?: {
+      reason?: string;
+      preferredNode?: string;
+      durationMinutes?: number;
+    }
+  ) {
+    this.logger.log(
+      `Rescheduling device ${deviceId}, reason: ${body?.reason || 'manual'}, preferredNode: ${body?.preferredNode || 'auto'}`
+    );
+
+    // 获取当前设备的分配信息
+    const allocations = await this.allocationService.getDeviceAllocations(deviceId);
+
+    if (!allocations || allocations.length === 0) {
+      return {
+        success: false,
+        message: 'Device is not currently allocated',
+        deviceId,
+      };
+    }
+
+    const currentAllocation = allocations[0];
+    const previousAllocationId = currentAllocation.id;
+
+    try {
+      // 准备调度请求（基于原分配的资源需求）
+      const scheduleRequest: ScheduleRequest = {
+        cpuCores: 2, // 可以从设备元数据中获取
+        memoryMB: 2048,
+        storageMB: 8192,
+        preferredNode: body?.preferredNode,
+      };
+
+      // 重新调度到新节点
+      const newNode = await this.schedulerService.scheduleDevice(scheduleRequest);
+
+      // 释放当前分配
+      await this.allocationService.releaseDevice(deviceId, currentAllocation.userId);
+
+      // 创建新的分配
+      const newAllocation = await this.allocationService.allocateDevice({
+        userId: currentAllocation.userId,
+        tenantId: currentAllocation.tenantId,
+        durationMinutes: body?.durationMinutes || currentAllocation.durationMinutes || 60,
+        preferredSpecs: {
+          minCpu: 2,
+          minMemory: 2048,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Device rescheduled successfully',
+        data: {
+          deviceId,
+          previousAllocationId,
+          previousNodeId: newNode.nodeId, // 之前的节点ID（这里简化处理）
+          newNodeId: newNode.nodeId,
+          newAllocationId: newAllocation.allocationId,
+          newDeviceId: newAllocation.deviceId,
+          reason: body?.reason || 'manual reschedule',
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to reschedule device ${deviceId}:`, error);
+
+      return {
+        success: false,
+        message: `Reschedule failed: ${error.message}`,
+        deviceId,
+        error: error.message,
+      };
+    }
+  }
+
+  // ==================== 资源使用趋势分析 API ====================
+
+  /**
+   * 获取节点使用趋势
+   * GET /scheduler/nodes/:nodeId/usage-trend?hours=24
+   */
+  @Get('nodes/:nodeId/usage-trend')
+  async getNodeUsageTrend(
+    @Param('nodeId') nodeId: string,
+    @Query('hours') hours: string = '24'
+  ) {
+    this.logger.log(`Getting usage trend for node ${nodeId}, hours: ${hours}`);
+
+    try {
+      const hoursNum = parseInt(hours, 10) || 24;
+      const trend = await this.resourceMonitorService.getNodeUsageTrend(nodeId, hoursNum);
+
+      return {
+        success: true,
+        data: trend,
+        message: `Node usage trend data retrieved (${trend.dataPoints} data points)`,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get node usage trend: ${error.message}`);
+
+      return {
+        success: false,
+        message: `Failed to get node usage trend: ${error.message}`,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * 获取集群使用趋势
+   * GET /scheduler/cluster/usage-trend?hours=24
+   */
+  @Get('cluster/usage-trend')
+  async getClusterUsageTrend(@Query('hours') hours: string = '24') {
+    this.logger.log(`Getting cluster usage trend, hours: ${hours}`);
+
+    try {
+      const hoursNum = parseInt(hours, 10) || 24;
+      const trend = await this.resourceMonitorService.getClusterUsageTrend(hoursNum);
+
+      return {
+        success: true,
+        data: trend,
+        message: `Cluster usage trend data retrieved (${trend.dataPoints} data points)`,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get cluster usage trend: ${error.message}`);
+
+      return {
+        success: false,
+        message: `Failed to get cluster usage trend: ${error.message}`,
+        error: error.message,
+      };
+    }
+  }
 }

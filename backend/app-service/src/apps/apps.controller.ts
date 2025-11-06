@@ -42,6 +42,14 @@ import {
   SubmitReviewDto,
   GetAuditRecordsQueryDto,
 } from './dto/audit-app.dto';
+import {
+  FilterMetadataQueryDto,
+  AppFilterMetadataResponseDto,
+} from './dto/filter-metadata.dto';
+import {
+  QuickListQueryDto,
+  QuickListResponseDto,
+} from './dto/quick-list.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { CursorPaginationDto } from '@cloudphone/shared';
@@ -188,6 +196,63 @@ export class AppsController {
     return {
       success: true,
       ...result,
+    };
+  }
+
+  @Get('filters/metadata')
+  @RequirePermission('app.read')
+  @ApiOperation({
+    summary: '应用筛选元数据',
+    description: '获取应用列表页所有可用的筛选选项及统计信息（用于生成动态筛选表单）',
+  })
+  @ApiQuery({
+    name: 'includeCount',
+    required: false,
+    description: '是否包含每个选项的记录数量',
+    example: true,
+  })
+  @ApiQuery({
+    name: 'onlyWithData',
+    required: false,
+    description: '是否只返回有数据的筛选选项',
+    example: false,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    type: AppFilterMetadataResponseDto,
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getFiltersMetadata(@Query() query: FilterMetadataQueryDto) {
+    const result = await this.appsService.getFiltersMetadata(query);
+    return {
+      success: true,
+      data: result,
+      message: '应用筛选元数据获取成功',
+    };
+  }
+
+  @Get('quick-list')
+  @RequirePermission('app.read')
+  @ApiOperation({
+    summary: '应用快速列表',
+    description: '返回轻量级应用列表，用于下拉框等UI组件（带缓存优化）',
+  })
+  @ApiQuery({ name: 'status', required: false, description: '状态过滤', example: 'approved' })
+  @ApiQuery({ name: 'search', required: false, description: '搜索关键词', example: 'wechat' })
+  @ApiQuery({ name: 'limit', required: false, description: '限制数量', example: 100 })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    type: QuickListResponseDto,
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getQuickList(@Query() query: QuickListQueryDto) {
+    const result = await this.appsService.getQuickList(query);
+    return {
+      success: true,
+      data: result,
+      message: '应用快速列表获取成功',
     };
   }
 

@@ -5,7 +5,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Device, DeviceStatus } from '../entities/device.entity';
 import { DockerService } from '../docker/docker.service';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, DistributedLockService } from '@cloudphone/shared';
 import { MetricsService } from '../metrics/metrics.service';
 
 export interface AutoScalingConfig {
@@ -60,7 +60,8 @@ export class AutoScalingService {
     private dockerService: DockerService,
     private configService: ConfigService,
     private eventBus: EventBusService,
-    private metricsService: MetricsService
+    private metricsService: MetricsService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {
     this.loadConfig();
   }

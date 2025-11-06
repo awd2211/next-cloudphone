@@ -8,6 +8,8 @@ import { HuaweiModule } from './huawei/huawei.module';
 import { HuaweiProvider } from './huawei/huawei.provider';
 import { AliyunModule } from './aliyun/aliyun.module';
 import { AliyunProvider } from './aliyun/aliyun.provider';
+import { ProvidersService } from './providers.service';
+import { ProvidersController } from './providers.controller';
 
 /**
  * ProvidersModule
@@ -19,9 +21,12 @@ import { AliyunProvider } from './aliyun/aliyun.provider';
  * - PhysicalProvider (Phase 2A) ✅
  * - HuaweiProvider (Phase 3) ✅
  * - AliyunProvider (Phase 4) ✅
+ * - ProvidersService (管理服务) ✅
+ * - ProvidersController (REST API) ✅
  *
  * 导出：
  * - DeviceProviderFactory: Provider 工厂类
+ * - ProvidersService: 提供商管理服务
  */
 @Module({
   imports: [
@@ -30,8 +35,9 @@ import { AliyunProvider } from './aliyun/aliyun.provider';
     HuaweiModule, // ✅ Huawei Provider (Phase 3)
     AliyunModule, // ✅ Aliyun Provider (Phase 4)
   ],
-  providers: [DeviceProviderFactory],
-  exports: [DeviceProviderFactory],
+  controllers: [ProvidersController],
+  providers: [DeviceProviderFactory, ProvidersService],
+  exports: [DeviceProviderFactory, ProvidersService],
 })
 export class ProvidersModule implements OnModuleInit {
   constructor(

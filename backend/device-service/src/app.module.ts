@@ -33,6 +33,7 @@ import {
   EventOutbox,
   RequestIdMiddleware,
   SagaModule,
+  DistributedLockModule, // ✅ K8s 集群安全：分布式锁模块
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
@@ -86,6 +87,7 @@ import { SmsEventsConsumer } from './rabbitmq/consumers/sms-events.consumer';
     FailoverModule, // 故障转移和自动恢复
     StateRecoveryModule, // 状态自愈和回滚
     SagaModule, // Saga 编排模块（用于分布式事务）
+    DistributedLockModule.forRoot(), // ✅ K8s 集群安全：Redis 分布式锁（防止定时任务重复执行）
     ProxyModule, // ✅ 代理管理模块（统计、健康检查、客户端）
   ],
   controllers: [HealthController],

@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { Device } from '../entities/device.entity';
 import { DeviceSnapshot } from '../entities/device-snapshot.entity';
 import { SnapshotsService } from '../snapshots/snapshots.service';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, DistributedLockService } from '@cloudphone/shared';
 
 export interface BackupResult {
   success: boolean;
@@ -54,7 +54,8 @@ export class BackupExpirationService {
     private snapshotRepository: Repository<DeviceSnapshot>,
     private snapshotsService: SnapshotsService,
     private eventBusService: EventBusService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {
     this.config = {
       enabled: this.configService.get<boolean>('BACKUP_SCHEDULE_ENABLED', true),

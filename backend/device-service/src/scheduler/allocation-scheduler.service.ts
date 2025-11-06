@@ -6,6 +6,7 @@ import { AllocationService } from './allocation.service';
 import { NotificationClientService } from './notification-client.service';
 import { DeviceAllocation, AllocationStatus } from '../entities/device-allocation.entity';
 import { Device } from '../entities/device.entity';
+import { DistributedLockService } from '@cloudphone/shared';
 
 @Injectable()
 export class AllocationSchedulerService {
@@ -17,7 +18,8 @@ export class AllocationSchedulerService {
     @InjectRepository(DeviceAllocation)
     private allocationRepository: Repository<DeviceAllocation>,
     @InjectRepository(Device)
-    private deviceRepository: Repository<Device>
+    private deviceRepository: Repository<Device>,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**

@@ -28,6 +28,7 @@ import {
 } from './dto/audit-app.dto';
 import {
   EventBusService,
+  EventOutboxService, // ✅ 导入 Outbox 服务
   SagaOrchestratorService,
   SagaDefinition,
   SagaType,
@@ -39,10 +40,12 @@ import {
 } from '@cloudphone/shared';
 import { CacheService } from '../cache/cache.service';
 import { CacheKeys, CacheTTL, CacheInvalidation } from '../cache/cache-keys';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 @Injectable()
 export class AppsService {
   private readonly logger = new Logger(AppsService.name);
+  private readonly tracer = trace.getTracer('app-service');
 
   constructor(
     @InjectRepository(Application)
@@ -56,6 +59,7 @@ export class AppsService {
     private httpService: HttpService,
     private configService: ConfigService,
     private eventBus: EventBusService,
+    private eventOutboxService: EventOutboxService, // ✅ Outbox 服务
     private sagaOrchestrator: SagaOrchestratorService,
     @InjectDataSource()
     private dataSource: DataSource,
@@ -93,12 +97,24 @@ export class AppsService {
     file: Express.Multer.File,
     createAppDto: CreateAppDto
   ): Promise<{ sagaId: string; application: Application }> {
-    let apkInfo: any;
-    const filePath = file.path;
+    // 创建自定义 span 用于追踪应用上传
+    return await this.tracer.startActiveSpan(
+      'app.upload',
+      {
+        attributes: {
+          'app.file_name': file.originalname,
+          'app.file_size': file.size,
+          'app.uploader': createAppDto.uploaderId || 'unknown',
+        },
+      },
+      async (span) => {
+        try {
+          let apkInfo: any;
+          const filePath = file.path;
 
-    try {
-      // 1. 解析 APK 文件（前置验证）
-      apkInfo = await this.parseApk(filePath);
+          try {
+            // 1. 解析 APK 文件（前置验证）
+            apkInfo = await this.parseApk(filePath);
 
       // 2. 检查相同版本是否已存在
       const existing = await this.appsRepository.findOne({
@@ -354,21 +370,48 @@ export class AppsService {
         throw new InternalServerErrorException('App record creation failed');
       }
 
-      return {
-        sagaId,
-        application: app,
-      };
-    } finally {
-      // 确保临时文件被清理（无论成功或失败）
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-          this.logger.debug(`已清理上传临时文件: ${filePath}`);
-        } catch (cleanupError) {
-          this.logger.warn(`清理上传临时文件失败: ${filePath}`, cleanupError.message);
+            // 添加应用详情到 span
+            span.setAttributes({
+              'app.id': app.id,
+              'app.package_name': apkInfo.packageName,
+              'app.version_name': apkInfo.versionName,
+              'app.version_code': apkInfo.versionCode,
+              'saga.id': sagaId,
+              'app.status': app.status,
+            });
+
+            // 设置成功状态
+            span.setStatus({ code: SpanStatusCode.OK });
+
+            return {
+              sagaId,
+              application: app,
+            };
+          } finally {
+            // 确保临时文件被清理（无论成功或失败）
+            if (fs.existsSync(filePath)) {
+              try {
+                fs.unlinkSync(filePath);
+                this.logger.debug(`已清理上传临时文件: ${filePath}`);
+              } catch (cleanupError) {
+                this.logger.warn(`清理上传临时文件失败: ${filePath}`, cleanupError.message);
+              }
+            }
+          }
+        } catch (error) {
+          // 记录错误到 span
+          span.recordException(error);
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message || 'App upload failed',
+          });
+          throw error;
+        } finally {
+          // 结束 span
+          span.end();
         }
-      }
-    }
+      },
+    );
   }
 
   private async parseApk(filePath: string): Promise<any> {
@@ -478,83 +521,265 @@ export class AppsService {
   }
 
   /**
-   * 更新应用 (带缓存失效)
+   * 更新应用
    *
-   * ✅ 优化: 更新后自动失效相关缓存
+   * ✅ 修复: 使用事务 + Outbox Pattern 保证原子性
+   *
+   * 修复前问题:
+   * - 使用简单的 save()，无事务保护
+   * - 未发布更新事件通知其他服务
+   * - 缓存失效与保存不原子
+   *
+   * 修复后:
+   * - 使用 QueryRunner 事务管理
+   * - 发布 Outbox 事件
+   * - 事务成功后失效缓存
    */
   async update(id: string, updateAppDto: UpdateAppDto): Promise<Application> {
     const app = await this.findOne(id);
+    const oldValues = { ...app }; // 记录旧值用于事件
 
     Object.assign(app, updateAppDto);
-    const updated = await this.appsRepository.save(app);
 
-    // ✅ 失效相关缓存
-    await this.invalidateAppCache(app.id, app.packageName);
+    // ✅ 使用事务 + Outbox Pattern
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    return updated;
+    try {
+      const updated = await queryRunner.manager.save(Application, app);
+
+      // ✅ Outbox 事件
+      await this.eventOutboxService.writeEvent(
+        queryRunner,
+        'application',
+        id,
+        'app.updated',
+        {
+          appId: id,
+          packageName: app.packageName,
+          versionName: app.versionName,
+          updatedFields: Object.keys(updateAppDto),
+          oldValues: {
+            name: oldValues.name,
+            description: oldValues.description,
+            category: oldValues.category,
+          },
+          newValues: updateAppDto,
+          timestamp: new Date().toISOString(),
+        }
+      );
+
+      await queryRunner.commitTransaction();
+
+      // ✅ 事务成功后失效缓存
+      await this.invalidateAppCache(app.id, app.packageName);
+
+      this.logger.log(`应用已更新: ${app.name} (${app.id})`);
+
+      return updated;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`更新应用失败: ${error.message}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   /**
-   * 删除应用 (带缓存失效)
+   * 删除应用（软删除）
    *
-   * ✅ 优化: 删除后自动失效相关缓存
+   * ✅ 修复: 使用事务 + Outbox Pattern 保证原子性
+   *
+   * 修复前问题:
+   * - MinIO 删除和数据库更新不在同一事务
+   * - 如果数据库更新失败，MinIO 文件已被删除（存储泄漏）
+   * - 未发布删除事件
+   *
+   * 修复后:
+   * - 先软删除数据库记录（事务保护）
+   * - 发布 Outbox 事件
+   * - 事务成功后再删除 MinIO 文件（异步补偿）
+   *
+   * 注意: MinIO 删除在事务外执行，如果失败不影响数据库状态
    */
   async remove(id: string): Promise<void> {
     const app = await this.findOne(id);
 
-    // 删除 MinIO 中的文件
-    if (app.objectKey) {
-      await this.minioService.deleteFile(app.objectKey);
+    // ✅ 使用事务 + Outbox Pattern
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 软删除数据库记录
+      app.status = AppStatus.DELETED;
+      await queryRunner.manager.save(Application, app);
+
+      // ✅ Outbox 事件
+      await this.eventOutboxService.writeEvent(
+        queryRunner,
+        'application',
+        id,
+        'app.deleted',
+        {
+          appId: id,
+          packageName: app.packageName,
+          versionName: app.versionName,
+          objectKey: app.objectKey,
+          timestamp: new Date().toISOString(),
+        }
+      );
+
+      await queryRunner.commitTransaction();
+
+      // ✅ 事务成功后失效缓存
+      await this.invalidateAppCache(app.id, app.packageName);
+
+      this.logger.log(`应用已软删除: ${app.name} (${app.id})`);
+
+      // ✅ 事务成功后删除 MinIO 文件（异步，失败不影响业务）
+      if (app.objectKey) {
+        try {
+          await this.minioService.deleteFile(app.objectKey);
+          this.logger.log(`MinIO 文件已删除: ${app.objectKey}`);
+        } catch (minioError) {
+          // MinIO 删除失败只记录警告，不影响主流程
+          this.logger.warn(
+            `MinIO 文件删除失败 (可手动清理): ${app.objectKey}`,
+            minioError.message
+          );
+        }
+      }
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`删除应用失败: ${error.message}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    // 软删除
-    app.status = AppStatus.DELETED;
-    await this.appsRepository.save(app);
-
-    // ✅ 失效相关缓存
-    await this.invalidateAppCache(app.id, app.packageName);
   }
 
+  /**
+   * 安装应用到设备
+   *
+   * ✅ 修复: 使用事务 + Outbox Pattern 保证原子性
+   *
+   * 修复前问题:
+   * - save() 和 publishAppEvent() 不在同一事务
+   * - 如果事件发布失败，数据库记录已创建但事件未发送
+   * - 安装请求永远不会被处理（数据库显示 PENDING，但无人知道）
+   *
+   * 修复后:
+   * - 使用 QueryRunner 事务管理
+   * - save() + Outbox 事件在同一事务中
+   * - 保证事件一定会被投递（Outbox Relay 负责）
+   */
   async installToDevice(applicationId: string, deviceId: string): Promise<DeviceApplication> {
-    const app = await this.findOne(applicationId);
-
-    // 检查是否已安装
-    const existing = await this.deviceAppsRepository.findOne({
-      where: {
-        deviceId,
-        applicationId,
-        status: InstallStatus.INSTALLED,
+    // 创建自定义 span 用于追踪应用安装
+    return await this.tracer.startActiveSpan(
+      'app.install_to_device',
+      {
+        attributes: {
+          'app.id': applicationId,
+          'device.id': deviceId,
+        },
       },
-    });
+      async (span) => {
+        try {
+          const app = await this.findOne(applicationId);
 
-    if (existing) {
-      throw new BadRequestException('应用已安装在该设备上');
-    }
+          // 添加应用详情到 span
+          span.setAttributes({
+            'app.package_name': app.packageName,
+            'app.version_name': app.versionName,
+          });
 
-    // 创建安装记录（状态：pending）
-    const deviceApp = this.deviceAppsRepository.create({
-      deviceId,
-      applicationId,
-      status: InstallStatus.PENDING,
-    });
+          // 检查是否已安装
+          const existing = await this.deviceAppsRepository.findOne({
+            where: {
+              deviceId,
+              applicationId,
+              status: InstallStatus.INSTALLED,
+            },
+          });
 
-    const saved = await this.deviceAppsRepository.save(deviceApp);
+          if (existing) {
+            throw new BadRequestException('应用已安装在该设备上');
+          }
 
-    // 发布应用安装请求事件到 RabbitMQ
-    await this.eventBus.publishAppEvent('install.requested', {
-      installationId: saved.id,
-      deviceId,
-      appId: app.id,
-      downloadUrl: app.downloadUrl,
-      userId: null, // 从请求上下文获取
-      timestamp: new Date().toISOString(),
-    });
+          // ✅ 使用事务 + Outbox Pattern
+          const queryRunner = this.dataSource.createQueryRunner();
+          await queryRunner.connect();
+          await queryRunner.startTransaction();
 
-    this.logger.log(
-      `App install request published: ${app.id} for device ${deviceId}, installationId: ${saved.id}`
+          let saved: DeviceApplication;
+          try {
+            // 创建安装记录（状态：pending）
+            const deviceApp = queryRunner.manager.create(DeviceApplication, {
+              deviceId,
+              applicationId,
+              status: InstallStatus.PENDING,
+            });
+
+            saved = await queryRunner.manager.save(DeviceApplication, deviceApp);
+
+            // ✅ Outbox 事件（保证事件与数据变更原子性）
+            await this.eventOutboxService.writeEvent(
+              queryRunner,
+              'device_application',
+              saved.id,
+              'app.install.requested',
+              {
+                installationId: saved.id,
+                deviceId,
+                appId: app.id,
+                packageName: app.packageName,
+                versionName: app.versionName,
+                downloadUrl: app.downloadUrl,
+                timestamp: new Date().toISOString(),
+              }
+            );
+
+            await queryRunner.commitTransaction();
+
+            this.logger.log(
+              `App install request created: ${app.id} for device ${deviceId}, installationId: ${saved.id}`
+            );
+          } catch (error) {
+            await queryRunner.rollbackTransaction();
+            this.logger.error(`创建安装请求失败: ${error.message}`, error.stack);
+            throw error;
+          } finally {
+            await queryRunner.release();
+          }
+
+          // 添加安装 ID 到 span（事务成功后）
+          span.setAttributes({
+            'installation.id': saved.id,
+            'installation.status': saved.status,
+          });
+
+          // 设置成功状态
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          return saved;
+        } catch (error) {
+          // 记录错误到 span
+          span.recordException(error);
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message || 'App installation failed',
+          });
+
+          throw error;
+        } finally {
+          // 结束 span
+          span.end();
+        }
+      },
     );
-
-    return saved;
   }
 
   /**
@@ -718,6 +943,21 @@ export class AppsService {
     }
   }
 
+  /**
+   * 从设备卸载应用
+   *
+   * ✅ 修复: 使用事务 + Outbox Pattern 保证原子性
+   *
+   * 修复前问题:
+   * - save() 和 publishAppEvent() 不在同一事务
+   * - 如果事件发布失败，状态已变为 UNINSTALLING 但事件未发送
+   * - 卸载请求永远不会被处理
+   *
+   * 修复后:
+   * - 使用 QueryRunner 事务管理
+   * - save() + Outbox 事件在同一事务中
+   * - 保证事件一定会被投递
+   */
   async uninstallFromDevice(applicationId: string, deviceId: string): Promise<void> {
     const deviceApp = await this.deviceAppsRepository.findOne({
       where: {
@@ -733,20 +973,43 @@ export class AppsService {
 
     const app = await this.findOne(applicationId);
 
-    // 更新状态为卸载中
-    deviceApp.status = InstallStatus.UNINSTALLING;
-    await this.deviceAppsRepository.save(deviceApp);
+    // ✅ 使用事务 + Outbox Pattern
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // 发布应用卸载请求事件
-    await this.eventBus.publishAppEvent('uninstall.requested', {
-      deviceId,
-      appId: app.id,
-      packageName: app.packageName,
-      userId: null, // 从请求上下文获取
-      timestamp: new Date().toISOString(),
-    });
+    try {
+      // 更新状态为卸载中
+      deviceApp.status = InstallStatus.UNINSTALLING;
+      await queryRunner.manager.save(DeviceApplication, deviceApp);
 
-    this.logger.log(`App uninstall request published: ${app.packageName} from device ${deviceId}`);
+      // ✅ Outbox 事件（保证事件与数据变更原子性）
+      await this.eventOutboxService.writeEvent(
+        queryRunner,
+        'device_application',
+        deviceApp.id,
+        'app.uninstall.requested',
+        {
+          installationId: deviceApp.id,
+          deviceId,
+          appId: app.id,
+          packageName: app.packageName,
+          timestamp: new Date().toISOString(),
+        }
+      );
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(
+        `App uninstall request created: ${app.packageName} from device ${deviceId}`
+      );
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`创建卸载请求失败: ${error.message}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   private async performUninstall(
@@ -773,22 +1036,82 @@ export class AppsService {
     }
   }
 
+  /**
+   * 更新安装状态
+   *
+   * ✅ 修复: 使用事务 + Outbox Pattern 保证原子性
+   *
+   * 修复前问题:
+   * - 使用简单的 update()，无事务保护
+   * - 未发布状态变更事件
+   * - 其他服务不知道安装/卸载完成
+   *
+   * 修复后:
+   * - 使用 QueryRunner 事务管理
+   * - 发布 Outbox 事件通知其他服务
+   * - 保证状态变更和事件投递的原子性
+   */
   private async updateInstallStatus(
     deviceAppId: string,
     status: InstallStatus,
     errorMessage?: string
   ): Promise<void> {
-    const update: any = { status };
+    // ✅ 使用事务 + Outbox Pattern
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (status === InstallStatus.INSTALLED) {
-      update.installedAt = new Date();
-    } else if (status === InstallStatus.UNINSTALLED) {
-      update.uninstalledAt = new Date();
-    } else if (status === InstallStatus.FAILED) {
-      update.errorMessage = errorMessage;
+    try {
+      const update: any = { status };
+
+      if (status === InstallStatus.INSTALLED) {
+        update.installedAt = new Date();
+      } else if (status === InstallStatus.UNINSTALLED) {
+        update.uninstalledAt = new Date();
+      } else if (status === InstallStatus.FAILED) {
+        update.errorMessage = errorMessage;
+      }
+
+      await queryRunner.manager.update(DeviceApplication, deviceAppId, update);
+
+      // ✅ 获取完整的安装记录用于事件
+      const deviceApp = await queryRunner.manager.findOne(DeviceApplication, {
+        where: { id: deviceAppId },
+        relations: ['application'],
+      });
+
+      if (!deviceApp) {
+        throw new NotFoundException(`安装记录 ${deviceAppId} 不存在`);
+      }
+
+      // ✅ Outbox 事件（通知其他服务状态变更）
+      await this.eventOutboxService.writeEvent(
+        queryRunner,
+        'device_application',
+        deviceAppId,
+        `app.install.${status.toLowerCase()}`,  // app.install.installed, app.install.failed, etc.
+        {
+          installationId: deviceAppId,
+          deviceId: deviceApp.deviceId,
+          appId: deviceApp.applicationId,
+          status,
+          errorMessage,
+          timestamp: new Date().toISOString(),
+        }
+      );
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(
+        `Install status updated: ${deviceAppId} → ${status}${errorMessage ? ` (${errorMessage})` : ''}`
+      );
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`更新安装状态失败: ${error.message}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    await this.deviceAppsRepository.update(deviceAppId, update);
   }
 
   async getDeviceApps(deviceId: string): Promise<DeviceApplication[]> {
@@ -805,34 +1128,66 @@ export class AppsService {
 
   /**
    * 更新指定包名的最新版本标记
-   * 将 versionCode 最大的版本标记为 isLatest = true，其他版本为 false
+   *
+   * ✅ 修复: 使用事务保证两次 update 的原子性
+   *
+   * 修复前问题:
+   * - 两次 update() 不在同一事务
+   * - 如果第二次 update 失败，所有版本 isLatest = false
+   * - 导致无"最新版本"
+   *
+   * 修复后:
+   * - 使用 QueryRunner 事务管理
+   * - 两次 update 在同一事务中
+   * - 保证最终只有一个版本 isLatest = true
    */
   private async updateLatestVersion(packageName: string): Promise<void> {
-    // 找到该包名的所有版本，按 versionCode 降序排序
-    const allVersions = await this.appsRepository.find({
-      where: { packageName, status: AppStatus.AVAILABLE },
-      order: { versionCode: 'DESC' },
-    });
+    // ✅ 使用事务保证原子性
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (allVersions.length === 0) {
-      return;
+    try {
+      // 找到该包名的所有版本，按 versionCode 降序排序
+      const allVersions = await queryRunner.manager.find(Application, {
+        where: { packageName, status: AppStatus.AVAILABLE },
+        order: { versionCode: 'DESC' },
+      });
+
+      if (allVersions.length === 0) {
+        await queryRunner.rollbackTransaction();
+        return;
+      }
+
+      // 最高版本号的应用
+      const latestVersion = allVersions[0];
+
+      // 将所有版本的 isLatest 设置为 false
+      await queryRunner.manager.update(
+        Application,
+        { packageName, status: AppStatus.AVAILABLE },
+        { isLatest: false }
+      );
+
+      // 将最高版本标记为 isLatest
+      await queryRunner.manager.update(
+        Application,
+        { id: latestVersion.id },
+        { isLatest: true }
+      );
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(
+        `已更新 ${packageName} 的最新版本标记: ${latestVersion.versionName} (${latestVersion.versionCode})`
+      );
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`更新最新版本标记失败: ${error.message}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    // 最高版本号的应用
-    const latestVersion = allVersions[0];
-
-    // 将所有版本的 isLatest 设置为 false
-    await this.appsRepository.update(
-      { packageName, status: AppStatus.AVAILABLE },
-      { isLatest: false }
-    );
-
-    // 将最高版本标记为 isLatest
-    await this.appsRepository.update({ id: latestVersion.id }, { isLatest: true });
-
-    this.logger.log(
-      `已更新 ${packageName} 的最新版本标记: ${latestVersion.versionName} (${latestVersion.versionCode})`
-    );
   }
 
   /**
@@ -890,6 +1245,18 @@ export class AppsService {
 
   /**
    * 提交应用审核
+   *
+   * ✅ 修复: 使用事务 + Outbox Pattern 保证原子性
+   *
+   * 修复前问题:
+   * - app.save() 和 auditRecord.save() 不在同一事务
+   * - 如果审核记录创建失败，应用状态已变更
+   * - 未发布事件通知其他服务
+   *
+   * 修复后:
+   * - 使用 QueryRunner 事务管理
+   * - app.save() + auditRecord.save() + Outbox 事件在同一事务
+   * - 保证数据一致性和事件可靠投递
    */
   async submitForReview(applicationId: string, dto: SubmitReviewDto): Promise<Application> {
     const app = await this.findOne(applicationId);
@@ -901,26 +1268,68 @@ export class AppsService {
       );
     }
 
-    // 更新状态为待审核
-    app.status = AppStatus.PENDING_REVIEW;
-    await this.appsRepository.save(app);
+    // ✅ 使用事务 + Outbox Pattern
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // 创建审核记录
-    const auditRecord = this.auditRecordsRepository.create({
-      applicationId: app.id,
-      action: AuditAction.SUBMIT,
-      status: AuditStatus.PENDING,
-      comment: dto.comment,
-    });
-    await this.auditRecordsRepository.save(auditRecord);
+    try {
+      // 更新应用状态
+      app.status = AppStatus.PENDING_REVIEW;
+      const savedApp = await queryRunner.manager.save(Application, app);
 
-    this.logger.log(`应用 ${app.name} (${app.id}) 已提交审核`);
+      // 创建审核记录
+      const auditRecord = queryRunner.manager.create(AppAuditRecord, {
+        applicationId: app.id,
+        action: AuditAction.SUBMIT,
+        status: AuditStatus.PENDING,
+        comment: dto.comment,
+      });
+      await queryRunner.manager.save(AppAuditRecord, auditRecord);
 
-    return app;
+      // ✅ Outbox 事件（保证事件与数据变更原子性）
+      await this.eventOutboxService.writeEvent(
+        queryRunner,
+        'application',
+        app.id,
+        'app.review.submitted',
+        {
+          appId: app.id,
+          packageName: app.packageName,
+          versionName: app.versionName,
+          comment: dto.comment,
+          timestamp: new Date().toISOString(),
+        }
+      );
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(`应用 ${app.name} (${app.id}) 已提交审核`);
+
+      return savedApp;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`提交应用审核失败: ${error.message}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   /**
    * 批准应用
+   *
+   * ✅ 修复: 使用事务 + Outbox Pattern 保证原子性
+   *
+   * 修复前问题:
+   * - app.save() + auditRecord.save() + publishEvent 不在同一事务
+   * - 如果审核记录创建失败，应用状态已变更
+   * - 如果事件发布失败，数据已提交但通知未发送
+   *
+   * 修复后:
+   * - 使用 QueryRunner 事务管理
+   * - 所有操作在同一事务中
+   * - 使用 Outbox 保证事件可靠投递
    */
   async approveApp(applicationId: string, dto: ApproveAppDto): Promise<Application> {
     const app = await this.findOne(applicationId);
@@ -930,39 +1339,73 @@ export class AppsService {
       throw new BadRequestException(`应用当前状态 (${app.status}) 不是待审核状态，无法批准`);
     }
 
-    // 更新状态为已批准
-    app.status = AppStatus.APPROVED;
-    await this.appsRepository.save(app);
+    // ✅ 使用事务 + Outbox Pattern
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // 创建审核记录
-    const auditRecord = this.auditRecordsRepository.create({
-      applicationId: app.id,
-      action: AuditAction.APPROVE,
-      status: AuditStatus.APPROVED,
-      reviewerId: dto.reviewerId,
-      comment: dto.comment,
-    });
-    await this.auditRecordsRepository.save(auditRecord);
+    try {
+      // 更新状态为已批准
+      app.status = AppStatus.APPROVED;
+      const savedApp = await queryRunner.manager.save(Application, app);
 
-    // 发布应用批准事件
-    await this.eventBus.publishAppEvent('审核.批准', {
-      appId: app.id,
-      packageName: app.packageName,
-      versionName: app.versionName,
-      reviewerId: dto.reviewerId,
-      timestamp: new Date().toISOString(),
-    });
+      // 创建审核记录
+      const auditRecord = queryRunner.manager.create(AppAuditRecord, {
+        applicationId: app.id,
+        action: AuditAction.APPROVE,
+        status: AuditStatus.APPROVED,
+        reviewerId: dto.reviewerId,
+        comment: dto.comment,
+      });
+      await queryRunner.manager.save(AppAuditRecord, auditRecord);
 
-    // ✅ 失效相关缓存 (审核状态变更)
-    await this.invalidateAppCache(app.id, app.packageName);
+      // ✅ Outbox 事件（保证事件与数据变更原子性）
+      await this.eventOutboxService.writeEvent(
+        queryRunner,
+        'application',
+        app.id,
+        'app.review.approved',
+        {
+          appId: app.id,
+          packageName: app.packageName,
+          versionName: app.versionName,
+          reviewerId: dto.reviewerId,
+          comment: dto.comment,
+          timestamp: new Date().toISOString(),
+        }
+      );
 
-    this.logger.log(`应用 ${app.name} (${app.id}) 已被批准`);
+      await queryRunner.commitTransaction();
 
-    return app;
+      // ✅ 事务成功后失效缓存
+      await this.invalidateAppCache(app.id, app.packageName);
+
+      this.logger.log(`应用 ${app.name} (${app.id}) 已被批准`);
+
+      return savedApp;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`批准应用失败: ${error.message}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   /**
-   * 拒绝应用 (带缓存失效)
+   * 拒绝应用
+   *
+   * ✅ 修复: 使用事务 + Outbox Pattern 保证原子性
+   *
+   * 修复前问题:
+   * - app.save() + auditRecord.save() + publishEvent 不在同一事务
+   * - 如果审核记录创建失败，应用状态已变更
+   * - 如果事件发布失败，数据已提交但通知未发送
+   *
+   * 修复后:
+   * - 使用 QueryRunner 事务管理
+   * - 所有操作在同一事务中
+   * - 使用 Outbox 保证事件可靠投递
    */
   async rejectApp(applicationId: string, dto: RejectAppDto): Promise<Application> {
     const app = await this.findOne(applicationId);
@@ -972,36 +1415,57 @@ export class AppsService {
       throw new BadRequestException(`应用当前状态 (${app.status}) 不是待审核状态，无法拒绝`);
     }
 
-    // 更新状态为已拒绝
-    app.status = AppStatus.REJECTED;
-    await this.appsRepository.save(app);
+    // ✅ 使用事务 + Outbox Pattern
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // 创建审核记录
-    const auditRecord = this.auditRecordsRepository.create({
-      applicationId: app.id,
-      action: AuditAction.REJECT,
-      status: AuditStatus.REJECTED,
-      reviewerId: dto.reviewerId,
-      comment: dto.comment,
-    });
-    await this.auditRecordsRepository.save(auditRecord);
+    try {
+      // 更新状态为已拒绝
+      app.status = AppStatus.REJECTED;
+      const savedApp = await queryRunner.manager.save(Application, app);
 
-    // 发布应用拒绝事件
-    await this.eventBus.publishAppEvent('审核.拒绝', {
-      appId: app.id,
-      packageName: app.packageName,
-      versionName: app.versionName,
-      reviewerId: dto.reviewerId,
-      reason: dto.comment,
-      timestamp: new Date().toISOString(),
-    });
+      // 创建审核记录
+      const auditRecord = queryRunner.manager.create(AppAuditRecord, {
+        applicationId: app.id,
+        action: AuditAction.REJECT,
+        status: AuditStatus.REJECTED,
+        reviewerId: dto.reviewerId,
+        comment: dto.comment,
+      });
+      await queryRunner.manager.save(AppAuditRecord, auditRecord);
 
-    // ✅ 失效相关缓存 (审核状态变更)
-    await this.invalidateAppCache(app.id, app.packageName);
+      // ✅ Outbox 事件（保证事件与数据变更原子性）
+      await this.eventOutboxService.writeEvent(
+        queryRunner,
+        'application',
+        app.id,
+        'app.review.rejected',
+        {
+          appId: app.id,
+          packageName: app.packageName,
+          versionName: app.versionName,
+          reviewerId: dto.reviewerId,
+          reason: dto.comment,
+          timestamp: new Date().toISOString(),
+        }
+      );
 
-    this.logger.log(`应用 ${app.name} (${app.id}) 已被拒绝`);
+      await queryRunner.commitTransaction();
 
-    return app;
+      // ✅ 事务成功后失效缓存
+      await this.invalidateAppCache(app.id, app.packageName);
+
+      this.logger.log(`应用 ${app.name} (${app.id}) 已被拒绝`);
+
+      return savedApp;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`拒绝应用失败: ${error.message}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   /**
@@ -1085,6 +1549,322 @@ export class AppsService {
     });
 
     return { data, total, page, limit };
+  }
+
+  /**
+   * 获取应用筛选元数据
+   * 返回所有可用的筛选选项及其统计信息
+   *
+   * @param query 查询参数
+   * @returns 筛选器配置和统计信息
+   */
+  async getFiltersMetadata(query: {
+    includeCount?: boolean;
+    onlyWithData?: boolean;
+  }): Promise<{
+    filters: Array<{
+      field: string;
+      label: string;
+      type: string;
+      options: Array<{ value: string; label: string; count: number }>;
+      required?: boolean;
+      placeholder?: string;
+      defaultValue?: any;
+    }>;
+    totalRecords: number;
+    lastUpdated: string;
+    cached: boolean;
+    quickFilters?: Record<string, any>;
+  }> {
+    const includeCount = query.includeCount !== false;
+    const onlyWithData = query.onlyWithData || false;
+    const cacheKey = CacheKeys.appFiltersMetadata(includeCount, onlyWithData);
+
+    // 尝试从缓存获取
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<any>(cacheKey);
+      if (cached) {
+        return { ...cached, cached: true };
+      }
+    }
+
+    // 获取总应用数量
+    const totalRecords = await this.appsRepository.count();
+
+    // 构建筛选器数组
+    const filters = [];
+
+    // 1. 应用状态筛选器
+    const statusCounts = await this.appsRepository
+      .createQueryBuilder('app')
+      .select('app.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('app.status')
+      .getRawMany();
+
+    const statusOptions = statusCounts
+      .filter((item) => !onlyWithData || parseInt(item.count) > 0)
+      .map((item) => ({
+        value: item.status || 'unknown',
+        label: this.getStatusLabel(item.status),
+        count: includeCount ? parseInt(item.count) : 0,
+      }));
+
+    if (statusOptions.length > 0) {
+      filters.push({
+        field: 'status',
+        label: '应用状态',
+        type: 'select',
+        options: statusOptions,
+        required: false,
+        placeholder: '请选择应用状态',
+      });
+    }
+
+    // 2. 应用分类筛选器
+    const categoryCounts = await this.appsRepository
+      .createQueryBuilder('app')
+      .select('app.category', 'category')
+      .addSelect('COUNT(*)', 'count')
+      .where('app.category IS NOT NULL')
+      .groupBy('app.category')
+      .getRawMany();
+
+    const categoryOptions = categoryCounts
+      .filter((item) => !onlyWithData || parseInt(item.count) > 0)
+      .map((item) => ({
+        value: item.category,
+        label: this.getCategoryLabel(item.category),
+        count: includeCount ? parseInt(item.count) : 0,
+      }));
+
+    if (categoryOptions.length > 0) {
+      filters.push({
+        field: 'category',
+        label: '应用分类',
+        type: 'select',
+        options: categoryOptions,
+        required: false,
+        placeholder: '请选择应用分类',
+      });
+    }
+
+    // 3. 应用平台筛选器
+    const platformCounts = await this.appsRepository
+      .createQueryBuilder('app')
+      .select('app.platform', 'platform')
+      .addSelect('COUNT(*)', 'count')
+      .where('app.platform IS NOT NULL')
+      .groupBy('app.platform')
+      .getRawMany();
+
+    const platformOptions = platformCounts
+      .filter((item) => !onlyWithData || parseInt(item.count) > 0)
+      .map((item) => ({
+        value: item.platform,
+        label: item.platform,
+        count: includeCount ? parseInt(item.count) : 0,
+      }));
+
+    if (platformOptions.length > 0) {
+      filters.push({
+        field: 'platform',
+        label: '应用平台',
+        type: 'select',
+        options: platformOptions,
+        required: false,
+        placeholder: '请选择平台',
+      });
+    }
+
+    // 4. 文件大小范围筛选器
+    const sizeStats = await this.appsRepository
+      .createQueryBuilder('app')
+      .select('MIN(app.size)', 'min')
+      .addSelect('MAX(app.size)', 'max')
+      .where('app.size IS NOT NULL')
+      .getRawOne();
+
+    if (sizeStats?.min && sizeStats?.max) {
+      filters.push({
+        field: 'size',
+        label: '文件大小（MB）',
+        type: 'numberRange',
+        options: [
+          {
+            value: sizeStats.min.toString(),
+            label: `最小: ${(sizeStats.min / 1024 / 1024).toFixed(2)}MB`,
+            count: 0,
+          },
+          {
+            value: sizeStats.max.toString(),
+            label: `最大: ${(sizeStats.max / 1024 / 1024).toFixed(2)}MB`,
+            count: 0,
+          },
+        ],
+        required: false,
+        placeholder: '请选择文件大小范围',
+      });
+    }
+
+    // 5. 上传时间范围筛选器
+    const dateStats = await this.appsRepository
+      .createQueryBuilder('app')
+      .select('MIN(app.createdAt)', 'min')
+      .addSelect('MAX(app.createdAt)', 'max')
+      .getRawOne();
+
+    if (dateStats?.min && dateStats?.max) {
+      filters.push({
+        field: 'createdAt',
+        label: '上传时间',
+        type: 'dateRange',
+        options: [
+          {
+            value: new Date(dateStats.min).toISOString(),
+            label: `最早: ${new Date(dateStats.min).toLocaleDateString()}`,
+            count: 0,
+          },
+          {
+            value: new Date(dateStats.max).toISOString(),
+            label: `最晚: ${new Date(dateStats.max).toLocaleDateString()}`,
+            count: 0,
+          },
+        ],
+        required: false,
+        placeholder: '请选择上传时间范围',
+      });
+    }
+
+    // 快速筛选预设
+    const quickFilters = {
+      approved: { status: AppStatus.APPROVED, label: '已审核应用' },
+      pending: { status: AppStatus.PENDING_REVIEW, label: '待审核应用' },
+      rejected: { status: AppStatus.REJECTED, label: '已拒绝应用' },
+      games: { category: 'games', label: '游戏应用' },
+      tools: { category: 'tools', label: '工具应用' },
+      recentUploads: {
+        createdAfter: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        label: '最近上传(7天内)',
+      },
+    };
+
+    const result = {
+      filters,
+      totalRecords,
+      lastUpdated: new Date().toISOString(),
+      cached: false,
+      quickFilters,
+    };
+
+    // 缓存结果（5分钟TTL）
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, result, CacheTTL.FILTER_METADATA);
+    }
+
+    return result;
+  }
+
+  /**
+   * 获取人类可读的状态标签
+   */
+  private getStatusLabel(status: string): string {
+    const statusLabels: Record<string, string> = {
+      [AppStatus.UPLOADING]: '上传中',
+      [AppStatus.AVAILABLE]: '可用',
+      [AppStatus.PENDING_REVIEW]: '待审核',
+      [AppStatus.APPROVED]: '已审核',
+      [AppStatus.REJECTED]: '已拒绝',
+      [AppStatus.UNAVAILABLE]: '不可用',
+      [AppStatus.DELETED]: '已删除',
+    };
+    return statusLabels[status] || status;
+  }
+
+  /**
+   * 获取人类可读的分类标签
+   */
+  private getCategoryLabel(category: string): string {
+    const categoryLabels: Record<string, string> = {
+      games: '游戏',
+      tools: '工具',
+      social: '社交',
+      education: '教育',
+      business: '商务',
+      entertainment: '娱乐',
+      productivity: '生产力',
+      communication: '通讯',
+      lifestyle: '生活',
+      finance: '金融',
+    };
+    return categoryLabels[category] || category;
+  }
+
+  /**
+   * 获取应用快速列表（轻量级，用于下拉框等UI组件）
+   */
+  async getQuickList(query: {
+    status?: string;
+    search?: string;
+    limit?: number;
+  }): Promise<{
+    items: Array<{ id: string; name: string; status?: string; extra?: Record<string, any> }>;
+    total: number;
+    cached: boolean;
+  }> {
+    const limit = query.limit || 100;
+    const cacheKey = CacheKeys.appList(undefined, undefined, `quick-${query.status || 'all'}`, limit);
+
+    // 1. 尝试从缓存获取
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<any>(cacheKey);
+      if (cached) {
+        this.logger.debug(`App quick list cache hit: ${cacheKey}`);
+        return { ...cached, cached: true };
+      }
+    }
+
+    // 2. 从数据库查询
+    const qb = this.appsRepository
+      .createQueryBuilder('app')
+      .select(['app.id', 'app.name', 'app.packageName', 'app.status', 'app.versionName'])
+      .orderBy('app.createdAt', 'DESC')
+      .limit(limit);
+
+    // 3. 状态过滤
+    if (query.status) {
+      qb.andWhere('app.status = :status', { status: query.status });
+    }
+
+    // 4. 关键词搜索（搜索应用名和包名）
+    if (query.search) {
+      qb.andWhere('(app.name LIKE :search OR app.packageName LIKE :search)', {
+        search: `%${query.search}%`,
+      });
+    }
+
+    const [apps, total] = await qb.getManyAndCount();
+
+    const result = {
+      items: apps.map((app) => ({
+        id: app.id,
+        name: app.name,
+        status: app.status,
+        extra: {
+          packageName: app.packageName,
+          versionName: app.versionName,
+        },
+      })),
+      total,
+      cached: false,
+    };
+
+    // 5. 缓存结果（60秒）
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, result, CacheTTL.DEVICE_APPS);
+    }
+
+    return result;
   }
 
   /**

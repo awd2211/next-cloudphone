@@ -21,7 +21,7 @@ import {
   ProcessQueueBatchResult,
 } from './dto/queue.dto';
 import { AllocationService } from './allocation.service';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, DistributedLockService } from '@cloudphone/shared';
 import { NotificationClientService, NotificationType } from './notification-client.service';
 
 @Injectable()
@@ -36,7 +36,8 @@ export class QueueService {
     private readonly queueRepository: Repository<AllocationQueue>,
     private readonly allocationService: AllocationService,
     private readonly eventBus: EventBusService,
-    private readonly notificationClient: NotificationClientService
+    private readonly notificationClient: NotificationClientService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**

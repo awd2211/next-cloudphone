@@ -11,9 +11,18 @@ import {
   AllExceptionsFilter,
   TransformInterceptor,
   LoggingInterceptor,
+  setupMetricsEndpoint, initTracing,
 } from '@cloudphone/shared';
 
 async function bootstrap() {
+  // ========== OpenTelemetry 追踪初始化 ==========
+  initTracing({
+    serviceName: 'device-service',
+    serviceVersion: '1.0.0',
+    jaegerEndpoint: process.env.JAEGER_ENDPOINT || 'http://localhost:4318/v1/traces',
+    enabled: process.env.OTEL_ENABLED !== 'false',
+  });
+
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   const configService = app.get(ConfigService);
@@ -130,6 +139,9 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = parseInt(configService.get('PORT') || '30002');
+  // ========== Prometheus Metrics 端点 ==========
+  setupMetricsEndpoint(app);
+
   await app.listen(port);
 
   // ========== 注册到 Consul ==========

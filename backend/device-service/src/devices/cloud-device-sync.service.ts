@@ -7,6 +7,7 @@ import { AliyunEcpClient } from '../providers/aliyun/aliyun-ecp.client';
 import { HuaweiCphClient } from '../providers/huawei/huawei-cph.client';
 import { AliyunPhoneStatus } from '../providers/aliyun/aliyun.types';
 import { HuaweiPhoneStatus } from '../providers/huawei/huawei.types';
+import { DistributedLockService } from '@cloudphone/shared';
 
 /**
  * 云设备状态同步服务
@@ -29,7 +30,8 @@ export class CloudDeviceSyncService {
     @InjectRepository(Device)
     private devicesRepository: Repository<Device>,
     private aliyunClient: AliyunEcpClient,
-    private huaweiClient: HuaweiCphClient
+    private huaweiClient: HuaweiCphClient,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**

@@ -8,7 +8,7 @@ import { DeviceSnapshot, SnapshotStatus } from '../entities/device-snapshot.enti
 import { DockerService } from '../docker/docker.service';
 import { SnapshotsService } from '../snapshots/snapshots.service';
 import { PortManagerService } from '../port-manager/port-manager.service';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, DistributedLockService } from '@cloudphone/shared';
 import { RetryService } from '../common/retry.service';
 
 /**
@@ -90,7 +90,8 @@ export class FailoverService {
     private portManagerService: PortManagerService,
     private eventBusService: EventBusService,
     private retryService: RetryService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {
     this.config = {
       enabled: this.configService.get<boolean>('FAILOVER_ENABLED', true),

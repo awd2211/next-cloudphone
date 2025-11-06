@@ -21,6 +21,7 @@ import { ScrcpyModule } from '../scrcpy/scrcpy.module';
 import { AliyunModule } from '../providers/aliyun/aliyun.module';
 import { HuaweiModule } from '../providers/huawei/huawei.module';
 import { EventOutboxModule, SagaModule } from '@cloudphone/shared';
+import { MetricsModule } from '../metrics/metrics.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { EventOutboxModule, SagaModule } from '@cloudphone/shared';
     QuotaModule,
     EventOutboxModule, // ✅ Transactional Outbox Pattern
     SagaModule, // ✅ Saga Pattern for distributed transactions
+    MetricsModule, // ✅ Business Metrics for Prometheus
     // EventBusModule 是全局模块，已在 AppModule 中导入，无需重复导入
   ],
   controllers: [DevicesController, BatchOperationsController],

@@ -579,6 +579,20 @@ export class AllocationService {
   }
 
   /**
+   * 获取设备的分配记录
+   */
+  async getDeviceAllocations(deviceId: string, limit: number = 10): Promise<DeviceAllocation[]> {
+    return this.allocationRepository.find({
+      where: {
+        deviceId,
+        status: AllocationStatus.ALLOCATED, // 只返回当前激活的分配
+      },
+      order: { allocatedAt: 'DESC' },
+      take: limit,
+    });
+  }
+
+  /**
    * 检查并释放过期的分配
    * 释放后清除可用设备缓存
    */
