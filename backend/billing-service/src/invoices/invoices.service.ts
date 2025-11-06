@@ -2,7 +2,8 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Invoice, InvoiceStatus, InvoiceType, InvoiceItem } from './entities/invoice.entity';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 
 export interface CreateInvoiceDto {
   userId: string;
@@ -29,7 +30,8 @@ export class InvoicesService {
 
   constructor(
     @InjectRepository(Invoice)
-    private invoiceRepository: Repository<Invoice>
+    private invoiceRepository: Repository<Invoice>,
+    private readonly lockService: DistributedLockService // ✅ K8s cluster safety
   ) {}
 
   /**
@@ -199,7 +201,7 @@ export class InvoicesService {
   /**
    * 生成月度账单（每月1号凌晨）
    */
-  @Cron('0 0 1 * *')
+  @ClusterSafeCron('0 0 1 * *')
   async generateMonthlyInvoices(): Promise<void> {
     this.logger.log('开始生成月度账单...');
 
@@ -219,7 +221,7 @@ export class InvoicesService {
   /**
    * 检查逾期账单（每天凌晨）
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @ClusterSafeCron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async checkOverdueInvoices(): Promise<void> {
     const now = new Date();
     const overdueInvoices = await this.invoiceRepository.find({

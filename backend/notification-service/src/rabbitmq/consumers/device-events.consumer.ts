@@ -24,6 +24,10 @@ import { NotificationCategory } from '../../entities/notification.entity';
  *
  * ✅ 已集成模板渲染系统 (全部7个事件已集成)
  * ✅ 2025-10-29: 增加 Provider 信息展示
+ * ✅ 2025-11-03: 全面升级到角色化通知系统 (7/7 已完成)
+ *   - 所有事件处理器使用 createRoleBasedNotification()
+ *   - 支持角色特定模板（super_admin, tenant_admin, admin, user）
+ *   - 智能模板选择和数据合并
  */
 @Injectable()
 export class DeviceEventsConsumer {
@@ -54,40 +58,59 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceCreated(event: DeviceCreatedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到设备创建事件: ${event.deviceName} (${event.providerType})`);
+    this.logger.log(`收到设备创建事件: ${event.deviceName} (${event.providerType}) - Role: ${event.userRole}`);
 
     try {
-      // 渲染模板
+      // ✅ 使用角色化通知系统
       const deviceUrl = `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/devices/${event.deviceId}`;
       const providerDisplayName = this.getProviderDisplayName(event.providerType);
 
-      const rendered = await this.templatesService.render(
-        'device.created',
+      await this.notificationsService.createRoleBasedNotification(
+        event.userId,
+        event.userRole, // ✅ 用户角色
+        'device.created' as any,
         {
           deviceName: event.deviceName,
           deviceId: event.deviceId,
           deviceUrl,
-          createdAt: event.createdAt,
-          providerType: event.providerType, // ✅ 新增
-          providerDisplayName, // ✅ 新增
-        },
-        'zh-CN'
-      );
-
-      await this.notificationsService.createAndSend({
-        userId: event.userId,
-        type: NotificationCategory.DEVICE,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
-          deviceId: event.deviceId,
-          deviceName: event.deviceName,
           deviceType: event.deviceType,
-          providerType: event.providerType, // ✅ 新增
-          providerDisplayName, // ✅ 新增
-          createdAt: event.createdAt,
+          providerType: event.providerType,
+          providerDisplayName,
+          createdAt: event.createdAt || event.timestamp,
+          tenantId: event.tenantId,
+          userId: event.userId,
+          userEmail: event.userEmail,
+          // ✅ 展开 deviceConfig 字段供模板使用
+          cpuCores: event.deviceConfig?.cpuCores,
+          memoryMB: event.deviceConfig?.memoryMB,
+          diskSizeGB: event.deviceConfig?.storageGB,
+          // ✅ 简化的设备规格字符串（user 模板使用）
+          spec: `${event.deviceConfig?.cpuCores}核 / ${event.deviceConfig?.memoryMB}MB / ${event.deviceConfig?.storageGB}GB`,
+          // ✅ 系统统计（管理员模板可能需要）
+          onlineDevices: 0, // TODO: 从device-service获取实时统计
+          todayCreated: 0,
+          totalDevices: 0,
+          systemStats: {
+            onlineDevices: 0,
+            todayCreated: 0,
+            totalDevices: 0,
+          },
+          // ✅ 租户统计（tenant_admin 模板需要）
+          tenantStats: {
+            totalDevices: 0, // TODO: 从device-service获取租户统计
+            activeDevices: 0,
+            totalUsers: 0,
+            todayCreated: 0,
+            onlineDevices: 0,
+            quotaUsage: 0,
+          },
+          adminDashboardUrl: `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/admin/dashboard`,
+          tenantDashboardUrl: `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/tenant/dashboard`,
         },
-      });
+        {
+          userEmail: event.userEmail,
+        }
+      );
     } catch (error) {
       this.logger.error(`处理设备创建事件失败: ${error.message}`, error.stack);
       throw error;
@@ -106,37 +129,28 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceCreationFailed(event: DeviceCreationFailedEvent, msg: ConsumeMessage) {
-    this.logger.warn(`收到设备创建失败事件: ${event.deviceName} (${event.providerType})`);
+    this.logger.warn(`收到设备创建失败事件: ${event.deviceName} (${event.providerType}) - Role: ${event.userRole}`);
 
     try {
-      // 渲染模板
+      // ✅ 使用角色化通知系统
       const providerDisplayName = this.getProviderDisplayName(event.providerType);
 
-      const rendered = await this.templatesService.render(
-        'device.creation_failed',
+      await this.notificationsService.createRoleBasedNotification(
+        event.userId,
+        event.userRole, // ✅ 用户角色
+        'device.creation_failed' as any,
         {
           deviceName: event.deviceName,
           reason: event.reason,
+          errorCode: event.errorCode,
           failedAt: event.failedAt,
-          providerType: event.providerType, // ✅ 新增
-          providerDisplayName, // ✅ 新增
+          providerType: event.providerType,
+          providerDisplayName,
         },
-        'zh-CN'
+        {
+          userEmail: event.userEmail,
+        }
       );
-
-      await this.notificationsService.createAndSend({
-        userId: event.userId,
-        type: NotificationCategory.ALERT,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
-          deviceName: event.deviceName,
-          reason: event.reason,
-          failedAt: event.failedAt,
-          providerType: event.providerType, // ✅ 新增
-          providerDisplayName, // ✅ 新增
-        },
-      });
     } catch (error) {
       this.logger.error(`处理设备创建失败事件失败: ${error.message}`, error.stack);
       throw error;
@@ -155,37 +169,30 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceStarted(event: DeviceStartedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到设备启动事件: ${event.deviceName} (${event.providerType})`);
+    this.logger.log(`收到设备启动事件: ${event.deviceName} (${event.providerType}) - Role: ${event.userRole}`);
 
     try {
-      // 渲染模板
+      // ✅ 使用角色化通知系统
+      const deviceUrl = `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/devices/${event.deviceId}`;
       const providerDisplayName = this.getProviderDisplayName(event.providerType);
 
-      const rendered = await this.templatesService.render(
-        'device.started',
+      await this.notificationsService.createRoleBasedNotification(
+        event.userId,
+        event.userRole, // ✅ 用户角色
+        'device.started' as any,
         {
           deviceName: event.deviceName,
           deviceId: event.deviceId,
+          deviceUrl,
+          deviceType: event.deviceType,
           startedAt: event.startedAt,
           providerType: event.providerType,
           providerDisplayName,
         },
-        'zh-CN'
+        {
+          userEmail: event.userEmail,
+        }
       );
-
-      await this.notificationsService.createAndSend({
-        userId: event.userId,
-        type: NotificationCategory.DEVICE,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
-          deviceId: event.deviceId,
-          deviceName: event.deviceName,
-          startedAt: event.startedAt,
-          providerType: event.providerType,
-          providerDisplayName,
-        },
-      });
     } catch (error) {
       this.logger.error(`处理设备启动事件失败: ${error.message}`, error.stack);
       throw error;
@@ -204,33 +211,32 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceStopped(event: DeviceStoppedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到设备停止事件: ${event.deviceName} (${event.providerType})`);
+    this.logger.log(`收到设备停止事件: ${event.deviceName} (${event.providerType}) - Role: ${event.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'device.stopped',
+      // ✅ 使用角色化通知系统
+      const deviceUrl = `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/devices/${event.deviceId}`;
+      const providerDisplayName = this.getProviderDisplayName(event.providerType);
+
+      await this.notificationsService.createRoleBasedNotification(
+        event.userId,
+        event.userRole, // ✅ 用户角色
+        'device.stopped' as any,
         {
           deviceName: event.deviceName,
           deviceId: event.deviceId,
+          deviceUrl,
+          deviceType: event.deviceType,
           stoppedAt: event.stoppedAt,
+          duration: event.duration, // ✅ 运行时长（用于计费）
           reason: event.reason,
+          providerType: event.providerType,
+          providerDisplayName,
         },
-        'zh-CN'
+        {
+          userEmail: event.userEmail,
+        }
       );
-
-      await this.notificationsService.createAndSend({
-        userId: event.userId,
-        type: NotificationCategory.DEVICE,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
-          deviceId: event.deviceId,
-          deviceName: event.deviceName,
-          stoppedAt: event.stoppedAt,
-          reason: event.reason,
-        },
-      });
     } catch (error) {
       this.logger.error(`处理设备停止事件失败: ${error.message}`, error.stack);
       throw error;
@@ -250,36 +256,35 @@ export class DeviceEventsConsumer {
   })
   async handleDeviceError(event: DeviceErrorEvent, msg: ConsumeMessage) {
     this.logger.error(
-      `收到设备故障事件: ${event.deviceName} (${event.providerType}) - ${event.errorMessage}`
+      `收到设备故障事件: ${event.deviceName} (${event.providerType}) - ${event.errorMessage} - Role: ${event.userRole}`
     );
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'device.error',
+      // ✅ 使用角色化通知系统
+      const deviceUrl = `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/devices/${event.deviceId}`;
+      const providerDisplayName = this.getProviderDisplayName(event.providerType);
+
+      await this.notificationsService.createRoleBasedNotification(
+        event.userId,
+        event.userRole, // ✅ 用户角色
+        'device.error' as any,
         {
           deviceName: event.deviceName,
-          errorMessage: event.errorMessage,
-          errorType: event.errorType,
-          occurredAt: event.occurredAt,
-        },
-        'zh-CN'
-      );
-
-      await this.notificationsService.createAndSend({
-        userId: event.userId,
-        type: NotificationCategory.ALERT,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
           deviceId: event.deviceId,
-          deviceName: event.deviceName,
-          errorType: event.errorType,
+          deviceUrl,
+          deviceType: event.deviceType,
           errorMessage: event.errorMessage,
+          errorType: event.errorType,
+          errorCode: event.errorCode,
           occurredAt: event.occurredAt,
           priority: event.priority,
+          providerType: event.providerType,
+          providerDisplayName,
         },
-      });
+        {
+          userEmail: event.userEmail,
+        }
+      );
     } catch (error) {
       this.logger.error(`处理设备故障事件失败: ${error.message}`, error.stack);
       throw error;
@@ -298,33 +303,31 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceConnectionLost(event: DeviceConnectionLostEvent, msg: ConsumeMessage) {
-    this.logger.warn(`收到设备连接丢失事件: ${event.deviceName} (${event.providerType})`);
+    this.logger.warn(`收到设备连接丢失事件: ${event.deviceName} (${event.providerType}) - Role: ${event.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'device.connection_lost',
+      // ✅ 使用角色化通知系统
+      const deviceUrl = `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/devices/${event.deviceId}`;
+      const providerDisplayName = this.getProviderDisplayName(event.providerType);
+
+      await this.notificationsService.createRoleBasedNotification(
+        event.userId,
+        event.userRole, // ✅ 用户角色
+        'device.connection_lost' as any,
         {
           deviceName: event.deviceName,
           deviceId: event.deviceId,
+          deviceUrl,
+          deviceType: event.deviceType,
           lastSeenAt: event.lastSeenAt,
           lostAt: event.lostAt,
+          providerType: event.providerType,
+          providerDisplayName,
         },
-        'zh-CN'
+        {
+          userEmail: event.userEmail,
+        }
       );
-
-      await this.notificationsService.createAndSend({
-        userId: event.userId,
-        type: NotificationCategory.ALERT,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
-          deviceId: event.deviceId,
-          deviceName: event.deviceName,
-          lastSeenAt: event.lastSeenAt,
-          lostAt: event.lostAt,
-        },
-      });
     } catch (error) {
       this.logger.error(`处理设备连接丢失事件失败: ${error.message}`, error.stack);
       throw error;
@@ -343,31 +346,29 @@ export class DeviceEventsConsumer {
     },
   })
   async handleDeviceDeleted(event: DeviceDeletedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到设备删除事件: ${event.deviceName} (${event.providerType})`);
+    this.logger.log(`收到设备删除事件: ${event.deviceName} (${event.providerType}) - Role: ${event.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'device.deleted',
+      // ✅ 使用角色化通知系统
+      const providerDisplayName = this.getProviderDisplayName(event.providerType);
+
+      await this.notificationsService.createRoleBasedNotification(
+        event.userId,
+        event.userRole, // ✅ 用户角色
+        'device.deleted' as any,
         {
           deviceName: event.deviceName,
           deviceId: event.deviceId,
+          deviceType: event.deviceType,
           deletedAt: event.deletedAt,
+          reason: event.reason,
+          providerType: event.providerType,
+          providerDisplayName,
         },
-        'zh-CN'
+        {
+          userEmail: event.userEmail,
+        }
       );
-
-      await this.notificationsService.createAndSend({
-        userId: event.userId,
-        type: NotificationCategory.DEVICE,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
-          deviceId: event.deviceId,
-          deviceName: event.deviceName,
-          deletedAt: event.deletedAt,
-        },
-      });
     } catch (error) {
       this.logger.error(`处理设备删除事件失败: ${error.message}`, error.stack);
       throw error;

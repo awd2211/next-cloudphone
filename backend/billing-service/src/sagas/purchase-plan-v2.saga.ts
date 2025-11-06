@@ -6,10 +6,12 @@ import {
   SagaDefinition,
   SagaType,
   EventBusService,
+  DistributedLockService,
 } from '@cloudphone/shared';
 import { Order, OrderStatus } from '../billing/entities/order.entity';
 import { Plan } from '../billing/entities/plan.entity';
 import { PurchasePlanSagaState } from './types/purchase-plan-saga.types';
+import { BillingMetricsService } from '../metrics/billing-metrics.service';
 
 /**
  * Purchase Plan Saga V2
@@ -33,7 +35,9 @@ export class PurchasePlanSagaV2 {
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(Plan)
     private readonly planRepository: Repository<Plan>,
-    private readonly eventBus: EventBusService
+    private readonly eventBus: EventBusService,
+    private readonly billingMetrics: BillingMetricsService,
+    private readonly lockService: DistributedLockService
   ) {}
 
   /**
@@ -45,19 +49,28 @@ export class PurchasePlanSagaV2 {
    * @returns Saga ID
    */
   async startPurchase(userId: string, planId: string, amount: number): Promise<string> {
-    const initialState: PurchasePlanSagaState = {
-      userId,
-      planId,
-      amount,
-      startTime: new Date(),
-      attempts: {},
-    };
+    // ✅ K8s 集群安全：使用分布式锁防止同一用户重复购买
+    const lockKey = `purchase-saga:${userId}`;
+    const lockId = await this.lockService.acquireLock(lockKey, 5 * 60 * 1000); // 5分钟超时
 
-    const sagaDefinition = this.createSagaDefinition();
-    const sagaId = await this.sagaOrchestrator.executeSaga(sagaDefinition, initialState);
+    try {
+      const initialState: PurchasePlanSagaState = {
+        userId,
+        planId,
+        amount,
+        startTime: new Date(),
+        attempts: {},
+      };
 
-    this.logger.log(`Purchase Saga started: ${sagaId} for user ${userId}`);
-    return sagaId;
+      const sagaDefinition = this.createSagaDefinition();
+      const sagaId = await this.sagaOrchestrator.executeSaga(sagaDefinition, initialState);
+
+      this.logger.log(`Purchase Saga started: ${sagaId} for user ${userId}`);
+      return sagaId;
+    } finally {
+      // ✅ 确保释放锁（即使 Saga 执行失败）
+      await this.lockService.releaseLock(lockKey, lockId);
+    }
   }
 
   /**
@@ -145,6 +158,9 @@ export class PurchasePlanSagaV2 {
     });
 
     const savedOrder = await this.orderRepository.save(order);
+
+    // ✅ 记录账单生成指标
+    this.billingMetrics.recordBillGenerated(state.userId, 'purchase');
 
     this.logger.log(`[CREATE_ORDER] Order created: ${savedOrder.id}`);
     return { orderId: savedOrder.id };
@@ -239,19 +255,42 @@ export class PurchasePlanSagaV2 {
   ): Promise<Partial<PurchasePlanSagaState>> {
     this.logger.log(`[PROCESS_PAYMENT] Processing payment for order ${state.orderId}`);
 
-    // 调用支付服务
-    // 这里简化为直接标记为已支付
-    // 实际应该调用 PayPal/Stripe/Alipay 等支付网关
+    const method = 'alipay'; // 实际应该从订单或用户配置中获取支付方式
 
-    const paymentId = `PAY${Date.now()}`;
+    // ✅ 记录支付尝试
+    this.billingMetrics.recordPaymentAttempt(state.userId, method);
 
-    await this.orderRepository.update(state.orderId!, {
-      status: OrderStatus.PAID,
-      paidAt: new Date(),
-    });
+    try {
+      // ✅ 使用 measurePayment 自动记录支付耗时
+      const result = await this.billingMetrics.measurePayment(method, async () => {
+        // 调用支付服务
+        // 这里简化为直接标记为已支付
+        // 实际应该调用 PayPal/Stripe/Alipay 等支付网关
 
-    this.logger.log(`[PROCESS_PAYMENT] Payment processed: ${paymentId}`);
-    return { paymentId };
+        const paymentId = `PAY${Date.now()}`;
+
+        await this.orderRepository.update(state.orderId!, {
+          status: OrderStatus.PAID,
+          paidAt: new Date(),
+        });
+
+        this.logger.log(`[PROCESS_PAYMENT] Payment processed: ${paymentId}`);
+        return { paymentId };
+      });
+
+      // ✅ 记录支付成功
+      this.billingMetrics.recordPaymentSuccess(state.userId, method);
+
+      return result;
+    } catch (error) {
+      // ✅ 记录支付失败
+      this.billingMetrics.recordPaymentFailure(
+        state.userId,
+        method,
+        error.code || error.message || 'unknown'
+      );
+      throw error;
+    }
   }
 
   /**
@@ -270,6 +309,9 @@ export class PurchasePlanSagaV2 {
       status: OrderStatus.REFUNDED,
       refundedAt: new Date(),
     });
+
+    // ✅ 记录退款指标
+    this.billingMetrics.recordRefund(state.userId, 'saga_compensation');
 
     this.logger.log(`[COMPENSATE] Payment refunded: ${state.paymentId}`);
   }

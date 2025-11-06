@@ -17,6 +17,10 @@ import { NotificationCategory } from '../../entities/notification.entity';
  * 监听账单服务发布的所有事件并发送相应通知
  *
  * ✅ 已集成模板渲染系统 (billing.low_balance, billing.payment_success, billing.invoice_generated)
+ * ✅ 2025-11-03: 全面升级到角色化通知系统 (3/3 已完成)
+ *   - 所有事件处理器使用 createRoleBasedNotification()
+ *   - 支持角色特定模板（super_admin, tenant_admin, admin, user）
+ *   - 从 event.payload.userRole 获取角色信息
  */
 @Injectable()
 export class BillingEventsConsumer {
@@ -35,34 +39,27 @@ export class BillingEventsConsumer {
     queueOptions: { durable: true },
   })
   async handleLowBalance(event: LowBalanceEvent, msg: ConsumeMessage) {
-    this.logger.warn(`余额不足告警: 用户 ${event.payload.userId}`);
+    this.logger.warn(`余额不足告警: 用户 ${event.payload.userId} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'billing.low_balance',
+      // ✅ 使用角色化通知系统
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'billing.low_balance' as any,
         {
+          username: event.payload.username,
           balance: event.payload.currentBalance,
+          threshold: event.payload.threshold,
           daysRemaining: event.payload.daysRemaining || 3,
+          detectedAt: event.payload.detectedAt,
         },
-        'zh-CN'
+        {
+          userEmail: event.payload.email,  // ✅ 用户邮箱 from payload
+        }
       );
 
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.ALERT,
-        title: rendered.title,
-        message: rendered.body,
-        data: event.payload,
-      });
-
-      // 发送告警邮件（使用渲染的HTML模板）
-      if (event.payload.email) {
-        await this.emailService.sendLowBalanceAlert(
-          event.payload.email,
-          event.payload.currentBalance
-        );
-      }
+      this.logger.log(`余额不足告警已发送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理余额不足事件失败: ${error.message}`);
       throw error;
@@ -76,28 +73,29 @@ export class BillingEventsConsumer {
     queueOptions: { durable: true },
   })
   async handlePaymentSuccess(event: PaymentSuccessEvent, msg: ConsumeMessage) {
-    this.logger.log(`充值成功: 用户 ${event.payload.userId}, 金额 ¥${event.payload.amount}`);
+    this.logger.log(`充值成功: 用户 ${event.payload.userId}, 金额 ¥${event.payload.amount} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'billing.payment_success',
+      // ✅ 使用角色化通知系统
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'billing.payment_success' as any,
         {
+          username: event.payload.username,
           amount: event.payload.amount,
           orderId: event.payload.orderId || `ORD-${Date.now()}`,
+          paymentId: event.payload.paymentId,
           paymentMethod: event.payload.paymentMethod || '未知',
-          paidAt: event.payload.paidAt || new Date(),
+          paidAt: event.payload.paidAt || new Date().toISOString(),
+          newBalance: event.payload.newBalance,
         },
-        'zh-CN'
+        {
+          userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
+        }
       );
 
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.BILLING,
-        title: rendered.title,
-        message: rendered.body,
-        data: event.payload,
-      });
+      this.logger.log(`充值成功通知已发送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理充值成功事件失败: ${error.message}`);
       throw error;
@@ -111,30 +109,30 @@ export class BillingEventsConsumer {
     queueOptions: { durable: true },
   })
   async handleInvoiceGenerated(event: InvoiceGeneratedEvent, msg: ConsumeMessage) {
-    this.logger.log(`账单生成: 用户 ${event.payload.userId}`);
+    this.logger.log(`账单生成: 用户 ${event.payload.userId} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'billing.invoice_generated',
+      // ✅ 使用角色化通知系统
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'billing.invoice_generated' as any,
         {
+          username: event.payload.username,
           month:
             event.payload.month ||
             new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' }),
           totalAmount: event.payload.amount,
           invoiceId: event.payload.invoiceId,
           dueDate: event.payload.dueDate,
+          generatedAt: event.payload.generatedAt,
         },
-        'zh-CN'
+        {
+          userEmail: event.payload.email,  // ✅ 用户邮箱 from payload
+        }
       );
 
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.BILLING,
-        title: rendered.title,
-        message: rendered.body,
-        data: event.payload,
-      });
+      this.logger.log(`账单生成通知已发送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理账单生成事件失败: ${error.message}`);
       throw error;

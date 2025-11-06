@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { NotificationsService } from './notifications.service';
 import {
   Notification,
@@ -313,7 +314,8 @@ export class ErrorNotificationService {
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
     private readonly notificationsService: NotificationsService,
-    private readonly userServiceClient: UserServiceClient
+    private readonly userServiceClient: UserServiceClient,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
   ) {}
 
   /**
@@ -585,7 +587,7 @@ export class ErrorNotificationService {
    * 定时清理过期的错误聚合数据
    * 每小时执行一次
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @ClusterSafeCron(CronExpression.EVERY_HOUR)
   async cleanupExpiredAggregates(): Promise<void> {
     this.logger.debug('开始清理过期的错误聚合数据');
 

@@ -5,6 +5,9 @@ import {
   IsBoolean,
   IsArray,
   IsObject,
+  IsNumber,
+  Min,
+  Max,
   Length,
   MaxLength,
 } from 'class-validator';
@@ -57,4 +60,25 @@ export class CreateTemplateDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  // Role-based notification fields
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  targetRoles?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  excludeRoles?: string[];
+
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  @IsOptional()
+  priority?: number;
+
+  @IsObject()
+  @IsOptional()
+  roleSpecificData?: Record<string, unknown>;
 }

@@ -8,7 +8,8 @@ import {
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, LessThan, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { Payment, PaymentMethod, PaymentStatus } from './entities/payment.entity';
 import { Order, OrderStatus } from '../billing/entities/order.entity';
 import { WeChatPayProvider } from './providers/wechat-pay.provider';
@@ -45,7 +46,8 @@ export class PaymentsService {
     private sagaOrchestrator: SagaOrchestratorService,
     private eventBus: EventBusService,
     @InjectDataSource()
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    private readonly lockService: DistributedLockService // ✅ K8s cluster safety
   ) {}
 
   /**
@@ -747,7 +749,7 @@ export class PaymentsService {
   /**
    * 定时任务：关闭过期未支付订单
    */
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @ClusterSafeCron(CronExpression.EVERY_5_MINUTES)
   async closeExpiredPayments() {
     this.logger.log('Checking expired payments...');
 

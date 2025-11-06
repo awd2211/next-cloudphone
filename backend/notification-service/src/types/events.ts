@@ -35,6 +35,7 @@ export {
 };
 
 // ========== User Events ==========
+// ✅ 2025-11-03: 所有用户事件添加 userRole 和 userEmail（用于角色化通知）
 
 export interface UserRegisteredEvent extends BaseEvent {
   eventType: 'user.registered';
@@ -42,6 +43,7 @@ export interface UserRegisteredEvent extends BaseEvent {
     userId: string;
     username: string;
     email: string;
+    userRole: string;        // ✅ NEW - 用户角色（用于角色化通知）
     phone?: string;
     registerTime: string;
   };
@@ -52,6 +54,8 @@ export interface UserLoginFailedEvent extends BaseEvent {
   payload: {
     userId?: string;
     username: string;
+    userRole?: string;       // ✅ NEW - 用户角色（可选，登录失败可能没有userId）
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     ipAddress: string;
     failureCount: number;
     timestamp: string;
@@ -64,6 +68,7 @@ export interface PasswordResetRequestedEvent extends BaseEvent {
     userId: string;
     username?: string;
     email: string;
+    userRole: string;        // ✅ NEW - 用户角色
     resetToken: string;
     expiresAt: string;
   };
@@ -75,6 +80,7 @@ export interface PasswordChangedEvent extends BaseEvent {
     userId: string;
     username: string;
     email: string;
+    userRole: string;        // ✅ NEW - 用户角色
     changedAt: string;
   };
 }
@@ -85,6 +91,7 @@ export interface TwoFactorEnabledEvent extends BaseEvent {
     userId: string;
     username: string;
     email: string;
+    userRole: string;        // ✅ NEW - 用户角色
     enabledAt: string;
   };
 }
@@ -94,12 +101,15 @@ export interface ProfileUpdatedEvent extends BaseEvent {
   payload: {
     userId: string;
     username: string;
+    userRole: string;        // ✅ NEW - 用户角色
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     updatedFields: string[];
     updatedAt: string;
   };
 }
 
 // ========== App Events ==========
+// ✅ 2025-11-03: 所有应用事件添加 userRole 和 userEmail（用于角色化通知）
 
 export interface AppInstallRequestedEvent extends BaseEvent {
   eventType: 'app.install_requested';
@@ -108,6 +118,8 @@ export interface AppInstallRequestedEvent extends BaseEvent {
     appName: string;
     deviceId: string;
     userId: string;
+    userRole: string;        // ✅ NEW - 用户角色
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     requestedAt: string;
   };
 }
@@ -120,6 +132,8 @@ export interface AppInstalledEvent extends BaseEvent {
     deviceId: string;
     deviceName?: string;
     userId: string;
+    userRole: string;        // ✅ NEW - 用户角色
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     installedAt: string;
     version: string;
   };
@@ -133,6 +147,8 @@ export interface AppInstallFailedEvent extends BaseEvent {
     deviceId: string;
     deviceName?: string;
     userId: string;
+    userRole: string;        // ✅ NEW - 用户角色
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     reason: string;
     failedAt: string;
   };
@@ -145,6 +161,8 @@ export interface AppUpdatedEvent extends BaseEvent {
     appName: string;
     deviceId: string;
     userId: string;
+    userRole: string;        // ✅ NEW - 用户角色
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     oldVersion: string;
     newVersion: string;
     updatedAt: string;
@@ -158,6 +176,8 @@ export interface AppUninstalledEvent extends BaseEvent {
     appName: string;
     deviceId: string;
     userId: string;
+    userRole: string;        // ✅ NEW - 用户角色
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     uninstalledAt: string;
   };
 }
@@ -169,12 +189,15 @@ export interface AppCrashedEvent extends BaseEvent {
     appName: string;
     deviceId: string;
     userId: string;
+    userRole: string;        // ✅ NEW - 用户角色
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     crashReason: string;
     crashedAt: string;
   };
 }
 
 // ========== Billing Events ==========
+// ✅ 2025-11-03: 所有计费事件添加 userRole 和 userEmail（用于角色化通知）
 
 export interface LowBalanceEvent extends BaseEvent {
   eventType: 'billing.low_balance';
@@ -182,6 +205,7 @@ export interface LowBalanceEvent extends BaseEvent {
     userId: string;
     username: string;
     email: string;
+    userRole: string;        // ✅ NEW - 用户角色
     currentBalance: number;
     threshold: number;
     detectedAt: string;
@@ -194,6 +218,8 @@ export interface PaymentSuccessEvent extends BaseEvent {
   payload: {
     userId: string;
     username: string;
+    userRole: string;        // ✅ NEW - 用户角色
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     paymentId: string;
     orderId?: string;
     amount: number;
@@ -208,6 +234,8 @@ export interface PaymentFailedEvent extends BaseEvent {
   payload: {
     userId: string;
     username: string;
+    userRole: string;        // ✅ NEW - 用户角色
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     paymentId: string;
     amount: number;
     paymentMethod: string;
@@ -222,6 +250,7 @@ export interface InvoiceGeneratedEvent extends BaseEvent {
     userId: string;
     username: string;
     email: string;
+    userRole: string;        // ✅ NEW - 用户角色
     invoiceId: string;
     amount: number;
     dueDate: string;
@@ -236,6 +265,7 @@ export interface InvoiceOverdueEvent extends BaseEvent {
     userId: string;
     username: string;
     email: string;
+    userRole: string;        // ✅ NEW - 用户角色
     invoiceId: string;
     amount: number;
     dueDate: string;
@@ -248,6 +278,8 @@ export interface ConsumptionWarningEvent extends BaseEvent {
   payload: {
     userId: string;
     username: string;
+    userRole: string;        // ✅ NEW - 用户角色
+    userEmail?: string;      // ✅ NEW - 用户邮箱
     currentConsumption: number;
     warningThreshold: number;
     period: string;

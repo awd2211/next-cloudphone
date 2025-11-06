@@ -2,7 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import {
   HttpClientService,
   DeviceProviderType,
@@ -36,14 +37,15 @@ export class MeteringService {
     private usageRecordRepository: Repository<UsageRecord>,
     private httpClient: HttpClientService,
     private configService: ConfigService,
-    private pricingEngine: PricingEngineService // 新增：计费引擎
+    private pricingEngine: PricingEngineService, // 新增：计费引擎
+    private readonly lockService: DistributedLockService // ✅ K8s cluster safety
   ) {}
 
   /**
    * 定时任务：每小时采集使用量数据
    * ✅ N+1 查询优化：使用批量查询接口，减少 HTTP 请求数 99%
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @ClusterSafeCron(CronExpression.EVERY_HOUR)
   async collectUsageData() {
     this.logger.log('Starting usage data collection...');
 
@@ -88,10 +90,7 @@ export class MeteringService {
       // ✅ 4. 并行保存所有使用记录
       const savePromises = usageDataList.map((usageData) =>
         this.saveUsageRecord(usageData).catch((error) => {
-          this.logger.error(
-            `Failed to save usage record for device ${usageData.deviceId}:`,
-            error
-          );
+          this.logger.error(`Failed to save usage record for device ${usageData.deviceId}:`, error);
         })
       );
 
@@ -418,7 +417,7 @@ export class MeteringService {
   /**
    * 清理过期的使用记录（保留最近 90 天）
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @ClusterSafeCron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupOldRecords() {
     this.logger.log('Cleaning up old usage records...');
 

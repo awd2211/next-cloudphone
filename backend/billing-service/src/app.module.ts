@@ -14,6 +14,10 @@ import { BalanceModule } from './balance/balance.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { BillingRulesModule } from './billing-rules/billing-rules.module';
 import { StatsModule } from './stats/stats.module';
+import { ActivitiesModule } from './activities/activities.module';
+import { CouponsModule } from './coupons/coupons.module';
+import { ReferralsModule } from './referrals/referrals.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthController } from './health.controller';
 import { CacheModule } from './cache/cache.module';
 // import { BillingRabbitMQModule } from './rabbitmq/rabbitmq.module'; // ❌ V2: 移除独立 RabbitMQ 模块
@@ -27,6 +31,7 @@ import {
   createLoggerConfig,
   SagaModule,
   ProxyClientModule, // ✅ 导入代理客户端模块
+  DistributedLockModule, // ✅ K8s集群安全：分布式锁模块
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 
@@ -48,7 +53,7 @@ import { validate } from './common/config/env.validation';
         username: configService.get<string>('DB_USERNAME', 'postgres'),
         password: configService.get<string>('DB_PASSWORD', 'postgres'),
         database: configService.get<string>('DB_DATABASE', 'cloudphone_billing'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        entities: [`${__dirname}/**/*.entity{.ts,.js}`],
         synchronize: false, // ✅ 使用 TypeORM Migrations 管理数据库架构
         logging: configService.get<string>('NODE_ENV') === 'development',
       }),
@@ -62,13 +67,18 @@ import { validate } from './common/config/env.validation';
     MeteringModule,
     ReportsModule,
     StatsModule,
+    DashboardModule,
     PaymentsModule,
     BalanceModule,
     InvoicesModule,
     BillingRulesModule,
+    ActivitiesModule,
+    CouponsModule,
+    ReferralsModule,
     ConsulModule, // ✅ 已修复 DiscoveryService 依赖问题
     EventBusModule.forRoot(), // ✅ V2: 统一使用 EventBusModule.forRoot() (替换 BillingRabbitMQModule + EventBusModule)
     SagaModule, // Saga 编排模块（用于分布式事务）
+    DistributedLockModule.forRoot(), // ✅ K8s集群安全：Redis分布式锁（防止重复购买）
     // ✅ 代理客户端模块 - 用于汇率API和支付网关
     ProxyClientModule.registerAsync(), // 从环境变量读取配置
   ],

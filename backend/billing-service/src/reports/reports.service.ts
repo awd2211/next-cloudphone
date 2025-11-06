@@ -311,10 +311,7 @@ export class ReportsService {
       .createQueryBuilder('order')
       .select('order.planId', 'planId')
       .addSelect('COUNT(*)', 'orderCount')
-      .addSelect(
-        'SUM(CASE WHEN order.status = :status THEN 1 ELSE 0 END)',
-        'paidCount'
-      )
+      .addSelect('SUM(CASE WHEN order.status = :status THEN 1 ELSE 0 END)', 'paidCount')
       .addSelect(
         'COALESCE(SUM(CASE WHEN order.status = :status THEN order.amount ELSE 0 END), 0)',
         'totalRevenue'
@@ -326,19 +323,22 @@ export class ReportsService {
 
     // ✅ 3. 创建 Map 用于 O(1) 查找
     const statsMap = new Map(
-      orderStats.map(s => [s.planId, {
-        orderCount: parseInt(s.orderCount),
-        paidCount: parseInt(s.paidCount),
-        totalRevenue: parseFloat(s.totalRevenue)
-      }])
+      orderStats.map((s) => [
+        s.planId,
+        {
+          orderCount: parseInt(s.orderCount),
+          paidCount: parseInt(s.paidCount),
+          totalRevenue: parseFloat(s.totalRevenue),
+        },
+      ])
     );
 
     // ✅ 4. 在内存中组装结果（无数据库查询）
-    const planStats = plans.map(plan => {
+    const planStats = plans.map((plan) => {
       const stats = statsMap.get(plan.id) || {
         orderCount: 0,
         paidCount: 0,
-        totalRevenue: 0
+        totalRevenue: 0,
       };
 
       return {
@@ -351,7 +351,9 @@ export class ReportsService {
       };
     });
 
-    this.logger.log(`✅ Plan stats computed: ${plans.length} plans, 2 DB queries instead of ${plans.length * 2 + 1}`);
+    this.logger.log(
+      `✅ Plan stats computed: ${plans.length} plans, 2 DB queries instead of ${plans.length * 2 + 1}`
+    );
 
     return planStats;
   }

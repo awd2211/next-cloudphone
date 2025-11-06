@@ -20,6 +20,10 @@ import { NotificationCategory } from '../../entities/notification.entity';
  * 监听用户服务发布的所有事件并发送相应通知
  *
  * ✅ 已集成模板渲染系统 (全部6个事件已集成)
+ * ✅ 2025-11-03: 全面升级到角色化通知系统 (6/6 已完成)
+ *   - 所有事件处理器使用 createRoleBasedNotification()
+ *   - 支持角色特定模板（super_admin, tenant_admin, admin, user）
+ *   - 从 event.payload.userRole 获取角色信息
  */
 @Injectable()
 export class UserEventsConsumer {
@@ -48,37 +52,26 @@ export class UserEventsConsumer {
     },
   })
   async handleUserRegistered(event: UserRegisteredEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到用户注册事件: ${event.payload.username}`);
+    this.logger.log(`收到用户注册事件: ${event.payload.username} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'user.registered',
+      // ✅ 使用角色化通知系统
+      const loginUrl = `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/login`;
+
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'user.registered' as any,
         {
           username: event.payload.username,
           email: event.payload.email,
           registeredAt: event.payload.registerTime,
-          loginUrl: process.env.FRONTEND_URL || 'https://cloudphone.example.com/login',
+          loginUrl,
         },
-        'zh-CN'
+        {
+          userEmail: event.payload.email,  // ✅ 用户邮箱 from payload
+        }
       );
-
-      // 发送 WebSocket 通知
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.SYSTEM,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
-          username: event.payload.username,
-          registerTime: event.payload.registerTime,
-        },
-      });
-
-      // 发送欢迎邮件（使用渲染的HTML模板）
-      if (event.payload.email && rendered.emailHtml) {
-        await this.emailService.sendWelcomeEmail(event.payload.email, event.payload.username);
-      }
 
       this.logger.log(`用户注册通知已发送: ${event.payload.userId}`);
     } catch (error) {
@@ -103,37 +96,28 @@ export class UserEventsConsumer {
   })
   async handleLoginFailed(event: UserLoginFailedEvent, msg: ConsumeMessage) {
     this.logger.warn(
-      `收到登录失败事件: ${event.payload.username}, 失败次数: ${event.payload.failureCount}`
+      `收到登录失败事件: ${event.payload.username}, 失败次数: ${event.payload.failureCount} - Role: ${event.payload.userRole || 'N/A'}`
     );
 
     try {
       // 只有当失败次数达到阈值时才发送通知
       if (event.payload.failureCount >= 3 && event.payload.userId) {
-        // 渲染模板
-        const rendered = await this.templatesService.render(
-          'user.login_failed',
+        // ✅ 使用角色化通知系统
+        await this.notificationsService.createRoleBasedNotification(
+          event.payload.userId,
+          event.payload.userRole || 'user',  // ✅ 用户角色（登录失败时可能为空，默认为user）
+          'user.login_failed' as any,
           {
             username: event.payload.username,
             ipAddress: event.payload.ipAddress,
             location: '未知位置', // 可以集成IP地理位置服务
             attemptTime: event.payload.timestamp,
-          },
-          'zh-CN'
-        );
-
-        // 发送高优先级告警通知
-        await this.notificationsService.createAndSend({
-          userId: event.payload.userId,
-          type: NotificationCategory.ALERT,
-          title: rendered.title,
-          message: rendered.body,
-          data: {
-            username: event.payload.username,
-            ipAddress: event.payload.ipAddress,
             failureCount: event.payload.failureCount,
-            timestamp: event.payload.timestamp,
           },
-        });
+          {
+            userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
+          }
+        );
 
         this.logger.log(`登录失败告警已发送: ${event.payload.username}`);
       }
@@ -158,42 +142,29 @@ export class UserEventsConsumer {
     },
   })
   async handlePasswordResetRequested(event: PasswordResetRequestedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到密码重置请求: ${event.payload.userId}`);
+    this.logger.log(`收到密码重置请求: ${event.payload.userId} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
+      // ✅ 使用角色化通知系统
       const resetUrl = `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/reset-password?token=${event.payload.resetToken}`;
-      const rendered = await this.templatesService.render(
-        'user.password_reset',
+
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'user.password_reset' as any,
         {
           username: event.payload.username || '用户',
           resetUrl,
           code: event.payload.resetToken.substring(0, 6), // 前6位作为验证码
           expiresAt: event.payload.expiresAt,
-        },
-        'zh-CN'
-      );
-
-      // 发送重置链接邮件（使用渲染的HTML模板）
-      await this.emailService.sendPasswordResetEmail(
-        event.payload.email,
-        event.payload.resetToken,
-        event.payload.expiresAt
-      );
-
-      // WebSocket 通知
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.SYSTEM,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
           email: event.payload.email,
-          expiresAt: event.payload.expiresAt,
         },
-      });
+        {
+          userEmail: event.payload.email,  // ✅ 用户邮箱 from payload
+        }
+      );
 
-      this.logger.log(`密码重置邮件已发送: ${event.payload.email}`);
+      this.logger.log(`密码重置通知已发送: ${event.payload.email}`);
     } catch (error) {
       this.logger.error(`处理密码重置请求失败: ${error.message}`, error.stack);
       throw error;
@@ -215,38 +186,23 @@ export class UserEventsConsumer {
     },
   })
   async handlePasswordChanged(event: PasswordChangedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到密码变更事件: ${event.payload.userId}`);
+    this.logger.log(`收到密码变更事件: ${event.payload.userId} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'user.password_changed',
+      // ✅ 使用角色化通知系统
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'user.password_changed' as any,
         {
           username: event.payload.username,
           changedAt: event.payload.changedAt,
+          email: event.payload.email,
         },
-        'zh-CN'
+        {
+          userEmail: event.payload.email,  // ✅ 用户邮箱 from payload
+        }
       );
-
-      // WebSocket 通知
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.ALERT,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
-          changedAt: event.payload.changedAt,
-        },
-      });
-
-      // 邮件确认（使用渲染的HTML模板）
-      if (event.payload.email) {
-        await this.emailService.sendPasswordChangedNotification(
-          event.payload.email,
-          event.payload.username,
-          event.payload.changedAt
-        );
-      }
 
       this.logger.log(`密码变更通知已发送: ${event.payload.userId}`);
     } catch (error) {
@@ -270,28 +226,23 @@ export class UserEventsConsumer {
     },
   })
   async handleTwoFactorEnabled(event: TwoFactorEnabledEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到双因素认证启用事件: ${event.payload.userId}`);
+    this.logger.log(`收到双因素认证启用事件: ${event.payload.userId} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'user.two_factor_enabled',
+      // ✅ 使用角色化通知系统
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'user.two_factor_enabled' as any,
         {
           username: event.payload.username || '用户',
           enabledAt: event.payload.enabledAt,
+          email: event.payload.email,
         },
-        'zh-CN'
+        {
+          userEmail: event.payload.email,  // ✅ 用户邮箱 from payload
+        }
       );
-
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.SYSTEM,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
-          enabledAt: event.payload.enabledAt,
-        },
-      });
 
       this.logger.log(`双因素认证通知已发送: ${event.payload.userId}`);
     } catch (error) {
@@ -315,29 +266,23 @@ export class UserEventsConsumer {
     },
   })
   async handleProfileUpdated(event: ProfileUpdatedEvent, msg: ConsumeMessage) {
-    this.logger.log(`收到用户资料更新事件: ${event.payload.userId}`);
+    this.logger.log(`收到用户资料更新事件: ${event.payload.userId} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'user.profile_updated',
+      // ✅ 使用角色化通知系统
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'user.profile_updated' as any,
         {
+          username: event.payload.username,
           updatedFields: event.payload.updatedFields,
           updatedAt: event.payload.updatedAt,
         },
-        'zh-CN'
+        {
+          userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
+        }
       );
-
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.SYSTEM,
-        title: rendered.title,
-        message: rendered.body,
-        data: {
-          updatedFields: event.payload.updatedFields,
-          updatedAt: event.payload.updatedAt,
-        },
-      });
 
       this.logger.log(`用户资料更新通知已发送: ${event.payload.userId}`);
     } catch (error) {

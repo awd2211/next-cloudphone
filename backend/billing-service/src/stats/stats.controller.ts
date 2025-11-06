@@ -135,4 +135,38 @@ export class StatsController {
       data: distribution,
     };
   }
+
+  @Get('overview')
+  @RequirePermission('billing:read')
+  @ApiOperation({
+    summary: '获取全局统计概览',
+    description: '获取用户、设备、订单、收入、应用的全面统计概览',
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getOverview() {
+    const overview = await this.statsService.getOverview();
+    return {
+      success: true,
+      data: overview,
+      message: '统计概览获取成功',
+    };
+  }
+
+  @Get('performance')
+  @RequirePermission('billing:read')
+  @ApiOperation({
+    summary: '获取性能统计',
+    description: '获取各服务的健康状态和系统性能指标',
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getPerformance() {
+    const performance = await this.statsService.getPerformance();
+    return {
+      success: true,
+      data: performance,
+      message: '性能统计获取成功',
+    };
+  }
 }

@@ -13,6 +13,7 @@ import { EmailModule } from '../email/email.module';
 import { SmsModule } from '../sms/sms.module';
 import { ErrorNotificationService } from './error-notification.service';
 import { UserServiceClient } from '../clients/user-service.client';
+import { TemplatesModule } from '../templates/templates.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UserServiceClient } from '../clients/user-service.client';
     ConsulModule,
     EmailModule,
     SmsModule,
+    TemplatesModule,
   ],
   controllers: [NotificationsController, NotificationPreferencesController],
   providers: [

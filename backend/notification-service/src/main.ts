@@ -5,9 +5,17 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { ConsulService } from '@cloudphone/shared';
+import { ConsulService, setupMetricsEndpoint, initTracing } from '@cloudphone/shared';
 
 async function bootstrap() {
+  // ========== OpenTelemetry 追踪初始化 ==========
+  initTracing({
+    serviceName: 'notification-service',
+    serviceVersion: '1.0.0',
+    jaegerEndpoint: process.env.JAEGER_ENDPOINT || 'http://localhost:4318/v1/traces',
+    enabled: process.env.OTEL_ENABLED !== 'false',
+  });
+
   const app = await NestFactory.create(AppModule, { 
     bufferLogs: true,
     cors: true, // 启用 CORS（WebSocket 需要）
@@ -85,6 +93,9 @@ async function bootstrap() {
       persistAuthorization: true,
     },
   });
+
+  // ========== Prometheus Metrics 端点 ==========
+  setupMetricsEndpoint(app);
 
   const port = parseInt(configService.get('PORT') || '30006');
   await app.listen(port);

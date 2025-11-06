@@ -105,9 +105,10 @@ export class CurrencyService {
               proxy: {
                 host: proxy.host,
                 port: proxy.port,
-                auth: proxy.username && proxy.password
-                  ? { username: proxy.username, password: proxy.password }
-                  : undefined,
+                auth:
+                  proxy.username && proxy.password
+                    ? { username: proxy.username, password: proxy.password }
+                    : undefined,
               },
               timeout: 10000,
             });

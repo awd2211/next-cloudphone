@@ -150,6 +150,18 @@ export class CacheKeys {
   static userMeteringData(userId: string): string {
     return `${this.PREFIX}:metering:${userId}`;
   }
+
+  // ========== 快速列表相关 ==========
+
+  /**
+   * 套餐快速列表缓存键（用于下拉框等UI组件）
+   */
+  static readonly PLAN_QUICK_LIST = `${CacheKeys.PREFIX}:plan:quick-list`;
+
+  /**
+   * 订单快速列表缓存键
+   */
+  static readonly ORDER_QUICK_LIST = `${CacheKeys.PREFIX}:order:quick-list`;
 }
 
 /**
@@ -180,4 +192,7 @@ export const CacheTTL = {
 
   // 用量计量 - 短时间缓存
   METERING_DATA: 60, // 用量数据: 1 分钟
+
+  // 快速列表 - 短时间缓存（用于下拉框等UI组件）
+  QUICK_LIST: 60, // 快速列表: 1 分钟
 } as const;

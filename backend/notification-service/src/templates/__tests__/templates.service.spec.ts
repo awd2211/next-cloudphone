@@ -27,6 +27,10 @@ describe('TemplatesService', () => {
     language: 'zh-CN',
     isActive: true,
     description: 'Template for device creation',
+    targetRoles: [],
+    excludeRoles: [],
+    priority: 0,
+    roleSpecificData: {},
     createdAt: new Date(),
     updatedAt: new Date(),
   };

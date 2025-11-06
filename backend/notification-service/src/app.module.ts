@@ -5,7 +5,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { createLoggerConfig, ConsulModule } from '@cloudphone/shared';
+import { createLoggerConfig, ConsulModule, DistributedLockModule } from '@cloudphone/shared';
 import { HealthController } from './health/health.controller';
 import { TasksService } from './tasks/tasks.service';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -104,6 +104,9 @@ import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusM
 
     // ========== Consul 服务注册 ==========
     ConsulModule,
+
+    // ========== K8s 集群安全：分布式锁 ==========
+    DistributedLockModule.forRoot(), // ✅ K8s cluster safety: Redis distributed lock for cron tasks
 
     // ========== 安全模块 ==========
     // SecurityModule, // ⚠️ 暂时禁用以便测试 API

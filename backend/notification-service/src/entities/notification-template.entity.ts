@@ -54,6 +54,20 @@ export class NotificationTemplate {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  // Role-based notification fields
+  @Column({ type: 'text', array: true, default: '{}', name: 'target_roles' })
+  @Index()
+  targetRoles: string[];
+
+  @Column({ type: 'text', array: true, default: '{}', name: 'exclude_roles' })
+  excludeRoles: string[];
+
+  @Column({ type: 'int', default: 0 })
+  priority: number;
+
+  @Column({ type: 'jsonb', nullable: true, name: 'role_specific_data' })
+  roleSpecificData: Record<string, any>;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

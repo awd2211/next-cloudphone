@@ -24,6 +24,23 @@ const ALLOWED_TEMPLATE_VARIABLES = [
   'deviceName',
   'deviceId',
   'deviceStatus',
+  'deviceType',
+  'deviceUrl',
+  'providerType',
+  'providerDisplayName',
+  'tenantId',
+  'cpuCores',
+  'memoryMB',
+  'diskSizeGB',
+  'spec',
+  'onlineDevices',
+  'todayCreated',
+  'totalDevices',
+  'systemStats',
+  'tenantStats',
+  'adminDashboardUrl',
+  'tenantDashboardUrl',
+  'createdAt',
   'appName',
   'appVersion',
   'amount',
@@ -345,6 +362,220 @@ export class TemplatesService {
   }
 
   /**
+   * 根据通知类型和用户角色查找模板
+   *
+   * 🎯 角色化通知核心方法
+   *
+   * 匹配逻辑：
+   * 1. 首先排除 excludeRoles 中包含的角色
+   * 2. 然后匹配 targetRoles（空数组表示匹配所有角色）
+   * 3. 按照 priority 降序排序，返回优先级最高的模板
+   *
+   * @param type 通知类型
+   * @param userRole 用户角色
+   * @param language 语言（可选）
+   * @returns 匹配的模板，如果没有找到则返回 null
+   */
+  async getTemplateByRole(
+    type: string,
+    userRole: string,
+    language?: string,
+  ): Promise<NotificationTemplate | null> {
+    // 生成缓存键（包含角色信息）
+    const cacheKey = CacheKeys.template(
+      `type:${type}:role:${userRole}:${language || 'default'}`
+    );
+
+    return this.cacheService.wrap(
+      cacheKey,
+      async () => {
+        // 查询该类型的所有激活模板，按优先级降序排序
+        const templates = await this.templateRepository.find({
+          where: { type: type as any, isActive: true },
+          order: { priority: 'DESC' },
+        });
+
+        if (templates.length === 0) {
+          this.logger.warn(`No active templates found for type: ${type}`);
+          return null;
+        }
+
+        // 过滤出匹配当前角色的模板
+        const matchedTemplates = templates.filter((template) => {
+          // 1. 检查是否在排除列表中
+          if (
+            template.excludeRoles &&
+            template.excludeRoles.length > 0 &&
+            template.excludeRoles.includes(userRole)
+          ) {
+            this.logger.debug(
+              `Template ${template.code} excluded for role ${userRole}`
+            );
+            return false;
+          }
+
+          // 2. 检查是否在目标列表中
+          // 如果 targetRoles 为空或空数组，表示匹配所有角色
+          if (
+            !template.targetRoles ||
+            template.targetRoles.length === 0
+          ) {
+            this.logger.debug(
+              `Template ${template.code} matches all roles (empty targetRoles)`
+            );
+            return true;
+          }
+
+          // 3. 检查角色是否在目标列表中
+          const isMatched = template.targetRoles.includes(userRole);
+          this.logger.debug(
+            `Template ${template.code} ${isMatched ? 'matched' : 'not matched'} for role ${userRole}`
+          );
+          return isMatched;
+        });
+
+        // 如果有多个匹配的模板，返回优先级最高的（已经按 priority 降序排序）
+        if (matchedTemplates.length > 0) {
+          const selected = matchedTemplates[0];
+          this.logger.log(
+            `Selected template ${selected.code} (priority: ${selected.priority}) for role ${userRole}`
+          );
+          return selected;
+        }
+
+        // 如果没有匹配的模板，返回 null
+        this.logger.warn(
+          `No template matched for type ${type} and role ${userRole}`
+        );
+        return null;
+      },
+      CacheTTL.TEMPLATE // 1 hour
+    );
+  }
+
+  /**
+   * 根据角色渲染模板
+   *
+   * 🎯 角色化通知核心方法
+   *
+   * 功能：
+   * 1. 根据用户角色查找匹配的模板
+   * 2. 合并模板的 roleSpecificData 到渲染数据
+   * 3. 渲染模板
+   *
+   * @param templateCode 模板代码（可以是基础代码，如 'device.created'）
+   * @param userRole 用户角色
+   * @param data 渲染数据
+   * @param language 语言（可选）
+   * @returns 渲染结果
+   */
+  async renderWithRole(
+    templateCode: string,
+    userRole: string,
+    data: Record<string, any>,
+    language?: string,
+  ): Promise<{
+    title: string;
+    body: string;
+    emailHtml?: string;
+    smsText?: string;
+  }> {
+    // 尝试查找角色专属模板（如 device.created.super_admin）
+    const roleSpecificCode = `${templateCode}.${userRole}`;
+
+    let template: NotificationTemplate | null = null;
+
+    try {
+      // 首先尝试查找角色专属模板
+      template = await this.findByCode(roleSpecificCode, language);
+      this.logger.log(`Using role-specific template: ${roleSpecificCode}`);
+    } catch (error) {
+      // 如果没有角色专属模板，使用基础模板
+      this.logger.debug(`Role-specific template ${roleSpecificCode} not found, using base template`);
+
+      // 查找基础模板
+      try {
+        template = await this.findByCode(templateCode, language);
+      } catch (baseError) {
+        // 如果基础模板也不存在，抛出错误
+        throw new NotFoundException(
+          `Template "${templateCode}" not found for role "${userRole}"`
+        );
+      }
+    }
+
+    // 合并角色专属数据
+    let mergedData = {
+      ...template.defaultData,
+      ...data,
+    };
+
+    // 如果模板有角色专属数据，合并到渲染数据中
+    if (template.roleSpecificData && template.roleSpecificData[userRole]) {
+      mergedData = {
+        ...mergedData,
+        ...template.roleSpecificData[userRole],
+      };
+      this.logger.debug(
+        `Merged role-specific data for role ${userRole} from template ${template.code}`
+      );
+    }
+
+    try {
+      // 渲染标题
+      const title = this.compileAndRender(
+        template.title,
+        mergedData,
+        `${template.code}:${userRole}:title:${language}`
+      );
+
+      // 渲染内容
+      const body = this.compileAndRender(
+        template.body,
+        mergedData,
+        `${template.code}:${userRole}:body:${language}`
+      );
+
+      // 渲染邮件模板（如果有）
+      let emailHtml: string | undefined;
+      if (template.emailTemplate) {
+        emailHtml = this.compileAndRender(
+          template.emailTemplate,
+          mergedData,
+          `${template.code}:${userRole}:email:${language}`
+        );
+      }
+
+      // 渲染短信模板（如果有）
+      let smsText: string | undefined;
+      if (template.smsTemplate) {
+        smsText = this.compileAndRender(
+          template.smsTemplate,
+          mergedData,
+          `${template.code}:${userRole}:sms:${language}`
+        );
+      }
+
+      this.logger.log(
+        `Template rendered with role: ${template.code} for ${userRole}`
+      );
+
+      return {
+        title,
+        body,
+        emailHtml,
+        smsText,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to render template ${template.code} for role ${userRole}:`,
+        error
+      );
+      throw new Error(`Template rendering failed: ${error.message}`);
+    }
+  }
+
+  /**
    * 更新模板
    *
    * ⚠️ SECURITY: 验证模板安全性
@@ -600,11 +831,16 @@ export class TemplatesService {
     const codeCacheKey = CacheKeys.template(`code:${template.code}:${template.language}`);
     await this.cacheService.del(codeCacheKey);
 
+    // 清除角色相关的缓存（使用模式匹配）
+    // 格式: notification:template:type:{type}:role:*
+    const rolePatternKey = CacheKeys.template(`type:${template.type}:role:*`);
+    await this.cacheService.delPattern(rolePatternKey);
+
     // 清除所有列表缓存
     await this.invalidateListCache();
 
     this.logger.debug(
-      `Template cache invalidated: ${template.code} (ID: ${template.id})`
+      `Template cache invalidated: ${template.code} (ID: ${template.id}, type: ${template.type})`
     );
   }
 

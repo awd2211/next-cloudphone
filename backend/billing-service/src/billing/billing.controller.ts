@@ -22,6 +22,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { BillingService } from './billing.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { QuickListQueryDto, QuickListResponseDto } from './dto/quick-list.dto';
 
 @ApiTags('billing')
 @ApiBearerAuth()
@@ -54,6 +55,35 @@ export class BillingController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async getPlans(@Query('page') page: string = '1', @Query('pageSize') pageSize: string = '10') {
     return this.billingService.getPlans(+page, +pageSize);
+  }
+
+  @Get('plans/quick-list')
+  @RequirePermission('billing:read')
+  @ApiOperation({
+    summary: '套餐快速列表',
+    description: '返回轻量级套餐列表，用于下拉框等UI组件（带缓存优化）',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: '状态过滤（套餐类型）',
+    example: 'basic',
+  })
+  @ApiQuery({ name: 'search', required: false, description: '搜索关键词', example: 'pro' })
+  @ApiQuery({ name: 'limit', required: false, description: '限制数量', example: 100 })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    type: QuickListResponseDto,
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getPlansQuickList(@Query() query: QuickListQueryDto) {
+    const result = await this.billingService.getPlansQuickList(query);
+    return {
+      success: true,
+      data: result,
+      message: '套餐快速列表获取成功',
+    };
   }
 
   @Get('plans/:id')
@@ -119,6 +149,35 @@ export class BillingController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async createOrder(@Body() createOrderDto: any) {
     return this.billingService.createOrder(createOrderDto);
+  }
+
+  @Get('orders/quick-list')
+  @RequirePermission('billing:read')
+  @ApiOperation({
+    summary: '订单快速列表',
+    description: '返回轻量级订单列表，用于下拉框等UI组件（带缓存优化）',
+  })
+  @ApiQuery({ name: 'status', required: false, description: '状态过滤', example: 'paid' })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: '搜索关键词（订单号）',
+    example: 'ORD',
+  })
+  @ApiQuery({ name: 'limit', required: false, description: '限制数量', example: 100 })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    type: QuickListResponseDto,
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getOrdersQuickList(@Query() query: QuickListQueryDto) {
+    const result = await this.billingService.getOrdersQuickList(query);
+    return {
+      success: true,
+      data: result,
+      message: '订单快速列表获取成功',
+    };
   }
 
   @Get('orders/:userId')
@@ -212,5 +271,93 @@ export class BillingController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async stopUsage(@Body() body: { recordId: string }) {
     return this.billingService.stopUsage(body.recordId);
+  }
+
+  // ============================================================================
+  // P1 新增接口 - 云对账功能
+  // ============================================================================
+
+  @Get('admin/cloud-reconciliation')
+  @RequirePermission('billing:read')
+  @ApiOperation({
+    summary: '云对账',
+    description: '获取云服务商计费数据并与平台计费进行对账',
+  })
+  @ApiQuery({ name: 'startDate', required: false, description: '开始日期 (YYYY-MM-DD)' })
+  @ApiQuery({ name: 'endDate', required: false, description: '结束日期 (YYYY-MM-DD)' })
+  @ApiQuery({
+    name: 'provider',
+    required: false,
+    description: '云服务商 (aws, aliyun, huawei, etc.)',
+  })
+  @ApiQuery({
+    name: 'reconciliationType',
+    required: false,
+    description: '对账类型 (device, storage, network, all)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '对账成功',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        data: {
+          type: 'object',
+          properties: {
+            summary: {
+              type: 'object',
+              properties: {
+                totalPlatformCost: { type: 'number', description: '平台统计总费用' },
+                totalProviderCost: { type: 'number', description: '云服务商账单总费用' },
+                discrepancy: { type: 'number', description: '差异金额' },
+                discrepancyRate: { type: 'number', description: '差异率 (%)' },
+              },
+            },
+            details: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  resourceType: { type: 'string', description: '资源类型' },
+                  resourceId: { type: 'string', description: '资源ID' },
+                  platformCost: { type: 'number', description: '平台统计费用' },
+                  providerCost: { type: 'number', description: '云商账单费用' },
+                  difference: { type: 'number', description: '差异' },
+                  status: {
+                    type: 'string',
+                    description: '对账状态',
+                    enum: ['matched', 'discrepancy', 'missing_platform', 'missing_provider'],
+                  },
+                },
+              },
+            },
+            reconciliationDate: { type: 'string', description: '对账时间' },
+          },
+        },
+        message: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  async getCloudReconciliation(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('provider') provider?: string,
+    @Query('reconciliationType') reconciliationType?: string
+  ) {
+    const result = await this.billingService.getCloudReconciliation({
+      startDate,
+      endDate,
+      provider,
+      reconciliationType,
+    });
+
+    return {
+      success: true,
+      data: result,
+      message: '云对账完成',
+    };
   }
 }

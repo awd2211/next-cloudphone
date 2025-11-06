@@ -8,11 +8,7 @@ import { AuthModule } from '../auth/auth.module';
 import { CacheModule } from '../cache/cache.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([UserBalance, BalanceTransaction]),
-    AuthModule,
-    CacheModule,
-  ],
+  imports: [TypeOrmModule.forFeature([UserBalance, BalanceTransaction]), AuthModule, CacheModule],
   controllers: [BalanceController],
   providers: [BalanceService],
   exports: [BalanceService],

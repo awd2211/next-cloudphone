@@ -16,6 +16,10 @@ import { NotificationCategory } from '../../entities/notification.entity';
  * 监听应用服务发布的所有事件并发送相应通知
  *
  * ✅ 已集成模板渲染系统 (全部3个事件已集成)
+ * ✅ 2025-11-03: 全面升级到角色化通知系统 (3/3 已完成)
+ *   - 所有事件处理器使用 createRoleBasedNotification()
+ *   - 支持角色特定模板（super_admin, tenant_admin, admin, user）
+ *   - 从 event.payload.userRole 获取角色信息
  */
 @Injectable()
 export class AppEventsConsumer {
@@ -33,27 +37,28 @@ export class AppEventsConsumer {
     queueOptions: { durable: true },
   })
   async handleAppInstalled(event: AppInstalledEvent, msg: ConsumeMessage) {
-    this.logger.log(`应用安装成功: ${event.payload.appName}`);
+    this.logger.log(`应用安装成功: ${event.payload.appName} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'app.installed',
+      // ✅ 使用角色化通知系统
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'app.installed' as any,
         {
+          appId: event.payload.appId,
           appName: event.payload.appName,
+          deviceId: event.payload.deviceId,
           deviceName: event.payload.deviceName || '云手机',
-          installedAt: event.payload.installedAt || new Date(),
+          installedAt: event.payload.installedAt || new Date().toISOString(),
+          version: event.payload.version,
         },
-        'zh-CN'
+        {
+          userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
+        }
       );
 
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.MESSAGE,
-        title: rendered.title,
-        message: rendered.body,
-        data: event.payload,
-      });
+      this.logger.log(`应用安装通知已发送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理应用安装事件失败: ${error.message}`);
       throw error;
@@ -67,28 +72,28 @@ export class AppEventsConsumer {
     queueOptions: { durable: true },
   })
   async handleAppInstallFailed(event: AppInstallFailedEvent, msg: ConsumeMessage) {
-    this.logger.warn(`应用安装失败: ${event.payload.appName}`);
+    this.logger.warn(`应用安装失败: ${event.payload.appName} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'app.install_failed',
+      // ✅ 使用角色化通知系统
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'app.install_failed' as any,
         {
+          appId: event.payload.appId,
           appName: event.payload.appName,
+          deviceId: event.payload.deviceId,
           deviceName: event.payload.deviceName || '云手机',
           reason: event.payload.reason,
-          failedAt: event.payload.failedAt || new Date(),
+          failedAt: event.payload.failedAt || new Date().toISOString(),
         },
-        'zh-CN'
+        {
+          userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
+        }
       );
 
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.ALERT,
-        title: rendered.title,
-        message: rendered.body,
-        data: event.payload,
-      });
+      this.logger.log(`应用安装失败通知已发送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理应用安装失败事件失败: ${error.message}`);
       throw error;
@@ -102,28 +107,28 @@ export class AppEventsConsumer {
     queueOptions: { durable: true },
   })
   async handleAppUpdated(event: AppUpdatedEvent, msg: ConsumeMessage) {
-    this.logger.log(`应用更新成功: ${event.payload.appName}`);
+    this.logger.log(`应用更新成功: ${event.payload.appName} - Role: ${event.payload.userRole}`);
 
     try {
-      // 渲染模板
-      const rendered = await this.templatesService.render(
-        'app.updated',
+      // ✅ 使用角色化通知系统
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,  // ✅ 用户角色 from payload
+        'app.updated' as any,
         {
+          appId: event.payload.appId,
           appName: event.payload.appName,
+          deviceId: event.payload.deviceId,
           newVersion: event.payload.newVersion,
           oldVersion: event.payload.oldVersion || '未知',
-          updatedAt: event.payload.updatedAt || new Date(),
+          updatedAt: event.payload.updatedAt || new Date().toISOString(),
         },
-        'zh-CN'
+        {
+          userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
+        }
       );
 
-      await this.notificationsService.createAndSend({
-        userId: event.payload.userId,
-        type: NotificationCategory.MESSAGE,
-        title: rendered.title,
-        message: rendered.body,
-        data: event.payload,
-      });
+      this.logger.log(`应用更新通知已发送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理应用更新事件失败: ${error.message}`);
       throw error;

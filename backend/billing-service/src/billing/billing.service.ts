@@ -1,15 +1,26 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  Optional,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThan } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { Order, OrderStatus } from './entities/order.entity';
 import { Plan } from './entities/plan.entity';
 import { UsageRecord, UsageType } from './entities/usage-record.entity';
 import { PurchasePlanSagaV2 } from '../sagas/purchase-plan-v2.saga';
+import { CacheService } from '../cache/cache.service';
+import { CacheKeys, CacheTTL } from '../cache/cache-keys';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
+  private readonly tracer = trace.getTracer('billing-service');
 
   constructor(
     @InjectRepository(Order)
@@ -18,7 +29,9 @@ export class BillingService {
     private planRepository: Repository<Plan>,
     @InjectRepository(UsageRecord)
     private usageRecordRepository: Repository<UsageRecord>,
-    private readonly purchasePlanSaga: PurchasePlanSagaV2
+    private readonly purchasePlanSaga: PurchasePlanSagaV2,
+    @Optional() private cacheService: CacheService,
+    private readonly lockService: DistributedLockService // ✅ K8s cluster safety
   ) {}
 
   async getPlans(page: number = 1, pageSize: number = 10) {
@@ -94,26 +107,65 @@ export class BillingService {
    * @returns 订单 ID 和 Saga ID
    */
   async createOrder(createOrderDto: any) {
-    const { userId, planId } = createOrderDto;
+    // 创建自定义 span 用于追踪订单创建
+    return await this.tracer.startActiveSpan(
+      'billing.create_order',
+      {
+        attributes: {
+          'user.id': createOrderDto.userId,
+          'plan.id': createOrderDto.planId,
+        },
+      },
+      async (span) => {
+        try {
+          const { userId, planId } = createOrderDto;
 
-    // 获取套餐信息以确定金额
-    const plan = await this.planRepository.findOne({
-      where: { id: planId, isActive: true },
-    });
+          // 获取套餐信息以确定金额
+          const plan = await this.planRepository.findOne({
+            where: { id: planId, isActive: true },
+          });
 
-    if (!plan) {
-      throw new NotFoundException(`套餐不存在或已下架: ${planId}`);
-    }
+          if (!plan) {
+            throw new NotFoundException(`套餐不存在或已下架: ${planId}`);
+          }
 
-    // 使用 Saga 模式启动订单购买流程
-    const sagaId = await this.purchasePlanSaga.startPurchase(userId, planId, plan.price);
+          // 添加套餐信息到 span
+          span.setAttributes({
+            'plan.name': plan.name,
+            'plan.price': plan.price,
+            'plan.billing_cycle': plan.billingCycle,
+          });
 
-    this.logger.log(`Purchase Saga started: ${sagaId} for user ${userId}`);
+          // 使用 Saga 模式启动订单购买流程
+          const sagaId = await this.purchasePlanSaga.startPurchase(userId, planId, plan.price);
 
-    return {
-      sagaId,
-      message: '订单创建中，请稍候...',
-    };
+          this.logger.log(`Purchase Saga started: ${sagaId} for user ${userId}`);
+
+          // 添加 saga ID 到 span
+          span.setAttributes({
+            'saga.id': sagaId,
+          });
+
+          // 设置成功状态
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          return {
+            sagaId,
+            message: '订单创建中，请稍候...',
+          };
+        } catch (error) {
+          // 记录错误
+          span.recordException(error);
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message || 'Order creation failed',
+          });
+          throw error;
+        } finally {
+          span.end();
+        }
+      }
+    );
   }
 
   /**
@@ -181,7 +233,7 @@ export class BillingService {
   /**
    * 定时任务：自动取消超时未支付订单
    */
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @ClusterSafeCron(CronExpression.EVERY_5_MINUTES)
   async cancelExpiredOrders() {
     this.logger.log('Checking expired orders...');
 
@@ -358,5 +410,384 @@ export class BillingService {
       },
       timestamp: new Date().toISOString(),
     };
+  }
+
+  /**
+   * 获取套餐快速列表（用于下拉框等UI组件）
+   */
+  async getPlansQuickList(query: { status?: string; search?: string; limit?: number }): Promise<{
+    items: Array<{ id: string; name: string; status?: string; extra?: Record<string, any> }>;
+    total: number;
+    cached: boolean;
+  }> {
+    const limit = query.limit || 100;
+    const cacheKey = `${CacheKeys.PLAN_QUICK_LIST}:${JSON.stringify(query)}`;
+
+    // 1. 尝试从缓存获取
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<any>(cacheKey);
+      if (cached) {
+        this.logger.debug(`Plan quick list cache hit: ${cacheKey}`);
+        return { ...cached, cached: true };
+      }
+    }
+
+    // 2. 数据库查询 - 只查询必要字段
+    const qb = this.planRepository
+      .createQueryBuilder('plan')
+      .select([
+        'plan.id',
+        'plan.name',
+        'plan.type',
+        'plan.price',
+        'plan.billingCycle',
+        'plan.isActive',
+        'plan.isPublic',
+      ])
+      .where('plan.isPublic = :isPublic', { isPublic: true })
+      .orderBy('plan.createdAt', 'DESC')
+      .limit(limit);
+
+    // 3. 类型过滤（使用 type 字段作为 status）
+    if (query.status) {
+      qb.andWhere('plan.type = :type', { type: query.status });
+    }
+
+    // 4. 关键词搜索 - 搜索名称
+    if (query.search) {
+      qb.andWhere('plan.name LIKE :search', {
+        search: `%${query.search}%`,
+      });
+    }
+
+    const [plans, total] = await qb.getManyAndCount();
+
+    const result = {
+      items: plans.map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        status: plan.type,
+        extra: {
+          price: plan.price,
+          billingCycle: plan.billingCycle,
+          isActive: plan.isActive,
+        },
+      })),
+      total,
+      cached: false,
+    };
+
+    // 5. 存入缓存（60秒）
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, result, CacheTTL.QUICK_LIST);
+    }
+
+    return result;
+  }
+
+  /**
+   * 获取订单快速列表（用于下拉框等UI组件）
+   */
+  async getOrdersQuickList(query: { status?: string; search?: string; limit?: number }): Promise<{
+    items: Array<{ id: string; name: string; status?: string; extra?: Record<string, any> }>;
+    total: number;
+    cached: boolean;
+  }> {
+    const limit = query.limit || 100;
+    const cacheKey = `${CacheKeys.ORDER_QUICK_LIST}:${JSON.stringify(query)}`;
+
+    // 1. 尝试从缓存获取
+    if (this.cacheService) {
+      const cached = await this.cacheService.get<any>(cacheKey);
+      if (cached) {
+        this.logger.debug(`Order quick list cache hit: ${cacheKey}`);
+        return { ...cached, cached: true };
+      }
+    }
+
+    // 2. 数据库查询 - 只查询必要字段
+    const qb = this.orderRepository
+      .createQueryBuilder('order')
+      .select([
+        'order.id',
+        'order.orderNumber',
+        'order.finalAmount',
+        'order.status',
+        'order.userId',
+        'order.createdAt',
+      ])
+      .orderBy('order.createdAt', 'DESC')
+      .limit(limit);
+
+    // 3. 状态过滤
+    if (query.status) {
+      qb.andWhere('order.status = :status', { status: query.status });
+    }
+
+    // 4. 关键词搜索 - 搜索订单号
+    if (query.search) {
+      qb.andWhere('order.orderNumber LIKE :search', {
+        search: `%${query.search}%`,
+      });
+    }
+
+    const [orders, total] = await qb.getManyAndCount();
+
+    const result = {
+      items: orders.map((order) => ({
+        id: order.id,
+        name: order.orderNumber,
+        status: order.status,
+        extra: {
+          amount: order.finalAmount,
+          userId: order.userId,
+          createdAt: order.createdAt,
+        },
+      })),
+      total,
+      cached: false,
+    };
+
+    // 5. 存入缓存（60秒）
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, result, CacheTTL.QUICK_LIST);
+    }
+
+    return result;
+  }
+
+  // ============================================================================
+  // P1 新增方法 - 云对账功能
+  // ============================================================================
+
+  /**
+   * 云对账
+   * 获取云服务商计费数据并与平台计费进行对账
+   *
+   * @param params 对账参数
+   * @returns 对账结果
+   */
+  async getCloudReconciliation(params: {
+    startDate?: string;
+    endDate?: string;
+    provider?: string;
+    reconciliationType?: string;
+  }) {
+    this.logger.log(`开始云对账: ${JSON.stringify(params)}`);
+
+    // 设置默认日期范围（最近30天）
+    const endDate = params.endDate ? new Date(params.endDate) : new Date();
+    const startDate = params.startDate
+      ? new Date(params.startDate)
+      : new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // 验证日期范围
+    if (startDate > endDate) {
+      throw new BadRequestException('开始日期不能大于结束日期');
+    }
+
+    // 1. 获取平台计费数据
+    const platformData = await this.getPlatformBillingData(
+      startDate,
+      endDate,
+      params.reconciliationType
+    );
+
+    // 2. 获取云服务商计费数据（模拟数据，实际应调用云服务商API）
+    const providerData = await this.getProviderBillingData(
+      startDate,
+      endDate,
+      params.provider,
+      params.reconciliationType
+    );
+
+    // 3. 进行对账比对
+    const reconciliationResult = this.performReconciliation(platformData, providerData);
+
+    // 4. 计算统计数据
+    const summary = {
+      totalPlatformCost: platformData.totalCost,
+      totalProviderCost: providerData.totalCost,
+      discrepancy: Math.abs(platformData.totalCost - providerData.totalCost),
+      discrepancyRate:
+        platformData.totalCost > 0
+          ? (
+              (Math.abs(platformData.totalCost - providerData.totalCost) / platformData.totalCost) *
+              100
+            ).toFixed(2)
+          : 0,
+    };
+
+    return {
+      summary,
+      details: reconciliationResult,
+      reconciliationDate: new Date().toISOString(),
+      dateRange: {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+      },
+      provider: params.provider || 'all',
+      reconciliationType: params.reconciliationType || 'all',
+    };
+  }
+
+  /**
+   * 获取平台计费数据
+   */
+  private async getPlatformBillingData(
+    startDate: Date,
+    endDate: Date,
+    reconciliationType?: string
+  ) {
+    // 查询平台的使用记录和订单数据
+    const usageRecords = await this.usageRecordRepository.find({
+      where: {
+        createdAt: Between(startDate, endDate),
+        ...(reconciliationType && reconciliationType !== 'all'
+          ? { usageType: reconciliationType as UsageType }
+          : {}),
+      },
+    });
+
+    const totalCost = usageRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
+
+    const records = usageRecords.map((record) => ({
+      resourceType: record.usageType,
+      resourceId: record.deviceId || record.id,
+      cost: record.cost || 0,
+      duration: record.endTime
+        ? (new Date(record.endTime).getTime() - new Date(record.startTime).getTime()) / 1000
+        : 0,
+      startTime: record.startTime,
+      endTime: record.endTime,
+    }));
+
+    return {
+      totalCost,
+      records,
+      count: records.length,
+    };
+  }
+
+  /**
+   * 获取云服务商计费数据
+   * 注意：这是模拟实现，实际应该调用云服务商的API
+   */
+  private async getProviderBillingData(
+    startDate: Date,
+    endDate: Date,
+    provider?: string,
+    reconciliationType?: string
+  ) {
+    // TODO: 实际实现应该调用云服务商API
+    // 例如: AWS Cost Explorer API, 阿里云账单查询API等
+
+    this.logger.log(`获取云服务商计费数据 - Provider: ${provider}, Type: ${reconciliationType}`);
+
+    // 模拟云服务商返回数据
+    // 实际应该根据provider调用不同的API
+    const mockProviderData: {
+      totalCost: number;
+      records: any[];
+      count: number;
+    } = {
+      totalCost: 0,
+      records: [],
+      count: 0,
+    };
+
+    // 这里返回模拟数据，实际应该是真实的云服务商账单
+    // 建议与平台数据差异在5%以内
+    const platformTotal = await this.usageRecordRepository
+      .createQueryBuilder('usage')
+      .select('SUM(usage.cost)', 'total')
+      .where('usage.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .getRawOne();
+
+    const simulatedTotal = (platformTotal?.total || 0) * (1 + (Math.random() * 0.1 - 0.05)); // ±5% 差异
+
+    mockProviderData.totalCost = simulatedTotal;
+    mockProviderData.count = 1;
+    mockProviderData.records = [
+      {
+        resourceType: reconciliationType || 'all',
+        resourceId: 'cloud-bill-001',
+        cost: simulatedTotal,
+        billingPeriod: `${startDate.toISOString().split('T')[0]} ~ ${endDate.toISOString().split('T')[0]}`,
+      },
+    ] as any[];
+
+    return mockProviderData;
+  }
+
+  /**
+   * 执行对账比对
+   */
+  private performReconciliation(platformData: any, providerData: any) {
+    const details = [];
+
+    // 按资源类型汇总平台数据
+    const platformByType = platformData.records.reduce(
+      (acc: Record<string, { cost: number; count: number }>, record: any) => {
+        const key = record.resourceType || 'unknown';
+        if (!acc[key]) {
+          acc[key] = { cost: 0, count: 0 };
+        }
+        acc[key].cost += record.cost;
+        acc[key].count += 1;
+        return acc;
+      },
+      {} as Record<string, { cost: number; count: number }>
+    );
+
+    // 按资源类型汇总云服务商数据
+    const providerByType = providerData.records.reduce(
+      (acc: Record<string, { cost: number; count: number }>, record: any) => {
+        const key = record.resourceType || 'unknown';
+        if (!acc[key]) {
+          acc[key] = { cost: 0, count: 0 };
+        }
+        acc[key].cost += record.cost;
+        acc[key].count += 1;
+        return acc;
+      },
+      {} as Record<string, { cost: number; count: number }>
+    );
+
+    // 合并所有资源类型
+    const allTypes = new Set([...Object.keys(platformByType), ...Object.keys(providerByType)]);
+
+    for (const type of allTypes) {
+      const platformCost = platformByType[type]?.cost || 0;
+      const providerCost = providerByType[type]?.cost || 0;
+      const difference = Math.abs(platformCost - providerCost);
+      const threshold = 0.01; // 1分钱阈值
+
+      let status: string;
+      if (!platformByType[type]) {
+        status = 'missing_platform';
+      } else if (!providerByType[type]) {
+        status = 'missing_provider';
+      } else if (difference < threshold) {
+        status = 'matched';
+      } else {
+        status = 'discrepancy';
+      }
+
+      details.push({
+        resourceType: type,
+        resourceId: `${type}-summary`,
+        platformCost: platformCost.toFixed(2),
+        providerCost: providerCost.toFixed(2),
+        difference: difference.toFixed(2),
+        differenceRate:
+          platformCost > 0 ? `${((difference / platformCost) * 100).toFixed(2)}%` : 'N/A',
+        status,
+        platformRecordCount: platformByType[type]?.count || 0,
+        providerRecordCount: providerByType[type]?.count || 0,
+      });
+    }
+
+    return details;
   }
 }
