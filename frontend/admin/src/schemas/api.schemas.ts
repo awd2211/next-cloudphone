@@ -315,15 +315,8 @@ export const PaginatedUsersResponseSchema = PaginatedResponseSchema(UserSchema);
  */
 export const PaginatedDevicesResponseSchema = PaginatedResponseSchema(DeviceSchema);
 
-/**
- * 分页应用响应
- */
-export const PaginatedAppsResponseSchema = PaginatedResponseSchema(ApplicationSchema);
-
-/**
- * 分页应用审核记录响应
- */
-export const PaginatedAppReviewRecordsResponseSchema = PaginatedResponseSchema(AppReviewRecordSchema);
+// PaginatedAppsResponseSchema moved after ApplicationSchema definition
+// PaginatedAppReviewRecordsResponseSchema moved after AppReviewRecordSchema definition
 
 /**
  * 通知列表响应
@@ -545,15 +538,7 @@ export const OperationTypesResponseSchema = z.object({
 
 // UsageRecordSchema moved to line 1432 (more complete definition)
 
-/**
- * 管理员使用记录响应Schema
- */
-export const AdminUsageRecordsResponseSchema = z.object({
-  data: z.object({
-    data: z.array(UsageRecordSchema),
-    total: z.number().int().nonnegative(),
-  }),
-});
+// AdminUsageRecordsResponseSchema moved after UsageRecordSchema definition
 
 /**
  * 使用统计Schema
@@ -1003,6 +988,11 @@ export const ApplicationSchema = z.object({
 export type Application = z.infer<typeof ApplicationSchema>;
 
 /**
+ * 分页应用响应
+ */
+export const PaginatedAppsResponseSchema = PaginatedResponseSchema(ApplicationSchema);
+
+/**
  * App Review Record Schema
  */
 export const AppReviewRecordSchema = z.object({
@@ -1019,6 +1009,11 @@ export const AppReviewRecordSchema = z.object({
 });
 
 export type AppReviewRecord = z.infer<typeof AppReviewRecordSchema>;
+
+/**
+ * 分页应用审核记录响应
+ */
+export const PaginatedAppReviewRecordsResponseSchema = PaginatedResponseSchema(AppReviewRecordSchema);
 
 /**
  * App Review History Response Schema
@@ -1424,6 +1419,16 @@ export const UsageRecordSchema = z.object({
 });
 
 export type UsageRecord = z.infer<typeof UsageRecordSchema>;
+
+/**
+ * 管理员使用记录响应Schema
+ */
+export const AdminUsageRecordsResponseSchema = z.object({
+  data: z.object({
+    data: z.array(UsageRecordSchema),
+    total: z.number().int().nonnegative(),
+  }),
+});
 
 /**
  * Usage Records Response Schema
