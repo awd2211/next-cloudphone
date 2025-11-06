@@ -35,6 +35,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { RequirePermission } from '../../auth/decorators/permissions.decorator';
 import { Public } from '../../auth/decorators/public.decorator';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 /**
  * 代理控制器
@@ -51,6 +52,8 @@ import { Public } from '../../auth/decorators/public.decorator';
 @UseInterceptors(ClassSerializerInterceptor)
 @ApiBearerAuth() // Swagger 文档显示需要 Bearer Token
 export class ProxyController {
+  private readonly tracer = trace.getTracer('proxy-service');
+
   constructor(private readonly proxyService: ProxyService) {}
 
   /**
@@ -75,7 +78,39 @@ export class ProxyController {
   async acquireProxy(
     @Body() dto: AcquireProxyDto,
   ): Promise<ApiResponse<ProxyResponseDto>> {
-    return this.proxyService.acquireProxy(dto);
+    return await this.tracer.startActiveSpan(
+      'proxy.acquire',
+      {
+        attributes: {
+          'proxy.country': dto.country || 'any',
+          'proxy.protocol': dto.protocol || 'any',
+          'proxy.provider': dto.provider || 'any',
+          'user.id': dto.userId || 'unknown',
+          'device.id': dto.deviceId || 'unknown',
+        },
+      },
+      async (span) => {
+        try {
+          const result = await this.proxyService.acquireProxy(dto);
+
+          span.setAttributes({
+            'proxy.acquired': result.success,
+            'proxy.provider': result.data?.provider || 'none',
+            'proxy.host': result.data?.host || 'none',
+            'proxy.quality': result.data?.quality || 0,
+          });
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          return result;
+        } catch (error) {
+          span.recordException(error);
+          span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+          throw error;
+        } finally {
+          span.end();
+        }
+      }
+    );
   }
 
   /**
@@ -174,7 +209,32 @@ export class ProxyController {
   async releaseProxy(
     @Param('proxyId') proxyId: string,
   ): Promise<ApiResponse<{ released: boolean }>> {
-    return this.proxyService.releaseProxy(proxyId);
+    return await this.tracer.startActiveSpan(
+      'proxy.release',
+      {
+        attributes: {
+          'proxy.id': proxyId,
+        },
+      },
+      async (span) => {
+        try {
+          const result = await this.proxyService.releaseProxy(proxyId);
+
+          span.setAttributes({
+            'proxy.released': result.data?.released || false,
+          });
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          return result;
+        } catch (error) {
+          span.recordException(error);
+          span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+          throw error;
+        } finally {
+          span.end();
+        }
+      }
+    );
   }
 
   /**
@@ -200,7 +260,34 @@ export class ProxyController {
     @Param('proxyId') proxyId: string,
     @Body() dto: ReportSuccessDto,
   ): Promise<ApiResponse<{ recorded: boolean }>> {
-    return this.proxyService.reportSuccess(proxyId, dto);
+    return await this.tracer.startActiveSpan(
+      'proxy.report_success',
+      {
+        attributes: {
+          'proxy.id': proxyId,
+          'report.response_time_ms': dto.responseTime || 0,
+          'report.bandwidth_mb': dto.bandwidthMB,
+        },
+      },
+      async (span) => {
+        try {
+          const result = await this.proxyService.reportSuccess(proxyId, dto);
+
+          span.setAttributes({
+            'report.recorded': result.data?.recorded || false,
+          });
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          return result;
+        } catch (error) {
+          span.recordException(error);
+          span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+          throw error;
+        } finally {
+          span.end();
+        }
+      }
+    );
   }
 
   /**

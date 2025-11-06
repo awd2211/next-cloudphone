@@ -1,13 +1,25 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { ConsulService } from '@cloudphone/shared';
+import { ConsulService, setupMetricsEndpoint, initTracing } from '@cloudphone/shared';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  // ========== OpenTelemetry 追踪初始化 ==========
+  initTracing({
+    serviceName: 'proxy-service',
+    serviceVersion: '1.0.0',
+    jaegerEndpoint: process.env.JAEGER_ENDPOINT || 'http://localhost:4318/v1/traces',
+    enabled: process.env.OTEL_ENABLED !== 'false',
   });
+
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+
+  // ========== Pino Logger 初始化 ==========
+  app.useLogger(app.get(Logger));
 
   // 全局验证管道
   app.useGlobalPipes(
@@ -48,10 +60,12 @@ async function bootstrap() {
 
   // 启动服务
   const port = process.env.PORT || 30007;
+  // ========== Prometheus Metrics 端点 ==========
+  setupMetricsEndpoint(app as any); // Type cast to fix workspace linking issue
+
   await app.listen(port, '0.0.0.0');
 
   // 注册到 Consul（如果可用）
-  const logger = new Logger('Bootstrap');
   try {
     const consulService = app.get(ConsulService);
     const serviceId = await consulService.registerService(
@@ -62,12 +76,12 @@ async function bootstrap() {
     );
 
     if (serviceId) {
-      logger.log(`✅ Service registered to Consul: ${serviceId}`);
+      console.log(`✅ Service registered to Consul: ${serviceId}`);
     } else {
-      logger.warn('⚠️  Consul registration failed (service will continue without service discovery)');
+      console.warn('⚠️  Consul registration failed (service will continue without service discovery)');
     }
   } catch (error) {
-    logger.warn(`⚠️  Consul not available: ${error.message} (service will continue without service discovery)`);
+    console.warn(`⚠️  Consul not available: ${error.message} (service will continue without service discovery)`);
   }
 
   console.log(`

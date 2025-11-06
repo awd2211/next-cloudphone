@@ -1,7 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { ProxyStickySession, ProxySessionRenewal } from '../entities';
 import { ProxyPoolManager } from '../../pool/pool-manager.service';
 
@@ -24,6 +25,7 @@ export class ProxyStickySessionService {
     @InjectRepository(ProxySessionRenewal)
     private renewalRepo: Repository<ProxySessionRenewal>,
     private poolManager: ProxyPoolManager,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
   ) {}
 
   /**
@@ -233,7 +235,7 @@ export class ProxyStickySessionService {
    * 定时任务：自动续期即将过期的会话
    * 每小时执行一次
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @ClusterSafeCron(CronExpression.EVERY_HOUR)
   async autoRenewExpiringSessions() {
     this.logger.log('Starting auto-renewal of expiring sessions');
 
@@ -277,7 +279,7 @@ export class ProxyStickySessionService {
    * 定时任务：清理过期会话
    * 每6小时执行一次
    */
-  @Cron(CronExpression.EVERY_6_HOURS)
+  @ClusterSafeCron(CronExpression.EVERY_6_HOURS)
   async cleanupExpiredSessions() {
     this.logger.log('Starting cleanup of expired sessions');
 
@@ -307,7 +309,7 @@ export class ProxyStickySessionService {
    * 定时任务：检测即将过期的会话并发送警告
    * 每小时执行一次
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @ClusterSafeCron(CronExpression.EVERY_HOUR)
   async detectExpiringSessions() {
     const threshold = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2小时
 

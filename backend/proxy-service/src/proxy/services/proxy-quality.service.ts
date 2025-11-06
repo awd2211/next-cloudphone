@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { ProxyQualityScore, ProxyQualityHistory } from '../entities';
 import { QualityScoreResponseDto } from '../dto';
 import { ProxyPoolManager } from '../../pool/pool-manager.service';
@@ -26,6 +27,7 @@ export class ProxyQualityService {
     @InjectRepository(ProxyQualityHistory)
     private historyRepo: Repository<ProxyQualityHistory>,
     private poolManager: ProxyPoolManager,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
   ) {}
 
   /**
@@ -240,7 +242,7 @@ export class ProxyQualityService {
    * 定时任务：计算质量评分
    * 每10分钟执行一次
    */
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @ClusterSafeCron(CronExpression.EVERY_10_MINUTES)
   async scheduleQualityCalculation() {
     this.logger.log('Scheduled quality calculation started');
     const count = await this.calculateAllQualityScores();

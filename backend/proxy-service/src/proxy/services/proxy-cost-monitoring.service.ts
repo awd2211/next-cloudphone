@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import {
   ProxyCostRecord,
   ProxyCostBudget,
@@ -33,6 +34,7 @@ export class ProxyCostMonitoringService {
     @InjectRepository(ProxyCostDailySummary)
     private summaryRepo: Repository<ProxyCostDailySummary>,
     private poolManager: ProxyPoolManager,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
   ) {}
 
   /**
@@ -478,7 +480,7 @@ export class ProxyCostMonitoringService {
    * 定时任务：每日成本汇总
    * 每天凌晨2点执行
    */
-  @Cron('0 2 * * *')
+  @ClusterSafeCron('0 2 * * *')
   async generateDailySummary() {
     this.logger.log('Starting daily cost summary generation');
 

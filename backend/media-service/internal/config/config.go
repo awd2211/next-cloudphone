@@ -48,6 +48,10 @@ type Config struct {
 	// RabbitMQ 配置
 	RabbitMQURL     string
 	RabbitMQEnabled bool
+
+	// Tracing 配置
+	JaegerEndpoint string
+	TracingEnabled bool
 }
 
 type TURNServer struct {
@@ -88,6 +92,10 @@ func Load() *Config {
 		// RabbitMQ 配置
 		RabbitMQURL:     getEnv("RABBITMQ_URL", "amqp://admin:admin123@localhost:5672/cloudphone"),
 		RabbitMQEnabled: getEnvBool("RABBITMQ_ENABLED", true),
+
+		// Tracing 配置
+		JaegerEndpoint: getEnv("JAEGER_ENDPOINT", "localhost:4318"),
+		TracingEnabled: getEnvBool("TRACING_ENABLED", true),
 	}
 
 	// 加载 STUN 服务器

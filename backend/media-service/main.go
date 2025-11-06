@@ -17,11 +17,13 @@ import (
 	"github.com/cloudphone/media-service/internal/metrics"
 	"github.com/cloudphone/media-service/internal/middleware"
 	"github.com/cloudphone/media-service/internal/rabbitmq"
+	"github.com/cloudphone/media-service/internal/tracing"
 	"github.com/cloudphone/media-service/internal/webrtc"
 	"github.com/cloudphone/media-service/internal/websocket"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +34,33 @@ func main() {
 
 	// 加载配置
 	cfg := config.Load()
+
+	// ========== 初始化 OpenTelemetry 追踪 ==========
+	tracingCfg := tracing.Config{
+		ServiceName:    cfg.ServiceName,
+		ServiceVersion: "1.0.0",
+		JaegerEndpoint: cfg.JaegerEndpoint,
+		Enabled:        cfg.TracingEnabled,
+		SampleRate:     1.0, // 100% sampling in development
+	}
+
+	shutdownTracing, err := tracing.InitTracing(tracingCfg, logger.Log)
+	if err != nil {
+		logger.Warn("tracing_initialization_failed",
+			zap.Error(err),
+			zap.String("note", "continuing without tracing"),
+		)
+	}
+	// Defer tracing shutdown (will be called before logger.Sync())
+	if shutdownTracing != nil {
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := shutdownTracing(ctx); err != nil {
+				logger.Error("tracing_shutdown_failed", zap.Error(err))
+			}
+		}()
+	}
 
 	// 设置 Gin 模式
 	gin.SetMode(cfg.GinMode)
@@ -62,6 +91,11 @@ func main() {
 	// 添加日志和恢复中间件
 	router.Use(logger.GinRecovery())
 	router.Use(logger.GinLogger())
+
+	// 添加 OpenTelemetry 追踪中间件
+	if cfg.TracingEnabled {
+		router.Use(otelgin.Middleware(cfg.ServiceName))
+	}
 
 	// 添加 Prometheus 指标中间件
 	router.Use(middleware.MetricsMiddleware())

@@ -1,7 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { ProxyUsageSummary, ProxyReportExport } from '../entities';
 
 /**
@@ -22,6 +23,7 @@ export class ProxyUsageReportService {
     private summaryRepo: Repository<ProxyUsageSummary>,
     @InjectRepository(ProxyReportExport)
     private reportRepo: Repository<ProxyReportExport>,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
   ) {}
 
   // ==================== 报告创建和生成 ====================
@@ -389,7 +391,7 @@ export class ProxyUsageReportService {
    * 定时任务：执行定时报告
    * 每小时检查一次是否有需要执行的定时报告
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @ClusterSafeCron(CronExpression.EVERY_HOUR)
   async executeScheduledReports(): Promise<void> {
     this.logger.log('Checking for scheduled reports to execute');
 

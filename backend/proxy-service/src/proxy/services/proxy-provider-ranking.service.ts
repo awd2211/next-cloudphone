@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { ProxyProviderScore, ProxyProviderScoreHistory } from '../entities';
 import { ProxyPoolManager } from '../../pool/pool-manager.service';
 
@@ -24,6 +25,7 @@ export class ProxyProviderRankingService {
     @InjectRepository(ProxyProviderScoreHistory)
     private historyRepo: Repository<ProxyProviderScoreHistory>,
     private poolManager: ProxyPoolManager,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
   ) {}
 
   /**
@@ -389,7 +391,7 @@ export class ProxyProviderRankingService {
    * 定时任务：更新所有提供商评分
    * 每小时执行一次
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @ClusterSafeCron(CronExpression.EVERY_HOUR)
   async updateAllProviderScores() {
     this.logger.log('Starting provider score update');
 

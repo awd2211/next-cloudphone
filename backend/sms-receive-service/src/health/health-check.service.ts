@@ -1,5 +1,6 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -26,13 +27,14 @@ export class HealthCheckService {
     private readonly dataSource: DataSource,
     @InjectRedis()
     private readonly redis: Redis,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
     @Optional() private readonly amqpConnection?: AmqpConnection,
   ) {}
 
   /**
    * 定时健康检查 - 每分钟执行一次
    */
-  @Cron(CronExpression.EVERY_MINUTE)
+  @ClusterSafeCron(CronExpression.EVERY_MINUTE)
   async performHealthCheck() {
     this.logger.debug('Performing scheduled health check');
 

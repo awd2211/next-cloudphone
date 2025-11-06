@@ -10,8 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 	wsLib "github.com/gorilla/websocket"
 	pionWebRTC "github.com/pion/webrtc/v3"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
 )
+
+var tracer = otel.Tracer("media-service/handlers")
 
 var upgrader = wsLib.Upgrader{
 	ReadBufferSize:  1024,
@@ -50,15 +55,31 @@ type CreateSessionResponse struct {
 
 // HandleCreateSession 创建新的 WebRTC 会话
 func (h *Handler) HandleCreateSession(c *gin.Context) {
+	// 创建自定义 span
+	ctx := c.Request.Context()
+	ctx, span := tracer.Start(ctx, "webrtc.create_session")
+	defer span.End()
+
 	var req CreateSessionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "invalid request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// 添加业务相关 attributes
+	span.SetAttributes(
+		attribute.String("device.id", req.DeviceID),
+		attribute.String("user.id", req.UserID),
+		attribute.String("session.type", "webrtc"),
+	)
+
 	// 创建会话
 	session, err := h.webrtcManager.CreateSession(req.DeviceID, req.UserID)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to create session")
 		logger.Error("failed_to_create_session",
 			zap.String("device_id", req.DeviceID),
 			zap.String("user_id", req.UserID),
@@ -68,9 +89,14 @@ func (h *Handler) HandleCreateSession(c *gin.Context) {
 		return
 	}
 
+	// 记录 session ID
+	span.SetAttributes(attribute.String("session.id", session.ID))
+
 	// 创建 offer
 	offer, err := h.webrtcManager.CreateOffer(session.ID)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to create offer")
 		logger.Error("failed_to_create_offer",
 			zap.String("session_id", session.ID),
 			zap.Error(err),
@@ -79,6 +105,7 @@ func (h *Handler) HandleCreateSession(c *gin.Context) {
 		return
 	}
 
+	span.SetStatus(codes.Ok, "session created successfully")
 	logger.Info("session_created",
 		zap.String("session_id", session.ID),
 		zap.String("device_id", req.DeviceID),
@@ -99,13 +126,26 @@ type SetAnswerRequest struct {
 
 // HandleSetAnswer 处理客户端的 SDP answer
 func (h *Handler) HandleSetAnswer(c *gin.Context) {
+	ctx := c.Request.Context()
+	ctx, span := tracer.Start(ctx, "webrtc.set_answer")
+	defer span.End()
+
 	var req SetAnswerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "invalid request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	span.SetAttributes(
+		attribute.String("session.id", req.SessionID),
+		attribute.String("sdp.type", req.Answer.Type.String()),
+	)
+
 	if err := h.webrtcManager.HandleAnswer(req.SessionID, req.Answer); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to handle answer")
 		logger.Error("failed_to_handle_answer",
 			zap.String("session_id", req.SessionID),
 			zap.Error(err),
@@ -114,6 +154,7 @@ func (h *Handler) HandleSetAnswer(c *gin.Context) {
 		return
 	}
 
+	span.SetStatus(codes.Ok, "answer handled")
 	logger.Info("answer_handled",
 		zap.String("session_id", req.SessionID),
 	)
@@ -129,13 +170,26 @@ type AddICECandidateRequest struct {
 
 // HandleAddICECandidate 添加 ICE 候选
 func (h *Handler) HandleAddICECandidate(c *gin.Context) {
+	ctx := c.Request.Context()
+	ctx, span := tracer.Start(ctx, "webrtc.add_ice_candidate")
+	defer span.End()
+
 	var req AddICECandidateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "invalid request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	span.SetAttributes(
+		attribute.String("session.id", req.SessionID),
+		attribute.String("ice.candidate", req.Candidate.Candidate),
+	)
+
 	if err := h.webrtcManager.AddICECandidate(req.SessionID, req.Candidate); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to add ice candidate")
 		logger.Warn("failed_to_add_ice_candidate",
 			zap.String("session_id", req.SessionID),
 			zap.Error(err),
@@ -144,6 +198,7 @@ func (h *Handler) HandleAddICECandidate(c *gin.Context) {
 		return
 	}
 
+	span.SetStatus(codes.Ok, "ice candidate added")
 	logger.Debug("ice_candidate_added",
 		zap.String("session_id", req.SessionID),
 	)

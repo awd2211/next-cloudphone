@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan, IsNull } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { ConfigService } from '@nestjs/config';
 import { NumberPool } from '../entities/number-pool.entity';
 import { PlatformSelectorService } from './platform-selector.service';
@@ -34,6 +35,7 @@ export class NumberPoolManagerService {
     private readonly platformSelector: PlatformSelectorService,
     private readonly configService: ConfigService,
     private readonly metricsService: MetricsService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
   ) {
     this.logger.log('Number Pool Manager initialized');
   }
@@ -267,7 +269,7 @@ export class NumberPoolManagerService {
   /**
    * 定时任务：自动补充号码池
    */
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @ClusterSafeCron(CronExpression.EVERY_5_MINUTES)
   async autoReplenishPool() {
     this.logger.debug('Running auto-replenish pool job...');
 
@@ -301,7 +303,7 @@ export class NumberPoolManagerService {
   /**
    * 定时任务：清理过期号码
    */
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @ClusterSafeCron(CronExpression.EVERY_10_MINUTES)
   async cleanupExpiredNumbers() {
     const now = new Date();
 
@@ -334,7 +336,7 @@ export class NumberPoolManagerService {
   /**
    * 定时任务：处理冷却中的号码
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @ClusterSafeCron(CronExpression.EVERY_HOUR)
   async processCooldownNumbers() {
     const now = new Date();
 

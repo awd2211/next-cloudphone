@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { LoggerModule } from 'nestjs-pino';
 
 // ✅ 导入共享模块
 import {
@@ -11,6 +12,7 @@ import {
   AppCacheModule,
   createLoggerConfig,
   RequestIdMiddleware,
+  DistributedLockModule,
 } from '@cloudphone/shared';
 
 import { AuthModule } from './auth/auth.module';
@@ -30,6 +32,9 @@ import { ProxyHealth } from './entities/proxy-health.entity';
 import { ProxySession } from './entities/proxy-session.entity';
 import { CostRecord } from './entities/cost-record.entity';
 
+// Controllers
+import { ProxyProviderConfigController } from './proxy/controllers/proxy-provider-config.controller';
+
 @Module({
   imports: [
     // ===== 配置模块 - 全局可用 =====
@@ -38,6 +43,9 @@ import { CostRecord } from './entities/cost-record.entity';
       envFilePath: ['.env', '.env.local'],
       cache: true,
     }),
+
+    // ===== Pino 日志模块 =====
+    LoggerModule.forRoot(createLoggerConfig('proxy-service')),
 
     // ===== 共享模块集成 =====
     // ✅ Consul 服务注册与发现
@@ -86,6 +94,9 @@ import { CostRecord } from './entities/cost-record.entity';
     // ===== 定时任务模块 =====
     ScheduleModule.forRoot(),
 
+    // ===== K8s 集群安全：分布式锁 =====
+    DistributedLockModule.forRoot(), // ✅ K8s cluster safety: Redis distributed lock for cron tasks
+
     // ===== Prometheus 监控模块 =====
     PrometheusModule.register({
       defaultMetrics: {
@@ -95,6 +106,9 @@ import { CostRecord } from './entities/cost-record.entity';
         },
       },
     }),
+
+    // ===== TypeORM Repository 注入 =====
+    TypeOrmModule.forFeature([ProxyProvider]),
 
     // ===== 认证模块 =====
     AuthModule, // JWT 认证
@@ -111,7 +125,7 @@ import { CostRecord } from './entities/cost-record.entity';
     // MonitoringModule,  // 监控告警
     // EventsModule,      // 事件处理
   ],
-  controllers: [],
+  controllers: [ProxyProviderConfigController],
   providers: [],
 })
 export class AppModule {}

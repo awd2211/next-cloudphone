@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { ProxyPoolManager } from '../../pool/pool-manager.service';
 import {
   ProxyInfo,
@@ -39,6 +40,7 @@ export class ProxyService {
   constructor(
     private readonly poolManager: ProxyPoolManager,
     private readonly configService: ConfigService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
   ) {
     this.logger.log('ProxyService initialized');
   }
@@ -230,7 +232,7 @@ export class ProxyService {
    * 定时任务：刷新代理池
    * 每10分钟执行一次
    */
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @ClusterSafeCron(CronExpression.EVERY_10_MINUTES)
   async schedulePoolRefresh() {
     try {
       this.logger.log('Scheduled pool refresh started');
@@ -247,7 +249,7 @@ export class ProxyService {
    * 定时任务：清理不健康代理
    * 每30分钟执行一次
    */
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @ClusterSafeCron(CronExpression.EVERY_30_MINUTES)
   async scheduleCleanup() {
     try {
       this.logger.log('Scheduled cleanup started');
@@ -273,7 +275,7 @@ export class ProxyService {
    * 定时任务：清理过期的活跃代理缓存
    * 每小时执行一次
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @ClusterSafeCron(CronExpression.EVERY_HOUR)
   async scheduleActiveProxiesCleanup() {
     try {
       this.logger.log('Cleaning up active proxies cache');

@@ -1,0 +1,39 @@
+--- a/src/services/number-management.service.spec.ts
++++ b/src/services/number-management.service.spec.ts
+@@ -398,7 +398,7 @@ describe('NumberManagementService', () => {
+ 
+     it('should retry with fallback on retryable error', async () => {
+-      const retryableError = new ProviderError('No numbers available', true, 'NO_NUMBERS');
++      const retryable Error = new ProviderError('No numbers available', 'sms-activate', 'NO_NUMBERS', true);
+       
+       mockProvider.getNumber
+@@ -434,7 +434,7 @@ describe('NumberManagementService', () => {
+ 
+     it('should retry up to MAX_RETRY_ATTEMPTS on retryable errors', async () => {
+-      const retryableError = new ProviderError('No numbers available', true, 'NO_NUMBERS');
++      const retryableError = new ProviderError('No numbers available', 'sms-activate', 'NO_NUMBERS', true);
+       
+       mockProvider.getNumber.mockRejectedValue(retryableError);
+ 
+@@ -461,7 +461,7 @@ describe('NumberManagementService', () => {
+     });
+ 
+     it('should not retry on non-retryable error', async () => {
+-      const nonRetryableError = new ProviderError('Invalid API key', false, 'AUTH_ERROR');
++      const nonRetryableError = new ProviderError('Invalid API key', 'sms-activate', 'AUTH_ERROR', false);
+       
+       mockProvider.getNumber.mockRejectedValue(nonRetryableError);
+ 
+@@ -705,9 +705,9 @@ describe('NumberManagementService', () => {
+       ];
+ 
+       mockPlatformSelector.selectBestPlatform
+-        .mockRejectedValueOnce(new ProviderError('No numbers', false, 'NO_NUMBERS'))
+-        .mockRejectedValueOnce(new ProviderError('No numbers', false, 'NO_NUMBERS'))
+-        .mockRejectedValueOnce(new ProviderError('No numbers', false, 'NO_NUMBERS'));
++        .mockRejectedValueOnce(new ProviderError('No numbers', 'sms-activate', 'NO_NUMBERS', false))
++        .mockRejectedValueOnce(new ProviderError('No numbers', '5sim', 'NO_NUMBERS', false))
++        .mockRejectedValueOnce(new ProviderError('No numbers', 'unknown', 'NO_NUMBERS', false));
+ 
+       await expect(service.batchRequest('telegram', 'RU', deviceIds)).resolves.toBeDefined();
+ 

@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { ProviderBlacklist } from '../entities/provider-blacklist.entity';
 
 /**
@@ -26,6 +27,7 @@ export class BlacklistManagerService {
   constructor(
     @InjectRepository(ProviderBlacklist)
     private readonly blacklistRepo: Repository<ProviderBlacklist>,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
   ) {}
 
   /**
@@ -178,7 +180,7 @@ export class BlacklistManagerService {
   /**
    * 定时任务：清理过期的临时黑名单
    */
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @ClusterSafeCron(CronExpression.EVERY_5_MINUTES)
   async cleanupExpiredBlacklist() {
     const now = new Date();
 

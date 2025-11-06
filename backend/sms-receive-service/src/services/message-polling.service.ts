@@ -1,10 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, MoreThan } from 'typeorm';
 import { VirtualNumber, SmsMessage } from '../entities';
 import { PlatformSelectorService } from './platform-selector.service';
 import { EventBusService } from '@cloudphone/shared';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 /**
  * 短信消息轮询服务（批量定时轮询版）
@@ -12,6 +14,7 @@ import { EventBusService } from '@cloudphone/shared';
 @Injectable()
 export class MessagePollingService {
   private readonly logger = new Logger(MessagePollingService.name);
+  private readonly tracer = trace.getTracer('sms-receive-service');
 
   private readonly BATCH_SIZE = 50;
   private isPolling = false;
@@ -23,9 +26,10 @@ export class MessagePollingService {
     private readonly messageRepo: Repository<SmsMessage>,
     private readonly platformSelector: PlatformSelectorService,
     private readonly eventBus: EventBusService,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
   ) {}
 
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @ClusterSafeCron(CronExpression.EVERY_10_SECONDS)
   async pollMessages() {
     if (this.isPolling) {
       this.logger.debug('Previous polling still in progress, skipping');
@@ -104,46 +108,77 @@ export class MessagePollingService {
   }
 
   private async handleMessageReceived(number: VirtualNumber, code: string | null, messageText?: string): Promise<void> {
-    try {
-      const existingMessage = await this.messageRepo.findOne({ where: { virtualNumberId: number.id } });
-      if (existingMessage) {
-        this.logger.debug(`Message already processed for number ${number.id}`);
-        return;
+    return await this.tracer.startActiveSpan(
+      'sms.message_received',
+      {
+        attributes: {
+          'number.id': number.id,
+          'number.phone': number.phoneNumber,
+          'user.id': number.userId,
+          'device.id': number.deviceId,
+          'service.name': number.serviceName,
+          'provider': number.provider,
+          'code.present': !!code,
+        },
+      },
+      async (span) => {
+        try {
+          const existingMessage = await this.messageRepo.findOne({ where: { virtualNumberId: number.id } });
+          if (existingMessage) {
+            this.logger.debug(`Message already processed for number ${number.id}`);
+            span.setAttribute('message.duplicate', true);
+            span.setStatus({ code: SpanStatusCode.OK });
+            return;
+          }
+
+          span.setAttribute('message.duplicate', false);
+
+          const smsMessage = new SmsMessage();
+          smsMessage.virtualNumberId = number.id;
+          if (code) smsMessage.verificationCode = code;
+          if (messageText) smsMessage.messageText = messageText;
+          const sender = this.extractSender(messageText);
+          if (sender) smsMessage.sender = sender;
+          await this.messageRepo.save(smsMessage);
+
+          number.status = 'received';
+          number.smsReceivedAt = new Date();
+          if (number.rentalType !== 'one_time') {
+            number.rentalSmsCount += 1;
+          }
+          await this.numberRepo.save(number);
+
+          await this.eventBus.publish('cloudphone.events', 'sms.message.received', {
+            messageId: smsMessage.id,
+            numberId: number.id,
+            deviceId: number.deviceId,
+            userId: number.userId,
+            phoneNumber: number.phoneNumber,
+            verificationCode: code,
+            messageText: messageText,
+            service: number.serviceName,
+            provider: number.provider,
+            receivedAt: smsMessage.receivedAt.toISOString(),
+          });
+
+          span.setAttributes({
+            'message.id': smsMessage.id,
+            'message.sender': sender || 'unknown',
+            'message.code': code || 'none',
+          });
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          this.logger.log(`SMS received for ${number.phoneNumber}: code=${code || 'N/A'}`);
+        } catch (error) {
+          this.logger.error(`Failed to handle received message for number ${number.id}`, error.stack);
+          span.recordException(error);
+          span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+          throw error;
+        } finally {
+          span.end();
+        }
       }
-
-      const smsMessage = new SmsMessage();
-      smsMessage.virtualNumberId = number.id;
-      if (code) smsMessage.verificationCode = code;
-      if (messageText) smsMessage.messageText = messageText;
-      const sender = this.extractSender(messageText);
-      if (sender) smsMessage.sender = sender;
-      await this.messageRepo.save(smsMessage);
-
-      number.status = 'received';
-      number.smsReceivedAt = new Date();
-      if (number.rentalType !== 'one_time') {
-        number.rentalSmsCount += 1;
-      }
-      await this.numberRepo.save(number);
-
-      await this.eventBus.publish('cloudphone.events', 'sms.message.received', {
-        messageId: smsMessage.id,
-        numberId: number.id,
-        deviceId: number.deviceId,
-        userId: number.userId,
-        phoneNumber: number.phoneNumber,
-        verificationCode: code,
-        messageText: messageText,
-        service: number.serviceName,
-        provider: number.provider,
-        receivedAt: smsMessage.receivedAt.toISOString(),
-      });
-
-      this.logger.log(`SMS received for ${number.phoneNumber}: code=${code || 'N/A'}`);
-    } catch (error) {
-      this.logger.error(`Failed to handle received message for number ${number.id}`, error.stack);
-      throw error;
-    }
+    );
   }
 
   private async handleNumberExpired(number: VirtualNumber, reason: string): Promise<void> {

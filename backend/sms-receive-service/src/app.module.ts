@@ -8,6 +8,7 @@ import {
   ConsulModule,
   AppCacheModule,
   createLoggerConfig,
+  DistributedLockModule,
 } from '@cloudphone/shared';
 
 // Entities
@@ -38,6 +39,7 @@ import { VerificationCodeCacheService } from './services/verification-code-cache
 import { NumbersController } from './controllers/numbers.controller';
 import { StatisticsController } from './controllers/statistics.controller';
 import { VerificationCodeController } from './controllers/verification-code.controller';
+import { ProviderConfigController } from './controllers/provider-config.controller';
 
 // Modules
 import { HealthModule } from './health/health.module';
@@ -60,7 +62,7 @@ import { AuthModule } from './auth/auth.module';
         port: configService.get<number>('DB_PORT', 5432),
         username: configService.get<string>('DB_USERNAME', 'postgres'),
         password: configService.get<string>('DB_PASSWORD', 'postgres'),
-        database: configService.get<string>('DB_DATABASE', 'cloudphone'),
+        database: configService.get<string>('DB_DATABASE', 'cloudphone_sms'),
         entities: [
           VirtualNumber,
           SmsMessage,
@@ -100,6 +102,7 @@ import { AuthModule } from './auth/auth.module';
     EventBusModule.forRoot(),
     ConsulModule,
     AppCacheModule,
+    DistributedLockModule.forRoot(), // ✅ K8s cluster safety: Redis distributed lock for cron tasks
 
     // Authentication
     AuthModule,
@@ -108,7 +111,12 @@ import { AuthModule } from './auth/auth.module';
     HealthModule,
   ],
 
-  controllers: [NumbersController, StatisticsController, VerificationCodeController],
+  controllers: [
+    NumbersController,
+    StatisticsController,
+    VerificationCodeController,
+    ProviderConfigController,
+  ],
 
   providers: [
     // Adapters

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MetricsService } from '../health/metrics.service';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 /**
  * 验证码提取结果
@@ -142,6 +143,8 @@ export class VerificationCodeExtractorService {
     },
   ];
 
+  private readonly tracer = trace.getTracer('sms-receive-service');
+
   constructor(
     private readonly configService: ConfigService,
     private readonly metricsService: MetricsService,
@@ -159,9 +162,18 @@ export class VerificationCodeExtractorService {
     message: string,
     serviceCode?: string,
   ): Promise<VerificationCodeResult | null> {
-    const startTime = Date.now();
+    return await this.tracer.startActiveSpan(
+      'verification-code.extract',
+      {
+        attributes: {
+          'service.code': serviceCode || 'unknown',
+          'message.length': message.length,
+        },
+      },
+      async (span) => {
+        const startTime = Date.now();
 
-    try {
+        try {
       // 预处理消息
       const cleanedMessage = this.preprocessMessage(message);
 
@@ -186,11 +198,14 @@ export class VerificationCodeExtractorService {
         }
       }
 
-      // 如果没有匹配，返回null
-      if (matches.length === 0) {
-        this.logger.debug(`No verification code found in message: ${message.substring(0, 50)}...`);
-        return null;
-      }
+          // 如果没有匹配，返回null
+          if (matches.length === 0) {
+            this.logger.debug(`No verification code found in message: ${message.substring(0, 50)}...`);
+            span.setStatus({ code: SpanStatusCode.OK });
+            span.setAttribute('code.found', false);
+            span.end();
+            return null;
+          }
 
       // 选择最佳匹配（优先级最高且置信度最高）
       matches.sort((a, b) => {
@@ -210,17 +225,33 @@ export class VerificationCodeExtractorService {
         bestMatch.patternType,
       );
 
-      this.logger.log(
-        `Extracted code: ${bestMatch.code} (pattern=${bestMatch.patternType}, confidence=${bestMatch.confidence}%, time=${durationMs}ms)`,
-      );
+          this.logger.log(
+            `Extracted code: ${bestMatch.code} (pattern=${bestMatch.patternType}, confidence=${bestMatch.confidence}%, time=${durationMs}ms)`,
+          );
 
-      // 移除priority属性
-      const { priority, ...result } = bestMatch;
-      return result;
-    } catch (error) {
-      this.logger.error(`Failed to extract verification code: ${error.message}`, error.stack);
-      return null;
-    }
+          // 添加追踪属性
+          span.setAttributes({
+            'code.found': true,
+            'code.value': bestMatch.code,
+            'code.pattern': bestMatch.patternType,
+            'code.confidence': bestMatch.confidence,
+            'extraction.duration_ms': durationMs,
+          });
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          // 移除priority属性
+          const { priority, ...result } = bestMatch;
+          return result;
+        } catch (error) {
+          this.logger.error(`Failed to extract verification code: ${error.message}`, error.stack);
+          span.recordException(error);
+          span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+          return null;
+        } finally {
+          span.end();
+        }
+      }
+    );
   }
 
   /**

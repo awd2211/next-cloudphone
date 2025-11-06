@@ -1,5 +1,8 @@
 /**
  * 应用相关事件定义
+ *
+ * 所有应用事件统一遵循以下规范：
+ * 1. 包含 userId 的事件需添加 userRole 和 userEmail（用于角色化通知）✨ 2025-11-03
  */
 
 export class AppInstallRequestedEvent {
@@ -8,6 +11,8 @@ export class AppInstallRequestedEvent {
   appId: string;
   downloadUrl: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   timestamp: string;
 }
 
@@ -34,6 +39,8 @@ export class AppUninstallRequestedEvent {
   appId: string;
   packageName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   timestamp: string;
 }
 
@@ -52,5 +59,7 @@ export class AppUploadedEvent {
   versionName: string;
   versionCode: number;
   uploadedBy: string;
+  userRole: string;
+  userEmail?: string;
   timestamp: string;
 }

@@ -6,17 +6,79 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
 import request from 'supertest';
+import { MockJwtStrategy } from './mock-jwt-strategy';
 
 /**
  * 创建测试应用实例
  *
  * @param moduleMetadata - NestJS 模块元数据
+ * @param options - 可选配置
  * @returns 配置好的 NestApplication
  */
-export async function createTestApp(moduleMetadata: any): Promise<INestApplication> {
-  const moduleFixture: TestingModule = await Test.createTestingModule(moduleMetadata).compile();
+export async function createTestApp(
+  moduleMetadata: any,
+  options?: {
+    disableAuth?: boolean; // 是否禁用认证（默认启用 mock 认证）
+    mockGuards?: boolean; // 是否 mock 所有 guards（默认 true）
+  }
+): Promise<INestApplication> {
+  // 自动添加 PassportModule, JwtModule 和 MockJwtStrategy
+  const imports = moduleMetadata.imports || [];
+  const providers = moduleMetadata.providers || [];
+
+  // 如果没有禁用认证，自动添加认证相关模块
+  if (!options?.disableAuth) {
+    // 添加 PassportModule
+    if (!imports.some((m: any) => m === PassportModule || m?.module === PassportModule)) {
+      imports.push(PassportModule.register({ defaultStrategy: 'jwt' }));
+    }
+
+    // 添加 JwtModule
+    if (!imports.some((m: any) => m?.module?.name === 'JwtModule')) {
+      imports.push(
+        JwtModule.register({
+          secret: 'test-secret',
+          signOptions: { expiresIn: '1h' },
+        })
+      );
+    }
+
+    // 添加 MockJwtStrategy
+    if (!providers.some((p: any) => p === MockJwtStrategy || p?.useClass === MockJwtStrategy)) {
+      providers.push(MockJwtStrategy);
+    }
+  }
+
+  const testingModuleBuilder = Test.createTestingModule({
+    ...moduleMetadata,
+    imports,
+    providers,
+  });
+
+  // Mock common guards if enabled (默认启用)
+  const shouldMockGuards = options?.mockGuards !== false;
+  if (shouldMockGuards) {
+    // 尝试 override 常见的 guards
+    // 注意：只有当这些 guards 在模块中存在时才会生效
+    const mockGuardValue = { canActivate: jest.fn(() => true) };
+
+    // 尝试查找并 override 各种可能的 guard 类名
+    const guardClassNames = [
+      'PermissionsGuard',
+      'RolesGuard',
+      'DataScopeGuard',
+      'ThrottlerGuard',
+      'EnhancedPermissionsGuard',
+    ];
+
+    // 由于我们无法在这里直接访问 guard 类，我们将在 compile 后进行 override
+    // 这里只是记录需要 override 的 guard 名称
+  }
+
+  const moduleFixture: TestingModule = await testingModuleBuilder.compile();
 
   const app = moduleFixture.createNestApplication();
 

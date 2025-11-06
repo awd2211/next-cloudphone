@@ -21,6 +21,7 @@ import { VerificationCodeCacheService } from '../services/verification-code-cach
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SmsMessage } from '../entities/sms-message.entity';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 /**
  * 提取验证码请求DTO
@@ -68,6 +69,7 @@ class ConsumeCodeDto {
 @Controller('verification-codes')
 export class VerificationCodeController {
   private readonly logger = new Logger(VerificationCodeController.name);
+  private readonly tracer = trace.getTracer('sms-receive-service');
 
   constructor(
     private readonly extractorService: VerificationCodeExtractorService,
@@ -118,58 +120,99 @@ export class VerificationCodeController {
     @Param('phoneNumber') phoneNumber: string,
     @Query('serviceCode') serviceCode: string,
   ) {
-    this.logger.log(`Query code for ${phoneNumber}/${serviceCode}`);
+    return await this.tracer.startActiveSpan(
+      'verification-code.query_by_phone',
+      {
+        attributes: {
+          'phone.number': phoneNumber,
+          'service.code': serviceCode,
+        },
+      },
+      async (span) => {
+        try {
+          this.logger.log(`Query code for ${phoneNumber}/${serviceCode}`);
 
-    // 1. 先从缓存查询
-    let cached = await this.cacheService.getCodeByPhone(phoneNumber, serviceCode);
+          // 1. 先从缓存查询
+          let cached = await this.cacheService.getCodeByPhone(phoneNumber, serviceCode);
 
-    // 2. 如果缓存未命中，从数据库查询并提取
-    if (!cached) {
-      // 通过 QueryBuilder 进行关联查询
-      const smsMessages = await this.smsMessageRepo
-        .createQueryBuilder('sms')
-        .leftJoinAndSelect('sms.virtualNumber', 'vn')
-        .where('vn.phone_number = :phoneNumber', { phoneNumber })
-        .andWhere('vn.service_code = :serviceCode', { serviceCode })
-        .orderBy('sms.received_at', 'DESC')
-        .limit(5)
-        .getMany();
+          span.setAttribute('cache.hit', !!cached);
 
-      for (const msg of smsMessages) {
-        const extracted = await this.extractorService.extractCode(msg.messageText, serviceCode);
+          // 2. 如果缓存未命中，从数据库查询并提取
+          if (!cached) {
+            // 通过 QueryBuilder 进行关联查询
+            const smsMessages = await this.smsMessageRepo
+              .createQueryBuilder('sms')
+              .leftJoinAndSelect('sms.virtualNumber', 'vn')
+              .where('vn.phone_number = :phoneNumber', { phoneNumber })
+              .andWhere('vn.service_code = :serviceCode', { serviceCode })
+              .orderBy('sms.received_at', 'DESC')
+              .limit(5)
+              .getMany();
 
-        if (extracted) {
-          // 缓存提取的验证码
-          await this.cacheService.cacheCode(phoneNumber, serviceCode, extracted);
+            span.setAttribute('db.messages_checked', smsMessages.length);
+
+            for (const msg of smsMessages) {
+              const extracted = await this.extractorService.extractCode(msg.messageText, serviceCode);
+
+              if (extracted) {
+                // 缓存提取的验证码
+                await this.cacheService.cacheCode(phoneNumber, serviceCode, extracted);
+
+                span.setAttributes({
+                  'code.found': true,
+                  'code.source': 'database',
+                  'code.pattern': extracted.patternType,
+                });
+                span.setStatus({ code: SpanStatusCode.OK });
+
+                return {
+                  success: true,
+                  data: {
+                    ...extracted,
+                    phoneNumber,
+                    serviceCode,
+                    receivedAt: msg.receivedAt,
+                    consumed: false,
+                    source: 'database',
+                  },
+                };
+              }
+            }
+
+            // 未找到
+            span.setAttributes({
+              'code.found': false,
+            });
+            span.setStatus({ code: SpanStatusCode.OK });
+
+            return {
+              success: false,
+              message: 'No verification code found for this number',
+            };
+          }
+
+          span.setAttributes({
+            'code.found': true,
+            'code.source': 'cache',
+          });
+          span.setStatus({ code: SpanStatusCode.OK });
 
           return {
             success: true,
             data: {
-              ...extracted,
-              phoneNumber,
-              serviceCode,
-              receivedAt: msg.receivedAt,
-              consumed: false,
-              source: 'database',
+              ...cached,
+              source: 'cache',
             },
           };
+        } catch (error) {
+          span.recordException(error);
+          span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+          throw error;
+        } finally {
+          span.end();
         }
       }
-
-      // 未找到
-      return {
-        success: false,
-        message: 'No verification code found for this number',
-      };
-    }
-
-    return {
-      success: true,
-      data: {
-        ...cached,
-        source: 'cache',
-      },
-    };
+    );
   }
 
   /**
@@ -237,29 +280,57 @@ export class VerificationCodeController {
   @ApiOperation({ summary: '标记验证码已使用' })
   @RequirePermission('sms:verification-code:consume')
   async consumeCode(@Body() dto: ConsumeCodeDto) {
-    this.logger.log(`Consume code for ${dto.phoneNumber}/${dto.serviceCode}`);
+    return await this.tracer.startActiveSpan(
+      'verification-code.consume',
+      {
+        attributes: {
+          'phone.number': dto.phoneNumber,
+          'service.code': dto.serviceCode,
+          'code.value': dto.code,
+        },
+      },
+      async (span) => {
+        try {
+          this.logger.log(`Consume code for ${dto.phoneNumber}/${dto.serviceCode}`);
 
-    // 先验证
-    const isValid = await this.cacheService.isCodeValid(
-      dto.phoneNumber,
-      dto.serviceCode,
-      dto.code,
+          // 先验证
+          const isValid = await this.cacheService.isCodeValid(
+            dto.phoneNumber,
+            dto.serviceCode,
+            dto.code,
+          );
+
+          span.setAttribute('code.valid', isValid);
+
+          if (!isValid) {
+            span.setStatus({ code: SpanStatusCode.OK });
+            return {
+              success: false,
+              message: 'Invalid or expired verification code',
+            };
+          }
+
+          // 标记已使用
+          const consumed = await this.cacheService.markCodeConsumed(dto.phoneNumber, dto.serviceCode);
+
+          span.setAttributes({
+            'code.consumed': consumed,
+          });
+          span.setStatus({ code: SpanStatusCode.OK });
+
+          return {
+            success: consumed,
+            message: consumed ? 'Code marked as consumed' : 'Failed to consume code',
+          };
+        } catch (error) {
+          span.recordException(error);
+          span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+          throw error;
+        } finally {
+          span.end();
+        }
+      }
     );
-
-    if (!isValid) {
-      return {
-        success: false,
-        message: 'Invalid or expired verification code',
-      };
-    }
-
-    // 标记已使用
-    const consumed = await this.cacheService.markCodeConsumed(dto.phoneNumber, dto.serviceCode);
-
-    return {
-      success: consumed,
-      message: consumed ? 'Code marked as consumed' : 'Failed to consume code',
-    };
   }
 
   /**

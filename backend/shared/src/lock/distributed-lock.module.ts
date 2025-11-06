@@ -1,5 +1,7 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, DynamicModule } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DistributedLockService } from './distributed-lock.service';
+import { Redis } from 'ioredis';
 
 /**
  * Distributed Lock Module
@@ -34,8 +36,43 @@ import { DistributedLockService } from './distributed-lock.service';
  * ```
  */
 @Global()
-@Module({
-  providers: [DistributedLockService],
-  exports: [DistributedLockService],
-})
-export class DistributedLockModule {}
+@Module({})
+export class DistributedLockModule {
+  static forRoot(): DynamicModule {
+    return {
+      module: DistributedLockModule,
+      global: true,
+      imports: [ConfigModule],
+      providers: [
+        {
+          provide: 'REDIS_CLIENT',
+          useFactory: (configService: ConfigService) => {
+            const redisHost = configService.get<string>('REDIS_HOST', 'localhost');
+            const redisPort = configService.get<number>('REDIS_PORT', 6379);
+            const redisPassword = configService.get<string>('REDIS_PASSWORD');
+
+            return new Redis({
+              host: redisHost,
+              port: redisPort,
+              password: redisPassword,
+              retryStrategy: (times: number) => {
+                const delay = Math.min(times * 50, 2000);
+                return delay;
+              },
+              maxRetriesPerRequest: 3,
+            });
+          },
+          inject: [ConfigService],
+        },
+        {
+          provide: DistributedLockService,
+          useFactory: (redis: Redis) => {
+            return new DistributedLockService(redis);
+          },
+          inject: ['REDIS_CLIENT'],
+        },
+      ],
+      exports: [DistributedLockService],
+    };
+  }
+}

@@ -3,9 +3,17 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { ConsulService } from '@cloudphone/shared';
+import { ConsulService, setupMetricsEndpoint, initTracing } from '@cloudphone/shared';
 
 async function bootstrap() {
+  // ========== OpenTelemetry 追踪初始化 ==========
+  initTracing({
+    serviceName: 'sms-receive-service',
+    serviceVersion: '1.0.0',
+    jaegerEndpoint: process.env.JAEGER_ENDPOINT || 'http://localhost:4318/v1/traces',
+    enabled: process.env.OTEL_ENABLED !== 'false',
+  });
+
   const logger = new Logger('Bootstrap');
 
   const app = await NestFactory.create(AppModule, {
@@ -52,6 +60,9 @@ async function bootstrap() {
   });
 
   const port = parseInt(configService.get<string>('PORT', '30008'), 10);
+  // ========== Prometheus Metrics 端点 ==========
+  setupMetricsEndpoint(app);
+
   await app.listen(port);
 
   // ========== 注册到 Consul ==========

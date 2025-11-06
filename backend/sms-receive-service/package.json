@@ -97,7 +97,8 @@
     "testEnvironment": "node",
     "moduleNameMapper": {
       "^@cloudphone/shared$": "<rootDir>/../../shared/src",
-      "^src/(.*)$": "<rootDir>/$1"
+      "^src/(.*)$": "<rootDir>/$1",
+      "^uuid$": "<rootDir>/__mocks__/uuid.ts"
     }
   }
 }

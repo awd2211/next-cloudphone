@@ -73,6 +73,46 @@ export {
 } from './decorators/cacheable.decorator';
 export type { CacheableOptions, CacheEvictOptions } from './decorators/cacheable.decorator';
 
+// ========== 事件发布装饰器 ==========
+export {
+  PublishEvent,
+  SimplePublishEvent,
+  DynamicPublishEvent,
+  BatchPublishEvents,
+} from './decorators/publish-event.decorator';
+export type { PublishEventOptions } from './decorators/publish-event.decorator';
+
+// ========== 性能监控装饰器 ==========
+export {
+  MonitorTransaction,
+  MonitorTransactionSimple,
+  outboxDeliveryDelay,
+  outboxBacklog,
+  sagaDuration,
+  sagaStepDuration,
+  sagaTotal,
+  sagaCompensations,
+} from './decorators/monitor-transaction.decorator';
+export type { MonitorTransactionOptions } from './decorators/monitor-transaction.decorator';
+
+// ========== Metrics 端点设置 ==========
+export { setupMetricsEndpoint } from './monitoring/metrics.setup';
+
+// ========== 业务指标 ==========
+export {
+  BusinessMetrics,
+  DeviceMetrics,
+  BillingMetrics,
+  UserMetrics,
+  AppMetrics,
+  NotificationMetrics,
+} from './monitoring/business-metrics';
+export type { MetricConfig } from './monitoring/business-metrics';
+
+// ========== 分布式追踪 ==========
+export { initTracing, shutdownTracing, getTracingSDK } from './tracing/tracing.setup';
+export type { TracingConfig } from './tracing/tracing.setup';
+
 // ========== 健康检查 ==========
 export { HealthCheckService } from './health/health-check.service';
 export type { HealthCheckResult, ComponentHealth } from './health/health-check.service';
@@ -148,6 +188,7 @@ export { EventOutbox, EventOutboxService, EventOutboxModule } from './outbox';
 // 注意: Jest mock 工具仅在测试环境中使用,不应在生产代码中导出
 // export * from './testing/test-helpers';
 // export * from './testing/mock-factories';
+export { MockJwtStrategy } from './testing/mock-jwt-strategy';
 
 // ========== 安全中间件 ==========
 // TODO: 以下安全中间件尚未实现，暂时注释
@@ -186,3 +227,27 @@ export { UserRole, isAdminRole, hasAdminRole, isSuperAdmin } from './constants/r
 export { DataScope, DataScopeType } from './decorators/data-scope.decorator';
 export type { DataScopeConfig } from './decorators/data-scope.decorator';
 export { DataScopeGuard } from './guards/data-scope.guard';
+
+// ========== K8s 集群化支持 ==========
+// 环境检测工具
+export { ClusterDetector } from './cluster/cluster-detector';
+
+// 集群安全的 Cron 装饰器（自动适配本地开发和 K8s 环境）
+export {
+  ClusterSafeCron,
+  ClusterSafeCronEveryMinute,
+  ClusterSafeCronEvery5Minutes,
+  ClusterSafeCronEvery10Minutes,
+  ClusterSafeCronEvery30Minutes,
+  ClusterSafeCronEveryHour,
+  ClusterSafeCronEveryDay,
+} from './cluster/cluster-safe-cron.decorator';
+export type { ClusterSafeCronOptions } from './cluster/cluster-safe-cron.decorator';
+
+// ========== 文件存储抽象层 ==========
+// 存储接口和实现（自动切换 LocalFileStorage / MinIO）
+export type { IStorageService, FileMetadata } from './storage/storage.interface';
+export { LocalFileStorage } from './storage/local-file-storage.service';
+export { MinIOStorage } from './storage/minio-storage.service';
+export { StorageModule } from './storage/storage.module';
+export type { StorageModuleOptions } from './storage/storage.module';

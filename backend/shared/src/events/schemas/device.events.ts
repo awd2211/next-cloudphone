@@ -6,6 +6,7 @@
  * 2. 包含 providerType 和 deviceType 字段
  * 3. 包含 deviceName 字段（用户友好）
  * 4. 包含 deviceConfig 快照（用于计费和审计）
+ * 5. 包含 userRole 和 userEmail（用于角色化通知）✨ 2025-11-03
  */
 
 import { DeviceProviderType, DeviceType, DeviceConfigSnapshot } from '../../types/provider.types';
@@ -24,6 +25,12 @@ export interface BaseDeviceEvent {
 
   /** 用户 ID */
   userId: string;
+
+  /** 用户角色（用于角色化通知）✨ */
+  userRole: string;
+
+  /** 用户邮箱（用于角色化通知）✨ */
+  userEmail?: string;
 
   /** 租户 ID（多租户场景） */
   tenantId?: string;
@@ -47,6 +54,8 @@ export class DeviceCreatedEvent implements BaseDeviceEvent {
   deviceId: string;
   deviceName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
   providerType: DeviceProviderType;
   deviceType: DeviceType;
@@ -71,6 +80,8 @@ export class DeviceCreationFailedEvent {
   deviceName: string;
 
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
 
   /** 设备提供商类型 */
@@ -98,6 +109,8 @@ export class DeviceStartedEvent implements BaseDeviceEvent {
   deviceId: string;
   deviceName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
   providerType: DeviceProviderType;
   deviceType: DeviceType;
@@ -119,6 +132,8 @@ export class DeviceStoppedEvent implements BaseDeviceEvent {
   deviceId: string;
   deviceName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
   providerType: DeviceProviderType;
   deviceType: DeviceType;
@@ -145,6 +160,8 @@ export class DeviceDeletedEvent implements BaseDeviceEvent {
   deviceId: string;
   deviceName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
   providerType: DeviceProviderType;
   deviceType: DeviceType;
@@ -168,6 +185,8 @@ export class DeviceErrorEvent implements BaseDeviceEvent {
   deviceId: string;
   deviceName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
   providerType: DeviceProviderType;
   deviceType: DeviceType;
@@ -200,6 +219,8 @@ export class DeviceConnectionLostEvent implements BaseDeviceEvent {
   deviceId: string;
   deviceName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
   providerType: DeviceProviderType;
   deviceType: DeviceType;
@@ -223,6 +244,8 @@ export class DeviceTokenRefreshedEvent implements BaseDeviceEvent {
   deviceId: string;
   deviceName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
   providerType: DeviceProviderType;
   deviceType: DeviceType;
@@ -257,6 +280,8 @@ export class DeviceStatusChangedEvent implements BaseDeviceEvent {
   deviceId: string;
   deviceName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
   providerType: DeviceProviderType;
   deviceType: DeviceType;
@@ -293,6 +318,12 @@ export class DeviceAllocateRequestedEvent {
   /** 用户 ID */
   userId: string;
 
+  /** 用户角色 */
+  userRole: string;
+
+  /** 用户邮箱 */
+  userEmail?: string;
+
   /** 套餐 ID */
   planId: string;
 
@@ -321,6 +352,12 @@ export class DeviceAllocatedEvent {
   /** 用户 ID */
   userId: string;
 
+  /** 用户角色 */
+  userRole: string;
+
+  /** 用户邮箱 */
+  userEmail?: string;
+
   /** 是否成功 */
   success: boolean;
 
@@ -346,6 +383,12 @@ export class DeviceReleaseEvent {
   /** 用户 ID */
   userId: string;
 
+  /** 用户角色 */
+  userRole: string;
+
+  /** 用户邮箱 */
+  userEmail?: string;
+
   /** 设备提供商类型 */
   providerType: DeviceProviderType;
 
@@ -369,6 +412,8 @@ export class DeviceBackupCreatedEvent implements BaseDeviceEvent {
   deviceId: string;
   deviceName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
   providerType: DeviceProviderType;
   deviceType: DeviceType;
@@ -444,6 +489,8 @@ export class DeviceExpirationWarningEvent implements BaseDeviceEvent {
   deviceId: string;
   deviceName: string;
   userId: string;
+  userRole: string;
+  userEmail?: string;
   tenantId?: string;
   providerType: DeviceProviderType;
   deviceType: DeviceType;
@@ -472,6 +519,12 @@ export class DeviceExpiredEvent {
 
   /** 用户 ID */
   userId: string;
+
+  /** 用户角色 */
+  userRole: string;
+
+  /** 用户邮箱 */
+  userEmail?: string;
 
   /** 设备提供商类型 */
   providerType: DeviceProviderType;
