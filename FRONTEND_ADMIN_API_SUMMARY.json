@@ -1,0 +1,241 @@
+{
+  "project": "Cloud Phone Platform - Admin Frontend",
+  "analysisDate": "2025-11-03",
+  "summary": {
+    "totalServiceFiles": 32,
+    "totalHooks": 68,
+    "totalPages": 40,
+    "totalAPIEndpoints": 300,
+    "totalComponents": 100
+  },
+  "services": {
+    "auth": {
+      "file": "services/auth.ts",
+      "baseUrl": "/auth",
+      "endpoints": 4,
+      "operations": ["GET /auth/captcha", "POST /auth/login", "POST /auth/logout", "GET /auth/me"]
+    },
+    "user": {
+      "file": "services/user.ts",
+      "baseUrl": "/users",
+      "endpoints": 12,
+      "operations": ["GET /users", "GET /users/cursor", "GET /users/{id}", "POST /users", "PATCH /users/{id}", "DELETE /users/{id}", "GET /users/stats", "POST /balance/recharge", "POST /balance/adjust", "POST /users/{id}/change-password", "POST /users/{id}/reset-password", "POST /users/batch-delete"]
+    },
+    "device": {
+      "file": "services/device.ts",
+      "baseUrl": "/devices",
+      "endpoints": 30,
+      "operations": ["GET /devices", "GET /devices/cursor", "GET /devices/{id}", "POST /devices", "PATCH /devices/{id}", "DELETE /devices/{id}", "POST /devices/{id}/start", "POST /devices/{id}/stop", "POST /devices/{id}/reboot", "GET /devices/available", "GET /devices/stats", "POST /devices/{id}/shell", "POST /devices/{id}/screenshot", "POST /devices/{id}/push", "POST /devices/{id}/pull", "POST /devices/{id}/install", "POST /devices/{id}/uninstall", "GET /devices/{id}/packages", "GET /devices/{id}/logcat", "POST /devices/{id}/logcat/clear", "GET /devices/{id}/properties", "POST /devices/batch/start", "POST /devices/batch/stop", "POST /devices/batch/reboot", "POST /devices/batch/delete", "GET /devices/{id}/connection", "POST /devices/{id}/webrtc/token", "POST /devices/{id}/cloud/refresh", "GET /devices/physical", "POST /devices/physical/scan"]
+    },
+    "app": {
+      "file": "services/app.ts",
+      "baseUrl": "/apps",
+      "endpoints": 19,
+      "operations": ["GET /apps", "GET /apps/cursor", "GET /apps/{id}", "POST /apps/upload", "PATCH /apps/{id}", "DELETE /apps/{id}", "POST /apps/{id}/publish", "POST /apps/{id}/unpublish", "POST /apps/install", "POST /apps/uninstall", "GET /apps/devices/{id}/apps", "GET /apps/stats", "POST /apps/{id}/submit-review", "POST /apps/{id}/approve", "POST /apps/{id}/reject", "POST /apps/{id}/request-changes", "GET /apps/audit-records", "GET /apps/{id}/reviews"]
+    },
+    "billing": {
+      "file": "services/billing.ts",
+      "baseUrl": "/billing, /payments, /reports, /metering",
+      "endpoints": 35,
+      "sections": {
+        "orders": ["GET /billing/orders", "GET /billing/orders/{id}", "POST /billing/orders", "POST /billing/orders/{id}/cancel", "POST /billing/orders/batch/cancel", "GET /billing/orders/stats"],
+        "payments": ["GET /payments", "GET /payments/{id}", "POST /payments", "POST /payments/query", "POST /payments/{id}/refund", "POST /billing/orders/{id}/refund"],
+        "metering": ["GET /billing/usage", "GET /metering/users/{id}", "GET /metering/devices/{id}", "GET /metering/overview", "GET /metering/users", "GET /metering/devices", "GET /metering/trend", "GET /metering/resource-analysis"],
+        "reports": ["GET /reports/bills/{id}", "GET /reports/revenue", "GET /reports/usage-trend", "GET /reports/bills/{id}/export", "GET /reports/revenue/export"]
+      }
+    },
+    "quota": {
+      "file": "services/quota.ts",
+      "baseUrl": "/quotas",
+      "endpoints": 10,
+      "operations": ["POST /quotas", "GET /quotas/user/{id}", "POST /quotas/check", "POST /quotas/deduct", "POST /quotas/restore", "PUT /quotas/{id}", "POST /quotas/user/{id}/usage", "GET /quotas/usage-stats/{id}", "POST /quotas/check/batch", "GET /quotas/alerts"]
+    },
+    "role": {
+      "file": "services/role.ts",
+      "baseUrl": "/roles, /permissions",
+      "endpoints": 15,
+      "sections": {
+        "roles": ["GET /roles", "GET /roles/{id}", "POST /roles", "PATCH /roles/{id}", "DELETE /roles/{id}", "POST /roles/batch-delete"],
+        "permissions": ["GET /permissions", "POST /permissions", "PATCH /permissions/{id}", "DELETE /permissions/{id}", "POST /roles/{id}/permissions", "DELETE /roles/{id}/permissions", "GET /permissions/{id}", "GET /permissions/resource/{type}", "POST /permissions/bulk"]
+      }
+    },
+    "fieldPermission": {
+      "file": "services/fieldPermission.ts",
+      "baseUrl": "/field-permissions",
+      "endpoints": 11,
+      "operations": ["GET /field-permissions/meta/access-levels", "GET /field-permissions/meta/operation-types", "GET /field-permissions", "GET /field-permissions/{id}", "GET /field-permissions/role/{id}", "POST /field-permissions", "PUT /field-permissions/{id}", "DELETE /field-permissions/{id}", "POST /field-permissions/batch", "PUT /field-permissions/{id}/toggle", "GET /field-permissions/meta/transform-examples"]
+    },
+    "dataScope": {
+      "file": "services/dataScope.ts",
+      "baseUrl": "/data-scopes",
+      "endpoints": 9,
+      "operations": ["GET /data-scopes/meta/scope-types", "GET /data-scopes", "GET /data-scopes/{id}", "GET /data-scopes/role/{id}", "POST /data-scopes", "PUT /data-scopes/{id}", "DELETE /data-scopes/{id}", "POST /data-scopes/batch", "PUT /data-scopes/{id}/toggle"]
+    },
+    "menu": {
+      "file": "services/menu.ts",
+      "baseUrl": "/menu-permissions",
+      "endpoints": 12,
+      "operations": ["GET /menu-permissions/all-menus", "GET /menu-permissions/my-menus", "GET /menu-permissions/my-permissions", "GET /menu-permissions/user/{id}/menus", "GET /menu-permissions/user/{id}/permissions", "GET /menu-permissions/check-menu-access", "GET /menu-permissions/breadcrumb", "GET /menu-permissions/cache/stats", "GET /menu-permissions/cache/refresh/{id}", "GET /menu-permissions/cache/clear-all", "GET /menu-permissions/cache/warmup", "GET /menu-permissions/cache/export"]
+    },
+    "snapshot": {
+      "file": "services/snapshot.ts",
+      "baseUrl": "/snapshots",
+      "endpoints": 9,
+      "operations": ["GET /snapshots", "GET /snapshots/device/{id}", "GET /snapshots/{id}", "POST /snapshots/device/{id}", "POST /snapshots/{id}/restore", "POST /snapshots/{id}/compress", "DELETE /snapshots/{id}", "POST /snapshots/batch-delete", "GET /snapshots/stats/summary"]
+    },
+    "lifecycle": {
+      "file": "services/lifecycle.ts",
+      "baseUrl": "/devices/lifecycle",
+      "endpoints": 14,
+      "sections": {
+        "rules": ["GET /devices/lifecycle/rules", "GET /devices/lifecycle/rules/{id}", "POST /devices/lifecycle/rules", "PUT /devices/lifecycle/rules/{id}", "DELETE /devices/lifecycle/rules/{id}", "PATCH /devices/lifecycle/rules/{id}/toggle", "POST /devices/lifecycle/rules/{id}/execute", "POST /devices/lifecycle/rules/{id}/test"],
+        "history": ["GET /devices/lifecycle/history", "GET /devices/lifecycle/history/{id}"],
+        "stats": ["GET /devices/lifecycle/stats", "GET /devices/lifecycle/execution-trend"],
+        "templates": ["GET /devices/lifecycle/templates", "POST /devices/lifecycle/templates/{id}/create"]
+      }
+    },
+    "auditLog": {
+      "file": "services/auditLog.ts, services/log.ts",
+      "baseUrl": "/audit-logs, /logs/audit",
+      "endpoints": 8,
+      "operations": ["GET /audit-logs/user/{id}", "GET /audit-logs/resource/{type}/{id}", "GET /audit-logs/search", "GET /audit-logs/statistics", "GET /logs/audit", "GET /logs/audit/{id}", "GET /logs/audit/export", "POST /logs/audit/clean"]
+    },
+    "notification": {
+      "file": "services/notification.ts",
+      "baseUrl": "/notifications",
+      "endpoints": 7,
+      "operations": ["GET /notifications/user/{id}", "GET /notifications/unread/count", "POST /notifications", "POST /notifications/{id}/read", "POST /notifications/read-all", "DELETE /notifications/{id}", "POST /notifications/batch/delete"]
+    },
+    "notificationTemplate": {
+      "file": "services/notificationTemplate.ts",
+      "baseUrl": "/templates",
+      "endpoints": 11,
+      "operations": ["GET /templates", "GET /templates/{id}", "POST /templates", "PUT /templates/{id}", "DELETE /templates/{id}", "PATCH /templates/{id}/toggle", "GET /templates/{id}/versions", "POST /templates/{id}/revert", "POST /templates/test", "GET /templates/variables", "POST /templates/{id}/preview"]
+    },
+    "scheduler": {
+      "file": "services/scheduler.ts",
+      "baseUrl": "/scheduler",
+      "endpoints": 21,
+      "sections": {
+        "nodes": ["GET /scheduler/nodes", "GET /scheduler/nodes/{id}", "POST /scheduler/nodes", "PUT /scheduler/nodes/{id}", "DELETE /scheduler/nodes/{id}", "POST /scheduler/nodes/{id}/maintenance", "POST /scheduler/nodes/{id}/drain"],
+        "strategies": ["GET /scheduler/strategies", "GET /scheduler/strategies/active", "POST /scheduler/strategies/{id}/activate", "POST /scheduler/strategies", "PUT /scheduler/strategies/{id}", "DELETE /scheduler/strategies/{id}"],
+        "tasks": ["GET /scheduler/tasks", "POST /scheduler/schedule", "POST /scheduler/reschedule/{id}"],
+        "stats": ["GET /scheduler/stats", "GET /scheduler/nodes/{id}/usage-trend", "GET /scheduler/cluster/usage-trend"]
+      }
+    },
+    "events": {
+      "file": "services/events.ts",
+      "baseUrl": "/events",
+      "endpoints": 6,
+      "operations": ["GET /events/user/{id}/history", "GET /events/user/{id}/replay", "GET /events/user/{id}/replay/version/{v}", "GET /events/user/{id}/replay/timestamp", "GET /events/stats", "GET /events/recent"]
+    },
+    "template": {
+      "file": "services/template.ts",
+      "baseUrl": "/templates",
+      "endpoints": 11,
+      "operations": ["GET /templates", "GET /templates/popular", "GET /templates/search", "GET /templates/{id}", "POST /templates", "POST /templates/from-device/{id}", "PATCH /templates/{id}", "DELETE /templates/{id}", "POST /templates/{id}/create-device", "POST /templates/{id}/batch-create", "GET /templates/stats"]
+    },
+    "apiKey": {
+      "file": "services/apiKey.ts",
+      "baseUrl": "/api-keys",
+      "endpoints": 8,
+      "operations": ["POST /api-keys", "GET /api-keys/user/{id}", "GET /api-keys/{id}", "PUT /api-keys/{id}", "POST /api-keys/{id}/revoke", "DELETE /api-keys/{id}", "GET /api-keys/statistics/{id}", "GET /api-keys/test/auth"]
+    },
+    "cache": {
+      "file": "services/cache.ts",
+      "baseUrl": "/cache",
+      "endpoints": 6,
+      "operations": ["GET /cache/stats", "DELETE /cache/stats", "DELETE /cache/flush", "DELETE /cache", "DELETE /cache/pattern", "GET /cache/exists"]
+    },
+    "queue": {
+      "file": "services/queue.ts",
+      "baseUrl": "/queues",
+      "endpoints": 12,
+      "operations": ["GET /queues/status", "GET /queues/{name}/jobs", "GET /queues/{name}/jobs/{id}", "POST /queues/{name}/jobs/{id}/retry", "DELETE /queues/{name}/jobs/{id}", "POST /queues/{name}/pause", "POST /queues/{name}/resume", "DELETE /queues/{name}/empty", "POST /queues/{name}/clean", "POST /queues/test/send-email", "POST /queues/test/send-sms", "POST /queues/test/start-device"]
+    },
+    "ticket": {
+      "file": "services/ticket.ts",
+      "baseUrl": "/tickets",
+      "endpoints": 9,
+      "operations": ["POST /tickets", "GET /tickets/{id}", "GET /tickets/user/{id}", "GET /tickets", "PUT /tickets/{id}", "POST /tickets/{id}/replies", "GET /tickets/{id}/replies", "POST /tickets/{id}/rate", "GET /tickets/statistics/overview"]
+    },
+    "stats": {
+      "file": "services/stats.ts",
+      "baseUrl": "/stats",
+      "endpoints": 10,
+      "operations": ["GET /stats/dashboard", "GET /stats/devices/online", "GET /stats/users/today", "GET /stats/revenue/today", "GET /stats/revenue/month", "GET /stats/devices/distribution", "GET /stats/users/activity", "GET /stats/revenue/trend", "GET /stats/users/growth", "GET /stats/plans/distribution"]
+    },
+    "provider": {
+      "file": "services/provider.ts",
+      "baseUrl": "/devices/providers, /admin/providers",
+      "endpoints": 9,
+      "operations": ["GET /devices/providers/specs", "GET /devices/providers/{provider}/specs", "GET /devices/cloud/sync-status", "POST /devices/cloud/sync", "GET /devices/providers/health", "GET /admin/providers/{provider}/config", "PUT /admin/providers/{provider}/config", "POST /admin/providers/{provider}/test", "GET /admin/billing/cloud-reconciliation"]
+    },
+    "gpu": {
+      "file": "services/gpu.ts",
+      "baseUrl": "/resources/gpu",
+      "endpoints": 12,
+      "operations": ["GET /resources/gpu", "GET /resources/gpu/{id}", "GET /resources/gpu/{id}/status", "POST /resources/gpu/{id}/allocate", "DELETE /resources/gpu/{id}/deallocate", "GET /resources/gpu/allocations", "GET /resources/gpu/stats", "GET /resources/gpu/{id}/usage-trend", "GET /resources/gpu/cluster-trend", "GET /resources/gpu/{id}/performance", "GET /resources/gpu/driver/{id}", "POST /resources/gpu/driver/{id}/update"]
+    },
+    "plan": {
+      "file": "services/plan.ts",
+      "baseUrl": "/billing/plans",
+      "endpoints": 7,
+      "operations": ["GET /billing/plans", "GET /billing/plans/{id}", "POST /billing/plans", "PATCH /billing/plans/{id}", "DELETE /billing/plans/{id}", "POST /billing/plans/batch-delete", "GET /reports/plans/stats"]
+    },
+    "order": {
+      "file": "services/order.ts",
+      "baseUrl": "/billing/orders",
+      "endpoints": 8,
+      "operations": ["GET /billing/orders", "GET /billing/orders/{id}", "POST /billing/orders", "PUT /billing/orders/{id}", "DELETE /billing/orders/{id}", "GET /billing/orders/stats", "POST /billing/orders/{id}/cancel", "POST /billing/orders/{id}/refund"]
+    },
+    "paymentAdmin": {
+      "file": "services/payment-admin.ts",
+      "baseUrl": "/admin/payments",
+      "endpoints": 16,
+      "operations": ["GET /admin/payments/statistics", "GET /admin/payments/statistics/payment-methods", "GET /admin/payments/statistics/daily", "GET /admin/payments", "GET /admin/payments/{id}", "POST /admin/payments/{id}/refund", "GET /admin/payments/refunds/pending", "POST /admin/payments/refunds/{id}/approve", "POST /admin/payments/refunds/{id}/reject", "GET /admin/payments/exceptions/list", "POST /admin/payments/{id}/sync", "GET /admin/payments/export/excel", "GET /admin/payments/config/all", "PUT /admin/payments/config", "POST /admin/payments/config/test/{provider}", "GET /admin/payments/webhooks/logs"]
+    }
+  },
+  "hooks": {
+    "total": 68,
+    "categories": {
+      "dataQuery": ["useUsers", "useDevices", "useApps", "usePlans", "useSnapshots", "useTemplates", "useRoles", "useAuditLogs"],
+      "dataModification": ["useCreateUser", "useUpdateUser", "useDeleteUser", "useStartDevice", "useStopDevice", "useRebootDevice"],
+      "business": ["useDashboard", "useBillingRules", "useQuotaList", "useApiKeyManagement", "useCacheManagement", "useQueueManagement"],
+      "advanced": ["useInfiniteUsers", "useInfiniteDevices", "useInfiniteApps", "useAuditLogVirtual"]
+    }
+  },
+  "pages": {
+    "total": 40,
+    "categories": {
+      "user": ["User/List.tsx", "Profile/index.tsx"],
+      "device": ["Device/List.tsx", "Device/Detail.tsx"],
+      "app": ["App/List.tsx", "AppReview/ReviewList.tsx", "AppReview/ReviewDetail.tsx"],
+      "billing": ["Billing/InvoiceList.tsx", "Billing/TransactionHistory.tsx", "Billing/BalanceOverview.tsx"],
+      "payment": ["Payment/List.tsx", "Payment/Config.tsx", "Payment/Dashboard.tsx", "Payment/RefundManagement.tsx", "Payment/ExceptionPayments.tsx", "Payment/WebhookLogs.tsx"],
+      "system": ["System/CacheManagement.tsx", "System/DataScopeManagement.tsx", "System/EventSourcingViewer.tsx", "System/QueueManagement.tsx", "System/ConsulMonitor.tsx", "System/PrometheusMonitor.tsx"],
+      "permission": ["Permission/List.tsx", "Permission/MenuPermission.tsx", "Permission/FieldPermission.tsx", "Permission/DataScope.tsx"],
+      "report": ["Report/Analytics.tsx", "Report/Revenue.tsx"],
+      "monitoring": ["Stats/Dashboard.tsx", "Metering/Dashboard.tsx", "Analytics/Dashboard.tsx", "GPU/Dashboard.tsx"],
+      "management": ["Role/List.tsx", "Plan/List.tsx", "Quota/QuotaList.tsx", "ApiKey/ApiKeyList.tsx", "Snapshot/List.tsx", "Template/List.tsx", "BillingRules/List.tsx", "Ticket/TicketList.tsx", "Ticket/TicketDetail.tsx", "Audit/AuditLogList.tsx", "Audit/AuditLogListVirtual.tsx", "Logs/Audit.tsx", "NotificationTemplates/List.tsx", "NotificationTemplates/Editor.tsx", "PhysicalDevice/List.tsx", "Usage/List.tsx", "Settings/index.tsx", "Notifications/index.tsx", "Scheduler/Dashboard.tsx", "DeviceLifecycle/Dashboard.tsx", "Failover/Management.tsx", "StateRecovery/Management.tsx", "DeviceGroups/Management.tsx", "NetworkPolicy/Configuration.tsx", "Provider/Configuration.tsx", "SMS/Management.tsx"]
+    }
+  },
+  "technology": {
+    "httpClient": "axios (custom request wrapper)",
+    "stateManagement": "React Query (TanStack Query)",
+    "dataTypes": "TypeScript (src/types/)",
+    "pagination": ["Offset-based", "Cursor-based"],
+    "caching": ["React Query client-side", "Redis server-side"]
+  },
+  "authentication": {
+    "method": "JWT",
+    "storage": "localStorage",
+    "loginFlow": ["GET /auth/captcha", "POST /auth/login", "Store token", "GET /auth/me"]
+  },
+  "security": {
+    "mechanisms": ["RBAC", "Field-level permissions", "Data scope restrictions", "Menu permissions", "SQL injection protection", "XSS protection"]
+  },
+  "performance": {
+    "strategies": ["Code splitting", "Image lazy loading", "Virtual scrolling", "Infinite scroll", "Request deduplication", "Optimistic updates"]
+  }
+}

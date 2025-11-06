@@ -1,0 +1,1487 @@
+{
+  "summary": {
+    "total_routes": 104,
+    "public_routes": 2,
+    "authenticated_routes": 102
+  },
+  "service_mapping": {
+    "user-service": [
+      {
+        "route": "auth",
+        "wildcard": true,
+        "public": true
+      },
+      {
+        "route": "auth",
+        "wildcard": false,
+        "public": true
+      },
+      {
+        "route": "users",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "users",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "roles",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "roles",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "permissions",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "permissions",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "data-scopes",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "data-scopes",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "field-permissions",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "field-permissions",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "menu-permissions",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "menu-permissions",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "quotas",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "quotas",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "tickets",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "tickets",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "audit-logs",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "audit-logs",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "api-keys",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "api-keys",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "cache",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "cache",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "queues",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "queues",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "events",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "events",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "balance",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "balance",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "settings",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "settings",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "logs/audit",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "logs/audit",
+        "wildcard": true,
+        "public": false
+      }
+    ],
+    "device-service": [
+      {
+        "route": "devices",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "devices",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "scheduler",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "gpu",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "gpu",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "lifecycle",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "lifecycle",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "snapshots",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "snapshots",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "failover",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "failover",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "state-recovery",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "state-recovery",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "admin/physical-devices",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "admin/physical-devices",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "admin/providers",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "admin/providers",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "resources",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "resources",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "network-policy",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "network-policy",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "prometheus",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "prometheus",
+        "wildcard": true,
+        "public": false
+      }
+    ],
+    "app-service": [
+      {
+        "route": "apps",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "apps",
+        "wildcard": true,
+        "public": false
+      }
+    ],
+    "billing-service": [
+      {
+        "route": "orders",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "orders",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "plans",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "plans",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "invoices",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "invoices",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "billing",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "billing",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "payments",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "payments",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "admin/payments",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "admin/payments",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "metering",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "metering",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "stats",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "stats",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "reports",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "reports",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "usage",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "usage",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "billing-rules",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "billing-rules",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "export",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "export",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "api/activities",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "api/activities",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "api/coupons",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "api/coupons",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "api/referral",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "api/referral",
+        "wildcard": true,
+        "public": false
+      }
+    ],
+    "notification-service": [
+      {
+        "route": "notifications",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "notifications",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "sms",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "sms",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "templates",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "templates",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "help",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "help",
+        "wildcard": true,
+        "public": false
+      },
+      {
+        "route": "notification-preferences",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "notification-preferences",
+        "wildcard": true,
+        "public": false
+      }
+    ],
+    "sms-receive-service": [
+      {
+        "route": "sms-numbers",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "sms-numbers",
+        "wildcard": true,
+        "public": false
+      }
+    ],
+    "proxy-service": [
+      {
+        "route": "proxy",
+        "wildcard": false,
+        "public": false
+      },
+      {
+        "route": "proxy",
+        "wildcard": true,
+        "public": false
+      }
+    ],
+    "media-service": [
+      {
+        "route": "media",
+        "wildcard": true,
+        "public": false
+      }
+    ]
+  },
+  "all_routes": [
+    "admin/payments",
+    "admin/payments/*",
+    "admin/physical-devices",
+    "admin/physical-devices/*",
+    "admin/providers",
+    "admin/providers/*",
+    "api-keys",
+    "api-keys/*",
+    "api/activities",
+    "api/activities/*",
+    "api/coupons",
+    "api/coupons/*",
+    "api/referral",
+    "api/referral/*",
+    "apps",
+    "apps/*",
+    "audit-logs",
+    "audit-logs/*",
+    "auth",
+    "auth/*",
+    "balance",
+    "balance/*",
+    "billing",
+    "billing-rules",
+    "billing-rules/*",
+    "billing/*",
+    "cache",
+    "cache/*",
+    "data-scopes",
+    "data-scopes/*",
+    "devices",
+    "devices/*",
+    "events",
+    "events/*",
+    "export",
+    "export/*",
+    "failover",
+    "failover/*",
+    "field-permissions",
+    "field-permissions/*",
+    "gpu",
+    "gpu/*",
+    "help",
+    "help/*",
+    "invoices",
+    "invoices/*",
+    "lifecycle",
+    "lifecycle/*",
+    "logs/audit",
+    "logs/audit/*",
+    "media",
+    "media/*",
+    "menu-permissions",
+    "menu-permissions/*",
+    "metering",
+    "metering/*",
+    "network-policy",
+    "network-policy/*",
+    "notification-preferences",
+    "notification-preferences/*",
+    "notifications",
+    "notifications/*",
+    "orders",
+    "orders/*",
+    "payments",
+    "payments/*",
+    "permissions",
+    "permissions/*",
+    "plans",
+    "plans/*",
+    "prometheus",
+    "prometheus/*",
+    "proxy",
+    "proxy/*",
+    "queues",
+    "queues/*",
+    "quotas",
+    "quotas/*",
+    "reports",
+    "reports/*",
+    "resources",
+    "resources/*",
+    "roles",
+    "roles/*",
+    "scheduler",
+    "scheduler/*",
+    "settings",
+    "settings/*",
+    "sms",
+    "sms-numbers",
+    "sms-numbers/*",
+    "sms/*",
+    "snapshots",
+    "snapshots/*",
+    "state-recovery",
+    "state-recovery/*",
+    "stats",
+    "stats/*",
+    "templates",
+    "templates/*",
+    "tickets",
+    "tickets/*",
+    "usage",
+    "usage/*",
+    "users",
+    "users/*"
+  ],
+  "routes_detail": [
+    {
+      "pattern": "admin/payments",
+      "route": "admin/payments",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyAdminPaymentsExact"
+    },
+    {
+      "pattern": "admin/payments/*path",
+      "route": "admin/payments",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyAdminPayments"
+    },
+    {
+      "pattern": "admin/physical-devices",
+      "route": "admin/physical-devices",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxyPhysicalDevicesExact"
+    },
+    {
+      "pattern": "admin/physical-devices/*path",
+      "route": "admin/physical-devices",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxyPhysicalDevices"
+    },
+    {
+      "pattern": "admin/providers",
+      "route": "admin/providers",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxyProvidersExact"
+    },
+    {
+      "pattern": "admin/providers/*path",
+      "route": "admin/providers",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxyProviders"
+    },
+    {
+      "pattern": "api-keys",
+      "route": "api-keys",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyApiKeysExact"
+    },
+    {
+      "pattern": "api-keys/*path",
+      "route": "api-keys",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyApiKeys"
+    },
+    {
+      "pattern": "api/activities",
+      "route": "api/activities",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyActivitiesExact"
+    },
+    {
+      "pattern": "api/activities/*path",
+      "route": "api/activities",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyActivities"
+    },
+    {
+      "pattern": "api/coupons",
+      "route": "api/coupons",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyCouponsExact"
+    },
+    {
+      "pattern": "api/coupons/*path",
+      "route": "api/coupons",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyCoupons"
+    },
+    {
+      "pattern": "api/referral",
+      "route": "api/referral",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyReferralExact"
+    },
+    {
+      "pattern": "api/referral/*path",
+      "route": "api/referral",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyReferral"
+    },
+    {
+      "pattern": "apps",
+      "route": "apps",
+      "wildcard": false,
+      "service": "apps",
+      "public": false,
+      "function": "proxyAppsExact"
+    },
+    {
+      "pattern": "apps/*path",
+      "route": "apps",
+      "wildcard": true,
+      "service": "apps",
+      "public": false,
+      "function": "proxyApps"
+    },
+    {
+      "pattern": "audit-logs",
+      "route": "audit-logs",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyAuditLogsExact"
+    },
+    {
+      "pattern": "audit-logs/*path",
+      "route": "audit-logs",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyAuditLogs"
+    },
+    {
+      "pattern": "auth/*path",
+      "route": "auth",
+      "wildcard": true,
+      "service": "users",
+      "public": true,
+      "function": "proxyAuth"
+    },
+    {
+      "pattern": "auth",
+      "route": "auth",
+      "wildcard": false,
+      "service": "users",
+      "public": true,
+      "function": "proxyAuthExact"
+    },
+    {
+      "pattern": "balance",
+      "route": "balance",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyBalanceExact"
+    },
+    {
+      "pattern": "balance/*path",
+      "route": "balance",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyBalance"
+    },
+    {
+      "pattern": "billing",
+      "route": "billing",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyBillingExact"
+    },
+    {
+      "pattern": "billing/*path",
+      "route": "billing",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyBilling"
+    },
+    {
+      "pattern": "billing-rules",
+      "route": "billing-rules",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyBillingRulesExact"
+    },
+    {
+      "pattern": "billing-rules/*path",
+      "route": "billing-rules",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyBillingRules"
+    },
+    {
+      "pattern": "cache",
+      "route": "cache",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyCacheExact"
+    },
+    {
+      "pattern": "cache/*path",
+      "route": "cache",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyCache"
+    },
+    {
+      "pattern": "data-scopes",
+      "route": "data-scopes",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyDataScopesExact"
+    },
+    {
+      "pattern": "data-scopes/*path",
+      "route": "data-scopes",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyDataScopes"
+    },
+    {
+      "pattern": "devices",
+      "route": "devices",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxyDevicesExact"
+    },
+    {
+      "pattern": "devices/*path",
+      "route": "devices",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxyDevices"
+    },
+    {
+      "pattern": "events",
+      "route": "events",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyEventsExact"
+    },
+    {
+      "pattern": "events/*path",
+      "route": "events",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyEvents"
+    },
+    {
+      "pattern": "export",
+      "route": "export",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyExportExact"
+    },
+    {
+      "pattern": "export/*path",
+      "route": "export",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyExport"
+    },
+    {
+      "pattern": "failover",
+      "route": "failover",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxyFailoverExact"
+    },
+    {
+      "pattern": "failover/*path",
+      "route": "failover",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxyFailover"
+    },
+    {
+      "pattern": "field-permissions",
+      "route": "field-permissions",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyFieldPermissionsExact"
+    },
+    {
+      "pattern": "field-permissions/*path",
+      "route": "field-permissions",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyFieldPermissions"
+    },
+    {
+      "pattern": "gpu",
+      "route": "gpu",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxyGpuExact"
+    },
+    {
+      "pattern": "gpu/*path",
+      "route": "gpu",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxyGpu"
+    },
+    {
+      "pattern": "help",
+      "route": "help",
+      "wildcard": false,
+      "service": "notifications",
+      "public": false,
+      "function": "proxyHelpExact"
+    },
+    {
+      "pattern": "help/*path",
+      "route": "help",
+      "wildcard": true,
+      "service": "notifications",
+      "public": false,
+      "function": "proxyHelp"
+    },
+    {
+      "pattern": "invoices",
+      "route": "invoices",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyInvoicesExact"
+    },
+    {
+      "pattern": "invoices/*path",
+      "route": "invoices",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyInvoices"
+    },
+    {
+      "pattern": "lifecycle",
+      "route": "lifecycle",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxyLifecycleExact"
+    },
+    {
+      "pattern": "lifecycle/*path",
+      "route": "lifecycle",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxyLifecycle"
+    },
+    {
+      "pattern": "logs/audit",
+      "route": "logs/audit",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyLogsAuditExact"
+    },
+    {
+      "pattern": "logs/audit/*path",
+      "route": "logs/audit",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyLogsAudit"
+    },
+    {
+      "pattern": "media/*path",
+      "route": "media",
+      "wildcard": true,
+      "service": "media",
+      "public": false,
+      "function": "proxyMedia"
+    },
+    {
+      "pattern": "menu-permissions",
+      "route": "menu-permissions",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyMenuPermissionsExact"
+    },
+    {
+      "pattern": "menu-permissions/*path",
+      "route": "menu-permissions",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyMenuPermissions"
+    },
+    {
+      "pattern": "metering",
+      "route": "metering",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyMeteringExact"
+    },
+    {
+      "pattern": "metering/*path",
+      "route": "metering",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyMetering"
+    },
+    {
+      "pattern": "network-policy",
+      "route": "network-policy",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxyNetworkPolicyExact"
+    },
+    {
+      "pattern": "network-policy/*path",
+      "route": "network-policy",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxyNetworkPolicy"
+    },
+    {
+      "pattern": "notification-preferences",
+      "route": "notification-preferences",
+      "wildcard": false,
+      "service": "notifications",
+      "public": false,
+      "function": "proxyNotificationPreferencesExact"
+    },
+    {
+      "pattern": "notification-preferences/*path",
+      "route": "notification-preferences",
+      "wildcard": true,
+      "service": "notifications",
+      "public": false,
+      "function": "proxyNotificationPreferences"
+    },
+    {
+      "pattern": "notifications",
+      "route": "notifications",
+      "wildcard": false,
+      "service": "notifications",
+      "public": false,
+      "function": "proxyNotificationsExact"
+    },
+    {
+      "pattern": "notifications/*path",
+      "route": "notifications",
+      "wildcard": true,
+      "service": "notifications",
+      "public": false,
+      "function": "proxyNotifications"
+    },
+    {
+      "pattern": "orders",
+      "route": "orders",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyOrdersExact"
+    },
+    {
+      "pattern": "orders/*path",
+      "route": "orders",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyOrders"
+    },
+    {
+      "pattern": "payments",
+      "route": "payments",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyPaymentsExact"
+    },
+    {
+      "pattern": "payments/*path",
+      "route": "payments",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyPayments"
+    },
+    {
+      "pattern": "permissions",
+      "route": "permissions",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyPermissionsExact"
+    },
+    {
+      "pattern": "permissions/*path",
+      "route": "permissions",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyPermissions"
+    },
+    {
+      "pattern": "plans",
+      "route": "plans",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyPlansExact"
+    },
+    {
+      "pattern": "plans/*path",
+      "route": "plans",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyPlans"
+    },
+    {
+      "pattern": "prometheus",
+      "route": "prometheus",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxyPrometheusExact"
+    },
+    {
+      "pattern": "prometheus/*path",
+      "route": "prometheus",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxyPrometheus"
+    },
+    {
+      "pattern": "proxy",
+      "route": "proxy",
+      "wildcard": false,
+      "service": "proxy-service",
+      "public": false,
+      "function": "proxyProxyServiceExact"
+    },
+    {
+      "pattern": "proxy/*path",
+      "route": "proxy",
+      "wildcard": true,
+      "service": "proxy-service",
+      "public": false,
+      "function": "proxyProxyService"
+    },
+    {
+      "pattern": "queues",
+      "route": "queues",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyQueuesExact"
+    },
+    {
+      "pattern": "queues/*path",
+      "route": "queues",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyQueues"
+    },
+    {
+      "pattern": "quotas",
+      "route": "quotas",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyQuotasExact"
+    },
+    {
+      "pattern": "quotas/*path",
+      "route": "quotas",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyQuotas"
+    },
+    {
+      "pattern": "reports",
+      "route": "reports",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyReportsExact"
+    },
+    {
+      "pattern": "reports/*path",
+      "route": "reports",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyReports"
+    },
+    {
+      "pattern": "resources",
+      "route": "resources",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxyResourcesExact"
+    },
+    {
+      "pattern": "resources/*path",
+      "route": "resources",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxyResources"
+    },
+    {
+      "pattern": "roles",
+      "route": "roles",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyRolesExact"
+    },
+    {
+      "pattern": "roles/*path",
+      "route": "roles",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyRoles"
+    },
+    {
+      "pattern": "scheduler/*path",
+      "route": "scheduler",
+      "wildcard": true,
+      "service": "scheduler",
+      "public": false,
+      "function": "proxyScheduler"
+    },
+    {
+      "pattern": "settings",
+      "route": "settings",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxySettingsExact"
+    },
+    {
+      "pattern": "settings/*path",
+      "route": "settings",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxySettings"
+    },
+    {
+      "pattern": "sms",
+      "route": "sms",
+      "wildcard": false,
+      "service": "notifications",
+      "public": false,
+      "function": "proxySmsExact"
+    },
+    {
+      "pattern": "sms/*path",
+      "route": "sms",
+      "wildcard": true,
+      "service": "notifications",
+      "public": false,
+      "function": "proxySms"
+    },
+    {
+      "pattern": "sms-numbers",
+      "route": "sms-numbers",
+      "wildcard": false,
+      "service": "sms-receive-service",
+      "public": false,
+      "function": "proxySmsNumbersExact"
+    },
+    {
+      "pattern": "sms-numbers/*path",
+      "route": "sms-numbers",
+      "wildcard": true,
+      "service": "sms-receive-service",
+      "public": false,
+      "function": "proxySmsNumbers"
+    },
+    {
+      "pattern": "snapshots",
+      "route": "snapshots",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxySnapshotsExact"
+    },
+    {
+      "pattern": "snapshots/*path",
+      "route": "snapshots",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxySnapshots"
+    },
+    {
+      "pattern": "state-recovery",
+      "route": "state-recovery",
+      "wildcard": false,
+      "service": "devices",
+      "public": false,
+      "function": "proxyStateRecoveryExact"
+    },
+    {
+      "pattern": "state-recovery/*path",
+      "route": "state-recovery",
+      "wildcard": true,
+      "service": "devices",
+      "public": false,
+      "function": "proxyStateRecovery"
+    },
+    {
+      "pattern": "stats",
+      "route": "stats",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyStatsExact"
+    },
+    {
+      "pattern": "stats/*path",
+      "route": "stats",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyStats"
+    },
+    {
+      "pattern": "templates",
+      "route": "templates",
+      "wildcard": false,
+      "service": "notifications",
+      "public": false,
+      "function": "proxyTemplatesExact"
+    },
+    {
+      "pattern": "templates/*path",
+      "route": "templates",
+      "wildcard": true,
+      "service": "notifications",
+      "public": false,
+      "function": "proxyTemplates"
+    },
+    {
+      "pattern": "tickets",
+      "route": "tickets",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyTicketsExact"
+    },
+    {
+      "pattern": "tickets/*path",
+      "route": "tickets",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyTickets"
+    },
+    {
+      "pattern": "usage",
+      "route": "usage",
+      "wildcard": false,
+      "service": "billing",
+      "public": false,
+      "function": "proxyUsageExact"
+    },
+    {
+      "pattern": "usage/*path",
+      "route": "usage",
+      "wildcard": true,
+      "service": "billing",
+      "public": false,
+      "function": "proxyUsage"
+    },
+    {
+      "pattern": "users",
+      "route": "users",
+      "wildcard": false,
+      "service": "users",
+      "public": false,
+      "function": "proxyUsersExact"
+    },
+    {
+      "pattern": "users/*path",
+      "route": "users",
+      "wildcard": true,
+      "service": "users",
+      "public": false,
+      "function": "proxyUsers"
+    }
+  ]
+}

@@ -1,0 +1,1831 @@
+{
+  "app": "user",
+  "summary": {
+    "total_calls": 269,
+    "unique_endpoints": 191,
+    "by_method": {
+      "GET": 243,
+      "POST": 20,
+      "PATCH": 1,
+      "DELETE": 5
+    },
+    "by_service": {
+      "billing": 35,
+      "users": 13,
+      "other": 140,
+      "auth": 34,
+      "notifications": 9,
+      "apps": 6,
+      "devices": 32
+    }
+  },
+  "endpoints": [
+    "/activities/:id",
+    "/activities/coupons",
+    "/analytics/reports",
+    "/analytics/revenue",
+    "/api/activities",
+    "/api/activities/:id",
+    "/api/activities/:id/claim-coupon",
+    "/api/activities/:id/participate",
+    "/api/activities/my/participations",
+    "/api/activities/stats",
+    "/api/coupons/:id/use",
+    "/api/coupons/my",
+    "/api/logs/errors",
+    "/api/referral/config",
+    "/api/referral/earnings",
+    "/api/referral/generate-code",
+    "/api/referral/generate-poster",
+    "/api/referral/records",
+    "/api/referral/share",
+    "/api/referral/stats",
+    "/api/referral/withdraw",
+    "/api/referral/withdrawals",
+    "/api/referral/withdrawals/:id/cancel",
+    "/api/webrtc/:id/candidate",
+    "/api/webrtc/:id/offer",
+    "/apps/:id",
+    "/apps/install",
+    "/apps/list",
+    "/apps/upload",
+    "/audit/logs",
+    "/auth/:idfa/disable",
+    "/auth/:idfa/enable",
+    "/auth/:idfa/generate",
+    "/auth/:idfa/status",
+    "/auth/:idfa/verify",
+    "/auth/captcha",
+    "/auth/change-password",
+    "/auth/forgot-password",
+    "/auth/login",
+    "/auth/login-history",
+    "/auth/logout",
+    "/auth/me",
+    "/auth/register",
+    "/auth/reset-password",
+    "/auth/sessions",
+    "/auth/sessions/:id",
+    "/auth/sessions/all",
+    "/auth/verify-reset-token/:id",
+    "/billing/:id",
+    "/billing/balance",
+    "/billing/bills",
+    "/billing/bills/:id",
+    "/billing/bills/:id/cancel",
+    "/billing/bills/:id/download",
+    "/billing/bills/:id/refund",
+    "/billing/invoices",
+    "/billing/invoices/:id/download",
+    "/billing/orders",
+    "/billing/orders/:id",
+    "/billing/orders/:id/cancel",
+    "/billing/orders/my",
+    "/billing/overview",
+    "/billing/pay",
+    "/billing/payment-methods",
+    "/billing/plans",
+    "/billing/plans/:id",
+    "/billing/recharge",
+    "/billing/stats",
+    "/billing/transactions",
+    "/billing/usage/my",
+    "/devices/:id",
+    "/devices/:id/apps/:id",
+    "/devices/:id/apps/:id/update",
+    "/devices/:id/apps/batch-uninstall",
+    "/devices/:id/installed-apps",
+    "/devices/:id/monitor",
+    "/devices/:id/reboot",
+    "/devices/:id/snapshots",
+    "/devices/:id/start",
+    "/devices/:id/stats",
+    "/devices/:id/stop",
+    "/devices/batch",
+    "/devices/batch/install-app",
+    "/devices/batch/restart",
+    "/devices/batch/start",
+    "/devices/batch/stop",
+    "/devices/create",
+    "/devices/list",
+    "/devices/my",
+    "/devices/my/stats",
+    "/devices/saga/:id",
+    "/export/data-types",
+    "/export/estimate",
+    "/export/stats",
+    "/export/tasks",
+    "/export/tasks/:id",
+    "/export/tasks/:id/cancel",
+    "/export/tasks/:id/download",
+    "/export/tasks/:id/retry",
+    "/export/tasks/batch-delete",
+    "/export/tasks/clear-completed",
+    "/export/tasks/clear-failed",
+    "/help/:ids/:id/helpful",
+    "/help/:ids/:id/like",
+    "/help/api",
+    "/help/articles",
+    "/help/articles/:id",
+    "/help/articles/:id/related",
+    "/help/articles/:id/view",
+    "/help/articles/latest",
+    "/help/articles/popular",
+    "/help/categories",
+    "/help/community",
+    "/help/docs",
+    "/help/faq",
+    "/help/faqs",
+    "/help/faqs/:id",
+    "/help/faqs/:id/view",
+    "/help/feedback",
+    "/help/sdk",
+    "/help/search",
+    "/help/tags/popular",
+    "/help/tutorials",
+    "/help/tutorials/:id",
+    "/help/tutorials/:id/view",
+    "/legal/icp",
+    "/legal/license",
+    "/legal/privacy",
+    "/legal/refund",
+    "/legal/security",
+    "/legal/sla",
+    "/legal/terms",
+    "/media/sessions",
+    "/media/sessions/:id",
+    "/media/sessions/answer",
+    "/media/sessions/ice-candidate",
+    "/media/stats",
+    "/messages/settings",
+    "/notifications/:id",
+    "/notifications/clear-read",
+    "/notifications/delete",
+    "/notifications/mark-all-read",
+    "/notifications/mark-read",
+    "/notifications/settings",
+    "/notifications/stats",
+    "/notifications/unread-count",
+    "/orders/:id",
+    "/orders/list",
+    "/payments/:id",
+    "/payments/dashboard",
+    "/payments/list",
+    "/payments/query",
+    "/payments/refund",
+    "/payments/webhook",
+    "/permissions/data-scope",
+    "/permissions/field-permission",
+    "/permissions/list",
+    "/permissions/roles",
+    "/plans/:id/edit",
+    "/plans/create",
+    "/plans/list",
+    "/profile/payment-methods",
+    "/profile/preferences",
+    "/referral/records",
+    "/reset-password/:token",
+    "/settings/api-keys",
+    "/settings/profile",
+    "/settings/security",
+    "/snapshots",
+    "/snapshots/:id",
+    "/snapshots/:id/restore",
+    "/snapshots/device/:id",
+    "/support/ticket/create",
+    "/tickets/:id",
+    "/tickets/:id/close",
+    "/tickets/:id/reopen",
+    "/tickets/:id/replies",
+    "/tickets/attachments/:id",
+    "/tickets/attachments/upload",
+    "/tickets/list",
+    "/tickets/stats",
+    "/users/:id",
+    "/users/:id/balance",
+    "/users/:id/preferences",
+    "/users/balance",
+    "/users/change-password",
+    "/users/create",
+    "/users/list",
+    "/users/me",
+    "/users/profile",
+    "/users/recharge"
+  ],
+  "calls": [
+    {
+      "file": "src/hooks/useActivityCenter.tsx",
+      "method": "GET",
+      "path": "/activities/:id",
+      "line": 68
+    },
+    {
+      "file": "src/hooks/useActivityDetail.tsx",
+      "method": "GET",
+      "path": "/activities/coupons",
+      "line": 124
+    },
+    {
+      "file": "src/hooks/useActivityCenter.tsx",
+      "method": "GET",
+      "path": "/activities/coupons",
+      "line": 77
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/analytics/reports",
+      "line": 59
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/analytics/revenue",
+      "line": 58
+    },
+    {
+      "file": "src/services/activity.ts",
+      "method": "GET",
+      "path": "/api/activities",
+      "line": 102
+    },
+    {
+      "file": "src/services/activity.ts",
+      "method": "GET",
+      "path": "/api/activities/:id",
+      "line": 112
+    },
+    {
+      "file": "src/services/activity.ts",
+      "method": "GET",
+      "path": "/api/activities/:id/claim-coupon",
+      "line": 189
+    },
+    {
+      "file": "src/services/activity.ts",
+      "method": "GET",
+      "path": "/api/activities/:id/participate",
+      "line": 125
+    },
+    {
+      "file": "src/services/activity.ts",
+      "method": "GET",
+      "path": "/api/activities/my/participations",
+      "line": 143
+    },
+    {
+      "file": "src/services/activity.ts",
+      "method": "GET",
+      "path": "/api/activities/stats",
+      "line": 205
+    },
+    {
+      "file": "src/services/activity.ts",
+      "method": "GET",
+      "path": "/api/coupons/:id/use",
+      "line": 176
+    },
+    {
+      "file": "src/services/activity.ts",
+      "method": "GET",
+      "path": "/api/coupons/my",
+      "line": 162
+    },
+    {
+      "file": "src/components/ErrorBoundary.tsx",
+      "method": "GET",
+      "path": "/api/logs/errors",
+      "line": 66
+    },
+    {
+      "file": "src/components/ErrorBoundary.tsx",
+      "method": "GET",
+      "path": "/api/logs/errors",
+      "line": 66
+    },
+    {
+      "file": "src/services/referral.ts",
+      "method": "GET",
+      "path": "/api/referral/config",
+      "line": 93
+    },
+    {
+      "file": "src/services/referral.ts",
+      "method": "GET",
+      "path": "/api/referral/earnings",
+      "line": 224
+    },
+    {
+      "file": "src/services/referral.ts",
+      "method": "GET",
+      "path": "/api/referral/generate-code",
+      "line": 106
+    },
+    {
+      "file": "src/services/referral.ts",
+      "method": "GET",
+      "path": "/api/referral/generate-poster",
+      "line": 198
+    },
+    {
+      "file": "src/services/referral.ts",
+      "method": "GET",
+      "path": "/api/referral/records",
+      "line": 135
+    },
+    {
+      "file": "src/services/referral.ts",
+      "method": "GET",
+      "path": "/api/referral/share",
+      "line": 240
+    },
+    {
+      "file": "src/services/referral.ts",
+      "method": "GET",
+      "path": "/api/referral/stats",
+      "line": 115
+    },
+    {
+      "file": "src/services/referral.ts",
+      "method": "GET",
+      "path": "/api/referral/withdraw",
+      "line": 174
+    },
+    {
+      "file": "src/services/referral.ts",
+      "method": "GET",
+      "path": "/api/referral/withdrawals",
+      "line": 154
+    },
+    {
+      "file": "src/services/referral.ts",
+      "method": "GET",
+      "path": "/api/referral/withdrawals/:id/cancel",
+      "line": 187
+    },
+    {
+      "file": "src/hooks/useWebRTC.tsx",
+      "method": "GET",
+      "path": "/api/webrtc/:id/candidate",
+      "line": 309
+    },
+    {
+      "file": "src/hooks/useWebRTC.tsx",
+      "method": "GET",
+      "path": "/api/webrtc/:id/offer",
+      "line": 287
+    },
+    {
+      "file": "src/hooks/useWebRTC.tsx",
+      "method": "GET",
+      "path": "/api/webrtc/:id/offer",
+      "line": 287
+    },
+    {
+      "file": "src/services/app.ts",
+      "method": "GET",
+      "path": "/apps/:id",
+      "line": 11
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/apps/:id",
+      "line": 29
+    },
+    {
+      "file": "src/services/app.ts",
+      "method": "POST",
+      "path": "/apps/install",
+      "line": 16
+    },
+    {
+      "file": "src/services/app.ts",
+      "method": "GET",
+      "path": "/apps/install",
+      "line": 16
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/apps/list",
+      "line": 28
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/apps/upload",
+      "line": 30
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/audit/logs",
+      "line": 70
+    },
+    {
+      "file": "src/services/twoFactor.ts",
+      "method": "POST",
+      "path": "/auth/:idfa/disable",
+      "line": 25
+    },
+    {
+      "file": "src/services/twoFactor.ts",
+      "method": "GET",
+      "path": "/auth/:idfa/disable",
+      "line": 25
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "POST",
+      "path": "/auth/:idfa/disable",
+      "line": 117
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/:idfa/disable",
+      "line": 117
+    },
+    {
+      "file": "src/services/twoFactor.ts",
+      "method": "POST",
+      "path": "/auth/:idfa/enable",
+      "line": 20
+    },
+    {
+      "file": "src/services/twoFactor.ts",
+      "method": "GET",
+      "path": "/auth/:idfa/enable",
+      "line": 20
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/:idfa/enable",
+      "line": 95
+    },
+    {
+      "file": "src/services/twoFactor.ts",
+      "method": "GET",
+      "path": "/auth/:idfa/generate",
+      "line": 15
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/:idfa/status",
+      "line": 85
+    },
+    {
+      "file": "src/services/twoFactor.ts",
+      "method": "GET",
+      "path": "/auth/:idfa/verify",
+      "line": 36
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "POST",
+      "path": "/auth/:idfa/verify",
+      "line": 106
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/:idfa/verify",
+      "line": 106
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/captcha",
+      "line": 6
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "POST",
+      "path": "/auth/change-password",
+      "line": 74
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/change-password",
+      "line": 74
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "POST",
+      "path": "/auth/forgot-password",
+      "line": 41
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/forgot-password",
+      "line": 41
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/login",
+      "line": 16
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/login-history",
+      "line": 130
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/login-history",
+      "line": 130
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "POST",
+      "path": "/auth/logout",
+      "line": 26
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/logout",
+      "line": 26
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/me",
+      "line": 21
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/register",
+      "line": 11
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "POST",
+      "path": "/auth/reset-password",
+      "line": 60
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/reset-password",
+      "line": 60
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/sessions",
+      "line": 137
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/sessions",
+      "line": 137
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "DELETE",
+      "path": "/auth/sessions/:id",
+      "line": 144
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/sessions/:id",
+      "line": 144
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "DELETE",
+      "path": "/auth/sessions/all",
+      "line": 151
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/sessions/all",
+      "line": 151
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/verify-reset-token/:id",
+      "line": 48
+    },
+    {
+      "file": "src/services/auth.ts",
+      "method": "GET",
+      "path": "/auth/verify-reset-token/:id",
+      "line": 48
+    },
+    {
+      "file": "src/hooks/useBillList.tsx",
+      "method": "GET",
+      "path": "/billing/:id",
+      "line": 95
+    },
+    {
+      "file": "src/components/Dashboard/CoreMetricsCards.tsx",
+      "method": "GET",
+      "path": "/billing/balance",
+      "line": 80
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/bills",
+      "line": 164
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/bills/:id",
+      "line": 175
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/bills/:id/cancel",
+      "line": 210
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/bills/:id/download",
+      "line": 231
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/bills/:id/refund",
+      "line": 220
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/invoices",
+      "line": 242
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/invoices",
+      "line": 256
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/billing/invoices",
+      "line": 54
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/invoices/:id/download",
+      "line": 267
+    },
+    {
+      "file": "src/services/order.ts",
+      "method": "GET",
+      "path": "/billing/orders",
+      "line": 13
+    },
+    {
+      "file": "src/services/order.ts",
+      "method": "GET",
+      "path": "/billing/orders/:id",
+      "line": 23
+    },
+    {
+      "file": "src/services/order.ts",
+      "method": "POST",
+      "path": "/billing/orders/:id/cancel",
+      "line": 28
+    },
+    {
+      "file": "src/services/order.ts",
+      "method": "GET",
+      "path": "/billing/orders/:id/cancel",
+      "line": 28
+    },
+    {
+      "file": "src/services/order.ts",
+      "method": "GET",
+      "path": "/billing/orders/my",
+      "line": 18
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/billing/overview",
+      "line": 52
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/pay",
+      "line": 199
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/payment-methods",
+      "line": 280
+    },
+    {
+      "file": "src/services/plan.ts",
+      "method": "GET",
+      "path": "/billing/plans",
+      "line": 6
+    },
+    {
+      "file": "src/services/plan.ts",
+      "method": "GET",
+      "path": "/billing/plans",
+      "line": 11
+    },
+    {
+      "file": "src/services/plan.ts",
+      "method": "GET",
+      "path": "/billing/plans/:id",
+      "line": 19
+    },
+    {
+      "file": "src/utils/couponConfig.tsx",
+      "method": "GET",
+      "path": "/billing/recharge",
+      "line": 94
+    },
+    {
+      "file": "src/services/billing.ts",
+      "method": "GET",
+      "path": "/billing/stats",
+      "line": 188
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/billing/transactions",
+      "line": 53
+    },
+    {
+      "file": "src/services/order.ts",
+      "method": "GET",
+      "path": "/billing/usage/my",
+      "line": 50
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/:id",
+      "line": 11
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/devices/:id",
+      "line": 16
+    },
+    {
+      "file": "src/pages/MyDevices.tsx",
+      "method": "GET",
+      "path": "/devices/:id",
+      "line": 46
+    },
+    {
+      "file": "src/hooks/useDeviceMonitor.tsx",
+      "method": "GET",
+      "path": "/devices/:id",
+      "line": 107
+    },
+    {
+      "file": "src/hooks/useDeviceSnapshots.tsx",
+      "method": "GET",
+      "path": "/devices/:id",
+      "line": 156
+    },
+    {
+      "file": "src/services/app.ts",
+      "method": "DELETE",
+      "path": "/devices/:id/apps/:id",
+      "line": 54
+    },
+    {
+      "file": "src/services/app.ts",
+      "method": "GET",
+      "path": "/devices/:id/apps/:id",
+      "line": 54
+    },
+    {
+      "file": "src/services/app.ts",
+      "method": "POST",
+      "path": "/devices/:id/apps/:id/update",
+      "line": 86
+    },
+    {
+      "file": "src/services/app.ts",
+      "method": "GET",
+      "path": "/devices/:id/apps/:id/update",
+      "line": 86
+    },
+    {
+      "file": "src/services/app.ts",
+      "method": "GET",
+      "path": "/devices/:id/apps/batch-uninstall",
+      "line": 77
+    },
+    {
+      "file": "src/services/app.ts",
+      "method": "GET",
+      "path": "/devices/:id/installed-apps",
+      "line": 47
+    },
+    {
+      "file": "src/hooks/useDeviceDetail.tsx",
+      "method": "GET",
+      "path": "/devices/:id/monitor",
+      "line": 80
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "POST",
+      "path": "/devices/:id/reboot",
+      "line": 26
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/:id/reboot",
+      "line": 26
+    },
+    {
+      "file": "src/hooks/useDeviceDetail.tsx",
+      "method": "GET",
+      "path": "/devices/:id/snapshots",
+      "line": 85
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "POST",
+      "path": "/devices/:id/start",
+      "line": 16
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/:id/start",
+      "line": 16
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/:id/stats",
+      "line": 36
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/:id/stats",
+      "line": 36
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "POST",
+      "path": "/devices/:id/stop",
+      "line": 21
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/:id/stop",
+      "line": 21
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/batch",
+      "line": 117
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/batch/install-app",
+      "line": 129
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/batch/restart",
+      "line": 110
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/batch/start",
+      "line": 96
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/batch/stop",
+      "line": 103
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/devices/create",
+      "line": 17
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/devices/list",
+      "line": 15
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/my",
+      "line": 6
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/my/stats",
+      "line": 31
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/my/stats",
+      "line": 31
+    },
+    {
+      "file": "src/services/device.ts",
+      "method": "GET",
+      "path": "/devices/saga/:id",
+      "line": 75
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/data-types",
+      "line": 179
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/estimate",
+      "line": 231
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/stats",
+      "line": 169
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/tasks",
+      "line": 105
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/tasks",
+      "line": 116
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/tasks/:id",
+      "line": 127
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/tasks/:id",
+      "line": 137
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/tasks/:id/cancel",
+      "line": 199
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/tasks/:id/download",
+      "line": 158
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/tasks/:id/retry",
+      "line": 189
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/tasks/batch-delete",
+      "line": 147
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/tasks/clear-completed",
+      "line": 209
+    },
+    {
+      "file": "src/services/export.ts",
+      "method": "GET",
+      "path": "/export/tasks/clear-failed",
+      "line": 219
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/:ids/:id/helpful",
+      "line": 265
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/:ids/:id/like",
+      "line": 275
+    },
+    {
+      "file": "src/components/Home/Footer.tsx",
+      "method": "GET",
+      "path": "/help/api",
+      "line": 39
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/articles",
+      "line": 191
+    },
+    {
+      "file": "src/components/LiveChatWidget.tsx",
+      "method": "GET",
+      "path": "/help/articles",
+      "line": 55
+    },
+    {
+      "file": "src/utils/helpConfig.tsx",
+      "method": "GET",
+      "path": "/help/articles",
+      "line": 54
+    },
+    {
+      "file": "src/hooks/useHelpCenter.tsx",
+      "method": "GET",
+      "path": "/help/articles",
+      "line": 122
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/articles/:id",
+      "line": 202
+    },
+    {
+      "file": "src/hooks/useHelpCenter.tsx",
+      "method": "GET",
+      "path": "/help/articles/:id",
+      "line": 87
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/articles/:id/related",
+      "line": 336
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/articles/:id/view",
+      "line": 306
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/articles/latest",
+      "line": 357
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/articles/popular",
+      "line": 346
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/categories",
+      "line": 181
+    },
+    {
+      "file": "src/components/Home/Footer.tsx",
+      "method": "GET",
+      "path": "/help/community",
+      "line": 42
+    },
+    {
+      "file": "src/components/Help/HelpQuickLinks.tsx",
+      "method": "GET",
+      "path": "/help/docs",
+      "line": 38
+    },
+    {
+      "file": "src/components/Help/HelpQuickLinks.tsx",
+      "method": "GET",
+      "path": "/help/faq",
+      "line": 45
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/faqs",
+      "line": 223
+    },
+    {
+      "file": "src/components/LiveChatWidget.tsx",
+      "method": "GET",
+      "path": "/help/faqs",
+      "line": 45
+    },
+    {
+      "file": "src/utils/helpConfig.tsx",
+      "method": "GET",
+      "path": "/help/faqs",
+      "line": 61
+    },
+    {
+      "file": "src/hooks/useHelpCenter.tsx",
+      "method": "GET",
+      "path": "/help/faqs",
+      "line": 115
+    },
+    {
+      "file": "src/pages/Help/TutorialList.tsx",
+      "method": "GET",
+      "path": "/help/faqs",
+      "line": 326
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/faqs/:id",
+      "line": 234
+    },
+    {
+      "file": "src/hooks/useHelpCenter.tsx",
+      "method": "GET",
+      "path": "/help/faqs/:id",
+      "line": 94
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/faqs/:id/view",
+      "line": 316
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/feedback",
+      "line": 285
+    },
+    {
+      "file": "src/components/Home/Footer.tsx",
+      "method": "GET",
+      "path": "/help/sdk",
+      "line": 41
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/search",
+      "line": 212
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/tags/popular",
+      "line": 296
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/tutorials",
+      "line": 244
+    },
+    {
+      "file": "src/components/LiveChatWidget.tsx",
+      "method": "GET",
+      "path": "/help/tutorials",
+      "line": 65
+    },
+    {
+      "file": "src/utils/helpConfig.tsx",
+      "method": "GET",
+      "path": "/help/tutorials",
+      "line": 68
+    },
+    {
+      "file": "src/pages/Help/TutorialDetail.tsx",
+      "method": "GET",
+      "path": "/help/tutorials",
+      "line": 130
+    },
+    {
+      "file": "src/pages/Help/TutorialDetail.tsx",
+      "method": "GET",
+      "path": "/help/tutorials",
+      "line": 368
+    },
+    {
+      "file": "src/components/Help/HelpQuickLinks.tsx",
+      "method": "GET",
+      "path": "/help/tutorials",
+      "line": 52
+    },
+    {
+      "file": "src/components/Home/Footer.tsx",
+      "method": "GET",
+      "path": "/help/tutorials",
+      "line": 40
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/tutorials/:id",
+      "line": 255
+    },
+    {
+      "file": "src/pages/Help/TutorialList.tsx",
+      "method": "GET",
+      "path": "/help/tutorials/:id",
+      "line": 97
+    },
+    {
+      "file": "src/services/help.ts",
+      "method": "GET",
+      "path": "/help/tutorials/:id/view",
+      "line": 326
+    },
+    {
+      "file": "src/components/Home/Footer.tsx",
+      "method": "GET",
+      "path": "/legal/icp",
+      "line": 136
+    },
+    {
+      "file": "src/components/Home/Footer.tsx",
+      "method": "GET",
+      "path": "/legal/license",
+      "line": 142
+    },
+    {
+      "file": "src/router/index.tsx",
+      "method": "GET",
+      "path": "/legal/privacy",
+      "line": 307
+    },
+    {
+      "file": "src/components/Home/Footer.tsx",
+      "method": "GET",
+      "path": "/legal/privacy",
+      "line": 58
+    },
+    {
+      "file": "src/router/index.tsx",
+      "method": "GET",
+      "path": "/legal/refund",
+      "line": 315
+    },
+    {
+      "file": "src/router/index.tsx",
+      "method": "GET",
+      "path": "/legal/security",
+      "line": 319
+    },
+    {
+      "file": "src/components/Home/Footer.tsx",
+      "method": "GET",
+      "path": "/legal/security",
+      "line": 60
+    },
+    {
+      "file": "src/router/index.tsx",
+      "method": "GET",
+      "path": "/legal/sla",
+      "line": 311
+    },
+    {
+      "file": "src/components/Home/Footer.tsx",
+      "method": "GET",
+      "path": "/legal/sla",
+      "line": 59
+    },
+    {
+      "file": "src/router/index.tsx",
+      "method": "GET",
+      "path": "/legal/terms",
+      "line": 303
+    },
+    {
+      "file": "src/components/Home/Footer.tsx",
+      "method": "GET",
+      "path": "/legal/terms",
+      "line": 57
+    },
+    {
+      "file": "src/services/media.ts",
+      "method": "GET",
+      "path": "/media/sessions",
+      "line": 31
+    },
+    {
+      "file": "src/services/media.ts",
+      "method": "DELETE",
+      "path": "/media/sessions/:id",
+      "line": 51
+    },
+    {
+      "file": "src/services/media.ts",
+      "method": "GET",
+      "path": "/media/sessions/:id",
+      "line": 46
+    },
+    {
+      "file": "src/services/media.ts",
+      "method": "GET",
+      "path": "/media/sessions/:id",
+      "line": 51
+    },
+    {
+      "file": "src/services/media.ts",
+      "method": "POST",
+      "path": "/media/sessions/answer",
+      "line": 36
+    },
+    {
+      "file": "src/services/media.ts",
+      "method": "GET",
+      "path": "/media/sessions/answer",
+      "line": 36
+    },
+    {
+      "file": "src/services/media.ts",
+      "method": "POST",
+      "path": "/media/sessions/ice-candidate",
+      "line": 41
+    },
+    {
+      "file": "src/services/media.ts",
+      "method": "GET",
+      "path": "/media/sessions/ice-candidate",
+      "line": 41
+    },
+    {
+      "file": "src/services/media.ts",
+      "method": "GET",
+      "path": "/media/stats",
+      "line": 56
+    },
+    {
+      "file": "src/services/media.ts",
+      "method": "GET",
+      "path": "/media/stats",
+      "line": 56
+    },
+    {
+      "file": "src/pages/Messages/MessageList.tsx",
+      "method": "GET",
+      "path": "/messages/settings",
+      "line": 58
+    },
+    {
+      "file": "src/services/notification.ts",
+      "method": "GET",
+      "path": "/notifications/:id",
+      "line": 124
+    },
+    {
+      "file": "src/services/notification.ts",
+      "method": "GET",
+      "path": "/notifications/clear-read",
+      "line": 176
+    },
+    {
+      "file": "src/services/notification.ts",
+      "method": "GET",
+      "path": "/notifications/delete",
+      "line": 165
+    },
+    {
+      "file": "src/services/notification.ts",
+      "method": "GET",
+      "path": "/notifications/mark-all-read",
+      "line": 155
+    },
+    {
+      "file": "src/services/notification.ts",
+      "method": "GET",
+      "path": "/notifications/mark-read",
+      "line": 144
+    },
+    {
+      "file": "src/services/notification.ts",
+      "method": "GET",
+      "path": "/notifications/settings",
+      "line": 186
+    },
+    {
+      "file": "src/services/notification.ts",
+      "method": "GET",
+      "path": "/notifications/settings",
+      "line": 198
+    },
+    {
+      "file": "src/services/notification.ts",
+      "method": "GET",
+      "path": "/notifications/stats",
+      "line": 209
+    },
+    {
+      "file": "src/services/notification.ts",
+      "method": "GET",
+      "path": "/notifications/unread-count",
+      "line": 134
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/orders/:id",
+      "line": 35
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/orders/list",
+      "line": 34
+    },
+    {
+      "file": "src/services/order.ts",
+      "method": "GET",
+      "path": "/payments/:id",
+      "line": 43
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/payments/dashboard",
+      "line": 45
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/payments/list",
+      "line": 46
+    },
+    {
+      "file": "src/services/order.ts",
+      "method": "GET",
+      "path": "/payments/query",
+      "line": 38
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/payments/refund",
+      "line": 47
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/payments/webhook",
+      "line": 48
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/permissions/data-scope",
+      "line": 65
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/permissions/field-permission",
+      "line": 66
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/permissions/list",
+      "line": 64
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/permissions/roles",
+      "line": 63
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/plans/:id/edit",
+      "line": 41
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/plans/create",
+      "line": 40
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/plans/list",
+      "line": 39
+    },
+    {
+      "file": "src/pages/Profile.tsx",
+      "method": "GET",
+      "path": "/profile/payment-methods",
+      "line": 190
+    },
+    {
+      "file": "src/pages/Profile.tsx",
+      "method": "GET",
+      "path": "/profile/preferences",
+      "line": 181
+    },
+    {
+      "file": "src/hooks/useReferralCenter.tsx",
+      "method": "GET",
+      "path": "/referral/records",
+      "line": 134
+    },
+    {
+      "file": "src/router/index.tsx",
+      "method": "GET",
+      "path": "/reset-password/:token",
+      "line": 112
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/settings/api-keys",
+      "line": 81
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/settings/profile",
+      "line": 79
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/settings/security",
+      "line": 80
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "GET",
+      "path": "/snapshots",
+      "line": 30
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "DELETE",
+      "path": "/snapshots/:id",
+      "line": 20
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "GET",
+      "path": "/snapshots/:id",
+      "line": 25
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "GET",
+      "path": "/snapshots/:id",
+      "line": 20
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "GET",
+      "path": "/snapshots/:id",
+      "line": 25
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "POST",
+      "path": "/snapshots/:id/restore",
+      "line": 15
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "GET",
+      "path": "/snapshots/:id/restore",
+      "line": 15
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "GET",
+      "path": "/snapshots/device/:id",
+      "line": 5
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "POST",
+      "path": "/snapshots/device/:id",
+      "line": 10
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "GET",
+      "path": "/snapshots/device/:id",
+      "line": 5
+    },
+    {
+      "file": "src/services/snapshot.ts",
+      "method": "GET",
+      "path": "/snapshots/device/:id",
+      "line": 10
+    },
+    {
+      "file": "src/components/Help/HelpQuickLinks.tsx",
+      "method": "GET",
+      "path": "/support/ticket/create",
+      "line": 59
+    },
+    {
+      "file": "src/services/ticket.ts",
+      "method": "GET",
+      "path": "/tickets/:id",
+      "line": 123
+    },
+    {
+      "file": "src/services/ticket.ts",
+      "method": "GET",
+      "path": "/tickets/:id",
+      "line": 144
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/tickets/:id",
+      "line": 75
+    },
+    {
+      "file": "src/hooks/useTicketList.tsx",
+      "method": "GET",
+      "path": "/tickets/:id",
+      "line": 147
+    },
+    {
+      "file": "src/services/ticket.ts",
+      "method": "GET",
+      "path": "/tickets/:id/close",
+      "line": 155
+    },
+    {
+      "file": "src/services/ticket.ts",
+      "method": "GET",
+      "path": "/tickets/:id/reopen",
+      "line": 165
+    },
+    {
+      "file": "src/services/ticket.ts",
+      "method": "GET",
+      "path": "/tickets/:id/replies",
+      "line": 175
+    },
+    {
+      "file": "src/services/ticket.ts",
+      "method": "GET",
+      "path": "/tickets/:id/replies",
+      "line": 185
+    },
+    {
+      "file": "src/services/ticket.ts",
+      "method": "GET",
+      "path": "/tickets/attachments/:id",
+      "line": 213
+    },
+    {
+      "file": "src/services/ticket.ts",
+      "method": "GET",
+      "path": "/tickets/attachments/upload",
+      "line": 199
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/tickets/list",
+      "line": 74
+    },
+    {
+      "file": "src/services/ticket.ts",
+      "method": "GET",
+      "path": "/tickets/stats",
+      "line": 232
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/users/:id",
+      "line": 22
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/users/:id/balance",
+      "line": 24
+    },
+    {
+      "file": "src/services/user.ts",
+      "method": "PATCH",
+      "path": "/users/:id/preferences",
+      "line": 38
+    },
+    {
+      "file": "src/services/user.ts",
+      "method": "GET",
+      "path": "/users/:id/preferences",
+      "line": 38
+    },
+    {
+      "file": "src/services/user.ts",
+      "method": "GET",
+      "path": "/users/balance",
+      "line": 21
+    },
+    {
+      "file": "src/services/user.ts",
+      "method": "POST",
+      "path": "/users/change-password",
+      "line": 16
+    },
+    {
+      "file": "src/services/user.ts",
+      "method": "GET",
+      "path": "/users/change-password",
+      "line": 16
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/users/create",
+      "line": 23
+    },
+    {
+      "file": "src/constants/routes.ts",
+      "method": "GET",
+      "path": "/users/list",
+      "line": 21
+    },
+    {
+      "file": "src/services/user.ts",
+      "method": "GET",
+      "path": "/users/me",
+      "line": 6
+    },
+    {
+      "file": "src/services/user.ts",
+      "method": "GET",
+      "path": "/users/profile",
+      "line": 11
+    },
+    {
+      "file": "src/services/user.ts",
+      "method": "POST",
+      "path": "/users/recharge",
+      "line": 26
+    },
+    {
+      "file": "src/services/user.ts",
+      "method": "GET",
+      "path": "/users/recharge",
+      "line": 26
+    }
+  ]
+}
