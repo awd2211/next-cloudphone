@@ -87,20 +87,7 @@ export const DeviceGroupSchema = z.object({
 
 export type DeviceGroup = z.infer<typeof DeviceGroupSchema>;
 
-/**
- * 应用Schema
- */
-export const ApplicationSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  packageName: z.string(),
-  version: z.string(),
-  reviewStatus: z.enum(['pending', 'approved', 'rejected']).optional(),
-  category: z.string().optional(),
-  createdAt: z.string().datetime().optional(),
-});
-
-export type Application = z.infer<typeof ApplicationSchema>;
+// ApplicationSchema moved to line 1062 (more complete definition)
 
 /**
  * 通知Schema
@@ -133,47 +120,9 @@ export const ApiKeySchema = z.object({
 
 export type ApiKey = z.infer<typeof ApiKeySchema>;
 
-/**
- * 应用审核记录Schema
- */
-export const AppReviewRecordSchema = z.object({
-  id: z.string(),
-  applicationId: z.string(),
-  application: ApplicationSchema.optional(),
-  action: z.enum(['submit', 'approve', 'reject', 'request_changes']),
-  status: z.enum(['pending', 'approved', 'rejected', 'changes_requested']),
-  comment: z.string().optional(),
-  reviewedBy: z.string().optional(),
-  reviewer: UserSchema.optional(),
-  reviewerName: z.string().optional(),
-  createdAt: z.string().datetime(),
-});
+// AppReviewRecordSchema moved to line 1091 (more complete definition)
 
-export type AppReviewRecord = z.infer<typeof AppReviewRecordSchema>;
-
-/**
- * 支付详情/退款Schema
- */
-export const PaymentDetailSchema = z.object({
-  id: z.string(),
-  paymentNo: z.string(),
-  orderId: z.string(),
-  userId: z.string(),
-  amount: z.number(),
-  currency: z.string(),
-  method: z.string(),
-  status: z.string(),
-  transactionId: z.string().optional(),
-  customerId: z.string().optional(),
-  paymentUrl: z.string().optional(),
-  clientSecret: z.string().optional(),
-  metadata: z.any().optional(),
-  paidAt: z.string().optional(),
-  createdAt: z.string(),
-  updatedAt: z.string().optional(),
-});
-
-export type PaymentDetail = z.infer<typeof PaymentDetailSchema>;
+// PaymentDetailSchema moved to line 1170 (more complete definition)
 
 // 兼容旧名称
 export const RefundSchema = PaymentDetailSchema;
@@ -597,24 +546,7 @@ export const OperationTypesResponseSchema = z.object({
   data: z.array(OperationTypeOptionSchema),
 });
 
-/**
- * 使用记录Schema
- */
-export const UsageRecordSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  deviceId: z.string(),
-  device: z.any().optional(),
-  startTime: z.string(),
-  endTime: z.string().optional(),
-  duration: z.number().nonnegative(),
-  cpuUsage: z.number().nonnegative().optional(),
-  memoryUsage: z.number().nonnegative().optional(),
-  storageUsage: z.number().nonnegative().optional(),
-  networkUsage: z.number().nonnegative().optional(),
-  cost: z.union([z.string(), z.number()]),
-  createdAt: z.string(),
-});
+// UsageRecordSchema moved to line 1432 (more complete definition)
 
 /**
  * 管理员使用记录响应Schema
@@ -804,21 +736,7 @@ export const SchedulingTaskSchema = z.object({
 
 // ===== Report Analytics Schemas =====
 
-/**
- * Revenue statistics schema for analytics
- */
-export const RevenueStatsSchema = z.object({
-  totalRevenue: z.number().nonnegative(),
-  totalOrders: z.number().int().nonnegative(),
-  avgOrderValue: z.number().nonnegative(),
-  dailyStats: z.array(
-    z.object({
-      date: z.string(),
-      revenue: z.number().nonnegative(),
-      orders: z.number().int().nonnegative(),
-    })
-  ),
-});
+// RevenueStatsSchema moved to line 1421 (more complete definition)
 
 /**
  * Device statistics schema for analytics
@@ -1085,6 +1003,8 @@ export const ApplicationSchema = z.object({
   updatedAt: z.string(),
 });
 
+export type Application = z.infer<typeof ApplicationSchema>;
+
 /**
  * App Review Record Schema
  */
@@ -1100,6 +1020,8 @@ export const AppReviewRecordSchema = z.object({
   reviewerName: z.string().optional(),
   createdAt: z.string(),
 });
+
+export type AppReviewRecord = z.infer<typeof AppReviewRecordSchema>;
 
 /**
  * App Review History Response Schema
@@ -1186,6 +1108,8 @@ export const PaymentDetailSchema = z.object({
   updatedAt: z.string(),
   order: z.any().optional(),
 });
+
+export type PaymentDetail = z.infer<typeof PaymentDetailSchema>;
 
 /**
  * Exception Payments Response Schema
@@ -1477,6 +1401,8 @@ export const RevenueStatsSchema = z.object({
   planStats: z.array(PlanStatsSchema),
 });
 
+export type RevenueStats = z.infer<typeof RevenueStatsSchema>;
+
 /**
  * Usage Record Schema
  */
@@ -1495,6 +1421,8 @@ export const UsageRecordSchema = z.object({
   cost: z.union([z.string(), z.number()]), // PostgreSQL numeric serializes as string
   createdAt: z.string(),
 });
+
+export type UsageRecord = z.infer<typeof UsageRecordSchema>;
 
 /**
  * Usage Records Response Schema
