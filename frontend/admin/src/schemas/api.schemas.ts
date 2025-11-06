@@ -331,10 +331,7 @@ export const NotificationsResponseSchema = z.object({
  */
 export const ApiKeysResponseSchema = SuccessResponseSchema(z.array(ApiKeySchema));
 
-/**
- * 退款列表响应
- */
-export const RefundsArraySchema = z.array(RefundSchema);
+// RefundsArraySchema moved after RefundSchema definition
 
 /**
  * 审计日志响应
@@ -1106,6 +1103,11 @@ export type PaymentDetail = z.infer<typeof PaymentDetailSchema>;
 // 兼容旧名称
 export const RefundSchema = PaymentDetailSchema;
 export type Refund = PaymentDetail;
+
+/**
+ * 退款列表响应
+ */
+export const RefundsArraySchema = z.array(RefundSchema);
 
 /**
  * Exception Payments Response Schema
