@@ -1,0 +1,37 @@
+# Elasticsearch 配置文件
+# 云手机平台日志存储
+
+cluster.name: cloudphone-logs
+node.name: es-node-1
+
+# 网络配置
+network.host: 0.0.0.0
+http.port: 9200
+transport.port: 9300
+
+# 发现配置 (单节点)
+discovery.type: single-node
+
+# 路径配置
+path:
+  data: /usr/share/elasticsearch/data
+  logs: /usr/share/elasticsearch/logs
+
+# 内存锁定
+bootstrap.memory_lock: true
+
+# 性能优化
+indices.memory.index_buffer_size: 30%
+indices.queries.cache.size: 10%
+
+# 索引生命周期管理
+indices.lifecycle.poll_interval: 10m
+
+# 安全配置 (开发环境)
+xpack.security.enabled: false
+xpack.monitoring.collection.enabled: true
+
+# CORS 配置 (允许 Kibana 访问)
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+http.cors.allow-headers: X-Requested-With,Content-Type,Content-Length,Authorization

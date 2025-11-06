@@ -45,45 +45,57 @@ scrape_configs:
         role: 'gateway'
 
   # ==========================================
-  # NestJS 微服务（如果暴露了指标）
+  # NestJS 微服务（PM2 运行在宿主机）
   # ==========================================
   - job_name: 'nestjs-services'
     static_configs:
-    
+
     # API Gateway
-    - targets: ['api-gateway:30000']
+    - targets: ['10.27.225.3:30000']
       labels:
         service: 'api-gateway'
         app: 'nestjs'
-    
+
     # User Service
-    - targets: ['user-service:30001']
+    - targets: ['10.27.225.3:30001']
       labels:
         service: 'user-service'
         app: 'nestjs'
-    
+
     # Device Service
-    - targets: ['device-service:30002']
+    - targets: ['10.27.225.3:30002']
       labels:
         service: 'device-service'
         app: 'nestjs'
-    
+
     # App Service
-    - targets: ['app-service:30003']
+    - targets: ['10.27.225.3:30003']
       labels:
         service: 'app-service'
         app: 'nestjs'
-    
+
     # Billing Service
-    - targets: ['billing-service:30005']
+    - targets: ['10.27.225.3:30005']
       labels:
         service: 'billing-service'
         app: 'nestjs'
-    
+
     # Notification Service
-    - targets: ['notification-service:30006']
+    - targets: ['10.27.225.3:30006']
       labels:
         service: 'notification-service'
+        app: 'nestjs'
+
+    # Proxy Service
+    - targets: ['10.27.225.3:30007']
+      labels:
+        service: 'proxy-service'
+        app: 'nestjs'
+
+    # SMS Receive Service
+    - targets: ['10.27.225.3:30008']
+      labels:
+        service: 'sms-receive-service'
         app: 'nestjs'
 
   # ==========================================

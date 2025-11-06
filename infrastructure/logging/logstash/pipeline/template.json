@@ -1,0 +1,65 @@
+{
+  "index_patterns": ["cloudphone-logs-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "refresh_interval": "5s",
+      "index": {
+        "max_result_window": 50000,
+        "lifecycle": {
+          "name": "cloudphone-logs-policy",
+          "rollover_alias": "cloudphone-logs"
+        }
+      }
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "service": {
+          "type": "keyword",
+          "fields": {
+            "text": { "type": "text" }
+          }
+        },
+        "environment": { "type": "keyword" },
+        "log_level": { "type": "keyword" },
+        "log_level_num": { "type": "integer" },
+        "log_message": {
+          "type": "text",
+          "fields": {
+            "keyword": { "type": "keyword", "ignore_above": 256 }
+          }
+        },
+        "request_id": { "type": "keyword" },
+        "user_id": { "type": "keyword" },
+        "tenant_id": { "type": "keyword" },
+        "http_method": { "type": "keyword" },
+        "http_url": {
+          "type": "text",
+          "fields": {
+            "keyword": { "type": "keyword", "ignore_above": 512 }
+          }
+        },
+        "http_status": { "type": "integer" },
+        "http_duration": { "type": "float" },
+        "error_type": { "type": "keyword" },
+        "error_message": {
+          "type": "text",
+          "fields": {
+            "keyword": { "type": "keyword", "ignore_above": 512 }
+          }
+        },
+        "error_stack": { "type": "text" },
+        "log": { "type": "object", "enabled": true },
+        "geo": {
+          "properties": {
+            "location": { "type": "geo_point" },
+            "country_name": { "type": "keyword" },
+            "city_name": { "type": "keyword" }
+          }
+        }
+      }
+    }
+  }
+}

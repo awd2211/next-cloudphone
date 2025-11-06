@@ -1,0 +1,206 @@
+# ELK Stack 完整部署配置
+# Elasticsearch + Logstash + Kibana + Filebeat
+# 用于云手机平台的日志聚合
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # Elasticsearch - 日志存储和搜索引擎
+  # ==========================================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: cloudphone-elasticsearch
+
+    environment:
+      # 集群配置
+      - cluster.name=cloudphone-logs
+      - node.name=es-node-1
+      - discovery.type=single-node
+
+      # 内存配置 (根据服务器资源调整)
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+
+      # 安全配置 (开发环境简化配置)
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+
+      # 性能优化
+      - bootstrap.memory_lock=true
+      - indices.query.bool.max_clause_count=8192
+
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+    ports:
+      - "9200:9200"  # HTTP API
+      - "9300:9300"  # 节点通信
+
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+      - ./elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+
+    networks:
+      - elk-network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+    labels:
+      - "com.cloudphone.service=elasticsearch"
+      - "com.cloudphone.description=Log Storage and Search"
+
+  # ==========================================
+  # Logstash - 日志处理和转换
+  # ==========================================
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: cloudphone-logstash
+
+    environment:
+      - LS_JAVA_OPTS=-Xms1g -Xmx1g
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+
+    ports:
+      - "5044:5044"  # Beats 输入
+      - "9600:9600"  # Logstash API
+
+    volumes:
+      - ./logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+
+    networks:
+      - elk-network
+
+    restart: unless-stopped
+
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9600 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+    labels:
+      - "com.cloudphone.service=logstash"
+      - "com.cloudphone.description=Log Processing Pipeline"
+
+  # ==========================================
+  # Kibana - 可视化和分析界面
+  # ==========================================
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: cloudphone-kibana
+
+    environment:
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=
+      - xpack.security.enabled=false
+      - xpack.encryptedSavedObjects.encryptionKey=min-32-byte-long-strong-encryption-key-for-kibana
+
+    ports:
+      - "5601:5601"
+
+    volumes:
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - kibana-data:/usr/share/kibana/data
+
+    networks:
+      - elk-network
+
+    restart: unless-stopped
+
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+    labels:
+      - "com.cloudphone.service=kibana"
+      - "com.cloudphone.description=Log Visualization"
+
+  # ==========================================
+  # Filebeat - 日志收集器
+  # ==========================================
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: cloudphone-filebeat
+    user: root
+
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - KIBANA_HOST=http://kibana:5601
+      - LOGSTASH_HOSTS=logstash:5044
+
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+      # 挂载 PM2 日志目录 (开发环境)
+      - /home/eric/.pm2/logs:/pm2-logs:ro
+
+      # Filebeat 数据持久化
+      - filebeat-data:/usr/share/filebeat/data
+
+    networks:
+      - elk-network
+
+    restart: unless-stopped
+
+    depends_on:
+      logstash:
+        condition: service_healthy
+
+    command: filebeat -e -strict.perms=false
+
+    labels:
+      - "com.cloudphone.service=filebeat"
+      - "com.cloudphone.description=Log Collection Agent"
+
+# ==========================================
+# 网络配置
+# ==========================================
+networks:
+  elk-network:
+    driver: bridge
+    name: elk-network
+
+# ==========================================
+# 数据卷
+# ==========================================
+volumes:
+  elasticsearch-data:
+    driver: local
+    name: cloudphone-elasticsearch-data
+
+  kibana-data:
+    driver: local
+    name: cloudphone-kibana-data
+
+  filebeat-data:
+    driver: local
+    name: cloudphone-filebeat-data

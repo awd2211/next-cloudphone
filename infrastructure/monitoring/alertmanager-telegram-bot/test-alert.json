@@ -1,0 +1,48 @@
+{
+  "version": "4",
+  "groupKey": "{}/{severity=\"critical\"}:{alertname=\"ServiceDown\", service=\"user-service\"}",
+  "truncatedAlerts": 0,
+  "status": "firing",
+  "receiver": "telegram-critical",
+  "groupLabels": {
+    "alertname": "ServiceDown",
+    "severity": "critical",
+    "service": "user-service",
+    "cluster": "cloudphone-cluster"
+  },
+  "commonLabels": {
+    "alertname": "ServiceDown",
+    "severity": "critical",
+    "service": "user-service",
+    "cluster": "cloudphone-cluster",
+    "instance": "host.docker.internal:30001",
+    "job": "nestjs-services"
+  },
+  "commonAnnotations": {
+    "summary": "服务 user-service 已下线",
+    "description": "服务 user-service (host.docker.internal:30001) 已经下线超过 1 分钟，无法抓取指标数据。请检查服务状态。",
+    "value": "0"
+  },
+  "externalURL": "http://localhost:9093",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "ServiceDown",
+        "severity": "critical",
+        "service": "user-service",
+        "cluster": "cloudphone-cluster",
+        "instance": "host.docker.internal:30001",
+        "job": "nestjs-services"
+      },
+      "annotations": {
+        "summary": "服务 user-service 已下线",
+        "description": "服务 user-service (host.docker.internal:30001) 已经下线超过 1 分钟，无法抓取指标数据。请检查服务状态。",
+        "value": "0"
+      },
+      "startsAt": "2025-11-04T10:39:49.217Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus:9090/graph?g0.expr=up%7Bjob%3D%22nestjs-services%22%7D+%3D%3D+0&g0.tab=1"
+    }
+  ]
+}

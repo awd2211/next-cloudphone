@@ -1,0 +1,154 @@
+# Filebeat 配置文件
+# 收集所有微服务日志
+
+# ==========================================
+# Filebeat 输入配置
+# ==========================================
+filebeat.inputs:
+
+# ==========================================
+# PM2 日志收集 (开发环境)
+# ==========================================
+# PM2 管理的微服务日志（stdout/stderr）
+- type: log
+  enabled: true
+  paths:
+    - /pm2-logs/api-gateway-out-*.log
+    - /pm2-logs/api-gateway-error-*.log
+  fields:
+    service: api-gateway
+    log_type: application
+    environment: development
+  fields_under_root: true
+  multiline.type: pattern
+  multiline.pattern: '^\d{2}\|'
+  multiline.negate: true
+  multiline.match: after
+
+- type: log
+  enabled: true
+  paths:
+    - /pm2-logs/user-service-out-*.log
+    - /pm2-logs/user-service-error-*.log
+  fields:
+    service: user-service
+    log_type: application
+    environment: development
+  fields_under_root: true
+
+- type: log
+  enabled: true
+  paths:
+    - /pm2-logs/device-service-out-*.log
+    - /pm2-logs/device-service-error-*.log
+  fields:
+    service: device-service
+    log_type: application
+    environment: development
+  fields_under_root: true
+
+- type: log
+  enabled: true
+  paths:
+    - /pm2-logs/app-service-out-*.log
+    - /pm2-logs/app-service-error-*.log
+  fields:
+    service: app-service
+    log_type: application
+    environment: development
+  fields_under_root: true
+
+- type: log
+  enabled: true
+  paths:
+    - /pm2-logs/billing-service-out-*.log
+    - /pm2-logs/billing-service-error-*.log
+  fields:
+    service: billing-service
+    log_type: application
+    environment: development
+  fields_under_root: true
+
+- type: log
+  enabled: true
+  paths:
+    - /pm2-logs/notification-service-out-*.log
+    - /pm2-logs/notification-service-error-*.log
+  fields:
+    service: notification-service
+    log_type: application
+    environment: development
+  fields_under_root: true
+
+- type: log
+  enabled: true
+  paths:
+    - /pm2-logs/sms-receive-service-out-*.log
+    - /pm2-logs/sms-receive-service-error-*.log
+  fields:
+    service: sms-receive-service
+    log_type: application
+    environment: development
+  fields_under_root: true
+
+- type: log
+  enabled: true
+  paths:
+    - /pm2-logs/proxy-service-out-*.log
+    - /pm2-logs/proxy-service-error-*.log
+  fields:
+    service: proxy-service
+    log_type: application
+    environment: development
+  fields_under_root: true
+
+# ==========================================
+# Filebeat 处理器
+# ==========================================
+processors:
+  # 添加主机信息
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+
+  # 添加 Docker 容器信息
+  - add_docker_metadata: ~
+
+  # 删除不需要的字段
+  - drop_fields:
+      fields: ["agent.ephemeral_id", "agent.id", "agent.name", "agent.type", "agent.version", "ecs.version", "input.type", "log.offset"]
+      ignore_missing: true
+
+# ==========================================
+# 输出到 Logstash
+# ==========================================
+output.logstash:
+  hosts: ["logstash:5044"]
+  bulk_max_size: 1024
+  worker: 2
+  compression_level: 3
+  loadbalance: true
+
+# ==========================================
+# 日志和监控
+# ==========================================
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat.log
+  keepfiles: 7
+  permissions: 0644
+
+# 监控
+monitoring.enabled: false
+
+# ==========================================
+# 性能优化
+# ==========================================
+queue.mem:
+  events: 4096
+  flush.min_events: 512
+  flush.timeout: 1s
+
+# 文件扫描
+filebeat.registry.flush: 1s

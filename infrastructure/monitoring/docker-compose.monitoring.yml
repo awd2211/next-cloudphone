@@ -20,17 +20,15 @@ services:
       - "14268:14268"       # accept jaeger.thrift directly from clients
       - "14250:14250"       # accept model.proto
       - "9411:9411"         # Zipkin compatible endpoint
+      - "4317:4317"         # OTLP gRPC receiver (for OpenTelemetry)
+      - "4318:4318"         # OTLP HTTP receiver (for OpenTelemetry)
     
     environment:
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
       - COLLECTOR_OTLP_ENABLED=true
       - SPAN_STORAGE_TYPE=badger
-      - BADGER_EPHEMERAL=false
-      - BADGER_DIRECTORY_VALUE=/badger/data
-      - BADGER_DIRECTORY_KEY=/badger/key
-    
-    volumes:
-      - jaeger-data:/badger
+      - BADGER_EPHEMERAL=true
+      # 使用内存存储，重启后数据会丢失（开发环境可接受）
     
     networks:
       - cloudphone-network

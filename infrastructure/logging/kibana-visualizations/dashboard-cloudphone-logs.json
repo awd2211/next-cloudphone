@@ -1,0 +1,53 @@
+{
+  "attributes": {
+    "title": "Cloud Phone - 日志分析仪表板",
+    "hits": 0,
+    "description": "云手机平台日志分析总览 - 包含服务日志分布、错误趋势、HTTP 状态等关键指标",
+    "panelsJSON": "[{\"version\":\"8.11.0\",\"gridData\":{\"x\":0,\"y\":0,\"w\":48,\"h\":15,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{\"enhancements\":{}},\"panelRefName\":\"panel_1\"},{\"version\":\"8.11.0\",\"gridData\":{\"x\":0,\"y\":15,\"w\":24,\"h\":15,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{\"enhancements\":{}},\"panelRefName\":\"panel_2\"},{\"version\":\"8.11.0\",\"gridData\":{\"x\":24,\"y\":15,\"w\":24,\"h\":15,\"i\":\"3\"},\"panelIndex\":\"3\",\"embeddableConfig\":{\"enhancements\":{}},\"panelRefName\":\"panel_3\"},{\"version\":\"8.11.0\",\"gridData\":{\"x\":0,\"y\":30,\"w\":32,\"h\":15,\"i\":\"4\"},\"panelIndex\":\"4\",\"embeddableConfig\":{\"enhancements\":{}},\"panelRefName\":\"panel_4\"},{\"version\":\"8.11.0\",\"gridData\":{\"x\":32,\"y\":30,\"w\":16,\"h\":15,\"i\":\"5\"},\"panelIndex\":\"5\",\"embeddableConfig\":{\"enhancements\":{}},\"panelRefName\":\"panel_5\"},{\"version\":\"8.11.0\",\"gridData\":{\"x\":0,\"y\":45,\"w\":48,\"h\":20,\"i\":\"6\"},\"panelIndex\":\"6\",\"embeddableConfig\":{\"enhancements\":{}},\"panelRefName\":\"panel_6\"}]",
+    "optionsJSON": "{\"hidePanelTitles\":false,\"useMargins\":true}",
+    "version": 1,
+    "timeRestore": true,
+    "timeTo": "now",
+    "timeFrom": "now-24h",
+    "refreshInterval": {
+      "pause": false,
+      "value": 60000
+    },
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"language\":\"kuery\",\"query\":\"\"},\"filter\":[]}"
+    }
+  },
+  "references": [
+    {
+      "name": "panel_1",
+      "type": "visualization",
+      "id": "cloudphone-logs-timeline"
+    },
+    {
+      "name": "panel_2",
+      "type": "visualization",
+      "id": "cloudphone-service-distribution"
+    },
+    {
+      "name": "panel_3",
+      "type": "visualization",
+      "id": "cloudphone-log-level-distribution"
+    },
+    {
+      "name": "panel_4",
+      "type": "visualization",
+      "id": "cloudphone-error-logs-timeline"
+    },
+    {
+      "name": "panel_5",
+      "type": "visualization",
+      "id": "cloudphone-http-status-distribution"
+    },
+    {
+      "name": "panel_6",
+      "type": "visualization",
+      "id": "cloudphone-top-error-messages"
+    }
+  ],
+  "type": "dashboard"
+}

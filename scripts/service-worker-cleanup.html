@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Worker 清理工具 - 云手机平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-card h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-card.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+
+        .status-card.warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .status-card.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .service-worker-list {
+            background: white;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .service-worker-item {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 10px;
+        }
+
+        .service-worker-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .service-worker-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .sw-url {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .sw-state {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .sw-state.activated {
+            background: #28a745;
+            color: white;
+        }
+
+        .sw-state.installing {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .sw-state.waiting {
+            background: #17a2b8;
+            color: white;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.danger {
+            background: #dc3545;
+        }
+
+        button.danger:hover {
+            background: #c82333;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        button.success {
+            background: #28a745;
+        }
+
+        button.success:hover {
+            background: #218838;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .log-area {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+
+        .log-entry.info {
+            color: #63b3ed;
+        }
+
+        .log-entry.success {
+            color: #48bb78;
+        }
+
+        .log-entry.warning {
+            color: #f6ad55;
+        }
+
+        .log-entry.error {
+            color: #fc8181;
+        }
+
+        .icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .help-section {
+            background: #e7f3ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .help-section h3 {
+            color: #1976D2;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .help-section ul {
+            margin-left: 20px;
+            color: #555;
+        }
+
+        .help-section li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Service Worker 清理工具</h1>
+        <p class="subtitle">云手机平台 - 开发者工具</p>
+
+        <div id="status-card" class="status-card">
+            <h2><span class="icon">🔍</span> 检查中...</h2>
+            <p>正在扫描浏览器中的 Service Worker...</p>
+        </div>
+
+        <div id="service-worker-list"></div>
+
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="sw-count">-</div>
+                <div class="stat-label">Service Workers</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="cache-count">-</div>
+                <div class="stat-label">缓存存储</div>
+            </div>
+        </div>
+
+        <div>
+            <button onclick="checkServiceWorkers()">🔄 重新检查</button>
+            <button class="danger" onclick="unregisterAll()" id="unregister-btn">🗑️ 注销所有 Service Worker</button>
+            <button class="danger" onclick="clearAllCaches()" id="clear-cache-btn">🧹 清除所有缓存</button>
+            <button class="success" onclick="hardReload()">♻️ 硬刷新页面</button>
+        </div>
+
+        <div class="log-area" id="log-area"></div>
+
+        <div class="help-section">
+            <h3>💡 使用说明</h3>
+            <ul>
+                <li><strong>重新检查</strong>: 重新扫描当前域名下的 Service Worker 和缓存</li>
+                <li><strong>注销所有 Service Worker</strong>: 移除所有已注册的 Service Worker</li>
+                <li><strong>清除所有缓存</strong>: 删除所有 Cache Storage 中的数据</li>
+                <li><strong>硬刷新页面</strong>: 绕过缓存重新加载页面（等同于 Ctrl+Shift+R）</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const log = [];
+        const logArea = document.getElementById('log-area');
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}`;
+            log.push({ message: entry, type });
+
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = entry;
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function updateStatus(title, message, type = 'warning') {
+            const statusCard = document.getElementById('status-card');
+            statusCard.className = `status-card ${type}`;
+
+            const icons = {
+                success: '✅',
+                warning: '⚠️',
+                error: '❌',
+                info: 'ℹ️'
+            };
+
+            statusCard.innerHTML = `
+                <h2><span class="icon">${icons[type]}</span> ${title}</h2>
+                <p>${message}</p>
+            `;
+        }
+
+        async function checkServiceWorkers() {
+            addLog('开始检查 Service Worker...', 'info');
+
+            if (!('serviceWorker' in navigator)) {
+                updateStatus('不支持 Service Worker', '当前浏览器不支持 Service Worker 功能', 'error');
+                addLog('浏览器不支持 Service Worker', 'error');
+                return;
+            }
+
+            try {
+                // 检查 Service Worker 注册
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                const swCount = registrations.length;
+
+                document.getElementById('sw-count').textContent = swCount;
+                addLog(`发现 ${swCount} 个 Service Worker`, swCount > 0 ? 'warning' : 'success');
+
+                // 检查缓存
+                const cacheNames = await caches.keys();
+                const cacheCount = cacheNames.length;
+
+                document.getElementById('cache-count').textContent = cacheCount;
+                addLog(`发现 ${cacheCount} 个缓存存储`, cacheCount > 0 ? 'info' : 'success');
+
+                // 更新状态
+                if (swCount === 0 && cacheCount === 0) {
+                    updateStatus(
+                        '环境干净',
+                        '未发现任何 Service Worker 或缓存。如果仍然看到 workbox 错误，请尝试硬刷新页面。',
+                        'success'
+                    );
+                } else if (swCount > 0) {
+                    updateStatus(
+                        '发现 Service Worker',
+                        `检测到 ${swCount} 个 Service Worker 和 ${cacheCount} 个缓存。这可能是 workbox 错误的原因。`,
+                        'warning'
+                    );
+                    displayServiceWorkers(registrations);
+                } else {
+                    updateStatus(
+                        '发现缓存数据',
+                        `检测到 ${cacheCount} 个缓存存储，但没有活动的 Service Worker。`,
+                        'info'
+                    );
+                }
+
+                // 列出缓存名称
+                if (cacheCount > 0) {
+                    addLog(`缓存名称: ${cacheNames.join(', ')}`, 'info');
+                }
+
+            } catch (error) {
+                updateStatus('检查失败', `错误: ${error.message}`, 'error');
+                addLog(`检查失败: ${error.message}`, 'error');
+            }
+        }
+
+        function displayServiceWorkers(registrations) {
+            const listContainer = document.getElementById('service-worker-list');
+            listContainer.innerHTML = '<div class="service-worker-list"></div>';
+            const list = listContainer.querySelector('.service-worker-list');
+
+            registrations.forEach((registration, index) => {
+                const item = document.createElement('div');
+                item.className = 'service-worker-item';
+
+                let state = 'unknown';
+                let stateClass = '';
+
+                if (registration.active) {
+                    state = 'activated';
+                    stateClass = 'activated';
+                } else if (registration.installing) {
+                    state = 'installing';
+                    stateClass = 'installing';
+                } else if (registration.waiting) {
+                    state = 'waiting';
+                    stateClass = 'waiting';
+                }
+
+                const scope = registration.scope;
+                const scriptUrl = registration.active?.scriptURL || registration.installing?.scriptURL || registration.waiting?.scriptURL || 'Unknown';
+
+                item.innerHTML = `
+                    <div class="service-worker-info">
+                        <span><strong>Service Worker #${index + 1}</strong></span>
+                        <span class="sw-state ${stateClass}">${state}</span>
+                    </div>
+                    <div class="sw-url">Script: ${scriptUrl}</div>
+                    <div class="sw-url">Scope: ${scope}</div>
+                `;
+
+                list.appendChild(item);
+
+                addLog(`SW #${index + 1}: ${scriptUrl} [${state}]`, 'info');
+            });
+        }
+
+        async function unregisterAll() {
+            if (!confirm('确定要注销所有 Service Worker 吗？')) {
+                return;
+            }
+
+            addLog('开始注销所有 Service Worker...', 'warning');
+            const btn = document.getElementById('unregister-btn');
+            btn.disabled = true;
+
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+
+                if (registrations.length === 0) {
+                    addLog('没有需要注销的 Service Worker', 'info');
+                    updateStatus('无需操作', '没有发现需要注销的 Service Worker', 'success');
+                    return;
+                }
+
+                let successCount = 0;
+                for (let i = 0; i < registrations.length; i++) {
+                    const registration = registrations[i];
+                    const success = await registration.unregister();
+
+                    if (success) {
+                        successCount++;
+                        addLog(`成功注销 Service Worker #${i + 1}: ${registration.scope}`, 'success');
+                    } else {
+                        addLog(`注销失败 Service Worker #${i + 1}: ${registration.scope}`, 'error');
+                    }
+                }
+
+                updateStatus(
+                    '注销完成',
+                    `已成功注销 ${successCount}/${registrations.length} 个 Service Worker。建议现在硬刷新页面。`,
+                    'success'
+                );
+
+                // 重新检查
+                setTimeout(() => checkServiceWorkers(), 1000);
+
+            } catch (error) {
+                addLog(`注销失败: ${error.message}`, 'error');
+                updateStatus('操作失败', `错误: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function clearAllCaches() {
+            if (!confirm('确定要清除所有缓存吗？这将删除所有 Cache Storage 中的数据。')) {
+                return;
+            }
+
+            addLog('开始清除所有缓存...', 'warning');
+            const btn = document.getElementById('clear-cache-btn');
+            btn.disabled = true;
+
+            try {
+                const cacheNames = await caches.keys();
+
+                if (cacheNames.length === 0) {
+                    addLog('没有需要清除的缓存', 'info');
+                    updateStatus('无需操作', '没有发现需要清除的缓存', 'success');
+                    return;
+                }
+
+                let successCount = 0;
+                for (const name of cacheNames) {
+                    const success = await caches.delete(name);
+                    if (success) {
+                        successCount++;
+                        addLog(`成功清除缓存: ${name}`, 'success');
+                    } else {
+                        addLog(`清除缓存失败: ${name}`, 'error');
+                    }
+                }
+
+                updateStatus(
+                    '清理完成',
+                    `已成功清除 ${successCount}/${cacheNames.length} 个缓存。建议现在硬刷新页面。`,
+                    'success'
+                );
+
+                // 重新检查
+                setTimeout(() => checkServiceWorkers(), 1000);
+
+            } catch (error) {
+                addLog(`清除缓存失败: ${error.message}`, 'error');
+                updateStatus('操作失败', `错误: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function hardReload() {
+            addLog('执行硬刷新...', 'info');
+            window.location.reload(true);
+        }
+
+        // 页面加载时自动检查
+        window.addEventListener('load', () => {
+            addLog('Service Worker 清理工具已启动', 'success');
+            addLog('当前域名: ' + window.location.origin, 'info');
+            checkServiceWorkers();
+        });
+    </script>
+</body>
+</html>

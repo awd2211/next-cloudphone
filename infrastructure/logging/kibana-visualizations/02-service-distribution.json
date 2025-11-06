@@ -1,0 +1,20 @@
+{
+  "attributes": {
+    "title": "Cloud Phone - 服务日志分布",
+    "visState": "{\"title\":\"Cloud Phone - 服务日志分布\",\"type\":\"pie\",\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"params\":{},\"schema\":\"metric\"},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"params\":{\"field\":\"service\",\"orderBy\":\"1\",\"order\":\"desc\",\"size\":10,\"otherBucket\":true,\"otherBucketLabel\":\"其他\",\"missingBucket\":false,\"missingBucketLabel\":\"缺失\"},\"schema\":\"segment\"}],\"params\":{\"type\":\"pie\",\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"isDonut\":false,\"labels\":{\"show\":true,\"values\":true,\"last_level\":true,\"truncate\":100}}}",
+    "uiStateJSON": "{}",
+    "description": "各微服务的日志量占比分布",
+    "version": 1,
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"index\":\"634e176f-a6de-469c-926d-d1d80a34c397\",\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[]}"
+    }
+  },
+  "references": [
+    {
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern",
+      "id": "634e176f-a6de-469c-926d-d1d80a34c397"
+    }
+  ],
+  "type": "visualization"
+}

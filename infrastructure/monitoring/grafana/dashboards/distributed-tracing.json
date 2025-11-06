@@ -1,0 +1,29 @@
+{
+  "title": "Cloud Phone - Distributed Tracing",
+  "tags": [
+    "cloudphone",
+    "tracing",
+    "jaeger"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 16,
+  "version": 0,
+  "refresh": "1m",
+  "panels": [
+    {
+      "id": 1,
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "type": "text",
+      "title": "Jaeger UI Access",
+      "options": {
+        "content": "# Distributed Tracing with Jaeger\n\n## Access Jaeger UI\n**URL**: http://localhost:16686\n\n## Quick Links\n- [Jaeger UI](http://localhost:16686)\n- [Grafana Explore with Jaeger](http://localhost:3000/explore?orgId=1&left=%5B%22now-1h%22,%22now%22,%22Jaeger%22,%7B%7D%5D)\n\n## Services Available\n- api-gateway\n- user-service\n- device-service\n- app-service\n- billing-service\n- notification-service\n- proxy-service\n- sms-receive-service\n\n## Usage\n1. Select a service from the dropdown\n2. Click \"Find Traces\" to see recent traces\n3. Click on a trace to see the full span tree\n4. Analyze latency and error propagation\n",
+        "mode": "markdown"
+      }
+    }
+  ]
+}

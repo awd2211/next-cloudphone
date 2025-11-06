@@ -1,5 +1,5 @@
 # Prometheus 告警规则
-# 云手机平台监控告警
+# 云手机平台监控告警 - 已更新以匹配实际指标
 
 groups:
 
@@ -9,110 +9,225 @@ groups:
 - name: system_alerts
   interval: 30s
   rules:
-  
+
   # CPU 使用率过高
   - alert: HighCPUUsage
     expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
     for: 5m
     labels:
       severity: warning
+      category: system
     annotations:
       summary: "CPU 使用率过高 (instance {{ $labels.instance }})"
-      description: "CPU 使用率超过 80% 持续 5 分钟\n当前值: {{ $value }}%"
-  
+      description: "CPU 使用率超过 80% 持续 5 分钟\n当前值: {{ $value | humanize }}%"
+
   # 内存使用率过高
   - alert: HighMemoryUsage
     expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
     for: 5m
     labels:
       severity: warning
+      category: system
     annotations:
       summary: "内存使用率过高 (instance {{ $labels.instance }})"
-      description: "内存使用率超过 85%\n当前值: {{ $value }}%"
-  
+      description: "内存使用率超过 85%\n当前值: {{ $value | humanize }}%"
+
   # 磁盘空间不足
   - alert: DiskSpaceLow
-    expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 80
+    expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} / node_filesystem_size_bytes)) * 100 > 80
     for: 10m
     labels:
       severity: warning
+      category: system
     annotations:
-      summary: "磁盘空间不足 (instance {{ $labels.instance }})"
-      description: "磁盘使用率超过 80%\n当前值: {{ $value }}%"
+      summary: "磁盘空间不足 (instance {{ $labels.instance }}, mountpoint {{ $labels.mountpoint }})"
+      description: "磁盘使用率超过 80%\n当前值: {{ $value | humanize }}%"
 
-# ==========================================
-# Envoy 网关告警
-# ==========================================
-- name: envoy_alerts
-  interval: 30s
-  rules:
-  
-  # Envoy 下线
-  - alert: EnvoyDown
-    expr: up{job="envoy"} == 0
-    for: 1m
-    labels:
-      severity: critical
-    annotations:
-      summary: "Envoy 网关下线"
-      description: "Envoy 无法访问，所有流量将中断"
-  
-  # 5xx 错误率过高
-  - alert: High5xxErrorRate
-    expr: sum(rate(envoy_cluster_upstream_rq_xx{envoy_response_code_class="5"}[5m])) by (envoy_cluster_name) / sum(rate(envoy_cluster_upstream_rq_total[5m])) by (envoy_cluster_name) > 0.05
-    for: 2m
-    labels:
-      severity: warning
-    annotations:
-      summary: "5xx 错误率过高 (cluster {{ $labels.envoy_cluster_name }})"
-      description: "5xx 错误率超过 5%\n当前值: {{ $value | humanizePercentage }}"
-  
-  # 熔断器打开
-  - alert: CircuitBreakerOpen
-    expr: increase(envoy_cluster_circuit_breakers_default_rq_open[5m]) > 0
-    for: 1m
-    labels:
-      severity: warning
-    annotations:
-      summary: "熔断器打开 (cluster {{ $labels.envoy_cluster_name }})"
-      description: "熔断器已打开，服务可能存在问题"
-  
-  # 请求延迟过高
-  - alert: HighRequestLatency
-    expr: histogram_quantile(0.99, sum(rate(envoy_cluster_upstream_rq_time_bucket[5m])) by (envoy_cluster_name, le)) > 1000
+  # 磁盘空间严重不足
+  - alert: DiskSpaceCritical
+    expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} / node_filesystem_size_bytes)) * 100 > 90
     for: 5m
     labels:
-      severity: warning
+      severity: critical
+      category: system
     annotations:
-      summary: "请求延迟过高 (cluster {{ $labels.envoy_cluster_name }})"
-      description: "P99 延迟超过 1 秒\n当前值: {{ $value }}ms"
+      summary: "磁盘空间严重不足 (instance {{ $labels.instance }}, mountpoint {{ $labels.mountpoint }})"
+      description: "磁盘使用率超过 90%，请立即清理\n当前值: {{ $value | humanize }}%"
 
 # ==========================================
-# 微服务告警
+# NestJS 微服务告警
 # ==========================================
-- name: service_alerts
+- name: nestjs_service_alerts
   interval: 30s
   rules:
-  
+
   # 服务下线
   - alert: ServiceDown
     expr: up{job="nestjs-services"} == 0
     for: 1m
     labels:
       severity: critical
+      category: service
     annotations:
-      summary: "服务下线 ({{ $labels.service }})"
-      description: "{{ $labels.service }} 无法访问"
-  
-  # API 错误率过高
-  - alert: HighAPIErrorRate
-    expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) > 0.05
+      summary: "微服务下线 ({{ $labels.service }})"
+      description: "{{ $labels.service }} 无法访问，请立即检查"
+      runbook_url: "https://docs.cloudphone.com/runbooks/service-down"
+
+  # HTTP 错误率过高 (5xx)
+  - alert: HighHTTPErrorRate
+    expr: |
+      sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m])) by (service)
+      /
+      sum(rate(http_request_duration_seconds_count[5m])) by (service)
+      > 0.05
     for: 2m
     labels:
       severity: warning
+      category: service
     annotations:
-      summary: "API 错误率过高 ({{ $labels.service }})"
-      description: "错误率超过 5%"
+      summary: "HTTP 5xx 错误率过高 ({{ $labels.service }})"
+      description: "错误率超过 5%\n当前值: {{ $value | humanizePercentage }}"
+
+  # HTTP 错误率严重过高
+  - alert: CriticalHTTPErrorRate
+    expr: |
+      sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m])) by (service)
+      /
+      sum(rate(http_request_duration_seconds_count[5m])) by (service)
+      > 0.20
+    for: 1m
+    labels:
+      severity: critical
+      category: service
+    annotations:
+      summary: "HTTP 5xx 错误率严重过高 ({{ $labels.service }})"
+      description: "错误率超过 20%，系统可能存在严重问题\n当前值: {{ $value | humanizePercentage }}"
+
+  # 4xx 错误率过高 (可能是客户端问题或接口变更)
+  - alert: High4xxErrorRate
+    expr: |
+      sum(rate(http_request_duration_seconds_count{status=~"4.."}[5m])) by (service)
+      /
+      sum(rate(http_request_duration_seconds_count[5m])) by (service)
+      > 0.15
+    for: 5m
+    labels:
+      severity: warning
+      category: service
+    annotations:
+      summary: "HTTP 4xx 错误率过高 ({{ $labels.service }})"
+      description: "客户端错误率超过 15%，可能是接口变更或客户端问题\n当前值: {{ $value | humanizePercentage }}"
+
+  # 响应时间过慢 (P95)
+  - alert: HighResponseTimeP95
+    expr: |
+      histogram_quantile(0.95,
+        sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)
+      ) > 1
+    for: 5m
+    labels:
+      severity: warning
+      category: performance
+    annotations:
+      summary: "响应时间过慢 P95 ({{ $labels.service }})"
+      description: "P95 响应时间超过 1 秒\n当前值: {{ $value | humanizeDuration }}"
+
+  # 响应时间严重过慢 (P95)
+  - alert: CriticalResponseTimeP95
+    expr: |
+      histogram_quantile(0.95,
+        sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)
+      ) > 3
+    for: 2m
+    labels:
+      severity: critical
+      category: performance
+    annotations:
+      summary: "响应时间严重过慢 P95 ({{ $labels.service }})"
+      description: "P95 响应时间超过 3 秒，用户体验极差\n当前值: {{ $value | humanizeDuration }}"
+
+  # 响应时间过慢 (P99)
+  - alert: HighResponseTimeP99
+    expr: |
+      histogram_quantile(0.99,
+        sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)
+      ) > 2
+    for: 5m
+    labels:
+      severity: warning
+      category: performance
+    annotations:
+      summary: "响应时间过慢 P99 ({{ $labels.service }})"
+      description: "P99 响应时间超过 2 秒\n当前值: {{ $value | humanizeDuration }}"
+
+  # 请求量突然下降 (可能服务异常)
+  - alert: RequestRateDrop
+    expr: |
+      sum(rate(http_request_duration_seconds_count[5m])) by (service)
+      <
+      sum(rate(http_request_duration_seconds_count[5m] offset 1h)) by (service) * 0.5
+    for: 5m
+    labels:
+      severity: warning
+      category: service
+    annotations:
+      summary: "请求量突然下降 ({{ $labels.service }})"
+      description: "请求量下降超过 50%，可能服务存在问题"
+
+  # 请求量异常增长 (可能是攻击)
+  - alert: RequestRateSpike
+    expr: |
+      sum(rate(http_request_duration_seconds_count[5m])) by (service)
+      >
+      sum(rate(http_request_duration_seconds_count[5m] offset 1h)) by (service) * 3
+    for: 3m
+    labels:
+      severity: warning
+      category: security
+    annotations:
+      summary: "请求量异常增长 ({{ $labels.service }})"
+      description: "请求量增长超过 3 倍，可能遭受攻击或流量异常"
+
+# ==========================================
+# Node.js 进程告警
+# ==========================================
+- name: nodejs_alerts
+  interval: 30s
+  rules:
+
+  # 事件循环延迟过高
+  - alert: HighEventLoopLag
+    expr: nodejs_eventloop_lag_seconds > 0.1
+    for: 3m
+    labels:
+      severity: warning
+      category: nodejs
+    annotations:
+      summary: "Node.js 事件循环延迟过高 ({{ $labels.service }})"
+      description: "事件循环延迟超过 100ms，应用可能阻塞\n当前值: {{ $value | humanizeDuration }}"
+
+  # 堆内存使用率过高
+  - alert: HighHeapUsage
+    expr: |
+      (nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes) * 100 > 90
+    for: 5m
+    labels:
+      severity: warning
+      category: nodejs
+    annotations:
+      summary: "Node.js 堆内存使用率过高 ({{ $labels.service }})"
+      description: "堆内存使用率超过 90%，可能存在内存泄漏\n当前值: {{ $value | humanize }}%"
+
+  # GC 频率过高
+  - alert: HighGCRate
+    expr: rate(nodejs_gc_duration_seconds_count[5m]) > 10
+    for: 5m
+    labels:
+      severity: warning
+      category: nodejs
+    annotations:
+      summary: "Node.js GC 频率过高 ({{ $labels.service }})"
+      description: "垃圾回收过于频繁，影响性能\n当前值: {{ $value | humanize }} 次/秒"
 
 # ==========================================
 # 数据库告警
@@ -120,36 +235,79 @@ groups:
 - name: database_alerts
   interval: 30s
   rules:
-  
+
   # PostgreSQL 下线
   - alert: PostgreSQLDown
     expr: up{job="postgres"} == 0
     for: 1m
     labels:
       severity: critical
+      category: database
     annotations:
       summary: "PostgreSQL 数据库下线"
       description: "数据库无法访问，系统将无法正常工作"
-  
-  # 连接数过多
+      runbook_url: "https://docs.cloudphone.com/runbooks/postgres-down"
+
+  # PostgreSQL 连接数过多
   - alert: PostgreSQLTooManyConnections
-    expr: sum(pg_stat_activity_count) > 100
-    for: 5m
+    expr: pg_stat_database_numbackends > 80
+    for: 3m
     labels:
       severity: warning
+      category: database
     annotations:
-      summary: "PostgreSQL 连接数过多"
-      description: "当前连接数: {{ $value }}"
-  
+      summary: "PostgreSQL 连接数过多 ({{ $labels.datname }})"
+      description: "数据库连接数过高\n当前值: {{ $value }}"
+
+  # PostgreSQL 连接数接近上限
+  - alert: PostgreSQLConnectionsNearLimit
+    expr: |
+      pg_stat_database_numbackends / pg_settings_max_connections * 100 > 80
+    for: 5m
+    labels:
+      severity: critical
+      category: database
+    annotations:
+      summary: "PostgreSQL 连接数接近上限"
+      description: "连接数使用率超过 80%\n当前值: {{ $value | humanize }}%"
+
   # Redis 下线
   - alert: RedisDown
     expr: up{job="redis"} == 0
     for: 1m
     labels:
       severity: critical
+      category: cache
     annotations:
       summary: "Redis 缓存下线"
-      description: "缓存服务不可用"
+      description: "缓存服务不可用，系统性能将严重下降"
+
+  # Redis 内存使用率过高
+  - alert: RedisHighMemoryUsage
+    expr: |
+      (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 85
+    for: 5m
+    labels:
+      severity: warning
+      category: cache
+    annotations:
+      summary: "Redis 内存使用率过高"
+      description: "内存使用率超过 85%\n当前值: {{ $value | humanize }}%"
+
+  # Redis 缓存命中率过低
+  - alert: RedisLowHitRate
+    expr: |
+      rate(redis_keyspace_hits_total[5m])
+      /
+      (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))
+      < 0.80
+    for: 10m
+    labels:
+      severity: warning
+      category: cache
+    annotations:
+      summary: "Redis 缓存命中率过低"
+      description: "缓存命中率低于 80%，可能需要优化缓存策略\n当前值: {{ $value | humanizePercentage }}"
 
 # ==========================================
 # RabbitMQ 告警
@@ -157,56 +315,253 @@ groups:
 - name: rabbitmq_alerts
   interval: 30s
   rules:
-  
+
   # RabbitMQ 下线
   - alert: RabbitMQDown
     expr: up{job="rabbitmq"} == 0
     for: 1m
     labels:
       severity: critical
+      category: mq
     annotations:
       summary: "RabbitMQ 消息队列下线"
       description: "消息队列不可用，事件驱动功能将失效"
-  
+      runbook_url: "https://docs.cloudphone.com/runbooks/rabbitmq-down"
+
   # 队列消息堆积
-  - alert: RabbitMQQueueTooManyMessages
-    expr: rabbitmq_queue_messages > 1000
+  - alert: RabbitMQQueueBacklog
+    expr: rabbitmq_queue_messages_ready > 1000
     for: 5m
     labels:
       severity: warning
+      category: mq
     annotations:
       summary: "RabbitMQ 队列消息堆积 (queue {{ $labels.queue }})"
-      description: "队列中消息超过 1000 条\n当前值: {{ $value }}"
+      description: "队列中待处理消息超过 1000 条\n当前值: {{ $value }}"
+
+  # 队列消息严重堆积
+  - alert: RabbitMQQueueBacklogCritical
+    expr: rabbitmq_queue_messages_ready > 5000
+    for: 2m
+    labels:
+      severity: critical
+      category: mq
+    annotations:
+      summary: "RabbitMQ 队列消息严重堆积 (queue {{ $labels.queue }})"
+      description: "队列中待处理消息超过 5000 条，消费者可能异常\n当前值: {{ $value }}"
+
+  # 消息消费速率过低
+  - alert: RabbitMQSlowConsumption
+    expr: rate(rabbitmq_queue_messages_ready[5m]) > 0
+    for: 10m
+    labels:
+      severity: warning
+      category: mq
+    annotations:
+      summary: "RabbitMQ 消息消费速率过低 (queue {{ $labels.queue }})"
+      description: "消息持续堆积，消费速率跟不上生产速率"
+
+  # RabbitMQ 内存使用率过高
+  - alert: RabbitMQHighMemoryUsage
+    expr: rabbitmq_node_mem_used / rabbitmq_node_mem_limit > 0.9
+    for: 3m
+    labels:
+      severity: critical
+      category: mq
+    annotations:
+      summary: "RabbitMQ 内存使用率过高"
+      description: "内存使用率超过 90%，可能触发流控\n当前值: {{ $value | humanizePercentage }}"
 
 # ==========================================
-# 业务指标告警
+# 业务指标告警 - 设备管理
 # ==========================================
-- name: business_alerts
+- name: device_business_alerts
   interval: 1m
   rules:
-  
+
   # 设备创建失败率过高
   - alert: HighDeviceCreationFailureRate
-    expr: sum(rate(device_creation_failures_total[5m])) / sum(rate(device_creation_attempts_total[5m])) > 0.1
+    expr: |
+      sum(rate(cloudphone_device_creation_failures_total[5m]))
+      /
+      sum(rate(cloudphone_device_creation_attempts_total[5m]))
+      > 0.10
     for: 5m
     labels:
       severity: warning
+      category: business
+      component: device
     annotations:
       summary: "设备创建失败率过高"
-      description: "失败率超过 10%"
-  
-  # 订单支付失败率过高
+      description: "设备创建失败率超过 10%\n当前值: {{ $value | humanizePercentage }}"
+
+  # 设备启动失败率过高
+  - alert: HighDeviceStartFailureRate
+    expr: |
+      sum(rate(cloudphone_device_start_failures_total[5m]))
+      /
+      sum(rate(cloudphone_device_start_attempts_total[5m]))
+      > 0.10
+    for: 5m
+    labels:
+      severity: warning
+      category: business
+      component: device
+    annotations:
+      summary: "设备启动失败率过高"
+      description: "设备启动失败率超过 10%\n当前值: {{ $value | humanizePercentage }}"
+
+  # 活跃设备数异常下降
+  - alert: ActiveDevicesDrop
+    expr: |
+      cloudphone_devices_active
+      <
+      cloudphone_devices_active offset 1h * 0.7
+    for: 10m
+    labels:
+      severity: warning
+      category: business
+      component: device
+    annotations:
+      summary: "活跃设备数异常下降"
+      description: "活跃设备数下降超过 30%\n当前值: {{ $value }}"
+
+  # 设备错误状态数量过多
+  - alert: TooManyDevicesInErrorState
+    expr: cloudphone_devices_error > 5
+    for: 5m
+    labels:
+      severity: warning
+      category: business
+      component: device
+    annotations:
+      summary: "错误状态设备数量过多"
+      description: "处于错误状态的设备超过 5 个\n当前值: {{ $value }}"
+
+# ==========================================
+# 业务指标告警 - 计费系统
+# ==========================================
+- name: billing_business_alerts
+  interval: 1m
+  rules:
+
+  # 支付失败率过高
   - alert: HighPaymentFailureRate
-    expr: sum(rate(payment_failures_total[5m])) / sum(rate(payment_attempts_total[5m])) > 0.05
+    expr: |
+      sum(rate(cloudphone_payment_failures_total[5m]))
+      /
+      sum(rate(cloudphone_payment_attempts_total[5m]))
+      > 0.05
     for: 5m
     labels:
       severity: critical
+      category: business
+      component: billing
     annotations:
       summary: "订单支付失败率过高"
-      description: "支付失败率超过 5%，可能影响收入"
+      description: "支付失败率超过 5%，可能影响收入\n当前值: {{ $value | humanizePercentage }}"
 
+  # 退款率过高
+  - alert: HighRefundRate
+    expr: |
+      sum(rate(cloudphone_refunds_total[1h]))
+      /
+      sum(rate(cloudphone_payments_success_total[1h]))
+      > 0.10
+    for: 30m
+    labels:
+      severity: warning
+      category: business
+      component: billing
+    annotations:
+      summary: "退款率过高"
+      description: "退款率超过 10%\n当前值: {{ $value | humanizePercentage }}"
 
+  # 余额不足用户数量过多
+  - alert: TooManyLowBalanceUsers
+    expr: cloudphone_users_low_balance > 50
+    for: 10m
+    labels:
+      severity: info
+      category: business
+      component: billing
+    annotations:
+      summary: "余额不足用户数量过多"
+      description: "余额不足的用户超过 50 个，可能需要发送充值提醒\n当前值: {{ $value }}"
 
+# ==========================================
+# 业务指标告警 - 用户系统
+# ==========================================
+- name: user_business_alerts
+  interval: 1m
+  rules:
 
+  # 用户注册失败率过高
+  - alert: HighUserRegistrationFailureRate
+    expr: |
+      sum(rate(cloudphone_user_registration_failures_total[5m]))
+      /
+      sum(rate(cloudphone_user_registration_attempts_total[5m]))
+      > 0.10
+    for: 5m
+    labels:
+      severity: warning
+      category: business
+      component: user
+    annotations:
+      summary: "用户注册失败率过高"
+      description: "注册失败率超过 10%\n当前值: {{ $value | humanizePercentage }}"
 
+  # 登录失败率过高
+  - alert: HighLoginFailureRate
+    expr: |
+      sum(rate(cloudphone_user_login_failures_total[5m]))
+      /
+      sum(rate(cloudphone_user_login_attempts_total[5m]))
+      > 0.20
+    for: 5m
+    labels:
+      severity: warning
+      category: business
+      component: user
+    annotations:
+      summary: "用户登录失败率过高"
+      description: "登录失败率超过 20%，可能存在暴力破解\n当前值: {{ $value | humanizePercentage }}"
 
+  # 账户被锁定数量过多
+  - alert: TooManyLockedAccounts
+    expr: cloudphone_users_locked > 10
+    for: 5m
+    labels:
+      severity: warning
+      category: security
+      component: user
+    annotations:
+      summary: "被锁定账户数量过多"
+      description: "被锁定的账户超过 10 个，可能遭受攻击\n当前值: {{ $value }}"
+
+# ==========================================
+# SLA 告警
+# ==========================================
+- name: sla_alerts
+  interval: 1m
+  rules:
+
+  # 服务可用性低于 SLA (99.9%)
+  - alert: SLAViolation
+    expr: |
+      (
+        sum(rate(http_request_duration_seconds_count[5m])) by (service)
+        -
+        sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m])) by (service)
+      )
+      /
+      sum(rate(http_request_duration_seconds_count[5m])) by (service)
+      < 0.999
+    for: 5m
+    labels:
+      severity: critical
+      category: sla
+    annotations:
+      summary: "服务可用性低于 SLA ({{ $labels.service }})"
+      description: "服务可用性低于 99.9%\n当前值: {{ $value | humanizePercentage }}"

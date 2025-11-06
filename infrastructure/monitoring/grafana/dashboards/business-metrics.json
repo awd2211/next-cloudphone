@@ -1,0 +1,912 @@
+{
+  "title": "Cloud Phone - Business Metrics",
+  "tags": [
+    "cloudphone",
+    "business",
+    "metrics",
+    "kpi"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 16,
+  "version": 2,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "type": "row",
+      "title": "📊 核心业务指标 (KPIs)"
+    },
+    {
+      "id": 2,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "type": "stat",
+      "title": "总用户数",
+      "targets": [
+        {
+          "expr": "cloudphone_users_total",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": 0,
+                "color": "blue"
+              },
+              {
+                "value": 100,
+                "color": "green"
+              },
+              {
+                "value": 1000,
+                "color": "yellow"
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 3,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "type": "stat",
+      "title": "在线用户数",
+      "targets": [
+        {
+          "expr": "cloudphone_users_online",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": 0,
+                "color": "red"
+              },
+              {
+                "value": 10,
+                "color": "yellow"
+              },
+              {
+                "value": 50,
+                "color": "green"
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 4,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "type": "stat",
+      "title": "运行中设备",
+      "targets": [
+        {
+          "expr": "cloudphone_devices_running",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 5,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "type": "stat",
+      "title": "总营收",
+      "targets": [
+        {
+          "expr": "cloudphone_total_revenue",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyCNY",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": 0,
+                "color": "blue"
+              },
+              {
+                "value": 10000,
+                "color": "green"
+              },
+              {
+                "value": 100000,
+                "color": "yellow"
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 6,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "type": "stat",
+      "title": "余额不足用户",
+      "targets": [
+        {
+          "expr": "cloudphone_users_low_balance",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": 0,
+                "color": "green"
+              },
+              {
+                "value": 10,
+                "color": "yellow"
+              },
+              {
+                "value": 50,
+                "color": "red"
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 7,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "type": "stat",
+      "title": "活跃设备数",
+      "targets": [
+        {
+          "expr": "cloudphone_devices_active",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 10,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "type": "row",
+      "title": "💰 支付与计费"
+    },
+    {
+      "id": 11,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 7
+      },
+      "type": "timeseries",
+      "title": "支付成功率",
+      "targets": [
+        {
+          "expr": "rate(cloudphone_payments_success_total[5m]) / rate(cloudphone_payment_attempts_total[5m]) * 100",
+          "legendFormat": "成功率 %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 10
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 7
+      },
+      "type": "timeseries",
+      "title": "支付操作趋势",
+      "targets": [
+        {
+          "expr": "rate(cloudphone_payment_attempts_total[5m])",
+          "legendFormat": "支付尝试/秒",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(cloudphone_payments_success_total[5m])",
+          "legendFormat": "支付成功/秒",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(cloudphone_payment_failures_total[5m])",
+          "legendFormat": "支付失败/秒",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 7
+      },
+      "type": "timeseries",
+      "title": "支付耗时分布 (P50, P95, P99)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(cloudphone_payment_duration_seconds_bucket[5m]))",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(cloudphone_payment_duration_seconds_bucket[5m]))",
+          "legendFormat": "P95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(cloudphone_payment_duration_seconds_bucket[5m]))",
+          "legendFormat": "P99",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "type": "piechart",
+      "title": "支付失败原因分布",
+      "targets": [
+        {
+          "expr": "sum by (reason) (increase(cloudphone_payment_failures_total[1h]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        },
+        "pieType": "donut"
+      }
+    },
+    {
+      "id": 15,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
+      "type": "timeseries",
+      "title": "退款趋势",
+      "targets": [
+        {
+          "expr": "rate(cloudphone_refunds_total[5m])",
+          "legendFormat": "退款次数/秒",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      }
+    },
+    {
+      "id": 20,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "type": "row",
+      "title": "👤 用户注册与登录"
+    },
+    {
+      "id": 21,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 24
+      },
+      "type": "timeseries",
+      "title": "用户注册趋势",
+      "targets": [
+        {
+          "expr": "rate(cloudphone_user_registration_attempts_total[5m])",
+          "legendFormat": "注册尝试/秒",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(cloudphone_user_registration_success_total[5m])",
+          "legendFormat": "注册成功/秒",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(cloudphone_user_registration_failures_total[5m])",
+          "legendFormat": "注册失败/秒",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 24
+      },
+      "type": "timeseries",
+      "title": "用户登录趋势",
+      "targets": [
+        {
+          "expr": "rate(cloudphone_user_login_attempts_total[5m])",
+          "legendFormat": "登录尝试/秒",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(cloudphone_user_login_success_total[5m])",
+          "legendFormat": "登录成功/秒",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(cloudphone_user_login_failures_total[5m])",
+          "legendFormat": "登录失败/秒",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 24
+      },
+      "type": "stat",
+      "title": "登录成功率",
+      "targets": [
+        {
+          "expr": "rate(cloudphone_user_login_success_total[5m]) / rate(cloudphone_user_login_attempts_total[5m]) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": 0,
+                "color": "red"
+              },
+              {
+                "value": 80,
+                "color": "yellow"
+              },
+              {
+                "value": 95,
+                "color": "green"
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 24,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "type": "piechart",
+      "title": "登录失败原因分布",
+      "targets": [
+        {
+          "expr": "sum by (reason) (increase(cloudphone_user_login_failures_total[1h]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        },
+        "pieType": "donut"
+      }
+    },
+    {
+      "id": 25,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "type": "timeseries",
+      "title": "用户锁定事件",
+      "targets": [
+        {
+          "expr": "rate(cloudphone_users_locked_total[5m])",
+          "legendFormat": "用户锁定/秒",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      }
+    },
+    {
+      "id": 30,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "type": "row",
+      "title": "📱 设备管理"
+    },
+    {
+      "id": 31,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 41
+      },
+      "type": "timeseries",
+      "title": "设备创建趋势",
+      "targets": [
+        {
+          "expr": "rate(cloudphone_device_creation_attempts_total[5m])",
+          "legendFormat": "创建尝试/秒",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(cloudphone_device_creation_failures_total[5m])",
+          "legendFormat": "创建失败/秒",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 32,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 41
+      },
+      "type": "stat",
+      "title": "设备创建成功率",
+      "targets": [
+        {
+          "expr": "(rate(cloudphone_device_creation_attempts_total[5m]) - rate(cloudphone_device_creation_failures_total[5m])) / rate(cloudphone_device_creation_attempts_total[5m]) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": 0,
+                "color": "red"
+              },
+              {
+                "value": 90,
+                "color": "yellow"
+              },
+              {
+                "value": 98,
+                "color": "green"
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 33,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 41
+      },
+      "type": "timeseries",
+      "title": "设备状态分布",
+      "targets": [
+        {
+          "expr": "cloudphone_devices_running",
+          "legendFormat": "运行中",
+          "refId": "A"
+        },
+        {
+          "expr": "cloudphone_devices_stopped",
+          "legendFormat": "已停止",
+          "refId": "B"
+        },
+        {
+          "expr": "cloudphone_devices_error",
+          "legendFormat": "错误",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 34,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "type": "piechart",
+      "title": "设备创建失败原因",
+      "targets": [
+        {
+          "expr": "sum by (reason) (increase(cloudphone_device_creation_failures_total[1h]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        },
+        "pieType": "donut"
+      }
+    },
+    {
+      "id": 35,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 49
+      },
+      "type": "timeseries",
+      "title": "设备启动失败率",
+      "targets": [
+        {
+          "expr": "rate(cloudphone_device_start_failures_total[5m]) / rate(cloudphone_device_start_attempts_total[5m]) * 100",
+          "legendFormat": "启动失败率 %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      }
+    },
+    {
+      "id": 40,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "type": "row",
+      "title": "📊 业务 KPI 总览"
+    },
+    {
+      "id": 41,
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 58
+      },
+      "type": "table",
+      "title": "关键业务指标汇总 (最近 1 小时)",
+      "targets": [
+        {
+          "expr": "sum(increase(cloudphone_user_registration_success_total[1h]))",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(cloudphone_user_login_success_total[1h]))",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        },
+        {
+          "expr": "sum(increase(cloudphone_payments_success_total[1h]))",
+          "format": "table",
+          "instant": true,
+          "refId": "C"
+        },
+        {
+          "expr": "sum(increase(cloudphone_device_creation_attempts_total[1h]))",
+          "format": "table",
+          "instant": true,
+          "refId": "D"
+        },
+        {
+          "expr": "cloudphone_total_revenue",
+          "format": "table",
+          "instant": true,
+          "refId": "E"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value #A": "新注册用户",
+              "Value #B": "成功登录次数",
+              "Value #C": "成功支付次数",
+              "Value #D": "设备创建尝试",
+              "Value #E": "总营收 (¥)"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    }
+  ]
+}

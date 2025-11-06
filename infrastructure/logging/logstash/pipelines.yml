@@ -1,0 +1,7 @@
+# Logstash 管道配置
+
+# 主管道 - 处理所有微服务日志
+- pipeline.id: main
+  path.config: "/usr/share/logstash/pipeline/main.conf"
+  pipeline.workers: 2
+  pipeline.batch.size: 125

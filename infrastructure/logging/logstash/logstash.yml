@@ -1,0 +1,25 @@
+# Logstash 主配置文件
+
+# HTTP API 配置
+http.host: "0.0.0.0"
+http.port: 9600
+
+# 管道配置 (使用 pipelines.yml 定义)
+config.reload.automatic: true
+config.reload.interval: 3s
+
+# 日志配置
+path.logs: /usr/share/logstash/logs
+log.level: info
+
+# 监控
+xpack.monitoring.enabled: false
+
+# 性能优化
+pipeline.workers: 2
+pipeline.batch.size: 125
+pipeline.batch.delay: 50
+
+# 队列配置
+queue.type: memory
+queue.max_bytes: 1gb

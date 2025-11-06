@@ -1,0 +1,29 @@
+# Kibana 配置文件
+
+# 服务器配置
+server.name: kibana
+server.host: "0.0.0.0"
+server.port: 5601
+
+# Elasticsearch 连接
+elasticsearch.hosts: [ "http://elasticsearch:9200" ]
+
+# 安全配置 (开发环境)
+xpack.security.enabled: false
+xpack.encryptedSavedObjects.encryptionKey: "min-32-byte-long-strong-encryption-key-for-kibana"
+
+# 监控
+monitoring.ui.container.elasticsearch.enabled: true
+
+# 日志配置
+logging.root.level: info
+
+# 国际化
+i18n.locale: "zh-CN"
+
+# 数据视图
+data.search.aggs.shardDelay.enabled: true
+
+# 性能优化
+elasticsearch.requestTimeout: 30000
+elasticsearch.shardTimeout: 30000
