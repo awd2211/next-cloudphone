@@ -122,11 +122,8 @@ export type ApiKey = z.infer<typeof ApiKeySchema>;
 
 // AppReviewRecordSchema moved to line 1091 (more complete definition)
 
-// PaymentDetailSchema moved to line 1170 (more complete definition)
-
-// 兼容旧名称
-export const RefundSchema = PaymentDetailSchema;
-export type Refund = PaymentDetail;
+// PaymentDetailSchema moved to line 1088 (more complete definition)
+// RefundSchema alias moved after PaymentDetailSchema definition
 
 /**
  * 审计日志Schema
@@ -1110,6 +1107,10 @@ export const PaymentDetailSchema = z.object({
 });
 
 export type PaymentDetail = z.infer<typeof PaymentDetailSchema>;
+
+// 兼容旧名称
+export const RefundSchema = PaymentDetailSchema;
+export type Refund = PaymentDetail;
 
 /**
  * Exception Payments Response Schema
