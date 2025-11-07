@@ -37,8 +37,10 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('用户未认证');
     }
 
-    // 从用户对象中获取权限
-    const userPermissions = user.permissions || [];
+    // 从用户对象中获取权限（兼容两种方式）
+    // 1. 优先使用已扁平化的 user.permissions 数组（性能更好）
+    // 2. 如果不存在，从 user.roles 遍历提取（兼容 User Service）
+    const userPermissions = this.extractPermissions(user);
     const requiredPermissions = permissionRequirement.permissions;
     const operator = permissionRequirement.operator || PermissionOperator.AND;
 
@@ -66,5 +68,39 @@ export class PermissionsGuard implements CanActivate {
     }
 
     return true;
+  }
+
+  /**
+   * 提取用户权限（兼容两种数据结构）
+   * @param user - 用户对象
+   * @returns 权限字符串数组
+   */
+  private extractPermissions(user: any): string[] {
+    // 方式1: 直接从 user.permissions 获取（已扁平化，推荐）
+    if (user.permissions && Array.isArray(user.permissions)) {
+      return user.permissions;
+    }
+
+    // 方式2: 从 user.roles 遍历提取（兼容 User Service）
+    if (user.roles && Array.isArray(user.roles)) {
+      const permissions = new Set<string>();
+
+      for (const role of user.roles) {
+        if (role.permissions && Array.isArray(role.permissions)) {
+          for (const permission of role.permissions) {
+            // 支持两种格式
+            if (typeof permission === 'string') {
+              permissions.add(permission);
+            } else if (permission.resource && permission.action) {
+              permissions.add(`${permission.resource}:${permission.action}`);
+            }
+          }
+        }
+      }
+
+      return Array.from(permissions);
+    }
+
+    return [];
   }
 }
