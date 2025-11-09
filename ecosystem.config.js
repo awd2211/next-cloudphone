@@ -7,6 +7,9 @@ module.exports = {
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/api-gateway',
 
+      // Node.js 参数 - 增加请求头大小限制
+      node_args: '--max-http-header-size=32768', // 32KB (默认是 8KB)
+
       // 🚀 优化：开发环境也启用集群模式（验证集群兼容性）
       // 生产模式: 更多实例以充分利用多核 CPU
       instances: process.env.NODE_ENV === 'production' ? 'max' : 2, // max = CPU 核心数
@@ -54,6 +57,9 @@ module.exports = {
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/user-service',
 
+      // Node.js 参数 - 增加请求头大小限制
+      node_args: '--max-http-header-size=32768', // 32KB
+
       // 🚀 优化：开发环境也启用集群模式，生产模式使用更多实例
       instances: process.env.NODE_ENV === 'production' ? 4 : 2,
       exec_mode: 'cluster', // 始终使用集群模式
@@ -76,12 +82,14 @@ module.exports = {
         NODE_ENV: 'development',
         PORT: 30001,
         APP_VERSION: '1.0.0',
+        DB_DATABASE: 'cloudphone_user',  // ✅ 明确指定数据库
       },
 
       env_production: {
         NODE_ENV: 'production',
         PORT: 30001,
         LOG_LEVEL: 'info',
+        DB_DATABASE: 'cloudphone_user',  // ✅ 明确指定数据库
       },
 
       error_file: './logs/user-service-error.log',
@@ -99,6 +107,9 @@ module.exports = {
       script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/device-service',
+
+      // Node.js 参数 - 增加请求头大小限制
+      node_args: '--max-http-header-size=32768', // 32KB
 
       // 🚀 优化：启用集群模式（端口管理已改为 Redis 分布式锁）
       instances: process.env.NODE_ENV === 'production' ? 3 : 2,
@@ -136,6 +147,9 @@ module.exports = {
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/app-service',
 
+      // Node.js 参数 - 增加请求头大小限制
+      node_args: '--max-http-header-size=32768', // 32KB
+
       // 📦 单实例模式（文件上传服务）
       instances: 1,
       exec_mode: 'fork',
@@ -171,6 +185,9 @@ module.exports = {
       script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/billing-service',
+
+      // Node.js 参数 - 增加请求头大小限制
+      node_args: '--max-http-header-size=32768', // 32KB
 
       // 🚀 优化：启用集群模式（Saga 模式已确保事务一致性）
       instances: process.env.NODE_ENV === 'production' ? 2 : 1,
@@ -208,6 +225,9 @@ module.exports = {
       args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
       cwd: './backend/notification-service',
 
+      // Node.js 参数 - 增加请求头大小限制
+      node_args: '--max-http-header-size=32768', // 32KB
+
       // 📧 单实例模式（通知服务）
       instances: 1,
       exec_mode: 'fork',
@@ -244,6 +264,9 @@ module.exports = {
       args: process.env.NODE_ENV === 'production' ? undefined : 'run start:prod',
       cwd: './backend/sms-receive-service',
 
+      // Node.js 参数 - 增加请求头大小限制
+      node_args: '--max-http-header-size=32768', // 32KB
+
       // 📱 单实例模式（SMS接收服务 - 管理号码池和轮询状态）
       instances: 1,
       exec_mode: 'fork',
@@ -278,6 +301,9 @@ module.exports = {
       script: 'dist/proxy-service/src/main.js', // 直接运行构建后的文件
       // args: undefined, // 不需要参数
       cwd: './backend/proxy-service',
+
+      // Node.js 参数 - 增加请求头大小限制
+      node_args: '--max-http-header-size=32768', // 32KB
 
       // 🔌 代理管理服务 - 支持集群模式（使用 Redis + TypeORM）
       // 开发环境: 1 实例方便调试
