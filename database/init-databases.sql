@@ -30,6 +30,10 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'cloudphone_scheduler'
 SELECT 'CREATE DATABASE cloudphone_sms'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'cloudphone_sms')\gexec
 
+-- 创建代理服务数据库
+SELECT 'CREATE DATABASE cloudphone_proxy'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'cloudphone_proxy')\gexec
+
 -- 输出创建结果
 \echo '================================'
 \echo 'Database initialization complete'
@@ -42,5 +46,6 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'cloudphone_sms')\gexe
 \echo '  - cloudphone_notification (Notification Service)'
 \echo '  - cloudphone_scheduler (Scheduler Service)'
 \echo '  - cloudphone_sms (SMS Receive Service)'
+\echo '  - cloudphone_proxy (Proxy Service)'
 \echo '================================'
 

@@ -1,182 +1,67 @@
-# 云手机平台数据库管理
+# 数据库脚本执行记录
 
-使用 TypeORM 和 TypeScript 管理数据库，无需手写 SQL 文件。
+## 概述
 
-## 快速开始
+本目录包含云手机平台的所有数据库初始化和优化脚本。
 
-### 1. 安装依赖
+**当前权限总数**: 284
+**当前角色总数**: 17
 
-```bash
-cd database
-pnpm install
-```
+---
 
-### 2. 配置环境变量
+## 脚本执行顺序
 
-在项目根目录创建 `.env` 文件：
+### 1. 基础初始化（已执行）
 
-```env
-# 数据库配置
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-DB_DATABASE=cloudphone
-```
+#### `init-databases.sql`
+- **执行时间**: 项目初期
+- **功能**: 创建数据库、表结构
+- **数据库**: cloudphone, cloudphone_user, cloudphone_device, cloudphone_notification
 
-### 3. 初始化数据库
+---
 
-```bash
-# 一键初始化（同步表结构 + 插入种子数据）
-pnpm run init
+### 2. 权限系统优化（2025-11-06）
 
-# 或者分步执行
-pnpm run schema:sync  # 同步表结构
-pnpm run seed         # 插入种子数据
-```
+#### 2.1 `init-permissions-and-roles.sql` ⚠️ 已废弃
+- **执行时间**: 2025-11-06 早期
+- **功能**: 初始权限和角色（151个权限）
+- **状态**: ⚠️ 已被后续脚本替代，不要再执行
 
-## 可用命令
+#### 2.2 `add-missing-permissions.sql` ✅ 已执行
+- **执行时间**: 2025-11-06
+- **功能**: 补充代码中缺失的 29 个权限
+- **影响**: 权限数从 151 → 180
 
-### 表结构管理
+#### 2.3 `fix-admin-roles.sql` ✅ 已执行
+- **执行时间**: 2025-11-06
+- **功能**: 创建 super_admin 角色，调整 admin 为普通管理员
+- **影响**: 角色数 16 → 17
 
-```bash
-# 同步表结构（根据 Entity 自动创建/更新表）
-pnpm run schema:sync
+---
 
-# 删除所有表（⚠️ 危险操作）
-pnpm run schema:drop
+### 3. RBAC 优化实施（2025-11-06）
 
-# 完全重置数据库（删除 + 重新创建 + 种子数据）
-pnpm run reset
-```
+#### 3.1 `rbac-optimization-mvp.sql` ✅ 已执行
+- **功能**: MVP 优化 - 资源所有权、批量操作、成本控制
+- **影响**: 权限数 180 → 220 (+40个)
+- **新增**: 资源所有权(16) + 批量操作(14) + 成本控制(10)
 
-### 迁移管理（生产环境推荐）
+#### 3.2 `rbac-approval-workflow.sql` ✅ 已执行
+- **功能**: 审批工作流权限
+- **影响**: 权限数 220 → 253 (+33个)
+- **新增**: 申请(10) + 审批(10) + 执行(7) + 管理(8)
 
-```bash
-# 生成迁移文件
-pnpm run migration:generate -- migrations/MigrationName
+#### 3.3 `rbac-device-lifecycle.sql` ✅ 已执行
+- **功能**: 设备生命周期权限
+- **影响**: 权限数 253 → 284 (+31个)
+- **新增**: 创建(3) + 启动(3) + 停止(4) + 维护(4) + 归档(5) + 查询(4) + 配置(4) + 应用(4)
 
-# 运行迁移
-pnpm run migration:run
+---
 
-# 回滚迁移
-pnpm run migration:revert
-```
+## 相关文档
 
-### 种子数据
+- `docs/RBAC_OPTIMIZATION_RECOMMENDATIONS.md` - RBAC 优化建议（完整版）
+- `docs/RBAC_OPTIMIZATION_RESULTS.md` - RBAC 优化成果报告
 
-```bash
-# 插入种子数据（权限、角色、用户、套餐）
-pnpm run seed
-```
-
-## 初始化后的默认数据
-
-### 管理员账号
-
-```
-用户名: admin
-邮箱: admin@cloudphone.com
-密码: admin123456
-```
-
-### 测试账号
-
-```
-用户名: testuser
-邮箱: test@cloudphone.com
-密码: test123456
-```
-
-### 默认角色
-
-- **admin**: 超级管理员（所有权限）
-- **user**: 普通用户（基础权限）
-
-### 默认套餐
-
-1. **免费版**: ¥0/月 - 1 个云手机
-2. **基础版**: ¥29.9/月 - 5 个云手机
-3. **专业版**: ¥99.9/月 - 20 个云手机
-4. **企业版**: ¥499.9/月 - 100 个云手机
-
-## 数据库表结构
-
-所有表由 TypeORM Entity 自动生成，包括：
-
-### 用户服务
-- `users` - 用户表
-- `roles` - 角色表
-- `permissions` - 权限表
-- `user_roles` - 用户角色关联
-- `role_permissions` - 角色权限关联
-
-### 设备服务
-- `devices` - 设备表
-
-### 应用服务
-- `applications` - 应用表
-- `device_applications` - 设备应用关联表
-
-### 计费服务
-- `orders` - 订单表
-- `plans` - 套餐表
-- `usage_records` - 使用记录表
-
-## 开发 vs 生产
-
-### 开发环境
-
-使用 `synchronize: true` 自动同步表结构：
-
-```typescript
-{
-  synchronize: true,  // 开发环境
-}
-```
-
-### 生产环境
-
-必须使用 Migration：
-
-```typescript
-{
-  synchronize: false,  // 生产环境
-  migrations: ['./migrations/*.ts'],
-}
-```
-
-## 故障排查
-
-### 连接失败
-
-1. 检查 PostgreSQL 是否运行
-2. 检查 `.env` 配置是否正确
-3. 检查数据库是否存在
-
-```bash
-# 创建数据库
-psql -U postgres -c "CREATE DATABASE cloudphone;"
-```
-
-### 权限问题
-
-```bash
-# 授权用户
-psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE cloudphone TO postgres;"
-```
-
-### 表已存在
-
-```bash
-# 完全重置
-pnpm run reset
-```
-
-## 技术栈
-
-- **TypeORM**: ORM 框架
-- **PostgreSQL**: 数据库
-- **TypeScript**: 开发语言
-- **bcrypt**: 密码加密
-- **dotenv**: 环境变量管理
+**维护者**: Claude Code
+**最后更新**: 2025-11-06
