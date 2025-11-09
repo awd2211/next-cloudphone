@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { SmsService } from '../sms.service';
 import { TwilioSmsProvider } from '../providers/twilio.provider';
 import { AwsSnsProvider } from '../providers/aws-sns.provider';
@@ -7,6 +8,7 @@ import { MessageBirdProvider } from '../providers/messagebird.provider';
 import { AliyunSmsProvider } from '../providers/aliyun.provider';
 import { TencentSmsProvider } from '../providers/tencent.provider';
 import { SmsOptions, SmsResult } from '../sms.interface';
+import { SmsRecord } from '../entities/sms-record.entity';
 
 describe('SmsService', () => {
   let service: SmsService;
@@ -63,12 +65,25 @@ describe('SmsService', () => {
     getStats: jest.fn(),
   };
 
+  const mockSmsRecordRepository = {
+    create: jest.fn((record) => record),
+    save: jest.fn((record) => Promise.resolve({ id: 'record-123', ...record })),
+    find: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SmsService,
+        {
+          provide: getRepositoryToken(SmsRecord),
+          useValue: mockSmsRecordRepository,
+        },
         {
           provide: ConfigService,
           useValue: mockConfigService,

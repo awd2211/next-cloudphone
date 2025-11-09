@@ -8,6 +8,7 @@ import {
   NotificationType,
   NotificationChannel,
 } from '../../entities/notification-preference.entity';
+import { CacheService } from '../../cache/cache.service';
 
 describe('NotificationPreferencesService', () => {
   let service: NotificationPreferencesService;
@@ -35,12 +36,25 @@ describe('NotificationPreferencesService', () => {
       delete: jest.fn(),
     };
 
+    const mockCacheService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+      delPattern: jest.fn().mockResolvedValue(undefined),
+      reset: jest.fn(),
+      wrap: jest.fn(async (key, fn) => await fn()),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationPreferencesService,
         {
           provide: getRepositoryToken(NotificationPreference),
           useValue: mockRepository,
+        },
+        {
+          provide: CacheService,
+          useValue: mockCacheService,
         },
       ],
     }).compile();

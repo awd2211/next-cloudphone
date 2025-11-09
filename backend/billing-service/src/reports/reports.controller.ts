@@ -11,7 +11,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { ReportsService } from './reports.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 
 @ApiTags('reports')
 @ApiBearerAuth()
@@ -21,7 +21,7 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('bills/:userId')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '生成用户账单报表', description: '生成指定用户的账单报表' })
   @ApiParam({ name: 'userId', description: '用户 ID' })
   @ApiQuery({ name: 'startDate', description: '开始日期（ISO 8601）' })
@@ -44,7 +44,7 @@ export class ReportsController {
   }
 
   @Get('revenue')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '生成收入统计报表', description: '生成指定时间段的收入统计报表' })
   @ApiQuery({ name: 'startDate', description: '开始日期（ISO 8601）' })
   @ApiQuery({ name: 'endDate', description: '结束日期（ISO 8601）' })
@@ -67,7 +67,7 @@ export class ReportsController {
   }
 
   @Get('usage-trend')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '生成使用趋势报表', description: '生成资源使用趋势分析报表' })
   @ApiQuery({ name: 'startDate', description: '开始日期（ISO 8601）' })
   @ApiQuery({ name: 'endDate', description: '结束日期（ISO 8601）' })
@@ -92,7 +92,7 @@ export class ReportsController {
   }
 
   @Get('bills/:userId/export')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '导出用户账单', description: '导出用户账单为 Excel 文件' })
   @ApiParam({ name: 'userId', description: '用户 ID' })
   @ApiQuery({ name: 'startDate', description: '开始日期（ISO 8601）' })
@@ -135,7 +135,7 @@ export class ReportsController {
   }
 
   @Get('revenue/export')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '导出收入报表', description: '导出收入统计报表为 Excel 文件' })
   @ApiQuery({ name: 'startDate', description: '开始日期（ISO 8601）' })
   @ApiQuery({ name: 'endDate', description: '结束日期（ISO 8601）' })
@@ -160,7 +160,7 @@ export class ReportsController {
   }
 
   @Get('plans/stats')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取套餐统计', description: '获取所有套餐的订单和收入统计' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })

@@ -4,9 +4,13 @@ import { DashboardController } from './dashboard.controller';
 import { DashboardService } from './dashboard.service';
 import { UsageRecord } from '../billing/entities/usage-record.entity';
 import { UserBalance } from '../balance/entities/user-balance.entity';
+import { CacheModule } from '../cache/cache.module'; // ✅ 导入缓存模块
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UsageRecord, UserBalance])],
+  imports: [
+    TypeOrmModule.forFeature([UsageRecord, UserBalance]),
+    CacheModule, // ✅ 添加缓存模块
+  ],
   controllers: [DashboardController],
   providers: [DashboardService],
   exports: [DashboardService],

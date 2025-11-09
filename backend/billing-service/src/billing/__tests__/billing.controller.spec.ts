@@ -88,7 +88,7 @@ describe('BillingController', () => {
 
     it('should require billing:read permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.getStats);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:read'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.read'] });
     });
   });
 
@@ -128,7 +128,7 @@ describe('BillingController', () => {
 
     it('should require billing:read permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.getPlans);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:read'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.read'] });
     });
   });
 
@@ -151,7 +151,7 @@ describe('BillingController', () => {
 
     it('should require billing:read permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.getPlan);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:read'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.read'] });
     });
   });
 
@@ -178,7 +178,7 @@ describe('BillingController', () => {
 
     it('should require billing:create permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.createPlan);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:create'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.create'] });
     });
   });
 
@@ -204,7 +204,7 @@ describe('BillingController', () => {
 
     it('should require billing:update permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.updatePlan);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:update'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.update'] });
     });
   });
 
@@ -222,7 +222,7 @@ describe('BillingController', () => {
 
     it('should require billing:delete permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.deletePlan);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:delete'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.delete'] });
     });
   });
 
@@ -271,7 +271,7 @@ describe('BillingController', () => {
 
     it('should require billing:create permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.createOrder);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:create'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.create'] });
     });
   });
 
@@ -292,7 +292,7 @@ describe('BillingController', () => {
 
     it('should require billing:read permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.getUserOrders);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:read'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.read'] });
     });
   });
 
@@ -338,7 +338,7 @@ describe('BillingController', () => {
 
     it('should require billing:update permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.cancelOrder);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:update'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.update'] });
     });
   });
 
@@ -374,7 +374,7 @@ describe('BillingController', () => {
 
     it('should require billing:read permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.getUserUsage);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:read'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.read'] });
     });
   });
 
@@ -402,7 +402,7 @@ describe('BillingController', () => {
 
     it('should require billing:create permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.startUsage);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:create'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.create'] });
     });
   });
 
@@ -425,7 +425,7 @@ describe('BillingController', () => {
 
     it('should require billing:update permission', () => {
       const permissions = Reflect.getMetadata('permissions', controller.stopUsage);
-      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing:update'] });
+      expect(permissions).toEqual({ operator: 'AND', permissions: ['billing.update'] });
     });
   });
 

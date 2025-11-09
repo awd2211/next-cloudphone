@@ -21,7 +21,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { BillingService } from './billing.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { QuickListQueryDto, QuickListResponseDto } from './dto/quick-list.dto';
 
 @ApiTags('billing')
@@ -32,7 +32,7 @@ export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
   @Get('stats')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取计费统计', description: '获取计费和收入统计信息' })
   @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -47,7 +47,7 @@ export class BillingController {
   }
 
   @Get('plans')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取套餐列表', description: '获取所有可用的套餐计划' })
   @ApiQuery({ name: 'page', required: false, description: '页码', type: Number })
   @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', type: Number })
@@ -58,7 +58,7 @@ export class BillingController {
   }
 
   @Get('plans/quick-list')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({
     summary: '套餐快速列表',
     description: '返回轻量级套餐列表，用于下拉框等UI组件（带缓存优化）',
@@ -87,7 +87,7 @@ export class BillingController {
   }
 
   @Get('plans/:id')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取套餐详情', description: '根据ID获取套餐详情' })
   @ApiParam({ name: 'id', description: '套餐 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -98,7 +98,7 @@ export class BillingController {
   }
 
   @Post('plans')
-  @RequirePermission('billing:create')
+  @RequirePermission('billing.create')
   @ApiOperation({ summary: '创建套餐', description: '创建新的套餐' })
   @ApiResponse({ status: 201, description: '创建成功' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
@@ -108,7 +108,7 @@ export class BillingController {
   }
 
   @Patch('plans/:id')
-  @RequirePermission('billing:update')
+  @RequirePermission('billing.update')
   @ApiOperation({ summary: '更新套餐', description: '更新套餐信息' })
   @ApiParam({ name: 'id', description: '套餐 ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -119,7 +119,7 @@ export class BillingController {
   }
 
   @Delete('plans/:id')
-  @RequirePermission('billing:delete')
+  @RequirePermission('billing.delete')
   @ApiOperation({ summary: '删除套餐', description: '删除指定套餐' })
   @ApiParam({ name: 'id', description: '套餐 ID' })
   @ApiResponse({ status: 200, description: '删除成功' })
@@ -129,8 +129,52 @@ export class BillingController {
     return this.billingService.deletePlan(id);
   }
 
+  @Get('orders')
+  @RequirePermission('billing.read')
+  @ApiOperation({ summary: '获取订单列表', description: '分页获取所有订单' })
+  @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量（兼容参数）', example: 10 })
+  @ApiQuery({ name: 'status', required: false, description: '订单状态筛选' })
+  @ApiQuery({ name: 'paymentMethod', required: false, description: '支付方式筛选' })
+  @ApiQuery({ name: 'search', required: false, description: '搜索关键词（订单号）' })
+  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
+  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getAllOrders(
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: string,
+    @Query('paymentMethod') paymentMethod?: string,
+    @Query('search') search?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
+    // 支持 pageSize 或 limit 参数
+    const itemsPerPage = pageSize || limit || '10';
+    const result = await this.billingService.getAllOrders({
+      page: parseInt(page),
+      limit: parseInt(itemsPerPage),
+      status,
+      paymentMethod,
+      search,
+      startDate,
+      endDate,
+    });
+
+    // 返回标准格式：将 limit 转换为 pageSize
+    const { limit: _, ...rest } = result;
+    return {
+      success: true,
+      ...rest,
+      pageSize: result.limit,
+    };
+  }
+
   @Post('orders')
-  @RequirePermission('billing:create')
+  @RequirePermission('billing.create')
   @ApiOperation({ summary: '创建订单', description: '创建新的套餐订单' })
   @ApiBody({
     description: '订单创建信息',
@@ -152,7 +196,7 @@ export class BillingController {
   }
 
   @Get('orders/quick-list')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({
     summary: '订单快速列表',
     description: '返回轻量级订单列表，用于下拉框等UI组件（带缓存优化）',
@@ -181,7 +225,7 @@ export class BillingController {
   }
 
   @Get('orders/:userId')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取用户订单', description: '获取指定用户的所有订单' })
   @ApiParam({ name: 'userId', description: '用户 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -191,7 +235,7 @@ export class BillingController {
   }
 
   @Post('orders/:orderId/cancel')
-  @RequirePermission('billing:update')
+  @RequirePermission('billing.update')
   @ApiOperation({ summary: '取消订单', description: '取消待支付的订单' })
   @ApiParam({ name: 'orderId', description: '订单 ID' })
   @ApiBody({
@@ -217,7 +261,7 @@ export class BillingController {
   }
 
   @Get('usage/:userId')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取用户使用记录', description: '获取指定时间范围内的使用记录' })
   @ApiParam({ name: 'userId', description: '用户 ID' })
   @ApiQuery({ name: 'startDate', required: false, description: '开始日期（YYYY-MM-DD）' })
@@ -233,7 +277,7 @@ export class BillingController {
   }
 
   @Post('usage/start')
-  @RequirePermission('billing:create')
+  @RequirePermission('billing.create')
   @ApiOperation({ summary: '开始使用记录', description: '开始记录设备使用时间' })
   @ApiBody({
     description: '使用记录开始信息',
@@ -254,7 +298,7 @@ export class BillingController {
   }
 
   @Post('usage/stop')
-  @RequirePermission('billing:update')
+  @RequirePermission('billing.update')
   @ApiOperation({ summary: '停止使用记录', description: '停止记录设备使用时间并计算费用' })
   @ApiBody({
     description: '使用记录停止信息',
@@ -278,7 +322,7 @@ export class BillingController {
   // ============================================================================
 
   @Get('admin/cloud-reconciliation')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({
     summary: '云对账',
     description: '获取云服务商计费数据并与平台计费进行对账',

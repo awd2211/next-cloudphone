@@ -25,11 +25,22 @@ export class RolesGuard implements CanActivate {
     // 如果用户有 roles 数组
     if (user.roles && Array.isArray(user.roles)) {
       const userRoles = user.roles.map((r: any) => (typeof r === 'string' ? r : r.name));
+
+      // ✅ superadmin 像 root 一样拥有所有权限
+      if (userRoles.includes('super_admin')) {
+        return true;
+      }
+
       return requiredRoles.some((role) => userRoles.includes(role));
     }
 
     // 如果用户只有 role 字符串
     if (user.role) {
+      // ✅ superadmin 像 root 一样拥有所有权限
+      if (user.role === 'super_admin') {
+        return true;
+      }
+
       return requiredRoles.includes(user.role);
     }
 

@@ -11,6 +11,7 @@ import { NotificationsService } from '../../notifications/notifications.service'
 import { EmailService } from '../../email/email.service';
 import { TemplatesService } from '../../templates/templates.service';
 import { NotificationCategory } from '../../entities/notification.entity';
+import { NotificationGateway } from '../../gateway/notification.gateway';
 
 /**
  * Billing Service 事件消费者
@@ -21,6 +22,9 @@ import { NotificationCategory } from '../../entities/notification.entity';
  *   - 所有事件处理器使用 createRoleBasedNotification()
  *   - 支持角色特定模板（super_admin, tenant_admin, admin, user）
  *   - 从 event.payload.userRole 获取角色信息
+ * ✅ 2025-11-07: 添加 WebSocket 实时推送
+ *   - 集成 NotificationGateway 进行实时事件推送
+ *   - 支持用户订阅和管理员房间推送
  */
 @Injectable()
 export class BillingEventsConsumer {
@@ -29,7 +33,8 @@ export class BillingEventsConsumer {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
-    private readonly templatesService: TemplatesService
+    private readonly templatesService: TemplatesService,
+    private readonly gateway: NotificationGateway
   ) {}
 
   @RabbitSubscribe({
@@ -59,7 +64,31 @@ export class BillingEventsConsumer {
         }
       );
 
-      this.logger.log(`余额不足告警已发送: ${event.payload.userId}`);
+      // ✅ WebSocket 实时推送
+      this.gateway.sendToUser(event.payload.userId, {
+        type: 'billing.low_balance',
+        data: {
+          userId: event.payload.userId,
+          balance: event.payload.currentBalance,
+          threshold: event.payload.threshold,
+          daysRemaining: event.payload.daysRemaining || 3,
+          detectedAt: event.payload.detectedAt,
+        },
+      });
+
+      // 推送给管理员房间
+      const adminRoomCount = await this.gateway.getRoomClientsCount('admin');
+      if (adminRoomCount > 0) {
+        this.gateway.sendNotificationToRoom('admin', {
+          type: 'warning',
+          title: '用户余额不足',
+          message: `用户 ${event.payload.username} (${event.payload.userId}) 余额不足: ¥${event.payload.currentBalance}`,
+          data: event.payload,
+          timestamp: event.payload.detectedAt,
+        });
+      }
+
+      this.logger.log(`余额不足告警已发送并推送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理余额不足事件失败: ${error.message}`);
       throw error;
@@ -95,7 +124,21 @@ export class BillingEventsConsumer {
         }
       );
 
-      this.logger.log(`充值成功通知已发送: ${event.payload.userId}`);
+      // ✅ WebSocket 实时推送
+      this.gateway.sendToUser(event.payload.userId, {
+        type: 'billing.payment_success',
+        data: {
+          userId: event.payload.userId,
+          amount: event.payload.amount,
+          orderId: event.payload.orderId,
+          paymentId: event.payload.paymentId,
+          paymentMethod: event.payload.paymentMethod,
+          newBalance: event.payload.newBalance,
+          paidAt: event.payload.paidAt || new Date().toISOString(),
+        },
+      });
+
+      this.logger.log(`充值成功通知已发送并推送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理充值成功事件失败: ${error.message}`);
       throw error;
@@ -132,7 +175,20 @@ export class BillingEventsConsumer {
         }
       );
 
-      this.logger.log(`账单生成通知已发送: ${event.payload.userId}`);
+      // ✅ WebSocket 实时推送
+      this.gateway.sendToUser(event.payload.userId, {
+        type: 'billing.invoice_generated',
+        data: {
+          userId: event.payload.userId,
+          invoiceId: event.payload.invoiceId,
+          amount: event.payload.amount,
+          month: event.payload.month,
+          dueDate: event.payload.dueDate,
+          generatedAt: event.payload.generatedAt,
+        },
+      });
+
+      this.logger.log(`账单生成通知已发送并推送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理账单生成事件失败: ${error.message}`);
       throw error;

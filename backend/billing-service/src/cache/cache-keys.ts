@@ -162,6 +162,110 @@ export class CacheKeys {
    * 订单快速列表缓存键
    */
   static readonly ORDER_QUICK_LIST = `${CacheKeys.PREFIX}:order:quick-list`;
+
+  // ========== 仪表盘统计相关 (新增) ==========
+
+  /**
+   * 仪表盘综合统计缓存键
+   */
+  static readonly DASHBOARD_STATS = `${CacheKeys.PREFIX}:dashboard:stats`;
+
+  /**
+   * 用户使用量预测缓存键
+   * @param userId 用户 ID
+   * @param forecastDays 预测天数
+   * @param historicalDays 历史天数
+   */
+  static usageForecast(userId: string, forecastDays: number, historicalDays: number): string {
+    return `${this.PREFIX}:dashboard:forecast:${userId}:${forecastDays}:${historicalDays}`;
+  }
+
+  /**
+   * 用户成本预警缓存键
+   * @param userId 用户 ID
+   */
+  static costWarning(userId: string): string {
+    return `${this.PREFIX}:dashboard:warning:${userId}`;
+  }
+
+  /**
+   * 用户预警配置缓存键
+   * @param userId 用户 ID
+   */
+  static warningConfig(userId: string): string {
+    return `${this.PREFIX}:dashboard:config:${userId}`;
+  }
+
+  // ========== Stats统计相关 (新增) ==========
+
+  /**
+   * 在线设备数缓存键
+   */
+  static readonly ONLINE_DEVICES_COUNT = `${CacheKeys.PREFIX}:stats:devices:online`;
+
+  /**
+   * 设备状态分布缓存键
+   */
+  static readonly DEVICE_STATUS_DISTRIBUTION = `${CacheKeys.PREFIX}:stats:devices:distribution`;
+
+  /**
+   * 总用户数缓存键
+   */
+  static readonly TOTAL_USERS_COUNT = `${CacheKeys.PREFIX}:stats:users:total`;
+
+  /**
+   * 今日新增用户缓存键
+   */
+  static readonly TODAY_NEW_USERS = `${CacheKeys.PREFIX}:stats:users:today`;
+
+  /**
+   * 用户活跃度统计缓存键
+   * @param days 天数
+   */
+  static userActivity(days: number): string {
+    return `${this.PREFIX}:stats:users:activity:${days}`;
+  }
+
+  /**
+   * 用户增长统计缓存键
+   * @param days 天数
+   */
+  static userGrowth(days: number): string {
+    return `${this.PREFIX}:stats:users:growth:${days}`;
+  }
+
+  /**
+   * 今日收入缓存键
+   */
+  static readonly TODAY_REVENUE = `${CacheKeys.PREFIX}:stats:revenue:today`;
+
+  /**
+   * 本月收入缓存键
+   */
+  static readonly MONTH_REVENUE = `${CacheKeys.PREFIX}:stats:revenue:month`;
+
+  /**
+   * 收入趋势缓存键
+   * @param days 天数
+   */
+  static revenueTrend(days: number): string {
+    return `${this.PREFIX}:stats:revenue:trend:${days}`;
+  }
+
+  /**
+   * 套餐分布统计缓存键
+   */
+  static readonly PLAN_DISTRIBUTION = `${CacheKeys.PREFIX}:stats:plans:distribution`;
+
+  /**
+   * 全局统计概览缓存键
+   */
+  static readonly STATS_OVERVIEW = `${CacheKeys.PREFIX}:stats:overview`;
+
+  /**
+   * 性能统计缓存键
+   */
+  static readonly STATS_PERFORMANCE = `${CacheKeys.PREFIX}:stats:performance`;
 }
 
 /**
@@ -195,4 +299,24 @@ export const CacheTTL = {
 
   // 快速列表 - 短时间缓存（用于下拉框等UI组件）
   QUICK_LIST: 60, // 快速列表: 1 分钟
+
+  // ========== Dashboard 相关 (新增) ==========
+  DASHBOARD_STATS: 60, // 仪表盘统计: 1 分钟
+  USAGE_FORECAST: 300, // 使用量预测: 5 分钟（计算密集）
+  COST_WARNING: 180, // 成本预警: 3 分钟
+  WARNING_CONFIG: 600, // 预警配置: 10 分钟（很少变动）
+
+  // ========== Stats 相关 (新增) ==========
+  ONLINE_DEVICES: 30, // 在线设备数: 30 秒（高频变化）
+  DEVICE_DISTRIBUTION: 60, // 设备状态分布: 1 分钟
+  TOTAL_USERS: 120, // 总用户数: 2 分钟
+  TODAY_NEW_USERS: 60, // 今日新增用户: 1 分钟
+  USER_ACTIVITY: 300, // 用户活跃度: 5 分钟
+  USER_GROWTH: 600, // 用户增长: 10 分钟（趋势数据）
+  TODAY_REVENUE: 60, // 今日收入: 1 分钟
+  MONTH_REVENUE: 180, // 本月收入: 3 分钟
+  REVENUE_TREND: 600, // 收入趋势: 10 分钟
+  PLAN_DISTRIBUTION: 300, // 套餐分布: 5 分钟
+  STATS_OVERVIEW: 60, // 统计概览: 1 分钟（仪表盘核心数据）
+  STATS_PERFORMANCE: 30, // 性能统计: 30 秒（实时性要求高）
 } as const;

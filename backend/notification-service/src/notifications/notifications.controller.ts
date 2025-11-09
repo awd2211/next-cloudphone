@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
-import { CreateNotificationDto } from './notification.interface';
+import { CreateNotificationDto, QueryNotificationDto } from './dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { Public } from '../auth/decorators/public.decorator';
 
 /**
@@ -27,6 +27,10 @@ export class NotificationsController {
    */
   @Post()
   @RequirePermission('notification.create')
+  @ApiOperation({ summary: '创建并发送通知', description: '创建通知并通过指定渠道发送给用户' })
+  @ApiResponse({ status: 201, description: '通知创建成功' })
+  @ApiResponse({ status: 400, description: '请求参数无效' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async create(@Body() dto: CreateNotificationDto) {
     return this.notificationsService.createAndSend(dto);
   }
@@ -52,29 +56,43 @@ export class NotificationsController {
   @RequirePermission('notification.unread-count')
   async getUnreadCount(@Query('userId') userId?: string) {
     if (!userId) {
-      return {
-        success: true,
-        data: { count: 0 },
-      };
+      return { count: 0 };
     }
-    const notifications = await this.notificationsService.getUnreadNotifications(userId);
-    return {
-      success: true,
-      data: { count: notifications.length },
-    };
+    const count = await this.notificationsService.getUnreadCount(userId);
+    return { count };
   }
 
   /**
-   * 获取用户的通知列表
+   * 获取用户的通知列表（支持 page/pageSize 分页）
    * GET /notifications/user/:userId
    */
   @Get('user/:userId')
   @RequirePermission('notification.read')
-  getUserNotifications(@Param('userId') userId: string, @Query('unreadOnly') unreadOnly?: string) {
+  async getUserNotifications(
+    @Param('userId') userId: string,
+    @Query('unreadOnly') unreadOnly?: string,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query('limit') limit?: number
+  ) {
     if (unreadOnly === 'true') {
-      return this.notificationsService.getUnreadNotifications(userId);
+      const data = await this.notificationsService.getUnreadNotifications(userId);
+      return { success: true, data, total: data.length };
     }
-    return this.notificationsService.getUserNotifications(userId);
+    // ✅ 优先使用 pageSize，如果没有则使用 limit
+    const pageNum = page ? Number(page) : 1;
+    const itemsPerPage = pageSize ? Number(pageSize) : (limit ? Number(limit) : 10);
+
+    const result = await this.notificationsService.getUserNotifications(userId, pageNum, itemsPerPage);
+
+    // ✅ 返回标准格式
+    return {
+      success: true,
+      data: result.data,
+      total: result.total,
+      page: pageNum,
+      pageSize: itemsPerPage,
+    };
   }
 
   /**

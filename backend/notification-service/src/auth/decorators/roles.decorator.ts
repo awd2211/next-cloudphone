@@ -1,11 +1,19 @@
 import { SetMetadata } from '@nestjs/common';
 
+export const ROLES_KEY = 'roles';
+
 /**
- * Roles 装饰器
- *
- * 用于标记需要特定角色的端点
- *
- * @param roles 允许访问的角色列表
+ * 角色装饰器 - 声明接口所需的角色
+ * @param roles 角色名称数组
+ * @example
+ * @RequireRole('admin', 'template-manager')
+ * @Post()
+ * createTemplate() { ... }
+ */
+export const RequireRole = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+
+/**
+ * Roles 装饰器 - RequireRole 的别名
  *
  * 使用示例：
  * ```typescript
@@ -15,4 +23,4 @@ import { SetMetadata } from '@nestjs/common';
  * createTemplate() { ... }
  * ```
  */
-export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
+export const Roles = RequireRole;

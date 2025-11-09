@@ -12,6 +12,8 @@ import { NotificationGateway } from '../../gateway/notification.gateway';
 import { NotificationPreferencesService } from '../preferences.service';
 import { EmailService } from '../../email/email.service';
 import { SmsService } from '../../sms/sms.service';
+import { TemplatesService } from '../../templates/templates.service';
+import { CacheService } from '../../cache/cache.service';
 import {
   NotificationType as PrefType,
   NotificationChannel as PrefChannel,
@@ -22,6 +24,7 @@ describe('NotificationsService', () => {
   let mockNotificationRepository: any;
   let mockGateway: any;
   let mockCacheManager: any;
+  let mockCacheService: any;
   let mockPreferencesService: any;
   let mockEmailService: any;
   let mockSmsService: any;
@@ -73,6 +76,22 @@ describe('NotificationsService', () => {
       sendNotification: jest.fn(() => Promise.resolve()),
     };
 
+    // Mock Templates Service
+    const mockTemplatesService = {
+      render: jest.fn(),
+      findByCode: jest.fn(),
+    };
+
+    // Mock Cache Service
+    mockCacheService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+      delPattern: jest.fn().mockResolvedValue(undefined),
+      reset: jest.fn(),
+      wrap: jest.fn(async (key, fn) => await fn()),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationsService,
@@ -89,6 +108,10 @@ describe('NotificationsService', () => {
           useValue: mockCacheManager,
         },
         {
+          provide: CacheService,
+          useValue: mockCacheService,
+        },
+        {
           provide: NotificationPreferencesService,
           useValue: mockPreferencesService,
         },
@@ -99,6 +122,10 @@ describe('NotificationsService', () => {
         {
           provide: SmsService,
           useValue: mockSmsService,
+        },
+        {
+          provide: TemplatesService,
+          useValue: mockTemplatesService,
         },
       ],
     }).compile();
@@ -141,7 +168,7 @@ describe('NotificationsService', () => {
         })
       );
       expect(mockGateway.sendToUser).toHaveBeenCalledWith('user-123', expect.any(Object));
-      expect(mockCacheManager.del).toHaveBeenCalledWith('user:user-123:notifications');
+      expect(mockCacheService.del).toHaveBeenCalled();
     });
 
     it('should handle WebSocket send failure', async () => {
@@ -189,7 +216,7 @@ describe('NotificationsService', () => {
 
       expect(result).not.toBeNull();
       expect(result!.status).toBe(NotificationStatus.READ);
-      expect(mockCacheManager.del).toHaveBeenCalledWith('user:user-123:notifications');
+      expect(mockCacheService.del).toHaveBeenCalled();
     });
 
     it('should return null if notification not found', async () => {
@@ -208,30 +235,29 @@ describe('NotificationsService', () => {
         total: 2,
       };
 
-      mockCacheManager.get.mockResolvedValue(cachedData);
+      // Mock wrap to return cached data directly
+      mockCacheService.wrap.mockResolvedValueOnce(cachedData);
 
       const result = await service.getUserNotifications('user-123', 1, 10);
 
       expect(result).toEqual(cachedData);
-      expect(mockNotificationRepository.findAndCount).not.toHaveBeenCalled();
+      expect(mockCacheService.wrap).toHaveBeenCalled();
     });
 
     it('should query database and cache result if not cached', async () => {
-      mockCacheManager.get.mockResolvedValue(null);
       mockNotificationRepository.findAndCount.mockResolvedValue([
         [{ id: 'notif-1' }, { id: 'notif-2' }],
         2,
       ]);
 
+      // Mock wrap to execute the function (cache miss scenario)
+      mockCacheService.wrap.mockImplementationOnce(async (_key: string, fn: () => Promise<any>) => await fn());
+
       const result = await service.getUserNotifications('user-123', 1, 10);
 
       expect(result.data).toHaveLength(2);
       expect(result.total).toBe(2);
-      expect(mockCacheManager.set).toHaveBeenCalledWith(
-        'user:user-123:notifications:1:10',
-        expect.any(Object),
-        60
-      );
+      expect(mockCacheService.wrap).toHaveBeenCalled();
     });
   });
 
@@ -387,6 +413,220 @@ describe('NotificationsService', () => {
 
       expect(mockEmailService.sendEmail).toHaveBeenCalled();
       expect(mockSmsService.sendNotification).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createRoleBasedNotification', () => {
+    const userId = 'user-123';
+    const userRole = 'user';
+    const type = PrefType.DEVICE_CREATED;
+    const data = {
+      deviceName: 'Test Device',
+      deviceId: 'device-456',
+    };
+
+    beforeEach(() => {
+      // Reset all mocks before each test
+      jest.clearAllMocks();
+    });
+
+    it('should create role-based notification for user role', async () => {
+      const mockRendered = {
+        title: 'Device Created',
+        body: 'Your device Test Device has been created',
+        emailHtml: '<p>Device created</p>',
+        smsText: 'Device created',
+      };
+
+      const mockPreference = {
+        enabled: true,
+        enabledChannels: [PrefChannel.WEBSOCKET],
+      };
+
+      const mockTemplatesService = {
+        renderWithRole: jest.fn().mockResolvedValue(mockRendered),
+      };
+
+      // Update the service's templatesService
+      (service as any).templatesService = mockTemplatesService;
+
+      mockPreferencesService.getUserPreference.mockResolvedValue(mockPreference);
+      mockNotificationRepository.create.mockReturnValue({
+        id: 'notif-789',
+        userId,
+        type: NotificationCategory.DEVICE,
+        title: mockRendered.title,
+        message: mockRendered.body,
+        data,
+        status: NotificationStatus.PENDING,
+      });
+      mockNotificationRepository.save.mockResolvedValue({
+        id: 'notif-789',
+        userId,
+        type: NotificationCategory.DEVICE,
+        title: mockRendered.title,
+        message: mockRendered.body,
+        data,
+        status: NotificationStatus.SENT,
+      });
+
+      const result = await service.createRoleBasedNotification(userId, userRole, type, data);
+
+      expect(result).toBeDefined();
+      expect(mockTemplatesService.renderWithRole).toHaveBeenCalledWith(
+        type,
+        userRole,
+        data,
+        undefined
+      );
+      expect(mockPreferencesService.getUserPreference).toHaveBeenCalledWith(userId, type);
+      expect(mockNotificationRepository.create).toHaveBeenCalled();
+      expect(mockNotificationRepository.save).toHaveBeenCalled();
+    });
+
+    it('should create notification even when disabled', async () => {
+      const mockRendered = {
+        title: 'Device Created',
+        body: 'Your device Test Device has been created',
+        emailHtml: '<p>Device created</p>',
+        smsText: 'Device created',
+      };
+
+      const mockPreference = {
+        enabled: false,
+        enabledChannels: [],
+      };
+
+      const mockTemplatesService = {
+        renderWithRole: jest.fn().mockResolvedValue(mockRendered),
+      };
+
+      (service as any).templatesService = mockTemplatesService;
+
+      mockPreferencesService.getUserPreference.mockResolvedValue(mockPreference);
+      mockNotificationRepository.create.mockReturnValue({
+        id: 'notif-790',
+        userId,
+        type: NotificationCategory.DEVICE,
+        title: mockRendered.title,
+        message: mockRendered.body,
+        data,
+        status: NotificationStatus.PENDING,
+        channels: [],
+      });
+      mockNotificationRepository.save.mockResolvedValue({
+        id: 'notif-790',
+        userId,
+        status: NotificationStatus.PENDING,
+      });
+
+      const result = await service.createRoleBasedNotification(userId, userRole, type, data);
+
+      expect(result).toBeDefined();
+      expect(result.status).toBe(NotificationStatus.PENDING);
+      expect(mockTemplatesService.renderWithRole).toHaveBeenCalled();
+      expect(mockGateway.sendToUser).not.toHaveBeenCalled();
+    });
+
+    it('should handle different roles (admin)', async () => {
+      const adminRole = 'admin';
+      const mockRendered = {
+        title: 'Admin: Device Created',
+        body: 'Device Test Device created in system',
+        emailHtml: '<p>Admin notification</p>',
+        smsText: 'Device created',
+      };
+
+      const mockPreference = {
+        enabled: true,
+        enabledChannels: [PrefChannel.EMAIL],
+      };
+
+      const mockTemplatesService = {
+        renderWithRole: jest.fn().mockResolvedValue(mockRendered),
+      };
+
+      (service as any).templatesService = mockTemplatesService;
+
+      mockPreferencesService.getUserPreference.mockResolvedValue(mockPreference);
+      mockNotificationRepository.create.mockReturnValue({
+        id: 'notif-791',
+        userId,
+        type: NotificationCategory.DEVICE,
+        title: mockRendered.title,
+        message: mockRendered.body,
+        data,
+        status: NotificationStatus.PENDING,
+      });
+      mockNotificationRepository.save.mockResolvedValue({
+        id: 'notif-791',
+        status: NotificationStatus.SENT,
+      });
+
+      const result = await service.createRoleBasedNotification(
+        userId,
+        adminRole,
+        type,
+        data,
+        { userEmail: 'admin@example.com' }
+      );
+
+      expect(result).toBeDefined();
+      expect(mockTemplatesService.renderWithRole).toHaveBeenCalledWith(
+        type,
+        adminRole,
+        data,
+        undefined
+      );
+    });
+
+    it('should support multiple channels', async () => {
+      const mockRendered = {
+        title: 'Device Created',
+        body: 'Your device Test Device has been created',
+        emailHtml: '<p>Device created</p>',
+        smsText: 'Device created',
+      };
+
+      const mockPreference = {
+        enabled: true,
+        enabledChannels: [PrefChannel.WEBSOCKET, PrefChannel.EMAIL, PrefChannel.SMS],
+      };
+
+      const mockTemplatesService = {
+        renderWithRole: jest.fn().mockResolvedValue(mockRendered),
+      };
+
+      (service as any).templatesService = mockTemplatesService;
+
+      mockPreferencesService.getUserPreference.mockResolvedValue(mockPreference);
+      mockNotificationRepository.create.mockReturnValue({
+        id: 'notif-792',
+        userId,
+        type: NotificationCategory.DEVICE,
+        title: mockRendered.title,
+        message: mockRendered.body,
+        data,
+        status: NotificationStatus.PENDING,
+      });
+      mockNotificationRepository.save.mockResolvedValue({
+        id: 'notif-792',
+        status: NotificationStatus.SENT,
+      });
+
+      const result = await service.createRoleBasedNotification(
+        userId,
+        userRole,
+        type,
+        data,
+        {
+          userEmail: 'user@example.com',
+          userPhone: '+1234567890',
+        }
+      );
+
+      expect(result).toBeDefined();
+      expect(mockTemplatesService.renderWithRole).toHaveBeenCalled();
     });
   });
 });

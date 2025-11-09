@@ -5,7 +5,9 @@ import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { createLoggerConfig, ConsulModule, DistributedLockModule } from '@cloudphone/shared';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
+import { createLoggerConfig, ConsulModule, DistributedLockModule, AllExceptionsFilter } from '@cloudphone/shared';
 import { HealthController } from './health/health.controller';
 import { TasksService } from './tasks/tasks.service';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -23,6 +25,7 @@ import { SchedulerEventsConsumer } from './rabbitmq/consumers/scheduler-events.c
 import { MediaEventsConsumer } from './rabbitmq/consumers/media-events.consumer';
 import { SystemEventsConsumer } from './rabbitmq/consumers/system-events.consumer';
 import { DlxConsumer } from './rabbitmq/consumers/dlx.consumer';
+import { QuotaEventsConsumer } from './rabbitmq/consumers/quota-events.consumer'; // ✅ 配额事件消费者
 import { AuthModule } from './auth/auth.module';
 import { CacheModule } from './cache/cache.module'; // ✅ 使用自定义的 @Global() CacheModule
 import { Notification } from './entities/notification.entity';
@@ -30,6 +33,7 @@ import { NotificationTemplate } from './entities/notification-template.entity';
 import { NotificationPreference } from './entities/notification-preference.entity';
 import { SmsRecord } from './sms/entities/sms-record.entity';
 import { validate } from './common/config/env.validation';
+import { getDatabaseConfig } from './common/config/database.config';
 import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusModule
 
 @Module({
@@ -44,20 +48,15 @@ import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusM
     // ========== 日志模块 ==========
     LoggerModule.forRoot(createLoggerConfig('notification-service')),
 
+    // ========== Throttler 限流模块 ==========
+    ThrottlerModule.forRoot([{
+      ttl: 60000, // 1 minute
+      limit: 100, // 100 requests per minute
+    }]),
+
     // ========== 数据库模块 ==========
     TypeOrmModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('DB_HOST', 'localhost'),
-        port: +configService.get('DB_PORT', 5432),
-        username: configService.get('DB_USERNAME', 'postgres'),
-        password: configService.get('DB_PASSWORD', 'postgres'),
-        database: configService.get('DB_DATABASE', 'cloudphone_notification'), // ✅ 迁移到独立数据库
-        entities: [Notification, NotificationTemplate, NotificationPreference, SmsRecord],
-        synchronize: false, // ✅ 使用 TypeORM Migrations 管理数据库架构
-        logging: configService.get('NODE_ENV') === 'development',
-        autoLoadEntities: false,
-      }),
+      useFactory: getDatabaseConfig, // ✅ 使用优化的连接池配置
       inject: [ConfigService],
     }),
 
@@ -113,6 +112,16 @@ import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusM
   ],
   controllers: [HealthController],
   providers: [
+    // 全局异常过滤器（统一错误处理）
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+    // 全局 Throttler 守卫（限流保护）
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     TasksService,
     NotificationEventsHandler,
     NotificationGateway, // ✅ WebSocket 网关
@@ -124,6 +133,7 @@ import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusM
     SchedulerEventsConsumer,
     MediaEventsConsumer,
     SystemEventsConsumer,
+    QuotaEventsConsumer, // ✅ 配额事件消费者（修复注册缺失）
     DlxConsumer,
   ],
 })

@@ -26,5 +26,9 @@ export class QueryTemplateDto {
 
   @IsOptional()
   @Type(() => Number)
+  pageSize?: number;
+
+  @IsOptional()
+  @Type(() => Number)
   limit?: number = 10;
 }

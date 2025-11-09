@@ -17,6 +17,7 @@ import { NotificationsService } from '../../notifications/notifications.service'
 import { EmailService } from '../../email/email.service';
 import { TemplatesService } from '../../templates/templates.service';
 import { NotificationCategory } from '../../entities/notification.entity';
+import { NotificationGateway } from '../../gateway/notification.gateway';
 
 /**
  * Device Service 事件消费者
@@ -28,6 +29,9 @@ import { NotificationCategory } from '../../entities/notification.entity';
  *   - 所有事件处理器使用 createRoleBasedNotification()
  *   - 支持角色特定模板（super_admin, tenant_admin, admin, user）
  *   - 智能模板选择和数据合并
+ * ✅ 2025-11-07: 临时添加配额事件处理
+ *   - 解决 QuotaEventsConsumer 注册问题
+ *   - 提供配额实时推送功能
  */
 @Injectable()
 export class DeviceEventsConsumer {
@@ -36,7 +40,8 @@ export class DeviceEventsConsumer {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
-    private readonly templatesService: TemplatesService
+    private readonly templatesService: TemplatesService,
+    private readonly gateway: NotificationGateway
   ) {}
 
   /**
@@ -193,6 +198,18 @@ export class DeviceEventsConsumer {
           userEmail: event.userEmail,
         }
       );
+
+      // ✅ 实时推送设备状态变更
+      this.gateway.sendToUser(event.userId, {
+        type: 'device.status.changed',
+        data: {
+          deviceId: event.deviceId,
+          deviceName: event.deviceName,
+          oldStatus: 'stopped',
+          newStatus: 'running',
+          timestamp: event.startedAt,
+        },
+      });
     } catch (error) {
       this.logger.error(`处理设备启动事件失败: ${error.message}`, error.stack);
       throw error;
@@ -237,6 +254,18 @@ export class DeviceEventsConsumer {
           userEmail: event.userEmail,
         }
       );
+
+      // ✅ 实时推送设备状态变更
+      this.gateway.sendToUser(event.userId, {
+        type: 'device.status.changed',
+        data: {
+          deviceId: event.deviceId,
+          deviceName: event.deviceName,
+          oldStatus: 'running',
+          newStatus: 'stopped',
+          timestamp: event.stoppedAt,
+        },
+      });
     } catch (error) {
       this.logger.error(`处理设备停止事件失败: ${error.message}`, error.stack);
       throw error;

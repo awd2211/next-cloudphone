@@ -72,6 +72,34 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
     };
   }
 
+  @SubscribeMessage('join_room')
+  handleJoinRoom(@MessageBody() data: { room: string }, @ConnectedSocket() client: Socket) {
+    this.logger.log(`客户端 ${client.id} 加入房间: ${data.room}`);
+    client.join(data.room);
+
+    return {
+      event: 'room_joined',
+      data: {
+        room: data.room,
+        message: '加入房间成功',
+      },
+    };
+  }
+
+  @SubscribeMessage('leave_room')
+  handleLeaveRoom(@MessageBody() data: { room: string }, @ConnectedSocket() client: Socket) {
+    this.logger.log(`客户端 ${client.id} 离开房间: ${data.room}`);
+    client.leave(data.room);
+
+    return {
+      event: 'room_left',
+      data: {
+        room: data.room,
+        message: '离开房间成功',
+      },
+    };
+  }
+
   // ========== 对外提供的方法 ==========
 
   /**
@@ -91,9 +119,33 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   }
 
   /**
+   * 向特定房间发送消息
+   */
+  sendToRoom(room: string, message: unknown) {
+    this.logger.log(`向房间 ${room} 发送消息`);
+    this.server.to(room).emit('message', message);
+  }
+
+  /**
+   * 向特定房间发送通知
+   */
+  sendNotificationToRoom(room: string, notification: unknown) {
+    this.logger.log(`向房间 ${room} 发送通知`);
+    this.server.to(room).emit('notification', notification);
+  }
+
+  /**
    * 获取当前连接的客户端数量
    */
   getConnectedClientsCount(): number {
     return this.connectedClients.size;
+  }
+
+  /**
+   * 获取房间内的客户端数量
+   */
+  async getRoomClientsCount(room: string): Promise<number> {
+    const sockets = await this.server.in(room).fetchSockets();
+    return sockets.length;
   }
 }

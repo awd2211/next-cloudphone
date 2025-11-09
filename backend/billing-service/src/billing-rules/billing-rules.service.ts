@@ -52,12 +52,39 @@ export class BillingRulesService {
     return rule;
   }
 
-  async listRules(resourceType?: ResourceType): Promise<BillingRule[]> {
-    const where = resourceType ? { resourceType, isActive: true } : { isActive: true };
-    return await this.ruleRepository.find({
-      where,
-      order: { priority: 'DESC', createdAt: 'DESC' },
-    });
+  async listRules(
+    page: number,
+    limit: number,
+    resourceType?: ResourceType,
+    isActive?: boolean
+  ): Promise<{ data: BillingRule[]; total: number; page: number; limit: number }> {
+    // 使用 QueryBuilder 支持动态筛选
+    const queryBuilder = this.ruleRepository.createQueryBuilder('rule');
+
+    // 资源类型筛选
+    if (resourceType) {
+      queryBuilder.andWhere('rule.resourceType = :resourceType', { resourceType });
+    }
+
+    // 活跃状态筛选
+    if (isActive !== undefined) {
+      queryBuilder.andWhere('rule.isActive = :isActive', { isActive });
+    }
+
+    // 分页
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    // 排序
+    queryBuilder.orderBy('rule.priority', 'DESC').addOrderBy('rule.createdAt', 'DESC');
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
   }
 
   async updateRule(id: string, updates: Partial<BillingRule>): Promise<BillingRule> {

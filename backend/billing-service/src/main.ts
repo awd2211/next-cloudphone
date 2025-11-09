@@ -60,7 +60,7 @@ async function bootstrap() {
     origin: configService.get('CORS_ORIGINS')?.split(',') || '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-ID', 'x-request-id'],
   });
 
   // ========== API 版本控制 ==========

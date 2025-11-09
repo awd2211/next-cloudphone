@@ -82,7 +82,8 @@ export class PaymentsAdminController {
   @Get()
   @ApiOperation({ summary: '获取所有支付记录' })
   @ApiQuery({ name: 'page', required: false, description: '页码，默认1' })
-  @ApiQuery({ name: 'limit', required: false, description: '每页数量，默认20' })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量，默认20' })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量（兼容参数），默认20' })
   @ApiQuery({ name: 'status', required: false, description: '支付状态筛选' })
   @ApiQuery({ name: 'method', required: false, description: '支付方式筛选' })
   @ApiQuery({ name: 'userId', required: false, description: '用户ID筛选' })
@@ -91,7 +92,8 @@ export class PaymentsAdminController {
   @ApiQuery({ name: 'search', required: false, description: '搜索（支付单号/订单号）' })
   async findAll(
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
+    @Query('pageSize') pageSize?: number,
+    @Query('limit') limit?: number,
     @Query('status') status?: PaymentStatus,
     @Query('method') method?: PaymentMethod,
     @Query('userId') userId?: string,
@@ -99,9 +101,11 @@ export class PaymentsAdminController {
     @Query('endDate') endDate?: string,
     @Query('search') search?: string
   ) {
+    // 支持 pageSize 或 limit 参数
+    const itemsPerPage = pageSize || limit || 20;
     const result = await this.paymentsAdminService.findAllWithPagination({
       page,
-      limit,
+      limit: itemsPerPage,
       status,
       method,
       userId,
@@ -115,6 +119,7 @@ export class PaymentsAdminController {
       data: result.items,
       pagination: {
         page: result.page,
+        pageSize: result.limit,
         limit: result.limit,
         total: result.total,
         totalPages: result.totalPages,

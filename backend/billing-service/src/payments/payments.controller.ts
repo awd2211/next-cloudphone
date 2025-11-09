@@ -17,7 +17,7 @@ import { PaymentsService } from './payments.service';
 import { CreatePaymentDto, RefundPaymentDto, QueryPaymentDto } from './dto/create-payment.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Payments')
@@ -52,11 +52,19 @@ export class PaymentsController {
   @RequirePermission('billing.payment-read')
   @ApiOperation({ summary: '获取支付列表' })
   @ApiResponse({ status: 200, description: '获取成功' })
-  async findAll(@Headers('user-id') userId?: string) {
-    const payments = await this.paymentsService.findAll(userId);
+  async findAll(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Headers('user-id') userId?: string,
+  ) {
+    const result = await this.paymentsService.findAll(
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 20,
+      userId,
+    );
     return {
       success: true,
-      data: payments,
+      ...result,
       message: '获取支付列表成功',
     };
   }

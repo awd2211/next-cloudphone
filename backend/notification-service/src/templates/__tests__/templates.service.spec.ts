@@ -7,6 +7,7 @@ import { NotificationTemplate } from '../../entities/notification-template.entit
 import { NotificationType, NotificationChannel } from '@cloudphone/shared';
 import { CreateTemplateDto } from '../dto/create-template.dto';
 import { UpdateTemplateDto } from '../dto/update-template.dto';
+import { CacheService } from '../../cache/cache.service';
 
 describe('TemplatesService', () => {
   let service: TemplatesService;
@@ -65,12 +66,25 @@ describe('TemplatesService', () => {
       })),
     };
 
+    const mockCacheService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+      delPattern: jest.fn().mockResolvedValue(undefined),
+      reset: jest.fn(),
+      wrap: jest.fn(async (key, fn) => await fn()), // Execute the wrapped function directly
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TemplatesService,
         {
           provide: getRepositoryToken(NotificationTemplate),
           useValue: mockRepository,
+        },
+        {
+          provide: CacheService,
+          useValue: mockCacheService,
         },
       ],
     }).compile();
@@ -485,10 +499,13 @@ describe('TemplatesService', () => {
 
         const results = await service.bulkCreate(templates);
 
-        // Should have 2 successful results (1 and 3)
-        expect(results.length).toBe(2);
-        expect(results[0].code).toBe('template-1');
-        expect(results[1].code).toBe('template-3');
+        // Should have 2 successful results (1 and 3), 1 failed (2)
+        expect(results.successful).toBe(2);
+        expect(results.failed).toBe(1);
+        expect(results.templates.length).toBe(2);
+        expect(results.templates[0].code).toBe('template-1');
+        expect(results.templates[1].code).toBe('template-3');
+        expect(results.errors.length).toBe(1);
       });
     });
 
@@ -530,6 +547,162 @@ describe('TemplatesService', () => {
 
         expect(result.isActive).toBe(false);
         expect(templateRepository.save).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Security Sandbox', () => {
+    describe('validateTemplateSecurity', () => {
+      it('should reject template with constructor access', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          title: '{{constructor}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should reject template with prototype access', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          body: '{{prototype}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should reject template with __proto__ access', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          title: '{{__proto__}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should reject template with eval function', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          body: '{{eval}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should reject template with Function constructor', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          title: '{{Function}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should reject template with process access', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          body: '{{process}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should reject template with require function', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          title: '{{require}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should reject template with global access', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          body: '{{global}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should reject template with globalThis access', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          title: '{{globalThis}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should reject template with this.constructor access', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          body: '{{this.constructor}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should accept safe template with normal variables', async () => {
+        const safeDto = {
+          ...createTemplateDto,
+          title: 'Hello {{userName}}',
+          body: 'Your device {{deviceName}} is ready',
+        };
+
+        templateRepository.findOne.mockResolvedValue(null);
+        templateRepository.create.mockReturnValue(mockTemplate);
+        templateRepository.save.mockResolvedValue(mockTemplate);
+
+        const result = await service.create(safeDto);
+
+        expect(result).toEqual(mockTemplate);
+      });
+
+      it('should accept template with built-in helpers', async () => {
+        const safeDto = {
+          ...createTemplateDto,
+          title: 'Date: {{formatDate createdAt}}',
+          body: 'Number: {{formatNumber count}}',
+        };
+
+        templateRepository.findOne.mockResolvedValue(null);
+        templateRepository.create.mockReturnValue(mockTemplate);
+        templateRepository.save.mockResolvedValue(mockTemplate);
+
+        const result = await service.create(safeDto);
+
+        expect(result).toEqual(mockTemplate);
+      });
+
+      it('should reject dangerous patterns in emailTemplate', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          emailTemplate: '<p>{{constructor}}</p>',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should reject dangerous patterns in smsTemplate', async () => {
+        const dangerousDto = {
+          ...createTemplateDto,
+          smsTemplate: '{{eval}}',
+        };
+
+        await expect(service.create(dangerousDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should validate security on update', async () => {
+        const updateDto = {
+          title: '{{constructor}}',
+        };
+
+        templateRepository.findOne.mockResolvedValue(mockTemplate);
+
+        await expect(service.update(mockTemplate.id, updateDto)).rejects.toThrow(
+          BadRequestException
+        );
       });
     });
   });

@@ -10,6 +10,7 @@ import { MediaEventsConsumer } from './consumers/media-events.consumer';
 import { SystemEventsConsumer } from './consumers/system-events.consumer';
 import { ErrorEventsConsumer } from './consumers/error-events.consumer';
 import { DlxConsumer } from './consumers/dlx.consumer';
+import { QuotaEventsConsumer } from './consumers/quota-events.consumer';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailModule } from '../email/email.module';
 import { TemplatesModule } from '../templates/templates.module';
@@ -66,6 +67,7 @@ import { TemplatesModule } from '../templates/templates.module';
     SystemEventsConsumer,
     ErrorEventsConsumer,
     DlxConsumer,
+    QuotaEventsConsumer,
   ],
   exports: [RabbitMQModule],
 })

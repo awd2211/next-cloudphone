@@ -18,7 +18,7 @@ import { Type } from 'class-transformer';
 import { getAllNotificationTypes } from './default-preferences';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { Public } from '../auth/decorators/public.decorator';
 
 /**

@@ -1,127 +1,19 @@
 import { Controller, Post, Get, Body, Query, UseGuards, Param } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SmsService } from './sms.service';
 import { OtpService, OtpType } from './otp.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { Public } from '../auth/decorators/public.decorator';
 import {
-  IsPhoneNumber,
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsEnum,
-  IsNumber,
-  Min,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-
-/**
- * 发送短信 DTO
- */
-export class SendSmsDto {
-  @IsPhoneNumber(undefined, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
-  phoneNumber: string;
-
-  @IsString()
-  @IsNotEmpty()
-  message: string;
-
-  @IsOptional()
-  @IsString()
-  from?: string;
-}
-
-/**
- * 发送验证码 DTO (旧版，保留兼容性)
- */
-export class SendOtpDto {
-  @IsPhoneNumber(undefined, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
-  phoneNumber: string;
-
-  @IsString()
-  @IsNotEmpty()
-  code: string;
-
-  @IsOptional()
-  expiryMinutes?: number;
-}
-
-/**
- * 发送 OTP 验证码 DTO (新版)
- */
-export class SendOtpV2Dto {
-  @IsPhoneNumber(undefined, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
-  phoneNumber: string;
-
-  @IsEnum(OtpType, { message: '无效的验证码类型' })
-  type: OtpType;
-
-  @IsOptional()
-  @IsString()
-  customMessage?: string;
-}
-
-/**
- * 验证 OTP 验证码 DTO
- */
-export class VerifyOtpDto {
-  @IsPhoneNumber(undefined, { message: '请提供有效的国际电话号码 (例如: +1234567890)' })
-  phoneNumber: string;
-
-  @IsString()
-  @IsNotEmpty({ message: '验证码不能为空' })
-  code: string;
-
-  @IsEnum(OtpType, { message: '无效的验证码类型' })
-  type: OtpType;
-}
-
-/**
- * 批量发送短信 DTO
- */
-export class SendBatchSmsDto {
-  @IsPhoneNumber(undefined, { each: true, message: '所有电话号码必须是有效的国际格式' })
-  phoneNumbers: string[];
-
-  @IsString()
-  @IsNotEmpty()
-  message: string;
-}
-
-/**
- * 查询 SMS 记录 DTO
- */
-export class QuerySmsDto {
-  @IsOptional()
-  @IsString()
-  status?: string;
-
-  @IsOptional()
-  @IsString()
-  provider?: string;
-
-  @IsOptional()
-  @IsString()
-  phone?: string;
-
-  @IsOptional()
-  @IsString()
-  userId?: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  page?: number = 1;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  limit?: number = 10;
-}
+  SendSmsDto,
+  SendOtpDto,
+  SendOtpV2Dto,
+  VerifyOtpDto,
+  SendBatchSmsDto,
+  QuerySmsDto,
+} from './dto';
 
 /**
  * SMS 控制器

@@ -260,12 +260,16 @@ export class TemplatesService {
   /**
    * 查询模板列表（分页）
    * ✅ 使用缓存优化查询性能
+   * ✅ 支持 pageSize 和 limit 参数（优先使用 pageSize）
    */
   async findAll(query: QueryTemplateDto) {
-    const { type, language, isActive, search, page = 1, limit = 10 } = query;
+    const { type, language, isActive, search, page = 1, pageSize, limit = 10 } = query;
+
+    // 优先使用 pageSize，如果没有则使用 limit
+    const itemsPerPage = pageSize || limit;
 
     // 生成缓存键（包含所有查询参数）
-    const cacheKey = `${CacheKeys.templateList(type)}:${language || 'all'}:${isActive ?? 'all'}:${search || 'none'}:${page}:${limit}`;
+    const cacheKey = `${CacheKeys.templateList(type)}:${language || 'all'}:${isActive ?? 'all'}:${search || 'none'}:${page}:${itemsPerPage}`;
 
     return this.cacheService.wrap(
       cacheKey,
@@ -296,17 +300,18 @@ export class TemplatesService {
         queryBuilder.orderBy('template.createdAt', 'DESC');
 
         // 分页
-        const skip = (page - 1) * limit;
-        queryBuilder.skip(skip).take(limit);
+        const skip = (page - 1) * itemsPerPage;
+        queryBuilder.skip(skip).take(itemsPerPage);
 
         const [data, total] = await queryBuilder.getManyAndCount();
 
         return {
+          success: true,
           data,
           total,
           page,
-          limit,
-          totalPages: Math.ceil(total / limit),
+          pageSize: itemsPerPage,
+          totalPages: Math.ceil(total / itemsPerPage),
         };
       },
       CacheTTL.TEMPLATE_LIST // 30 minutes
@@ -794,21 +799,31 @@ export class TemplatesService {
   /**
    * 批量创建模板
    */
-  async bulkCreate(templates: CreateTemplateDto[]): Promise<NotificationTemplate[]> {
+  async bulkCreate(templates: CreateTemplateDto[]) {
     const results: NotificationTemplate[] = [];
+    const errors: string[] = [];
 
     for (const dto of templates) {
       try {
         const template = await this.create(dto);
         results.push(template);
       } catch (error) {
-        this.logger.warn(`Failed to create template ${dto.code}: ${error.message}`);
+        const errorMsg = `Failed to create template ${dto.code}: ${error.message}`;
+        this.logger.warn(errorMsg);
+        errors.push(errorMsg);
         // 继续处理其他模板
       }
     }
 
-    this.logger.log(`Bulk created ${results.length} templates`);
-    return results;
+    const response = {
+      successful: results.length,
+      failed: errors.length,
+      errors,
+      templates: results,
+    };
+
+    this.logger.log(`Bulk created ${results.length} templates, ${errors.length} failed`);
+    return response;
   }
 
   /**

@@ -139,6 +139,74 @@ export class InvoicesService {
   }
 
   /**
+   * 获取所有账单列表（管理员）
+   */
+  async getAllInvoices(options: {
+    page: number;
+    limit: number;
+    status?: InvoiceStatus;
+    type?: InvoiceType;
+    userId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    search?: string;
+  }): Promise<{ data: Invoice[]; total: number; page: number; limit: number }> {
+    const { page, limit, status, type, userId, startDate, endDate, search } = options;
+
+    // 使用 QueryBuilder 支持动态筛选
+    const queryBuilder = this.invoiceRepository.createQueryBuilder('invoice');
+
+    // 状态筛选
+    if (status) {
+      queryBuilder.andWhere('invoice.status = :status', { status });
+    }
+
+    // 账单类型筛选
+    if (type) {
+      queryBuilder.andWhere('invoice.type = :type', { type });
+    }
+
+    // 用户ID筛选
+    if (userId) {
+      queryBuilder.andWhere('invoice.userId = :userId', { userId });
+    }
+
+    // 日期范围筛选
+    if (startDate && endDate) {
+      queryBuilder.andWhere('invoice.billingPeriodStart BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    } else if (startDate) {
+      queryBuilder.andWhere('invoice.billingPeriodStart >= :startDate', { startDate });
+    } else if (endDate) {
+      queryBuilder.andWhere('invoice.billingPeriodEnd <= :endDate', { endDate });
+    }
+
+    // 搜索（账单号或用户ID）
+    if (search) {
+      queryBuilder.andWhere('(invoice.invoiceNumber ILIKE :search OR invoice.userId ILIKE :search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    // 分页
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    // 排序
+    queryBuilder.orderBy('invoice.createdAt', 'DESC');
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  /**
    * 发布账单（从草稿变为待支付）
    */
   async publishInvoice(invoiceId: string): Promise<Invoice> {

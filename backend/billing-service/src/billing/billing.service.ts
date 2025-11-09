@@ -262,6 +262,64 @@ export class BillingService {
     }
   }
 
+  /**
+   * 获取所有订单（分页）
+   */
+  async getAllOrders(params: {
+    page: number;
+    limit: number;
+    status?: string;
+    paymentMethod?: string;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const { page, limit, status, paymentMethod, search, startDate, endDate } = params;
+    const queryBuilder = this.orderRepository.createQueryBuilder('order');
+
+    // 状态筛选
+    if (status) {
+      queryBuilder.andWhere('order.status = :status', { status });
+    }
+
+    // 支付方式筛选
+    if (paymentMethod) {
+      queryBuilder.andWhere('order.paymentMethod = :paymentMethod', { paymentMethod });
+    }
+
+    // 搜索（订单号）
+    if (search) {
+      queryBuilder.andWhere('order.id ILIKE :search', { search: `%${search}%` });
+    }
+
+    // 日期范围筛选
+    if (startDate && endDate) {
+      queryBuilder.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+      });
+    } else if (startDate) {
+      queryBuilder.andWhere('order.createdAt >= :startDate', { startDate: new Date(startDate) });
+    } else if (endDate) {
+      queryBuilder.andWhere('order.createdAt <= :endDate', { endDate: new Date(endDate) });
+    }
+
+    // 分页
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    // 排序
+    queryBuilder.orderBy('order.createdAt', 'DESC');
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
+  }
+
   async getUserOrders(userId: string) {
     return this.orderRepository.find({
       where: { userId },
@@ -349,14 +407,14 @@ export class BillingService {
 
     // 已完成订单数
     const completedOrders = await this.orderRepository.count({
-      where: { ...where, status: 'completed' },
+      where: { ...where, status: OrderStatus.COMPLETED },
     });
 
     // 总收入
     const ordersRevenue = await this.orderRepository
       .createQueryBuilder('order')
       .select('SUM(order.totalAmount)', 'total')
-      .where('order.status = :status', { status: 'completed' })
+      .where('order.status = :status', { status: OrderStatus.COMPLETED })
       .andWhere(tenantId ? 'order.tenantId = :tenantId' : '1=1', { tenantId })
       .getRawOne();
 
@@ -377,7 +435,7 @@ export class BillingService {
       .createQueryBuilder('order')
       .select('SUM(order.totalAmount)', 'total')
       .where('order.createdAt >= :date', { date: firstDayOfMonth })
-      .andWhere('order.status = :status', { status: 'completed' })
+      .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
       .andWhere(tenantId ? 'order.tenantId = :tenantId' : '1=1', { tenantId })
       .getRawOne();
 

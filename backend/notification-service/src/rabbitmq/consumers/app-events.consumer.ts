@@ -10,6 +10,7 @@ import {
 import { NotificationsService } from '../../notifications/notifications.service';
 import { TemplatesService } from '../../templates/templates.service';
 import { NotificationCategory } from '../../entities/notification.entity';
+import { NotificationGateway } from '../../gateway/notification.gateway';
 
 /**
  * App Service 事件消费者
@@ -20,6 +21,9 @@ import { NotificationCategory } from '../../entities/notification.entity';
  *   - 所有事件处理器使用 createRoleBasedNotification()
  *   - 支持角色特定模板（super_admin, tenant_admin, admin, user）
  *   - 从 event.payload.userRole 获取角色信息
+ * ✅ 2025-11-07: 添加 WebSocket 实时推送
+ *   - 集成 NotificationGateway 进行实时事件推送
+ *   - 支持用户订阅推送
  */
 @Injectable()
 export class AppEventsConsumer {
@@ -27,7 +31,8 @@ export class AppEventsConsumer {
 
   constructor(
     private readonly notificationsService: NotificationsService,
-    private readonly templatesService: TemplatesService
+    private readonly templatesService: TemplatesService,
+    private readonly gateway: NotificationGateway
   ) {}
 
   @RabbitSubscribe({
@@ -58,7 +63,21 @@ export class AppEventsConsumer {
         }
       );
 
-      this.logger.log(`应用安装通知已发送: ${event.payload.userId}`);
+      // ✅ WebSocket 实时推送
+      this.gateway.sendToUser(event.payload.userId, {
+        type: 'app.installed',
+        data: {
+          userId: event.payload.userId,
+          appId: event.payload.appId,
+          appName: event.payload.appName,
+          deviceId: event.payload.deviceId,
+          deviceName: event.payload.deviceName,
+          version: event.payload.version,
+          installedAt: event.payload.installedAt || new Date().toISOString(),
+        },
+      });
+
+      this.logger.log(`应用安装通知已发送并推送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理应用安装事件失败: ${error.message}`);
       throw error;
@@ -93,7 +112,21 @@ export class AppEventsConsumer {
         }
       );
 
-      this.logger.log(`应用安装失败通知已发送: ${event.payload.userId}`);
+      // ✅ WebSocket 实时推送
+      this.gateway.sendToUser(event.payload.userId, {
+        type: 'app.install_failed',
+        data: {
+          userId: event.payload.userId,
+          appId: event.payload.appId,
+          appName: event.payload.appName,
+          deviceId: event.payload.deviceId,
+          deviceName: event.payload.deviceName,
+          reason: event.payload.reason,
+          failedAt: event.payload.failedAt || new Date().toISOString(),
+        },
+      });
+
+      this.logger.log(`应用安装失败通知已发送并推送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理应用安装失败事件失败: ${error.message}`);
       throw error;
@@ -128,7 +161,21 @@ export class AppEventsConsumer {
         }
       );
 
-      this.logger.log(`应用更新通知已发送: ${event.payload.userId}`);
+      // ✅ WebSocket 实时推送
+      this.gateway.sendToUser(event.payload.userId, {
+        type: 'app.updated',
+        data: {
+          userId: event.payload.userId,
+          appId: event.payload.appId,
+          appName: event.payload.appName,
+          deviceId: event.payload.deviceId,
+          oldVersion: event.payload.oldVersion,
+          newVersion: event.payload.newVersion,
+          updatedAt: event.payload.updatedAt || new Date().toISOString(),
+        },
+      });
+
+      this.logger.log(`应用更新通知已发送并推送: ${event.payload.userId}`);
     } catch (error) {
       this.logger.error(`处理应用更新事件失败: ${error.message}`);
       throw error;

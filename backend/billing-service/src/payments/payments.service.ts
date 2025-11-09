@@ -4,12 +4,14 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, LessThan, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { CronExpression } from '@nestjs/schedule';
 import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
+import { CacheService } from '../cache/cache.service';
 import { Payment, PaymentMethod, PaymentStatus } from './entities/payment.entity';
 import { Order, OrderStatus } from '../billing/entities/order.entity';
 import { WeChatPayProvider } from './providers/wechat-pay.provider';
@@ -47,7 +49,8 @@ export class PaymentsService {
     private eventBus: EventBusService,
     @InjectDataSource()
     private dataSource: DataSource,
-    private readonly lockService: DistributedLockService // ✅ K8s cluster safety
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
+    @Optional() private cacheService: CacheService // ✅ 缓存服务
   ) {}
 
   /**
@@ -815,17 +818,68 @@ export class PaymentsService {
   /**
    * 获取支付列表
    */
-  async findAll(userId?: string): Promise<Payment[]> {
+  /**
+   * 查询支付列表（带分页和缓存）
+   * ✅ 优化: 添加分页参数，避免一次返回大量数据
+   * ✅ 优化: 添加短时间缓存（10秒）- 支付数据需要较高新鲜度
+   */
+  async findAll(
+    page: number = 1,
+    limit: number = 20,
+    userId?: string
+  ): Promise<{ data: Payment[]; total: number; page: number; limit: number }> {
+    // ✅ 优化: 限制单次查询最大数量
+    const safeLimit = Math.min(limit, 100);
+    const skip = (page - 1) * safeLimit;
+
+    // ✅ 优化: 构建缓存键
+    const cacheKey = `payment:list:page${page}:limit${safeLimit}:user${userId || 'all'}`;
+
+    // ✅ 优化: 尝试从缓存获取（短TTL，支付数据需要新鲜）
+    if (this.cacheService) {
+      try {
+        const cached = await this.cacheService.get<{
+          data: Payment[];
+          total: number;
+          page: number;
+          limit: number;
+        }>(cacheKey);
+
+        if (cached) {
+          this.logger.debug(`支付列表缓存命中 - 页码: ${page}`);
+          return cached;
+        }
+      } catch (error) {
+        this.logger.warn(`获取支付列表缓存失败: ${error.message}`);
+      }
+    }
+
+    // 查询数据库
     const where: any = {};
     if (userId) {
       where.userId = userId;
     }
 
-    return await this.paymentsRepository.find({
+    const [data, total] = await this.paymentsRepository.findAndCount({
       where,
+      skip,
+      take: safeLimit,
       order: { createdAt: 'DESC' },
-      take: 100,
     });
+
+    const result = { data, total, page, limit: safeLimit };
+
+    // ✅ 优化: 写入缓存 (10秒 TTL - 支付数据需要较高新鲜度)
+    if (this.cacheService) {
+      try {
+        await this.cacheService.set(cacheKey, result, 10);
+        this.logger.debug(`支付列表已缓存 - TTL: 10s`);
+      } catch (error) {
+        this.logger.warn(`写入支付列表缓存失败: ${error.message}`);
+      }
+    }
+
+    return result;
   }
 
   /**

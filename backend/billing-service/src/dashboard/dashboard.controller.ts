@@ -11,7 +11,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { DashboardService, WarningConfig } from './dashboard.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 
 @ApiTags('dashboard')
 @ApiBearerAuth()
@@ -21,7 +21,7 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('usage-forecast/:userId')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({
     summary: '获取使用量预测',
     description: '基于历史使用数据，预测未来的资源使用趋势和成本',
@@ -62,7 +62,7 @@ export class DashboardController {
   }
 
   @Get('cost-warning/:userId')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({
     summary: '获取成本预警',
     description: '基于当前余额和预测使用量，生成成本预警信息',
@@ -85,7 +85,7 @@ export class DashboardController {
   }
 
   @Get('warning-config/:userId')
-  @RequirePermission('billing:read')
+  @RequirePermission('billing.read')
   @ApiOperation({
     summary: '获取预警配置',
     description: '获取用户的成本预警配置',
@@ -104,7 +104,7 @@ export class DashboardController {
   }
 
   @Put('warning-config/:userId')
-  @RequirePermission('billing:update')
+  @RequirePermission('billing.update')
   @ApiOperation({
     summary: '更新预警配置',
     description: '更新用户的成本预警配置',

@@ -352,6 +352,55 @@ const event: UserRegisteredEvent = {
 
 ---
 
+## 🧪 集成测试
+
+### 测试概览
+
+完整的集成测试套件，使用真实的 PostgreSQL、Redis 和 RabbitMQ 基础设施：
+
+**测试结果**: ✅ **38/38 通过 (100%)**
+
+| 测试套件 | 通过 | 覆盖范围 |
+|---------|------|---------|
+| Redis 集成测试 | 15/15 | 缓存操作、TTL、并发、性能 |
+| Notifications 服务测试 | 13/13 | CRUD、事务、分页、清理 |
+| RabbitMQ 集成测试 | 10/10 | 事件消费、DLX、E2E、吞吐量 |
+
+### 快速开始
+
+```bash
+# 一键运行（推荐）- 自动清理旧数据
+cd backend/notification-service
+pnpm test:integration:clean
+
+# 手动运行
+docker compose -f docker-compose.test.yml up -d
+pnpm test:integration
+
+# 查看覆盖率
+pnpm test:integration:cov
+
+# 清理测试环境
+docker compose -f docker-compose.test.yml down -v
+```
+
+### 性能基准
+
+| 测试项 | 性能指标 | 状态 |
+|-------|---------|------|
+| Redis 1000 操作 | 41ms | ⚡ 优秀 |
+| 10 并发通知创建 | 158ms | ✅ 良好 |
+| 50 事件吞吐量 | 5.1 秒 | ✅ 良好 |
+
+### 测试文档
+
+- **[SUCCESS_SUMMARY.md](./test/SUCCESS_SUMMARY.md)** - 🎉 成功总结
+- **[TEST_SUMMARY.md](./test/TEST_SUMMARY.md)** - 简明总结
+- **[INTEGRATION_TEST_REPORT.md](./test/INTEGRATION_TEST_REPORT.md)** - 详细报告
+- **[QUICK_REFERENCE.md](./test/QUICK_REFERENCE.md)** - 快速参考
+
+---
+
 ## 📚 相关文档
 
 - [RabbitMQ 官方文档](https://www.rabbitmq.com/documentation.html)

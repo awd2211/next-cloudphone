@@ -34,9 +34,31 @@ export class BillingRulesController {
   }
 
   @Get()
-  @ApiOperation({ summary: '获取计费规则列表' })
-  async listRules(@Query('resourceType') resourceType?: ResourceType) {
-    return await this.rulesService.listRules(resourceType);
+  @ApiOperation({ summary: '获取计费规则列表（支持分页和筛选）' })
+  async listRules(
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize?: string,
+    @Query('limit') limit?: string,
+    @Query('resourceType') resourceType?: ResourceType,
+    @Query('isActive') isActive?: string
+  ) {
+    // 支持 pageSize 或 limit 参数
+    const itemsPerPage = pageSize || limit || '10';
+
+    const result = await this.rulesService.listRules(
+      parseInt(page),
+      parseInt(itemsPerPage),
+      resourceType,
+      isActive === 'true' ? true : isActive === 'false' ? false : undefined
+    );
+
+    // 返回标准格式：将 limit 转换为 pageSize
+    const { limit: _, ...rest } = result;
+    return {
+      success: true,
+      ...rest,
+      pageSize: result.limit,
+    };
   }
 
   @Get(':id')

@@ -10,6 +10,7 @@ import {
 export enum OrderStatus {
   PENDING = 'pending',
   PAID = 'paid',
+  COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   REFUNDED = 'refunded',
   FAILED = 'failed',

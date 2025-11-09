@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, LessThan, Between } from 'typeorm';
 import { UsageRecord } from '../billing/entities/usage-record.entity';
 import { UserBalance } from '../balance/entities/user-balance.entity';
+import { CacheService } from '../cache/cache.service';
+import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 /**
  * 使用量预测数据点
@@ -69,11 +71,13 @@ export class DashboardService {
     @InjectRepository(UsageRecord)
     private usageRecordRepository: Repository<UsageRecord>,
     @InjectRepository(UserBalance)
-    private balanceRepository: Repository<UserBalance>
+    private balanceRepository: Repository<UserBalance>,
+    private readonly cacheService: CacheService, // ✅ 注入缓存服务
   ) {}
 
   /**
    * 获取使用量预测
+   * ✅ 已添加缓存 (TTL: 300秒 = 5分钟) - 计算密集型操作，缓存效果显著
    *
    * 使用线性回归分析历史数据，预测未来趋势
    */
@@ -82,125 +86,146 @@ export class DashboardService {
     forecastDays: number = 7,
     historicalDays: number = 30
   ): Promise<UsageForecastResponse> {
-    this.logger.log(`Generating usage forecast for user ${userId}`);
+    return this.cacheService.wrap(
+      CacheKeys.usageForecast(userId, forecastDays, historicalDays),
+      async () => {
+        this.logger.log(`Generating usage forecast for user ${userId}`);
 
-    // 1. 获取历史使用记录
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - historicalDays);
+        // 1. 获取历史使用记录
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - historicalDays);
 
-    const records = await this.usageRecordRepository.find({
-      where: {
-        userId,
-        startTime: MoreThan(startDate),
+        const records = await this.usageRecordRepository.find({
+          where: {
+            userId,
+            startTime: MoreThan(startDate),
+          },
+          order: {
+            startTime: 'ASC',
+          },
+        });
+
+        if (records.length === 0) {
+          return this.getEmptyForecast(userId, forecastDays, historicalDays);
+        }
+
+        // 2. 按天聚合数据
+        const dailyStats = this.aggregateByDay(records);
+
+        // 3. 计算趋势
+        const trend = this.calculateTrend(dailyStats);
+
+        // 4. 预测未来数据
+        const predictions = this.predictFutureCosts(dailyStats, forecastDays);
+
+        // 5. 计算平均每日成本
+        const totalCost = records.reduce((sum, r) => sum + r.cost, 0);
+        const currentDailyCost = totalCost / historicalDays;
+
+        const predictedTotalCost = predictions.reduce((sum, p) => sum + p.predictedCost, 0);
+        const predictedDailyCost = predictedTotalCost / forecastDays;
+
+        // 6. 组合历史数据和预测数据
+        const dataPoints: UsageForecastDataPoint[] = [
+          ...this.convertToDataPoints(dailyStats, true),
+          ...predictions,
+        ];
+
+        return {
+          userId,
+          forecastPeriodDays: forecastDays,
+          historicalDays,
+          currentDailyCost,
+          predictedDailyCost,
+          predictedTotalCost,
+          trend,
+          dataPoints,
+          generatedAt: new Date().toISOString(),
+        };
       },
-      order: {
-        startTime: 'ASC',
-      },
-    });
-
-    if (records.length === 0) {
-      return this.getEmptyForecast(userId, forecastDays, historicalDays);
-    }
-
-    // 2. 按天聚合数据
-    const dailyStats = this.aggregateByDay(records);
-
-    // 3. 计算趋势
-    const trend = this.calculateTrend(dailyStats);
-
-    // 4. 预测未来数据
-    const predictions = this.predictFutureCosts(dailyStats, forecastDays);
-
-    // 5. 计算平均每日成本
-    const totalCost = records.reduce((sum, r) => sum + r.cost, 0);
-    const currentDailyCost = totalCost / historicalDays;
-
-    const predictedTotalCost = predictions.reduce((sum, p) => sum + p.predictedCost, 0);
-    const predictedDailyCost = predictedTotalCost / forecastDays;
-
-    // 6. 组合历史数据和预测数据
-    const dataPoints: UsageForecastDataPoint[] = [
-      ...this.convertToDataPoints(dailyStats, true),
-      ...predictions,
-    ];
-
-    return {
-      userId,
-      forecastPeriodDays: forecastDays,
-      historicalDays,
-      currentDailyCost,
-      predictedDailyCost,
-      predictedTotalCost,
-      trend,
-      dataPoints,
-      generatedAt: new Date().toISOString(),
-    };
+      CacheTTL.USAGE_FORECAST,
+    );
   }
 
   /**
    * 获取成本预警
+   * ✅ 已添加缓存 (TTL: 180秒 = 3分钟)
    */
   async getCostWarning(userId: string, config?: WarningConfig): Promise<CostWarningResponse> {
-    this.logger.log(`Generating cost warning for user ${userId}`);
+    return this.cacheService.wrap(
+      CacheKeys.costWarning(userId),
+      async () => {
+        this.logger.log(`Generating cost warning for user ${userId}`);
 
-    // 1. 获取用户余额
-    const balance = await this.balanceRepository.findOne({
-      where: { userId },
-    });
+        // 1. 获取用户余额
+        const balance = await this.balanceRepository.findOne({
+          where: { userId },
+        });
 
-    const currentBalance = balance ? Number(balance.balance) : 0;
+        const currentBalance = balance ? Number(balance.balance) : 0;
 
-    // 2. 获取预测数据
-    const forecast7Days = await this.getUsageForecast(userId, 7, 30);
-    const forecast30Days = await this.getUsageForecast(userId, 30, 30);
+        // 2. 获取预测数据
+        const forecast7Days = await this.getUsageForecast(userId, 7, 30);
+        const forecast30Days = await this.getUsageForecast(userId, 30, 30);
 
-    const predictedSpending7Days = forecast7Days.predictedTotalCost;
-    const predictedSpending30Days = forecast30Days.predictedTotalCost;
+        const predictedSpending7Days = forecast7Days.predictedTotalCost;
+        const predictedSpending30Days = forecast30Days.predictedTotalCost;
 
-    // 3. 计算余额耗尽天数
-    const dailySpending = forecast7Days.predictedDailyCost;
-    const balanceRunoutDays = dailySpending > 0 ? Math.floor(currentBalance / dailySpending) : null;
+        // 3. 计算余额耗尽天数
+        const dailySpending = forecast7Days.predictedDailyCost;
+        const balanceRunoutDays = dailySpending > 0 ? Math.floor(currentBalance / dailySpending) : null;
 
-    // 4. 确定预警级别和生成预警信息
-    const { warningLevel, warnings } = this.generateWarnings(
-      currentBalance,
-      predictedSpending7Days,
-      predictedSpending30Days,
-      balanceRunoutDays,
-      config
+        // 4. 确定预警级别和生成预警信息
+        const { warningLevel, warnings } = this.generateWarnings(
+          currentBalance,
+          predictedSpending7Days,
+          predictedSpending30Days,
+          balanceRunoutDays,
+          config
+        );
+
+        return {
+          userId,
+          currentBalance,
+          predictedSpending7Days,
+          predictedSpending30Days,
+          balanceRunoutDays,
+          warningLevel,
+          warnings,
+          timestamp: new Date().toISOString(),
+        };
+      },
+      CacheTTL.COST_WARNING,
     );
-
-    return {
-      userId,
-      currentBalance,
-      predictedSpending7Days,
-      predictedSpending30Days,
-      balanceRunoutDays,
-      warningLevel,
-      warnings,
-      timestamp: new Date().toISOString(),
-    };
   }
 
   /**
    * 获取预警配置
+   * ✅ 已添加缓存 (TTL: 600秒 = 10分钟) - 配置很少变动
    */
   async getWarningConfig(userId: string): Promise<WarningConfig> {
-    // TODO: 从数据库读取配置
-    // 目前返回默认配置
-    return {
-      userId,
-      dailyBudget: 100,
-      monthlyBudget: 3000,
-      lowBalanceThreshold: 50,
-      criticalBalanceThreshold: 20,
-      enableEmailNotification: true,
-      enableSmsNotification: false,
-    };
+    return this.cacheService.wrap(
+      CacheKeys.warningConfig(userId),
+      async () => {
+        // TODO: 从数据库读取配置
+        // 目前返回默认配置
+        return {
+          userId,
+          dailyBudget: 100,
+          monthlyBudget: 3000,
+          lowBalanceThreshold: 50,
+          criticalBalanceThreshold: 20,
+          enableEmailNotification: true,
+          enableSmsNotification: false,
+        };
+      },
+      CacheTTL.WARNING_CONFIG,
+    );
   }
 
   /**
    * 更新预警配置
+   * ✅ 添加缓存失效逻辑
    */
   async updateWarningConfig(
     userId: string,
@@ -209,10 +234,16 @@ export class DashboardService {
     // TODO: 保存到数据库
     this.logger.log(`Updating warning config for user ${userId}`);
 
-    return {
+    const result = {
       userId,
       ...config,
     } as WarningConfig;
+
+    // ✅ 清除相关缓存
+    await this.cacheService.del(CacheKeys.warningConfig(userId));
+    await this.cacheService.del(CacheKeys.costWarning(userId));
+
+    return result;
   }
 
   /**

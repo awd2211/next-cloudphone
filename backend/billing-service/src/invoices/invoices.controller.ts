@@ -28,6 +28,47 @@ export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
   /**
+   * 获取所有账单列表（管理员）
+   */
+  @Get()
+  @Roles('admin')
+  @ApiOperation({ summary: '获取所有账单列表（管理员 - 支持分页和筛选）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getAllInvoices(
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: InvoiceStatus,
+    @Query('type') type?: InvoiceType,
+    @Query('userId') userId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('search') search?: string
+  ) {
+    // 支持 pageSize 或 limit 参数
+    const itemsPerPage = pageSize || limit || '10';
+
+    const result = await this.invoicesService.getAllInvoices({
+      page: parseInt(page),
+      limit: parseInt(itemsPerPage),
+      status,
+      type,
+      userId,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      search,
+    });
+
+    // 返回标准格式：将 limit 转换为 pageSize
+    const { limit: _, ...rest } = result;
+    return {
+      success: true,
+      ...rest,
+      pageSize: result.limit,
+    };
+  }
+
+  /**
    * 创建账单
    */
   @Post()
