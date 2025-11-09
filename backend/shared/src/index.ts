@@ -222,6 +222,9 @@ export { ServiceAuthGuard } from './auth/service-auth.guard';
 export { ServiceTokenService } from './auth/service-token.service';
 export type { ServiceTokenPayload } from './auth/service-auth.guard';
 
+// ========== 统一认证授权基类 (New!) ==========
+export * from './auth';
+
 // ========== RBAC & Data Scope ==========
 export { UserRole, isAdminRole, hasAdminRole, isSuperAdmin } from './constants/roles';
 export { DataScope, DataScopeType } from './decorators/data-scope.decorator';

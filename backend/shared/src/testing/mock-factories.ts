@@ -170,24 +170,105 @@ export function createMockPermission(overrides: Partial<any> = {}) {
 
 /**
  * 创建 Mock 配额
+ *
+ * 注意：此函数支持两种数据格式：
+ * 1. 新格式（嵌套）：{ limits: {...}, usage: {...} }
+ * 2. 旧格式（扁平）：{ maxDevices, maxCpuCores, ... } - 将自动转换为嵌套格式
  */
 export function createMockQuota(overrides: Partial<any> = {}) {
+  const now = new Date();
+
+  // 默认 limits (12个字段)
+  const defaultLimits = {
+    maxDevices: 10,
+    maxConcurrentDevices: 5,
+    maxCpuCoresPerDevice: 4,
+    maxMemoryMBPerDevice: 4096,
+    maxStorageGBPerDevice: 64,
+    totalCpuCores: 40,
+    totalMemoryGB: 64,
+    totalStorageGB: 500,
+    maxBandwidthMbps: 100,
+    monthlyTrafficGB: 1000,
+    maxUsageHoursPerDay: 24,
+    maxUsageHoursPerMonth: 720,
+  };
+
+  // 默认 usage (10个字段)
+  const defaultUsage = {
+    currentDevices: 0,
+    currentConcurrentDevices: 0,
+    usedCpuCores: 0,
+    usedMemoryGB: 0,
+    usedStorageGB: 0,
+    currentBandwidthMbps: 0,
+    monthlyTrafficUsedGB: 0,
+    todayUsageHours: 0,
+    monthlyUsageHours: 0,
+    lastUpdatedAt: now,
+  };
+
+  // 检查是否使用旧格式（扁平结构）
+  const isOldFormat = overrides.maxDevices !== undefined ||
+                      overrides.maxCpuCores !== undefined ||
+                      overrides.currentDevices !== undefined;
+
+  let limits = defaultLimits;
+  let usage = defaultUsage;
+
+  if (isOldFormat) {
+    // 旧格式转换：扁平 → 嵌套
+    limits = {
+      maxDevices: overrides.maxDevices ?? defaultLimits.maxDevices,
+      maxConcurrentDevices: overrides.maxConcurrentDevices ?? defaultLimits.maxConcurrentDevices,
+      maxCpuCoresPerDevice: overrides.maxCpuCoresPerDevice ?? defaultLimits.maxCpuCoresPerDevice,
+      maxMemoryMBPerDevice: overrides.maxMemoryMBPerDevice ?? defaultLimits.maxMemoryMBPerDevice,
+      maxStorageGBPerDevice: overrides.maxStorageGBPerDevice ?? defaultLimits.maxStorageGBPerDevice,
+      totalCpuCores: overrides.maxCpuCores ?? overrides.totalCpuCores ?? defaultLimits.totalCpuCores,
+      totalMemoryGB: overrides.maxMemoryGB ?? overrides.totalMemoryGB ?? defaultLimits.totalMemoryGB,
+      totalStorageGB: overrides.maxStorageGB ?? overrides.totalStorageGB ?? defaultLimits.totalStorageGB,
+      maxBandwidthMbps: overrides.maxBandwidthMbps ?? defaultLimits.maxBandwidthMbps,
+      monthlyTrafficGB: overrides.monthlyTrafficGB ?? defaultLimits.monthlyTrafficGB,
+      maxUsageHoursPerDay: overrides.maxUsageHoursPerDay ?? defaultLimits.maxUsageHoursPerDay,
+      maxUsageHoursPerMonth: overrides.maxUsageHoursPerMonth ?? defaultLimits.maxUsageHoursPerMonth,
+    };
+
+    usage = {
+      currentDevices: overrides.currentDevices ?? defaultUsage.currentDevices,
+      currentConcurrentDevices: overrides.currentConcurrentDevices ?? defaultUsage.currentConcurrentDevices,
+      usedCpuCores: overrides.currentCpuCores ?? overrides.usedCpuCores ?? defaultUsage.usedCpuCores,
+      usedMemoryGB: overrides.currentMemoryGB ?? overrides.usedMemoryGB ?? defaultUsage.usedMemoryGB,
+      usedStorageGB: overrides.currentStorageGB ?? overrides.usedStorageGB ?? defaultUsage.usedStorageGB,
+      currentBandwidthMbps: overrides.currentBandwidthMbps ?? defaultUsage.currentBandwidthMbps,
+      monthlyTrafficUsedGB: overrides.monthlyTrafficUsedGB ?? defaultUsage.monthlyTrafficUsedGB,
+      todayUsageHours: overrides.todayUsageHours ?? defaultUsage.todayUsageHours,
+      monthlyUsageHours: overrides.monthlyUsageHours ?? defaultUsage.monthlyUsageHours,
+      lastUpdatedAt: overrides.lastUpdatedAt ?? now,
+    };
+  } else if (overrides.limits || overrides.usage) {
+    // 新格式：直接使用 limits 和 usage
+    limits = { ...defaultLimits, ...overrides.limits };
+    usage = { ...defaultUsage, ...overrides.usage };
+  }
+
   return {
     id: randomUUID(),
     userId: randomUUID(),
-    tenantId: randomUUID(),
-    maxDevices: 10,
-    maxCpuCores: 16,
-    maxMemoryMb: 32768,
-    maxDiskGb: 500,
-    currentDevices: 0,
-    currentCpuCores: 0,
-    currentMemoryMb: 0,
-    currentDiskGb: 0,
-    expiresAt: new Date(Date.now() + 2592000000), // +30 days
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    planId: null,
+    planName: null,
+    status: 'active',
+    limits,
+    usage,
+    validFrom: null,
+    validUntil: new Date(Date.now() + 2592000000), // +30 days
+    autoRenew: false,
+    notes: null,
+    createdAt: now,
+    updatedAt: now,
     ...overrides,
+    // 确保 limits 和 usage 不会被 overrides 的扁平字段覆盖
+    limits: overrides.limits ? { ...limits, ...overrides.limits } : limits,
+    usage: overrides.usage ? { ...usage, ...overrides.usage } : usage,
   };
 }
 

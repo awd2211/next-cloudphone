@@ -5,7 +5,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { trace, SpanStatusCode, context } from '@opentelemetry/api';
+import { trace, SpanStatusCode, context, SpanKind } from '@opentelemetry/api';
 
 @Injectable()
 export class DeviceServiceExample {
@@ -67,7 +67,7 @@ export class DeviceServiceExample {
       'device.start',
       {
         // 设置 span 类型
-        kind: trace.SpanKind.INTERNAL,
+        kind: SpanKind.INTERNAL,
         // 添加初始 attributes
         attributes: {
           'device.id': deviceId,

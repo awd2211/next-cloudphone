@@ -53,7 +53,7 @@ export class ConsulService implements OnModuleInit, OnModuleDestroy {
     healthPath: string = '/health'
   ): Promise<string | null> {
     const serviceId = `${name}-${process.env.HOSTNAME || 'dev'}-${Date.now()}`;
-    const address = process.env.SERVICE_HOST || '127.0.0.1';
+    const address = process.env.SERVICE_HOST || 'host.docker.internal';
 
     try {
       const config = {

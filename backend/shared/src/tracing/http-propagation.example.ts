@@ -8,6 +8,7 @@ import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { trace, context, propagation } from '@opentelemetry/api';
 import { firstValueFrom } from 'rxjs';
+import { AxiosRequestConfig } from 'axios';
 
 @Injectable()
 export class TracedHttpClientExample {
@@ -67,7 +68,7 @@ export class TracedHttpClientExample {
 
         // 注入 trace context 到 headers
         if (!config.headers) {
-          config.headers = {};
+          config.headers = {} as any;
         }
 
         propagation.inject(currentContext, config.headers);
