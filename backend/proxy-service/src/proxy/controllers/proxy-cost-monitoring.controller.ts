@@ -20,7 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { RequirePermission } from '../../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { ProxyCostMonitoringService } from '../services/proxy-cost-monitoring.service';
 import {
   RecordCostDto,
@@ -51,7 +51,7 @@ export class ProxyCostMonitoringController {
    * 记录代理使用成本
    */
   @Post('record')
-  @RequirePermission('proxy:cost:record')
+  @RequirePermission('proxy.cost.record')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: '记录成本',
@@ -72,7 +72,7 @@ export class ProxyCostMonitoringController {
    * 配置预算
    */
   @Post('budget')
-  @RequirePermission('proxy:cost:budget')
+  @RequirePermission('proxy.cost.budget')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: '配置预算',
@@ -103,7 +103,7 @@ export class ProxyCostMonitoringController {
    * 获取成本统计
    */
   @Post('statistics')
-  @RequirePermission('proxy:cost:stats')
+  @RequirePermission('proxy.cost.stats')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '查询成本统计',
@@ -132,7 +132,7 @@ export class ProxyCostMonitoringController {
    * 查询用户预算
    */
   @Get('budget/user/:userId')
-  @RequirePermission('proxy:cost:budget')
+  @RequirePermission('proxy.cost.budget')
   @ApiOperation({
     summary: '查询用户预算',
     description: '获取用户的所有预算配置',
@@ -161,7 +161,7 @@ export class ProxyCostMonitoringController {
    * 查询成本告警
    */
   @Get('alerts/user/:userId')
-  @RequirePermission('proxy:cost:alerts')
+  @RequirePermission('proxy.cost.alerts')
   @ApiOperation({
     summary: '查询成本告警',
     description: '获取用户的成本告警列表',
@@ -190,7 +190,7 @@ export class ProxyCostMonitoringController {
    * 确认成本告警
    */
   @Put('alerts/:alertId/acknowledge')
-  @RequirePermission('proxy:cost:alerts')
+  @RequirePermission('proxy.cost.alerts')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '确认告警',
@@ -215,7 +215,7 @@ export class ProxyCostMonitoringController {
    * 获取成本优化建议
    */
   @Get('optimization/:userId')
-  @RequirePermission('proxy:cost:optimize')
+  @RequirePermission('proxy.cost.optimize')
   @ApiOperation({
     summary: '成本优化建议',
     description: '基于历史数据分析，提供成本优化建议',
@@ -240,7 +240,7 @@ export class ProxyCostMonitoringController {
    * 获取实时成本仪表盘
    */
   @Get('dashboard/:userId')
-  @RequirePermission('proxy:cost:dashboard')
+  @RequirePermission('proxy.cost.dashboard')
   @ApiOperation({
     summary: '成本仪表盘',
     description: '获取用户的实时成本仪表盘数据',

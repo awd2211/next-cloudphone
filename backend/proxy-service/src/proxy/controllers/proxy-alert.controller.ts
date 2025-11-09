@@ -22,7 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { RequirePermission } from '../../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { ProxyAlertService } from '../services/proxy-alert.service';
 import {
   CreateAlertChannelDto,
@@ -54,7 +54,7 @@ export class ProxyAlertController {
    * 创建告警通道
    */
   @Post('channels')
-  @RequirePermission('proxy:alert:channel:create')
+  @RequirePermission('proxy.alert.channel.create')
   @ApiOperation({
     summary: '创建告警通道',
     description: '创建新的告警通知通道（Email, SMS, Webhook等）',
@@ -78,7 +78,7 @@ export class ProxyAlertController {
    * 获取告警通道列表
    */
   @Get('channels')
-  @RequirePermission('proxy:alert:channel:read')
+  @RequirePermission('proxy.alert.channel.read')
   @ApiOperation({
     summary: '告警通道列表',
     description: '获取所有告警通道',
@@ -94,7 +94,7 @@ export class ProxyAlertController {
    * 获取通道详情
    */
   @Get('channels/:channelId')
-  @RequirePermission('proxy:alert:channel:read')
+  @RequirePermission('proxy.alert.channel.read')
   @ApiOperation({ summary: '通道详情' })
   @ApiParam({ name: 'channelId', description: '通道ID' })
   @ApiResponse({ status: 200, description: '查询成功' })
@@ -109,7 +109,7 @@ export class ProxyAlertController {
    * 更新告警通道
    */
   @Put('channels/:channelId')
-  @RequirePermission('proxy:alert:channel:update')
+  @RequirePermission('proxy.alert.channel.update')
   @ApiOperation({ summary: '更新告警通道' })
   @ApiParam({ name: 'channelId', description: '通道ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -125,7 +125,7 @@ export class ProxyAlertController {
    * 删除告警通道
    */
   @Delete('channels/:channelId')
-  @RequirePermission('proxy:alert:channel:delete')
+  @RequirePermission('proxy.alert.channel.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: '删除告警通道' })
   @ApiParam({ name: 'channelId', description: '通道ID' })
@@ -138,7 +138,7 @@ export class ProxyAlertController {
    * 测试告警通道
    */
   @Post('channels/:channelId/test')
-  @RequirePermission('proxy:alert:channel:test')
+  @RequirePermission('proxy.alert.channel.test')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '测试告警通道' })
   @ApiParam({ name: 'channelId', description: '通道ID' })
@@ -157,7 +157,7 @@ export class ProxyAlertController {
    * 创建告警规则
    */
   @Post('rules')
-  @RequirePermission('proxy:alert:rule:create')
+  @RequirePermission('proxy.alert.rule.create')
   @ApiOperation({
     summary: '创建告警规则',
     description: '创建新的告警触发规则',
@@ -181,7 +181,7 @@ export class ProxyAlertController {
    * 获取告警规则列表
    */
   @Get('rules')
-  @RequirePermission('proxy:alert:rule:read')
+  @RequirePermission('proxy.alert.rule.read')
   @ApiOperation({ summary: '告警规则列表' })
   @ApiQuery({
     name: 'activeOnly',
@@ -207,7 +207,7 @@ export class ProxyAlertController {
    * 获取规则详情
    */
   @Get('rules/:ruleId')
-  @RequirePermission('proxy:alert:rule:read')
+  @RequirePermission('proxy.alert.rule.read')
   @ApiOperation({ summary: '规则详情' })
   @ApiParam({ name: 'ruleId', description: '规则ID' })
   @ApiResponse({ status: 200, description: '查询成功' })
@@ -220,7 +220,7 @@ export class ProxyAlertController {
    * 更新告警规则
    */
   @Put('rules/:ruleId')
-  @RequirePermission('proxy:alert:rule:update')
+  @RequirePermission('proxy.alert.rule.update')
   @ApiOperation({ summary: '更新告警规则' })
   @ApiParam({ name: 'ruleId', description: '规则ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -236,7 +236,7 @@ export class ProxyAlertController {
    * 删除告警规则
    */
   @Delete('rules/:ruleId')
-  @RequirePermission('proxy:alert:rule:delete')
+  @RequirePermission('proxy.alert.rule.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: '删除告警规则' })
   @ApiParam({ name: 'ruleId', description: '规则ID' })
@@ -251,7 +251,7 @@ export class ProxyAlertController {
    * 获取告警历史
    */
   @Get('history')
-  @RequirePermission('proxy:alert:history:read')
+  @RequirePermission('proxy.alert.history.read')
   @ApiOperation({ summary: '告警历史列表' })
   @ApiQuery({ name: 'deviceId', required: false, description: '设备ID' })
   @ApiQuery({ name: 'ruleId', required: false, description: '规则ID' })
@@ -293,7 +293,7 @@ export class ProxyAlertController {
    * 确认告警
    */
   @Post('history/:alertId/acknowledge')
-  @RequirePermission('proxy:alert:acknowledge')
+  @RequirePermission('proxy.alert.acknowledge')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '确认告警' })
   @ApiParam({ name: 'alertId', description: '告警ID' })
@@ -318,7 +318,7 @@ export class ProxyAlertController {
    * 解决告警
    */
   @Post('history/:alertId/resolve')
-  @RequirePermission('proxy:alert:resolve')
+  @RequirePermission('proxy.alert.resolve')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '解决告警' })
   @ApiParam({ name: 'alertId', description: '告警ID' })
@@ -343,7 +343,7 @@ export class ProxyAlertController {
    * 获取告警统计
    */
   @Get('statistics')
-  @RequirePermission('proxy:alert:stats')
+  @RequirePermission('proxy.alert.stats')
   @ApiOperation({ summary: '告警统计' })
   @ApiQuery({ name: 'days', required: false, type: Number, description: '统计天数', schema: { default: 7 } })
   @ApiResponse({

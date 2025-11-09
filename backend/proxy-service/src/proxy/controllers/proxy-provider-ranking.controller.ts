@@ -19,7 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { RequirePermission } from '../../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { ProxyProviderRankingService } from '../services/proxy-provider-ranking.service';
 import {
   CompareProvidersDto,
@@ -49,7 +49,7 @@ export class ProxyProviderRankingController {
    * 获取提供商排名
    */
   @Get('rankings')
-  @RequirePermission('proxy:provider:read')
+  @RequirePermission('proxy.provider.read')
   @ApiOperation({
     summary: '提供商排名',
     description: '获取所有提供商的排名列表，按总分降序排列',
@@ -84,7 +84,7 @@ export class ProxyProviderRankingController {
    * 获取提供商详情
    */
   @Get(':provider/details')
-  @RequirePermission('proxy:provider:read')
+  @RequirePermission('proxy.provider.read')
   @ApiOperation({
     summary: '提供商详情',
     description: '获取指定提供商的详细评分、历史记录和趋势分析',
@@ -108,7 +108,7 @@ export class ProxyProviderRankingController {
    * 对比提供商
    */
   @Post('compare')
-  @RequirePermission('proxy:provider:compare')
+  @RequirePermission('proxy.provider.compare')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '对比提供商',
@@ -132,7 +132,7 @@ export class ProxyProviderRankingController {
    * 触发提供商评分计算
    */
   @Post(':provider/calculate')
-  @RequirePermission('proxy:provider:admin')
+  @RequirePermission('proxy.provider.admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '计算提供商评分',
@@ -157,7 +157,7 @@ export class ProxyProviderRankingController {
    * 触发所有提供商评分更新
    */
   @Post('calculate-all')
-  @RequirePermission('proxy:provider:admin')
+  @RequirePermission('proxy.provider.admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '更新所有提供商评分',
@@ -184,7 +184,7 @@ export class ProxyProviderRankingController {
    * 获取提供商统计
    */
   @Get('statistics')
-  @RequirePermission('proxy:provider:stats')
+  @RequirePermission('proxy.provider.stats')
   @ApiOperation({
     summary: '提供商统计',
     description: '获取所有提供商的统计信息',

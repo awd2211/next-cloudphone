@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { LoggerModule } from 'nestjs-pino';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD, APP_FILTER, Reflector } from '@nestjs/core';
 
 // ✅ 导入共享模块
 import {
@@ -13,6 +15,7 @@ import {
   createLoggerConfig,
   RequestIdMiddleware,
   DistributedLockModule,
+  AllExceptionsFilter,
 } from '@cloudphone/shared';
 
 import { AuthModule } from './auth/auth.module';
@@ -31,6 +34,7 @@ import { ProxyUsage } from './entities/proxy-usage.entity';
 import { ProxyHealth } from './entities/proxy-health.entity';
 import { ProxySession } from './entities/proxy-session.entity';
 import { CostRecord } from './entities/cost-record.entity';
+import { getDatabaseConfig } from './common/config/database.config';
 
 // Controllers
 import { ProxyProviderConfigController } from './proxy/controllers/proxy-provider-config.controller';
@@ -46,6 +50,12 @@ import { ProxyProviderConfigController } from './proxy/controllers/proxy-provide
 
     // ===== Pino 日志模块 =====
     LoggerModule.forRoot(createLoggerConfig('proxy-service')),
+
+    // ===== Throttler 限流模块 =====
+    ThrottlerModule.forRoot([{
+      ttl: 60000, // 1 minute
+      limit: 100, // 100 requests per minute
+    }]),
 
     // ===== 共享模块集成 =====
     // ✅ Consul 服务注册与发现
@@ -65,30 +75,7 @@ import { ProxyProviderConfigController } from './proxy/controllers/proxy-provide
     // ===== 数据库模块 =====
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 5432),
-        username: config.get('DB_USERNAME', 'postgres'),
-        password: config.get('DB_PASSWORD', 'postgres'),
-        database: config.get('DB_DATABASE', 'cloudphone_proxy'),
-        entities: [
-          ProxyProvider,
-          ProxyUsage,
-          ProxyHealth,
-          ProxySession,
-          CostRecord,
-        ],
-        synchronize: config.get('NODE_ENV') === 'development',
-        logging: config.get('NODE_ENV') === 'development' ? ['error', 'warn'] : false,
-        poolSize: 20, // 连接池大小（支持高并发）
-        extra: {
-          max: 20,
-          min: 5,
-          idleTimeoutMillis: 30000,
-          connectionTimeoutMillis: 2000,
-        },
-      }),
+      useFactory: getDatabaseConfig, // ✅ 使用优化的连接池配置
     }),
 
     // ===== 定时任务模块 =====
@@ -126,6 +113,18 @@ import { ProxyProviderConfigController } from './proxy/controllers/proxy-provide
     // EventsModule,      // 事件处理
   ],
   controllers: [ProxyProviderConfigController],
-  providers: [],
+  providers: [
+    // 全局异常过滤器（统一错误处理）
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+    // 全局 Throttler 守卫（限流保护）
+    // ⚠️ 暂时禁用 - proxy-service 是内部服务,不需要全局限流
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: ThrottlerGuard,
+    // },
+  ],
 })
 export class AppModule {}

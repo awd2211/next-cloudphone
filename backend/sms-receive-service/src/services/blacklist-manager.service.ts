@@ -1,7 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan } from 'typeorm';
 import { CronExpression } from '@nestjs/schedule';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { ProviderBlacklist } from '../entities/provider-blacklist.entity';
 
@@ -28,6 +30,7 @@ export class BlacklistManagerService {
     @InjectRepository(ProviderBlacklist)
     private readonly blacklistRepo: Repository<ProviderBlacklist>,
     private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
+    @Optional() @Inject(CACHE_MANAGER) private cacheManager?: Cache,
   ) {}
 
   /**
@@ -93,6 +96,9 @@ export class BlacklistManagerService {
 
     const saved = await this.blacklistRepo.save(blacklistEntry);
 
+    // ✅ 清除黑名单列表缓存
+    await this.clearBlacklistCache();
+
     this.logger.warn(
       `Provider ${provider} added to blacklist (${blacklistType}). Reason: ${reason}`,
     );
@@ -120,6 +126,9 @@ export class BlacklistManagerService {
       entry.notes = (entry.notes || '') + `\nRemoved: ${reason}`;
       await this.blacklistRepo.save(entry);
     }
+
+    // ✅ 清除黑名单列表缓存
+    await this.clearBlacklistCache();
 
     this.logger.log(`Provider ${provider} removed from blacklist: ${reason}`);
   }
@@ -153,18 +162,47 @@ export class BlacklistManagerService {
 
   /**
    * 获取所有黑名单记录
+   * ✅ 添加缓存优化 (5 分钟 TTL - 黑名单需要较快生效)
    */
   async getAllBlacklist(includeInactive: boolean = false): Promise<ProviderBlacklist[]> {
+    const cacheKey = `sms:blacklist:${includeInactive}`;
+
+    // 尝试从缓存获取
+    if (this.cacheManager) {
+      try {
+        const cached = await this.cacheManager.get<ProviderBlacklist[]>(cacheKey);
+        if (cached) {
+          this.logger.debug(`黑名单列表缓存命中 - includeInactive: ${includeInactive}`);
+          return cached;
+        }
+      } catch (error) {
+        this.logger.warn(`获取黑名单缓存失败: ${error.message}`);
+      }
+    }
+
+    // 查询数据库
     const where: any = {};
 
     if (!includeInactive) {
       where.isActive = true;
     }
 
-    return this.blacklistRepo.find({
+    const result = await this.blacklistRepo.find({
       where,
       order: { createdAt: 'DESC' },
     });
+
+    // 写入缓存 (5 分钟 TTL - 黑名单需要较快生效)
+    if (this.cacheManager) {
+      try {
+        await this.cacheManager.set(cacheKey, result, 300000); // 300 seconds = 5 minutes
+        this.logger.debug(`黑名单列表已缓存 - includeInactive: ${includeInactive}, TTL: 5分钟`);
+      } catch (error) {
+        this.logger.warn(`写入黑名单缓存失败: ${error.message}`);
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -227,5 +265,21 @@ export class BlacklistManagerService {
       temporary,
       manual,
     };
+  }
+
+  /**
+   * ✅ 清除黑名单列表缓存
+   */
+  private async clearBlacklistCache(): Promise<void> {
+    if (!this.cacheManager) return;
+
+    try {
+      // 清除两种查询模式的缓存
+      await this.cacheManager.del('sms:blacklist:true');
+      await this.cacheManager.del('sms:blacklist:false');
+      this.logger.debug('黑名单列表缓存已清除');
+    } catch (error) {
+      this.logger.error(`清除黑名单缓存失败: ${error.message}`, error.stack);
+    }
   }
 }

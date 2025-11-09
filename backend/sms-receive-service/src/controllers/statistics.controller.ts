@@ -102,7 +102,7 @@ export class StatisticsController {
   @ApiOperation({ summary: '获取SMS服务统计数据' })
   @ApiQuery({ name: 'startDate', required: false, description: '开始日期 (ISO 8601)' })
   @ApiQuery({ name: 'endDate', required: false, description: '结束日期 (ISO 8601)' })
-  @RequirePermission('sms:statistics:view')
+  @RequirePermission('sms.statistics.view')
   async getStatistics(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -246,7 +246,7 @@ export class StatisticsController {
    */
   @Get('realtime')
   @ApiOperation({ summary: '获取实时监控数据' })
-  @RequirePermission('sms:statistics:view')
+  @RequirePermission('sms.statistics.view')
   async getRealtimeMonitor(): Promise<RealtimeMonitorResponse> {
     const now = new Date();
 
@@ -331,7 +331,7 @@ export class StatisticsController {
    */
   @Get('providers/comparison')
   @ApiOperation({ summary: '获取平台对比数据' })
-  @RequirePermission('sms:statistics:view')
+  @RequirePermission('sms.statistics.view')
   async getProviderComparison() {
     const platformStats = this.platformSelector.getProviderStats();
     const configs = await this.providerConfigRepo.find();

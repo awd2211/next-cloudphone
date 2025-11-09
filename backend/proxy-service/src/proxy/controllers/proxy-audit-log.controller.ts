@@ -21,7 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { RequirePermission } from '../../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { ProxyAuditLogService } from '../services/proxy-audit-log.service';
 import {
   CreateAuditLogDto,
@@ -54,7 +54,7 @@ export class ProxyAuditLogController {
    * 创建审计日志
    */
   @Post()
-  @RequirePermission('proxy:audit:create')
+  @RequirePermission('proxy.audit.create')
   @ApiOperation({
     summary: '创建审计日志',
     description: '手动创建审计日志记录（通常系统自动记录）',
@@ -92,7 +92,7 @@ export class ProxyAuditLogController {
    * 查询审计日志
    */
   @Get()
-  @RequirePermission('proxy:audit:read')
+  @RequirePermission('proxy.audit.read')
   @ApiOperation({
     summary: '审计日志列表',
     description: '查询审计日志，支持多条件过滤和分页',
@@ -140,7 +140,7 @@ export class ProxyAuditLogController {
    * 获取审计日志详情
    */
   @Get(':logId')
-  @RequirePermission('proxy:audit:read')
+  @RequirePermission('proxy.audit.read')
   @ApiOperation({
     summary: '审计日志详情',
     description: '获取指定审计日志的详细信息',
@@ -164,7 +164,7 @@ export class ProxyAuditLogController {
    * 查询敏感审计日志
    */
   @Get('sensitive/list')
-  @RequirePermission('proxy:audit:sensitive:read')
+  @RequirePermission('proxy.audit.sensitive.read')
   @ApiOperation({
     summary: '敏感审计日志列表',
     description: '查询敏感数据访问审计日志（需要高级权限）',
@@ -214,7 +214,7 @@ export class ProxyAuditLogController {
    * 获取敏感审计日志详情（含解密）
    */
   @Get('sensitive/:logId')
-  @RequirePermission('proxy:audit:sensitive:decrypt')
+  @RequirePermission('proxy.audit.sensitive.decrypt')
   @ApiOperation({
     summary: '敏感日志详情',
     description: '获取敏感审计日志详情，包含解密后的数据（需要最高权限）',
@@ -243,7 +243,7 @@ export class ProxyAuditLogController {
    * 审批敏感日志访问
    */
   @Put('sensitive/:logId/approve')
-  @RequirePermission('proxy:audit:sensitive:approve')
+  @RequirePermission('proxy.audit.sensitive.approve')
   @ApiOperation({
     summary: '审批敏感访问',
     description: '审批或拒绝敏感数据访问申请',
@@ -280,7 +280,7 @@ export class ProxyAuditLogController {
    * 审计日志统计
    */
   @Get('statistics/summary')
-  @RequirePermission('proxy:audit:stats')
+  @RequirePermission('proxy.audit.stats')
   @ApiOperation({
     summary: '审计统计',
     description: '获取审计日志的统计数据和趋势分析',
@@ -320,7 +320,7 @@ export class ProxyAuditLogController {
    * 用户活动分析
    */
   @Get('users/:userId/activity')
-  @RequirePermission('proxy:audit:user-activity')
+  @RequirePermission('proxy.audit.user-activity')
   @ApiOperation({
     summary: '用户活动分析',
     description: '分析指定用户的活动模式和行为特征',
@@ -355,7 +355,7 @@ export class ProxyAuditLogController {
    * 系统审计摘要
    */
   @Get('system/summary')
-  @RequirePermission('proxy:audit:system-summary')
+  @RequirePermission('proxy.audit.system-summary')
   @ApiOperation({
     summary: '系统审计摘要',
     description: '获取整个系统的审计摘要和合规性报告',
@@ -387,7 +387,7 @@ export class ProxyAuditLogController {
    * 导出审计日志
    */
   @Post('export')
-  @RequirePermission('proxy:audit:export')
+  @RequirePermission('proxy.audit.export')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '导出审计日志',
@@ -423,7 +423,7 @@ export class ProxyAuditLogController {
    * 获取我的审计日志
    */
   @Get('my-logs/list')
-  @RequirePermission('proxy:audit:my-logs')
+  @RequirePermission('proxy.audit.my-logs')
   @ApiOperation({
     summary: '我的审计日志',
     description: '获取当前用户的审计日志',

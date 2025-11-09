@@ -34,6 +34,7 @@ import { ProxyDeviceGroupService } from './services/proxy-device-group.service';
 import { ProxyAlertService } from './services/proxy-alert.service';
 import { ProxyUsageReportService } from './services/proxy-usage-report.service';
 import { ProxyAuditLogService } from './services/proxy-audit-log.service';
+import { ProxyProviderConfigService } from './services/proxy-provider-config.service';
 
 // Pool模块
 import { PoolModule } from '../pool/pool.module';
@@ -185,11 +186,12 @@ import {
     ProxyCostMonitoringService,
     ProxyGeoMatchingService,
     ProxyProviderRankingService,
-    // 增强功能服务（4个）
+    // 增强功能服务（5个）
     ProxyDeviceGroupService,
     ProxyAlertService,
     ProxyUsageReportService,
     ProxyAuditLogService,
+    ProxyProviderConfigService, // ✅ 新增：提供商配置服务（带缓存优化）
   ],
   exports: [
     // 导出所有服务供其他模块使用
@@ -205,6 +207,7 @@ import {
     ProxyAlertService,
     ProxyUsageReportService,
     ProxyAuditLogService,
+    ProxyProviderConfigService, // ✅ 新增：导出提供商配置服务
   ],
 })
 export class ProxyModule {}

@@ -20,7 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { RequirePermission } from '../../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { ProxyStickySessionService } from '../services/proxy-sticky-session.service';
 import {
   CreateStickySessionDto,
@@ -48,7 +48,7 @@ export class ProxyStickySessionController {
    * 创建粘性会话
    */
   @Post()
-  @RequirePermission('proxy:session:create')
+  @RequirePermission('proxy.session.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: '创建粘性会话',
@@ -70,7 +70,7 @@ export class ProxyStickySessionController {
    * 续期会话
    */
   @Post(':sessionId/renew')
-  @RequirePermission('proxy:session:renew')
+  @RequirePermission('proxy.session.renew')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '续期会话',
@@ -97,7 +97,7 @@ export class ProxyStickySessionController {
    * 终止会话
    */
   @Delete(':sessionId')
-  @RequirePermission('proxy:session:delete')
+  @RequirePermission('proxy.session.delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '终止会话',
@@ -122,7 +122,7 @@ export class ProxyStickySessionController {
    * 查询会话详情
    */
   @Get(':sessionId')
-  @RequirePermission('proxy:session:read')
+  @RequirePermission('proxy.session.read')
   @ApiOperation({
     summary: '查询会话详情',
     description: '获取会话的详细信息，包括续期历史和代理信息',
@@ -145,7 +145,7 @@ export class ProxyStickySessionController {
    * 查询设备的所有会话
    */
   @Get('device/:deviceId')
-  @RequirePermission('proxy:session:read')
+  @RequirePermission('proxy.session.read')
   @ApiOperation({
     summary: '查询设备会话',
     description: '获取指定设备的所有活跃会话',
@@ -169,7 +169,7 @@ export class ProxyStickySessionController {
    * 查询用户的所有会话
    */
   @Get('user/:userId')
-  @RequirePermission('proxy:session:read')
+  @RequirePermission('proxy.session.read')
   @ApiOperation({
     summary: '查询用户会话',
     description: '获取指定用户的所有会话',
@@ -201,7 +201,7 @@ export class ProxyStickySessionController {
    * 获取会话统计
    */
   @Get('stats/overview')
-  @RequirePermission('proxy:session:stats')
+  @RequirePermission('proxy.session.stats')
   @ApiOperation({
     summary: '会话统计',
     description: '获取会话的统计数据',

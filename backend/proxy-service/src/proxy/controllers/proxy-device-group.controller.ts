@@ -22,7 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { RequirePermission } from '../../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { ProxyDeviceGroupService } from '../services/proxy-device-group.service';
 import {
   CreateDeviceGroupDto,
@@ -54,7 +54,7 @@ export class ProxyDeviceGroupController {
    * 创建设备组
    */
   @Post()
-  @RequirePermission('proxy:device-group:create')
+  @RequirePermission('proxy.device-group.create')
   @ApiOperation({
     summary: '创建设备组',
     description: '创建新的设备组，支持专属代理池和自动扩展',
@@ -82,7 +82,7 @@ export class ProxyDeviceGroupController {
    * 获取用户的所有设备组
    */
   @Get()
-  @RequirePermission('proxy:device-group:read')
+  @RequirePermission('proxy.device-group.read')
   @ApiOperation({
     summary: '设备组列表',
     description: '获取当前用户的所有设备组',
@@ -104,7 +104,7 @@ export class ProxyDeviceGroupController {
    * 获取设备组详情
    */
   @Get(':groupId')
-  @RequirePermission('proxy:device-group:read')
+  @RequirePermission('proxy.device-group.read')
   @ApiOperation({
     summary: '设备组详情',
     description: '获取设备组的详细信息，包括设备列表、代理池和统计数据',
@@ -126,7 +126,7 @@ export class ProxyDeviceGroupController {
    * 更新设备组配置
    */
   @Put(':groupId')
-  @RequirePermission('proxy:device-group:update')
+  @RequirePermission('proxy.device-group.update')
   @ApiOperation({
     summary: '更新设备组',
     description: '更新设备组的配置参数',
@@ -149,7 +149,7 @@ export class ProxyDeviceGroupController {
    * 删除设备组
    */
   @Delete(':groupId')
-  @RequirePermission('proxy:device-group:delete')
+  @RequirePermission('proxy.device-group.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: '删除设备组',
@@ -168,7 +168,7 @@ export class ProxyDeviceGroupController {
    * 添加设备到组
    */
   @Post(':groupId/devices')
-  @RequirePermission('proxy:device-group:manage-devices')
+  @RequirePermission('proxy.device-group.manage-devices')
   @ApiOperation({
     summary: '添加设备',
     description: '将设备添加到设备组',
@@ -195,7 +195,7 @@ export class ProxyDeviceGroupController {
    * 批量添加设备
    */
   @Post(':groupId/devices/batch')
-  @RequirePermission('proxy:device-group:manage-devices')
+  @RequirePermission('proxy.device-group.manage-devices')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '批量添加设备',
@@ -223,7 +223,7 @@ export class ProxyDeviceGroupController {
    * 从组中移除设备
    */
   @Delete(':groupId/devices/:deviceId')
-  @RequirePermission('proxy:device-group:manage-devices')
+  @RequirePermission('proxy.device-group.manage-devices')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: '移除设备',
@@ -246,7 +246,7 @@ export class ProxyDeviceGroupController {
    * 获取组的设备列表
    */
   @Get(':groupId/devices')
-  @RequirePermission('proxy:device-group:read')
+  @RequirePermission('proxy.device-group.read')
   @ApiOperation({
     summary: '设备列表',
     description: '获取设备组中的所有设备',
@@ -268,7 +268,7 @@ export class ProxyDeviceGroupController {
    * 分配代理到组
    */
   @Post(':groupId/proxies')
-  @RequirePermission('proxy:device-group:manage-proxies')
+  @RequirePermission('proxy.device-group.manage-proxies')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '分配代理',
@@ -297,7 +297,7 @@ export class ProxyDeviceGroupController {
    * 获取组的代理列表
    */
   @Get(':groupId/proxies')
-  @RequirePermission('proxy:device-group:read')
+  @RequirePermission('proxy.device-group.read')
   @ApiOperation({
     summary: '代理列表',
     description: '获取设备组的专属代理池',
@@ -319,7 +319,7 @@ export class ProxyDeviceGroupController {
    * 获取组统计
    */
   @Get(':groupId/stats')
-  @RequirePermission('proxy:device-group:read')
+  @RequirePermission('proxy.device-group.read')
   @ApiOperation({
     summary: '组统计',
     description: '获取设备组的统计数据',
@@ -341,7 +341,7 @@ export class ProxyDeviceGroupController {
    * 更新组统计
    */
   @Post(':groupId/stats/refresh')
-  @RequirePermission('proxy:device-group:update')
+  @RequirePermission('proxy.device-group.update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '刷新统计',
@@ -364,7 +364,7 @@ export class ProxyDeviceGroupController {
    * 自动扩展组代理池
    */
   @Post(':groupId/auto-scale')
-  @RequirePermission('proxy:device-group:admin')
+  @RequirePermission('proxy.device-group.admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '自动扩展',

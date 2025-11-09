@@ -19,7 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { RequirePermission } from '../../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { ProxyGeoMatchingService } from '../services/proxy-geo-matching.service';
 import {
   ConfigureDeviceGeoDto,
@@ -52,7 +52,7 @@ export class ProxyGeoMatchingController {
    * 配置设备地理位置
    */
   @Post('configure')
-  @RequirePermission('proxy:geo:configure')
+  @RequirePermission('proxy.geo.configure')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: '配置设备地理位置',
@@ -74,7 +74,7 @@ export class ProxyGeoMatchingController {
    * 批量配置设备地理位置
    */
   @Post('configure/batch')
-  @RequirePermission('proxy:geo:configure')
+  @RequirePermission('proxy.geo.configure')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '批量配置地理位置',
@@ -103,7 +103,7 @@ export class ProxyGeoMatchingController {
    * 获取设备地理配置
    */
   @Get('device/:deviceId')
-  @RequirePermission('proxy:geo:read')
+  @RequirePermission('proxy.geo.read')
   @ApiOperation({
     summary: '查询设备地理配置',
     description: '获取指定设备的地理位置配置',
@@ -125,7 +125,7 @@ export class ProxyGeoMatchingController {
    * 地理匹配代理
    */
   @Post('match')
-  @RequirePermission('proxy:geo:match')
+  @RequirePermission('proxy.geo.match')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '地理匹配代理',
@@ -147,7 +147,7 @@ export class ProxyGeoMatchingController {
    * 智能推荐地理位置
    */
   @Post('recommend')
-  @RequirePermission('proxy:geo:recommend')
+  @RequirePermission('proxy.geo.recommend')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '智能推荐地理位置',
@@ -171,7 +171,7 @@ export class ProxyGeoMatchingController {
    * 查询ISP提供商
    */
   @Get('isp/providers')
-  @RequirePermission('proxy:geo:read')
+  @RequirePermission('proxy.geo.read')
   @ApiOperation({
     summary: '查询ISP提供商',
     description: '获取可用的ISP提供商列表',
@@ -215,7 +215,7 @@ export class ProxyGeoMatchingController {
    * 获取地理统计
    */
   @Get('statistics')
-  @RequirePermission('proxy:geo:stats')
+  @RequirePermission('proxy.geo.stats')
   @ApiOperation({
     summary: '地理统计',
     description: '获取设备地理位置分布统计',

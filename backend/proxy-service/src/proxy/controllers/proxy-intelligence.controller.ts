@@ -17,7 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { RequirePermission } from '../../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { ProxyIntelligenceService } from '../services/proxy-intelligence.service';
 import { ProxyQualityService } from '../services/proxy-quality.service';
 import { ProxyFailoverService } from '../services/proxy-failover.service';
@@ -51,7 +51,7 @@ export class ProxyIntelligenceController {
    * 基于目标网站、历史数据、设备特征等因素，智能推荐最佳代理
    */
   @Post('recommend')
-  @RequirePermission('proxy:recommend')
+  @RequirePermission('proxy.recommend')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '智能代理推荐',
@@ -73,7 +73,7 @@ export class ProxyIntelligenceController {
    * 批量推荐代理
    */
   @Post('recommend/batch')
-  @RequirePermission('proxy:recommend')
+  @RequirePermission('proxy.recommend')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '批量推荐代理',
@@ -92,7 +92,7 @@ export class ProxyIntelligenceController {
    * 获取代理质量评分
    */
   @Get(':proxyId/quality-score')
-  @RequirePermission('proxy:read')
+  @RequirePermission('proxy.read')
   @ApiOperation({
     summary: '获取代理质量评分',
     description: '查看代理的综合质量分、各项指标、健康状态和趋势',
@@ -113,7 +113,7 @@ export class ProxyIntelligenceController {
    * 批量查询质量评分
    */
   @Post('quality/batch')
-  @RequirePermission('proxy:read')
+  @RequirePermission('proxy.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '批量查询质量评分' })
   async getQualityScoreBatch(
@@ -129,7 +129,7 @@ export class ProxyIntelligenceController {
    * 获取质量分布统计
    */
   @Get('quality/distribution')
-  @RequirePermission('proxy:stats')
+  @RequirePermission('proxy.stats')
   @ApiOperation({
     summary: '质量分布统计',
     description: '查看代理池的质量分布情况（S/A/B/C/D各等级数量）',
@@ -151,7 +151,7 @@ export class ProxyIntelligenceController {
    * 触发质量评分计算
    */
   @Post('quality/calculate')
-  @RequirePermission('proxy:admin')
+  @RequirePermission('proxy.admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '触发质量评分计算',
@@ -174,7 +174,7 @@ export class ProxyIntelligenceController {
    * 配置故障切换策略
    */
   @Post('failover/config')
-  @RequirePermission('proxy:config')
+  @RequirePermission('proxy.config')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '配置故障切换策略',
@@ -191,7 +191,7 @@ export class ProxyIntelligenceController {
    * 获取故障切换配置
    */
   @Get('failover/config')
-  @RequirePermission('proxy:config')
+  @RequirePermission('proxy.config')
   @ApiOperation({ summary: '查看故障切换配置' })
   async getFailoverConfig(
     @Query('userId') userId?: string,
@@ -208,7 +208,7 @@ export class ProxyIntelligenceController {
    * 手动触发故障切换
    */
   @Post('sessions/:sessionId/failover')
-  @RequirePermission('proxy:failover')
+  @RequirePermission('proxy.failover')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '手动触发故障切换',
@@ -236,7 +236,7 @@ export class ProxyIntelligenceController {
    * 故障切换历史
    */
   @Get('failover/history')
-  @RequirePermission('proxy:read')
+  @RequirePermission('proxy.read')
   @ApiOperation({ summary: '查看故障切换历史' })
   async getFailoverHistory(
     @Query('sessionId') sessionId?: string,
@@ -255,7 +255,7 @@ export class ProxyIntelligenceController {
    * 获取目标网站的最佳代理映射
    */
   @Get('website-mapping/:domain')
-  @RequirePermission('proxy:read')
+  @RequirePermission('proxy.read')
   @ApiOperation({
     summary: '查询网站代理映射',
     description: '查看特定网站的最佳代理推荐',
@@ -278,7 +278,7 @@ export class ProxyIntelligenceController {
    * 设备代理亲和性查询
    */
   @Get('affinity/:deviceId')
-  @RequirePermission('proxy:read')
+  @RequirePermission('proxy.read')
   @ApiOperation({
     summary: '查询设备代理亲和性',
     description: '查看设备最常用、表现最好的代理',

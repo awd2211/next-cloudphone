@@ -115,7 +115,7 @@ export class VerificationCodeController {
   @ApiOperation({ summary: '按手机号查询验证码' })
   @ApiParam({ name: 'phoneNumber', description: '手机号码' })
   @ApiQuery({ name: 'serviceCode', description: '服务代码', required: true })
-  @RequirePermission('sms:verification-code:read')
+  @RequirePermission('sms.verification-code.read')
   async getCodeByPhone(
     @Param('phoneNumber') phoneNumber: string,
     @Query('serviceCode') serviceCode: string,
@@ -224,7 +224,7 @@ export class VerificationCodeController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '按设备ID查询验证码' })
   @ApiParam({ name: 'deviceId', description: '设备ID' })
-  @RequirePermission('sms:verification-code:read')
+  @RequirePermission('sms.verification-code.read')
   async getCodeByDevice(@Param('deviceId') deviceId: string) {
     this.logger.log(`Query code for device ${deviceId}`);
 
@@ -254,7 +254,7 @@ export class VerificationCodeController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '验证验证码是否有效' })
-  @RequirePermission('sms:verification-code:validate')
+  @RequirePermission('sms.verification-code.validate')
   async validateCode(@Body() dto: ConsumeCodeDto) {
     this.logger.log(`Validate code for ${dto.phoneNumber}/${dto.serviceCode}`);
 
@@ -278,7 +278,7 @@ export class VerificationCodeController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '标记验证码已使用' })
-  @RequirePermission('sms:verification-code:consume')
+  @RequirePermission('sms.verification-code.consume')
   async consumeCode(@Body() dto: ConsumeCodeDto) {
     return await this.tracer.startActiveSpan(
       'verification-code.consume',
@@ -381,7 +381,7 @@ export class VerificationCodeController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '获取验证码缓存统计' })
-  @RequirePermission('sms:statistics:view')
+  @RequirePermission('sms.statistics.view')
   async getCacheStats() {
     const stats = await this.cacheService.getCacheStatistics();
 
@@ -399,7 +399,7 @@ export class VerificationCodeController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '批量查询验证码' })
-  @RequirePermission('sms:verification-code:read')
+  @RequirePermission('sms.verification-code.read')
   async batchQueryCodes(
     @Body() body: { requests: Array<{ phoneNumber: string; serviceCode: string }> },
   ) {

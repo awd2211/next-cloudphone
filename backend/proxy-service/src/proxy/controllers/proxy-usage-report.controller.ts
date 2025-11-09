@@ -22,7 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { RequirePermission } from '../../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { ProxyUsageReportService } from '../services/proxy-usage-report.service';
 import {
   CreateReportDto,
@@ -54,7 +54,7 @@ export class ProxyUsageReportController {
    * 创建报告任务
    */
   @Post()
-  @RequirePermission('proxy:report:create')
+  @RequirePermission('proxy.report.create')
   @ApiOperation({
     summary: '创建报告',
     description: '创建新的使用报告任务，系统将异步生成报告',
@@ -94,7 +94,7 @@ export class ProxyUsageReportController {
    * 查询报告列表
    */
   @Get()
-  @RequirePermission('proxy:report:read')
+  @RequirePermission('proxy.report.read')
   @ApiOperation({
     summary: '报告列表',
     description: '查询用户的报告列表，支持分页和筛选',
@@ -139,7 +139,7 @@ export class ProxyUsageReportController {
    * 获取报告详情
    */
   @Get(':reportId')
-  @RequirePermission('proxy:report:read')
+  @RequirePermission('proxy.report.read')
   @ApiOperation({
     summary: '报告详情',
     description: '获取指定报告的详细信息',
@@ -161,7 +161,7 @@ export class ProxyUsageReportController {
    * 删除报告
    */
   @Delete(':reportId')
-  @RequirePermission('proxy:report:delete')
+  @RequirePermission('proxy.report.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: '删除报告',
@@ -180,7 +180,7 @@ export class ProxyUsageReportController {
    * 批量导出报告
    */
   @Post('batch-export')
-  @RequirePermission('proxy:report:export')
+  @RequirePermission('proxy.report.export')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '批量导出',
@@ -215,7 +215,7 @@ export class ProxyUsageReportController {
    * 创建定时报告
    */
   @Post('scheduled')
-  @RequirePermission('proxy:report:schedule:create')
+  @RequirePermission('proxy.report.schedule.create')
   @ApiOperation({
     summary: '创建定时报告',
     description: '创建定时生成的报告配置',
@@ -253,7 +253,7 @@ export class ProxyUsageReportController {
    * 获取定时报告列表
    */
   @Get('scheduled/list')
-  @RequirePermission('proxy:report:schedule:read')
+  @RequirePermission('proxy.report.schedule.read')
   @ApiOperation({
     summary: '定时报告列表',
     description: '获取用户的所有定时报告配置',
@@ -275,7 +275,7 @@ export class ProxyUsageReportController {
    * 更新定时报告
    */
   @Put('scheduled/:reportId')
-  @RequirePermission('proxy:report:schedule:update')
+  @RequirePermission('proxy.report.schedule.update')
   @ApiOperation({
     summary: '更新定时报告',
     description: '更新定时报告的配置',
@@ -301,7 +301,7 @@ export class ProxyUsageReportController {
    * 删除定时报告
    */
   @Delete('scheduled/:reportId')
-  @RequirePermission('proxy:report:schedule:delete')
+  @RequirePermission('proxy.report.schedule.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: '删除定时报告',
@@ -322,7 +322,7 @@ export class ProxyUsageReportController {
    * 立即执行定时报告
    */
   @Post('scheduled/:reportId/execute')
-  @RequirePermission('proxy:report:schedule:execute')
+  @RequirePermission('proxy.report.schedule.execute')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '立即执行',
@@ -352,7 +352,7 @@ export class ProxyUsageReportController {
    * 获取报告统计
    */
   @Get('statistics/summary')
-  @RequirePermission('proxy:report:stats')
+  @RequirePermission('proxy.report.stats')
   @ApiOperation({
     summary: '报告统计',
     description: '获取用户的报告统计数据',
@@ -385,7 +385,7 @@ export class ProxyUsageReportController {
    * 下载报告文件
    */
   @Get(':reportId/download')
-  @RequirePermission('proxy:report:download')
+  @RequirePermission('proxy.report.download')
   @ApiOperation({
     summary: '下载报告',
     description: '获取报告文件的下载链接',
