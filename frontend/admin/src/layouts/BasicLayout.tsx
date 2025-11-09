@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Avatar, Dropdown, Drawer } from 'antd';
 import NotificationCenter from '@/components/NotificationCenter';
+import { smartPrefetch, prefetchMultipleRoutes } from '@/config/prefetchRoutes';
+import { useGlobalHotkeys } from '@/hooks/useGlobalHotkeys';
+import { GlobalSearchModal, useGlobalSearch } from '@/components/GlobalSearch';
+import { ThemeSwitch } from '@/components/ThemeSwitch';
+import { useTheme } from '@/hooks/useTheme';
 import {
   DashboardOutlined,
   MobileOutlined,
@@ -55,6 +60,16 @@ const BasicLayout = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [mobileDrawerVisible, setMobileDrawerVisible] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ==================== 全局快捷键支持 ====================
+  useGlobalHotkeys();
+
+  // ==================== 全局搜索 (Cmd+K) ====================
+  const { visible: searchVisible, close: closeSearch } = useGlobalSearch();
+
+  // ==================== 主题切换 ====================
+  const { mode, actualTheme, setMode, toggleTheme } = useTheme();
 
   // 检测屏幕尺寸
   useEffect(() => {
@@ -66,6 +81,33 @@ const BasicLayout = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // ==================== 导航预加载功能 ====================
+
+  // 初始化时预加载常用路由数据
+  useEffect(() => {
+    // 延迟执行，避免阻塞初始渲染
+    const timer = setTimeout(() => {
+      // 预加载最常访问的页面
+      prefetchMultipleRoutes(['/', '/devices', '/users']).catch((error) => {
+        console.warn('Failed to prefetch common routes:', error);
+      });
+    }, 1000); // 1 秒后开始预加载
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 路由变化时触发智能预加载
+  useEffect(() => {
+    // 延迟执行，避免影响页面切换性能
+    const timer = setTimeout(() => {
+      smartPrefetch(location.pathname).catch((error) => {
+        console.warn('Failed to smart prefetch:', error);
+      });
+    }, 500); // 页面加载后 0.5 秒开始预加载相关页面
+
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
 
   const menuItems: MenuProps['items'] = [
     {
@@ -443,7 +485,7 @@ const BasicLayout = () => {
           placement="left"
           onClose={() => setMobileDrawerVisible(false)}
           open={mobileDrawerVisible}
-          styles={{ body: { padding: 0, background: '#001529' } }}
+          styles={{ body: { padding: 0, background: actualTheme === 'dark' ? '#1f1f1f' : '#001529' } }}
           width={200}
         >
           {sidebarContent}
@@ -473,6 +515,13 @@ const BasicLayout = () => {
           <div style={{ flex: 1 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <NotificationCenter />
+            <ThemeSwitch
+              mode={mode}
+              actualTheme={actualTheme}
+              onModeChange={setMode}
+              onToggle={toggleTheme}
+              variant="dropdown"
+            />
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Avatar icon={<UserOutlined />} style={{ cursor: 'pointer' }} />
             </Dropdown>
@@ -490,6 +539,9 @@ const BasicLayout = () => {
           <Outlet />
         </Content>
       </Layout>
+
+      {/* 全局搜索模态框 (Cmd+K) */}
+      <GlobalSearchModal visible={searchVisible} onClose={closeSearch} />
     </Layout>
   );
 };

@@ -37,18 +37,21 @@ export const GPUDevicesTable = memo<GPUDevicesTableProps>(
           dataIndex: 'nodeName',
           key: 'nodeName',
           width: 120,
+          sorter: (a, b) => a.nodeName.localeCompare(b.nodeName),
         },
         {
           title: '状态',
           dataIndex: 'status',
           key: 'status',
           width: 100,
+          sorter: (a, b) => a.status.localeCompare(b.status),
           render: (status) => getStatusTag(status),
         },
         {
           title: 'GPU 使用率',
           key: 'utilization',
           width: 150,
+          sorter: (a, b) => a.utilizationRate - b.utilizationRate,
           render: (_, record) => (
             <Tooltip title={`${record.utilizationRate}%`}>
               <Progress
@@ -63,6 +66,7 @@ export const GPUDevicesTable = memo<GPUDevicesTableProps>(
           title: '显存',
           key: 'memory',
           width: 150,
+          sorter: (a, b) => a.memoryUsed - b.memoryUsed,
           render: (_, record) => {
             const percent = (record.memoryUsed / record.totalMemoryMB) * 100;
             return (
@@ -81,6 +85,7 @@ export const GPUDevicesTable = memo<GPUDevicesTableProps>(
           dataIndex: 'temperature',
           key: 'temperature',
           width: 100,
+          sorter: (a, b) => (a.temperature || 0) - (b.temperature || 0),
           render: (temp) =>
             temp ? (
               <span style={{ color: getTemperatureColor(temp) }}>
@@ -95,6 +100,7 @@ export const GPUDevicesTable = memo<GPUDevicesTableProps>(
           dataIndex: 'allocationMode',
           key: 'allocationMode',
           width: 100,
+          sorter: (a, b) => a.allocationMode.localeCompare(b.allocationMode),
           render: (mode) => getAllocationModeTag(mode),
         },
         {

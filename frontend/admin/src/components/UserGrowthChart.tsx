@@ -1,6 +1,6 @@
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
-import { Empty } from 'antd';
+import { Empty, theme } from 'antd';
 
 interface UserGrowthData {
   date: string;
@@ -14,6 +14,8 @@ interface UserGrowthChartProps {
 }
 
 const UserGrowthChart = ({ data, loading }: UserGrowthChartProps) => {
+  const { token } = theme.useToken();
+
   if (!data || data.length === 0) {
     return <Empty description="暂无数据" />;
   }
@@ -80,7 +82,7 @@ const UserGrowthChart = ({ data, loading }: UserGrowthChartProps) => {
         type: 'bar',
         data: newUsers,
         itemStyle: {
-          color: '#1890ff',
+          color: token.colorPrimary,
         },
         barMaxWidth: 40,
       },

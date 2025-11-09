@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Statistic } from 'antd';
+import { Card, Row, Col, Statistic, theme } from 'antd';
 import {
   ArrowUpOutlined,
   ArrowDownOutlined,
@@ -9,6 +9,8 @@ import {
 import ReactECharts from '@/components/ReactECharts';
 
 const AnalyticsDashboard: React.FC = () => {
+  const { token } = theme.useToken();
+
   // 费用趋势图
   const getCostTrendOption = () => ({
     title: { text: '费用趋势' },
@@ -103,7 +105,7 @@ const AnalyticsDashboard: React.FC = () => {
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="活跃设备" value={856} valueStyle={{ color: '#1890ff' }} />
+            <Statistic title="活跃设备" value={856} valueStyle={{ color: token.colorPrimary }} />
           </Card>
         </Col>
         <Col span={6}>

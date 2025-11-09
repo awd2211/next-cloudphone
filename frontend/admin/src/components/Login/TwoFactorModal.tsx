@@ -1,13 +1,13 @@
 import { Modal, Input } from 'antd';
 import { SafetyOutlined } from '@ant-design/icons';
 import { memo, useCallback } from 'react';
-import { EnhancedErrorAlert, type EnhancedError } from '@/components/EnhancedErrorAlert';
+import { ErrorInfoAlert, type ErrorInfo } from '@/components/ErrorAlert';
 
 interface TwoFactorModalProps {
   visible: boolean;
   loading: boolean;
   token: string;
-  error: EnhancedError | null;
+  error: ErrorInfo | null;
   onTokenChange: (token: string) => void;
   onVerify: () => void;
   onCancel: () => void;
@@ -42,7 +42,7 @@ export const TwoFactorModal = memo<TwoFactorModalProps>(
         <div style={{ padding: '20px 0' }}>
           {/* 错误提示 */}
           {error && (
-            <EnhancedErrorAlert
+            <ErrorAlert
               error={error}
               onClose={onErrorClose}
               onRetry={onVerify}

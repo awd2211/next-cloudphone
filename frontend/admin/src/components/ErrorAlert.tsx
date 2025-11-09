@@ -1,44 +1,84 @@
+import React from 'react';
+import { Alert, Button, Space, Typography, Collapse, Tag } from 'antd';
+import {
+  ReloadOutlined,
+  QuestionCircleOutlined,
+  CustomerServiceOutlined,
+  LinkOutlined,
+} from '@ant-design/icons';
+
+const { Text, Link } = Typography;
+
 /**
- * 增强的错误提示组件
- * 提供更友好和详细的错误信息
+ * 恢复建议
  */
+export interface RecoverySuggestion {
+  action: string;
+  description: string;
+  actionUrl?: string;
+}
 
-import { Alert, Button, Space, Typography, Collapse } from 'antd';
-import { ReloadOutlined, BugOutlined } from '@ant-design/icons';
-
-const { Text, Paragraph } = Typography;
-const { Panel } = Collapse;
-
-export interface ErrorDetail {
-  code?: string;
+/**
+ * 错误信息接口
+ */
+export interface ErrorInfo {
   message: string;
-  details?: string;
-  stack?: string;
-  timestamp?: string;
+  userMessage?: string;
+  technicalMessage?: string;
+  code?: string;
   requestId?: string;
+  recoverySuggestions?: RecoverySuggestion[];
+  documentationUrl?: string;
+  supportUrl?: string;
+  retryable?: boolean;
+  details?: any;
 }
 
-interface ErrorAlertProps {
-  error: Error | ErrorDetail | string;
+export interface ErrorAlertProps {
+  /** 错误对象 */
+  error: ErrorInfo | Error | string | null;
+  /** 是否显示 */
+  visible?: boolean;
+  /** 错误标题 */
+  title?: string;
+  /** 重试回调 */
   onRetry?: () => void;
-  onReport?: () => void;
-  showDetails?: boolean;
-  type?: 'error' | 'warning';
+  /** 关闭回调 */
+  onClose?: () => void;
+  /** 是否显示恢复建议（默认true） */
+  showRecoverySuggestions?: boolean;
+  /** 是否显示Request ID（默认true） */
+  showRequestId?: boolean;
+  /** 是否显示技术详情（默认true） */
+  showTechnicalDetails?: boolean;
+  /** 是否显示文档链接（默认true） */
+  showDocumentation?: boolean;
+  /** 额外的CSS类名 */
+  className?: string;
+  /** Alert类型（默认error） */
+  type?: 'error' | 'warning' | 'info';
+  /** 自定义样式 */
+  style?: React.CSSProperties;
 }
 
 /**
- * 解析错误对象，提取有用信息
+ * 解析错误对象
  */
-function parseError(error: Error | ErrorDetail | string): ErrorDetail {
+function parseError(error: ErrorInfo | Error | string | null): ErrorInfo | null {
+  if (!error) return null;
+
   if (typeof error === 'string') {
-    return { message: error };
+    return {
+      message: error,
+      userMessage: error,
+    };
   }
 
   if (error instanceof Error) {
     return {
       message: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
+      userMessage: error.message,
+      technicalMessage: error.message,
     };
   }
 
@@ -46,149 +86,261 @@ function parseError(error: Error | ErrorDetail | string): ErrorDetail {
 }
 
 /**
- * 根据错误代码获取用户友好的建议
- */
-function getErrorSuggestion(code?: string): string | null {
-  const suggestions: Record<string, string> = {
-    NETWORK_ERROR: '请检查您的网络连接，然后重试',
-    TIMEOUT: '请求超时，请检查网络或稍后重试',
-    UNAUTHORIZED: '登录已过期，请重新登录',
-    FORBIDDEN: '您没有权限执行此操作，请联系管理员',
-    NOT_FOUND: '请求的资源不存在，请刷新页面后重试',
-    VALIDATION_ERROR: '请检查输入的数据是否正确',
-    SERVER_ERROR: '服务器遇到问题，请稍后重试',
-    QUOTA_EXCEEDED: '配额已用完，请升级套餐或联系管理员',
-  };
-
-  return code ? suggestions[code] || null : null;
-}
-
-/**
  * 错误提示组件
+ *
+ * 功能：
+ * 1. 显示用户友好的错误消息
+ * 2. 显示恢复建议（带跳转链接）
+ * 3. 显示Request ID（方便技术支持）
+ * 4. 显示技术详情（可折叠）
+ * 5. 显示文档和支持链接
+ * 6. 支持重试按钮
+ *
+ * @example
+ * ```tsx
+ * <ErrorAlert
+ *   error={error}
+ *   onRetry={handleRetry}
+ *   onClose={() => setError(null)}
+ * />
+ * ```
  */
-export function ErrorAlert({
+export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   error,
+  visible = true,
+  title,
   onRetry,
-  onReport,
-  showDetails = false,
+  onClose,
+  showRecoverySuggestions = true,
+  showRequestId = true,
+  showTechnicalDetails = true,
+  showDocumentation = true,
+  className,
   type = 'error',
-}: ErrorAlertProps) {
-  const errorDetail = parseError(error);
-  const suggestion = getErrorSuggestion(errorDetail.code);
+  style,
+}) => {
+  const parsedError = parseError(error);
+
+  if (!visible || !parsedError) {
+    return null;
+  }
+
+  const displayMessage = parsedError.userMessage || parsedError.message;
+  const hasSuggestions =
+    showRecoverySuggestions &&
+    parsedError.recoverySuggestions &&
+    parsedError.recoverySuggestions.length > 0;
+  const hasRequestId = showRequestId && parsedError.requestId;
+  const hasTechnicalDetails =
+    showTechnicalDetails && (parsedError.technicalMessage || parsedError.details);
+  const hasDocumentation =
+    showDocumentation && (parsedError.documentationUrl || parsedError.supportUrl);
+  const canRetry = onRetry && parsedError.retryable !== false;
 
   return (
     <Alert
       type={type}
       showIcon
+      closable={!!onClose}
+      onClose={onClose}
+      className={className}
+      style={style}
       message={
-        <Space direction="vertical" style={{ width: '100%' }}>
-          {/* 错误标题 */}
-          <Text strong>{errorDetail.code ? `错误 [${errorDetail.code}]` : '操作失败'}</Text>
+        <div>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              marginBottom: hasSuggestions || hasRequestId ? 12 : 0,
+            }}
+          >
+            {title || displayMessage}
+          </div>
 
-          {/* 错误消息 */}
-          <Paragraph style={{ marginBottom: 0 }}>{errorDetail.message}</Paragraph>
-
-          {/* 建议 */}
-          {suggestion && (
-            <Alert
-              type="info"
-              message="建议"
-              description={suggestion}
-              showIcon
-              style={{ marginTop: 8 }}
-            />
+          {/* 恢复建议 */}
+          {hasSuggestions && (
+            <div style={{ marginTop: 12 }}>
+              <Text strong style={{ fontSize: 13 }}>
+                解决方案：
+              </Text>
+              <ul style={{ margin: '8px 0 0 0', paddingLeft: 20 }}>
+                {parsedError.recoverySuggestions!.map((suggestion, index) => (
+                  <li key={index} style={{ marginBottom: 6 }}>
+                    <Text strong>{suggestion.action}:</Text> {suggestion.description}
+                    {suggestion.actionUrl && (
+                      <>
+                        {' '}
+                        <Link
+                          href={suggestion.actionUrl}
+                          target={suggestion.actionUrl.startsWith('http') ? '_blank' : '_self'}
+                        >
+                          前往 <LinkOutlined style={{ fontSize: 12 }} />
+                        </Link>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
-          {/* 操作按钮 */}
-          <Space style={{ marginTop: 8 }}>
-            {onRetry && (
-              <Button type="primary" icon={<ReloadOutlined />} onClick={onRetry} size="small">
-                重试
-              </Button>
-            )}
-            {onReport && (
-              <Button icon={<BugOutlined />} onClick={onReport} size="small">
-                报告问题
-              </Button>
-            )}
-          </Space>
-
-          {/* 详细信息（可折叠） */}
-          {showDetails && (errorDetail.details || errorDetail.stack || errorDetail.requestId) && (
-            <Collapse ghost style={{ marginTop: 8 }}>
-              <Panel header="查看详细信息" key="details">
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  {errorDetail.requestId && <Text code>请求 ID: {errorDetail.requestId}</Text>}
-                  {errorDetail.timestamp && (
-                    <Text type="secondary">
-                      时间: {new Date(errorDetail.timestamp).toLocaleString('zh-CN')}
-                    </Text>
-                  )}
-                  {errorDetail.details && (
-                    <>
-                      <Text strong>详细信息:</Text>
-                      <Paragraph>
-                        <pre style={{ fontSize: '12px', overflow: 'auto' }}>
-                          {errorDetail.details}
-                        </pre>
-                      </Paragraph>
-                    </>
-                  )}
-                  {errorDetail.stack && (
-                    <>
-                      <Text strong>堆栈跟踪:</Text>
-                      <Paragraph>
-                        <pre style={{ fontSize: '12px', overflow: 'auto' }}>
-                          {errorDetail.stack}
-                        </pre>
-                      </Paragraph>
-                    </>
-                  )}
-                </Space>
-              </Panel>
-            </Collapse>
+          {/* Request ID 和错误代码 */}
+          {(hasRequestId || parsedError.code) && (
+            <div
+              style={{
+                marginTop: 12,
+                display: 'flex',
+                gap: 12,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              {hasRequestId && (
+                <div>
+                  <Tag color="default" style={{ fontSize: 11 }}>
+                    Request ID: {parsedError.requestId}
+                  </Tag>
+                </div>
+              )}
+              {parsedError.code && (
+                <div>
+                  <Tag color="default" style={{ fontSize: 11 }}>
+                    错误代码: {parsedError.code}
+                  </Tag>
+                </div>
+              )}
+            </div>
           )}
-        </Space>
+
+          {/* 技术详情 */}
+          {hasTechnicalDetails && (
+            <div style={{ marginTop: 12 }}>
+              <Collapse
+                ghost
+                size="small"
+                items={[
+                  {
+                    key: 'technical',
+                    label: (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        查看技术详情
+                      </Text>
+                    ),
+                    children: (
+                      <div style={{ fontSize: 12, color: '#666' }}>
+                        {parsedError.technicalMessage && (
+                          <div style={{ marginBottom: 8 }}>
+                            <Text strong>技术消息：</Text>
+                            <pre
+                              style={{
+                                background: '#f5f5f5',
+                                padding: 8,
+                                borderRadius: 4,
+                                margin: '4px 0 0 0',
+                                fontSize: 11,
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                              }}
+                            >
+                              {parsedError.technicalMessage}
+                            </pre>
+                          </div>
+                        )}
+                        {parsedError.details && (
+                          <div>
+                            <Text strong>详细信息：</Text>
+                            <pre
+                              style={{
+                                background: '#f5f5f5',
+                                padding: 8,
+                                borderRadius: 4,
+                                margin: '4px 0 0 0',
+                                fontSize: 11,
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                maxHeight: 200,
+                                overflow: 'auto',
+                              }}
+                            >
+                              {typeof parsedError.details === 'string'
+                                ? parsedError.details
+                                : JSON.stringify(parsedError.details, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            </div>
+          )}
+
+          {/* 文档和支持链接、重试按钮 */}
+          {(hasDocumentation || canRetry) && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
+              <Space size="middle">
+                {canRetry && (
+                  <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={onRetry}>
+                    重试
+                  </Button>
+                )}
+                {parsedError.documentationUrl && (
+                  <Link
+                    href={parsedError.documentationUrl}
+                    target="_blank"
+                    style={{ fontSize: 13 }}
+                  >
+                    <QuestionCircleOutlined /> 查看文档
+                  </Link>
+                )}
+                {parsedError.supportUrl && (
+                  <Link
+                    href={parsedError.supportUrl}
+                    target={parsedError.supportUrl.startsWith('http') ? '_blank' : '_self'}
+                    style={{ fontSize: 13 }}
+                  >
+                    <CustomerServiceOutlined /> 联系技术支持
+                  </Link>
+                )}
+              </Space>
+            </div>
+          )}
+        </div>
       }
     />
   );
-}
+};
 
 /**
- * 简化版错误提示（用于内联显示）
+ * 简化版ErrorAlert（向后兼容）
  */
-export function InlineError({ message }: { message: string }) {
-  return <Alert type="error" message={message} showIcon closable style={{ marginBottom: 16 }} />;
+export interface SimpleErrorAlertProps {
+  error: Error | string | null;
+  onClose?: () => void;
+  className?: string;
 }
 
-/**
- * 成功提示组件
- */
-export function SuccessAlert({ message, description }: { message: string; description?: string }) {
+export const SimpleErrorAlert: React.FC<SimpleErrorAlertProps> = ({
+  error,
+  onClose,
+  className,
+}) => {
+  if (!error) return null;
+
+  const message = typeof error === 'string' ? error : error.message;
+
   return (
     <Alert
-      type="success"
-      message={message}
-      description={description}
+      type="error"
       showIcon
-      closable
+      closable={!!onClose}
+      onClose={onClose}
+      message={message}
+      className={className}
       style={{ marginBottom: 16 }}
     />
   );
-}
+};
 
-/**
- * 警告提示组件
- */
-export function WarningAlert({ message, description }: { message: string; description?: string }) {
-  return (
-    <Alert
-      type="warning"
-      message={message}
-      description={description}
-      showIcon
-      closable
-      style={{ marginBottom: 16 }}
-    />
-  );
-}
+export default ErrorAlert;

@@ -12,6 +12,7 @@ import {
   LifecycleRuleActions,
 } from '@/components/Lifecycle';
 import dayjs from 'dayjs';
+import { createTimeColumn } from '@/utils/tableColumns';
 
 interface RuleColumnHandlers {
   onToggle: (id: string, enabled: boolean) => void;
@@ -34,6 +35,7 @@ export const createRuleColumns = (handlers: RuleColumnHandlers): ColumnsType<Lif
     dataIndex: 'name',
     key: 'name',
     width: 200,
+    sorter: (a, b) => a.name.localeCompare(b.name),
     render: (name, record) => (
       <Space direction="vertical" size={0}>
         <strong>{name}</strong>
@@ -48,6 +50,7 @@ export const createRuleColumns = (handlers: RuleColumnHandlers): ColumnsType<Lif
     dataIndex: 'type',
     key: 'type',
     width: 120,
+    sorter: (a, b) => a.type.localeCompare(b.type),
     render: (type) => <LifecycleTypeTag type={type} />,
   },
   {
@@ -72,6 +75,7 @@ export const createRuleColumns = (handlers: RuleColumnHandlers): ColumnsType<Lif
     dataIndex: 'schedule',
     key: 'schedule',
     width: 150,
+    sorter: (a, b) => (a.schedule || '').localeCompare(b.schedule || ''),
     render: (schedule) => schedule || <Tag>手动触发</Tag>,
   },
   {
@@ -90,6 +94,11 @@ export const createRuleColumns = (handlers: RuleColumnHandlers): ColumnsType<Lif
     dataIndex: 'nextExecutionAt',
     key: 'nextExecutionAt',
     width: 160,
+    sorter: (a, b) => {
+      const timeA = a.nextExecutionAt ? new Date(a.nextExecutionAt).getTime() : 0;
+      const timeB = b.nextExecutionAt ? new Date(b.nextExecutionAt).getTime() : 0;
+      return timeA - timeB;
+    },
     render: (time) =>
       time ? (
         <Tooltip title={dayjs(time).format('YYYY-MM-DD HH:mm:ss')}>
@@ -127,28 +136,18 @@ export const createHistoryColumns = (
     dataIndex: 'ruleName',
     key: 'ruleName',
     width: 180,
+    sorter: (a, b) => a.ruleName.localeCompare(b.ruleName),
   },
   {
     title: '状态',
     dataIndex: 'status',
     key: 'status',
     width: 100,
+    sorter: (a, b) => a.status.localeCompare(b.status),
     render: (status) => <LifecycleStatusTag status={status} />,
   },
-  {
-    title: '开始时间',
-    dataIndex: 'startTime',
-    key: 'startTime',
-    width: 160,
-    render: (time) => dayjs(time).format('MM-DD HH:mm:ss'),
-  },
-  {
-    title: '结束时间',
-    dataIndex: 'endTime',
-    key: 'endTime',
-    width: 160,
-    render: (time) => (time ? dayjs(time).format('MM-DD HH:mm:ss') : '-'),
-  },
+  createTimeColumn<LifecycleExecutionHistory>('开始时间', 'startTime', { format: 'MM-DD HH:mm:ss', width: 160 }),
+  createTimeColumn<LifecycleExecutionHistory>('结束时间', 'endTime', { format: 'MM-DD HH:mm:ss', width: 160 }),
   {
     title: '耗时',
     key: 'duration',
@@ -165,6 +164,7 @@ export const createHistoryColumns = (
     key: 'affectedDevices',
     width: 100,
     align: 'center',
+    sorter: (a, b) => a.affectedDevices - b.affectedDevices,
   },
   {
     title: '成功率',
@@ -183,6 +183,7 @@ export const createHistoryColumns = (
     dataIndex: 'executedBy',
     key: 'executedBy',
     width: 100,
+    sorter: (a, b) => a.executedBy.localeCompare(b.executedBy),
     render: (type) => (type === 'manual' ? <Tag color="blue">手动</Tag> : <Tag>自动</Tag>),
   },
   {

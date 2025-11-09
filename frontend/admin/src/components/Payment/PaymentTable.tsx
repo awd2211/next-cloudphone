@@ -4,7 +4,7 @@ import { ReloadOutlined, DollarOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { PaymentDetail } from '@/services/payment-admin';
 import { PAYMENT_METHOD_MAP, PAYMENT_STATUS_MAP, TABLE_SCROLL_X } from './constants';
-import dayjs from 'dayjs';
+import { createTimeColumn } from '@/utils/tableColumns';
 
 export interface PaymentTableProps {
   payments: PaymentDetail[];
@@ -51,6 +51,7 @@ export const PaymentTable = memo<PaymentTableProps>(
           key: 'paymentNo',
           width: 180,
           fixed: 'left',
+          sorter: (a, b) => a.paymentNo.localeCompare(b.paymentNo),
         },
         {
           title: '订单号',
@@ -65,6 +66,7 @@ export const PaymentTable = memo<PaymentTableProps>(
           key: 'userId',
           width: 100,
           ellipsis: true,
+          sorter: (a, b) => a.userId.localeCompare(b.userId),
         },
         {
           title: '金额',
@@ -77,6 +79,7 @@ export const PaymentTable = memo<PaymentTableProps>(
           title: '支付方式',
           dataIndex: 'method',
           key: 'method',
+          sorter: (a, b) => a.method.localeCompare(b.method),
           render: (method: string) => {
             const config = PAYMENT_METHOD_MAP[method as keyof typeof PAYMENT_METHOD_MAP] || {
               color: 'default' as const,
@@ -89,6 +92,7 @@ export const PaymentTable = memo<PaymentTableProps>(
           title: '状态',
           dataIndex: 'status',
           key: 'status',
+          sorter: (a, b) => a.status.localeCompare(b.status),
           render: (status: string) => {
             const config = PAYMENT_STATUS_MAP[status as keyof typeof PAYMENT_STATUS_MAP] || {
               color: 'default' as const,
@@ -103,18 +107,8 @@ export const PaymentTable = memo<PaymentTableProps>(
           key: 'transactionId',
           ellipsis: true,
         },
-        {
-          title: '创建时间',
-          dataIndex: 'createdAt',
-          key: 'createdAt',
-          render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
-        },
-        {
-          title: '支付时间',
-          dataIndex: 'paidAt',
-          key: 'paidAt',
-          render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'),
-        },
+        createTimeColumn<PaymentDetail>('创建时间', 'createdAt', { format: 'YYYY-MM-DD HH:mm', width: 160 }),
+        createTimeColumn<PaymentDetail>('支付时间', 'paidAt', { format: 'YYYY-MM-DD HH:mm', width: 160 }),
         {
           title: '操作',
           key: 'action',
@@ -176,10 +170,12 @@ export const PaymentTable = memo<PaymentTableProps>(
             pageSize,
             total,
             showSizeChanger: true,
+            pageSizeOptions: ['20', '50', '100', '200'],
             showTotal: (total) => `共 ${total} 条`,
             onChange: onPageChange,
           }}
-          scroll={{ x: TABLE_SCROLL_X }}
+          scroll={{ x: TABLE_SCROLL_X, y: 600 }}
+          virtual
         />
       </Card>
     );

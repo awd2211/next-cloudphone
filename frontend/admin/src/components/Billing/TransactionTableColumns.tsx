@@ -52,6 +52,7 @@ export const useTransactionTableColumns = (): ColumnsType<Transaction> => {
         dataIndex: 'type',
         key: 'type',
         width: 100,
+        sorter: (a, b) => a.type.localeCompare(b.type),
         render: (type: Transaction['type']) => getTypeTag(type),
       },
       {
@@ -71,18 +72,21 @@ export const useTransactionTableColumns = (): ColumnsType<Transaction> => {
         dataIndex: 'balance',
         key: 'balance',
         width: 120,
+        sorter: (a, b) => (a.balance || 0) - (b.balance || 0),
         render: (balance: number) => `¥${(balance || 0).toFixed(2)}`,
       },
       {
         title: '交易描述',
         dataIndex: 'description',
         key: 'description',
+        sorter: (a, b) => a.description.localeCompare(b.description),
       },
       {
         title: '订单号',
         dataIndex: 'orderId',
         key: 'orderId',
         width: 180,
+        sorter: (a, b) => (a.orderId || '').localeCompare(b.orderId || ''),
         render: (orderId?: string) => orderId || '-',
       },
       {
@@ -90,6 +94,7 @@ export const useTransactionTableColumns = (): ColumnsType<Transaction> => {
         dataIndex: 'paymentMethod',
         key: 'paymentMethod',
         width: 100,
+        sorter: (a, b) => (a.paymentMethod || '').localeCompare(b.paymentMethod || ''),
         render: (method?: string) => method || '-',
       },
       {
@@ -97,6 +102,7 @@ export const useTransactionTableColumns = (): ColumnsType<Transaction> => {
         dataIndex: 'status',
         key: 'status',
         width: 100,
+        sorter: (a, b) => a.status.localeCompare(b.status),
         render: (status: Transaction['status']) => getStatusBadge(status),
       },
     ],

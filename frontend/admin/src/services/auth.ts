@@ -42,3 +42,11 @@ export const logout = () => {
 export const getCurrentUser = () => {
   return request.get('/auth/me');
 };
+
+/**
+ * 刷新 Token
+ * 使用当前有效的 token 获取新的 token
+ */
+export const refreshToken = () => {
+  return request.post<any, { token: string; expiresIn?: string }>('/auth/refresh');
+};

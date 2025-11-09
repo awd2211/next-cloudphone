@@ -37,8 +37,11 @@ export const getNotifications = (
 };
 
 // 获取未读通知数量
-export const getUnreadCount = () => {
-  return request.get<{ count: number }>('/notifications/unread/count');
+export const getUnreadCount = (userId?: string) => {
+  const uid = userId || localStorage.getItem('userId') || '';
+  return request.get<{ count: number }>('/notifications/unread/count', {
+    params: { userId: uid }
+  });
 };
 
 // 创建通知

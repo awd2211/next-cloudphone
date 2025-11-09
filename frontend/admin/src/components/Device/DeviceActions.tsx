@@ -7,7 +7,7 @@
  * 3. 只在 device 或 loading 状态变化时重渲染
  */
 import { memo } from 'react';
-import { Button, Space, Popconfirm } from 'antd';
+import { Button, Space } from 'antd';
 import {
   PlayCircleOutlined,
   StopOutlined,
@@ -18,6 +18,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { Device } from '@/types';
 import { PermissionGuard } from '@/hooks/usePermission';
+import { dangerConfirm } from '@/components/ConfirmDialog';
 
 interface DeviceActionsProps {
   device: Device;
@@ -81,22 +82,34 @@ export const DeviceActions = memo<DeviceActionsProps>(
         </Button>
 
         <PermissionGuard permission="device.delete">
-          <Popconfirm
-            title="确定删除该设备？"
-            onConfirm={() => onDelete(device.id)}
-            okText="确定"
-            cancelText="取消"
+          <Button
+            type="link"
+            size="small"
+            danger
+            icon={<DeleteOutlined />}
+            loading={loading.delete}
+            onClick={async () => {
+              const confirmed = await dangerConfirm({
+                title: '删除设备',
+                content: `确定要删除设备 "${device.name}" 吗？`,
+                okText: '确认删除',
+                cancelText: '取消',
+                consequences: [
+                  '设备上的所有数据将被永久删除',
+                  '设备关联的快照和备份也将被删除',
+                  '此操作无法撤销',
+                ],
+                requiresCheckbox: true,
+                checkboxText: '我了解此操作无法撤销',
+              });
+
+              if (confirmed) {
+                onDelete(device.id);
+              }
+            }}
           >
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              loading={loading.delete}
-            >
-              删除
-            </Button>
-          </Popconfirm>
+            删除
+          </Button>
         </PermissionGuard>
       </Space>
     );

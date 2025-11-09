@@ -3,7 +3,7 @@
  * 使用 React.memo 优化，避免不必要的重渲染
  */
 import { memo } from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic , theme } from 'antd';
 import {
   AppstoreOutlined,
   LockOutlined,
@@ -24,6 +24,7 @@ interface MenuStatisticsRowProps {
  */
 export const MenuStatisticsRow = memo<MenuStatisticsRowProps>(
   ({ totalMenuCount, menusWithPermission, cacheStats }) => {
+    const { token } = theme.useToken();
     return (
       <Row gutter={16}>
         <Col span={6}>
@@ -37,7 +38,7 @@ export const MenuStatisticsRow = memo<MenuStatisticsRowProps>(
               title="需要权限"
               value={menusWithPermission}
               prefix={<LockOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
           </Card>
         </Col>

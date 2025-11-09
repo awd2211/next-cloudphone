@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Space, Button, Tooltip, Popconfirm } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { AccessibleButton } from '@/components/Accessible/AccessibleButton';
 
 export interface NotificationTemplate {
   id: string;
@@ -58,9 +59,14 @@ export const TemplateActions = memo<TemplateActionsProps>(
           okText="确定"
           cancelText="取消"
         >
-          <Tooltip title="删除">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} />
-          </Tooltip>
+          <AccessibleButton
+            type="link"
+            size="small"
+            danger
+            icon={<DeleteOutlined />}
+            ariaLabel={`删除通知模板 ${template.name}`}
+            ariaDescription="删除此通知模板，此操作不可恢复"
+          />
         </Popconfirm>
       </Space>
     );

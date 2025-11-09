@@ -26,6 +26,7 @@ export const useNetworkPolicyColumns = ({
         dataIndex: 'name',
         key: 'name',
         width: 200,
+        sorter: (a, b) => a.name.localeCompare(b.name),
         render: (name: string, record: NetworkPolicy) => (
           <Space direction="vertical" size={0}>
             <strong>{name}</strong>
@@ -40,6 +41,7 @@ export const useNetworkPolicyColumns = ({
         dataIndex: 'direction',
         key: 'direction',
         width: 100,
+        sorter: (a, b) => a.direction.localeCompare(b.direction),
         render: (dir: string) => getDirectionTag(dir),
       },
       {
@@ -47,6 +49,7 @@ export const useNetworkPolicyColumns = ({
         dataIndex: 'protocol',
         key: 'protocol',
         width: 100,
+        sorter: (a, b) => (a.protocol || '').localeCompare(b.protocol || ''),
         render: (proto?: string) => <Tag>{proto || 'all'}</Tag>,
       },
       {
@@ -54,6 +57,7 @@ export const useNetworkPolicyColumns = ({
         dataIndex: 'sourceIp',
         key: 'sourceIp',
         width: 150,
+        sorter: (a, b) => (a.sourceIp || '').localeCompare(b.sourceIp || ''),
         render: (ip?: string) => ip || '*',
       },
       {
@@ -67,6 +71,7 @@ export const useNetworkPolicyColumns = ({
         dataIndex: 'action',
         key: 'action',
         width: 100,
+        sorter: (a, b) => a.action.localeCompare(b.action),
         render: (action: string) => getActionTag(action),
       },
       {

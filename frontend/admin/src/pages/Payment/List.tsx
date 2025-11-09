@@ -50,7 +50,7 @@ const PaymentList = () => {
   const params = useMemo(
     () => ({
       page,
-      limit: pageSize,
+      pageSize,
       ...filters,
       search: searchValue || undefined,
     }),

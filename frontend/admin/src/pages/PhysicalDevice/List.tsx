@@ -1,5 +1,6 @@
 import React from 'react';
-import { Card, Table, Alert } from 'antd';
+import { Card, Alert } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
   PhysicalDeviceStatsCards,
   PhysicalDeviceToolbar,
@@ -7,6 +8,7 @@ import {
   RegisterPhysicalDeviceModal,
 } from '@/components/PhysicalDevice';
 import { usePhysicalDeviceList } from '@/hooks/usePhysicalDeviceList';
+import type { PhysicalDevice } from '@/types';
 
 const PhysicalDeviceList: React.FC = () => {
   const {
@@ -60,12 +62,16 @@ const PhysicalDeviceList: React.FC = () => {
           onManualRegister={() => openRegisterModal()}
         />
 
-        <Table
+        <AccessibleTable<PhysicalDevice>
+          ariaLabel="物理设备列表"
+          loadingText="正在加载物理设备列表"
+          emptyText="暂无物理设备数据，点击上方扫描网络或手动注册"
           columns={columns}
           dataSource={devices}
           rowKey="id"
           loading={isLoading}
-          scroll={{ x: 1400 }}
+          scroll={{ x: 1400, y: 600 }}
+          virtual
           pagination={{
             current: page,
             pageSize: pageSize,
@@ -77,6 +83,7 @@ const PhysicalDeviceList: React.FC = () => {
               setPage(page);
               setPageSize(pageSize);
             },
+            pageSizeOptions: ['10', '20', '50', '100', '200'],
           }}
         />
       </Card>

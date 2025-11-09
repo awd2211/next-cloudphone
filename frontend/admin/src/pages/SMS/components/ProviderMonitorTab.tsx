@@ -11,6 +11,7 @@ import {
   message,
   Space,
   Badge,
+  theme,
 } from 'antd';
 import {
   ReloadOutlined,
@@ -58,6 +59,7 @@ interface ComparisonData {
  * - 平台推荐
  */
 const ProviderMonitorTab: React.FC = () => {
+  const { token } = theme.useToken();
   const queryClient = useQueryClient();
 
   // 查询平台对比数据
@@ -241,7 +243,7 @@ const ProviderMonitorTab: React.FC = () => {
               title="总成本"
               value={totalStats.totalCost.toFixed(4)}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
           </Card>
         </Col>

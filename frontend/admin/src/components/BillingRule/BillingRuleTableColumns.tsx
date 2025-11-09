@@ -11,6 +11,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { BillingRule } from '@/types';
 import { typeMap } from './billingRuleUtils';
 import dayjs from 'dayjs';
+import { createTimeColumn } from '@/utils/tableColumns';
 
 interface BillingRuleTableColumnsProps {
   onDetailClick: (rule: BillingRule) => void;
@@ -37,6 +38,7 @@ export const useBillingRuleTableColumns = ({
         dataIndex: 'name',
         key: 'name',
         width: 200,
+        sorter: (a, b) => a.name.localeCompare(b.name),
         render: (name: string, record: BillingRule) => (
           <a onClick={() => onDetailClick(record)}>{name}</a>
         ),
@@ -46,6 +48,7 @@ export const useBillingRuleTableColumns = ({
         dataIndex: 'type',
         key: 'type',
         width: 120,
+        sorter: (a, b) => a.type.localeCompare(b.type),
         render: (type: string) => {
           const config = typeMap[type as keyof typeof typeMap];
           return <Tag color={config?.color}>{config?.text}</Tag>;
@@ -99,13 +102,7 @@ export const useBillingRuleTableColumns = ({
           );
         },
       },
-      {
-        title: '创建时间',
-        dataIndex: 'createdAt',
-        key: 'createdAt',
-        width: 160,
-        render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm'),
-      },
+      createTimeColumn<BillingRule>('创建时间', 'createdAt', { format: 'YYYY-MM-DD HH:mm', width: 160 }),
       {
         title: '操作',
         key: 'actions',

@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import { Modal, Form, Input, Select, Typography } from 'antd';
+import { Modal, Form, Input, Select, Typography, DatePicker } from 'antd';
 import { KeyOutlined } from '@ant-design/icons';
 import { AVAILABLE_SCOPES, ENVIRONMENT_OPTIONS } from './constants';
+import { validateScope, isDateInFuture } from '@/utils/validators';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -59,13 +60,49 @@ export const CreateApiKeyModal = memo<CreateApiKeyModalProps>(
           <Form.Item
             name="scopes"
             label="权限范围"
-            rules={[{ required: true, message: '请选择至少一个权限' }]}
+            rules={[
+              { required: true, message: '请选择至少一个权限' },
+              {
+                validator: async (_, value) => {
+                  if (value && Array.isArray(value)) {
+                    const invalidScopes = value.filter((s: string) => !validateScope(s));
+                    if (invalidScopes.length > 0) {
+                      throw new Error(
+                        `权限格式错误: ${invalidScopes.join(', ')}。格式必须为 "resource:action" (小写字母)`
+                      );
+                    }
+                  }
+                },
+              },
+            ]}
           >
-            <Select mode="multiple" placeholder="选择权限范围" options={AVAILABLE_SCOPES} />
+            <Select
+              mode="multiple"
+              placeholder="选择权限范围（例如: device:read, device:write）"
+              options={AVAILABLE_SCOPES}
+              showSearch
+            />
           </Form.Item>
 
-          <Form.Item name="expiresAt" label="过期时间（可选）">
-            <Input placeholder="例如: 2026-12-31" />
+          <Form.Item
+            name="expiresAt"
+            label="过期时间（可选）"
+            rules={[
+              {
+                validator: async (_, value) => {
+                  if (value && !isDateInFuture(value)) {
+                    throw new Error('过期时间必须是未来日期');
+                  }
+                },
+              },
+            ]}
+          >
+            <DatePicker
+              showTime
+              format="YYYY-MM-DD HH:mm:ss"
+              placeholder="选择过期时间"
+              style={{ width: '100%' }}
+            />
           </Form.Item>
 
           <Form.Item name="description" label="描述（可选）">

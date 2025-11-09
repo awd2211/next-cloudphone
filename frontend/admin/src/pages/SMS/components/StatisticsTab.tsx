@@ -9,6 +9,7 @@ import {
   Space,
   Table,
   Tag,
+  theme,
 } from 'antd';
 import {
   CheckCircleOutlined,
@@ -65,6 +66,7 @@ interface StatisticsData {
  * - 服务使用分析
  */
 const StatisticsTab: React.FC = () => {
+  const { token } = theme.useToken();
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(7, 'day'),
     dayjs(),
@@ -295,7 +297,7 @@ const StatisticsTab: React.FC = () => {
               title="总成本"
               value={data?.overview.totalCost.toFixed(4) || 0}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
           </Card>
         </Col>

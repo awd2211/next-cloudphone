@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic, theme } from 'antd';
 import { ShoppingOutlined } from '@ant-design/icons';
 
 interface StatisticsCardsProps {
@@ -15,6 +15,8 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
   totalOrders,
   avgOrderValue,
 }) => {
+  const { token } = theme.useToken();
+
   return (
     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
       <Col xs={24} sm={8}>
@@ -34,7 +36,7 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
             title="总订单数"
             value={totalOrders}
             prefix={<ShoppingOutlined />}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
           />
         </Card>
       </Col>

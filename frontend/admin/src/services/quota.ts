@@ -82,6 +82,16 @@ export const updateQuota = (id: string, data: UpdateQuotaDto) => {
 };
 
 /**
+ * 删除配额
+ */
+export const deleteQuota = (id: string) => {
+  return request.delete<{
+    success: boolean;
+    message: string;
+  }>(`/quotas/${id}`);
+};
+
+/**
  * 上报设备用量
  */
 export const reportDeviceUsage = (
@@ -134,6 +144,23 @@ export const batchCheckQuota = (requests: CheckQuotaRequest[]) => {
 };
 
 /**
+ * 获取所有配额列表（管理员）
+ */
+export const getAllQuotas = (params?: {
+  status?: string;
+  page?: number;
+  limit?: number;
+}) => {
+  return request.get<{
+    success: boolean;
+    data: Quota[];
+    total: number;
+    page: number;
+    limit: number;
+  }>('/quotas', { params });
+};
+
+/**
  * 获取配额告警列表
  */
 export const getQuotaAlerts = (threshold: number = 80) => {
@@ -142,4 +169,52 @@ export const getQuotaAlerts = (threshold: number = 80) => {
     data: QuotaAlert[];
     total: number;
   }>('/quotas/alerts', { params: { threshold } });
+};
+
+/**
+ * 获取配额监控指标
+ */
+export const getQuotaMetrics = () => {
+  return request.get<{
+    success: boolean;
+    data: {
+      totalQuotas: number;
+      activeQuotas: number;
+      exceededQuotas: number;
+      expiredQuotas: number;
+      suspendedQuotas: number;
+      highUsageQuotas: number;
+      criticalUsageQuotas: number;
+      avgDeviceUsagePercent: number;
+      avgCpuUsagePercent: number;
+      avgMemoryUsagePercent: number;
+      avgStorageUsagePercent: number;
+      avgTrafficUsagePercent: number;
+      lastUpdated: string;
+    };
+  }>('/quotas/metrics');
+};
+
+/**
+ * 获取配额统计摘要
+ */
+export const getQuotaSummary = () => {
+  return request.get<{
+    success: boolean;
+    data: {
+      total: number;
+      byStatus: Record<string, number>;
+      avgUsage: {
+        devices: number;
+        cpu: number;
+        memory: number;
+        storage: number;
+        traffic: number;
+      };
+      alerts: {
+        high: number;
+        critical: number;
+      };
+    };
+  }>('/quotas/summary');
 };

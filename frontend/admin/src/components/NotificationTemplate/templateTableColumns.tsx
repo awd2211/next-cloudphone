@@ -31,6 +31,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Not
     dataIndex: 'name',
     key: 'name',
     width: 200,
+    sorter: (a, b) => a.name.localeCompare(b.name),
     render: (name, record) => (
       <Space direction="vertical" size={0}>
         <strong>{name}</strong>
@@ -45,6 +46,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Not
     dataIndex: 'type',
     key: 'type',
     width: 100,
+    sorter: (a, b) => a.type.localeCompare(b.type),
     render: (type) => getTypeTag(type),
   },
   {
@@ -52,6 +54,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Not
     dataIndex: 'contentType',
     key: 'contentType',
     width: 120,
+    sorter: (a, b) => a.contentType.localeCompare(b.contentType),
     render: (type) => getContentTypeTag(type),
   },
   {
@@ -59,6 +62,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Not
     dataIndex: 'category',
     key: 'category',
     width: 120,
+    sorter: (a, b) => (a.category || '').localeCompare(b.category || ''),
     render: (cat) => cat || '-',
   },
   {
@@ -66,6 +70,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Not
     dataIndex: 'language',
     key: 'language',
     width: 100,
+    sorter: (a, b) => a.language.localeCompare(b.language),
   },
   {
     title: '版本',
@@ -73,6 +78,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Not
     key: 'version',
     width: 80,
     align: 'center',
+    sorter: (a, b) => a.version - b.version,
     render: (ver) => <Badge count={`v${ver}`} style={{ backgroundColor: '#52c41a' }} />,
   },
   {
@@ -94,6 +100,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Not
     dataIndex: 'updatedAt',
     key: 'updatedAt',
     width: 160,
+    sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
     render: (time) => dayjs(time).format('MM-DD HH:mm'),
   },
   {

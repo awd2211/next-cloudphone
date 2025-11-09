@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getUsageRecords } from '@/services/billing';
+import { getAdminUsageRecords } from '@/services/billing';
 import { UsageRecordsResponseSchema } from '@/schemas/api.schemas';
 
 // Query Keys
@@ -20,7 +20,8 @@ export function useUsageRecords(params?: {
   return useQuery({
     queryKey: usageKeys.list(params),
     queryFn: async () => {
-      const response = await getUsageRecords(params || {});
+      // ✅ 使用管理员专用的使用记录接口（已支持 page/pageSize 分页）
+      const response = await getAdminUsageRecords(params || {});
       // ✅ 添加 Zod 验证
       const validated = UsageRecordsResponseSchema.parse(response);
       return validated;

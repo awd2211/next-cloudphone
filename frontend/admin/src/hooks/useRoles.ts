@@ -47,34 +47,27 @@ export function useRole(id: string) {
 }
 
 /**
- * 获取所有权限列表
+ * 获取所有权限列表（支持分页和筛选）
+ * ✅ 优化：支持服务端分页，避免一次性加载所有数据
  */
-export function usePermissions() {
+export function usePermissions(params?: {
+  page?: number;
+  limit?: number;
+  resource?: string;
+}) {
   return useQuery({
-    queryKey: permissionKeys.lists(),
+    queryKey: [...permissionKeys.lists(), params] as const,
     queryFn: async () => {
-      const response = await roleService.getPermissions();
-
-      // 智能处理不同的响应格式
-      let data = response;
-
-      // 如果有 success 字段，提取 data
-      if (response && typeof response === 'object' && 'success' in response) {
-        data = (response as any).data;
-      }
-
-      // 确保返回数组
-      if (Array.isArray(data)) {
-        return data;
-      } else if (data && Array.isArray((data as any).data)) {
-        // 如果返回的是 {data: [...]} 格式
-        return (data as any).data;
-      } else {
-        console.error('权限数据格式错误:', response);
-        return [];
-      }
+      const response = await roleService.getPermissions(params);
+      return {
+        permissions: response.data || [],
+        total: response.total || 0,
+        page: response.page || params?.page || 1,
+        limit: response.limit || params?.limit || 20,
+      };
     },
-    staleTime: 5 * 60 * 1000, // 权限列表可以缓存5分钟
+    staleTime: 30 * 1000, // 30秒缓存
+    placeholderData: (previousData) => previousData, // 保持上一次数据，避免闪烁
   });
 }
 

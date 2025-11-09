@@ -1,6 +1,6 @@
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
-import { Empty } from 'antd';
+import { Empty, theme } from 'antd';
 
 interface RevenueData {
   date: string;
@@ -14,6 +14,7 @@ interface RevenueChartProps {
 }
 
 const RevenueChart = ({ data, loading }: RevenueChartProps) => {
+  const { token } = theme.useToken();
   if (!data || data.length === 0) {
     return <Empty description="暂无数据" />;
   }
@@ -69,7 +70,7 @@ const RevenueChart = ({ data, loading }: RevenueChartProps) => {
         smooth: true,
         data: data.map((item) => item.revenue),
         itemStyle: {
-          color: '#1890ff',
+          color: token.colorPrimary,
         },
         areaStyle: {
           color: {

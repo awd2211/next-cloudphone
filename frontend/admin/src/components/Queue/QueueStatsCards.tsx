@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic , theme } from 'antd';
 import { DatabaseOutlined } from '@ant-design/icons';
 import type { QueueSummary } from '@/types';
 
@@ -8,6 +8,7 @@ interface QueueStatsCardsProps {
 }
 
 export const QueueStatsCards = memo<QueueStatsCardsProps>(({ summary }) => {
+  const { token } = theme.useToken();
   if (!summary) return null;
 
   return (
@@ -35,7 +36,7 @@ export const QueueStatsCards = memo<QueueStatsCardsProps>(({ summary }) => {
           <Statistic
             title="处理中任务"
             value={summary.totalActive || 0}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
           />
         </Card>
       </Col>

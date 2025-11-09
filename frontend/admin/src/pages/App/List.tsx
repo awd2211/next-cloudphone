@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Space, Button, Image, Upload, Modal, message, Popconfirm, Progress } from 'antd';
+import { Space, Button, Image, Upload, Modal, message, Popconfirm, Progress } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
@@ -7,7 +8,7 @@ import type { Application } from '@/types';
 import dayjs from 'dayjs';
 import { useApps, useUploadApp, useDeleteApp } from '@/hooks/useApps';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { EnhancedErrorAlert, type EnhancedError } from '@/components/EnhancedErrorAlert';
+import { ErrorAlert, type ErrorInfo } from '@/components/ErrorAlert';
 
 /**
  * 应用列表页面（优化版 - 使用 React Query）
@@ -26,7 +27,7 @@ const AppList = () => {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [uploadError, setUploadError] = useState<EnhancedError | null>(null);
+  const [uploadError, setUploadError] = useState<ErrorInfo | null>(null);
 
   // 使用异步操作hook
   const { execute: executeUpload } = useAsyncOperation();
@@ -216,7 +217,10 @@ const AppList = () => {
         </Button>
       </div>
 
-      <Table
+      <AccessibleTable<Application>
+        ariaLabel="应用列表"
+        loadingText="正在加载应用列表"
+        emptyText="暂无应用数据，点击右上角上传应用"
         columns={columns}
         dataSource={apps}
         rowKey="id"
@@ -231,8 +235,10 @@ const AppList = () => {
             setPage(page);
             setPageSize(pageSize);
           },
+          pageSizeOptions: ['10', '20', '50', '100', '200'],
         }}
-        scroll={{ x: 1000 }}
+        scroll={{ x: 1000, y: 600 }}
+        virtual
       />
 
       {/* 上传应用Modal */}
@@ -245,7 +251,7 @@ const AppList = () => {
       >
         {/* 上传错误提示 */}
         {uploadError && (
-          <EnhancedErrorAlert
+          <ErrorAlert
             error={uploadError}
             onClose={() => setUploadError(null)}
             onRetry={handleUpload}

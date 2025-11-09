@@ -1,6 +1,6 @@
 import { Form, Input, Button, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { EnhancedErrorAlert } from '@/components/EnhancedErrorAlert';
+import { ErrorInfoAlert } from '@/components/ErrorAlert';
 import { CaptchaInput, TwoFactorModal, useLogin } from '@/components/Login';
 import './index.css';
 
@@ -45,7 +45,7 @@ const Login = () => {
       <Card title="云手机平台 - 管理后台" className="login-card">
         {/* 登录错误提示 */}
         {loginError && (
-          <EnhancedErrorAlert
+          <ErrorAlert
             error={loginError}
             onClose={() => setLoginError(null)}
             onRetry={() => form.submit()}

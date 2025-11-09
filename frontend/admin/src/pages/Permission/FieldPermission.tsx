@@ -23,12 +23,18 @@ import {
 } from '@/components/FieldPermission';
 
 const FieldPermissionManagement: React.FC = () => {
-  // ✅ 使用重构后的 hook
+  // ✅ 使用优化后的 hook（支持分页 + 统计数据）
   const {
     permissions,
+    total,
     accessLevels,
     operationTypes,
     loading,
+    stats,
+    statsLoading,
+    page,
+    pageSize,
+    handlePageChange,
     isModalVisible,
     setIsModalVisible,
     isDetailModalVisible,
@@ -123,19 +129,20 @@ const FieldPermissionManagement: React.FC = () => {
     }
   }, [editingPermission, form, loadPermissions]);
 
+  // ✅ 使用服务端聚合统计数据，而非客户端计算
   const statistics = useMemo(
     () => ({
-      total: permissions.length,
-      active: permissions.filter((p) => p.isActive).length,
-      inactive: permissions.filter((p) => !p.isActive).length,
+      total: stats?.total || 0,
+      active: stats?.active || 0,
+      inactive: stats?.inactive || 0,
       byOperation: {
-        create: permissions.filter((p) => p.operation === 'create').length,
-        update: permissions.filter((p) => p.operation === 'update').length,
-        view: permissions.filter((p) => p.operation === 'view').length,
-        export: permissions.filter((p) => p.operation === 'export').length,
+        create: stats?.byOperation?.CREATE || 0,
+        update: stats?.byOperation?.UPDATE || 0,
+        view: stats?.byOperation?.VIEW || 0,
+        export: stats?.byOperation?.EXPORT || 0,
       },
     }),
-    [permissions]
+    [stats]
   );
 
   return (
@@ -161,6 +168,11 @@ const FieldPermissionManagement: React.FC = () => {
         <FieldPermissionTable
           permissions={permissions}
           loading={loading}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          operationTypes={operationTypes}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onToggle={handleToggle}

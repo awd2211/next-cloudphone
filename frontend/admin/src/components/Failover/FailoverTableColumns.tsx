@@ -19,30 +19,35 @@ export const useFailoverTableColumns = ({
         key: 'deviceId',
         width: 200,
         ellipsis: true,
+        sorter: (a, b) => a.deviceId.localeCompare(b.deviceId),
       },
       {
         title: '设备名称',
         dataIndex: 'deviceName',
         key: 'deviceName',
         width: 150,
+        sorter: (a, b) => a.deviceName.localeCompare(b.deviceName),
       },
       {
         title: '源节点',
         dataIndex: 'sourceNode',
         key: 'sourceNode',
         width: 120,
+        sorter: (a, b) => a.sourceNode.localeCompare(b.sourceNode),
       },
       {
         title: '目标节点',
         dataIndex: 'targetNode',
         key: 'targetNode',
         width: 120,
+        sorter: (a, b) => a.targetNode.localeCompare(b.targetNode),
       },
       {
         title: '状态',
         dataIndex: 'status',
         key: 'status',
         width: 100,
+        sorter: (a, b) => a.status.localeCompare(b.status),
         render: (status: string) => {
           const config = STATUS_CONFIG[status] || {
             color: 'default',
@@ -56,6 +61,7 @@ export const useFailoverTableColumns = ({
         dataIndex: 'triggerType',
         key: 'triggerType',
         width: 100,
+        sorter: (a, b) => a.triggerType.localeCompare(b.triggerType),
         render: (type: string) => TRIGGER_TYPE_MAP[type] || type,
       },
       {
@@ -63,12 +69,14 @@ export const useFailoverTableColumns = ({
         dataIndex: 'startedAt',
         key: 'startedAt',
         width: 160,
+        sorter: (a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime(),
       },
       {
         title: '耗时',
         dataIndex: 'duration',
         key: 'duration',
         width: 100,
+        sorter: (a, b) => (a.duration || 0) - (b.duration || 0),
         render: (duration: number) => (duration ? `${duration}s` : '-'),
       },
       {

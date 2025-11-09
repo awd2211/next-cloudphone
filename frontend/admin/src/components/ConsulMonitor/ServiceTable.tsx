@@ -24,6 +24,7 @@ export const ServiceTable = memo<ServiceTableProps>(({ services, loading, onView
         dataIndex: 'service',
         key: 'service',
         width: 200,
+        sorter: (a, b) => a.service.localeCompare(b.service),
         render: (service: string) => (
           <Space>
             <ApiOutlined />
@@ -36,6 +37,7 @@ export const ServiceTable = memo<ServiceTableProps>(({ services, loading, onView
         key: 'instances',
         width: 120,
         align: 'center',
+        sorter: (a, b) => a.instances.length - b.instances.length,
         render: (_, record) => <Text>{record.instances.length}</Text>,
       },
       {
@@ -44,6 +46,7 @@ export const ServiceTable = memo<ServiceTableProps>(({ services, loading, onView
         key: 'healthyCount',
         width: 120,
         align: 'center',
+        sorter: (a, b) => a.healthyCount - b.healthyCount,
         render: (count: number) => <Text style={{ color: '#52c41a' }}>{count}</Text>,
       },
       {
@@ -52,6 +55,7 @@ export const ServiceTable = memo<ServiceTableProps>(({ services, loading, onView
         key: 'unhealthyCount',
         width: 120,
         align: 'center',
+        sorter: (a, b) => a.unhealthyCount - b.unhealthyCount,
         render: (count: number) => (
           <Text style={{ color: count > 0 ? '#ff4d4f' : '#999' }}>{count}</Text>
         ),

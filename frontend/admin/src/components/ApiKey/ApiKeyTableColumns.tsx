@@ -40,12 +40,14 @@ export const useApiKeyColumns = ({
         key: 'id',
         width: 100,
         ellipsis: true,
+        sorter: (a, b) => a.id.localeCompare(b.id),
       },
       {
         title: '名称',
         dataIndex: 'name',
         key: 'name',
         width: 150,
+        sorter: (a, b) => a.name.localeCompare(b.name),
       },
       {
         title: '密钥',
@@ -71,6 +73,7 @@ export const useApiKeyColumns = ({
         dataIndex: 'status',
         key: 'status',
         width: 100,
+        sorter: (a, b) => a.status.localeCompare(b.status),
         render: (status: ApiKeyStatus, record: ApiKey) => {
           const expired = isKeyExpired(record.expiresAt);
           const displayStatus = expired ? 'expired' : status;
@@ -110,6 +113,11 @@ export const useApiKeyColumns = ({
         dataIndex: 'lastUsedAt',
         key: 'lastUsedAt',
         width: 170,
+        sorter: (a, b) => {
+          const timeA = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
+          const timeB = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
+          return timeA - timeB;
+        },
         render: (date?: string) =>
           date ? (
             new Date(date).toLocaleString('zh-CN')
@@ -122,6 +130,11 @@ export const useApiKeyColumns = ({
         dataIndex: 'expiresAt',
         key: 'expiresAt',
         width: 170,
+        sorter: (a, b) => {
+          const timeA = a.expiresAt ? new Date(a.expiresAt).getTime() : 0;
+          const timeB = b.expiresAt ? new Date(b.expiresAt).getTime() : 0;
+          return timeA - timeB;
+        },
         render: (date?: string) => {
           if (!date) return <span style={{ color: '#999' }}>永不过期</span>;
           const expired = new Date(date) < new Date();
@@ -137,6 +150,7 @@ export const useApiKeyColumns = ({
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 170,
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         render: (date: string) => new Date(date).toLocaleString('zh-CN'),
       },
       {

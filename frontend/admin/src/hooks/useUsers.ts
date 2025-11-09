@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as userService from '@/services/user';
 import type { User, CreateUserDto, UpdateUserDto, PaginationParams } from '@/types';
+import { handleError } from '@/utils/errorHandling';
 
 /**
  * User Query Keys
@@ -71,7 +72,7 @@ export function useCreateUser() {
 }
 
 /**
- * 更新用户
+ * 更新用户 (带乐观更新)
  */
 export function useUpdateUser() {
   const queryClient = useQueryClient();
@@ -79,33 +80,124 @@ export function useUpdateUser() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateUserDto }) =>
       userService.updateUser(id, data),
-    onSuccess: (_, variables) => {
-      // 失效特定用户和列表
-      queryClient.invalidateQueries({ queryKey: userKeys.detail(variables.id) });
+
+    // 乐观更新：在 API 调用前立即更新 UI
+    onMutate: async ({ id, data }) => {
+      // 取消正在进行的查询，避免覆盖乐观更新
+      await queryClient.cancelQueries({ queryKey: userKeys.lists() });
+      await queryClient.cancelQueries({ queryKey: userKeys.detail(id) });
+
+      // 保存当前数据（用于回滚）
+      const previousLists = queryClient.getQueriesData({ queryKey: userKeys.lists() });
+      const previousDetail = queryClient.getQueryData(userKeys.detail(id));
+
+      // 立即更新列表中的用户数据
+      queryClient.setQueriesData(
+        { queryKey: userKeys.lists() },
+        (old: any) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: old.data.map((user: User) =>
+              user.id === id ? { ...user, ...data } : user
+            ),
+          };
+        }
+      );
+
+      // 立即更新用户详情数据
+      if (previousDetail) {
+        queryClient.setQueryData(userKeys.detail(id), {
+          ...previousDetail as User,
+          ...data,
+        });
+      }
+
+      return { previousLists, previousDetail };
+    },
+
+    onSuccess: (_, { id }) => {
+      // 成功后仍然失效缓存，确保数据一致性
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
       message.success('用户更新成功');
     },
-    onError: (error: any) => {
-      message.error(`更新失败: ${error.response?.data?.message || error.message}`);
+
+    onError: (error, { id }, context) => {
+      // 失败时回滚到之前的数据
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      if (context?.previousDetail) {
+        queryClient.setQueryData(userKeys.detail(id), context.previousDetail);
+      }
+
+      // 使用统一错误处理
+      handleError(error, {
+        customMessage: '更新用户失败',
+      });
     },
   });
 }
 
 /**
- * 删除用户
+ * 删除用户 (带乐观更新)
  */
 export function useDeleteUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: userService.deleteUser,
+
+    // 乐观更新：立即从列表中移除
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: userKeys.lists() });
+      await queryClient.cancelQueries({ queryKey: userKeys.detail(id) });
+
+      const previousLists = queryClient.getQueriesData({ queryKey: userKeys.lists() });
+      const previousDetail = queryClient.getQueryData(userKeys.detail(id));
+
+      // 立即从所有列表中移除该用户
+      queryClient.setQueriesData(
+        { queryKey: userKeys.lists() },
+        (old: any) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: old.data.filter((user: User) => user.id !== id),
+            total: old.total - 1, // 同时更新总数
+          };
+        }
+      );
+
+      // 移除详情缓存
+      queryClient.removeQueries({ queryKey: userKeys.detail(id) });
+
+      return { previousLists, previousDetail };
+    },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
       queryClient.invalidateQueries({ queryKey: userKeys.stats() });
       message.success('用户删除成功');
     },
-    onError: (error: any) => {
-      message.error(`删除失败: ${error.response?.data?.message || error.message}`);
+
+    onError: (error, id, context) => {
+      // 失败时恢复数据
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      if (context?.previousDetail) {
+        queryClient.setQueryData(userKeys.detail(id), context.previousDetail);
+      }
+
+      handleError(error, {
+        customMessage: '删除用户失败，该用户可能有关联数据',
+      });
     },
   });
 }

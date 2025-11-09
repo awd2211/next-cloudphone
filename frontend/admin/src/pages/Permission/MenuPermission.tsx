@@ -33,6 +33,7 @@ const MenuPermission = () => {
     menusWithPermission,
     setSearchValue,
     setStatsModalVisible,
+    handleOpenStatsModal, // ✅ 新增：打开统计弹窗并懒加载数据
     setTestModalVisible,
     setTestUserId,
     loadMenus,
@@ -85,7 +86,7 @@ const MenuPermission = () => {
           {/* 快捷操作 */}
           <QuickActionsCard
             onTestUserAccess={handleTestUserAccess}
-            onViewStats={() => setStatsModalVisible(true)}
+            onViewStats={handleOpenStatsModal}
           />
         </Col>
       </Row>

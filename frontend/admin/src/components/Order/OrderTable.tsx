@@ -1,9 +1,10 @@
 import { memo, useMemo } from 'react';
-import { Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Order } from '@/types';
 import dayjs from 'dayjs';
 import { OrderActions, OrderStatusTag, PaymentMethodTag } from './';
+import { createTimeColumn } from '@/utils/tableColumns';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 
 export interface OrderTableProps {
   orders: Order[];
@@ -94,13 +95,7 @@ export const OrderTable = memo<OrderTableProps>(
           sorter: (a, b) => a.status.localeCompare(b.status),
           render: (status: string) => <OrderStatusTag status={status as any} />,
         },
-        {
-          title: '创建时间',
-          dataIndex: 'createdAt',
-          key: 'createdAt',
-          sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-          render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
-        },
+        createTimeColumn('创建时间', 'createdAt'),
         {
           title: '支付时间',
           dataIndex: 'paidAt',
@@ -131,7 +126,10 @@ export const OrderTable = memo<OrderTableProps>(
     );
 
     return (
-      <Table
+      <AccessibleTable<Order>
+        ariaLabel="订单列表"
+        loadingText="正在加载订单列表"
+        emptyText="暂无订单数据"
         columns={columns}
         dataSource={orders}
         rowKey="id"
@@ -142,10 +140,12 @@ export const OrderTable = memo<OrderTableProps>(
           pageSize,
           total,
           showSizeChanger: true,
+          pageSizeOptions: ['20', '50', '100', '200'],
           showTotal: (total) => `共 ${total} 条`,
           onChange: onPageChange,
         }}
-        scroll={{ x: 1400 }}
+        scroll={{ x: 1400, y: 600 }}
+        virtual
       />
     );
   }

@@ -1,11 +1,13 @@
 import React, { useCallback } from 'react';
-import { Card, Table, Button, Space } from 'antd';
+import { Card, Button, Space } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { PlusOutlined, ExperimentOutlined } from '@ant-design/icons';
 import {
   PolicyFormModal,
   TestConnectivityModal,
   useNetworkPolicyColumns,
   TABLE_PAGE_SIZE,
+  type NetworkPolicy,
 } from '@/components/NetworkPolicy';
 import { useNetworkPolicies } from '@/hooks/useNetworkPolicies';
 
@@ -54,13 +56,22 @@ const NetworkPolicyConfiguration: React.FC = () => {
           </Space>
         </div>
 
-        <Table
+        <AccessibleTable<NetworkPolicy>
+          ariaLabel="网络策略列表"
+          loadingText="正在加载网络策略"
+          emptyText="暂无网络策略，点击右上角新建策略"
           columns={columns}
           dataSource={policies}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: TABLE_PAGE_SIZE }}
-          scroll={{ x: 1400 }}
+          pagination={{
+            pageSize: TABLE_PAGE_SIZE,
+            pageSizeOptions: ['10', '20', '50', '100', '200'],
+            showSizeChanger: true,
+            showTotal: (total) => `共 ${total} 条`,
+          }}
+          scroll={{ x: 1400, y: 600 }}
+          virtual
         />
       </Card>
 

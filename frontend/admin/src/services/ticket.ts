@@ -54,21 +54,32 @@ export const getUserTickets = (
 };
 
 /**
- * 获取所有工单（管理员）
+ * 获取所有工单（管理员）- 支持page/pageSize分页
  */
 export const getAllTickets = (params?: {
+  page?: number;
+  pageSize?: number;
   status?: TicketStatus;
   assignedTo?: string;
   priority?: TicketPriority;
   category?: TicketCategory;
-  limit?: number;
-  offset?: number;
 }) => {
+  // 转换 page/pageSize 为 limit/offset
+  const { page = 1, pageSize = 20, ...filters } = params || {};
+  const limit = pageSize;
+  const offset = (page - 1) * pageSize;
+
   return request.get<{
     success: boolean;
     data: Ticket[];
     total: number;
-  }>('/tickets', { params });
+  }>('/tickets', {
+    params: {
+      ...filters,
+      limit,
+      offset,
+    },
+  });
 };
 
 /**

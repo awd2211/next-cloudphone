@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Card, Row, Col, Statistic, Progress } from 'antd';
+import { Card, Row, Col, Statistic, Progress , theme } from 'antd';
 import { DatabaseOutlined } from '@ant-design/icons';
 import { formatSize, calculateStorageUsage } from './utils';
 
@@ -14,6 +14,7 @@ export interface SnapshotStatsCardsProps {
  */
 export const SnapshotStatsCards = memo<SnapshotStatsCardsProps>(
   ({ totalSnapshots, totalSize, avgSize }) => {
+    const { token } = theme.useToken();
     const storageUsage = calculateStorageUsage(totalSize);
 
     return (
@@ -33,7 +34,7 @@ export const SnapshotStatsCards = memo<SnapshotStatsCardsProps>(
             <Statistic
               title="平均快照大小"
               value={formatSize(avgSize)}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
           </Col>
           <Col span={6}>

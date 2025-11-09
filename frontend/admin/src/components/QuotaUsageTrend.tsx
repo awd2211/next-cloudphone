@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, Select, Spin, Empty, DatePicker, Space, Button } from 'antd';
+import { Card, Select, Spin, Empty, DatePicker, Space, Button , theme } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
@@ -48,6 +48,7 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
   showCard = true,
   chartType = 'line',
 }) => {
+  const { token } = theme.useToken();
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([
     'devices',
     'cpuCores',
@@ -89,7 +90,7 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
 
   // 指标配置
   const metricOptions = [
-    { label: '设备数', value: 'devices', color: '#1890ff' },
+    { label: '设备数', value: 'devices', color: token.colorPrimary },
     { label: 'CPU(核)', value: 'cpuCores', color: '#52c41a' },
     { label: '内存(GB)', value: 'memoryGB', color: '#faad14' },
     { label: '存储(GB)', value: 'storageGB', color: '#f5222d' },

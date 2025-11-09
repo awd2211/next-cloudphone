@@ -13,6 +13,7 @@ import {
   Tag,
   Tooltip,
   message,
+  theme,
 } from 'antd';
 import {
   ClockCircleOutlined,
@@ -51,6 +52,7 @@ const { Option } = Select;
  * 5. ✅ 用户使用详情查看
  */
 const UsageMonitor = () => {
+  const { token } = theme.useToken();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [userFilter, setUserFilter] = useState<string | undefined>();
@@ -380,7 +382,7 @@ const UsageMonitor = () => {
                 title="活跃用户"
                 value={stats.activeUsers}
                 prefix={<UserOutlined />}
-                valueStyle={{ color: '#1890ff' }}
+                valueStyle={{ color: token.colorPrimary }}
               />
             </Card>
           </Col>

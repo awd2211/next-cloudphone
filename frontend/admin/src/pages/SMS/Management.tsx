@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { Card, Table, Form, message } from 'antd';
+import { Card, Form, message } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import request from '@/utils/request';
 import {
@@ -149,12 +150,16 @@ const SMSManagement: React.FC = () => {
 
       {/* 表格 */}
       <Card>
-        <Table
+        <AccessibleTable<SMSRecord>
+          ariaLabel="短信记录列表"
+          loadingText="正在加载短信记录"
+          emptyText="暂无短信记录"
           columns={columns}
           dataSource={data?.data || []}
           rowKey="id"
           loading={isLoading}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1200, y: 600 }}
+          virtual
           pagination={{
             current: searchParams.page,
             pageSize: searchParams.limit,
@@ -165,6 +170,7 @@ const SMSManagement: React.FC = () => {
             onChange: (page, pageSize) => {
               setSearchParams({ ...searchParams, page, limit: pageSize });
             },
+            pageSizeOptions: ['10', '20', '50', '100', '200'],
           }}
         />
       </Card>

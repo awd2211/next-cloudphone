@@ -2,7 +2,7 @@
  * 登录相关常量
  */
 
-import type { EnhancedError } from '@/components/EnhancedErrorAlert';
+import type { ErrorInfo } from '@/components/ErrorAlert';
 
 /**
  * 登录错误恢复建议
@@ -45,7 +45,7 @@ export const TWO_FACTOR_ERROR_SUGGESTIONS = [
 /**
  * 解析登录错误
  */
-export const parseLoginError = (error: any): EnhancedError => {
+export const parseLoginError = (error: any): ErrorInfo => {
   const response = error.response?.data;
   return {
     message: response?.message || '登录失败',
@@ -60,7 +60,7 @@ export const parseLoginError = (error: any): EnhancedError => {
 /**
  * 解析 2FA 错误
  */
-export const parseTwoFactorError = (error: any): EnhancedError => {
+export const parseTwoFactorError = (error: any): ErrorInfo => {
   const response = error.response?.data;
   return {
     message: response?.message || '验证码错误',

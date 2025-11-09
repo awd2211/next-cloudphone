@@ -9,6 +9,7 @@ import {
   Space,
   Table,
   Tag,
+  theme,
 } from 'antd';
 import {
   DollarOutlined,
@@ -62,6 +63,7 @@ interface CostReport {
  * - 成本优化建议
  */
 const CostMonitorTab: React.FC = () => {
+  const { token } = theme.useToken();
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(7, 'day'),
     dayjs(),
@@ -212,7 +214,7 @@ const CostMonitorTab: React.FC = () => {
               title="总成本"
               value={data?.data?.overview.totalCost.toFixed(2) || 0}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
           </Card>
         </Col>

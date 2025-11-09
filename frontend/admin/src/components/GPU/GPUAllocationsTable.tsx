@@ -21,6 +21,7 @@ export const GPUAllocationsTable = memo<GPUAllocationsTableProps>(({ allocations
         dataIndex: 'gpuId',
         key: 'gpuId',
         width: 120,
+        sorter: (a, b) => a.gpuId.localeCompare(b.gpuId),
         render: (id) => id.substring(0, 12),
       },
       {
@@ -28,6 +29,7 @@ export const GPUAllocationsTable = memo<GPUAllocationsTableProps>(({ allocations
         dataIndex: 'deviceId',
         key: 'deviceId',
         width: 120,
+        sorter: (a, b) => a.deviceId.localeCompare(b.deviceId),
         render: (id) => id.substring(0, 12),
       },
       {
@@ -35,6 +37,7 @@ export const GPUAllocationsTable = memo<GPUAllocationsTableProps>(({ allocations
         dataIndex: 'userId',
         key: 'userId',
         width: 120,
+        sorter: (a, b) => a.userId.localeCompare(b.userId),
         render: (id) => id.substring(0, 12),
       },
       {
@@ -42,18 +45,21 @@ export const GPUAllocationsTable = memo<GPUAllocationsTableProps>(({ allocations
         dataIndex: 'allocatedAt',
         key: 'allocatedAt',
         width: 160,
+        sorter: (a, b) => new Date(a.allocatedAt).getTime() - new Date(b.allocatedAt).getTime(),
         render: (time) => dayjs(time).format('MM-DD HH:mm'),
       },
       {
         title: '平均使用率',
         key: 'avgUtilization',
         width: 120,
+        sorter: (a, b) => (a.usageStats?.avgUtilization || 0) - (b.usageStats?.avgUtilization || 0),
         render: (_, record) => (record.usageStats ? `${record.usageStats.avgUtilization}%` : '-'),
       },
       {
         title: '峰值使用率',
         key: 'peakUtilization',
         width: 120,
+        sorter: (a, b) => (a.usageStats?.peakUtilization || 0) - (b.usageStats?.peakUtilization || 0),
         render: (_, record) => (record.usageStats ? `${record.usageStats.peakUtilization}%` : '-'),
       },
       {

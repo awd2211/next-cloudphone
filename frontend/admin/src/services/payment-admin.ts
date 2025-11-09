@@ -38,7 +38,8 @@ export interface DailyStat {
 
 export interface PaymentListParams {
   page?: number;
-  limit?: number;
+  pageSize?: number;
+  limit?: number; // 兼容旧版
   status?: string;
   method?: string;
   userId?: string;

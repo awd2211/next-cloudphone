@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Card, Row, Col, Statistic } from 'antd';
+import { Card, Row, Col, Statistic , theme } from 'antd';
 import { ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 
 interface AppReviewStatsCardProps {
@@ -10,6 +10,7 @@ interface AppReviewStatsCardProps {
 
 export const AppReviewStatsCard = memo<AppReviewStatsCardProps>(
   ({ pending, approved, rejected }) => {
+    const { token } = theme.useToken();
     return (
       <Card style={{ marginBottom: '16px' }}>
         <Row gutter={16}>
@@ -17,7 +18,7 @@ export const AppReviewStatsCard = memo<AppReviewStatsCardProps>(
             <Statistic
               title="待审核"
               value={pending}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
               prefix={<ClockCircleOutlined />}
             />
           </Col>

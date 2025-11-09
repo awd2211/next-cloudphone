@@ -9,7 +9,7 @@ import {
 } from '@/hooks/useUsers';
 import * as userService from '@/services/user';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import type { EnhancedError } from '@/components/EnhancedErrorAlert';
+import type { ErrorInfo } from '@/components/ErrorAlert';
 
 interface UseUserOperationsProps {
   form: FormInstance;
@@ -24,7 +24,7 @@ interface UseUserOperationsProps {
   onBalanceModalClose: () => void;
   onResetPasswordModalClose: () => void;
   onSelectionChange: (keys: string[]) => void;
-  onBalanceError: (error: EnhancedError | null) => void;
+  onBalanceError: (error: ErrorInfo | null) => void;
 }
 
 export const useUserOperations = ({

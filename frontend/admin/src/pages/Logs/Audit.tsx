@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
   LogsAuditFilterBar,
   useLogsAuditColumns,
@@ -7,6 +7,7 @@ import {
   LogsAuditToolbar,
 } from '@/components/LogsAudit';
 import { useLogsAudit } from '@/hooks/useLogsAudit';
+import type { AuditLog } from '@/services/log';
 
 const AuditLogList: React.FC = () => {
   const {
@@ -46,7 +47,10 @@ const AuditLogList: React.FC = () => {
         onCleanLogs={handleCleanLogs}
       />
 
-      <Table
+      <AccessibleTable<AuditLog>
+        ariaLabel="操作日志列表"
+        loadingText="正在加载操作日志"
+        emptyText="暂无操作日志数据"
         columns={columns}
         dataSource={logs}
         rowKey="id"
@@ -58,8 +62,10 @@ const AuditLogList: React.FC = () => {
           showSizeChanger: true,
           showTotal: (total) => `共 ${total} 条`,
           onChange: handlePageChange,
+          pageSizeOptions: ['10', '20', '50', '100', '200'],
         }}
-        scroll={{ x: 1400 }}
+        scroll={{ x: 1400, y: 600 }}
+        virtual
       />
 
       <LogDetailModal

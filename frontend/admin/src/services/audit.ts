@@ -29,9 +29,33 @@ export interface AuditLogFilter {
   search?: string;
 }
 
-// 获取审计日志列表
+// 获取审计日志列表（使用search API）
 export const getAuditLogs = (params?: PaginationParams & AuditLogFilter) => {
-  return request.get<PaginatedResponse<AuditLog>>('/audit-logs', { params });
+  // 转换 page/pageSize 为 limit/offset
+  const { page = 1, pageSize = 20, ...filters } = params || {};
+  const limit = pageSize;
+  const offset = (page - 1) * pageSize;
+
+  return request.get<{
+    success: boolean;
+    logs: AuditLog[];
+    total: number;
+  }>('/audit-logs/search', {
+    params: {
+      ...filters,
+      limit,
+      offset
+    }
+  }).then(response => {
+    // 转换为 PaginatedResponse 格式
+    return {
+      success: response.success,
+      data: response.logs || [],
+      total: response.total || 0,
+      page,
+      pageSize: limit,
+    };
+  });
 };
 
 // 获取审计日志详情

@@ -6,14 +6,14 @@ import { memo } from 'react';
 import { Modal, Form, Input, InputNumber } from 'antd';
 import type { FormInstance } from 'antd';
 import type { User } from '@/types';
-import { EnhancedErrorAlert, type EnhancedError } from '@/components/EnhancedErrorAlert';
+import { ErrorInfoAlert, type ErrorInfo } from '@/components/ErrorAlert';
 
 interface BalanceModalProps {
   visible: boolean;
   form: FormInstance;
   balanceType: 'recharge' | 'deduct';
   selectedUser: User | null;
-  error: EnhancedError | null;
+  error: ErrorInfo | null;
   onCancel: () => void;
   onFinish: (values: { amount: number; reason?: string }) => void;
   onClearError: () => void;
@@ -35,7 +35,7 @@ export const BalanceModal = memo<BalanceModalProps>(
       >
         {/* 余额操作错误提示 */}
         {error && (
-          <EnhancedErrorAlert
+          <ErrorAlert
             error={error}
             onClose={onClearError}
             onRetry={onRetry}

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Input, Card, Space } from 'antd';
+import { Input, Card, Space } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import type { ColumnsType } from 'antd/es/table';
 import { useUsageRecords } from '@/hooks/useUsage';
 import type { UsageRecord } from '@/types';
@@ -156,7 +157,10 @@ const UsageList = () => {
         </Card>
 
         <Card>
-          <Table
+          <AccessibleTable<UsageRecord>
+            ariaLabel="使用记录列表"
+            loadingText="正在加载使用记录"
+            emptyText="暂无使用记录数据"
             columns={columns}
             dataSource={usageRecords}
             rowKey="id"
@@ -171,8 +175,10 @@ const UsageList = () => {
                 setPage(page);
                 setPageSize(pageSize);
               },
+              pageSizeOptions: ['10', '20', '50', '100', '200'],
             }}
-            scroll={{ x: 1600 }}
+            scroll={{ x: 1600, y: 600 }}
+            virtual
           />
         </Card>
       </Space>

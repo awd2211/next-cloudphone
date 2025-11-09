@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic , theme } from 'antd';
 
 interface FieldPermissionStatsCardsProps {
   statistics: {
@@ -16,6 +16,7 @@ interface FieldPermissionStatsCardsProps {
 }
 
 export const FieldPermissionStatsCards = memo<FieldPermissionStatsCardsProps>(({ statistics }) => {
+  const { token } = theme.useToken();
   return (
     <Row gutter={16} style={{ marginBottom: 24 }}>
       <Col span={6}>
@@ -23,7 +24,7 @@ export const FieldPermissionStatsCards = memo<FieldPermissionStatsCardsProps>(({
           <Statistic
             title="总配置数"
             value={statistics.total}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
           />
         </Card>
       </Col>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic , theme } from 'antd';
 import { DollarOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import type { PaymentStatistics } from '@/services/payment-admin';
 
@@ -9,6 +9,7 @@ interface PaymentStatsCardsProps {
 
 export const PaymentStatsCards: React.FC<PaymentStatsCardsProps> = React.memo(
   ({ statistics }) => {
+    const { token } = theme.useToken();
     if (!statistics) return null;
 
     return (
@@ -44,7 +45,7 @@ export const PaymentStatsCards: React.FC<PaymentStatsCardsProps> = React.memo(
               value={parseFloat(statistics.revenue.totalRevenue)}
               precision={2}
               prefix="¥"
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
               suffix={
                 <span style={{ fontSize: '14px', color: '#666' }}>
                   <br />

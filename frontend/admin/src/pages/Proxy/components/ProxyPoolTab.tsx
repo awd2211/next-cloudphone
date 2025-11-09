@@ -15,6 +15,7 @@ import {
   Col,
   Card,
   Statistic,
+  theme,
 } from 'antd';
 import {
   ReloadOutlined,
@@ -75,13 +76,14 @@ interface PoolStats {
  * - 刷新代理池
  */
 const ProxyPoolTab: React.FC = () => {
+  const { token } = theme.useToken();
   const [filters, setFilters] = useState({
     status: undefined as string | undefined,
     provider: undefined as string | undefined,
     country: undefined as string | undefined,
     protocol: undefined as string | undefined,
     page: 1,
-    limit: 20,
+    pageSize: 20,
   });
   const queryClient = useQueryClient();
 
@@ -89,9 +91,10 @@ const ProxyPoolTab: React.FC = () => {
   const { data: listData, isLoading } = useQuery({
     queryKey: ['proxy-list', filters],
     queryFn: async () => {
+      // ✅ 将 page/pageSize 转换为 limit/offset
       const params: any = {
-        limit: filters.limit,
-        offset: (filters.page - 1) * filters.limit,
+        limit: filters.pageSize,
+        offset: (filters.page - 1) * filters.pageSize,
       };
       if (filters.status) {
         params.availableOnly = filters.status === 'available';
@@ -345,7 +348,7 @@ const ProxyPoolTab: React.FC = () => {
               title="总代理数"
               value={stats?.data?.total || 0}
               prefix={<GlobalOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
           </Card>
         </Col>
@@ -365,7 +368,7 @@ const ProxyPoolTab: React.FC = () => {
               title="使用中"
               value={stats?.data?.inUse || 0}
               prefix={<ThunderboltOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
           </Card>
         </Col>
@@ -498,13 +501,13 @@ const ProxyPoolTab: React.FC = () => {
         scroll={{ x: 1600 }}
         pagination={{
           current: filters.page,
-          pageSize: filters.limit,
+          pageSize: filters.pageSize,
           total: listData?.meta?.total || 0,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total) => `共 ${total} 个代理`,
           onChange: (page, pageSize) => {
-            setFilters({ ...filters, page, limit: pageSize });
+            setFilters({ ...filters, page, pageSize });
           },
         }}
       />

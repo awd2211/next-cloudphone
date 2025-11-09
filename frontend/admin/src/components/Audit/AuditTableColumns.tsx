@@ -25,6 +25,7 @@ export const useAuditColumns = ({ onViewDetails }: UseAuditColumnsProps): Column
         dataIndex: 'userName',
         key: 'userName',
         width: 100,
+        sorter: (a, b) => a.userName.localeCompare(b.userName),
       },
       {
         title: '操作',
@@ -32,12 +33,14 @@ export const useAuditColumns = ({ onViewDetails }: UseAuditColumnsProps): Column
         key: 'action',
         width: 150,
         ellipsis: true,
+        sorter: (a, b) => a.action.localeCompare(b.action),
       },
       {
         title: '资源类型',
         dataIndex: 'resourceType',
         key: 'resourceType',
         width: 100,
+        sorter: (a, b) => a.resourceType.localeCompare(b.resourceType),
         render: (type: AuditLog['resourceType']) => getResourceTypeTag(type),
       },
       {
@@ -45,6 +48,7 @@ export const useAuditColumns = ({ onViewDetails }: UseAuditColumnsProps): Column
         dataIndex: 'method',
         key: 'method',
         width: 80,
+        sorter: (a, b) => a.method.localeCompare(b.method),
         render: (method: AuditLog['method']) => getMethodTag(method),
       },
       {
@@ -52,12 +56,14 @@ export const useAuditColumns = ({ onViewDetails }: UseAuditColumnsProps): Column
         dataIndex: 'ipAddress',
         key: 'ipAddress',
         width: 130,
+        sorter: (a, b) => a.ipAddress.localeCompare(b.ipAddress),
       },
       {
         title: '状态',
         dataIndex: 'status',
         key: 'status',
         width: 80,
+        sorter: (a, b) => a.status.localeCompare(b.status),
         render: (status: AuditLog['status']) => getStatusTag(status),
       },
       {

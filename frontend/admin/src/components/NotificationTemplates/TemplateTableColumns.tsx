@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import type { NotificationTemplate } from './TemplateActions';
 import { TYPE_CONFIG, CHANNEL_CONFIG } from './constants';
+import { AccessibleButton } from '@/components/Accessible/AccessibleButton';
 
 const { Text } = Typography;
 
@@ -32,6 +33,7 @@ export const useTemplateColumns = ({
         dataIndex: 'code',
         key: 'code',
         width: 200,
+        sorter: (a, b) => a.code.localeCompare(b.code),
         render: (text: string) => <Text code>{text}</Text>,
       },
       {
@@ -39,12 +41,14 @@ export const useTemplateColumns = ({
         dataIndex: 'name',
         key: 'name',
         width: 200,
+        sorter: (a, b) => a.name.localeCompare(b.name),
       },
       {
         title: '类型',
         dataIndex: 'type',
         key: 'type',
         width: 120,
+        sorter: (a, b) => a.type.localeCompare(b.type),
         render: (type: string) => {
           const config = TYPE_CONFIG[type] || { color: 'default', label: type };
           return <Tag color={config.color}>{config.label}</Tag>;
@@ -73,6 +77,7 @@ export const useTemplateColumns = ({
         dataIndex: 'language',
         key: 'language',
         width: 80,
+        sorter: (a, b) => a.language.localeCompare(b.language),
         render: (language: string) => <Tag>{language}</Tag>,
       },
       {
@@ -80,6 +85,7 @@ export const useTemplateColumns = ({
         dataIndex: 'isActive',
         key: 'isActive',
         width: 100,
+        sorter: (a, b) => Number(a.isActive) - Number(b.isActive),
         render: (isActive: boolean) =>
           isActive ? (
             <Tag color="success" icon={<CheckCircleOutlined />}>
@@ -125,9 +131,14 @@ export const useTemplateColumns = ({
               okText="确定"
               cancelText="取消"
             >
-              <Tooltip title="删除">
-                <Button type="link" size="small" danger icon={<DeleteOutlined />} />
-              </Tooltip>
+              <AccessibleButton
+                type="link"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                ariaLabel={`删除通知模板 ${record.name}`}
+                ariaDescription="删除此通知模板，此操作不可恢复"
+              />
             </Popconfirm>
           </Space>
         ),

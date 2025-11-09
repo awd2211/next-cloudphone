@@ -68,13 +68,15 @@ export interface UpdateDataScopeDto {
 }
 
 /**
- * 查询参数
+ * 查询参数（支持分页）
  */
 export interface DataScopeQueryParams {
   roleId?: string;
   resourceType?: string;
   scopeType?: ScopeType;
   isActive?: boolean;
+  page?: number;
+  pageSize?: number;
 }
 
 /**
@@ -110,7 +112,7 @@ export const useDataScope = () => {
   const [error, setError] = useState<Error | null>(null);
 
   /**
-   * 获取数据范围列表
+   * 获取数据范围列表（支持分页）
    */
   const fetchDataScopes = useCallback(async (params?: DataScopeQueryParams) => {
     setLoading(true);
@@ -122,6 +124,9 @@ export const useDataScope = () => {
       if (params?.resourceType) queryParams.append('resourceType', params.resourceType);
       if (params?.scopeType) queryParams.append('scopeType', params.scopeType);
       if (params?.isActive !== undefined) queryParams.append('isActive', String(params.isActive));
+      // ✅ 添加分页参数
+      if (params?.page) queryParams.append('page', String(params.page));
+      if (params?.pageSize) queryParams.append('pageSize', String(params.pageSize));
 
       const response = await request.get(
         `/data-scopes${queryParams.toString() ? `?${queryParams}` : ''}`
@@ -130,13 +135,19 @@ export const useDataScope = () => {
       console.log('🔍 useDataScope fetchDataScopes 响应:', response);
       console.log('📊 response.success:', response.success);
       console.log('📊 response.data:', response.data);
-      console.log('📊 response.data 长度:', response.data?.length);
+      console.log('📊 response.total:', response.total);
 
       if (response.success) {
         const scopesData = response.data || [];
         console.log('✅ 设置 dataScopes:', scopesData);
         setDataScopes(scopesData);
-        return scopesData as DataScope[];
+        // ✅ 返回分页信息
+        return {
+          data: scopesData as DataScope[],
+          total: response.total || 0,
+          page: response.page || params?.page || 1,
+          pageSize: response.pageSize || params?.pageSize || 20,
+        };
       } else {
         throw new Error(response.message || '获取数据范围失败');
       }

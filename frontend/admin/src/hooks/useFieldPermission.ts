@@ -1,31 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Form, message } from 'antd';
-import type {
-  FieldPermission,
-  FieldAccessLevel,
-  OperationType,
-} from '@/types';
+import { useState, useCallback } from 'react';
+import { Form } from 'antd';
+import type { FieldPermission, OperationType } from '@/types';
 import {
-  getAllFieldPermissions,
-  getFieldPermissionById,
-  getAccessLevels,
-  getOperationTypes,
-} from '@/services/fieldPermission';
-import { useSafeApi } from './useSafeApi';
-import {
-  FieldPermissionsResponseSchema,
-  FieldPermissionDetailResponseSchema,
-  AccessLevelsResponseSchema,
-  OperationTypesResponseSchema,
-} from '@/schemas/api.schemas';
+  useFieldPermissions,
+  useAccessLevels,
+  useOperationTypes,
+  useFieldPermissionStats,
+  useCreateFieldPermission,
+  useUpdateFieldPermission,
+  useDeleteFieldPermission,
+  useToggleFieldPermission,
+} from './queries/useFieldPermissions';
+import { useDebounce } from './useDebounce';
 
 /**
- * 字段权限管理业务逻辑 Hook
+ * 字段权限管理业务逻辑 Hook - 优化版本
+ *
+ * ✅ 性能优化:
+ * 1. 服务端分页 - 不再一次性加载所有数据
+ * 2. 懒加载元数据 - 访问级别和操作类型按需加载
+ * 3. React Query 缓存 - 自动缓存和重新验证
+ * 4. 防抖搜索 - 减少不必要的请求
  *
  * 功能:
- * 1. 数据加载 (权限列表、访问级别、操作类型) - 使用 useSafeApi + Zod 验证
+ * 1. 数据加载 (权限列表、访问级别、操作类型) - 使用 React Query + 缓存
  * 2. Modal 状态管理
  * 3. 筛选条件管理
+ * 4. 分页管理
  */
 export const useFieldPermission = () => {
   // ===== 状态管理 =====
@@ -40,101 +41,69 @@ export const useFieldPermission = () => {
   const [filterResourceType, setFilterResourceType] = useState<string>('');
   const [filterOperation, setFilterOperation] = useState<OperationType | undefined>(undefined);
 
-  // ===== 数据加载 (使用 useSafeApi) =====
+  // ✅ 防抖筛选条件（500ms延迟，避免频繁请求）
+  const debouncedFilterRoleId = useDebounce(filterRoleId, 500);
+  const debouncedFilterResourceType = useDebounce(filterResourceType, 500);
+  // 操作类型是下拉选择，不需要防抖
+
+  // ===== 分页状态 ✅ =====
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // ===== 数据加载 (使用 React Query) =====
 
   /**
    * 加载元数据 (访问级别和操作类型)
+   * ✅ 懒加载：只在打开创建/编辑弹窗时加载
    */
   const {
-    data: accessLevelsResponse,
-    execute: executeLoadAccessLevels,
-  } = useSafeApi(
-    getAccessLevels,
-    AccessLevelsResponseSchema,
-    {
-      errorMessage: '加载访问级别失败',
-      fallbackValue: { success: false, data: [] },
-      manual: true,
-    }
-  );
+    data: accessLevels = [],
+    isLoading: accessLevelsLoading,
+  } = useAccessLevels(isModalVisible); // ✅ 只在需要时加载
 
   const {
-    data: operationTypesResponse,
-    execute: executeLoadOperationTypes,
-  } = useSafeApi(
-    getOperationTypes,
-    OperationTypesResponseSchema,
-    {
-      errorMessage: '加载操作类型失败',
-      fallbackValue: { success: false, data: [] },
-      manual: true,
-    }
-  );
-
-  const accessLevels = accessLevelsResponse?.success ? accessLevelsResponse.data : [];
-  const operationTypes = operationTypesResponse?.success ? operationTypesResponse.data : [];
-
-  /**
-   * 加载元数据
-   */
-  const loadMetadata = useCallback(async () => {
-    await Promise.all([
-      executeLoadAccessLevels(),
-      executeLoadOperationTypes(),
-    ]);
-  }, [executeLoadAccessLevels, executeLoadOperationTypes]);
+    data: operationTypes = [],
+    isLoading: operationTypesLoading,
+  } = useOperationTypes(); // ✅ 操作类型用于筛选，始终加载
 
   /**
    * 加载权限列表
+   * ✅ 服务端分页 + 筛选
+   * ✅ 自动缓存 30 秒
+   * ✅ 防抖筛选条件，避免频繁请求
+   * ✅ 筛选条件或分页变化时自动重新获取
    */
   const {
-    data: permissionsResponse,
-    loading,
-    execute: executeLoadPermissions,
-  } = useSafeApi(
-    () => {
-      const params: any = {};
-      if (filterRoleId) params.roleId = filterRoleId;
-      if (filterResourceType) params.resourceType = filterResourceType;
-      if (filterOperation) params.operation = filterOperation;
-      return getAllFieldPermissions(params);
-    },
-    FieldPermissionsResponseSchema,
-    {
-      errorMessage: '加载字段权限配置失败',
-      fallbackValue: { success: false, data: [] },
-    }
-  );
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    refetch: refetchPermissions,
+  } = useFieldPermissions({
+    roleId: debouncedFilterRoleId || undefined,
+    resourceType: debouncedFilterResourceType || undefined,
+    operation: filterOperation,
+    page,
+    pageSize,
+  });
 
-  const permissions = permissionsResponse?.success ? permissionsResponse.data : [];
+  const permissions = permissionsData?.permissions || [];
+  const total = permissionsData?.total || 0;
+  const loading = permissionsLoading || operationTypesLoading;
 
   /**
-   * 加载权限详情
+   * 加载统计数据
+   * ✅ 使用服务端聚合查询，避免加载所有数据
    */
   const {
-    execute: executeLoadPermissionDetail,
-  } = useSafeApi(
-    (id: string) => getFieldPermissionById(id),
-    FieldPermissionDetailResponseSchema,
-    {
-      errorMessage: '加载权限详情失败',
-      manual: true,
-    }
-  );
+    data: stats,
+    isLoading: statsLoading,
+  } = useFieldPermissionStats();
 
-  /**
-   * 初始化加载
-   */
-  useEffect(() => {
-    loadMetadata();
-  }, [loadMetadata]);
+  // ===== Mutations =====
 
-  /**
-   * 筛选条件变化时重新加载
-   */
-  useEffect(() => {
-    executeLoadPermissions();
-  }, [filterRoleId, filterResourceType, filterOperation, executeLoadPermissions]);
+  const createMutation = useCreateFieldPermission();
+  const updateMutation = useUpdateFieldPermission();
+  const deleteMutation = useDeleteFieldPermission();
+  const toggleMutation = useToggleFieldPermission();
 
   // ===== 事件处理 =====
 
@@ -172,20 +141,97 @@ export const useFieldPermission = () => {
   /**
    * 查看详情
    */
-  const handleViewDetail = useCallback(async (record: FieldPermission) => {
-    const response = await executeLoadPermissionDetail(record.id);
-    if (response?.success) {
-      setDetailPermission(response.data);
-      setIsDetailModalVisible(true);
-    }
-  }, [executeLoadPermissionDetail]);
+  const handleViewDetail = useCallback((record: FieldPermission) => {
+    setDetailPermission(record);
+    setIsDetailModalVisible(true);
+  }, []);
+
+  /**
+   * 创建字段权限
+   */
+  const handleCreateSubmit = useCallback(
+    async (values: any) => {
+      await createMutation.mutateAsync(values);
+      setIsModalVisible(false);
+      form.resetFields();
+      // ✅ 创建后回到第一页
+      setPage(1);
+    },
+    [createMutation, form]
+  );
+
+  /**
+   * 更新字段权限
+   */
+  const handleUpdateSubmit = useCallback(
+    async (values: any) => {
+      if (!editingPermission) return;
+      await updateMutation.mutateAsync({
+        id: editingPermission.id,
+        data: values,
+      });
+      setIsModalVisible(false);
+      form.resetFields();
+      setEditingPermission(null);
+    },
+    [updateMutation, editingPermission, form]
+  );
+
+  /**
+   * 删除字段权限
+   */
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteMutation.mutateAsync(id);
+      // ✅ 如果删除后当前页没有数据，回到上一页
+      if (permissions.length === 1 && page > 1) {
+        setPage(page - 1);
+      }
+    },
+    [deleteMutation, permissions.length, page]
+  );
+
+  /**
+   * 启用/禁用字段权限
+   */
+  const handleToggle = useCallback(
+    async (id: string) => {
+      await toggleMutation.mutateAsync(id);
+    },
+    [toggleMutation]
+  );
+
+  /**
+   * 分页变化处理 ✅
+   */
+  const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
+    setPage(newPage);
+    setPageSize(newPageSize);
+  }, []);
+
+  /**
+   * 筛选条件变化后重置到第一页 ✅
+   */
+  const handleFilterChange = useCallback(() => {
+    setPage(1);
+  }, []);
 
   return {
     // 数据
     permissions,
+    total,
     accessLevels,
     operationTypes,
     loading,
+
+    // ✅ 统计数据（从服务端聚合查询）
+    stats,
+    statsLoading,
+
+    // 分页 ✅
+    page,
+    pageSize,
+    handlePageChange,
 
     // Modal 状态
     isModalVisible,
@@ -197,11 +243,20 @@ export const useFieldPermission = () => {
 
     // 筛选条件
     filterRoleId,
-    setFilterRoleId,
+    setFilterRoleId: (value: string) => {
+      setFilterRoleId(value);
+      handleFilterChange();
+    },
     filterResourceType,
-    setFilterResourceType,
+    setFilterResourceType: (value: string) => {
+      setFilterResourceType(value);
+      handleFilterChange();
+    },
     filterOperation,
-    setFilterOperation,
+    setFilterOperation: (value: OperationType | undefined) => {
+      setFilterOperation(value);
+      handleFilterChange();
+    },
 
     // Form
     form,
@@ -210,6 +265,16 @@ export const useFieldPermission = () => {
     handleCreate,
     handleEdit,
     handleViewDetail,
-    loadPermissions: executeLoadPermissions,
+    handleCreateSubmit,
+    handleUpdateSubmit,
+    handleDelete,
+    handleToggle,
+    loadPermissions: refetchPermissions,
+
+    // Mutation 状态（用于显示加载指示器）
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    isToggling: toggleMutation.isPending,
   };
 };

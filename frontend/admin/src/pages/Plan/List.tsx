@@ -1,8 +1,10 @@
 import React from 'react';
-import { Table, Button } from 'antd';
+import { Button } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { PlusOutlined } from '@ant-design/icons';
 import { CreatePlanModal } from '@/components/Plan';
 import { usePlanList } from '@/hooks/usePlanList';
+import type { Plan } from '@/types';
 
 /**
  * 套餐列表页面（优化版）
@@ -42,7 +44,10 @@ const PlanList: React.FC = () => {
         </Button>
       </div>
 
-      <Table
+      <AccessibleTable<Plan>
+        ariaLabel="套餐列表"
+        loadingText="正在加载套餐列表"
+        emptyText="暂无套餐数据，点击右上角创建套餐"
         columns={columns}
         dataSource={plans}
         rowKey="id"
@@ -57,8 +62,10 @@ const PlanList: React.FC = () => {
             setPage(page);
             setPageSize(pageSize);
           },
+          pageSizeOptions: ['10', '20', '50', '100', '200'],
         }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1200, y: 600 }}
+        virtual
       />
 
       <CreatePlanModal

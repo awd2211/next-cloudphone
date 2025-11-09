@@ -9,6 +9,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { getStatusTag, maskSecret } from './utils';
 import { TABLE_SCROLL_X, DEFAULT_PAGE_SIZE, STATUS_FILTERS } from './constants';
+import { AccessibleButton } from '@/components/Accessible/AccessibleButton';
 
 export interface ApiKey {
   id: string;
@@ -55,6 +56,7 @@ export const ApiKeyTable = memo<ApiKeyTableProps>(
           dataIndex: 'name',
           key: 'name',
           width: 150,
+          sorter: (a, b) => a.name.localeCompare(b.name),
         },
         {
           title: 'Access Key',
@@ -139,6 +141,11 @@ export const ApiKeyTable = memo<ApiKeyTableProps>(
           dataIndex: 'lastUsedAt',
           key: 'lastUsedAt',
           width: 160,
+          sorter: (a, b) => {
+            const timeA = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
+            const timeB = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
+            return timeA - timeB;
+          },
           render: (time?: string) => time || '-',
         },
         {
@@ -146,6 +153,11 @@ export const ApiKeyTable = memo<ApiKeyTableProps>(
           dataIndex: 'expiresAt',
           key: 'expiresAt',
           width: 120,
+          sorter: (a, b) => {
+            const timeA = a.expiresAt ? new Date(a.expiresAt).getTime() : Number.MAX_SAFE_INTEGER;
+            const timeB = b.expiresAt ? new Date(b.expiresAt).getTime() : Number.MAX_SAFE_INTEGER;
+            return timeA - timeB;
+          },
           render: (time?: string) => time || '永不过期',
         },
         {
@@ -161,18 +173,22 @@ export const ApiKeyTable = memo<ApiKeyTableProps>(
                 disabled={record.status === 'expired'}
                 onChange={() => onToggleStatus(record)}
               />
-              <Tooltip title="查看详情">
-                <Button type="link" size="small" icon={<EyeOutlined />} />
-              </Tooltip>
-              <Tooltip title="删除">
-                <Button
-                  type="link"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => onDelete(record)}
-                />
-              </Tooltip>
+              <AccessibleButton
+                type="link"
+                size="small"
+                icon={<EyeOutlined />}
+                ariaLabel={`查看 API 密钥 ${record.name} 的详情`}
+                ariaDescription="点击查看此 API 密钥的详细信息"
+              />
+              <AccessibleButton
+                type="link"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                ariaLabel={`删除 API 密钥 ${record.name}`}
+                ariaDescription="删除此 API 密钥，此操作不可恢复"
+                onClick={() => onDelete(record)}
+              />
             </Space>
           ),
         },
@@ -188,9 +204,12 @@ export const ApiKeyTable = memo<ApiKeyTableProps>(
         rowKey="id"
         pagination={{
           pageSize: DEFAULT_PAGE_SIZE,
+          pageSizeOptions: ['20', '50', '100', '200'],
+          showSizeChanger: true,
           showTotal: (total) => `共 ${total} 个密钥`,
         }}
-        scroll={{ x: TABLE_SCROLL_X }}
+        scroll={{ x: TABLE_SCROLL_X, y: 600 }}
+        virtual
       />
     );
   },

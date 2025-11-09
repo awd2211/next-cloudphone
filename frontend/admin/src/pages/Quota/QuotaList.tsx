@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
-import { Card, Table, Button, Space, Tooltip } from 'antd';
+import { Card, Button, Space, Tooltip } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import type { Quota } from '@/types';
 import {
   QuotaAlertPanel,
   QuotaStatisticsRow,
@@ -8,6 +10,7 @@ import {
   EditQuotaModal,
   QuotaDetailDrawer,
 } from '@/components/Quota';
+import QuotaRealTimeMonitor from '@/components/Quota/QuotaRealTimeMonitor';
 import { useQuotaList } from '@/hooks/useQuotaList';
 import { useQuotaDetail } from '@/hooks/useQuotaDetail';
 import { createQuotaColumns } from './columns';
@@ -17,7 +20,12 @@ const QuotaList: React.FC = () => {
   const {
     quotas,
     loading,
+    total,
     alerts,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
     createModalVisible,
     editModalVisible,
     form,
@@ -47,6 +55,9 @@ const QuotaList: React.FC = () => {
 
   return (
     <div>
+      {/* 实时监控面板 */}
+      <QuotaRealTimeMonitor />
+
       {/* 配额告警面板 */}
       <QuotaAlertPanel alerts={alerts} />
 
@@ -71,16 +82,29 @@ const QuotaList: React.FC = () => {
           </Space>
         }
       >
-        <Table
+        <AccessibleTable<Quota>
+          ariaLabel="配额列表"
+          loadingText="正在加载配额列表"
+          emptyText="暂无配额数据，点击右上角创建配额"
           columns={columns}
           dataSource={quotas}
           loading={loading}
           rowKey="id"
           scroll={{ x: 1400 }}
           pagination={{
-            pageSize: 10,
+            current: page,
+            pageSize: pageSize,
+            total: total,
+            pageSizeOptions: ['10', '20', '50', '100'],
             showTotal: (total) => `共 ${total} 条`,
             showSizeChanger: true,
+            onChange: (newPage, newPageSize) => {
+              setPage(newPage);
+              if (newPageSize !== pageSize) {
+                setPageSize(newPageSize);
+                setPage(1); // 改变页面大小时重置到第一页
+              }
+            },
           }}
         />
       </Card>

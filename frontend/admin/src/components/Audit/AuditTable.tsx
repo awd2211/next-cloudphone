@@ -40,6 +40,7 @@ export const AuditTable = memo<AuditTableProps>(({ logs, loading, onViewDetail }
         dataIndex: 'level',
         key: 'level',
         width: 100,
+        sorter: (a, b) => a.level.localeCompare(b.level),
         render: (level: AuditLevel) => (
           <Tag icon={getLevelIcon(level)} color={getLevelColor(level)}>
             {getLevelLabel(level)}
@@ -51,6 +52,7 @@ export const AuditTable = memo<AuditTableProps>(({ logs, loading, onViewDetail }
         dataIndex: 'action',
         key: 'action',
         width: 150,
+        sorter: (a, b) => a.action.localeCompare(b.action),
         render: (action: AuditAction) => (
           <Space direction="vertical" size={0}>
             <Text strong>{getActionLabel(action)}</Text>
@@ -66,12 +68,14 @@ export const AuditTable = memo<AuditTableProps>(({ logs, loading, onViewDetail }
         key: 'userId',
         width: 120,
         ellipsis: true,
+        sorter: (a, b) => a.userId.localeCompare(b.userId),
       },
       {
         title: '资源类型',
         dataIndex: 'resourceType',
         key: 'resourceType',
         width: 120,
+        sorter: (a, b) => a.resourceType.localeCompare(b.resourceType),
         render: (type: string) => <Tag color="geekblue">{type}</Tag>,
       },
       {
@@ -80,6 +84,7 @@ export const AuditTable = memo<AuditTableProps>(({ logs, loading, onViewDetail }
         key: 'resourceId',
         width: 120,
         ellipsis: true,
+        sorter: (a, b) => (a.resourceId || '').localeCompare(b.resourceId || ''),
         render: (id?: string) => id || <span style={{ color: '#999' }}>-</span>,
       },
       {
@@ -101,6 +106,7 @@ export const AuditTable = memo<AuditTableProps>(({ logs, loading, onViewDetail }
         dataIndex: 'success',
         key: 'success',
         width: 80,
+        sorter: (a, b) => Number(a.success) - Number(b.success),
         render: (success: boolean) =>
           success ? (
             <Tag icon={<CheckCircleOutlined />} color="success">
@@ -138,9 +144,11 @@ export const AuditTable = memo<AuditTableProps>(({ logs, loading, onViewDetail }
       dataSource={logs}
       rowKey="id"
       loading={loading}
-      scroll={{ x: TABLE_SCROLL_X }}
+      scroll={{ x: TABLE_SCROLL_X, y: 600 }}
+      virtual
       pagination={{
         showSizeChanger: true,
+        pageSizeOptions: ['20', '50', '100', '200'],
         showQuickJumper: true,
         showTotal: (total) => `共 ${total} 条`,
       }}

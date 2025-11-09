@@ -19,11 +19,13 @@ export const createQuotaColumns = (
     key: 'userId',
     width: 200,
     ellipsis: true,
+    sorter: (a, b) => a.userId.localeCompare(b.userId),
   },
   {
     title: '设备配额',
     key: 'devices',
     width: 180,
+    sorter: (a, b) => a.usage.currentDevices - b.usage.currentDevices,
     render: (record: Quota) => (
       <QuotaUsageProgress
         used={record.usage.currentDevices}
@@ -36,6 +38,7 @@ export const createQuotaColumns = (
     title: 'CPU 配额',
     key: 'cpu',
     width: 180,
+    sorter: (a, b) => a.usage.usedCpuCores - b.usage.usedCpuCores,
     render: (record: Quota) => (
       <QuotaUsageProgress
         used={record.usage.usedCpuCores}
@@ -49,6 +52,7 @@ export const createQuotaColumns = (
     title: '内存配额',
     key: 'memory',
     width: 180,
+    sorter: (a, b) => a.usage.usedMemoryGB - b.usage.usedMemoryGB,
     render: (record: Quota) => (
       <QuotaUsageProgress
         used={record.usage.usedMemoryGB}
@@ -62,6 +66,7 @@ export const createQuotaColumns = (
     title: '存储配额',
     key: 'storage',
     width: 180,
+    sorter: (a, b) => a.usage.usedStorageGB - b.usage.usedStorageGB,
     render: (record: Quota) => (
       <QuotaUsageProgress
         used={record.usage.usedStorageGB}
@@ -76,6 +81,7 @@ export const createQuotaColumns = (
     dataIndex: 'status',
     key: 'status',
     width: 100,
+    sorter: (a, b) => a.status.localeCompare(b.status),
     render: (status: string) => <QuotaStatusTag status={status} />,
   },
   {

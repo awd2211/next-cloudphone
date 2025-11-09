@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic , theme } from 'antd';
 import { LineChartOutlined } from '@ant-design/icons';
 import type { EventStats } from '@/types';
 
@@ -12,6 +12,7 @@ interface EventStatsCardsProps {
  * 显示总事件数、UserCreated、UserUpdated、UserDeleted 统计
  */
 export const EventStatsCards = memo<EventStatsCardsProps>(({ stats }) => {
+  const { token } = theme.useToken();
   return (
     <Row gutter={16}>
       <Col span={6}>
@@ -37,7 +38,7 @@ export const EventStatsCards = memo<EventStatsCardsProps>(({ stats }) => {
           <Statistic
             title="UserUpdated"
             value={stats?.eventsByType?.UserUpdated || 0}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
           />
         </Card>
       </Col>

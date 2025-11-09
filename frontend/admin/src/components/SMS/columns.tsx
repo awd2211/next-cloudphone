@@ -22,6 +22,7 @@ export const useSMSColumns = ({
         dataIndex: 'phone',
         key: 'phone',
         width: 120,
+        sorter: (a, b) => a.phone.localeCompare(b.phone),
       },
       {
         title: '内容',
@@ -29,12 +30,14 @@ export const useSMSColumns = ({
         key: 'content',
         ellipsis: true,
         width: 200,
+        sorter: (a, b) => a.content.localeCompare(b.content),
       },
       {
         title: '状态',
         dataIndex: 'status',
         key: 'status',
         width: 100,
+        sorter: (a, b) => a.status.localeCompare(b.status),
         render: (status: string) => {
           const config = STATUS_CONFIG[status] || {
             color: 'default',
@@ -48,6 +51,7 @@ export const useSMSColumns = ({
         dataIndex: 'provider',
         key: 'provider',
         width: 100,
+        sorter: (a, b) => a.provider.localeCompare(b.provider),
         render: (provider: string) => PROVIDER_MAP[provider] || provider,
       },
       {
@@ -55,18 +59,25 @@ export const useSMSColumns = ({
         dataIndex: 'userName',
         key: 'userName',
         width: 120,
+        sorter: (a, b) => a.userName.localeCompare(b.userName),
       },
       {
         title: '模板代码',
         dataIndex: 'templateCode',
         key: 'templateCode',
         width: 120,
+        sorter: (a, b) => a.templateCode.localeCompare(b.templateCode),
       },
       {
         title: '发送时间',
         dataIndex: 'sentAt',
         key: 'sentAt',
         width: 160,
+        sorter: (a, b) => {
+          const timeA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+          const timeB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+          return timeA - timeB;
+        },
         render: (sentAt: string) => sentAt || '-',
       },
       {

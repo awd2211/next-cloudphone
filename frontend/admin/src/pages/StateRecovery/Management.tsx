@@ -1,10 +1,12 @@
 import React from 'react';
-import { Card, Table, Alert } from 'antd';
+import { Card, Alert } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
   StateOverviewCard,
   StateRecoveryFilterBar,
   RecoveryModal,
   useStateRecoveryColumns,
+  type StateRecoveryRecord,
 } from '@/components/StateRecovery';
 import { useStateRecovery } from '@/hooks/useStateRecovery';
 
@@ -62,12 +64,16 @@ const StateRecoveryManagement: React.FC = () => {
       <StateOverviewCard deviceStates={deviceStates} />
 
       <Card>
-        <Table
+        <AccessibleTable<StateRecoveryRecord>
+          ariaLabel="状态恢复记录列表"
+          loadingText="正在加载状态恢复记录"
+          emptyText="暂无状态恢复记录"
           columns={columns}
           dataSource={data?.data || []}
           rowKey="id"
           loading={isLoading}
-          scroll={{ x: 1300 }}
+          scroll={{ x: 1300, y: 600 }}
+          virtual
           pagination={{
             current: searchParams.page,
             pageSize: searchParams.limit,
@@ -76,6 +82,7 @@ const StateRecoveryManagement: React.FC = () => {
             showQuickJumper: true,
             showTotal: (total) => `共 ${total} 条`,
             onChange: handlePageChange,
+            pageSizeOptions: ['10', '20', '50', '100', '200'],
           }}
         />
       </Card>

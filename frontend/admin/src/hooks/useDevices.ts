@@ -151,19 +151,68 @@ export function useStartDevice() {
 
 /**
  * 停止设备 Mutation
+ *
+ * ✅ 乐观更新：立即更新 UI 状态为已停止
  */
 export function useStopDevice() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: deviceService.stopDevice,
+
+    // ✅ 乐观更新
+    onMutate: async (deviceId) => {
+      await queryClient.cancelQueries({ queryKey: deviceKeys.detail(deviceId) });
+      await queryClient.cancelQueries({ queryKey: deviceKeys.lists() });
+
+      const previousDevice = queryClient.getQueryData<Device>(deviceKeys.detail(deviceId));
+      const previousLists = queryClient.getQueriesData({ queryKey: deviceKeys.lists() });
+
+      // 立即更新详情页状态
+      if (previousDevice) {
+        queryClient.setQueryData<Device>(deviceKeys.detail(deviceId), {
+          ...previousDevice,
+          status: 'stopped',
+        });
+      }
+
+      // 立即更新列表页状态
+      queryClient.setQueriesData(
+        { queryKey: deviceKeys.lists() },
+        (old: any) => {
+          if (!old?.data?.data) return old;
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              data: old.data.data.map((d: Device) =>
+                d.id === deviceId ? { ...d, status: 'stopped' as const } : d
+              ),
+            },
+          };
+        }
+      );
+
+      return { previousDevice, previousLists };
+    },
+
     onSuccess: (_, deviceId) => {
       queryClient.invalidateQueries({ queryKey: deviceKeys.detail(deviceId) });
       queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
       queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
       message.success('设备已停止');
     },
-    onError: (error: any) => {
+
+    onError: (error: any, deviceId, context) => {
+      // 失败时回滚
+      if (context?.previousDevice) {
+        queryClient.setQueryData(deviceKeys.detail(deviceId), context.previousDevice);
+      }
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
       message.error(`停止失败: ${error.response?.data?.message || error.message}`);
     },
   });
@@ -189,18 +238,53 @@ export function useRebootDevice() {
 
 /**
  * 删除设备 Mutation
+ *
+ * ✅ 乐观更新：立即从列表中移除设备
  */
 export function useDeleteDevice() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: deviceService.deleteDevice,
-    onSuccess: () => {
+
+    // ✅ 乐观更新
+    onMutate: async (deviceId: string) => {
+      await queryClient.cancelQueries({ queryKey: deviceKeys.lists() });
+
+      const previousLists = queryClient.getQueriesData({ queryKey: deviceKeys.lists() });
+
+      // 立即从所有列表中移除该设备
+      queryClient.setQueriesData(
+        { queryKey: deviceKeys.lists() },
+        (old: any) => {
+          if (!old?.data?.data) return old;
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              data: old.data.data.filter((d: Device) => d.id !== deviceId),
+              total: Math.max(0, (old.data.total || 0) - 1),
+            },
+          };
+        }
+      );
+
+      return { previousLists };
+    },
+
+    onSuccess: (_, deviceId) => {
       queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
       queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
       message.success('设备已删除');
     },
-    onError: (error: any) => {
+
+    onError: (error: any, deviceId, context) => {
+      // 失败时回滚
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
       message.error(`删除失败: ${error.response?.data?.message || error.message}`);
     },
   });

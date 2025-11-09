@@ -1,8 +1,9 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Form, message } from 'antd';
 import type { User } from '@/types';
-import type { EnhancedError } from '@/components/EnhancedErrorAlert';
+import type { ErrorInfo } from '@/components/ErrorAlert';
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from '@/components/User';
+import { useFilterState } from './useFilterState';
 
 /**
  * 用户列表页面状态管理 Hook
@@ -12,11 +13,23 @@ import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from '@/components/User';
  * 2. 统一管理所有 Form 实例
  * 3. 提供筛选、分页、选择等状态
  * 4. 封装常用的事件处理逻辑
+ * 5. ✅ URL 筛选器持久化 - 支持分享筛选后的链接
  */
 export const useUserListState = () => {
-  // ===== 分页状态 =====
-  const [page, setPage] = useState(DEFAULT_PAGE);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  // ===== 分页和筛选状态 (使用 URL 持久化) =====
+  const { filters, setFilters } = useFilterState({
+    page: DEFAULT_PAGE,
+    pageSize: DEFAULT_PAGE_SIZE,
+    username: '',
+    email: '',
+    phone: '',
+    status: '',
+    roleId: '',
+    minBalance: undefined as number | undefined,
+    maxBalance: undefined as number | undefined,
+    startDate: '',
+    endDate: '',
+  });
 
   // ===== Modal 状态 =====
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -27,13 +40,12 @@ export const useUserListState = () => {
   // ===== 业务状态 =====
   const [balanceType, setBalanceType] = useState<'recharge' | 'deduct'>('recharge');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [balanceError, setBalanceError] = useState<EnhancedError | null>(null);
+  const [balanceError, setBalanceError] = useState<ErrorInfo | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [visibleEmails, setVisibleEmails] = useState<Set<string>>(new Set());
 
-  // ===== 筛选状态 =====
+  // ===== 筛选展开状态 (不需要持久化) =====
   const [filterExpanded, setFilterExpanded] = useState(false);
-  const [filters, setFilters] = useState<any>({});
 
   // ===== Form 实例 =====
   const [form] = Form.useForm();
@@ -44,21 +56,19 @@ export const useUserListState = () => {
 
   // ===== 计算属性 =====
   const params = useMemo(() => {
-    const queryParams: any = { page, pageSize };
-    if (filters.username) queryParams.username = filters.username;
-    if (filters.email) queryParams.email = filters.email;
-    if (filters.phone) queryParams.phone = filters.phone;
-    if (filters.status) queryParams.status = filters.status;
-    if (filters.roleId) queryParams.roleId = filters.roleId;
-    if (filters.minBalance !== undefined) queryParams.minBalance = filters.minBalance;
-    if (filters.maxBalance !== undefined) queryParams.maxBalance = filters.maxBalance;
-    if (filters.startDate) queryParams.startDate = filters.startDate;
-    if (filters.endDate) queryParams.endDate = filters.endDate;
-    return queryParams;
-  }, [page, pageSize, filters]);
+    // filters 已经包含所有筛选条件,直接作为 params 返回
+    return filters;
+  }, [filters]);
 
   const hasFilters = useMemo(() => {
-    return Object.keys(filters).some((key) => filters[key] !== undefined && filters[key] !== '');
+    // 排除 page 和 pageSize,只检查实际的筛选条件
+    return Object.keys(filters).some(
+      (key) =>
+        key !== 'page' &&
+        key !== 'pageSize' &&
+        filters[key] !== undefined &&
+        filters[key] !== ''
+    );
   }, [filters]);
 
   // ===== 事件处理 =====
@@ -93,19 +103,30 @@ export const useUserListState = () => {
     setResetPasswordModalVisible(true);
   }, []);
 
-  const handleFilterChange = useCallback((field: string, value: any) => {
-    setFilters((prev: any) => ({
-      ...prev,
-      [field]: value,
-    }));
-    setPage(1);
-  }, []);
+  const handleFilterChange = useCallback(
+    (field: string, value: any) => {
+      setFilters({ [field]: value, page: 1 }); // 筛选时重置到第一页
+    },
+    [setFilters]
+  );
 
   const handleClearFilters = useCallback(() => {
-    setFilters({});
+    // 保留 page 和 pageSize,清除其他筛选条件
+    setFilters({
+      page: DEFAULT_PAGE,
+      pageSize: filters.pageSize,
+      username: '',
+      email: '',
+      phone: '',
+      status: '',
+      roleId: '',
+      minBalance: undefined,
+      maxBalance: undefined,
+      startDate: '',
+      endDate: '',
+    });
     filterForm.resetFields();
-    setPage(1);
-  }, [filterForm]);
+  }, [setFilters, filters.pageSize, filterForm]);
 
   const handleExport = useCallback(async () => {
     message.info('导出功能开发中...');
@@ -153,11 +174,11 @@ export const useUserListState = () => {
   }, [resetPasswordForm]);
 
   return {
-    // 分页
-    page,
-    pageSize,
-    setPage,
-    setPageSize,
+    // 分页 (从 filters 中获取)
+    page: filters.page,
+    pageSize: filters.pageSize,
+    setPage: (page: number) => setFilters({ page }),
+    setPageSize: (pageSize: number) => setFilters({ pageSize, page: 1 }), // 改变每页条数时重置到第一页
     params,
 
     // Modal 状态

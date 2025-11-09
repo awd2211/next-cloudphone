@@ -1,7 +1,9 @@
 import React from 'react';
-import { Card, Table, DatePicker, Space, Tabs } from 'antd';
+import { Card, DatePicker, Space, Tabs } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { LineChartOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { z } from 'zod';
 import {
   MeteringStatsCards,
   ResourceUsageCards,
@@ -10,6 +12,10 @@ import {
   useUserTableSummary,
 } from '@/components/Metering';
 import { useMeteringDashboard } from '@/hooks/useMeteringDashboard';
+import { UserMeteringSchema, DeviceMeteringSchema } from '@/schemas/api.schemas';
+
+type UserMetering = z.infer<typeof UserMeteringSchema>;
+type DeviceMetering = z.infer<typeof DeviceMeteringSchema>;
 
 const { RangePicker } = DatePicker;
 const { TabPane } = Tabs;
@@ -52,23 +58,33 @@ const MeteringDashboard: React.FC = () => {
         >
           <Tabs defaultActiveKey="users">
             <TabPane tab="用户计量" key="users">
-              <Table
+              <AccessibleTable<UserMetering>
+                ariaLabel="用户计量列表"
+                loadingText="正在加载用户计量数据"
+                emptyText="暂无用户计量数据"
                 columns={userColumns}
                 dataSource={userMeterings}
                 rowKey="userId"
                 loading={loading}
-                pagination={{ pageSize: 10 }}
+                pagination={{ pageSize: 20, pageSizeOptions: ['10', '20', '50', '100'] }}
                 summary={userTableSummary}
+                scroll={{ y: 600 }}
+                virtual
               />
             </TabPane>
 
             <TabPane tab="设备计量" key="devices">
-              <Table
+              <AccessibleTable<DeviceMetering>
+                ariaLabel="设备计量列表"
+                loadingText="正在加载设备计量数据"
+                emptyText="暂无设备计量数据"
                 columns={deviceColumns}
                 dataSource={deviceMeterings}
                 rowKey="deviceId"
                 loading={loading}
-                pagination={{ pageSize: 10 }}
+                pagination={{ pageSize: 20, pageSizeOptions: ['10', '20', '50', '100'] }}
+                scroll={{ y: 600 }}
+                virtual
               />
             </TabPane>
           </Tabs>

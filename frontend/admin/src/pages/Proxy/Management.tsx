@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { Card, Table, message, Modal } from 'antd';
+import { Card, message, Modal } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import request from '@/utils/request';
 import {
@@ -206,12 +207,16 @@ const ProxyManagement: React.FC = () => {
 
       {/* 表格 */}
       <Card>
-        <Table
+        <AccessibleTable<ProxyRecord>
+          ariaLabel="代理IP列表"
+          loadingText="正在加载代理IP列表"
+          emptyText="暂无代理IP数据"
           columns={columns}
           dataSource={data?.data || []}
           rowKey="id"
           loading={isLoading}
-          scroll={{ x: 1600 }}
+          scroll={{ x: 1600, y: 600 }}
+          virtual
           pagination={{
             current: searchParams.page,
             pageSize: searchParams.limit,
@@ -222,6 +227,7 @@ const ProxyManagement: React.FC = () => {
             onChange: (page, pageSize) => {
               setSearchParams({ ...searchParams, page, limit: pageSize });
             },
+            pageSizeOptions: ['10', '20', '50', '100', '200'],
           }}
         />
       </Card>

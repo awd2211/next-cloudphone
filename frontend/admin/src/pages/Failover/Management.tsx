@@ -1,10 +1,12 @@
 import React from 'react';
-import { Card, Table, Alert } from 'antd';
+import { Card, Alert } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
   FailoverFilterBar,
   useFailoverTableColumns,
   TriggerFailoverModal,
   FailoverDetailDrawer,
+  type FailoverRecord,
 } from '@/components/Failover';
 import { useFailoverManagement } from '@/hooks/useFailoverManagement';
 
@@ -59,12 +61,16 @@ const FailoverManagement: React.FC = () => {
       />
 
       <Card>
-        <Table
+        <AccessibleTable<FailoverRecord>
+          ariaLabel="故障转移记录列表"
+          loadingText="正在加载故障转移记录"
+          emptyText="暂无故障转移记录"
           columns={columns}
           dataSource={data?.data || []}
           rowKey="id"
           loading={isLoading}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1200, y: 600 }}
+          virtual
           pagination={{
             current: searchParams.page,
             pageSize: searchParams.limit,
@@ -73,6 +79,7 @@ const FailoverManagement: React.FC = () => {
             showQuickJumper: true,
             showTotal: (total) => `共 ${total} 条`,
             onChange: handlePageChange,
+            pageSizeOptions: ['10', '20', '50', '100', '200'],
           }}
         />
       </Card>

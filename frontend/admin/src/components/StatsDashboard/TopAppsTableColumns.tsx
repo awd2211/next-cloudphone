@@ -17,11 +17,13 @@ export const useTopAppsTableColumns = () => {
         dataIndex: 'rank',
         key: 'rank',
         width: 60,
+        sorter: (a, b) => a.rank - b.rank,
       },
       {
         title: '应用名称',
         dataIndex: 'name',
         key: 'name',
+        sorter: (a, b) => a.name.localeCompare(b.name),
       },
       {
         title: '安装次数',
@@ -33,6 +35,7 @@ export const useTopAppsTableColumns = () => {
         title: '活跃设备',
         dataIndex: 'activeDevices',
         key: 'activeDevices',
+        sorter: (a, b) => a.activeDevices - b.activeDevices,
       },
     ],
     []

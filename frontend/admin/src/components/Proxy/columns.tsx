@@ -1,4 +1,4 @@
-import { Tag, Badge, Space, Button, Tooltip, Progress } from 'antd';
+import { Tag, Badge, Space, Button, Tooltip, Progress, theme } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -23,13 +23,17 @@ interface UseProxyColumnsProps {
 export const useProxyColumns = ({
   onRelease,
   onTest,
-}: UseProxyColumnsProps): ColumnsType<ProxyRecord> => [
+}: UseProxyColumnsProps): ColumnsType<ProxyRecord> => {
+  const { token } = theme.useToken();
+
+  return [
   {
     title: '代理地址',
     dataIndex: 'host',
     key: 'host',
     width: 180,
     fixed: 'left',
+    sorter: (a, b) => a.host.localeCompare(b.host),
     render: (host: string, record) => (
       <div>
         <div style={{ fontWeight: 500 }}>{host}:{record.port}</div>
@@ -44,6 +48,7 @@ export const useProxyColumns = ({
     dataIndex: 'country',
     key: 'country',
     width: 150,
+    sorter: (a, b) => a.country.localeCompare(b.country),
     render: (country: string, record) => (
       <div>
         <div>{country}</div>
@@ -58,6 +63,7 @@ export const useProxyColumns = ({
     dataIndex: 'provider',
     key: 'provider',
     width: 120,
+    sorter: (a, b) => a.provider.localeCompare(b.provider),
     render: (provider: string) => (
       <Tag color={PROVIDER_COLORS[provider as keyof typeof PROVIDER_COLORS]}>
         {PROVIDER_LABELS[provider as keyof typeof PROVIDER_LABELS]}
@@ -69,6 +75,7 @@ export const useProxyColumns = ({
     dataIndex: 'status',
     key: 'status',
     width: 100,
+    sorter: (a, b) => a.status.localeCompare(b.status),
     render: (status: string) => (
       <Badge
         status={STATUS_COLORS[status as keyof typeof STATUS_COLORS] as any}
@@ -94,7 +101,7 @@ export const useProxyColumns = ({
               level.color === 'success'
                 ? '#52c41a'
                 : level.color === 'processing'
-                ? '#1890ff'
+                ? token.colorPrimary
                 : level.color === 'warning'
                 ? '#faad14'
                 : '#ff4d4f'
@@ -161,6 +168,7 @@ export const useProxyColumns = ({
     dataIndex: 'lastChecked',
     key: 'lastChecked',
     width: 160,
+    sorter: (a, b) => new Date(a.lastChecked).getTime() - new Date(b.lastChecked).getTime(),
     render: (lastChecked: string) => (
       <Tooltip title={dayjs(lastChecked).format('YYYY-MM-DD HH:mm:ss')}>
         {dayjs(lastChecked).fromNow()}
@@ -172,6 +180,7 @@ export const useProxyColumns = ({
     dataIndex: 'createdAt',
     key: 'createdAt',
     width: 160,
+    sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     render: (createdAt: string) => dayjs(createdAt).format('YYYY-MM-DD HH:mm'),
   },
   {
@@ -202,4 +211,5 @@ export const useProxyColumns = ({
       </Space>
     ),
   },
-];
+  ];
+};

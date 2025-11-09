@@ -1,4 +1,4 @@
-import { Row, Col, Card, Tag } from 'antd';
+import { Row, Col, Card, Tag, theme } from 'antd';
 import {
   MobileOutlined,
   UserOutlined,
@@ -18,6 +18,7 @@ import { StatCard, DataErrorAlert } from '@/components/Dashboard';
 
 const Dashboard = () => {
   const { isAdmin, roleDisplayName, roleColor } = useRole();
+  const { token } = theme.useToken();
   const {
     stats,
     statsLoading,
@@ -73,7 +74,7 @@ const Dashboard = () => {
             title="在线设备"
             value={stats?.onlineDevices || 0}
             icon={<CloudServerOutlined />}
-            color="#1890ff"
+            color={token.colorPrimary}
             loading={statsLoading}
           />
         </Col>

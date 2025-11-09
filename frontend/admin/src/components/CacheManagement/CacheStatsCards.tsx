@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Statistic } from 'antd';
+import { Card, Row, Col, Statistic , theme } from 'antd';
 import { DatabaseOutlined } from '@ant-design/icons';
 import type { CacheStats } from './constants';
 import { getHitRateColor } from './constants';
@@ -9,6 +9,7 @@ interface CacheStatsCardsProps {
 }
 
 export const CacheStatsCards: React.FC<CacheStatsCardsProps> = React.memo(({ stats }) => {
+    const { token } = theme.useToken();
   return (
     <>
       {/* 第一行：命中数和未命中数 */}
@@ -57,7 +58,7 @@ export const CacheStatsCards: React.FC<CacheStatsCardsProps> = React.memo(({ sta
               precision={2}
               suffix="%"
               valueStyle={{
-                color: stats ? getHitRateColor(stats.hitRate) : '#1890ff',
+                color: stats ? getHitRateColor(stats.hitRate) : token.colorPrimary,
               }}
             />
           </Card>

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Space, Button, Popconfirm, Dropdown } from 'antd';
+import { Space, Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   PlusOutlined,
@@ -11,6 +11,7 @@ import {
   DownOutlined,
 } from '@ant-design/icons';
 import { PermissionGuard } from '@/hooks/usePermission';
+import { dangerBatchDelete } from '@/components/ConfirmDialog';
 
 interface DeviceBatchActionsProps {
   selectedCount: number;
@@ -20,6 +21,8 @@ interface DeviceBatchActionsProps {
   onBatchReboot: () => void;
   onBatchDelete: () => void;
   exportMenuItems: MenuProps['items'];
+  /** 额外的操作按钮(如列设置) */
+  extraActions?: React.ReactNode;
 }
 
 /**
@@ -35,6 +38,7 @@ export const DeviceBatchActions = memo<DeviceBatchActionsProps>(
     onBatchReboot,
     onBatchDelete,
     exportMenuItems,
+    extraActions,
   }) => {
     return (
       <Space>
@@ -54,16 +58,18 @@ export const DeviceBatchActions = memo<DeviceBatchActionsProps>(
               批量重启
             </Button>
             <PermissionGuard permission="device.delete">
-              <Popconfirm
-                title={`确定删除 ${selectedCount} 台设备？`}
-                onConfirm={onBatchDelete}
-                okText="确定"
-                cancelText="取消"
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                onClick={async () => {
+                  const confirmed = await dangerBatchDelete(selectedCount, '台设备');
+                  if (confirmed) {
+                    onBatchDelete();
+                  }
+                }}
               >
-                <Button danger icon={<DeleteOutlined />}>
-                  批量删除
-                </Button>
-              </Popconfirm>
+                批量删除
+              </Button>
             </PermissionGuard>
           </>
         )}
@@ -73,6 +79,9 @@ export const DeviceBatchActions = memo<DeviceBatchActionsProps>(
             导出 <DownOutlined />
           </Button>
         </Dropdown>
+
+        {/* 额外操作按钮 */}
+        {extraActions}
       </Space>
     );
   }

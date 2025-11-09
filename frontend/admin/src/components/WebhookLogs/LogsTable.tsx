@@ -39,6 +39,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
         dataIndex: 'provider',
         key: 'provider',
         width: 120,
+        sorter: (a, b) => a.provider.localeCompare(b.provider),
         render: (provider: string) => getProviderTag(provider),
       },
       {
@@ -47,12 +48,14 @@ export const LogsTable: React.FC<LogsTableProps> = ({
         key: 'event',
         width: 200,
         ellipsis: true,
+        sorter: (a, b) => a.event.localeCompare(b.event),
       },
       {
         title: '状态',
         dataIndex: 'status',
         key: 'status',
         width: 100,
+        sorter: (a, b) => a.status.localeCompare(b.status),
         render: (status: string) => getStatusTag(status),
       },
       {
@@ -60,6 +63,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
         dataIndex: 'retryCount',
         key: 'retryCount',
         width: 100,
+        sorter: (a, b) => a.retryCount - b.retryCount,
         render: (count: number) => <Tag color={count > 0 ? 'orange' : 'default'}>{count}</Tag>,
       },
       {
@@ -67,6 +71,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 180,
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
       },
       {
@@ -74,6 +79,11 @@ export const LogsTable: React.FC<LogsTableProps> = ({
         dataIndex: 'processedAt',
         key: 'processedAt',
         width: 180,
+        sorter: (a, b) => {
+          const timeA = a.processedAt ? new Date(a.processedAt).getTime() : 0;
+          const timeB = b.processedAt ? new Date(b.processedAt).getTime() : 0;
+          return timeA - timeB;
+        },
         render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : '-'),
       },
       {
@@ -103,10 +113,12 @@ export const LogsTable: React.FC<LogsTableProps> = ({
           pageSize,
           total,
           showSizeChanger: true,
+          pageSizeOptions: ['20', '50', '100', '200'],
           showTotal: (total) => `共 ${total} 条`,
           onChange: onPageChange,
         }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1200, y: 600 }}
+        virtual
       />
     </Card>
   );

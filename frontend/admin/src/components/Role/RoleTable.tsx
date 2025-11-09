@@ -3,7 +3,7 @@ import { Table, Space, Button, Popconfirm, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Role, Permission } from '@/types';
-import dayjs from 'dayjs';
+import { createTimeColumn } from '@/utils/tableColumns';
 
 interface RoleTableProps {
   roles: Role[];
@@ -66,13 +66,7 @@ export const RoleTable: React.FC<RoleTableProps> = React.memo(
             </div>
           ),
         },
-        {
-          title: '创建时间',
-          dataIndex: 'createdAt',
-          key: 'createdAt',
-          render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'),
-          sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        },
+        createTimeColumn<Role>('创建时间', 'createdAt', { format: 'YYYY-MM-DD HH:mm', width: 180 }),
         {
           title: '操作',
           key: 'action',

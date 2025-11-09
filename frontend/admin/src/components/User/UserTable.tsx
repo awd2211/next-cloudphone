@@ -1,5 +1,4 @@
 import { memo, useMemo } from 'react';
-import { Table } from 'antd';
 import type { ColumnsType, TableRowSelection } from 'antd/es/table';
 import type { User } from '@/types';
 import dayjs from 'dayjs';
@@ -10,6 +9,8 @@ import {
   UserEmailCell,
   BalanceDisplay,
 } from './index';
+import { createTimeColumn } from '@/utils/tableColumns';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 
 interface UserTableProps {
   users: User[];
@@ -113,13 +114,7 @@ export const UserTable = memo<UserTableProps>(
           sorter: (a, b) => a.status.localeCompare(b.status),
           render: (status: string) => <UserStatusTag status={status as any} />,
         },
-        {
-          title: '创建时间',
-          dataIndex: 'createdAt',
-          key: 'createdAt',
-          sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-          render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
-        },
+        createTimeColumn('创建时间', 'createdAt'),
         {
           title: '操作',
           key: 'action',
@@ -151,7 +146,10 @@ export const UserTable = memo<UserTableProps>(
     );
 
     return (
-      <Table
+      <AccessibleTable<User>
+        ariaLabel="用户列表"
+        loadingText="正在加载用户列表"
+        emptyText="暂无用户数据，点击右上角创建用户"
         columns={columns}
         dataSource={users}
         rowKey="id"
@@ -162,10 +160,12 @@ export const UserTable = memo<UserTableProps>(
           pageSize,
           total,
           showSizeChanger: true,
+          pageSizeOptions: ['20', '50', '100', '200'], // 支持更大的页面大小
           showTotal: (total) => `共 ${total} 条`,
           onChange: onPageChange,
         }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1200, y: 600 }} // 固定高度启用虚拟滚动
+        virtual // 启用虚拟滚动，大幅提升大数据集渲染性能
       />
     );
   }

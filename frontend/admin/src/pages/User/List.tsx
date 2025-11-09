@@ -11,22 +11,26 @@ import {
   ResetPasswordModal,
   useUserOperations,
 } from '@/components/User';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 
 /**
- * 用户列表页面（优化版 v2）
+ * 用户列表页面（优化版 v3）
  *
  * 优化策略:
  * 1. ✅ 状态管理提取到 useUserListState Hook
  * 2. ✅ 业务逻辑提取到 useUserOperations Hook
  * 3. ✅ 主组件仅负责 UI 组合 (82% 代码减少)
  * 4. ✅ 所有 Modal 和 Form 统一管理
+ * 5. ✅ 错误边界保护 - 组件错误不会导致整个页面崩溃
+ * 6. ✅ 统一加载状态管理 - 骨架屏、错误提示、空状态、重试按钮
  */
 const UserList = () => {
   // ===== 状态管理 (统一由 Hook 管理) =====
   const state = useUserListState();
 
   // ===== 数据查询 =====
-  const { data, isLoading } = useUsers(state.params);
+  const { data, isLoading, error, refetch } = useUsers(state.params);
   const { data: rolesData } = useRoles({ page: 1, pageSize: 100 });
 
   const users = data?.data || [];
@@ -52,10 +56,21 @@ const UserList = () => {
 
   // ===== 渲染 =====
   return (
-    <div>
-      <h2>用户管理</h2>
+    <ErrorBoundary boundaryName="UserListPage">
+      <div>
+        <h2>用户管理</h2>
 
-      <UserFilterPanel
+        <LoadingState
+          loading={isLoading}
+          error={error}
+          empty={users.length === 0 && !isLoading}
+          onRetry={refetch}
+          loadingType="skeleton"
+          skeletonRows={5}
+          errorDescription="加载用户列表失败，请检查网络连接后重试"
+          emptyDescription="暂无用户数据，点击右上角「创建用户」按钮添加新用户"
+        >
+          <UserFilterPanel
         form={state.filterForm}
         roles={roles}
         filterExpanded={state.filterExpanded}
@@ -133,7 +148,9 @@ const UserList = () => {
         onCancel={state.closeResetPasswordModal}
         onFinish={operations.handleResetPassword}
       />
-    </div>
+        </LoadingState>
+      </div>
+    </ErrorBoundary>
   );
 };
 

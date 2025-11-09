@@ -7,7 +7,7 @@
  * 3. 图标通过 props 传递，避免内部创建
  */
 import { memo, ReactNode } from 'react';
-import { Card, Statistic } from 'antd';
+import { Card, Statistic , theme } from 'antd';
 
 interface DeviceStatCardProps {
   title: string;
@@ -20,7 +20,8 @@ interface DeviceStatCardProps {
 }
 
 export const DeviceStatCard = memo<DeviceStatCardProps>(
-  ({ title, value, icon, color = '#1890ff', loading = false, suffix, prefix }) => {
+  ({ title, value, icon, color = token.colorPrimary, loading = false, suffix, prefix }) => {
+    const { token } = theme.useToken();
     return (
       <Card loading={loading}>
         <Statistic

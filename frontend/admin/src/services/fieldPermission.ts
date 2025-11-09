@@ -34,18 +34,24 @@ export const getOperationTypes = () => {
 };
 
 /**
- * 获取所有字段权限配置
+ * 获取所有字段权限配置 - 支持分页
  */
 export const getAllFieldPermissions = (params?: {
   roleId?: string;
   resourceType?: string;
   operation?: OperationType;
   isActive?: boolean;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
 }) => {
   return request.get<{
     success: boolean;
     data: FieldPermission[];
     total: number;
+    page?: number;
+    pageSize?: number;
   }>('/field-permissions', { params });
 };
 
@@ -157,4 +163,21 @@ export const getTransformExamples = () => {
       };
     };
   }>('/field-permissions/meta/transform-examples');
+};
+
+/**
+ * 获取字段权限统计数据
+ * ✅ 使用服务端聚合查询，避免加载所有数据
+ */
+export const getFieldPermissionStats = () => {
+  return request.get<{
+    success: boolean;
+    data: {
+      total: number;
+      active: number;
+      inactive: number;
+      byOperation: Record<OperationType, number>;
+      byResourceType: Record<string, number>;
+    };
+  }>('/field-permissions/stats');
 };

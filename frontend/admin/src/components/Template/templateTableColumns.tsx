@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { DeviceTemplate } from '@/types';
-import dayjs from 'dayjs';
+import { createTimeColumn } from '@/utils/tableColumns';
 
 interface ColumnHandlers {
   onCreateDevice: (template: DeviceTemplate) => void;
@@ -24,6 +24,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Dev
     dataIndex: 'name',
     key: 'name',
     width: 200,
+    sorter: (a, b) => a.name.localeCompare(b.name),
     render: (text, record) => (
       <Space>
         <span style={{ fontWeight: 500 }}>{text}</span>
@@ -40,6 +41,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Dev
     dataIndex: 'description',
     key: 'description',
     ellipsis: true,
+    sorter: (a, b) => (a.description || '').localeCompare(b.description || ''),
     render: (text) => text || '-',
   },
   {
@@ -47,12 +49,23 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Dev
     dataIndex: 'category',
     key: 'category',
     width: 100,
+    sorter: (a, b) => (a.category || '').localeCompare(b.category || ''),
     render: (text) => (text ? <Tag color="blue">{text}</Tag> : '-'),
   },
   {
     title: '配置',
     key: 'config',
     width: 200,
+    sorter: (a, b) => {
+      // Sort by androidVersion first, then cpuCores, then memoryMB
+      if (a.androidVersion !== b.androidVersion) {
+        return a.androidVersion.localeCompare(b.androidVersion);
+      }
+      if (a.cpuCores !== b.cpuCores) {
+        return a.cpuCores - b.cpuCores;
+      }
+      return a.memoryMB - b.memoryMB;
+    },
     render: (_, record) => (
       <Space direction="vertical" size={0}>
         <span>Android {record.androidVersion}</span>
@@ -95,6 +108,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Dev
     key: 'isPublic',
     width: 100,
     align: 'center',
+    sorter: (a, b) => Number(a.isPublic) - Number(b.isPublic),
     filters: [
       { text: '公开', value: true },
       { text: '私有', value: false },
@@ -110,13 +124,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Dev
         </Tag>
       ),
   },
-  {
-    title: '创建时间',
-    dataIndex: 'createdAt',
-    key: 'createdAt',
-    width: 180,
-    render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
-  },
+  createTimeColumn<DeviceTemplate>('创建时间', 'createdAt'),
   {
     title: '操作',
     key: 'action',

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input } from 'antd';
 import type { Role } from '@/types';
+import { validateRoleName, getRoleNameError } from '@/utils/validators';
 
 interface RoleFormModalProps {
   visible: boolean;
@@ -34,13 +35,34 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = React.memo(
           <Form.Item
             label="角色名称"
             name="name"
-            rules={[{ required: true, message: '请输入角色名称' }]}
+            rules={[
+              { required: true, message: '请输入角色名称' },
+              {
+                validator: async (_, value) => {
+                  if (value) {
+                    const error = getRoleNameError(value);
+                    if (error) {
+                      throw new Error(error);
+                    }
+                  }
+                },
+              },
+            ]}
           >
-            <Input placeholder="例如：管理员" />
+            <Input placeholder="例如：admin_role" />
           </Form.Item>
 
-          <Form.Item label="描述" name="description">
-            <Input.TextArea placeholder="角色描述" rows={3} />
+          <Form.Item
+            label="描述"
+            name="description"
+            rules={[{ max: 200, message: '描述不能超过200个字符' }]}
+          >
+            <Input.TextArea
+              placeholder="角色描述"
+              rows={3}
+              maxLength={200}
+              showCount
+            />
           </Form.Item>
         </Form>
       </Modal>

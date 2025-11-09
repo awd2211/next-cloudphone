@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Space, Button, Select, Card, Alert, Form } from 'antd';
+import { Space, Button, Select, Card, Alert, Form } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { PlusOutlined } from '@ant-design/icons';
+import type { DeviceSnapshot } from '@/types';
 import {
   useSnapshots,
   useSnapshotStats,
@@ -166,12 +168,16 @@ const SnapshotList = () => {
           </Select>
         </Space>
 
-        <Table
+        <AccessibleTable<DeviceSnapshot>
+          ariaLabel="设备快照列表"
+          loadingText="正在加载设备快照列表"
+          emptyText="暂无设备快照数据，点击上方创建快照"
           columns={columns}
           dataSource={snapshots}
           rowKey="id"
           loading={isLoading}
-          scroll={{ x: 1400 }}
+          scroll={{ x: 1400, y: 600 }}
+          virtual
           pagination={{
             current: page,
             pageSize: pageSize,
@@ -183,6 +189,7 @@ const SnapshotList = () => {
               setPage(page);
               setPageSize(pageSize);
             },
+            pageSizeOptions: ['10', '20', '50', '100', '200'],
           }}
         />
       </Card>

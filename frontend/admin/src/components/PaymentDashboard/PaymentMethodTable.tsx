@@ -15,6 +15,7 @@ export const PaymentMethodTable: React.FC<PaymentMethodTableProps> = React.memo(
           title: '支付方式',
           dataIndex: 'method',
           key: 'method',
+          sorter: (a, b) => a.method.localeCompare(b.method),
           render: (method: string) => {
             const config = getMethodConfig(method);
             return <Tag color={config.color}>{config.text}</Tag>;
@@ -24,23 +25,31 @@ export const PaymentMethodTable: React.FC<PaymentMethodTableProps> = React.memo(
           title: '交易笔数',
           dataIndex: 'count',
           key: 'count',
+          sorter: (a, b) => (Number(a.count) || 0) - (Number(b.count) || 0),
         },
         {
           title: '交易占比',
           dataIndex: 'percentage',
           key: 'percentage',
+          sorter: (a, b) => (parseFloat(a.percentage) || 0) - (parseFloat(b.percentage) || 0),
           render: (percentage: string) => `${percentage}%`,
         },
         {
           title: '总金额',
           dataIndex: 'totalAmount',
           key: 'totalAmount',
+          sorter: (a, b) => {
+            const amountA = parseFloat(a.totalAmount.replace(/,/g, '')) || 0;
+            const amountB = parseFloat(b.totalAmount.replace(/,/g, '')) || 0;
+            return amountA - amountB;
+          },
           render: (amount: string) => `¥${amount}`,
         },
         {
           title: '金额占比',
           dataIndex: 'amountPercentage',
           key: 'amountPercentage',
+          sorter: (a, b) => (parseFloat(a.amountPercentage) || 0) - (parseFloat(b.amountPercentage) || 0),
           render: (percentage: string) => `${percentage}%`,
         },
       ],

@@ -1,8 +1,18 @@
 import React from 'react';
-import { Card, Table, Button } from 'antd';
+import { Card, Button } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { PlusOutlined } from '@ant-design/icons';
 import { CreateDeviceGroupModal, BatchOperationModal } from '@/components/DeviceGroup';
 import { useDeviceGroupManagement } from '@/hooks/useDeviceGroupManagement';
+
+interface DeviceGroup {
+  id: string;
+  name: string;
+  description?: string;
+  deviceCount: number;
+  tags?: string[];
+  createdAt: string;
+}
 
 /**
  * 设备分组管理页面（优化版）
@@ -44,12 +54,22 @@ const DeviceGroupManagement: React.FC = () => {
           </Button>
         </div>
 
-        <Table
+        <AccessibleTable<DeviceGroup>
+          ariaLabel="设备分组列表"
+          loadingText="正在加载设备分组"
+          emptyText="暂无设备分组，点击右上角新建分组"
           columns={columns}
           dataSource={groups}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            pageSize: 10,
+            pageSizeOptions: ['10', '20', '50', '100', '200'],
+            showSizeChanger: true,
+            showTotal: (total) => `共 ${total} 条`,
+          }}
+          scroll={{ y: 600 }}
+          virtual
         />
       </Card>
 

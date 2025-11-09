@@ -22,6 +22,7 @@ export const useDataScopeConfig = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [statisticsModalVisible, setStatisticsModalVisible] = useState(false);
   const [editingScope, setEditingScope] = useState<DataScope | null>(null);
   const [viewingScope, setViewingScope] = useState<DataScope | null>(null);
   const [form] = Form.useForm();
@@ -30,23 +31,34 @@ export const useDataScopeConfig = () => {
   const [filterRoleId, setFilterRoleId] = useState<string | undefined>();
   const [filterResourceType, setFilterResourceType] = useState<string | undefined>();
 
+  // ✅ 分页状态
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+
   /**
-   * 加载数据范围配置
+   * 加载数据范围配置（支持分页）
    */
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      await fetchDataScopes({
+      const result = await fetchDataScopes({
         roleId: filterRoleId,
         resourceType: filterResourceType,
         isActive: true,
+        page,
+        pageSize,
       });
+      // ✅ 更新总数
+      if (result && 'total' in result) {
+        setTotal(result.total);
+      }
     } catch (error) {
       message.error('加载数据范围配置失败');
     } finally {
       setLoading(false);
     }
-  }, [fetchDataScopes, filterRoleId, filterResourceType]);
+  }, [fetchDataScopes, filterRoleId, filterResourceType, page, pageSize]);
 
   /**
    * 加载角色列表
@@ -171,6 +183,80 @@ export const useDataScopeConfig = () => {
     setDetailModalVisible(false);
   }, []);
 
+  /**
+   * 显示统计概览
+   */
+  const handleShowStatistics = useCallback(() => {
+    setStatisticsModalVisible(true);
+  }, []);
+
+  /**
+   * 关闭统计概览模态框
+   */
+  const handleCloseStatisticsModal = useCallback(() => {
+    setStatisticsModalVisible(false);
+  }, []);
+
+  /**
+   * 导出数据范围配置
+   */
+  const handleExport = useCallback(() => {
+    try {
+      // 准备导出数据
+      const exportData = dataScopes.map((scope) => {
+        const role = roles.find((r) => r.id === scope.roleId);
+        return {
+          角色: role?.name || scope.roleId,
+          资源类型: scope.resourceType,
+          范围类型: scope.scopeType,
+          优先级: scope.priority,
+          状态: scope.isActive ? '启用' : '禁用',
+          描述: scope.description || '',
+          创建时间: scope.createdAt,
+        };
+      });
+
+      // 转换为 CSV
+      const headers = Object.keys(exportData[0] || {});
+      const csvContent = [
+        headers.join(','),
+        ...exportData.map((row) =>
+          headers.map((header) => `"${row[header as keyof typeof row] || ''}"`).join(',')
+        ),
+      ].join('\n');
+
+      // 下载文件
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `数据范围配置_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      message.success('导出成功');
+    } catch (error) {
+      message.error('导出失败');
+    }
+  }, [dataScopes, roles]);
+
+  /**
+   * ✅ 分页变化处理
+   */
+  const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
+    setPage(newPage);
+    setPageSize(newPageSize);
+  }, []);
+
+  /**
+   * ✅ 筛选条件变化后重置到第一页
+   */
+  const handleFilterChange = useCallback(() => {
+    setPage(1);
+  }, []);
+
   // 表格列定义
   const columns = useDataScopeTableColumns({
     roles,
@@ -188,17 +274,29 @@ export const useDataScopeConfig = () => {
     scopeTypes,
     roles,
     loading: loading || hookLoading,
+    // ✅ 分页状态
+    page,
+    pageSize,
+    total,
+    handlePageChange,
     // 模态框状态
     modalVisible,
     detailModalVisible,
+    statisticsModalVisible,
     editingScope,
     viewingScope,
     form,
     // 筛选状态
     filterRoleId,
     filterResourceType,
-    setFilterRoleId,
-    setFilterResourceType,
+    setFilterRoleId: (value: string | undefined) => {
+      setFilterRoleId(value);
+      handleFilterChange();
+    },
+    setFilterResourceType: (value: string | undefined) => {
+      setFilterResourceType(value);
+      handleFilterChange();
+    },
     // 表格列
     columns,
     // 操作函数
@@ -206,6 +304,9 @@ export const useDataScopeConfig = () => {
     handleSubmit,
     handleCloseModal,
     handleCloseDetailModal,
+    handleShowStatistics,
+    handleCloseStatisticsModal,
+    handleExport,
     // 工具函数
     getScopeDescription,
   };

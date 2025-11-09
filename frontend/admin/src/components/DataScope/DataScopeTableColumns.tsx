@@ -34,6 +34,7 @@ export const useDataScopeTableColumns = ({
         dataIndex: 'id',
         key: 'id',
         width: 120,
+        sorter: (a, b) => a.id.localeCompare(b.id),
         render: (id: string) => id.substring(0, 8),
       },
       {
@@ -41,6 +42,7 @@ export const useDataScopeTableColumns = ({
         dataIndex: 'roleId',
         key: 'roleId',
         width: 120,
+        sorter: (a, b) => a.roleId.localeCompare(b.roleId),
         render: (roleId: string) => roleId.substring(0, 8),
       },
       {
@@ -48,12 +50,14 @@ export const useDataScopeTableColumns = ({
         dataIndex: 'resourceType',
         key: 'resourceType',
         width: 120,
+        sorter: (a, b) => a.resourceType.localeCompare(b.resourceType),
       },
       {
         title: '范围类型',
         dataIndex: 'scopeType',
         key: 'scopeType',
         width: 150,
+        sorter: (a, b) => a.scopeType.localeCompare(b.scopeType),
         render: (type: ScopeType) => {
           const typeObj = scopeTypes.find((t) => t.value === type);
           return <Tag color={getScopeTypeColor(type)}>{typeObj?.label || type}</Tag>;
@@ -65,6 +69,7 @@ export const useDataScopeTableColumns = ({
         key: 'description',
         width: 200,
         ellipsis: true,
+        sorter: (a, b) => (a.description || '').localeCompare(b.description || ''),
       },
       {
         title: '优先级',
@@ -72,12 +77,14 @@ export const useDataScopeTableColumns = ({
         key: 'priority',
         width: 80,
         align: 'center' as const,
+        sorter: (a, b) => a.priority - b.priority,
       },
       {
         title: '状态',
         dataIndex: 'isActive',
         key: 'isActive',
         width: 100,
+        sorter: (a, b) => Number(a.isActive) - Number(b.isActive),
         render: (isActive: boolean) => (
           <Tag
             color={isActive ? 'success' : 'default'}
@@ -92,6 +99,7 @@ export const useDataScopeTableColumns = ({
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 160,
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         render: (time: string) => dayjs(time).format('MM-DD HH:mm'),
       },
       {

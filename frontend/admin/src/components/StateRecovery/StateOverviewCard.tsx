@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Space } from 'antd';
+import { Card, Space , theme } from 'antd';
 
 interface StateOverviewCardProps {
   deviceStates?: {
@@ -12,6 +12,7 @@ interface StateOverviewCardProps {
 
 export const StateOverviewCard: React.FC<StateOverviewCardProps> = React.memo(
   ({ deviceStates }) => {
+    const { token } = theme.useToken();
     if (!deviceStates) return null;
 
     return (
@@ -37,7 +38,7 @@ export const StateOverviewCard: React.FC<StateOverviewCardProps> = React.memo(
           </div>
           <div>
             <div style={{ color: '#666' }}>恢复中</div>
-            <div style={{ fontSize: 24, fontWeight: 'bold', color: '#1890ff' }}>
+            <div style={{ fontSize: 24, fontWeight: 'bold', color: token.colorPrimary }}>
               {deviceStates.recovering || 0}
             </div>
           </div>

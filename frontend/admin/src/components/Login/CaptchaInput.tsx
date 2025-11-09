@@ -1,4 +1,4 @@
-import { Row, Col, Input } from 'antd';
+import { Row, Col, Input , theme } from 'antd';
 import { SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
 import { memo } from 'react';
 
@@ -16,6 +16,7 @@ interface CaptchaInputProps {
  */
 export const CaptchaInput = memo<CaptchaInputProps>(
   ({ captchaSvg, captchaLoading, onRefresh, value, onChange }) => {
+    const { token } = theme.useToken();
     return (
       <Row gutter={8}>
         <Col span={14}>
@@ -45,7 +46,7 @@ export const CaptchaInput = memo<CaptchaInputProps>(
             }}
           >
             {captchaLoading ? (
-              <ReloadOutlined spin style={{ fontSize: 20, color: '#1890ff' }} />
+              <ReloadOutlined spin style={{ fontSize: 20, color: token.colorPrimary }} />
             ) : (
               <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
             )}

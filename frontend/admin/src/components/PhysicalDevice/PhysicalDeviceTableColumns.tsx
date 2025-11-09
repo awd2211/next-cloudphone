@@ -4,7 +4,7 @@ import { WifiOutlined, UsbOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { PhysicalDevice } from '@/types';
 import { statusConfig } from './physicalDeviceUtils';
-import dayjs from 'dayjs';
+import { createTimeColumn } from '@/utils/tableColumns';
 
 interface PhysicalDeviceTableColumnsProps {
   onDelete: (id: string) => void;
@@ -29,6 +29,7 @@ export const usePhysicalDeviceTableColumns = ({
         dataIndex: 'name',
         key: 'name',
         width: 200,
+        sorter: (a, b) => a.name.localeCompare(b.name),
         render: (text, record) => (
           <Space>
             <Badge status={record.status === 'online' ? 'success' : 'default'} />
@@ -41,6 +42,7 @@ export const usePhysicalDeviceTableColumns = ({
         dataIndex: 'serialNumber',
         key: 'serialNumber',
         width: 180,
+        sorter: (a, b) => a.serialNumber.localeCompare(b.serialNumber),
         render: (text) => <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{text}</span>,
       },
       {
@@ -67,6 +69,7 @@ export const usePhysicalDeviceTableColumns = ({
         key: 'connectionType',
         width: 120,
         align: 'center',
+        sorter: (a, b) => a.connectionType.localeCompare(b.connectionType),
         render: (type) =>
           type === 'network' ? (
             <Tag icon={<WifiOutlined />} color="blue">
@@ -83,6 +86,7 @@ export const usePhysicalDeviceTableColumns = ({
         dataIndex: 'ipAddress',
         key: 'ipAddress',
         width: 150,
+        sorter: (a, b) => (a.ipAddress || '').localeCompare(b.ipAddress || ''),
         render: (ip, record) => (ip && record.connectionType === 'network' ? ip : '-'),
       },
       {
@@ -91,6 +95,7 @@ export const usePhysicalDeviceTableColumns = ({
         key: 'adbPort',
         width: 100,
         align: 'center',
+        sorter: (a, b) => (a.adbPort || 0) - (b.adbPort || 0),
         render: (port) => port || '-',
       },
       {
@@ -99,6 +104,7 @@ export const usePhysicalDeviceTableColumns = ({
         key: 'status',
         width: 100,
         align: 'center',
+        sorter: (a, b) => a.status.localeCompare(b.status),
         filters: [
           { text: '在线', value: 'online' },
           { text: '离线', value: 'offline' },
@@ -106,13 +112,7 @@ export const usePhysicalDeviceTableColumns = ({
         ],
         render: renderStatus,
       },
-      {
-        title: '最后在线',
-        dataIndex: 'lastSeenAt',
-        key: 'lastSeenAt',
-        width: 180,
-        render: (text) => (text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'),
-      },
+      createTimeColumn<PhysicalDevice>('最后在线', 'lastSeenAt', { format: 'YYYY-MM-DD HH:mm' }),
       {
         title: '操作',
         key: 'action',

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
-import { message } from 'antd';
+import { message, Modal } from 'antd';
 import type { ApiResponse } from '../types';
 
 // 生成唯一请求 ID
@@ -145,23 +145,115 @@ class RequestLogger {
   }
 }
 
+// ========== Token 刷新管理 ==========
+let isRefreshing = false;
+let refreshPromise: Promise<string> | null = null;
+
+/**
+ * 刷新 Token
+ * 使用单例模式确保同时只有一个刷新请求
+ */
+async function refreshAccessToken(): Promise<string> {
+  if (isRefreshing && refreshPromise) {
+    // 如果正在刷新，等待当前刷新完成
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+  refreshPromise = new Promise(async (resolve, reject) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No token available');
+      }
+
+      // 使用当前 token 请求新 token
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:30000/api'}/auth/refresh`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const newToken = response.data.token;
+      if (newToken) {
+        localStorage.setItem('token', newToken);
+        console.log('✅ Token 刷新成功');
+        resolve(newToken);
+      } else {
+        throw new Error('No token in response');
+      }
+    } catch (error) {
+      console.error('❌ Token 刷新失败:', error);
+      reject(error);
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  });
+
+  return refreshPromise;
+}
+
+/**
+ * 显示会话过期对话框
+ */
+let sessionExpiredModalShown = false;
+function showSessionExpiredModal() {
+  if (sessionExpiredModalShown) return;
+  sessionExpiredModalShown = true;
+
+  let countdown = 5;
+  const modal = Modal.warning({
+    title: '会话已过期',
+    content: `您的登录会话已过期，${countdown} 秒后将跳转到登录页面...`,
+    okText: '立即登录',
+    onOk: () => {
+      sessionExpiredModalShown = false;
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
+      window.location.href = '/login';
+    },
+  });
+
+  // 倒计时
+  const timer = setInterval(() => {
+    countdown--;
+    modal.update({
+      content: `您的登录会话已过期，${countdown} 秒后将跳转到登录页面...`,
+    });
+
+    if (countdown <= 0) {
+      clearInterval(timer);
+      modal.destroy();
+      sessionExpiredModalShown = false;
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
+      window.location.href = '/login';
+    }
+  }, 1000);
+}
+
 // 创建一个类型化的 axios 实例
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:30000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:30000',
   timeout: 10000,
 });
 
 // 扩展 axios 实例类型
 interface TypedAxiosInstance {
-  get<T = any>(url: string, config?: any): Promise<T>;
-  post<T = any>(url: string, data?: any, config?: any): Promise<T>;
-  put<T = any>(url: string, data?: any, config?: any): Promise<T>;
-  patch<T = any>(url: string, data?: any, config?: any): Promise<T>;
-  delete<T = any>(url: string, config?: any): Promise<T>;
+  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  post<T = unknown, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig): Promise<T>;
+  put<T = unknown, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig): Promise<T>;
+  patch<T = unknown, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig): Promise<T>;
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
   interceptors: typeof axiosInstance.interceptors;
 }
 
-const request = axiosInstance as any as TypedAxiosInstance;
+const request = axiosInstance as unknown as TypedAxiosInstance;
 
 // ========== 自动重试配置 ==========
 interface RetryConfig {
@@ -236,11 +328,11 @@ axiosInstance.interceptors.request.use(
     // 生成请求 ID
     const reqId = generateRequestId();
     if (!config.headers) {
-      config.headers = {} as any;
+      config.headers = {} as InternalAxiosRequestConfig['headers'];
     }
     config.headers['X-Request-ID'] = reqId;
-    (config as any).requestId = reqId;
-    (config as any).requestStartTime = Date.now();
+    (config as InternalAxiosRequestConfig & { requestId?: string; requestStartTime?: number }).requestId = reqId;
+    (config as InternalAxiosRequestConfig & { requestId?: string; requestStartTime?: number }).requestStartTime = Date.now();
 
     // 添加认证 Token
     const token = localStorage.getItem('token');
@@ -331,15 +423,25 @@ axiosInstance.interceptors.response.use(
           message.error((data as any)?.message || '请求参数错误');
           break;
         case 401:
-          message.error('未授权，请重新登录');
-          localStorage.removeItem('token');
-          localStorage.removeItem('userId');
-          // 延迟跳转，避免在拦截器中多次触发
-          setTimeout(() => {
-            if (!window.location.pathname.includes('/login')) {
-              window.location.href = '/login';
+          // ========== Token 自动刷新逻辑 ==========
+          // 尝试刷新 token 并重试原始请求
+          try {
+            console.log('🔄 检测到 401 错误，尝试刷新 token...');
+            const newToken = await refreshAccessToken();
+
+            // 更新原始请求的 token
+            if (error.config && error.config.headers) {
+              error.config.headers.Authorization = `Bearer ${newToken}`;
             }
-          }, 1000);
+
+            // 重试原始请求
+            console.log('🔄 Token 刷新成功，重试原始请求...');
+            return axiosInstance(error.config!);
+          } catch (refreshError) {
+            // Token 刷新失败，显示会话过期对话框
+            console.error('❌ Token 刷新失败，会话已过期');
+            showSessionExpiredModal();
+          }
           break;
         case 403:
           message.error('没有权限访问此资源');

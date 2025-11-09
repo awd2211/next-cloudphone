@@ -1,116 +1,117 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getAuditLogs, getAuditStats } from '@/services/audit';
+import type { AuditLogFilter } from '@/services/audit';
 import dayjs from 'dayjs';
-import { MOCK_AUDIT_LOGS } from '@/components/Audit/constants';
-import type { AuditLog } from '@/components/Audit/constants';
 
-export const useAuditLogs = () => {
-  const [logs] = useState<AuditLog[]>(MOCK_AUDIT_LOGS);
-  const [loading] = useState(false);
-  const [filteredLogs, setFilteredLogs] = useState<AuditLog[]>(logs);
-  const [resourceTypeFilter, setResourceTypeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [methodFilter, setMethodFilter] = useState<string>('all');
-  const [searchText, setSearchText] = useState<string>('');
+/**
+ * 审计日志查询 keys
+ */
+export const auditLogKeys = {
+  all: ['audit-logs'] as const,
+  lists: () => [...auditLogKeys.all, 'list'] as const,
+  list: (filters: AuditLogFilter & { page?: number; pageSize?: number }) =>
+    [...auditLogKeys.lists(), filters] as const,
+  stats: () => [...auditLogKeys.all, 'stats'] as const,
+};
 
-  // 过滤逻辑
-  useEffect(() => {
-    let filtered = logs;
+/**
+ * 审计日志列表查询
+ */
+export const useAuditLogs = (params?: {
+  page?: number;
+  pageSize?: number;
+  filters?: AuditLogFilter;
+}) => {
+  const { page = 1, pageSize = 20, filters = {} } = params || {};
 
-    if (resourceTypeFilter !== 'all') {
-      filtered = filtered.filter((log) => log.resourceType === resourceTypeFilter);
-    }
+  return useQuery({
+    queryKey: auditLogKeys.list({ ...filters, page, pageSize }),
+    queryFn: async () => {
+      const response = await getAuditLogs({
+        page,
+        pageSize,
+        ...filters,
+      });
+      return {
+        logs: response.data || [],
+        total: response.total || 0,
+        page: response.page || page,
+        pageSize: response.pageSize || pageSize,
+      };
+    },
+    staleTime: 30 * 1000, // 30秒缓存
+    placeholderData: (previousData) => previousData, // 保持之前的数据直到新数据到达
+  });
+};
 
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((log) => log.status === statusFilter);
-    }
+/**
+ * 审计日志统计查询
+ */
+export const useAuditStats = (params?: {
+  startDate?: string;
+  endDate?: string;
+}) => {
+  return useQuery({
+    queryKey: [...auditLogKeys.stats(), params],
+    queryFn: async () => {
+      const response = await getAuditStats(params);
+      return response;
+    },
+    staleTime: 60 * 1000, // 1分钟缓存
+  });
+};
 
-    if (methodFilter !== 'all') {
-      filtered = filtered.filter((log) => log.method === methodFilter);
-    }
+/**
+ * 导出审计日志为CSV
+ */
+export const exportAuditLogsToCSV = (logs: any[], filename?: string) => {
+  const headers = [
+    'ID',
+    '用户ID',
+    '用户名',
+    '操作',
+    '资源',
+    '资源类型',
+    'IP地址',
+    '方法',
+    '状态',
+    '详情',
+    '创建时间',
+  ];
 
-    if (searchText) {
-      filtered = filtered.filter(
-        (log) =>
-          log.action.toLowerCase().includes(searchText.toLowerCase()) ||
-          log.userName.toLowerCase().includes(searchText.toLowerCase()) ||
-          log.details?.toLowerCase().includes(searchText.toLowerCase())
-      );
-    }
+  const csvContent = [
+    headers.join(','),
+    ...logs.map((log) => {
+      const escapedDetails = (log.details || '').replace(/"/g, '""');
+      return [
+        log.id,
+        log.userId,
+        log.userName,
+        log.action,
+        log.resource,
+        log.resourceType,
+        log.ipAddress,
+        log.method,
+        log.status,
+        `"${escapedDetails}"`,
+        dayjs(log.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+      ].join(',');
+    }),
+  ].join('\n');
 
-    setFilteredLogs(filtered);
-  }, [resourceTypeFilter, statusFilter, methodFilter, searchText, logs]);
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
 
-  const handleExport = useCallback(() => {
-    const headers = [
-      'ID',
-      '用户名',
-      '操作',
-      '资源',
-      '资源类型',
-      'IP地址',
-      '方法',
-      '状态',
-      '详情',
-      '创建时间',
-    ];
-    const csvContent = [
-      headers.join(','),
-      ...filteredLogs.map((log) => {
-        const escapedDetails = (log.details || '').replace(/"/g, '""');
-        return [
-          log.id,
-          log.userName,
-          log.action,
-          log.resource,
-          log.resourceType,
-          log.ipAddress,
-          log.method,
-          log.status,
-          `"${escapedDetails}"`,
-          dayjs(log.createdAt).format('YYYY-MM-DD HH:mm:ss'),
-        ].join(',');
-      }),
-    ].join('\n');
-
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute('href', url);
-    link.setAttribute('download', `audit_logs_${dayjs().format('YYYY-MM-DD_HH-mm-ss')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [filteredLogs]);
-
-  const handleReset = useCallback(() => {
-    setResourceTypeFilter('all');
-    setStatusFilter('all');
-    setMethodFilter('all');
-    setSearchText('');
-  }, []);
-
-  const handleViewDetails = useCallback((record: AuditLog) => {
-    console.log('查看详情:', record);
-  }, []);
-
-  return {
-    logs,
-    loading,
-    filteredLogs,
-    resourceTypeFilter,
-    statusFilter,
-    methodFilter,
-    searchText,
-    setResourceTypeFilter,
-    setStatusFilter,
-    setMethodFilter,
-    setSearchText,
-    handleExport,
-    handleReset,
-    handleViewDetails,
-  };
+  link.setAttribute('href', url);
+  link.setAttribute(
+    'download',
+    filename || `audit_logs_${dayjs().format('YYYY-MM-DD_HH-mm-ss')}.csv`
+  );
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };

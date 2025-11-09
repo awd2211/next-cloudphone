@@ -35,6 +35,7 @@ export const RefundTable: React.FC<RefundTableProps> = React.memo(
           key: 'paymentNo',
           width: 180,
           fixed: 'left',
+          sorter: (a, b) => a.paymentNo.localeCompare(b.paymentNo),
         },
         {
           title: '订单号',
@@ -49,11 +50,13 @@ export const RefundTable: React.FC<RefundTableProps> = React.memo(
           key: 'userId',
           width: 120,
           ellipsis: true,
+          sorter: (a, b) => a.userId.localeCompare(b.userId),
         },
         {
           title: '金额',
           dataIndex: 'amount',
           key: 'amount',
+          sorter: (a, b) => a.amount - b.amount,
           render: (amount: number, record) => {
             const currencySymbol =
               record.currency === 'CNY' ? '¥' : record.currency === 'USD' ? '$' : record.currency;
@@ -64,24 +67,32 @@ export const RefundTable: React.FC<RefundTableProps> = React.memo(
           title: '支付方式',
           dataIndex: 'method',
           key: 'method',
+          sorter: (a, b) => a.method.localeCompare(b.method),
           render: (method: string) => <PaymentMethodTag method={method} />,
         },
         {
           title: '状态',
           dataIndex: 'status',
           key: 'status',
+          sorter: (a, b) => a.status.localeCompare(b.status),
           render: (status: string) => <PaymentStatusTag status={status} />,
         },
         {
           title: '支付时间',
           dataIndex: 'paidAt',
           key: 'paidAt',
+          sorter: (a, b) => {
+            const timeA = a.paidAt ? new Date(a.paidAt).getTime() : 0;
+            const timeB = b.paidAt ? new Date(b.paidAt).getTime() : 0;
+            return timeA - timeB;
+          },
           render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'),
         },
         {
           title: '创建时间',
           dataIndex: 'createdAt',
           key: 'createdAt',
+          sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
           render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
         },
         {
@@ -134,7 +145,8 @@ export const RefundTable: React.FC<RefundTableProps> = React.memo(
         rowKey="id"
         loading={loading}
         pagination={false}
-        scroll={{ x: 1600 }}
+        scroll={{ x: 1600, y: 600 }}
+        virtual
         locale={{ emptyText: '暂无待审核的退款申请' }}
       />
     );

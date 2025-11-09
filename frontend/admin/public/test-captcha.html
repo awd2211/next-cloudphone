@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>简单前端测试</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+        .result { margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 4px; }
+        .success { color: green; }
+        .error { color: red; }
+        #captcha { margin: 20px 0; padding: 20px; border: 2px solid #ddd; min-height: 50px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 简单前端测试 - 从 localhost:5173 访问</h1>
+    <p><strong>重要：</strong>请将此文件内容保存到前端项目中，然后通过 http://localhost:5173 访问</p>
+
+    <h2>测试 1: 直接 Fetch</h2>
+    <button onclick="testFetch()">测试 Fetch API</button>
+    <div id="fetch-result" class="result">等待测试...</div>
+
+    <h2>测试 2: 使用前端相同的 baseURL</h2>
+    <button onclick="testWithBaseURL()">使用 baseURL 测试</button>
+    <div id="baseurl-result" class="result">等待测试...</div>
+
+    <h2>验证码显示</h2>
+    <div id="captcha"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:30000';
+
+        function log(elementId, message, isError = false) {
+            const el = document.getElementById(elementId);
+            const className = isError ? 'error' : 'success';
+            el.innerHTML += `<div class="${className}">${message}</div>`;
+        }
+
+        function clear(elementId) {
+            document.getElementById(elementId).innerHTML = '<div>开始测试...</div>';
+        }
+
+        async function testFetch() {
+            clear('fetch-result');
+            const url = `${API_BASE}/auth/captcha`;
+
+            try {
+                log('fetch-result', `正在请求: ${url}`);
+                log('fetch-result', `当前页面: ${window.location.origin}`);
+
+                const startTime = Date.now();
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const duration = Date.now() - startTime;
+                log('fetch-result', `响应状态: ${response.status} (${duration}ms)`, !response.ok);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('fetch-result', `✅ 成功！ID: ${data.id}`);
+                    log('fetch-result', `SVG 长度: ${data.svg.length}`);
+                    document.getElementById('captcha').innerHTML = data.svg;
+                } else {
+                    const text = await response.text();
+                    log('fetch-result', `❌ 错误响应: ${text.substring(0, 200)}`, true);
+                }
+            } catch (error) {
+                log('fetch-result', `❌ 异常: ${error.message}`, true);
+                log('fetch-result', `错误类型: ${error.constructor.name}`, true);
+                if (error.stack) {
+                    log('fetch-result', `堆栈: ${error.stack.split('\n')[0]}`, true);
+                }
+            }
+        }
+
+        async function testWithBaseURL() {
+            clear('baseurl-result');
+
+            // 模拟前端的 axios 配置
+            const baseURL = 'http://localhost:30000';
+            const endpoint = '/auth/captcha';
+            const fullURL = baseURL + endpoint;
+
+            try {
+                log('baseurl-result', `baseURL: ${baseURL}`);
+                log('baseurl-result', `endpoint: ${endpoint}`);
+                log('baseurl-result', `完整URL: ${fullURL}`);
+
+                const startTime = Date.now();
+                const response = await fetch(fullURL, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Request-ID': `test_${Date.now()}`
+                    }
+                });
+
+                const duration = Date.now() - startTime;
+                log('baseurl-result', `响应时间: ${duration}ms`);
+                log('baseurl-result', `状态: ${response.status}`, !response.ok);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('baseurl-result', `✅ 成功！`);
+                    log('baseurl-result', `ID: ${data.id}`);
+                    document.getElementById('captcha').innerHTML = data.svg;
+                } else {
+                    log('baseurl-result', `❌ 失败`, true);
+                }
+            } catch (error) {
+                log('baseurl-result', `❌ 错误: ${error.message}`, true);
+                console.error('Complete error:', error);
+            }
+        }
+
+        // 页面加载时显示环境信息
+        window.addEventListener('load', () => {
+            console.log('页面位置:', window.location.href);
+            console.log('Origin:', window.location.origin);
+            console.log('API Base:', API_BASE);
+        });
+    </script>
+</body>
+</html>

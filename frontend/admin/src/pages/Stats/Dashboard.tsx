@@ -1,5 +1,6 @@
 import React from 'react';
-import { Card, Row, Col, Table } from 'antd';
+import { Card, Row, Col } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
   LineChart,
   Line,
@@ -24,6 +25,14 @@ import {
   CHART_COLORS,
 } from '@/components/StatsDashboard';
 import { useStatsDashboard } from '@/hooks/useStatsDashboard';
+
+interface TopApp {
+  id: string;
+  rank: number;
+  name: string;
+  installCount: number;
+  activeDevices: number;
+}
 
 const StatsDashboard: React.FC = () => {
   const {
@@ -162,11 +171,16 @@ const StatsDashboard: React.FC = () => {
 
       {/* 热门应用 */}
       <Card title="热门应用 Top 10">
-        <Table
+        <AccessibleTable<TopApp>
+          ariaLabel="热门应用列表"
+          loadingText="正在加载热门应用数据"
+          emptyText="暂无热门应用数据"
           columns={topAppsColumns}
           dataSource={topApps?.data || []}
           rowKey="id"
           pagination={false}
+          scroll={{ y: 400 }}
+          virtual
         />
       </Card>
     </div>

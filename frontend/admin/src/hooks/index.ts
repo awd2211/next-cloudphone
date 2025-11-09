@@ -8,6 +8,11 @@ export { useDataScope } from './useDataScope';
 export { useMenu, MenuGuard } from './useMenu';
 export { useFieldPermission } from './useFieldPermission';
 
+// 主题相关 Hooks
+export { useTheme } from './useTheme';
+export { useThemeColors } from './useThemeColors';
+export type { ThemeColors } from './useThemeColors';
+
 // 导出类型
 export type { MenuItem, BreadcrumbItem } from './useMenu';
 export type {
@@ -27,4 +32,5 @@ export type {
 
 // 导出枚举
 export { ScopeType } from './useDataScope';
-export { FieldAccessLevel, OperationType } from './useFieldPermission';
+// Note: FieldAccessLevel 和 OperationType 是类型定义，应从 @/types 导入
+// 它们在 types/index.ts 中已经导出

@@ -4,7 +4,7 @@ import { message } from 'antd';
 import { login, getCaptcha } from '@/services/auth';
 import { verify2FA } from '@/services/twoFactor';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import type { EnhancedError } from '@/components/EnhancedErrorAlert';
+import type { ErrorInfo } from '@/components/ErrorAlert';
 import { parseLoginError, parseTwoFactorError } from './constants';
 
 interface LoginForm {
@@ -22,17 +22,17 @@ interface UseLoginReturn {
 
   // 登录相关
   loginLoading: boolean;
-  loginError: EnhancedError | null;
-  setLoginError: (error: EnhancedError | null) => void;
+  loginError: ErrorInfo | null;
+  setLoginError: (error: ErrorInfo | null) => void;
   handleLogin: (values: LoginForm, onClearCaptcha: () => void) => Promise<void>;
 
   // 2FA 相关
   twoFactorModalVisible: boolean;
   twoFactorToken: string;
   twoFactorLoading: boolean;
-  twoFactorError: EnhancedError | null;
+  twoFactorError: ErrorInfo | null;
   setTwoFactorToken: (token: string) => void;
-  setTwoFactorError: (error: EnhancedError | null) => void;
+  setTwoFactorError: (error: ErrorInfo | null) => void;
   handleTwoFactorVerify: () => Promise<void>;
   handleTwoFactorCancel: () => void;
 }
@@ -50,13 +50,13 @@ export const useLogin = (): UseLoginReturn => {
   const [captchaLoading, setCaptchaLoading] = useState(false);
 
   // 登录状态
-  const [loginError, setLoginError] = useState<EnhancedError | null>(null);
+  const [loginError, setLoginError] = useState<ErrorInfo | null>(null);
   const [loginCredentials, setLoginCredentials] = useState<any>(null);
 
   // 2FA 状态
   const [twoFactorModalVisible, setTwoFactorModalVisible] = useState(false);
   const [twoFactorToken, setTwoFactorToken] = useState('');
-  const [twoFactorError, setTwoFactorError] = useState<EnhancedError | null>(null);
+  const [twoFactorError, setTwoFactorError] = useState<ErrorInfo | null>(null);
 
   // 异步操作 Hooks
   const { execute: executeLogin, loading: loginLoading } = useAsyncOperation();

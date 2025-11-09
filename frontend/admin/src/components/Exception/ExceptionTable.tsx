@@ -41,6 +41,7 @@ export const ExceptionTable: React.FC<ExceptionTableProps> = React.memo(
           key: 'paymentNo',
           width: 180,
           fixed: 'left',
+          sorter: (a, b) => a.paymentNo.localeCompare(b.paymentNo),
         },
         {
           title: '异常类型',
@@ -61,12 +62,14 @@ export const ExceptionTable: React.FC<ExceptionTableProps> = React.memo(
           key: 'userId',
           width: 100,
           ellipsis: true,
+          sorter: (a, b) => a.userId.localeCompare(b.userId),
         },
         {
           title: '金额',
           dataIndex: 'amount',
           key: 'amount',
           width: 120,
+          sorter: (a, b) => a.amount - b.amount,
           render: (amount: number, record) => {
             const currencySymbol =
               record.currency === 'CNY' ? '¥' : record.currency === 'USD' ? '$' : record.currency;
@@ -78,6 +81,7 @@ export const ExceptionTable: React.FC<ExceptionTableProps> = React.memo(
           dataIndex: 'method',
           key: 'method',
           width: 120,
+          sorter: (a, b) => a.method.localeCompare(b.method),
           render: (method: string) => <PaymentMethodTag method={method} />,
         },
         {
@@ -85,6 +89,7 @@ export const ExceptionTable: React.FC<ExceptionTableProps> = React.memo(
           dataIndex: 'status',
           key: 'status',
           width: 100,
+          sorter: (a, b) => a.status.localeCompare(b.status),
           render: (status: string) => <PaymentStatusTag status={status} />,
         },
         {
@@ -92,6 +97,7 @@ export const ExceptionTable: React.FC<ExceptionTableProps> = React.memo(
           dataIndex: 'createdAt',
           key: 'createdAt',
           width: 180,
+          sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
           render: (date: string) => {
             const hoursSince = dayjs().diff(dayjs(date), 'hour');
             return (
@@ -145,10 +151,12 @@ export const ExceptionTable: React.FC<ExceptionTableProps> = React.memo(
           pageSize,
           total,
           showSizeChanger: true,
+          pageSizeOptions: ['20', '50', '100', '200'],
           showTotal: (total) => `共 ${total} 条异常记录`,
           onChange: onPageChange,
         }}
-        scroll={{ x: 1600 }}
+        scroll={{ x: 1600, y: 600 }}
+        virtual
         locale={{ emptyText: '暂无异常支付记录' }}
       />
     );

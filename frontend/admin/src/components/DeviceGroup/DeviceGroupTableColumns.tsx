@@ -34,6 +34,7 @@ export const useDeviceGroupTableColumns = ({
         dataIndex: 'name',
         key: 'name',
         width: 200,
+        sorter: (a, b) => a.name.localeCompare(b.name),
         render: (name: string, record: DeviceGroup) => (
           <Space direction="vertical" size={0}>
             <strong>{name}</strong>
@@ -49,6 +50,7 @@ export const useDeviceGroupTableColumns = ({
         key: 'deviceCount',
         width: 120,
         align: 'center',
+        sorter: (a, b) => a.deviceCount - b.deviceCount,
         render: (count: number) => (
           <Badge count={count} showZero style={{ backgroundColor: '#52c41a' }} />
         ),
@@ -76,6 +78,7 @@ export const useDeviceGroupTableColumns = ({
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 160,
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         render: (time: string) => dayjs(time).format('MM-DD HH:mm'),
       },
       {

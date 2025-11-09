@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic , theme } from 'antd';
 import type { AuditLogStatistics } from '@/types';
 
 export interface AuditStatsCardsProps {
@@ -10,6 +10,7 @@ export interface AuditStatsCardsProps {
  * 审计日志统计卡片组件
  */
 export const AuditStatsCards = memo<AuditStatsCardsProps>(({ statistics }) => {
+  const { token } = theme.useToken();
   return (
     <Row gutter={16} style={{ marginBottom: 24 }}>
       <Col span={6}>
@@ -17,7 +18,7 @@ export const AuditStatsCards = memo<AuditStatsCardsProps>(({ statistics }) => {
           <Statistic
             title="总日志数"
             value={statistics?.total || 0}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
           />
         </Card>
       </Col>

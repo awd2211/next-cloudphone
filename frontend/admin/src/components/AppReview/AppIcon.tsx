@@ -3,7 +3,7 @@
  * 使用 React.memo 优化，避免不必要的重渲染
  */
 import { memo } from 'react';
-import { Image, Avatar } from 'antd';
+import { Image, Avatar , theme } from 'antd';
 import { AppstoreOutlined } from '@ant-design/icons';
 
 interface AppIconProps {
@@ -18,12 +18,13 @@ interface AppIconProps {
  */
 export const AppIcon = memo<AppIconProps>(
   ({ iconUrl, size = 48, borderRadius = '8px' }) => {
+    const { token } = theme.useToken();
     if (iconUrl) {
       return <Image src={iconUrl} width={size} height={size} style={{ borderRadius }} />;
     }
 
     return (
-      <Avatar size={size} icon={<AppstoreOutlined />} style={{ backgroundColor: '#1890ff' }} />
+      <Avatar size={size} icon={<AppstoreOutlined />} style={{ backgroundColor: token.colorPrimary }} />
     );
   }
 );

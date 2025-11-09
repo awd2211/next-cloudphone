@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { Tag, Progress, Table } from 'antd';
+import { Tag, Progress, Table, theme } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UserMetering, DeviceMetering } from './constants';
 import { getProgressStatus } from './constants';
 
 export const useUserMeteringColumns = (): ColumnsType<UserMetering> => {
+  const { token } = theme.useToken();
   return useMemo(
     () => [
       {
@@ -12,6 +13,7 @@ export const useUserMeteringColumns = (): ColumnsType<UserMetering> => {
         dataIndex: 'username',
         key: 'username',
         width: 150,
+        sorter: (a, b) => a.username.localeCompare(b.username),
       },
       {
         title: '设备数',
@@ -19,6 +21,7 @@ export const useUserMeteringColumns = (): ColumnsType<UserMetering> => {
         key: 'deviceCount',
         width: 100,
         align: 'center',
+        sorter: (a, b) => a.deviceCount - b.deviceCount,
         render: (count: number) => <Tag color="blue">{count}</Tag>,
       },
       {
@@ -62,7 +65,7 @@ export const useUserMeteringColumns = (): ColumnsType<UserMetering> => {
         align: 'right',
         sorter: (a, b) => a.cost - b.cost,
         render: (cost: number) => (
-          <span style={{ color: '#1890ff', fontWeight: 500 }}>¥{cost.toFixed(2)}</span>
+          <span style={{ color: token.colorPrimary, fontWeight: 500 }}>¥{cost.toFixed(2)}</span>
         ),
       },
     ],
@@ -71,6 +74,7 @@ export const useUserMeteringColumns = (): ColumnsType<UserMetering> => {
 };
 
 export const useDeviceMeteringColumns = (): ColumnsType<DeviceMetering> => {
+  const { token } = theme.useToken();
   return useMemo(
     () => [
       {
@@ -78,12 +82,14 @@ export const useDeviceMeteringColumns = (): ColumnsType<DeviceMetering> => {
         dataIndex: 'deviceName',
         key: 'deviceName',
         width: 150,
+        sorter: (a, b) => a.deviceName.localeCompare(b.deviceName),
       },
       {
         title: '用户 ID',
         dataIndex: 'userId',
         key: 'userId',
         width: 150,
+        sorter: (a, b) => a.userId.localeCompare(b.userId),
         render: (id: string) => <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{id}</span>,
       },
       {
@@ -140,6 +146,7 @@ interface UseUserTableSummaryProps {
 }
 
 export const useUserTableSummary = ({ data }: UseUserTableSummaryProps) => {
+  const { token } = theme.useToken();
   return useMemo(
     () => () => {
       const totalHours = data.reduce((sum, item) => sum + item.totalHours, 0);
@@ -158,7 +165,7 @@ export const useUserTableSummary = ({ data }: UseUserTableSummaryProps) => {
             <Table.Summary.Cell index={4}>-</Table.Summary.Cell>
             <Table.Summary.Cell index={5}>-</Table.Summary.Cell>
             <Table.Summary.Cell index={6} align="right">
-              <strong style={{ color: '#1890ff' }}>¥{totalCost.toFixed(2)}</strong>
+              <strong style={{ color: token.colorPrimary }}>¥{totalCost.toFixed(2)}</strong>
             </Table.Summary.Cell>
           </Table.Summary.Row>
         </Table.Summary>

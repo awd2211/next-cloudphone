@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic, theme } from 'antd';
 import { ApiOutlined, CheckCircleOutlined, ClockCircleOutlined, BarChartOutlined } from '@ant-design/icons';
 import type { ApiKeyStatistics } from '@/types';
 
@@ -8,6 +8,7 @@ interface ApiKeyStatsCardsProps {
 }
 
 export const ApiKeyStatsCards = memo<ApiKeyStatsCardsProps>(({ statistics }) => {
+  const { token } = theme.useToken();
   if (!statistics) return null;
 
   return (
@@ -18,7 +19,7 @@ export const ApiKeyStatsCards = memo<ApiKeyStatsCardsProps>(({ statistics }) => 
             title="总密钥数"
             value={statistics.total}
             prefix={<ApiOutlined />}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
           />
         </Card>
       </Col>

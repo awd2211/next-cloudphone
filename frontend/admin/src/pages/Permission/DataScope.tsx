@@ -1,11 +1,14 @@
 import React from 'react';
-import { Table, Card } from 'antd';
+import { Card } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
   DataScopeFilterBar,
   CreateEditDataScopeModal,
   DataScopeDetailModal,
+  DataScopeStatisticsModal,
 } from '@/components/PermissionDataScope';
 import { useDataScopeConfig } from '@/hooks/useDataScopeConfig';
+import type { DataScope } from '@/hooks/useDataScope';
 
 /**
  * 数据范围配置页面
@@ -17,8 +20,14 @@ const DataScopeConfig: React.FC = () => {
     scopeTypes,
     roles,
     loading,
+    // ✅ 分页状态
+    page,
+    pageSize,
+    total,
+    handlePageChange,
     modalVisible,
     detailModalVisible,
+    statisticsModalVisible,
     editingScope,
     viewingScope,
     form,
@@ -31,6 +40,9 @@ const DataScopeConfig: React.FC = () => {
     handleSubmit,
     handleCloseModal,
     handleCloseDetailModal,
+    handleShowStatistics,
+    handleCloseStatisticsModal,
+    handleExport,
     getScopeDescription,
   } = useDataScopeConfig();
 
@@ -46,21 +58,35 @@ const DataScopeConfig: React.FC = () => {
           roles={roles}
           filterRoleId={filterRoleId}
           filterResourceType={filterResourceType}
+          totalCount={total}
           onRoleChange={setFilterRoleId}
           onResourceTypeChange={setFilterResourceType}
           onCreate={handleCreate}
+          onExport={handleExport}
+          onShowStatistics={handleShowStatistics}
         />
 
-        <Table
+        {/* ✅ 真实分页 */}
+        <AccessibleTable<DataScope>
+          ariaLabel="数据范围配置列表"
+          loadingText="正在加载数据范围配置"
+          emptyText="暂无数据范围配置，点击右上角创建"
           columns={columns}
           dataSource={dataScopes}
           rowKey="id"
           loading={loading}
           pagination={{
+            current: page,
+            pageSize: pageSize,
+            total: total,
             showSizeChanger: true,
+            showQuickJumper: true,
             showTotal: (total) => `共 ${total} 条`,
+            onChange: handlePageChange,
+            pageSizeOptions: ['10', '20', '50', '100', '200'],
           }}
-          scroll={{ x: 1400 }}
+          scroll={{ x: 1400, y: 600 }}
+          virtual
         />
       </Card>
 
@@ -82,6 +108,13 @@ const DataScopeConfig: React.FC = () => {
         scopeTypes={scopeTypes}
         getScopeDescription={getScopeDescription}
         onClose={handleCloseDetailModal}
+      />
+
+      <DataScopeStatisticsModal
+        visible={statisticsModalVisible}
+        dataScopes={dataScopes}
+        roles={roles}
+        onClose={handleCloseStatisticsModal}
       />
     </div>
   );

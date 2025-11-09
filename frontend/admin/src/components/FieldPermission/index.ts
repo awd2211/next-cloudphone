@@ -3,4 +3,5 @@ export { FieldPermissionToolbar } from './FieldPermissionToolbar';
 export { FieldPermissionTable } from './FieldPermissionTable';
 export { CreateEditFieldPermissionModal } from './CreateEditFieldPermissionModal';
 export { FieldPermissionDetailModal } from './FieldPermissionDetailModal';
+export { ColumnVisibilityControl } from './ColumnVisibilityControl';
 export { getOperationColor, getOperationLabel } from './fieldPermissionUtils';

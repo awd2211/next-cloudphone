@@ -23,6 +23,7 @@ export const createNodeColumns = (handlers: NodeColumnHandlers): ColumnsType<Sch
     dataIndex: 'name',
     key: 'name',
     width: 150,
+    sorter: (a, b) => a.name.localeCompare(b.name),
     render: (name, record) => <a onClick={() => handlers.onViewDetail(record)}>{name}</a>,
   },
   {
@@ -45,6 +46,7 @@ export const createNodeColumns = (handlers: NodeColumnHandlers): ColumnsType<Sch
     dataIndex: 'status',
     key: 'status',
     width: 120,
+    sorter: (a, b) => a.status.localeCompare(b.status),
     render: (status) => <NodeStatusTag status={status} />,
   },
   {
@@ -85,6 +87,11 @@ export const createNodeColumns = (handlers: NodeColumnHandlers): ColumnsType<Sch
     dataIndex: 'lastHeartbeat',
     key: 'lastHeartbeat',
     width: 160,
+    sorter: (a, b) => {
+      const timeA = a.lastHeartbeat ? new Date(a.lastHeartbeat).getTime() : 0;
+      const timeB = b.lastHeartbeat ? new Date(b.lastHeartbeat).getTime() : 0;
+      return timeA - timeB;
+    },
     render: (time) => (time ? dayjs(time).format('MM-DD HH:mm:ss') : '-'),
   },
   {
@@ -110,6 +117,7 @@ export const createTaskColumns = (): ColumnsType<SchedulingTask> => [
     dataIndex: 'id',
     key: 'id',
     width: 100,
+    sorter: (a, b) => a.id.localeCompare(b.id),
     render: (id) => id.substring(0, 8),
   },
   {
@@ -117,6 +125,7 @@ export const createTaskColumns = (): ColumnsType<SchedulingTask> => [
     dataIndex: 'deviceId',
     key: 'deviceId',
     width: 100,
+    sorter: (a, b) => a.deviceId.localeCompare(b.deviceId),
     render: (id) => id.substring(0, 8),
   },
   {
@@ -124,6 +133,7 @@ export const createTaskColumns = (): ColumnsType<SchedulingTask> => [
     dataIndex: 'userId',
     key: 'userId',
     width: 100,
+    sorter: (a, b) => a.userId.localeCompare(b.userId),
     render: (id) => id.substring(0, 8),
   },
   {
@@ -131,6 +141,7 @@ export const createTaskColumns = (): ColumnsType<SchedulingTask> => [
     dataIndex: 'status',
     key: 'status',
     width: 100,
+    sorter: (a, b) => a.status.localeCompare(b.status),
     render: (status) => {
       const colorMap: Record<string, string> = {
         pending: 'default',
@@ -147,6 +158,7 @@ export const createTaskColumns = (): ColumnsType<SchedulingTask> => [
     dataIndex: 'nodeId',
     key: 'nodeId',
     width: 100,
+    sorter: (a, b) => (a.nodeId || '').localeCompare(b.nodeId || ''),
     render: (id) => (id ? id.substring(0, 8) : '-'),
   },
   {
@@ -165,6 +177,7 @@ export const createTaskColumns = (): ColumnsType<SchedulingTask> => [
     dataIndex: 'requestedAt',
     key: 'requestedAt',
     width: 160,
+    sorter: (a, b) => new Date(a.requestedAt).getTime() - new Date(b.requestedAt).getTime(),
     render: (time) => dayjs(time).format('MM-DD HH:mm:ss'),
   },
 ];

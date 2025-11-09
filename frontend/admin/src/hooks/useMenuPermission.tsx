@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Modal, Input, message } from 'antd';
 import { z } from 'zod';
 import type { MenuItem, MenuCacheStats } from '@/types';
@@ -26,7 +26,9 @@ export const useMenuPermission = () => {
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState('');
+  const [debouncedSearchValue, setDebouncedSearchValue] = useState(''); // ✅ 防抖后的搜索值
   const [autoExpandParent, setAutoExpandParent] = useState(true);
+  const searchTimeoutRef = useRef<NodeJS.Timeout>(); // ✅ 防抖定时器
 
   // 缓存管理相关
   const [cacheLoading, setCacheLoading] = useState(false);
@@ -51,10 +53,15 @@ export const useMenuPermission = () => {
 
   /**
    * 加载缓存统计 - 使用 useSafeApi
+   * ✅ 懒加载：只在打开统计弹窗时加载
    */
-  const { data: cacheStats } = useSafeApi(getCacheStats, MenuCacheStatsSchema, {
+  const {
+    data: cacheStats,
+    execute: executeLoadCacheStats,
+  } = useSafeApi(getCacheStats, MenuCacheStatsSchema, {
     errorMessage: '加载缓存统计失败',
     showError: false,
+    manual: true, // ✅ 手动触发，不自动加载
   });
 
   /**
@@ -75,14 +82,37 @@ export const useMenuPermission = () => {
   );
 
   /**
+   * 搜索防抖 - 输入后 300ms 才触发实际搜索
+   */
+  useEffect(() => {
+    // 清除之前的定时器
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // 设置新的定时器
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchValue(searchValue);
+    }, 300);
+
+    // 清理函数
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchValue]);
+
+  /**
    * 搜索过滤后的菜单列表
+   * ✅ 使用防抖后的搜索值
    */
   const filteredMenus = useMemo(() => {
-    if (searchValue && menus) {
-      return filterMenusByName(menus, searchValue);
+    if (debouncedSearchValue && menus) {
+      return filterMenusByName(menus, debouncedSearchValue);
     }
     return menus || [];
-  }, [searchValue, menus]);
+  }, [debouncedSearchValue, menus]);
 
   /**
    * 初始化加载 - 设置默认展开的键
@@ -96,14 +126,15 @@ export const useMenuPermission = () => {
 
   /**
    * 搜索过滤 - 自动展开搜索结果
+   * ✅ 使用防抖后的搜索值
    */
   useEffect(() => {
-    if (searchValue && filteredMenus) {
+    if (debouncedSearchValue && filteredMenus) {
       const keys = getAllParentKeys(filteredMenus);
       setExpandedKeys(keys);
       setAutoExpandParent(true);
     }
-  }, [searchValue, filteredMenus]);
+  }, [debouncedSearchValue, filteredMenus]);
 
   /**
    * 菜单节点选择
@@ -299,6 +330,15 @@ export const useMenuPermission = () => {
   }, [executeLoadMenus]);
 
   /**
+   * 打开缓存统计弹窗
+   * ✅ 懒加载：只在打开弹窗时加载缓存统计数据
+   */
+  const handleOpenStatsModal = useCallback(() => {
+    setStatsModalVisible(true);
+    executeLoadCacheStats();
+  }, [executeLoadCacheStats]);
+
+  /**
    * 计算统计数据
    */
   const totalMenuCount = useMemo(() => countMenus(menus || []), [menus]);
@@ -334,6 +374,7 @@ export const useMenuPermission = () => {
     // 操作方法
     setSearchValue,
     setStatsModalVisible,
+    handleOpenStatsModal, // ✅ 新增：打开统计弹窗并加载数据
     setTestModalVisible,
     setTestUserId,
     loadMenus,

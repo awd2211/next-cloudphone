@@ -16,6 +16,7 @@ export const DailyRevenueTable: React.FC<DailyRevenueTableProps> = ({ loading, d
         title: '日期',
         dataIndex: 'date',
         key: 'date',
+        sorter: (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
         render: (date: string) => dayjs(date).format('YYYY-MM-DD'),
       },
       {

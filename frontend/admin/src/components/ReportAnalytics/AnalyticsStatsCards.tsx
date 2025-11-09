@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic , theme } from 'antd';
 import {
   ArrowUpOutlined,
   MobileOutlined,
@@ -17,6 +17,7 @@ interface AnalyticsStatsCardsProps {
 
 export const AnalyticsStatsCards: React.FC<AnalyticsStatsCardsProps> = React.memo(
   ({ revenueData, deviceTotal }) => {
+    const { token } = theme.useToken();
     return (
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
@@ -42,7 +43,7 @@ export const AnalyticsStatsCards: React.FC<AnalyticsStatsCardsProps> = React.mem
               title="总订单数"
               value={revenueData.totalOrders || 0}
               prefix={<ShoppingOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
               suffix={
                 <span style={{ fontSize: 14 }}>
                   <ArrowUpOutlined /> 8%

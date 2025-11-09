@@ -36,6 +36,7 @@ export const useSnapshotColumns = ({
         dataIndex: ['device', 'name'],
         key: 'deviceName',
         width: 150,
+        sorter: (a, b) => (a.device?.name || a.deviceId).localeCompare(b.device?.name || b.deviceId),
         render: (text, record) => (
           <Tooltip title={`设备 ID: ${record.deviceId}`}>
             <span>{text || record.deviceId}</span>
@@ -73,6 +74,7 @@ export const useSnapshotColumns = ({
         key: 'status',
         width: 100,
         align: 'center',
+        sorter: (a, b) => a.status.localeCompare(b.status),
         filters: Object.entries(STATUS_CONFIG).map(([value, config]) => ({
           text: config.text,
           value,

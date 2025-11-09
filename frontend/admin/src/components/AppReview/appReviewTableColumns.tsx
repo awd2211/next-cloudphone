@@ -11,7 +11,7 @@ import {
   ReviewStatusTag,
 } from '@/components/AppReview';
 import { formatSize } from './appReviewUtils';
-import dayjs from 'dayjs';
+import { createTimeColumn } from '@/utils/tableColumns';
 
 interface PendingColumnHandlers {
   onViewDetail: (app: Application) => void;
@@ -43,6 +43,7 @@ export const createPendingColumns = (
     dataIndex: 'name',
     key: 'name',
     width: 200,
+    sorter: (a, b) => a.name.localeCompare(b.name),
     render: (text, record) => <AppNameDisplay name={text} packageName={record.packageName} />,
   },
   {
@@ -50,6 +51,7 @@ export const createPendingColumns = (
     dataIndex: 'versionName',
     key: 'versionName',
     width: 100,
+    sorter: (a, b) => a.versionName.localeCompare(b.versionName),
     render: (text, record) => <AppVersionTag versionName={text} versionCode={record.versionCode} />,
   },
   {
@@ -57,6 +59,7 @@ export const createPendingColumns = (
     dataIndex: 'size',
     key: 'size',
     width: 100,
+    sorter: (a, b) => a.size - b.size,
     render: (size) => formatSize(size),
   },
   {
@@ -64,6 +67,7 @@ export const createPendingColumns = (
     dataIndex: 'category',
     key: 'category',
     width: 100,
+    sorter: (a, b) => (a.category || '').localeCompare(b.category || ''),
     render: (category) => category || '-',
   },
   {
@@ -71,14 +75,9 @@ export const createPendingColumns = (
     dataIndex: 'uploadedBy',
     key: 'uploadedBy',
     width: 120,
+    sorter: (a, b) => a.uploadedBy.localeCompare(b.uploadedBy),
   },
-  {
-    title: '提交时间',
-    dataIndex: 'createdAt',
-    key: 'createdAt',
-    width: 180,
-    render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm'),
-  },
+  createTimeColumn<Application>('提交时间', 'createdAt', { format: 'YYYY-MM-DD HH:mm' }),
   {
     title: '操作',
     key: 'action',
@@ -107,6 +106,7 @@ export const createReviewedColumns = (
     dataIndex: 'name',
     key: 'name',
     width: 200,
+    sorter: (a, b) => a.name.localeCompare(b.name),
     render: (text, record) => (
       <Space>
         {record.iconUrl && (
@@ -121,12 +121,14 @@ export const createReviewedColumns = (
     dataIndex: 'versionName',
     key: 'versionName',
     width: 100,
+    sorter: (a, b) => a.versionName.localeCompare(b.versionName),
   },
   {
     title: '状态',
     dataIndex: 'reviewStatus',
     key: 'reviewStatus',
     width: 100,
+    sorter: (a, b) => a.reviewStatus.localeCompare(b.reviewStatus),
     render: (status) => <ReviewStatusTag status={status} />,
   },
   {
@@ -134,6 +136,7 @@ export const createReviewedColumns = (
     dataIndex: 'reviewComment',
     key: 'reviewComment',
     ellipsis: true,
+    sorter: (a, b) => (a.reviewComment || '').localeCompare(b.reviewComment || ''),
     render: (text) => text || '-',
   },
   {
@@ -141,14 +144,9 @@ export const createReviewedColumns = (
     dataIndex: 'reviewedBy',
     key: 'reviewedBy',
     width: 120,
+    sorter: (a, b) => a.reviewedBy.localeCompare(b.reviewedBy),
   },
-  {
-    title: '审核时间',
-    dataIndex: 'reviewedAt',
-    key: 'reviewedAt',
-    width: 180,
-    render: (text) => (text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'),
-  },
+  createTimeColumn<Application>('审核时间', 'reviewedAt', { format: 'YYYY-MM-DD HH:mm' }),
   {
     title: '操作',
     key: 'action',
@@ -171,6 +169,7 @@ export const createRecordColumns = (): ColumnsType<AppReviewRecord> => [
     title: '应用名称',
     key: 'appName',
     width: 200,
+    sorter: (a, b) => (a.application?.name || '').localeCompare(b.application?.name || ''),
     render: (_, record) => record.application?.name || '-',
   },
   {
@@ -178,6 +177,7 @@ export const createRecordColumns = (): ColumnsType<AppReviewRecord> => [
     dataIndex: 'action',
     key: 'action',
     width: 100,
+    sorter: (a, b) => a.action.localeCompare(b.action),
     render: (action) => <ReviewActionTag action={action} />,
   },
   {
@@ -185,6 +185,7 @@ export const createRecordColumns = (): ColumnsType<AppReviewRecord> => [
     dataIndex: 'status',
     key: 'status',
     width: 100,
+    sorter: (a, b) => a.status.localeCompare(b.status),
     render: (status) => <ReviewStatusTag status={status} />,
   },
   {
@@ -192,6 +193,7 @@ export const createRecordColumns = (): ColumnsType<AppReviewRecord> => [
     dataIndex: 'comment',
     key: 'comment',
     ellipsis: true,
+    sorter: (a, b) => (a.comment || '').localeCompare(b.comment || ''),
     render: (text) => text || '-',
   },
   {
@@ -199,12 +201,7 @@ export const createRecordColumns = (): ColumnsType<AppReviewRecord> => [
     dataIndex: 'reviewedBy',
     key: 'reviewedBy',
     width: 120,
+    sorter: (a, b) => a.reviewedBy.localeCompare(b.reviewedBy),
   },
-  {
-    title: '时间',
-    dataIndex: 'createdAt',
-    key: 'createdAt',
-    width: 180,
-    render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm'),
-  },
+  createTimeColumn<AppReviewRecord>('时间', 'createdAt', { format: 'YYYY-MM-DD HH:mm' }),
 ];

@@ -7,7 +7,7 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
+import { createTimeColumn } from '@/utils/tableColumns';
 
 interface Snapshot {
   id: string;
@@ -128,13 +128,7 @@ const SnapshotListTable: React.FC<SnapshotListTableProps> = ({ deviceId, onResto
       width: 120,
       render: formatSize,
     },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 180,
-      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
-    },
+    createTimeColumn<Snapshot>('创建时间', 'createdAt'),
     {
       title: '操作',
       key: 'action',

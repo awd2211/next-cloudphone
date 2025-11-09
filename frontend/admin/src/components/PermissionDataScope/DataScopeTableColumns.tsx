@@ -33,6 +33,7 @@ export const useDataScopeTableColumns = ({
         dataIndex: 'roleId',
         key: 'roleId',
         width: 150,
+        sorter: (a, b) => a.roleId.localeCompare(b.roleId),
         render: (roleId: string) => {
           const role = roles.find((r) => r.id === roleId);
           return role?.name || roleId;
@@ -43,6 +44,7 @@ export const useDataScopeTableColumns = ({
         dataIndex: 'resourceType',
         key: 'resourceType',
         width: 150,
+        sorter: (a, b) => a.resourceType.localeCompare(b.resourceType),
         render: (resourceType: string) => {
           const resource = resourceTypes.find((r) => r.value === resourceType);
           return <Tag color="blue">{resource?.label || resourceType}</Tag>;
@@ -53,6 +55,7 @@ export const useDataScopeTableColumns = ({
         dataIndex: 'scopeType',
         key: 'scopeType',
         width: 200,
+        sorter: (a, b) => a.scopeType.localeCompare(b.scopeType),
         render: (scopeType: ScopeType, record: DataScope) => {
           const scopeType_ = scopeTypes.find((s) => s.value === scopeType);
           return (
@@ -91,12 +94,18 @@ export const useDataScopeTableColumns = ({
         dataIndex: 'description',
         key: 'description',
         ellipsis: true,
+        sorter: (a, b) => (a.description || '').localeCompare(b.description || ''),
       },
       {
         title: '创建时间',
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 160,
+        sorter: (a, b) => {
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return timeA - timeB;
+        },
         render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'),
       },
       {

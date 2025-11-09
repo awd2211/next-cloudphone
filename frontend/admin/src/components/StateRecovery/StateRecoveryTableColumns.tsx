@@ -16,18 +16,21 @@ export const useStateRecoveryColumns = (): ColumnsType<StateRecoveryRecord> => {
         key: 'deviceId',
         width: 200,
         ellipsis: true,
+        sorter: (a, b) => a.deviceId.localeCompare(b.deviceId),
       },
       {
         title: '设备名称',
         dataIndex: 'deviceName',
         key: 'deviceName',
         width: 150,
+        sorter: (a, b) => a.deviceName.localeCompare(b.deviceName),
       },
       {
         title: '之前状态',
         dataIndex: 'previousState',
         key: 'previousState',
         width: 100,
+        sorter: (a, b) => a.previousState.localeCompare(b.previousState),
         render: (state: string) => <Tag>{state}</Tag>,
       },
       {
@@ -35,6 +38,7 @@ export const useStateRecoveryColumns = (): ColumnsType<StateRecoveryRecord> => {
         dataIndex: 'currentState',
         key: 'currentState',
         width: 100,
+        sorter: (a, b) => a.currentState.localeCompare(b.currentState),
         render: (state: string) => <Tag color="blue">{state}</Tag>,
       },
       {
@@ -42,6 +46,7 @@ export const useStateRecoveryColumns = (): ColumnsType<StateRecoveryRecord> => {
         dataIndex: 'targetState',
         key: 'targetState',
         width: 100,
+        sorter: (a, b) => a.targetState.localeCompare(b.targetState),
         render: (state: string) => <Tag color="green">{state}</Tag>,
       },
       {
@@ -49,6 +54,7 @@ export const useStateRecoveryColumns = (): ColumnsType<StateRecoveryRecord> => {
         dataIndex: 'recoveryType',
         key: 'recoveryType',
         width: 100,
+        sorter: (a, b) => a.recoveryType.localeCompare(b.recoveryType),
         render: (type: string) => RECOVERY_TYPE_MAP[type] || type,
       },
       {
@@ -56,6 +62,7 @@ export const useStateRecoveryColumns = (): ColumnsType<StateRecoveryRecord> => {
         dataIndex: 'status',
         key: 'status',
         width: 100,
+        sorter: (a, b) => a.status.localeCompare(b.status),
         render: (status: string) => {
           const config = STATUS_CONFIG[status] || {
             color: 'default',
@@ -69,12 +76,18 @@ export const useStateRecoveryColumns = (): ColumnsType<StateRecoveryRecord> => {
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 160,
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       },
       {
         title: '完成时间',
         dataIndex: 'completedAt',
         key: 'completedAt',
         width: 160,
+        sorter: (a, b) => {
+          const timeA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+          const timeB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+          return timeA - timeB;
+        },
         render: (time: string) => time || '-',
       },
     ],

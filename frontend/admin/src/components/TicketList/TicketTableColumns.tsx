@@ -39,6 +39,7 @@ export const useTicketTableColumns = ({ onViewDetail }: UseTicketTableColumnsPro
         dataIndex: 'ticketNo',
         key: 'ticketNo',
         width: 160,
+        sorter: (a, b) => a.ticketNo.localeCompare(b.ticketNo),
         render: (ticketNo: string, record: Ticket) => (
           <Space>
             <a onClick={() => onViewDetail(record)}>{ticketNo}</a>
@@ -51,12 +52,14 @@ export const useTicketTableColumns = ({ onViewDetail }: UseTicketTableColumnsPro
         dataIndex: 'title',
         key: 'title',
         ellipsis: true,
+        sorter: (a, b) => a.title.localeCompare(b.title),
       },
       {
         title: '分类',
         dataIndex: 'category',
         key: 'category',
         width: 110,
+        sorter: (a, b) => a.category.localeCompare(b.category),
         render: (category: Ticket['category']) => getCategoryTag(category),
       },
       {
@@ -72,6 +75,7 @@ export const useTicketTableColumns = ({ onViewDetail }: UseTicketTableColumnsPro
         dataIndex: 'status',
         key: 'status',
         width: 120,
+        sorter: (a, b) => a.status.localeCompare(b.status),
         render: (status: Ticket['status']) => getStatusBadge(status),
       },
       {
@@ -79,12 +83,14 @@ export const useTicketTableColumns = ({ onViewDetail }: UseTicketTableColumnsPro
         dataIndex: 'userName',
         key: 'userName',
         width: 100,
+        sorter: (a, b) => a.userName.localeCompare(b.userName),
       },
       {
         title: '负责人',
         dataIndex: 'assignedToName',
         key: 'assignedToName',
         width: 100,
+        sorter: (a, b) => (a.assignedToName || '').localeCompare(b.assignedToName || ''),
         render: (name?: string) => name || <Tag>未分配</Tag>,
       },
       {
@@ -93,6 +99,7 @@ export const useTicketTableColumns = ({ onViewDetail }: UseTicketTableColumnsPro
         key: 'replyCount',
         width: 80,
         align: 'center',
+        sorter: (a, b) => a.replyCount - b.replyCount,
         render: (count: number) => (
           <Badge count={count} showZero style={{ backgroundColor: '#52c41a' }} />
         ),

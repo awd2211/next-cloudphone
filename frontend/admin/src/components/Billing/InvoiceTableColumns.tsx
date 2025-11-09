@@ -48,12 +48,14 @@ export const useInvoiceTableColumns = ({
         dataIndex: 'invoiceNo',
         key: 'invoiceNo',
         width: 150,
+        sorter: (a, b) => a.invoiceNo.localeCompare(b.invoiceNo),
       },
       {
         title: '账单周期',
         dataIndex: 'billingPeriod',
         key: 'billingPeriod',
         width: 120,
+        sorter: (a, b) => a.billingPeriod.localeCompare(b.billingPeriod),
       },
       {
         title: '账单金额',
@@ -70,18 +72,25 @@ export const useInvoiceTableColumns = ({
         dataIndex: 'issueDate',
         key: 'issueDate',
         width: 120,
+        sorter: (a, b) => new Date(a.issueDate).getTime() - new Date(b.issueDate).getTime(),
       },
       {
         title: '到期日期',
         dataIndex: 'dueDate',
         key: 'dueDate',
         width: 120,
+        sorter: (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
       },
       {
         title: '支付日期',
         dataIndex: 'paidDate',
         key: 'paidDate',
         width: 120,
+        sorter: (a, b) => {
+          const timeA = a.paidDate ? new Date(a.paidDate).getTime() : 0;
+          const timeB = b.paidDate ? new Date(b.paidDate).getTime() : 0;
+          return timeA - timeB;
+        },
         render: (paidDate?: string) => paidDate || '-',
       },
       {

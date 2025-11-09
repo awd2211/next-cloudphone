@@ -1,4 +1,5 @@
-import { Card, Table, Space, Alert } from 'antd';
+import { Card, Space, Alert } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
   DataScopeStatsCards,
   DataScopeToolbar,
@@ -8,6 +9,7 @@ import {
   useDataScopeTableColumns,
 } from '@/components/DataScope';
 import { useDataScopeManagement } from '@/hooks/useDataScopeManagement';
+import type { DataScope } from '@/types';
 
 const DataScopeManagement = () => {
   const {
@@ -65,13 +67,22 @@ const DataScopeManagement = () => {
             onRefresh={loadDataScopes}
           />
 
-          <Table
+          <AccessibleTable<DataScope>
+            ariaLabel="数据范围权限列表"
+            loadingText="正在加载数据范围权限"
+            emptyText="暂无数据范围权限，点击右上角创建"
             columns={columns}
             dataSource={dataScopes}
             rowKey="id"
             loading={loading}
-            pagination={{ pageSize: 20 }}
-            scroll={{ x: 1400 }}
+            pagination={{
+              pageSize: 20,
+              pageSizeOptions: ['10', '20', '50', '100', '200'],
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
+            scroll={{ x: 1400, y: 600 }}
+            virtual
           />
         </Card>
       </Space>

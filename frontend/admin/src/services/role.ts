@@ -38,10 +38,19 @@ export const batchDeleteRoles = (roleIds: string[]) => {
   return request.post('/roles/batch-delete', { roleIds });
 };
 
-// 获取所有权限
-export const getPermissions = () => {
-  // 获取所有权限，设置一个很大的 limit
-  return request.get<Permission[]>('/permissions', { params: { page: 1, limit: 1000 } });
+// 获取所有权限（支持分页）
+export const getPermissions = (params?: {
+  page?: number;
+  limit?: number;
+  resource?: string;
+}) => {
+  return request.get<{
+    success: boolean;
+    data: Permission[];
+    total: number;
+    page: number;
+    limit: number;
+  }>('/permissions', { params });
 };
 
 // 创建权限

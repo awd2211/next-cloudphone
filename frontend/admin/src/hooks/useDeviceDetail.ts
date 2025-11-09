@@ -15,6 +15,7 @@ import {
 import dayjs from 'dayjs';
 import { useSafeApi } from './useSafeApi';
 import { DeviceSchema, DevicePackageSchema } from '@/schemas/api.schemas';
+import { handleError } from '@/utils/errorHandling';
 
 /**
  * 设备详情页面业务逻辑 Hook
@@ -110,7 +111,10 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
       message.success('设备启动成功');
       executeLoadDevice();
     } catch (error) {
-      message.error('设备启动失败');
+      handleError(error, {
+        customMessage: '设备启动失败，请稍后重试',
+        messageType: 'message',
+      });
     }
   }, [deviceId, executeLoadDevice]);
 
@@ -124,7 +128,10 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
       message.success('设备停止成功');
       executeLoadDevice();
     } catch (error) {
-      message.error('设备停止失败');
+      handleError(error, {
+        customMessage: '设备停止失败，请稍后重试',
+        messageType: 'message',
+      });
     }
   }, [deviceId, executeLoadDevice]);
 
@@ -138,7 +145,10 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
       message.success('设备重启成功');
       executeLoadDevice();
     } catch (error) {
-      message.error('设备重启失败');
+      handleError(error, {
+        customMessage: '设备重启失败，请稍后重试',
+        messageType: 'message',
+      });
     }
   }, [deviceId, executeLoadDevice]);
 
@@ -159,7 +169,10 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
       URL.revokeObjectURL(url);
       message.success('截图成功');
     } catch (error) {
-      message.error('截图失败');
+      handleError(error, {
+        customMessage: '截图失败，设备可能未响应',
+        messageType: 'message',
+      });
     }
   }, [deviceId]);
 
@@ -181,7 +194,10 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
       form.resetFields();
       executeLoadInstalledApps();
     } catch (error) {
-      message.error('应用安装失败');
+      handleError(error, {
+        customMessage: '应用安装失败，请检查APK文件是否正确',
+        messageType: 'notification',
+      });
     }
   }, [deviceId, fileList, form, executeLoadInstalledApps]);
 
@@ -196,7 +212,10 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
         message.success('应用卸载成功');
         executeLoadInstalledApps();
       } catch (error) {
-        message.error('应用卸载失败');
+        handleError(error, {
+          customMessage: '应用卸载失败，该应用可能正在运行',
+          messageType: 'message',
+        });
       }
     },
     [deviceId, executeLoadInstalledApps]

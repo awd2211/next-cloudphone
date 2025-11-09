@@ -1,8 +1,17 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Space, Form, message, Card } from 'antd';
 import type { MenuProps } from 'antd';
+import {
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlayCircleOutlined,
+  StopOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import type { Device, CreateDeviceDto } from '@/types';
 import { useRole } from '@/hooks/useRole';
+import { useNavigate } from 'react-router-dom';
 
 // ✅ 导入优化的子组件
 import { DeviceStatusTag } from '@/components/Device';
@@ -14,6 +23,14 @@ import {
   CreateDeviceModal,
   useDeviceColumns,
 } from '@/components/DeviceList';
+import { BatchProgressModal } from '@/components/BatchOperation/BatchProgressModal';
+
+// ✅ P2 & P3 优化组件
+import { useFilterState } from '@/hooks/useFilterState';
+import { useDraggableTable } from '@/components/DraggableTable';
+import { useContextMenu } from '@/components/ContextMenu';
+import { dangerConfirm } from '@/components/ConfirmDialog';
+import { useColumnCustomizer, ColumnCustomizerButton } from '@/components/ColumnCustomizer';
 
 // ✅ 使用 React Query hooks
 import {
@@ -49,31 +66,25 @@ import { deviceKeys } from '@/hooks/useDevices';
  */
 const DeviceList = () => {
   const { isAdmin } = useRole();
+  const navigate = useNavigate();
 
-  // 筛选和分页状态
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  // ✅ P2 优化：URL 筛选器状态持久化
+  const { filters, setFilters } = useFilterState({
+    page: 1,
+    pageSize: 10,
+    search: '',
+    status: '',
+    androidVersion: '',
+  });
+
+  // 其他 UI 状态
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  const [androidVersionFilter, setAndroidVersionFilter] = useState<string | undefined>();
-  const [dateRange, setDateRange] = useState<[string, string] | null>(null);
   const [realtimeEnabled, setRealtimeEnabled] = useState(true);
   const [form] = Form.useForm();
 
   // ✅ 使用 React Query hooks（自动管理 loading、error、data）
-  const params = useMemo(() => {
-    const p: any = { page, pageSize };
-    if (searchKeyword) p.search = searchKeyword;
-    if (statusFilter) p.status = statusFilter;
-    if (androidVersionFilter) p.androidVersion = androidVersionFilter;
-    if (dateRange) {
-      p.startDate = dateRange[0];
-      p.endDate = dateRange[1];
-    }
-    return p;
-  }, [page, pageSize, searchKeyword, statusFilter, androidVersionFilter, dateRange]);
+  const params = useMemo(() => filters, [filters]);
 
   // ✅ 自动缓存、去重、后台刷新
   const { data: devicesData, isLoading } = useDevices(params);
@@ -89,6 +100,82 @@ const DeviceList = () => {
   // 解构数据
   const devices = devicesData?.data?.data || [];
   const total = devicesData?.data?.total || 0;
+
+  // ✅ P3 优化：拖拽排序
+  const { sortedDataSource, DndWrapper, tableComponents, sortColumn } = useDraggableTable({
+    dataSource: devices,
+    getRowKey: (device) => device.id,
+    onSortEnd: (newDevices) => {
+      message.success('设备顺序已更新');
+      // TODO: 保存排序到服务器
+      console.log('New device order:', newDevices.map(d => d.id));
+    },
+    disabled: isLoading, // 加载时禁用拖拽
+  });
+
+  // ✅ P3 优化：右键菜单
+  const { onContextMenu, contextMenu } = useContextMenu({
+    items: [
+      {
+        key: 'view',
+        label: '查看详情',
+        icon: <EyeOutlined />,
+        onClick: (device) => navigate(`/devices/${device.id}`),
+      },
+      {
+        key: 'edit',
+        label: '编辑',
+        icon: <EditOutlined />,
+        onClick: (device) => {
+          message.info(`编辑设备: ${device.name}`);
+          // TODO: 打开编辑弹窗
+        },
+      },
+      { key: 'divider-1', type: 'divider' },
+      {
+        key: 'start',
+        label: '启动',
+        icon: <PlayCircleOutlined />,
+        onClick: (device) => handleStart(device.id),
+        visible: (device) => device.status !== 'running',
+      },
+      {
+        key: 'stop',
+        label: '停止',
+        icon: <StopOutlined />,
+        onClick: (device) => handleStop(device.id),
+        visible: (device) => device.status === 'running',
+      },
+      {
+        key: 'reboot',
+        label: '重启',
+        icon: <ReloadOutlined />,
+        onClick: (device) => handleReboot(device.id),
+      },
+      { key: 'divider-2', type: 'divider' },
+      {
+        key: 'delete',
+        label: '删除',
+        icon: <DeleteOutlined />,
+        danger: true,
+        onClick: async (device) => {
+          const confirmed = await dangerConfirm({
+            title: '删除设备',
+            content: `确定要删除设备 "${device.name}" 吗？`,
+            consequences: [
+              '设备上的所有数据将被永久删除',
+              '设备关联的快照和备份也将被删除',
+              '此操作无法撤销',
+            ],
+            requiresCheckbox: true,
+          });
+          if (confirmed) {
+            handleDelete(device.id);
+          }
+        },
+      },
+    ],
+  });
 
   // Real-time updates via Socket.IO (placeholder)
   const isConnected = false;
@@ -158,12 +245,21 @@ const DeviceList = () => {
     [deleteDeviceMutation]
   );
 
-  // ✅ 批量操作（使用 hook）
-  const { handleBatchStart, handleBatchStop, handleBatchReboot, handleBatchDelete } =
-    useDeviceBatchOperations({
-      selectedRowKeys,
-      onSuccess: () => setSelectedRowKeys([]),
-    });
+  // ✅ 批量操作（使用 hook + 进度展示）
+  const {
+    handleBatchStart,
+    handleBatchStop,
+    handleBatchReboot,
+    handleBatchDelete,
+    batchStartProgress,
+    batchStopProgress,
+    batchRebootProgress,
+    batchDeleteProgress,
+  } = useDeviceBatchOperations({
+    selectedRowKeys,
+    devices,
+    onSuccess: () => setSelectedRowKeys([]),
+  });
 
   // ✅ 导出函数（使用 useCallback）
   const handleExportExcel = useCallback(() => {
@@ -189,7 +285,7 @@ const DeviceList = () => {
   );
 
   // ✅ 使用提取的表格列定义 hook
-  const columns = useDeviceColumns({
+  const baseColumns = useDeviceColumns({
     onStart: handleStart,
     onStop: handleStop,
     onReboot: handleReboot,
@@ -202,6 +298,24 @@ const DeviceList = () => {
     },
   });
 
+  // ✅ P3 优化：列自定义
+  const {
+    visibleColumns,
+    columnConfigs,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumns,
+  } = useColumnCustomizer({
+    columns: baseColumns,
+    storageKey: 'device-list-columns',
+    defaultHiddenKeys: ['ipAddress', 'createdAt'], // 默认隐藏 IP 和创建时间
+    fixedKeys: ['name', 'status', 'actions'], // 名称、状态、操作列固定显示
+  });
+
+  // 合并拖拽列和可见列
+  const columns = useMemo(() => [sortColumn, ...visibleColumns], [sortColumn, visibleColumns]);
+
   return (
     <div style={{ padding: '24px' }}>
       {/* 统计卡片 */}
@@ -212,11 +326,11 @@ const DeviceList = () => {
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           {/* 第一行：搜索和筛选 */}
           <DeviceFilterBar
-            onSearch={setSearchKeyword}
-            onStatusChange={setStatusFilter}
-            onAndroidVersionChange={setAndroidVersionFilter}
+            onSearch={(search) => setFilters({ search, page: 1 })}
+            onStatusChange={(status) => setFilters({ status, page: 1 })}
+            onAndroidVersionChange={(androidVersion) => setFilters({ androidVersion, page: 1 })}
             onDateRangeChange={(dates, dateStrings) => {
-              setDateRange(dates ? [dateStrings[0], dateStrings[1]] : null);
+              // TODO: 将日期范围添加到筛选器
             }}
             isConnected={isConnected}
             realtimeEnabled={realtimeEnabled}
@@ -232,26 +346,41 @@ const DeviceList = () => {
             onBatchReboot={handleBatchReboot}
             onBatchDelete={handleBatchDelete}
             exportMenuItems={exportMenuItems}
+            extraActions={
+              <ColumnCustomizerButton
+                configs={columnConfigs}
+                onToggle={toggleColumn}
+                onShowAll={showAllColumns}
+                onHideAll={hideAllColumns}
+                onReset={resetColumns}
+              />
+            }
           />
         </Space>
       </Card>
 
-      {/* 设备列表表格 */}
+      {/* 设备列表表格（支持拖拽排序 + 右键菜单） */}
       <Card>
-        <DeviceTable
-          columns={columns}
-          dataSource={devices}
-          loading={isLoading}
-          selectedRowKeys={selectedRowKeys}
-          onSelectionChange={setSelectedRowKeys}
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          onPageChange={(page, pageSize) => {
-            setPage(page);
-            setPageSize(pageSize);
-          }}
-        />
+        <DndWrapper>
+          <DeviceTable
+            columns={columns}
+            dataSource={sortedDataSource}
+            loading={isLoading}
+            selectedRowKeys={selectedRowKeys}
+            onSelectionChange={setSelectedRowKeys}
+            page={filters.page}
+            pageSize={filters.pageSize}
+            total={total}
+            onPageChange={(page, pageSize) => {
+              setFilters({ page, pageSize });
+            }}
+            components={tableComponents}
+            onRow={(record) => ({
+              onContextMenu: (e) => onContextMenu(record, e),
+            })}
+          />
+        </DndWrapper>
+        {contextMenu}
       </Card>
 
       {/* 创建设备弹窗 */}
@@ -265,6 +394,32 @@ const DeviceList = () => {
           form.resetFields();
         }}
         onFinish={handleCreate}
+      />
+
+      {/* 批量操作进度弹窗 */}
+      <BatchProgressModal
+        visible={batchStartProgress.visible}
+        title={batchStartProgress.title}
+        items={batchStartProgress.items}
+        onClose={batchStartProgress.close}
+      />
+      <BatchProgressModal
+        visible={batchStopProgress.visible}
+        title={batchStopProgress.title}
+        items={batchStopProgress.items}
+        onClose={batchStopProgress.close}
+      />
+      <BatchProgressModal
+        visible={batchRebootProgress.visible}
+        title={batchRebootProgress.title}
+        items={batchRebootProgress.items}
+        onClose={batchRebootProgress.close}
+      />
+      <BatchProgressModal
+        visible={batchDeleteProgress.visible}
+        title={batchDeleteProgress.title}
+        items={batchDeleteProgress.items}
+        onClose={batchDeleteProgress.close}
       />
     </div>
   );

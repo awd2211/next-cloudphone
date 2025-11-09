@@ -55,7 +55,7 @@ const NumberPoolTab: React.FC = () => {
     provider: undefined as string | undefined,
     phone: '',
     page: 1,
-    limit: 20,
+    pageSize: 20,
   });
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<VirtualNumber | null>(null);
@@ -67,7 +67,7 @@ const NumberPoolTab: React.FC = () => {
     queryFn: async () => {
       const params: any = {
         page: filters.page,
-        limit: filters.limit,
+        pageSize: filters.pageSize,
       };
       if (filters.status) params.status = filters.status;
       if (filters.provider) params.provider = filters.provider;
@@ -278,13 +278,13 @@ const NumberPoolTab: React.FC = () => {
         scroll={{ x: 1400 }}
         pagination={{
           current: filters.page,
-          pageSize: filters.limit,
+          pageSize: filters.pageSize,
           total: data?.meta?.total || 0,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total) => `共 ${total} 个号码`,
           onChange: (page, pageSize) => {
-            setFilters({ ...filters, page, limit: pageSize });
+            setFilters({ ...filters, page, pageSize });
           },
         }}
       />

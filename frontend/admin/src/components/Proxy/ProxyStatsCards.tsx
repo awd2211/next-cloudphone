@@ -1,4 +1,4 @@
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic , theme } from 'antd';
 import {
   GlobalOutlined,
   CheckCircleOutlined,
@@ -33,12 +33,13 @@ const ProxyStatsCards: React.FC<ProxyStatsCardsProps> = ({
   totalBandwidth,
   totalCost,
 }) => {
+  const { token } = theme.useToken();
   const stats = [
     {
       title: '总代理数',
       value: total,
-      icon: <GlobalOutlined style={{ color: '#1890ff' }} />,
-      color: '#1890ff',
+      icon: <GlobalOutlined style={{ color: token.colorPrimary }} />,
+      color: token.colorPrimary,
     },
     {
       title: '可用代理',
@@ -49,8 +50,8 @@ const ProxyStatsCards: React.FC<ProxyStatsCardsProps> = ({
     {
       title: '使用中',
       value: inUse,
-      icon: <LoadingOutlined style={{ color: '#1890ff' }} />,
-      color: '#1890ff',
+      icon: <LoadingOutlined style={{ color: token.colorPrimary }} />,
+      color: token.colorPrimary,
     },
     {
       title: '不可用',

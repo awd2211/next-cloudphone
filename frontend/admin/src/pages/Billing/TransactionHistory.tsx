@@ -1,7 +1,8 @@
 import React from 'react';
-import { Card, Table, Button } from 'antd';
+import { Card, Button } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { DownloadOutlined } from '@ant-design/icons';
-import { TransactionFilterBar } from '@/components/Billing';
+import { TransactionFilterBar, type Transaction } from '@/components/Billing';
 import { useTransactionHistory } from '@/hooks/useTransactionHistory';
 
 const TransactionHistory: React.FC = () => {
@@ -38,16 +39,22 @@ const TransactionHistory: React.FC = () => {
         onReset={handleReset}
       />
 
-      <Table
+      <AccessibleTable<Transaction>
+        ariaLabel="交易记录列表"
+        loadingText="正在加载交易记录"
+        emptyText="暂无交易记录"
         columns={columns}
         dataSource={filteredTransactions}
         loading={loading}
         rowKey="id"
         pagination={{
-          pageSize: 10,
+          pageSize: 20,
+          pageSizeOptions: ['10', '20', '50', '100', '200'],
           showTotal: (total) => `共 ${total} 条记录`,
           showSizeChanger: true,
         }}
+        scroll={{ y: 600 }}
+        virtual
       />
     </Card>
   );

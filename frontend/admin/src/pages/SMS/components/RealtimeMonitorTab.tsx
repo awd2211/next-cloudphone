@@ -1,4 +1,5 @@
-import { Card, Row, Col, Statistic, Table, Tag, Progress } from 'antd';
+import { Card, Row, Col, Statistic, Tag, Progress, theme } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
   PhoneOutlined,
   CheckCircleOutlined,
@@ -45,6 +46,14 @@ interface RealtimeData {
   >;
 }
 
+interface ProviderHealthRow {
+  provider: string;
+  status: string;
+  successRate: number;
+  avgResponseTime: number;
+  consecutiveFailures: number;
+}
+
 /**
  * 实时监控标签页
  *
@@ -54,6 +63,7 @@ interface RealtimeData {
  * - 平台健康状态实时监控
  */
 const RealtimeMonitorTab: React.FC = () => {
+  const { token } = theme.useToken();
   // 查询实时监控数据，每10秒自动刷新
   const { data, isLoading } = useQuery<RealtimeData>({
     queryKey: ['sms-realtime'],
@@ -65,14 +75,14 @@ const RealtimeMonitorTab: React.FC = () => {
   });
 
   // 转换平台健康数据为表格格式
-  const providerHealthData = Object.entries(data?.providerHealth || {}).map(
+  const providerHealthData: ProviderHealthRow[] = Object.entries(data?.providerHealth || {}).map(
     ([provider, health]) => ({
       provider,
       ...health,
     })
   );
 
-  const healthColumns: ColumnsType<typeof providerHealthData[0]> = [
+  const healthColumns: ColumnsType<ProviderHealthRow> = [
     {
       title: '平台',
       dataIndex: 'provider',
@@ -149,7 +159,7 @@ const RealtimeMonitorTab: React.FC = () => {
                 title="总活跃号码"
                 value={data?.activeNumbers.total || 0}
                 prefix={<PhoneOutlined />}
-                valueStyle={{ color: '#1890ff' }}
+                valueStyle={{ color: token.colorPrimary }}
               />
             </Card>
           </Col>
@@ -320,12 +330,17 @@ const RealtimeMonitorTab: React.FC = () => {
 
       {/* 平台健康状态 */}
       <Card title="平台健康状态">
-        <Table
+        <AccessibleTable<ProviderHealthRow>
+          ariaLabel="平台健康状态列表"
+          loadingText="正在加载平台健康状态"
+          emptyText="暂无平台健康状态数据"
           columns={healthColumns}
           dataSource={providerHealthData}
           rowKey="provider"
           loading={isLoading}
           pagination={false}
+          scroll={{ y: 300 }}
+          virtual
         />
       </Card>
     </div>

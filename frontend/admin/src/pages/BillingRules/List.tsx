@@ -1,5 +1,7 @@
 import React from 'react';
-import { Card, Table, Space } from 'antd';
+import { Card, Space } from 'antd';
+import AccessibleTable from '@/components/Accessible/AccessibleTable';
+import type { BillingRule } from '@/types';
 import {
   BillingRuleStatsCards,
   BillingRuleToolbar,
@@ -60,7 +62,10 @@ const BillingRuleList: React.FC = () => {
             onCreate={() => openModal()}
           />
 
-          <Table
+          <AccessibleTable<BillingRule>
+            ariaLabel="计费规则列表"
+            loadingText="正在加载计费规则"
+            emptyText="暂无计费规则数据"
             columns={columns}
             dataSource={rules}
             rowKey="id"
@@ -75,8 +80,10 @@ const BillingRuleList: React.FC = () => {
               },
               showSizeChanger: true,
               showTotal: (total) => `共 ${total} 条`,
+              pageSizeOptions: ['10', '20', '50', '100', '200'],
             }}
-            scroll={{ x: 1400 }}
+            scroll={{ x: 1400, y: 600 }}
+            virtual
           />
         </Space>
       </Card>

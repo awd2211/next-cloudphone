@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Card, Row, Col, Statistic } from 'antd';
+import { Card, Row, Col, Statistic , theme } from 'antd';
 
 interface TemplateStatsCardProps {
   stats?: {
@@ -11,6 +11,7 @@ interface TemplateStatsCardProps {
 }
 
 export const TemplateStatsCard = memo<TemplateStatsCardProps>(({ stats }) => {
+  const { token } = theme.useToken();
   return (
     <Card style={{ marginBottom: '16px' }}>
       <Row gutter={16}>
@@ -35,7 +36,7 @@ export const TemplateStatsCard = memo<TemplateStatsCardProps>(({ stats }) => {
           <Statistic
             title="总使用次数"
             value={stats?.totalUsage || 0}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
           />
         </Col>
       </Row>

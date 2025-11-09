@@ -1,0 +1,283 @@
+/**
+ * 主题样式
+ *
+ * 支持亮色/暗色主题的全局样式
+ */
+
+/* ==================== 亮色主题 (默认) ==================== */
+:root[data-theme='light'] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f0f2f5;
+  --bg-tertiary: #fafafa;
+  --text-primary: #000000d9;
+  --text-secondary: #00000073;
+  --text-tertiary: #00000040;
+  --border-color: #d9d9d9;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ==================== 暗色主题 ==================== */
+:root[data-theme='dark'],
+html.dark {
+  --bg-primary: #1f1f1f;
+  --bg-secondary: #141414;
+  --bg-tertiary: #262626;
+  --text-primary: #ffffffd9;
+  --text-secondary: #ffffff73;
+  --text-tertiary: #ffffff40;
+  --border-color: #434343;
+  --shadow-color: rgba(0, 0, 0, 0.45);
+}
+
+/* ==================== 平滑过渡 ==================== */
+body {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 全局元素动画增强 */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 主题切换时的渐变效果 */
+@keyframes theme-fade-in {
+  from {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+html[data-theme] {
+  animation: theme-fade-in 0.4s ease-out;
+}
+
+/* ==================== 自定义滚动条 (暗色主题) ==================== */
+html.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #434343;
+  border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #595959;
+}
+
+/* ==================== 卡片和内容区域 (暗色主题) ==================== */
+html.dark .ant-card {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+html.dark .ant-layout-content {
+  background: var(--bg-secondary) !important;
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.dark .ant-pro-card {
+  background: var(--bg-primary);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ==================== 表格 (暗色主题) ==================== */
+html.dark .ant-table {
+  background: var(--bg-primary);
+  transition: background-color 0.3s ease;
+}
+
+html.dark .ant-table-thead > tr > th {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+html.dark .ant-table-tbody > tr > td {
+  border-color: var(--border-color);
+  transition: background-color 0.2s ease, border-color 0.3s ease;
+}
+
+html.dark .ant-table-tbody > tr:hover > td {
+  background: var(--bg-tertiary);
+}
+
+/* ==================== 表单 (暗色主题) ==================== */
+html.dark .ant-input,
+html.dark .ant-input-number,
+html.dark .ant-picker,
+html.dark .ant-select-selector {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark .ant-input:hover,
+html.dark .ant-input-number:hover,
+html.dark .ant-picker:hover,
+html.dark .ant-select-selector:hover {
+  border-color: #177ddc;
+}
+
+/* ==================== 模态框 (暗色主题) ==================== */
+html.dark .ant-modal-content {
+  background: var(--bg-primary);
+  transition: background-color 0.3s ease;
+}
+
+html.dark .ant-modal-header {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ==================== 下拉菜单 (暗色主题) ==================== */
+html.dark .ant-dropdown-menu {
+  background: var(--bg-primary);
+  transition: background-color 0.3s ease;
+}
+
+html.dark .ant-dropdown-menu-item {
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.3s ease;
+}
+
+html.dark .ant-dropdown-menu-item:hover {
+  background: var(--bg-tertiary);
+}
+
+/* ==================== 通知 (暗色主题) ==================== */
+html.dark .ant-notification-notice {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+/* ==================== 消息提示 (暗色主题) ==================== */
+html.dark .ant-message-notice-content {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: 0 3px 6px -4px var(--shadow-color),
+              0 6px 16px 0 var(--shadow-color),
+              0 9px 28px 8px var(--shadow-color);
+}
+
+/* ==================== Spin 加载 (暗色主题) ==================== */
+html.dark .ant-spin-text {
+  color: var(--text-secondary);
+}
+
+/* ==================== Tabs (暗色主题) ==================== */
+html.dark .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+html.dark .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active {
+  background: var(--bg-primary);
+}
+
+/* ==================== Descriptions (暗色主题) ==================== */
+html.dark .ant-descriptions-item-label {
+  color: var(--text-secondary);
+}
+
+html.dark .ant-descriptions-item-content {
+  color: var(--text-primary);
+}
+
+/* ==================== Statistic (暗色主题) ==================== */
+html.dark .ant-statistic-title {
+  color: var(--text-secondary);
+}
+
+html.dark .ant-statistic-content {
+  color: var(--text-primary);
+}
+
+/* ==================== Badge (暗色主题) ==================== */
+html.dark .ant-badge-status-text {
+  color: var(--text-primary);
+}
+
+/* ==================== Tree (暗色主题) ==================== */
+html.dark .ant-tree {
+  background: var(--bg-primary);
+}
+
+html.dark .ant-tree-node-content-wrapper:hover {
+  background-color: var(--bg-tertiary);
+}
+
+/* ==================== Collapse (暗色主题) ==================== */
+html.dark .ant-collapse {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+html.dark .ant-collapse-header {
+  color: var(--text-primary);
+}
+
+html.dark .ant-collapse-content {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+/* ==================== Timeline (暗色主题) ==================== */
+html.dark .ant-timeline-item-content {
+  color: var(--text-primary);
+}
+
+/* ==================== Steps (暗色主题) ==================== */
+html.dark .ant-steps-item-title {
+  color: var(--text-primary);
+}
+
+html.dark .ant-steps-item-description {
+  color: var(--text-secondary);
+}
+
+/* ==================== 代码块 (暗色主题) ==================== */
+html.dark pre {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+html.dark code {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: #ff7875;
+}
+
+/* ==================== 图表暗色主题适配 ==================== */
+html.dark .echarts-for-react {
+  /* ECharts 会通过 JS 动态设置主题 */
+}
+
+/* ==================== Empty 空状态 (暗色主题) ==================== */
+html.dark .ant-empty-description {
+  color: var(--text-secondary);
+}
+
+/* ==================== Result 结果页 (暗色主题) ==================== */
+html.dark .ant-result-title {
+  color: var(--text-primary);
+}
+
+html.dark .ant-result-subtitle {
+  color: var(--text-secondary);
+}

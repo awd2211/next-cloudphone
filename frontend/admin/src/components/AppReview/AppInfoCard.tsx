@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Image, Avatar, Descriptions, Typography, Divider, Tag } from 'antd';
+import { Card, Row, Col, Image, Avatar, Descriptions, Typography, Divider, Tag , theme } from 'antd';
 import { AppstoreOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Application } from '@/types';
@@ -12,6 +12,7 @@ interface AppInfoCardProps {
 }
 
 export const AppInfoCard: React.FC<AppInfoCardProps> = React.memo(({ app }) => {
+    const { token } = theme.useToken();
   return (
     <Card title="应用信息" style={{ marginBottom: 24 }}>
       <Row gutter={16}>
@@ -29,7 +30,7 @@ export const AppInfoCard: React.FC<AppInfoCardProps> = React.memo(({ app }) => {
               <Avatar
                 size={120}
                 icon={<AppstoreOutlined />}
-                style={{ backgroundColor: '#1890ff' }}
+                style={{ backgroundColor: token.colorPrimary }}
               />
             )}
           </div>
