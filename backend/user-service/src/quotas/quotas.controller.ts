@@ -14,16 +14,16 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import {
   QuotasService,
-  CreateQuotaDto,
-  UpdateQuotaDto,
   CheckQuotaRequest,
   DeductQuotaRequest,
   RestoreQuotaRequest,
 } from './quotas.service';
+import { CreateQuotaDto, UpdateQuotaDto } from './dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { QuotaType } from '../entities/quota.entity';
+import { QuotaMetricsService } from './quota-metrics.service';
 
 @ApiTags('quotas')
 @ApiBearerAuth()
@@ -32,13 +32,47 @@ import { QuotaType } from '../entities/quota.entity';
 export class QuotasController {
   private readonly logger = new Logger(QuotasController.name);
 
-  constructor(private readonly quotasService: QuotasService) {}
+  constructor(
+    private readonly quotasService: QuotasService,
+    private readonly metricsService: QuotaMetricsService,
+  ) {}
+
+  /**
+   * 获取所有配额列表（管理员）
+   */
+  @Get()
+  @Roles('admin') // super_admin 自动拥有所有权限
+  @ApiOperation({ summary: '获取所有配额列表（管理员）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getAllQuotas(
+    @Query('status') status?: string,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query('limit') limit?: number,
+  ) {
+    // 支持 pageSize 或 limit 参数
+    const itemsPerPage = pageSize || limit;
+    this.logger.log(`获取配额列表 - 状态: ${status || '全部'}, 页码: ${page || 1}`);
+    const result = await this.quotasService.getAllQuotas({
+      status: status as any,
+      page: page ? Number(page) : undefined,
+      limit: itemsPerPage ? Number(itemsPerPage) : undefined,
+    });
+
+    // 返回标准格式：将 limit 转换为 pageSize
+    const { limit: _, ...rest } = result;
+    return {
+      success: true,
+      ...rest,
+      pageSize: result.limit,
+    };
+  }
 
   /**
    * 创建用户配额
    */
   @Post()
-  @Roles('admin')
+  @Roles('admin') // super_admin 自动拥有所有权限
   @ApiOperation({ summary: '创建用户配额' })
   @ApiResponse({ status: 201, description: '配额创建成功' })
   @ApiResponse({ status: 400, description: '用户已有活跃配额' })
@@ -101,13 +135,31 @@ export class QuotasController {
    * 更新配额
    */
   @Put(':id')
-  @Roles('admin')
+  @Roles('admin') // super_admin 自动拥有所有权限
   @ApiOperation({ summary: '更新配额' })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '未找到配额' })
   async updateQuota(@Param('id') id: string, @Body() dto: UpdateQuotaDto) {
     this.logger.log(`更新配额 - ID: ${id}`);
     return await this.quotasService.updateQuota(id, dto);
+  }
+
+  /**
+   * 续费配额
+   */
+  @Post('renew/:userId')
+  @Roles('admin') // super_admin 自动拥有所有权限
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '续费配额（延长有效期）' })
+  @ApiResponse({ status: 200, description: '续费成功' })
+  @ApiResponse({ status: 404, description: '未找到配额' })
+  async renewQuota(
+    @Param('userId') userId: string,
+    @Body() body: { extensionDays?: number }
+  ) {
+    const extensionDays = body.extensionDays || 30;
+    this.logger.log(`续费配额 - 用户: ${userId}, 延长: ${extensionDays} 天`);
+    return await this.quotasService.renewQuota(userId, extensionDays);
   }
 
   /**
@@ -188,11 +240,33 @@ export class QuotasController {
    * 获取配额告警列表
    */
   @Get('alerts')
-  @Roles('admin')
+  @Roles('admin') // super_admin 自动拥有所有权限
   @ApiOperation({ summary: '获取配额告警列表（管理员）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getQuotaAlerts(@Query('threshold') threshold: number = 80) {
     this.logger.log(`获取配额告警 - 阈值: ${threshold}%`);
     return await this.quotasService.getQuotaAlerts(threshold);
+  }
+
+  /**
+   * 获取配额指标 (Prometheus)
+   */
+  @Get('metrics')
+  @Roles('admin') // super_admin 自动拥有所有权限
+  @ApiOperation({ summary: '获取配额监控指标' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getMetrics() {
+    return await this.metricsService.getMetrics();
+  }
+
+  /**
+   * 获取配额统计摘要
+   */
+  @Get('summary')
+  @Roles('admin') // super_admin 自动拥有所有权限
+  @ApiOperation({ summary: '获取配额统计摘要' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getQuotaSummary() {
+    return await this.metricsService.getQuotaSummary();
   }
 }

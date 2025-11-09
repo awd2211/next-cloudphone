@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import { QuotasService } from './quotas.service';
 import { Quota, QuotaStatus, QuotaType } from '../entities/quota.entity';
 import { createMockRepository } from '@cloudphone/shared/testing';
+import { DistributedLockService } from '@cloudphone/shared';
 
 // Helper function to create mock quota
 function createMockQuota(overrides: Partial<Quota> = {}): Quota {
@@ -84,6 +85,15 @@ describe('QuotasService', () => {
               save: jest.fn(),
               findOne: jest.fn(),
             },
+          },
+        },
+        {
+          provide: DistributedLockService,
+          useValue: {
+            acquireLock: jest.fn().mockResolvedValue(true),
+            releaseLock: jest.fn().mockResolvedValue(true),
+            extendLock: jest.fn().mockResolvedValue(true),
+            isLocked: jest.fn().mockResolvedValue(false),
           },
         },
       ],

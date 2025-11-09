@@ -190,11 +190,16 @@ export class FieldPermissionController {
   @Get()
   @ApiOperation({
     summary: '获取所有字段权限配置',
-    description: '根据条件查询字段权限配置列表,支持按角色、资源类型、操作类型过滤'
+    description: '根据条件查询字段权限配置列表,支持按角色、资源类型、操作类型过滤，支持服务端分页'
   })
   @ApiQuery({ name: 'roleId', required: false, description: '角色ID', example: 'role-uuid-123' })
   @ApiQuery({ name: 'resourceType', required: false, description: '资源类型', example: 'device' })
   @ApiQuery({ name: 'operation', required: false, description: '操作类型', enum: OperationType })
+  @ApiQuery({ name: 'isActive', required: false, description: '是否启用', type: 'boolean' })
+  @ApiQuery({ name: 'page', required: false, description: '页码(从1开始)', type: 'number', example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', type: 'number', example: 20 })
+  @ApiQuery({ name: 'sortBy', required: false, description: '排序字段', example: 'priority' })
+  @ApiQuery({ name: 'sortOrder', required: false, description: '排序顺序', enum: ['ASC', 'DESC'] })
   @ApiResponse({
     status: 200,
     description: '查询成功',
@@ -213,7 +218,9 @@ export class FieldPermissionController {
             priority: 100
           }
         ],
-        total: 1
+        total: 150,
+        page: 1,
+        pageSize: 20
       }
     }
   })
@@ -222,22 +229,136 @@ export class FieldPermissionController {
   async findAll(
     @Query('roleId') roleId?: string,
     @Query('resourceType') resourceType?: string,
-    @Query('operation') operation?: OperationType
+    @Query('operation') operation?: OperationType,
+    @Query('isActive') isActive?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
   ) {
     const where: FieldPermissionWhereCondition = {};
     if (roleId) where.roleId = roleId;
     if (resourceType) where.resourceType = resourceType;
     if (operation) where.operation = operation;
+    if (isActive !== undefined) where.isActive = isActive === 'true';
 
-    const permissions = await this.fieldPermissionRepository.find({
+    // ✅ 分页参数（默认第1页，每页20条）
+    const currentPage = page ? Math.max(1, parseInt(page, 10)) : 1;
+    const limit = pageSize ? Math.max(1, Math.min(100, parseInt(pageSize, 10))) : 20; // 最大100条/页
+    const skip = (currentPage - 1) * limit;
+
+    // ✅ 排序参数（默认按优先级升序）
+    const orderBy = sortBy || 'priority';
+    const order = sortOrder || 'ASC';
+    const orderClause = { [orderBy]: order, createdAt: 'DESC' as const };
+
+    // ✅ 使用 findAndCount 同时获取数据和总数
+    const [permissions, total] = await this.fieldPermissionRepository.findAndCount({
       where: where as any,
-      order: { priority: 'ASC', createdAt: 'DESC' },
+      order: orderClause as any,
+      take: limit,
+      skip: skip,
     });
 
     return {
       success: true,
       data: permissions,
-      total: permissions.length,
+      total,
+      page: currentPage,
+      pageSize: limit,
+    };
+  }
+
+  /**
+   * 获取字段权限统计数据
+   * ⚠️ 必须在 @Get(':id') 之前定义，否则 "stats" 会被当作 ID 参数
+   */
+  @Get('stats')
+  @ApiOperation({
+    summary: '获取字段权限统计数据',
+    description: '获取字段权限的聚合统计信息，包括总数、启用/禁用数量、按操作类型分组等'
+  })
+  @ApiResponse({
+    status: 200,
+    description: '查询成功',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          total: 150,
+          active: 120,
+          inactive: 30,
+          byOperation: {
+            CREATE: 40,
+            UPDATE: 35,
+            VIEW: 50,
+            EXPORT: 25
+          },
+          byResourceType: {
+            device: 60,
+            user: 45,
+            order: 45
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @RequirePermissions('field-permission:list')
+  async getStats() {
+    // ✅ 使用 COUNT 查询，避免加载所有数据
+    const total = await this.fieldPermissionRepository.count();
+    const active = await this.fieldPermissionRepository.count({
+      where: { isActive: true },
+    });
+    const inactive = total - active;
+
+    // ✅ 按操作类型统计
+    const byOperationPromises = Object.values(OperationType).map(async (operation) => {
+      const count = await this.fieldPermissionRepository.count({
+        where: { operation },
+      });
+      return { operation, count };
+    });
+    const byOperationResults = await Promise.all(byOperationPromises);
+    const byOperation = byOperationResults.reduce(
+      (acc, { operation, count }) => {
+        acc[operation] = count;
+        return acc;
+      },
+      {} as Record<OperationType, number>
+    );
+
+    // ✅ 按资源类型统计（获取所有不同的资源类型）
+    const resourceTypes = await this.fieldPermissionRepository
+      .createQueryBuilder('fp')
+      .select('DISTINCT fp.resourceType', 'resourceType')
+      .getRawMany();
+
+    const byResourceTypePromises = resourceTypes.map(async ({ resourceType }) => {
+      const count = await this.fieldPermissionRepository.count({
+        where: { resourceType },
+      });
+      return { resourceType, count };
+    });
+    const byResourceTypeResults = await Promise.all(byResourceTypePromises);
+    const byResourceType = byResourceTypeResults.reduce(
+      (acc, { resourceType, count }) => {
+        acc[resourceType] = count;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
+    return {
+      success: true,
+      data: {
+        total,
+        active,
+        inactive,
+        byOperation,
+        byResourceType,
+      },
     };
   }
 

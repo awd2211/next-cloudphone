@@ -45,6 +45,9 @@ export class PermissionCacheService implements OnModuleInit {
   // 缓存键前缀
   private readonly CACHE_PREFIX = 'permissions:user:';
 
+  // ✅ WebSocket Gateway 引用（延迟注入，避免循环依赖）
+  private gateway: any; // PermissionGateway type (避免循环import)
+
   constructor(
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
@@ -58,6 +61,14 @@ export class PermissionCacheService implements OnModuleInit {
     private roleRepository: Repository<Role>,
     private cacheService: CacheService
   ) {}
+
+  /**
+   * 设置 WebSocket Gateway（延迟注入）
+   */
+  setGateway(gateway: any) {
+    this.gateway = gateway;
+    this.logger.log('WebSocket Gateway registered for permission cache service');
+  }
 
   async onModuleInit() {
     this.logger.log('权限缓存服务已初始化（使用Redis双层缓存）');
@@ -205,6 +216,14 @@ export class PermissionCacheService implements OnModuleInit {
       const cacheKey = this.getCacheKey(userId);
       await this.cacheService.del(cacheKey);
       this.logger.debug(`已清除用户 ${userId} 的权限缓存`);
+
+      // ✅ 推送 WebSocket 通知
+      if (this.gateway) {
+        const newPermissions = await this.getUserPermissions(userId);
+        if (newPermissions) {
+          await this.gateway.notifyUserPermissionChanged(userId, newPermissions, '权限已更新');
+        }
+      }
     } else {
       // 使用模式匹配删除所有权限缓存
       const deletedCount = await this.cacheService.delPattern(`${this.CACHE_PREFIX}*`);
@@ -221,15 +240,20 @@ export class PermissionCacheService implements OnModuleInit {
       relations: ['roles'],
     });
 
-    const invalidationPromises = users
-      .filter((user) => user.roles?.some((r) => r.id === roleId))
-      .map((user) => this.invalidateCache(user.id));
+    const affectedUsers = users.filter((user) => user.roles?.some((r) => r.id === roleId));
+
+    const invalidationPromises = affectedUsers.map((user) => this.invalidateCache(user.id));
 
     await Promise.all(invalidationPromises);
 
     this.logger.debug(
-      `已清除角色 ${roleId} 相关的所有权限缓存 (共 ${invalidationPromises.length} 个用户)`
+      `已清除角色 ${roleId} 相关的所有权限缓存 (共 ${affectedUsers.length} 个用户)`
     );
+
+    // ✅ 推送角色级别的 WebSocket 通知
+    if (this.gateway) {
+      await this.gateway.notifyRolePermissionChanged(roleId, `角色权限已更新，影响 ${affectedUsers.length} 个用户`);
+    }
   }
 
   /**
@@ -273,7 +297,7 @@ export class PermissionCacheService implements OnModuleInit {
   async warmupActiveUsersCache(limit: number = 100): Promise<void> {
     const activeUsers = await this.userRepository.find({
       where: { status: 'active' as any },
-      select: ['id'],
+      select: ['id', 'lastLoginAt'], // ✅ 添加排序字段到 select 避免 DISTINCT 别名问题
       order: { lastLoginAt: 'DESC' },
       take: limit,
     });

@@ -231,6 +231,24 @@ export class ProxyController {
   }
 
   /**
+   * 菜单服务路由（精确匹配）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('menus')
+  async proxyMenusExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * 菜单服务路由（通配符）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('menus/*path')
+  async proxyMenus(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
    * 配额服务路由（精确匹配）
    */
   @UseGuards(JwtAuthGuard)

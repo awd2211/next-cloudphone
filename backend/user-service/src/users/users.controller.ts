@@ -201,21 +201,29 @@ export class UsersController {
   @SkipMask('email') // 管理员可以看到完整邮箱
   @ApiOperation({ summary: '获取用户列表', description: '分页获取用户列表 (基础版)' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量（兼容参数）', example: 10 })
   @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async findAll(
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('pageSize') pageSize?: string,
+    @Query('limit') limit?: string,
     @Query('tenantId') tenantId?: string
   ) {
+    // 支持 pageSize 或 limit 参数
+    const itemsPerPage = pageSize || limit || '10';
     const result = await this.queryBus.execute(
-      new GetUsersQuery(parseInt(page), parseInt(limit), tenantId)
+      new GetUsersQuery(parseInt(page), parseInt(itemsPerPage), tenantId)
     );
+
+    // 返回标准格式：将 limit 转换为 pageSize
+    const { limit: _, ...rest } = result;
     return {
       success: true,
-      ...result,
+      ...rest,
+      pageSize: result.limit,
     };
   }
 

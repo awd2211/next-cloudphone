@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { CacheService } from '../cache/cache.service';
 import { JwtConfigFactory } from '@cloudphone/shared';
+import { PermissionCacheService } from '../permissions/permission-cache.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -14,7 +15,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private configService: ConfigService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private cacheService: CacheService
+    private cacheService: CacheService,
+    private permissionCacheService: PermissionCacheService, // ✅ 注入权限缓存服务
   ) {
     // 🔒 使用 shared 模块的安全 JWT 配置
     const jwtConfig = JwtConfigFactory.getPassportJwtConfig(configService);
@@ -45,27 +47,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Token 已失效，请重新登录');
     }
 
-    // 3. 验证用户是否存在
-    const user = await this.userRepository.findOne({
-      where: { id: payload.sub },
-      relations: ['roles', 'roles.permissions'],
-    });
+    // ✅ 3. 使用权限缓存服务获取用户权限（自动使用 Redis 双层缓存）
+    const cachedPermissions = await this.permissionCacheService.getUserPermissions(payload.sub);
 
-    if (!user) {
+    if (!cachedPermissions) {
       throw new UnauthorizedException('用户不存在');
     }
 
-    // 提取权限列表
-    const permissions = user.roles?.flatMap((r) => r.permissions?.map((p) => p.name) || []) || [];
-
+    // ✅ 4. 返回用户信息和权限（从缓存中获取，无需查询数据库）
     return {
-      id: user.id,
-      userId: user.id, // 添加 userId 字段供 device-service 使用
-      username: user.username,
-      email: user.email,
-      roles: user.roles,
-      permissions, // 添加 permissions 数组
-      tenantId: user.tenantId,
+      id: cachedPermissions.userId,
+      userId: cachedPermissions.userId,
+      username: payload.username,
+      email: payload.email,
+      roles: cachedPermissions.roles, // 角色ID数组
+      permissions: cachedPermissions.permissions.map(p => p.name), // 权限名称数组
+      tenantId: cachedPermissions.tenantId,
+      isSuperAdmin: cachedPermissions.isSuperAdmin,
     };
   }
 }

@@ -56,38 +56,75 @@ export class TicketsController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number
   ) {
-    return await this.ticketsService.getUserTickets(userId, {
+    const { tickets, total } = await this.ticketsService.getUserTickets(userId, {
       status,
       category,
       priority,
       limit: limit ? Number(limit) : undefined,
       offset: offset ? Number(offset) : undefined,
     });
+
+    return {
+      success: true,
+      data: tickets,
+      total,
+    };
   }
 
   /**
    * 获取所有工单（管理员）
+   * 支持 page/pageSize 和 limit/offset 两种分页模式
    */
   @Get()
   @Roles('admin', 'support')
-  @ApiOperation({ summary: '获取所有工单（管理员）' })
+  @ApiOperation({ summary: '获取所有工单（管理员 - 支持分页）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getAllTickets(
     @Query('status') status?: TicketStatus,
     @Query('assignedTo') assignedTo?: string,
     @Query('priority') priority?: TicketPriority,
     @Query('category') category?: TicketCategory,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number
   ) {
-    return await this.ticketsService.getAllTickets({
+    // 支持 page/pageSize 或 limit/offset 参数
+    let finalLimit: number | undefined;
+    let finalOffset: number | undefined;
+    let currentPage: number;
+    let itemsPerPage: number;
+
+    if (page !== undefined || pageSize !== undefined) {
+      // 使用 page/pageSize 模式
+      currentPage = page || 1;
+      itemsPerPage = pageSize || limit || 20;
+      finalLimit = itemsPerPage;
+      finalOffset = (currentPage - 1) * itemsPerPage;
+    } else {
+      // 使用 limit/offset 模式（兼容旧版）
+      finalLimit = limit ? Number(limit) : 20;
+      finalOffset = offset ? Number(offset) : 0;
+      itemsPerPage = finalLimit;
+      currentPage = Math.floor(finalOffset / finalLimit) + 1;
+    }
+
+    const { tickets, total } = await this.ticketsService.getAllTickets({
       status,
       assignedTo,
       priority,
       category,
-      limit: limit ? Number(limit) : undefined,
-      offset: offset ? Number(offset) : undefined,
+      limit: finalLimit,
+      offset: finalOffset,
     });
+
+    return {
+      success: true,
+      data: tickets,
+      total,
+      page: currentPage,
+      pageSize: itemsPerPage,
+    };
   }
 
   /**

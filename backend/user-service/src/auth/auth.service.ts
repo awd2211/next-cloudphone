@@ -167,15 +167,23 @@ export class AuthService {
     // ✅ 记录登录尝试
     this.userMetrics.recordLoginAttempt(username);
 
-    // 1. 验证验证码（开发环境可跳过）
-    const isDev = process.env.NODE_ENV === 'development';
-    const isCaptchaValid = isDev
-      ? true // 开发环境跳过验证码检查
-      : await this.captchaService.verify(captchaId, captcha);
+    // 1. 验证验证码（可选）
+    const captchaEnabled = process.env.CAPTCHA_ENABLED === 'true';
 
-    if (!isCaptchaValid) {
-      this.logger.warn(`Invalid captcha for user: ${username}`);
-      throw new UnauthorizedException('验证码错误或已过期');
+    if (captchaEnabled) {
+      // 验证码启用时,必须提供验证码
+      if (!captcha || !captchaId) {
+        this.logger.warn(`Missing captcha for user: ${username}`);
+        throw new UnauthorizedException('请提供验证码');
+      }
+
+      const isCaptchaValid = await this.captchaService.verify(captchaId, captcha);
+      if (!isCaptchaValid) {
+        this.logger.warn(`Invalid captcha for user: ${username}`);
+        throw new UnauthorizedException('验证码错误或已过期');
+      }
+    } else {
+      this.logger.debug(`Captcha validation skipped (CAPTCHA_ENABLED=false)`);
     }
 
     // 2. 创建 QueryRunner 用于事务管理
@@ -184,12 +192,13 @@ export class AuthService {
     await queryRunner.startTransaction();
 
     try {
-      // 3. 查找用户及其角色和权限
+      // 3. 查找用户及其角色（不再加载权限，因为权限通过缓存动态查询）
       // 注意：PostgreSQL 不支持对 LEFT JOIN 使用 FOR UPDATE，所以先查用户，再锁定
       const user = await queryRunner.manager
         .createQueryBuilder(User, 'user')
         .leftJoinAndSelect('user.roles', 'role')
-        .leftJoinAndSelect('role.permissions', 'permission')
+        // ✅ 移除 permissions JOIN：不再在登录时加载权限，避免 JWT Token 过大
+        // .leftJoinAndSelect('role.permissions', 'permission')
         .where('user.username = :username', { username })
         .getOne();
 
@@ -304,16 +313,37 @@ export class AuthService {
       await queryRunner.commitTransaction();
 
       // 10. 生成 JWT Token
+      // ⚠️ 注意：不要在 JWT 中包含 permissions 数组，因为可能有数百个权限，导致 token 过大
+      // 权限应该在后端根据角色动态查询，或者只包含必要的权限标识
       const payload = {
         sub: user.id,
         username: user.username,
         email: user.email,
         tenantId: user.tenantId,
         roles: user.roles?.map((r) => r.name) || [],
-        permissions: user.roles?.flatMap((r) => r.permissions?.map((p) => p.name)) || [],
+        // permissions: user.roles?.flatMap((r) => r.permissions?.map((p) => p.name)) || [], // 移除：避免 token 过大
+        isSuperAdmin: user.isSuperAdmin || false, // 添加超级管理员标识
       };
 
+      // 🐛 DEBUG: 检查整个 user 对象结构
+      this.logger.log(`🐛 DEBUG user keys: ${JSON.stringify(Object.keys(user))}`);
+      this.logger.log(`🐛 DEBUG user.roles: ${JSON.stringify(user.roles?.map(r => ({ name: r.name, hasPermissions: 'permissions' in r, permCount: r.permissions?.length || 0 })))}`);
+
+      // 🐛 DEBUG: 检查 payload 是否包含 permissions
+      this.logger.log(`🐛 DEBUG Payload keys BEFORE sign: ${JSON.stringify(Object.keys(payload))}`);
+      this.logger.log(`🐛 DEBUG Payload JSON BEFORE sign: ${JSON.stringify(payload)}`);
+
       const token = this.jwtService.sign(payload);
+
+      // 🐛 DEBUG: 解码 Token 检查实际内容
+      const decoded = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+      this.logger.log(`🐛 DEBUG Decoded token keys: ${JSON.stringify(Object.keys(decoded))}`);
+      if ('permissions' in decoded) {
+        this.logger.error(`🐛 BUG FOUND: Token contains ${decoded.permissions?.length || 0} permissions!!!`);
+        this.logger.error(`🐛 First 5 permissions: ${JSON.stringify(decoded.permissions.slice(0, 5))}`);
+      } else {
+        this.logger.log(`✅ SUCCESS: Token does NOT contain permissions!`);
+      }
 
       // ✅ 记录登录成功
       this.userMetrics.recordLoginSuccess(username);
@@ -431,7 +461,8 @@ export class AuthService {
     const user = await this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.roles', 'role')
-      .leftJoinAndSelect('role.permissions', 'permission')
+      // ✅ 移除 permissions JOIN：权限通过缓存动态查询，避免 JWT Token 过大
+      // .leftJoinAndSelect('role.permissions', 'permission')
       .where('user.id = :userId', { userId })
       .getOne();
 
@@ -448,13 +479,14 @@ export class AuthService {
   }
 
   /**
-   * 刷新 Token (优化: 使用 QueryBuilder 避免 N+1 查询)
+   * 刷新 Token (优化: 不再加载权限，权限通过缓存动态查询)
    */
   async refreshToken(userId: string) {
     const user = await this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.roles', 'role')
-      .leftJoinAndSelect('role.permissions', 'permission')
+      // ✅ 移除 permissions JOIN：不再在刷新Token时加载权限，避免 JWT Token 过大
+      // .leftJoinAndSelect('role.permissions', 'permission')
       .where('user.id = :userId', { userId })
       .getOne();
 
@@ -468,7 +500,8 @@ export class AuthService {
       email: user.email,
       tenantId: user.tenantId,
       roles: user.roles?.map((r) => r.name) || [],
-      permissions: user.roles?.flatMap((r) => r.permissions?.map((p) => p.name)) || [], // 修复：使用 p.name 保持一致
+      // permissions: user.roles?.flatMap((r) => r.permissions?.map((p) => p.name)) || [], // 移除：避免 token 过大
+      isSuperAdmin: user.isSuperAdmin || false,
     };
 
     const token = this.jwtService.sign(payload);

@@ -15,7 +15,8 @@ import { User, UserStatus } from '../entities/user.entity';
 import { CaptchaService } from './services/captcha.service';
 import { CacheService } from '../cache/cache.service';
 import { UserRegistrationSaga } from './registration.saga';
-import { EventBusService } from '@cloudphone/shared';
+import { UserMetricsService } from '../metrics/user-metrics.service';
+import { EventBusService, DistributedLockService } from '@cloudphone/shared';
 import {
   createMockRepository,
   createMockUser,
@@ -124,6 +125,28 @@ describe('AuthService', () => {
         {
           provide: EventBusService,
           useValue: mockEventBus,
+        },
+        {
+          provide: UserMetricsService,
+          useValue: {
+            recordLogin: jest.fn().mockResolvedValue(undefined),
+            recordLogout: jest.fn().mockResolvedValue(undefined),
+            recordLoginFailure: jest.fn().mockResolvedValue(undefined),
+            recordLoginAttempt: jest.fn().mockResolvedValue(undefined),
+            recordLoginSuccess: jest.fn().mockResolvedValue(undefined),
+            recordUserLocked: jest.fn().mockResolvedValue(undefined),
+            recordPasswordChange: jest.fn().mockResolvedValue(undefined),
+            getLoginMetrics: jest.fn().mockResolvedValue({}),
+          },
+        },
+        {
+          provide: DistributedLockService,
+          useValue: {
+            acquireLock: jest.fn().mockResolvedValue(true),
+            releaseLock: jest.fn().mockResolvedValue(true),
+            extendLock: jest.fn().mockResolvedValue(true),
+            isLocked: jest.fn().mockResolvedValue(false),
+          },
         },
       ],
     }).compile();

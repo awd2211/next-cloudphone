@@ -1,14 +1,18 @@
-import { Controller, Get, Delete, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Delete, Post, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { CacheService } from './cache.service';
+import { CacheWarmupService } from './cache-warmup.service';
 
 /**
  * 缓存管理控制器
  *
- * 提供缓存统计、管理等接口
+ * 提供缓存统计、管理、预热等接口
  */
 @Controller('cache')
 export class CacheController {
-  constructor(private readonly cacheService: CacheService) {}
+  constructor(
+    private readonly cacheService: CacheService,
+    private readonly cacheWarmupService: CacheWarmupService, // ✅ 注入预热服务
+  ) {}
 
   /**
    * 获取缓存统计信息
@@ -101,6 +105,47 @@ export class CacheController {
         key,
         exists,
       },
+    };
+  }
+
+  /**
+   * 手动触发缓存预热
+   *
+   * POST /cache/warmup
+   *
+   * 适用场景：
+   * - 系统重启后手动预热
+   * - 数据更新后重新缓存
+   * - 定时任务触发预热
+   */
+  @Post('warmup')
+  async warmup() {
+    await this.cacheWarmupService.manualWarmup();
+
+    return {
+      success: true,
+      message: 'Cache warmup completed successfully',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * 清空缓存并重新预热
+   *
+   * POST /cache/clear-and-warmup
+   *
+   * 适用场景：
+   * - 权限配置重大变更
+   * - 缓存数据损坏需要重建
+   */
+  @Post('clear-and-warmup')
+  async clearAndWarmup() {
+    await this.cacheWarmupService.clearAndWarmup();
+
+    return {
+      success: true,
+      message: 'Cache cleared and warmed up successfully',
+      timestamp: new Date().toISOString(),
     };
   }
 }

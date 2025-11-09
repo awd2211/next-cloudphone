@@ -1,9 +1,9 @@
-import { Controller, Get, Param, Query, UseGuards, Request, Logger } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, Request, Logger, Req, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { MenuPermissionService } from '../menu-permission.service';
 import { PermissionCacheService } from '../permission-cache.service';
-import { EnhancedPermissionsGuard } from '../guards/enhanced-permissions.guard';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { RequirePermissions, SkipPermission } from '../decorators';
 import { AuthenticatedRequest } from '../types';
 
@@ -14,7 +14,7 @@ import { AuthenticatedRequest } from '../types';
 @ApiTags('菜单权限管理')
 @ApiBearerAuth()
 @Controller('menu-permissions')
-@UseGuards(AuthGuard('jwt'), EnhancedPermissionsGuard)
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class MenuPermissionController {
   private readonly logger = new Logger(MenuPermissionController.name);
 
@@ -274,11 +274,16 @@ export class MenuPermissionController {
 
   /**
    * 获取指定用户的权限列表
+   *
+   * 安全规则：
+   * 1. 用户可以查询自己的权限（userId == 当前用户）
+   * 2. 管理员可以查询任何用户的权限（需要 permission:view 权限）
    */
   @Get('user/:userId/permissions')
+  @SkipPermission()  // 使用自定义权限检查逻辑
   @ApiOperation({
     summary: '获取指定用户的权限列表',
-    description: '获取指定用户拥有的所有权限标识列表，用于管理员查看用户权限'
+    description: '获取指定用户拥有的所有权限标识列表。普通用户可以查询自己的权限，管理员可以查询任何用户的权限。'
   })
   @ApiParam({ name: 'userId', description: '用户ID', example: 'user-uuid-123' })
   @ApiResponse({
@@ -298,8 +303,24 @@ export class MenuPermissionController {
     }
   })
   @ApiResponse({ status: 403, description: '权限不足' })
-  @RequirePermissions('permission:view')
-  async getUserPermissions(@Param('userId') userId: string) {
+  async getUserPermissions(
+    @Param('userId') userId: string,
+    @Req() req: any,
+  ) {
+    const currentUser = req.user;
+
+    // 检查访问权限：
+    // 1. 用户查询自己的权限（允许）
+    // 2. 管理员查询其他用户的权限（需要permission:view权限）
+    if (currentUser.sub !== userId) {
+      // 查询其他用户权限，需要管理员权限
+      const userPermissions = await this.menuPermissionService.getUserPermissionNames(currentUser.sub);
+
+      if (!userPermissions.includes('*') && !userPermissions.includes('permission:view')) {
+        throw new ForbiddenException('无权查看其他用户的权限');
+      }
+    }
+
     const permissions = await this.menuPermissionService.getUserPermissionNames(userId);
 
     return {

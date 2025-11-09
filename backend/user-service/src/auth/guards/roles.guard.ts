@@ -34,6 +34,12 @@ export class RolesGuard implements CanActivate {
     }
 
     const userRoles = user.roles?.map((role: any) => role.name) || [];
+
+    // ✅ super_admin 拥有所有权限
+    if (userRoles.includes('super_admin')) {
+      return true;
+    }
+
     const hasRole = requiredRoles.some((role) => userRoles.includes(role));
 
     if (!hasRole) {

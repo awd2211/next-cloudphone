@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Logger, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiSecurity } from '@nestjs/swagger';
-import { ApiKeysService, CreateApiKeyDto } from './api-keys.service';
+import { ApiKeysService } from './api-keys.service';
+import { CreateApiKeyDto } from './dto/create-api-key.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiKeyAuthGuard, ApiScopes } from './api-key-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { ApiKeyStatus } from '../entities/api-key.entity';
 
 @ApiTags('api-keys')
 @Controller('api-keys')
@@ -12,6 +14,46 @@ export class ApiKeysController {
   private readonly logger = new Logger(ApiKeysController.name);
 
   constructor(private readonly apiKeysService: ApiKeysService) {}
+
+  /**
+   * 获取所有 API 密钥列表（管理员）
+   */
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取所有 API 密钥列表（管理员）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getAllApiKeys(
+    @Query('status') status?: string,
+    @Query('userId') userId?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    const currentPage = page ? Math.max(1, parseInt(page, 10)) : 1;
+    const limit = pageSize ? Math.max(1, Math.min(100, parseInt(pageSize, 10))) : 20;
+    const offset = (currentPage - 1) * limit;
+
+    let apiKeyStatus: ApiKeyStatus | undefined;
+    if (status && Object.values(ApiKeyStatus).includes(status as ApiKeyStatus)) {
+      apiKeyStatus = status as ApiKeyStatus;
+    }
+
+    const { apiKeys, total } = await this.apiKeysService.getAllApiKeys({
+      status: apiKeyStatus,
+      userId,
+      limit,
+      offset,
+    });
+
+    return {
+      success: true,
+      data: apiKeys,
+      total,
+      page: currentPage,
+      pageSize: limit,
+    };
+  }
 
   /**
    * 创建 API 密钥
@@ -76,6 +118,7 @@ export class ApiKeysController {
    * 撤销 API 密钥
    */
   @Post(':id/revoke')
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '撤销 API 密钥' })

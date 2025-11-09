@@ -1,14 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { QueryOptimizationService } from './query-optimization.service';
+import { DistributedLockService } from '@cloudphone/shared';
 
 describe('QueryOptimizationService', () => {
   let service: QueryOptimizationService;
   let mockDataSource: any;
+  let mockLockService: any;
 
   beforeEach(async () => {
     mockDataSource = {
       query: jest.fn(),
+    };
+
+    mockLockService = {
+      acquireLock: jest.fn().mockResolvedValue(true),
+      releaseLock: jest.fn().mockResolvedValue(true),
+      extendLock: jest.fn().mockResolvedValue(true),
+      isLocked: jest.fn().mockResolvedValue(false),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -17,6 +26,10 @@ describe('QueryOptimizationService', () => {
         {
           provide: getDataSourceToken(),
           useValue: mockDataSource,
+        },
+        {
+          provide: DistributedLockService,
+          useValue: mockLockService,
         },
       ],
     }).compile();

@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Setting, SettingCategory } from './entities/setting.entity';
 import { EncryptionService } from '../common/services/encryption.service';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class SettingsService {
@@ -11,13 +12,31 @@ export class SettingsService {
   constructor(
     @InjectRepository(Setting)
     private readonly settingRepository: Repository<Setting>,
-    private readonly encryptionService: EncryptionService
+    private readonly encryptionService: EncryptionService,
+    @Optional() private readonly cacheService: CacheService
   ) {}
 
   /**
    * 获取所有设置（按类别分组）
+   * ✅ 添加缓存优化 (5分钟 TTL - 配置数据变化少)
    */
   async getAll(): Promise<Record<string, Record<string, any>>> {
+    const cacheKey = 'settings:all';
+
+    // 尝试从缓存获取
+    if (this.cacheService) {
+      try {
+        const cached = await this.cacheService.get<Record<string, Record<string, any>>>(cacheKey);
+        if (cached) {
+          this.logger.debug('设置列表缓存命中');
+          return cached;
+        }
+      } catch (error) {
+        this.logger.warn(`获取设置缓存失败: ${error.message}`);
+      }
+    }
+
+    // 查询数据库
     const settings = await this.settingRepository.find();
 
     const result: Record<string, Record<string, any>> = {};
@@ -45,13 +64,40 @@ export class SettingsService {
       }
     }
 
+    // 写入缓存 (5分钟 TTL - 配置数据变化少)
+    if (this.cacheService) {
+      try {
+        await this.cacheService.set(cacheKey, result, { ttl: 300 });
+        this.logger.debug('设置列表已缓存 - TTL: 5分钟');
+      } catch (error) {
+        this.logger.warn(`写入设置缓存失败: ${error.message}`);
+      }
+    }
+
     return result;
   }
 
   /**
    * 获取指定类别的设置
+   * ✅ 添加缓存优化 (5分钟 TTL)
    */
   async getByCategory(category: SettingCategory): Promise<Record<string, any>> {
+    const cacheKey = `settings:category:${category}`;
+
+    // 尝试从缓存获取
+    if (this.cacheService) {
+      try {
+        const cached = await this.cacheService.get<Record<string, any>>(cacheKey);
+        if (cached) {
+          this.logger.debug(`设置类别缓存命中 - 类别: ${category}`);
+          return cached;
+        }
+      } catch (error) {
+        this.logger.warn(`获取设置类别缓存失败: ${error.message}`);
+      }
+    }
+
+    // 查询数据库
     const settings = await this.settingRepository.find({ where: { category } });
 
     const result: Record<string, any> = {};
@@ -70,6 +116,16 @@ export class SettingsService {
         result[setting.key] = JSON.parse(value);
       } catch {
         result[setting.key] = value;
+      }
+    }
+
+    // 写入缓存 (5分钟 TTL)
+    if (this.cacheService) {
+      try {
+        await this.cacheService.set(cacheKey, result, { ttl: 300 });
+        this.logger.debug(`设置类别已缓存 - 类别: ${category}, TTL: 5分钟`);
+      } catch (error) {
+        this.logger.warn(`写入设置类别缓存失败: ${error.message}`);
       }
     }
 
@@ -105,6 +161,7 @@ export class SettingsService {
 
   /**
    * 设置配置项
+   * ✅ 添加缓存失效
    */
   async set(
     category: SettingCategory,
@@ -138,12 +195,17 @@ export class SettingsService {
     }
 
     const saved = await this.settingRepository.save(setting);
+
+    // ✅ 清除缓存
+    await this.clearSettingsCache(category);
+
     this.logger.log(`Setting updated: ${category}.${key}`);
     return saved;
   }
 
   /**
    * 批量更新类别设置
+   * ✅ set() 方法已经包含缓存失效，无需额外处理
    */
   async updateCategory(category: SettingCategory, data: Record<string, any>): Promise<void> {
     for (const [key, value] of Object.entries(data)) {
@@ -159,9 +221,14 @@ export class SettingsService {
 
   /**
    * 删除设置
+   * ✅ 添加缓存失效
    */
   async delete(category: SettingCategory, key: string): Promise<void> {
     await this.settingRepository.delete({ category, key });
+
+    // ✅ 清除缓存
+    await this.clearSettingsCache(category);
+
     this.logger.log(`Setting deleted: ${category}.${key}`);
   }
 
@@ -206,5 +273,28 @@ export class SettingsService {
     }
 
     this.logger.log('Default settings initialized');
+  }
+
+  /**
+   * ✅ 清除设置缓存
+   * @param category 可选的类别，如果提供则只清除该类别的缓存
+   */
+  private async clearSettingsCache(category?: SettingCategory): Promise<void> {
+    if (!this.cacheService) return;
+
+    try {
+      // 清除全局设置缓存
+      await this.cacheService.del('settings:all');
+      this.logger.debug('设置全局缓存已清除');
+
+      // 如果指定了类别，也清除该类别的缓存
+      if (category) {
+        const categoryKey = `settings:category:${category}`;
+        await this.cacheService.del(categoryKey);
+        this.logger.debug(`设置类别缓存已清除 - 类别: ${category}`);
+      }
+    } catch (error) {
+      this.logger.error(`清除设置缓存失败: ${error.message}`, error.stack);
+    }
   }
 }

@@ -117,7 +117,8 @@ export class PermissionsController {
   @RequirePermission('permission.read')
   @ApiOperation({ summary: '获取权限列表', description: '分页获取权限列表，支持按资源类型筛选' })
   @ApiQuery({ name: 'page', required: false, description: '页码(从1开始)', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量（兼容参数）', example: 10 })
   @ApiQuery({ name: 'resource', required: false, description: '资源类型筛选', example: 'device' })
   @ApiResponse({
     status: 200,
@@ -145,20 +146,27 @@ export class PermissionsController {
         ],
         total: 25,
         page: 1,
-        limit: 10
+        pageSize: 10
       }
     }
   })
   @ApiResponse({ status: 403, description: '权限不足' })
   async findAll(
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('pageSize') pageSize?: string,
+    @Query('limit') limit?: string,
     @Query('resource') resource?: string
   ) {
-    const result = await this.permissionsService.findAll(parseInt(page), parseInt(limit), resource);
+    // 支持 pageSize 或 limit 参数
+    const itemsPerPage = pageSize || limit || '10';
+    const result = await this.permissionsService.findAll(parseInt(page), parseInt(itemsPerPage), resource);
+
+    // 返回标准格式：将 limit 转换为 pageSize
+    const { limit: _, ...rest } = result;
     return {
       success: true,
-      ...result,
+      ...rest,
+      pageSize: result.limit,
     };
   }
 

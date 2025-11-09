@@ -21,9 +21,13 @@ export class AuditInterceptor implements NestInterceptor {
     // 确定审计操作类型
     const action = this.determineAction(method, url);
 
-    if (!action || !user) {
+    // 如果不是需要审计的操作，直接跳过
+    if (!action) {
       return next.handle();
     }
+
+    // 对于登录/注册等操作，可能没有user对象，使用临时ID
+    const userId = user?.id || user?.userId || '00000000-0000-0000-0000-000000000000';
 
     const startTime = Date.now();
 
@@ -34,7 +38,7 @@ export class AuditInterceptor implements NestInterceptor {
 
         this.auditLogsService
           .createLog({
-            userId: user.id || user.userId,
+            userId,
             action,
             level: AuditLevel.INFO,
             resourceType: this.getResourceType(url),
@@ -60,7 +64,7 @@ export class AuditInterceptor implements NestInterceptor {
 
         this.auditLogsService
           .createLog({
-            userId: user.id || user.userId,
+            userId,
             action,
             level: AuditLevel.ERROR,
             resourceType: this.getResourceType(url),

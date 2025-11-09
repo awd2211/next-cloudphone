@@ -7,6 +7,7 @@ import { RegisterDto } from './dto/register.dto';
 import { Enable2FADto } from './dto/enable-2fa.dto';
 import { Disable2FADto } from './dto/disable-2fa.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { JwtRefreshGuard } from './jwt-refresh.guard';
 import { Public } from './decorators/public.decorator';
 import { TwoFactorService } from './two-factor.service';
 import { SocialProvider, SocialAuthCallbackDto, BindSocialAccountDto } from './dto/social-auth.dto';
@@ -107,10 +108,11 @@ export class AuthController {
 
   /**
    * 刷新 Token
+   * ✅ 允许过期 token（只验证签名，不验证过期时间）
    * 🔒 限流: 60秒内最多10次
    */
   @Post('refresh')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtRefreshGuard)  // ✅ 改用 JwtRefreshGuard（允许过期 token）
   @ApiBearerAuth()
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: '刷新 Token' })

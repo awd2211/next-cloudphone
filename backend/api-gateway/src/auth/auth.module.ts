@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -27,8 +28,12 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
         signOptions: { expiresIn: '7d' },
       }),
     }),
+    HttpModule.register({
+      timeout: 5000,
+      maxRedirects: 5,
+    }),
   ],
   providers: [JwtStrategy, JwtAuthGuard],
-  exports: [JwtModule, PassportModule, JwtStrategy, JwtAuthGuard],
+  exports: [JwtModule, PassportModule, JwtStrategy, JwtAuthGuard, HttpModule],
 })
 export class AuthModule {}

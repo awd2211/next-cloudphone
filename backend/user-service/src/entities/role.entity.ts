@@ -37,7 +37,7 @@ export class Role {
   users: User[];
 
   @ManyToMany(() => Permission, (permission) => permission.roles, {
-    eager: true,
+    eager: false, // ✅ 禁用 eager loading 以避免 JWT Token 过大
   })
   @JoinTable({
     name: 'role_permissions',

@@ -262,22 +262,33 @@ export class MenuPermissionService {
    */
   async getUserPermissionNames(userId: string): Promise<string[]> {
     try {
+      this.logger.debug(`[getUserPermissionNames] 开始查询 - userId: ${userId}`);
+
       const user = await this.userRepository.findOne({
         where: { id: userId },
         relations: ['roles'],
       });
 
       if (!user) {
+        this.logger.warn(`[getUserPermissionNames] 用户不存在 - userId: ${userId}`);
         return [];
       }
 
+      this.logger.debug(`[getUserPermissionNames] 找到用户: ${user.username}, isSuperAdmin: ${user.isSuperAdmin}`);
+
       // 超级管理员拥有所有权限
       if (user.isSuperAdmin) {
+        this.logger.debug(`[getUserPermissionNames] 超级管理员，返回通配符权限`);
         return ['*'];
       }
 
+      this.logger.debug(`[getUserPermissionNames] 调用 getUserPermissions() 获取权限...`);
       const permissions = await this.getUserPermissions(user);
-      return permissions.map((p) => p.name);
+      const permissionNames = permissions.map((p) => p.name);
+
+      this.logger.debug(`[getUserPermissionNames] 返回 ${permissionNames.length} 个权限名称`);
+
+      return permissionNames;
     } catch (error) {
       this.logger.error(`获取用户权限列表失败: ${error.message}`, error.stack);
       return [];
@@ -347,14 +358,35 @@ export class MenuPermissionService {
    * 获取用户的所有权限
    */
   private async getUserPermissions(user: User): Promise<Permission[]> {
+    // 🔍 调试日志：检查用户角色
+    this.logger.debug(`[getUserPermissions] 开始查询用户权限 - userId: ${user.id}, username: ${user.username}`);
+    this.logger.debug(`[getUserPermissions] user.roles 是否存在: ${!!user.roles}`);
+    this.logger.debug(`[getUserPermissions] user.roles 长度: ${user.roles?.length || 0}`);
+
     if (!user.roles || user.roles.length === 0) {
+      this.logger.warn(`[getUserPermissions] 用户 ${user.username} 没有角色信息`);
       return [];
     }
 
     const roleIds = user.roles.map((r) => r.id);
+    this.logger.debug(`[getUserPermissions] 角色IDs: ${JSON.stringify(roleIds)}`);
+    this.logger.debug(`[getUserPermissions] 角色名称: ${user.roles.map(r => r.name).join(', ')}`);
+
     const roles = await this.roleRepository.find({
       where: { id: In(roleIds) },
       relations: ['permissions'],
+    });
+
+    this.logger.debug(`[getUserPermissions] 从数据库查询到 ${roles.length} 个角色`);
+
+    roles.forEach((role, index) => {
+      this.logger.debug(`[getUserPermissions] 角色[${index}] - name: ${role.name}, id: ${role.id}`);
+      this.logger.debug(`[getUserPermissions] 角色[${index}] - permissions 是否存在: ${!!role.permissions}`);
+      this.logger.debug(`[getUserPermissions] 角色[${index}] - permissions 长度: ${role.permissions?.length || 0}`);
+
+      if (role.permissions && role.permissions.length > 0) {
+        this.logger.debug(`[getUserPermissions] 角色[${index}] - 权限示例: ${role.permissions.slice(0, 3).map(p => p.name).join(', ')}`);
+      }
     });
 
     // 合并所有角色的权限（去重）
@@ -365,7 +397,16 @@ export class MenuPermissionService {
       });
     });
 
-    return Array.from(permissionMap.values());
+    const finalPermissions = Array.from(permissionMap.values());
+    this.logger.debug(`[getUserPermissions] 最终合并后权限数量: ${finalPermissions.length}`);
+
+    if (finalPermissions.length > 0) {
+      this.logger.debug(`[getUserPermissions] 权限示例: ${finalPermissions.slice(0, 5).map(p => p.name).join(', ')}`);
+    } else {
+      this.logger.error(`[getUserPermissions] ⚠️ 警告：用户 ${user.username} 的角色在数据库中没有关联任何权限！`);
+    }
+
+    return finalPermissions;
   }
 
   /**

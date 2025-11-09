@@ -12,6 +12,7 @@ import { AuthModule } from './auth/auth.module';
 import { QuotasModule } from './quotas/quotas.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { AuditInterceptor } from './audit-logs/audit.interceptor';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { QueueModule } from './queues/queue.module';
 import { CacheModule } from './cache/cache.module';
@@ -44,6 +45,7 @@ import {
   createLoggerConfig,
   EventBusModule,
   DistributedLockModule, // ✅ K8s 集群安全：分布式锁模块
+  AppCacheModule, // ✅ Redis 缓存模块（提供 CACHE_MANAGER）
 } from '@cloudphone/shared';
 import { CacheWarmupService } from './cache/cache-warmup.service';
 import { CacheService } from './cache/cache.service';
@@ -74,6 +76,7 @@ import { validate } from './common/config/env.validation';
       require('./entities/permission.entity').Permission,
       // Notification 已迁移到 notification-service
     ]),
+    AppCacheModule, // ✅ Redis 缓存模块（提供 CACHE_MANAGER） - 必须在其他模块之前导入
     UsersModule,
     RolesModule,
     PermissionsModule,
@@ -108,6 +111,11 @@ import { validate } from './common/config/env.validation';
     {
       provide: APP_INTERCEPTOR,
       useClass: SensitiveDataInterceptor,
+    },
+    // 全局审计日志拦截器 - 自动记录所有敏感操作
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
     // 全局服务
     CircuitBreakerService,

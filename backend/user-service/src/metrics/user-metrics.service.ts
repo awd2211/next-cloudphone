@@ -20,6 +20,7 @@ export class UserMetricsService {
     private userRepository: Repository<User>,
     @InjectDataSource()
     private dataSource: DataSource,
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
   ) {}
 
   /**

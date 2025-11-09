@@ -186,16 +186,18 @@ export class DataScopeController {
   }
 
   /**
-   * 获取所有数据范围配置
+   * 获取所有数据范围配置（支持分页）
    */
   @Get()
   @ApiOperation({
     summary: '获取所有数据范围配置',
-    description: '根据条件查询数据范围配置列表,支持按角色、资源类型、状态过滤'
+    description: '根据条件查询数据范围配置列表,支持按角色、资源类型、状态过滤，支持分页'
   })
   @ApiQuery({ name: 'roleId', required: false, description: '角色ID', example: 'role-uuid-123' })
   @ApiQuery({ name: 'resourceType', required: false, description: '资源类型', example: 'device' })
   @ApiQuery({ name: 'isActive', required: false, description: '是否启用', example: 'true' })
+  @ApiQuery({ name: 'page', required: false, description: '页码(从1开始)', example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 20 })
   @ApiResponse({
     status: 200,
     description: '查询成功',
@@ -213,7 +215,9 @@ export class DataScopeController {
             createdAt: '2024-01-01T00:00:00Z'
           }
         ],
-        total: 1
+        total: 100,
+        page: 1,
+        pageSize: 20
       }
     }
   })
@@ -221,22 +225,34 @@ export class DataScopeController {
   async findAll(
     @Query('roleId') roleId?: string,
     @Query('resourceType') resourceType?: string,
-    @Query('isActive') isActive?: string
+    @Query('isActive') isActive?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string
   ) {
     const where: DataScopeWhereCondition = {};
     if (roleId) where.roleId = roleId;
     if (resourceType) where.resourceType = resourceType;
     if (isActive !== undefined) where.isActive = isActive === 'true';
 
-    const scopes = await this.dataScopeRepository.find({
+    // ✅ 分页参数
+    const currentPage = page ? Math.max(1, parseInt(page, 10)) : 1;
+    const limit = pageSize ? Math.max(1, Math.min(100, parseInt(pageSize, 10))) : 20;
+    const skip = (currentPage - 1) * limit;
+
+    // ✅ 使用 findAndCount 同时获取数据和总数
+    const [scopes, total] = await this.dataScopeRepository.findAndCount({
       where,
       order: { priority: 'ASC', createdAt: 'DESC' },
+      take: limit,
+      skip: skip,
     });
 
     return {
       success: true,
       data: scopes,
-      total: scopes.length,
+      total,
+      page: currentPage,
+      pageSize: limit,
     };
   }
 

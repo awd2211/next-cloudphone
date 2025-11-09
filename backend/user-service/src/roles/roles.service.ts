@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
   Optional,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -11,11 +12,13 @@ import { Role } from '../entities/role.entity';
 import { Permission } from '../entities/permission.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { CacheService } from '../cache/cache.service';
+import { CacheService, CacheLayer } from '../cache/cache.service';
 import { PermissionCacheService } from '../permissions/permission-cache.service';
 
 @Injectable()
 export class RolesService {
+  private readonly logger = new Logger(RolesService.name);
+
   constructor(
     @InjectRepository(Role)
     private rolesRepository: Repository<Role>,
@@ -48,30 +51,77 @@ export class RolesService {
       permissions,
     });
 
-    return await this.rolesRepository.save(role);
+    const savedRole = await this.rolesRepository.save(role);
+
+    // ✅ 优化: 清除角色列表缓存
+    await this.clearRoleListCache();
+
+    return savedRole;
   }
 
   async findAll(
     page: number = 1,
     limit: number = 10,
-    tenantId?: string
+    tenantId?: string,
+    options?: { includePermissions?: boolean }
   ): Promise<{ data: Role[]; total: number; page: number; limit: number }> {
-    const skip = (page - 1) * limit;
+    // ✅ 优化: 限制单次查询最大数量
+    const safeLimit = Math.min(limit || 20, 100);
+    const skip = (page - 1) * safeLimit;
+    const includePerms = options?.includePermissions ?? false;
 
+    // ✅ 优化: 构建缓存键
+    const cacheKey = `role:list:page${page}:limit${safeLimit}:tenant${tenantId || 'all'}:perms${includePerms}`;
+
+    // ✅ 优化: 尝试从缓存获取
+    if (this.cacheService) {
+      try {
+        const cached = await this.cacheService.get<{
+          data: Role[];
+          total: number;
+          page: number;
+          limit: number;
+        }>(cacheKey, { layer: CacheLayer.L2_ONLY });
+
+        if (cached) {
+          this.logger.debug(`角色列表缓存命中 - 页码: ${page}`);
+          return cached;
+        }
+      } catch (error) {
+        this.logger.warn(`获取角色列表缓存失败: ${error.message}`);
+      }
+    }
+
+    // 查询数据库
     const where: any = {};
     if (tenantId) {
       where.tenantId = tenantId;
     }
 
+    // ✅ 优化: 按需加载 permissions 关系
+    const relations = includePerms ? ['permissions'] : [];
+
     const [data, total] = await this.rolesRepository.findAndCount({
       where,
       skip,
-      take: limit,
-      relations: ['permissions'],
+      take: safeLimit,
+      relations,
       order: { createdAt: 'DESC' },
     });
 
-    return { data, total, page, limit };
+    const result = { data, total, page, limit: safeLimit };
+
+    // ✅ 优化: 写入缓存 (30秒 TTL)
+    if (this.cacheService) {
+      try {
+        await this.cacheService.set(cacheKey, result, { ttl: 30, layer: CacheLayer.L2_ONLY });
+        this.logger.debug(`角色列表已缓存 - TTL: 30s`);
+      } catch (error) {
+        this.logger.warn(`写入角色列表缓存失败: ${error.message}`);
+      }
+    }
+
+    return result;
   }
 
   async findOne(id: string): Promise<Role> {
@@ -169,6 +219,9 @@ export class RolesService {
       await this.cacheService.del(`role:${id}`);
     }
 
+    // ✅ 优化: 清除角色列表缓存
+    await this.clearRoleListCache();
+
     // 清除该角色相关的所有用户权限缓存
     await this.permissionCacheService.invalidateCacheByRole(id);
 
@@ -197,6 +250,9 @@ export class RolesService {
 
     // 清除该角色相关的所有用户权限缓存
     await this.permissionCacheService.invalidateCacheByRole(id);
+
+    // ✅ 优化: 清除角色列表缓存
+    await this.clearRoleListCache();
 
     await this.rolesRepository.remove(role);
   }
@@ -244,5 +300,28 @@ export class RolesService {
     await this.permissionCacheService.invalidateCacheByRole(roleId);
 
     return await this.rolesRepository.save(role);
+  }
+
+  /**
+   * 清除角色列表缓存
+   * ✅ 优化: 数据变更时自动清除所有相关缓存
+   */
+  private async clearRoleListCache(): Promise<void> {
+    if (!this.cacheService) return;
+
+    try {
+      // 清除所有角色列表缓存 (支持不同的分页、租户、权限组合)
+      const pattern = 'role:list:*';
+
+      // 使用 CacheService 的批量删除方法
+      if (typeof (this.cacheService as any).delPattern === 'function') {
+        await (this.cacheService as any).delPattern(pattern);
+        this.logger.debug(`角色列表缓存已清除 (pattern: ${pattern})`);
+      } else {
+        this.logger.warn('CacheService 不支持 pattern 删除');
+      }
+    } catch (error) {
+      this.logger.error(`清除角色列表缓存失败: ${error.message}`, error.stack);
+    }
   }
 }

@@ -56,7 +56,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
     port: +configService.get('DB_PORT', 5432),
     username: configService.get('DB_USERNAME', 'postgres'),
     password: configService.get('DB_PASSWORD', 'postgres'),
-    database: configService.get('DB_DATABASE', 'cloudphone_user'),
+    database: 'cloudphone_user',  // ✅ 强制使用 cloudphone_user 数据库
 
     // 实体配置
     entities: [`${__dirname}/../../**/*.entity{.ts,.js}`],

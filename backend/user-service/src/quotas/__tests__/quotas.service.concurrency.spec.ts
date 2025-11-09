@@ -4,6 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 import { DataSource, Repository, QueryRunner } from 'typeorm';
 import { QuotasService, DeductQuotaRequest, RestoreQuotaRequest } from '../quotas.service';
 import { Quota, QuotaStatus, QuotaLimits, QuotaUsage } from '../../entities/quota.entity';
+import { DistributedLockService } from '@cloudphone/shared';
 
 describe('QuotasService - Concurrency Tests', () => {
   let service: QuotasService;
@@ -70,6 +71,15 @@ describe('QuotasService - Concurrency Tests', () => {
           provide: DataSource,
           useValue: {
             createQueryRunner: jest.fn(),
+          },
+        },
+        {
+          provide: DistributedLockService,
+          useValue: {
+            acquireLock: jest.fn().mockResolvedValue(true),
+            releaseLock: jest.fn().mockResolvedValue(true),
+            extendLock: jest.fn().mockResolvedValue(true),
+            isLocked: jest.fn().mockResolvedValue(false),
           },
         },
       ],

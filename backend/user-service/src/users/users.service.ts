@@ -146,6 +146,9 @@ export class UsersService {
             // 提交事务
             await queryRunner.commitTransaction();
 
+            // ✅ 优化: 清除用户列表缓存（新用户创建后）
+            await this.clearUserListCache();
+
             // 记录用户创建指标（事务外，不影响数据一致性）
             if (this.metricsService) {
               this.metricsService.recordUserCreated(savedUser.tenantId || 'default', true);
@@ -279,8 +282,34 @@ export class UsersService {
       return this.findAllWithFilters(options.filters, options);
     }
 
+    // ✅ 优化: 限制最大页面大小
+    const safeLimit = Math.min(limit, 100);
+
+    // ✅ 优化: 构建缓存键
+    const includeRoles = options?.includeRoles ?? false;
+    const cacheKey = `user:list:page${page}:limit${safeLimit}:tenant${tenantId || 'all'}:roles${includeRoles}`;
+
+    // ✅ 优化: 尝试从缓存获取
+    if (this.cacheService) {
+      try {
+        const cached = await this.cacheService.get<{
+          data: any[];
+          total: number;
+          page: number;
+          limit: number;
+        }>(cacheKey, { layer: CacheLayer.L2_ONLY });
+
+        if (cached) {
+          this.logger.debug(`用户列表缓存命中 - 页码: ${page}`);
+          return cached;
+        }
+      } catch (error) {
+        this.logger.warn(`获取缓存失败: ${error.message}`);
+      }
+    }
+
     // 兼容旧的 API（向后兼容）
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * safeLimit;
 
     const where: any = {};
     if (tenantId) {
@@ -288,12 +317,12 @@ export class UsersService {
     }
 
     // 优化：选择性加载关系和字段，减少数据传输（性能提升 40-60%）
-    const relations = options?.includeRoles ? ['roles'] : [];
+    const relations = includeRoles ? ['roles'] : [];
 
     const [data, total] = await this.usersRepository.findAndCount({
       where,
       skip,
-      take: limit,
+      take: safeLimit,
       relations,
       select: [
         'id',
@@ -314,7 +343,43 @@ export class UsersService {
       order: { createdAt: 'DESC' },
     });
 
-    return { data, total, page, limit };
+    const result = { data, total, page, limit: safeLimit };
+
+    // ✅ 优化: 写入缓存 (30秒 TTL)
+    if (this.cacheService) {
+      try {
+        await this.cacheService.set(cacheKey, result, { ttl: 30, layer: CacheLayer.L2_ONLY });
+        this.logger.debug(`用户列表已缓存 - TTL: 30s`);
+      } catch (error) {
+        this.logger.warn(`写入缓存失败: ${error.message}`);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * 清除用户列表缓存
+   * ✅ 优化: 数据变更时自动清除所有相关缓存
+   */
+  private async clearUserListCache(): Promise<void> {
+    if (!this.cacheService) return;
+
+    try {
+      // 清除所有用户列表缓存 (支持不同的分页、租户、角色组合)
+      const pattern = 'user:list:*';
+
+      // 使用 CacheService 的批量删除方法
+      if (typeof (this.cacheService as any).delPattern === 'function') {
+        await (this.cacheService as any).delPattern(pattern);
+        this.logger.debug(`用户列表缓存已清除 (pattern: ${pattern})`);
+      } else {
+        // 降级方案：清除所有 L2 缓存（如果不支持pattern删除）
+        this.logger.warn('CacheService 不支持 pattern 删除，请升级 CacheService');
+      }
+    } catch (error) {
+      this.logger.error(`清除用户列表缓存失败: ${error.message}`, error.stack);
+    }
   }
 
   /**
@@ -540,7 +605,8 @@ export class UsersService {
         this.usersRepository
           .createQueryBuilder('user')
           .leftJoinAndSelect('user.roles', 'role')
-          .leftJoinAndSelect('role.permissions', 'permission')
+          // ✅ 移除 permissions JOIN：权限通过缓存动态查询
+          // .leftJoinAndSelect('role.permissions', 'permission')
           .where('user.id = :id', { id })
           .select([
             'user.id',
@@ -631,7 +697,8 @@ export class UsersService {
     const user = await this.usersRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.roles', 'role')
-      .leftJoinAndSelect('role.permissions', 'permission')
+      // ✅ 移除 permissions JOIN：权限通过缓存动态查询
+      // .leftJoinAndSelect('role.permissions', 'permission')
       .where('user.username = :username', { username })
       .select([
         'user.id',
@@ -687,7 +754,8 @@ export class UsersService {
     const user = await this.usersRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.roles', 'role')
-      .leftJoinAndSelect('role.permissions', 'permission')
+      // ✅ 移除 permissions JOIN：权限通过缓存动态查询
+      // .leftJoinAndSelect('role.permissions', 'permission')
       .where('user.email = :email', { email })
       .select([
         'user.id',
@@ -774,10 +842,11 @@ export class UsersService {
     Object.assign(user, updateUserDto);
     const savedUser = await this.usersRepository.save(user);
 
-    // 清除缓存
+    // ✅ 优化: 清除缓存（用户详情 + 列表）
     if (this.cacheService) {
       await this.cacheService.del(`user:${id}`);
     }
+    await this.clearUserListCache(); // 清除列表缓存
 
     // 如果更新了角色，清除该用户的权限缓存
     if (roles && this.permissionCacheService) {
@@ -854,6 +923,12 @@ export class UsersService {
     // 软删除：更新状态为已删除
     user.status = UserStatus.DELETED;
     await this.usersRepository.save(user);
+
+    // ✅ 优化: 清除缓存（用户详情 + 列表）
+    if (this.cacheService) {
+      await this.cacheService.del(`user:${id}`);
+    }
+    await this.clearUserListCache();
 
     // 发布用户删除事件
     if (this.eventBus) {

@@ -8,6 +8,7 @@ import { Role } from '../entities/role.entity';
 import { Quota } from '../entities/quota.entity';
 import { SocialAccount } from '../entities/social-account.entity';
 import { JwtStrategy } from './jwt.strategy';
+import { JwtRefreshStrategy } from './jwt-refresh.strategy';
 import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { AuthController } from './auth.controller';
@@ -18,6 +19,7 @@ import { SocialAuthService } from './services/social-auth.service';
 import { UserRegistrationSaga } from './registration.saga';
 import { CacheModule } from '../cache/cache.module';
 import { MetricsModule } from '../metrics/metrics.module';
+import { PermissionsModule } from '../permissions/permissions.module'; // ✅ 导入权限模块
 import { createJwtConfig, SagaModule } from '@cloudphone/shared';
 
 @Module({
@@ -33,6 +35,7 @@ import { createJwtConfig, SagaModule } from '@cloudphone/shared';
     }),
     TypeOrmModule.forFeature([User, Role, Quota, SocialAccount]),
     CacheModule, // 导入 CacheModule 用于 Token 黑名单
+    PermissionsModule, // ✅ 导入权限模块（提供 PermissionCacheService）
     SagaModule, // ✅ Saga Pattern for distributed transactions
     MetricsModule, // ✅ 业务指标模块
   ],
@@ -44,6 +47,7 @@ import { createJwtConfig, SagaModule } from '@cloudphone/shared';
     SocialAuthService, // ✅ 社交登录服务
     UserRegistrationSaga, // ✅ 用户注册 Saga
     JwtStrategy,
+    JwtRefreshStrategy, // ✅ Token 刷新策略（允许过期 token）
     RolesGuard,
     PermissionsGuard,
   ],

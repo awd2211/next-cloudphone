@@ -390,7 +390,7 @@ describe('PermissionCacheService', () => {
       // Assert
       expect(userRepository.find).toHaveBeenCalledWith({
         where: { status: 'active' },
-        select: ['id'],
+        select: ['id', 'lastLoginAt'],
         order: { lastLoginAt: 'DESC' },
         take: 10,
       });

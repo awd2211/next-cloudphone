@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsString, IsNotEmpty, Matches, MaxLength, MinLength, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
@@ -21,19 +21,20 @@ export class LoginDto {
   @MaxLength(100, { message: '密码最多 100 个字符' })
   password: string;
 
-  @ApiProperty({ description: '验证码', example: 'ab12' })
+  @ApiProperty({ description: '验证码', example: 'ab12', required: false })
+  @IsOptional()
   @IsString({ message: '验证码必须是字符串' })
-  @IsNotEmpty({ message: '验证码不能为空' })
   @MaxLength(10, { message: '验证码最多 10 个字符' })
   @Transform(({ value }) => value?.toString().trim())
-  captcha: string;
+  captcha?: string;
 
   @ApiProperty({
     description: '验证码 ID',
     example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
   })
+  @IsOptional()
   @IsString({ message: '验证码ID必须是字符串' })
-  @IsNotEmpty({ message: '验证码ID不能为空' })
   @Matches(/^[a-f0-9-]{36}$/, { message: '验证码ID格式无效' })
-  captchaId: string;
+  captchaId?: string;
 }

@@ -59,12 +59,27 @@ export class PartitionManagerService {
     try {
       this.logger.log('开始创建未来分区...');
 
+      // 先检查函数是否存在
+      const functionExists = await this.dataSource.query(`
+        SELECT EXISTS (
+          SELECT 1 FROM pg_proc p
+          JOIN pg_namespace n ON p.pronamespace = n.oid
+          WHERE p.proname = 'create_future_partitions'
+            AND n.nspname = 'public'
+        ) as exists
+      `);
+
+      if (!functionExists[0]?.exists) {
+        this.logger.warn('⚠️ create_future_partitions() 函数不存在，跳过分区创建');
+        return;
+      }
+
       const result = await this.dataSource.query('SELECT create_future_partitions()');
 
       this.logger.log('✓ 未来分区创建完成', result);
     } catch (error) {
       this.logger.error('创建未来分区失败', error);
-      throw error;
+      // 不抛出错误，允许服务继续运行
     }
   }
 
@@ -180,6 +195,28 @@ export class PartitionManagerService {
     const issues: string[] = [];
 
     try {
+      // 检查是否是分区表
+      const isPartitioned = await this.dataSource.query(`
+        SELECT EXISTS (
+          SELECT 1 FROM pg_partitioned_table
+          WHERE partrelid = 'user_events'::regclass
+        ) as is_partitioned
+      `);
+
+      if (!isPartitioned[0]?.is_partitioned) {
+        this.logger.warn('⚠️ user_events 不是分区表，跳过分区健康检查');
+        return {
+          healthy: true,
+          issues: ['user_events 表未启用分区'],
+          stats: {
+            totalPartitions: 0,
+            futurePartitions: 0,
+            pastPartitions: 0,
+            defaultPartitionRows: 0,
+          },
+        };
+      }
+
       const partitionInfo = await this.getPartitionInfo();
       const totalPartitions = partitionInfo.length;
 

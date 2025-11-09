@@ -3,12 +3,14 @@ import { DatabaseMonitorService } from './database-monitor.service';
 import { DataSource } from 'typeorm';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { PinoLogger } from 'nestjs-pino';
+import { DistributedLockService } from '@cloudphone/shared';
 
 describe('DatabaseMonitorService', () => {
   let service: DatabaseMonitorService;
   let mockDataSource: any;
   let mockPinoLogger: any;
   let mockPool: any;
+  let mockLockService: any;
 
   beforeEach(async () => {
     // Mock pool with event emitter
@@ -39,6 +41,14 @@ describe('DatabaseMonitorService', () => {
       debug: jest.fn(),
     };
 
+    // Mock DistributedLockService
+    mockLockService = {
+      acquireLock: jest.fn().mockResolvedValue(true),
+      releaseLock: jest.fn().mockResolvedValue(true),
+      extendLock: jest.fn().mockResolvedValue(true),
+      isLocked: jest.fn().mockResolvedValue(false),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DatabaseMonitorService,
@@ -49,6 +59,10 @@ describe('DatabaseMonitorService', () => {
         {
           provide: PinoLogger,
           useValue: mockPinoLogger,
+        },
+        {
+          provide: DistributedLockService,
+          useValue: mockLockService,
         },
       ],
     }).compile();

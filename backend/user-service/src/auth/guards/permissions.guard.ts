@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
   PERMISSIONS_KEY,
@@ -6,18 +6,39 @@ import {
   PermissionOperator,
 } from '../decorators/permissions.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { MenuPermissionService } from '../../permissions/menu-permission.service';
+
+// 导入 SKIP_PERMISSION_KEY
+const SKIP_PERMISSION_KEY = 'skipPermission';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  private readonly logger = new Logger(PermissionsGuard.name);
 
-  canActivate(context: ExecutionContext): boolean {
+  constructor(
+    private reflector: Reflector,
+    @Inject(forwardRef(() => MenuPermissionService))
+    private menuPermissionService: MenuPermissionService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
     if (isPublic) {
+      return true;
+    }
+
+    // 检查是否跳过权限验证
+    const skipPermission = this.reflector.getAllAndOverride<boolean>(SKIP_PERMISSION_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (skipPermission) {
+      this.logger.debug('端点使用 @SkipPermission 装饰器,跳过权限检查');
       return true;
     }
 
@@ -37,10 +58,30 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('用户未认证');
     }
 
-    // 从用户的角色中提取所有权限
-    const userPermissions = this.extractPermissions(user.roles);
+    // ✅ JWT Token 优化：超级管理员拥有所有权限
+    if (user.isSuperAdmin === true) {
+      this.logger.debug(`超级管理员 ${user.username} 自动通过权限检查`);
+      return true;
+    }
+
+    // ✅ JWT Token 优化：从数据库实时查询用户权限（支持所有17个角色）
+    let userPermissions: string[] = [];
+    try {
+      userPermissions = await this.menuPermissionService.getUserPermissionNames(user.sub);
+      this.logger.debug(`用户 ${user.username} 拥有 ${userPermissions.length} 个权限`);
+    } catch (error) {
+      this.logger.error(`查询用户 ${user.username} 权限失败: ${error.message}`);
+      // 查询失败时，为了安全拒绝访问
+      throw new ForbiddenException('无法验证用户权限');
+    }
     const requiredPermissions = permissionRequirement.permissions;
     const operator = permissionRequirement.operator || PermissionOperator.AND;
+
+    // 🌟 通配符权限检查：超级管理员拥有 ['*'] 表示所有权限
+    if (userPermissions.includes('*')) {
+      this.logger.debug(`用户 ${user.username} 拥有通配符权限，通过检查`);
+      return true;
+    }
 
     // 🔧 格式标准化：支持冒号和点号两种格式
     // 数据库存储: 'device:create', 控制器可能使用: 'device.create'

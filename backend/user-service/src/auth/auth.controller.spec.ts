@@ -10,8 +10,10 @@ import request from 'supertest';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TwoFactorService } from './two-factor.service';
+import { SocialAuthService } from './services/social-auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { createMockUser } from '@cloudphone/shared/testing/mock-factories';
+import { DistributedLockService } from '@cloudphone/shared';
 
 describe('AuthController', () => {
   let app: INestApplication;
@@ -37,6 +39,14 @@ describe('AuthController', () => {
     generateQRCode: jest.fn(),
   };
 
+  const mockSocialAuthService = {
+    googleLogin: jest.fn(),
+    githubLogin: jest.fn(),
+    facebookLogin: jest.fn(),
+    validateOAuthUser: jest.fn(),
+    linkSocialAccount: jest.fn(),
+  };
+
   beforeAll(async () => {
     const mockGuard = { canActivate: jest.fn(() => true) };
 
@@ -45,6 +55,16 @@ describe('AuthController', () => {
       providers: [
         { provide: AuthService, useValue: mockAuthService },
         { provide: TwoFactorService, useValue: mockTwoFactorService },
+        { provide: SocialAuthService, useValue: mockSocialAuthService },
+        {
+          provide: DistributedLockService,
+          useValue: {
+            acquireLock: jest.fn().mockResolvedValue(true),
+            releaseLock: jest.fn().mockResolvedValue(true),
+            extendLock: jest.fn().mockResolvedValue(true),
+            isLocked: jest.fn().mockResolvedValue(false),
+          },
+        },
       ],
     })
       .overrideGuard(JwtAuthGuard)

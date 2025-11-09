@@ -44,6 +44,12 @@ export class RolesGuard implements CanActivate {
 
     // 检查用户角色
     const userRoles = user.roles || [];
+
+    // ✅ superadmin 像 root 一样拥有所有权限
+    if (userRoles.includes('super_admin')) {
+      return true;
+    }
+
     const hasRole = requiredRoles.some((role) => userRoles.includes(role));
 
     if (!hasRole) {

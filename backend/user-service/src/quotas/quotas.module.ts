@@ -3,13 +3,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { QuotasService } from './quotas.service';
 import { QuotasController } from './quotas.controller';
 import { QuotasInternalController } from './quotas-internal.controller';
+import { QuotaMetricsService } from './quota-metrics.service';
 import { Quota } from '../entities/quota.entity';
 import { AuthModule } from '../auth/auth.module';
+import { EventBusModule } from '@cloudphone/shared';
+import { CacheModule } from '../cache/cache.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Quota]), AuthModule],
+  imports: [TypeOrmModule.forFeature([Quota]), AuthModule, EventBusModule, CacheModule],
   controllers: [QuotasController, QuotasInternalController], // ✅ 添加内部控制器
-  providers: [QuotasService],
-  exports: [QuotasService],
+  providers: [QuotasService, QuotaMetricsService], // ✅ 添加指标服务
+  exports: [QuotasService, QuotaMetricsService],
 })
 export class QuotasModule {}

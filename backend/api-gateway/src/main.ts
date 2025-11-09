@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { ConsulService, setupMetricsEndpoint, initTracing } from '@cloudphone/shared';
@@ -87,10 +88,11 @@ async function bootstrap() {
       'Authorization',
       'X-Requested-With',
       'X-Request-ID',
+      'x-request-id',
       'Accept',
       'Origin',
     ],
-    exposedHeaders: ['X-Request-ID'],
+    exposedHeaders: ['X-Request-ID', 'x-request-id'],
   });
 
   // ========== API 版本控制 ==========

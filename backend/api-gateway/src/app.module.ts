@@ -9,7 +9,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProxyModule } from './proxy/proxy.module';
-import { SearchModule } from './search/search.module';
+// import { SearchModule } from './search/search.module'; // Temporarily disabled
 import { ConsulModule, createLoggerConfig, RequestIdMiddleware } from '@cloudphone/shared';
 import { HealthController } from './health.controller';
 import { MetricsModule } from './metrics/metrics.module';
@@ -58,7 +58,7 @@ import { validate } from './common/config/env.validation';
     // 业务模块
     AuthModule,
     ProxyModule,
-    SearchModule,
+    // SearchModule, // Temporarily disabled
 
     // Consul 服务发现
     ConsulModule,

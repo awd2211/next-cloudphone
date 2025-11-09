@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { Quota, QuotaStatus, QuotaType, QuotaLimits, QuotaUsage } from '../entities/quota.entity';
 import { CronExpression } from '@nestjs/schedule';
-import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
+import { ClusterSafeCron, DistributedLockService, Cacheable, CacheEvict } from '@cloudphone/shared';
+import { CreateQuotaDto, UpdateQuotaDto } from './dto';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { EventBusService } from '@cloudphone/shared';
 
 export interface CheckQuotaRequest {
   userId: string;
@@ -43,35 +47,23 @@ export interface RestoreQuotaRequest {
   concurrent?: boolean;
 }
 
-export interface CreateQuotaDto {
-  userId: string;
-  planId?: string;
-  planName?: string;
-  limits: QuotaLimits;
-  validFrom?: Date;
-  validUntil?: Date;
-  autoRenew?: boolean;
-  notes?: string;
-}
-
-export interface UpdateQuotaDto {
-  limits?: Partial<QuotaLimits>;
-  status?: QuotaStatus;
-  validFrom?: Date;
-  validUntil?: Date;
-  autoRenew?: boolean;
-  notes?: string;
-}
+// CreateQuotaDto 和 UpdateQuotaDto 已移至 ./dto 目录
+// 使用 class-validator 进行验证
 
 @Injectable()
 export class QuotasService {
   private readonly logger = new Logger(QuotasService.name);
+  private readonly CACHE_TTL = 300; // 5分钟缓存
+  private readonly CACHE_PREFIX = 'quota:';
 
   constructor(
     @InjectRepository(Quota)
     private quotaRepository: Repository<Quota>,
     private dataSource: DataSource,
     private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache,
+    private readonly eventBus: EventBusService, // ✅ 事件发布
   ) {}
 
   /**
@@ -105,9 +97,19 @@ export class QuotasService {
   }
 
   /**
-   * 获取用户配额
+   * 获取用户配额 (带缓存)
    */
   async getUserQuota(userId: string): Promise<Quota> {
+    // 1. 尝试从缓存获取
+    const cacheKey = `${this.CACHE_PREFIX}user:${userId}`;
+    const cachedQuota = await this.cacheManager.get<Quota>(cacheKey);
+
+    if (cachedQuota) {
+      this.logger.debug(`配额缓存命中 - 用户: ${userId}`);
+      return cachedQuota;
+    }
+
+    // 2. 缓存未命中,从数据库查询
     const quota = await this.quotaRepository.findOne({
       where: { userId, status: QuotaStatus.ACTIVE },
       relations: ['user'],
@@ -117,14 +119,149 @@ export class QuotasService {
       throw new NotFoundException(`用户 ${userId} 未找到活跃配额`);
     }
 
-    // 检查是否过期
+    // 3. 检查是否过期
     if (quota.isExpired()) {
       quota.status = QuotaStatus.EXPIRED;
       await this.quotaRepository.save(quota);
+      // 清除缓存
+      await this.cacheManager.del(cacheKey);
       throw new BadRequestException('配额已过期');
     }
 
+    // 4. 写入缓存
+    await this.cacheManager.set(cacheKey, quota, this.CACHE_TTL * 1000);
+    this.logger.debug(`配额已缓存 - 用户: ${userId}, TTL: ${this.CACHE_TTL}s`);
+
     return quota;
+  }
+
+  /**
+   * 清除用户配额缓存
+   */
+  private async clearQuotaCache(userId: string): Promise<void> {
+    const cacheKey = `${this.CACHE_PREFIX}user:${userId}`;
+    await this.cacheManager.del(cacheKey);
+    this.logger.debug(`配额缓存已清除 - 用户: ${userId}`);
+  }
+
+  /**
+   * 清除所有配额缓存
+   * ✅ 优化: 清除列表缓存和告警缓存
+   */
+  private async clearAllQuotaCache(): Promise<void> {
+    try {
+      // 注意: 这个方法依赖于 Redis 的 KEYS 命令
+      // 在生产环境中,考虑使用 Redis SCAN 命令以避免阻塞
+      const pattern = `${this.CACHE_PREFIX}*`;
+
+      // 如果 cache-manager 支持 reset 或 keys 方法
+      if (typeof (this.cacheManager as any).store?.keys === 'function') {
+        const keys = await (this.cacheManager as any).store.keys(pattern);
+        for (const key of keys) {
+          await this.cacheManager.del(key);
+        }
+        this.logger.log(`已清除 ${keys.length} 个配额缓存`);
+      } else {
+        // 如果不支持,使用 reset 清除所有缓存
+        await this.cacheManager.reset();
+        this.logger.log('已清除所有缓存');
+      }
+    } catch (error) {
+      this.logger.error('清除配额缓存失败', error.stack);
+    }
+  }
+
+  /**
+   * 清除列表和告警缓存（配额变更时调用）
+   */
+  private async clearListAndAlertsCache(): Promise<void> {
+    try {
+      const pattern = `${this.CACHE_PREFIX}list:*`;
+      const alertPattern = `${this.CACHE_PREFIX}alerts:*`;
+
+      if (typeof (this.cacheManager as any).store?.keys === 'function') {
+        // 清除列表缓存
+        const listKeys = await (this.cacheManager as any).store.keys(pattern);
+        const alertKeys = await (this.cacheManager as any).store.keys(alertPattern);
+        const allKeys = [...listKeys, ...alertKeys];
+
+        for (const key of allKeys) {
+          await this.cacheManager.del(key);
+        }
+        this.logger.debug(`已清除 ${allKeys.length} 个配额列表/告警缓存`);
+      }
+    } catch (error) {
+      this.logger.error('清除列表/告警缓存失败', error.stack);
+    }
+  }
+
+  /**
+   * 获取所有配额列表（管理员）
+   * ✅ 优化: 添加缓存、避免不必要的 JOIN、优化分页
+   */
+  async getAllQuotas(options?: {
+    status?: QuotaStatus;
+    page?: number;
+    limit?: number;
+    includeUser?: boolean; // 是否包含用户信息
+  }): Promise<{
+    data: Quota[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = options?.page || 1;
+    const limit = Math.min(options?.limit || 20, 100); // 限制最大 100 条
+    const skip = (page - 1) * limit;
+    const includeUser = options?.includeUser ?? true;
+
+    // 构建缓存键
+    const cacheKey = `${this.CACHE_PREFIX}list:page${page}:limit${limit}:status${options?.status || 'all'}:user${includeUser}`;
+
+    // 1. 尝试从缓存获取
+    const cachedResult = await this.cacheManager.get<{
+      data: Quota[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(cacheKey);
+
+    if (cachedResult) {
+      this.logger.debug(`配额列表缓存命中 - 页码: ${page}, 状态: ${options?.status || '全部'}`);
+      return cachedResult;
+    }
+
+    // 2. 缓存未命中，从数据库查询
+    const queryBuilder = this.quotaRepository
+      .createQueryBuilder('quota')
+      .orderBy('quota.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    // 如果需要用户信息，才进行 JOIN
+    if (includeUser) {
+      queryBuilder.leftJoinAndSelect('quota.user', 'user');
+    }
+
+    // 如果指定了状态，添加过滤条件
+    if (options?.status) {
+      queryBuilder.where('quota.status = :status', { status: options.status });
+    }
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    const result = {
+      data,
+      total,
+      page,
+      limit,
+    };
+
+    // 3. 写入缓存 (30秒)
+    await this.cacheManager.set(cacheKey, result, 30000);
+    this.logger.debug(`配额列表已缓存 - 页码: ${page}, TTL: 30s`);
+
+    return result;
   }
 
   /**
@@ -308,18 +445,44 @@ export class QuotasService {
       quota.usage.lastUpdatedAt = new Date();
 
       // 检查是否超额
-      if (
+      const wasExceeded = quota.status === QuotaStatus.EXCEEDED;
+      const isNowExceeded =
         quota.usage.currentDevices > quota.limits.maxDevices ||
         quota.usage.usedCpuCores > quota.limits.totalCpuCores ||
         quota.usage.usedMemoryGB > quota.limits.totalMemoryGB ||
-        quota.usage.usedStorageGB > quota.limits.totalStorageGB
-      ) {
+        quota.usage.usedStorageGB > quota.limits.totalStorageGB;
+
+      if (isNowExceeded) {
         quota.status = QuotaStatus.EXCEEDED;
       }
 
       const updatedQuota = await queryRunner.manager.save(Quota, quota);
 
       await queryRunner.commitTransaction();
+
+      // ✅ 清除缓存并发布事件
+      await this.clearQuotaCache(request.userId);
+      await this.clearListAndAlertsCache(); // 清除列表和告警缓存
+      await this.publishQuotaChangeEvent(request.userId, 'deducted', updatedQuota);
+
+      // ✅ 如果刚刚超额，发布超额事件
+      if (isNowExceeded && !wasExceeded) {
+        await this.eventBus.publish('cloudphone.events', 'quota.exceeded', {
+          userId: request.userId,
+          quotaId: quota.id,
+          type: 'exceeded',
+          limits: quota.limits,
+          usage: quota.usage,
+          usagePercent: Math.max(
+            (quota.usage.currentDevices / quota.limits.maxDevices) * 100,
+            (quota.usage.usedCpuCores / quota.limits.totalCpuCores) * 100,
+            (quota.usage.usedMemoryGB / quota.limits.totalMemoryGB) * 100,
+            (quota.usage.usedStorageGB / quota.limits.totalStorageGB) * 100
+          ),
+          timestamp: new Date().toISOString(),
+        });
+        this.logger.error(`配额超额 - 用户: ${request.userId}, 配额: ${quota.id}`);
+      }
 
       this.logger.log(
         `配额已扣减 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}, CPU: ${request.cpuCores || 0}`
@@ -405,6 +568,11 @@ export class QuotasService {
 
       await queryRunner.commitTransaction();
 
+      // ✅ 清除缓存并发布事件
+      await this.clearQuotaCache(request.userId);
+      await this.clearListAndAlertsCache(); // 清除列表和告警缓存
+      await this.publishQuotaChangeEvent(request.userId, 'restored', updatedQuota);
+
       this.logger.log(`配额已恢复 - 用户: ${request.userId}, 设备: ${request.deviceCount || 0}`);
 
       return updatedQuota;
@@ -457,9 +625,78 @@ export class QuotasService {
     }
 
     const updatedQuota = await this.quotaRepository.save(quota);
+
+    // ✅ 清除缓存
+    await this.clearQuotaCache(quota.userId);
+    await this.clearListAndAlertsCache();
+
+    // ✅ 发布配额更新事件
+    await this.eventBus.publish('cloudphone.events', 'quota.updated', {
+      userId: quota.userId,
+      quotaId: quota.id,
+      type: 'updated',
+      limits: quota.limits,
+      usage: quota.usage,
+      status: quota.status,
+      timestamp: new Date().toISOString(),
+    });
+
     this.logger.log(`配额已更新 - ID: ${quotaId}`);
 
     return updatedQuota;
+  }
+
+  /**
+   * 续费配额
+   *
+   * 延长配额有效期，常用于套餐续费场景
+   */
+  async renewQuota(userId: string, extensionDays: number = 30): Promise<Quota> {
+    const quota = await this.getUserQuota(userId);
+
+    if (!quota) {
+      throw new NotFoundException(`用户 ${userId} 未找到活跃配额`);
+    }
+
+    // 计算新的有效期
+    const now = new Date();
+    let newValidUntil: Date;
+
+    if (quota.validUntil && quota.validUntil > now) {
+      // 如果还未过期，从当前有效期开始延长
+      newValidUntil = new Date(quota.validUntil.getTime() + extensionDays * 24 * 60 * 60 * 1000);
+    } else {
+      // 如果已过期，从现在开始计算
+      newValidUntil = new Date(now.getTime() + extensionDays * 24 * 60 * 60 * 1000);
+    }
+
+    quota.validUntil = newValidUntil;
+
+    // 如果之前是过期状态，恢复为活跃
+    if (quota.status === QuotaStatus.EXPIRED) {
+      quota.status = QuotaStatus.ACTIVE;
+    }
+
+    const renewedQuota = await this.quotaRepository.save(quota);
+
+    // ✅ 清除缓存
+    await this.clearQuotaCache(userId);
+    await this.clearListAndAlertsCache();
+
+    // ✅ 发布配额续费事件
+    await this.eventBus.publish('cloudphone.events', 'quota.renewed', {
+      userId,
+      quotaId: quota.id,
+      type: 'renewed',
+      limits: quota.limits,
+      validUntil: newValidUntil.toISOString(),
+      extensionDays,
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.log(`配额已续费 - 用户: ${userId}, 延长: ${extensionDays} 天, 新有效期: ${newValidUntil.toISOString()}`);
+
+    return renewedQuota;
   }
 
   /**
@@ -516,39 +753,62 @@ export class QuotasService {
 
   /**
    * 每月重置流量和时长配额（每月1号凌晨）
+   * ✅ 优化: 使用批量更新 + 分布式锁
    */
   @ClusterSafeCron('0 0 1 * *')
   async resetMonthlyQuotas(): Promise<void> {
-    this.logger.log('开始重置月度配额...');
-    const quotas = await this.quotaRepository.find({
-      where: { status: QuotaStatus.ACTIVE },
-    });
+    await this.lockService.withLock(
+      'quota:reset:monthly',
+      300000, // 5分钟超时
+      async () => {
+        this.logger.log('开始重置月度配额...');
 
-    for (const quota of quotas) {
-      quota.usage.monthlyTrafficUsedGB = 0;
-      quota.usage.monthlyUsageHours = 0;
-      await this.quotaRepository.save(quota);
-    }
+        // ✅ 使用批量更新替代逐个保存
+        const result = await this.quotaRepository
+          .createQueryBuilder()
+          .update(Quota)
+          .set({
+            usage: () => `jsonb_set(jsonb_set(usage, '{monthlyTrafficUsedGB}', '0'), '{monthlyUsageHours}', '0')`,
+          })
+          .where('status = :status', { status: QuotaStatus.ACTIVE })
+          .execute();
 
-    this.logger.log(`已重置 ${quotas.length} 个配额的月度使用量`);
+        this.logger.log(`已重置 ${result.affected} 个配额的月度使用量`);
+
+        // ✅ 清除所有配额缓存
+        await this.clearAllQuotaCache();
+      },
+    );
   }
 
   /**
    * 每日重置日使用时长（每天凌晨）
+   * ✅ 优化: 使用批量更新 + 分布式锁
    */
   @ClusterSafeCron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async resetDailyQuotas(): Promise<void> {
-    this.logger.log('开始重置每日配额...');
-    const quotas = await this.quotaRepository.find({
-      where: { status: QuotaStatus.ACTIVE },
-    });
+    await this.lockService.withLock(
+      'quota:reset:daily',
+      300000, // 5分钟超时
+      async () => {
+        this.logger.log('开始重置每日配额...');
 
-    for (const quota of quotas) {
-      quota.usage.todayUsageHours = 0;
-      await this.quotaRepository.save(quota);
-    }
+        // ✅ 使用批量更新
+        const result = await this.quotaRepository
+          .createQueryBuilder()
+          .update(Quota)
+          .set({
+            usage: () => `jsonb_set(usage, '{todayUsageHours}', '0')`,
+          })
+          .where('status = :status', { status: QuotaStatus.ACTIVE })
+          .execute();
 
-    this.logger.log(`已重置 ${quotas.length} 个配额的每日使用量`);
+        this.logger.log(`已重置 ${result.affected} 个配额的每日使用量`);
+
+        // ✅ 清除所有配额缓存
+        await this.clearAllQuotaCache();
+      },
+    );
   }
 
   /**
@@ -611,7 +871,33 @@ export class QuotasService {
   }
 
   /**
+   * 发布配额变更事件
+   */
+  private async publishQuotaChangeEvent(
+    userId: string,
+    action: 'deducted' | 'restored' | 'exceeded' | 'expired',
+    quota: Quota
+  ): Promise<void> {
+    try {
+      await this.eventBus.publish('cloudphone.events', `quota.${action}`, {
+        userId,
+        quotaId: quota.id,
+        action,
+        usage: quota.usage,
+        limits: quota.limits,
+        status: quota.status,
+        percentage: quota.getUsagePercentage(),
+        timestamp: new Date().toISOString(),
+      });
+      this.logger.debug(`配额事件已发布 - 用户: ${userId}, 动作: ${action}`);
+    } catch (error) {
+      this.logger.error(`发布配额事件失败 - 用户: ${userId}`, error.stack);
+    }
+  }
+
+  /**
    * 获取配额告警列表
+   * ✅ 优化: 添加缓存，减少重复计算
    */
   async getQuotaAlerts(threshold: number = 80): Promise<{
     total: number;
@@ -624,6 +910,28 @@ export class QuotasService {
       severity: 'warning' | 'critical';
     }>;
   }> {
+    // 构建缓存键
+    const cacheKey = `${this.CACHE_PREFIX}alerts:threshold${threshold}`;
+
+    // 1. 尝试从缓存获取
+    const cachedAlerts = await this.cacheManager.get<{
+      total: number;
+      alerts: Array<{
+        userId: string;
+        quotaId: string;
+        planName: string;
+        percentage: ReturnType<Quota['getUsagePercentage']>;
+        warnings: string[];
+        severity: 'warning' | 'critical';
+      }>;
+    }>(cacheKey);
+
+    if (cachedAlerts) {
+      this.logger.debug(`告警列表缓存命中 - 阈值: ${threshold}%`);
+      return cachedAlerts;
+    }
+
+    // 2. 缓存未命中，从数据库查询
     const quotas = await this.quotaRepository.find({
       where: { status: QuotaStatus.ACTIVE },
       relations: ['user'],
@@ -700,9 +1008,15 @@ export class QuotasService {
       return maxB - maxA;
     });
 
-    return {
+    const result = {
       total: alerts.length,
       alerts,
     };
+
+    // 3. 写入缓存 (60秒)
+    await this.cacheManager.set(cacheKey, result, 60000);
+    this.logger.debug(`告警列表已缓存 - 阈值: ${threshold}%, TTL: 60s`);
+
+    return result;
   }
 }

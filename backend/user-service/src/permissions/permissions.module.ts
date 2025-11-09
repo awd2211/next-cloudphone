@@ -32,6 +32,9 @@ import { PermissionCacheService } from './permission-cache.service';
 import { MenuPermissionService } from './menu-permission.service';
 import { AlertService } from '../common/services/alert/alert.service';
 
+// Gateway
+import { PermissionGateway } from './permission.gateway';
+
 /**
  * 权限模块
  * 提供企业级 RBAC 权限管理功能
@@ -75,6 +78,7 @@ import { AlertService } from '../common/services/alert/alert.service';
     PermissionCacheService,
     MenuPermissionService,
     AlertService,
+    PermissionGateway, // ✅ WebSocket Gateway for real-time permission updates
   ],
   exports: [
     PermissionsService,
@@ -84,6 +88,7 @@ import { AlertService } from '../common/services/alert/alert.service';
     TenantIsolationService,
     PermissionCacheService,
     MenuPermissionService,
+    PermissionGateway, // ✅ Export gateway for use in other modules
   ],
 })
 export class PermissionsModule {}
