@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { AuthGuard } from '@nestjs/passport';
 import { FailoverService, FailoverConfig } from './failover.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 
 @ApiTags('failover')
 @ApiBearerAuth()

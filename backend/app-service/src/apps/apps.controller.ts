@@ -51,7 +51,7 @@ import {
   QuickListResponseDto,
 } from './dto/quick-list.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { CursorPaginationDto } from '@cloudphone/shared';
 
 // 确保上传目录存在
@@ -135,26 +135,34 @@ export class AppsController {
   @RequirePermission('app.read')
   @ApiOperation({ summary: '获取应用列表', description: '分页获取应用列表' })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量（兼容参数）', example: 10 })
   @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
   @ApiQuery({ name: 'category', required: false, description: '应用分类' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async findAll(
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('pageSize') pageSize?: string,
+    @Query('limit') limit?: string,
     @Query('tenantId') tenantId?: string,
     @Query('category') category?: string
   ) {
+    // 支持 pageSize 或 limit 参数
+    const itemsPerPage = pageSize || limit || '10';
     const result = await this.appsService.findAll(
       parseInt(page),
-      parseInt(limit),
+      parseInt(itemsPerPage),
       tenantId,
       category
     );
+
+    // 返回标准格式：将 limit 转换为 pageSize
+    const { limit: _, ...rest } = result;
     return {
       success: true,
-      ...result,
+      ...rest,
+      pageSize: result.limit,
     };
   }
 

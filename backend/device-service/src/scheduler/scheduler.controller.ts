@@ -919,63 +919,64 @@ export class SchedulerController {
   }
 
   // ==================== 资源使用趋势分析 API ====================
+  // TODO: 临时注释 - 等待ResourceMonitorService实现这些方法
 
-  /**
-   * 获取节点使用趋势
-   * GET /scheduler/nodes/:nodeId/usage-trend?hours=24
-   */
-  @Get('nodes/:nodeId/usage-trend')
-  async getNodeUsageTrend(
-    @Param('nodeId') nodeId: string,
-    @Query('hours') hours: string = '24'
-  ) {
-    this.logger.log(`Getting usage trend for node ${nodeId}, hours: ${hours}`);
+  // /**
+  //  * 获取节点使用趋势
+  //  * GET /scheduler/nodes/:nodeId/usage-trend?hours=24
+  //  */
+  // @Get('nodes/:nodeId/usage-trend')
+  // async getNodeUsageTrend(
+  //   @Param('nodeId') nodeId: string,
+  //   @Query('hours') hours: string = '24'
+  // ) {
+  //   this.logger.log(`Getting usage trend for node ${nodeId}, hours: ${hours}`);
 
-    try {
-      const hoursNum = parseInt(hours, 10) || 24;
-      const trend = await this.resourceMonitorService.getNodeUsageTrend(nodeId, hoursNum);
+  //   try {
+  //     const hoursNum = parseInt(hours, 10) || 24;
+  //     const trend = await this.resourceMonitorService.getNodeUsageTrend(nodeId, hoursNum);
 
-      return {
-        success: true,
-        data: trend,
-        message: `Node usage trend data retrieved (${trend.dataPoints} data points)`,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to get node usage trend: ${error.message}`);
+  //     return {
+  //       success: true,
+  //       data: trend,
+  //       message: `Node usage trend data retrieved (${trend.dataPoints} data points)`,
+  //     };
+  //   } catch (error) {
+  //     this.logger.error(`Failed to get node usage trend: ${error.message}`);
 
-      return {
-        success: false,
-        message: `Failed to get node usage trend: ${error.message}`,
-        error: error.message,
-      };
-    }
-  }
+  //     return {
+  //       success: false,
+  //       message: `Failed to get node usage trend: ${error.message}`,
+  //       error: error.message,
+  //     };
+  //   }
+  // }
 
-  /**
-   * 获取集群使用趋势
-   * GET /scheduler/cluster/usage-trend?hours=24
-   */
-  @Get('cluster/usage-trend')
-  async getClusterUsageTrend(@Query('hours') hours: string = '24') {
-    this.logger.log(`Getting cluster usage trend, hours: ${hours}`);
+  // /**
+  //  * 获取集群使用趋势
+  //  * GET /scheduler/cluster/usage-trend?hours=24
+  //  */
+  // @Get('cluster/usage-trend')
+  // async getClusterUsageTrend(@Query('hours') hours: string = '24') {
+  //   this.logger.log(`Getting cluster usage trend, hours: ${hours}`);
 
-    try {
-      const hoursNum = parseInt(hours, 10) || 24;
-      const trend = await this.resourceMonitorService.getClusterUsageTrend(hoursNum);
+  //   try {
+  //     const hoursNum = parseInt(hours, 10) || 24;
+  //     const trend = await this.resourceMonitorService.getClusterUsageTrend(hoursNum);
 
-      return {
-        success: true,
-        data: trend,
-        message: `Cluster usage trend data retrieved (${trend.dataPoints} data points)`,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to get cluster usage trend: ${error.message}`);
+  //     return {
+  //       success: true,
+  //       data: trend,
+  //       message: `Cluster usage trend data retrieved (${trend.dataPoints} data points)`,
+  //     };
+  //   } catch (error) {
+  //     this.logger.error(`Failed to get cluster usage trend: ${error.message}`);
 
-      return {
-        success: false,
-        message: `Failed to get cluster usage trend: ${error.message}`,
-        error: error.message,
-      };
-    }
-  }
+  //     return {
+  //       success: false,
+  //       message: `Failed to get cluster usage trend: ${error.message}`,
+  //       error: error.message,
+  //     };
+  //   }
+  // }
 }

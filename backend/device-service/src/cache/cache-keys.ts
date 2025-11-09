@@ -122,6 +122,35 @@ export class CacheKeys {
   static templateFiltersMetadata(includeCount: boolean, onlyWithData: boolean): string {
     return `${this.PREFIX}:template:filters-metadata:${includeCount}:${onlyWithData}`;
   }
+
+  /**
+   * 单个设备统计数据缓存键
+   * @param deviceId 设备 ID
+   */
+  static deviceMetrics(deviceId: string): string {
+    return `${this.PREFIX}:device:metrics:${deviceId}`;
+  }
+
+  /**
+   * 模板列表缓存键（带过滤条件）
+   * @param category 模板分类（可选）
+   * @param isPublic 是否公共（可选）
+   * @param userId 用户 ID（可选）
+   */
+  static templateList(category?: string, isPublic?: boolean, userId?: string): string {
+    const categoryPart = category || 'all';
+    const publicPart = isPublic !== undefined ? isPublic.toString() : 'all';
+    const userPart = userId || 'anonymous';
+    return `${this.PREFIX}:template:list:${categoryPart}:${publicPart}:${userPart}`;
+  }
+
+  /**
+   * 获取用户相关的所有模板缓存键模式
+   * @param userId 用户 ID
+   */
+  static userTemplatePattern(userId: string): string {
+    return `${this.PREFIX}:template:*:${userId}`;
+  }
 }
 
 /**
@@ -132,7 +161,9 @@ export const CacheTTL = {
   DEVICE_LIST: 60, // 设备列表: 1 分钟
   CONTAINER_MAP: 120, // 容器映射: 2 分钟
   DEVICE_STATS: 180, // 设备统计: 3 分钟
+  DEVICE_METRICS: 30, // 设备性能指标: 30 秒（Provider API 调用，变化频繁）
   TEMPLATE: 600, // 模板: 10 分钟
+  TEMPLATE_LIST: 600, // 模板列表: 10 分钟（变化不频繁）
   SNAPSHOT: 300, // 快照: 5 分钟
   QUICK_LIST: 60, // 快速列表: 1 分钟（用于下拉框等UI组件）
   FILTER_METADATA: 300, // 筛选元数据: 5 分钟（筛选选项变化较少）

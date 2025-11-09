@@ -5,7 +5,7 @@ import { LifecycleService } from './lifecycle.service';
 import { AutoScalingService, AutoScalingConfig } from './autoscaling.service';
 import { BackupExpirationService, BackupScheduleConfig } from './backup-expiration.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { User } from '../auth/decorators/user.decorator';
 
 @ApiTags('lifecycle')

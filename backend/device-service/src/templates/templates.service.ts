@@ -50,59 +50,108 @@ export class TemplatesService {
       usageCount: 0,
     });
 
-    return await this.templateRepository.save(template);
+    const result = await this.templateRepository.save(template);
+
+    // ✅ 清除相关缓存（新建模板影响列表查询）
+    await this.cacheService.delPattern(CacheKeys.userTemplatePattern(userId));
+    await this.cacheService.del(CacheKeys.TEMPLATE_QUICK_LIST);
+
+    return result;
   }
 
   /**
-   * 查找所有模板（支持过滤）
+   * 查找所有模板（支持过滤和分页）
    */
   async findAll(
     category?: TemplateCategory,
     isPublic?: boolean,
-    userId?: string
-  ): Promise<DeviceTemplate[]> {
-    const queryBuilder = this.templateRepository.createQueryBuilder('template');
+    userId?: string,
+    search?: string,
+    limit?: number,
+    offset?: number
+  ): Promise<{ templates: DeviceTemplate[]; total: number }> {
+    // 构建缓存键（包含分页参数）
+    const cacheKey = CacheKeys.templateList(category, isPublic, userId) +
+      `:${search || 'none'}:${limit || 'all'}:${offset || '0'}`;
 
-    if (category) {
-      queryBuilder.andWhere('template.category = :category', { category });
-    }
+    // 使用缓存包装器
+    return this.cacheService.wrap(
+      cacheKey,
+      async () => {
+        const queryBuilder = this.templateRepository.createQueryBuilder('template');
 
-    if (isPublic !== undefined) {
-      queryBuilder.andWhere('template.isPublic = :isPublic', { isPublic });
-    }
+        if (category) {
+          queryBuilder.andWhere('template.category = :category', { category });
+        }
 
-    // 如果提供了 userId，返回公共模板或用户自己的模板
-    if (userId) {
-      queryBuilder.andWhere('(template.isPublic = true OR template.createdBy = :userId)', {
-        userId,
-      });
-    } else {
-      // 否则只返回公共模板
-      queryBuilder.andWhere('template.isPublic = true');
-    }
+        if (isPublic !== undefined) {
+          queryBuilder.andWhere('template.isPublic = :isPublic', { isPublic });
+        }
 
-    queryBuilder.orderBy('template.usageCount', 'DESC');
-    queryBuilder.addOrderBy('template.createdAt', 'DESC');
+        // 搜索支持（搜索名称、描述、标签）
+        if (search) {
+          queryBuilder.andWhere(
+            '(template.name ILIKE :search OR template.description ILIKE :search OR template.tags::text ILIKE :search)',
+            { search: `%${search}%` }
+          );
+        }
 
-    return await queryBuilder.getMany();
+        // 如果提供了 userId，返回公共模板或用户自己的模板
+        if (userId) {
+          queryBuilder.andWhere('(template.isPublic = true OR template.createdBy = :userId)', {
+            userId,
+          });
+        } else {
+          // 否则只返回公共模板
+          queryBuilder.andWhere('template.isPublic = true');
+        }
+
+        queryBuilder.orderBy('template.usageCount', 'DESC');
+        queryBuilder.addOrderBy('template.createdAt', 'DESC');
+
+        // 获取总数
+        const total = await queryBuilder.getCount();
+
+        // 应用分页
+        if (limit) {
+          queryBuilder.limit(limit);
+        }
+
+        if (offset) {
+          queryBuilder.offset(offset);
+        }
+
+        const templates = await queryBuilder.getMany();
+
+        return { templates, total };
+      },
+      CacheTTL.TEMPLATE_LIST // 10 分钟 TTL
+    );
   }
 
   /**
    * 查找单个模板
    */
   async findOne(id: string, userId?: string): Promise<DeviceTemplate> {
-    const template = await this.templateRepository.findOne({ where: { id } });
+    // 使用缓存包装器
+    return this.cacheService.wrap(
+      CacheKeys.template(id),
+      async () => {
+        const template = await this.templateRepository.findOne({ where: { id } });
 
-    if (!template) {
-      throw BusinessErrors.templateNotFound(id);
-    }
+        if (!template) {
+          throw BusinessErrors.templateNotFound(id);
+        }
 
-    // 权限检查：只有公共模板或自己创建的模板才能访问
-    if (!template.isPublic && template.createdBy !== userId) {
-      throw BusinessErrors.templateNotFound(id);
-    }
+        // 权限检查：只有公共模板或自己创建的模板才能访问
+        if (!template.isPublic && template.createdBy !== userId) {
+          throw BusinessErrors.templateNotFound(id);
+        }
 
-    return template;
+        return template;
+      },
+      CacheTTL.TEMPLATE // 10 分钟 TTL
+    );
   }
 
   /**
@@ -121,7 +170,14 @@ export class TemplatesService {
     }
 
     Object.assign(template, updateTemplateDto);
-    return await this.templateRepository.save(template);
+    const result = await this.templateRepository.save(template);
+
+    // ✅ 清除相关缓存
+    await this.cacheService.del(CacheKeys.template(id));
+    await this.cacheService.delPattern(CacheKeys.userTemplatePattern(userId));
+    await this.cacheService.del(CacheKeys.TEMPLATE_QUICK_LIST);
+
+    return result;
   }
 
   /**
@@ -137,6 +193,11 @@ export class TemplatesService {
 
     await this.templateRepository.remove(template);
     this.logger.log(`Template deleted: ${id}`);
+
+    // ✅ 清除相关缓存
+    await this.cacheService.del(CacheKeys.template(id));
+    await this.cacheService.delPattern(CacheKeys.userTemplatePattern(userId));
+    await this.cacheService.del(CacheKeys.TEMPLATE_QUICK_LIST);
   }
 
   /**
@@ -418,5 +479,48 @@ export class TemplatesService {
     }
 
     return result;
+  }
+
+  /**
+   * 获取模板统计信息
+   */
+  async getTemplateStats(): Promise<{
+    totalTemplates: number;
+    publicTemplates: number;
+    privateTemplates: number;
+    totalUsage: number;
+  }> {
+    // 使用缓存包装器
+    return this.cacheService.wrap(
+      'template:stats',
+      async () => {
+        // 总模板数
+        const totalTemplates = await this.templateRepository.count();
+
+        // 公共模板数
+        const publicTemplates = await this.templateRepository.count({
+          where: { isPublic: true },
+        });
+
+        // 私有模板数
+        const privateTemplates = totalTemplates - publicTemplates;
+
+        // 总使用次数
+        const result = await this.templateRepository
+          .createQueryBuilder('template')
+          .select('SUM(template.usageCount)', 'totalUsage')
+          .getRawOne();
+
+        const totalUsage = parseInt(result?.totalUsage || '0', 10);
+
+        return {
+          totalTemplates,
+          publicTemplates,
+          privateTemplates,
+          totalUsage,
+        };
+      },
+      CacheTTL.TEMPLATE_LIST // 10 分钟缓存
+    );
   }
 }

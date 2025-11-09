@@ -58,20 +58,43 @@ export class TemplatesController {
   }
 
   /**
-   * 获取所有模板（支持过滤）
-   * GET /templates?category=gaming&isPublic=true
+   * 获取所有模板（支持过滤和分页）
+   * GET /templates?category=gaming&isPublic=true&page=1&pageSize=20&search=关键词
    */
   @Get()
   async findAll(
     @Query('category') category?: TemplateCategory,
     @Query('isPublic') isPublic?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
     @Request() req?: AuthenticatedRequest
   ) {
     // ✅ req 可选链处理
     const userId = req?.user?.userId || req?.user?.sub;
     const isPublicBool = isPublic === 'true' ? true : isPublic === 'false' ? false : undefined;
 
-    return await this.templatesService.findAll(category, isPublicBool, userId);
+    // 转换分页参数（page/pageSize -> limit/offset）
+    const currentPage = page ? Math.max(1, parseInt(page, 10)) : 1;
+    const limit = pageSize ? Math.max(1, Math.min(100, parseInt(pageSize, 10))) : 20;
+    const offset = (currentPage - 1) * limit;
+
+    const { templates, total } = await this.templatesService.findAll(
+      category,
+      isPublicBool,
+      userId,
+      search,
+      limit,
+      offset
+    );
+
+    return {
+      success: true,
+      data: templates,
+      total,
+      page: currentPage,
+      pageSize: limit,
+    };
   }
 
   /**
@@ -82,6 +105,15 @@ export class TemplatesController {
   async getPopular(@Query('limit') limit?: string) {
     const limitNum = limit ? parseInt(limit, 10) : 10;
     return await this.templatesService.getPopularTemplates(limitNum);
+  }
+
+  /**
+   * 获取模板统计信息
+   * GET /templates/stats
+   */
+  @Get('stats')
+  async getStats() {
+    return await this.templatesService.getTemplateStats();
   }
 
   /**

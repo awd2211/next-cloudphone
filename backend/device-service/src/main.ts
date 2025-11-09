@@ -100,6 +100,7 @@ async function bootstrap() {
       'Authorization',
       'X-Requested-With',
       'X-Request-ID', // 支持 Request ID 追踪
+      'x-request-id', // 支持小写格式
     ],
     exposedHeaders: ['X-Request-ID'], // 允许客户端读取 Request ID
   });

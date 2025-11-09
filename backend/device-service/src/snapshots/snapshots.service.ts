@@ -770,11 +770,43 @@ export class SnapshotsService {
   /**
    * 获取用户的所有快照
    */
-  async findByUser(userId: string): Promise<DeviceSnapshot[]> {
-    return await this.snapshotRepository.find({
-      where: { createdBy: userId },
-      order: { createdAt: 'DESC' },
-    });
+  async findByUser(
+    userId: string,
+    page: number,
+    limit: number,
+    deviceId?: string,
+    status?: string
+  ): Promise<{ data: DeviceSnapshot[]; total: number; page: number; limit: number }> {
+    // 使用 QueryBuilder 支持动态筛选
+    const queryBuilder = this.snapshotRepository.createQueryBuilder('snapshot');
+
+    // 只查询当前用户的快照
+    queryBuilder.where('snapshot.createdBy = :userId', { userId });
+
+    // 设备ID筛选
+    if (deviceId) {
+      queryBuilder.andWhere('snapshot.deviceId = :deviceId', { deviceId });
+    }
+
+    // 状态筛选
+    if (status) {
+      queryBuilder.andWhere('snapshot.status = :status', { status });
+    }
+
+    // 分页
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    // 排序
+    queryBuilder.orderBy('snapshot.createdAt', 'DESC');
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
   }
 
   /**

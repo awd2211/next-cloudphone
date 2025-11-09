@@ -2,7 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
-import { BusinessException } from '@cloudphone/shared';
+import {
+  BusinessException,
+  EventBusService,
+  EventOutboxService,
+  SagaOrchestratorService,
+  ProxyClientService,
+  HttpClientService,
+  DistributedLockService,
+} from '@cloudphone/shared';
 import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
 import { DevicesService } from '../devices/devices.service';
@@ -10,10 +18,11 @@ import { Device, DeviceStatus } from '../entities/device.entity';
 import { DockerService } from '../docker/docker.service';
 import { AdbService } from '../adb/adb.service';
 import { PortManagerService } from '../port-manager/port-manager.service';
-import { EventBusService, EventOutboxService, SagaOrchestratorService } from '@cloudphone/shared';
 import { QuotaClientService } from '../quota/quota-client.service';
 import { CacheService } from '../cache/cache.service';
 import { DeviceProviderFactory } from '../providers/device-provider.factory';
+import { ProxyStatsService } from '../proxy/proxy-stats.service';
+import { ProxySelectionService } from '../proxy/proxy-selection.service';
 import { CreateDeviceDto } from '../devices/dto/create-device.dto';
 import { UpdateDeviceDto } from '../devices/dto/update-device.dto';
 
@@ -105,6 +114,40 @@ describe('DevicesService', () => {
     get: jest.fn(),
   };
 
+  const mockProxyClient = {
+    allocateProxy: jest.fn(),
+    releaseProxy: jest.fn(),
+    getProxyStatus: jest.fn(),
+    validateProxy: jest.fn(),
+  };
+
+  const mockProxyStats = {
+    recordProxyUsage: jest.fn(),
+    getProxyStats: jest.fn(),
+    updateProxyMetrics: jest.fn(),
+  };
+
+  const mockProxySelection = {
+    selectProxy: jest.fn(),
+    getAvailableProxies: jest.fn(),
+    rankProxies: jest.fn(),
+  };
+
+  const mockHttpClient = {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    request: jest.fn(),
+  };
+
+  const mockDistributedLock = {
+    acquireLock: jest.fn().mockResolvedValue(true),
+    releaseLock: jest.fn().mockResolvedValue(true),
+    extendLock: jest.fn().mockResolvedValue(true),
+    isLocked: jest.fn().mockResolvedValue(false),
+  };
+
   const mockQueryRunner = {
     connect: jest.fn().mockResolvedValue(undefined),
     startTransaction: jest.fn().mockResolvedValue(undefined),
@@ -162,6 +205,22 @@ describe('DevicesService', () => {
           useValue: mockQuotaClient,
         },
         {
+          provide: ProxyClientService,
+          useValue: mockProxyClient,
+        },
+        {
+          provide: ProxyStatsService,
+          useValue: mockProxyStats,
+        },
+        {
+          provide: ProxySelectionService,
+          useValue: mockProxySelection,
+        },
+        {
+          provide: HttpClientService,
+          useValue: mockHttpClient,
+        },
+        {
           provide: CacheService,
           useValue: mockCacheService,
         },
@@ -176,6 +235,10 @@ describe('DevicesService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: DistributedLockService,
+          useValue: mockDistributedLock,
         },
       ],
     }).compile();

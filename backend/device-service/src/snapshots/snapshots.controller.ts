@@ -109,13 +109,38 @@ export class SnapshotsController {
   }
 
   /**
-   * 获取当前用户的所有快照
+   * 获取当前用户的所有快照（支持分页和筛选）
    * GET /snapshots
    */
   @Get()
-  async findByUser(@Request() req: AuthenticatedRequest) {
+  async findByUser(
+    @Request() req: AuthenticatedRequest,
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize?: string,
+    @Query('limit') limit?: string,
+    @Query('deviceId') deviceId?: string,
+    @Query('status') status?: string
+  ) {
     const userId = req.user?.userId || req.user?.sub || 'anonymous';
-    return await this.snapshotsService.findByUser(userId);
+
+    // 支持 pageSize 或 limit 参数
+    const itemsPerPage = pageSize || limit || '10';
+
+    const result = await this.snapshotsService.findByUser(
+      userId,
+      parseInt(page),
+      parseInt(itemsPerPage),
+      deviceId,
+      status
+    );
+
+    // 返回标准格式：将 limit 转换为 pageSize
+    const { limit: _, ...rest } = result;
+    return {
+      success: true,
+      ...rest,
+      pageSize: result.limit,
+    };
   }
 
   /**

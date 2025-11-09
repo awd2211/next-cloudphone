@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@ne
 import { AuthGuard } from '@nestjs/passport';
 import { RetryService } from './retry.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 
 @ApiTags('retry')
 @ApiBearerAuth()

@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { DevicesModule } from './devices/devices.module';
 import { DockerModule } from './docker/docker.module';
@@ -34,8 +36,10 @@ import {
   RequestIdMiddleware,
   SagaModule,
   DistributedLockModule, // ✅ K8s 集群安全：分布式锁模块
+  AllExceptionsFilter, // ✅ 统一异常过滤器
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
+import { getDatabaseConfig } from './common/config/database.config';
 import { DeviceRabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { SmsEventsConsumer } from './rabbitmq/consumers/sms-events.consumer';
 
@@ -48,19 +52,14 @@ import { SmsEventsConsumer } from './rabbitmq/consumers/sms-events.consumer';
     }),
     // Pino 日志模块 - 使用统一的增强配置
     LoggerModule.forRoot(createLoggerConfig('device-service')),
+    // Throttler 限流模块
+    ThrottlerModule.forRoot([{
+      ttl: 60000, // 1 minute
+      limit: 100, // 100 requests per minute
+    }]),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres' as const,
-        host: configService.get<string>('DB_HOST', 'localhost'),
-        port: +configService.get<number>('DB_PORT', 5432),
-        username: configService.get<string>('DB_USERNAME', 'postgres'),
-        password: configService.get<string>('DB_PASSWORD', 'postgres'),
-        database: configService.get<string>('DB_DATABASE', 'cloudphone_device'),
-        entities: [`${__dirname}/**/*.entity{.ts,.js}`, EventOutbox],
-        synchronize: false, // ✅ 使用 Atlas 管理数据库迁移
-        logging: configService.get<string>('NODE_ENV') === 'development',
-      }),
+      useFactory: getDatabaseConfig, // ✅ 使用优化的连接池配置
       inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
@@ -92,6 +91,16 @@ import { SmsEventsConsumer } from './rabbitmq/consumers/sms-events.consumer';
   ],
   controllers: [HealthController],
   providers: [
+    // 全局异常过滤器（统一错误处理）
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+    // 全局 Throttler 守卫（限流保护）
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     SmsEventsConsumer, // ✅ SMS 事件消费者 - 监听短信验证码事件
   ], // EventBusService 由 EventBusModule 提供
 })

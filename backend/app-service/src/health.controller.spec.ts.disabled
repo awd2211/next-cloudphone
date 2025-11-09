@@ -1,0 +1,258 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { HealthController } from './health.controller';
+import { DataSource } from 'typeorm';
+import { MinioService } from './minio/minio.service';
+
+describe('HealthController', () => {
+  let controller: HealthController;
+  let dataSource: any;
+  let minioService: any;
+
+  const mockDataSource = {
+    query: jest.fn(),
+  };
+
+  const mockMinioClient = {
+    bucketExists: jest.fn(),
+  };
+
+  const mockMinioService = {
+    minioClient: mockMinioClient,
+    bucketName: 'test-bucket',
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [HealthController],
+      providers: [
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
+        },
+        {
+          provide: MinioService,
+          useValue: mockMinioService,
+        },
+      ],
+    }).compile();
+
+    controller = module.get<HealthController>(HealthController);
+    dataSource = module.get(DataSource);
+    minioService = module.get(MinioService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('check', () => {
+    it('should return healthy status when all dependencies are healthy', async () => {
+      mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+      mockMinioClient.bucketExists.mockResolvedValue(true);
+
+      const result = await controller.check();
+
+      expect(result.status).toBe('ok');
+      expect(result.service).toBe('app-service');
+      expect(result.version).toBe('1.0.0');
+      expect(result.dependencies.database?.status).toBe('healthy');
+      expect(result.dependencies.minio?.status).toBe('healthy');
+      expect(result.dependencies.database?.responseTime).toBeGreaterThanOrEqual(0);
+      expect(result.system).toBeDefined();
+      expect(result.system.hostname).toBeDefined();
+      expect(result.uptime).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should return degraded status when database is unhealthy', async () => {
+      mockDataSource.query.mockRejectedValue(new Error('Connection refused'));
+      mockMinioClient.bucketExists.mockResolvedValue(true);
+
+      const result = await controller.check();
+
+      expect(result.status).toBe('degraded');
+      expect(result.dependencies.database?.status).toBe('unhealthy');
+      expect(result.dependencies.database?.message).toBe('Connection refused');
+      expect(result.dependencies.minio?.status).toBe('healthy');
+    });
+
+    it('should return degraded status when minio is unhealthy', async () => {
+      mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+      mockMinioClient.bucketExists.mockRejectedValue(new Error('Bucket not found'));
+
+      const result = await controller.check();
+
+      expect(result.status).toBe('degraded');
+      expect(result.dependencies.database?.status).toBe('healthy');
+      expect(result.dependencies.minio?.status).toBe('unhealthy');
+      expect(result.dependencies.minio?.message).toBe('Bucket not found');
+    });
+
+    it('should return degraded status when both dependencies are unhealthy', async () => {
+      mockDataSource.query.mockRejectedValue(new Error('DB error'));
+      mockMinioClient.bucketExists.mockRejectedValue(new Error('MinIO error'));
+
+      const result = await controller.check();
+
+      expect(result.status).toBe('degraded');
+      expect(result.dependencies.database?.status).toBe('unhealthy');
+      expect(result.dependencies.minio?.status).toBe('unhealthy');
+    });
+
+    it('should include system information', async () => {
+      mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+      mockMinioClient.bucketExists.mockResolvedValue(true);
+
+      const result = await controller.check();
+
+      expect(result.system.hostname).toBeDefined();
+      expect(result.system.platform).toBeDefined();
+      expect(result.system.memory.total).toBeGreaterThan(0);
+      expect(result.system.memory.free).toBeGreaterThanOrEqual(0);
+      expect(result.system.memory.used).toBeGreaterThanOrEqual(0);
+      expect(result.system.memory.usagePercent).toBeGreaterThanOrEqual(0);
+      expect(result.system.cpu.cores).toBeGreaterThan(0);
+      expect(result.system.cpu.model).toBeDefined();
+    });
+
+    it('should return unhealthy minio when bucket does not exist', async () => {
+      mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+      mockMinioClient.bucketExists.mockResolvedValue(false);
+
+      const result = await controller.check();
+
+      expect(result.status).toBe('degraded');
+      expect(result.dependencies.minio?.status).toBe('unhealthy');
+      expect(result.dependencies.minio?.message).toContain('does not exist');
+    });
+
+    it('should handle minio client not initialized', async () => {
+      mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+      const originalClient = mockMinioService.minioClient;
+      mockMinioService.minioClient = null;
+
+      const result = await controller.check();
+
+      expect(result.status).toBe('degraded');
+      expect(result.dependencies.minio?.status).toBe('unhealthy');
+      expect(result.dependencies.minio?.message).toBe('MinIO client not initialized');
+
+      // Restore
+      mockMinioService.minioClient = originalClient;
+    });
+  });
+
+  describe('detailedCheck', () => {
+    it('should return detailed health check with capabilities', async () => {
+      mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+      mockMinioClient.bucketExists.mockResolvedValue(true);
+
+      const result: any = await controller.detailedCheck();
+
+      expect(result.status).toBe('ok');
+      expect(result.service).toBe('app-service');
+      expect(result.details).toBeDefined();
+      expect(result.details.description).toContain('App Service');
+      expect(result.details.capabilities).toBeInstanceOf(Array);
+      expect(result.details.capabilities.length).toBeGreaterThan(0);
+      expect(result.details.capabilities).toContain('APK upload/download to MinIO');
+    });
+
+    it('should include all basic health check info', async () => {
+      mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+      mockMinioClient.bucketExists.mockResolvedValue(true);
+
+      const result: any = await controller.detailedCheck();
+
+      expect(result.version).toBe('1.0.0');
+      expect(result.dependencies).toBeDefined();
+      expect(result.system).toBeDefined();
+      expect(result.uptime).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('liveness', () => {
+    it('should return ok status for liveness probe', async () => {
+      const result = await controller.liveness();
+
+      expect(result.status).toBe('ok');
+      expect(result.timestamp).toBeDefined();
+      expect(result.uptime).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should return valid ISO timestamp', async () => {
+      const result = await controller.liveness();
+
+      const timestamp = new Date(result.timestamp);
+      expect(timestamp).toBeInstanceOf(Date);
+      expect(timestamp.toString()).not.toBe('Invalid Date');
+    });
+
+    it('should always succeed regardless of dependencies', async () => {
+      // Even if dependencies fail, liveness should still pass
+      mockDataSource.query.mockRejectedValue(new Error('DB down'));
+      mockMinioClient.bucketExists.mockRejectedValue(new Error('MinIO down'));
+
+      const result = await controller.liveness();
+
+      expect(result.status).toBe('ok');
+    });
+  });
+
+  describe('readiness', () => {
+    it('should return ok when all dependencies are healthy', async () => {
+      mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+      mockMinioClient.bucketExists.mockResolvedValue(true);
+
+      const result = await controller.readiness();
+
+      expect(result.status).toBe('ok');
+      expect(result.dependencies.database).toBe('healthy');
+      expect(result.dependencies.minio).toBe('healthy');
+      expect(result.timestamp).toBeDefined();
+    });
+
+    it('should return error when database is unhealthy', async () => {
+      mockDataSource.query.mockRejectedValue(new Error('DB connection failed'));
+      mockMinioClient.bucketExists.mockResolvedValue(true);
+
+      const result = await controller.readiness();
+
+      expect(result.status).toBe('error');
+      expect(result.message).toContain('Service not ready');
+      expect(result.dependencies.database).toBe('unhealthy');
+    });
+
+    it('should return error when minio is unhealthy', async () => {
+      mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+      mockMinioClient.bucketExists.mockRejectedValue(new Error('MinIO error'));
+
+      const result = await controller.readiness();
+
+      expect(result.status).toBe('error');
+      expect(result.message).toContain('Service not ready');
+      expect(result.dependencies.minio).toBe('unhealthy');
+    });
+
+    it('should return error when both dependencies are unhealthy', async () => {
+      mockDataSource.query.mockRejectedValue(new Error('DB error'));
+      mockMinioClient.bucketExists.mockRejectedValue(new Error('MinIO error'));
+
+      const result = await controller.readiness();
+
+      expect(result.status).toBe('error');
+      expect(result.dependencies.database).toBe('unhealthy');
+      expect(result.dependencies.minio).toBe('unhealthy');
+    });
+
+    it('should handle unexpected errors gracefully', async () => {
+      mockDataSource.query.mockImplementation(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const result = await controller.readiness();
+
+      expect(result.status).toBe('error');
+      expect(result.message).toBeDefined();
+    });
+  });
+});

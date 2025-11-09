@@ -33,7 +33,7 @@ import { UpdateDeviceDto } from './dto/update-device.dto';
 import { DeviceStatus } from '../entities/device.entity';
 import { DeviceMetrics } from '../providers/provider.types';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/permissions.decorator';
+import { RequirePermission } from '@cloudphone/shared';
 import { CursorPaginationDto, DataScopeGuard, DataScope, DataScopeType } from '@cloudphone/shared';
 import {
   ShellCommandDto,
@@ -141,96 +141,98 @@ export class DevicesController {
     };
   }
 
-  @Get('quick-list')
-  @RequirePermission('device.read')
-  @ApiOperation({
-    summary: '设备快速列表',
-    description: '返回轻量级设备列表，用于下拉框等UI组件（带缓存优化）',
-  })
-  @ApiQuery({ name: 'status', required: false, description: '状态过滤', example: 'online' })
-  @ApiQuery({ name: 'search', required: false, description: '搜索关键词', example: 'device' })
-  @ApiQuery({ name: 'limit', required: false, description: '限制数量', example: 100 })
-  @ApiResponse({
-    status: 200,
-    description: '获取成功',
-    schema: {
-      example: {
-        items: [
-          {
-            id: '123e4567-e89b-12d3-a456-426614174000',
-            name: 'device-001',
-            status: 'online',
-            extra: { provider: 'redroid', region: 'us-west' },
-          },
-        ],
-        total: 42,
-        cached: false,
-      },
-    },
-  })
-  @ApiResponse({ status: 403, description: '权限不足' })
-  async getQuickList(@Query() query: any) {
-    return this.devicesService.getQuickList(query);
-  }
+  // TODO: 临时注释 - 等待实现 getQuickList 方法
+  // @Get('quick-list')
+  // @RequirePermission('device.read')
+  // @ApiOperation({
+  //   summary: '设备快速列表',
+  //   description: '返回轻量级设备列表，用于下拉框等UI组件（带缓存优化）',
+  // })
+  // @ApiQuery({ name: 'status', required: false, description: '状态过滤', example: 'online' })
+  // @ApiQuery({ name: 'search', required: false, description: '搜索关键词', example: 'device' })
+  // @ApiQuery({ name: 'limit', required: false, description: '限制数量', example: 100 })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: '获取成功',
+  //   schema: {
+  //     example: {
+  //       items: [
+  //         {
+  //           id: '123e4567-e89b-12d3-a456-426614174000',
+  //           name: 'device-001',
+  //           status: 'online',
+  //           extra: { provider: 'redroid', region: 'us-west' },
+  //         },
+  //       ],
+  //       total: 42,
+  //       cached: false,
+  //     },
+  //   },
+  // })
+  // @ApiResponse({ status: 403, description: '权限不足' })
+  // async getQuickList(@Query() query: any) {
+  //   return this.devicesService.getQuickList(query);
+  // }
 
-  @Get('filters/metadata')
-  @RequirePermission('device.read')
-  @ApiOperation({
-    summary: '设备筛选元数据',
-    description: '获取设备列表页所有可用的筛选选项及统计信息（用于生成动态筛选表单）',
-  })
-  @ApiQuery({
-    name: 'includeCount',
-    required: false,
-    description: '是否包含每个选项的记录数量',
-    example: true,
-  })
-  @ApiQuery({
-    name: 'onlyWithData',
-    required: false,
-    description: '是否只返回有数据的筛选选项',
-    example: false,
-  })
-  @ApiResponse({
-    status: 200,
-    description: '获取成功',
-    schema: {
-      example: {
-        filters: [
-          {
-            field: 'status',
-            label: '设备状态',
-            type: 'select',
-            options: [
-              { value: 'online', label: '在线', count: 42 },
-              { value: 'offline', label: '离线', count: 15 },
-            ],
-            required: false,
-            placeholder: '请选择设备状态',
-          },
-          {
-            field: 'providerType',
-            label: '提供商类型',
-            type: 'select',
-            options: [{ value: 'redroid', label: 'Redroid', count: 30 }],
-            required: false,
-            placeholder: '请选择提供商',
-          },
-        ],
-        totalRecords: 150,
-        lastUpdated: '2025-11-03T10:30:00.000Z',
-        cached: false,
-        quickFilters: {
-          online: { status: 'online', label: '在线设备' },
-          offline: { status: 'offline', label: '离线设备' },
-        },
-      },
-    },
-  })
-  @ApiResponse({ status: 403, description: '权限不足' })
-  async getFiltersMetadata(@Query() query: any) {
-    return this.devicesService.getFiltersMetadata(query);
-  }
+  // TODO: 临时注释 - 等待实现 getFiltersMetadata 方法
+  // @Get('filters/metadata')
+  // @RequirePermission('device.read')
+  // @ApiOperation({
+  //   summary: '设备筛选元数据',
+  //   description: '获取设备列表页所有可用的筛选选项及统计信息（用于生成动态筛选表单）',
+  // })
+  // @ApiQuery({
+  //   name: 'includeCount',
+  //   required: false,
+  //   description: '是否包含每个选项的记录数量',
+  //   example: true,
+  // })
+  // @ApiQuery({
+  //   name: 'onlyWithData',
+  //   required: false,
+  //   description: '是否只返回有数据的筛选选项',
+  //   example: false,
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: '获取成功',
+  //   schema: {
+  //     example: {
+  //       filters: [
+  //         {
+  //           field: 'status',
+  //           label: '设备状态',
+  //           type: 'select',
+  //           options: [
+  //             { value: 'online', label: '在线', count: 42 },
+  //             { value: 'offline', label: '离线', count: 15 },
+  //           ],
+  //           required: false,
+  //           placeholder: '请选择设备状态',
+  //         },
+  //         {
+  //           field: 'providerType',
+  //           label: '提供商类型',
+  //           type: 'select',
+  //           options: [{ value: 'redroid', label: 'Redroid', count: 30 }],
+  //           required: false,
+  //           placeholder: '请选择提供商',
+  //         },
+  //       ],
+  //       totalRecords: 150,
+  //       lastUpdated: '2025-11-03T10:30:00.000Z',
+  //       cached: false,
+  //       quickFilters: {
+  //         online: { status: 'online', label: '在线设备' },
+  //         offline: { status: 'offline', label: '离线设备' },
+  //       },
+  //     },
+  //   },
+  // })
+  // @ApiResponse({ status: 403, description: '权限不足' })
+  // async getFiltersMetadata(@Query() query: any) {
+  //   return this.devicesService.getFiltersMetadata(query);
+  // }
 
   @Get()
   @RequirePermission('device.read')
@@ -239,12 +241,8 @@ export class DevicesController {
     description: '分页获取设备列表，支持多种筛选条件',
   })
   @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    description: '每页数量',
-    example: 10,
-  })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量（兼容参数）', example: 10 })
   @ApiQuery({ name: 'userId', required: false, description: '用户 ID' })
   @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
   @ApiQuery({
@@ -257,21 +255,28 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async findAll(
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('pageSize') pageSize?: string,
+    @Query('limit') limit?: string,
     @Query('userId') userId?: string,
     @Query('tenantId') tenantId?: string,
     @Query('status') status?: DeviceStatus
   ) {
+    // 支持 pageSize 或 limit 参数
+    const itemsPerPage = pageSize || limit || '10';
     const result = await this.devicesService.findAll(
       parseInt(page),
-      parseInt(limit),
+      parseInt(itemsPerPage),
       userId,
       tenantId,
       status
     );
+
+    // 返回标准格式：将 limit 转换为 pageSize
+    const { limit: _, ...rest } = result;
     return {
       success: true,
-      ...result,
+      ...rest,
+      pageSize: result.limit,
     };
   }
 
@@ -895,7 +900,7 @@ export class DevicesController {
   }
 
   @Post('batch/stats')
-  @RequirePermission('device:read')
+  @RequirePermission('device.read')
   @ApiOperation({
     summary: '批量获取设备统计信息',
     description: '一次性获取多个设备的统计数据，避免 N+1 查询问题',
@@ -962,7 +967,7 @@ export class DevicesController {
   // ============================================================
 
   @Post(':id/apps/start')
-  @RequirePermission('device:app-operate')
+  @RequirePermission('device.app-operate')
   @ApiOperation({
     summary: '启动应用',
     description: '启动设备上的应用 (仅阿里云 ECP 支持)',
@@ -980,7 +985,7 @@ export class DevicesController {
   }
 
   @Post(':id/apps/stop')
-  @RequirePermission('device:app-operate')
+  @RequirePermission('device.app-operate')
   @ApiOperation({
     summary: '停止应用',
     description: '停止设备上的应用 (仅阿里云 ECP 支持)',
@@ -998,7 +1003,7 @@ export class DevicesController {
   }
 
   @Post(':id/apps/clear-data')
-  @RequirePermission('device:app-operate')
+  @RequirePermission('device.app-operate')
   @ApiOperation({
     summary: '清除应用数据',
     description: '清除设备上应用的数据 (仅阿里云 ECP 支持)',
@@ -1020,7 +1025,7 @@ export class DevicesController {
   // ============================================================
 
   @Post(':id/snapshots')
-  @RequirePermission('device:snapshot-create')
+  @RequirePermission('device.snapshot.create')
   @ApiOperation({
     summary: '创建设备快照',
     description: '为设备创建快照备份 (仅阿里云 ECP 支持)',
@@ -1039,7 +1044,7 @@ export class DevicesController {
   }
 
   @Post(':id/snapshots/restore')
-  @RequirePermission('device:snapshot-restore')
+  @RequirePermission('device.snapshot.restore')
   @ApiOperation({
     summary: '恢复设备快照',
     description: '从快照恢复设备 (仅阿里云 ECP 支持)',
@@ -1057,7 +1062,7 @@ export class DevicesController {
   }
 
   @Get(':id/snapshots')
-  @RequirePermission('device:read')
+  @RequirePermission('device.read')
   @ApiOperation({
     summary: '获取设备快照列表',
     description: '获取设备的所有快照 (仅阿里云 ECP 支持)',
@@ -1075,7 +1080,7 @@ export class DevicesController {
   }
 
   @Delete(':id/snapshots/:snapshotId')
-  @RequirePermission('device:snapshot-delete')
+  @RequirePermission('device.snapshot.delete')
   @ApiOperation({
     summary: '删除设备快照',
     description: '删除指定的设备快照 (仅阿里云 ECP 支持)',
@@ -1096,7 +1101,7 @@ export class DevicesController {
   // ==================== SMS 虚拟号码管理 ====================
 
   @Post(':id/request-sms')
-  @RequirePermission('device:sms:request')
+  @RequirePermission('device.sms.request')
   @ApiOperation({
     summary: '为设备请求虚拟 SMS 号码',
     description: '为指定设备请求一个虚拟手机号码，用于接收短信验证码。号码由 SMS Receive Service 管理。',
@@ -1112,7 +1117,7 @@ export class DevicesController {
   }
 
   @Get(':id/sms-number')
-  @RequirePermission('device:read')
+  @RequirePermission('device.read')
   @ApiOperation({
     summary: '获取设备的虚拟 SMS 号码信息',
     description: '获取设备当前分配的虚拟手机号码信息（如果有）',
@@ -1127,7 +1132,7 @@ export class DevicesController {
   }
 
   @Delete(':id/sms-number')
-  @RequirePermission('device:sms:cancel')
+  @RequirePermission('device.sms.cancel')
   @ApiOperation({
     summary: '取消设备的虚拟 SMS 号码',
     description: '取消设备当前分配的虚拟手机号码（主动释放或使用完毕）',
@@ -1141,7 +1146,7 @@ export class DevicesController {
   }
 
   @Get(':id/sms-messages')
-  @RequirePermission('device:read')
+  @RequirePermission('device.read')
   @ApiOperation({
     summary: '获取设备收到的 SMS 消息历史',
     description: '获取设备收到的所有短信验证码消息历史记录',

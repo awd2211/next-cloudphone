@@ -44,5 +44,16 @@ export class QueryDevicesDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  pageSize?: number;
+
+  @ApiPropertyOptional({
+    description: '每页数量（兼容参数）',
+    example: 20,
+    default: 20,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   limit?: number;
 }

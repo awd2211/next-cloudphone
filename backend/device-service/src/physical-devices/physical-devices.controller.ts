@@ -109,10 +109,11 @@ export class PhysicalDevicesController {
     description: '设备列表',
   })
   async getDevices(@Query() query: QueryDevicesDto): Promise<{
+    success: boolean;
     data: PooledDevice[];
     total: number;
     page: number;
-    limit: number;
+    pageSize: number;
   }> {
     let devices = await this.poolService.getAllDevices();
 
@@ -126,19 +127,20 @@ export class PhysicalDevicesController {
       devices = devices.filter((d) => d.deviceGroup === query.deviceGroup);
     }
 
-    // 分页
+    // 分页 - 支持 pageSize 或 limit 参数
     const page = query.page || 1;
-    const limit = query.limit || 20;
+    const itemsPerPage = query.pageSize || query.limit || 20;
     const total = devices.length;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
     const paginatedDevices = devices.slice(startIndex, endIndex);
 
     return {
+      success: true,
       data: paginatedDevices,
       total,
       page,
-      limit,
+      pageSize: itemsPerPage,
     };
   }
 

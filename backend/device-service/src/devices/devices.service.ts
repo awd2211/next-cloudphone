@@ -1948,55 +1948,62 @@ export class DevicesService {
       message?: string;
     }
   > {
-    const device = await this.findOne(id);
+    // 使用缓存包装器：先查缓存，未命中则调用 Provider API
+    return this.cacheService.wrap(
+      CacheKeys.deviceMetrics(id),
+      async () => {
+        const device = await this.findOne(id);
 
-    this.logger.debug(`Getting stats for device ${id} (Provider: ${device.providerType})`);
+        this.logger.debug(`Getting stats for device ${id} (Provider: ${device.providerType})`);
 
-    // 获取 Provider
-    const provider = this.providerFactory.getProvider(device.providerType);
+        // 获取 Provider
+        const provider = this.providerFactory.getProvider(device.providerType);
 
-    // ✅ 调用 Provider 获取指标（如果支持）
-    if (device.externalId && provider.getMetrics) {
-      try {
-        const metrics = await provider.getMetrics(device.externalId);
-        return {
-          deviceId: device.id,
-          providerType: device.providerType,
-          timestamp: metrics.timestamp || new Date(),
-          cpuUsage: metrics.cpuUsage || 0,
-          memoryUsage: metrics.memoryUsage || 0,
-          memoryUsed: metrics.memoryUsed || 0,
-          storageUsed: metrics.storageUsed || 0,
-          storageUsage: metrics.storageUsage || 0,
-          networkRx: metrics.networkRx || 0,
-          networkTx: metrics.networkTx || 0,
-          fps: metrics.fps,
-          batteryLevel: metrics.batteryLevel,
-          temperature: metrics.temperature,
-        };
-      } catch (error) {
-        this.logger.warn(`Failed to get metrics from provider for device ${id}`, error.message);
-        // 返回默认值
+        // ✅ 调用 Provider 获取指标（如果支持）
+        if (device.externalId && provider.getMetrics) {
+          try {
+            const metrics = await provider.getMetrics(device.externalId);
+            return {
+              deviceId: device.id,
+              providerType: device.providerType,
+              timestamp: metrics.timestamp || new Date(),
+              cpuUsage: metrics.cpuUsage || 0,
+              memoryUsage: metrics.memoryUsage || 0,
+              memoryUsed: metrics.memoryUsed || 0,
+              storageUsed: metrics.storageUsed || 0,
+              storageUsage: metrics.storageUsage || 0,
+              networkRx: metrics.networkRx || 0,
+              networkTx: metrics.networkTx || 0,
+              fps: metrics.fps,
+              batteryLevel: metrics.batteryLevel,
+              temperature: metrics.temperature,
+            };
+          } catch (error) {
+            this.logger.warn(`Failed to get metrics from provider for device ${id}`, error.message);
+            // 返回默认值
+            return {
+              deviceId: device.id,
+              providerType: device.providerType,
+              timestamp: new Date(),
+              cpuUsage: 0,
+              memoryUsage: 0,
+              error: error.message,
+            };
+          }
+        }
+
+        // 降级：如果 Provider 不支持 getMetrics，返回空数据
         return {
           deviceId: device.id,
           providerType: device.providerType,
           timestamp: new Date(),
           cpuUsage: 0,
           memoryUsage: 0,
-          error: error.message,
+          message: 'Provider does not support metrics',
         };
-      }
-    }
-
-    // 降级：如果 Provider 不支持 getMetrics，返回空数据
-    return {
-      deviceId: device.id,
-      providerType: device.providerType,
-      timestamp: new Date(),
-      cpuUsage: 0,
-      memoryUsage: 0,
-      message: 'Provider does not support metrics',
-    };
+      },
+      CacheTTL.DEVICE_METRICS // 30 秒 TTL（Provider API 调用）
+    );
   }
 
   /**

@@ -425,8 +425,32 @@ export class AppsService {
     tenantId?: string,
     category?: string
   ): Promise<{ data: Application[]; total: number; page: number; limit: number }> {
-    const skip = (page - 1) * limit;
+    // ✅ 优化: 限制单次查询最大数量
+    const safeLimit = Math.min(limit || 20, 100);
+    const skip = (page - 1) * safeLimit;
 
+    // ✅ 优化: 使用统一的缓存键格式（与 CacheKeys.appList 保持一致）
+    // 注意: CacheKeys.appList 使用 cursor，但我们用 page，所以自定义格式
+    const cacheKey = `app-service:apps:list:${tenantId || 'all'}:${category || 'all'}:page${page}:${safeLimit}`;
+
+    // ✅ 优化: 尝试从缓存获取
+    try {
+      const cached = await this.cacheService.get<{
+        data: Application[];
+        total: number;
+        page: number;
+        limit: number;
+      }>(cacheKey);
+
+      if (cached) {
+        this.logger.debug(`应用列表缓存命中 - 页码: ${page}, tenant: ${tenantId || 'all'}`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`获取应用列表缓存失败: ${error.message}`);
+    }
+
+    // 查询数据库
     const where: any = { status: AppStatus.AVAILABLE };
     if (tenantId) where.tenantId = tenantId;
     if (category) where.category = category;
@@ -434,11 +458,21 @@ export class AppsService {
     const [data, total] = await this.appsRepository.findAndCount({
       where,
       skip,
-      take: limit,
+      take: safeLimit,
       order: { createdAt: 'DESC' },
     });
 
-    return { data, total, page, limit };
+    const result = { data, total, page, limit: safeLimit };
+
+    // ✅ 优化: 写入缓存 (CacheTTL.APP_LIST = 120秒)
+    try {
+      await this.cacheService.set(cacheKey, result, CacheTTL.APP_LIST);
+      this.logger.debug(`应用列表已缓存 - TTL: ${CacheTTL.APP_LIST}s`);
+    } catch (error) {
+      this.logger.warn(`写入应用列表缓存失败: ${error.message}`);
+    }
+
+    return result;
   }
 
   /**
