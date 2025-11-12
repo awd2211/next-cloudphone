@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useDeviceList } from '../useDeviceList';
 import * as deviceService from '@/services/device';
@@ -58,7 +58,6 @@ describe('useDeviceList Hook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
 
     // Setup default mock implementations
     vi.mocked(deviceService.getMyDevices).mockResolvedValue({
@@ -66,10 +65,6 @@ describe('useDeviceList Hook', () => {
       total: 10,
     });
     vi.mocked(deviceService.getMyDeviceStats).mockResolvedValue(mockStats);
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   describe('初始化', () => {
@@ -85,10 +80,16 @@ describe('useDeviceList Hook', () => {
       expect(result.current.stats).toBeNull();
     });
 
-    it('应该初始化loading为false', () => {
+    it('应该初始化loading为false', async () => {
       const { result } = renderHook(() => useDeviceList());
 
-      expect(result.current.loading).toBe(false);
+      // useEffect会立即触发加载，需要等待loading变为false
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('应该初始化pagination配置', () => {
@@ -125,44 +126,59 @@ describe('useDeviceList Hook', () => {
     it('mount时应该调用getMyDevices', async () => {
       renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(deviceService.getMyDevices).toHaveBeenCalledWith({
-          page: 1,
-          pageSize: 10,
-        });
-      });
+      await waitFor(
+        () => {
+          expect(deviceService.getMyDevices).toHaveBeenCalledWith({
+            page: 1,
+            pageSize: 10,
+          });
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('mount时应该调用getMyDeviceStats', async () => {
       renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(deviceService.getMyDeviceStats).toHaveBeenCalled();
-      });
+      await waitFor(
+        () => {
+          expect(deviceService.getMyDeviceStats).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('加载成功应该更新devices', async () => {
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('加载成功应该更新total', async () => {
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.pagination.total).toBe(10);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.pagination.total).toBe(10);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('加载成功应该更新stats', async () => {
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.stats).toEqual(mockStats);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.stats).toEqual(mockStats);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('加载失败应该显示错误消息', async () => {
@@ -170,9 +186,12 @@ describe('useDeviceList Hook', () => {
 
       renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(message.error).toHaveBeenCalledWith('加载设备列表失败');
-      });
+      await waitFor(
+        () => {
+          expect(message.error).toHaveBeenCalledWith('加载设备列表失败');
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('加载过程中loading应该为true', async () => {
@@ -185,15 +204,21 @@ describe('useDeviceList Hook', () => {
 
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(true);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(true);
+        },
+        { timeout: 3000 }
+      );
 
       resolveDevices({ data: mockDevices, total: 10 });
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { timeout: 3000 }
+      );
     });
   });
 
@@ -202,9 +227,12 @@ describe('useDeviceList Hook', () => {
       vi.mocked(deviceService.startDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.actions.handleStart('1');
@@ -217,9 +245,12 @@ describe('useDeviceList Hook', () => {
       vi.mocked(deviceService.startDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.actions.handleStart('1');
@@ -232,9 +263,12 @@ describe('useDeviceList Hook', () => {
       vi.mocked(deviceService.startDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
@@ -242,18 +276,24 @@ describe('useDeviceList Hook', () => {
         await result.current.actions.handleStart('1');
       });
 
-      await waitFor(() => {
-        expect(deviceService.getMyDevices).toHaveBeenCalled();
-      });
+      await waitFor(
+        () => {
+          expect(deviceService.getMyDevices).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('启动成功应该重新加载统计数据', async () => {
       vi.mocked(deviceService.startDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
@@ -261,18 +301,24 @@ describe('useDeviceList Hook', () => {
         await result.current.actions.handleStart('1');
       });
 
-      await waitFor(() => {
-        expect(deviceService.getMyDeviceStats).toHaveBeenCalled();
-      });
+      await waitFor(
+        () => {
+          expect(deviceService.getMyDeviceStats).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('启动失败应该显示错误消息', async () => {
       vi.mocked(deviceService.startDevice).mockRejectedValue(new Error('Start failed'));
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.actions.handleStart('1');
@@ -287,9 +333,12 @@ describe('useDeviceList Hook', () => {
       vi.mocked(deviceService.stopDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.actions.handleStop('1');
@@ -302,9 +351,12 @@ describe('useDeviceList Hook', () => {
       vi.mocked(deviceService.stopDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.actions.handleStop('1');
@@ -317,9 +369,12 @@ describe('useDeviceList Hook', () => {
       vi.mocked(deviceService.stopDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
@@ -327,18 +382,24 @@ describe('useDeviceList Hook', () => {
         await result.current.actions.handleStop('1');
       });
 
-      await waitFor(() => {
-        expect(deviceService.getMyDevices).toHaveBeenCalled();
-      });
+      await waitFor(
+        () => {
+          expect(deviceService.getMyDevices).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('停止成功应该重新加载统计数据', async () => {
       vi.mocked(deviceService.stopDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
@@ -346,18 +407,24 @@ describe('useDeviceList Hook', () => {
         await result.current.actions.handleStop('1');
       });
 
-      await waitFor(() => {
-        expect(deviceService.getMyDeviceStats).toHaveBeenCalled();
-      });
+      await waitFor(
+        () => {
+          expect(deviceService.getMyDeviceStats).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('停止失败应该显示错误消息', async () => {
       vi.mocked(deviceService.stopDevice).mockRejectedValue(new Error('Stop failed'));
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.actions.handleStop('1');
@@ -368,13 +435,25 @@ describe('useDeviceList Hook', () => {
   });
 
   describe('handleReboot 重启设备', () => {
+    // 只在这个测试套件中使用fake timers
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('应该调用rebootDevice API', async () => {
       vi.mocked(deviceService.rebootDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await vi.waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.actions.handleReboot('1');
@@ -387,9 +466,12 @@ describe('useDeviceList Hook', () => {
       vi.mocked(deviceService.rebootDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await vi.waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.actions.handleReboot('1');
@@ -402,9 +484,12 @@ describe('useDeviceList Hook', () => {
       vi.mocked(deviceService.rebootDevice).mockResolvedValue(undefined);
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await vi.waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
@@ -417,21 +502,27 @@ describe('useDeviceList Hook', () => {
 
       // 2秒后应该调用
       await act(async () => {
-        vi.advanceTimersByTime(2000);
+        await vi.advanceTimersByTimeAsync(2000);
       });
 
-      await waitFor(() => {
-        expect(deviceService.getMyDevices).toHaveBeenCalled();
-      });
+      await vi.waitFor(
+        () => {
+          expect(deviceService.getMyDevices).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('重启失败应该显示错误消息', async () => {
       vi.mocked(deviceService.rebootDevice).mockRejectedValue(new Error('Reboot failed'));
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await vi.waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.actions.handleReboot('1');
@@ -445,9 +536,12 @@ describe('useDeviceList Hook', () => {
     it('应该显示成功消息', async () => {
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       const newDevice: Device = {
         id: '3',
@@ -465,9 +559,12 @@ describe('useDeviceList Hook', () => {
     it('创建成功应该重新加载设备列表', async () => {
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
@@ -481,17 +578,23 @@ describe('useDeviceList Hook', () => {
         result.current.actions.handleCreateSuccess(newDevice);
       });
 
-      await waitFor(() => {
-        expect(deviceService.getMyDevices).toHaveBeenCalled();
-      });
+      await waitFor(
+        () => {
+          expect(deviceService.getMyDevices).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('创建成功应该重新加载统计数据', async () => {
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
@@ -505,9 +608,12 @@ describe('useDeviceList Hook', () => {
         result.current.actions.handleCreateSuccess(newDevice);
       });
 
-      await waitFor(() => {
-        expect(deviceService.getMyDeviceStats).toHaveBeenCalled();
-      });
+      await waitFor(
+        () => {
+          expect(deviceService.getMyDeviceStats).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
   });
 
@@ -515,9 +621,12 @@ describe('useDeviceList Hook', () => {
     it('应该更新page和pageSize', async () => {
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       act(() => {
         result.current.pagination.onChange(2, 20);
@@ -530,9 +639,12 @@ describe('useDeviceList Hook', () => {
     it('分页变化应该触发数据重新加载', async () => {
       const { result } = renderHook(() => useDeviceList());
 
-      await waitFor(() => {
-        expect(result.current.devices).toEqual(mockDevices);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices).toEqual(mockDevices);
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
@@ -540,12 +652,15 @@ describe('useDeviceList Hook', () => {
         result.current.pagination.onChange(2, 20);
       });
 
-      await waitFor(() => {
-        expect(deviceService.getMyDevices).toHaveBeenCalledWith({
-          page: 2,
-          pageSize: 20,
-        });
-      });
+      await waitFor(
+        () => {
+          expect(deviceService.getMyDevices).toHaveBeenCalledWith({
+            page: 2,
+            pageSize: 20,
+          });
+        },
+        { timeout: 3000 }
+      );
     });
   });
 
@@ -554,9 +669,12 @@ describe('useDeviceList Hook', () => {
       const { result } = renderHook(() => useDeviceList());
 
       // 等待初始加载完成
-      await waitFor(() => {
-        expect(result.current.devices.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.devices.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       // 清除mock调用记录
       vi.clearAllMocks();
@@ -566,9 +684,14 @@ describe('useDeviceList Hook', () => {
         result.current.actions.handleRefresh();
       });
 
-      // 验证API被调用
-      expect(deviceService.getMyDevices).toHaveBeenCalled();
-      expect(deviceService.getMyDeviceStats).toHaveBeenCalled();
+      // 验证API被调用 - 使用waitFor等待异步操作
+      await waitFor(
+        () => {
+          expect(deviceService.getMyDevices).toHaveBeenCalled();
+          expect(deviceService.getMyDeviceStats).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
   });
 

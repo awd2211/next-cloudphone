@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Form, message } from 'antd';
 import {
   getInvoices,
@@ -29,17 +29,34 @@ export function useInvoiceList() {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
+  // 使用ref跟踪最新的请求ID，解决竞态条件问题
+  const latestRequestIdRef = useRef(0);
+
   // 加载发票列表
   const loadInvoices = useCallback(async () => {
+    // 生成新的请求ID
+    const requestId = ++latestRequestIdRef.current;
+
     setLoading(true);
     try {
       const res = await getInvoices({ page, pageSize });
-      setInvoices(res.items);
-      setTotal(res.total);
+
+      // 只有当前请求是最新的请求时才更新状态
+      // 这样可以防止快速翻页时，先发出的请求后返回覆盖后发出的请求
+      if (requestId === latestRequestIdRef.current) {
+        setInvoices(res.items);
+        setTotal(res.total);
+      }
     } catch (error) {
-      message.error('加载发票列表失败');
+      // 即使请求失败，也只在是最新请求时才显示错误
+      if (requestId === latestRequestIdRef.current) {
+        message.error('加载发票列表失败');
+      }
     } finally {
-      setLoading(false);
+      // 只有最新请求才设置loading为false
+      if (requestId === latestRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [page, pageSize]);
 

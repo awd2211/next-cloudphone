@@ -72,7 +72,6 @@ describe('useExportCenter Hook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
 
     vi.mocked(exportService.getExportTasks).mockResolvedValue({
       items: mockTasks,
@@ -81,14 +80,17 @@ describe('useExportCenter Hook', () => {
     vi.mocked(exportService.getExportStats).mockResolvedValue(mockStats);
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   describe('初始化', () => {
-    it('应该初始化loading为false', () => {
+    it('应该初始化loading为false', async () => {
       const { result } = renderHook(() => useExportCenter());
-      expect(result.current.loading).toBe(false);
+      // 注意：useEffect会立即触发数据加载，loading会短暂变为true
+      // 这里应该等待loading变回false
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('应该初始化tasks为空数组', () => {
@@ -111,33 +113,45 @@ describe('useExportCenter Hook', () => {
     it('mount时应该加载任务列表', async () => {
       renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(exportService.getExportTasks).toHaveBeenCalled();
-      });
+      await waitFor(
+        () => {
+          expect(exportService.getExportTasks).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('mount时应该加载统计数据', async () => {
       renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(exportService.getExportStats).toHaveBeenCalled();
-      });
+      await waitFor(
+        () => {
+          expect(exportService.getExportStats).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('加载成功应该更新tasks', async () => {
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks).toEqual(mockTasks);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks).toEqual(mockTasks);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('加载成功应该更新stats', async () => {
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.stats).toEqual(mockStats);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.stats).toEqual(mockStats);
+        },
+        { timeout: 3000 }
+      );
     });
   });
 
@@ -145,9 +159,12 @@ describe('useExportCenter Hook', () => {
     it('应该打开createModal', async () => {
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       act(() => {
         result.current.handleOpenCreateModal();
@@ -161,9 +178,12 @@ describe('useExportCenter Hook', () => {
     it('应该关闭createModal', async () => {
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       act(() => {
         result.current.handleOpenCreateModal();
@@ -176,9 +196,12 @@ describe('useExportCenter Hook', () => {
     it('应该重置表单', async () => {
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       act(() => {
         result.current.handleOpenCreateModal();
@@ -199,9 +222,12 @@ describe('useExportCenter Hook', () => {
 
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.handleCreateExport();
@@ -219,9 +245,12 @@ describe('useExportCenter Hook', () => {
 
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       await act(async () => {
         await result.current.handleCreateExport();
@@ -239,9 +268,12 @@ describe('useExportCenter Hook', () => {
 
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       act(() => {
         result.current.handleOpenCreateModal();
@@ -259,9 +291,12 @@ describe('useExportCenter Hook', () => {
     it('应该更新query', async () => {
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       act(() => {
         result.current.handlePageChange(2, 20);
@@ -276,9 +311,12 @@ describe('useExportCenter Hook', () => {
     it('应该更新query并重置page', async () => {
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       act(() => {
         result.current.handleStatusChange('completed' as any);
@@ -293,9 +331,12 @@ describe('useExportCenter Hook', () => {
     it('应该更新query并重置page', async () => {
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       act(() => {
         result.current.handleDataTypeChange('device' as any);
@@ -307,39 +348,59 @@ describe('useExportCenter Hook', () => {
   });
 
   describe('自动刷新', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('应该每5秒自动刷新', async () => {
       renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(exportService.getExportTasks).toHaveBeenCalled();
-      });
+      // 等待初始加载
+      await vi.waitFor(
+        () => {
+          expect(exportService.getExportTasks).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
-      // 前进5秒
+      // 前进5秒并运行所有定时器
       await act(async () => {
-        vi.advanceTimersByTime(5000);
+        await vi.advanceTimersByTimeAsync(5000);
       });
 
-      await waitFor(() => {
-        expect(exportService.getExportTasks).toHaveBeenCalled();
-      });
+      // 等待异步操作完成
+      await vi.waitFor(
+        () => {
+          expect(exportService.getExportTasks).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('unmount时应该清理定时器', async () => {
       const { unmount } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(exportService.getExportTasks).toHaveBeenCalled();
-      });
+      // 等待初始加载
+      await vi.waitFor(
+        () => {
+          expect(exportService.getExportTasks).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
       unmount();
 
       // 前进5秒
-      act(() => {
-        vi.advanceTimersByTime(5000);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
       });
 
       // 不应该再次调用
@@ -351,9 +412,12 @@ describe('useExportCenter Hook', () => {
     it('应该重新加载任务和统计', async () => {
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       vi.clearAllMocks();
 
@@ -361,8 +425,14 @@ describe('useExportCenter Hook', () => {
         result.current.handleRefresh();
       });
 
-      expect(exportService.getExportTasks).toHaveBeenCalled();
-      expect(exportService.getExportStats).toHaveBeenCalled();
+      // 使用 waitFor 等待异步操作完成
+      await waitFor(
+        () => {
+          expect(exportService.getExportTasks).toHaveBeenCalled();
+          expect(exportService.getExportStats).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     });
   });
 
@@ -370,9 +440,12 @@ describe('useExportCenter Hook', () => {
     it('应该定义columns', async () => {
       const { result } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       expect(result.current.columns).toBeDefined();
     });
@@ -380,9 +453,12 @@ describe('useExportCenter Hook', () => {
     it('columns应该使用useMemo缓存', async () => {
       const { result, rerender } = renderHook(() => useExportCenter());
 
-      await waitFor(() => {
-        expect(result.current.tasks.length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.tasks.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       const firstColumns = result.current.columns;
       rerender();

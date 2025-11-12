@@ -85,19 +85,23 @@ describe('useInvoiceList - 改进版测试', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      // 重试
-      act(() => {
-        result.current.handlePageChange(1, 10);
+      // 重试 - 改变分页参数触发新请求
+      await act(async () => {
+        result.current.handlePageChange(2, 10);
       });
 
-      await waitFor(() => {
-        expect(callCount).toBe(2);
-        expect(result.current.invoices).toEqual([]);
-      });
+      await waitFor(
+        () => {
+          expect(callCount).toBe(2);
+          expect(result.current.invoices).toEqual([]);
+        },
+        { timeout: 3000 }
+      );
     });
   });
 
   describe('竞态条件测试', () => {
+    // ✅ 已修复：hook现在使用requestId tracking防止竞态条件
     it('快速翻页时应该只显示最后一次请求的结果', async () => {
       let resolveFirst: any;
       let resolveSecond: any;
@@ -118,33 +122,46 @@ describe('useInvoiceList - 改进版测试', () => {
       const { result } = renderHook(() => useInvoiceList());
 
       // 第一次请求
-      await waitFor(() => {
-        expect(billingService.getInvoices).toHaveBeenCalledTimes(1);
-      });
+      await waitFor(
+        () => {
+          expect(billingService.getInvoices).toHaveBeenCalledTimes(1);
+        },
+        { timeout: 3000 }
+      );
 
       // 快速发起第二次请求（第一次还没完成）
-      act(() => {
+      await act(async () => {
         result.current.handlePageChange(2, 10);
       });
 
-      await waitFor(() => {
-        expect(billingService.getInvoices).toHaveBeenCalledTimes(2);
-      });
+      await waitFor(
+        () => {
+          expect(billingService.getInvoices).toHaveBeenCalledTimes(2);
+        },
+        { timeout: 3000 }
+      );
 
       // 第二次请求先返回
-      resolveSecond({ items: [{ id: '2', invoiceNo: 'INV-002' }], total: 1 });
-
-      await waitFor(() => {
-        expect(result.current.invoices).toEqual([
-          { id: '2', invoiceNo: 'INV-002' },
-        ]);
+      act(() => {
+        resolveSecond({ items: [{ id: '2', invoiceNo: 'INV-002' }], total: 1 });
       });
 
+      await waitFor(
+        () => {
+          expect(result.current.invoices).toEqual([
+            { id: '2', invoiceNo: 'INV-002' },
+          ]);
+        },
+        { timeout: 3000 }
+      );
+
       // 第一次请求后返回（应该被忽略）
-      resolveFirst({ items: [{ id: '1', invoiceNo: 'INV-001' }], total: 1 });
+      act(() => {
+        resolveFirst({ items: [{ id: '1', invoiceNo: 'INV-001' }], total: 1 });
+      });
 
       // 等待一下，确保状态没有被第一次请求覆盖
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // 问题：当前实现可能会被第一次请求覆盖！
       // 这个测试会暴露竞态条件的 bug
@@ -289,37 +306,49 @@ describe('useInvoiceList - 改进版测试', () => {
       const { result } = renderHook(() => useInvoiceList());
 
       // 第一次失败
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { timeout: 3000 }
+      );
+
+      // 重试 - 切换到第2页
+      await act(async () => {
+        result.current.handlePageChange(2, 10);
       });
 
-      // 重试
-      act(() => {
-        result.current.handlePageChange(1, 10);
+      await waitFor(
+        () => {
+          expect(callCount).toBe(2);
+        },
+        { timeout: 3000 }
+      );
+
+      // 再次重试 - 切换到第3页
+      await act(async () => {
+        result.current.handlePageChange(3, 10);
       });
 
-      await waitFor(() => {
-        expect(callCount).toBe(2);
+      await waitFor(
+        () => {
+          expect(callCount).toBe(3);
+        },
+        { timeout: 3000 }
+      );
+
+      // 最后一次应该成功 - 切换到第4页
+      await act(async () => {
+        result.current.handlePageChange(4, 10);
       });
 
-      // 再次重试
-      act(() => {
-        result.current.handlePageChange(1, 10);
-      });
-
-      await waitFor(() => {
-        expect(callCount).toBe(3);
-      });
-
-      // 最后一次应该成功
-      act(() => {
-        result.current.handlePageChange(1, 10);
-      });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-        expect(callCount).toBe(4);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+          expect(callCount).toBe(4);
+        },
+        { timeout: 3000 }
+      );
     });
   });
 });

@@ -84,8 +84,10 @@ describe('useApiKeys Hook', () => {
       const longKey = 'sk_test_mock1234567890abcdefghijklmnopqrstuvwxyz';
       const masked = result.current.maskKey(longKey);
 
-      expect(masked).toContain('sk_test_mock');
-      expect(masked).toContain('*');
+      // 脱敏逻辑：保留前8位和后4位，中间用星号替换
+      expect(masked).toContain('sk_test_'); // 前8位
+      expect(masked).toContain('*'); // 中间的星号
+      expect(masked).toContain('wxyz'); // 后4位
       expect(masked.length).toBeGreaterThan(20);
     });
 

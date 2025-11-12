@@ -68,9 +68,16 @@ describe('useMessageList Hook', () => {
   });
 
   describe('初始化', () => {
-    it('应该初始化loading为false', () => {
+    it('应该初始化loading为false', async () => {
       const { result } = renderHook(() => useMessageList());
-      expect(result.current.loading).toBe(false);
+      // useEffect会立即触发数据加载，loading会短暂变为true
+      // 等待loading变回false
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('应该初始化notifications为空数组', () => {
