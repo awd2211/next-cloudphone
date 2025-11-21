@@ -153,8 +153,8 @@ export class ProxyCostMonitoringController {
     @Param('userId') userId: string,
     @Query('budgetType') budgetType?: string,
   ): Promise<ProxyApiResponse<BudgetResponseDto[]>> {
-    // TODO: 实现查询逻辑
-    return ProxyApiResponse.success([]);
+    const budgets = await this.costMonitoringService.getUserBudgets(userId, budgetType);
+    return ProxyApiResponse.success(budgets as any);
   }
 
   /**
@@ -182,8 +182,8 @@ export class ProxyCostMonitoringController {
     @Param('userId') userId: string,
     @Query('acknowledged') acknowledged?: boolean,
   ): Promise<ProxyApiResponse<CostAlertResponseDto[]>> {
-    // TODO: 实现查询逻辑
-    return ProxyApiResponse.success([]);
+    const alerts = await this.costMonitoringService.getUserAlerts(userId, acknowledged);
+    return ProxyApiResponse.success(alerts as any);
   }
 
   /**
@@ -204,9 +204,12 @@ export class ProxyCostMonitoringController {
   async acknowledgeCostAlert(
     @Param('alertId') alertId: string,
   ): Promise<ProxyApiResponse<{ acknowledged: boolean }>> {
-    // TODO: 实现确认逻辑
+    const result = await this.costMonitoringService.acknowledgeAlert(alertId);
+    if (!result.success) {
+      return ProxyApiResponse.error('Alert not found');
+    }
     return ProxyApiResponse.success(
-      { acknowledged: true },
+      { acknowledged: true, ...result.alert },
       'Alert acknowledged',
     );
   }
@@ -262,40 +265,7 @@ export class ProxyCostMonitoringController {
       costTrend: any[];
     }>
   > {
-    // TODO: 实现仪表盘数据聚合逻辑
-    const endDate = new Date();
-    const startOfMonth = new Date(
-      endDate.getFullYear(),
-      endDate.getMonth(),
-      1,
-    );
-    const startOfToday = new Date(
-      endDate.getFullYear(),
-      endDate.getMonth(),
-      endDate.getDate(),
-    );
-
-    const [monthStats, todayStats] = await Promise.all([
-      this.costMonitoringService.getCostStatistics({
-        userId,
-        startDate: startOfMonth,
-        endDate,
-        groupBy: 'day',
-      }),
-      this.costMonitoringService.getCostStatistics({
-        userId,
-        startDate: startOfToday,
-        endDate,
-      }),
-    ]);
-
-    return ProxyApiResponse.success({
-      currentMonthCost: monthStats.totalCost,
-      todayCost: todayStats.totalCost,
-      budgets: [],
-      recentAlerts: [],
-      topExpensiveProxies: [],
-      costTrend: monthStats.timeline || [],
-    });
+    const dashboardData = await this.costMonitoringService.getDashboardSummary(userId);
+    return ProxyApiResponse.success(dashboardData as any);
   }
 }

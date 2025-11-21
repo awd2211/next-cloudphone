@@ -11,6 +11,7 @@ import { BaseJwtStrategy } from '@cloudphone/shared';
 @Injectable()
 export class JwtStrategy extends BaseJwtStrategy {
   constructor(configService: ConfigService) {
-    super(configService);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    super(configService as any);
   }
 }

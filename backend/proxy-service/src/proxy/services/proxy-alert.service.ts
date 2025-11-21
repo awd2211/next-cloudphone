@@ -1,6 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
+import * as crypto from 'crypto';
 import {
   ProxyAlertChannel,
   ProxyAlertRule,
@@ -20,6 +23,8 @@ import {
 export class ProxyAlertService {
   private readonly logger = new Logger(ProxyAlertService.name);
 
+  private emailTransporter: nodemailer.Transporter | null = null;
+
   constructor(
     @InjectRepository(ProxyAlertChannel)
     private channelRepo: Repository<ProxyAlertChannel>,
@@ -27,7 +32,35 @@ export class ProxyAlertService {
     private ruleRepo: Repository<ProxyAlertRule>,
     @InjectRepository(ProxyAlertHistory)
     private historyRepo: Repository<ProxyAlertHistory>,
-  ) {}
+    private configService: ConfigService,
+  ) {
+    this.initializeEmailTransporter();
+  }
+
+  /**
+   * 初始化邮件传输器
+   */
+  private initializeEmailTransporter(): void {
+    const smtpHost = this.configService.get<string>('SMTP_HOST');
+    const smtpPort = this.configService.get<number>('SMTP_PORT', 587);
+    const smtpUser = this.configService.get<string>('SMTP_USER');
+    const smtpPass = this.configService.get<string>('SMTP_PASS');
+
+    if (smtpHost && smtpUser && smtpPass) {
+      this.emailTransporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+      this.logger.log('Email transporter initialized');
+    } else {
+      this.logger.warn('SMTP configuration incomplete, email alerts disabled');
+    }
+  }
 
   // ==================== 告警通道管理 ====================
 
@@ -142,7 +175,14 @@ export class ProxyAlertService {
     }
 
     try {
-      // TODO: 实现实际的通知发送逻辑
+      // 根据通道类型发送通知
+      await this.sendNotification(channel, {
+        title: '测试告警',
+        message: testMessage,
+        level: 'info',
+        timestamp: new Date().toISOString(),
+      });
+
       const sentAt = new Date();
 
       // 更新统计
@@ -171,6 +211,431 @@ export class ProxyAlertService {
         error: error.message,
       };
     }
+  }
+
+  // ==================== 通知发送实现 ====================
+
+  /**
+   * 发送通知到指定通道
+   */
+  async sendNotification(
+    channel: ProxyAlertChannel,
+    alert: {
+      title: string;
+      message: string;
+      level: string;
+      timestamp: string;
+      details?: Record<string, any>;
+    },
+  ): Promise<void> {
+    switch (channel.channelType) {
+      case 'email':
+        await this.sendEmailNotification(channel, alert);
+        break;
+      case 'sms':
+        await this.sendSmsNotification(channel, alert);
+        break;
+      case 'webhook':
+        await this.sendWebhookNotification(channel, alert);
+        break;
+      case 'dingtalk':
+        await this.sendDingTalkNotification(channel, alert);
+        break;
+      case 'wechat':
+        await this.sendWeChatNotification(channel, alert);
+        break;
+      case 'slack':
+        await this.sendSlackNotification(channel, alert);
+        break;
+      default:
+        throw new Error(`Unsupported channel type: ${channel.channelType}`);
+    }
+  }
+
+  /**
+   * 发送邮件通知
+   */
+  private async sendEmailNotification(
+    channel: ProxyAlertChannel,
+    alert: { title: string; message: string; level: string; timestamp: string },
+  ): Promise<void> {
+    if (!this.emailTransporter) {
+      throw new Error('Email transporter not configured');
+    }
+
+    if (!channel.emailAddresses || channel.emailAddresses.length === 0) {
+      throw new Error('No email addresses configured for this channel');
+    }
+
+    const levelEmoji = this.getLevelEmoji(alert.level);
+    const smtpFrom = this.configService.get<string>('SMTP_FROM', 'noreply@cloudphone.com');
+
+    await this.emailTransporter.sendMail({
+      from: smtpFrom,
+      to: channel.emailAddresses.join(','),
+      subject: `${levelEmoji} [代理告警] ${alert.title}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: ${this.getLevelColor(alert.level)}; color: white; padding: 15px; border-radius: 5px 5px 0 0;">
+            <h2 style="margin: 0;">${levelEmoji} ${alert.title}</h2>
+          </div>
+          <div style="border: 1px solid #ddd; border-top: none; padding: 20px; border-radius: 0 0 5px 5px;">
+            <p style="font-size: 16px; line-height: 1.6;">${alert.message}</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">
+              告警时间: ${alert.timestamp}<br>
+              告警级别: ${alert.level.toUpperCase()}<br>
+              通道名称: ${channel.channelName}
+            </p>
+          </div>
+        </div>
+      `,
+    });
+
+    this.logger.log(`Email notification sent to ${channel.emailAddresses.length} recipients`);
+  }
+
+  /**
+   * 发送短信通知（需要集成短信服务）
+   */
+  private async sendSmsNotification(
+    channel: ProxyAlertChannel,
+    alert: { title: string; message: string; level: string },
+  ): Promise<void> {
+    if (!channel.phoneNumbers || channel.phoneNumbers.length === 0) {
+      throw new Error('No phone numbers configured for this channel');
+    }
+
+    // 通过 HTTP 调用 SMS 服务
+    const smsServiceUrl = this.configService.get<string>('SMS_SERVICE_URL', 'http://localhost:30008');
+
+    for (const phone of channel.phoneNumbers) {
+      try {
+        const response = await fetch(`${smsServiceUrl}/sms/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: phone,
+            message: `[${alert.level.toUpperCase()}] ${alert.title}: ${alert.message}`,
+            type: 'alert',
+          }),
+        });
+
+        if (!response.ok) {
+          this.logger.warn(`Failed to send SMS to ${phone}: ${response.statusText}`);
+        }
+      } catch (error) {
+        this.logger.warn(`SMS send error for ${phone}: ${error.message}`);
+      }
+    }
+
+    this.logger.log(`SMS notification sent to ${channel.phoneNumbers.length} numbers`);
+  }
+
+  /**
+   * 发送 Webhook 通知
+   */
+  private async sendWebhookNotification(
+    channel: ProxyAlertChannel,
+    alert: { title: string; message: string; level: string; timestamp: string; details?: Record<string, any> },
+  ): Promise<void> {
+    if (!channel.webhookUrl) {
+      throw new Error('Webhook URL not configured');
+    }
+
+    const payload = {
+      event: 'proxy_alert',
+      timestamp: alert.timestamp,
+      alert: {
+        title: alert.title,
+        message: alert.message,
+        level: alert.level,
+        details: alert.details || {},
+      },
+      channel: {
+        id: channel.id,
+        name: channel.channelName,
+      },
+    };
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(channel.webhookHeaders || {}),
+    };
+
+    const response = await fetch(channel.webhookUrl, {
+      method: channel.webhookMethod || 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook request failed: ${response.status} ${response.statusText}`);
+    }
+
+    this.logger.log(`Webhook notification sent to ${channel.webhookUrl}`);
+  }
+
+  /**
+   * 发送钉钉通知
+   */
+  private async sendDingTalkNotification(
+    channel: ProxyAlertChannel,
+    alert: { title: string; message: string; level: string; timestamp: string },
+  ): Promise<void> {
+    if (!channel.dingtalkWebhookUrl) {
+      throw new Error('DingTalk webhook URL not configured');
+    }
+
+    let url = channel.dingtalkWebhookUrl;
+
+    // 如果配置了签名，生成签名
+    if (channel.dingtalkSecret) {
+      const timestamp = Date.now();
+      const stringToSign = `${timestamp}\n${channel.dingtalkSecret}`;
+      const sign = crypto
+        .createHmac('sha256', channel.dingtalkSecret)
+        .update(stringToSign)
+        .digest('base64');
+      url += `&timestamp=${timestamp}&sign=${encodeURIComponent(sign)}`;
+    }
+
+    const levelEmoji = this.getLevelEmoji(alert.level);
+    const payload = {
+      msgtype: 'markdown',
+      markdown: {
+        title: `${levelEmoji} ${alert.title}`,
+        text: `### ${levelEmoji} ${alert.title}\n\n` +
+          `**告警级别**: ${alert.level.toUpperCase()}\n\n` +
+          `**告警时间**: ${alert.timestamp}\n\n` +
+          `**告警内容**: ${alert.message}\n\n` +
+          `---\n` +
+          `通道: ${channel.channelName}`,
+      },
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`DingTalk request failed: ${errorText}`);
+    }
+
+    const result = await response.json();
+    if (result.errcode !== 0) {
+      throw new Error(`DingTalk error: ${result.errmsg}`);
+    }
+
+    this.logger.log('DingTalk notification sent');
+  }
+
+  /**
+   * 发送企业微信通知
+   */
+  private async sendWeChatNotification(
+    channel: ProxyAlertChannel,
+    alert: { title: string; message: string; level: string; timestamp: string },
+  ): Promise<void> {
+    if (!channel.wechatWebhookUrl) {
+      throw new Error('WeChat webhook URL not configured');
+    }
+
+    const levelEmoji = this.getLevelEmoji(alert.level);
+    const payload = {
+      msgtype: 'markdown',
+      markdown: {
+        content: `### ${levelEmoji} ${alert.title}\n` +
+          `> 告警级别: <font color="${this.getLevelHexColor(alert.level)}">${alert.level.toUpperCase()}</font>\n` +
+          `> 告警时间: ${alert.timestamp}\n\n` +
+          `${alert.message}\n\n` +
+          `---\n` +
+          `通道: ${channel.channelName}`,
+      },
+    };
+
+    const response = await fetch(channel.wechatWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`WeChat request failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.errcode !== 0) {
+      throw new Error(`WeChat error: ${result.errmsg}`);
+    }
+
+    this.logger.log('WeChat notification sent');
+  }
+
+  /**
+   * 发送 Slack 通知
+   */
+  private async sendSlackNotification(
+    channel: ProxyAlertChannel,
+    alert: { title: string; message: string; level: string; timestamp: string },
+  ): Promise<void> {
+    if (!channel.slackWebhookUrl) {
+      throw new Error('Slack webhook URL not configured');
+    }
+
+    const levelEmoji = this.getLevelEmoji(alert.level);
+    const payload = {
+      channel: channel.slackChannel || undefined,
+      attachments: [
+        {
+          color: this.getLevelHexColor(alert.level),
+          blocks: [
+            {
+              type: 'header',
+              text: {
+                type: 'plain_text',
+                text: `${levelEmoji} ${alert.title}`,
+                emoji: true,
+              },
+            },
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: alert.message,
+              },
+            },
+            {
+              type: 'context',
+              elements: [
+                {
+                  type: 'mrkdwn',
+                  text: `*Level:* ${alert.level.toUpperCase()} | *Time:* ${alert.timestamp} | *Channel:* ${channel.channelName}`,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const response = await fetch(channel.slackWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Slack request failed: ${response.status}`);
+    }
+
+    this.logger.log('Slack notification sent');
+  }
+
+  /**
+   * 批量发送告警到多个通道
+   */
+  async sendAlertToChannels(
+    channelIds: string[],
+    alert: {
+      title: string;
+      message: string;
+      level: string;
+      timestamp: string;
+      details?: Record<string, any>;
+    },
+  ): Promise<{ channelId: string; success: boolean; error?: string }[]> {
+    const results: { channelId: string; success: boolean; error?: string }[] = [];
+
+    for (const channelId of channelIds) {
+      try {
+        const channel = await this.getChannel(channelId);
+
+        if (!channel.isActive) {
+          results.push({ channelId, success: false, error: 'Channel is inactive' });
+          continue;
+        }
+
+        // 检查告警级别是否在通道配置的级别范围内
+        if (!channel.alertLevels.includes(alert.level)) {
+          results.push({ channelId, success: false, error: `Alert level ${alert.level} not in channel config` });
+          continue;
+        }
+
+        await this.sendNotification(channel, alert);
+
+        // 更新成功统计
+        channel.totalSent += 1;
+        channel.successfulSent += 1;
+        channel.lastSentAt = new Date();
+        channel.lastSuccessAt = new Date();
+        await this.channelRepo.save(channel);
+
+        results.push({ channelId, success: true });
+      } catch (error) {
+        // 更新失败统计
+        try {
+          const channel = await this.channelRepo.findOne({ where: { id: channelId } });
+          if (channel) {
+            channel.totalSent += 1;
+            channel.failedSent += 1;
+            channel.lastFailureAt = new Date();
+            channel.lastErrorMessage = error.message;
+            await this.channelRepo.save(channel);
+          }
+        } catch {
+          // 忽略统计更新失败
+        }
+
+        results.push({ channelId, success: false, error: error.message });
+      }
+    }
+
+    return results;
+  }
+
+  // ==================== 辅助方法 ====================
+
+  /**
+   * 获取级别对应的 emoji
+   */
+  private getLevelEmoji(level: string): string {
+    const emojiMap: Record<string, string> = {
+      info: 'ℹ️',
+      warning: '⚠️',
+      error: '❌',
+      critical: '🚨',
+    };
+    return emojiMap[level.toLowerCase()] || 'ℹ️';
+  }
+
+  /**
+   * 获取级别对应的颜色（用于邮件背景）
+   */
+  private getLevelColor(level: string): string {
+    const colorMap: Record<string, string> = {
+      info: '#2196F3',
+      warning: '#FF9800',
+      error: '#F44336',
+      critical: '#9C27B0',
+    };
+    return colorMap[level.toLowerCase()] || '#2196F3';
+  }
+
+  /**
+   * 获取级别对应的十六进制颜色
+   */
+  private getLevelHexColor(level: string): string {
+    const colorMap: Record<string, string> = {
+      info: '#2196F3',
+      warning: '#ffa500',
+      error: '#ff0000',
+      critical: '#800080',
+    };
+    return colorMap[level.toLowerCase()] || '#2196F3';
   }
 
   // ==================== 告警规则管理 ====================

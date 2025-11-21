@@ -786,4 +786,91 @@ export class ProxyPoolManager {
 
     return reasons.join(', ') || 'unknown reason';
   }
+
+  /**
+   * 终止指定用户的所有代理会话
+   * @param userId 用户ID
+   * @param deviceId 可选设备ID，如果指定则只终止该设备的会话
+   * @returns 终止的会话数量
+   */
+  async terminateUserSessions(userId: string, deviceId?: string): Promise<number> {
+    let terminatedCount = 0;
+
+    // 遍历会话Map，找出并终止匹配的会话
+    for (const [sessionId, session] of this.sessionMap.entries()) {
+      const isUserMatch = session.userId === userId;
+      const isDeviceMatch = !deviceId || session.deviceId === deviceId;
+
+      if (isUserMatch && isDeviceMatch) {
+        // 释放代理
+        const proxy = this.proxyPool.get(session.proxyId);
+        if (proxy) {
+          proxy.inUse = false;
+        }
+
+        // 删除会话
+        this.sessionMap.delete(sessionId);
+        terminatedCount++;
+
+        this.logger.log(
+          `Terminated session ${sessionId} for user ${userId}, device ${session.deviceId}`,
+        );
+      }
+    }
+
+    // 清除缓存中的会话数据
+    if (deviceId) {
+      await this.cache.del(`session:user:${userId}:device:${deviceId}`);
+    } else {
+      // 清除用户所有会话缓存
+      const cacheKeys = await this.cache.store.keys?.(`session:user:${userId}:*`);
+      if (cacheKeys && cacheKeys.length > 0) {
+        for (const key of cacheKeys) {
+          await this.cache.del(key);
+        }
+      }
+    }
+
+    this.logger.log(
+      `Total ${terminatedCount} sessions terminated for user ${userId}, device ${deviceId || 'all'}`,
+    );
+
+    return terminatedCount;
+  }
+
+  /**
+   * 获取用户当前活跃的会话列表
+   */
+  getUserActiveSessions(userId: string, deviceId?: string): Array<{
+    sessionId: string;
+    proxyId: string;
+    deviceId?: string;
+    createdAt: Date;
+    lastUsedAt: Date;
+  }> {
+    const sessions: Array<{
+      sessionId: string;
+      proxyId: string;
+      deviceId?: string;
+      createdAt: Date;
+      lastUsedAt: Date;
+    }> = [];
+
+    for (const [sessionId, session] of this.sessionMap.entries()) {
+      const isUserMatch = session.userId === userId;
+      const isDeviceMatch = !deviceId || session.deviceId === deviceId;
+
+      if (isUserMatch && isDeviceMatch) {
+        sessions.push({
+          sessionId,
+          proxyId: session.proxyId,
+          deviceId: session.deviceId,
+          createdAt: session.createdAt,
+          lastUsedAt: session.lastUsedAt,
+        });
+      }
+    }
+
+    return sessions;
+  }
 }

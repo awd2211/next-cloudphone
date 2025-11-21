@@ -337,11 +337,20 @@ export class ProxyUsageReportController {
   async executeScheduledReport(
     @Param('reportId') reportId: string,
   ): Promise<ProxyApiResponse<any>> {
-    // TODO: 实现立即执行逻辑
-    // 获取定时报告配置，生成一次性报告
+    const result = await this.reportService.executeScheduledReportNow(reportId);
+
+    if (!result.success) {
+      return ProxyApiResponse.error(result.error || 'Failed to execute scheduled report');
+    }
 
     return ProxyApiResponse.success(
-      { reportId, message: 'Execution triggered' },
+      {
+        scheduledReportId: reportId,
+        newReportId: result.newReport?.id,
+        newReportName: result.newReport?.reportName,
+        status: result.newReport?.status,
+        message: 'Report generation started',
+      },
       'Scheduled report execution started',
     );
   }

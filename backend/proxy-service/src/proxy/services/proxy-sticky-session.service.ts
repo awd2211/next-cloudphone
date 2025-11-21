@@ -5,6 +5,7 @@ import { CronExpression } from '@nestjs/schedule';
 import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
 import { ProxyStickySession, ProxySessionRenewal } from '../entities';
 import { ProxyPoolManager } from '../../pool/pool-manager.service';
+import { ProxyAlertService } from './proxy-alert.service';
 
 /**
  * 代理粘性会话服务
@@ -26,6 +27,7 @@ export class ProxyStickySessionService {
     private renewalRepo: Repository<ProxySessionRenewal>,
     private poolManager: ProxyPoolManager,
     private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
+    private readonly alertService: ProxyAlertService, // ✅ 告警服务
   ) {}
 
   /**
@@ -328,8 +330,28 @@ export class ProxyStickySessionService {
         `Session ${session.id} is expiring soon (${session.expiresAt.toISOString()})`,
       );
 
-      // TODO: 发送告警通知
-      // await this.alertService.sendAlert('session_expiring', { session });
+      // ✅ 发送告警通知
+      try {
+        const hoursUntilExpiry = Math.ceil(
+          (session.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60),
+        );
+        await this.alertService.createAlertHistory({
+          ruleId: 'session_expiring_soon',
+          userId: session.userId,
+          deviceId: session.deviceId,
+          ruleName: '会话即将过期',
+          ruleType: 'session_expiring',
+          alertLevel: 'warning',
+          alertTitle: '代理会话即将过期',
+          alertMessage: `代理会话 ${session.id} 将在 ${hoursUntilExpiry} 小时后过期（${session.expiresAt.toISOString()}）`,
+          triggerMetric: 'session_expiry_hours',
+          triggerValue: hoursUntilExpiry,
+          thresholdValue: 24, // 24小时阈值
+          notificationChannels: [], // 使用默认通知渠道
+        });
+      } catch (alertError) {
+        this.logger.error(`Failed to send session expiring alert: ${alertError.message}`);
+      }
     }
   }
 

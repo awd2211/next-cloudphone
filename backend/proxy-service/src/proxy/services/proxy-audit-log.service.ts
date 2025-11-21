@@ -3,6 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In, MoreThan } from 'typeorm';
 import { ProxyAuditLog, ProxySensitiveAuditLog } from '../entities';
 import * as crypto from 'crypto';
+import * as ExcelJS from 'exceljs';
+import { stringify } from 'csv-stringify/sync';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * 代理审计日志服务
@@ -101,11 +105,9 @@ export class ProxyAuditLogService {
   }
 
   /**
-   * 加密数据
+   * 加密数据 (AES-256-GCM)
    */
   private encryptData(data: string): string {
-    // TODO: 实现实际的AES-256-GCM加密
-    // 使用 crypto.createCipheriv
     const algorithm = 'aes-256-gcm';
     const key = crypto.scryptSync(this.encryptionKey, 'salt', 32);
     const iv = crypto.randomBytes(16);
@@ -230,10 +232,12 @@ export class ProxyAuditLogService {
     },
   ): Promise<{ logs: ProxySensitiveAuditLog[]; total: number }> {
     // 权限检查：只有管理员或审计员可以查看敏感日志
-    // TODO: 实现实际的权限检查逻辑
-    // if (!hasAuditPermission(requestUserId)) {
-    //   throw new ForbiddenException('Access to sensitive audit logs denied');
-    // }
+    // 这里简单检查用户ID是否有审计权限（实际应通过 user-service 验证）
+    const hasAuditPermission = await this.checkAuditPermission(requestUserId);
+    if (!hasAuditPermission) {
+      this.logger.warn(`User ${requestUserId} attempted to access sensitive audit logs without permission`);
+      throw new ForbiddenException('Access to sensitive audit logs denied. Requires auditor or admin role.');
+    }
 
     const whereConditions: any = {};
 
@@ -658,16 +662,156 @@ export class ProxyAuditLogService {
 
     const logs = await this.auditLogRepo.find({ where: whereConditions });
 
-    // TODO: 实现实际的导出逻辑
-    // 根据 exportFormat 生成文件（CSV, JSON, Excel）
-    // 上传到存储服务并返回下载链接
+    // 确保导出目录存在
+    const exportDir = path.join(process.cwd(), 'exports', 'audit-logs');
+    if (!fs.existsSync(exportDir)) {
+      fs.mkdirSync(exportDir, { recursive: true });
+    }
 
-    const mockDownloadUrl = `https://storage.example.com/audit-export/${Date.now()}.${params.exportFormat}`;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `audit-logs-${timestamp}.${params.exportFormat}`;
+    const filePath = path.join(exportDir, fileName);
+
+    // 准备导出数据
+    const exportData = logs.map((log) => ({
+      id: log.id,
+      userId: log.userId,
+      action: log.action,
+      resourceType: log.resourceType,
+      resourceId: log.resourceId,
+      details: JSON.stringify(log.details || {}),
+      riskLevel: log.riskLevel,
+      success: log.success,
+      ipAddress: log.ipAddress,
+      userAgent: log.userAgent,
+      createdAt: log.createdAt?.toISOString(),
+    }));
+
+    let fileSize = 0;
+
+    switch (params.exportFormat.toLowerCase()) {
+      case 'excel':
+      case 'xlsx':
+        await this.generateExcelExport(filePath, exportData);
+        break;
+      case 'csv':
+        this.generateCsvExport(filePath, exportData);
+        break;
+      case 'json':
+      default:
+        this.generateJsonExport(filePath, exportData);
+        break;
+    }
+
+    // 获取文件大小
+    const stats = fs.statSync(filePath);
+    fileSize = stats.size;
+
+    const downloadUrl = `/api/audit-logs/download/${fileName}`;
+
+    this.logger.log(`Exported ${logs.length} audit logs to ${filePath}`);
 
     return {
-      downloadUrl: mockDownloadUrl,
-      fileSize: logs.length * 1024, // 模拟文件大小
+      downloadUrl,
+      fileSize,
       recordCount: logs.length,
     };
+  }
+
+  /**
+   * 生成 Excel 导出文件
+   */
+  private async generateExcelExport(filePath: string, data: any[]): Promise<void> {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'CloudPhone Audit System';
+    workbook.created = new Date();
+
+    const sheet = workbook.addWorksheet('Audit Logs');
+
+    // 设置列头
+    sheet.columns = [
+      { header: 'ID', key: 'id', width: 40 },
+      { header: 'User ID', key: 'userId', width: 40 },
+      { header: 'Action', key: 'action', width: 25 },
+      { header: 'Resource Type', key: 'resourceType', width: 20 },
+      { header: 'Resource ID', key: 'resourceId', width: 40 },
+      { header: 'Details', key: 'details', width: 50 },
+      { header: 'Risk Level', key: 'riskLevel', width: 12 },
+      { header: 'Success', key: 'success', width: 10 },
+      { header: 'IP Address', key: 'ipAddress', width: 15 },
+      { header: 'User Agent', key: 'userAgent', width: 30 },
+      { header: 'Created At', key: 'createdAt', width: 25 },
+    ];
+
+    // 设置表头样式
+    sheet.getRow(1).font = { bold: true };
+    sheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+
+    // 添加数据
+    data.forEach((row) => sheet.addRow(row));
+
+    await workbook.xlsx.writeFile(filePath);
+  }
+
+  /**
+   * 生成 CSV 导出文件
+   */
+  private generateCsvExport(filePath: string, data: any[]): void {
+    const csvContent = stringify(data, {
+      header: true,
+      columns: [
+        'id', 'userId', 'action', 'resourceType', 'resourceId',
+        'details', 'riskLevel', 'success', 'ipAddress', 'userAgent', 'createdAt',
+      ],
+    });
+    fs.writeFileSync(filePath, csvContent);
+  }
+
+  /**
+   * 生成 JSON 导出文件
+   */
+  private generateJsonExport(filePath: string, data: any[]): void {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  }
+
+  /**
+   * 检查用户是否有审计权限
+   * 简单实现：检查用户最近的操作记录是否包含管理员操作
+   * 实际生产环境应通过 user-service API 验证用户角色
+   */
+  private async checkAuditPermission(userId: string): Promise<boolean> {
+    // 检查用户是否有最近的管理员操作记录
+    // 这是一个简化的检查，实际应该调用 user-service 验证角色
+    const recentAdminAction = await this.auditLogRepo.findOne({
+      where: {
+        userId,
+        action: In([
+          'admin.login',
+          'user.manage',
+          'system.config',
+          'audit.view',
+          'audit.export',
+          'sensitive_audit_log.query',
+        ]),
+        createdAt: MoreThan(new Date(Date.now() - 24 * 60 * 60 * 1000)), // 24小时内
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    // 如果有最近的管理员操作，允许访问
+    // 如果没有，检查用户ID格式是否为管理员（临时方案）
+    if (recentAdminAction) {
+      return true;
+    }
+
+    // 临时方案：检查用户ID是否包含 'admin' 或为系统用户
+    // 实际应通过 user-service 的 /users/:id/roles API 验证
+    const isAdminUser = userId.includes('admin') || userId === 'system';
+
+    return isAdminUser;
   }
 }
