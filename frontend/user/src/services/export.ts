@@ -1,4 +1,9 @@
-import request from '@/utils/request';
+/**
+ * 数据导出服务 API
+ *
+ * ⚠️ 注意：后端暂未实现导出相关控制器
+ * 所有端点返回占位数据，待后端实现后替换
+ */
 
 // 导出数据类型
 export enum ExportDataType {
@@ -97,142 +102,228 @@ export interface DataTypeConfig {
   estimatedSize?: string; // 预估大小
 }
 
+// ==================== 占位数据 ====================
+
+const MOCK_DATA_TYPE_CONFIGS: Record<ExportDataType, DataTypeConfig> = {
+  [ExportDataType.ORDERS]: {
+    label: '订单数据',
+    description: '导出您的所有订单记录',
+    icon: 'shopping-cart',
+    color: '#1890ff',
+    availableFormats: [ExportFormat.CSV, ExportFormat.EXCEL, ExportFormat.PDF],
+    maxRecords: 10000,
+    estimatedSize: '约 1-5 MB',
+  },
+  [ExportDataType.DEVICES]: {
+    label: '设备数据',
+    description: '导出您的云手机设备信息',
+    icon: 'mobile',
+    color: '#52c41a',
+    availableFormats: [ExportFormat.CSV, ExportFormat.EXCEL, ExportFormat.JSON],
+    maxRecords: 1000,
+    estimatedSize: '约 100 KB - 1 MB',
+  },
+  [ExportDataType.TICKETS]: {
+    label: '工单数据',
+    description: '导出您的客服工单记录',
+    icon: 'customer-service',
+    color: '#722ed1',
+    availableFormats: [ExportFormat.CSV, ExportFormat.EXCEL, ExportFormat.PDF],
+    maxRecords: 5000,
+    estimatedSize: '约 500 KB - 2 MB',
+  },
+  [ExportDataType.BILLING]: {
+    label: '账单数据',
+    description: '导出您的账单和费用明细',
+    icon: 'account-book',
+    color: '#faad14',
+    availableFormats: [ExportFormat.CSV, ExportFormat.EXCEL, ExportFormat.PDF],
+    maxRecords: 10000,
+    estimatedSize: '约 1-3 MB',
+  },
+  [ExportDataType.USAGE]: {
+    label: '使用记录',
+    description: '导出设备使用时长和资源消耗记录',
+    icon: 'line-chart',
+    color: '#13c2c2',
+    availableFormats: [ExportFormat.CSV, ExportFormat.EXCEL],
+    maxRecords: 50000,
+    estimatedSize: '约 2-10 MB',
+  },
+  [ExportDataType.MESSAGES]: {
+    label: '消息通知',
+    description: '导出您收到的系统通知记录',
+    icon: 'bell',
+    color: '#eb2f96',
+    availableFormats: [ExportFormat.CSV, ExportFormat.JSON],
+    maxRecords: 10000,
+    estimatedSize: '约 500 KB - 2 MB',
+  },
+  [ExportDataType.TRANSACTIONS]: {
+    label: '交易记录',
+    description: '导出充值、消费等交易流水',
+    icon: 'transaction',
+    color: '#fa541c',
+    availableFormats: [ExportFormat.CSV, ExportFormat.EXCEL, ExportFormat.PDF],
+    maxRecords: 20000,
+    estimatedSize: '约 1-5 MB',
+  },
+};
+
+const MOCK_EXPORT_STATS: ExportStats = {
+  total: 0,
+  pending: 0,
+  processing: 0,
+  completed: 0,
+  failed: 0,
+  totalSize: 0,
+  byDataType: {
+    [ExportDataType.ORDERS]: 0,
+    [ExportDataType.DEVICES]: 0,
+    [ExportDataType.TICKETS]: 0,
+    [ExportDataType.BILLING]: 0,
+    [ExportDataType.USAGE]: 0,
+    [ExportDataType.MESSAGES]: 0,
+    [ExportDataType.TRANSACTIONS]: 0,
+  },
+  byFormat: {
+    [ExportFormat.CSV]: 0,
+    [ExportFormat.EXCEL]: 0,
+    [ExportFormat.PDF]: 0,
+    [ExportFormat.JSON]: 0,
+  },
+};
+
+// ==================== API 函数（后端未实现，返回占位数据）====================
+
 /**
  * 创建导出任务
+ * 后端暂未实现此端点
  */
-export const createExportTask = (data: ExportRequest): Promise<ExportTask> => {
-  return request({
-    url: '/export/tasks',
-    method: 'POST',
-    data,
-  });
+export const createExportTask = (_data: ExportRequest): Promise<ExportTask> => {
+  console.warn('createExportTask: 后端暂未实现此端点');
+  return Promise.reject(new Error('导出功能暂未实现'));
 };
 
 /**
  * 获取导出任务列表
+ * 后端暂未实现此端点
  */
 export const getExportTasks = (params?: ExportTaskListQuery): Promise<ExportTaskListResponse> => {
-  return request({
-    url: '/export/tasks',
-    method: 'GET',
-    params,
+  console.warn('getExportTasks: 后端暂未实现此端点，返回空列表');
+  return Promise.resolve({
+    items: [],
+    total: 0,
+    page: params?.page || 1,
+    pageSize: params?.pageSize || 10,
   });
 };
 
 /**
  * 获取导出任务详情
+ * 后端暂未实现此端点
  */
-export const getExportTask = (id: string): Promise<ExportTask> => {
-  return request({
-    url: `/export/tasks/${id}`,
-    method: 'GET',
-  });
+export const getExportTask = (_id: string): Promise<ExportTask> => {
+  console.warn('getExportTask: 后端暂未实现此端点');
+  return Promise.reject(new Error('导出功能暂未实现'));
 };
 
 /**
  * 删除导出任务
+ * 后端暂未实现此端点
  */
-export const deleteExportTask = (id: string): Promise<void> => {
-  return request({
-    url: `/export/tasks/${id}`,
-    method: 'DELETE',
-  });
+export const deleteExportTask = (_id: string): Promise<void> => {
+  console.warn('deleteExportTask: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 批量删除导出任务
+ * 后端暂未实现此端点
  */
-export const deleteExportTasks = (ids: string[]): Promise<void> => {
-  return request({
-    url: '/export/tasks/batch-delete',
-    method: 'POST',
-    data: { ids },
-  });
+export const deleteExportTasks = (_ids: string[]): Promise<void> => {
+  console.warn('deleteExportTasks: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 下载导出文件
+ * 后端暂未实现此端点
  */
-export const downloadExportFile = (id: string): Promise<Blob> => {
-  return request({
-    url: `/export/tasks/${id}/download`,
-    method: 'GET',
-    responseType: 'blob',
-  });
+export const downloadExportFile = (_id: string): Promise<Blob> => {
+  console.warn('downloadExportFile: 后端暂未实现此端点');
+  return Promise.reject(new Error('导出功能暂未实现'));
 };
 
 /**
  * 获取导出统计
+ * 后端暂未实现此端点
  */
 export const getExportStats = (): Promise<ExportStats> => {
-  return request({
-    url: '/export/stats',
-    method: 'GET',
-  });
+  console.warn('getExportStats: 后端暂未实现此端点，返回占位数据');
+  return Promise.resolve(MOCK_EXPORT_STATS);
 };
 
 /**
  * 获取数据类型配置
+ * 后端暂未实现此端点，返回本地配置
  */
 export const getDataTypeConfigs = (): Promise<Record<ExportDataType, DataTypeConfig>> => {
-  return request({
-    url: '/export/data-types',
-    method: 'GET',
-  });
+  console.warn('getDataTypeConfigs: 后端暂未实现此端点，返回本地配置');
+  return Promise.resolve(MOCK_DATA_TYPE_CONFIGS);
 };
 
 /**
  * 重试失败的导出任务
+ * 后端暂未实现此端点
  */
-export const retryExportTask = (id: string): Promise<ExportTask> => {
-  return request({
-    url: `/export/tasks/${id}/retry`,
-    method: 'POST',
-  });
+export const retryExportTask = (_id: string): Promise<ExportTask> => {
+  console.warn('retryExportTask: 后端暂未实现此端点');
+  return Promise.reject(new Error('导出功能暂未实现'));
 };
 
 /**
  * 取消导出任务
+ * 后端暂未实现此端点
  */
-export const cancelExportTask = (id: string): Promise<void> => {
-  return request({
-    url: `/export/tasks/${id}/cancel`,
-    method: 'POST',
-  });
+export const cancelExportTask = (_id: string): Promise<void> => {
+  console.warn('cancelExportTask: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 清空已完成的导出任务
+ * 后端暂未实现此端点
  */
 export const clearCompletedTasks = (): Promise<void> => {
-  return request({
-    url: '/export/tasks/clear-completed',
-    method: 'POST',
-  });
+  console.warn('clearCompletedTasks: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 清空已失败的导出任务
+ * 后端暂未实现此端点
  */
 export const clearFailedTasks = (): Promise<void> => {
-  return request({
-    url: '/export/tasks/clear-failed',
-    method: 'POST',
-  });
+  console.warn('clearFailedTasks: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 获取预估导出记录数
+ * 后端暂未实现此端点
  */
 export const getEstimatedRecordCount = (
-  data: Omit<ExportRequest, 'format'>
+  _data: Omit<ExportRequest, 'format'>
 ): Promise<{ count: number; estimatedSize: string }> => {
-  return request({
-    url: '/export/estimate',
-    method: 'POST',
-    data,
+  console.warn('getEstimatedRecordCount: 后端暂未实现此端点，返回占位数据');
+  return Promise.resolve({
+    count: 0,
+    estimatedSize: '未知',
   });
 };
+
+// ==================== 工具函数（纯前端，无需后端）====================
 
 /**
  * 文件大小格式化
@@ -259,4 +350,52 @@ export const triggerDownload = (blob: Blob, fileName: string) => {
   link.click();
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
+};
+
+/**
+ * 获取导出状态的显示文本
+ */
+export const getExportStatusText = (status: ExportStatus): string => {
+  const statusMap: Record<ExportStatus, string> = {
+    [ExportStatus.PENDING]: '等待中',
+    [ExportStatus.PROCESSING]: '处理中',
+    [ExportStatus.COMPLETED]: '已完成',
+    [ExportStatus.FAILED]: '失败',
+    [ExportStatus.EXPIRED]: '已过期',
+  };
+  return statusMap[status] || status;
+};
+
+/**
+ * 获取导出状态的颜色
+ */
+export const getExportStatusColor = (status: ExportStatus): string => {
+  const colorMap: Record<ExportStatus, string> = {
+    [ExportStatus.PENDING]: 'default',
+    [ExportStatus.PROCESSING]: 'processing',
+    [ExportStatus.COMPLETED]: 'success',
+    [ExportStatus.FAILED]: 'error',
+    [ExportStatus.EXPIRED]: 'warning',
+  };
+  return colorMap[status] || 'default';
+};
+
+/**
+ * 获取导出格式的显示文本
+ */
+export const getExportFormatText = (format: ExportFormat): string => {
+  const formatMap: Record<ExportFormat, string> = {
+    [ExportFormat.CSV]: 'CSV 文件',
+    [ExportFormat.EXCEL]: 'Excel 文件',
+    [ExportFormat.PDF]: 'PDF 文件',
+    [ExportFormat.JSON]: 'JSON 文件',
+  };
+  return formatMap[format] || format;
+};
+
+/**
+ * 获取数据类型的显示文本
+ */
+export const getDataTypeText = (dataType: ExportDataType): string => {
+  return MOCK_DATA_TYPE_CONFIGS[dataType]?.label || dataType;
 };

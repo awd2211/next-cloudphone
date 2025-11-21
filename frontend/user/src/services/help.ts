@@ -1,4 +1,9 @@
-import request from '@/utils/request';
+/**
+ * 帮助中心服务 API
+ *
+ * ⚠️ 注意：后端暂未实现帮助中心相关控制器
+ * 所有端点返回占位数据，待后端实现后替换
+ */
 
 // 帮助分类
 export interface HelpCategory {
@@ -173,189 +178,246 @@ export interface PopularTag {
   count: number;
 }
 
+// ==================== 占位数据 ====================
+
+const MOCK_CATEGORIES: HelpCategory[] = [
+  { id: '1', name: '快速入门', description: '新用户指南', icon: 'rocket', order: 1, articleCount: 5, color: '#1890ff' },
+  { id: '2', name: '设备管理', description: '云手机设备相关', icon: 'mobile', order: 2, articleCount: 8, color: '#52c41a' },
+  { id: '3', name: '账户与计费', description: '账户和付款相关', icon: 'wallet', order: 3, articleCount: 6, color: '#faad14' },
+  { id: '4', name: '常见问题', description: '用户常见问题解答', icon: 'question-circle', order: 4, articleCount: 12, color: '#722ed1' },
+];
+
+const MOCK_FAQS: FAQ[] = [
+  {
+    id: '1',
+    category: FAQCategory.GENERAL,
+    question: '什么是云手机？',
+    answer: '云手机是运行在云端的虚拟安卓设备，您可以通过网页或客户端远程控制它。',
+    order: 1,
+    views: 1250,
+    helpfulCount: 89,
+    tags: ['入门', '概念'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    category: FAQCategory.BILLING,
+    question: '如何充值？',
+    answer: '您可以在"充值中心"页面选择支付宝或微信支付进行充值。',
+    order: 2,
+    views: 890,
+    helpfulCount: 67,
+    tags: ['充值', '支付'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    category: FAQCategory.DEVICE,
+    question: '设备无法启动怎么办？',
+    answer: '请尝试重启设备，如问题持续请联系客服。',
+    order: 3,
+    views: 560,
+    helpfulCount: 45,
+    tags: ['故障', '设备'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+// ==================== API 函数（后端未实现，返回占位数据）====================
+
 /**
  * 获取帮助分类列表
+ * 后端暂未实现此端点
  */
 export const getHelpCategories = (): Promise<HelpCategory[]> => {
-  return request({
-    url: '/help/categories',
-    method: 'GET',
-  });
+  console.warn('getHelpCategories: 后端暂未实现此端点，返回占位数据');
+  return Promise.resolve(MOCK_CATEGORIES);
 };
 
 /**
  * 获取文章列表
+ * 后端暂未实现此端点
  */
 export const getHelpArticles = (params?: ArticleListQuery): Promise<ArticleListResponse> => {
-  return request({
-    url: '/help/articles',
-    method: 'GET',
-    params,
+  console.warn('getHelpArticles: 后端暂未实现此端点，返回占位数据');
+  return Promise.resolve({
+    items: [],
+    total: 0,
+    page: params?.page || 1,
+    pageSize: params?.pageSize || 10,
   });
 };
 
 /**
  * 获取文章详情
+ * 后端暂未实现此端点
  */
-export const getArticleDetail = (id: string): Promise<HelpArticle> => {
-  return request({
-    url: `/help/articles/${id}`,
-    method: 'GET',
-  });
+export const getArticleDetail = (_id: string): Promise<HelpArticle> => {
+  console.warn('getArticleDetail: 后端暂未实现此端点');
+  return Promise.reject(new Error('帮助中心功能暂未实现'));
 };
 
 /**
  * 搜索帮助内容
+ * 后端暂未实现此端点
  */
-export const searchHelp = (keyword: string): Promise<SearchResult> => {
-  return request({
-    url: '/help/search',
-    method: 'GET',
-    params: { keyword },
+export const searchHelp = (_keyword: string): Promise<SearchResult> => {
+  console.warn('searchHelp: 后端暂未实现此端点，返回空结果');
+  return Promise.resolve({
+    articles: [],
+    faqs: MOCK_FAQS,
+    tutorials: [],
   });
 };
 
 /**
  * 获取 FAQ 列表
+ * 后端暂未实现此端点
  */
 export const getFAQs = (params?: FAQListQuery): Promise<FAQListResponse> => {
-  return request({
-    url: '/help/faqs',
-    method: 'GET',
-    params,
+  console.warn('getFAQs: 后端暂未实现此端点，返回占位数据');
+  let items = MOCK_FAQS;
+  if (params?.category) {
+    items = items.filter(faq => faq.category === params.category);
+  }
+  return Promise.resolve({
+    items,
+    total: items.length,
+    page: params?.page || 1,
+    pageSize: params?.pageSize || 10,
   });
 };
 
 /**
  * 获取 FAQ 详情
+ * 后端暂未实现此端点
  */
 export const getFAQDetail = (id: string): Promise<FAQ> => {
-  return request({
-    url: `/help/faqs/${id}`,
-    method: 'GET',
-  });
+  console.warn('getFAQDetail: 后端暂未实现此端点，返回占位数据');
+  const faq = MOCK_FAQS.find(f => f.id === id);
+  if (faq) {
+    return Promise.resolve(faq);
+  }
+  return Promise.reject(new Error('FAQ 不存在'));
 };
 
 /**
  * 获取教程列表
+ * 后端暂未实现此端点
  */
 export const getTutorials = (params?: TutorialListQuery): Promise<TutorialListResponse> => {
-  return request({
-    url: '/help/tutorials',
-    method: 'GET',
-    params,
+  console.warn('getTutorials: 后端暂未实现此端点，返回占位数据');
+  return Promise.resolve({
+    items: [],
+    total: 0,
+    page: params?.page || 1,
+    pageSize: params?.pageSize || 10,
   });
 };
 
 /**
  * 获取教程详情
+ * 后端暂未实现此端点
  */
-export const getTutorialDetail = (id: string): Promise<Tutorial> => {
-  return request({
-    url: `/help/tutorials/${id}`,
-    method: 'GET',
-  });
+export const getTutorialDetail = (_id: string): Promise<Tutorial> => {
+  console.warn('getTutorialDetail: 后端暂未实现此端点');
+  return Promise.reject(new Error('教程功能暂未实现'));
 };
 
 /**
  * 标记为有帮助
+ * 后端暂未实现此端点
  */
-export const markHelpful = (id: string, type: 'article' | 'faq' | 'tutorial'): Promise<void> => {
-  return request({
-    url: `/help/${type}s/${id}/helpful`,
-    method: 'POST',
-  });
+export const markHelpful = (_id: string, _type: 'article' | 'faq' | 'tutorial'): Promise<void> => {
+  console.warn('markHelpful: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 点赞
+ * 后端暂未实现此端点
  */
-export const likeContent = (id: string, type: 'article' | 'tutorial'): Promise<void> => {
-  return request({
-    url: `/help/${type}s/${id}/like`,
-    method: 'POST',
-  });
+export const likeContent = (_id: string, _type: 'article' | 'tutorial'): Promise<void> => {
+  console.warn('likeContent: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 提交反馈
+ * 后端暂未实现此端点
  */
-export const submitFeedback = (data: FeedbackData): Promise<void> => {
-  return request({
-    url: '/help/feedback',
-    method: 'POST',
-    data,
-  });
+export const submitFeedback = (_data: FeedbackData): Promise<void> => {
+  console.warn('submitFeedback: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 获取热门标签
+ * 后端暂未实现此端点
  */
 export const getPopularTags = (): Promise<PopularTag[]> => {
-  return request({
-    url: '/help/tags/popular',
-    method: 'GET',
-  });
+  console.warn('getPopularTags: 后端暂未实现此端点，返回占位数据');
+  return Promise.resolve([
+    { name: '入门指南', count: 25 },
+    { name: '设备问题', count: 18 },
+    { name: '充值', count: 15 },
+    { name: '应用安装', count: 12 },
+  ]);
 };
 
 /**
  * 记录文章浏览
+ * 后端暂未实现此端点
  */
-export const recordArticleView = (id: string): Promise<void> => {
-  return request({
-    url: `/help/articles/${id}/view`,
-    method: 'POST',
-  });
+export const recordArticleView = (_id: string): Promise<void> => {
+  console.warn('recordArticleView: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 记录 FAQ 浏览
+ * 后端暂未实现此端点
  */
-export const recordFAQView = (id: string): Promise<void> => {
-  return request({
-    url: `/help/faqs/${id}/view`,
-    method: 'POST',
-  });
+export const recordFAQView = (_id: string): Promise<void> => {
+  console.warn('recordFAQView: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 记录教程浏览
+ * 后端暂未实现此端点
  */
-export const recordTutorialView = (id: string): Promise<void> => {
-  return request({
-    url: `/help/tutorials/${id}/view`,
-    method: 'POST',
-  });
+export const recordTutorialView = (_id: string): Promise<void> => {
+  console.warn('recordTutorialView: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 获取相关文章
+ * 后端暂未实现此端点
  */
-export const getRelatedArticles = (id: string): Promise<HelpArticle[]> => {
-  return request({
-    url: `/help/articles/${id}/related`,
-    method: 'GET',
-  });
+export const getRelatedArticles = (_id: string): Promise<HelpArticle[]> => {
+  console.warn('getRelatedArticles: 后端暂未实现此端点，返回空列表');
+  return Promise.resolve([]);
 };
 
 /**
  * 获取热门文章
+ * 后端暂未实现此端点
  */
-export const getPopularArticles = (limit: number = 10): Promise<HelpArticle[]> => {
-  return request({
-    url: '/help/articles/popular',
-    method: 'GET',
-    params: { limit },
-  });
+export const getPopularArticles = (_limit: number = 10): Promise<HelpArticle[]> => {
+  console.warn('getPopularArticles: 后端暂未实现此端点，返回空列表');
+  return Promise.resolve([]);
 };
 
 /**
  * 获取最新文章
+ * 后端暂未实现此端点
  */
-export const getLatestArticles = (limit: number = 10): Promise<HelpArticle[]> => {
-  return request({
-    url: '/help/articles/latest',
-    method: 'GET',
-    params: { limit },
-  });
+export const getLatestArticles = (_limit: number = 10): Promise<HelpArticle[]> => {
+  console.warn('getLatestArticles: 后端暂未实现此端点，返回空列表');
+  return Promise.resolve([]);
 };

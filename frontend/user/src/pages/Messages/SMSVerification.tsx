@@ -156,38 +156,28 @@ const SMSVerification: React.FC = () => {
                 </Button>
               }
             >
-              {data.length > 0 && data[0] ? (
+              {data.hasActive ? (
                 <div>
                   <Space direction="vertical" style={{ width: '100%' }}>
                     <div style={{ fontSize: 16 }}>
-                      <strong>验证码：</strong>
-                      <Tag
-                        color="blue"
-                        style={{ fontSize: 20, padding: '8px 16px', marginLeft: 8 }}
-                      >
-                        {data[0].code}
+                      <strong>状态：</strong>
+                      <Tag color="green" style={{ marginLeft: 8 }}>
+                        有活跃验证码
                       </Tag>
-                      <Button
-                        type="primary"
-                        icon={<CopyOutlined />}
-                        onClick={() => handleCopy(data[0]!.code)}
-                        style={{ marginLeft: 8 }}
-                      >
-                        复制
-                      </Button>
                     </div>
-                    {data[0].sender && (
-                      <div>
-                        <strong>服务：</strong> {data[0].sender}
-                      </div>
-                    )}
+                    <div>
+                      <strong>手机号：</strong> {data.phoneNumber}
+                    </div>
+                    <div>
+                      <strong>验证码类型：</strong> {data.type}
+                    </div>
                     <div style={{ fontSize: 12, color: '#999' }}>
-                      接收时间：{dayjs(data[0].receivedAt).format('YYYY-MM-DD HH:mm:ss')}
+                      剩余有效时间：{data.remainingSeconds} 秒
                     </div>
                   </Space>
                 </div>
               ) : (
-                <Empty description="该号码暂无验证码" />
+                <Empty description="该号码暂无活跃验证码" />
               )}
             </Card>
           )}

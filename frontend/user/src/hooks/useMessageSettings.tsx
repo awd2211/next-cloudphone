@@ -10,8 +10,9 @@ import {
 /**
  * 消息设置业务逻辑 Hook
  * 封装设置加载、保存和重置功能
+ * @param userId - 当前用户ID (必需)
  */
-export function useMessageSettings() {
+export function useMessageSettings(userId: string) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -19,9 +20,10 @@ export function useMessageSettings() {
 
   // 加载设置
   const loadSettings = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     try {
-      const data = await getNotificationSettings();
+      const data = await getNotificationSettings(userId);
       setSettings(data);
 
       // 转换时间格式
@@ -42,7 +44,7 @@ export function useMessageSettings() {
     } finally {
       setLoading(false);
     }
-  }, [form]);
+  }, [userId, form]);
 
   // 页面加载时获取数据
   useEffect(() => {
@@ -51,6 +53,7 @@ export function useMessageSettings() {
 
   // 保存设置
   const handleSave = useCallback(async () => {
+    if (!userId) return;
     try {
       const values = await form.validateFields();
 
@@ -67,7 +70,7 @@ export function useMessageSettings() {
       }
 
       setSaving(true);
-      await updateNotificationSettings(settingsData);
+      await updateNotificationSettings(userId, settingsData);
       message.success('保存成功');
       loadSettings();
     } catch (error) {
@@ -75,7 +78,7 @@ export function useMessageSettings() {
     } finally {
       setSaving(false);
     }
-  }, [form, loadSettings]);
+  }, [userId, form, loadSettings]);
 
   // 重置为默认
   const handleReset = useCallback(() => {

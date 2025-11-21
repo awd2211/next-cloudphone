@@ -154,16 +154,20 @@ export const updateTicket = (id: string, data: UpdateTicketDto) => {
 
 /**
  * 关闭工单
+ * 后端暂未实现此端点
  */
-export const closeTicket = (id: string) => {
-  return request.post(`/tickets/${id}/close`);
+export const closeTicket = (_id: string) => {
+  console.warn('closeTicket: 后端暂未实现此端点');
+  return Promise.reject(new Error('功能暂未实现'));
 };
 
 /**
  * 重新打开工单
+ * 后端暂未实现此端点
  */
-export const reopenTicket = (id: string, reason?: string) => {
-  return request.post(`/tickets/${id}/reopen`, { reason });
+export const reopenTicket = (_id: string, _reason?: string) => {
+  console.warn('reopenTicket: 后端暂未实现此端点');
+  return Promise.reject(new Error('功能暂未实现'));
 };
 
 // ==================== 回复管理 ====================
@@ -186,41 +190,29 @@ export const addTicketReply = (ticketId: string, data: AddReplyDto) => {
 
 /**
  * 上传附件
+ * 后端暂未实现此端点
  */
-export const uploadAttachment = (file: File) => {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  return request.post<Attachment>('/tickets/attachments/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+export const uploadAttachment = (_file: File) => {
+  console.warn('uploadAttachment: 后端暂未实现此端点');
+  return Promise.reject(new Error('功能暂未实现'));
 };
 
 /**
  * 删除附件
+ * 后端暂未实现此端点
  */
-export const deleteAttachment = (id: string) => {
-  return request.delete(`/tickets/attachments/${id}`);
+export const deleteAttachment = (_id: string) => {
+  console.warn('deleteAttachment: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 下载附件
+ * 后端暂未实现此端点
  */
-export const downloadAttachment = (id: string, filename: string) => {
-  return request.get(`/tickets/attachments/${id}/download`, {
-    responseType: 'blob',
-  }).then((blob: Blob) => {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  });
+export const downloadAttachment = (_id: string, _filename: string) => {
+  console.warn('downloadAttachment: 后端暂未实现此端点');
+  return Promise.reject(new Error('功能暂未实现'));
 };
 
 // ==================== 统计数据 ====================
@@ -234,9 +226,11 @@ export const getMyTicketStats = () => {
 
 /**
  * 获取未读回复数量
+ * 后端暂未实现此端点
  */
 export const getUnreadRepliesCount = () => {
-  return request.get<{ count: number }>('/tickets/unread-replies/count');
+  console.warn('getUnreadRepliesCount: 后端暂未实现此端点');
+  return Promise.resolve({ count: 0 });
 };
 
 // ==================== 评分与反馈 ====================
@@ -250,70 +244,85 @@ export const rateTicket = (id: string, rating: number, feedback?: string) => {
 
 /**
  * 提交满意度调查
+ * 后端暂未实现此端点
  */
-export const submitSatisfactionSurvey = (ticketId: string, data: {
+export const submitSatisfactionSurvey = (_ticketId: string, _data: {
   responseTime: number;
   solutionQuality: number;
   agentAttitude: number;
   overallSatisfaction: number;
   suggestions?: string;
 }) => {
-  return request.post(`/tickets/${ticketId}/satisfaction-survey`, data);
+  console.warn('submitSatisfactionSurvey: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 // ==================== 快捷操作 ====================
 
 /**
  * 获取常见问题（可能相关的工单）
+ * 后端暂未实现此端点
  */
-export const getRelatedTickets = (keyword: string) => {
-  return request.get<Ticket[]>('/tickets/search/related', {
-    params: { keyword, limit: 5 },
-  });
+export const getRelatedTickets = (_keyword: string) => {
+  console.warn('getRelatedTickets: 后端暂未实现此端点');
+  return Promise.resolve([] as Ticket[]);
 };
 
 /**
  * 获取建议的标签
+ * 后端暂未实现此端点
  */
-export const getSuggestedTags = (title: string, description: string) => {
-  return request.post<string[]>('/tickets/suggest-tags', {
-    title,
-    description,
-  });
+export const getSuggestedTags = (_title: string, _description: string) => {
+  console.warn('getSuggestedTags: 后端暂未实现此端点');
+  return Promise.resolve([] as string[]);
 };
 
 /**
  * 标记回复为已读
+ * 后端暂未实现此端点
  */
-export const markReplyAsRead = (ticketId: string, replyId: string) => {
-  return request.post(`/tickets/${ticketId}/replies/${replyId}/mark-read`);
+export const markReplyAsRead = (_ticketId: string, _replyId: string) => {
+  console.warn('markReplyAsRead: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
  * 批量标记回复为已读
+ * 后端暂未实现此端点
  */
-export const markAllRepliesAsRead = (ticketId: string) => {
-  return request.post(`/tickets/${ticketId}/replies/mark-all-read`);
+export const markAllRepliesAsRead = (_ticketId: string) => {
+  console.warn('markAllRepliesAsRead: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 // ==================== 通知设置 ====================
 
 /**
  * 获取工单通知设置
+ * 后端暂未实现此端点
  */
 export const getTicketNotificationSettings = () => {
-  return request.get('/tickets/notification-settings');
+  console.warn('getTicketNotificationSettings: 后端暂未实现此端点');
+  return Promise.resolve({
+    emailNotifications: true,
+    smsNotifications: false,
+    pushNotifications: true,
+    notifyOnReply: true,
+    notifyOnStatusChange: true,
+  });
 };
 
 /**
  * 更新工单通知设置
+ * 后端暂未实现此端点
  */
-export const updateTicketNotificationSettings = (data: {
+export const updateTicketNotificationSettings = (_data: {
   emailNotifications?: boolean;
   smsNotifications?: boolean;
   pushNotifications?: boolean;
   notifyOnReply?: boolean;
   notifyOnStatusChange?: boolean;
 }) => {
-  return request.put('/tickets/notification-settings', data);
+  console.warn('updateTicketNotificationSettings: 后端暂未实现此端点');
+  return Promise.resolve();
 };

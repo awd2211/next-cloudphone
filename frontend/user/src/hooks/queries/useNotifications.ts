@@ -39,13 +39,16 @@ export const notificationKeys = {
 
 /**
  * 获取消息列表
+ * @param userId - 用户ID (必需)
+ * @param params - 查询参数
  */
-export const useNotifications = (params?: NotificationListQuery) => {
+export const useNotifications = (userId: string, params?: NotificationListQuery) => {
   return useQuery<NotificationListResponse>({
     queryKey: notificationKeys.list(params),
-    queryFn: () => notificationService.getNotifications(params),
+    queryFn: () => notificationService.getNotifications(userId, params),
     staleTime: StaleTimeConfig.notifications, // 30秒
     placeholderData: (previousData) => previousData,
+    enabled: !!userId,
   });
 };
 
@@ -63,11 +66,12 @@ export const useNotificationDetail = (id: string, options?: { enabled?: boolean 
 
 /**
  * 获取未读消息数量
+ * @param userId - 用户ID (可选，传入后用于过滤)
  */
-export const useUnreadCount = () => {
+export const useUnreadCount = (userId?: string) => {
   return useQuery<{ count: number }>({
     queryKey: notificationKeys.unreadCount(),
-    queryFn: () => notificationService.getUnreadCount(),
+    queryFn: () => notificationService.getUnreadCount(userId),
     staleTime: StaleTimeConfig.SHORT, // 5秒，保持实时性
     refetchInterval: 30000, // 每30秒轮询一次
   });
@@ -75,12 +79,14 @@ export const useUnreadCount = () => {
 
 /**
  * 获取通知设置
+ * @param userId - 用户ID (必需)
  */
-export const useNotificationSettings = () => {
+export const useNotificationSettings = (userId: string) => {
   return useQuery<NotificationSettings>({
     queryKey: notificationKeys.settings(),
-    queryFn: () => notificationService.getNotificationSettings(),
+    queryFn: () => notificationService.getNotificationSettings(userId),
     staleTime: StaleTimeConfig.VERY_LONG, // 5分钟
+    enabled: !!userId,
   });
 };
 
@@ -123,8 +129,8 @@ export const useMarkAsRead = () => {
 export const useMarkAllAsRead = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, unknown, void>({
-    mutationFn: () => notificationService.markAllAsRead(),
+  return useMutation<void, unknown, string>({
+    mutationFn: (userId: string) => notificationService.markAllAsRead(userId),
     onSuccess: () => {
       handleMutationSuccess('所有消息已标记为已读');
       queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
@@ -182,8 +188,13 @@ export const useClearReadNotifications = () => {
 export const useUpdateNotificationSettings = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<NotificationSettings, unknown, Partial<NotificationSettings>>({
-    mutationFn: (settings) => notificationService.updateNotificationSettings(settings),
+  return useMutation<
+    NotificationSettings,
+    unknown,
+    { userId: string; settings: Partial<NotificationSettings> }
+  >({
+    mutationFn: ({ userId, settings }) =>
+      notificationService.updateNotificationSettings(userId, settings),
     onSuccess: () => {
       handleMutationSuccess('设置已保存');
       queryClient.invalidateQueries({ queryKey: notificationKeys.settings() });

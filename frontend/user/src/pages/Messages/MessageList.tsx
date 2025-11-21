@@ -31,6 +31,9 @@ import type { NotificationListQuery, Notification } from '@/services/notificatio
 const MessageList: React.FC = () => {
   const navigate = useNavigate();
 
+  // 获取当前用户 ID
+  const userId = localStorage.getItem('userId') || '';
+
   // 本地状态
   const [query, setQuery] = useState<NotificationListQuery>({
     page: 1,
@@ -41,7 +44,7 @@ const MessageList: React.FC = () => {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
   // React Query hooks
-  const { data: notificationsData, isLoading: loading, refetch: refetchNotifications } = useNotifications(query);
+  const { data: notificationsData, isLoading: loading, refetch: refetchNotifications } = useNotifications(userId, query);
   const { data: stats, refetch: refetchStats } = useNotificationStats();
 
   const markAsRead = useMarkAsRead();
@@ -102,15 +105,16 @@ const MessageList: React.FC = () => {
   }, [selectedNotifications, markAsRead]);
 
   const handleMarkAllRead = useCallback(async () => {
+    if (!userId) return;
     Modal.confirm({
       title: '确认标记全部已读',
       icon: <ExclamationCircleOutlined />,
       content: '确定要将所有消息标记为已读吗？',
       onOk: async () => {
-        await markAllNotificationsRead.mutateAsync();
+        await markAllNotificationsRead.mutateAsync(userId);
       },
     });
-  }, [markAllNotificationsRead]);
+  }, [userId, markAllNotificationsRead]);
 
   const handleBatchDelete = useCallback(async () => {
     if (selectedNotifications.length === 0) return;

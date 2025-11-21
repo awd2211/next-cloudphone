@@ -29,8 +29,11 @@ const MessageSettings: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
+  // 获取当前用户 ID
+  const userId = localStorage.getItem('userId') || '';
+
   // React Query hooks
-  const { data: settings, isLoading: loading } = useNotificationSettings();
+  const { data: settings, isLoading: loading } = useNotificationSettings(userId);
   const updateSettings = useUpdateNotificationSettings();
 
   // 加载设置到表单
@@ -52,6 +55,7 @@ const MessageSettings: React.FC = () => {
 
   // 保存设置
   const handleSave = useCallback(async () => {
+    if (!userId) return;
     const values = await form.validateFields();
 
     // 转换时间格式
@@ -66,8 +70,8 @@ const MessageSettings: React.FC = () => {
       settingsData.quietHoursEnd = (values.quietHoursEnd as Dayjs).format('HH:mm');
     }
 
-    await updateSettings.mutateAsync(settingsData);
-  }, [form, updateSettings]);
+    await updateSettings.mutateAsync({ userId, settings: settingsData });
+  }, [userId, form, updateSettings]);
 
   // 重置为默认
   const handleReset = useCallback(() => {

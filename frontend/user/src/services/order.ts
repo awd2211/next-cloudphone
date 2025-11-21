@@ -14,8 +14,13 @@ export const createOrder = (data: CreateOrderDto) => {
 };
 
 // 获取我的订单列表
+// 后端使用 /billing/orders/:userId 而不是 /billing/orders/my
 export const getMyOrders = (params?: PaginationParams) => {
-  return request.get<PaginatedResponse<Order>>('/billing/orders/my', { params });
+  const userId = localStorage.getItem('userId') || '';
+  if (!userId) {
+    return Promise.resolve({ data: [], total: 0, page: 1, pageSize: 10 } as PaginatedResponse<Order>);
+  }
+  return request.get<PaginatedResponse<Order>>(`/billing/orders/${userId}`, { params });
 };
 
 // 获取订单详情
@@ -44,8 +49,13 @@ export const getPayment = (id: string) => {
 };
 
 // 获取使用记录
+// 后端使用 /billing/usage/:userId 而不是 /billing/usage/my
 export const getUsageRecords = (
   params?: PaginationParams & { startDate?: string; endDate?: string }
 ) => {
-  return request.get<PaginatedResponse<any>>('/billing/usage/my', { params });
+  const userId = localStorage.getItem('userId') || '';
+  if (!userId) {
+    return Promise.resolve({ data: [], total: 0, page: 1, pageSize: 10 } as PaginatedResponse<any>);
+  }
+  return request.get<PaginatedResponse<any>>(`/billing/usage/${userId}`, { params });
 };

@@ -72,16 +72,18 @@ export interface ProxyUsageHistory {
 
 /**
  * 获取我的代理列表
+ * 后端端点: GET /proxy/list
  */
 export const getMyProxies = (params?: ProxyListParams) => {
-  return request.get<ProxyListResponse>('/proxy/my-proxies', { params });
+  return request.get<ProxyListResponse>('/proxy/list', { params });
 };
 
 /**
  * 获取我的代理统计
+ * 后端端点: GET /proxy/stats/pool
  */
 export const getMyProxyStats = () => {
-  return request.get<ProxyStats>('/proxy/my-stats');
+  return request.get<ProxyStats>('/proxy/stats/pool');
 };
 
 /**

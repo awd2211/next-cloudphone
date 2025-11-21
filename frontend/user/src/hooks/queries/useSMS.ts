@@ -135,10 +135,16 @@ export const useMyVerificationCodes = (params?: {
 };
 
 /**
- * 根据手机号查询验证码
+ * 检查手机号是否有活跃验证码
+ * 注意: 后端返回格式已更改为 OTP 活跃状态检查
  */
 export const useVerificationCodeByPhone = (phone: string, options?: { enabled?: boolean }) => {
-  return useQuery<VerificationCode[]>({
+  return useQuery<{
+    phoneNumber: string;
+    type: string;
+    hasActive: boolean;
+    remainingSeconds: number;
+  }>({
     queryKey: smsKeys.codeByPhone(phone),
     queryFn: () => getVerificationCodeByPhone(phone),
     enabled: options?.enabled !== false && !!phone,
@@ -148,6 +154,7 @@ export const useVerificationCodeByPhone = (phone: string, options?: { enabled?: 
 
 /**
  * 获取设备的最新验证码
+ * 注意: 后端暂未实现此功能，返回 null
  */
 export const useDeviceLatestCode = (
   deviceId: string,
@@ -156,7 +163,7 @@ export const useDeviceLatestCode = (
   },
   options?: { enabled?: boolean }
 ) => {
-  return useQuery<VerificationCode>({
+  return useQuery<VerificationCode | null>({
     queryKey: smsKeys.deviceLatestCode(deviceId, params),
     queryFn: () => getDeviceLatestCode(deviceId, params),
     enabled: options?.enabled !== false && !!deviceId,

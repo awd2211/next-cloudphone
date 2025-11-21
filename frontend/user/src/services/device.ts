@@ -93,28 +93,32 @@ export interface BatchOperationResponse {
 }
 
 export const batchStartDevices = (data: BatchDevicesDto) => {
-  return request.post<BatchOperationResponse>('/devices/batch/start', data);
+  // 后端期望 { ids } 而不是 { deviceIds }
+  return request.post<BatchOperationResponse>('/devices/batch/start', { ids: data.deviceIds });
 };
 
 /**
  * 批量停止设备
  */
 export const batchStopDevices = (data: BatchDevicesDto) => {
-  return request.post<BatchOperationResponse>('/devices/batch/stop', data);
+  // 后端期望 { ids } 而不是 { deviceIds }
+  return request.post<BatchOperationResponse>('/devices/batch/stop', { ids: data.deviceIds });
 };
 
 /**
  * 批量重启设备
  */
 export const batchRestartDevices = (data: BatchDevicesDto) => {
-  return request.post<BatchOperationResponse>('/devices/batch/restart', data);
+  // 后端使用 /devices/batch/reboot 而不是 restart，且期望 { ids }
+  return request.post<BatchOperationResponse>('/devices/batch/reboot', { ids: data.deviceIds });
 };
 
 /**
  * 批量删除设备
  */
 export const batchDeleteDevices = (data: BatchDevicesDto) => {
-  return request.delete<BatchOperationResponse>('/devices/batch', { data });
+  // 后端使用 POST /devices/batch/delete 而不是 DELETE /devices/batch，且期望 { ids }
+  return request.post<BatchOperationResponse>('/devices/batch/delete', { ids: data.deviceIds });
 };
 
 /**
@@ -126,5 +130,10 @@ export interface BatchInstallAppDto {
 }
 
 export const batchInstallApp = (data: BatchInstallAppDto) => {
-  return request.post<BatchOperationResponse>('/devices/batch/install-app', data);
+  // 注意：设备批量安装应用应该通过 apps 服务的 install 端点
+  // POST /apps/install 支持传入 deviceIds 数组
+  return request.post<BatchOperationResponse>('/apps/install', {
+    applicationId: data.appId,
+    deviceIds: data.deviceIds,
+  });
 };

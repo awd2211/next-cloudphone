@@ -105,12 +105,14 @@ export interface NotificationStats {
 
 /**
  * 获取消息列表
+ * 后端端点: GET /notifications/user/:userId
  */
 export const getNotifications = (
-  params?: NotificationListQuery
+  userId: string,
+  params?: Omit<NotificationListQuery, 'userId'>
 ): Promise<NotificationListResponse> => {
   return request({
-    url: '/notifications',
+    url: `/notifications/user/${userId}`,
     method: 'GET',
     params,
   });
@@ -128,41 +130,52 @@ export const getNotificationDetail = (id: string): Promise<Notification> => {
 
 /**
  * 获取未读消息数量
+ * 后端端点: GET /notifications/unread/count
  */
-export const getUnreadCount = (): Promise<{ count: number }> => {
+export const getUnreadCount = (userId?: string): Promise<{ count: number }> => {
   return request({
-    url: '/notifications/unread-count',
+    url: '/notifications/unread/count',
     method: 'GET',
+    params: userId ? { userId } : undefined,
   });
 };
 
 /**
- * 标记消息为已读
+ * 标记单条消息为已读
+ * 后端端点: PATCH /notifications/:id/read
+ * 注意: 后端不支持批量标记，如需批量请循环调用或使用 markAllAsRead
  */
 export const markAsRead = (ids: string[]): Promise<void> => {
-  return request({
-    url: '/notifications/mark-read',
-    method: 'POST',
-    data: { ids },
-  });
+  // 后端仅支持单条标记，这里按顺序标记
+  return Promise.all(
+    ids.map((id) =>
+      request({
+        url: `/notifications/${id}/read`,
+        method: 'PATCH',
+      })
+    )
+  ).then(() => undefined);
 };
 
 /**
  * 标记所有消息为已读
+ * 后端端点: POST /notifications/read-all
  */
-export const markAllAsRead = (): Promise<void> => {
+export const markAllAsRead = (userId: string): Promise<void> => {
   return request({
-    url: '/notifications/mark-all-read',
+    url: '/notifications/read-all',
     method: 'POST',
+    data: { userId },
   });
 };
 
 /**
- * 删除消息
+ * 批量删除消息
+ * 后端端点: POST /notifications/batch/delete
  */
 export const deleteNotifications = (ids: string[]): Promise<void> => {
   return request({
-    url: '/notifications/delete',
+    url: '/notifications/batch/delete',
     method: 'POST',
     data: { ids },
   });
@@ -170,34 +183,43 @@ export const deleteNotifications = (ids: string[]): Promise<void> => {
 
 /**
  * 清空所有已读消息
+ * 注意: 后端暂未实现此端点，预留接口
+ * TODO: 需要后端添加 POST /notifications/clear-read 端点
  */
 export const clearReadNotifications = (): Promise<void> => {
-  return request({
-    url: '/notifications/clear-read',
-    method: 'POST',
-  });
+  console.warn('clearReadNotifications: 后端暂未实现此端点');
+  return Promise.resolve();
 };
 
 /**
- * 获取通知设置
+ * 获取通知偏好设置
+ * 后端端点: GET /notifications/preferences
+ * 注意: 后端返回的是按类型分组的偏好列表，与前端期望的扁平结构不同
+ * TODO: 需要适配后端返回格式或后端添加兼容接口
  */
-export const getNotificationSettings = (): Promise<NotificationSettings> => {
+export const getNotificationSettings = (userId: string): Promise<NotificationSettings> => {
   return request({
-    url: '/notifications/settings',
+    url: '/notifications/preferences',
     method: 'GET',
+    params: { userId },
   });
 };
 
 /**
- * 更新通知设置
+ * 更新通知偏好设置
+ * 后端端点: POST /notifications/preferences/batch
+ * 注意: 后端使用按类型的偏好系统，与前端期望的扁平结构不同
+ * TODO: 需要转换前端格式到后端格式或后端添加兼容接口
  */
 export const updateNotificationSettings = (
+  userId: string,
   settings: Partial<NotificationSettings>
 ): Promise<NotificationSettings> => {
   return request({
-    url: '/notifications/settings',
-    method: 'PUT',
-    data: settings,
+    url: '/notifications/preferences/batch',
+    method: 'POST',
+    params: { userId },
+    data: { preferences: settings },
   });
 };
 

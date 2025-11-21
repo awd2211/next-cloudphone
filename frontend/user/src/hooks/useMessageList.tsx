@@ -16,8 +16,9 @@ import {
 /**
  * 消息列表业务逻辑 Hook
  * 封装消息加载、筛选、批量操作等功能
+ * @param userId - 当前用户ID (必需)
  */
-export function useMessageList() {
+export function useMessageList(userId: string) {
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stats, setStats] = useState<NotificationStats | null>(null);
@@ -34,9 +35,10 @@ export function useMessageList() {
 
   // 加载消息列表
   const loadNotifications = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     try {
-      const response = await getNotifications(query);
+      const response = await getNotifications(userId, query);
       setNotifications(response.items);
       setTotal(response.total);
     } catch (error) {
@@ -44,7 +46,7 @@ export function useMessageList() {
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, [userId, query]);
 
   // 加载统计数据
   const loadStats = useCallback(async () => {
@@ -125,12 +127,13 @@ export function useMessageList() {
 
   // 全部标记已读
   const handleMarkAllRead = useCallback(() => {
+    if (!userId) return;
     Modal.confirm({
       title: '确认标记全部消息为已读？',
       icon: <ExclamationCircleOutlined />,
       onOk: async () => {
         try {
-          await markAllAsRead();
+          await markAllAsRead(userId);
           message.success('已全部标记为已读');
           handleRefresh();
         } catch (error) {
@@ -138,7 +141,7 @@ export function useMessageList() {
         }
       },
     });
-  }, [handleRefresh]);
+  }, [userId, handleRefresh]);
 
   // 批量删除
   const handleBatchDelete = useCallback(() => {

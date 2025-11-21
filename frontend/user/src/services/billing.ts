@@ -156,12 +156,21 @@ export interface InvoiceRequest {
   phone?: string;
 }
 
+// ==================== API 函数 ====================
+// ⚠️ 注意：部分端点路径已调整以匹配后端实现
+// 后端使用 /invoices 而不是 /billing/bills
+
 /**
  * 获取账单列表
+ * 后端使用 /invoices 而不是 /billing/bills
  */
 export const getBills = (params?: BillListQuery): Promise<BillListResponse> => {
+  const userId = localStorage.getItem('userId') || '';
+  if (!userId) {
+    return Promise.resolve({ items: [], total: 0, page: 1, pageSize: 10 });
+  }
   return request({
-    url: '/billing/bills',
+    url: `/invoices/user/${userId}`,
     method: 'GET',
     params,
   });
@@ -169,10 +178,11 @@ export const getBills = (params?: BillListQuery): Promise<BillListResponse> => {
 
 /**
  * 获取账单详情
+ * 后端使用 /invoices/:id
  */
 export const getBillDetail = (id: string): Promise<Bill> => {
   return request({
-    url: `/billing/bills/${id}`,
+    url: `/invoices/${id}`,
     method: 'GET',
   });
 };
@@ -184,8 +194,24 @@ export const getBillStats = (params?: {
   startDate?: string;
   endDate?: string;
 }): Promise<BillStats> => {
+  const userId = localStorage.getItem('userId') || '';
+  if (!userId) {
+    console.warn('getBillStats: 用户未登录');
+    return Promise.resolve({
+      total: 0,
+      totalAmount: 0,
+      paidAmount: 0,
+      unpaidAmount: 0,
+      overdueAmount: 0,
+      refundedAmount: 0,
+      byType: {} as Record<BillType, { count: number; amount: number }>,
+      byStatus: {} as Record<BillStatus, { count: number; amount: number }>,
+      byCycle: {} as Record<BillingCycle, { count: number; amount: number }>,
+      monthlyTrend: [],
+    });
+  }
   return request({
-    url: '/billing/stats',
+    url: `/invoices/statistics/${userId}`,
     method: 'GET',
     params,
   });
@@ -193,31 +219,37 @@ export const getBillStats = (params?: {
 
 /**
  * 支付账单
+ * 后端使用 POST /invoices/:id/pay
  */
 export const payBill = (data: PaymentRequest): Promise<PaymentResult> => {
   return request({
-    url: '/billing/pay',
+    url: `/invoices/${data.billId}/pay`,
     method: 'POST',
-    data,
+    data: {
+      paymentMethod: data.paymentMethod,
+      amount: data.amount,
+    },
   });
 };
 
 /**
  * 取消账单
+ * 后端使用 PUT /invoices/:id/cancel
  */
 export const cancelBill = (id: string): Promise<void> => {
   return request({
-    url: `/billing/bills/${id}/cancel`,
-    method: 'POST',
+    url: `/invoices/${id}/cancel`,
+    method: 'PUT',
   });
 };
 
 /**
  * 申请退款
+ * 后端使用 POST /payments/:id/refund
  */
 export const requestRefund = (id: string, reason: string): Promise<void> => {
   return request({
-    url: `/billing/bills/${id}/refund`,
+    url: `/payments/${id}/refund`,
     method: 'POST',
     data: { reason },
   });
@@ -225,21 +257,20 @@ export const requestRefund = (id: string, reason: string): Promise<void> => {
 
 /**
  * 下载账单
+ * 后端暂未实现此端点
  */
-export const downloadBill = (id: string): Promise<Blob> => {
-  return request({
-    url: `/billing/bills/${id}/download`,
-    method: 'GET',
-    responseType: 'blob',
-  });
+export const downloadBill = (_id: string): Promise<Blob> => {
+  console.warn('downloadBill: 后端暂未实现此端点');
+  return Promise.reject(new Error('账单下载功能暂未实现'));
 };
 
 /**
  * 申请发票
+ * 后端使用 POST /invoices
  */
 export const applyInvoice = (data: InvoiceRequest): Promise<Invoice> => {
   return request({
-    url: '/billing/invoices',
+    url: '/invoices',
     method: 'POST',
     data,
   });
@@ -247,13 +278,18 @@ export const applyInvoice = (data: InvoiceRequest): Promise<Invoice> => {
 
 /**
  * 获取发票列表
+ * 后端使用 /invoices/user/:userId
  */
 export const getInvoices = (params?: {
   page?: number;
   pageSize?: number;
 }): Promise<{ items: Invoice[]; total: number }> => {
+  const userId = localStorage.getItem('userId') || '';
+  if (!userId) {
+    return Promise.resolve({ items: [], total: 0 });
+  }
   return request({
-    url: '/billing/invoices',
+    url: `/invoices/user/${userId}`,
     method: 'GET',
     params,
   });
@@ -261,25 +297,26 @@ export const getInvoices = (params?: {
 
 /**
  * 下载发票
+ * 后端暂未实现此端点
  */
-export const downloadInvoice = (id: string): Promise<Blob> => {
-  return request({
-    url: `/billing/invoices/${id}/download`,
-    method: 'GET',
-    responseType: 'blob',
-  });
+export const downloadInvoice = (_id: string): Promise<Blob> => {
+  console.warn('downloadInvoice: 后端暂未实现此端点');
+  return Promise.reject(new Error('发票下载功能暂未实现'));
 };
 
 /**
  * 获取支付方式列表
+ * 后端暂未实现此端点，返回默认配置
  */
 export const getPaymentMethods = (): Promise<
   Array<{ method: PaymentMethod; enabled: boolean; icon: string; name: string }>
 > => {
-  return request({
-    url: '/billing/payment-methods',
-    method: 'GET',
-  });
+  console.warn('getPaymentMethods: 后端暂未实现此端点，返回默认配置');
+  return Promise.resolve([
+    { method: PaymentMethod.ALIPAY, enabled: true, icon: 'alipay', name: '支付宝' },
+    { method: PaymentMethod.WECHAT, enabled: true, icon: 'wechat', name: '微信支付' },
+    { method: PaymentMethod.BALANCE, enabled: true, icon: 'wallet', name: '余额支付' },
+  ]);
 };
 
 /**
