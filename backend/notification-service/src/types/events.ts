@@ -74,6 +74,18 @@ export interface PasswordResetRequestedEvent extends BaseEvent {
   };
 }
 
+export interface PasswordResetSmsRequestedEvent extends BaseEvent {
+  eventType: 'user.password_reset_sms_requested';
+  payload: {
+    userId: string;
+    username?: string;
+    phone: string;
+    userRole: string;
+    resetCode: string;       // 6位验证码
+    expiresAt: string;
+  };
+}
+
 export interface PasswordChangedEvent extends BaseEvent {
   eventType: 'user.password_changed';
   payload: {
@@ -371,6 +383,7 @@ export const NotificationEventTypes = {
   USER_REGISTERED: 'user.registered',
   USER_LOGIN_FAILED: 'user.login_failed',
   PASSWORD_RESET_REQUESTED: 'user.password_reset_requested',
+  PASSWORD_RESET_SMS_REQUESTED: 'user.password_reset_sms_requested',
   PASSWORD_CHANGED: 'user.password_changed',
   TWO_FACTOR_ENABLED: 'user.two_factor_enabled',
   PROFILE_UPDATED: 'user.profile_updated',

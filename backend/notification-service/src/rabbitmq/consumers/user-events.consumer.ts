@@ -5,6 +5,7 @@ import {
   UserRegisteredEvent,
   UserLoginFailedEvent,
   PasswordResetRequestedEvent,
+  PasswordResetSmsRequestedEvent,
   PasswordChangedEvent,
   TwoFactorEnabledEvent,
   ProfileUpdatedEvent,
@@ -13,6 +14,7 @@ import {
 import { NotificationsService } from '../../notifications/notifications.service';
 import { EmailService } from '../../email/email.service';
 import { TemplatesService } from '../../templates/templates.service';
+import { SmsService } from '../../sms/sms.service';
 import { NotificationCategory } from '../../entities/notification.entity';
 
 /**
@@ -32,7 +34,8 @@ export class UserEventsConsumer {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
-    private readonly templatesService: TemplatesService
+    private readonly templatesService: TemplatesService,
+    private readonly smsService: SmsService
   ) {}
 
   /**
@@ -169,6 +172,75 @@ export class UserEventsConsumer {
       this.logger.error(`处理密码重置请求失败: ${error.message}`, error.stack);
       throw error;
     }
+  }
+
+  /**
+   * 密码重置短信请求
+   * 通过短信发送密码重置验证码
+   */
+  @RabbitSubscribe({
+    exchange: 'cloudphone.events',
+    routingKey: NotificationEventTypes.PASSWORD_RESET_SMS_REQUESTED,
+    queue: 'notification-service.user.password_reset_sms_requested',
+    queueOptions: {
+      durable: true,
+      arguments: {
+        'x-dead-letter-exchange': 'cloudphone.notifications.dlx',
+      },
+    },
+  })
+  async handlePasswordResetSmsRequested(event: PasswordResetSmsRequestedEvent, msg: ConsumeMessage) {
+    this.logger.log(`收到密码重置短信请求: ${event.payload.userId} - Phone: ${this.maskPhone(event.payload.phone)}`);
+
+    try {
+      // 发送短信验证码
+      const username = event.payload.username || '用户';
+      const message = `【CloudPhone】尊敬的${username}，您的密码重置验证码是：${event.payload.resetCode}，有效期60分钟。如非本人操作，请忽略此短信。`;
+
+      const result = await this.smsService.send({
+        to: event.payload.phone,
+        message,
+        templateId: 'password_reset',
+        templateParams: {
+          code: event.payload.resetCode,
+          username,
+          expireMinutes: '60',
+        },
+        isOtp: true,
+        priority: 'high',
+      });
+
+      if (result.success) {
+        this.logger.log(`密码重置短信已发送: ${this.maskPhone(event.payload.phone)}`);
+      } else {
+        this.logger.error(`密码重置短信发送失败: ${result.error}`);
+        throw new Error(result.error);
+      }
+
+      // 同时创建站内通知
+      await this.notificationsService.createRoleBasedNotification(
+        event.payload.userId,
+        event.payload.userRole,
+        'user.password_reset_sms' as any,
+        {
+          username: event.payload.username || '用户',
+          phone: this.maskPhone(event.payload.phone),
+          expiresAt: event.payload.expiresAt,
+        },
+        {}
+      );
+    } catch (error) {
+      this.logger.error(`处理密码重置短信请求失败: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * 隐藏手机号中间部分
+   */
+  private maskPhone(phone: string): string {
+    if (!phone || phone.length < 7) return phone;
+    return phone.substring(0, 3) + '****' + phone.substring(phone.length - 4);
   }
 
   /**
