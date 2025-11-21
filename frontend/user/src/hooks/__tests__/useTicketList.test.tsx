@@ -26,8 +26,8 @@ vi.mock('antd', async () => {
 
 // Mock ticket service
 vi.mock('@/services/ticket', () => ({
-  getTickets: vi.fn(),
-  getTicketStats: vi.fn(),
+  getMyTickets: vi.fn(),
+  getMyTicketStats: vi.fn(),
 }));
 
 describe('useTicketList Hook', () => {
@@ -72,11 +72,11 @@ describe('useTicketList Hook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.mocked(ticketService.getTickets).mockResolvedValue({
+    vi.mocked(ticketService.getMyTickets).mockResolvedValue({
       items: mockTickets,
       total: 10,
     });
-    vi.mocked(ticketService.getTicketStats).mockResolvedValue(mockStats);
+    vi.mocked(ticketService.getMyTicketStats).mockResolvedValue(mockStats);
   });
 
   describe('初始化', () => {
@@ -122,7 +122,7 @@ describe('useTicketList Hook', () => {
       renderHook(() => useTicketList());
 
       await waitFor(() => {
-        expect(ticketService.getTickets).toHaveBeenCalled();
+        expect(ticketService.getMyTickets).toHaveBeenCalled();
       });
     });
 
@@ -130,7 +130,7 @@ describe('useTicketList Hook', () => {
       renderHook(() => useTicketList());
 
       await waitFor(() => {
-        expect(ticketService.getTicketStats).toHaveBeenCalled();
+        expect(ticketService.getMyTicketStats).toHaveBeenCalled();
       });
     });
 
@@ -159,7 +159,7 @@ describe('useTicketList Hook', () => {
     });
 
     it('加载失败应该显示错误消息', async () => {
-      vi.mocked(ticketService.getTickets).mockRejectedValue(
+      vi.mocked(ticketService.getMyTickets).mockRejectedValue(
         new Error('Network error')
       );
 
@@ -426,8 +426,8 @@ describe('useTicketList Hook', () => {
         result.current.handleRefresh();
       });
 
-      expect(ticketService.getTickets).toHaveBeenCalled();
-      expect(ticketService.getTicketStats).toHaveBeenCalled();
+      expect(ticketService.getMyTickets).toHaveBeenCalled();
+      expect(ticketService.getMyTicketStats).toHaveBeenCalled();
     });
 
     it('handleRefresh应该是稳定的函数引用', () => {
@@ -528,8 +528,8 @@ describe('useTicketList Hook', () => {
         result.current.handleCreateSuccess();
       });
 
-      expect(ticketService.getTickets).toHaveBeenCalled();
-      expect(ticketService.getTicketStats).toHaveBeenCalled();
+      expect(ticketService.getMyTickets).toHaveBeenCalled();
+      expect(ticketService.getMyTicketStats).toHaveBeenCalled();
     });
 
     it('handleCreateSuccess应该是稳定的函数引用', () => {
@@ -584,7 +584,7 @@ describe('useTicketList Hook', () => {
       });
 
       await waitFor(() => {
-        expect(ticketService.getTickets).toHaveBeenCalled();
+        expect(ticketService.getMyTickets).toHaveBeenCalled();
       });
     });
   });

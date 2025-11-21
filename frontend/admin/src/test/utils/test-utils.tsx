@@ -72,7 +72,7 @@ export const waitFor = async (callback: () => void | Promise<void>, timeout = 30
     try {
       await callback();
       return;
-    } catch (_error) {
+    } catch (error) {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
   }

@@ -17,12 +17,12 @@ import {
   BorderOutlined,
 } from '@ant-design/icons';
 import { InstalledAppCard } from './InstalledAppCard';
-import type { InstalledApp } from '@/hooks/useInstalledApps';
+import type { InstalledAppInfo } from '@/services/app';
 
 const { Text } = Typography;
 
 interface InstalledAppListProps {
-  apps: InstalledApp[];
+  apps: InstalledAppInfo[];
   stats: {
     total: number;
     system: number;
@@ -30,12 +30,12 @@ interface InstalledAppListProps {
     updatable: number;
   };
   selectedAppIds: string[];
-  onSelectApp: (appId: string, checked: boolean) => void;
+  onSelectApp: (packageName: string, checked: boolean) => void;
   onSelectAll: () => void;
   onClearSelection: () => void;
-  onUninstall: (appId: string) => void;
+  onUninstall: (packageName: string) => void;
   onBatchUninstall: () => void;
-  onUpdate: (appId: string) => void;
+  onUpdate: (packageName: string) => void;
   onRefresh: () => void;
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
 import { login, getCaptcha } from '@/services/auth';
@@ -58,6 +58,9 @@ export const useLogin = (): UseLoginReturn => {
   const [twoFactorToken, setTwoFactorToken] = useState('');
   const [twoFactorError, setTwoFactorError] = useState<ErrorInfo | null>(null);
 
+  // 用于防止 StrictMode 双重获取验证码
+  const captchaFetchedRef = useRef(false);
+
   // 异步操作 Hooks
   const { execute: executeLogin, loading: loginLoading } = useAsyncOperation();
   const { execute: executeCaptcha } = useAsyncOperation();
@@ -81,9 +84,12 @@ export const useLogin = (): UseLoginReturn => {
     );
   }, [executeCaptcha]);
 
-  // 页面加载时获取验证码
+  // 页面加载时获取验证码（防止 StrictMode 双重获取）
   useEffect(() => {
-    fetchCaptcha();
+    if (!captchaFetchedRef.current) {
+      captchaFetchedRef.current = true;
+      fetchCaptcha();
+    }
   }, [fetchCaptcha]);
 
   // 保存用户信息到 localStorage

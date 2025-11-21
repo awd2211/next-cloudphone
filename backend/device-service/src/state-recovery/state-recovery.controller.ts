@@ -24,11 +24,7 @@ export class StateRecoveryController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getConfig() {
-    const config = this.stateRecoveryService.getConfig();
-    return {
-      success: true,
-      data: config,
-    };
+    return this.stateRecoveryService.getConfig();
   }
 
   /**
@@ -46,8 +42,7 @@ export class StateRecoveryController {
     this.stateRecoveryService.updateConfig(updates);
     const config = this.stateRecoveryService.getConfig();
     return {
-      success: true,
-      data: config,
+      ...config,
       message: '状态恢复配置已更新',
     };
   }
@@ -64,11 +59,7 @@ export class StateRecoveryController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getStatistics() {
-    const stats = this.stateRecoveryService.getStatistics();
-    return {
-      success: true,
-      data: stats,
-    };
+    return this.stateRecoveryService.getStatistics();
   }
 
   /**
@@ -83,11 +74,7 @@ export class StateRecoveryController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getInconsistencyHistory() {
-    const history = this.stateRecoveryService.getInconsistencyHistory();
-    return {
-      success: true,
-      data: history,
-    };
+    return this.stateRecoveryService.getInconsistencyHistory();
   }
 
   /**
@@ -107,11 +94,7 @@ export class StateRecoveryController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getOperationHistory(@Query('entityId') entityId?: string) {
-    const history = this.stateRecoveryService.getOperationHistory(entityId);
-    return {
-      success: true,
-      data: history,
-    };
+    return this.stateRecoveryService.getOperationHistory(entityId);
   }
 
   /**
@@ -128,7 +111,6 @@ export class StateRecoveryController {
   async triggerConsistencyCheck() {
     await this.stateRecoveryService.performConsistencyCheck();
     return {
-      success: true,
       message: '状态一致性检查已执行',
     };
   }
@@ -149,8 +131,7 @@ export class StateRecoveryController {
   async rollbackOperation(@Param('operationId') operationId: string) {
     const result = await this.stateRecoveryService.rollbackOperation(operationId);
     return {
-      success: result.success,
-      data: result,
+      ...result,
       message: result.success ? `操作 ${operationId} 已成功回滚` : `回滚失败: ${result.error}`,
     };
   }

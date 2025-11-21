@@ -11,8 +11,8 @@ import { MessageDetailModal } from '@/components/MessageDetailModal';
 import {
   useNotifications,
   useNotificationStats,
-  useMarkNotificationRead,
-  useMarkAllNotificationsRead,
+  useMarkAsRead,
+  useMarkAllAsRead,
   useDeleteNotifications,
   useClearReadNotifications,
 } from '@/hooks/queries';
@@ -44,13 +44,14 @@ const MessageList: React.FC = () => {
   const { data: notificationsData, isLoading: loading, refetch: refetchNotifications } = useNotifications(query);
   const { data: stats, refetch: refetchStats } = useNotificationStats();
 
-  const markNotificationRead = useMarkNotificationRead();
-  const markAllNotificationsRead = useMarkAllNotificationsRead();
+  const markAsRead = useMarkAsRead();
+  const markAllNotificationsRead = useMarkAllAsRead();
   const deleteNotifications = useDeleteNotifications();
   const clearReadNotifications = useClearReadNotifications();
 
-  const notifications = notificationsData?.items || [];
-  const total = notificationsData?.total || 0;
+  // NotificationListResponse: { items, total, unreadCount, page, pageSize }
+  const notifications: Notification[] = notificationsData?.items || [];
+  const total = notificationsData?.total ?? 0;
 
   // 全选状态计算
   const selectAllChecked = useMemo(() => {
@@ -72,7 +73,7 @@ const MessageList: React.FC = () => {
     setQuery((prev) => ({ ...prev, page: 1 }));
   }, []);
 
-  const handleFilterChange = useCallback((key: keyof NotificationListQuery, value: any) => {
+  const handleFilterChange = useCallback((key: keyof NotificationListQuery, value: NotificationListQuery[keyof NotificationListQuery]) => {
     setQuery((prev) => ({ ...prev, [key]: value, page: 1 }));
   }, []);
 
@@ -96,9 +97,9 @@ const MessageList: React.FC = () => {
 
   const handleBatchMarkRead = useCallback(async () => {
     if (selectedNotifications.length === 0) return;
-    await markNotificationRead.mutateAsync(selectedNotifications);
+    await markAsRead.mutateAsync(selectedNotifications);
     setSelectedNotifications([]);
-  }, [selectedNotifications, markNotificationRead]);
+  }, [selectedNotifications, markAsRead]);
 
   const handleMarkAllRead = useCallback(async () => {
     Modal.confirm({
@@ -145,14 +146,15 @@ const MessageList: React.FC = () => {
     setSelectedNotification(null);
   }, []);
 
-  const handleNotificationRead = useCallback(async (id: string) => {
-    await markNotificationRead.mutateAsync([id]);
-  }, [markNotificationRead]);
+  // 组件内部已调用 markAsRead，这里只需要提供刷新回调
+  const handleNotificationRead = useCallback(() => {
+    // 刷新数据由 React Query 自动处理
+  }, []);
 
   return (
     <div>
       {/* 统计卡片 */}
-      <MessageStatsCards stats={stats} />
+      <MessageStatsCards stats={stats ?? null} />
 
       {/* 筛选工具栏 */}
       <MessageFilterBar

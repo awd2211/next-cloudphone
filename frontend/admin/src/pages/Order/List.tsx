@@ -133,7 +133,7 @@ const OrderList = () => {
       await billingService.batchCancelOrders(selectedRowKeys as string[], '批量取消');
       message.success(`成功取消 ${selectedRowKeys.length} 个订单`);
       setSelectedRowKeys([]);
-    } catch (_error) {
+    } catch (error) {
       message.error('批量取消失败');
     }
   }, [selectedRowKeys]);

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card, Table, Button, Space, Typography, Empty, Form } from 'antd';
 import { ExportOutlined } from '@ant-design/icons';
 import {
@@ -11,7 +11,7 @@ import {
   useExportStats,
   useCreateExportTask,
   useDeleteExportTask,
-  useBatchDeleteExportTasks,
+  useDeleteExportTasks,
   useRetryExportTask,
   useClearCompletedTasks,
   useClearFailedTasks,
@@ -19,7 +19,6 @@ import {
 } from '@/hooks/queries';
 import type { ExportTaskListQuery, ExportDataType, ExportStatus, ExportRequest, ExportTask } from '@/services/export';
 import { createExportTableColumns } from '@/utils/exportTableColumns';
-import { triggerDownload } from '@/services/export';
 
 const { Title, Paragraph } = Typography;
 
@@ -45,23 +44,20 @@ const ExportCenter: React.FC = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
 
   // React Query hooks
-  const { data: tasksData, isLoading: loading, refetch: refetchTasks } = useExportTasks(query, {
-    refetchInterval: 5000, // 每5秒自动刷新
-  });
-  const { data: stats, refetch: refetchStats } = useExportStats({
-    refetchInterval: 5000,
-  });
+  const { data: tasksData, isLoading: loading, refetch: refetchTasks } = useExportTasks(query);
+  const { data: stats, refetch: refetchStats } = useExportStats();
 
   const createExportTask = useCreateExportTask();
   const deleteExportTask = useDeleteExportTask();
-  const batchDeleteExportTasks = useBatchDeleteExportTasks();
+  const batchDeleteExportTasks = useDeleteExportTasks();
   const retryExportTask = useRetryExportTask();
   const clearCompletedTasks = useClearCompletedTasks();
   const clearFailedTasks = useClearFailedTasks();
   const downloadExportFile = useDownloadExportFile();
 
-  const tasks = tasksData?.items || [];
-  const total = tasksData?.total || 0;
+  // useExportTasks 返回 { items: ExportTask[], total: number }
+  const tasks: ExportTask[] = tasksData?.items || [];
+  const total = tasksData?.total ?? 0;
 
   // 操作处理
   const handleRefresh = useCallback(() => {
@@ -88,8 +84,7 @@ const ExportCenter: React.FC = () => {
   }, [form, createExportTask]);
 
   const handleDownload = useCallback(async (task: ExportTask) => {
-    const blob = await downloadExportFile.mutateAsync(task.id);
-    triggerDownload(blob, task.fileName);
+    await downloadExportFile.mutateAsync({ taskId: task.id, fileName: task.fileName });
   }, [downloadExportFile]);
 
   const handleDelete = useCallback(async (id: string) => {
@@ -171,7 +166,7 @@ const ExportCenter: React.FC = () => {
       </Card>
 
       {/* 统计卡片 */}
-      <ExportStatsCards stats={stats} />
+      <ExportStatsCards stats={stats ?? null} />
 
       {/* 工具栏 */}
       <ExportToolbar

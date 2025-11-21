@@ -33,7 +33,7 @@ export const preloadRoute = async (importFn: PreloadFn, routeName: string): Prom
 
     preloadedRoutes.add(routeName);
     console.log(`[RoutePreloader] Route "${routeName}" preloaded in ${duration}ms`);
-  } catch (_error) {
+  } catch (error) {
     console.error(`[RoutePreloader] Failed to preload route "${routeName}":`, error);
   }
 };

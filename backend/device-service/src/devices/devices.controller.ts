@@ -82,12 +82,10 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足或配额超限' })
   async create(@Body() createDeviceDto: CreateDeviceDto) {
     const { sagaId, device } = await this.devicesService.create(createDeviceDto);
+    // TransformInterceptor 会自动包装为 { success, data, timestamp }
     return {
-      success: true,
-      data: {
-        sagaId,
-        device,
-      },
+      sagaId,
+      device,
       message: '设备创建 Saga 已启动，请稍候...',
     };
   }
@@ -104,17 +102,13 @@ export class DevicesController {
     const result = await this.devicesService.findAll(1, 9999);
     const devices = result.data;
 
-    const stats = {
+    // TransformInterceptor 会自动包装
+    return {
       total: devices.length,
       idle: devices.filter((d) => d.status === DeviceStatus.IDLE).length,
       running: devices.filter((d) => d.status === DeviceStatus.RUNNING).length,
       stopped: devices.filter((d) => d.status === DeviceStatus.STOPPED).length,
       error: devices.filter((d) => d.status === DeviceStatus.ERROR).length,
-    };
-
-    return {
-      success: true,
-      data: stats,
     };
   }
 
@@ -134,9 +128,9 @@ export class DevicesController {
       undefined,
       DeviceStatus.IDLE
     );
+    // TransformInterceptor 会自动包装
     return {
-      success: true,
-      data: result.data,
+      items: result.data,
       total: result.total,
     };
   }
@@ -272,9 +266,9 @@ export class DevicesController {
     );
 
     // 返回标准格式：将 limit 转换为 pageSize
+    // TransformInterceptor 会自动包装
     const { limit: _, ...rest } = result;
     return {
-      success: true,
       ...rest,
       pageSize: result.limit,
     };
@@ -328,10 +322,8 @@ export class DevicesController {
     @Query('status') status?: DeviceStatus
   ) {
     const result = await this.devicesService.findAllCursor(paginationDto, userId, tenantId, status);
-    return {
-      success: true,
-      ...result,
-    };
+    // TransformInterceptor 会自动包装
+    return result;
   }
 
   @Get('batch')
@@ -344,19 +336,13 @@ export class DevicesController {
   @ApiResponse({ status: 200, description: '获取成功' })
   async batchFindDevices(@Query('ids') idsParam: string) {
     if (!idsParam) {
-      return {
-        success: true,
-        data: [],
-      };
+      return [];
     }
 
     const ids = idsParam.split(',').map((id) => id.trim()).filter(Boolean);
 
     if (ids.length === 0) {
-      return {
-        success: true,
-        data: [],
-      };
+      return [];
     }
 
     // 批量查询设备（最多100个）
@@ -364,17 +350,75 @@ export class DevicesController {
     const devices = await this.devicesService.findByIds(limitedIds);
 
     // 只返回基本信息
-    const basicDevices = devices.map((device) => ({
+    return devices.map((device) => ({
       id: device.id,
       name: device.name,
       deviceType: device.type,
       providerType: device.providerType,
       status: device.status,
     }));
+  }
 
+  @Get('my')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取我的设备列表',
+    description: '获取当前用户的设备列表',
+  })
+  @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 10 })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: DeviceStatus,
+    description: '设备状态',
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getMyDevices(
+    @Req() req: any,
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize: string = '10',
+    @Query('status') status?: DeviceStatus,
+  ) {
+    const userId = req.user?.sub || req.user?.userId;
+    const result = await this.devicesService.findAll(
+      parseInt(page),
+      parseInt(pageSize),
+      userId,
+      undefined,
+      status,
+    );
+
+    // 直接返回 PaginatedResponse 格式，API Gateway 会自动包装
     return {
-      success: true,
-      data: basicDevices,
+      data: result.data,
+      total: result.total,
+      page: result.page,
+      pageSize: result.limit,
+    };
+  }
+
+  @Get('my/stats')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取我的设备统计',
+    description: '获取当前用户的设备统计信息',
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getMyDeviceStats(@Req() req: any) {
+    const userId = req.user?.sub || req.user?.userId;
+    const result = await this.devicesService.findAll(1, 9999, userId);
+    const devices = result.data;
+
+    // 直接返回统计数据，API Gateway 会自动包装
+    return {
+      total: devices.length,
+      idle: devices.filter((d) => d.status === DeviceStatus.IDLE).length,
+      running: devices.filter((d) => d.status === DeviceStatus.RUNNING).length,
+      stopped: devices.filter((d) => d.status === DeviceStatus.STOPPED).length,
+      error: devices.filter((d) => d.status === DeviceStatus.ERROR).length,
     };
   }
 
@@ -389,11 +433,7 @@ export class DevicesController {
   @ApiResponse({ status: 404, description: '设备不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async findOne(@Param('id') id: string) {
-    const device = await this.devicesService.findOne(id);
-    return {
-      success: true,
-      data: device,
-    };
+    return this.devicesService.findOne(id);
   }
 
   @Get(':id/stats')
@@ -407,11 +447,7 @@ export class DevicesController {
   @ApiResponse({ status: 404, description: '设备不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getStats(@Param('id') id: string) {
-    const stats = await this.devicesService.getStats(id);
-    return {
-      success: true,
-      data: stats,
-    };
+    return this.devicesService.getStats(id);
   }
 
   @Patch(':id')
@@ -423,11 +459,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async update(@Param('id') id: string, @Body() updateDeviceDto: UpdateDeviceDto) {
     const device = await this.devicesService.update(id, updateDeviceDto);
-    return {
-      success: true,
-      data: device,
-      message: '设备更新成功',
-    };
+    return { ...device, message: '设备更新成功' };
   }
 
   @Post(':id/start')
@@ -439,11 +471,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async start(@Param('id') id: string) {
     const device = await this.devicesService.start(id);
-    return {
-      success: true,
-      data: device,
-      message: '设备启动成功',
-    };
+    return { ...device, message: '设备启动成功' };
   }
 
   @Post(':id/stop')
@@ -455,11 +483,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async stop(@Param('id') id: string) {
     const device = await this.devicesService.stop(id);
-    return {
-      success: true,
-      data: device,
-      message: '设备停止成功',
-    };
+    return { ...device, message: '设备停止成功' };
   }
 
   @Post(':id/restart')
@@ -471,11 +495,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async restart(@Param('id') id: string) {
     const device = await this.devicesService.restart(id);
-    return {
-      success: true,
-      data: device,
-      message: '设备重启成功',
-    };
+    return { ...device, message: '设备重启成功' };
   }
 
   /**
@@ -504,10 +524,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async heartbeat(@Param('id') id: string, @Body() stats: DeviceMetrics) {
     await this.devicesService.updateHeartbeat(id, stats);
-    return {
-      success: true,
-      message: '心跳更新成功',
-    };
+    return { message: '心跳更新成功' };
   }
 
   @Delete(':id')
@@ -523,11 +540,7 @@ export class DevicesController {
     // 启动设备删除 Saga
     const { sagaId } = await this.deletionSaga.startDeletion(id, userId);
 
-    return {
-      success: true,
-      message: '设备删除 Saga 已启动',
-      sagaId,
-    };
+    return { sagaId, message: '设备删除 Saga 已启动' };
   }
 
   @Get('deletion/saga/:sagaId')
@@ -536,11 +549,7 @@ export class DevicesController {
   @ApiParam({ name: 'sagaId', description: 'Saga ID' })
   @ApiResponse({ status: 200, description: '查询成功' })
   async getDeletionSagaStatus(@Param('sagaId') sagaId: string) {
-    const state = await this.deletionSaga.getSagaStatus(sagaId);
-    return {
-      success: true,
-      data: state,
-    };
+    return this.deletionSaga.getSagaStatus(sagaId);
   }
 
   // ADB 相关接口
@@ -558,11 +567,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async executeShell(@Param('id') id: string, @Body() dto: ShellCommandDto) {
     const output = await this.devicesService.executeShellCommand(id, dto.command, dto.timeout);
-    return {
-      success: true,
-      data: { output },
-      message: '命令执行成功',
-    };
+    return { output, message: '命令执行成功' };
   }
 
   @Post(':id/screenshot')
@@ -601,10 +606,7 @@ export class DevicesController {
     @Body() dto: PushFileDto
   ) {
     await this.devicesService.pushFile(id, file.path, dto.targetPath);
-    return {
-      success: true,
-      message: '文件推送成功',
-    };
+    return { message: '文件推送成功' };
   }
 
   @Post(':id/pull')
@@ -631,10 +633,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async installApk(@Param('id') id: string, @Body() dto: InstallApkDto) {
     await this.devicesService.installApk(id, dto.apkPath, dto.reinstall);
-    return {
-      success: true,
-      message: 'APK 安装成功',
-    };
+    return { message: 'APK 安装成功' };
   }
 
   @Post(':id/uninstall')
@@ -647,10 +646,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async uninstallApp(@Param('id') id: string, @Body() dto: UninstallApkDto) {
     await this.devicesService.uninstallApp(id, dto.packageName);
-    return {
-      success: true,
-      message: '应用卸载成功',
-    };
+    return { message: '应用卸载成功' };
   }
 
   @Get(':id/packages')
@@ -665,10 +661,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async getInstalledPackages(@Param('id') id: string) {
     const packages = await this.devicesService.getInstalledPackages(id);
-    return {
-      success: true,
-      data: { packages, count: packages.length },
-    };
+    return { packages, count: packages.length };
   }
 
   @Get(':id/logcat')
@@ -695,10 +688,7 @@ export class DevicesController {
       filter,
       lines ? parseInt(lines) : undefined
     );
-    return {
-      success: true,
-      data: { logs },
-    };
+    return { logs };
   }
 
   @Post(':id/logcat/clear')
@@ -710,10 +700,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async clearLogcat(@Param('id') id: string) {
     await this.devicesService.clearLogcat(id);
-    return {
-      success: true,
-      message: '日志清空成功',
-    };
+    return { message: '日志清空成功' };
   }
 
   @Get(':id/properties')
@@ -727,11 +714,7 @@ export class DevicesController {
   @ApiResponse({ status: 404, description: '设备不存在或未连接' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getDeviceProperties(@Param('id') id: string) {
-    const properties = await this.devicesService.getDeviceProperties(id);
-    return {
-      success: true,
-      data: properties,
-    };
+    return this.devicesService.getDeviceProperties(id);
   }
 
   @Get(':id/stream-info')
@@ -745,11 +728,7 @@ export class DevicesController {
   @ApiResponse({ status: 404, description: '设备不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getStreamInfo(@Param('id') id: string) {
-    const streamInfo = await this.devicesService.getStreamInfo(id);
-    return {
-      success: true,
-      data: streamInfo,
-    };
+    return this.devicesService.getStreamInfo(id);
   }
 
   @Get(':id/screenshot')
@@ -787,10 +766,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async batchStart(@Body('ids') ids: string[]) {
     if (!ids || ids.length === 0) {
-      return {
-        success: false,
-        message: '请提供要启动的设备ID列表',
-      };
+      return { succeeded: 0, failed: 0, total: 0, message: '请提供要启动的设备ID列表' };
     }
 
     const results = await Promise.allSettled(ids.map((id) => this.devicesService.start(id)));
@@ -799,9 +775,10 @@ export class DevicesController {
     const failed = results.filter((r) => r.status === 'rejected').length;
 
     return {
-      success: true,
+      succeeded,
+      failed,
+      total: ids.length,
       message: `批量启动完成：成功 ${succeeded} 个，失败 ${failed} 个`,
-      data: { succeeded, failed, total: ids.length },
     };
   }
 
@@ -815,10 +792,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async batchStop(@Body('ids') ids: string[]) {
     if (!ids || ids.length === 0) {
-      return {
-        success: false,
-        message: '请提供要停止的设备ID列表',
-      };
+      return { succeeded: 0, failed: 0, total: 0, message: '请提供要停止的设备ID列表' };
     }
 
     const results = await Promise.allSettled(ids.map((id) => this.devicesService.stop(id)));
@@ -827,9 +801,10 @@ export class DevicesController {
     const failed = results.filter((r) => r.status === 'rejected').length;
 
     return {
-      success: true,
+      succeeded,
+      failed,
+      total: ids.length,
       message: `批量停止完成：成功 ${succeeded} 个，失败 ${failed} 个`,
-      data: { succeeded, failed, total: ids.length },
     };
   }
 
@@ -843,10 +818,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async batchReboot(@Body('ids') ids: string[]) {
     if (!ids || ids.length === 0) {
-      return {
-        success: false,
-        message: '请提供要重启的设备ID列表',
-      };
+      return { succeeded: 0, failed: 0, total: 0, message: '请提供要重启的设备ID列表' };
     }
 
     const results = await Promise.allSettled(ids.map((id) => this.devicesService.restart(id)));
@@ -855,9 +827,10 @@ export class DevicesController {
     const failed = results.filter((r) => r.status === 'rejected').length;
 
     return {
-      success: true,
+      succeeded,
+      failed,
+      total: ids.length,
       message: `批量重启完成：成功 ${succeeded} 个，失败 ${failed} 个`,
-      data: { succeeded, failed, total: ids.length },
     };
   }
 
@@ -871,10 +844,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async batchDelete(@Body('ids') ids: string[], @Req() req: any) {
     if (!ids || ids.length === 0) {
-      return {
-        success: false,
-        message: '请提供要删除的设备ID列表',
-      };
+      return { succeeded: 0, failed: 0, total: 0, sagaIds: [], message: '请提供要删除的设备ID列表' };
     }
 
     const userId = req.user?.userId || req.user?.sub || 'system';
@@ -893,9 +863,11 @@ export class DevicesController {
       .map((r: any) => r.value.sagaId);
 
     return {
-      success: true,
+      succeeded,
+      failed,
+      total: ids.length,
+      sagaIds,
       message: `批量删除 Saga 已启动：成功 ${succeeded} 个，失败 ${failed} 个`,
-      data: { succeeded, failed, total: ids.length, sagaIds },
     };
   }
 
@@ -938,27 +910,18 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async batchStats(@Body('deviceIds') deviceIds: string[]) {
     if (!deviceIds || deviceIds.length === 0) {
-      return {
-        success: false,
-        message: '请提供设备ID列表',
-        data: {},
-      };
+      return { stats: {}, message: '请提供设备ID列表' };
     }
 
     if (deviceIds.length > 200) {
-      return {
-        success: false,
-        message: '单次最多支持查询 200 个设备',
-        data: {},
-      };
+      return { stats: {}, message: '单次最多支持查询 200 个设备' };
     }
 
     const stats = await this.devicesService.getStatsBatch(deviceIds);
 
     return {
-      success: true,
+      stats,
       message: `成功获取 ${Object.keys(stats).length}/${deviceIds.length} 个设备的统计信息`,
-      data: stats,
     };
   }
 
@@ -978,10 +941,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async startApp(@Param('id') id: string, @Body() dto: StartAppDto) {
     await this.devicesService.startApp(id, dto.packageName);
-    return {
-      success: true,
-      message: `应用 ${dto.packageName} 启动成功`,
-    };
+    return { message: `应用 ${dto.packageName} 启动成功` };
   }
 
   @Post(':id/apps/stop')
@@ -996,10 +956,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async stopApp(@Param('id') id: string, @Body() dto: StopAppDto) {
     await this.devicesService.stopApp(id, dto.packageName);
-    return {
-      success: true,
-      message: `应用 ${dto.packageName} 停止成功`,
-    };
+    return { message: `应用 ${dto.packageName} 停止成功` };
   }
 
   @Post(':id/apps/clear-data')
@@ -1014,10 +971,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async clearAppData(@Param('id') id: string, @Body() dto: ClearAppDataDto) {
     await this.devicesService.clearAppData(id, dto.packageName);
-    return {
-      success: true,
-      message: `应用 ${dto.packageName} 数据清除成功`,
-    };
+    return { message: `应用 ${dto.packageName} 数据清除成功` };
   }
 
   // ============================================================
@@ -1036,11 +990,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async createSnapshot(@Param('id') id: string, @Body() dto: CreateSnapshotDto) {
     const snapshotId = await this.devicesService.createSnapshot(id, dto.name, dto.description);
-    return {
-      success: true,
-      message: '快照创建成功',
-      data: { snapshotId },
-    };
+    return { snapshotId, message: '快照创建成功' };
   }
 
   @Post(':id/snapshots/restore')
@@ -1055,10 +1005,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async restoreSnapshot(@Param('id') id: string, @Body() dto: RestoreSnapshotDto) {
     await this.devicesService.restoreSnapshot(id, dto.snapshotId);
-    return {
-      success: true,
-      message: '快照恢复成功，设备将重启',
-    };
+    return { message: '快照恢复成功，设备将重启' };
   }
 
   @Get(':id/snapshots')
@@ -1072,11 +1019,7 @@ export class DevicesController {
   @ApiResponse({ status: 400, description: '设备不支持快照功能' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async listSnapshots(@Param('id') id: string) {
-    const snapshots = await this.devicesService.listSnapshots(id);
-    return {
-      success: true,
-      data: snapshots,
-    };
+    return this.devicesService.listSnapshots(id);
   }
 
   @Delete(':id/snapshots/:snapshotId')
@@ -1092,10 +1035,7 @@ export class DevicesController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async deleteSnapshot(@Param('id') id: string, @Param('snapshotId') snapshotId: string) {
     await this.devicesService.deleteSnapshot(id, snapshotId);
-    return {
-      success: true,
-      message: '快照删除成功',
-    };
+    return { message: '快照删除成功' };
   }
 
   // ==================== 设备连接和远程控制 ====================
@@ -1114,14 +1054,11 @@ export class DevicesController {
     const device = await this.devicesService.findOne(id);
 
     if (!device) {
-      return {
-        success: false,
-        message: '设备不存在',
-      };
+      throw new Error('设备不存在');
     }
 
     // 获取设备的ADB连接信息
-    const connectionInfo = {
+    return {
       deviceId: device.id,
       deviceName: device.name,
       host: device.adbHost || 'localhost',
@@ -1133,11 +1070,6 @@ export class DevicesController {
       containerId: device.containerId,
       // 连接状态
       isOnline: device.status === 'running',
-    };
-
-    return {
-      success: true,
-      data: connectionInfo,
       message: '连接信息获取成功',
     };
   }
@@ -1156,10 +1088,7 @@ export class DevicesController {
     const device = await this.devicesService.findOne(id);
 
     if (!device) {
-      return {
-        success: false,
-        message: '设备不存在',
-      };
+      throw new Error('设备不存在');
     }
 
     // 生成 WebRTC token (这里简化实现，实际应该使用JWT或其他安全方案)
@@ -1172,7 +1101,7 @@ export class DevicesController {
     // Token 有效期 1 小时
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    const webrtcInfo = {
+    return {
       deviceId: device.id,
       deviceName: device.name,
       token,
@@ -1187,18 +1116,7 @@ export class DevicesController {
         {
           urls: 'stun:stun.l.google.com:19302',
         },
-        // 如果有 TURN 服务器，可以添加
-        // {
-        //   urls: 'turn:your-turn-server.com:3478',
-        //   username: 'user',
-        //   credential: 'pass'
-        // }
       ],
-    };
-
-    return {
-      success: true,
-      data: webrtcInfo,
       message: 'WebRTC token 生成成功',
     };
   }

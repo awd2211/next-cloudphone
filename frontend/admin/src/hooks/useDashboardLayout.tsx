@@ -219,7 +219,7 @@ export const useDashboardLayout = (
           cards: mergedCards,
         };
       }
-    } catch (_error) {
+    } catch (error) {
       console.warn('Failed to load dashboard layout from localStorage:', error);
     }
 
@@ -236,7 +236,7 @@ export const useDashboardLayout = (
         updatedAt: new Date().toISOString(),
       };
       localStorage.setItem(storageKey, JSON.stringify(layoutToSave));
-    } catch (_error) {
+    } catch (error) {
       console.warn('Failed to save dashboard layout to localStorage:', error);
     }
   }, [layout, storageKey]);

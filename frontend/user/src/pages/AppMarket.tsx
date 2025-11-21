@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Row, Col, Card, Empty, Button, Form } from 'antd';
 import { AppSearchBar, AppCard, InstallAppModal } from '@/components/App';
 import { useApps, useInstallApp, useMyDevices } from '@/hooks/queries';
-import type { App } from '@/types';
+import type { Application, Device } from '@/types';
 
 const AppMarket = () => {
   // Form 实例
@@ -14,7 +14,7 @@ const AppMarket = () => {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(12);
   const [installModalVisible, setInstallModalVisible] = useState(false);
-  const [selectedApp, setSelectedApp] = useState<App | null>(null);
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
 
   // React Query hooks
   const { data: appsData, isLoading: loading } = useApps({
@@ -26,9 +26,10 @@ const AppMarket = () => {
   const { data: devicesData } = useMyDevices({ page: 1, pageSize: 100 });
   const installApp = useInstallApp();
 
-  const apps = appsData?.items || [];
-  const total = appsData?.total || 0;
-  const devices = devicesData?.data || [];
+  // useApps 返回 PaginatedResponse<Application> = { data: Application[], total, page, pageSize }
+  const apps: Application[] = appsData?.data || [];
+  const total = appsData?.total ?? 0;
+  const devices: Device[] = devicesData?.data || [];
 
   // 应用分类（可以从API获取或配置）
   const categories = [
@@ -45,26 +46,30 @@ const AppMarket = () => {
   }, []);
 
   // 查看应用详情
-  const handleView = useCallback((app: App) => {
+  const handleView = useCallback((app: Application) => {
     // 跳转到应用详情页或打开详情弹窗
     console.log('View app:', app);
   }, []);
 
   // 打开安装弹窗
-  const handleInstall = useCallback((app: App) => {
+  const handleInstall = useCallback((app: Application) => {
     setSelectedApp(app);
     setInstallModalVisible(true);
   }, []);
 
-  // 确认安装
+  // 确认安装（每个设备单独安装）
   const handleInstallConfirm = useCallback(async () => {
     if (!selectedApp) return;
 
     const values = await form.validateFields();
-    await installApp.mutateAsync({
-      appId: selectedApp.id,
-      deviceIds: values.deviceIds,
-    });
+    // useInstallApp 接受单个 deviceId，需要遍历安装
+    const deviceIds = values.deviceIds as string[];
+    for (const deviceId of deviceIds) {
+      await installApp.mutateAsync({
+        appId: selectedApp.id,
+        deviceId,
+      });
+    }
 
     setInstallModalVisible(false);
     form.resetFields();
@@ -102,7 +107,7 @@ const AppMarket = () => {
       ) : (
         <>
           <Row gutter={[16, 16]}>
-            {apps.map((app) => (
+            {apps.map((app: Application) => (
               <Col key={app.id} xs={24} sm={12} md={8} lg={6}>
                 <AppCard
                   app={app}

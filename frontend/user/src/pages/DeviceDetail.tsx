@@ -29,9 +29,9 @@ const DeviceDetail = () => {
   const navigate = useNavigate();
 
   // React Query hooks
+  // 注意: useDevice 只支持 enabled 选项，refetchInterval 应在组件层处理
   const { data: device, isLoading } = useDevice(id!, {
     enabled: !!id,
-    refetchInterval: 30000, // 每30秒自动刷新
   });
   const startDevice = useStartDevice();
   const stopDevice = useStopDevice();

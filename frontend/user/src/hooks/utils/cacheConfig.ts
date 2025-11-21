@@ -28,8 +28,26 @@ export const CacheTime = {
 
 /**
  * 不同数据类型的推荐缓存时间
+ * 包含实体特定配置和通用时间常量
  */
 export const StaleTimeConfig = {
+  // ==================== 通用时间常量 ====================
+  /** 5 秒 - 实时性要求高的数据 */
+  SHORT: CacheTime.SHORT,
+
+  /** 30 秒 - 常规数据 */
+  MEDIUM: CacheTime.MEDIUM,
+
+  /** 1 分钟 - 变化较慢的数据 */
+  LONG: CacheTime.LONG,
+
+  /** 5 分钟 - 变化很慢的数据 */
+  VERY_LONG: CacheTime.VERY_LONG,
+
+  /** 15 分钟 - 基本不变的数据 */
+  STATIC: CacheTime.STATIC,
+
+  // ==================== 实体特定配置 ====================
   /** 设备列表 - 30秒 */
   devices: CacheTime.MEDIUM,
 
@@ -95,6 +113,27 @@ export const StaleTimeConfig = {
 
   /** 价格信息 - 15分钟 */
   pricing: CacheTime.STATIC,
+
+  /** 活动列表 - 30秒 */
+  activities: CacheTime.MEDIUM,
+
+  /** 通知列表 - 30秒 */
+  notifications: CacheTime.MEDIUM,
+
+  /** 统计数据 - 1分钟 */
+  stats: CacheTime.LONG,
+
+  /** 帮助文档 - 15分钟 */
+  help: CacheTime.STATIC,
+
+  /** 导出任务 - 30秒 */
+  exports: CacheTime.MEDIUM,
+
+  /** 套餐计划 - 5分钟 */
+  plans: CacheTime.VERY_LONG,
+
+  /** 推荐 - 30秒 */
+  referrals: CacheTime.MEDIUM,
 } as const;
 
 /**

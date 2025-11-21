@@ -37,15 +37,16 @@ const MyCoupons: React.FC = () => {
     pageSize: 100,
   });
 
-  const coupons = couponsData?.data || [];
+  // useMyCoupons 返回 { data: Coupon[], total, page, pageSize }
+  const coupons: Coupon[] = couponsData?.data || [];
 
   // 统计数据计算
   const stats = useMemo(() => {
     return {
       total: coupons.length,
-      available: coupons.filter((c) => c.status === 'available').length,
-      used: coupons.filter((c) => c.status === 'used').length,
-      expired: coupons.filter((c) => c.status === 'expired').length,
+      available: coupons.filter((c: Coupon) => c.status === 'available').length,
+      used: coupons.filter((c: Coupon) => c.status === 'used').length,
+      expired: coupons.filter((c: Coupon) => c.status === 'expired').length,
     };
   }, [coupons]);
 
@@ -66,12 +67,12 @@ const MyCoupons: React.FC = () => {
 
   // 使用优惠券
   const handleUseCoupon = useCallback((coupon: Coupon) => {
-    const route = getUsageRoute(coupon.type);
-    const msg = getUsageMessage(coupon.type);
+    const route = getUsageRoute(coupon);
+    const msg = getUsageMessage(coupon);
 
     if (route) {
       message.success(msg);
-      navigate(route);
+      navigate(route.path, { state: route.state });
     } else {
       message.info('该优惠券暂不支持在线使用');
     }

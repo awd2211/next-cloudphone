@@ -172,3 +172,10 @@ export const formatBalance = (balance: number, currency: string = 'CNY'): string
   const symbol = currencySymbols[currency] || currency;
   return `${symbol}${balance.toFixed(2)}`;
 };
+
+// ==================== 别名导出 ====================
+
+/**
+ * useBalance - useUserBalance 的别名（用于简化导入）
+ */
+export const useBalance = useUserBalance;

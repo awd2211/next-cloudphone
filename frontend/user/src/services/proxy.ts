@@ -213,3 +213,23 @@ export const batchTestProxies = (proxyIds: string[]) => {
     }>;
   }>('/proxy/batch/test', { proxyIds });
 };
+
+// ==================== 问题反馈 ====================
+
+/**
+ * 报告代理问题
+ */
+export const reportProxyIssue = (
+  proxyId: string,
+  issue: string,
+  description?: string
+) => {
+  return request.post(`/proxy/${proxyId}/report-issue`, { issue, description });
+};
+
+// ==================== 类型别名 ====================
+
+/**
+ * 代理使用记录（别名）
+ */
+export type ProxyUsageRecord = ProxyUsageHistory;

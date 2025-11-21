@@ -98,7 +98,7 @@ export const useNetworkPolicies = () => {
         await request.delete(`/devices/network-policies/${id}`);
         message.success('策略删除成功');
         loadPolicies();
-      } catch (_error) {
+      } catch (error) {
         message.error('删除失败');
       }
     },
@@ -114,7 +114,7 @@ export const useNetworkPolicies = () => {
         await request.patch(`/devices/network-policies/${id}/toggle`, { isEnabled });
         message.success(`策略已${isEnabled ? '启用' : '停用'}`);
         loadPolicies();
-      } catch (_error) {
+      } catch (error) {
         message.error('操作失败');
       }
     },
@@ -147,7 +147,7 @@ export const useNetworkPolicies = () => {
         content: `连通性: ${result.connected ? '成功' : '失败'}\n延迟: ${result.latency}ms\n带宽: ${result.bandwidth} Mbps`,
       });
       closeTestModal();
-    } catch (_error) {
+    } catch (error) {
       message.error('测试失败');
     }
   }, [testForm, closeTestModal]);

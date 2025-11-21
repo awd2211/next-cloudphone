@@ -60,7 +60,7 @@ const FieldPermissionManagement: React.FC = () => {
           message.success(res.message);
           loadPermissions();
         }
-      } catch (_error) {
+      } catch (error) {
         message.error('删除字段权限配置失败');
       }
     },
@@ -75,7 +75,7 @@ const FieldPermissionManagement: React.FC = () => {
           message.success(res.message);
           loadPermissions();
         }
-      } catch (_error) {
+      } catch (error) {
         message.error('切换状态失败');
       }
     },
@@ -122,7 +122,7 @@ const FieldPermissionManagement: React.FC = () => {
           loadPermissions();
         }
       }
-    } catch (_error) {
+    } catch (error) {
       message.error(editingPermission ? '更新字段权限配置失败' : '创建字段权限配置失败');
     }
   }, [editingPermission, form, loadPermissions]);

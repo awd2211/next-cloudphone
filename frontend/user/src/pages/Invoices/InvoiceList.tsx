@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Card, Table, Button, Space, Typography, Empty, Form } from 'antd';
-import { FileTextOutlined, PlusOutlined } from '@/icons';
+import { FileTextOutlined, PlusOutlined } from '@ant-design/icons';
 import {
   InvoiceStatsCards,
   InvoiceApplyModal,
@@ -13,7 +13,7 @@ import {
   useBills,
 } from '@/hooks/queries';
 import { createInvoiceTableColumns } from '@/utils/invoiceTableColumns';
-import type { Invoice } from '@/types';
+import type { Invoice } from '@/services/billing';
 
 const { Title } = Typography;
 
@@ -34,13 +34,15 @@ const InvoiceList: React.FC = () => {
 
   // React Query hooks
   const { data: invoicesData, isLoading: loading } = useInvoices({ page, pageSize });
-  const { data: billsData } = useBills({ page: 1, pageSize: 100, status: 'paid' }); // 获取已支付账单
+  const { data: billsData } = useBills({ page: 1, pageSize: 100 }); // 获取账单列表
   const applyInvoice = useApplyInvoice();
   const downloadInvoice = useDownloadInvoice();
 
-  const invoices = invoicesData?.items || [];
+  // useInvoices 返回 { items: Invoice[], total }
+  // useBills 返回 BillListResponse { items: Bill[], total, stats }
+  const invoices: Invoice[] = invoicesData?.items || [];
   const bills = billsData?.items || [];
-  const total = invoicesData?.total || 0;
+  const total = invoicesData?.total ?? 0;
   const downloading = downloadInvoice.isPending;
 
   // 打开/关闭申请弹窗
@@ -73,10 +75,10 @@ const InvoiceList: React.FC = () => {
     [applyInvoice, handleCloseApplyModal]
   );
 
-  // 下载发票
+  // 下载发票 - 匹配组件 props 签名 (id: string, invoiceNo: string)
   const handleDownload = useCallback(
-    async (invoice: Invoice) => {
-      await downloadInvoice.mutateAsync(invoice.id);
+    async (id: string, invoiceNo: string) => {
+      await downloadInvoice.mutateAsync({ id, invoiceNo });
     },
     [downloadInvoice]
   );
@@ -93,8 +95,9 @@ const InvoiceList: React.FC = () => {
       createInvoiceTableColumns({
         onViewDetail: handleOpenDetailModal,
         onDownload: handleDownload,
+        downloading,
       }),
-    [handleOpenDetailModal, handleDownload]
+    [handleOpenDetailModal, handleDownload, downloading]
   );
 
   return (

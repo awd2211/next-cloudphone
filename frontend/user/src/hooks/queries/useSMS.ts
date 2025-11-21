@@ -1,5 +1,13 @@
+/**
+ * SMS 短信管理 React Query Hooks (用户端)
+ *
+ * 提供用户自助短信查询、验证码查询、号码管理功能
+ *
+ * ✅ 统一使用 const 箭头函数风格
+ * ✅ 使用类型化的错误处理
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { message } from 'antd';
 import {
   getMySMS,
   getMySMSStats,
@@ -20,30 +28,29 @@ import {
   type PhoneNumber,
   type NumberStats,
 } from '@/services/sms';
-
-/**
- * SMS 短信管理 React Query Hooks (用户端)
- *
- * 提供用户自助短信查询、验证码查询、号码管理功能
- */
+import {
+  handleMutationError,
+  handleMutationSuccess,
+} from '../utils/errorHandler';
+import { StaleTimeConfig, RefetchIntervalConfig } from '../utils/cacheConfig';
 
 // ==================== Query Keys ====================
 
 export const smsKeys = {
   all: ['sms'] as const,
-  mySMS: (params?: any) => [...smsKeys.all, 'my', params] as const,
+  mySMS: (params?: Record<string, unknown>) => [...smsKeys.all, 'my', params] as const,
   stats: () => [...smsKeys.all, 'stats'] as const,
 
   codes: () => [...smsKeys.all, 'codes'] as const,
-  myCodes: (params?: any) => [...smsKeys.codes(), 'my', params] as const,
+  myCodes: (params?: Record<string, unknown>) => [...smsKeys.codes(), 'my', params] as const,
   codeByPhone: (phone: string) => [...smsKeys.codes(), 'phone', phone] as const,
 
   device: (deviceId: string) => [...smsKeys.all, 'device', deviceId] as const,
-  deviceSMS: (deviceId: string, params?: any) => [...smsKeys.device(deviceId), 'sms', params] as const,
-  deviceLatestCode: (deviceId: string, params?: any) => [...smsKeys.device(deviceId), 'code', params] as const,
+  deviceSMS: (deviceId: string, params?: Record<string, unknown>) => [...smsKeys.device(deviceId), 'sms', params] as const,
+  deviceLatestCode: (deviceId: string, params?: Record<string, unknown>) => [...smsKeys.device(deviceId), 'code', params] as const,
 
   numbers: () => [...smsKeys.all, 'numbers'] as const,
-  myNumbers: (params?: any) => [...smsKeys.numbers(), 'my', params] as const,
+  myNumbers: (params?: Record<string, unknown>) => [...smsKeys.numbers(), 'my', params] as const,
   numberStats: () => [...smsKeys.numbers(), 'stats'] as const,
 };
 
@@ -64,10 +71,12 @@ export const useMySMS = (params?: {
 }) => {
   return useQuery<{
     data: SMSRecord[];
-    meta: { total: number; page: number; limit: number; };
+    meta: { total: number; page: number; limit: number };
   }>({
     queryKey: smsKeys.mySMS(params),
     queryFn: () => getMySMS(params),
+    staleTime: StaleTimeConfig.sms,
+    placeholderData: (previousData) => previousData,
   });
 };
 
@@ -78,25 +87,28 @@ export const useMySMSStats = () => {
   return useQuery<SMSStats>({
     queryKey: smsKeys.stats(),
     queryFn: getMySMSStats,
-    refetchInterval: 30000, // 每30秒自动刷新
+    staleTime: StaleTimeConfig.sms,
+    refetchInterval: RefetchIntervalConfig.normal,
   });
 };
 
 /**
  * 获取设备短信列表
  */
-export const useDeviceSMS = (deviceId: string, params?: {
-  page?: number;
-  limit?: number;
-  unread?: boolean;
-}, options?: { enabled?: boolean }) => {
-  return useQuery<{
-    data: SMSRecord[];
-    meta: { total: number; page: number; limit: number; };
-  }>({
+export const useDeviceSMS = (
+  deviceId: string,
+  params?: {
+    page?: number;
+    limit?: number;
+    unread?: boolean;
+  },
+  options?: { enabled?: boolean }
+) => {
+  return useQuery({
     queryKey: smsKeys.deviceSMS(deviceId, params),
     queryFn: () => getDeviceSMS(deviceId, params),
     enabled: options?.enabled !== false && !!deviceId,
+    staleTime: StaleTimeConfig.sms,
   });
 };
 
@@ -114,10 +126,11 @@ export const useMyVerificationCodes = (params?: {
 }) => {
   return useQuery<{
     data: VerificationCode[];
-    meta: { total: number; page: number; limit: number; };
+    meta: { total: number; page: number; limit: number };
   }>({
     queryKey: smsKeys.myCodes(params),
     queryFn: () => getMyVerificationCodes(params),
+    staleTime: StaleTimeConfig.sms,
   });
 };
 
@@ -129,19 +142,25 @@ export const useVerificationCodeByPhone = (phone: string, options?: { enabled?: 
     queryKey: smsKeys.codeByPhone(phone),
     queryFn: () => getVerificationCodeByPhone(phone),
     enabled: options?.enabled !== false && !!phone,
+    staleTime: StaleTimeConfig.sms,
   });
 };
 
 /**
  * 获取设备的最新验证码
  */
-export const useDeviceLatestCode = (deviceId: string, params?: {
-  codeType?: string;
-}, options?: { enabled?: boolean }) => {
+export const useDeviceLatestCode = (
+  deviceId: string,
+  params?: {
+    codeType?: string;
+  },
+  options?: { enabled?: boolean }
+) => {
   return useQuery<VerificationCode>({
     queryKey: smsKeys.deviceLatestCode(deviceId, params),
     queryFn: () => getDeviceLatestCode(deviceId, params),
     enabled: options?.enabled !== false && !!deviceId,
+    staleTime: StaleTimeConfig.sms,
   });
 };
 
@@ -158,10 +177,11 @@ export const useMyNumbers = (params?: {
 }) => {
   return useQuery<{
     data: PhoneNumber[];
-    meta: { total: number; page: number; limit: number; };
+    meta: { total: number; page: number; limit: number };
   }>({
     queryKey: smsKeys.myNumbers(params),
     queryFn: () => getMyNumbers(params),
+    staleTime: StaleTimeConfig.sms,
   });
 };
 
@@ -172,7 +192,8 @@ export const useMyNumberStats = () => {
   return useQuery<NumberStats>({
     queryKey: smsKeys.numberStats(),
     queryFn: getMyNumberStats,
-    refetchInterval: 30000,
+    staleTime: StaleTimeConfig.sms,
+    refetchInterval: RefetchIntervalConfig.normal,
   });
 };
 
@@ -182,15 +203,15 @@ export const useMyNumberStats = () => {
 export const useAcquireNumber = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<PhoneNumber, Error, Parameters<typeof acquireNumber>[0]>({
     mutationFn: acquireNumber,
     onSuccess: () => {
+      handleMutationSuccess('号码获取成功');
       queryClient.invalidateQueries({ queryKey: smsKeys.myNumbers() });
       queryClient.invalidateQueries({ queryKey: smsKeys.numberStats() });
-      message.success('号码获取成功');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '号码获取失败');
+    onError: (error) => {
+      handleMutationError(error, '号码获取失败');
     },
   });
 };
@@ -201,15 +222,15 @@ export const useAcquireNumber = () => {
 export const useReleaseNumber = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<void, Error, string>({
     mutationFn: releaseNumber,
     onSuccess: () => {
+      handleMutationSuccess('号码释放成功');
       queryClient.invalidateQueries({ queryKey: smsKeys.myNumbers() });
       queryClient.invalidateQueries({ queryKey: smsKeys.numberStats() });
-      message.success('号码释放成功');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '号码释放失败');
+    onError: (error) => {
+      handleMutationError(error, '号码释放失败');
     },
   });
 };
@@ -222,13 +243,13 @@ export const useRenewNumber = () => {
 
   return useMutation({
     mutationFn: ({ numberId, duration }: { numberId: string; duration?: number }) =>
-      renewNumber(numberId, duration),
+      renewNumber(numberId, duration ?? 30),
     onSuccess: () => {
+      handleMutationSuccess('号码续期成功');
       queryClient.invalidateQueries({ queryKey: smsKeys.myNumbers() });
-      message.success('号码续期成功');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '号码续期失败');
+    onError: (error: Error) => {
+      handleMutationError(error, '号码续期失败');
     },
   });
 };
@@ -241,14 +262,14 @@ export const useRenewNumber = () => {
 export const useMarkSMSAsRead = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<void, Error, string>({
     mutationFn: markSMSAsRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: smsKeys.all });
       queryClient.invalidateQueries({ queryKey: smsKeys.stats() });
     },
-    onError: (error: any) => {
-      message.error(error?.message || '操作失败');
+    onError: (error) => {
+      handleMutationError(error, '操作失败');
     },
   });
 };
@@ -259,15 +280,15 @@ export const useMarkSMSAsRead = () => {
 export const useBatchMarkAsRead = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<void, Error, string[]>({
     mutationFn: batchMarkAsRead,
     onSuccess: () => {
+      handleMutationSuccess('批量标记成功');
       queryClient.invalidateQueries({ queryKey: smsKeys.all });
       queryClient.invalidateQueries({ queryKey: smsKeys.stats() });
-      message.success('批量标记成功');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '操作失败');
+    onError: (error) => {
+      handleMutationError(error, '操作失败');
     },
   });
 };

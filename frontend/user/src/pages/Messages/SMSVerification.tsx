@@ -8,19 +8,9 @@ import {
   useVerificationCodeByPhone,
   useMyVerificationCodes,
 } from '@/hooks/queries/useSMS';
+import type { VerificationCode } from '@/services/sms';
 
 dayjs.extend(relativeTime);
-
-interface SMSVerification {
-  id: string;
-  phoneNumber: string;
-  verificationCode: string;
-  serviceName: string;
-  messageText: string;
-  receivedAt: string;
-  consumed: boolean;
-  deviceId?: string;
-}
 
 /**
  * SMS验证码查询页面 - 用户端
@@ -53,17 +43,18 @@ const SMSVerification: React.FC = () => {
     message.success('验证码已复制到剪贴板');
   };
 
-  const columns: ColumnsType<SMSVerification> = [
+  // 使用 VerificationCode 类型（字段: phone, code, codeType, sender, content, receivedAt, used）
+  const columns: ColumnsType<VerificationCode> = [
     {
       title: '手机号',
-      dataIndex: 'phoneNumber',
-      key: 'phoneNumber',
+      dataIndex: 'phone',
+      key: 'phone',
       width: 150,
     },
     {
       title: '验证码',
-      dataIndex: 'verificationCode',
-      key: 'verificationCode',
+      dataIndex: 'code',
+      key: 'code',
       width: 120,
       render: (code: string) => (
         <Space>
@@ -83,18 +74,18 @@ const SMSVerification: React.FC = () => {
     },
     {
       title: '服务名称',
-      dataIndex: 'serviceName',
-      key: 'serviceName',
+      dataIndex: 'sender',
+      key: 'sender',
       width: 120,
     },
     {
       title: '状态',
-      dataIndex: 'consumed',
-      key: 'consumed',
+      dataIndex: 'used',
+      key: 'used',
       width: 100,
-      render: (consumed: boolean) => (
-        <Tag color={consumed ? 'default' : 'green'}>
-          {consumed ? '已使用' : '未使用'}
+      render: (used: boolean) => (
+        <Tag color={used ? 'default' : 'green'}>
+          {used ? '已使用' : '未使用'}
         </Tag>
       ),
     },
@@ -165,7 +156,7 @@ const SMSVerification: React.FC = () => {
                 </Button>
               }
             >
-              {data.code ? (
+              {data.length > 0 && data[0] ? (
                 <div>
                   <Space direction="vertical" style={{ width: '100%' }}>
                     <div style={{ fontSize: 16 }}>
@@ -174,24 +165,24 @@ const SMSVerification: React.FC = () => {
                         color="blue"
                         style={{ fontSize: 20, padding: '8px 16px', marginLeft: 8 }}
                       >
-                        {data.code}
+                        {data[0].code}
                       </Tag>
                       <Button
                         type="primary"
                         icon={<CopyOutlined />}
-                        onClick={() => handleCopy(data.code)}
+                        onClick={() => handleCopy(data[0]!.code)}
                         style={{ marginLeft: 8 }}
                       >
                         复制
                       </Button>
                     </div>
-                    {data.service && (
+                    {data[0].sender && (
                       <div>
-                        <strong>服务：</strong> {data.service}
+                        <strong>服务：</strong> {data[0].sender}
                       </div>
                     )}
                     <div style={{ fontSize: 12, color: '#999' }}>
-                      接收时间：{dayjs(data.receivedAt).format('YYYY-MM-DD HH:mm:ss')}
+                      接收时间：{dayjs(data[0].receivedAt).format('YYYY-MM-DD HH:mm:ss')}
                     </div>
                   </Space>
                 </div>

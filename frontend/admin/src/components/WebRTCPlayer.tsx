@@ -206,7 +206,7 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
           })
         );
       }
-    } catch (_error) {
+    } catch (error) {
       console.error('Error handling offer:', error);
       setError('处理 SDP offer 失败');
       message.error('WebRTC 协商失败');

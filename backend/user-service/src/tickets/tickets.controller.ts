@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Logger, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import {
   TicketsService,
@@ -30,6 +30,79 @@ export class TicketsController {
   async createTicket(@Body() dto: CreateTicketDto) {
     this.logger.log(`创建工单 - 用户: ${dto.userId}, 主题: ${dto.subject}`);
     return await this.ticketsService.createTicket(dto);
+  }
+
+  /**
+   * 获取当前用户的工单列表
+   * 注意：此路由必须在 :id 路由之前定义
+   */
+  @Get('my')
+  @ApiOperation({ summary: '获取我的工单列表' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getMyTickets(
+    @Request() req: any,
+    @Query('status') status?: TicketStatus,
+    @Query('category') category?: TicketCategory,
+    @Query('priority') priority?: TicketPriority,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string
+  ) {
+    const userId = req.user?.sub || req.user?.userId;
+    if (!userId) {
+      throw new Error('用户未认证');
+    }
+
+    // 支持 page/pageSize 或 limit/offset 参数
+    let finalLimit: number | undefined;
+    let finalOffset: number | undefined;
+    let currentPage: number;
+    let itemsPerPage: number;
+
+    if (page !== undefined || pageSize !== undefined) {
+      currentPage = Number(page) || 1;
+      itemsPerPage = Number(pageSize) || Number(limit) || 10;
+      finalLimit = itemsPerPage;
+      finalOffset = (currentPage - 1) * itemsPerPage;
+    } else {
+      finalLimit = limit ? Number(limit) : 10;
+      finalOffset = offset ? Number(offset) : 0;
+      itemsPerPage = finalLimit;
+      currentPage = Math.floor(finalOffset / finalLimit) + 1;
+    }
+
+    const { tickets, total } = await this.ticketsService.getUserTickets(userId, {
+      status,
+      category,
+      priority,
+      limit: finalLimit,
+      offset: finalOffset,
+    });
+
+    return {
+      items: tickets,
+      total,
+      page: currentPage,
+      pageSize: itemsPerPage,
+    };
+  }
+
+  /**
+   * 获取当前用户的工单统计
+   * 注意：此路由必须在 :id 路由之前定义
+   */
+  @Get('my/stats')
+  @ApiOperation({ summary: '获取我的工单统计' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getMyTicketStats(@Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId;
+    if (!userId) {
+      throw new Error('用户未认证');
+    }
+    return await this.ticketsService.getTicketStatistics(userId);
   }
 
   /**

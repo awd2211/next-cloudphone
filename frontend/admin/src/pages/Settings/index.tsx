@@ -51,7 +51,7 @@ const Settings = () => {
       if (settings.storage) {
         storageForm.setFieldsValue(settings.storage);
       }
-    } catch (_error) {
+    } catch (error) {
       message.error('加载设置失败');
       console.error('Failed to load settings:', error);
     }
@@ -68,7 +68,7 @@ const Settings = () => {
       // 调用后端 API 保存基本设置
       await request.put('/settings/basic', values);
       message.success('基本设置保存成功');
-    } catch (_error) {
+    } catch (error) {
       message.error('保存基本设置失败');
       console.error('Failed to save basic settings:', error);
     } finally {
@@ -82,7 +82,7 @@ const Settings = () => {
     try {
       await request.put('/settings/email', values);
       message.success('邮件设置保存成功');
-    } catch (_error) {
+    } catch (error) {
       message.error('保存邮件设置失败');
       console.error('Failed to save email settings:', error);
     } finally {
@@ -96,7 +96,7 @@ const Settings = () => {
     try {
       await request.put('/settings/sms', values);
       message.success('短信设置保存成功');
-    } catch (_error) {
+    } catch (error) {
       message.error('保存短信设置失败');
       console.error('Failed to save SMS settings:', error);
     } finally {
@@ -110,7 +110,7 @@ const Settings = () => {
     try {
       await request.put('/settings/payment', values);
       message.success('支付设置保存成功');
-    } catch (_error) {
+    } catch (error) {
       message.error('保存支付设置失败');
       console.error('Failed to save payment settings:', error);
     } finally {
@@ -124,7 +124,7 @@ const Settings = () => {
     try {
       await request.put('/settings/storage', values);
       message.success('存储设置保存成功');
-    } catch (_error) {
+    } catch (error) {
       message.error('保存存储设置失败');
       console.error('Failed to save storage settings:', error);
     } finally {
@@ -139,7 +139,7 @@ const Settings = () => {
       setTestEmailLoading(true);
       await request.post('/settings/email/test', values);
       message.success('测试邮件发送成功，请检查收件箱');
-    } catch (_error) {
+    } catch (error) {
       message.error('测试邮件发送失败');
       console.error('Failed to send test email:', error);
     } finally {
@@ -154,7 +154,7 @@ const Settings = () => {
       setTestSmsLoading(true);
       await request.post('/settings/sms/test', values);
       message.success('测试短信发送成功，请检查手机');
-    } catch (_error) {
+    } catch (error) {
       message.error('测试短信发送失败');
       console.error('Failed to send test SMS:', error);
     } finally {

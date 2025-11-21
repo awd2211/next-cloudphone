@@ -24,11 +24,7 @@ export class FailoverController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getConfig() {
-    const config = this.failoverService.getConfig();
-    return {
-      success: true,
-      data: config,
-    };
+    return this.failoverService.getConfig();
   }
 
   /**
@@ -46,8 +42,7 @@ export class FailoverController {
     this.failoverService.updateConfig(updates);
     const config = this.failoverService.getConfig();
     return {
-      success: true,
-      data: config,
+      ...config,
       message: '故障转移配置已更新',
     };
   }
@@ -64,11 +59,7 @@ export class FailoverController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getStatistics() {
-    const stats = this.failoverService.getStatistics();
-    return {
-      success: true,
-      data: stats,
-    };
+    return this.failoverService.getStatistics();
   }
 
   /**
@@ -91,10 +82,7 @@ export class FailoverController {
       historyObject[deviceId] = failures;
     });
 
-    return {
-      success: true,
-      data: historyObject,
-    };
+    return historyObject;
   }
 
   /**
@@ -115,11 +103,8 @@ export class FailoverController {
     const failures = history.get(deviceId) || [];
 
     return {
-      success: true,
-      data: {
-        deviceId,
-        failures,
-      },
+      deviceId,
+      failures,
     };
   }
 
@@ -135,11 +120,7 @@ export class FailoverController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getMigrationHistory() {
-    const history = this.failoverService.getMigrationHistory();
-    return {
-      success: true,
-      data: history,
-    };
+    return this.failoverService.getMigrationHistory();
   }
 
   /**
@@ -156,7 +137,6 @@ export class FailoverController {
   async triggerDetection() {
     await this.failoverService.detectAndRecoverFailures();
     return {
-      success: true,
       message: '故障检测和恢复任务已执行',
     };
   }
@@ -176,8 +156,7 @@ export class FailoverController {
   async triggerRecovery(@Param('deviceId') deviceId: string) {
     const result = await this.failoverService.triggerManualRecovery(deviceId);
     return {
-      success: result.success,
-      data: result,
+      ...result,
       message: result.success
         ? `设备 ${deviceId} 恢复成功`
         : `设备 ${deviceId} 恢复失败: ${result.error}`,

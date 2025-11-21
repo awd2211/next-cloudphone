@@ -5,7 +5,6 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { message } from 'antd';
 import type { Application, PaginationParams, PaginatedResponse } from '@/types';
 import type { InstalledAppInfo } from '@/services/app';
 import * as appService from '@/services/app';
@@ -110,19 +109,15 @@ export const useUninstallApp = () => {
 export const useBatchUninstallApps = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    { success: number; failed: number },
-    unknown,
-    { deviceId: string; packageNames: string[] }
-  >({
-    mutationFn: ({ deviceId, packageNames }) =>
-      appService.batchUninstallApps({ deviceId, packageNames }),
-    onSuccess: (result, variables) => {
-      message.success(`批量卸载完成 - 成功: ${result.success}, 失败: ${result.failed}`);
+  return useMutation({
+    mutationFn: ({ deviceId, packageNames }: { deviceId: string; packageNames: string[] }) =>
+      appService.batchUninstallApps(deviceId, { packageNames }),
+    onSuccess: (_: unknown, variables: { deviceId: string; packageNames: string[] }) => {
+      handleMutationSuccess('批量卸载成功');
       // 刷新已安装应用列表
       queryClient.invalidateQueries({ queryKey: appKeys.installed(variables.deviceId) });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       handleMutationError(error, '批量卸载失败');
     },
   });

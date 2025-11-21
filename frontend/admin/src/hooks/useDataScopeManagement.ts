@@ -53,7 +53,7 @@ export const useDataScopeManagement = () => {
       } else {
         message.error(res.message || '创建失败');
       }
-    } catch (_error) {
+    } catch (error) {
       message.error('创建失败');
     }
   }, [createForm, loadDataScopes]);
@@ -74,7 +74,7 @@ export const useDataScopeManagement = () => {
       } else {
         message.error(res.message || '更新失败');
       }
-    } catch (_error) {
+    } catch (error) {
       message.error('更新失败');
     }
   }, [selectedScope, editForm, loadDataScopes]);
@@ -90,7 +90,7 @@ export const useDataScopeManagement = () => {
         } else {
           message.error(res.message || '删除失败');
         }
-      } catch (_error) {
+      } catch (error) {
         message.error('删除失败');
       }
     },
@@ -108,7 +108,7 @@ export const useDataScopeManagement = () => {
         } else {
           message.error(res.message || '操作失败');
         }
-      } catch (_error) {
+      } catch (error) {
         message.error('操作失败');
       }
     },

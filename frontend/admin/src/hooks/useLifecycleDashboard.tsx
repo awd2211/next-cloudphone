@@ -211,7 +211,7 @@ export const useLifecycleDashboard = () => {
         message.success('规则删除成功');
         loadRules();
         // stats 会自动重新加载
-      } catch (_error) {
+      } catch (error) {
         message.error('删除失败');
       }
     },
@@ -227,7 +227,7 @@ export const useLifecycleDashboard = () => {
         await toggleLifecycleRule(id, enabled);
         message.success(`规则已${enabled ? '启用' : '禁用'}`);
         loadRules();
-      } catch (_error) {
+      } catch (error) {
         message.error('操作失败');
       }
     },
@@ -245,7 +245,7 @@ export const useLifecycleDashboard = () => {
         if (activeTab === 'history') {
           loadHistory();
         }
-      } catch (_error) {
+      } catch (error) {
         message.error('执行失败');
       }
     },
@@ -270,7 +270,7 @@ export const useLifecycleDashboard = () => {
         ),
         width: 600,
       });
-    } catch (_error) {
+    } catch (error) {
       message.error('测试失败');
     }
   }, []);
@@ -284,7 +284,7 @@ export const useLifecycleDashboard = () => {
         const rule = await createRuleFromTemplate(templateId);
         message.success('规则创建成功');
         openModal(rule);
-      } catch (_error) {
+      } catch (error) {
         message.error('创建失败');
       }
     },

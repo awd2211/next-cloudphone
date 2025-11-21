@@ -206,7 +206,7 @@ export const useSchedulerDashboard = () => {
         message.success('节点删除成功');
         loadNodes();
         // clusterStats 会自动重新加载
-      } catch (_error) {
+      } catch (error) {
         message.error('删除失败');
       }
     },
@@ -222,7 +222,7 @@ export const useSchedulerDashboard = () => {
         await setNodeMaintenance(id, enable);
         message.success(`节点已${enable ? '进入' : '退出'}维护模式`);
         loadNodes();
-      } catch (_error) {
+      } catch (error) {
         message.error('操作失败');
       }
     },
@@ -238,7 +238,7 @@ export const useSchedulerDashboard = () => {
         await drainNode(id);
         message.success('节点排空任务已提交');
         loadNodes();
-      } catch (_error) {
+      } catch (error) {
         message.error('操作失败');
       }
     },
@@ -264,7 +264,7 @@ export const useSchedulerDashboard = () => {
         await setActiveStrategy(id);
         message.success('调度策略已激活');
         loadStrategies();
-      } catch (_error) {
+      } catch (error) {
         message.error('操作失败');
       }
     },

@@ -182,11 +182,7 @@ export class SchedulerController {
    */
   @Get('strategies')
   async getStrategies() {
-    const strategies = await this.strategyService.getAll();
-    return {
-      success: true,
-      data: strategies,
-    };
+    return this.strategyService.getAll();
   }
 
   /**
@@ -195,19 +191,7 @@ export class SchedulerController {
    */
   @Get('strategies/active')
   async getActiveStrategy() {
-    try {
-      const strategy = await this.strategyService.getActive();
-      return {
-        success: true,
-        data: strategy,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        data: null,
-        message: error.message,
-      };
-    }
+    return this.strategyService.getActive();
   }
 
   /**
@@ -217,11 +201,7 @@ export class SchedulerController {
   @Post('strategies')
   async createStrategy(@Body() dto: CreateStrategyDto) {
     const strategy = await this.strategyService.create(dto);
-    return {
-      success: true,
-      data: strategy,
-      message: '策略创建成功',
-    };
+    return { ...strategy, message: '策略创建成功' };
   }
 
   /**
@@ -231,11 +211,7 @@ export class SchedulerController {
   @Put('strategies/:id')
   async updateStrategy(@Param('id') id: string, @Body() dto: UpdateStrategyDto) {
     const strategy = await this.strategyService.update(id, dto);
-    return {
-      success: true,
-      data: strategy,
-      message: '策略更新成功',
-    };
+    return { ...strategy, message: '策略更新成功' };
   }
 
   /**
@@ -245,10 +221,7 @@ export class SchedulerController {
   @Delete('strategies/:id')
   async deleteStrategy(@Param('id') id: string) {
     await this.strategyService.delete(id);
-    return {
-      success: true,
-      message: '策略删除成功',
-    };
+    return { message: '策略删除成功' };
   }
 
   /**
@@ -259,11 +232,7 @@ export class SchedulerController {
   async activateStrategy(@Param('id') id: string) {
     await this.strategyService.activate(id);
     const strategy = await this.strategyService.getById(id);
-    return {
-      success: true,
-      data: strategy,
-      message: `策略 ${strategy.name} 已激活`,
-    };
+    return { ...strategy, message: `策略 ${strategy.name} 已激活` };
   }
 
   // ==================== 调度器 API ====================
@@ -387,11 +356,7 @@ export class SchedulerController {
       `Allocating device for user: ${request.userId}, tenant: ${request.tenantId || 'default'}`
     );
     const result = await this.allocationService.allocateDevice(request);
-    return {
-      success: true,
-      data: result,
-      message: 'Device allocated successfully',
-    };
+    return { ...result, message: 'Device allocated successfully' };
   }
 
   /**
@@ -402,11 +367,7 @@ export class SchedulerController {
   async releaseDevice(@Body() body: { deviceId: string; userId?: string }) {
     this.logger.log(`Releasing device: ${body.deviceId}, user: ${body.userId || 'any'}`);
     const result = await this.allocationService.releaseDevice(body.deviceId, body.userId);
-    return {
-      success: true,
-      data: result,
-      message: 'Device released successfully',
-    };
+    return { ...result, message: 'Device released successfully' };
   }
 
   /**
@@ -416,11 +377,7 @@ export class SchedulerController {
   @Get('devices/available')
   async getAvailableDevices() {
     const devices = await this.allocationService.getAvailableDevices();
-    return {
-      success: true,
-      data: devices,
-      total: devices.length,
-    };
+    return { items: devices, total: devices.length };
   }
 
   /**
@@ -429,11 +386,7 @@ export class SchedulerController {
    */
   @Get('allocations/stats')
   async getAllocationStats() {
-    const stats = await this.allocationService.getAllocationStats();
-    return {
-      success: true,
-      data: stats,
-    };
+    return this.allocationService.getAllocationStats();
   }
 
   /**
@@ -446,19 +399,10 @@ export class SchedulerController {
 
     if (userId) {
       const allocations = await this.allocationService.getUserAllocations(userId, limitNum);
-      return {
-        success: true,
-        data: allocations,
-        total: allocations.length,
-      };
+      return { items: allocations, total: allocations.length };
     }
 
-    return {
-      success: true,
-      data: [],
-      total: 0,
-      message: 'userId parameter required',
-    };
+    return { items: [], total: 0, message: 'userId parameter required' };
   }
 
   /**
@@ -468,11 +412,7 @@ export class SchedulerController {
   @Post('allocations/strategy')
   async setAllocationStrategy(@Body() body: { strategy: AllocationStrategy }) {
     this.allocationService.setStrategy(body.strategy);
-    return {
-      success: true,
-      message: `Allocation strategy set to: ${body.strategy}`,
-      strategy: body.strategy,
-    };
+    return { strategy: body.strategy, message: `Allocation strategy set to: ${body.strategy}` };
   }
 
   /**
@@ -482,11 +422,7 @@ export class SchedulerController {
   @Post('allocations/release-expired')
   async releaseExpiredAllocations() {
     const count = await this.allocationService.releaseExpiredAllocations();
-    return {
-      success: true,
-      message: `Released ${count} expired allocations`,
-      count,
-    };
+    return { count, message: `Released ${count} expired allocations` };
   }
 
   /**
@@ -497,13 +433,10 @@ export class SchedulerController {
   async getConfig() {
     const stats = await this.allocationService.getAllocationStats();
     return {
-      success: true,
-      data: {
-        allocation_strategy: stats.strategy,
-        scheduling_strategy: await this.schedulerService
-          .getSchedulingStats()
-          .then((s) => s.strategy),
-      },
+      allocation_strategy: stats.strategy,
+      scheduling_strategy: await this.schedulerService
+        .getSchedulingStats()
+        .then((s) => s.strategy),
     };
   }
 
@@ -519,11 +452,7 @@ export class SchedulerController {
 
     const result = await this.allocationService.batchAllocate(dto.requests, dto.continueOnError);
 
-    return {
-      success: true,
-      data: result,
-      message: `Batch allocation completed: ${result.successCount}/${result.totalCount} succeeded`,
-    };
+    return { ...result, message: `Batch allocation completed: ${result.successCount}/${result.totalCount} succeeded` };
   }
 
   /**
@@ -540,11 +469,7 @@ export class SchedulerController {
       dto.continueOnError
     );
 
-    return {
-      success: true,
-      data: result,
-      message: `Batch release completed: ${result.successCount}/${result.totalCount} succeeded`,
-    };
+    return { ...result, message: `Batch release completed: ${result.successCount}/${result.totalCount} succeeded` };
   }
 
   /**
@@ -563,11 +488,7 @@ export class SchedulerController {
       dto.continueOnError
     );
 
-    return {
-      success: true,
-      data: result,
-      message: `Batch extend completed: ${result.successCount}/${result.totalCount} succeeded`,
-    };
+    return { ...result, message: `Batch extend completed: ${result.successCount}/${result.totalCount} succeeded` };
   }
 
   /**
@@ -580,11 +501,7 @@ export class SchedulerController {
 
     const result = await this.allocationService.batchQuery(dto.userIds, dto.activeOnly);
 
-    return {
-      success: true,
-      data: result,
-      message: `Found ${result.totalAllocations} allocations for ${result.userCount} users`,
-    };
+    return { ...result, message: `Found ${result.totalAllocations} allocations for ${result.userCount} users` };
   }
 
   // ==================== 单设备续期 API (Phase 3) ====================
@@ -603,11 +520,7 @@ export class SchedulerController {
       dto.reason
     );
 
-    return {
-      success: true,
-      data: result,
-      message: `Allocation extended by ${dto.additionalMinutes} minutes`,
-    };
+    return { ...result, message: `Allocation extended by ${dto.additionalMinutes} minutes` };
   }
 
   /**
@@ -621,8 +534,7 @@ export class SchedulerController {
     const result = await this.allocationService.getAllocationExtendInfo(allocationId);
 
     return {
-      success: true,
-      data: result,
+      ...result,
       message: result.canExtend
         ? 'Allocation can be extended'
         : `Cannot extend: ${result.cannotExtendReason}`,
@@ -645,11 +557,7 @@ export class SchedulerController {
 
     const result = await this.reservationService.createReservation(userId, tenantId, dto);
 
-    return {
-      success: true,
-      data: result,
-      message: 'Reservation created successfully',
-    };
+    return { ...result, message: 'Reservation created successfully' };
   }
 
   /**
@@ -660,12 +568,7 @@ export class SchedulerController {
   async getReservation(@Param('id') reservationId: string) {
     this.logger.log(`Getting reservation ${reservationId}`);
 
-    const result = await this.reservationService.getReservation(reservationId);
-
-    return {
-      success: true,
-      data: result,
-    };
+    return this.reservationService.getReservation(reservationId);
   }
 
   /**
@@ -678,11 +581,7 @@ export class SchedulerController {
 
     const result = await this.reservationService.getUserReservations(query);
 
-    return {
-      success: true,
-      data: result,
-      message: `Found ${result.total} reservation(s)`,
-    };
+    return { ...result, message: `Found ${result.total} reservation(s)` };
   }
 
   /**
@@ -695,11 +594,7 @@ export class SchedulerController {
 
     const result = await this.reservationService.updateReservation(reservationId, dto);
 
-    return {
-      success: true,
-      data: result,
-      message: 'Reservation updated successfully',
-    };
+    return { ...result, message: 'Reservation updated successfully' };
   }
 
   /**
@@ -712,11 +607,7 @@ export class SchedulerController {
 
     const result = await this.reservationService.cancelReservation(reservationId, dto);
 
-    return {
-      success: true,
-      data: result,
-      message: 'Reservation cancelled successfully',
-    };
+    return { ...result, message: 'Reservation cancelled successfully' };
   }
 
   /**
@@ -736,17 +627,11 @@ export class SchedulerController {
       `Checking reservation conflict for user ${body.userId} between ${body.startTime} and ${body.endTime}`
     );
 
-    const result = await this.reservationService.checkConflict(
+    return this.reservationService.checkConflict(
       body.userId,
       new Date(body.startTime),
       new Date(body.endTime)
     );
-
-    return {
-      success: true,
-      data: result,
-      message: result.message,
-    };
   }
 
   /**
@@ -757,12 +642,7 @@ export class SchedulerController {
   async getReservationStatistics(@Query('userId') userId?: string) {
     this.logger.log(`Getting reservation statistics for user: ${userId || 'all'}`);
 
-    const result = await this.reservationService.getReservationStatistics(userId);
-
-    return {
-      success: true,
-      data: result,
-    };
+    return this.reservationService.getReservationStatistics(userId);
   }
 
   // ==================== 优先级队列 API (Phase 3) ====================
@@ -782,11 +662,7 @@ export class SchedulerController {
 
     const result = await this.queueService.joinQueue(userId, tenantId, userTier, dto);
 
-    return {
-      success: true,
-      data: result,
-      message: `Joined queue at position ${result.queuePosition}`,
-    };
+    return { ...result, message: `Joined queue at position ${result.queuePosition}` };
   }
 
   /**
@@ -799,11 +675,7 @@ export class SchedulerController {
 
     const result = await this.queueService.cancelQueue(queueId, dto);
 
-    return {
-      success: true,
-      data: result,
-      message: 'Queue entry cancelled successfully',
-    };
+    return { ...result, message: 'Queue entry cancelled successfully' };
   }
 
   /**
@@ -814,12 +686,7 @@ export class SchedulerController {
   async getQueueEntry(@Param('id') queueId: string) {
     this.logger.log(`Getting queue entry ${queueId}`);
 
-    const result = await this.queueService.getQueueEntry(queueId);
-
-    return {
-      success: true,
-      data: result,
-    };
+    return this.queueService.getQueueEntry(queueId);
   }
 
   /**
@@ -832,11 +699,7 @@ export class SchedulerController {
 
     const result = await this.queueService.getQueueList(query);
 
-    return {
-      success: true,
-      data: result,
-      message: `Found ${result.total} queue entry(ies)`,
-    };
+    return { ...result, message: `Found ${result.total} queue entry(ies)` };
   }
 
   /**
@@ -849,11 +712,7 @@ export class SchedulerController {
 
     const result = await this.queueService.getQueuePosition(queueId);
 
-    return {
-      success: true,
-      data: result,
-      message: `Currently at position ${result.position}`,
-    };
+    return { ...result, message: `Currently at position ${result.position}` };
   }
 
   /**
@@ -867,7 +726,7 @@ export class SchedulerController {
     const result = await this.queueService.processNextQueueEntry();
 
     return {
-      success: result,
+      processed: result,
       message: result
         ? 'Queue entry processed successfully'
         : 'No queue entries to process or processing failed',
@@ -884,11 +743,7 @@ export class SchedulerController {
 
     const result = await this.queueService.processQueueBatch(dto);
 
-    return {
-      success: true,
-      data: result,
-      message: `Processed ${result.totalProcessed} entries: ${result.successCount} succeeded, ${result.failedCount} failed`,
-    };
+    return { ...result, message: `Processed ${result.totalProcessed} entries: ${result.successCount} succeeded, ${result.failedCount} failed` };
   }
 
   /**
@@ -899,12 +754,7 @@ export class SchedulerController {
   async getQueueStatistics() {
     this.logger.log('Getting queue statistics...');
 
-    const result = await this.queueService.getQueueStatistics();
-
-    return {
-      success: true,
-      data: result,
-    };
+    return this.queueService.getQueueStatistics();
   }
 
   // ==================== 任务队列别名 API (兼容性) ====================
@@ -920,11 +770,7 @@ export class SchedulerController {
 
     const result = await this.queueService.getQueueList(query);
 
-    return {
-      success: true,
-      data: result,
-      message: `Found ${result.total} task(s)`,
-    };
+    return { ...result, message: `Found ${result.total} task(s)` };
   }
 
   // ==================== 设备重新调度 API ====================
@@ -952,11 +798,7 @@ export class SchedulerController {
     const allocations = await this.allocationService.getDeviceAllocations(deviceId);
 
     if (!allocations || allocations.length === 0) {
-      return {
-        success: false,
-        message: 'Device is not currently allocated',
-        deviceId,
-      };
+      throw new Error('Device is not currently allocated');
     }
 
     const currentAllocation = allocations[0];
@@ -989,27 +831,18 @@ export class SchedulerController {
       });
 
       return {
-        success: true,
+        deviceId,
+        previousAllocationId,
+        previousNodeId: newNode.nodeId,
+        newNodeId: newNode.nodeId,
+        newAllocationId: newAllocation.allocationId,
+        newDeviceId: newAllocation.deviceId,
+        reason: body?.reason || 'manual reschedule',
         message: 'Device rescheduled successfully',
-        data: {
-          deviceId,
-          previousAllocationId,
-          previousNodeId: newNode.nodeId, // 之前的节点ID（这里简化处理）
-          newNodeId: newNode.nodeId,
-          newAllocationId: newAllocation.allocationId,
-          newDeviceId: newAllocation.deviceId,
-          reason: body?.reason || 'manual reschedule',
-        },
       };
     } catch (error) {
       this.logger.error(`Failed to reschedule device ${deviceId}:`, error);
-
-      return {
-        success: false,
-        message: `Reschedule failed: ${error.message}`,
-        deviceId,
-        error: error.message,
-      };
+      throw error;
     }
   }
 
@@ -1026,24 +859,10 @@ export class SchedulerController {
   ) {
     this.logger.log(`Getting usage trend for node ${nodeId}, hours: ${hours}`);
 
-    try {
-      const hoursNum = parseInt(hours, 10) || 24;
-      const trend = await this.resourceMonitorService.getNodeUsageTrend(nodeId, hoursNum);
+    const hoursNum = parseInt(hours, 10) || 24;
+    const trend = await this.resourceMonitorService.getNodeUsageTrend(nodeId, hoursNum);
 
-      return {
-        success: true,
-        data: trend,
-        message: `Node usage trend data retrieved (${trend.dataPoints} data points)`,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to get node usage trend: ${error.message}`);
-
-      return {
-        success: false,
-        message: `Failed to get node usage trend: ${error.message}`,
-        error: error.message,
-      };
-    }
+    return { ...trend, message: `Node usage trend data retrieved (${trend.dataPoints} data points)` };
   }
 
   /**
@@ -1054,23 +873,9 @@ export class SchedulerController {
   async getClusterUsageTrend(@Query('hours') hours: string = '24') {
     this.logger.log(`Getting cluster usage trend, hours: ${hours}`);
 
-    try {
-      const hoursNum = parseInt(hours, 10) || 24;
-      const trend = await this.resourceMonitorService.getClusterUsageTrend(hoursNum);
+    const hoursNum = parseInt(hours, 10) || 24;
+    const trend = await this.resourceMonitorService.getClusterUsageTrend(hoursNum);
 
-      return {
-        success: true,
-        data: trend,
-        message: `Cluster usage trend data retrieved (${trend.dataPoints} data points)`,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to get cluster usage trend: ${error.message}`);
-
-      return {
-        success: false,
-        message: `Failed to get cluster usage trend: ${error.message}`,
-        error: error.message,
-      };
-    }
+    return { ...trend, message: `Cluster usage trend data retrieved (${trend.dataPoints} data points)` };
   }
 }

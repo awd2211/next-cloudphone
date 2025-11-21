@@ -15,12 +15,12 @@ import {
   AndroidOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons';
-import type { InstalledApp } from '@/hooks/useInstalledApps';
+import type { InstalledAppInfo } from '@/services/app';
 
 const { Text, Paragraph } = Typography;
 
 interface InstalledAppCardProps {
-  app: InstalledApp;
+  app: InstalledAppInfo;
   selected: boolean;
   onSelect: (checked: boolean) => void;
   onUninstall: () => void;

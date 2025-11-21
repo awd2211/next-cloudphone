@@ -1,5 +1,13 @@
+/**
+ * Ticket 工单管理 React Query Hooks (用户端)
+ *
+ * 提供用户自助工单管理、查询、回复功能
+ *
+ * ✅ 统一使用 const 箭头函数风格
+ * ✅ 使用类型化的错误处理
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { message } from 'antd';
 import {
   getMyTickets,
   getTicketDetail,
@@ -28,12 +36,11 @@ import {
   type TicketReply,
   type TicketStats,
 } from '@/services/ticket';
-
-/**
- * Ticket 工单管理 React Query Hooks (用户端)
- *
- * 提供用户自助工单管理、查询、回复功能
- */
+import {
+  handleMutationError,
+  handleMutationSuccess,
+} from '../utils/errorHandler';
+import { StaleTimeConfig, RefetchIntervalConfig } from '../utils/cacheConfig';
 
 // ==================== Query Keys ====================
 
@@ -59,6 +66,8 @@ export const useMyTickets = (params?: TicketListQuery) => {
   return useQuery<TicketListResponse>({
     queryKey: ticketKeys.myTickets(params),
     queryFn: () => getMyTickets(params),
+    staleTime: StaleTimeConfig.tickets,
+    placeholderData: (previousData) => previousData,
   });
 };
 
@@ -70,6 +79,7 @@ export const useTicketDetail = (id: string, options?: { enabled?: boolean }) => 
     queryKey: ticketKeys.detail(id),
     queryFn: () => getTicketDetail(id),
     enabled: options?.enabled !== false && !!id,
+    staleTime: StaleTimeConfig.ticketDetail,
   });
 };
 
@@ -81,6 +91,7 @@ export const useTicketReplies = (ticketId: string, options?: { enabled?: boolean
     queryKey: ticketKeys.replies(ticketId),
     queryFn: () => getTicketReplies(ticketId),
     enabled: options?.enabled !== false && !!ticketId,
+    staleTime: StaleTimeConfig.ticketDetail,
   });
 };
 
@@ -91,7 +102,8 @@ export const useMyTicketStats = () => {
   return useQuery<TicketStats>({
     queryKey: ticketKeys.stats(),
     queryFn: getMyTicketStats,
-    refetchInterval: 30000, // 每30秒自动刷新
+    staleTime: StaleTimeConfig.tickets,
+    refetchInterval: RefetchIntervalConfig.normal,
   });
 };
 
@@ -102,7 +114,8 @@ export const useUnreadRepliesCount = () => {
   return useQuery<{ count: number }>({
     queryKey: ticketKeys.unreadCount(),
     queryFn: getUnreadRepliesCount,
-    refetchInterval: 10000, // 每10秒刷新未读数
+    staleTime: StaleTimeConfig.tickets,
+    refetchInterval: RefetchIntervalConfig.fast,
   });
 };
 
@@ -114,6 +127,7 @@ export const useRelatedTickets = (keyword: string, options?: { enabled?: boolean
     queryKey: ticketKeys.related(keyword),
     queryFn: () => getRelatedTickets(keyword),
     enabled: options?.enabled !== false && !!keyword && keyword.length >= 2,
+    staleTime: StaleTimeConfig.tickets,
   });
 };
 
@@ -129,6 +143,7 @@ export const useSuggestedTags = (
     queryKey: ticketKeys.suggestedTags(title, description),
     queryFn: () => getSuggestedTags(title, description),
     enabled: options?.enabled !== false && !!title && !!description,
+    staleTime: StaleTimeConfig.tickets,
   });
 };
 
@@ -139,6 +154,7 @@ export const useTicketNotificationSettings = () => {
   return useQuery({
     queryKey: ticketKeys.notificationSettings(),
     queryFn: getTicketNotificationSettings,
+    staleTime: StaleTimeConfig.tickets,
   });
 };
 
@@ -150,15 +166,15 @@ export const useTicketNotificationSettings = () => {
 export const useCreateTicket = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Ticket, Error, CreateTicketDto>({
     mutationFn: createTicket,
     onSuccess: () => {
+      handleMutationSuccess('工单创建成功');
       queryClient.invalidateQueries({ queryKey: ticketKeys.myTickets() });
       queryClient.invalidateQueries({ queryKey: ticketKeys.stats() });
-      message.success('工单创建成功');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '工单创建失败');
+    onError: (error) => {
+      handleMutationError(error, '工单创建失败');
     },
   });
 };
@@ -169,16 +185,15 @@ export const useCreateTicket = () => {
 export const useUpdateTicket = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateTicketDto }) =>
-      updateTicket(id, data),
+  return useMutation<Ticket, Error, { id: string; data: UpdateTicketDto }>({
+    mutationFn: ({ id, data }) => updateTicket(id, data),
     onSuccess: (_, variables) => {
+      handleMutationSuccess('工单更新成功');
       queryClient.invalidateQueries({ queryKey: ticketKeys.myTickets() });
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(variables.id) });
-      message.success('工单更新成功');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '工单更新失败');
+    onError: (error) => {
+      handleMutationError(error, '工单更新失败');
     },
   });
 };
@@ -189,16 +204,16 @@ export const useUpdateTicket = () => {
 export const useCloseTicket = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<void, Error, string>({
     mutationFn: closeTicket,
     onSuccess: (_, id) => {
+      handleMutationSuccess('工单已关闭');
       queryClient.invalidateQueries({ queryKey: ticketKeys.myTickets() });
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: ticketKeys.stats() });
-      message.success('工单已关闭');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '工单关闭失败');
+    onError: (error) => {
+      handleMutationError(error, '工单关闭失败');
     },
   });
 };
@@ -209,17 +224,16 @@ export const useCloseTicket = () => {
 export const useReopenTicket = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
-      reopenTicket(id, reason),
+  return useMutation<void, Error, { id: string; reason?: string }>({
+    mutationFn: ({ id, reason }) => reopenTicket(id, reason),
     onSuccess: (_, variables) => {
+      handleMutationSuccess('工单已重新打开');
       queryClient.invalidateQueries({ queryKey: ticketKeys.myTickets() });
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: ticketKeys.stats() });
-      message.success('工单已重新打开');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '重新打开失败');
+    onError: (error) => {
+      handleMutationError(error, '重新打开失败');
     },
   });
 };
@@ -230,17 +244,16 @@ export const useReopenTicket = () => {
 export const useAddTicketReply = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ ticketId, data }: { ticketId: string; data: AddReplyDto }) =>
-      addTicketReply(ticketId, data),
+  return useMutation<TicketReply, Error, { ticketId: string; data: AddReplyDto }>({
+    mutationFn: ({ ticketId, data }) => addTicketReply(ticketId, data),
     onSuccess: (_, variables) => {
+      handleMutationSuccess('回复添加成功');
       queryClient.invalidateQueries({ queryKey: ticketKeys.replies(variables.ticketId) });
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(variables.ticketId) });
       queryClient.invalidateQueries({ queryKey: ticketKeys.unreadCount() });
-      message.success('回复添加成功');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '回复添加失败');
+    onError: (error) => {
+      handleMutationError(error, '回复添加失败');
     },
   });
 };
@@ -251,15 +264,14 @@ export const useAddTicketReply = () => {
 export const useRateTicket = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ id, rating, feedback }: { id: string; rating: number; feedback?: string }) =>
-      rateTicket(id, rating, feedback),
+  return useMutation<void, Error, { id: string; rating: number; feedback?: string }>({
+    mutationFn: ({ id, rating, feedback }) => rateTicket(id, rating, feedback),
     onSuccess: (_, variables) => {
+      handleMutationSuccess('评分成功，感谢您的反馈');
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(variables.id) });
-      message.success('评分成功，感谢您的反馈');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '评分失败');
+    onError: (error) => {
+      handleMutationError(error, '评分失败');
     },
   });
 };
@@ -270,23 +282,23 @@ export const useRateTicket = () => {
 export const useSubmitSatisfactionSurvey = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ ticketId, data }: {
-      ticketId: string;
-      data: {
-        responseTime: number;
-        solutionQuality: number;
-        agentAttitude: number;
-        overallSatisfaction: number;
-        suggestions?: string;
-      };
-    }) => submitSatisfactionSurvey(ticketId, data),
+  return useMutation<void, Error, {
+    ticketId: string;
+    data: {
+      responseTime: number;
+      solutionQuality: number;
+      agentAttitude: number;
+      overallSatisfaction: number;
+      suggestions?: string;
+    };
+  }>({
+    mutationFn: ({ ticketId, data }) => submitSatisfactionSurvey(ticketId, data),
     onSuccess: (_, variables) => {
+      handleMutationSuccess('满意度调查提交成功，感谢您的反馈');
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(variables.ticketId) });
-      message.success('满意度调查提交成功，感谢您的反馈');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '提交失败');
+    onError: (error) => {
+      handleMutationError(error, '提交失败');
     },
   });
 };
@@ -297,14 +309,13 @@ export const useSubmitSatisfactionSurvey = () => {
 export const useMarkReplyAsRead = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ ticketId, replyId }: { ticketId: string; replyId: string }) =>
-      markReplyAsRead(ticketId, replyId),
+  return useMutation<void, Error, { ticketId: string; replyId: string }>({
+    mutationFn: ({ ticketId, replyId }) => markReplyAsRead(ticketId, replyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.unreadCount() });
       queryClient.invalidateQueries({ queryKey: ticketKeys.myTickets() });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error('标记已读失败:', error);
     },
   });
@@ -317,14 +328,14 @@ export const useMarkAllRepliesAsRead = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: markAllRepliesAsRead,
+    mutationFn: (ticketId: string) => markAllRepliesAsRead(ticketId),
     onSuccess: () => {
+      handleMutationSuccess('所有回复已标记为已读');
       queryClient.invalidateQueries({ queryKey: ticketKeys.unreadCount() });
       queryClient.invalidateQueries({ queryKey: ticketKeys.myTickets() });
-      message.success('所有回复已标记为已读');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '标记失败');
+    onError: (error: Error) => {
+      handleMutationError(error, '标记失败');
     },
   });
 };
@@ -335,14 +346,14 @@ export const useMarkAllRepliesAsRead = () => {
 export const useUpdateTicketNotificationSettings = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<void, Error, Parameters<typeof updateTicketNotificationSettings>[0]>({
     mutationFn: updateTicketNotificationSettings,
     onSuccess: () => {
+      handleMutationSuccess('通知设置更新成功');
       queryClient.invalidateQueries({ queryKey: ticketKeys.notificationSettings() });
-      message.success('通知设置更新成功');
     },
-    onError: (error: any) => {
-      message.error(error?.message || '设置更新失败');
+    onError: (error) => {
+      handleMutationError(error, '设置更新失败');
     },
   });
 };

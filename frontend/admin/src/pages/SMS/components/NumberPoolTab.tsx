@@ -73,7 +73,7 @@ const NumberPoolTab: React.FC = () => {
       const messages = (response as any).data || [];
       setSelectedNumber({ ...record, messages });
       setDetailModalVisible(true);
-    } catch (_error) {
+    } catch (error) {
       message.error('获取短信详情失败');
     }
   };

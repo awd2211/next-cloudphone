@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Card, Result, Button, Typography, Form } from 'antd';
+import { Card, Button, Typography, Form } from 'antd';
 import { ArrowLeftOutlined, LockOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { ForgotPasswordForm } from '@/components/Auth';

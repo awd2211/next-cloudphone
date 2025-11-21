@@ -55,7 +55,7 @@ export const useRefundManagementSafe = () => {
         message.success('退款已批准');
         setApproveModalVisible(false);
         loadRefunds(); // 重新加载数据
-      } catch (_error) {
+      } catch (error) {
         message.error('批准退款失败');
       }
     },
@@ -72,7 +72,7 @@ export const useRefundManagementSafe = () => {
         message.success('退款已拒绝');
         setRejectModalVisible(false);
         loadRefunds();
-      } catch (_error) {
+      } catch (error) {
         message.error('拒绝退款失败');
       }
     },
@@ -107,7 +107,7 @@ export const useRefundManagementSafe = () => {
  *    setRefunds(refunds); // 假设 refunds 是数组，但运行时可能不是
  *
  * 2. 手动错误处理
- *    catch (_error) {
+ *    catch (error) {
  *      message.error('加载退款列表失败');
  *      setRefunds([]); // 容易忘记重置状态
  *    }

@@ -191,7 +191,7 @@ async function refreshAccessToken(): Promise<string> {
       } else {
         throw new Error('No token in response');
       }
-    } catch (_error) {
+    } catch (error) {
       console.error('❌ Token 刷新失败:', error);
       reject(error);
     } finally {

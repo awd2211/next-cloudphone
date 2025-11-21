@@ -87,7 +87,7 @@ export const useDownloadExportFile = () => {
       exportService.triggerDownload(blob, fileName);
       message.success({ content: '下载成功！', key: 'download-export' });
     },
-    onError: (error) => {
+    onError: (_error: unknown) => {
       message.error({
         content: '下载失败',
         key: 'download-export',
@@ -102,14 +102,14 @@ export const useDownloadExportFile = () => {
 export const useRetryExportTask = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, unknown, string>({
-    mutationFn: (taskId) => exportService.retryExportTask(taskId),
+  return useMutation({
+    mutationFn: (taskId: string) => exportService.retryExportTask(taskId),
     onSuccess: () => {
       handleMutationSuccess('任务已重新开始');
       queryClient.invalidateQueries({ queryKey: exportKeys.lists() });
       queryClient.invalidateQueries({ queryKey: exportKeys.stats() });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       handleMutationError(error, '重试失败');
     },
   });
@@ -140,14 +140,14 @@ export const useDeleteExportTask = () => {
 export const useDeleteExportTasks = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<{ success: number; failed: number }, unknown, string[]>({
-    mutationFn: (taskIds) => exportService.deleteExportTasks(taskIds),
-    onSuccess: (result) => {
-      message.success(`批量删除完成 - 成功: ${result.success}, 失败: ${result.failed}`);
+  return useMutation({
+    mutationFn: (taskIds: string[]) => exportService.deleteExportTasks(taskIds),
+    onSuccess: () => {
+      handleMutationSuccess('批量删除成功');
       queryClient.invalidateQueries({ queryKey: exportKeys.lists() });
       queryClient.invalidateQueries({ queryKey: exportKeys.stats() });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       handleMutationError(error, '批量删除失败');
     },
   });

@@ -46,7 +46,7 @@ const ConsulMonitor = () => {
     try {
       // 模拟数据 - 实际应该调用 Consul API
       setServices(MOCK_SERVICES);
-    } catch (_error) {
+    } catch (error) {
       message.error('加载服务信息失败');
     } finally {
       setLoading(false);

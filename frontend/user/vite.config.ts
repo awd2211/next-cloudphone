@@ -59,29 +59,43 @@ export default defineConfig({
 
     rollupOptions: {
       output: {
-        // 手动代码分割 - 使用函数模式（更灵活）
+        // ✅ 优化的代码分割策略（与 Admin 端一致，更细粒度）
         manualChunks: (id) => {
-          // 核心框架
-          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-            return 'react-vendor';
+          // 核心框架（最高优先级缓存）
+          if (id.includes('react/') || id.includes('react-dom/')) {
+            return 'react-core';
           }
-          // React Query
+          if (id.includes('react-router')) {
+            return 'react-router';
+          }
+
+          // React Query（数据管理）
           if (id.includes('@tanstack/react-query')) {
-            return 'react-query-vendor';
+            return 'react-query';
           }
-          // UI 组件库
+
+          // Ant Design（分离 icons 和 core）
+          if (id.includes('@ant-design/icons')) {
+            return 'antd-icons';
+          }
           if (id.includes('antd') || id.includes('@ant-design')) {
-            return 'antd-vendor';
+            return 'antd-core';
           }
-          // Socket.IO
-          if (id.includes('socket.io-client')) {
-            return 'socket-vendor';
+
+          // Socket.IO（~200KB）- WebSocket 功能才加载
+          if (id.includes('socket.io-client') || id.includes('engine.io-client')) {
+            return 'socketio';
           }
-          // 工具库
-          if (id.includes('axios') || id.includes('dayjs')) {
-            return 'utils-vendor';
+
+          // 工具库（常用工具）
+          if (id.includes('axios')) {
+            return 'axios';
           }
-          // node_modules 中的其他依赖
+          if (id.includes('dayjs')) {
+            return 'dayjs';
+          }
+
+          // 其他 node_modules 依赖
           if (id.includes('node_modules')) {
             return 'vendor';
           }
@@ -134,13 +148,29 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 5174,
+    port: 50402,
+    // 允许自定义域名访问
+    allowedHosts: ['www.cloudphone.run', 'localhost', '127.0.0.1'],
     proxy: {
       // 所有 /api 请求统一代理到 API Gateway
       '/api': {
         target: 'http://localhost:30000',
         changeOrigin: true,
-        ws: true, // 支持 WebSocket
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      // WebSocket 代理到 Notification Service
+      '/ws': {
+        target: 'ws://localhost:30006',
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/ws/, ''),
+      },
+      // WebRTC 代理到 Media Service
+      '/webrtc': {
+        target: 'http://localhost:30009',
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/webrtc/, ''),
       },
     },
   },

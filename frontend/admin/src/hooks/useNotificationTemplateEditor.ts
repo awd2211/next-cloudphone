@@ -209,7 +209,7 @@ export const useNotificationTemplateEditor = () => {
         await deleteNotificationTemplate(id);
         message.success('模板删除成功');
         loadTemplates();
-      } catch (_error) {
+      } catch (error) {
         message.error('删除失败');
       }
     },
@@ -225,7 +225,7 @@ export const useNotificationTemplateEditor = () => {
         await toggleNotificationTemplate(id, isActive);
         message.success(`模板已${isActive ? '激活' : '停用'}`);
         loadTemplates();
-      } catch (_error) {
+      } catch (error) {
         message.error('操作失败');
       }
     },
@@ -261,7 +261,7 @@ export const useNotificationTemplateEditor = () => {
       const result = await previewTemplate(selectedTemplate!.id, variables) as any;
       setPreviewContent(result.rendered || result.content);
       message.success('预览生成成功');
-    } catch (_error) {
+    } catch (error) {
       message.error('预览失败');
     }
   }, [previewForm, selectedTemplate]);
@@ -324,7 +324,7 @@ export const useNotificationTemplateEditor = () => {
         message.success('版本回滚成功');
         setVersionDrawerVisible(false);
         loadTemplates();
-      } catch (_error) {
+      } catch (error) {
         message.error('回滚失败');
       }
     },

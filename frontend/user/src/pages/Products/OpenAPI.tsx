@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Row, Col, Button, Typography, Space, Tag } from 'antd';
-import { ApiOutlined, CodeOutlined, SafetyOutlined, RocketOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { ApiOutlined, SafetyOutlined, RocketOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { SEO } from '@/components';
 

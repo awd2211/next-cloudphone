@@ -332,7 +332,7 @@ export const useBatchEdit = <T extends Record<string, any> = Record<string, any>
       );
       onSuccess?.();
       close();
-    } catch (_error) {
+    } catch (error) {
       onError?.(error as Error);
       throw error;
     } finally {

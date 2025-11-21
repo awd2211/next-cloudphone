@@ -2,9 +2,10 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Card, Table, Empty } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { BillStatsCards, BillFilterBar, PaymentModal } from '@/components/Billing';
-import { useBills, useBillStats, usePayBill, useCancelBill, useDownloadBill, type PaymentMethod } from '@/hooks/queries';
+import { useBills, useBillStats, usePayBill, useCancelBill, useDownloadBill } from '@/hooks/queries';
 import { createBillTableColumns } from '@/utils/billTableColumns';
-import type { BillListQuery } from '@/services/billing';
+import type { BillListQuery, Bill } from '@/services/billing';
+import { PaymentMethod } from '@/services/billing';
 
 /**
  * 账单列表页面
@@ -31,8 +32,9 @@ const BillList: React.FC = () => {
   const cancelBill = useCancelBill();
   const downloadBill = useDownloadBill();
 
-  const bills = billsData?.items || [];
-  const total = billsData?.total || 0;
+  // useBills 返回 BillListResponse = { items: Bill[], total, page, pageSize }
+  const bills: Bill[] = billsData?.items || [];
+  const total = billsData?.total ?? 0;
 
   // 筛选变化
   const handleFilterChange = useCallback((key: keyof BillListQuery, value: any) => {
@@ -86,9 +88,9 @@ const BillList: React.FC = () => {
     await cancelBill.mutateAsync(id);
   }, [cancelBill]);
 
-  // 下载账单
-  const handleDownload = useCallback(async (bill: any) => {
-    await downloadBill.mutateAsync(bill.id);
+  // 下载账单 (useDownloadBill 需要完整 Bill 对象)
+  const handleDownload = useCallback(async (bill: Bill) => {
+    await downloadBill.mutateAsync(bill);
   }, [downloadBill]);
 
   // 刷新（React Query 自动处理）
@@ -111,7 +113,7 @@ const BillList: React.FC = () => {
   return (
     <div>
       {/* 统计卡片 */}
-      <BillStatsCards stats={stats} />
+      <BillStatsCards stats={stats ?? null} />
 
       {/* 筛选工具栏 */}
       <BillFilterBar

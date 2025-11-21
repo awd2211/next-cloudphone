@@ -106,7 +106,7 @@ export const useLogsAudit = () => {
           await cleanExpiredLogs(30);
           message.success('清理成功');
           loadLogs();
-        } catch (_error) {
+        } catch (error) {
           message.error('清理失败');
         }
       },

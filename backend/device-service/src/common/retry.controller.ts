@@ -24,11 +24,7 @@ export class RetryController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getStatisticsSummary() {
-    const summary = this.retryService.getStatisticsSummary();
-    return {
-      success: true,
-      data: summary,
-    };
+    return this.retryService.getStatisticsSummary();
   }
 
   /**
@@ -52,11 +48,8 @@ export class RetryController {
 
     if (operation) {
       return {
-        success: true,
-        data: {
-          operation,
-          statistics: stats,
-        },
+        operation,
+        statistics: stats,
       };
     }
 
@@ -67,11 +60,8 @@ export class RetryController {
     });
 
     return {
-      success: true,
-      data: {
-        operations: Object.keys(statsObject).length,
-        statistics: statsObject,
-      },
+      operations: Object.keys(statsObject).length,
+      statistics: statsObject,
     };
   }
 
@@ -94,7 +84,6 @@ export class RetryController {
   async resetStatistics(@Query('operation') operation?: string) {
     this.retryService.resetStatistics(operation);
     return {
-      success: true,
       message: operation ? `已重置操作 "${operation}" 的重试统计` : '已重置所有操作的重试统计',
     };
   }

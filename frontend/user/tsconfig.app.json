@@ -19,29 +19,29 @@
     /* Path Mapping */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     },
 
-    /* Linting - 渐进式启用 strict 模式 */
-    "strict": false, // 暂时保持 false，逐个启用子选项
+    /* Linting - 严格模式已全部启用 ✅ */
+    "strict": true, // ✅ 启用所有严格类型检查
 
-    /* Strict 模式子选项 - Phase 1: 已启用 */
+    /* Strict 模式子选项 - Phase 1: 渐进式启用 */
     "noImplicitAny": true, // ✅ 禁止隐式 any 类型
-    "strictNullChecks": true, // ✅ 严格的 null 检查
+    "strictNullChecks": true, // ✅ 严格的 null/undefined 检查
     "strictFunctionTypes": true, // ✅ 严格的函数类型检查
     "strictBindCallApply": true, // ✅ 严格的 bind/call/apply 检查
 
-    /* Strict 模式子选项 - Phase 2: 待启用 */
-    // "strictPropertyInitialization": true, // 🔄 严格的属性初始化
-    // "noImplicitThis": true, // 🔄 禁止隐式 this
-    // "alwaysStrict": true, // 🔄 总是使用严格模式
+    /* Strict 模式子选项 - Phase 2: 已启用 */
+    "strictPropertyInitialization": true, // ✅ 严格的属性初始化
+    "noImplicitThis": true, // ✅ 禁止隐式 this
+    "alwaysStrict": true, // ✅ 总是使用严格模式
 
     /* 其他严格检查 */
-    "noUnusedLocals": true, // ✅ 禁止未使用的局部变量
-    "noUnusedParameters": true, // ✅ 禁止未使用的参数
+    "noUnusedLocals": true, // ✅ 启用未使用变量检查
+    "noUnusedParameters": true, // ✅ 启用未使用参数检查
     "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true, // ✅ 所有代码路径必须有返回值
-    "noUncheckedIndexedAccess": true, // ✅ 访问索引时添加 undefined 检查
+    "noImplicitReturns": true, // ✅ 要求函数所有分支都有返回值
+    "noUncheckedIndexedAccess": true, // ✅ 索引访问时强制检查 undefined
 
     "erasableSyntaxOnly": false,
     "noUncheckedSideEffectImports": false,

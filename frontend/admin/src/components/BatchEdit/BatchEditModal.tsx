@@ -136,7 +136,7 @@ export const BatchEditModal = memo(
     const handleSubmit = async () => {
       try {
         await onSubmit();
-      } catch (_error) {
+      } catch (error) {
         message.error((error as Error).message || '批量编辑失败');
       }
     };

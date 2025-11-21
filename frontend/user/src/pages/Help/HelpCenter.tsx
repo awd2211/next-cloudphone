@@ -45,6 +45,7 @@ const HelpCenter: React.FC = () => {
   const { data: latestArticles = [], isLoading: loadingLatest } = useLatestArticles(6);
   const { data: faqsData, isLoading: loadingFAQs } = useFAQs({ page: 1, pageSize: 5 });
 
+  // useFAQs 返回 { items: FAQ[], total: number }
   const popularFAQs = faqsData?.items || [];
   const loading = loadingCategories || loadingPopular || loadingLatest || loadingFAQs;
 

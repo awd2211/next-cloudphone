@@ -18,7 +18,7 @@ export const CreateDeviceModal = memo<CreateDeviceModalProps>(
       try {
         const values = await form.validateFields();
         await onOk(values);
-      } catch (_error) {
+      } catch (error) {
         console.error('Form submission error:', error);
       }
     };

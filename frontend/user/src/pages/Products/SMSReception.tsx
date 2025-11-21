@@ -3,8 +3,6 @@ import { Card, Row, Col, Button, Typography, Space, Tag, Statistic, Table } from
 import {
   MessageOutlined,
   ThunderboltOutlined,
-  SafetyOutlined,
-  CloudOutlined,
   RocketOutlined,
   CheckCircleOutlined,
   GlobalOutlined,

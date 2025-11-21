@@ -14,9 +14,11 @@ import {
   usePayBill,
   useDownloadBill,
   useApplyInvoice,
-  type PaymentMethod,
-  type InvoiceType
 } from '@/hooks/queries';
+import { PaymentMethod } from '@/services/billing';
+
+// 发票类型（本地定义）
+type InvoiceType = 'personal' | 'company';
 
 /**
  * 账单详情页面（React Query 优化版）
@@ -66,21 +68,22 @@ const BillDetail: React.FC = () => {
     closePaymentModal();
   }, [bill, paymentMethod, payBill, closePaymentModal]);
 
-  // 下载账单
+  // 下载账单 (useDownloadBill 需要完整 Bill 对象)
   const handleDownload = useCallback(async () => {
     if (!bill) return;
-    await downloadBill.mutateAsync(bill.id);
+    await downloadBill.mutateAsync(bill);
   }, [bill, downloadBill]);
 
-  // 申请发票
+  // 申请发票 (InvoiceRequest 需要 billId, type, title, email)
   const handleApplyInvoice = useCallback(async () => {
     if (!bill) return;
 
     await applyInvoice.mutateAsync({
-      billIds: [bill.id],
-      invoiceType,
-      company: invoiceTitle,
-      taxNumber: taxId,
+      billId: bill.id,
+      type: invoiceType,
+      title: invoiceTitle,
+      taxId: invoiceType === 'company' ? taxId : undefined,
+      email: '', // 需要从用户信息获取或添加输入框
     });
 
     closeInvoiceModal();

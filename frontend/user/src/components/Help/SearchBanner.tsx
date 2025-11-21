@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Input, Button, Typography } from 'antd';
+import { Input, Button, Typography } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph } = Typography;

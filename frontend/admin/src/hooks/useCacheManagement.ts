@@ -44,7 +44,7 @@ export const useCacheManagement = () => {
       await resetCacheStats();
       message.success('统计已重置');
       await loadStats();
-    } catch (_error) {
+    } catch (error) {
       message.error('重置统计失败');
     }
   }, [loadStats]);
@@ -56,7 +56,7 @@ export const useCacheManagement = () => {
       await flushCache();
       message.success('所有缓存已清空');
       await loadStats();
-    } catch (_error) {
+    } catch (error) {
       message.error('清空缓存失败');
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ export const useCacheManagement = () => {
       deleteForm.resetFields();
       setDeleteKeyModalVisible(false);
       await loadStats();
-    } catch (_error) {
+    } catch (error) {
       message.error('删除失败');
     }
   }, [deleteForm, loadStats]);
@@ -88,7 +88,7 @@ export const useCacheManagement = () => {
         setDeletePatternModalVisible(false);
         await loadStats();
       }
-    } catch (_error) {
+    } catch (error) {
       message.error('批量删除失败');
     }
   }, [patternForm, loadStats]);
@@ -101,7 +101,7 @@ export const useCacheManagement = () => {
       if (res.success) {
         setCheckResult(res.data);
       }
-    } catch (_error) {
+    } catch (error) {
       message.error('检查失败');
     }
   }, [checkForm]);

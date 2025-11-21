@@ -132,7 +132,7 @@ export const useGPUDashboard = () => {
         loadGPUs();
         loadStats();
         loadAllocations();
-      } catch (_error) {
+      } catch (error) {
         message.error('释放失败');
       }
     },

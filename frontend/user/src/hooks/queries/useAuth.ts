@@ -12,14 +12,16 @@ import type {
   RegisterDto,
   CaptchaResponse,
   User,
+} from '@/types';
+import * as authService from '@/services/auth';
+import type {
   ChangePasswordDto,
   ForgotPasswordDto,
   ResetPasswordDto,
   Verify2FADto,
   Disable2FADto,
   LoginHistoryParams,
-} from '@/types';
-import * as authService from '@/services/auth';
+} from '@/services/auth';
 import {
   handleMutationError,
   handleMutationSuccess,

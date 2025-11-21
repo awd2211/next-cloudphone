@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   hasAdminRole,
   isSuperAdmin,
@@ -19,14 +19,33 @@ import {
  * }
  */
 export const useRole = () => {
-  // 从localStorage获取用户信息
-  // TODO: 替换为实际的状态管理方案 (Redux, Zustand, Context等)
-  const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-  const user = userStr ? JSON.parse(userStr) : null;
+  // ✅ 使用 useState 来存储用户信息，避免每次渲染都创建新对象
+  const [user, setUser] = useState<any>(() => {
+    if (typeof window === 'undefined') return null;
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  });
+
+  // 监听 localStorage 变化（例如其他标签页登录/登出）
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user') {
+        setUser(e.newValue ? JSON.parse(e.newValue) : null);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // 刷新用户信息（用于登录后）
+  const refreshUser = useCallback(() => {
+    const userStr = localStorage.getItem('user');
+    setUser(userStr ? JSON.parse(userStr) : null);
+  }, []);
 
   const roles = useMemo(() => {
     return user?.roles || [];
-  }, [user]);
+  }, [user?.roles]);
 
   const isAdmin = useMemo(() => {
     return hasAdminRole(roles);
@@ -83,6 +102,9 @@ export const useRole = () => {
     // 角色检查方法
     hasRole,
     hasAnyRole,
+
+    // 刷新用户信息（登录后调用）
+    refreshUser,
   };
 };
 

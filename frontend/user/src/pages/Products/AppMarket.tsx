@@ -6,7 +6,6 @@ import {
   SafetyCertificateOutlined,
   ThunderboltOutlined,
   CheckCircleOutlined,
-  RocketOutlined,
   ApiOutlined,
   SyncOutlined,
 } from '@ant-design/icons';

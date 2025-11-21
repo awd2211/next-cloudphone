@@ -113,7 +113,7 @@ export function useValidatedQuery<
 
         // 3. 返回验证后的数据
         return validationResult.data;
-      } catch (_error) {
+      } catch (error) {
         // 区分验证错误和 API 错误
         if ((error as any).isValidationError) {
           message.error(validationErrorMessage);

@@ -140,7 +140,7 @@ const ApiKeyList: React.FC = () => {
             ),
           });
         }
-      } catch (_error) {
+      } catch (error) {
         // 错误已在mutation中处理
       }
     },

@@ -33,8 +33,7 @@ export class LifecycleController {
   async triggerCleanup() {
     const result = await this.lifecycleService.triggerManualCleanup();
     return {
-      success: true,
-      data: result,
+      ...result,
       message: `清理完成: 共清理 ${result.totalCleaned} 项`,
     };
   }
@@ -51,11 +50,7 @@ export class LifecycleController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getCleanupStatistics() {
-    const stats = await this.lifecycleService.getCleanupStatistics();
-    return {
-      success: true,
-      data: stats,
-    };
+    return this.lifecycleService.getCleanupStatistics();
   }
 
   /**
@@ -73,11 +68,8 @@ export class LifecycleController {
     const status = await this.autoScalingService.getStatus();
     const config = this.autoScalingService.getConfig();
     return {
-      success: true,
-      data: {
-        status,
-        config,
-      },
+      status,
+      config,
     };
   }
 
@@ -93,11 +85,7 @@ export class LifecycleController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getAutoscalingHistory() {
-    const history = this.autoScalingService.getScalingHistory();
-    return {
-      success: true,
-      data: history,
-    };
+    return this.autoScalingService.getScalingHistory();
   }
 
   /**
@@ -114,8 +102,7 @@ export class LifecycleController {
   async triggerAutoscaling() {
     const result = await this.autoScalingService.triggerManualScaling();
     return {
-      success: result.success,
-      data: result,
+      ...result,
       message: `扩缩容${result.action === 'no_action' ? '无需调整' : '已执行'}`,
     };
   }
@@ -135,8 +122,7 @@ export class LifecycleController {
     this.autoScalingService.updateConfig(updates);
     const config = this.autoScalingService.getConfig();
     return {
-      success: true,
-      data: config,
+      ...config,
       message: '自动扩缩容配置已更新',
     };
   }
@@ -153,11 +139,7 @@ export class LifecycleController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getBackupConfig() {
-    const config = this.backupExpirationService.getConfig();
-    return {
-      success: true,
-      data: config,
-    };
+    return this.backupExpirationService.getConfig();
   }
 
   /**
@@ -175,8 +157,7 @@ export class LifecycleController {
     this.backupExpirationService.updateConfig(updates);
     const config = this.backupExpirationService.getConfig();
     return {
-      success: true,
-      data: config,
+      ...config,
       message: '自动备份配置已更新',
     };
   }
@@ -193,11 +174,7 @@ export class LifecycleController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getBackupStatistics() {
-    const stats = await this.backupExpirationService.getBackupStatistics();
-    return {
-      success: true,
-      data: stats,
-    };
+    return this.backupExpirationService.getBackupStatistics();
   }
 
   /**
@@ -214,8 +191,7 @@ export class LifecycleController {
   async triggerBackup() {
     const results = await this.backupExpirationService.performScheduledBackups();
     return {
-      success: true,
-      data: results,
+      results,
       message: `备份任务已执行: 成功 ${results.filter((r) => r.success).length}/${results.length}`,
     };
   }
@@ -235,8 +211,7 @@ export class LifecycleController {
   async backupDevice(@Param('deviceId') deviceId: string, @User() user: any) {
     const snapshot = await this.backupExpirationService.triggerManualBackup(deviceId, user.id);
     return {
-      success: true,
-      data: snapshot,
+      ...snapshot,
       message: '设备备份已创建',
     };
   }
@@ -255,8 +230,7 @@ export class LifecycleController {
   async checkExpiration() {
     const result = await this.backupExpirationService.triggerManualExpirationCheck();
     return {
-      success: true,
-      data: result,
+      ...result,
       message: `到期检查完成: ${result.devicesExpiring.length} 设备即将到期, ${result.snapshotsExpiring.length} 快照即将到期`,
     };
   }
@@ -275,8 +249,7 @@ export class LifecycleController {
   async cleanupBackups() {
     const count = await this.backupExpirationService.cleanupOldBackups();
     return {
-      success: true,
-      data: { cleanedCount: count },
+      cleanedCount: count,
       message: `备份清理完成: 已删除 ${count} 个过期备份`,
     };
   }

@@ -34,8 +34,9 @@ const MyDevices = () => {
   const stopDevice = useStopDevice();
   const rebootDevice = useRebootDevice();
 
-  const devices = devicesData?.data || [];
-  const total = devicesData?.total || 0;
+  // useMyDevices 返回 PaginatedResponse<Device>: { data: Device[], total, page, pageSize }
+  const devices: Device[] = devicesData?.data || [];
+  const total = devicesData?.total ?? 0;
 
   // 设备操作处理函数
   const handleStart = useCallback(
@@ -60,7 +61,7 @@ const MyDevices = () => {
   );
 
   const handleCreateSuccess = useCallback(
-    (device: Device) => {
+    (_device: Device) => {
       refetchDevices();
       refetchStats();
     },
@@ -138,7 +139,7 @@ const MyDevices = () => {
   const getSelectedDeviceNames = useCallback(() => {
     const nameMap: Record<string, string> = {};
     selectedRowKeys.forEach((key) => {
-      const device = devices.find((d) => d.id === key);
+      const device = devices.find((d: Device) => d.id === key);
       if (device) {
         nameMap[key as string] = device.name;
       }
@@ -265,7 +266,7 @@ const MyDevices = () => {
         </Button>
       </div>
 
-      <DeviceStatsCards stats={stats} />
+      <DeviceStatsCards stats={stats?.data} />
 
       {/* 批量操作工具栏 */}
       {selectedRowKeys.length > 0 && (

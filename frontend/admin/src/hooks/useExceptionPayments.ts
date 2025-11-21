@@ -40,7 +40,7 @@ export const useExceptionPayments = () => {
         await syncPaymentStatus(paymentId);
         message.success('同步成功');
         loadExceptionPayments();
-      } catch (_error) {
+      } catch (error) {
         message.error('同步失败');
       } finally {
         setSyncingId(null);

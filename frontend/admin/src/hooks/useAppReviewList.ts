@@ -152,7 +152,7 @@ export const useAppReviewList = () => {
         setReviewHistory([]); // 验证失败时使用空数组
       }
       setHistoryModalVisible(true);
-    } catch (_error) {
+    } catch (error) {
       message.error('加载审核历史失败');
       setReviewHistory([]); // 错误时重置为空数组
     }

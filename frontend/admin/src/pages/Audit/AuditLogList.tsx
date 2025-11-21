@@ -74,7 +74,7 @@ const AuditLogList: React.FC = () => {
         method: methodFilter || undefined,
         search: searchText || undefined,
       });
-    } catch (_error) {
+    } catch (error) {
       // Error is handled by the mutation
     }
   };

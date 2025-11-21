@@ -89,7 +89,7 @@ export const useInvoiceList = () => {
       window.URL.revokeObjectURL(url);
 
       message.success('发票下载成功');
-    } catch (_error) {
+    } catch (error) {
       message.error('发票下载失败');
       console.error('Failed to download invoice:', error);
     }

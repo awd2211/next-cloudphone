@@ -52,7 +52,7 @@ export const useRevenueReport = () => {
         link.click();
         window.URL.revokeObjectURL(url);
         message.success('导出成功');
-      } catch (_error) {
+      } catch (error) {
         message.error('导出失败');
       }
     },

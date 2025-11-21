@@ -38,7 +38,7 @@ export async function fetchUserMenus(): Promise<MenuItem[]> {
 
     const menus = await response.json();
     return menus;
-  } catch (_error) {
+  } catch (error) {
     console.error('Error fetching user menus:', error);
     return [];
   }

@@ -137,7 +137,6 @@ export class SnapshotsController {
     // 返回标准格式：将 limit 转换为 pageSize
     const { limit: _, ...rest } = result;
     return {
-      success: true,
       ...rest,
       pageSize: result.limit,
     };

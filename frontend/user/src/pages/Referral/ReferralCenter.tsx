@@ -14,7 +14,7 @@ import {
 import {
   useReferralConfig,
   useReferralStats,
-  useGenerateReferralPoster,
+  useGeneratePoster,
 } from '@/hooks/queries';
 
 const { TabPane } = Tabs;
@@ -35,7 +35,7 @@ const ReferralCenter: React.FC = () => {
   // React Query hooks
   const { data: config, isLoading: loading } = useReferralConfig();
   const { data: stats } = useReferralStats();
-  const generatePoster = useGenerateReferralPoster();
+  const generatePoster = useGeneratePoster();
 
   // 复制邀请码
   const copyInviteCode = useCallback(() => {
@@ -55,8 +55,8 @@ const ReferralCenter: React.FC = () => {
 
   // 生成海报
   const handleGeneratePoster = useCallback(async () => {
-    const url = await generatePoster.mutateAsync();
-    setPosterUrl(url);
+    const result = await generatePoster.mutateAsync();
+    setPosterUrl(result.posterUrl);
   }, [generatePoster]);
 
   // 分享
@@ -91,10 +91,10 @@ const ReferralCenter: React.FC = () => {
         loading={loading}
       >
         {/* 统计卡片 */}
-        <StatsCards stats={stats} onViewRecords={goToRecords} />
+        <StatsCards stats={stats ?? null} onViewRecords={goToRecords} />
 
         {/* 邀请提示 */}
-        <ReferralAlert config={config} />
+        <ReferralAlert config={config ?? null} />
 
         {/* Tabs 区域 */}
         <Tabs defaultActiveKey="code">
@@ -108,7 +108,7 @@ const ReferralCenter: React.FC = () => {
             }
             key="code"
           >
-            <InviteCodeTab config={config} onCopyCode={copyInviteCode} />
+            <InviteCodeTab config={config ?? null} onCopyCode={copyInviteCode} />
           </TabPane>
 
           {/* 邀请链接 Tab */}
@@ -121,7 +121,7 @@ const ReferralCenter: React.FC = () => {
             }
             key="link"
           >
-            <InviteLinkTab config={config} onCopyLink={copyInviteLink} onShare={handleShare} />
+            <InviteLinkTab config={config ?? null} onCopyLink={copyInviteLink} onShare={handleShare} />
           </TabPane>
 
           {/* 二维码 Tab */}
@@ -134,7 +134,7 @@ const ReferralCenter: React.FC = () => {
             }
             key="qrcode"
           >
-            <QRCodeTab config={config} onDownloadQRCode={downloadQRCode} />
+            <QRCodeTab config={config ?? null} onDownloadQRCode={downloadQRCode} />
           </TabPane>
 
           {/* 海报 Tab */}
@@ -152,7 +152,7 @@ const ReferralCenter: React.FC = () => {
         </Tabs>
 
         {/* 邀请规则 */}
-        <RulesCard config={config} />
+        <RulesCard config={config ?? null} />
       </Card>
     </div>
   );

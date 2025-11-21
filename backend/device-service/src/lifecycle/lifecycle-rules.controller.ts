@@ -131,8 +131,7 @@ export class LifecycleRulesController {
     this.logger.log(`批量删除生命周期规则 - 数量: ${body.ids.length}`);
     const results = await this.lifecycleRulesService.batchDelete(body.ids);
     return {
-      success: true,
-      data: results,
+      ...results,
       message: `批量删除完成：成功 ${results.success} 个，失败 ${results.failed} 个`,
     };
   }
@@ -185,8 +184,7 @@ export class LifecycleRulesController {
     this.logger.log(`批量导入生命周期规则 - 数量: ${body.rules.length}`);
     const results = await this.lifecycleRulesService.importRules(body.rules);
     return {
-      success: true,
-      data: results,
+      ...results,
       message: `批量导入完成：成功 ${results.success} 个，失败 ${results.failed} 个`,
     };
   }

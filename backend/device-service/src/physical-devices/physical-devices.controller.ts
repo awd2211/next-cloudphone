@@ -109,8 +109,7 @@ export class PhysicalDevicesController {
     description: '设备列表',
   })
   async getDevices(@Query() query: QueryDevicesDto): Promise<{
-    success: boolean;
-    data: PooledDevice[];
+    items: PooledDevice[];
     total: number;
     page: number;
     pageSize: number;
@@ -136,8 +135,7 @@ export class PhysicalDevicesController {
     const paginatedDevices = devices.slice(startIndex, endIndex);
 
     return {
-      success: true,
-      data: paginatedDevices,
+      items: paginatedDevices,
       total,
       page,
       pageSize: itemsPerPage,

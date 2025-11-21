@@ -40,7 +40,7 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
     try {
       await executeGenerateSecret();
       setCurrentStep(1);
-    } catch (_error) {
+    } catch (error) {
       setModalVisible(false);
     }
   };

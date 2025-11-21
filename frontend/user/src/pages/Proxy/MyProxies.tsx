@@ -29,20 +29,7 @@ import {
   useAcquireProxy,
   useReleaseProxy,
 } from '@/hooks/queries/useProxy';
-
-interface Proxy {
-  id: string;
-  host: string;
-  port: number;
-  protocol: string;
-  country: string;
-  city?: string;
-  provider: string;
-  quality: number;
-  latency: number;
-  status: string;
-  acquiredAt: string;
-}
+import type { ProxyRecord } from '@/services/proxy';
 
 /**
  * 我的代理IP页面 - 用户端
@@ -74,7 +61,7 @@ const MyProxies: React.FC = () => {
     });
   };
 
-  const handleRelease = (record: Proxy) => {
+  const handleRelease = (record: ProxyRecord) => {
     Modal.confirm({
       title: '确认释放',
       content: `确定要释放代理 ${record.host}:${record.port} 吗？`,
@@ -89,7 +76,7 @@ const MyProxies: React.FC = () => {
     return 'exception';
   };
 
-  const columns: ColumnsType<Proxy> = [
+  const columns: ColumnsType<ProxyRecord> = [
     {
       title: '代理地址',
       key: 'address',
@@ -145,10 +132,10 @@ const MyProxies: React.FC = () => {
       dataIndex: 'latency',
       key: 'latency',
       width: 100,
-      sorter: (a, b) => a.latency - b.latency,
-      render: (latency: number) => (
-        <span style={{ color: latency > 1000 ? '#ff4d4f' : '#52c41a' }}>
-          {latency}ms
+      sorter: (a, b) => (a.latency ?? 0) - (b.latency ?? 0),
+      render: (latency?: number) => (
+        <span style={{ color: (latency ?? 0) > 1000 ? '#ff4d4f' : '#52c41a' }}>
+          {latency ?? '-'}ms
         </span>
       ),
     },
@@ -208,8 +195,8 @@ const MyProxies: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="可用代理"
-              value={stats?.available || 0}
+              title="活跃代理"
+              value={stats?.active || 0}
               prefix={<CheckCircleOutlined />}
               valueStyle={{ color: '#52c41a' }}
             />
@@ -218,21 +205,19 @@ const MyProxies: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="平均质量"
-              value={stats?.avgQuality || 0}
-              suffix="/100"
+              title="已过期"
+              value={stats?.expired || 0}
               prefix={<ThunderboltOutlined />}
               valueStyle={{ color: '#faad14' }}
-              precision={1}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="平均延迟"
-              value={stats?.avgLatency || 0}
-              suffix="ms"
+              title="总带宽消耗"
+              value={stats?.totalBandwidthUsed || 0}
+              suffix="MB"
               prefix={<ThunderboltOutlined />}
               valueStyle={{ color: '#722ed1' }}
               precision={0}

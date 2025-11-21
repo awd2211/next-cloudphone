@@ -300,3 +300,46 @@ export const getSMSUsageHistory = (params?: {
     };
   }>('/sms/usage-history', { params });
 };
+
+// ==================== 短信状态管理 ====================
+
+/**
+ * 标记短信为已读
+ */
+export const markSMSAsRead = (smsId: string) => {
+  return request.post(`/sms/${smsId}/mark-read`);
+};
+
+/**
+ * 批量标记短信为已读
+ */
+export const batchMarkAsRead = (smsIds: string[]) => {
+  return request.post('/sms/batch/mark-read', { ids: smsIds });
+};
+
+// ==================== 号码统计 ====================
+
+/**
+ * 号码统计数据类型
+ */
+export interface NumberStats {
+  total: number;
+  active: number;
+  expired: number;
+  totalMessagesReceived: number;
+  totalCost: number;
+}
+
+/**
+ * 获取我的号码统计
+ */
+export const getMyNumberStats = () => {
+  return request.get<NumberStats>('/sms/my-numbers/stats');
+};
+
+// ==================== 类型别名 ====================
+
+/**
+ * PhoneNumber 类型别名（兼容旧代码）
+ */
+export type PhoneNumber = SMSNumber;

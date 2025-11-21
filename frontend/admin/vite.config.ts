@@ -162,13 +162,29 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 5173,
+    port: 50401,
+    // 允许自定义域名访问
+    allowedHosts: ['console.cloudphone.run', 'localhost', '127.0.0.1'],
     proxy: {
       // 所有 /api 请求统一代理到 API Gateway
       '/api': {
         target: 'http://localhost:30000',
         changeOrigin: true,
-        ws: true, // 支持 WebSocket
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      // WebSocket 代理到 Notification Service
+      '/ws': {
+        target: 'ws://localhost:30006',
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/ws/, ''),
+      },
+      // WebRTC 代理到 Media Service
+      '/webrtc': {
+        target: 'http://localhost:30009',
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/webrtc/, ''),
       },
     },
   },

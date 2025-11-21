@@ -13,11 +13,11 @@ import {
 import {
   useDevice,
   useDeviceSnapshots,
-  useCreateDeviceSnapshot,
-  useRestoreDeviceSnapshot,
-  useDeleteDeviceSnapshot,
+  useCreateSnapshot,
+  useRestoreSnapshot,
+  useDeleteSnapshot,
 } from '@/hooks/queries';
-import type { DeviceSnapshot } from '@/services/device';
+import type { Snapshot } from '@/utils/snapshotConfig';
 
 const { Title, Paragraph } = Typography;
 
@@ -39,15 +39,15 @@ const DeviceSnapshots: React.FC = () => {
   // 本地状态
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [restoreModalVisible, setRestoreModalVisible] = useState(false);
-  const [selectedSnapshot, setSelectedSnapshot] = useState<DeviceSnapshot | null>(null);
+  const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
 
   // React Query hooks
   const { data: device } = useDevice(id!);
   const { data: snapshots, isLoading: loading } = useDeviceSnapshots(id!);
 
-  const createSnapshot = useCreateDeviceSnapshot();
-  const restoreSnapshot = useRestoreDeviceSnapshot();
-  const deleteSnapshot = useDeleteDeviceSnapshot();
+  const createSnapshot = useCreateSnapshot();
+  const restoreSnapshot = useRestoreSnapshot();
+  const deleteSnapshot = useDeleteSnapshot();
 
   // 创建快照
   const handleCreateSnapshot = useCallback(async () => {
@@ -64,8 +64,8 @@ const DeviceSnapshots: React.FC = () => {
   const handleRestoreSnapshot = useCallback(async () => {
     if (!selectedSnapshot) return;
     await restoreSnapshot.mutateAsync({
-      deviceId: id!,
       snapshotId: selectedSnapshot.id,
+      deviceId: id,
     });
     setRestoreModalVisible(false);
     setSelectedSnapshot(null);
@@ -74,8 +74,8 @@ const DeviceSnapshots: React.FC = () => {
   // 删除快照
   const handleDeleteSnapshot = useCallback(async (snapshotId: string) => {
     await deleteSnapshot.mutateAsync({
-      deviceId: id!,
       snapshotId,
+      deviceId: id,
     });
   }, [id, deleteSnapshot]);
 
@@ -89,7 +89,7 @@ const DeviceSnapshots: React.FC = () => {
     form.resetFields();
   }, [form]);
 
-  const openRestoreModal = useCallback((snapshot: DeviceSnapshot) => {
+  const openRestoreModal = useCallback((snapshot: Snapshot) => {
     setSelectedSnapshot(snapshot);
     setRestoreModalVisible(true);
   }, []);
@@ -120,10 +120,10 @@ const DeviceSnapshots: React.FC = () => {
       <Paragraph type="secondary">快照可以保存设备的完整状态，包括系统、应用和数据</Paragraph>
 
       {/* 设备信息 */}
-      <DeviceInfo device={device} />
+      <DeviceInfo device={device ?? null} />
 
       {/* 统计卡片 */}
-      <StatsCards snapshots={snapshots} />
+      <StatsCards snapshots={snapshots?.data || []} />
 
       {/* 快照列表 */}
       <Card
@@ -140,7 +140,7 @@ const DeviceSnapshots: React.FC = () => {
         }
       >
         <SnapshotTable
-          snapshots={snapshots}
+          snapshots={snapshots?.data || []}
           loading={loading}
           onRestore={openRestoreModal}
           onDelete={handleDeleteSnapshot}
@@ -153,7 +153,6 @@ const DeviceSnapshots: React.FC = () => {
         form={form}
         onCancel={closeCreateModal}
         onSubmit={handleCreateSnapshot}
-        loading={createSnapshot.isPending}
       />
 
       {/* 恢复快照 Modal */}
@@ -162,7 +161,6 @@ const DeviceSnapshots: React.FC = () => {
         snapshot={selectedSnapshot}
         onCancel={closeRestoreModal}
         onConfirm={handleRestoreSnapshot}
-        loading={restoreSnapshot.isPending}
       />
 
       {/* 使用说明 */}

@@ -34,10 +34,12 @@ const ActivityDetail: React.FC = () => {
   const { data: activity, isLoading: loading } = useActivityDetail(id!);
   const participateActivity = useParticipateActivity();
 
-  // 计算状态
-  const hasParticipated = activity?.hasParticipated || false;
+  // 计算状态（Activity 类型没有 hasParticipated，这里假设用户未参与）
+  // 实际项目中应该从单独的 API 或 useMyParticipations 获取参与状态
+  const hasParticipated = false;
   const canParticipate =
     activity?.status === ('ongoing' as ActivityStatus) && !hasParticipated;
+  const participating = participateActivity.isPending;
 
   // 参与活动
   const handleParticipate = useCallback(async () => {

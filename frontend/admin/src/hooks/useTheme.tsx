@@ -33,7 +33,7 @@ const getSavedThemeMode = (): ThemeMode => {
     if (saved && ['light', 'dark', 'auto'].includes(saved)) {
       return saved as ThemeMode;
     }
-  } catch (_error) {
+  } catch (error) {
     console.warn('Failed to load theme mode from localStorage:', error);
   }
   return 'auto'; // 默认跟随系统
@@ -94,7 +94,7 @@ export const useTheme = (): UseThemeResult => {
     setModeState(newMode);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, newMode);
-    } catch (_error) {
+    } catch (error) {
       console.warn('Failed to save theme mode to localStorage:', error);
     }
   }, []);

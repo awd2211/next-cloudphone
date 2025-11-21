@@ -38,6 +38,7 @@ const ActivityCenter: React.FC = () => {
   });
   const { data: stats } = useActivityStats();
 
+  // useActivities 返回 { data: Activity[], total, page, pageSize }
   const activities = activitiesData?.data || [];
 
   // Tab 切换
@@ -77,7 +78,7 @@ const ActivityCenter: React.FC = () => {
         <ActivityBanner activities={activities} onActivityClick={goToActivityDetail} />
 
         {/* 统计数据 */}
-        <StatsCards stats={stats} />
+        <StatsCards stats={stats ?? null} />
 
         {/* Tab切换 */}
         <ActivityTabs activeKey={activeTab} onChange={handleTabChange} />

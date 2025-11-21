@@ -65,7 +65,7 @@ const QuotaAlertNotification: React.FC<QuotaAlertNotificationProps> = ({
           });
         }
       }
-    } catch (_error) {
+    } catch (error) {
       console.error('加载配额告警失败:', error);
     } finally {
       setLoading(false);

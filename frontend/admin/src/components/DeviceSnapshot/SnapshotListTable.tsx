@@ -49,7 +49,7 @@ const SnapshotListTable: React.FC<SnapshotListTableProps> = ({ deviceId, onResto
         // 如果API不存在,使用模拟数据
         setSnapshots([]);
       }
-    } catch (_error) {
+    } catch (error) {
       console.error('Failed to fetch snapshots:', error);
       setSnapshots([]);
     } finally {

@@ -42,7 +42,7 @@ export const useRefundManagement = () => {
         message.success('退款已批准');
         setApproveModalVisible(false);
         loadRefunds();
-      } catch (_error) {
+      } catch (error) {
         message.error('批准退款失败');
       }
     },
@@ -58,7 +58,7 @@ export const useRefundManagement = () => {
         message.success('退款已拒绝');
         setRejectModalVisible(false);
         loadRefunds();
-      } catch (_error) {
+      } catch (error) {
         message.error('拒绝退款失败');
       }
     },

@@ -390,7 +390,7 @@ export function useErrorHandler() {
     async <T,>(promise: Promise<T>, options?: ErrorOptions): Promise<T | null> => {
       try {
         return await promise;
-      } catch (_error) {
+      } catch (error) {
         handleError(error as Error, options);
         return null;
       }
@@ -413,7 +413,7 @@ export function useErrorHandler() {
             });
           }
           return result;
-        } catch (_error) {
+        } catch (error) {
           handleError(error as Error, options);
           throw error;
         }
@@ -437,7 +437,7 @@ export function useErrorHandler() {
  * // 1. 直接处理错误
  * try {
  *   await someOperation();
- * } catch (_error) {
+ * } catch (error) {
  *   handleError(error, { showModal: true });
  * }
  *

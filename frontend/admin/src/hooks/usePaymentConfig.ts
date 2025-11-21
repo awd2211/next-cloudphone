@@ -43,7 +43,7 @@ export const usePaymentConfig = () => {
         await updatePaymentConfig({ enabledMethods: newEnabledMethods });
         message.success(`${enabled ? '启用' : '禁用'}成功`);
         loadConfig();
-      } catch (_error) {
+      } catch (error) {
         message.error('更新配置失败');
       }
     },
@@ -63,7 +63,7 @@ export const usePaymentConfig = () => {
         await updatePaymentConfig({ enabledCurrencies: newEnabledCurrencies });
         message.success(`${enabled ? '启用' : '禁用'}成功`);
         loadConfig();
-      } catch (_error) {
+      } catch (error) {
         message.error('更新配置失败');
       }
     },
@@ -78,7 +78,7 @@ export const usePaymentConfig = () => {
         await testProviderConnection(provider);
         message.success(`${provider} 连接测试成功`);
         loadConfig();
-      } catch (_error) {
+      } catch (error) {
         message.error(`${provider} 连接测试失败`);
       } finally {
         setTestingProvider(null);

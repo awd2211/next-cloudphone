@@ -52,8 +52,25 @@ export {
 
 // ==================== 工单管理 ====================
 export {
-  // 从 useTickets.ts 导出所有内容
-  // 需要等待查看该文件的具体实现
+  ticketKeys,
+  useMyTickets,
+  useTicketDetail,
+  useTicketReplies,
+  useCreateTicket,
+  useUpdateTicket,
+  useAddTicketReply,
+  useCloseTicket,
+  useReopenTicket,
+  useRateTicket,
+  useMarkReplyAsRead,
+  useMarkAllRepliesAsRead,
+  useUnreadRepliesCount,
+  useRelatedTickets,
+  useSuggestedTags,
+  useSubmitSatisfactionSurvey,
+  useTicketNotificationSettings,
+  useUpdateTicketNotificationSettings,
+  useMyTicketStats,
 } from './useTickets';
 
 // ==================== 订单管理 ====================

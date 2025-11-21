@@ -89,8 +89,7 @@ export class TemplatesController {
     );
 
     return {
-      success: true,
-      data: templates,
+      items: templates,
       total,
       page: currentPage,
       pageSize: limit,
@@ -140,8 +139,7 @@ export class TemplatesController {
   async getQuickList(@Query() query: QuickListQueryDto) {
     const result = await this.templatesService.getQuickList(query);
     return {
-      success: true,
-      data: result,
+      ...result,
       message: '模板快速列表获取成功',
     };
   }

@@ -167,7 +167,7 @@ export const FilterPresetManager = memo(
         URL.revokeObjectURL(url);
 
         message.success(`已导出 ${presets.length} 个筛选方案`);
-      } catch (_error) {
+      } catch (error) {
         message.error('导出失败,请重试');
         console.error('Export error:', error);
       }
@@ -207,7 +207,7 @@ export const FilterPresetManager = memo(
           } else {
             message.warning('导入功能未启用');
           }
-        } catch (_error) {
+        } catch (error) {
           message.error('导入失败,请检查文件格式');
           console.error('Import error:', error);
         }

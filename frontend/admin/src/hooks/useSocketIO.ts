@@ -5,7 +5,35 @@ import { message } from 'antd';
 /**
  * WebSocket 配置
  */
-const WEBSOCKET_URL = import.meta.env.VITE_WS_URL || 'http://localhost:30006';
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || '/ws';
+
+/**
+ * 构建 Socket.IO 连接 URL 和路径
+ */
+function getSocketConfig(): { url: string; path: string } {
+  const wsBaseUrl = WS_BASE_URL;
+
+  if (wsBaseUrl.startsWith('/')) {
+    // 相对路径：使用当前域名
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    return {
+      url: `${protocol}//${window.location.host}`,
+      path: wsBaseUrl,
+    };
+  } else if (wsBaseUrl.startsWith('ws://') || wsBaseUrl.startsWith('wss://')) {
+    // WebSocket URL：转换为 http/https
+    return {
+      url: wsBaseUrl.replace('wss://', 'https://').replace('ws://', 'http://'),
+      path: '/socket.io',
+    };
+  } else {
+    // HTTP URL 或其他
+    return {
+      url: wsBaseUrl,
+      path: '/socket.io',
+    };
+  }
+}
 
 /**
  * WebSocket 连接状态
@@ -46,7 +74,7 @@ function getUserInfo(): { id?: string; role?: string } | null {
     const userStr = localStorage.getItem('user');
     if (!userStr) return null;
     return JSON.parse(userStr);
-  } catch (_error) {
+  } catch (error) {
     console.error('Failed to parse user info:', error);
     return null;
   }
@@ -68,11 +96,13 @@ function createWebSocketConnection(): Socket {
     throw new Error('No authentication token found');
   }
 
-  console.log(`🔌 Creating WebSocket connection to ${WEBSOCKET_URL}`);
+  const { url, path } = getSocketConfig();
+  console.log(`🔌 Creating WebSocket connection to ${url} with path ${path}`);
 
-  const socket = io(WEBSOCKET_URL, {
+  const socket = io(url, {
+    path,
     auth: { token },
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
     reconnectionDelay: RECONNECT_DELAY,

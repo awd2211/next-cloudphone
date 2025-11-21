@@ -4,7 +4,6 @@ import {
   RobotOutlined,
   ClockCircleOutlined,
   CodeOutlined,
-  PlayCircleOutlined,
   CheckCircleOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';

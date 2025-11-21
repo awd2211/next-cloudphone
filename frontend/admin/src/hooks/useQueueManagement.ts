@@ -121,7 +121,7 @@ export const useQueueManagement = () => {
         await retryJob(queueName, jobId);
         message.success('任务已重试');
         loadJobs();
-      } catch (_error) {
+      } catch (error) {
         message.error('重试失败');
       }
     },
@@ -138,7 +138,7 @@ export const useQueueManagement = () => {
         message.success('任务已删除');
         loadJobs();
         loadQueuesStatus();
-      } catch (_error) {
+      } catch (error) {
         message.error('删除失败');
       }
     },
@@ -155,7 +155,7 @@ export const useQueueManagement = () => {
         await pauseQueue(queueName);
         message.success(`队列 ${queueName} 已暂停`);
         loadQueuesStatus();
-      } catch (_error) {
+      } catch (error) {
         message.error('暂停失败');
       }
     },
@@ -171,7 +171,7 @@ export const useQueueManagement = () => {
         await resumeQueue(queueName);
         message.success(`队列 ${queueName} 已恢复`);
         loadQueuesStatus();
-      } catch (_error) {
+      } catch (error) {
         message.error('恢复失败');
       }
     },
@@ -188,7 +188,7 @@ export const useQueueManagement = () => {
         message.success(`队列 ${queueName} 已清空`);
         loadJobs();
         loadQueuesStatus();
-      } catch (_error) {
+      } catch (error) {
         message.error('清空失败');
       }
     },
@@ -205,7 +205,7 @@ export const useQueueManagement = () => {
         message.success(`已清理 ${queueName} 中的 ${type} 任务`);
         loadJobs();
         loadQueuesStatus();
-      } catch (_error) {
+      } catch (error) {
         message.error('清理失败');
       }
     },
@@ -238,7 +238,7 @@ export const useQueueManagement = () => {
         loadQueuesStatus();
         loadJobs();
       }, 500);
-    } catch (_error) {
+    } catch (error) {
       message.error('创建任务失败');
     }
   }, [testType, testForm, loadQueuesStatus, loadJobs]);

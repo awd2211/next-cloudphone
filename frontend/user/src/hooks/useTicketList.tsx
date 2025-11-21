@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
 import {
-  getTickets,
-  getTicketStats,
+  getMyTickets,
+  getMyTicketStats,
   type Ticket,
   type TicketListQuery,
   type TicketStats,
@@ -47,7 +47,7 @@ export function useTicketList() {
   const loadTickets = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await getTickets(query);
+      const response = await getMyTickets(query);
       setTickets(response.items);
       setTotal(response.total);
     } catch (error: any) {
@@ -62,7 +62,7 @@ export function useTicketList() {
    */
   const loadStats = useCallback(async () => {
     try {
-      const statsData = await getTicketStats();
+      const statsData = await getMyTicketStats();
       setStats(statsData);
     } catch (error: any) {
       console.error('加载统计数据失败:', error);

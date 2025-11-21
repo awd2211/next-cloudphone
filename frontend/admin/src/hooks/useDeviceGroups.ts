@@ -106,7 +106,7 @@ export const useDeviceGroups = (): UseDeviceGroupsReturn => {
         await request.delete(`/devices/groups/${id}`);
         message.success('分组删除成功');
         loadGroups();
-      } catch (_error) {
+      } catch (error) {
         message.error('删除失败');
       }
     },

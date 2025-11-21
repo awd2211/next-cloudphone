@@ -46,7 +46,7 @@ const QuotaRealTimeMonitor: React.FC = () => {
     try {
       const data = await getQuotaSummary();
       setSummary(data as any);
-    } catch (_error) {
+    } catch (error) {
       console.error('加载配额摘要失败:', error);
     } finally {
       setLoading(false);

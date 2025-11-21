@@ -234,7 +234,7 @@ export const useGeneratePoster = () => {
     onSuccess: () => {
       message.success({ content: '海报生成成功', key: 'generate-poster' });
     },
-    onError: (error) => {
+    onError: (_error: unknown) => {
       message.error({
         content: '生成失败',
         key: 'generate-poster',

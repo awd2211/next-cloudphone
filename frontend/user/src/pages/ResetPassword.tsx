@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, Result, Button, Spin, Alert, Form } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ResetPasswordForm } from '@/components/Auth';
@@ -23,20 +23,15 @@ const ResetPassword = () => {
   const [success, setSuccess] = useState(false);
 
   // React Query hooks
-  const verifyToken = useVerifyResetToken();
+  // useVerifyResetToken 是 query hook，不是 mutation
+  const { data: verifyData, isLoading: verifying, isSuccess, error: verifyError } = useVerifyResetToken(token || '', {
+    enabled: !!token,
+  });
   const resetPassword = useResetPassword();
 
-  const verifying = verifyToken.isPending;
   const loading = resetPassword.isPending;
-  const tokenValid = verifyToken.isSuccess && verifyToken.data?.valid;
-  const tokenError = verifyToken.error?.message;
-
-  // 页面加载时验证 token
-  useEffect(() => {
-    if (token) {
-      verifyToken.mutate(token);
-    }
-  }, [token]);
+  const tokenValid = isSuccess && verifyData?.valid;
+  const tokenError = (verifyError as Error)?.message;
 
   // 提交表单
   const handleSubmit = useCallback(

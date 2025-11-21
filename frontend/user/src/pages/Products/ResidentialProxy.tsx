@@ -3,8 +3,6 @@ import { Card, Row, Col, Button, Typography, Space, Tag, Statistic } from 'antd'
 import {
   GlobalOutlined,
   ThunderboltOutlined,
-  SafetyOutlined,
-  CloudOutlined,
   RocketOutlined,
   CheckCircleOutlined,
   EnvironmentOutlined,

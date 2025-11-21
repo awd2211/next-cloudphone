@@ -156,20 +156,34 @@ export const openSocialLoginPopup = async (provider: SocialProvider): Promise<So
 
   // 返回 Promise 等待登录完成
   return new Promise<SocialAuthResponse>((resolve, reject) => {
+    // 监听来自弹窗的消息
+    const messageHandler = (event: MessageEvent) => {
+      // 验证消息来源
+      if (event.origin !== window.location.origin) return;
+
+      if (event.data?.type === 'social_auth_success' && event.data?.response) {
+        cleanup();
+        resolve(event.data.response as SocialAuthResponse);
+      } else if (event.data?.type === 'social_auth_error') {
+        cleanup();
+        reject(new Error(event.data.error || 'Social login failed'));
+      }
+    };
+
+    window.addEventListener('message', messageHandler);
+
+    const cleanup = () => {
+      window.removeEventListener('message', messageHandler);
+      clearInterval(checkInterval);
+    };
+
     const checkInterval = setInterval(() => {
       try {
         // 检查弹窗是否关闭
         if (popup?.closed) {
-          clearInterval(checkInterval);
+          cleanup();
           reject(new Error('Login popup was closed'));
           return;
-        }
-
-        // 检查弹窗 URL 是否包含回调路径（需要同源才能访问）
-        if (popup?.location.href.includes('/auth/callback/')) {
-          clearInterval(checkInterval);
-          // 这里需要从 popup 获取结果，具体实现取决于后端回调页面设计
-          // 通常使用 postMessage 或者查询参数传递
         }
       } catch (e) {
         // 跨域访问会抛出异常，忽略
@@ -178,7 +192,7 @@ export const openSocialLoginPopup = async (provider: SocialProvider): Promise<So
 
     // 30秒超时
     setTimeout(() => {
-      clearInterval(checkInterval);
+      cleanup();
       if (popup && !popup.closed) {
         popup.close();
       }
