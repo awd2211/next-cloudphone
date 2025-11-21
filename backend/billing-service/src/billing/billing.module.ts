@@ -11,6 +11,7 @@ import { Plan } from './entities/plan.entity';
 import { UsageRecord } from './entities/usage-record.entity';
 import { PurchasePlanSagaV2 } from '../sagas/purchase-plan-v2.saga';
 import { MetricsModule } from '../metrics/metrics.module';
+import { BalanceModule } from '../balance/balance.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { MetricsModule } from '../metrics/metrics.module';
     SagaModule, // ✅ 添加 Saga 模块
     MetricsModule, // ✅ 添加业务指标模块
     HttpClientModule, // ✅ 添加 HTTP 客户端模块（用于服务间调用）
+    BalanceModule, // ✅ 添加余额模块（用于退款）
   ],
   controllers: [BillingController, AdminUsageController],
   providers: [BillingService, PricingEngineService, PurchasePlanSagaV2, AdminUsageService],

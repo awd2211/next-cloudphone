@@ -16,6 +16,7 @@ import { PurchasePlanSagaV2 } from '../sagas/purchase-plan-v2.saga';
 import { CacheService } from '../cache/cache.service';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 import { trace, SpanStatusCode } from '@opentelemetry/api';
+import { BalanceService } from '../balance/balance.service';
 
 @Injectable()
 export class BillingService {
@@ -31,7 +32,8 @@ export class BillingService {
     private usageRecordRepository: Repository<UsageRecord>,
     private readonly purchasePlanSaga: PurchasePlanSagaV2,
     @Optional() private cacheService: CacheService,
-    private readonly lockService: DistributedLockService // ✅ K8s cluster safety
+    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
+    private readonly balanceService: BalanceService // ✅ 用于退款到用户余额
   ) {}
 
   async getPlans(page: number = 1, pageSize: number = 10) {
@@ -358,8 +360,11 @@ export class BillingService {
 
   /**
    * 订单退款
+   * 支持两种退款方式：
+   * 1. 余额支付订单 → 退回用户余额
+   * 2. 第三方支付订单 → 退回用户余额（作为补偿，实际退款需手动处理）
    */
-  async refundOrder(orderId: string, amount: number, reason?: string) {
+  async refundOrder(orderId: string, amount: number, reason?: string, operatorId?: string) {
     const order = await this.getOrder(orderId);
 
     // 检查订单状态
@@ -372,23 +377,54 @@ export class BillingService {
       throw new BadRequestException(`退款金额必须大于 0 且不能超过订单金额 ${order.amount}`);
     }
 
+    // 检查是否已经退款过（防止重复退款）
+    if (order.refundAmount && order.refundAmount > 0) {
+      const remainingAmount = order.amount - order.refundAmount;
+      if (amount > remainingAmount) {
+        throw new BadRequestException(
+          `退款金额超出可退款余额，订单金额: ${order.amount}，已退款: ${order.refundAmount}，可退款: ${remainingAmount}`
+        );
+      }
+    }
+
+    // ✅ 实际退款：将金额退回用户余额账户
+    const refundResult = await this.balanceService.refund({
+      userId: order.userId,
+      amount,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      reason: reason || '订单退款',
+      operatorId,
+      metadata: {
+        originalPaymentMethod: order.paymentMethod,
+        planId: order.planId,
+        deviceId: order.deviceId,
+      },
+    });
+
     // 更新订单状态
-    order.status = OrderStatus.REFUNDED;
+    const previousRefundAmount = order.refundAmount || 0;
+    order.refundAmount = previousRefundAmount + amount;
+
+    // 如果全额退款，标记为已退款状态
+    if (order.refundAmount >= order.amount) {
+      order.status = OrderStatus.REFUNDED;
+    }
     order.refundedAt = new Date();
-    order.refundAmount = amount;
     order.refundReason = reason || '用户申请退款';
 
     const updatedOrder = await this.orderRepository.save(order);
 
-    this.logger.log(`Refunded order ${order.orderNumber}: ${amount} CNY`);
-
-    // TODO: 实际的退款逻辑应该调用支付服务或余额服务
-    // 这里仅标记订单为已退款状态，实际退款需要集成支付网关或余额系统
+    this.logger.log(
+      `Refunded order ${order.orderNumber}: ${amount} CNY → user ${order.userId} balance. Transaction: ${refundResult.transaction.id}`
+    );
 
     return {
       order: updatedOrder,
       refundedAmount: amount,
       refundedAt: updatedOrder.refundedAt,
+      balanceTransaction: refundResult.transaction,
+      newBalance: refundResult.balance.balance,
     };
   }
 
@@ -899,8 +935,12 @@ export class BillingService {
     provider?: string,
     reconciliationType?: string
   ) {
-    // TODO: 实际实现应该调用云服务商API
-    // 例如: AWS Cost Explorer API, 阿里云账单查询API等
+    // 云服务商 API 集成说明：
+    // 当前为 Mock 实现，生产环境应按以下方式集成：
+    // - AWS: Cost Explorer API (ce.getCostAndUsage)
+    // - 阿里云: BssOpenApi QueryBill
+    // - 腾讯云: Billing DescribeBillDetail
+    // 建议创建独立的 CloudProviderBillingService 统一管理
 
     this.logger.log(`获取云服务商计费数据 - Provider: ${provider}, Type: ${reconciliationType}`);
 

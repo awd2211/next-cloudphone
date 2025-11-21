@@ -50,6 +50,16 @@ export interface AdjustBalanceDto {
   reason: string;
 }
 
+export interface RefundBalanceDto {
+  userId: string;
+  amount: number;
+  orderId: string;
+  orderNumber?: string;
+  reason?: string;
+  operatorId?: string;
+  metadata?: Record<string, any>;
+}
+
 @Injectable()
 export class BalanceService {
   private readonly logger = new Logger(BalanceService.name);
@@ -459,6 +469,87 @@ export class BalanceService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`余额调整失败 - 用户: ${dto.userId}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * 退款 - 将金额退回用户余额
+   */
+  async refund(dto: RefundBalanceDto): Promise<{
+    balance: UserBalance;
+    transaction: BalanceTransaction;
+  }> {
+    if (dto.amount <= 0) {
+      throw new BadRequestException('退款金额必须大于 0');
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 获取或创建用户余额账户
+      let balance = await queryRunner.manager.findOne(UserBalance, {
+        where: { userId: dto.userId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      // 如果用户没有余额账户，自动创建一个
+      if (!balance) {
+        balance = queryRunner.manager.create(UserBalance, {
+          userId: dto.userId,
+          balance: 0,
+          frozenAmount: 0,
+          totalRecharge: 0,
+          totalConsumption: 0,
+          status: BalanceStatus.NORMAL,
+          lowBalanceThreshold: 100,
+        });
+        await queryRunner.manager.save(balance);
+        this.logger.log(`为退款自动创建余额账户 - 用户: ${dto.userId}`);
+      }
+
+      const balanceBefore = Number(balance.balance);
+      balance.balance = Number(balance.balance) + dto.amount;
+      balance.totalRecharge = Number(balance.totalRecharge) + dto.amount;
+
+      const transaction = queryRunner.manager.create(BalanceTransaction, {
+        userId: dto.userId,
+        balanceId: balance.id,
+        type: TransactionType.REFUND,
+        amount: dto.amount,
+        balanceBefore,
+        balanceAfter: Number(balance.balance),
+        status: TransactionStatus.SUCCESS,
+        orderId: dto.orderId,
+        description: dto.reason || `订单退款 ${dto.orderNumber || dto.orderId}`,
+        operatorId: dto.operatorId,
+        metadata: {
+          ...dto.metadata,
+          orderNumber: dto.orderNumber,
+          refundedAt: new Date().toISOString(),
+        },
+      });
+
+      await queryRunner.manager.save(balance);
+      await queryRunner.manager.save(transaction);
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(
+        `退款成功 - 用户: ${dto.userId}, 金额: ${dto.amount}, 订单: ${dto.orderNumber || dto.orderId}`
+      );
+
+      // 清除缓存
+      await this.invalidateBalanceCache(dto.userId);
+
+      return { balance, transaction };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`退款失败 - 用户: ${dto.userId}, 订单: ${dto.orderId}`, error.stack);
       throw error;
     } finally {
       await queryRunner.release();

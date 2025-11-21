@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, LessThan, Between } from 'typeorm';
 import { UsageRecord } from '../billing/entities/usage-record.entity';
 import { UserBalance } from '../balance/entities/user-balance.entity';
+import { WarningConfigEntity } from './entities/warning-config.entity';
 import { CacheService } from '../cache/cache.service';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
@@ -72,6 +73,8 @@ export class DashboardService {
     private usageRecordRepository: Repository<UsageRecord>,
     @InjectRepository(UserBalance)
     private balanceRepository: Repository<UserBalance>,
+    @InjectRepository(WarningConfigEntity)
+    private warningConfigRepository: Repository<WarningConfigEntity>,
     private readonly cacheService: CacheService, // ✅ 注入缓存服务
   ) {}
 
@@ -202,13 +205,30 @@ export class DashboardService {
   /**
    * 获取预警配置
    * ✅ 已添加缓存 (TTL: 600秒 = 10分钟) - 配置很少变动
+   * ✅ 已实现数据库持久化
    */
   async getWarningConfig(userId: string): Promise<WarningConfig> {
     return this.cacheService.wrap(
       CacheKeys.warningConfig(userId),
       async () => {
-        // TODO: 从数据库读取配置
-        // 目前返回默认配置
+        // ✅ 从数据库读取配置
+        const config = await this.warningConfigRepository.findOne({
+          where: { userId },
+        });
+
+        if (config) {
+          return {
+            userId: config.userId,
+            dailyBudget: Number(config.dailyBudget),
+            monthlyBudget: Number(config.monthlyBudget),
+            lowBalanceThreshold: Number(config.lowBalanceThreshold),
+            criticalBalanceThreshold: Number(config.criticalBalanceThreshold),
+            enableEmailNotification: config.enableEmailNotification,
+            enableSmsNotification: config.enableSmsNotification,
+          };
+        }
+
+        // 如果没有配置，返回默认值
         return {
           userId,
           dailyBudget: 100,
@@ -226,24 +246,56 @@ export class DashboardService {
   /**
    * 更新预警配置
    * ✅ 添加缓存失效逻辑
+   * ✅ 已实现数据库持久化（UPSERT 模式）
    */
   async updateWarningConfig(
     userId: string,
     config: Partial<WarningConfig>
   ): Promise<WarningConfig> {
-    // TODO: 保存到数据库
     this.logger.log(`Updating warning config for user ${userId}`);
 
-    const result = {
-      userId,
-      ...config,
-    } as WarningConfig;
+    // ✅ 使用 UPSERT 模式保存到数据库
+    const existingConfig = await this.warningConfigRepository.findOne({
+      where: { userId },
+    });
+
+    const configEntity = existingConfig || this.warningConfigRepository.create({ userId });
+
+    // 只更新传入的字段
+    if (config.dailyBudget !== undefined) {
+      configEntity.dailyBudget = config.dailyBudget;
+    }
+    if (config.monthlyBudget !== undefined) {
+      configEntity.monthlyBudget = config.monthlyBudget;
+    }
+    if (config.lowBalanceThreshold !== undefined) {
+      configEntity.lowBalanceThreshold = config.lowBalanceThreshold;
+    }
+    if (config.criticalBalanceThreshold !== undefined) {
+      configEntity.criticalBalanceThreshold = config.criticalBalanceThreshold;
+    }
+    if (config.enableEmailNotification !== undefined) {
+      configEntity.enableEmailNotification = config.enableEmailNotification;
+    }
+    if (config.enableSmsNotification !== undefined) {
+      configEntity.enableSmsNotification = config.enableSmsNotification;
+    }
+
+    const savedConfig = await this.warningConfigRepository.save(configEntity);
 
     // ✅ 清除相关缓存
     await this.cacheService.del(CacheKeys.warningConfig(userId));
     await this.cacheService.del(CacheKeys.costWarning(userId));
 
-    return result;
+    return {
+      userId: savedConfig.userId,
+      dailyBudget: Number(savedConfig.dailyBudget),
+      monthlyBudget: Number(savedConfig.monthlyBudget),
+      lowBalanceThreshold: Number(savedConfig.lowBalanceThreshold),
+      criticalBalanceThreshold: Number(savedConfig.criticalBalanceThreshold),
+      enableEmailNotification: savedConfig.enableEmailNotification,
+      enableSmsNotification: savedConfig.enableSmsNotification,
+    };
   }
 
   /**
