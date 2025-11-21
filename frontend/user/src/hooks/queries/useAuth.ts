@@ -20,6 +20,7 @@ import type {
   ResetPasswordDto,
   Verify2FADto,
   Disable2FADto,
+  Enable2FADto,
   LoginHistoryParams,
 } from '@/services/auth';
 import {
@@ -70,9 +71,12 @@ export const useCurrentUser = () => {
  * 获取双因素认证状态
  */
 export const use2FAStatus = () => {
-  return useQuery<{ enabled: boolean; qrCode?: string; secret?: string }>({
+  return useQuery<{ enabled: boolean; hasSecret: boolean }>({
     queryKey: authKeys.twoFactorStatus(),
-    queryFn: () => authService.get2FAStatus(),
+    queryFn: async () => {
+      const response = await authService.get2FAStatus();
+      return response.data;
+    },
     staleTime: StaleTimeConfig.userProfile,
   });
 };
@@ -181,7 +185,7 @@ export const useLogout = () => {
  * 修改密码
  */
 export const useChangePassword = () => {
-  return useMutation<void, unknown, ChangePasswordDto>({
+  return useMutation<{ message: string }, unknown, ChangePasswordDto>({
     mutationFn: (data) => authService.changePassword(data),
     onSuccess: () => {
       handleMutationSuccess('密码修改成功，请重新登录');
@@ -196,7 +200,7 @@ export const useChangePassword = () => {
  * 忘记密码 - 发送重置链接
  */
 export const useForgotPassword = () => {
-  return useMutation<void, unknown, ForgotPasswordDto>({
+  return useMutation<{ message: string }, unknown, ForgotPasswordDto>({
     mutationFn: (data) => authService.forgotPassword(data),
     onSuccess: () => {
       handleMutationSuccess('重置链接已发送，请查收');
@@ -226,7 +230,7 @@ export const useVerifyResetToken = (token: string, options?: { enabled?: boolean
 export const useResetPassword = () => {
   const navigate = useNavigate();
 
-  return useMutation<void, unknown, ResetPasswordDto>({
+  return useMutation<{ message: string }, unknown, ResetPasswordDto>({
     mutationFn: (data) => authService.resetPassword(data),
     onSuccess: () => {
       handleMutationSuccess('密码重置成功，请登录');
@@ -239,14 +243,30 @@ export const useResetPassword = () => {
 };
 
 /**
+ * 生成双因素认证密钥
+ */
+export const useGenerate2FA = () => {
+  return useMutation<{ secret: string; qrCode: string; otpauthUrl: string }, unknown, void>({
+    mutationFn: async () => {
+      const response = await authService.generate2FA();
+      return response.data;
+    },
+    onError: (error) => {
+      handleMutationError(error, '生成双因素认证密钥失败');
+    },
+  });
+};
+
+/**
  * 启用双因素认证
  */
 export const useEnable2FA = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<{ qrCode: string; secret: string }, unknown, void>({
-    mutationFn: () => authService.enable2FA(),
+  return useMutation<{ success: boolean; message: string }, unknown, Enable2FADto>({
+    mutationFn: (data) => authService.enable2FA(data),
     onSuccess: () => {
+      handleMutationSuccess('双因素认证已启用');
       queryClient.invalidateQueries({ queryKey: authKeys.twoFactorStatus() });
     },
     onError: (error) => {
@@ -279,7 +299,7 @@ export const useVerify2FACode = () => {
 export const useDisable2FA = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, unknown, Disable2FADto>({
+  return useMutation<{ success: boolean; message: string }, unknown, Disable2FADto>({
     mutationFn: (data) => authService.disable2FA(data),
     onSuccess: () => {
       handleMutationSuccess('双因素认证已禁用');
@@ -297,7 +317,7 @@ export const useDisable2FA = () => {
 export const useTerminateSession = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, unknown, string>({
+  return useMutation<{ success: boolean; message: string }, unknown, string>({
     mutationFn: (sessionId) => authService.terminateSession(sessionId),
     onSuccess: () => {
       handleMutationSuccess('会话已终止');
@@ -315,7 +335,7 @@ export const useTerminateSession = () => {
 export const useTerminateAllSessions = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, unknown, void>({
+  return useMutation<{ success: boolean; message: string }, unknown, void>({
     mutationFn: () => authService.terminateAllSessions(),
     onSuccess: () => {
       handleMutationSuccess('所有其他会话已终止');

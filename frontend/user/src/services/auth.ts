@@ -38,14 +38,20 @@ export interface ForgotPasswordDto {
 }
 
 export const forgotPassword = (data: ForgotPasswordDto) => {
-  return request.post('/auth/forgot-password', data);
+  return request.post<{ message: string }>('/auth/forgot-password', data);
 };
 
 /**
  * 验证重置密码 token
  */
+export interface VerifyResetTokenResponse {
+  valid: boolean;
+  message?: string;
+  userId?: string;
+}
+
 export const verifyResetToken = (token: string) => {
-  return request.get(`/auth/verify-reset-token/${token}`);
+  return request.post<VerifyResetTokenResponse>('/auth/verify-reset-token', { token });
 };
 
 /**
@@ -57,7 +63,7 @@ export interface ResetPasswordDto {
 }
 
 export const resetPassword = (data: ResetPasswordDto) => {
-  return request.post('/auth/reset-password', data);
+  return request.post<{ message: string }>('/auth/reset-password', data);
 };
 
 // ========== 安全中心相关 API ==========
@@ -71,28 +77,44 @@ export interface ChangePasswordDto {
 }
 
 export const changePassword = (data: ChangePasswordDto) => {
-  return request.post('/auth/change-password', data);
+  return request.post<{ message: string }>('/auth/change-password', data);
 };
 
 /**
  * 获取双因素认证状态
  */
+export interface TwoFactorStatus {
+  enabled: boolean;
+  hasSecret: boolean;
+}
+
 export const get2FAStatus = () => {
+  return request.get<{ success: boolean; data: TwoFactorStatus }>('/auth/2fa/status');
+};
+
+/**
+ * 生成2FA密钥
+ */
+export const generate2FA = () => {
   return request.get<{
-    enabled: boolean;
-    qrCode?: string;
-    secret?: string;
-  }>('/auth/2fa/status');
+    success: boolean;
+    data: {
+      secret: string;
+      qrCode: string;
+      otpauthUrl: string;
+    };
+  }>('/auth/2fa/generate');
 };
 
 /**
  * 启用双因素认证
  */
-export const enable2FA = () => {
-  return request.post<{
-    qrCode: string;
-    secret: string;
-  }>('/auth/2fa/enable');
+export interface Enable2FADto {
+  token: string;
+}
+
+export const enable2FA = (data: Enable2FADto) => {
+  return request.post<{ success: boolean; message: string }>('/auth/2fa/enable', data);
 };
 
 /**
@@ -110,43 +132,88 @@ export const verify2FACode = (data: Verify2FADto) => {
  * 禁用双因素认证
  */
 export interface Disable2FADto {
-  password: string;
+  token: string;
 }
 
 export const disable2FA = (data: Disable2FADto) => {
-  return request.post('/auth/2fa/disable', data);
+  return request.post<{ success: boolean; message: string }>('/auth/2fa/disable', data);
 };
 
+// ========== 会话管理相关 API ==========
+
 /**
- * 获取登录历史
+ * 登录历史查询参数
  */
 export interface LoginHistoryParams {
   startDate?: string;
   endDate?: string;
   success?: boolean;
+  page?: number;
+  limit?: number;
 }
 
+/**
+ * 登录历史记录
+ */
+export interface LoginHistoryRecord {
+  id: string;
+  result: string;
+  ip: string;
+  location: string;
+  deviceType: string;
+  browser: string;
+  os: string;
+  used2FA: boolean;
+  createdAt: string;
+}
+
+/**
+ * 获取登录历史
+ */
 export const getLoginHistory = (params?: LoginHistoryParams) => {
-  return request.get('/auth/login-history', { params });
+  return request.get<{
+    data: LoginHistoryRecord[];
+    total: number;
+    page: number;
+    limit: number;
+  }>('/auth/login-history', { params });
 };
+
+/**
+ * 会话信息
+ */
+export interface SessionInfo {
+  id: string;
+  deviceType: string;
+  deviceName: string;
+  browser: string;
+  os: string;
+  ip: string;
+  location: string;
+  isCurrent: boolean;
+  lastActiveAt: string;
+  createdAt: string;
+}
 
 /**
  * 获取活跃会话
  */
 export const getActiveSessions = () => {
-  return request.get('/auth/sessions');
+  return request.get<SessionInfo[]>('/auth/sessions');
 };
 
 /**
  * 终止单个会话
  */
-export const terminateSession = (sessionId: string) => {
-  return request.delete(`/auth/sessions/${sessionId}`);
+export const terminateSession = (sessionId: string, reason?: string) => {
+  return request.delete<{ success: boolean; message: string }>(`/auth/sessions/${sessionId}`, {
+    data: reason ? { reason } : undefined,
+  });
 };
 
 /**
  * 终止所有其他会话
  */
 export const terminateAllSessions = () => {
-  return request.delete('/auth/sessions/all');
+  return request.delete<{ success: boolean; message: string }>('/auth/sessions');
 };

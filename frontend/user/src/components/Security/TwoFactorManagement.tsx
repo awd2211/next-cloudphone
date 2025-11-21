@@ -20,14 +20,14 @@ import {
 } from '@ant-design/icons';
 import {
   get2FAStatus,
+  generate2FA,
   enable2FA,
   disable2FA,
-  verify2FACode,
 } from '@/services/auth';
 
 const { Text, Paragraph } = Typography;
 
-interface TwoFactorStatus {
+interface TwoFactorDisplayStatus {
   enabled: boolean;
   qrCode?: string;
   secret?: string;
@@ -44,13 +44,13 @@ interface TwoFactorStatus {
  */
 export const TwoFactorManagement: React.FC = React.memo(() => {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<TwoFactorStatus>({
+  const [status, setStatus] = useState<TwoFactorDisplayStatus>({
     enabled: false,
   });
   const [enableModalVisible, setEnableModalVisible] = useState(false);
   const [disableModalVisible, setDisableModalVisible] = useState(false);
   const [verifyCode, setVerifyCode] = useState('');
-  const [password, setPassword] = useState('');
+  const [disableCode, setDisableCode] = useState('');
 
   // 加载 2FA 状态
   useEffect(() => {
@@ -59,32 +59,34 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
 
   const fetchStatus = async () => {
     try {
-      const data = await get2FAStatus();
-      setStatus(data);
+      const response = await get2FAStatus();
+      setStatus({
+        enabled: response.data.enabled,
+      });
     } catch (error) {
       console.error('Failed to fetch 2FA status:', error);
     }
   };
 
-  // 启用 2FA - 第一步：显示二维码和密钥
+  // 启用 2FA - 第一步：生成二维码和密钥
   const handleEnableStart = async () => {
     setLoading(true);
     try {
-      const data = await enable2FA();
+      const response = await generate2FA();
       setStatus({
         enabled: false,
-        qrCode: data.qrCode,
-        secret: data.secret,
+        qrCode: response.data.otpauthUrl, // 使用 otpauthUrl 生成二维码
+        secret: response.data.secret,
       });
       setEnableModalVisible(true);
     } catch (error: any) {
-      message.error(error.response?.data?.message || '启用失败');
+      message.error(error.response?.data?.message || '生成密钥失败');
     } finally {
       setLoading(false);
     }
   };
 
-  // 启用 2FA - 第二步：验证代码
+  // 启用 2FA - 第二步：验证代码并启用
   const handleEnableConfirm = async () => {
     if (!verifyCode) {
       message.warning('请输入验证码');
@@ -93,7 +95,7 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
 
     setLoading(true);
     try {
-      await verify2FACode({ code: verifyCode });
+      await enable2FA({ token: verifyCode });
       message.success('双因素认证已启用');
       setEnableModalVisible(false);
       setVerifyCode('');
@@ -107,20 +109,20 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
 
   // 禁用 2FA
   const handleDisable = async () => {
-    if (!password) {
-      message.warning('请输入密码');
+    if (!disableCode) {
+      message.warning('请输入验证码');
       return;
     }
 
     setLoading(true);
     try {
-      await disable2FA({ password });
+      await disable2FA({ token: disableCode });
       message.success('双因素认证已禁用');
       setDisableModalVisible(false);
-      setPassword('');
+      setDisableCode('');
       await fetchStatus();
     } catch (error: any) {
-      message.error(error.response?.data?.message || '密码错误');
+      message.error(error.response?.data?.message || '验证码错误');
     } finally {
       setLoading(false);
     }
@@ -312,14 +314,14 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
         open={disableModalVisible}
         onCancel={() => {
           setDisableModalVisible(false);
-          setPassword('');
+          setDisableCode('');
         }}
         footer={[
           <Button
             key="cancel"
             onClick={() => {
               setDisableModalVisible(false);
-              setPassword('');
+              setDisableCode('');
             }}
           >
             取消
@@ -338,19 +340,20 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
           <Alert
             message="安全警告"
-            description="禁用双因素认证会降低您的账户安全性。如果您确定要禁用，请输入您的账户密码。"
+            description="禁用双因素认证会降低您的账户安全性。如果您确定要禁用，请输入当前的 2FA 验证码。"
             type="warning"
             showIcon
           />
 
           <div>
             <Paragraph>
-              <Text strong>账户密码：</Text>
+              <Text strong>2FA 验证码：</Text>
             </Paragraph>
-            <Input.Password
-              placeholder="请输入密码以确认操作"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+            <Input
+              placeholder="请输入 6 位验证码"
+              value={disableCode}
+              onChange={(e) => setDisableCode(e.target.value)}
+              maxLength={6}
               size="large"
             />
           </div>

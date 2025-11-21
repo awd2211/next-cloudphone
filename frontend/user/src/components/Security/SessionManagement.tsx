@@ -24,22 +24,12 @@ import {
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
-import { getActiveSessions, terminateSession, terminateAllSessions } from '@/services/auth';
+import { getActiveSessions, terminateSession, terminateAllSessions, SessionInfo } from '@/services/auth';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
 const { Text } = Typography;
-
-interface Session {
-  id: string;
-  device: string;
-  browser: string;
-  ipAddress: string;
-  location: string;
-  lastActivity: string;
-  isCurrent: boolean;
-}
 
 /**
  * 会话管理组件
@@ -52,7 +42,7 @@ interface Session {
  */
 export const SessionManagement: React.FC = React.memo(() => {
   const [loading, setLoading] = useState(false);
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [terminatingId, setTerminatingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -127,13 +117,9 @@ export const SessionManagement: React.FC = React.memo(() => {
   };
 
   // 获取设备图标
-  const getDeviceIcon = (device: string) => {
-    const lowerDevice = device.toLowerCase();
-    if (
-      lowerDevice.includes('mobile') ||
-      lowerDevice.includes('android') ||
-      lowerDevice.includes('ios')
-    ) {
+  const getDeviceIcon = (deviceType: string) => {
+    const lowerDevice = deviceType.toLowerCase();
+    if (lowerDevice === 'mobile') {
       return <MobileOutlined style={{ fontSize: 24, color: '#1890ff' }} />;
     }
     return <LaptopOutlined style={{ fontSize: 24, color: '#52c41a' }} />;
@@ -198,11 +184,11 @@ export const SessionManagement: React.FC = React.memo(() => {
               }}
             >
               <Space size="large" style={{ flex: 1 }}>
-                {getDeviceIcon(session.device)}
+                {getDeviceIcon(session.deviceType)}
                 <div style={{ flex: 1 }}>
                   <Space direction="vertical" size={4} style={{ width: '100%' }}>
                     <Space>
-                      <Text strong>{session.device}</Text>
+                      <Text strong>{session.deviceName || session.deviceType}</Text>
                       {session.isCurrent && (
                         <Tag
                           icon={<CheckCircleOutlined />}
@@ -228,18 +214,18 @@ export const SessionManagement: React.FC = React.memo(() => {
                       <Space size={4}>
                         <Text type="secondary">IP:</Text>
                         <Text code copyable>
-                          {session.ipAddress}
+                          {session.ip}
                         </Text>
                       </Space>
                       <Space size={4}>
                         <ClockCircleOutlined style={{ color: '#8c8c8c' }} />
                         <Tooltip
-                          title={dayjs(session.lastActivity).format(
+                          title={dayjs(session.lastActiveAt).format(
                             'YYYY-MM-DD HH:mm:ss'
                           )}
                         >
                           <Text type="secondary">
-                            最后活动: {dayjs(session.lastActivity).fromNow()}
+                            最后活动: {dayjs(session.lastActiveAt).fromNow()}
                           </Text>
                         </Tooltip>
                       </Space>

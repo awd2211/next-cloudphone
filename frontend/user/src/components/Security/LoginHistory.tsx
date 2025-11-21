@@ -21,21 +21,10 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { getLoginHistory } from '@/services/auth';
+import { getLoginHistory, LoginHistoryRecord } from '@/services/auth';
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
-
-interface LoginRecord {
-  id: string;
-  loginTime: string;
-  ipAddress: string;
-  location: string;
-  device: string;
-  browser: string;
-  success: boolean;
-  failureReason?: string;
-}
 
 /**
  * 登录历史组件
@@ -48,7 +37,7 @@ interface LoginRecord {
  */
 export const LoginHistory: React.FC = React.memo(() => {
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<LoginRecord[]>([]);
+  const [data, setData] = useState<LoginHistoryRecord[]>([]);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
     null
   );
@@ -74,8 +63,8 @@ export const LoginHistory: React.FC = React.memo(() => {
         params.success = statusFilter === 'success';
       }
 
-      const records = await getLoginHistory(params);
-      setData(records);
+      const response = await getLoginHistory(params);
+      setData(response.data);
     } catch (error) {
       console.error('Failed to fetch login history:', error);
       setData([]);
@@ -93,25 +82,26 @@ export const LoginHistory: React.FC = React.memo(() => {
     return <LaptopOutlined style={{ color: '#52c41a' }} />;
   };
 
-  const columns: ColumnsType<LoginRecord> = [
+  const columns: ColumnsType<LoginHistoryRecord> = [
     {
       title: '登录时间',
-      dataIndex: 'loginTime',
-      key: 'loginTime',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
       width: 180,
       render: (time: string) => (
         <Text>{dayjs(time).format('YYYY-MM-DD HH:mm:ss')}</Text>
       ),
-      sorter: (a, b) => dayjs(a.loginTime).unix() - dayjs(b.loginTime).unix(),
+      sorter: (a, b) => dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
       defaultSortOrder: 'descend',
     },
     {
       title: '状态',
-      dataIndex: 'success',
-      key: 'success',
+      dataIndex: 'result',
+      key: 'result',
       width: 100,
-      render: (success: boolean, record) => {
-        if (success) {
+      render: (result: string) => {
+        const isSuccess = result === 'success';
+        if (isSuccess) {
           return (
             <Tag icon={<CheckCircleOutlined />} color="success">
               成功
@@ -119,7 +109,7 @@ export const LoginHistory: React.FC = React.memo(() => {
           );
         }
         return (
-          <Tooltip title={record.failureReason || '登录失败'}>
+          <Tooltip title={result.replace('_', ' ')}>
             <Tag icon={<CloseCircleOutlined />} color="error">
               失败
             </Tag>
@@ -127,15 +117,15 @@ export const LoginHistory: React.FC = React.memo(() => {
         );
       },
       filters: [
-        { text: '成功', value: true },
-        { text: '失败', value: false },
+        { text: '成功', value: 'success' },
+        { text: '失败', value: 'failed' },
       ],
-      onFilter: (value, record) => record.success === value,
+      onFilter: (value, record) => value === 'success' ? record.result === 'success' : record.result !== 'success',
     },
     {
       title: 'IP 地址',
-      dataIndex: 'ipAddress',
-      key: 'ipAddress',
+      dataIndex: 'ip',
+      key: 'ip',
       width: 150,
       render: (ip: string) => (
         <Text code copyable>
@@ -157,13 +147,13 @@ export const LoginHistory: React.FC = React.memo(() => {
     },
     {
       title: '设备',
-      dataIndex: 'device',
-      key: 'device',
+      dataIndex: 'deviceType',
+      key: 'deviceType',
       width: 200,
-      render: (device: string) => (
+      render: (deviceType: string, record) => (
         <Space size={4}>
-          {getDeviceIcon(device)}
-          <Text>{device}</Text>
+          {getDeviceIcon(deviceType)}
+          <Text>{`${deviceType} / ${record.os}`}</Text>
         </Space>
       ),
     },
