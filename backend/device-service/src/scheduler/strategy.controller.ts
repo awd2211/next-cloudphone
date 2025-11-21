@@ -12,7 +12,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { StrategyService } from './strategy.service';
 import { CreateStrategyDto, UpdateStrategyDto } from './dto/strategy.dto';
-import { SchedulingStrategy } from './entities/scheduling-strategy.entity';
+import { SchedulingStrategy } from '../entities/scheduling-strategy.entity';
 
 /**
  * 调度策略管理控制器

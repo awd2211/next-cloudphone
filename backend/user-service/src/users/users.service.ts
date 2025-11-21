@@ -1640,6 +1640,39 @@ export class UsersService {
   }
 
   /**
+   * 管理员重置用户密码
+   */
+  async resetUserPassword(userId: string, newPassword: string): Promise<void> {
+    const user = await this.findOne(userId);
+
+    if (!user) {
+      throw new NotFoundException(`用户 ${userId} 未找到`);
+    }
+
+    // Hash新密码
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // 更新密码
+    user.password = hashedPassword;
+    await this.usersRepository.save(user);
+
+    // 清除用户缓存
+    await this.cacheService.del(`user:${userId}`);
+
+    // 发布密码重置事件
+    if (this.eventBus) {
+      await this.eventBus.publishUserEvent('password_reset_by_admin', {
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    this.logger.log(`管理员重置了用户密码 - 用户ID: ${userId}`);
+  }
+
+  /**
    * 释放分布式锁
    */
   private async releaseLock(lockKey: string): Promise<void> {

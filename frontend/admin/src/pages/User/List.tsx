@@ -1,5 +1,5 @@
-import { useUsers } from '@/hooks/useUsers';
-import { useRoles } from '@/hooks/useRoles';
+import { useUsers } from '@/hooks/queries';
+import { useRoles } from '@/hooks/queries';
 import { useUserListState } from '@/hooks/useUserListState';
 import {
   UserTable,
@@ -13,6 +13,7 @@ import {
 } from '@/components/User';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
 import { LoadingState } from '@/components/Feedback/LoadingState';
+import { UserStatus } from '@/types';
 
 /**
  * 用户列表页面（优化版 v3）
@@ -86,8 +87,8 @@ const UserList = () => {
         onExport={state.handleExport}
         onImport={state.handleImport}
         onBatchDelete={operations.handleBatchDelete}
-        onBatchActivate={() => operations.handleBatchUpdateStatus('active')}
-        onBatchBan={() => operations.handleBatchUpdateStatus('banned')}
+        onBatchActivate={() => operations.handleBatchUpdateStatus(UserStatus.ACTIVE)}
+        onBatchBan={() => operations.handleBatchUpdateStatus(UserStatus.BANNED)}
       />
 
       <UserTable

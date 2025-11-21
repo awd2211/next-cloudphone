@@ -2,6 +2,8 @@
  * 设备提供商类型定义
  */
 
+import { MoneyAmount } from './index';
+
 // 提供商类型枚举
 export enum DeviceProvider {
   DOCKER = 'docker', // 本地 Redroid 容器
@@ -145,7 +147,9 @@ export interface DeviceStats {
   totalDiskGB: number;
 }
 
-// 提供商规格
+/**
+ * 提供商规格
+ */
 export interface ProviderSpec {
   id: string;
   provider: DeviceProvider;
@@ -154,7 +158,8 @@ export interface ProviderSpec {
   cpuCores: number;
   memoryMB: number;
   diskGB: number;
-  price: number; // 单位: 元/小时
+  /** 价格（元/小时，字符串格式保证精度） */
+  price: MoneyAmount;
   available: boolean;
 }
 

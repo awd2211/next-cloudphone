@@ -8,22 +8,19 @@ import {
   Button,
   Space,
   Table,
-  Tag,
   theme,
 } from 'antd';
 import {
   DollarOutlined,
   ReloadOutlined,
-  RiseOutlined,
-  FallOutlined,
 } from '@ant-design/icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
+import { useProxyCostReport } from '@/hooks/queries/useProxy';
 import dayjs, { Dayjs } from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 
 const { RangePicker } = DatePicker;
 
+// 本地类型定义（匹配组件期望的数据结构）
 interface CostReport {
   timeRange: {
     start: string;
@@ -68,21 +65,15 @@ const CostMonitorTab: React.FC = () => {
     dayjs().subtract(7, 'day'),
     dayjs(),
   ]);
-  const queryClient = useQueryClient();
 
-  // 查询成本报告
-  const { data, isLoading } = useQuery<{ data: CostReport }>({
-    queryKey: ['proxy-cost-report', dateRange],
-    queryFn: async () => {
-      const response = await request.get('/proxy/cost/report', {
-        params: {
-          startDate: dateRange[0].toISOString(),
-          endDate: dateRange[1].toISOString(),
-        },
-      });
-      return response;
-    },
+  // 使用新的 React Query Hook
+  const { data, isLoading, refetch } = useProxyCostReport({
+    startDate: dateRange[0].toISOString(),
+    endDate: dateRange[1].toISOString(),
   });
+
+  // 类型断言：假设 API 返回的数据符合组件期望的结构
+  const costReport = data as unknown as CostReport | undefined;
 
   const providerColumns: ColumnsType<CostReport['byProvider'][0]> = [
     {
@@ -180,9 +171,7 @@ const CostMonitorTab: React.FC = () => {
           />
           <Button
             icon={<ReloadOutlined />}
-            onClick={() =>
-              queryClient.invalidateQueries({ queryKey: ['proxy-cost-report'] })
-            }
+            onClick={() => refetch()}
           >
             刷新
           </Button>
@@ -212,7 +201,7 @@ const CostMonitorTab: React.FC = () => {
           <Card>
             <Statistic
               title="总成本"
-              value={data?.data?.overview.totalCost.toFixed(2) || 0}
+              value={costReport?.overview.totalCost.toFixed(2) || 0}
               prefix={<DollarOutlined />}
               valueStyle={{ color: token.colorPrimary }}
             />
@@ -222,7 +211,7 @@ const CostMonitorTab: React.FC = () => {
           <Card>
             <Statistic
               title="总流量"
-              value={data?.data?.overview.totalBandwidth.toFixed(2) || 0}
+              value={costReport?.overview.totalBandwidth.toFixed(2) || 0}
               suffix="GB"
             />
           </Card>
@@ -231,7 +220,7 @@ const CostMonitorTab: React.FC = () => {
           <Card>
             <Statistic
               title="平均成本/GB"
-              value={data?.data?.overview.avgCostPerGB.toFixed(2) || 0}
+              value={costReport?.overview.avgCostPerGB.toFixed(2) || 0}
               prefix="$"
             />
           </Card>
@@ -240,7 +229,7 @@ const CostMonitorTab: React.FC = () => {
           <Card>
             <Statistic
               title="平均成本/请求"
-              value={data?.data?.overview.avgCostPerRequest.toFixed(4) || 0}
+              value={costReport?.overview.avgCostPerRequest.toFixed(4) || 0}
               prefix="$"
             />
           </Card>
@@ -249,7 +238,7 @@ const CostMonitorTab: React.FC = () => {
           <Card>
             <Statistic
               title="预计月度成本"
-              value={data?.data?.overview.projectedMonthlyCost.toFixed(2) || 0}
+              value={costReport?.overview.projectedMonthlyCost.toFixed(2) || 0}
               prefix={<DollarOutlined />}
               valueStyle={{ color: '#faad14' }}
             />
@@ -261,7 +250,7 @@ const CostMonitorTab: React.FC = () => {
       <Card title="按供应商成本分析" style={{ marginBottom: 16 }}>
         <Table
           columns={providerColumns}
-          dataSource={data?.data?.byProvider || []}
+          dataSource={costReport?.byProvider || []}
           rowKey="provider"
           loading={isLoading}
           pagination={false}
@@ -272,7 +261,7 @@ const CostMonitorTab: React.FC = () => {
       <Card title="按设备组成本分析">
         <Table
           columns={deviceGroupColumns}
-          dataSource={data?.data?.byDeviceGroup || []}
+          dataSource={costReport?.byDeviceGroup || []}
           rowKey="groupId"
           loading={isLoading}
           pagination={false}

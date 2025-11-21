@@ -119,7 +119,7 @@ function AccessibleTable<T extends object>({
 
   // 增强分页的 ARIA 属性
   const enhancedPagination = useMemo(() => {
-    if (!pagination || pagination === false) return pagination;
+    if (!pagination || typeof pagination === 'boolean') return pagination;
 
     return {
       ...(typeof pagination === 'object' ? pagination : {}),

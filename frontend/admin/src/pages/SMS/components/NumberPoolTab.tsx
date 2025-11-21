@@ -17,28 +17,15 @@ import {
   SearchOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
+import { useNumberPool, useReleaseSMSNumber as useReleaseNumber, type PhoneNumber } from '@/hooks/queries/useSMS';
+import { getSMSNumberHistory } from '@/services/sms';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
-interface VirtualNumber {
-  id: string;
-  provider: string;
-  phoneNumber: string;
-  countryCode: string;
-  countryName: string;
-  serviceCode: string;
-  serviceName: string;
-  status: string;
-  cost: number;
-  deviceId?: string;
-  userId?: string;
-  activatedAt: string;
-  expiresAt?: string;
-  smsReceivedAt?: string;
-  fromPool: boolean;
-}
+// 使用 PhoneNumber 类型（兼容本地接口）
+type VirtualNumber = PhoneNumber & {
+  messages?: any[];
+};
 
 /**
  * 号码池管理标签页
@@ -59,54 +46,34 @@ const NumberPoolTab: React.FC = () => {
   });
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<VirtualNumber | null>(null);
-  const queryClient = useQueryClient();
 
-  // 查询号码列表
-  const { data, isLoading } = useQuery({
-    queryKey: ['sms-numbers', filters],
-    queryFn: async () => {
-      const params: any = {
-        page: filters.page,
-        pageSize: filters.pageSize,
-      };
-      if (filters.status) params.status = filters.status;
-      if (filters.provider) params.provider = filters.provider;
-      if (filters.phone) params.phone = filters.phone;
-
-      const response = await request.get('/sms/numbers', { params });
-      return response;
-    },
+  // 使用新的 React Query Hooks
+  const { data, isLoading, refetch } = useNumberPool({
+    page: filters.page,
+    limit: filters.pageSize,
+    status: filters.status,
+    provider: filters.provider,
+    phone: filters.phone,
   });
 
-  // 取消号码
-  const cancelMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await request.delete(`/sms/numbers/${id}`);
-    },
-    onSuccess: () => {
-      message.success('号码已取消并退款');
-      queryClient.invalidateQueries({ queryKey: ['sms-numbers'] });
-    },
-    onError: () => {
-      message.error('取消号码失败');
-    },
-  });
+  const releaseMutation = useReleaseNumber();
 
   const handleCancelNumber = (record: VirtualNumber) => {
     Modal.confirm({
       title: '确认取消号码',
       content: `确定要取消号码 ${record.phoneNumber} 吗？将申请退款 $${record.cost}`,
-      onOk: () => cancelMutation.mutate(record.id),
+      onOk: () => releaseMutation.mutate(record.id),
     });
   };
 
   const handleViewDetail = async (record: VirtualNumber) => {
     // 查询该号码收到的短信
     try {
-      const messages = await request.get(`/sms/numbers/${record.id}/messages`);
+      const response = await getSMSNumberHistory(record.id);
+      const messages = (response as any).data || [];
       setSelectedNumber({ ...record, messages });
       setDetailModalVisible(true);
-    } catch (error) {
+    } catch (_error) {
       message.error('获取短信详情失败');
     }
   };
@@ -263,7 +230,7 @@ const NumberPoolTab: React.FC = () => {
             value={filters.phone}
             onChange={(e) => setFilters({ ...filters, phone: e.target.value })}
           />
-          <Button icon={<ReloadOutlined />} onClick={() => queryClient.invalidateQueries({ queryKey: ['sms-numbers'] })}>
+          <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
             刷新
           </Button>
         </Space>
@@ -279,7 +246,7 @@ const NumberPoolTab: React.FC = () => {
         pagination={{
           current: filters.page,
           pageSize: filters.pageSize,
-          total: data?.meta?.total || 0,
+          total: data?.meta.total || 0,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total) => `共 ${total} 个号码`,
@@ -301,9 +268,9 @@ const NumberPoolTab: React.FC = () => {
           <div>
             <p><strong>国家：</strong>{selectedNumber.countryName}</p>
             <p><strong>平台：</strong>{selectedNumber.provider}</p>
-            <p><strong>服务：</strong>{selectedNumber.serviceName}</p>
+            <p><strong>服务：</strong>{selectedNumber.serviceName || '-'}</p>
             <p><strong>状态：</strong><Tag color={getStatusConfig(selectedNumber.status).color}>{getStatusConfig(selectedNumber.status).text}</Tag></p>
-            <p><strong>成本：</strong>${selectedNumber.cost.toFixed(4)}</p>
+            <p><strong>成本：</strong>${selectedNumber.cost?.toFixed(4) || '-'}</p>
             <p><strong>设备ID：</strong>{selectedNumber.deviceId || '-'}</p>
             <p><strong>用户ID：</strong>{selectedNumber.userId || '-'}</p>
 

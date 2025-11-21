@@ -8,7 +8,7 @@ import { memo, useCallback, useState } from 'react';
 import { Row, Col } from 'antd';
 import {
   DndContext,
-  closestCenter,
+  
   KeyboardSensor,
   PointerSensor,
   useSensor,

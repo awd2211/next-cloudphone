@@ -72,7 +72,7 @@ const DataScopeManagement = () => {
             loadingText="正在加载数据范围权限"
             emptyText="暂无数据范围权限，点击右上角创建"
             columns={columns}
-            dataSource={dataScopes}
+            dataSource={dataScopes as any}
             rowKey="id"
             loading={loading}
             pagination={{

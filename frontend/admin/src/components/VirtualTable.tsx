@@ -26,9 +26,8 @@
  * ```
  */
 
-import React, { useRef } from 'react';
-import { List, type ListChildComponentProps } from 'react-window';
-import { useInfiniteLoader } from 'react-window-infinite-loader';
+import React, { useRef, useCallback } from 'react';
+import { List, ListImperativeAPI, RowComponentProps } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Spin } from 'antd';
 import './VirtualTable.css';
@@ -36,7 +35,7 @@ import './VirtualTable.css';
 /**
  * 列配置接口
  */
-export interface VirtualTableColumn<T = any> {
+interface VirtualTableColumn<T = any> {
   key: string;
   title: string;
   width: number;
@@ -47,7 +46,7 @@ export interface VirtualTableColumn<T = any> {
 /**
  * VirtualTable 组件属性
  */
-export interface VirtualTableProps<T = any> {
+interface VirtualTableProps<T = any> {
   /** 数据数组 */
   data: T[];
 
@@ -79,6 +78,14 @@ export interface VirtualTableProps<T = any> {
   onRowClick?: (record: T, index: number) => void;
 }
 
+// Row props for react-window 2.x
+interface VirtualTableRowProps<T> {
+  data: T[];
+  columns: VirtualTableColumn<T>[];
+  rowKey: string;
+  onRowClick?: (record: T, index: number) => void;
+}
+
 /**
  * VirtualTable 组件
  */
@@ -88,7 +95,7 @@ export function VirtualTable<T extends Record<string, any>>({
   rowHeight = 60,
   hasMore = false,
   isLoading = false,
-  onLoadMore,
+  onLoadMore: _onLoadMore, // 保留 API 接口但暂时未使用
   rowKey = 'id',
   emptyText = '暂无数据',
   height = 600,
@@ -98,15 +105,10 @@ export function VirtualTable<T extends Record<string, any>>({
   const itemCount = hasMore ? data.length + 1 : data.length;
 
   // 判断某个索引的项目是否已加载
-  const isItemLoaded = (index: number) => !hasMore || index < data.length;
+  const isItemLoaded = useCallback((index: number) => !hasMore || index < data.length, [hasMore, data.length]);
 
-  // 使用 useInfiniteLoader hook
-  const listRef = useRef<List>(null);
-  const infiniteLoaderRef = useInfiniteLoader({
-    isItemLoaded,
-    itemCount,
-    loadMoreItems: onLoadMore || (() => Promise.resolve()),
-  });
+  // List ref
+  const listRef = useRef<ListImperativeAPI>(null);
 
   // 渲染表头
   const renderHeader = () => (
@@ -134,12 +136,14 @@ export function VirtualTable<T extends Record<string, any>>({
     </div>
   );
 
-  // 渲染单行
-  const Row = ({ index, style }: ListChildComponentProps) => {
+  // 渲染单行 - react-window 2.x 风格
+  const RowComponent = useCallback((props: RowComponentProps<VirtualTableRowProps<T>>) => {
+    const { index, style, ariaAttributes, data: rowData, columns: rowColumns, onRowClick: handleRowClick } = props;
+
     // 加载占位符
     if (!isItemLoaded(index)) {
       return (
-        <div style={style} className="virtual-table-row virtual-table-loading-row">
+        <div style={style} className="virtual-table-row virtual-table-loading-row" {...ariaAttributes}>
           <div
             style={{
               display: 'flex',
@@ -155,20 +159,24 @@ export function VirtualTable<T extends Record<string, any>>({
       );
     }
 
-    const record = data[index];
-    const key = record[rowKey] || index;
+    const record = rowData[index];
+
+    // 如果 record 不存在，渲染空行
+    if (!record) {
+      return <div style={style} className="virtual-table-row" {...ariaAttributes} />;
+    }
 
     return (
       <div
-        key={key}
         style={style}
-        className={`virtual-table-row ${onRowClick ? 'virtual-table-row-clickable' : ''}`}
-        onClick={() => onRowClick?.(record, index)}
+        className={`virtual-table-row ${handleRowClick ? 'virtual-table-row-clickable' : ''}`}
+        onClick={() => handleRowClick?.(record, index)}
+        {...ariaAttributes}
       >
         <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f0' }}>
-          {columns.map((column) => {
-            const value = record[column.key];
-            const content = column.render ? column.render(value, record, index) : value;
+          {rowColumns.map((column) => {
+            const value = record?.[column.key];
+            const content = column.render && record ? column.render(value, record, index) : value;
 
             return (
               <div
@@ -191,7 +199,7 @@ export function VirtualTable<T extends Record<string, any>>({
         </div>
       </div>
     );
-  };
+  }, [isItemLoaded]);
 
   // 空数据展示
   if (data.length === 0 && !isLoading) {
@@ -216,20 +224,19 @@ export function VirtualTable<T extends Record<string, any>>({
         <AutoSizer>
           {({ height: autoHeight, width }) => (
             <List
-              ref={(list) => {
-                if (infiniteLoaderRef && typeof infiniteLoaderRef === 'object' && 'current' in infiniteLoaderRef) {
-                  (infiniteLoaderRef as any).current = list;
-                }
-                (listRef as any).current = list;
+              listRef={listRef}
+              rowComponent={RowComponent}
+              rowProps={{
+                data,
+                columns,
+                rowKey,
+                onRowClick,
               }}
-              height={autoHeight}
-              itemCount={itemCount}
-              itemSize={rowHeight}
-              width={width}
+              rowCount={itemCount}
+              rowHeight={rowHeight}
+              style={{ height: autoHeight, width }}
               className="virtual-table-list"
-            >
-              {Row}
-            </List>
+            />
           )}
         </AutoSizer>
       </div>

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Logger, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, UseGuards, Logger, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiSecurity } from '@nestjs/swagger';
 import { ApiKeysService } from './api-keys.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
@@ -115,6 +115,28 @@ export class ApiKeysController {
   }
 
   /**
+   * 更新 API 密钥 (PATCH 别名)
+   */
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '更新 API 密钥 (PATCH)' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  async updateApiKeyViaPatch(
+    @Param('id') id: string,
+    @Body()
+    updates: {
+      name?: string;
+      scopes?: string[];
+      description?: string;
+      expiresAt?: Date;
+    }
+  ) {
+    this.logger.log(`更新 API 密钥 (PATCH) - ID: ${id}`);
+    return await this.apiKeysService.updateApiKey(id, updates);
+  }
+
+  /**
    * 撤销 API 密钥
    */
   @Post(':id/revoke')
@@ -126,6 +148,34 @@ export class ApiKeysController {
   async revokeApiKey(@Param('id') id: string) {
     this.logger.log(`撤销 API 密钥 - ID: ${id}`);
     return await this.apiKeysService.revokeApiKey(id);
+  }
+
+  /**
+   * 启用/禁用 API 密钥
+   */
+  @Post(':id/toggle')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '启用/禁用 API 密钥' })
+  @ApiResponse({ status: 200, description: '状态切换成功' })
+  async toggleApiKey(@Param('id') id: string, @Body() body: { status?: string }) {
+    this.logger.log(`切换 API 密钥状态 - ID: ${id}`);
+    return await this.apiKeysService.toggleApiKey(id, body.status);
+  }
+
+  /**
+   * 轮换 API 密钥
+   */
+  @Post(':id/rotate')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '轮换 API 密钥', description: '生成新的密钥并撤销旧密钥' })
+  @ApiResponse({ status: 200, description: '轮换成功，新密钥仅返回一次' })
+  async rotateApiKey(@Param('id') id: string) {
+    this.logger.log(`轮换 API 密钥 - ID: ${id}`);
+    return await this.apiKeysService.rotateApiKey(id);
   }
 
   /**

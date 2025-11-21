@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React from 'react';
 import {
   Table,
   Card,
@@ -8,7 +8,6 @@ import {
   Tag,
   Progress,
   Button,
-  message,
   Space,
   Badge,
   theme,
@@ -16,14 +15,13 @@ import {
 import {
   ReloadOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined,
   ThunderboltOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
+import { useSMSProviderComparison as useProviderComparison } from '@/hooks/queries/useSMS';
 import type { ColumnsType } from 'antd/es/table';
 
+// 本地类型定义（组件期望的数据结构）
 interface ProviderStat {
   provider: string;
   enabled: boolean;
@@ -44,12 +42,6 @@ interface ProviderStat {
   };
 }
 
-interface ComparisonData {
-  timestamp: string;
-  providers: ProviderStat[];
-  recommendation: string;
-}
-
 /**
  * 平台监控与对比标签页
  *
@@ -60,17 +52,12 @@ interface ComparisonData {
  */
 const ProviderMonitorTab: React.FC = () => {
   const { token } = theme.useToken();
-  const queryClient = useQueryClient();
 
-  // 查询平台对比数据
-  const { data, isLoading } = useQuery<ComparisonData>({
-    queryKey: ['sms-provider-comparison'],
-    queryFn: async () => {
-      const response = await request.get('/sms/statistics/providers/comparison');
-      return response;
-    },
-    refetchInterval: 30000, // 每30秒刷新
-  });
+  // 使用新的 React Query Hook
+  const { data, isLoading, refetch } = useProviderComparison();
+
+  // 类型断言：假设 API 返回的数据符合组件期望的结构
+  const providers = data as unknown as ProviderStat[] | undefined;
 
   const getHealthBadge = (isHealthy: boolean, consecutiveFailures: number) => {
     if (consecutiveFailures >= 3) {
@@ -186,8 +173,8 @@ const ProviderMonitorTab: React.FC = () => {
   ];
 
   // 计算总览统计
-  const totalStats = data?.providers.reduce(
-    (acc, p) => ({
+  const totalStats = providers?.reduce(
+    (acc: any, p: any) => ({
       totalRequests: acc.totalRequests + p.totalRequests,
       successCount: acc.successCount + p.successCount,
       failureCount: acc.failureCount + p.failureCount,
@@ -201,6 +188,9 @@ const ProviderMonitorTab: React.FC = () => {
       ? (totalStats.successCount / totalStats.totalRequests) * 100
       : 0;
 
+  // 获取推荐信息 (假设返回的第一个 provider 包含 recommendation 字段)
+  const recommendation = providers?.[0] ? (providers[0] as any).recommendation : null;
+
   return (
     <div>
       {/* 总览统计卡片 */}
@@ -209,7 +199,7 @@ const ProviderMonitorTab: React.FC = () => {
           <Card>
             <Statistic
               title="活跃平台数"
-              value={data?.providers.filter((p) => p.enabled).length || 0}
+              value={providers?.filter((p: any) => p.enabled).length || 0}
               prefix={<CheckCircleOutlined />}
               valueStyle={{ color: '#3f8600' }}
             />
@@ -250,14 +240,14 @@ const ProviderMonitorTab: React.FC = () => {
       </Row>
 
       {/* 推荐信息 */}
-      {data?.recommendation && (
+      {recommendation && (
         <Card
           size="small"
           style={{ marginBottom: 16, backgroundColor: '#e6f7ff' }}
         >
           <div style={{ whiteSpace: 'pre-line' }}>
             <strong>智能推荐：</strong>
-            {data.recommendation}
+            {recommendation}
           </div>
         </Card>
       )}
@@ -267,11 +257,7 @@ const ProviderMonitorTab: React.FC = () => {
         <Space>
           <Button
             icon={<ReloadOutlined />}
-            onClick={() =>
-              queryClient.invalidateQueries({
-                queryKey: ['sms-provider-comparison'],
-              })
-            }
+            onClick={() => refetch()}
           >
             刷新数据
           </Button>
@@ -281,7 +267,7 @@ const ProviderMonitorTab: React.FC = () => {
       {/* 平台对比表格 */}
       <Table
         columns={columns}
-        dataSource={data?.providers || []}
+        dataSource={providers || []}
         rowKey="provider"
         loading={isLoading}
         pagination={false}

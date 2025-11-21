@@ -8,14 +8,23 @@ const { Option } = Select;
 interface EditTemplateModalProps {
   visible: boolean;
   form: FormInstance;
-  onOk: () => void;
+  onOk: (values: any) => Promise<void>;
   onCancel: () => void;
 }
 
 export const EditTemplateModal = memo<EditTemplateModalProps>(
   ({ visible, form, onOk, onCancel }) => {
+    const handleOk = async () => {
+      try {
+        const values = await form.validateFields();
+        await onOk(values);
+      } catch (_error) {
+        console.error('Form submission error:', error);
+      }
+    };
+
     return (
-      <Modal title="编辑模板" open={visible} onCancel={onCancel} onOk={onOk}>
+      <Modal title="编辑模板" open={visible} onCancel={onCancel} onOk={handleOk}>
         <Form form={form} layout="vertical">
           <Form.Item
             label="模板名称"

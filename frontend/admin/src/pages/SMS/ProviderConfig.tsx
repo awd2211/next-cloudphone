@@ -11,7 +11,7 @@ import {
   InputNumber,
   Switch,
   Select,
-  message,
+  // message, // Removed: not used in this component
   Tooltip,
   Popconfirm,
   Row,
@@ -30,45 +30,20 @@ import {
   ReloadOutlined,
   ExperimentOutlined,
 } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
+import {
+  useSMSProviders as useProviderList,
+  useCreateSMSProvider as useCreateProvider,
+  useUpdateSMSProvider as useUpdateProvider,
+  useDeleteSMSProvider as useDeleteProvider,
+  useTestSMSProvider as useTestProvider,
+  useToggleSMSProvider as useToggleProvider,
+  useRefreshProviderBalance,
+  type SMSProvider,
+} from '@/hooks/queries/useSMS';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
 
-interface SMSProviderConfig {
-  id: string;
-  provider: string;
-  displayName: string;
-  apiEndpoint: string;
-  apiKeyEncrypted: boolean;
-  balance?: number;
-  balanceThreshold: number;
-  lastBalanceCheck?: string;
-  priority: number;
-  rateLimitPerMinute: number;
-  rateLimitPerSecond: number;
-  concurrentRequestsLimit: number;
-  enabled: boolean;
-  healthStatus: 'healthy' | 'degraded' | 'down';
-  lastHealthCheck?: string;
-  totalRequests: number;
-  totalSuccess: number;
-  totalFailures: number;
-  successRate: number;
-  costWeight: number;
-  speedWeight: number;
-  successRateWeight: number;
-  avgSmsReceiveTime?: number;
-  p95SmsReceiveTime?: number;
-  alertEnabled: boolean;
-  alertChannels?: string[];
-  alertRecipients?: string[];
-  webhookEnabled: boolean;
-  webhookUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-  metadata?: Record<string, any>;
-}
+// 使用 SMSProvider 类型（兼容本地接口名称）
+type SMSProviderConfig = SMSProvider;
 
 /**
  * SMS供应商配置管理页面
@@ -77,109 +52,15 @@ const ProviderConfig: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<SMSProviderConfig | null>(null);
   const [form] = Form.useForm();
-  const queryClient = useQueryClient();
 
-  // 查询供应商列表
-  const { data: providers, isLoading } = useQuery<SMSProviderConfig[]>({
-    queryKey: ['sms-providers'],
-    queryFn: async () => {
-      const response = await request.get('/sms/providers');
-      return response.data;
-    },
-  });
-
-  // 创建供应商
-  const createMutation = useMutation({
-    mutationFn: async (values: any) => {
-      return await request.post('/sms/providers', values);
-    },
-    onSuccess: () => {
-      message.success('供应商创建成功');
-      setIsModalOpen(false);
-      form.resetFields();
-      queryClient.invalidateQueries({ queryKey: ['sms-providers'] });
-    },
-    onError: (error: any) => {
-      message.error(`创建失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
-
-  // 更新供应商
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, values }: { id: string; values: any }) => {
-      return await request.put(`/sms/providers/${id}`, values);
-    },
-    onSuccess: () => {
-      message.success('供应商更新成功');
-      setIsModalOpen(false);
-      setEditingProvider(null);
-      form.resetFields();
-      queryClient.invalidateQueries({ queryKey: ['sms-providers'] });
-    },
-    onError: (error: any) => {
-      message.error(`更新失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
-
-  // 删除供应商
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await request.delete(`/sms/providers/${id}`);
-    },
-    onSuccess: () => {
-      message.success('供应商删除成功');
-      queryClient.invalidateQueries({ queryKey: ['sms-providers'] });
-    },
-    onError: (error: any) => {
-      message.error(`删除失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
-
-  // 启用/禁用供应商
-  const toggleMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await request.put(`/sms/providers/${id}/toggle`);
-    },
-    onSuccess: () => {
-      message.success('状态切换成功');
-      queryClient.invalidateQueries({ queryKey: ['sms-providers'] });
-    },
-    onError: (error: any) => {
-      message.error(`操作失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
-
-  // 测试连接
-  const testMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await request.post(`/sms/providers/${id}/test`);
-    },
-    onSuccess: (data) => {
-      const result = data.data;
-      if (result.success) {
-        message.success(`连接成功！延迟: ${result.latency}ms, 余额: $${result.balance?.toFixed(2) || 'N/A'}`);
-      } else {
-        message.error('连接失败');
-      }
-    },
-    onError: (error: any) => {
-      message.error(`测试失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
-
-  // 刷新余额
-  const refreshBalanceMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await request.post(`/sms/providers/${id}/refresh-balance`);
-    },
-    onSuccess: (data) => {
-      message.success(`余额已刷新: $${data.data.balance.toFixed(2)}`);
-      queryClient.invalidateQueries({ queryKey: ['sms-providers'] });
-    },
-    onError: (error: any) => {
-      message.error(`刷新失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
+  // 使用新的 React Query Hooks
+  const { data: providers, isLoading, refetch } = useProviderList();
+  const createMutation = useCreateProvider();
+  const updateMutation = useUpdateProvider();
+  const deleteMutation = useDeleteProvider();
+  const toggleMutation = useToggleProvider();
+  const testMutation = useTestProvider();
+  const refreshBalanceMutation = useRefreshProviderBalance();
 
   const handleAdd = () => {
     setEditingProvider(null);
@@ -207,9 +88,23 @@ const ProviderConfig: React.FC = () => {
       }
 
       if (editingProvider) {
-        updateMutation.mutate({ id: editingProvider.id, values });
+        updateMutation.mutate(
+          { providerId: editingProvider.id, data: values },
+          {
+            onSuccess: () => {
+              setIsModalOpen(false);
+              setEditingProvider(null);
+              form.resetFields();
+            },
+          }
+        );
       } else {
-        createMutation.mutate(values);
+        createMutation.mutate(values, {
+          onSuccess: () => {
+            setIsModalOpen(false);
+            form.resetFields();
+          },
+        });
       }
     } catch (error) {
       console.error('表单验证失败:', error);
@@ -256,8 +151,8 @@ const ProviderConfig: React.FC = () => {
           <div style={{ fontWeight: 500 }}>
             ${record.balance?.toFixed(2) || 'N/A'}
           </div>
-          <div style={{ fontSize: 12, color: record.balance && record.balance < record.balanceThreshold ? '#ff4d4f' : '#999' }}>
-            阈值: ${record.balanceThreshold}
+          <div style={{ fontSize: 12, color: record.balance && record.balanceThreshold && record.balance < record.balanceThreshold ? '#ff4d4f' : '#999' }}>
+            阈值: ${record.balanceThreshold || 'N/A'}
           </div>
         </div>
       ),
@@ -286,7 +181,7 @@ const ProviderConfig: React.FC = () => {
       dataIndex: 'successRate',
       key: 'successRate',
       width: 100,
-      sorter: (a, b) => a.successRate - b.successRate,
+      sorter: (a, b) => (a.successRate || 0) - (b.successRate || 0),
       render: (rate: number) => (
         <span style={{
           color: rate >= 90 ? '#52c41a' : rate >= 70 ? '#faad14' : '#ff4d4f',
@@ -345,7 +240,7 @@ const ProviderConfig: React.FC = () => {
               type="link"
               size="small"
               icon={record.enabled ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
-              onClick={() => toggleMutation.mutate(record.id)}
+              onClick={() => toggleMutation.mutate({ providerId: record.id, enabled: !record.enabled })}
               loading={toggleMutation.isPending}
             />
           </Tooltip>
@@ -373,9 +268,9 @@ const ProviderConfig: React.FC = () => {
   const totalProviders = providers?.length || 0;
   const enabledProviders = providers?.filter(p => p.enabled).length || 0;
   const avgSuccessRate = providers && providers.length > 0
-    ? providers.reduce((sum, p) => sum + p.successRate, 0) / providers.length
+    ? providers.reduce((sum, p) => sum + (p.successRate || 0), 0) / providers.length
     : 0;
-  const totalRequests = providers?.reduce((sum, p) => sum + p.totalRequests, 0) || 0;
+  const totalRequests = providers?.reduce((sum, p) => sum + (p.totalRequests || 0), 0) || 0;
 
   return (
     <div>
@@ -435,7 +330,7 @@ const ProviderConfig: React.FC = () => {
           </Button>
           <Button
             icon={<ReloadOutlined />}
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['sms-providers'] })}
+            onClick={() => refetch()}
           >
             刷新
           </Button>

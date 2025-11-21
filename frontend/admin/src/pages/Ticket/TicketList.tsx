@@ -1,47 +1,56 @@
 import React, { useState, useMemo } from 'react';
 import { Card, Button, Space, Tag, Select, Input } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useTickets, useTicketList } from '@/hooks/useTicketList';
-import type { Ticket } from '@/types';
+import { useTickets } from '@/hooks/queries/useTickets';
+import type { Ticket, TicketStatus, TicketPriority, TicketCategory } from '@/types';
 
 const { Option } = Select;
 
 const TicketListPage: React.FC = () => {
+  const navigate = useNavigate();
+
   // 分页状态
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
   // 筛选状态
   const [searchText, setSearchText] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [priorityFilter, setPriorityFilter] = useState<string>('');
+  const [categoryFilter, setCategoryFilter] = useState<TicketCategory | undefined>();
+  const [statusFilter, setStatusFilter] = useState<TicketStatus | undefined>();
+  const [priorityFilter, setPriorityFilter] = useState<TicketPriority | undefined>();
 
-  // 导航hooks
-  const { handleViewDetail, handleCreateTicket } = useTicketList();
-
-  // 查询数据
+  // 使用新的 React Query Hooks
   const { data, isLoading, refetch } = useTickets({
     page,
-    pageSize,
-    status: statusFilter || undefined,
-    priority: priorityFilter || undefined,
-    category: categoryFilter || undefined,
+    limit: pageSize,
+    status: statusFilter as any,
+    priority: priorityFilter as any,
+    // category: categoryFilter as any,  // Not supported in API
   });
 
-  const tickets = data?.tickets || [];
+  const tickets = data?.data || [];
   const total = data?.total || 0;
+
+  // 导航处理函数
+  const handleViewDetail = (ticket: Ticket) => {
+    navigate(`/tickets/${ticket.id}`);
+  };
+
+  const handleCreateTicket = () => {
+    navigate('/tickets/create');
+  };
 
   // 客户端搜索过滤（仅对当前页）
   const filteredTickets = useMemo(() => {
     if (!searchText) return tickets;
     return tickets.filter(
-      (ticket) =>
+      (ticket: any) =>
         ticket.subject?.toLowerCase().includes(searchText.toLowerCase()) ||
-        ticket.ticketNo?.toLowerCase().includes(searchText.toLowerCase())
+        ticket.ticketNumber?.toLowerCase().includes(searchText.toLowerCase())
     );
   }, [tickets, searchText]);
 
@@ -252,7 +261,7 @@ const TicketListPage: React.FC = () => {
           loadingText="正在加载工单列表"
           emptyText="暂无工单数据，点击右上角创建工单"
           columns={columns}
-          dataSource={filteredTickets}
+          dataSource={filteredTickets as any}
           rowKey="id"
           loading={isLoading}
           pagination={{

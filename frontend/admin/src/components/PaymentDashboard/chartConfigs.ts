@@ -14,7 +14,7 @@ export const usePaymentMethodChartOption = (methodStats: PaymentMethodStat[]) =>
         left: 'center',
       },
       tooltip: {
-        trigger: 'item',
+        trigger: 'item' as const,
         formatter: '{a} <br/>{b}: {c} ({d}%)',
       },
       legend: {
@@ -24,7 +24,7 @@ export const usePaymentMethodChartOption = (methodStats: PaymentMethodStat[]) =>
       series: [
         {
           name: '支付方式',
-          type: 'pie',
+          type: 'pie' as const,
           radius: '50%',
           data: methodStats.map((item) => ({
             name: getMethodName(item.method),
@@ -55,7 +55,7 @@ export const useDailyTrendChartOption = (dailyStats: DailyStat[]) => {
         left: 'center',
       },
       tooltip: {
-        trigger: 'axis',
+        trigger: 'axis' as const,
       },
       legend: {
         data: ['交易量', '成功交易', '收入'],
@@ -68,36 +68,36 @@ export const useDailyTrendChartOption = (dailyStats: DailyStat[]) => {
         containLabel: true,
       },
       xAxis: {
-        type: 'category',
+        type: 'category' as const,
         boundaryGap: false,
         data: dailyStats.map((item) => dayjs(item.date).format('MM-DD')),
       },
       yAxis: [
         {
-          type: 'value',
+          type: 'value' as const,
           name: '交易量',
         },
         {
-          type: 'value',
+          type: 'value' as const,
           name: '收入',
         },
       ],
       series: [
         {
           name: '交易量',
-          type: 'line',
+          type: 'line' as const,
           data: dailyStats.map((item) => item.totalTransactions),
           smooth: true,
         },
         {
           name: '成功交易',
-          type: 'line',
+          type: 'line' as const,
           data: dailyStats.map((item) => item.successfulTransactions),
           smooth: true,
         },
         {
           name: '收入',
-          type: 'line',
+          type: 'line' as const,
           yAxisIndex: 1,
           data: dailyStats.map((item) => parseFloat(item.revenue)),
           smooth: true,

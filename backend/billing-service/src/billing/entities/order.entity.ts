@@ -108,6 +108,12 @@ export class Order {
   @Column({ type: 'text', nullable: true })
   refundReason: string;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  refundAmount: number;
+
+  @Column({ type: 'text', nullable: true })
+  remark: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

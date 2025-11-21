@@ -4,9 +4,9 @@
  * 用于批量编辑时添加条件过滤
  */
 
-import { memo, useState } from 'react';
+import React, { memo, useState } from 'react';
 import { Card, Form, Select, Input, InputNumber, Button, Space, Tag, Alert } from 'antd';
-import { PlusOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
+import { PlusOutlined, FilterOutlined } from '@ant-design/icons';
 import type { ConditionalFilter, EditField } from '@/hooks/useBatchEdit';
 
 const { Option } = Select;
@@ -286,6 +286,7 @@ export const ConditionalFilterBuilder = memo(
   }
 ) as <T extends Record<string, any> = Record<string, any>>(
   props: ConditionalFilterBuilderProps<T>
-) => JSX.Element;
+) => React.ReactElement;
 
-ConditionalFilterBuilder.displayName = 'ConditionalFilterBuilder';
+// Display name for React DevTools
+(ConditionalFilterBuilder as any).displayName = 'ConditionalFilterBuilder';

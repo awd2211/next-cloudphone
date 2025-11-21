@@ -124,4 +124,143 @@ export class BillingRulesService {
 
     throw new NotFoundException(`未找到适用于 ${resourceType} 的计费规则`);
   }
+
+  /**
+   * 启用/禁用计费规则
+   */
+  async toggleRule(id: string, isActive: boolean): Promise<BillingRule> {
+    const rule = await this.getRule(id);
+    rule.isActive = isActive;
+    const updatedRule = await this.ruleRepository.save(rule);
+    this.logger.log(`计费规则状态已切换 - ID: ${id}, isActive: ${isActive}`);
+    return updatedRule;
+  }
+
+  /**
+   * 测试计费规则
+   */
+  async testRule(id: string, testData: any): Promise<{
+    rule: BillingRule;
+    testInput: any;
+    result: {
+      price: number;
+      breakdown?: any;
+      valid: boolean;
+      errors?: string[];
+    };
+  }> {
+    const rule = await this.getRule(id);
+
+    const errors: string[] = [];
+    let price = 0;
+    let valid = true;
+
+    try {
+      // 验证测试数据
+      if (!testData.quantity || testData.quantity <= 0) {
+        errors.push('quantity 必须大于 0');
+        valid = false;
+      }
+
+      // 检查规则是否有效
+      if (!rule.isValid()) {
+        errors.push('规则未在有效期内');
+        valid = false;
+      }
+
+      // 如果通过验证,计算价格
+      if (valid) {
+        price = rule.calculatePrice(testData.quantity, testData.context);
+      }
+    } catch (error) {
+      errors.push(error.message || '计算失败');
+      valid = false;
+    }
+
+    return {
+      rule,
+      testInput: testData,
+      result: {
+        price,
+        valid,
+        errors: errors.length > 0 ? errors : undefined,
+        breakdown: {
+          ruleType: rule.ruleType,
+          resourceType: rule.resourceType,
+          billingUnit: rule.billingUnit,
+          quantity: testData.quantity,
+          unitPrice: rule.unitPrice,
+          fixedPrice: rule.fixedPrice,
+        },
+      },
+    };
+  }
+
+  /**
+   * 获取计费规则模板
+   */
+  async getRuleTemplates(): Promise<any[]> {
+    return [
+      {
+        id: 'fixed-device',
+        name: '固定价格 - 设备租赁',
+        description: '每台设备固定价格',
+        ruleType: RuleType.FIXED,
+        resourceType: ResourceType.DEVICE,
+        billingUnit: BillingUnit.UNIT,
+        fixedPrice: 100,
+        unitPrice: null,
+        priority: 1,
+      },
+      {
+        id: 'hourly-device',
+        name: '按小时计费 - 设备租赁',
+        description: '按设备使用小时数计费',
+        ruleType: RuleType.PAY_PER_USE,
+        resourceType: ResourceType.DEVICE,
+        billingUnit: BillingUnit.HOUR,
+        fixedPrice: null,
+        unitPrice: 10,
+        priority: 2,
+      },
+      {
+        id: 'tiered-device',
+        name: '阶梯价格 - 设备租赁',
+        description: '根据使用量阶梯定价',
+        ruleType: RuleType.TIERED,
+        resourceType: ResourceType.DEVICE,
+        billingUnit: BillingUnit.HOUR,
+        fixedPrice: null,
+        unitPrice: null,
+        tiers: [
+          { minQuantity: 0, maxQuantity: 100, price: 10 },
+          { minQuantity: 101, maxQuantity: 500, price: 8 },
+          { minQuantity: 501, maxQuantity: null, price: 6 },
+        ],
+        priority: 3,
+      },
+      {
+        id: 'bandwidth-usage',
+        name: '按流量计费',
+        description: '按网络流量计费',
+        ruleType: RuleType.PAY_PER_USE,
+        resourceType: ResourceType.BANDWIDTH,
+        billingUnit: BillingUnit.GB,
+        fixedPrice: null,
+        unitPrice: 0.5,
+        priority: 1,
+      },
+      {
+        id: 'storage-usage',
+        name: '按存储计费',
+        description: '按存储空间计费',
+        ruleType: RuleType.PAY_PER_USE,
+        resourceType: ResourceType.STORAGE,
+        billingUnit: BillingUnit.GB,
+        fixedPrice: null,
+        unitPrice: 1,
+        priority: 1,
+      },
+    ];
+  }
 }

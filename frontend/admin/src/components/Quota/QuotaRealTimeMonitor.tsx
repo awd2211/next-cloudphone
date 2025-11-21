@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Card, Row, Col, Statistic, Progress, Badge, Alert, theme } from 'antd';
 import {
   UserOutlined,
-  ThunderboltOutlined,
+
   WarningOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
-import { getQuotaSummary, getQuotaMetrics } from '@/services/quota';
-import { useRealtimeQuota } from '@/hooks/useRealtimeQuota';
+import { getQuotaSummary } from '@/services/quota';
+import { useRealtimeQuota } from '@/hooks/queries/useRealtimeQuota';
 
 interface QuotaSummary {
   total: number;
@@ -39,14 +39,14 @@ const QuotaRealTimeMonitor: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // ✅ 开启配额实时推送
-  useRealtimeQuota(undefined, false); // 不显示独立通知，避免重复
+  useRealtimeQuota(undefined as any, false); // 不显示独立通知，避免重复
 
   // 加载配额摘要
   const loadSummary = async () => {
     try {
       const data = await getQuotaSummary();
-      setSummary(data);
-    } catch (error) {
+      setSummary(data as any);
+    } catch (_error) {
       console.error('加载配额摘要失败:', error);
     } finally {
       setLoading(false);

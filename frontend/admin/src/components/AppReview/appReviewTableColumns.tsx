@@ -128,7 +128,7 @@ export const createReviewedColumns = (
     dataIndex: 'reviewStatus',
     key: 'reviewStatus',
     width: 100,
-    sorter: (a, b) => a.reviewStatus.localeCompare(b.reviewStatus),
+    sorter: (a, b) => a.reviewStatus?.localeCompare(b.reviewStatus ?? "") ?? 0,
     render: (status) => <ReviewStatusTag status={status} />,
   },
   {
@@ -144,7 +144,7 @@ export const createReviewedColumns = (
     dataIndex: 'reviewedBy',
     key: 'reviewedBy',
     width: 120,
-    sorter: (a, b) => a.reviewedBy.localeCompare(b.reviewedBy),
+    sorter: (a, b) => a.reviewedBy?.localeCompare(b.reviewedBy ?? "") ?? 0,
   },
   createTimeColumn<Application>('审核时间', 'reviewedAt', { format: 'YYYY-MM-DD HH:mm' }),
   {
@@ -201,7 +201,7 @@ export const createRecordColumns = (): ColumnsType<AppReviewRecord> => [
     dataIndex: 'reviewedBy',
     key: 'reviewedBy',
     width: 120,
-    sorter: (a, b) => a.reviewedBy.localeCompare(b.reviewedBy),
+    sorter: (a, b) => a.reviewedBy?.localeCompare(b.reviewedBy ?? "") ?? 0,
   },
   createTimeColumn<AppReviewRecord>('时间', 'createdAt', { format: 'YYYY-MM-DD HH:mm' }),
 ];

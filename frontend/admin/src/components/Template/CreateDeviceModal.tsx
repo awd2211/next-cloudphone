@@ -8,18 +8,27 @@ interface CreateDeviceModalProps {
   templateName: string;
   form: FormInstance;
   users: User[];
-  onOk: () => void;
+  onOk: (values: any) => Promise<void>;
   onCancel: () => void;
 }
 
 export const CreateDeviceModal = memo<CreateDeviceModalProps>(
   ({ visible, templateName, form, users, onOk, onCancel }) => {
+    const handleOk = async () => {
+      try {
+        const values = await form.validateFields();
+        await onOk(values);
+      } catch (_error) {
+        console.error('Form submission error:', error);
+      }
+    };
+
     return (
       <Modal
         title={`从模板创建设备: ${templateName}`}
         open={visible}
         onCancel={onCancel}
-        onOk={onOk}
+        onOk={handleOk}
       >
         <Form form={form} layout="vertical">
           <Form.Item label="设备名称" name="name">

@@ -1,5 +1,5 @@
-import React from 'react';
-import { List } from 'react-window';
+import React, { useCallback } from 'react';
+import { List, RowComponentProps } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Tag } from 'antd';
 import type { AuditLog } from '@/types/auditLog';
@@ -9,27 +9,39 @@ interface VirtualLogListProps {
   logs: AuditLog[];
 }
 
+// Row props for react-window 2.x
+interface LogListRowProps {
+  logs: AuditLog[];
+}
+
 export const VirtualLogList: React.FC<VirtualLogListProps> = ({ logs }) => {
-  const renderRow = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const log = logs[index];
-    if (!log) return null; // Type guard for undefined
-    return <LogRow log={log} style={style} />;
-  };
+  const RowComponent = useCallback(
+    (props: RowComponentProps<LogListRowProps>) => {
+      const { index, style, ariaAttributes, logs: rowLogs } = props;
+      const log = rowLogs[index];
+
+      if (!log) {
+        return <div style={style} {...ariaAttributes} />;
+      }
+
+      return <LogRow log={log} style={style} {...ariaAttributes} />;
+    },
+    []
+  );
 
   return (
     <>
       <div className="virtual-list-container">
         <AutoSizer>
-          {({ height, width }) => (
+          {({ height, width }: { height: number; width: number }) => (
             <List
-              height={height}
-              itemCount={logs.length}
-              itemSize={120}
-              width={width}
+              rowComponent={RowComponent}
+              rowProps={{ logs }}
+              rowCount={logs.length}
+              rowHeight={120}
+              style={{ height, width }}
               overscanCount={5}
-            >
-              {renderRow}
-            </List>
+            />
           )}
         </AutoSizer>
       </div>

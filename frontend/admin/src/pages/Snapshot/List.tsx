@@ -10,8 +10,8 @@ import {
   useRestoreSnapshot,
   useCompressSnapshot,
   useDeleteSnapshot,
-} from '@/hooks/useSnapshots';
-import { useDevices } from '@/hooks/useDevices';
+} from '@/hooks/queries';
+import { useDevices } from '@/hooks/queries';
 import {
   SnapshotStatsCards,
   CreateSnapshotModal,
@@ -60,7 +60,7 @@ const SnapshotList = () => {
 
   const snapshots = data?.data || [];
   const total = data?.total || 0;
-  const devices = devicesData?.data?.data || [];
+  const devices = devicesData?.data || [];
 
   // ✅ useCallback 优化事件处理函数
   const handleCreate = useCallback(
@@ -73,8 +73,8 @@ const SnapshotList = () => {
   );
 
   const handleRestore = useCallback(
-    async (id: string, deviceName: string) => {
-      await restoreMutation.mutateAsync({ id, deviceName });
+    async (id: string) => {
+      await restoreMutation.mutateAsync(id);
     },
     [restoreMutation],
   );
@@ -105,7 +105,7 @@ const SnapshotList = () => {
   // ✅ useMemo 优化设备选项
   const deviceOptions = useMemo(
     () =>
-      devices.map((device) => ({
+      devices.map((device: any) => ({
         label: device.name || device.id,
         value: device.id,
       })),
@@ -150,7 +150,7 @@ const SnapshotList = () => {
             showSearch
             optionFilterProp="children"
             filterOption={(input, option) =>
-              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              String(option?.label || '').toLowerCase().includes(input.toLowerCase())
             }
             options={deviceOptions}
           />

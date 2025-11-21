@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -142,6 +143,21 @@ export class QuotasController {
   async updateQuota(@Param('id') id: string, @Body() dto: UpdateQuotaDto) {
     this.logger.log(`更新配额 - ID: ${id}`);
     return await this.quotasService.updateQuota(id, dto);
+  }
+
+  /**
+   * 删除配额
+   */
+  @Delete(':id')
+  @Roles('admin')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '删除配额' })
+  @ApiResponse({ status: 200, description: '删除成功' })
+  @ApiResponse({ status: 404, description: '未找到配额' })
+  async deleteQuota(@Param('id') id: string) {
+    this.logger.log(`删除配额 - ID: ${id}`);
+    await this.quotasService.deleteQuota(id);
+    return { success: true, message: '配额删除成功' };
   }
 
   /**

@@ -1957,4 +1957,117 @@ export class AppsService {
       );
     }
   }
+
+  /**
+   * 发布应用
+   * 将已审核通过的应用发布到应用市场
+   */
+  async publishApp(appId: string): Promise<Application> {
+    const app = await this.appsRepository.findOne({ where: { id: appId } });
+
+    if (!app) {
+      throw new NotFoundException(`应用 ${appId} 不存在`);
+    }
+
+    // 检查应用状态，只有已审核通过的应用才能发布
+    if (app.status !== AppStatus.APPROVED) {
+      throw new BadRequestException(`应用状态为 ${app.status}，只有已审核通过的应用才能发布`);
+    }
+
+    // 更新状态为可用（AVAILABLE表示已发布）
+    app.status = AppStatus.AVAILABLE;
+
+    const updatedApp = await this.appsRepository.save(app);
+
+    // 清除缓存
+    await this.cacheService.del(`app:${appId}`);
+    await this.cacheService.del('apps:list:*');
+
+    // 发布应用发布事件
+    await this.eventBus.publish('cloudphone.events', 'app.published', {
+      appId: app.id,
+      name: app.name,
+      packageName: app.packageName,
+      versionName: app.versionName,
+      versionCode: app.versionCode,
+      publishedAt: new Date(),
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.log(`应用已发布 - 应用ID: ${appId}, 名称: ${app.name}`);
+
+    return updatedApp;
+  }
+
+  /**
+   * 下架应用
+   * 将已发布的应用从应用市场下架
+   */
+  async unpublishApp(appId: string): Promise<Application> {
+    const app = await this.appsRepository.findOne({ where: { id: appId } });
+
+    if (!app) {
+      throw new NotFoundException(`应用 ${appId} 不存在`);
+    }
+
+    // 检查应用是否已发布
+    if (app.status !== AppStatus.AVAILABLE) {
+      throw new BadRequestException(`应用状态为 ${app.status}，只有已发布的应用才能下架`);
+    }
+
+    // 更新状态为不可用（UNAVAILABLE表示已下架）
+    app.status = AppStatus.UNAVAILABLE;
+
+    const updatedApp = await this.appsRepository.save(app);
+
+    // 清除缓存
+    await this.cacheService.del(`app:${appId}`);
+    await this.cacheService.del('apps:list:*');
+
+    // 发布应用下架事件
+    await this.eventBus.publish('cloudphone.events', 'app.unpublished', {
+      appId: app.id,
+      name: app.name,
+      packageName: app.packageName,
+      versionName: app.versionName,
+      versionCode: app.versionCode,
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.log(`应用已下架 - 应用ID: ${appId}, 名称: ${app.name}`);
+
+    return updatedApp;
+  }
+
+  /**
+   * 获取应用评审记录
+   * 获取指定应用的所有评审记录（分页）
+   */
+  async getAppReviews(
+    appId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ data: any[]; total: number; page: number; limit: number }> {
+    const app = await this.appsRepository.findOne({ where: { id: appId } });
+
+    if (!app) {
+      throw new NotFoundException(`应用 ${appId} 不存在`);
+    }
+
+    // 获取审核记录（使用 getAuditRecords 方法）
+    const records = await this.getAuditRecords(appId);
+
+    // 分页
+    const total = records.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedRecords = records.slice(startIndex, endIndex);
+
+    return {
+      data: paginatedRecords,
+      total,
+      page,
+      limit,
+    };
+  }
 }

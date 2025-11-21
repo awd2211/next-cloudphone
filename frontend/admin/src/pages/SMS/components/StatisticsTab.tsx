@@ -17,8 +17,7 @@ import {
   DollarOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
+import { useSMSStatistics } from '@/hooks/queries/useSMS';
 import dayjs, { Dayjs } from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -71,21 +70,15 @@ const StatisticsTab: React.FC = () => {
     dayjs().subtract(7, 'day'),
     dayjs(),
   ]);
-  const queryClient = useQueryClient();
 
-  // 查询统计数据
-  const { data, isLoading } = useQuery<StatisticsData>({
-    queryKey: ['sms-statistics', dateRange],
-    queryFn: async () => {
-      const response = await request.get('/sms/statistics', {
-        params: {
-          startDate: dateRange[0].toISOString(),
-          endDate: dateRange[1].toISOString(),
-        },
-      });
-      return response;
-    },
+  // 使用新的 React Query Hook
+  const { data, isLoading, refetch } = useSMSStatistics({
+    startDate: dateRange[0].toISOString(),
+    endDate: dateRange[1].toISOString(),
   });
+
+  // 类型断言：假设 API 返回的数据符合组件期望的结构
+  const statisticsData = data as unknown as StatisticsData | undefined;
 
   const providerColumns: ColumnsType<StatisticsData['providerStats'][0]> = [
     {
@@ -209,9 +202,7 @@ const StatisticsTab: React.FC = () => {
           />
           <Button
             icon={<ReloadOutlined />}
-            onClick={() =>
-              queryClient.invalidateQueries({ queryKey: ['sms-statistics'] })
-            }
+            onClick={() => refetch()}
           >
             刷新
           </Button>
@@ -241,7 +232,7 @@ const StatisticsTab: React.FC = () => {
           <Card>
             <Statistic
               title="总请求数"
-              value={data?.overview.totalRequests || 0}
+              value={statisticsData?.overview.totalRequests || 0}
             />
           </Card>
         </Col>
@@ -249,7 +240,7 @@ const StatisticsTab: React.FC = () => {
           <Card>
             <Statistic
               title="成功请求"
-              value={data?.overview.successfulRequests || 0}
+              value={statisticsData?.overview.successfulRequests || 0}
               prefix={<CheckCircleOutlined />}
               valueStyle={{ color: '#3f8600' }}
             />
@@ -259,7 +250,7 @@ const StatisticsTab: React.FC = () => {
           <Card>
             <Statistic
               title="失败请求"
-              value={data?.overview.failedRequests || 0}
+              value={statisticsData?.overview.failedRequests || 0}
               prefix={<CloseCircleOutlined />}
               valueStyle={{ color: '#cf1322' }}
             />
@@ -269,13 +260,13 @@ const StatisticsTab: React.FC = () => {
           <Card>
             <Statistic
               title="成功率"
-              value={data?.overview.successRate.toFixed(1) || 0}
+              value={statisticsData?.overview.successRate.toFixed(1) || 0}
               suffix="%"
               valueStyle={{
                 color:
-                  (data?.overview.successRate || 0) >= 90
+                  (statisticsData?.overview.successRate || 0) >= 90
                     ? '#3f8600'
-                    : (data?.overview.successRate || 0) >= 70
+                    : (statisticsData?.overview.successRate || 0) >= 70
                     ? '#faad14'
                     : '#cf1322',
               }}
@@ -286,7 +277,7 @@ const StatisticsTab: React.FC = () => {
           <Card>
             <Statistic
               title="平均成本"
-              value={data?.overview.averageCost.toFixed(4) || 0}
+              value={statisticsData?.overview.averageCost.toFixed(4) || 0}
               prefix="$"
             />
           </Card>
@@ -295,7 +286,7 @@ const StatisticsTab: React.FC = () => {
           <Card>
             <Statistic
               title="总成本"
-              value={data?.overview.totalCost.toFixed(4) || 0}
+              value={statisticsData?.overview.totalCost.toFixed(4) || 0}
               prefix={<DollarOutlined />}
               valueStyle={{ color: token.colorPrimary }}
             />
@@ -307,7 +298,7 @@ const StatisticsTab: React.FC = () => {
       <Card title="平台性能统计" style={{ marginBottom: 16 }}>
         <Table
           columns={providerColumns}
-          dataSource={data?.providerStats || []}
+          dataSource={statisticsData?.providerStats || []}
           rowKey="provider"
           loading={isLoading}
           pagination={false}
@@ -319,7 +310,7 @@ const StatisticsTab: React.FC = () => {
       <Card title="服务使用统计">
         <Table
           columns={serviceColumns}
-          dataSource={data?.serviceStats || []}
+          dataSource={statisticsData?.serviceStats || []}
           rowKey="service"
           loading={isLoading}
           pagination={false}

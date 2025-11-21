@@ -15,7 +15,7 @@ export default defineConfig({
     globals: true,
 
     // 全局 setup 文件（引入 @testing-library/jest-dom 匹配器）
-    setupFiles: './src/tests/setup.ts',
+    setupFiles: './src/test/setup.ts',
 
     // 启用 CSS 处理
     css: true,

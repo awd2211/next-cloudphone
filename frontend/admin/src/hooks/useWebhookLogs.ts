@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { WebhookLog } from '@/types/webhook';
 import { getWebhookLogs } from '@/services/payment-admin';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { WebhookLogsResponseSchema } from '@/schemas/api.schemas';
 
 export const useWebhookLogs = () => {
@@ -11,35 +11,27 @@ export const useWebhookLogs = () => {
   const [selectedLog, setSelectedLog] = useState<WebhookLog | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
-  // ✅ 使用 useSafeApi 加载 Webhook 日志
+  // ✅ 使用 useValidatedQuery 加载 Webhook 日志
   const {
     data: logsResponse,
-    loading,
-    execute: executeLoadLogs,
-  } = useSafeApi(
-    () =>
+    isLoading: loading,
+    refetch: loadLogs,
+  } = useValidatedQuery({
+    queryKey: ['webhook-logs', page, pageSize, provider],
+    queryFn: () =>
       getWebhookLogs({
         page,
         limit: pageSize,
         provider,
       }),
-    WebhookLogsResponseSchema,
-    {
-      errorMessage: '加载 Webhook 日志失败',
-      fallbackValue: { data: { data: [], pagination: { total: 0 } } },
-    }
-  );
+    schema: WebhookLogsResponseSchema,
+    apiErrorMessage: '加载 Webhook 日志失败',
+    fallbackValue: { data: { data: [], pagination: { total: 0 } } },
+    staleTime: 30 * 1000, // 30秒缓存
+  });
 
   const logs = logsResponse?.data?.data || [];
   const total = logsResponse?.data?.pagination?.total || 0;
-
-  const loadLogs = useCallback(async () => {
-    await executeLoadLogs();
-  }, [executeLoadLogs]);
-
-  useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
 
   const handleProviderChange = useCallback((value: string | undefined) => {
     setProvider(value);

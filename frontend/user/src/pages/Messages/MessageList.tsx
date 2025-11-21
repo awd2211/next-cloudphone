@@ -1,45 +1,153 @@
-import React from 'react';
-import { Card, List, Empty } from 'antd';
+import React, { useState, useCallback, useMemo } from 'react';
+import { Card, List, Empty, Modal } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
 import {
   MessageStatsCards,
   MessageFilterBar,
   MessageListItem,
 } from '@/components/Message';
 import { MessageDetailModal } from '@/components/MessageDetailModal';
-import { useMessageList } from '@/hooks/useMessageList';
+import {
+  useNotifications,
+  useNotificationStats,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+  useDeleteNotifications,
+  useClearReadNotifications,
+} from '@/hooks/queries';
+import type { NotificationListQuery, Notification } from '@/services/notification';
 
 /**
  * 消息列表页面
- * 展示所有通知消息，支持筛选、批量操作和查看详情
+ *
+ * 功能：
+ * 1. 消息列表展示（支持分页）
+ * 2. 消息统计（总数、未读数等）
+ * 3. 筛选（按状态、类型、优先级）
+ * 4. 批量操作（标记已读、删除、清空已读）
+ * 5. 查看消息详情
  */
 const MessageList: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    loading,
-    notifications,
-    stats,
-    total,
-    query,
-    selectedNotifications,
-    selectedNotification,
-    detailModalVisible,
-    selectAllChecked,
-    selectAllIndeterminate,
-    handleRefresh,
-    handleSearch,
-    handleFilterChange,
-    handlePageChange,
-    handleSelectAll,
-    handleSelectNotification,
-    handleBatchMarkRead,
-    handleMarkAllRead,
-    handleBatchDelete,
-    handleClearRead,
-    handleViewDetail,
-    handleCloseDetail,
-    handleNotificationRead,
-  } = useMessageList();
+
+  // 本地状态
+  const [query, setQuery] = useState<NotificationListQuery>({
+    page: 1,
+    pageSize: 10,
+  });
+  const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+
+  // React Query hooks
+  const { data: notificationsData, isLoading: loading, refetch: refetchNotifications } = useNotifications(query);
+  const { data: stats, refetch: refetchStats } = useNotificationStats();
+
+  const markNotificationRead = useMarkNotificationRead();
+  const markAllNotificationsRead = useMarkAllNotificationsRead();
+  const deleteNotifications = useDeleteNotifications();
+  const clearReadNotifications = useClearReadNotifications();
+
+  const notifications = notificationsData?.items || [];
+  const total = notificationsData?.total || 0;
+
+  // 全选状态计算
+  const selectAllChecked = useMemo(() => {
+    return notifications.length > 0 && selectedNotifications.length === notifications.length;
+  }, [notifications.length, selectedNotifications.length]);
+
+  const selectAllIndeterminate = useMemo(() => {
+    return selectedNotifications.length > 0 && selectedNotifications.length < notifications.length;
+  }, [notifications.length, selectedNotifications.length]);
+
+  // 操作处理
+  const handleRefresh = useCallback(() => {
+    setSelectedNotifications([]);
+    refetchNotifications();
+    refetchStats();
+  }, [refetchNotifications, refetchStats]);
+
+  const handleSearch = useCallback((_value: string) => {
+    setQuery((prev) => ({ ...prev, page: 1 }));
+  }, []);
+
+  const handleFilterChange = useCallback((key: keyof NotificationListQuery, value: any) => {
+    setQuery((prev) => ({ ...prev, [key]: value, page: 1 }));
+  }, []);
+
+  const handlePageChange = useCallback((page: number, pageSize: number) => {
+    setQuery((prev) => ({ ...prev, page, pageSize }));
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectAllChecked) {
+      setSelectedNotifications([]);
+    } else {
+      setSelectedNotifications(notifications.map((n) => n.id));
+    }
+  }, [selectAllChecked, notifications]);
+
+  const handleSelectNotification = useCallback((id: string, checked: boolean) => {
+    setSelectedNotifications((prev) =>
+      checked ? [...prev, id] : prev.filter((nid) => nid !== id)
+    );
+  }, []);
+
+  const handleBatchMarkRead = useCallback(async () => {
+    if (selectedNotifications.length === 0) return;
+    await markNotificationRead.mutateAsync(selectedNotifications);
+    setSelectedNotifications([]);
+  }, [selectedNotifications, markNotificationRead]);
+
+  const handleMarkAllRead = useCallback(async () => {
+    Modal.confirm({
+      title: '确认标记全部已读',
+      icon: <ExclamationCircleOutlined />,
+      content: '确定要将所有消息标记为已读吗？',
+      onOk: async () => {
+        await markAllNotificationsRead.mutateAsync();
+      },
+    });
+  }, [markAllNotificationsRead]);
+
+  const handleBatchDelete = useCallback(async () => {
+    if (selectedNotifications.length === 0) return;
+    Modal.confirm({
+      title: '确认删除',
+      icon: <ExclamationCircleOutlined />,
+      content: `确定要删除选中的 ${selectedNotifications.length} 条消息吗？`,
+      onOk: async () => {
+        await deleteNotifications.mutateAsync(selectedNotifications);
+        setSelectedNotifications([]);
+      },
+    });
+  }, [selectedNotifications, deleteNotifications]);
+
+  const handleClearRead = useCallback(async () => {
+    Modal.confirm({
+      title: '确认清空已读',
+      icon: <ExclamationCircleOutlined />,
+      content: '确定要清空所有已读消息吗？此操作不可恢复。',
+      onOk: async () => {
+        await clearReadNotifications.mutateAsync();
+      },
+    });
+  }, [clearReadNotifications]);
+
+  const handleViewDetail = useCallback((notification: Notification) => {
+    setSelectedNotification(notification);
+    setDetailModalVisible(true);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setDetailModalVisible(false);
+    setSelectedNotification(null);
+  }, []);
+
+  const handleNotificationRead = useCallback(async (id: string) => {
+    await markNotificationRead.mutateAsync([id]);
+  }, [markNotificationRead]);
 
   return (
     <div>

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input } from 'antd';
 import type { Role } from '@/types';
-import { validateRoleName, getRoleNameError } from '@/utils/validators';
+import { getRoleNameError } from '@/utils/validators';
 
 interface RoleFormModalProps {
   visible: boolean;

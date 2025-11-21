@@ -6,7 +6,7 @@ import {
   useQuotaAlerts,
   useCreateQuota,
   useUpdateQuota,
-} from './queries/useQuotas';
+} from '@/hooks/queries/useQuotas';
 
 interface UseQuotaListReturn {
   // 数据状态

@@ -46,7 +46,7 @@ function getUserInfo(): { id?: string; role?: string } | null {
     const userStr = localStorage.getItem('user');
     if (!userStr) return null;
     return JSON.parse(userStr);
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to parse user info:', error);
     return null;
   }

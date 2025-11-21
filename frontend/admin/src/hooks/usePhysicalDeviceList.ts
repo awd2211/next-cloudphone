@@ -5,8 +5,15 @@ import {
   useScanNetworkDevices,
   useRegisterPhysicalDevice,
   useDeletePhysicalDevice,
-} from './usePhysicalDevices';
+} from './queries/usePhysicalDevices';
 import { usePhysicalDeviceTableColumns } from '@/components/PhysicalDevice/PhysicalDeviceTableColumns';
+
+interface PhysicalDevice {
+  id: string;
+  status: 'online' | 'offline';
+  connectionType: 'network' | 'usb';
+  [key: string]: any;
+}
 
 export interface ScanResult {
   serialNumber: string;
@@ -121,9 +128,9 @@ export const usePhysicalDeviceList = () => {
   const stats = useMemo(
     () => ({
       total: devices.length,
-      online: devices.filter((d) => d.status === 'online').length,
-      offline: devices.filter((d) => d.status === 'offline').length,
-      networkDevices: devices.filter((d) => d.connectionType === 'network').length,
+      online: (devices as PhysicalDevice[]).filter(d => d.status === 'online').length,
+      offline: (devices as PhysicalDevice[]).filter(d => d.status === 'offline').length,
+      networkDevices: (devices as PhysicalDevice[]).filter(d => d.connectionType === 'network').length,
     }),
     [devices]
   );

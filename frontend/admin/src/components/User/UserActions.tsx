@@ -15,6 +15,7 @@ import {
   MinusOutlined,
 } from '@ant-design/icons';
 import type { User } from '@/types';
+import { UserStatus } from '@/types';
 import { PermissionGuard } from '@/hooks/usePermission';
 
 interface UserActionsProps {
@@ -23,7 +24,7 @@ interface UserActionsProps {
   onResetPassword: (user: User) => void;
   onRecharge: (user: User) => void;
   onDeduct: (user: User) => void;
-  onUpdateStatus: (userId: string, status: 'active' | 'banned') => void;
+  onUpdateStatus: (userId: string, status: UserStatus) => void;
   onDelete: (userId: string) => void;
 }
 
@@ -70,21 +71,21 @@ export const UserActions = memo<UserActionsProps>(
         </PermissionGuard>
 
         <PermissionGuard permission="user:update">
-          {user.status === 'active' && (
+          {user.status === UserStatus.ACTIVE && (
             <Button
               type="link"
               size="small"
               danger
-              onClick={() => onUpdateStatus(user.id, 'banned')}
+              onClick={() => onUpdateStatus(user.id, UserStatus.BANNED)}
             >
               封禁
             </Button>
           )}
-          {user.status === 'banned' && (
+          {user.status === UserStatus.BANNED && (
             <Button
               type="link"
               size="small"
-              onClick={() => onUpdateStatus(user.id, 'active')}
+              onClick={() => onUpdateStatus(user.id, UserStatus.ACTIVE)}
             >
               解封
             </Button>

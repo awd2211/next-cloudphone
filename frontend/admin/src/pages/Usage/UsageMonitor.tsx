@@ -25,17 +25,10 @@ import {
   EyeOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { useQuery } from '@tanstack/react-query';
-import { getAdminUsageRecords, getAdminUsageStats } from '@/services/billing';
-import { useUsers } from '@/hooks/useUsers';
-import { useDevices } from '@/hooks/useDevices';
-import type { UsageRecord } from '@/types';
+import { useAdminUsageRecords, useAdminUsageStats, useUsers, useDevices } from '@/hooks/queries';
+import type { UsageRecord, User, Device } from '@/types';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import {
-  AdminUsageRecordsResponseSchema,
-  AdminUsageStatsResponseSchema,
-} from '@/schemas/api.schemas';
 
 const { Search } = Input;
 const { RangePicker } = DatePicker;
@@ -75,24 +68,16 @@ const UsageMonitor = () => {
     return p;
   }, [page, pageSize, userFilter, deviceFilter, statusFilter, searchKeyword, dateRange]);
 
-  // 使用新的管理员API (带 Zod 验证)
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['admin-usage-records', params],
-    queryFn: async () => {
-      const response = await getAdminUsageRecords(params);
-      const validated = AdminUsageRecordsResponseSchema.parse(response);
-      return validated.data;
-    },
-    staleTime: 30 * 1000, // 30 seconds
-  });
+  // 使用新的 React Query Hook
+  const { data, isLoading, refetch } = useAdminUsageRecords(params);
 
   const { data: usersData } = useUsers({ page: 1, pageSize: 1000 });
   const { data: devicesData } = useDevices({ page: 1, pageSize: 1000 });
 
   const usageRecords = data?.data || [];
   const total = data?.total || 0;
-  const users = usersData?.data?.data || [];
-  const devices = devicesData?.data?.data || [];
+  const users = usersData?.data || [];
+  const devices = devicesData?.data || [];
 
   // ============ 统计数据获取（使用后端API） ============
   const statsParams = useMemo(() => {
@@ -108,15 +93,7 @@ const UsageMonitor = () => {
     return p;
   }, [userFilter, deviceFilter, statusFilter, searchKeyword, dateRange]);
 
-  const { data: statsData } = useQuery({
-    queryKey: ['admin-usage-stats', statsParams],
-    queryFn: async () => {
-      const response = await getAdminUsageStats(statsParams);
-      const validated = AdminUsageStatsResponseSchema.parse(response);
-      return validated.data;
-    },
-    staleTime: 30 * 1000, // 30 seconds
-  });
+  const { data: statsData } = useAdminUsageStats(statsParams);
 
   const stats = statsData || {
     totalDuration: 0,
@@ -180,7 +157,7 @@ const UsageMonitor = () => {
       const response = await exportAdminUsageRecords(exportParams);
 
       // 创建下载链接
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([(response as any).data]));
       const link = document.createElement('a');
       link.href = url;
       const timestamp = new Date().toISOString().split('T')[0];
@@ -220,7 +197,7 @@ const UsageMonitor = () => {
         width: 150,
         ellipsis: true,
         render: (userId: string) => {
-          const user = users.find((u) => u.id === userId);
+          const user = users.find((u: User) => u.id === userId);
           return (
             <Tooltip title={`ID: ${userId}`}>
               <Space>
@@ -421,10 +398,10 @@ const UsageMonitor = () => {
               value={userFilter}
               optionFilterProp="children"
               filterOption={(input, option) =>
-                (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
+                String(option?.children || '').toLowerCase().includes(input.toLowerCase())
               }
             >
-              {users.map((user) => (
+              {users.map((user: User) => (
                 <Option key={user.id} value={user.id}>
                   {user.username || user.email}
                 </Option>
@@ -440,10 +417,10 @@ const UsageMonitor = () => {
               value={deviceFilter}
               optionFilterProp="children"
               filterOption={(input, option) =>
-                (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
+                String(option?.children || '').toLowerCase().includes(input.toLowerCase())
               }
             >
-              {devices.map((device) => (
+              {devices.map((device: Device) => (
                 <Option key={device.id} value={device.id}>
                   {device.name || device.id}
                 </Option>

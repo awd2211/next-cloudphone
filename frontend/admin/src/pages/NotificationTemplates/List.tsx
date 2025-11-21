@@ -5,9 +5,9 @@ import {
   CreateEditTemplateModal,
   TemplatePreviewModal,
   useTemplateColumns,
-  type NotificationTemplate,
+  type NotificationTemplate as ComponentNotificationTemplate,
 } from '@/components/NotificationTemplates';
-import { useNotificationTemplates } from '@/hooks/useNotificationTemplates';
+import { useNotificationTemplates } from '@/hooks/queries';
 
 const NotificationTemplatesList = () => {
   const {
@@ -31,8 +31,8 @@ const NotificationTemplatesList = () => {
   } = useNotificationTemplates();
 
   const columns = useTemplateColumns({
-    onEdit: handleEdit,
-    onPreview: handlePreview,
+    onEdit: handleEdit as unknown as (record: ComponentNotificationTemplate) => void,
+    onPreview: handlePreview as unknown as (record: ComponentNotificationTemplate) => void,
     onToggle: handleToggle,
     onDelete: handleDelete,
   });
@@ -46,12 +46,12 @@ const NotificationTemplatesList = () => {
         </Button>
       }
     >
-      <AccessibleTable<NotificationTemplate>
+      <AccessibleTable<ComponentNotificationTemplate>
         ariaLabel="通知模板列表"
         loadingText="正在加载通知模板"
         emptyText="暂无通知模板数据，点击右上角新建模板"
         columns={columns}
-        dataSource={data || []}
+        dataSource={(data || []) as unknown as readonly ComponentNotificationTemplate[]}
         rowKey="id"
         loading={isLoading}
         scroll={{ x: 1400, y: 600 }}
@@ -66,17 +66,17 @@ const NotificationTemplatesList = () => {
 
       <CreateEditTemplateModal
         visible={isModalVisible}
-        editingTemplate={editingTemplate}
+        editingTemplate={editingTemplate as unknown as ComponentNotificationTemplate | null}
         form={form}
-        loading={createMutation.isPending || updateMutation.isPending}
+        isLoading={createMutation.isPending || updateMutation.isPending}
         onOk={handleSubmit}
         onCancel={handleCancel}
       />
 
       <TemplatePreviewModal
         visible={previewModalVisible}
-        template={previewTemplate}
-        onCancel={handlePreviewCancel}
+        template={previewTemplate as unknown as ComponentNotificationTemplate | null}
+        onClose={handlePreviewCancel}
       />
     </Card>
   );

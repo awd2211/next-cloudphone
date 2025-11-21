@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Form, message } from 'antd';
 import { z } from 'zod';
 import {
@@ -9,7 +9,7 @@ import {
   getEventStats,
   getRecentEvents,
 } from '@/services/events';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   UserEventSchema,
   EventStatsResponseSchema,
@@ -43,19 +43,18 @@ export const useEventSourcingViewer = () => {
   const [versionForm] = Form.useForm();
   const [timeTravelForm] = Form.useForm();
 
-  // ===== 数据加载 (使用 useSafeApi) =====
+  // ===== 数据加载 (使用 useValidatedQuery) =====
 
   /**
    * 加载事件统计
    */
-  const { data: statsResponse } = useSafeApi(
-    getEventStats,
-    EventStatsResponseSchema,
-    {
-      errorMessage: '加载统计失败',
-      showError: false,
-    }
-  );
+  const { data: statsResponse } = useValidatedQuery({
+    queryKey: ['event-stats'],
+    queryFn: getEventStats,
+    schema: EventStatsResponseSchema,
+    apiErrorMessage: '加载统计失败',
+    staleTime: 30 * 1000,
+  });
 
   const stats = statsResponse?.success ? statsResponse.data : null;
 
@@ -64,16 +63,16 @@ export const useEventSourcingViewer = () => {
    */
   const {
     data: recentEventsResponse,
-    loading: recentEventsLoading,
-    execute: executeLoadRecentEvents,
-  } = useSafeApi(
-    () => getRecentEvents(selectedEventType || undefined, 50),
-    RecentEventsResponseSchema,
-    {
-      errorMessage: '加载最近事件失败',
-      fallbackValue: { success: false, data: [] },
-    }
-  );
+    isLoading: recentEventsLoading,
+    refetch: loadRecentEvents,
+  } = useValidatedQuery({
+    queryKey: ['recent-events', selectedEventType],
+    queryFn: () => getRecentEvents(selectedEventType || undefined, 50),
+    schema: RecentEventsResponseSchema,
+    apiErrorMessage: '加载最近事件失败',
+    fallbackValue: { success: false, data: [] },
+    staleTime: 10 * 1000,
+  });
 
   const recentEvents = recentEventsResponse?.success ? recentEventsResponse.data : [];
 
@@ -82,31 +81,24 @@ export const useEventSourcingViewer = () => {
    */
   const {
     data: userHistoryResponse,
-    loading: userHistoryLoading,
-    execute: executeLoadUserHistory,
-  } = useSafeApi(
-    () => {
+    isLoading: userHistoryLoading,
+    refetch: executeLoadUserHistory,
+  } = useValidatedQuery({
+    queryKey: ['user-event-history', selectedUserId],
+    queryFn: () => {
       if (!selectedUserId) {
         return Promise.reject(new Error('请输入用户ID'));
       }
       return getUserEventHistory(selectedUserId);
     },
-    EventHistoryResponseSchema,
-    {
-      errorMessage: '加载用户事件历史失败',
-      fallbackValue: { success: false, data: { userId: '', events: [], totalEvents: 0, currentVersion: 0 } },
-      manual: true,
-    }
-  );
+    schema: EventHistoryResponseSchema,
+    apiErrorMessage: '加载用户事件历史失败',
+    fallbackValue: { success: false, data: { userId: '', events: [], totalEvents: 0, currentVersion: 0 } },
+    enabled: false, // 手动触发
+    staleTime: 30 * 1000,
+  });
 
   const userEvents = userHistoryResponse?.success ? userHistoryResponse.data.events : [];
-
-  /**
-   * 初始化加载
-   */
-  useEffect(() => {
-    executeLoadRecentEvents();
-  }, [executeLoadRecentEvents]);
 
   /**
    * 加载用户历史 (手动触发)
@@ -217,7 +209,7 @@ export const useEventSourcingViewer = () => {
     timeTravelForm,
 
     // 操作方法
-    loadRecentEvents: executeLoadRecentEvents,
+    loadRecentEvents,
     loadUserHistory,
     handleReplay,
     handleReplayToVersion,

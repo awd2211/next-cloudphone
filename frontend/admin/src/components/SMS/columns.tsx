@@ -59,14 +59,14 @@ export const useSMSColumns = ({
         dataIndex: 'userName',
         key: 'userName',
         width: 120,
-        sorter: (a, b) => a.userName.localeCompare(b.userName),
+        sorter: (a, b) => a.userName?.localeCompare(b.userName ?? "") ?? 0,
       },
       {
         title: '模板代码',
         dataIndex: 'templateCode',
         key: 'templateCode',
         width: 120,
-        sorter: (a, b) => a.templateCode.localeCompare(b.templateCode),
+        sorter: (a, b) => a.templateCode?.localeCompare(b.templateCode ?? "") ?? 0,
       },
       {
         title: '发送时间',

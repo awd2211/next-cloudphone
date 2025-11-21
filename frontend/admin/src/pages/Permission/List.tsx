@@ -9,7 +9,7 @@ import {
   useCreatePermission,
   useUpdatePermission,
   useDeletePermission,
-} from '@/hooks/useRoles';
+} from '@/hooks/queries';
 
 /**
  * 权限列表页面（优化版 - 使用 React Query + 分页）
@@ -36,9 +36,9 @@ const PermissionList = () => {
   // ✅ 使用 React Query hooks 替换手动状态管理（支持分页）
   const { data, isLoading, refetch } = usePermissions({
     page,
-    pageSize,
+    limit: pageSize,
     resource: resourceFilter || undefined,
-  });
+  } as any);
 
   const permissions = data?.permissions || [];
   const total = data?.total || 0;

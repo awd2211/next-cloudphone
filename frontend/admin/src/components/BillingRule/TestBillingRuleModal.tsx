@@ -77,7 +77,7 @@ export const TestBillingRuleModal = memo<TestBillingRuleModalProps>(
           {testResult && (
             <>
               <Divider>测试结果</Divider>
-              <Alert message={`计算费用: ¥${testResult.cost.toFixed(2)}`} type="success" showIcon />
+              <Alert message={`计算费用: ¥${Number(testResult.cost).toFixed(2)}`} type="success" showIcon />
               <Descriptions bordered size="small" column={1}>
                 {testResult.breakdown.map((item, index) => (
                   <Descriptions.Item key={index} label={item.component}>

@@ -4,7 +4,7 @@
  * 提供批量编辑的 UI 界面
  */
 
-import { memo } from 'react';
+import React, { memo } from 'react';
 import { Modal, Form, Input, InputNumber, Select, DatePicker, Switch, message } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import type { EditField } from '@/hooks/useBatchEdit';
@@ -136,7 +136,7 @@ export const BatchEditModal = memo(
     const handleSubmit = async () => {
       try {
         await onSubmit();
-      } catch (error) {
+      } catch (_error) {
         message.error((error as Error).message || '批量编辑失败');
       }
     };
@@ -182,6 +182,7 @@ export const BatchEditModal = memo(
   }
 ) as <T extends Record<string, any> = Record<string, any>>(
   props: BatchEditModalProps<T>
-) => JSX.Element;
+) => React.ReactElement;
 
-BatchEditModal.displayName = 'BatchEditModal';
+// Display name for React DevTools
+(BatchEditModal as any).displayName = 'BatchEditModal';

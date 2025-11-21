@@ -5,7 +5,7 @@
  */
 
 import { memo, useMemo } from 'react';
-import { Button, Dropdown, Checkbox, Space, Divider, Typography } from 'antd';
+import { Button, Dropdown, Checkbox, Space, Typography } from 'antd';
 import { SettingOutlined, EyeOutlined, EyeInvisibleOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import type { ColumnConfig } from './useColumnCustomizer';

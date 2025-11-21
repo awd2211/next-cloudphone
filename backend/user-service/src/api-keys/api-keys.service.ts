@@ -250,6 +250,70 @@ export class ApiKeysService {
   }
 
   /**
+   * 启用/禁用 API 密钥
+   */
+  async toggleApiKey(apiKeyId: string, status?: string): Promise<ApiKey> {
+    const apiKey = await this.getApiKey(apiKeyId);
+
+    // 如果提供了 status,使用它;否则切换状态
+    if (status) {
+      if (status === ApiKeyStatus.ACTIVE || status === ApiKeyStatus.REVOKED) {
+        apiKey.status = status as ApiKeyStatus;
+      } else {
+        throw new BadRequestException(`无效的状态: ${status}`);
+      }
+    } else {
+      // 切换状态
+      apiKey.status =
+        apiKey.status === ApiKeyStatus.ACTIVE
+          ? ApiKeyStatus.REVOKED
+          : ApiKeyStatus.ACTIVE;
+    }
+
+    const updatedApiKey = await this.apiKeyRepository.save(apiKey);
+
+    // ✅ 清除用户 API Keys 列表缓存
+    await this.clearUserApiKeysCache(apiKey.userId);
+
+    this.logger.log(`API 密钥状态已切换 - ID: ${apiKeyId}, 新状态: ${apiKey.status}`);
+
+    return updatedApiKey;
+  }
+
+  /**
+   * 轮换 API 密钥
+   * 生成新的密钥并撤销旧密钥
+   */
+  async rotateApiKey(apiKeyId: string): Promise<{ apiKey: ApiKey; plainKey: string }> {
+    const oldApiKey = await this.getApiKey(apiKeyId);
+
+    if (oldApiKey.status === ApiKeyStatus.REVOKED) {
+      throw new BadRequestException('无法轮换已撤销的 API 密钥');
+    }
+
+    // 生成新密钥
+    const newSecret = this.generateSecret();
+    const newKeyHash = this.hashKey(newSecret);
+
+    // 更新密钥的哈希
+    oldApiKey.key = newKeyHash;
+    oldApiKey.prefix = `cp_live_${newSecret.slice(0, 7)}`;
+
+    const rotatedApiKey = await this.apiKeyRepository.save(oldApiKey);
+
+    // ✅ 清除用户 API Keys 列表缓存
+    await this.clearUserApiKeysCache(oldApiKey.userId);
+
+    this.logger.log(`API 密钥已轮换 - ID: ${apiKeyId}`);
+
+    // 返回新密钥的明文(仅此一次)
+    return {
+      apiKey: rotatedApiKey,
+      plainKey: newSecret,
+    };
+  }
+
+  /**
    * 获取 API 密钥统计
    */
   async getApiKeyStatistics(userId: string): Promise<{

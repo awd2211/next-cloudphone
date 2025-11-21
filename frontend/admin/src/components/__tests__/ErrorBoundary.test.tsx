@@ -309,7 +309,7 @@ describe('ErrorBoundary Component', () => {
 
       // 验证 fetch 被调用
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:30000/api/logs/frontend-errors',
+        'http://localhost:30000/logs/frontend-errors',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({

@@ -35,7 +35,7 @@ export const useProfile = () => {
         // 应用主题设置
         applyTheme(userData.theme);
       }
-    } catch (error) {
+    } catch (_error) {
       message.error('加载用户信息失败');
     } finally {
       setLoading(false);
@@ -75,7 +75,7 @@ export const useProfile = () => {
         setTimeout(() => {
           window.location.href = '/login';
         }, 1000);
-      } catch (error) {
+      } catch (_error) {
         message.error('密码修改失败，请检查原密码是否正确');
         console.error('Failed to change password:', error);
       }
@@ -94,7 +94,7 @@ export const useProfile = () => {
         }
 
         // 调用后端 API 保存偏好设置
-        const response = await request.patch(`/users/${userId}/preferences`, {
+        const response = await request.patch<any>(`/users/${userId}/preferences`, {
           language: values.language,
           theme: values.theme,
         });
@@ -115,7 +115,7 @@ export const useProfile = () => {
 
         message.success('偏好设置保存成功');
         setPreferencesModalVisible(false);
-      } catch (error) {
+      } catch (_error) {
         message.error('保存偏好设置失败');
         console.error('Failed to save preferences:', error);
       }

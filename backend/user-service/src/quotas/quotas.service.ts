@@ -647,6 +647,37 @@ export class QuotasService {
   }
 
   /**
+   * 删除配额
+   */
+  async deleteQuota(quotaId: string): Promise<void> {
+    const quota = await this.quotaRepository.findOne({
+      where: { id: quotaId },
+    });
+
+    if (!quota) {
+      throw new NotFoundException(`配额 ${quotaId} 未找到`);
+    }
+
+    // 软删除：将状态设置为 SUSPENDED
+    quota.status = QuotaStatus.SUSPENDED;
+    await this.quotaRepository.save(quota);
+
+    // 清除缓存
+    await this.clearQuotaCache(quota.userId);
+    await this.clearListAndAlertsCache();
+
+    // 发布配额删除事件
+    await this.eventBus.publish('cloudphone.events', 'quota.deleted', {
+      userId: quota.userId,
+      quotaId: quota.id,
+      type: 'deleted',
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.log(`配额已删除 - ID: ${quotaId}, 用户: ${quota.userId}`);
+  }
+
+  /**
    * 续费配额
    *
    * 延长配额有效期，常用于套餐续费场景

@@ -8,18 +8,27 @@ interface BatchCreateDeviceModalProps {
   templateName: string;
   form: FormInstance;
   users: User[];
-  onOk: () => void;
+  onOk: (values: any) => Promise<void>;
   onCancel: () => void;
 }
 
 export const BatchCreateDeviceModal = memo<BatchCreateDeviceModalProps>(
   ({ visible, templateName, form, users, onOk, onCancel }) => {
+    const handleOk = async () => {
+      try {
+        const values = await form.validateFields();
+        await onOk(values);
+      } catch (_error) {
+        console.error('Form submission error:', error);
+      }
+    };
+
     return (
       <Modal
         title={`批量创建设备: ${templateName}`}
         open={visible}
         onCancel={onCancel}
-        onOk={onOk}
+        onOk={handleOk}
       >
         <Form form={form} layout="vertical">
           <Form.Item

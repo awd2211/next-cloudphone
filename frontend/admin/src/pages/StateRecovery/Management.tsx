@@ -8,7 +8,7 @@ import {
   useStateRecoveryColumns,
   type StateRecoveryRecord,
 } from '@/components/StateRecovery';
-import { useStateRecovery } from '@/hooks/useStateRecovery';
+import { useStateRecovery } from '@/hooks/queries/useStateRecovery';
 
 const StateRecoveryManagement: React.FC = () => {
   const {

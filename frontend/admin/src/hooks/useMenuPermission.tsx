@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Modal, Input, message } from 'antd';
 import { z } from 'zod';
-import type { MenuItem, MenuCacheStats } from '@/types';
+import type { MenuItem } from '@/types';
 import {
   getAllMenus,
   getUserMenus,
@@ -18,7 +18,7 @@ import {
   countMenus,
 } from '@/components/MenuPermission';
 import dayjs from 'dayjs';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { MenuItemSchema, MenuCacheStatsSchema } from '@/schemas/api.schemas';
 
 export const useMenuPermission = () => {
@@ -28,7 +28,7 @@ export const useMenuPermission = () => {
   const [searchValue, setSearchValue] = useState('');
   const [debouncedSearchValue, setDebouncedSearchValue] = useState(''); // ✅ 防抖后的搜索值
   const [autoExpandParent, setAutoExpandParent] = useState(true);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>(); // ✅ 防抖定时器
+  const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined); // ✅ 防抖定时器
 
   // 缓存管理相关
   const [cacheLoading, setCacheLoading] = useState(false);
@@ -40,46 +40,53 @@ export const useMenuPermission = () => {
   const [testLoading, setTestLoading] = useState(false);
 
   /**
-   * 加载所有菜单 - 使用 useSafeApi
+   * 加载所有菜单 - 使用 useValidatedQuery
    */
   const {
     data: menus,
-    loading,
-    execute: executeLoadMenus,
-  } = useSafeApi(getAllMenus, z.array(MenuItemSchema), {
-    errorMessage: '加载菜单失败',
+    isLoading: loading,
+    refetch: loadMenus,
+  } = useValidatedQuery({
+    queryKey: ['all-menus'],
+    queryFn: getAllMenus,
+    schema: z.array(MenuItemSchema),
+    apiErrorMessage: '加载菜单失败',
     fallbackValue: [],
+    staleTime: 60 * 1000, // 菜单配置1分钟缓存
   });
 
   /**
-   * 加载缓存统计 - 使用 useSafeApi
+   * 加载缓存统计 - 使用 useValidatedQuery
    * ✅ 懒加载：只在打开统计弹窗时加载
    */
   const {
     data: cacheStats,
-    execute: executeLoadCacheStats,
-  } = useSafeApi(getCacheStats, MenuCacheStatsSchema, {
-    errorMessage: '加载缓存统计失败',
-    showError: false,
-    manual: true, // ✅ 手动触发，不自动加载
+    refetch: loadCacheStats,
+  } = useValidatedQuery({
+    queryKey: ['menu-cache-stats'],
+    queryFn: getCacheStats,
+    schema: MenuCacheStatsSchema,
+    apiErrorMessage: '加载缓存统计失败',
+    enabled: false, // ✅ 手动触发，不自动加载
+    staleTime: 10 * 1000, // 缓存统计10秒缓存
   });
 
   /**
-   * 测试用户菜单 - 使用 useSafeApi
+   * 测试用户菜单 - 使用 useValidatedQuery
    */
   const {
     data: testUserMenus,
-    loading: testUserMenusLoading,
-    execute: executeLoadUserMenus,
-  } = useSafeApi(
-    (userId: string) => getUserMenus(userId),
-    z.array(MenuItemSchema),
-    {
-      errorMessage: '加载用户菜单失败',
-      fallbackValue: [],
-      manual: true,
-    }
-  );
+    isLoading: testUserMenusLoading,
+    refetch: loadUserMenus,
+  } = useValidatedQuery({
+    queryKey: ['user-menus-test', testUserId],
+    queryFn: () => getUserMenus(testUserId),
+    schema: z.array(MenuItemSchema),
+    apiErrorMessage: '加载用户菜单失败',
+    fallbackValue: [],
+    enabled: false, // 手动触发
+    staleTime: 30 * 1000,
+  });
 
   /**
    * 搜索防抖 - 输入后 300ms 才触发实际搜索
@@ -305,14 +312,14 @@ export const useMenuPermission = () => {
 
     setTestLoading(true);
     try {
-      await executeLoadUserMenus(testUserId);
+      await loadUserMenus();
       message.success('加载成功');
     } catch (error: any) {
       message.error(error.message || '加载失败');
     } finally {
       setTestLoading(false);
     }
-  }, [testUserId, executeLoadUserMenus]);
+  }, [testUserId, loadUserMenus]);
 
   /**
    * 展开/折叠处理
@@ -323,11 +330,8 @@ export const useMenuPermission = () => {
   }, []);
 
   /**
-   * 重新加载菜单
+   * 重新加载菜单 - 已由 useValidatedQuery 提供 loadMenus (refetch)
    */
-  const loadMenus = useCallback(() => {
-    executeLoadMenus();
-  }, [executeLoadMenus]);
 
   /**
    * 打开缓存统计弹窗
@@ -335,8 +339,8 @@ export const useMenuPermission = () => {
    */
   const handleOpenStatsModal = useCallback(() => {
     setStatsModalVisible(true);
-    executeLoadCacheStats();
-  }, [executeLoadCacheStats]);
+    loadCacheStats();
+  }, [loadCacheStats]);
 
   /**
    * 计算统计数据
@@ -345,7 +349,7 @@ export const useMenuPermission = () => {
   const menusWithPermission = useMemo(
     () =>
       (menus || []).filter(
-        (m) => m.permission || m.children?.some((c) => c.permission)
+        (m) => m.permission || m.children?.some((c: MenuItem) => c.permission)
       ).length,
     [menus]
   );

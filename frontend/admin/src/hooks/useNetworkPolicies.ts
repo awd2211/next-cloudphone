@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Form, message, Modal } from 'antd';
 import type { NetworkPolicy, PolicyFormValues, TestFormValues, TestResult } from '@/components/NetworkPolicy';
 import { DEFAULT_FORM_VALUES } from '@/components/NetworkPolicy';
 import request from '@/utils/request';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { NetworkPoliciesResponseSchema } from '@/schemas/api.schemas';
 
 /**
@@ -17,33 +17,19 @@ export const useNetworkPolicies = () => {
   const [form] = Form.useForm<PolicyFormValues>();
   const [testForm] = Form.useForm<TestFormValues>();
 
-  // ✅ 使用 useSafeApi 加载策略列表
+  // ✅ 使用 useValidatedQuery 加载策略列表
   const {
     data: policies,
-    loading,
-    execute: executeLoadPolicies,
-  } = useSafeApi(
-    () => request.get('/devices/network-policies'),
-    NetworkPoliciesResponseSchema,
-    {
-      errorMessage: '加载策略失败',
-      fallbackValue: [],
-    }
-  );
-
-  /**
-   * 加载策略列表的包装函数
-   */
-  const loadPolicies = useCallback(async () => {
-    await executeLoadPolicies();
-  }, [executeLoadPolicies]);
-
-  /**
-   * 初始化加载
-   */
-  useEffect(() => {
-    loadPolicies();
-  }, [loadPolicies]);
+    isLoading: loading,
+    refetch: loadPolicies,
+  } = useValidatedQuery({
+    queryKey: ['network-policies'],
+    queryFn: () => request.get('/devices/network-policies'),
+    schema: NetworkPoliciesResponseSchema,
+    apiErrorMessage: '加载策略失败',
+    fallbackValue: [],
+    staleTime: 30 * 1000, // 30秒缓存
+  });
 
   /**
    * 打开模态框
@@ -112,7 +98,7 @@ export const useNetworkPolicies = () => {
         await request.delete(`/devices/network-policies/${id}`);
         message.success('策略删除成功');
         loadPolicies();
-      } catch (error) {
+      } catch (_error) {
         message.error('删除失败');
       }
     },
@@ -128,7 +114,7 @@ export const useNetworkPolicies = () => {
         await request.patch(`/devices/network-policies/${id}/toggle`, { isEnabled });
         message.success(`策略已${isEnabled ? '启用' : '停用'}`);
         loadPolicies();
-      } catch (error) {
+      } catch (_error) {
         message.error('操作失败');
       }
     },
@@ -161,7 +147,7 @@ export const useNetworkPolicies = () => {
         content: `连通性: ${result.connected ? '成功' : '失败'}\n延迟: ${result.latency}ms\n带宽: ${result.bandwidth} Mbps`,
       });
       closeTestModal();
-    } catch (error) {
+    } catch (_error) {
       message.error('测试失败');
     }
   }, [testForm, closeTestModal]);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Form, message } from 'antd';
 import { z } from 'zod';
 import {
@@ -16,7 +16,7 @@ import {
   type CreateNodeDto,
   type UpdateNodeDto,
 } from '@/services/scheduler';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   SchedulerNodeSchema,
   ClusterStatsSchema,
@@ -28,7 +28,7 @@ import {
  * 调度器仪表盘业务逻辑 Hook
  *
  * 功能:
- * 1. 数据加载 (节点、统计、策略、任务) - 使用 useSafeApi + Zod 验证
+ * 1. 数据加载 (节点、统计、策略、任务) - 使用 useValidatedQuery + Zod 验证
  * 2. 节点管理 (CRUD、维护模式、排空)
  * 3. 策略管理 (激活策略)
  * 4. Modal 状态管理
@@ -44,61 +44,63 @@ export const useSchedulerDashboard = () => {
   // ===== Form =====
   const [nodeForm] = Form.useForm();
 
-  // ===== 数据加载 (使用 useSafeApi) =====
+  // ===== 数据加载 (使用 useValidatedQuery) =====
 
   /**
    * 加载节点列表
    */
   const {
     data: nodesResponse,
-    loading,
-    execute: executeLoadNodes,
-  } = useSafeApi(
-    () => getNodes({ page: 1, pageSize: 100 }),
-    z.object({
+    isLoading: loading,
+    refetch: loadNodes,
+  } = useValidatedQuery({
+    queryKey: ['scheduler-nodes'],
+    queryFn: () => getNodes({ page: 1, pageSize: 100 }),
+    schema: z.object({
       data: z.array(SchedulerNodeSchema),
       total: z.number(),
     }),
-    {
-      errorMessage: '加载节点失败',
-      fallbackValue: { data: [], total: 0 },
-    }
-  );
+    apiErrorMessage: '加载节点失败',
+    fallbackValue: { data: [], total: 0 },
+    staleTime: 30 * 1000, // 节点列表30秒缓存
+  });
 
   const nodes = nodesResponse?.data || [];
 
   /**
    * 加载集群统计
    */
-  const { data: clusterStats } = useSafeApi(
-    getClusterStats,
-    ClusterStatsSchema,
-    {
-      errorMessage: '加载集群统计失败',
-      showError: false,
-    }
-  );
+  const { data: clusterStats } = useValidatedQuery({
+    queryKey: ['cluster-stats'],
+    queryFn: getClusterStats,
+    schema: ClusterStatsSchema,
+    apiErrorMessage: '加载集群统计失败',
+    staleTime: 30 * 1000, // 集群统计30秒缓存
+  });
 
   /**
-   * 加载调度策略和激活策略
+   * 加载调度策略和激活策略（并发加载）
    */
-  const { data: strategiesData, execute: executeLoadStrategies } = useSafeApi(
-    async () => {
+  const {
+    data: strategiesData,
+    refetch: loadStrategies,
+  } = useValidatedQuery({
+    queryKey: ['scheduling-strategies'],
+    queryFn: async () => {
       const [strategies, active] = await Promise.all([
         getStrategies(),
         getActiveStrategy(),
       ]);
       return { strategies, active };
     },
-    z.object({
+    schema: z.object({
       strategies: z.array(SchedulingStrategySchema),
       active: SchedulingStrategySchema.nullable(),
     }),
-    {
-      errorMessage: '加载调度策略失败',
-      fallbackValue: { strategies: [], active: null },
-    }
-  );
+    apiErrorMessage: '加载调度策略失败',
+    fallbackValue: { strategies: [], active: null },
+    staleTime: 60 * 1000, // 策略变化较慢，60秒缓存
+  });
 
   const strategies = strategiesData?.strategies || [];
   const activeStrategy = strategiesData?.active || null;
@@ -106,28 +108,22 @@ export const useSchedulerDashboard = () => {
   /**
    * 加载调度任务
    */
-  const { data: tasksResponse, execute: executeLoadTasks } = useSafeApi(
-    () => getTasks({ page: 1, pageSize: 20 }),
-    z.object({
+  const {
+    data: tasksResponse,
+    refetch: loadTasks,
+  } = useValidatedQuery({
+    queryKey: ['scheduling-tasks'],
+    queryFn: () => getTasks({ page: 1, pageSize: 20 }),
+    schema: z.object({
       data: z.array(SchedulingTaskSchema),
       total: z.number(),
     }),
-    {
-      errorMessage: '加载调度任务失败',
-      fallbackValue: { data: [], total: 0 },
-    }
-  );
+    apiErrorMessage: '加载调度任务失败',
+    fallbackValue: { data: [], total: 0 },
+    staleTime: 10 * 1000, // 任务状态变化快，10秒缓存
+  });
 
   const tasks = tasksResponse?.data || [];
-
-  /**
-   * 初始化加载
-   */
-  useEffect(() => {
-    executeLoadNodes();
-    executeLoadStrategies();
-    executeLoadTasks();
-  }, [executeLoadNodes, executeLoadStrategies, executeLoadTasks]);
 
   // ===== 节点操作 =====
 
@@ -190,7 +186,7 @@ export const useSchedulerDashboard = () => {
       }
 
       setNodeModalVisible(false);
-      executeLoadNodes();
+      loadNodes();
       // clusterStats 会自动重新加载
     } catch (error: any) {
       if (error.errorFields) {
@@ -198,7 +194,7 @@ export const useSchedulerDashboard = () => {
       }
       message.error(error.message || '操作失败');
     }
-  }, [editingNode, nodeForm, executeLoadNodes]);
+  }, [editingNode, nodeForm, loadNodes]);
 
   /**
    * 删除节点
@@ -208,13 +204,13 @@ export const useSchedulerDashboard = () => {
       try {
         await deleteNode(id);
         message.success('节点删除成功');
-        executeLoadNodes();
+        loadNodes();
         // clusterStats 会自动重新加载
-      } catch (error) {
+      } catch (_error) {
         message.error('删除失败');
       }
     },
-    [executeLoadNodes]
+    [loadNodes]
   );
 
   /**
@@ -225,12 +221,12 @@ export const useSchedulerDashboard = () => {
       try {
         await setNodeMaintenance(id, enable);
         message.success(`节点已${enable ? '进入' : '退出'}维护模式`);
-        executeLoadNodes();
-      } catch (error) {
+        loadNodes();
+      } catch (_error) {
         message.error('操作失败');
       }
     },
-    [executeLoadNodes]
+    [loadNodes]
   );
 
   /**
@@ -241,12 +237,12 @@ export const useSchedulerDashboard = () => {
       try {
         await drainNode(id);
         message.success('节点排空任务已提交');
-        executeLoadNodes();
-      } catch (error) {
+        loadNodes();
+      } catch (_error) {
         message.error('操作失败');
       }
     },
-    [executeLoadNodes]
+    [loadNodes]
   );
 
   /**
@@ -267,12 +263,12 @@ export const useSchedulerDashboard = () => {
       try {
         await setActiveStrategy(id);
         message.success('调度策略已激活');
-        executeLoadStrategies();
-      } catch (error) {
+        loadStrategies();
+      } catch (_error) {
         message.error('操作失败');
       }
     },
-    [executeLoadStrategies]
+    [loadStrategies]
   );
 
   return {
@@ -298,8 +294,8 @@ export const useSchedulerDashboard = () => {
     nodeForm,
 
     // 操作
-    loadNodes: executeLoadNodes,
-    loadTasks: executeLoadTasks,
+    loadNodes,
+    loadTasks,
     openNodeModal,
     handleNodeSubmit,
     handleDeleteNode,

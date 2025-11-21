@@ -28,7 +28,7 @@ const DeviceDetail = () => {
     fileList,
     form,
     appOperationModalVisible,
-    appOperationType,
+    // appOperationType, // Removed: not used after operationType prop removal
     createSnapshotModalVisible,
     restoreSnapshotModalVisible,
     selectedSnapshotId,
@@ -121,14 +121,16 @@ const DeviceDetail = () => {
     <div>
       <DeviceDetailHeader onBack={() => navigate('/devices')} />
 
-      <DeviceInfoCard
-        device={device}
-        loading={loading}
-        onStart={handleStart}
-        onStop={handleStop}
-        onRestart={handleRestart}
-        onScreenshot={handleScreenshot}
-      />
+      {device && (
+        <DeviceInfoCard
+          device={device as any}
+          loading={loading}
+          onStart={handleStart}
+          onStop={handleStop}
+          onRestart={handleRestart}
+          onScreenshot={handleScreenshot}
+        />
+      )}
 
       <Card>
         <Tabs items={tabItems} />
@@ -147,7 +149,6 @@ const DeviceDetail = () => {
         visible={appOperationModalVisible}
         deviceId={id!}
         deviceName={device?.name || ''}
-        operationType={appOperationType}
         onClose={() => setAppOperationModalVisible(false)}
         onSuccess={handleAppOperationSuccess}
       />

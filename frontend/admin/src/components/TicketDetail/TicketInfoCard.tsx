@@ -49,7 +49,7 @@ export const TicketInfoCard: React.FC<TicketInfoCardProps> = ({
   };
 
   const showActionButtons =
-    ticket.status !== 'closed' || ticket.status !== 'resolved';
+    ticket.status !== 'closed' && ticket.status !== 'resolved';
 
   return (
     <Card

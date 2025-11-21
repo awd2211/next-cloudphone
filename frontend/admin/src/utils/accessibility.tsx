@@ -124,7 +124,7 @@ export const ariaLabels = {
    * 生成模态框相关的 ARIA 属性
    */
   modal: {
-    dialog: (title: string) => {
+    dialog: (_title: string) => {
       const titleId = generateUniqueId('modal-title');
       const descId = generateUniqueId('modal-desc');
 

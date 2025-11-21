@@ -10,7 +10,7 @@ import {
 import dayjs from 'dayjs';
 
 interface NodeColumnHandlers {
-  onEdit: (node?: SchedulerNode) => void;
+  onEdit: (node: SchedulerNode) => void;
   onToggleMaintenance: (id: string, enable: boolean) => void;
   onDrain: (id: string) => void;
   onDelete: (id: string) => void;
@@ -129,14 +129,6 @@ export const createTaskColumns = (): ColumnsType<SchedulingTask> => [
     render: (id) => id.substring(0, 8),
   },
   {
-    title: '用户ID',
-    dataIndex: 'userId',
-    key: 'userId',
-    width: 100,
-    sorter: (a, b) => a.userId.localeCompare(b.userId),
-    render: (id) => id.substring(0, 8),
-  },
-  {
     title: '状态',
     dataIndex: 'status',
     key: 'status',
@@ -158,26 +150,29 @@ export const createTaskColumns = (): ColumnsType<SchedulingTask> => [
     dataIndex: 'nodeId',
     key: 'nodeId',
     width: 100,
-    sorter: (a, b) => (a.nodeId || '').localeCompare(b.nodeId || ''),
-    render: (id) => (id ? id.substring(0, 8) : '-'),
+    sorter: (a, b) => a.nodeId.localeCompare(b.nodeId),
+    render: (id) => id.substring(0, 8),
   },
   {
-    title: '资源需求',
-    key: 'requirements',
-    width: 200,
-    render: (_, record) => (
-      <div style={{ fontSize: '12px' }}>
-        <div>CPU: {record.requirements.cpuCores}核</div>
-        <div>内存: {(record.requirements.memoryMB / 1024).toFixed(1)}GB</div>
-      </div>
-    ),
+    title: '优先级',
+    dataIndex: 'priority',
+    key: 'priority',
+    width: 80,
+    sorter: (a, b) => a.priority - b.priority,
   },
   {
-    title: '请求时间',
-    dataIndex: 'requestedAt',
-    key: 'requestedAt',
+    title: '创建时间',
+    dataIndex: 'createdAt',
+    key: 'createdAt',
     width: 160,
-    sorter: (a, b) => new Date(a.requestedAt).getTime() - new Date(b.requestedAt).getTime(),
+    sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     render: (time) => dayjs(time).format('MM-DD HH:mm:ss'),
+  },
+  {
+    title: '开始时间',
+    dataIndex: 'startedAt',
+    key: 'startedAt',
+    width: 160,
+    render: (time) => (time ? dayjs(time).format('MM-DD HH:mm:ss') : '-'),
   },
 ];

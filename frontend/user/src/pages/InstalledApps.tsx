@@ -1,9 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { Card, Select, Empty, Alert, Space, Typography, Spin } from 'antd';
 import { MobileOutlined, AppstoreOutlined } from '@ant-design/icons';
-import { useInstalledApps } from '@/hooks/useInstalledApps';
+import { useInstalledApps, useUninstallApp, useBatchUninstallApps, useUpdateApp, useMyDevices } from '@/hooks/queries';
 import { InstalledAppList } from '@/components/App/InstalledAppList';
-import { useDeviceList } from '@/hooks/useDeviceList';
 
 const { Title, Text } = Typography;
 
@@ -18,29 +17,80 @@ const { Title, Text } = Typography;
  * 5. 更新应用
  */
 const InstalledApps: React.FC = () => {
-  const { devices } = useDeviceList();
+  // 本地状态
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [selectedAppIds, setSelectedAppIds] = useState<string[]>([]);
 
-  const {
-    apps,
-    loading,
-    stats,
-    selectedAppIds,
-    handleSelectApp,
-    handleSelectAll,
-    handleClearSelection,
-    handleUninstall,
-    handleBatchUninstall,
-    handleUpdate,
-    handleRefresh,
-  } = useInstalledApps(selectedDeviceId);
+  // React Query hooks
+  const { data: devicesData } = useMyDevices({ page: 1, pageSize: 100 });
+  const { data: installedAppsData, isLoading: loading, refetch } = useInstalledApps(selectedDeviceId!, {
+    enabled: !!selectedDeviceId,
+  });
+  const uninstallApp = useUninstallApp();
+  const batchUninstallApps = useBatchUninstallApps();
+  const updateApp = useUpdateApp();
 
-  const handleDeviceChange = useCallback((deviceId: string) => {
-    setSelectedDeviceId(deviceId);
-  }, []);
+  const devices = devicesData?.data || [];
+  const apps = installedAppsData?.apps || [];
+  const stats = installedAppsData?.stats || { total: 0, systemApps: 0, userApps: 0 };
 
   // 筛选运行中的设备
   const runningDevices = devices.filter((d) => d.status === 'running');
+
+  // 设备切换
+  const handleDeviceChange = useCallback((deviceId: string) => {
+    setSelectedDeviceId(deviceId);
+    setSelectedAppIds([]); // 清空选择
+  }, []);
+
+  // 选择应用
+  const handleSelectApp = useCallback((appId: string, checked: boolean) => {
+    setSelectedAppIds(prev =>
+      checked ? [...prev, appId] : prev.filter(id => id !== appId)
+    );
+  }, []);
+
+  // 全选/取消全选
+  const handleSelectAll = useCallback(() => {
+    setSelectedAppIds(prev =>
+      prev.length === apps.length ? [] : apps.map(app => app.id)
+    );
+  }, [apps]);
+
+  // 清空选择
+  const handleClearSelection = useCallback(() => {
+    setSelectedAppIds([]);
+  }, []);
+
+  // 卸载单个应用
+  const handleUninstall = useCallback(async (appId: string) => {
+    if (!selectedDeviceId) return;
+    await uninstallApp.mutateAsync({ deviceId: selectedDeviceId, appId });
+    refetch();
+  }, [selectedDeviceId, uninstallApp, refetch]);
+
+  // 批量卸载
+  const handleBatchUninstall = useCallback(async () => {
+    if (!selectedDeviceId || selectedAppIds.length === 0) return;
+    await batchUninstallApps.mutateAsync({
+      deviceId: selectedDeviceId,
+      appIds: selectedAppIds,
+    });
+    setSelectedAppIds([]);
+    refetch();
+  }, [selectedDeviceId, selectedAppIds, batchUninstallApps, refetch]);
+
+  // 更新应用
+  const handleUpdate = useCallback(async (appId: string) => {
+    if (!selectedDeviceId) return;
+    await updateApp.mutateAsync({ deviceId: selectedDeviceId, appId });
+    refetch();
+  }, [selectedDeviceId, updateApp, refetch]);
+
+  // 刷新列表
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   return (
     <div style={{ padding: '24px' }}>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Form, message } from 'antd';
 import { z } from 'zod';
 import {
@@ -21,7 +21,7 @@ import type {
   UpdateNotificationTemplateDto,
   PaginationParams,
 } from '@/types';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   NotificationTemplateSchema,
   NotificationTemplateVersionSchema,
@@ -62,17 +62,18 @@ export const useNotificationTemplateEditor = () => {
   const [testForm] = Form.useForm();
   const [previewForm] = Form.useForm();
 
-  // ===== 数据加载 (使用 useSafeApi) =====
+  // ===== 数据加载 (使用 useValidatedQuery) =====
 
   /**
    * 加载模板列表
    */
   const {
     data: templatesResponse,
-    loading,
-    execute: executeLoadTemplates,
-  } = useSafeApi(
-    () => {
+    isLoading: loading,
+    refetch: loadTemplates,
+  } = useValidatedQuery({
+    queryKey: ['notification-templates', page, pageSize, filterType, filterActive],
+    queryFn: () => {
       const params: PaginationParams & { type?: string; isActive?: boolean } = {
         page,
         pageSize,
@@ -81,12 +82,11 @@ export const useNotificationTemplateEditor = () => {
       if (filterActive !== undefined) params.isActive = filterActive;
       return getNotificationTemplates(params);
     },
-    PaginatedNotificationTemplatesResponseSchema,
-    {
-      errorMessage: '加载模板失败',
-      fallbackValue: { data: [], total: 0 },
-    }
-  );
+    schema: PaginatedNotificationTemplatesResponseSchema,
+    apiErrorMessage: '加载模板失败',
+    fallbackValue: { data: [], total: 0 },
+    staleTime: 30 * 1000,
+  });
 
   const templates = templatesResponse?.data || [];
   const total = templatesResponse?.total || 0;
@@ -96,40 +96,33 @@ export const useNotificationTemplateEditor = () => {
    */
   const {
     data: availableVariables,
-    execute: executeLoadVariables,
-  } = useSafeApi(
-    (type?: string) => getAvailableVariables(type),
-    z.array(z.string()),
-    {
-      errorMessage: '加载变量失败',
-      fallbackValue: [],
-      showError: false,
-      manual: true,
-    }
-  );
+    refetch: loadVariables,
+  } = useValidatedQuery({
+    queryKey: ['notification-variables'],
+    queryFn: () => getAvailableVariables(),
+    schema: z.array(z.string()),
+    apiErrorMessage: '加载变量失败',
+    fallbackValue: [],
+    staleTime: 60 * 1000, // 变量不常变化，缓存1分钟
+  });
 
   /**
    * 加载版本历史
    */
   const {
     data: versions,
-    execute: executeLoadVersions,
-  } = useSafeApi(
-    (templateId: string) => getTemplateVersions(templateId),
-    z.array(NotificationTemplateVersionSchema),
-    {
-      errorMessage: '加载版本历史失败',
-      fallbackValue: [],
-      manual: true,
-    }
-  );
-
-  /**
-   * 初始化加载
-   */
-  useEffect(() => {
-    executeLoadVariables();
-  }, [executeLoadVariables]);
+    refetch: executeLoadVersions,
+  } = useValidatedQuery({
+    queryKey: ['template-versions'],
+    queryFn: ({ queryKey }) => {
+      const [, templateId] = queryKey as [string, string];
+      return getTemplateVersions(templateId);
+    },
+    schema: z.array(NotificationTemplateVersionSchema),
+    apiErrorMessage: '加载版本历史失败',
+    fallbackValue: [],
+    enabled: false, // 手动触发
+  });
 
   // ===== 模板操作 =====
 
@@ -151,7 +144,7 @@ export const useNotificationTemplateEditor = () => {
           language: template.language,
           category: template.category,
         });
-        executeLoadVariables(template.type);
+        loadVariables();
       } else {
         setEditingTemplate(null);
         form.resetFields();
@@ -159,7 +152,7 @@ export const useNotificationTemplateEditor = () => {
       }
       setModalVisible(true);
     },
-    [form, executeLoadVariables]
+    [form, loadVariables]
   );
 
   /**
@@ -198,14 +191,14 @@ export const useNotificationTemplateEditor = () => {
       }
 
       setModalVisible(false);
-      executeLoadTemplates();
+      loadTemplates();
     } catch (error: any) {
       if (error.errorFields) {
         return;
       }
       message.error(error.message || '操作失败');
     }
-  }, [form, editingTemplate, executeLoadTemplates]);
+  }, [form, editingTemplate, loadTemplates]);
 
   /**
    * 删除模板
@@ -215,12 +208,12 @@ export const useNotificationTemplateEditor = () => {
       try {
         await deleteNotificationTemplate(id);
         message.success('模板删除成功');
-        executeLoadTemplates();
-      } catch (error) {
+        loadTemplates();
+      } catch (_error) {
         message.error('删除失败');
       }
     },
-    [executeLoadTemplates]
+    [loadTemplates]
   );
 
   /**
@@ -231,12 +224,12 @@ export const useNotificationTemplateEditor = () => {
       try {
         await toggleNotificationTemplate(id, isActive);
         message.success(`模板已${isActive ? '激活' : '停用'}`);
-        executeLoadTemplates();
-      } catch (error) {
+        loadTemplates();
+      } catch (_error) {
         message.error('操作失败');
       }
     },
-    [executeLoadTemplates]
+    [loadTemplates]
   );
 
   /**
@@ -265,10 +258,10 @@ export const useNotificationTemplateEditor = () => {
         }
       });
 
-      const result = await previewTemplate(selectedTemplate!.id, variables);
+      const result = await previewTemplate(selectedTemplate!.id, variables) as any;
       setPreviewContent(result.rendered || result.content);
       message.success('预览生成成功');
-    } catch (error) {
+    } catch (_error) {
       message.error('预览失败');
     }
   }, [previewForm, selectedTemplate]);
@@ -318,7 +311,7 @@ export const useNotificationTemplateEditor = () => {
   const openVersionHistory = useCallback(async (template: z.infer<typeof NotificationTemplateSchema>) => {
     setSelectedTemplate(template);
     setVersionDrawerVisible(true);
-    await executeLoadVersions(template.id);
+    await executeLoadVersions();
   }, [executeLoadVersions]);
 
   /**
@@ -330,12 +323,12 @@ export const useNotificationTemplateEditor = () => {
         await revertTemplateVersion(selectedTemplate!.id, versionId);
         message.success('版本回滚成功');
         setVersionDrawerVisible(false);
-        executeLoadTemplates();
-      } catch (error) {
+        loadTemplates();
+      } catch (_error) {
         message.error('回滚失败');
       }
     },
-    [selectedTemplate, executeLoadTemplates]
+    [selectedTemplate, loadTemplates]
   );
 
   /**
@@ -406,7 +399,7 @@ export const useNotificationTemplateEditor = () => {
     handleTest,
     openVersionHistory,
     handleRevert,
-    loadVariables: executeLoadVariables,
+    loadVariables,
     handlePageChange,
 
     // 状态设置

@@ -162,7 +162,7 @@ export const useFilterStateWithShare = <T extends Record<string, any>>(
     try {
       await navigator.clipboard.writeText(url);
       return true;
-    } catch (error) {
+    } catch (_error) {
       console.error('Failed to copy URL:', error);
       return false;
     }

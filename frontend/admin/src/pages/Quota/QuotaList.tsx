@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { Card, Button, Space, Tooltip } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
@@ -12,7 +12,7 @@ import {
 } from '@/components/Quota';
 import QuotaRealTimeMonitor from '@/components/Quota/QuotaRealTimeMonitor';
 import { useQuotaList } from '@/hooks/useQuotaList';
-import { useQuotaDetail } from '@/hooks/useQuotaDetail';
+import { useQuotaStatistics } from '@/hooks/queries/useQuotas';
 import { createQuotaColumns } from './columns';
 
 const QuotaList: React.FC = () => {
@@ -38,14 +38,25 @@ const QuotaList: React.FC = () => {
     setEditModalVisible,
   } = useQuotaList();
 
-  // 配额详情查看
-  const {
-    detailDrawerVisible,
-    selectedQuota,
-    statistics,
-    handleViewDetail,
-    handleCloseDetail,
-  } = useQuotaDetail();
+  // ✅ UI 状态管理（本地状态）
+  const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
+  const [selectedQuota, setSelectedQuota] = useState<Quota | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+
+  // ✅ 数据获取（React Query）
+  const { data: statistics } = useQuotaStatistics(selectedUserId);
+
+  // ✅ 查看配额详情
+  const handleViewDetail = useCallback((record: Quota) => {
+    setSelectedQuota(record);
+    setSelectedUserId(record.userId);
+    setDetailDrawerVisible(true);
+  }, []);
+
+  // ✅ 关闭详情抽屉
+  const handleCloseDetail = useCallback(() => {
+    setDetailDrawerVisible(false);
+  }, []);
 
   // 表格列配置
   const columns = useMemo(
@@ -135,7 +146,7 @@ const QuotaList: React.FC = () => {
       <QuotaDetailDrawer
         visible={detailDrawerVisible}
         quota={selectedQuota}
-        statistics={statistics}
+        statistics={statistics as any}
         onClose={handleCloseDetail}
       />
     </div>

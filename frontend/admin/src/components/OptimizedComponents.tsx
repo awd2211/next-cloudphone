@@ -267,7 +267,7 @@ export const InfiniteScroll = memo(
 
       const observer = new IntersectionObserver(
         (entries) => {
-          if (entries[0].isIntersecting) {
+          if (entries[0]?.isIntersecting) {
             loadMore();
           }
         },
@@ -354,9 +354,11 @@ export const VisibilityToggle = memo(
     useEffect(() => {
       if (visible) {
         setShouldRender(true);
+        return undefined;
       } else if (unmountOnHide) {
         // 立即卸载
         setShouldRender(false);
+        return undefined;
       } else {
         // 延迟卸载以完成动画
         const timer = setTimeout(() => {

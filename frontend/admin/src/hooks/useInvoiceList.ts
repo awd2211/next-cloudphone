@@ -74,7 +74,7 @@ export const useInvoiceList = () => {
       });
 
       // 创建 Blob 对象
-      const blob = new Blob([response], { type: 'application/pdf' });
+      const blob = new Blob([response as any], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
 
       // 创建下载链接
@@ -89,7 +89,7 @@ export const useInvoiceList = () => {
       window.URL.revokeObjectURL(url);
 
       message.success('发票下载成功');
-    } catch (error) {
+    } catch (_error) {
       message.error('发票下载失败');
       console.error('Failed to download invoice:', error);
     }

@@ -10,7 +10,7 @@ export const getTypeTag = (type: string) => {
     websocket: { color: 'orange', text: '站内' },
   };
   const config = map[type] || map.email;
-  return <Tag color={config.color}>{config.text}</Tag>;
+  return <Tag color={config?.color}>{config?.text}</Tag>;
 };
 
 /**
@@ -23,7 +23,7 @@ export const getContentTypeTag = (type: string) => {
     markdown: { color: 'green', text: 'Markdown' },
   };
   const config = map[type] || map.plain;
-  return <Tag color={config.color}>{config.text}</Tag>;
+  return <Tag color={config?.color}>{config?.text}</Tag>;
 };
 
 /**

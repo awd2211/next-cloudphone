@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThan } from 'typeorm';
 import { CronExpression } from '@nestjs/schedule';
 import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
-import { Order, OrderStatus } from './entities/order.entity';
+import { Order, OrderStatus, PaymentMethod } from './entities/order.entity';
 import { Plan } from './entities/plan.entity';
 import { UsageRecord, UsageType } from './entities/usage-record.entity';
 import { PurchasePlanSagaV2 } from '../sagas/purchase-plan-v2.saga';
@@ -228,6 +228,168 @@ export class BillingService {
     order.cancelReason = reason || '用户主动取消';
 
     return this.orderRepository.save(order);
+  }
+
+  /**
+   * 确认订单
+   * 管理员手动确认订单支付完成
+   */
+  async confirmOrder(
+    orderId: string,
+    confirmData: { paymentMethod?: string; transactionId?: string; note?: string }
+  ): Promise<Order> {
+    const order = await this.getOrder(orderId);
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException(`只能确认待支付的订单，当前状态: ${order.status}`);
+    }
+
+    // 更新订单状态为已完成
+    order.status = OrderStatus.COMPLETED;
+    order.paidAt = new Date();
+
+    // 如果提供了支付方式，验证并更新到订单
+    if (confirmData.paymentMethod) {
+      // 验证是否为有效的支付方式
+      const validMethods = Object.values(PaymentMethod);
+      if (validMethods.includes(confirmData.paymentMethod as PaymentMethod)) {
+        order.paymentMethod = confirmData.paymentMethod as PaymentMethod;
+      }
+    }
+
+    const updatedOrder = await this.orderRepository.save(order);
+
+    this.logger.log(
+      `订单已确认 - 订单ID: ${orderId}, 金额: ${order.amount}, ` +
+      `支付方式: ${confirmData.paymentMethod || order.paymentMethod}, 管理员操作`
+    );
+
+    return updatedOrder;
+  }
+
+  /**
+   * 获取订单统计
+   */
+  async getOrderStats(params: { tenantId?: string; startDate?: string; endDate?: string }) {
+    const { tenantId, startDate, endDate } = params;
+
+    // 构建查询条件
+    const queryBuilder = this.orderRepository.createQueryBuilder('order');
+
+    if (tenantId) {
+      queryBuilder.andWhere('order.tenantId = :tenantId', { tenantId });
+    }
+
+    if (startDate) {
+      queryBuilder.andWhere('order.createdAt >= :startDate', { startDate: new Date(startDate) });
+    }
+
+    if (endDate) {
+      queryBuilder.andWhere('order.createdAt <= :endDate', { endDate: new Date(endDate + ' 23:59:59') });
+    }
+
+    // 总订单数
+    const totalOrders = await queryBuilder.getCount();
+
+    // 按状态统计
+    const byStatus = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('order.status', 'status')
+      .addSelect('COUNT(order.id)', 'count')
+      .addSelect('SUM(order.amount)', 'totalAmount')
+      .where(tenantId ? 'order.tenantId = :tenantId' : '1=1', tenantId ? { tenantId } : {})
+      .andWhere(startDate ? 'order.createdAt >= :startDate' : '1=1', startDate ? { startDate: new Date(startDate) } : {})
+      .andWhere(endDate ? 'order.createdAt <= :endDate' : '1=1', endDate ? { endDate: new Date(endDate + ' 23:59:59') } : {})
+      .groupBy('order.status')
+      .getRawMany();
+
+    // 总收入（仅已支付订单）
+    const revenue = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('SUM(order.amount)', 'total')
+      .where('order.status = :status', { status: OrderStatus.PAID })
+      .andWhere(tenantId ? 'order.tenantId = :tenantId' : '1=1', tenantId ? { tenantId } : {})
+      .andWhere(startDate ? 'order.createdAt >= :startDate' : '1=1', startDate ? { startDate: new Date(startDate) } : {})
+      .andWhere(endDate ? 'order.createdAt <= :endDate' : '1=1', endDate ? { endDate: new Date(endDate + ' 23:59:59') } : {})
+      .getRawOne();
+
+    return {
+      totalOrders,
+      byStatus: byStatus.map(item => ({
+        status: item.status,
+        count: parseInt(item.count),
+        totalAmount: parseFloat(item.totalAmount) || 0,
+      })),
+      totalRevenue: parseFloat(revenue.total) || 0,
+    };
+  }
+
+  /**
+   * 更新订单
+   */
+  async updateOrder(orderId: string, data: { remark?: string; metadata?: any }): Promise<Order> {
+    const order = await this.getOrder(orderId);
+
+    if (data.remark !== undefined) {
+      order.remark = data.remark;
+    }
+
+    if (data.metadata !== undefined) {
+      order.metadata = { ...order.metadata, ...data.metadata };
+    }
+
+    return this.orderRepository.save(order);
+  }
+
+  /**
+   * 删除订单（软删除）
+   */
+  async deleteOrder(orderId: string): Promise<void> {
+    const order = await this.getOrder(orderId);
+
+    // 只允许删除已取消或超时的订单
+    if (order.status !== OrderStatus.CANCELLED) {
+      throw new BadRequestException(`只能删除已取消的订单，当前状态: ${order.status}`);
+    }
+
+    // 软删除
+    await this.orderRepository.softDelete(orderId);
+  }
+
+  /**
+   * 订单退款
+   */
+  async refundOrder(orderId: string, amount: number, reason?: string) {
+    const order = await this.getOrder(orderId);
+
+    // 检查订单状态
+    if (order.status !== OrderStatus.PAID) {
+      throw new BadRequestException(`只能为已支付订单退款，当前状态: ${order.status}`);
+    }
+
+    // 检查退款金额
+    if (amount <= 0 || amount > order.amount) {
+      throw new BadRequestException(`退款金额必须大于 0 且不能超过订单金额 ${order.amount}`);
+    }
+
+    // 更新订单状态
+    order.status = OrderStatus.REFUNDED;
+    order.refundedAt = new Date();
+    order.refundAmount = amount;
+    order.refundReason = reason || '用户申请退款';
+
+    const updatedOrder = await this.orderRepository.save(order);
+
+    this.logger.log(`Refunded order ${order.orderNumber}: ${amount} CNY`);
+
+    // TODO: 实际的退款逻辑应该调用支付服务或余额服务
+    // 这里仅标记订单为已退款状态，实际退款需要集成支付网关或余额系统
+
+    return {
+      order: updatedOrder,
+      refundedAmount: amount,
+      refundedAt: updatedOrder.refundedAt,
+    };
   }
 
   /**

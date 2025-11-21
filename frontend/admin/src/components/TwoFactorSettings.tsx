@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal, Button, Steps, Input, message, Card, Alert, Space } from 'antd';
 import { SafetyOutlined, QrcodeOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { generate2FASecret, enable2FA, disable2FA } from '@/services/twoFactor';
-import { useSafeApi } from '@/hooks/useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { TwoFactorSecretSchema } from '@/schemas/api.schemas';
 
 interface TwoFactorSettingsProps {
@@ -16,16 +16,20 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
   const [verificationCode, setVerificationCode] = useState('');
   const [disableModalVisible, setDisableModalVisible] = useState(false);
   const [disableCode, setDisableCode] = useState('');
+  const [disableLoading, setDisableLoading] = useState(false);
 
-  // ✅ 使用 useSafeApi 生成2FA密钥
+  // ✅ 使用 useValidatedQuery 生成2FA密钥
   const {
     data: secret,
-    loading,
-    execute: executeGenerateSecret,
-  } = useSafeApi(generate2FASecret, TwoFactorSecretSchema, {
-    errorMessage: '生成2FA密钥失败',
+    isLoading: loading,
+    refetch: executeGenerateSecret,
+  } = useValidatedQuery({
+    queryKey: ['2fa-secret'],
+    queryFn: generate2FASecret,
+    schema: TwoFactorSecretSchema,
+    apiErrorMessage: '生成2FA密钥失败',
     fallbackValue: null,
-    manual: true,
+    enabled: false, // 手动触发，不自动执行
   });
 
   // 启用2FA流程
@@ -36,7 +40,7 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
     try {
       await executeGenerateSecret();
       setCurrentStep(1);
-    } catch (error) {
+    } catch (_error) {
       setModalVisible(false);
     }
   };
@@ -70,7 +74,7 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
       return;
     }
 
-    setLoading(true);
+    setDisableLoading(true);
     try {
       await disable2FA({ token: disableCode });
       message.success('双因素认证已禁用');
@@ -80,7 +84,7 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
     } catch (error: any) {
       message.error(error.response?.data?.message || '验证码错误，请重试');
     } finally {
-      setLoading(false);
+      setDisableLoading(false);
     }
   };
 
@@ -125,7 +129,6 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
         onCancel={() => {
           setModalVisible(false);
           setVerificationCode('');
-          setSecret(null);
           setCurrentStep(0);
         }}
         footer={null}
@@ -225,7 +228,7 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
         onOk={handleDisable}
         okText="确认禁用"
         cancelText="取消"
-        okButtonProps={{ danger: true, loading }}
+        okButtonProps={{ danger: true, loading: disableLoading }}
       >
         <Alert
           message="警告"

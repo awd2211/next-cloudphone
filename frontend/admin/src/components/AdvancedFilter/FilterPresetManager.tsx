@@ -4,10 +4,10 @@
  * 提供保存、加载、删除筛选方案的 UI
  */
 
-import { memo, useState } from 'react';
+import React, { memo, useState } from 'react';
 import {
   Button,
-  Dropdown,
+
   Modal,
   Input,
   List,
@@ -24,14 +24,13 @@ import {
   StarOutlined,
   StarFilled,
   DeleteOutlined,
-  EditOutlined,
+
   DownloadOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
 import type { FilterPreset } from '@/hooks/useFilterPresets';
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 const { TextArea } = Input;
 
 export interface FilterPresetManagerProps<T = Record<string, any>> {
@@ -168,7 +167,7 @@ export const FilterPresetManager = memo(
         URL.revokeObjectURL(url);
 
         message.success(`已导出 ${presets.length} 个筛选方案`);
-      } catch (error) {
+      } catch (_error) {
         message.error('导出失败,请重试');
         console.error('Export error:', error);
       }
@@ -208,7 +207,7 @@ export const FilterPresetManager = memo(
           } else {
             message.warning('导入功能未启用');
           }
-        } catch (error) {
+        } catch (_error) {
           message.error('导入失败,请检查文件格式');
           console.error('Import error:', error);
         }
@@ -364,6 +363,7 @@ export const FilterPresetManager = memo(
   }
 ) as <T extends Record<string, any> = Record<string, any>>(
   props: FilterPresetManagerProps<T>
-) => JSX.Element;
+) => React.ReactElement;
 
-FilterPresetManager.displayName = 'FilterPresetManager';
+// Display name for React DevTools
+(FilterPresetManager as any).displayName = 'FilterPresetManager';

@@ -399,6 +399,68 @@ export class MeteringService {
   }
 
   /**
+   * 获取平台整体计量统计
+   */
+  async getMeteringStats(startDate?: Date, endDate?: Date): Promise<any> {
+    const whereClause: any = {};
+
+    if (startDate && endDate) {
+      whereClause.startTime = Between(startDate, endDate);
+    } else if (startDate) {
+      whereClause.startTime = MoreThan(startDate);
+    }
+
+    const records = await this.usageRecordRepository.find({
+      where: whereClause,
+      order: { startTime: 'DESC' },
+    });
+
+    // 总体统计
+    let totalDuration = 0;
+    let totalCost = 0;
+    const uniqueUsers = new Set<string>();
+    const uniqueDevices = new Set<string>();
+    const uniqueTenants = new Set<string>();
+
+    records.forEach((record) => {
+      totalDuration += record.durationSeconds;
+      totalCost += Number(record.cost || 0);
+      uniqueUsers.add(record.userId);
+      uniqueDevices.add(record.deviceId);
+      if (record.tenantId) {
+        uniqueTenants.add(record.tenantId);
+      }
+    });
+
+    // 按状态统计
+    const activeRecords = records.filter(r => r.endTime === null).length;
+    const completedRecords = records.filter(r => r.endTime !== null).length;
+
+    // 平均值计算
+    const avgDuration = records.length > 0 ? totalDuration / records.length : 0;
+    const avgCost = records.length > 0 ? totalCost / records.length : 0;
+
+    return {
+      totalRecords: records.length,
+      activeRecords,
+      completedRecords,
+      totalUsers: uniqueUsers.size,
+      totalDevices: uniqueDevices.size,
+      totalTenants: uniqueTenants.size,
+      totalDuration,
+      totalDurationHours: (totalDuration / 3600).toFixed(2),
+      totalCost: totalCost.toFixed(2),
+      avgDuration,
+      avgDurationHours: (avgDuration / 3600).toFixed(2),
+      avgCost: avgCost.toFixed(2),
+      dateRange: {
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+      },
+    };
+  }
+
+  /**
    * 计算使用时长（秒）
    */
   private calculateDuration(lastActiveAt: string | Date): number {
@@ -525,6 +587,233 @@ export class MeteringService {
       resolution: device.resolution || undefined,
       dpi: device.dpi || undefined,
       cloudConfig: device.providerConfig || device.cloudConfig,
+    };
+  }
+
+  /**
+   * 获取计量概览
+   */
+  async getOverview(startDate?: Date, endDate?: Date): Promise<any> {
+    const stats = await this.getMeteringStats(startDate, endDate);
+
+    return {
+      summary: {
+        totalRecords: stats.totalRecords,
+        totalUsers: stats.totalUsers,
+        totalDevices: stats.totalDevices,
+        totalCost: stats.totalCost,
+      },
+      usage: {
+        totalDuration: stats.totalDuration,
+        totalDurationHours: stats.totalDurationHours,
+        avgDurationPerDevice: stats.avgDurationPerDevice,
+        avgCostPerDevice: stats.avgCostPerDevice,
+      },
+      period: {
+        startDate: startDate?.toISOString() || null,
+        endDate: endDate?.toISOString() || null,
+      },
+    };
+  }
+
+  /**
+   * 获取所有用户计量统计
+   */
+  async getAllUsersStats(
+    startDate?: Date,
+    endDate?: Date,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ data: any[]; total: number; page: number; limit: number }> {
+    const whereClause: any = {};
+    if (startDate && endDate) {
+      whereClause.startTime = Between(startDate, endDate);
+    }
+
+    // 按用户分组聚合
+    const query = this.usageRecordRepository
+      .createQueryBuilder('record')
+      .select('record.userId', 'userId')
+      .addSelect('COUNT(record.id)', 'recordCount')
+      .addSelect('SUM(record.durationSeconds)', 'totalDuration')
+      .addSelect('SUM(record.cost)', 'totalCost')
+      .addSelect('COUNT(DISTINCT record.deviceId)', 'deviceCount')
+      .groupBy('record.userId')
+      .orderBy('SUM(record.cost)', 'DESC');
+
+    if (startDate && endDate) {
+      query.where('record.startTime >= :startDate AND record.startTime <= :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+
+    const total = await query.getCount();
+    query.offset((page - 1) * limit).limit(limit);
+
+    const rawData = await query.getRawMany();
+
+    const data = rawData.map((row) => ({
+      userId: row.userId,
+      recordCount: parseInt(row.recordCount),
+      totalDuration: parseInt(row.totalDuration),
+      totalDurationHours: (parseInt(row.totalDuration) / 3600).toFixed(2),
+      totalCost: parseFloat(row.totalCost || '0').toFixed(2),
+      deviceCount: parseInt(row.deviceCount),
+    }));
+
+    return { data, total, page, limit };
+  }
+
+  /**
+   * 获取所有设备计量统计
+   */
+  async getAllDevicesStats(
+    startDate?: Date,
+    endDate?: Date,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ data: any[]; total: number; page: number; limit: number }> {
+    const query = this.usageRecordRepository
+      .createQueryBuilder('record')
+      .select('record.deviceId', 'deviceId')
+      .addSelect('record.userId', 'userId')
+      .addSelect('COUNT(record.id)', 'recordCount')
+      .addSelect('SUM(record.durationSeconds)', 'totalDuration')
+      .addSelect('SUM(record.cost)', 'totalCost')
+      .groupBy('record.deviceId')
+      .addGroupBy('record.userId')
+      .orderBy('SUM(record.durationSeconds)', 'DESC');
+
+    if (startDate && endDate) {
+      query.where('record.startTime >= :startDate AND record.startTime <= :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+
+    const total = await query.getCount();
+    query.offset((page - 1) * limit).limit(limit);
+
+    const rawData = await query.getRawMany();
+
+    const data = rawData.map((row) => ({
+      deviceId: row.deviceId,
+      userId: row.userId,
+      recordCount: parseInt(row.recordCount),
+      totalDuration: parseInt(row.totalDuration),
+      totalDurationHours: (parseInt(row.totalDuration) / 3600).toFixed(2),
+      totalCost: parseFloat(row.totalCost || '0').toFixed(2),
+    }));
+
+    return { data, total, page, limit };
+  }
+
+  /**
+   * 获取计量趋势分析
+   */
+  async getTrend(
+    startDate?: Date,
+    endDate?: Date,
+    interval: 'hour' | 'day' | 'week' | 'month' = 'day'
+  ): Promise<any> {
+    const start = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 默认30天
+    const end = endDate || new Date();
+
+    // 根据间隔确定日期分组格式
+    let dateFormat: string;
+    switch (interval) {
+      case 'hour':
+        dateFormat = '%Y-%m-%d %H:00:00';
+        break;
+      case 'day':
+        dateFormat = '%Y-%m-%d';
+        break;
+      case 'week':
+        dateFormat = '%Y-%u';
+        break;
+      case 'month':
+        dateFormat = '%Y-%m';
+        break;
+      default:
+        dateFormat = '%Y-%m-%d';
+    }
+
+    const query = this.usageRecordRepository
+      .createQueryBuilder('record')
+      .select(`DATE_FORMAT(record.startTime, '${dateFormat}')`, 'period')
+      .addSelect('COUNT(record.id)', 'recordCount')
+      .addSelect('SUM(record.durationSeconds)', 'totalDuration')
+      .addSelect('SUM(record.cost)', 'totalCost')
+      .addSelect('COUNT(DISTINCT record.userId)', 'userCount')
+      .addSelect('COUNT(DISTINCT record.deviceId)', 'deviceCount')
+      .where('record.startTime >= :start AND record.startTime <= :end', { start, end })
+      .groupBy('period')
+      .orderBy('period', 'ASC');
+
+    const rawData = await query.getRawMany();
+
+    const data = rawData.map((row) => ({
+      period: row.period,
+      recordCount: parseInt(row.recordCount),
+      totalDuration: parseInt(row.totalDuration),
+      totalDurationHours: (parseInt(row.totalDuration) / 3600).toFixed(2),
+      totalCost: parseFloat(row.totalCost || '0').toFixed(2),
+      userCount: parseInt(row.userCount),
+      deviceCount: parseInt(row.deviceCount),
+    }));
+
+    return {
+      interval,
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      data,
+    };
+  }
+
+  /**
+   * 获取资源分析
+   */
+  async getResourceAnalysis(startDate?: Date, endDate?: Date): Promise<any> {
+    const whereClause: any = {};
+    if (startDate && endDate) {
+      whereClause.startTime = Between(startDate, endDate);
+    }
+
+    const records = await this.usageRecordRepository.find({
+      where: whereClause,
+      order: { startTime: 'DESC' },
+    });
+
+    // 资源类型分布
+    const resourceTypeDistribution: Record<string, number> = {};
+    // CPU 核心分布
+    const cpuDistribution: Record<number, number> = {};
+    // 内存分布
+    const memoryDistribution: Record<number, number> = {};
+
+    records.forEach((record) => {
+      const resourceType = record.usageType || 'device_usage';
+      resourceTypeDistribution[resourceType] = (resourceTypeDistribution[resourceType] || 0) + 1;
+
+      if (record.deviceConfig) {
+        const cpuCores = record.deviceConfig.cpuCores || 2;
+        const memoryMB = record.deviceConfig.memoryMB || 2048;
+
+        cpuDistribution[cpuCores] = (cpuDistribution[cpuCores] || 0) + 1;
+        memoryDistribution[memoryMB] = (memoryDistribution[memoryMB] || 0) + 1;
+      }
+    });
+
+    return {
+      totalRecords: records.length,
+      resourceTypeDistribution,
+      cpuDistribution,
+      memoryDistribution,
+      period: {
+        startDate: startDate?.toISOString() || null,
+        endDate: endDate?.toISOString() || null,
+      },
     };
   }
 }

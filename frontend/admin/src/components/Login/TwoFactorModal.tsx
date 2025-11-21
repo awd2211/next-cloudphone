@@ -1,7 +1,7 @@
 import { Modal, Input } from 'antd';
 import { SafetyOutlined } from '@ant-design/icons';
 import { memo, useCallback } from 'react';
-import { ErrorInfoAlert, type ErrorInfo } from '@/components/ErrorAlert';
+import { ErrorAlert, type ErrorInfo } from '@/components/ErrorAlert';
 
 interface TwoFactorModalProps {
   visible: boolean;

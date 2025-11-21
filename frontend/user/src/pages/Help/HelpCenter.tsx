@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Divider, Spin } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -11,47 +12,90 @@ import {
   FAQSection,
   HelpFooter,
 } from '@/components/Help';
-import { useHelpCenter } from '@/hooks/useHelpCenter';
+import {
+  useHelpCategories,
+  usePopularArticles,
+  useLatestArticles,
+  useFAQs,
+} from '@/hooks/queries';
+import { quickLinks } from '@/utils/helpConfig';
 
 // Dayjs 配置
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
 /**
- * 帮助中心页面（优化版）
+ * 帮助中心页面
  *
- * 优化点：
- * 1. ✅ 使用自定义 hook 管理所有业务逻辑
- * 2. ✅ 页面组件只负责布局和 UI 组合
- * 3. ✅ 所有子组件使用 React.memo 优化
- * 4. ✅ 导航函数使用 useCallback 优化
- * 5. ✅ 代码从 465 行减少到 ~60 行
+ * 功能：
+ * 1. 展示帮助分类、热门文章、最新文章、常见问题
+ * 2. 搜索功能
+ * 3. 快速入口导航
+ * 4. 支持跳转到文章详情、FAQ 详情、工单等
  */
 const HelpCenter: React.FC = () => {
-  const {
-    loading,
-    categories,
-    popularArticles,
-    latestArticles,
-    popularFAQs,
-    searchKeyword,
-    quickLinks,
-    handleSearch,
-    handleSearchChange,
-    goToCategory,
-    goToArticle,
-    goToFAQ,
-    navigateTo,
-    goToTickets,
-    goToFAQList,
-    goToArticles,
-  } = useHelpCenter();
+  const navigate = useNavigate();
+
+  // 本地状态
+  const [searchKeyword, setSearchKeyword] = useState('');
+
+  // React Query hooks - 并行查询
+  const { data: categories = [], isLoading: loadingCategories } = useHelpCategories();
+  const { data: popularArticles = [], isLoading: loadingPopular } = usePopularArticles(6);
+  const { data: latestArticles = [], isLoading: loadingLatest } = useLatestArticles(6);
+  const { data: faqsData, isLoading: loadingFAQs } = useFAQs({ page: 1, pageSize: 5 });
+
+  const popularFAQs = faqsData?.items || [];
+  const loading = loadingCategories || loadingPopular || loadingLatest || loadingFAQs;
+
+  // 配置数据（静态）
+  const cachedQuickLinks = useMemo(() => quickLinks, []);
+
+  // 搜索处理
+  const handleSearch = useCallback((value: string) => {
+    if (value.trim()) {
+      navigate(`/help/search?q=${encodeURIComponent(value.trim())}`);
+    }
+  }, [navigate]);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchKeyword(value);
+  }, []);
+
+  // 导航函数
+  const goToCategory = useCallback((categoryId: string) => {
+    navigate(`/help/articles?category=${categoryId}`);
+  }, [navigate]);
+
+  const goToArticle = useCallback((articleId: string) => {
+    navigate(`/help/articles/${articleId}`);
+  }, [navigate]);
+
+  const goToFAQ = useCallback((faqId: string) => {
+    navigate(`/help/faqs/${faqId}`);
+  }, [navigate]);
+
+  const navigateTo = useCallback((path: string) => {
+    navigate(path);
+  }, [navigate]);
+
+  const goToTickets = useCallback(() => {
+    navigate('/tickets');
+  }, [navigate]);
+
+  const goToFAQList = useCallback(() => {
+    navigate('/help/faqs');
+  }, [navigate]);
+
+  const goToArticles = useCallback(() => {
+    navigate('/help/articles');
+  }, [navigate]);
 
   // 加载中状态
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" />
+        <Spin size="large" tip="加载帮助中心数据..." />
       </div>
     );
   }
@@ -67,7 +111,7 @@ const HelpCenter: React.FC = () => {
 
       {/* 快速入口 */}
       <QuickLinksGrid
-        quickLinks={quickLinks}
+        quickLinks={cachedQuickLinks}
         onLinkClick={navigateTo}
       />
 

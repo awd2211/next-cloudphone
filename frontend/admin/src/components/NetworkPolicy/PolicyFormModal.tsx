@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, Form, Input, Select, InputNumber, Switch, Row, Col } from 'antd';
 import type { FormInstance } from 'antd';
-import type { NetworkPolicy, PolicyFormValues } from './types';
+import type { NetworkPolicy } from './types';
 import {
   DIRECTION_OPTIONS,
   PROTOCOL_OPTIONS,

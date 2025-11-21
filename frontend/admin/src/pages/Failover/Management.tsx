@@ -8,7 +8,7 @@ import {
   FailoverDetailDrawer,
   type FailoverRecord,
 } from '@/components/Failover';
-import { useFailoverManagement } from '@/hooks/useFailoverManagement';
+import { useFailoverManagement } from '@/hooks/queries/useFailoverManagement';
 
 const FailoverManagement: React.FC = () => {
   const {

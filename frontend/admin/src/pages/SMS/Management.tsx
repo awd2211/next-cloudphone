@@ -1,8 +1,6 @@
 import { useState, useCallback } from 'react';
-import { Card, Form, message } from 'antd';
+import { Card, Form } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
 import {
   SMSStatsCards,
   SMSSearchBar,
@@ -11,6 +9,11 @@ import {
   SMSDetailDrawer,
   type SMSRecord,
 } from '@/components/SMS';
+import {
+  useSMSList,
+  useSMSStats,
+  useSendSMS,
+} from '@/hooks/queries/useSMS';
 
 /**
  * SMS 管理页面（优化版 - 使用 React Query）
@@ -35,55 +38,25 @@ const SMSManagement: React.FC = () => {
   const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<SMSRecord | null>(null);
   const [sendForm] = Form.useForm();
-  const queryClient = useQueryClient();
 
-  // 查询 SMS 记录
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['sms-records', searchParams],
-    queryFn: async () => {
-      const params: any = {
-        page: searchParams.page,
-        limit: searchParams.limit,
-      };
-
-      if (searchParams.status) params.status = searchParams.status;
-      if (searchParams.provider) params.provider = searchParams.provider;
-      if (searchParams.phone) params.phone = searchParams.phone;
-      if (searchParams.dateRange) {
-        params.startDate = searchParams.dateRange[0].toISOString();
-        params.endDate = searchParams.dateRange[1].toISOString();
-      }
-
-      const response = await request.get('/sms', { params });
-      return response;
-    },
+  // 使用自定义 React Query Hooks
+  const { data, isLoading } = useSMSList({
+    page: searchParams.page,
+    limit: searchParams.limit,
+    status: searchParams.status,
+    provider: searchParams.provider,
+    phone: searchParams.phone,
+    startDate: searchParams.dateRange?.[0]?.toISOString(),
+    endDate: searchParams.dateRange?.[1]?.toISOString(),
   });
+  const { data: stats } = useSMSStats(); // 自动30秒刷新
+  const sendMutation = useSendSMS();
 
-  // 查询统计数据
-  const { data: stats } = useQuery({
-    queryKey: ['sms-stats'],
-    queryFn: async () => {
-      const response = await request.get('/sms/stats');
-      return response;
-    },
-  });
-
-  // 发送 SMS
-  const sendMutation = useMutation({
-    mutationFn: async (values: any) => {
-      return await request.post('/sms/send', values);
-    },
-    onSuccess: () => {
-      message.success('短信发送成功');
-      setSendModalVisible(false);
-      sendForm.resetFields();
-      queryClient.invalidateQueries({ queryKey: ['sms-records'] });
-      queryClient.invalidateQueries({ queryKey: ['sms-stats'] });
-    },
-    onError: () => {
-      message.error('短信发送失败');
-    },
-  });
+  // 监听发送成功，关闭弹窗并重置表单
+  const handleSendSuccess = useCallback(() => {
+    setSendModalVisible(false);
+    sendForm.resetFields();
+  }, [sendForm]);
 
   // ✅ useCallback 优化事件处理函数
   const handleViewDetail = useCallback((record: SMSRecord) => {
@@ -108,9 +81,11 @@ const SMSManagement: React.FC = () => {
 
   const handleSend = useCallback(() => {
     sendForm.validateFields().then((values) => {
-      sendMutation.mutate(values);
+      sendMutation.mutate(values, {
+        onSuccess: handleSendSuccess,
+      });
     });
-  }, [sendForm, sendMutation]);
+  }, [sendForm, sendMutation, handleSendSuccess]);
 
   // ✅ 使用提取的表格列定义 hook
   const columns = useSMSColumns({ onViewDetail: handleViewDetail });
@@ -155,7 +130,7 @@ const SMSManagement: React.FC = () => {
           loadingText="正在加载短信记录"
           emptyText="暂无短信记录"
           columns={columns}
-          dataSource={data?.data || []}
+          dataSource={(data?.data || []) as unknown as readonly SMSRecord[]}
           rowKey="id"
           loading={isLoading}
           scroll={{ x: 1200, y: 600 }}

@@ -35,11 +35,11 @@ export const ReviewStatusAlert: React.FC<ReviewStatusAlertProps> = React.memo(
 
     return (
       <Alert
-        message={`当前状态: ${statusConfig.text}`}
+        message={`当前状态: ${statusConfig?.text ?? ''}`}
         description={description}
         type={type}
         showIcon
-        icon={statusConfig.icon}
+        icon={statusConfig?.icon}
         style={{ marginBottom: 24 }}
       />
     );

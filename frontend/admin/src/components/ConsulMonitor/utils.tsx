@@ -31,8 +31,8 @@ export const STATUS_CONFIG: Record<string, { color: string; icon: React.ReactNod
 export const getStatusTag = (status: string) => {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.critical;
   return (
-    <Tag icon={config.icon} color={config.color}>
-      {config.text}
+    <Tag icon={config?.icon} color={config?.color}>
+      {config?.text}
     </Tag>
   );
 };

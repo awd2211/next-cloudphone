@@ -1,6 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { AuditLog, AuditAction, AuditLevel } from '../entities/audit-log.entity';
 
 export interface CreateAuditLogDto {
@@ -270,5 +270,127 @@ export class AuditLogsService {
       successRate,
       recentFailures,
     };
+  }
+
+  /**
+   * 导出审计日志为 CSV
+   */
+  async exportLogs(options: {
+    userId?: string;
+    action?: AuditAction;
+    level?: AuditLevel;
+    resourceType?: string;
+    startDate?: Date;
+    endDate?: Date;
+    success?: boolean;
+  }): Promise<string> {
+    const queryBuilder = this.auditLogRepository.createQueryBuilder('log');
+
+    if (options.userId) {
+      queryBuilder.andWhere('log.userId = :userId', { userId: options.userId });
+    }
+
+    if (options.action) {
+      queryBuilder.andWhere('log.action = :action', { action: options.action });
+    }
+
+    if (options.level) {
+      queryBuilder.andWhere('log.level = :level', { level: options.level });
+    }
+
+    if (options.resourceType) {
+      queryBuilder.andWhere('log.resourceType = :resourceType', {
+        resourceType: options.resourceType,
+      });
+    }
+
+    if (options.startDate) {
+      queryBuilder.andWhere('log.createdAt >= :startDate', {
+        startDate: options.startDate,
+      });
+    }
+
+    if (options.endDate) {
+      queryBuilder.andWhere('log.createdAt <= :endDate', {
+        endDate: options.endDate,
+      });
+    }
+
+    if (options.success !== undefined) {
+      queryBuilder.andWhere('log.success = :success', {
+        success: options.success,
+      });
+    }
+
+    queryBuilder.orderBy('log.createdAt', 'DESC');
+
+    const logs = await queryBuilder.getMany();
+
+    // 构建 CSV 头部
+    const csvHeaders = [
+      'ID',
+      'User ID',
+      'Action',
+      'Level',
+      'Resource Type',
+      'Resource ID',
+      'Description',
+      'Success',
+      'IP Address',
+      'Created At',
+    ];
+
+    // 构建 CSV 行
+    const csvRows = logs.map((log) => [
+      log.id,
+      log.userId,
+      log.action,
+      log.level,
+      log.resourceType || '',
+      log.resourceId || '',
+      `"${log.description.replace(/"/g, '""')}"`, // 转义引号
+      log.success ? 'Yes' : 'No',
+      log.ipAddress || '',
+      log.createdAt.toISOString(),
+    ]);
+
+    // 组合成 CSV 字符串
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map((row) => row.join(',')),
+    ].join('\n');
+
+    this.logger.log(`导出了 ${logs.length} 条审计日志`);
+    return csvContent;
+  }
+
+  /**
+   * 清理旧的审计日志
+   */
+  async cleanupOldLogs(daysToKeep: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+
+    const result = await this.auditLogRepository.delete({
+      createdAt: LessThan(cutoffDate),
+    });
+
+    const deletedCount = result.affected || 0;
+    this.logger.log(`清理了 ${deletedCount} 条审计日志（保留 ${daysToKeep} 天）`);
+
+    return deletedCount;
+  }
+
+  /**
+   * 获取单条审计日志详情
+   */
+  async getLogById(id: string): Promise<AuditLog> {
+    const log = await this.auditLogRepository.findOne({ where: { id } });
+
+    if (!log) {
+      throw new NotFoundException(`审计日志 ${id} 未找到`);
+    }
+
+    return log;
   }
 }

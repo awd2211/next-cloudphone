@@ -6,7 +6,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { Application } from '@/types';
 import dayjs from 'dayjs';
-import { useApps, useUploadApp, useDeleteApp } from '@/hooks/useApps';
+import { useApps, useUploadApp, useDeleteApp } from '@/hooks/queries';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { ErrorAlert, type ErrorInfo } from '@/components/ErrorAlert';
 

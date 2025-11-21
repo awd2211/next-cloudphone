@@ -144,7 +144,7 @@ function getFriendlyErrorMessage(error: ApiError): string {
     HTTP_504: '网关超时',
   };
 
-  return error.code && messageMap[error.code] ? messageMap[error.code] : error.message;
+  return (error.code && messageMap[error.code]) || error.message || '未知错误';
 }
 
 /**
@@ -390,7 +390,7 @@ export function useErrorHandler() {
     async <T,>(promise: Promise<T>, options?: ErrorOptions): Promise<T | null> => {
       try {
         return await promise;
-      } catch (error) {
+      } catch (_error) {
         handleError(error as Error, options);
         return null;
       }
@@ -413,7 +413,7 @@ export function useErrorHandler() {
             });
           }
           return result;
-        } catch (error) {
+        } catch (_error) {
           handleError(error as Error, options);
           throw error;
         }
@@ -437,7 +437,7 @@ export function useErrorHandler() {
  * // 1. 直接处理错误
  * try {
  *   await someOperation();
- * } catch (error) {
+ * } catch (_error) {
  *   handleError(error, { showModal: true });
  * }
  *

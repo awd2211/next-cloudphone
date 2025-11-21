@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { message, Form } from 'antd';
 import type { UploadFile } from 'antd';
 import { z } from 'zod';
@@ -13,7 +13,7 @@ import {
   takeScreenshot,
 } from '@/services/device';
 import dayjs from 'dayjs';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { DeviceSchema, DevicePackageSchema } from '@/schemas/api.schemas';
 import { handleError } from '@/utils/errorHandling';
 
@@ -43,61 +43,51 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string>();
   const [selectedSnapshotName, setSelectedSnapshotName] = useState<string>();
 
-  // ===== 数据加载 (使用 useSafeApi) =====
+  // ===== 数据加载 (使用 useValidatedQuery) =====
 
   /**
    * 加载设备信息
    */
   const {
     data: device,
-    loading,
-    execute: executeLoadDevice,
-  } = useSafeApi(
-    () => {
+    isLoading: loading,
+    refetch: loadDevice,
+  } = useValidatedQuery({
+    queryKey: ['device-detail', deviceId],
+    queryFn: () => {
       if (!deviceId) {
         return Promise.reject(new Error('设备ID不能为空'));
       }
       return getDevice(deviceId);
     },
-    DeviceSchema,
-    {
-      errorMessage: '加载设备信息失败',
-      manual: true,
-    }
-  );
+    schema: DeviceSchema,
+    apiErrorMessage: '加载设备信息失败',
+    enabled: !!deviceId,
+    staleTime: 10 * 1000, // 设备状态变化较快，10秒缓存
+  });
 
   /**
    * 加载已安装应用
    */
   const {
     data: packages,
-    execute: executeLoadInstalledApps,
-  } = useSafeApi(
-    () => {
+    refetch: loadInstalledApps,
+  } = useValidatedQuery({
+    queryKey: ['device-packages', deviceId],
+    queryFn: () => {
       if (!deviceId) {
         return Promise.reject(new Error('设备ID不能为空'));
       }
       return getInstalledPackages(deviceId);
     },
-    z.array(DevicePackageSchema),
-    {
-      errorMessage: '加载已安装应用失败',
-      fallbackValue: [],
-      manual: true,
-    }
-  );
+    schema: z.array(DevicePackageSchema),
+    apiErrorMessage: '加载已安装应用失败',
+    fallbackValue: [],
+    enabled: !!deviceId,
+    staleTime: 60 * 1000, // 已安装应用变化较慢，60秒缓存
+  });
 
   const installedApps = packages?.map((pkg) => pkg.name) || [];
-
-  /**
-   * 初始化加载
-   */
-  useEffect(() => {
-    if (deviceId) {
-      executeLoadDevice();
-      executeLoadInstalledApps();
-    }
-  }, [deviceId, executeLoadDevice, executeLoadInstalledApps]);
 
   // ===== 设备操作 =====
 
@@ -109,14 +99,14 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
     try {
       await startDevice(deviceId);
       message.success('设备启动成功');
-      executeLoadDevice();
+      loadDevice();
     } catch (error) {
       handleError(error, {
         customMessage: '设备启动失败，请稍后重试',
         messageType: 'message',
       });
     }
-  }, [deviceId, executeLoadDevice]);
+  }, [deviceId, loadDevice]);
 
   /**
    * 停止设备
@@ -126,14 +116,14 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
     try {
       await stopDevice(deviceId);
       message.success('设备停止成功');
-      executeLoadDevice();
+      loadDevice();
     } catch (error) {
       handleError(error, {
         customMessage: '设备停止失败，请稍后重试',
         messageType: 'message',
       });
     }
-  }, [deviceId, executeLoadDevice]);
+  }, [deviceId, loadDevice]);
 
   /**
    * 重启设备
@@ -143,14 +133,14 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
     try {
       await rebootDevice(deviceId);
       message.success('设备重启成功');
-      executeLoadDevice();
+      loadDevice();
     } catch (error) {
       handleError(error, {
         customMessage: '设备重启失败，请稍后重试',
         messageType: 'message',
       });
     }
-  }, [deviceId, executeLoadDevice]);
+  }, [deviceId, loadDevice]);
 
   /**
    * 截图
@@ -183,7 +173,7 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
    */
   const handleUploadApp = useCallback(async () => {
     if (!deviceId || fileList.length === 0) return;
-    const file = fileList[0].originFileObj;
+    const file = fileList[0]?.originFileObj;
     if (!file) return;
 
     try {
@@ -192,14 +182,14 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
       setUploadModalVisible(false);
       setFileList([]);
       form.resetFields();
-      executeLoadInstalledApps();
+      loadInstalledApps();
     } catch (error) {
       handleError(error, {
         customMessage: '应用安装失败，请检查APK文件是否正确',
         messageType: 'notification',
       });
     }
-  }, [deviceId, fileList, form, executeLoadInstalledApps]);
+  }, [deviceId, fileList, form, loadInstalledApps]);
 
   /**
    * 卸载应用
@@ -210,7 +200,7 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
       try {
         await uninstallApp(deviceId, packageName);
         message.success('应用卸载成功');
-        executeLoadInstalledApps();
+        loadInstalledApps();
       } catch (error) {
         handleError(error, {
           customMessage: '应用卸载失败，该应用可能正在运行',
@@ -218,7 +208,7 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
         });
       }
     },
-    [deviceId, executeLoadInstalledApps]
+    [deviceId, loadInstalledApps]
   );
 
   /**
@@ -234,8 +224,8 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
    */
   const handleAppOperationSuccess = useCallback(() => {
     setAppOperationModalVisible(false);
-    executeLoadDevice();
-  }, [executeLoadDevice]);
+    loadDevice();
+  }, [loadDevice]);
 
   // ===== 快照管理 =====
 
@@ -265,9 +255,9 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
     setSelectedSnapshotName(undefined);
     message.success('快照恢复成功，设备将重启');
     setTimeout(() => {
-      executeLoadDevice();
+      loadDevice();
     }, 3000);
-  }, [executeLoadDevice]);
+  }, [loadDevice]);
 
   /**
    * 取消安装应用

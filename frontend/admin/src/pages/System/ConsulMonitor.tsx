@@ -38,6 +38,7 @@ const ConsulMonitor = () => {
       const interval = setInterval(loadServices, AUTO_REFRESH_INTERVAL);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [autoRefresh]);
 
   const loadServices = useCallback(async () => {
@@ -45,7 +46,7 @@ const ConsulMonitor = () => {
     try {
       // 模拟数据 - 实际应该调用 Consul API
       setServices(MOCK_SERVICES);
-    } catch (error) {
+    } catch (_error) {
       message.error('加载服务信息失败');
     } finally {
       setLoading(false);

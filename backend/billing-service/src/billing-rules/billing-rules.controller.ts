@@ -3,12 +3,14 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
   Query,
   UseGuards,
   Logger,
+  HttpCode,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BillingRulesService, CreateBillingRuleDto } from './billing-rules.service';
@@ -25,6 +27,12 @@ export class BillingRulesController {
   private readonly logger = new Logger(BillingRulesController.name);
 
   constructor(private readonly rulesService: BillingRulesService) {}
+
+  @Get('templates')
+  @ApiOperation({ summary: '获取计费规则模板' })
+  async getRuleTemplates() {
+    return await this.rulesService.getRuleTemplates();
+  }
 
   @Post()
   @Roles('admin')
@@ -80,6 +88,23 @@ export class BillingRulesController {
   async deleteRule(@Param('id') id: string) {
     await this.rulesService.deleteRule(id);
     return { message: '删除成功' };
+  }
+
+  @Patch(':id/toggle')
+  @HttpCode(200)
+  @Roles('admin')
+  @ApiOperation({ summary: '启用/禁用计费规则' })
+  async toggleRule(@Param('id') id: string, @Body() body: { isActive: boolean }) {
+    this.logger.log(`切换计费规则状态 - ID: ${id}, isActive: ${body.isActive}`);
+    return await this.rulesService.toggleRule(id, body.isActive);
+  }
+
+  @Post(':id/test')
+  @HttpCode(200)
+  @ApiOperation({ summary: '测试计费规则' })
+  async testRule(@Param('id') id: string, @Body() testData: any) {
+    this.logger.log(`测试计费规则 - ID: ${id}`);
+    return await this.rulesService.testRule(id, testData);
   }
 
   @Post('calculate')

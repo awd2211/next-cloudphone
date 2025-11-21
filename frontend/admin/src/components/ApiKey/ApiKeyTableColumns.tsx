@@ -8,7 +8,8 @@ import {
   StopOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import type { ApiKey, ApiKeyStatus } from '@/types';
+import type { ApiKey } from '@/types';
+import { ApiKeyStatus } from '@/types';
 import {
   getMaskedKey,
   getStatusIcon,
@@ -76,7 +77,7 @@ export const useApiKeyColumns = ({
         sorter: (a, b) => a.status.localeCompare(b.status),
         render: (status: ApiKeyStatus, record: ApiKey) => {
           const expired = isKeyExpired(record.expiresAt);
-          const displayStatus = expired ? 'expired' : status;
+          const displayStatus: ApiKeyStatus = expired ? ApiKeyStatus.EXPIRED : status;
           return (
             <Tag icon={getStatusIcon(displayStatus)} color={getStatusColor(displayStatus)}>
               {getStatusLabel(displayStatus)}

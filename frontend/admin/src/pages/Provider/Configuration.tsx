@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { Tabs } from 'antd';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Tabs, Form } from 'antd';
 import { DeviceProvider, ProviderNames, ProviderIcons } from '@/types/provider';
 import {
   ProviderHealthStatus,
@@ -9,10 +9,68 @@ import {
   AliyunFormFields,
   PhysicalFormFields,
 } from '@/components/Provider';
-import { useProviderConfig } from '@/hooks/useProviderConfig';
+import {
+  useProviderHealth,
+  useProviderConfig,
+  useUpdateProviderConfig,
+  useTestProviderConnection,
+} from '@/hooks/queries/useProviders';
 
 const ProviderConfiguration: React.FC = () => {
-  const { loading, testLoading, health, forms, handleSave, handleTest } = useProviderConfig();
+  // ✅ 表单管理（UI层 - 留在组件）
+  const [dockerForm] = Form.useForm();
+  const [huaweiForm] = Form.useForm();
+  const [aliyunForm] = Form.useForm();
+  const [physicalForm] = Form.useForm();
+
+  const forms = useMemo(
+    () => ({
+      docker: dockerForm,
+      huawei: huaweiForm,
+      aliyun: aliyunForm,
+      physical: physicalForm,
+    }),
+    [dockerForm, huaweiForm, aliyunForm, physicalForm]
+  );
+
+  // ✅ 测试加载状态（UI层）
+  const [testLoading, setTestLoading] = useState<Record<string, boolean>>({});
+
+  // ✅ 数据获取（React Query）
+  const { data: health = [] } = useProviderHealth();
+
+  // 预加载所有配置（可选）
+  useProviderConfig(DeviceProvider.DOCKER);
+  useProviderConfig(DeviceProvider.HUAWEI);
+  useProviderConfig(DeviceProvider.ALIYUN);
+  useProviderConfig(DeviceProvider.PHYSICAL);
+
+  // ✅ Mutations
+  const updateConfigMutation = useUpdateProviderConfig();
+  const testConnectionMutation = useTestProviderConnection();
+
+  // ✅ 保存配置
+  const handleSave = useCallback(
+    async (provider: DeviceProvider, values: any) => {
+      await updateConfigMutation.mutateAsync({ provider, config: values });
+    },
+    [updateConfigMutation]
+  );
+
+  // ✅ 测试连接
+  const handleTest = useCallback(
+    async (provider: DeviceProvider) => {
+      setTestLoading((prev) => ({ ...prev, [provider]: true }));
+      try {
+        await testConnectionMutation.mutateAsync(provider);
+      } finally {
+        setTestLoading((prev) => ({ ...prev, [provider]: false }));
+      }
+    },
+    [testConnectionMutation]
+  );
+
+  const loading = updateConfigMutation.isPending;
 
   // Docker 配置
   const renderDockerConfig = useCallback(
@@ -20,7 +78,7 @@ const ProviderConfiguration: React.FC = () => {
       <ProviderConfigForm
         provider={DeviceProvider.DOCKER}
         form={forms.docker}
-        health={health}
+        health={health as any}
         loading={loading}
         testLoading={testLoading[DeviceProvider.DOCKER] || false}
         onSave={(values) => handleSave(DeviceProvider.DOCKER, values)}
@@ -38,7 +96,7 @@ const ProviderConfiguration: React.FC = () => {
       <ProviderConfigForm
         provider={DeviceProvider.HUAWEI}
         form={forms.huawei}
-        health={health}
+        health={health as any}
         loading={loading}
         testLoading={testLoading[DeviceProvider.HUAWEI] || false}
         onSave={(values) => handleSave(DeviceProvider.HUAWEI, values)}
@@ -56,7 +114,7 @@ const ProviderConfiguration: React.FC = () => {
       <ProviderConfigForm
         provider={DeviceProvider.ALIYUN}
         form={forms.aliyun}
-        health={health}
+        health={health as any}
         loading={loading}
         testLoading={testLoading[DeviceProvider.ALIYUN] || false}
         onSave={(values) => handleSave(DeviceProvider.ALIYUN, values)}
@@ -74,7 +132,7 @@ const ProviderConfiguration: React.FC = () => {
       <ProviderConfigForm
         provider={DeviceProvider.PHYSICAL}
         form={forms.physical}
-        health={health}
+        health={health as any}
         loading={loading}
         testLoading={testLoading[DeviceProvider.PHYSICAL] || false}
         onSave={(values) => handleSave(DeviceProvider.PHYSICAL, values)}
@@ -88,7 +146,7 @@ const ProviderConfiguration: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <ProviderHealthStatus health={health} />
+      <ProviderHealthStatus health={health as any} />
 
       <Tabs
         defaultActiveKey="docker"

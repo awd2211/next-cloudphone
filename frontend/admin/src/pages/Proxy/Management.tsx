@@ -1,8 +1,6 @@
 import { useState, useCallback } from 'react';
-import { Card, message, Modal } from 'antd';
+import { Card, Modal, message } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
 import {
   ProxyStatsCards,
   ProxySearchBar,
@@ -10,6 +8,13 @@ import {
   type ProxyRecord,
   type ProxySearchParams,
 } from '@/components/Proxy';
+import {
+  useProxyList,
+  useProxyStats,
+  useReleaseProxy,
+  useTestProxy,
+  useRefreshProxyPool,
+} from '@/hooks/queries/useProxy';
 
 /**
  * 代理IP管理页面
@@ -34,86 +39,12 @@ const ProxyManagement: React.FC = () => {
     limit: 10,
   });
 
-  const queryClient = useQueryClient();
-
-  // 查询代理列表
-  const { data, isLoading } = useQuery({
-    queryKey: ['proxy-list', searchParams],
-    queryFn: async () => {
-      const params: any = {
-        page: searchParams.page,
-        limit: searchParams.limit,
-      };
-
-      if (searchParams.status) params.status = searchParams.status;
-      if (searchParams.protocol) params.protocol = searchParams.protocol;
-      if (searchParams.provider) params.provider = searchParams.provider;
-      if (searchParams.country) params.country = searchParams.country;
-      if (searchParams.minQuality) params.minQuality = searchParams.minQuality;
-      if (searchParams.maxLatency) params.maxLatency = searchParams.maxLatency;
-
-      const response = await request.get('/proxy/list', { params });
-      return response;
-    },
-  });
-
-  // 查询统计数据
-  const { data: stats } = useQuery({
-    queryKey: ['proxy-stats'],
-    queryFn: async () => {
-      const response = await request.get('/proxy/stats/pool');
-      return response;
-    },
-    refetchInterval: 30000, // 每30秒自动刷新
-  });
-
-  // 释放代理
-  const releaseMutation = useMutation({
-    mutationFn: async (proxyId: string) => {
-      return await request.post(`/proxy/release/${proxyId}`);
-    },
-    onSuccess: () => {
-      message.success('代理释放成功');
-      queryClient.invalidateQueries({ queryKey: ['proxy-list'] });
-      queryClient.invalidateQueries({ queryKey: ['proxy-stats'] });
-    },
-    onError: () => {
-      message.error('代理释放失败');
-    },
-  });
-
-  // 测试代理
-  const testMutation = useMutation({
-    mutationFn: async (proxyId: string) => {
-      return await request.post(`/proxy/test/${proxyId}`);
-    },
-    onSuccess: (data) => {
-      if (data.success) {
-        message.success(`代理测试成功，延迟: ${data.latency}ms`);
-      } else {
-        message.error('代理测试失败');
-      }
-      queryClient.invalidateQueries({ queryKey: ['proxy-list'] });
-    },
-    onError: () => {
-      message.error('代理测试失败');
-    },
-  });
-
-  // 刷新代理池
-  const refreshPoolMutation = useMutation({
-    mutationFn: async () => {
-      return await request.post('/proxy/admin/refresh-pool');
-    },
-    onSuccess: (data) => {
-      message.success(`成功刷新代理池，新增 ${data.added || 0} 个代理`);
-      queryClient.invalidateQueries({ queryKey: ['proxy-list'] });
-      queryClient.invalidateQueries({ queryKey: ['proxy-stats'] });
-    },
-    onError: () => {
-      message.error('刷新代理池失败');
-    },
-  });
+  // 使用自定义 React Query Hooks
+  const { data, isLoading } = useProxyList(searchParams);
+  const { data: stats } = useProxyStats(); // 自动30秒刷新
+  const releaseMutation = useReleaseProxy();
+  const testMutation = useTestProxy();
+  const refreshPoolMutation = useRefreshProxyPool();
 
   // ✅ useCallback 优化事件处理
   const handleRelease = useCallback((record: ProxyRecord) => {
@@ -195,10 +126,10 @@ const ProxyManagement: React.FC = () => {
           setSearchParams({ ...searchParams, country: value })
         }
         onMinQualityChange={(value) =>
-          setSearchParams({ ...searchParams, minQuality: value })
+          setSearchParams({ ...searchParams, minQuality: value ?? undefined })
         }
         onMaxLatencyChange={(value) =>
-          setSearchParams({ ...searchParams, maxLatency: value })
+          setSearchParams({ ...searchParams, maxLatency: value ?? undefined })
         }
         onSearch={handleSearch}
         onReset={handleReset}
@@ -212,7 +143,7 @@ const ProxyManagement: React.FC = () => {
           loadingText="正在加载代理IP列表"
           emptyText="暂无代理IP数据"
           columns={columns}
-          dataSource={data?.data || []}
+          dataSource={(data?.data || []) as unknown as readonly ProxyRecord[]}
           rowKey="id"
           loading={isLoading}
           scroll={{ x: 1600, y: 600 }}

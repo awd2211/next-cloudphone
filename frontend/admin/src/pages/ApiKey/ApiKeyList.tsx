@@ -30,7 +30,7 @@ import {
   useCreateApiKey,
   useDeleteApiKey,
   useToggleApiKeyStatus,
-} from '@/hooks/useApiKeys';
+} from '@/hooks/queries';
 import type { ApiKey } from '@/services/apikey';
 
 const { Text, Paragraph } = Typography;
@@ -140,7 +140,7 @@ const ApiKeyList: React.FC = () => {
             ),
           });
         }
-      } catch (error) {
+      } catch (_error) {
         // 错误已在mutation中处理
       }
     },

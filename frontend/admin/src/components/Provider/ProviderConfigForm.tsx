@@ -9,7 +9,7 @@ import {
   Descriptions,
   FormInstance,
 } from 'antd';
-import { SaveOutlined, TestTubeOutlined } from '@ant-design/icons';
+import { SaveOutlined, ExperimentOutlined } from '@ant-design/icons';
 import { DeviceProvider } from '@/types/provider';
 import { ALERT_MESSAGES } from './constants';
 
@@ -71,7 +71,7 @@ const ProviderConfigForm: React.FC<ProviderConfigFormProps> = React.memo(
             <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
               保存配置
             </Button>
-            <Button onClick={onTest} loading={testLoading} icon={<TestTubeOutlined />}>
+            <Button onClick={onTest} loading={testLoading} icon={<ExperimentOutlined />}>
               测试连接
             </Button>
           </Space>

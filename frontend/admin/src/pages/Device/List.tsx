@@ -14,7 +14,6 @@ import { useRole } from '@/hooks/useRole';
 import { useNavigate } from 'react-router-dom';
 
 // ✅ 导入优化的子组件
-import { DeviceStatusTag } from '@/components/Device';
 import {
   DeviceStatsCards,
   DeviceFilterBar,
@@ -41,7 +40,7 @@ import {
   useStopDevice,
   useRebootDevice,
   useDeleteDevice,
-} from '@/hooks/useDevices';
+} from '@/hooks/queries';
 
 // ✅ 批量操作 hook
 import { useDeviceBatchOperations } from '@/hooks/useDeviceBatchOperations';
@@ -51,7 +50,7 @@ import { exportDevicesAsExcel, exportDevicesAsCSV, exportDevicesAsJSON } from '@
 
 // ✅ React Query 相关
 import { queryClient } from '@/lib/react-query';
-import { deviceKeys } from '@/hooks/useDevices';
+import { deviceKeys } from '@/hooks/queries';
 
 /**
  * 设备列表页面（优化版 - 使用 React Query）
@@ -65,7 +64,7 @@ import { deviceKeys } from '@/hooks/useDevices';
  * 6. ✅ 提取批量操作到 hooks
  */
 const DeviceList = () => {
-  const { isAdmin } = useRole();
+  const { } = useRole();
   const navigate = useNavigate();
 
   // ✅ P2 优化：URL 筛选器状态持久化
@@ -98,8 +97,8 @@ const DeviceList = () => {
   const deleteDeviceMutation = useDeleteDevice();
 
   // 解构数据
-  const devices = devicesData?.data?.data || [];
-  const total = devicesData?.data?.total || 0;
+  const devices = (devicesData as any)?.data || devicesData || [];
+  const total = (devicesData as any)?.total || 0;
 
   // ✅ P3 优化：拖拽排序
   const { sortedDataSource, DndWrapper, tableComponents, sortColumn } = useDraggableTable({
@@ -131,7 +130,7 @@ const DeviceList = () => {
           // TODO: 打开编辑弹窗
         },
       },
-      { key: 'divider-1', type: 'divider' },
+      { key: 'divider-1', type: 'divider', label: '-' },
       {
         key: 'start',
         label: '启动',
@@ -152,7 +151,7 @@ const DeviceList = () => {
         icon: <ReloadOutlined />,
         onClick: (device) => handleReboot(device.id),
       },
-      { key: 'divider-2', type: 'divider' },
+      { key: 'divider-2', type: 'divider', label: '-' },
       {
         key: 'delete',
         label: '删除',
@@ -179,12 +178,12 @@ const DeviceList = () => {
 
   // Real-time updates via Socket.IO (placeholder)
   const isConnected = false;
-  const lastMessage = null;
+  const lastMessage: { type: string; data: any } | null = null;
 
   // 处理 WebSocket 消息
   useEffect(() => {
     if (lastMessage) {
-      const { type, data } = lastMessage;
+      const { type, data } = lastMessage as { type: string; data: any };
 
       if (type === 'device:status') {
         queryClient.setQueryData(deviceKeys.list(params), (old: any) => {
@@ -192,16 +191,16 @@ const DeviceList = () => {
           return {
             ...old,
             data: old.data.map((device: Device) =>
-              device.id === data.deviceId ? { ...device, status: data.status } : device
+              device.id === (data as any).deviceId ? { ...device, status: (data as any).status } : device
             ),
           };
         });
         queryClient.invalidateQueries({ queryKey: deviceKeys.stats() });
       } else if (type === 'device:created') {
-        message.info(`新设备已创建: ${data.name}`);
+        message.info(`新设备已创建: ${(data as any).name}`);
         queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
       } else if (type === 'device:deleted') {
-        message.warning(`设备已删除: ${data.name}`);
+        message.warning(`设备已删除: ${(data as any).name}`);
         queryClient.invalidateQueries({ queryKey: deviceKeys.lists() });
       }
     }
@@ -329,7 +328,7 @@ const DeviceList = () => {
             onSearch={(search) => setFilters({ search, page: 1 })}
             onStatusChange={(status) => setFilters({ status, page: 1 })}
             onAndroidVersionChange={(androidVersion) => setFilters({ androidVersion, page: 1 })}
-            onDateRangeChange={(dates, dateStrings) => {
+            onDateRangeChange={() => {
               // TODO: 将日期范围添加到筛选器
             }}
             isConnected={isConnected}
@@ -364,7 +363,7 @@ const DeviceList = () => {
         <DndWrapper>
           <DeviceTable
             columns={columns}
-            dataSource={sortedDataSource}
+            dataSource={sortedDataSource as Device[]}
             loading={isLoading}
             selectedRowKeys={selectedRowKeys}
             onSelectionChange={setSelectedRowKeys}

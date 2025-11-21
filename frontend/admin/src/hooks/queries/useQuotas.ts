@@ -7,11 +7,10 @@ import {
   updateQuota,
   deleteQuota,
   getQuotaAlerts,
-  type Quota,
-  type CreateQuotaDto,
-  type UpdateQuotaDto,
+  getUsageStats,
 } from '@/services/quota';
 import { QuotaAlertsResponseSchema } from '@/schemas/api.schemas';
+import type { Quota, UpdateQuotaDto } from '@/types';
 
 /**
  * Query Keys 工厂
@@ -24,6 +23,7 @@ export const quotaKeys = {
   detail: (id: string) => [...quotaKeys.details(), id] as const,
   userQuota: (userId: string) => [...quotaKeys.all, 'user', userId] as const,
   alerts: (threshold: number) => [...quotaKeys.all, 'alerts', threshold] as const,
+  statistics: (userId: string) => [...quotaKeys.all, 'statistics', userId] as const,
 };
 
 /**
@@ -144,7 +144,7 @@ export function useUpdateQuota() {
       return { previousQuotas };
     },
 
-    onError: (error: any, variables, context) => {
+    onError: (error: any, _variables, context) => {
       // 回滚
       if (context?.previousQuotas) {
         context.previousQuotas.forEach(([queryKey, data]) => {
@@ -200,7 +200,7 @@ export function useDeleteQuota() {
       return { previousQuotas };
     },
 
-    onError: (error: any, id, context) => {
+    onError: (error: any, _id, context) => {
       if (context?.previousQuotas) {
         context.previousQuotas.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
@@ -220,5 +220,32 @@ export function useDeleteQuota() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: quotaKeys.all });
     },
+  });
+}
+
+/**
+ * 获取用户配额使用统计
+ *
+ * @param userId - 用户ID
+ * @returns 用户的配额使用统计数据
+ *
+ * ✅ 优势:
+ * - 自动缓存 30 秒
+ * - 仅在 userId 存在时才发起请求
+ * - 数据独立，可在任何地方复用
+ *
+ * @example
+ * const { data: statistics, isLoading } = useQuotaStatistics(userId);
+ */
+export function useQuotaStatistics(userId: string) {
+  return useQuery({
+    queryKey: quotaKeys.statistics(userId),
+    queryFn: async () => {
+      const response = await getUsageStats(userId);
+      return response.success ? response.data : null;
+    },
+    staleTime: 30 * 1000, // 30 秒
+    gcTime: 5 * 60 * 1000, // 5 分钟
+    enabled: !!userId, // 仅在有 userId 时才请求
   });
 }

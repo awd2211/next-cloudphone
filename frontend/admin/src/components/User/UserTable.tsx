@@ -1,7 +1,8 @@
 import { memo, useMemo } from 'react';
-import type { ColumnsType, TableRowSelection } from 'antd/es/table';
+import type { ColumnsType } from 'antd/es/table';
+import type { TableRowSelection } from 'antd/es/table/interface';
 import type { User } from '@/types';
-import dayjs from 'dayjs';
+import { UserStatus } from '@/types';
 import {
   UserActions,
   UserStatusTag,
@@ -26,7 +27,7 @@ interface UserTableProps {
   onResetPassword: (user: User) => void;
   onRecharge: (user: User) => void;
   onDeduct: (user: User) => void;
-  onUpdateStatus: (id: string, status: 'active' | 'inactive' | 'banned') => void;
+  onUpdateStatus: (id: string, status: UserStatus) => void;
   onDelete: (id: string) => void;
   onToggleEmailVisibility: (userId: string) => void;
 }

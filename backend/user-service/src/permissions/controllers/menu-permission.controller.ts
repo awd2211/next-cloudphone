@@ -535,4 +535,60 @@ export class MenuPermissionController {
       message: '缓存统计信息获取成功',
     };
   }
+
+  /**
+   * 导出缓存数据
+   */
+  @Get('cache/export')
+  @ApiOperation({
+    summary: '导出缓存数据',
+    description: '导出所有用户的权限缓存数据，用于调试、备份或数据分析。返回的数据包含用户权限概览信息。'
+  })
+  @ApiResponse({
+    status: 200,
+    description: '导出成功',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          'user-uuid-1': {
+            userId: 'user-uuid-1',
+            tenantId: 'tenant-1',
+            isSuperAdmin: false,
+            rolesCount: 2,
+            roles: ['admin', 'user'],
+            permissionsCount: 15,
+            permissions: ['user:read', 'user:create', 'device:read'],
+            dataScopesCount: 3,
+            fieldPermissionsCount: 5,
+            cachedAt: '2024-01-01T00:00:00Z'
+          },
+          'user-uuid-2': {
+            userId: 'user-uuid-2',
+            tenantId: 'tenant-1',
+            isSuperAdmin: true,
+            rolesCount: 1,
+            roles: ['super_admin'],
+            permissionsCount: 1,
+            permissions: ['*'],
+            dataScopesCount: 0,
+            fieldPermissionsCount: 0,
+            cachedAt: '2024-01-01T00:00:00Z'
+          }
+        },
+        message: '缓存数据导出成功'
+      }
+    }
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @RequirePermissions('permission:cache:view')
+  async exportCacheData() {
+    const cacheData = await this.permissionCacheService.exportCache();
+
+    return {
+      success: true,
+      data: cacheData,
+      message: '缓存数据导出成功',
+    };
+  }
 }

@@ -42,7 +42,7 @@ export const exportToExcel = async <T = any>(
     XLSX.writeFile(workbook, `${filename}.xlsx`);
 
     return { success: true };
-  } catch (error) {
+  } catch (_error) {
     console.error('[Export] Failed to load XLSX library:', error);
     return {
       success: false,
@@ -84,7 +84,7 @@ export const exportToCSV = async <T = any>(data: T[], filename: string) => {
     setTimeout(() => URL.revokeObjectURL(url), 100);
 
     return { success: true };
-  } catch (error) {
+  } catch (_error) {
     console.error('[Export] Failed to load XLSX library:', error);
     return {
       success: false,

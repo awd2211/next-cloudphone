@@ -3,7 +3,6 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Avatar, Dropdown, Drawer } from 'antd';
 import NotificationCenter from '@/components/NotificationCenter';
 import { smartPrefetch, prefetchMultipleRoutes } from '@/config/prefetchRoutes';
-import { useGlobalHotkeys } from '@/hooks/useGlobalHotkeys';
 import { GlobalSearchModal, useGlobalSearch } from '@/components/GlobalSearch';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { useTheme } from '@/hooks/useTheme';
@@ -63,7 +62,6 @@ const BasicLayout = () => {
   const location = useLocation();
 
   // ==================== 全局快捷键支持 ====================
-  useGlobalHotkeys();
 
   // ==================== 全局搜索 (Cmd+K) ====================
   const { visible: searchVisible, close: closeSearch } = useGlobalSearch();

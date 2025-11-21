@@ -66,8 +66,8 @@ export const useUserListState = () => {
       (key) =>
         key !== 'page' &&
         key !== 'pageSize' &&
-        filters[key] !== undefined &&
-        filters[key] !== ''
+        filters[key as keyof typeof filters] !== undefined &&
+        filters[key as keyof typeof filters] !== ''
     );
   }, [filters]);
 

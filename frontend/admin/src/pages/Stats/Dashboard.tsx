@@ -24,7 +24,7 @@ import {
   useTopAppsTableColumns,
   CHART_COLORS,
 } from '@/components/StatsDashboard';
-import { useStatsDashboard } from '@/hooks/useStatsDashboard';
+import { useStatsDashboard } from '@/hooks/queries/useStatsDashboard';
 
 interface TopApp {
   id: string;
@@ -145,8 +145,8 @@ const StatsDashboard: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
+                  label={({ name, percent }: any) =>
+                    `${name} ${((percent as number) * 100).toFixed(0)}%`
                   }
                   outerRadius={80}
                   fill="#8884d8"
@@ -176,7 +176,7 @@ const StatsDashboard: React.FC = () => {
           loadingText="正在加载热门应用数据"
           emptyText="暂无热门应用数据"
           columns={topAppsColumns}
-          dataSource={topApps?.data || []}
+          dataSource={(topApps?.data || []) as any}
           rowKey="id"
           pagination={false}
           scroll={{ y: 400 }}

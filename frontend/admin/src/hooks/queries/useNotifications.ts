@@ -42,7 +42,7 @@ const UnreadCountResponseSchema = z.object({
  */
 export function useNotifications(
   userId: string,
-  filters?: { isRead?: boolean; type?: string; page?: number; limit?: number }
+  filters?: { isRead?: boolean; type?: string; page?: number; pageSize?: number }
 ) {
   return useQuery({
     queryKey: notificationKeys.list(userId, { isRead: filters?.isRead, type: filters?.type }),
@@ -52,7 +52,7 @@ export function useNotifications(
         isRead: filters?.isRead,
         type: filters?.type,
         page: filters?.page || 1,
-        limit: filters?.limit || 10,
+        pageSize: filters?.pageSize || 10,
       });
 
       // ✅ Zod 验证，确保数据安全
@@ -140,7 +140,7 @@ export function useMarkAsRead() {
     },
 
     // ❌ 失败时回滚
-    onError: (error, notificationId, context) => {
+    onError: (_error, _variables, context) => {
       if (context?.previousNotifications) {
         context.previousNotifications.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
@@ -175,13 +175,13 @@ export function useMarkAllAsRead() {
   return useMutation({
     mutationFn: (userId: string) => markAllAsRead(userId),
 
-    onSuccess: (_, userId) => {
+    onSuccess: (_, _userId) => {
       // 失效所有通知相关的查询
       queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       message.success('已全部标记为已读');
     },
 
-    onError: () => {
+    onError: (_error, _variables, _context) => {
       message.error('操作失败');
     },
   });
@@ -218,7 +218,7 @@ export function useDeleteNotification() {
       return { previousNotifications };
     },
 
-    onError: (error, notificationId, context) => {
+    onError: (_error, _variables, context) => {
       if (context?.previousNotifications) {
         context.previousNotifications.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
@@ -267,7 +267,7 @@ export function useBatchDeleteNotifications() {
       return { previousNotifications };
     },
 
-    onError: (error, ids, context) => {
+    onError: (_error, _variables, context) => {
       if (context?.previousNotifications) {
         context.previousNotifications.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);

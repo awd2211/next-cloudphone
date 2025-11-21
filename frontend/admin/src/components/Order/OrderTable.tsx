@@ -78,7 +78,7 @@ export const OrderTable = memo<OrderTableProps>(
           title: '金额',
           dataIndex: 'amount',
           key: 'amount',
-          sorter: (a, b) => a.amount - b.amount,
+          sorter: (a, b) => Number(a.amount) - Number(b.amount),
           render: (amount: number) => `¥${(amount || 0).toFixed(2)}`,
         },
         {

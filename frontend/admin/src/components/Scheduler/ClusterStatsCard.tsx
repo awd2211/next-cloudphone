@@ -3,8 +3,6 @@ import { Card, Row, Col, Statistic, Progress } from 'antd';
 import {
   CloudServerOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined,
-  ToolOutlined,
   DashboardOutlined,
 } from '@ant-design/icons';
 import type { ClusterStats } from '@/services/scheduler';
@@ -36,28 +34,12 @@ export const ClusterStatsCard = memo<ClusterStatsCardProps>(({ clusterStats }) =
             prefix={<CloudServerOutlined />}
           />
         </Col>
-        <Col span={6}>
+        <Col span={18}>
           <Statistic
-            title="在线节点"
-            value={clusterStats?.onlineNodes || 0}
+            title="活跃节点"
+            value={clusterStats?.activeNodes || 0}
             valueStyle={{ color: '#52c41a' }}
             prefix={<CheckCircleOutlined />}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title="离线节点"
-            value={clusterStats?.offlineNodes || 0}
-            valueStyle={{ color: '#ff4d4f' }}
-            prefix={<CloseCircleOutlined />}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title="维护中"
-            value={clusterStats?.maintenanceNodes || 0}
-            valueStyle={{ color: '#faad14' }}
-            prefix={<ToolOutlined />}
           />
         </Col>
       </Row>
@@ -87,14 +69,14 @@ export const ClusterStatsCard = memo<ClusterStatsCardProps>(({ clusterStats }) =
           </Card>
         </Col>
         <Col span={8}>
-          <Card size="small" title="设备使用率">
+          <Card size="small" title="存储使用率">
             <Progress
-              percent={Math.round(clusterStats?.utilizationRate.devices || 0)}
-              status={getProgressStatus(clusterStats?.utilizationRate.devices || 0)}
+              percent={Math.round(clusterStats?.utilizationRate.storage || 0)}
+              status={getProgressStatus(clusterStats?.utilizationRate.storage || 0)}
             />
             <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
-              {clusterStats?.totalUsage.deviceCount || 0} /{' '}
-              {clusterStats?.totalCapacity.maxDevices || 0} 台
+              {((clusterStats?.totalUsage.storage || 0) / 1024).toFixed(1)} /{' '}
+              {((clusterStats?.totalCapacity.storage || 0) / 1024).toFixed(1)} GB
             </div>
           </Card>
         </Col>

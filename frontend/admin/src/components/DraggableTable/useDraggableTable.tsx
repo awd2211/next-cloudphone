@@ -62,7 +62,7 @@ const DraggableRow = ({ children, ...props }: DraggableRowProps) => {
           return React.cloneElement(child as React.ReactElement, {
             children: (
               <HolderOutlined
-                ref={setActivatorNodeRef}
+                ref={setActivatorNodeRef as any}
                 {...listeners}
                 style={{
                   touchAction: 'none',
@@ -72,7 +72,7 @@ const DraggableRow = ({ children, ...props }: DraggableRowProps) => {
                 }}
               />
             ),
-          });
+          } as any);
         }
         return child;
       })}

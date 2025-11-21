@@ -1098,6 +1098,111 @@ export class DevicesController {
     };
   }
 
+  // ==================== 设备连接和远程控制 ====================
+
+  @Get(':id/connection')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取设备连接信息',
+    description: '获取设备的 ADB 连接信息，包括主机、端口和连接命令',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: '连接信息获取成功' })
+  @ApiResponse({ status: 404, description: '设备不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getConnection(@Param('id') id: string) {
+    const device = await this.devicesService.findOne(id);
+
+    if (!device) {
+      return {
+        success: false,
+        message: '设备不存在',
+      };
+    }
+
+    // 获取设备的ADB连接信息
+    const connectionInfo = {
+      deviceId: device.id,
+      deviceName: device.name,
+      host: device.adbHost || 'localhost',
+      adbPort: device.adbPort,
+      status: device.status,
+      // ADB连接命令
+      adbCommand: `adb connect ${device.adbHost || 'localhost'}:${device.adbPort}`,
+      // 容器信息
+      containerId: device.containerId,
+      // 连接状态
+      isOnline: device.status === 'running',
+    };
+
+    return {
+      success: true,
+      data: connectionInfo,
+      message: '连接信息获取成功',
+    };
+  }
+
+  @Post(':id/webrtc/token')
+  @RequirePermission('device.control')
+  @ApiOperation({
+    summary: '获取 WebRTC token',
+    description: '生成用于 WebRTC 屏幕共享和远程控制的授权 token',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: 'Token 生成成功' })
+  @ApiResponse({ status: 404, description: '设备不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getWebRTCToken(@Param('id') id: string, @Req() req: any) {
+    const device = await this.devicesService.findOne(id);
+
+    if (!device) {
+      return {
+        success: false,
+        message: '设备不存在',
+      };
+    }
+
+    // 生成 WebRTC token (这里简化实现，实际应该使用JWT或其他安全方案)
+    const crypto = require('crypto');
+    const token = crypto
+      .createHash('sha256')
+      .update(`${device.id}-${req.user.id}-${Date.now()}`)
+      .digest('hex');
+
+    // Token 有效期 1 小时
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    const webrtcInfo = {
+      deviceId: device.id,
+      deviceName: device.name,
+      token,
+      expiresAt,
+      // WebRTC 服务器配置（应该从环境变量读取）
+      signaling: {
+        url: process.env.WEBRTC_SIGNALING_URL || 'ws://localhost:8088',
+        protocol: 'wss',
+      },
+      // STUN/TURN 服务器配置
+      iceServers: [
+        {
+          urls: 'stun:stun.l.google.com:19302',
+        },
+        // 如果有 TURN 服务器，可以添加
+        // {
+        //   urls: 'turn:your-turn-server.com:3478',
+        //   username: 'user',
+        //   credential: 'pass'
+        // }
+      ],
+    };
+
+    return {
+      success: true,
+      data: webrtcInfo,
+      message: 'WebRTC token 生成成功',
+    };
+  }
+
   // ==================== SMS 虚拟号码管理 ====================
 
   @Post(':id/request-sms')

@@ -4,11 +4,17 @@ import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import { Typography, Tag } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, DollarOutlined } from '@ant-design/icons';
+import {
+  useUserBalance,
+  useBalanceTransactions,
+  useBalanceStatistics,
+  type BalanceTransaction,
+} from './queries/useBalance';
 
 const { Text } = Typography;
 
 /**
- * 交易记录类型
+ * 交易记录类型 (组件内部使用)
  */
 export interface Transaction {
   id: string;
@@ -29,7 +35,7 @@ export interface BalanceTrend {
 }
 
 /**
- * 余额数据类型
+ * 余额数据类型 (组件内部使用)
  */
 export interface BalanceData {
   current: number;
@@ -43,113 +49,99 @@ export interface BalanceData {
 }
 
 /**
- * 自定义 Hook - 账户余额业务逻辑
+ * 自定义 Hook - 账户余额业务逻辑 (React Query 版本)
+ *
+ * 迁移说明:
+ * - ✅ 使用 React Query hooks 替换 mock 数据
+ * - ✅ 对接真实后端 API
+ * - ✅ 保留所有 UI 逻辑和优化
  */
 export const useAccountBalance = () => {
-  const [loading, setLoading] = useState(false);
-  const [alertSettingsVisible, setAlertSettingsVisible] = useState(false);
   const [form] = Form.useForm();
+  const [alertSettingsVisible, setAlertSettingsVisible] = useState(false);
 
-  // 当前余额和统计数据
-  const [balanceData] = useState<BalanceData>({
-    current: 1580.5,
-    yesterday: 1632.3,
-    monthStart: 2050.0,
-    monthConsumption: 469.5,
-    avgDailyConsumption: 15.65,
-    forecastDaysLeft: 101,
-    lowBalanceThreshold: 100,
-    alertEnabled: true,
+  // 获取当前用户ID (从 localStorage 或认证上下文)
+  // TODO: 替换为实际的用户认证方式
+  const userId = localStorage.getItem('userId') || 'current-user-id';
+
+  // React Query hooks - 获取真实数据
+  const { data: balanceInfo, isLoading: balanceLoading, refetch: refetchBalance } = useUserBalance(userId);
+  const { data: transactionsData, isLoading: transactionsLoading, refetch: refetchTransactions } = useBalanceTransactions(userId, {
+    limit: 50,
   });
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useBalanceStatistics(userId);
 
-  // 余额趋势数据（最近30天）
-  const [balanceTrend] = useState<BalanceTrend[]>(() => {
-    const data: BalanceTrend[] = [];
-    let balance = 2050;
-    for (let i = 30; i >= 0; i--) {
-      const date = dayjs().subtract(i, 'day').format('YYYY-MM-DD');
-      balance -= Math.random() * 20 + 5; // 模拟每天消费 5-25 元
-      if (i === 15) balance += 500; // 模拟中途充值
-      data.push({ date, balance: parseFloat(balance.toFixed(2)) });
+  // 合并 loading 状态
+  const loading = balanceLoading || transactionsLoading || statsLoading;
+
+  // 转换余额数据为组件需要的格式
+  const balanceData: BalanceData = useMemo(() => {
+    if (!balanceInfo || !stats) {
+      // 默认值
+      return {
+        current: 0,
+        yesterday: 0,
+        monthStart: 0,
+        monthConsumption: 0,
+        avgDailyConsumption: 0,
+        forecastDaysLeft: 0,
+        lowBalanceThreshold: 100,
+        alertEnabled: true,
+      };
     }
-    return data;
-  });
 
-  // 交易记录
-  const [transactions] = useState<Transaction[]>([
-    {
-      id: '1',
-      type: 'consumption',
-      amount: -51.8,
-      balance: 1580.5,
-      description: '设备使用费 (2024-03-15)',
-      createdAt: '2024-03-15T23:59:59Z',
-      status: 'success',
-    },
-    {
-      id: '2',
-      type: 'consumption',
-      amount: -48.2,
-      balance: 1632.3,
-      description: '设备使用费 (2024-03-14)',
-      createdAt: '2024-03-14T23:59:59Z',
-      status: 'success',
-    },
-    {
-      id: '3',
-      type: 'recharge',
-      amount: 500.0,
-      balance: 1680.5,
-      description: '在线充值',
-      createdAt: '2024-03-13T10:30:00Z',
-      status: 'success',
-    },
-    {
-      id: '4',
-      type: 'consumption',
-      amount: -45.3,
-      balance: 1180.5,
-      description: '设备使用费 (2024-03-13)',
-      createdAt: '2024-03-13T23:59:59Z',
-      status: 'success',
-    },
-    {
-      id: '5',
-      type: 'consumption',
-      amount: -52.1,
-      balance: 1225.8,
-      description: '设备使用费 (2024-03-12)',
-      createdAt: '2024-03-12T23:59:59Z',
-      status: 'success',
-    },
-    {
-      id: '6',
-      type: 'refund',
-      amount: 30.0,
-      balance: 1277.9,
-      description: '退款 - 设备故障补偿',
-      createdAt: '2024-03-11T15:20:00Z',
-      status: 'success',
-    },
-    {
-      id: '7',
-      type: 'consumption',
-      amount: -49.8,
-      balance: 1247.9,
-      description: '设备使用费 (2024-03-11)',
-      createdAt: '2024-03-11T23:59:59Z',
-      status: 'success',
-    },
-    {
-      id: '8',
-      type: 'consumption',
-      amount: -46.5,
-      balance: 1297.7,
-      description: '设备使用费 (2024-03-10)',
-      createdAt: '2024-03-10T23:59:59Z',
-      status: 'success',
-    },
-  ]);
+    return {
+      current: balanceInfo.availableBalance,
+      yesterday: stats.yesterdayBalance,
+      monthStart: stats.monthStartBalance,
+      monthConsumption: stats.monthConsumption,
+      avgDailyConsumption: stats.avgDailyConsumption,
+      forecastDaysLeft: stats.forecastDaysLeft,
+      lowBalanceThreshold: balanceInfo.lowBalanceThreshold,
+      alertEnabled: balanceInfo.alertEnabled,
+    };
+  }, [balanceInfo, stats]);
+
+  // 转换交易记录为组件需要的格式
+  const transactions: Transaction[] = useMemo(() => {
+    if (!transactionsData?.data) return [];
+
+    return transactionsData.data.map((tx: BalanceTransaction) => ({
+      id: tx.id,
+      type: mapTransactionType(tx.type),
+      amount: tx.amount,
+      balance: tx.balanceAfter,
+      description: tx.description,
+      createdAt: tx.createdAt,
+      status: tx.status,
+    }));
+  }, [transactionsData]);
+
+  // 生成余额趋势数据 (基于交易记录)
+  const balanceTrend: BalanceTrend[] = useMemo(() => {
+    if (!transactions.length) return [];
+
+    // 按日期分组计算每日余额
+    const dailyBalances = new Map<string, number>();
+
+    transactions.forEach((tx) => {
+      const date = dayjs(tx.createdAt).format('YYYY-MM-DD');
+      dailyBalances.set(date, tx.balance);
+    });
+
+    // 生成最近 30 天的趋势数据
+    const trend: BalanceTrend[] = [];
+    let currentBalance = balanceData.current;
+
+    for (let i = 0; i <= 30; i++) {
+      const date = dayjs().subtract(30 - i, 'day').format('YYYY-MM-DD');
+      const dayBalance = dailyBalances.get(date) || currentBalance;
+      trend.push({ date, balance: dayBalance });
+      currentBalance = dayBalance;
+    }
+
+    return trend;
+  }, [transactions, balanceData.current]);
 
   // 计算余额变化
   const balanceChange = useMemo(
@@ -158,13 +150,19 @@ export const useAccountBalance = () => {
   );
 
   const balanceChangePercent = useMemo(
-    () => Math.abs((balanceChange / balanceData.yesterday) * 100).toFixed(2),
+    () => {
+      if (balanceData.yesterday === 0) return '0.00';
+      return Math.abs((balanceChange / balanceData.yesterday) * 100).toFixed(2);
+    },
     [balanceChange, balanceData.yesterday]
   );
 
   // 计算本月消费百分比
   const monthConsumptionPercent = useMemo(
-    () => ((balanceData.monthConsumption / balanceData.monthStart) * 100).toFixed(1),
+    () => {
+      if (balanceData.monthStart === 0) return '0.0';
+      return ((balanceData.monthConsumption / balanceData.monthStart) * 100).toFixed(1);
+    },
     [balanceData.monthConsumption, balanceData.monthStart]
   );
 
@@ -298,13 +296,10 @@ export const useAccountBalance = () => {
     [balanceTrend]
   );
 
-  // 刷新数据
-  const handleRefresh = useCallback(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-  }, []);
+  // 刷新数据 (使用 React Query refetch)
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refetchBalance(), refetchTransactions(), refetchStats()]);
+  }, [refetchBalance, refetchTransactions, refetchStats]);
 
   // 打开预警设置
   const handleOpenAlertSettings = useCallback(() => {
@@ -322,12 +317,13 @@ export const useAccountBalance = () => {
       const values = await form.validateFields();
       console.log('Alert settings:', values);
       setAlertSettingsVisible(false);
-      // TODO: 保存到后端
+      // TODO: 调用更新预警设置的 mutation
     } catch (error) {
       console.error('Validation failed:', error);
     }
   }, [form]);
 
+  // 关闭预警设置
   const handleCloseAlertSettings = useCallback(() => {
     setAlertSettingsVisible(false);
   }, []);
@@ -351,3 +347,21 @@ export const useAccountBalance = () => {
     handleCloseAlertSettings,
   };
 };
+
+/**
+ * 转换后端交易类型到组件使用的类型
+ */
+function mapTransactionType(
+  type: 'recharge' | 'consume' | 'freeze' | 'unfreeze' | 'adjust' | 'refund'
+): 'recharge' | 'consumption' | 'refund' | 'adjustment' {
+  const typeMap: Record<string, 'recharge' | 'consumption' | 'refund' | 'adjustment'> = {
+    recharge: 'recharge',
+    consume: 'consumption',
+    freeze: 'consumption',
+    unfreeze: 'recharge',
+    adjust: 'adjustment',
+    refund: 'refund',
+  };
+
+  return typeMap[type] || 'adjustment';
+}

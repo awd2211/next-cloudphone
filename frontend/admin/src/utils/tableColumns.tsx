@@ -2,7 +2,6 @@ import React from 'react';
 import { ColumnsType } from 'antd/es/table';
 import { Tag, Button, Space, Tooltip } from 'antd';
 import dayjs from 'dayjs';
-import type { SorterResult, FilterValue } from 'antd/es/table/interface';
 
 /**
  * 时间列配置工厂

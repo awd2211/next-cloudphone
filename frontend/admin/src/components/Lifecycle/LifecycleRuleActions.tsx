@@ -10,12 +10,7 @@ import {
   EditOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-
-interface LifecycleRule {
-  id: string;
-  name: string;
-  enabled: boolean;
-}
+import type { LifecycleRule } from '@/types';
 
 interface LifecycleRuleActionsProps {
   rule: LifecycleRule;

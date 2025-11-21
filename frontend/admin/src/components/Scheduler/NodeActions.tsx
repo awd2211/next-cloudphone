@@ -10,11 +10,7 @@ import {
   WarningOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-
-interface SchedulerNode {
-  id: string;
-  status: string;
-}
+import type { SchedulerNode } from '@/services/scheduler';
 
 interface NodeActionsProps {
   node: SchedulerNode;
@@ -37,8 +33,8 @@ export const NodeActions = memo<NodeActionsProps>(
           编辑
         </Button>
 
-        {/* 在线状态：显示"维护"按钮 */}
-        {node.status === 'online' && (
+        {/* 活跃状态：显示"维护"按钮 */}
+        {node.status === 'active' && (
           <Button
             type="link"
             size="small"

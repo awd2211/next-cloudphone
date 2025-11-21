@@ -5,7 +5,9 @@
  */
 
 import { Card, Row, Col, Space, Typography, Divider } from 'antd';
-import { LazyImage, ProgressiveImage, useLazyLoad } from '@/components/LazyImage';
+import { LazyImage } from '@/components/LazyImage/LazyImage';
+import { ProgressiveImage } from '@/components/LazyImage/ProgressiveImage';
+import { useLazyLoad } from '@/components/LazyImage/useLazyLoad';
 
 const { Title, Text, Paragraph } = Typography;
 

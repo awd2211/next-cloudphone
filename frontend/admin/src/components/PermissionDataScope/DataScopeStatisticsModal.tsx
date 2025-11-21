@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { Modal, Card, Row, Col, Statistic, Table, Tag } from 'antd';
 import {
-  TeamOutlined,
+
   AppstoreOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,

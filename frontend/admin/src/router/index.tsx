@@ -19,7 +19,6 @@ const OrderList = lazy(() => import('@/pages/Order/List'));
 const PlanList = lazy(() => import('@/pages/Plan/List'));
 const RevenueReport = lazy(() => import('@/pages/Report/Revenue'));
 const Analytics = lazy(() => import('@/pages/Report/Analytics'));
-const UsageList = lazy(() => import('@/pages/Usage/List'));
 const UsageMonitor = lazy(() => import('@/pages/Usage/UsageMonitor'));
 const PaymentList = lazy(() => import('@/pages/Payment/List'));
 const PaymentDashboard = lazy(() => import('@/pages/Payment/Dashboard'));

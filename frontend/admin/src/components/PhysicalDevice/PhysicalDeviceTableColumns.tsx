@@ -56,7 +56,7 @@ export const usePhysicalDeviceTableColumns = ({
               <span style={{ fontSize: '12px', color: '#999' }}>{record.model}</span>
             )}
             {record.androidVersion && (
-              <Tag size="small" color="blue">
+              <Tag color="blue">
                 Android {record.androidVersion}
               </Tag>
             )}

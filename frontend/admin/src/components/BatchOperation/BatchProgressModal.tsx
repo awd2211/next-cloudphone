@@ -8,7 +8,7 @@
  * 4. 支持虚拟滚动，处理大批量操作（100+ 项）
  */
 
-import { Modal, Progress, List, Tag, Typography, Button, Space , theme } from 'antd';
+import { Modal, Progress, List, Tag, Typography, Button, Space, theme } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -56,7 +56,7 @@ const getStatusIcon = (status: BatchOperationItem['status']) => {
     case 'error':
       return <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 16 }} />;
     case 'processing':
-      return <LoadingOutlined style={{ color: token.colorPrimary, fontSize: 16 }} />;
+      return <LoadingOutlined style={{ color: '#1890ff', fontSize: 16 }} />;
     case 'pending':
       return <ClockCircleOutlined style={{ color: '#d9d9d9', fontSize: 16 }} />;
   }

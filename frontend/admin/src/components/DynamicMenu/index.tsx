@@ -74,7 +74,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
         const menus = await fetchUserMenus();
         const items = transformMenuItems(menus);
         setMenuItems(items);
-      } catch (error) {
+      } catch (_error) {
         console.error('Failed to load menus:', error);
       } finally {
         setLoading(false);

@@ -14,15 +14,93 @@ import {
   BatchOperationModal,
   BatchInstallAppModal,
 } from '@/components/Device';
-import { useDeviceList } from '@/hooks/useDeviceList';
+import { useMyDevices, useDeviceStats, useStartDevice, useStopDevice, useRebootDevice } from '@/hooks/queries';
 import { useBatchDeviceOperation } from '@/hooks/useBatchDeviceOperation';
 import dayjs from 'dayjs';
 
 const MyDevices = () => {
   const navigate = useNavigate();
-  const { devices, stats, loading, pagination, actions } = useDeviceList();
+
+  // 本地状态
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // React Query hooks
+  const { data: devicesData, isLoading: loading, refetch: refetchDevices } = useMyDevices({ page, pageSize });
+  const { data: stats, refetch: refetchStats } = useDeviceStats();
+  const startDevice = useStartDevice();
+  const stopDevice = useStopDevice();
+  const rebootDevice = useRebootDevice();
+
+  const devices = devicesData?.data || [];
+  const total = devicesData?.total || 0;
+
+  // 设备操作处理函数
+  const handleStart = useCallback(
+    async (id: string) => {
+      await startDevice.mutateAsync(id);
+    },
+    [startDevice]
+  );
+
+  const handleStop = useCallback(
+    async (id: string) => {
+      await stopDevice.mutateAsync(id);
+    },
+    [stopDevice]
+  );
+
+  const handleReboot = useCallback(
+    async (id: string) => {
+      await rebootDevice.mutateAsync(id);
+    },
+    [rebootDevice]
+  );
+
+  const handleCreateSuccess = useCallback(
+    (device: Device) => {
+      refetchDevices();
+      refetchStats();
+    },
+    [refetchDevices, refetchStats]
+  );
+
+  const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
+    setPage(newPage);
+    setPageSize(newPageSize);
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    refetchDevices();
+    refetchStats();
+  }, [refetchDevices, refetchStats]);
+
+  // 将操作函数包装成 actions 对象（保持与原组件兼容）
+  const actions = useMemo(
+    () => ({
+      handleStart,
+      handleStop,
+      handleReboot,
+      handleCreateSuccess,
+      handleRefresh,
+    }),
+    [handleStart, handleStop, handleReboot, handleCreateSuccess, handleRefresh]
+  );
+
+  // 分页配置
+  const pagination = useMemo(
+    () => ({
+      current: page,
+      pageSize,
+      total,
+      showSizeChanger: true,
+      showTotal: (total: number) => `共 ${total} 条`,
+      onChange: handlePageChange,
+    }),
+    [page, pageSize, total, handlePageChange]
+  );
 
   // 批量操作相关
   const {

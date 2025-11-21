@@ -82,8 +82,9 @@ export const useMenu = () => {
       const response = await menusPromise;
 
       if (response.success) {
-        globalMenus = response.data || [];
-        setMenus(globalMenus);
+        const menuData = response.data || [];
+        globalMenus = menuData;
+        setMenus(menuData);
       } else {
         throw new Error(response.message || '获取菜单失败');
       }
@@ -122,7 +123,7 @@ export const useMenu = () => {
    */
   const checkMenuAccess = useCallback(async (path: string): Promise<boolean> => {
     try {
-      const response = await request.get('/menu-permissions/check-menu-access', {
+      const response = await request.get<any>('/menu-permissions/check-menu-access', {
         params: { path },
       });
 
@@ -141,7 +142,7 @@ export const useMenu = () => {
    */
   const getBreadcrumb = useCallback(async (path: string): Promise<BreadcrumbItem[]> => {
     try {
-      const response = await request.get('/menu-permissions/breadcrumb', {
+      const response = await request.get<any>('/menu-permissions/breadcrumb', {
         params: { path },
       });
 
@@ -160,7 +161,7 @@ export const useMenu = () => {
    */
   const getAllMenus = useCallback(async (): Promise<MenuItem[]> => {
     try {
-      const response = await request.get('/menu-permissions/all-menus');
+      const response = await request.get<any>('/menu-permissions/all-menus');
 
       if (response.success) {
         return response.data || [];

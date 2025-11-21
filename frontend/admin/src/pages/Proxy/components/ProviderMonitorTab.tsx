@@ -6,34 +6,15 @@ import {
   Statistic,
   Tag,
   Progress,
-  Badge,
   Button,
 } from 'antd';
 import {
   ReloadOutlined,
   CheckCircleOutlined,
   ThunderboltOutlined,
-  DollarOutlined,
 } from '@ant-design/icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
+import { useProxyProviderRanking, type ProxyProviderRanking } from '@/hooks/queries/useProxy';
 import type { ColumnsType } from 'antd/es/table';
-
-interface ProviderRanking {
-  provider: string;
-  score: number;
-  rank: number;
-  qualityScore: number;
-  latencyScore: number;
-  costScore: number;
-  availabilityScore: number;
-  totalProxies: number;
-  availableProxies: number;
-  avgQuality: number;
-  avgLatency: number;
-  avgCostPerGB: number;
-  successRate: number;
-}
 
 /**
  * 供应商监控与排名标签页
@@ -44,21 +25,10 @@ interface ProviderRanking {
  * - 健康状态监控
  */
 const ProviderMonitorTab: React.FC = () => {
-  const queryClient = useQueryClient();
+  // 使用新的 React Query Hook
+  const { data: providers = [], isLoading, refetch } = useProxyProviderRanking();
 
-  // 查询供应商排名
-  const { data, isLoading } = useQuery<{ data: ProviderRanking[] }>({
-    queryKey: ['proxy-provider-ranking'],
-    queryFn: async () => {
-      const response = await request.get('/proxy/providers/ranking');
-      return response;
-    },
-    refetchInterval: 30000, // 每30秒刷新
-  });
-
-  const providers = data?.data || [];
-
-  const columns: ColumnsType<ProviderRanking> = [
+  const columns: ColumnsType<ProxyProviderRanking> = [
     {
       title: '排名',
       dataIndex: 'rank',
@@ -160,10 +130,10 @@ const ProviderMonitorTab: React.FC = () => {
   ];
 
   // 计算总览统计
-  const totalProxies = providers.reduce((sum, p) => sum + p.totalProxies, 0);
-  const totalAvailable = providers.reduce((sum, p) => sum + p.availableProxies, 0);
+  const totalProxies = providers.reduce((sum: number, p: any) => sum + p.totalProxies, 0);
+  const totalAvailable = providers.reduce((sum: number, p: any) => sum + p.availableProxies, 0);
   const avgScore = providers.length > 0
-    ? providers.reduce((sum, p) => sum + p.score, 0) / providers.length
+    ? providers.reduce((sum: number, p: any) => sum + p.score, 0) / providers.length
     : 0;
   const bestProvider = providers.length > 0 ? providers[0] : null;
 
@@ -237,9 +207,7 @@ const ProviderMonitorTab: React.FC = () => {
       <div style={{ marginBottom: 16 }}>
         <Button
           icon={<ReloadOutlined />}
-          onClick={() =>
-            queryClient.invalidateQueries({ queryKey: ['proxy-provider-ranking'] })
-          }
+          onClick={() => refetch()}
         >
           刷新数据
         </Button>

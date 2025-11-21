@@ -11,7 +11,6 @@ import {
   InputNumber,
   Switch,
   Select,
-  message,
   Tooltip,
   Popconfirm,
   Row,
@@ -29,114 +28,29 @@ import {
   ExperimentOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
+import {
+  useProxyProviders,
+  useCreateProxyProvider,
+  useUpdateProxyProvider,
+  useDeleteProxyProvider,
+  useToggleProxyProvider,
+  useTestProxyProvider,
+  type ProxyProvider,
+} from '@/hooks/queries/useProxy';
 import type { ColumnsType } from 'antd/es/table';
-
-interface ProxyProviderConfig {
-  id: string;
-  name: string;
-  type: string;
-  enabled: boolean;
-  priority: number;
-  costPerGB: number;
-  totalRequests: number;
-  successRequests: number;
-  failedRequests: number;
-  successRate: number;
-  avgLatencyMs: number;
-  createdAt: string;
-  updatedAt: string;
-  hasConfig: boolean;
-}
 
 const ProviderConfig: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProvider, setEditingProvider] = useState<ProxyProviderConfig | null>(null);
+  const [editingProvider, setEditingProvider] = useState<ProxyProvider | null>(null);
   const [form] = Form.useForm();
-  const queryClient = useQueryClient();
 
-  const { data: providers, isLoading } = useQuery<ProxyProviderConfig[]>({
-    queryKey: ['proxy-providers'],
-    queryFn: async () => {
-      const response = await request.get('/proxy/providers');
-      return response.data;
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (values: any) => {
-      return await request.post('/proxy/providers', values);
-    },
-    onSuccess: () => {
-      message.success('供应商创建成功');
-      setIsModalOpen(false);
-      form.resetFields();
-      queryClient.invalidateQueries({ queryKey: ['proxy-providers'] });
-    },
-    onError: (error: any) => {
-      message.error(`创建失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, values }: { id: string; values: any }) => {
-      return await request.put(`/proxy/providers/${id}`, values);
-    },
-    onSuccess: () => {
-      message.success('供应商更新成功');
-      setIsModalOpen(false);
-      setEditingProvider(null);
-      form.resetFields();
-      queryClient.invalidateQueries({ queryKey: ['proxy-providers'] });
-    },
-    onError: (error: any) => {
-      message.error(`更新失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await request.delete(`/proxy/providers/${id}`);
-    },
-    onSuccess: () => {
-      message.success('供应商删除成功');
-      queryClient.invalidateQueries({ queryKey: ['proxy-providers'] });
-    },
-    onError: (error: any) => {
-      message.error(`删除失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await request.put(`/proxy/providers/${id}/toggle`);
-    },
-    onSuccess: () => {
-      message.success('状态切换成功');
-      queryClient.invalidateQueries({ queryKey: ['proxy-providers'] });
-    },
-    onError: (error: any) => {
-      message.error(`操作失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
-
-  const testMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await request.post(`/proxy/providers/${id}/test`, {});
-    },
-    onSuccess: (data) => {
-      const result = data.data;
-      if (result.success) {
-        message.success(`连接成功！延迟: ${result.latency}ms, 代理数: ${result.proxyCount || 'N/A'}`);
-      } else {
-        message.error('连接失败');
-      }
-    },
-    onError: (error: any) => {
-      message.error(`测试失败: ${error.response?.data?.message || error.message}`);
-    },
-  });
+  // 使用新的 React Query Hooks
+  const { data: providers, isLoading, refetch } = useProxyProviders();
+  const createMutation = useCreateProxyProvider();
+  const updateMutation = useUpdateProxyProvider();
+  const deleteMutation = useDeleteProxyProvider();
+  const toggleMutation = useToggleProxyProvider();
+  const testMutation = useTestProxyProvider();
 
   const handleAdd = () => {
     setEditingProvider(null);
@@ -144,7 +58,7 @@ const ProviderConfig: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (provider: ProxyProviderConfig) => {
+  const handleEdit = (provider: ProxyProvider) => {
     setEditingProvider(provider);
     form.setFieldsValue({
       name: provider.name,
@@ -162,16 +76,30 @@ const ProviderConfig: React.FC = () => {
       const values = await form.validateFields();
 
       if (editingProvider) {
-        updateMutation.mutate({ id: editingProvider.id, values });
+        updateMutation.mutate(
+          { id: editingProvider.id, data: values },
+          {
+            onSuccess: () => {
+              setIsModalOpen(false);
+              setEditingProvider(null);
+              form.resetFields();
+            },
+          }
+        );
       } else {
-        createMutation.mutate(values);
+        createMutation.mutate(values, {
+          onSuccess: () => {
+            setIsModalOpen(false);
+            form.resetFields();
+          },
+        });
       }
     } catch (error) {
       console.error('表单验证失败:', error);
     }
   };
 
-  const columns: ColumnsType<ProxyProviderConfig> = [
+  const columns: ColumnsType<ProxyProvider> = [
     {
       title: '供应商',
       key: 'provider',
@@ -273,7 +201,7 @@ const ProviderConfig: React.FC = () => {
               type="link"
               size="small"
               icon={record.enabled ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
-              onClick={() => toggleMutation.mutate(record.id)}
+              onClick={() => toggleMutation.mutate({ id: record.id, enabled: !record.enabled })}
               loading={toggleMutation.isPending}
             />
           </Tooltip>
@@ -356,7 +284,7 @@ const ProviderConfig: React.FC = () => {
           </Button>
           <Button
             icon={<ReloadOutlined />}
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['proxy-providers'] })}
+            onClick={() => refetch()}
           >
             刷新
           </Button>

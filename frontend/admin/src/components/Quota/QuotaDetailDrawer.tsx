@@ -213,14 +213,14 @@ export const QuotaDetailDrawer = memo<QuotaDetailDrawerProps>(
             {/* 使用趋势图 */}
             {usageTrendOption && (
               <Card title="使用趋势" size="small" style={{ marginBottom: 16 }}>
-                <ReactECharts option={usageTrendOption} style={{ height: 300 }} />
+                <ReactECharts option={usageTrendOption as any} style={{ height: 300 }} />
               </Card>
             )}
 
             {/* 资源分布图 */}
             {distributionOption && (
               <Card title="资源分布" size="small">
-                <ReactECharts option={distributionOption} style={{ height: 300 }} />
+                <ReactECharts option={distributionOption as any} style={{ height: 300 }} />
               </Card>
             )}
           </div>

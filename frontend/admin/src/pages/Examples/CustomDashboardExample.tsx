@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { Button, Card, Statistic, List, Row, Col, Tag, Progress, Space, Typography , theme } from 'antd';
+import { Button, Card, Statistic, List, Row, Col, Tag, Progress, Space, Typography, theme } from 'antd';
 import {
   SettingOutlined,
   UserOutlined,
@@ -91,7 +91,7 @@ const renderCardContent = (card: DashboardCard) => {
           size="small"
           dataSource={[
             { icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />, text: '用户 user001 创建了设备', time: '刚刚' },
-            { icon: <ClockCircleOutlined style={{ color: token.colorPrimary }} />, text: '设备 device123 已启动', time: '2分钟前' },
+            { icon: <ClockCircleOutlined style={{ color: '#1890ff' }} />, text: '设备 device123 已启动', time: '2分钟前' },
             { icon: <WarningOutlined style={{ color: '#faad14' }} />, text: '设备 device456 启动失败', time: '5分钟前' },
             { icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />, text: '用户 user002 充值 ¥100', time: '10分钟前' },
           ]}
@@ -173,7 +173,7 @@ const renderCardContent = (card: DashboardCard) => {
  * 自定义仪表盘示例页面
  */
 const CustomDashboardExample = () => {
-  const { token } = theme.useToken();
+  const { } = theme.useToken();
   const [settingsVisible, setSettingsVisible] = useState(false);
 
   const {

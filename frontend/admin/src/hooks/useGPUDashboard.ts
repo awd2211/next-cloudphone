@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Form, message } from 'antd';
-import type { GPUDevice, GPUStats, GPUAllocation } from '@/types';
+import type { GPUDevice } from '@/types';
 import {
   getGPUDevices,
   getGPUStats,
@@ -8,7 +8,7 @@ import {
   deallocateGPU,
   getGPUAllocations,
 } from '@/services/gpu';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   GPUDevicesResponseSchema,
   GPUStatsSchema,
@@ -19,7 +19,7 @@ import {
  * GPU 管理面板业务逻辑 Hook
  *
  * 功能:
- * 1. 数据加载 (GPU设备、统计、分配记录) - 使用 useSafeApi + Zod 验证
+ * 1. 数据加载 (GPU设备、统计、分配记录) - 使用 useValidatedQuery + Zod 验证
  * 2. GPU 分配和释放
  * 3. Modal 状态管理
  * 4. Tab 管理
@@ -33,23 +33,23 @@ export const useGPUDashboard = () => {
 
   const [form] = Form.useForm();
 
-  // ===== 数据加载 (使用 useSafeApi) =====
+  // ===== 数据加载 (使用 useValidatedQuery) =====
 
   /**
    * 加载 GPU 设备列表
    */
   const {
     data: gpusResponse,
-    loading,
-    execute: executeLoadGPUs,
-  } = useSafeApi(
-    () => getGPUDevices({ page: 1, pageSize: 100 }),
-    GPUDevicesResponseSchema,
-    {
-      errorMessage: '加载 GPU 列表失败',
-      fallbackValue: { data: [] },
-    }
-  );
+    isLoading: loading,
+    refetch: loadGPUs,
+  } = useValidatedQuery({
+    queryKey: ['gpu-devices'],
+    queryFn: () => getGPUDevices({ page: 1, pageSize: 100 }),
+    schema: GPUDevicesResponseSchema,
+    apiErrorMessage: '加载 GPU 列表失败',
+    fallbackValue: { data: [] },
+    staleTime: 30 * 1000, // GPU设备列表30秒缓存
+  });
 
   const gpus = gpusResponse?.data || [];
 
@@ -58,50 +58,33 @@ export const useGPUDashboard = () => {
    */
   const {
     data: stats,
-    execute: executeLoadStats,
-  } = useSafeApi(
-    getGPUStats,
-    GPUStatsSchema,
-    {
-      errorMessage: '加载统计失败',
-      fallbackValue: null,
-    }
-  );
+    refetch: loadStats,
+  } = useValidatedQuery({
+    queryKey: ['gpu-stats'],
+    queryFn: getGPUStats,
+    schema: GPUStatsSchema,
+    apiErrorMessage: '加载统计失败',
+    fallbackValue: null,
+    staleTime: 30 * 1000, // GPU统计30秒缓存
+  });
 
   /**
-   * 加载 GPU 分配记录
+   * 加载 GPU 分配记录（仅当 activeTab === 'allocations' 时加载）
    */
   const {
     data: allocationsResponse,
-    execute: executeLoadAllocations,
-  } = useSafeApi(
-    () => getGPUAllocations({ page: 1, pageSize: 50, status: 'active' }),
-    GPUAllocationsResponseSchema,
-    {
-      errorMessage: '加载分配记录失败',
-      fallbackValue: { data: [] },
-      manual: true,
-    }
-  );
+    refetch: loadAllocations,
+  } = useValidatedQuery({
+    queryKey: ['gpu-allocations', 'active'],
+    queryFn: () => getGPUAllocations({ page: 1, pageSize: 50, status: 'active' }),
+    schema: GPUAllocationsResponseSchema,
+    apiErrorMessage: '加载分配记录失败',
+    fallbackValue: { data: [] },
+    enabled: activeTab === 'allocations', // 仅在 allocations tab 时加载
+    staleTime: 30 * 1000,
+  });
 
   const allocations = allocationsResponse?.data || [];
-
-  /**
-   * 初始化加载
-   */
-  useEffect(() => {
-    executeLoadGPUs();
-    executeLoadStats();
-  }, [executeLoadGPUs, executeLoadStats]);
-
-  /**
-   * Tab 切换时加载分配记录
-   */
-  useEffect(() => {
-    if (activeTab === 'allocations') {
-      executeLoadAllocations();
-    }
-  }, [activeTab, executeLoadAllocations]);
 
   // ===== 事件处理 =====
 
@@ -130,13 +113,13 @@ export const useGPUDashboard = () => {
       await allocateGPU(selectedGPU!.id, values.deviceId, values.mode);
       message.success('GPU 分配成功');
       setAllocateVisible(false);
-      executeLoadGPUs();
-      executeLoadStats();
+      loadGPUs();
+      loadStats();
     } catch (error: any) {
       if (error.errorFields) return;
       message.error('分配失败');
     }
-  }, [form, selectedGPU, executeLoadGPUs, executeLoadStats]);
+  }, [form, selectedGPU, loadGPUs, loadStats]);
 
   /**
    * 释放 GPU
@@ -146,14 +129,14 @@ export const useGPUDashboard = () => {
       try {
         await deallocateGPU(gpuId, deviceId);
         message.success('GPU 已释放');
-        executeLoadGPUs();
-        executeLoadStats();
-        executeLoadAllocations();
-      } catch (error) {
+        loadGPUs();
+        loadStats();
+        loadAllocations();
+      } catch (_error) {
         message.error('释放失败');
       }
     },
-    [executeLoadGPUs, executeLoadStats, executeLoadAllocations],
+    [loadGPUs, loadStats, loadAllocations],
   );
 
   /**

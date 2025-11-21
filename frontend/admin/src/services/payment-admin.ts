@@ -261,7 +261,7 @@ export const downloadExcelFile = async (params: {
     window.URL.revokeObjectURL(url);
 
     return true;
-  } catch (error) {
+  } catch (_error) {
     console.error('下载失败:', error);
     throw error;
   }

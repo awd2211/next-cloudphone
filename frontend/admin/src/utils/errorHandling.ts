@@ -200,36 +200,36 @@ function getErrorMessage(type: ErrorType, statusCode?: number): string {
   if (statusCode) {
     switch (statusCode) {
       case 401:
-        return ERROR_MESSAGES.UNAUTHORIZED;
+        return ERROR_MESSAGES.UNAUTHORIZED as string;
       case 403:
-        return ERROR_MESSAGES.FORBIDDEN;
+        return ERROR_MESSAGES.FORBIDDEN as string;
       case 404:
-        return ERROR_MESSAGES.NOT_FOUND;
+        return ERROR_MESSAGES.NOT_FOUND as string;
       case 409:
-        return ERROR_MESSAGES.CONFLICT;
+        return ERROR_MESSAGES.CONFLICT as string;
       case 422:
       case 400:
-        return ERROR_MESSAGES.VALIDATION_FAILED;
+        return ERROR_MESSAGES.VALIDATION_FAILED as string;
       case 500:
-        return ERROR_MESSAGES.INTERNAL_SERVER_ERROR;
+        return ERROR_MESSAGES.INTERNAL_SERVER_ERROR as string;
       case 503:
-        return ERROR_MESSAGES.SERVICE_UNAVAILABLE;
+        return ERROR_MESSAGES.SERVICE_UNAVAILABLE as string;
       case 504:
-        return ERROR_MESSAGES.GATEWAY_TIMEOUT;
+        return ERROR_MESSAGES.GATEWAY_TIMEOUT as string;
     }
   }
 
   switch (type) {
     case ErrorType.NETWORK:
-      return ERROR_MESSAGES.NETWORK_ERROR;
+      return ERROR_MESSAGES.NETWORK_ERROR as string;
     case ErrorType.AUTH:
-      return ERROR_MESSAGES.UNAUTHORIZED;
+      return ERROR_MESSAGES.UNAUTHORIZED as string;
     case ErrorType.PERMISSION:
-      return ERROR_MESSAGES.FORBIDDEN;
+      return ERROR_MESSAGES.FORBIDDEN as string;
     case ErrorType.SERVER:
-      return ERROR_MESSAGES.INTERNAL_SERVER_ERROR;
+      return ERROR_MESSAGES.INTERNAL_SERVER_ERROR as string;
     default:
-      return ERROR_MESSAGES.DEFAULT;
+      return ERROR_MESSAGES.DEFAULT as string;
   }
 }
 

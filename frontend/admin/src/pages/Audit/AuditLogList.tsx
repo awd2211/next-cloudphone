@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Card, Select, Input, Button, Space, Tag, Tooltip, message } from 'antd';
+import { Card, Select, Input, Button, Space, Tag, Tooltip } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
   SearchOutlined,
@@ -9,8 +9,8 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useAuditLogs, exportAuditLogsToCSV } from '@/hooks/useAuditLogs';
-import type { AuditLog, AuditLogFilter } from '@/services/audit';
+import { useAuditLogs, useExportAuditLogs } from '@/hooks/queries';
+import type { AuditLog } from '@/services/audit';
 
 const { Option } = Select;
 
@@ -23,7 +23,6 @@ const AuditLogList: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
 
   // 筛选状态
-  const [filters, setFilters] = useState<AuditLogFilter>({});
   const [searchText, setSearchText] = useState('');
   const [resourceTypeFilter, setResourceTypeFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -33,17 +32,17 @@ const AuditLogList: React.FC = () => {
   const { data, isLoading, refetch } = useAuditLogs({
     page,
     pageSize,
-    filters: {
-      ...filters,
-      resourceType: resourceTypeFilter || undefined,
-      status: statusFilter || undefined,
-      method: methodFilter || undefined,
-      search: searchText || undefined,
-    },
+    resourceType: resourceTypeFilter || undefined,
+    status: statusFilter || undefined,
+    method: methodFilter || undefined,
+    search: searchText || undefined,
   });
 
-  const logs = data?.logs || [];
+  const logs = data?.data || [];
   const total = data?.total || 0;
+
+  // 导出功能
+  const exportMutation = useExportAuditLogs();
 
   /**
    * 分页变化处理
@@ -61,20 +60,23 @@ const AuditLogList: React.FC = () => {
     setResourceTypeFilter('');
     setStatusFilter('');
     setMethodFilter('');
-    setFilters({});
     setPage(1);
   };
 
   /**
    * 导出当前页面数据
    */
-  const handleExport = () => {
-    if (logs.length === 0) {
-      message.warning('当前没有数据可以导出');
-      return;
+  const handleExport = async () => {
+    try {
+      await exportMutation.mutateAsync({
+        resourceType: resourceTypeFilter || undefined,
+        status: statusFilter || undefined,
+        method: methodFilter || undefined,
+        search: searchText || undefined,
+      });
+    } catch (_error) {
+      // Error is handled by the mutation
     }
-    exportAuditLogsToCSV(logs);
-    message.success('导出成功');
   };
 
   /**

@@ -4,13 +4,13 @@
  * 捕获组件树中的 JavaScript 错误，显示友好的错误界面
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Button, Result, Typography, Collapse } from 'antd';
 import { ReloadOutlined, HomeOutlined, BugOutlined } from '@ant-design/icons';
 import { handleError, normalizeError, type AppError } from '@/utils/errorHandling';
 
 const { Paragraph, Text } = Typography;
-const { Panel } = Collapse;
+// Removed unused Panel
 
 interface Props {
   /** 子组件 */
@@ -239,7 +239,7 @@ class ErrorBoundary extends Component<Props, State> {
                             {errorInfo.componentStack}
                           </pre>
                         </Paragraph>
-                        {error.details && (
+                        {error.details !== undefined && error.details !== null && (
                           <Paragraph>
                             <Text strong>详细信息:</Text>
                             <pre
@@ -251,7 +251,7 @@ class ErrorBoundary extends Component<Props, State> {
                                 maxHeight: '200px',
                               }}
                             >
-                              {JSON.stringify(error.details, null, 2)}
+                              {JSON.stringify(error.details as any, null, 2)}
                             </pre>
                           </Paragraph>
                         )}

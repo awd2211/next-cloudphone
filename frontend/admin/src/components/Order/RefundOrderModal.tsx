@@ -49,10 +49,10 @@ export const RefundOrderModal = memo<RefundOrderModalProps>(
             <InputNumber
               style={{ width: '100%' }}
               min={0.01}
-              max={order?.amount || 0}
+              max={Number(order?.amount) || 0}
               precision={2}
               value={amount}
-              onChange={(value) => onAmountChange(value || 0)}
+              onChange={(value) => onAmountChange(Number(value) || 0)}
               prefix="¥"
             />
             <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>

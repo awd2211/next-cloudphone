@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { getRevenueStats, exportRevenueReport } from '@/services/billing';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { RevenueStatsSchema } from '@/schemas/api.schemas';
 
 export const useRevenueReport = () => {
@@ -11,40 +11,31 @@ export const useRevenueReport = () => {
     dayjs(),
   ]);
 
-  // ✅ 使用 useSafeApi 加载收入统计
+  // ✅ 使用 useValidatedQuery 加载收入统计
   const {
     data: revenueData,
-    loading,
-    execute: executeLoadStats,
-  } = useSafeApi(
-    () =>
+    isLoading: loading,
+  } = useValidatedQuery({
+    queryKey: ['revenue-stats', dateRange[0].format('YYYY-MM-DD'), dateRange[1].format('YYYY-MM-DD')],
+    queryFn: () =>
       getRevenueStats(dateRange[0].format('YYYY-MM-DD'), dateRange[1].format('YYYY-MM-DD')),
-    RevenueStatsSchema,
-    {
-      errorMessage: '加载收入统计失败',
-      fallbackValue: {
-        totalRevenue: 0,
-        totalOrders: 0,
-        avgOrderValue: 0,
-        dailyStats: [],
-        planStats: [],
-      },
-    }
-  );
+    schema: RevenueStatsSchema,
+    apiErrorMessage: '加载收入统计失败',
+    fallbackValue: {
+      totalRevenue: 0,
+      totalOrders: 0,
+      avgOrderValue: 0,
+      dailyStats: [],
+      planStats: [],
+    },
+    staleTime: 60 * 1000, // 统计数据1分钟缓存
+  });
 
   const totalRevenue = revenueData?.totalRevenue ?? 0;
   const totalOrders = revenueData?.totalOrders ?? 0;
   const avgOrderValue = revenueData?.avgOrderValue ?? 0;
   const dailyStats = revenueData?.dailyStats ?? [];
   const planStats = revenueData?.planStats ?? [];
-
-  const loadRevenueStats = useCallback(async () => {
-    await executeLoadStats();
-  }, [executeLoadStats]);
-
-  useEffect(() => {
-    loadRevenueStats();
-  }, [loadRevenueStats]);
 
   const handleExport = useCallback(
     async (format: 'excel' | 'csv') => {
@@ -61,7 +52,7 @@ export const useRevenueReport = () => {
         link.click();
         window.URL.revokeObjectURL(url);
         message.success('导出成功');
-      } catch (error) {
+      } catch (_error) {
         message.error('导出失败');
       }
     },

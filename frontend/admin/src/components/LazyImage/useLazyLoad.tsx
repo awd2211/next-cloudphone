@@ -25,7 +25,7 @@ export interface UseLazyLoadResult {
   isInView: boolean;
 
   /** 要绑定到元素的 ref */
-  ref: RefObject<HTMLElement>;
+  ref: RefObject<HTMLElement | null>;
 }
 
 /**

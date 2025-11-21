@@ -10,7 +10,7 @@ import {
   useUpdateFieldPermission,
   useDeleteFieldPermission,
   useToggleFieldPermission,
-} from './queries/useFieldPermissions';
+} from '@/hooks/queries/useFieldPermissions';
 import { useDebounce } from './useDebounce';
 
 /**
@@ -58,7 +58,6 @@ export const useFieldPermission = () => {
    */
   const {
     data: accessLevels = [],
-    isLoading: accessLevelsLoading,
   } = useAccessLevels(isModalVisible); // ✅ 只在需要时加载
 
   const {

@@ -117,7 +117,7 @@ export function usePrefetchNavigate(
     try {
       await prefetchFn();
       hasPrefetchedRef.current = true;
-    } catch (error) {
+    } catch (_error) {
       console.warn('[Prefetch] 预加载失败:', error);
     }
   }, [prefetchFn]);
@@ -248,7 +248,7 @@ export function useBatchPrefetch() {
       try {
         // 并行执行所有预加载
         await Promise.all(prefetchFns.map((fn) => fn()));
-      } catch (error) {
+      } catch (_error) {
         console.warn('[BatchPrefetch] 批量预加载失败:', error);
       } finally {
         isPrefetchingRef.current = false;

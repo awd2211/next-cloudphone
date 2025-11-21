@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { SchedulingStrategy } from './entities/scheduling-strategy.entity';
+import { SchedulingStrategy, StrategyType } from '../entities/scheduling-strategy.entity';
 import { CreateStrategyDto, UpdateStrategyDto } from './dto/strategy.dto';
 
 /**
@@ -147,35 +147,51 @@ export class StrategyService {
 
     this.logger.log('Initializing default scheduling strategies');
 
-    const defaultStrategies = [
+    const defaultStrategies: Partial<SchedulingStrategy>[] = [
       {
-        name: 'Round Robin',
-        type: 'round-robin',
-        description: '轮询调度策略，按顺序分配设备到各个节点',
-        config: {},
+        name: '负载均衡策略',
+        type: StrategyType.LOAD_BALANCING,
+        description: '基于节点当前负载进行均衡分配',
+        config: {
+          algorithm: 'weighted_round_robin',
+          enableFailover: true,
+          maxRetries: 3,
+        },
         isActive: true,
+        priority: 1,
       },
       {
-        name: 'Least Loaded',
-        type: 'least-loaded',
-        description: '最少负载策略，优先分配到负载最低的节点',
+        name: '资源效率策略',
+        type: StrategyType.RESOURCE_EFFICIENCY,
+        description: '优先分配到资源利用率低的节点',
         config: {
-          weightCpu: 0.4,
-          weightMemory: 0.3,
-          weightStorage: 0.3,
+          threshold: 0.8,
+          enableFailover: true,
         },
         isActive: false,
+        priority: 2,
       },
       {
-        name: 'Priority Based',
-        type: 'priority',
-        description: '基于优先级的调度策略，高优先级用户优先分配',
+        name: '本地优先策略',
+        type: StrategyType.LOCALITY_AWARE,
+        description: '优先分配到地理位置最近的节点',
         config: {
-          vipPriority: 10,
-          normalPriority: 5,
-          freePriority: 1,
+          regionWeight: 0.7,
+          enableFailover: true,
         },
         isActive: false,
+        priority: 3,
+      },
+      {
+        name: '成本优化策略',
+        type: StrategyType.COST_OPTIMIZATION,
+        description: '优先使用成本最低的节点',
+        config: {
+          costMetric: 'per_hour',
+          maxCostPerDevice: 100,
+        },
+        isActive: false,
+        priority: 4,
       },
     ];
 

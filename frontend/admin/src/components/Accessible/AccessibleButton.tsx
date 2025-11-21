@@ -9,7 +9,7 @@
  */
 
 import { Button, ButtonProps, Tooltip } from 'antd';
-import { ariaLabels, VisuallyHidden } from '@/utils/accessibility';
+import { VisuallyHidden } from '@/utils/accessibility';
 import { useMemo } from 'react';
 
 export interface AccessibleButtonProps extends ButtonProps {

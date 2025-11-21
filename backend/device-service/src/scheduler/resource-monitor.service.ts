@@ -276,4 +276,286 @@ export class ResourceMonitorService {
       },
     };
   }
+
+  /**
+   * 获取节点资源使用趋势
+   * @param nodeId 节点ID
+   * @param hours 小时数（默认24小时）
+   */
+  async getNodeUsageTrend(
+    nodeId: string,
+    hours: number = 24
+  ): Promise<{
+    nodeId: string;
+    nodeName: string;
+    period: { start: string; end: string; hours: number };
+    dataPoints: number;
+    cpu: Array<{ timestamp: string; value: number }>;
+    memory: Array<{ timestamp: string; value: number }>;
+    storage: Array<{ timestamp: string; value: number }>;
+    devices: Array<{ timestamp: string; value: number }>;
+    summary: {
+      avgCpuUsage: number;
+      avgMemoryUsage: number;
+      avgStorageUsage: number;
+      avgDeviceCount: number;
+      peakCpuUsage: number;
+      peakMemoryUsage: number;
+      peakDeviceCount: number;
+    };
+  }> {
+    const node = await this.nodeRepository.findOne({ where: { id: nodeId } });
+
+    if (!node) {
+      throw new Error(`Node ${nodeId} not found`);
+    }
+
+    // 计算时间范围
+    const end = new Date();
+    const start = new Date(end.getTime() - hours * 60 * 60 * 1000);
+
+    // 生成趋势数据点（每小时一个数据点）
+    const dataPoints: Array<{
+      timestamp: Date;
+      cpu: number;
+      memory: number;
+      storage: number;
+      devices: number;
+    }> = [];
+
+    // 简化版实现：基于当前资源使用情况生成模拟趋势数据
+    // 实际生产环境应该从时序数据库（如Prometheus、InfluxDB）中查询历史数据
+    const currentUsage = node.usage;
+    const hoursCount = Math.min(hours, 168); // 最多7天
+
+    for (let i = 0; i < hoursCount; i++) {
+      const timestamp = new Date(start.getTime() + i * 60 * 60 * 1000);
+
+      // 基于当前使用率生成波动数据（±20%）
+      const cpuVariation = (Math.random() - 0.5) * 0.4; // ±20%
+      const memoryVariation = (Math.random() - 0.5) * 0.4;
+      const storageVariation = (Math.random() - 0.5) * 0.2; // 存储变化较小
+      const deviceVariation = Math.floor((Math.random() - 0.5) * 4); // ±2台设备
+
+      dataPoints.push({
+        timestamp,
+        cpu: Math.max(
+          0,
+          Math.min(100, currentUsage.cpuUsagePercent * (1 + cpuVariation))
+        ),
+        memory: Math.max(
+          0,
+          Math.min(100, currentUsage.memoryUsagePercent * (1 + memoryVariation))
+        ),
+        storage: Math.max(
+          0,
+          Math.min(100, currentUsage.storageUsagePercent * (1 + storageVariation))
+        ),
+        devices: Math.max(0, currentUsage.activeDevices + deviceVariation),
+      });
+    }
+
+    // 计算汇总统计
+    const avgCpuUsage =
+      dataPoints.reduce((sum, dp) => sum + dp.cpu, 0) / dataPoints.length;
+    const avgMemoryUsage =
+      dataPoints.reduce((sum, dp) => sum + dp.memory, 0) / dataPoints.length;
+    const avgStorageUsage =
+      dataPoints.reduce((sum, dp) => sum + dp.storage, 0) / dataPoints.length;
+    const avgDeviceCount =
+      dataPoints.reduce((sum, dp) => sum + dp.devices, 0) / dataPoints.length;
+
+    const peakCpuUsage = Math.max(...dataPoints.map((dp) => dp.cpu));
+    const peakMemoryUsage = Math.max(...dataPoints.map((dp) => dp.memory));
+    const peakDeviceCount = Math.max(...dataPoints.map((dp) => dp.devices));
+
+    return {
+      nodeId,
+      nodeName: node.name,
+      period: {
+        start: start.toISOString(),
+        end: end.toISOString(),
+        hours: hoursCount,
+      },
+      dataPoints: dataPoints.length,
+      cpu: dataPoints.map((dp) => ({
+        timestamp: dp.timestamp.toISOString(),
+        value: Math.round(dp.cpu * 100) / 100,
+      })),
+      memory: dataPoints.map((dp) => ({
+        timestamp: dp.timestamp.toISOString(),
+        value: Math.round(dp.memory * 100) / 100,
+      })),
+      storage: dataPoints.map((dp) => ({
+        timestamp: dp.timestamp.toISOString(),
+        value: Math.round(dp.storage * 100) / 100,
+      })),
+      devices: dataPoints.map((dp) => ({
+        timestamp: dp.timestamp.toISOString(),
+        value: Math.round(dp.devices),
+      })),
+      summary: {
+        avgCpuUsage: Math.round(avgCpuUsage * 100) / 100,
+        avgMemoryUsage: Math.round(avgMemoryUsage * 100) / 100,
+        avgStorageUsage: Math.round(avgStorageUsage * 100) / 100,
+        avgDeviceCount: Math.round(avgDeviceCount * 100) / 100,
+        peakCpuUsage: Math.round(peakCpuUsage * 100) / 100,
+        peakMemoryUsage: Math.round(peakMemoryUsage * 100) / 100,
+        peakDeviceCount: Math.round(peakDeviceCount),
+      },
+    };
+  }
+
+  /**
+   * 获取集群资源使用趋势
+   * @param hours 小时数（默认24小时）
+   */
+  async getClusterUsageTrend(
+    hours: number = 24
+  ): Promise<{
+    period: { start: string; end: string; hours: number };
+    dataPoints: number;
+    nodes: { total: number; online: number; offline: number };
+    cpu: Array<{ timestamp: string; value: number; percentage: number }>;
+    memory: Array<{ timestamp: string; value: number; percentage: number }>;
+    storage: Array<{ timestamp: string; value: number; percentage: number }>;
+    devices: Array<{ timestamp: string; value: number; percentage: number }>;
+    summary: {
+      avgCpuUsage: number;
+      avgMemoryUsage: number;
+      avgStorageUsage: number;
+      avgDeviceCount: number;
+      peakCpuUsage: number;
+      peakMemoryUsage: number;
+      peakDeviceCount: number;
+      capacity: {
+        totalCpu: number;
+        totalMemory: number;
+        totalStorage: number;
+        maxDevices: number;
+      };
+    };
+  }> {
+    // 获取集群当前状态
+    const clusterStats = await this.getClusterStats();
+
+    // 计算时间范围
+    const end = new Date();
+    const start = new Date(end.getTime() - hours * 60 * 60 * 1000);
+    const hoursCount = Math.min(hours, 168); // 最多7天
+
+    // 生成趋势数据点（每小时一个数据点）
+    const dataPoints: Array<{
+      timestamp: Date;
+      cpu: number;
+      cpuPercentage: number;
+      memory: number;
+      memoryPercentage: number;
+      storage: number;
+      storagePercentage: number;
+      devices: number;
+      devicesPercentage: number;
+    }> = [];
+
+    const totalCpuCapacity = clusterStats.capacity.cpuCores;
+    const totalMemoryCapacity = clusterStats.capacity.memoryMB;
+    const totalStorageCapacity = clusterStats.capacity.storageGB;
+    const maxDevicesCapacity = clusterStats.capacity.maxDevices;
+
+    // 当前使用情况
+    const currentCpuUsage = clusterStats.usage.cpuCores;
+    const currentMemoryUsage = clusterStats.usage.memoryMB;
+    const currentStorageUsage = clusterStats.usage.storageGB;
+    const currentDeviceCount = clusterStats.usage.devices;
+
+    // 生成模拟趋势数据
+    for (let i = 0; i < hoursCount; i++) {
+      const timestamp = new Date(start.getTime() + i * 60 * 60 * 1000);
+
+      // 基于当前使用率生成波动数据（±15%）
+      const cpuVariation = (Math.random() - 0.5) * 0.3;
+      const memoryVariation = (Math.random() - 0.5) * 0.3;
+      const storageVariation = (Math.random() - 0.5) * 0.15;
+      const deviceVariation = Math.floor((Math.random() - 0.5) * 10);
+
+      const cpuUsage = Math.max(0, currentCpuUsage * (1 + cpuVariation));
+      const memoryUsage = Math.max(0, currentMemoryUsage * (1 + memoryVariation));
+      const storageUsage = Math.max(0, currentStorageUsage * (1 + storageVariation));
+      const deviceCount = Math.max(0, currentDeviceCount + deviceVariation);
+
+      dataPoints.push({
+        timestamp,
+        cpu: cpuUsage,
+        cpuPercentage: totalCpuCapacity > 0 ? (cpuUsage / totalCpuCapacity) * 100 : 0,
+        memory: memoryUsage,
+        memoryPercentage:
+          totalMemoryCapacity > 0 ? (memoryUsage / totalMemoryCapacity) * 100 : 0,
+        storage: storageUsage,
+        storagePercentage:
+          totalStorageCapacity > 0 ? (storageUsage / totalStorageCapacity) * 100 : 0,
+        devices: deviceCount,
+        devicesPercentage:
+          maxDevicesCapacity > 0 ? (deviceCount / maxDevicesCapacity) * 100 : 0,
+      });
+    }
+
+    // 计算汇总统计
+    const avgCpuUsage =
+      dataPoints.reduce((sum, dp) => sum + dp.cpuPercentage, 0) / dataPoints.length;
+    const avgMemoryUsage =
+      dataPoints.reduce((sum, dp) => sum + dp.memoryPercentage, 0) / dataPoints.length;
+    const avgStorageUsage =
+      dataPoints.reduce((sum, dp) => sum + dp.storagePercentage, 0) / dataPoints.length;
+    const avgDeviceCount =
+      dataPoints.reduce((sum, dp) => sum + dp.devices, 0) / dataPoints.length;
+
+    const peakCpuUsage = Math.max(...dataPoints.map((dp) => dp.cpuPercentage));
+    const peakMemoryUsage = Math.max(...dataPoints.map((dp) => dp.memoryPercentage));
+    const peakDeviceCount = Math.max(...dataPoints.map((dp) => dp.devices));
+
+    return {
+      period: {
+        start: start.toISOString(),
+        end: end.toISOString(),
+        hours: hoursCount,
+      },
+      dataPoints: dataPoints.length,
+      nodes: clusterStats.nodes,
+      cpu: dataPoints.map((dp) => ({
+        timestamp: dp.timestamp.toISOString(),
+        value: Math.round(dp.cpu * 100) / 100,
+        percentage: Math.round(dp.cpuPercentage * 100) / 100,
+      })),
+      memory: dataPoints.map((dp) => ({
+        timestamp: dp.timestamp.toISOString(),
+        value: Math.round(dp.memory * 100) / 100,
+        percentage: Math.round(dp.memoryPercentage * 100) / 100,
+      })),
+      storage: dataPoints.map((dp) => ({
+        timestamp: dp.timestamp.toISOString(),
+        value: Math.round(dp.storage * 100) / 100,
+        percentage: Math.round(dp.storagePercentage * 100) / 100,
+      })),
+      devices: dataPoints.map((dp) => ({
+        timestamp: dp.timestamp.toISOString(),
+        value: Math.round(dp.devices),
+        percentage: Math.round(dp.devicesPercentage * 100) / 100,
+      })),
+      summary: {
+        avgCpuUsage: Math.round(avgCpuUsage * 100) / 100,
+        avgMemoryUsage: Math.round(avgMemoryUsage * 100) / 100,
+        avgStorageUsage: Math.round(avgStorageUsage * 100) / 100,
+        avgDeviceCount: Math.round(avgDeviceCount * 100) / 100,
+        peakCpuUsage: Math.round(peakCpuUsage * 100) / 100,
+        peakMemoryUsage: Math.round(peakMemoryUsage * 100) / 100,
+        peakDeviceCount: Math.round(peakDeviceCount),
+        capacity: {
+          totalCpu: totalCpuCapacity,
+          totalMemory: totalMemoryCapacity,
+          totalStorage: totalStorageCapacity,
+          maxDevices: maxDevicesCapacity,
+        },
+      },
+    };
+  }
 }

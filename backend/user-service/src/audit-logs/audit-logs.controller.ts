@@ -1,5 +1,6 @@
-import { Controller, Get, Query, Param, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Query, Param, Body, UseGuards, Logger, HttpCode, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { Response } from 'express';
 import { AuditLogsService } from './audit-logs.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -11,7 +12,7 @@ import { SearchLogsDto } from './dto/search-logs.dto';
 @ApiTags('audit-logs')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('audit-logs')
+@Controller('logs/audit')
 export class AuditLogsController {
   private readonly logger = new Logger(AuditLogsController.name);
 
@@ -53,6 +54,18 @@ export class AuditLogsController {
       resourceId,
       limit ? Number(limit) : 50
     );
+  }
+
+  /**
+   * 获取审计日志列表（根路径）
+   * 前端主要调用此端点
+   */
+  @Get()
+  @Roles('admin')
+  @ApiOperation({ summary: '获取审计日志列表（支持分页和过滤）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getAuditLogs(@Query() query: SearchLogsDto) {
+    return this.searchLogs(query);
   }
 
   /**
@@ -115,5 +128,70 @@ export class AuditLogsController {
   @ApiResponse({ status: 200, description: '获取成功' })
   async getStatistics(@Query('userId') userId?: string) {
     return await this.auditLogsService.getStatistics(userId);
+  }
+
+  /**
+   * 导出审计日志
+   */
+  @Get('export')
+  @Roles('admin')
+  @ApiOperation({ summary: '导出审计日志为 CSV' })
+  @ApiResponse({ status: 200, description: '导出成功' })
+  async exportLogs(
+    @Query() query: SearchLogsDto,
+    @Res() res: Response
+  ) {
+    this.logger.log('导出审计日志');
+
+    const csvData = await this.auditLogsService.exportLogs({
+      userId: query.userId,
+      action: query.action,
+      level: query.level,
+      resourceType: query.resourceType,
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      success: query.success,
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=audit-logs-${Date.now()}.csv`);
+    res.send(csvData);
+  }
+
+  /**
+   * 清理旧的审计日志
+   * 修改为 POST 方法以匹配前端期望
+   */
+  @Post('clean')
+  @HttpCode(200)
+  @Roles('admin')
+  @ApiOperation({ summary: '清理指定天数之前的审计日志' })
+  @ApiResponse({ status: 200, description: '清理成功' })
+  async cleanupLogs(@Body('days') days?: number) {
+    const daysToKeep = days || 90; // 默认保留90天
+    this.logger.log(`清理 ${daysToKeep} 天之前的审计日志`);
+
+    const deletedCount = await this.auditLogsService.cleanupOldLogs(daysToKeep);
+
+    return {
+      success: true,
+      data: {
+        deletedCount,
+        daysKept: daysToKeep,
+      },
+      message: `成功清理 ${deletedCount} 条审计日志`,
+    };
+  }
+
+  /**
+   * 获取单条审计日志详情
+   */
+  @Get(':id')
+  @Roles('admin')
+  @ApiOperation({ summary: '获取单条审计日志详情' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '日志未找到' })
+  async getLogById(@Param('id') id: string) {
+    return await this.auditLogsService.getLogById(id);
   }
 }

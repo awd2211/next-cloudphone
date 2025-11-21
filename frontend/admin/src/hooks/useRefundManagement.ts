@@ -7,7 +7,7 @@ import {
   rejectRefund,
   type PaymentDetail,
 } from '@/services/payment-admin';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { PaymentDetailSchema } from '@/schemas/api.schemas';
 
 // 定义退款列表响应Schema
@@ -19,14 +19,18 @@ export const useRefundManagement = () => {
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
-  // ✅ 使用 useSafeApi 进行类型安全的数据加载
+  // ✅ 使用 useValidatedQuery 进行类型安全的数据加载
   const {
     data: refundsData,
-    loading,
-    execute: loadRefunds,
-  } = useSafeApi(getPendingRefunds, RefundsResponseSchema, {
-    errorMessage: '加载退款列表失败',
+    isLoading: loading,
+    refetch: loadRefunds,
+  } = useValidatedQuery({
+    queryKey: ['pending-refunds'],
+    queryFn: getPendingRefunds,
+    schema: RefundsResponseSchema,
+    apiErrorMessage: '加载退款列表失败',
     fallbackValue: [], // 🛡️ 失败时返回空数组，避免 Table 崩溃
+    staleTime: 30 * 1000, // 待审核退款30秒缓存
   });
 
   // 批准退款
@@ -38,7 +42,7 @@ export const useRefundManagement = () => {
         message.success('退款已批准');
         setApproveModalVisible(false);
         loadRefunds();
-      } catch (error) {
+      } catch (_error) {
         message.error('批准退款失败');
       }
     },
@@ -54,7 +58,7 @@ export const useRefundManagement = () => {
         message.success('退款已拒绝');
         setRejectModalVisible(false);
         loadRefunds();
-      } catch (error) {
+      } catch (_error) {
         message.error('拒绝退款失败');
       }
     },

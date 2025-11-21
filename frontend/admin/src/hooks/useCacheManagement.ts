@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Form, message } from 'antd';
 import {
   getCacheStats,
@@ -8,7 +8,7 @@ import {
   deleteCachePattern,
   checkCacheExists,
 } from '@/services/cache';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { CacheStatsResponseSchema } from '@/schemas/api.schemas';
 
 export const useCacheManagement = () => {
@@ -22,33 +22,21 @@ export const useCacheManagement = () => {
   const [patternForm] = Form.useForm();
   const [checkForm] = Form.useForm();
 
-  // ✅ 使用 useSafeApi 加载缓存统计
+  // ✅ 使用 useValidatedQuery 加载缓存统计
   const {
     data: statsResponse,
-    execute: executeLoadStats,
-  } = useSafeApi(
-    getCacheStats,
-    CacheStatsResponseSchema,
-    {
-      errorMessage: '加载缓存统计失败',
-      fallbackValue: null,
-      manual: true,
-    }
-  );
+    refetch: loadStats,
+  } = useValidatedQuery({
+    queryKey: ['cache-stats'],
+    queryFn: getCacheStats,
+    schema: CacheStatsResponseSchema,
+    apiErrorMessage: '加载缓存统计失败',
+    fallbackValue: null,
+    staleTime: 10 * 1000, // 10秒自动刷新
+    refetchInterval: 10 * 1000, // 自动刷新统计（每10秒）
+  });
 
   const stats = statsResponse?.success ? statsResponse.data : null;
-
-  // 加载缓存统计的包装函数
-  const loadStats = useCallback(async () => {
-    await executeLoadStats();
-  }, [executeLoadStats]);
-
-  // 自动刷新统计（每10秒）
-  useEffect(() => {
-    loadStats();
-    const interval = setInterval(loadStats, 10000);
-    return () => clearInterval(interval);
-  }, [loadStats]);
 
   // 重置统计
   const handleResetStats = useCallback(async () => {
@@ -56,7 +44,7 @@ export const useCacheManagement = () => {
       await resetCacheStats();
       message.success('统计已重置');
       await loadStats();
-    } catch (error) {
+    } catch (_error) {
       message.error('重置统计失败');
     }
   }, [loadStats]);
@@ -68,7 +56,7 @@ export const useCacheManagement = () => {
       await flushCache();
       message.success('所有缓存已清空');
       await loadStats();
-    } catch (error) {
+    } catch (_error) {
       message.error('清空缓存失败');
     } finally {
       setLoading(false);
@@ -84,7 +72,7 @@ export const useCacheManagement = () => {
       deleteForm.resetFields();
       setDeleteKeyModalVisible(false);
       await loadStats();
-    } catch (error) {
+    } catch (_error) {
       message.error('删除失败');
     }
   }, [deleteForm, loadStats]);
@@ -100,7 +88,7 @@ export const useCacheManagement = () => {
         setDeletePatternModalVisible(false);
         await loadStats();
       }
-    } catch (error) {
+    } catch (_error) {
       message.error('批量删除失败');
     }
   }, [patternForm, loadStats]);
@@ -113,7 +101,7 @@ export const useCacheManagement = () => {
       if (res.success) {
         setCheckResult(res.data);
       }
-    } catch (error) {
+    } catch (_error) {
       message.error('检查失败');
     }
   }, [checkForm]);

@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
-import { Card, Result, Button, Spin, Alert } from 'antd';
+import { useState, useEffect, useCallback } from 'react';
+import { Card, Result, Button, Spin, Alert, Form } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ResetPasswordForm } from '@/components/Auth';
-import { useResetPassword } from '@/hooks/useResetPassword';
+import { useVerifyResetToken, useResetPassword } from '@/hooks/queries';
 
 /**
- * 重置密码页面
+ * 重置密码页面（React Query 优化版）
  *
  * 功能：
  * 1. 验证 token 有效性
@@ -16,23 +16,39 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const { token } = useParams<{ token: string }>();
 
-  const {
-    form,
-    loading,
-    verifying,
-    tokenValid,
-    tokenError,
-    success,
-    handleSubmit,
-    verifyToken,
-  } = useResetPassword();
+  // Form 实例
+  const [form] = Form.useForm();
+
+  // 本地状态
+  const [success, setSuccess] = useState(false);
+
+  // React Query hooks
+  const verifyToken = useVerifyResetToken();
+  const resetPassword = useResetPassword();
+
+  const verifying = verifyToken.isPending;
+  const loading = resetPassword.isPending;
+  const tokenValid = verifyToken.isSuccess && verifyToken.data?.valid;
+  const tokenError = verifyToken.error?.message;
 
   // 页面加载时验证 token
   useEffect(() => {
     if (token) {
-      verifyToken(token);
+      verifyToken.mutate(token);
     }
-  }, [token, verifyToken]);
+  }, [token]);
+
+  // 提交表单
+  const handleSubmit = useCallback(
+    async (token: string, values: any) => {
+      await resetPassword.mutateAsync({
+        token,
+        ...values,
+      });
+      setSuccess(true);
+    },
+    [resetPassword]
+  );
 
   return (
     <div

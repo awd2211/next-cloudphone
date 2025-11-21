@@ -43,7 +43,7 @@ const NetworkPolicyConfiguration: React.FC = () => {
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
           <Space>
             <span style={{ fontSize: '16px', fontWeight: 'bold' }}>
-              网络策略配置 ({policies.length} 条规则)
+              网络策略配置 ({policies?.length || 0} 条规则)
             </span>
           </Space>
           <Space>

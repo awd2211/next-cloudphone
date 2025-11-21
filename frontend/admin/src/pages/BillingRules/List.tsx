@@ -92,7 +92,7 @@ const BillingRuleList: React.FC = () => {
         visible={modalVisible}
         editingRule={editingRule}
         form={form}
-        templates={templates}
+        templates={templates || []}
         onOk={handleSubmit}
         onCancel={() => setModalVisible(false)}
         onApplyTemplate={applyTemplate}

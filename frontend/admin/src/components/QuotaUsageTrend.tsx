@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, Select, Spin, Empty, DatePicker, Space, Button , theme } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
 import * as quotaService from '@/services/quota';
 import dayjs, { Dayjs } from 'dayjs';
-import { useSafeApi } from '@/hooks/useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { QuotaStatisticsResponseSchema } from '@/schemas/api.schemas';
 
 const { RangePicker } = DatePicker;
@@ -60,33 +60,27 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
     dayjs(),
   ]);
 
-  // ✅ 使用 useSafeApi 加载使用统计
+  // ✅ 使用 useValidatedQuery 加载使用统计
   const {
     data: statisticsResponse,
-    loading,
-    execute: executeLoadStatistics,
-  } = useSafeApi(
-    (uid: string) => quotaService.getUsageStats(uid),
-    QuotaStatisticsResponseSchema,
-    {
-      errorMessage: '加载使用统计失败',
-      fallbackValue: null,
-      manual: true,
-      showError: false,
-    }
-  );
+    isLoading: loading,
+    refetch,
+  } = useValidatedQuery({
+    queryKey: ['quota-statistics', userId],
+    queryFn: () => quotaService.getUsageStats(userId),
+    schema: QuotaStatisticsResponseSchema,
+    apiErrorMessage: '加载使用统计失败',
+    fallbackValue: null,
+    enabled: !!userId, // 仅在有 userId 时才请求
+    staleTime: 30 * 1000, // 30秒缓存
+  });
+
+  // Wrap refetch for onClick handler
+  const loadStatistics = () => {
+    refetch();
+  };
 
   const statistics = statisticsResponse?.success ? statisticsResponse.data : null;
-
-  // 加载使用统计
-  const loadStatistics = useCallback(async () => {
-    if (!userId) return;
-    await executeLoadStatistics(userId);
-  }, [userId, executeLoadStatistics]);
-
-  useEffect(() => {
-    loadStatistics();
-  }, [loadStatistics]);
 
   // 指标配置
   const metricOptions = [

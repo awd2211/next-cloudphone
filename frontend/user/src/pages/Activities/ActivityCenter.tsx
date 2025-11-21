@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Space, Button } from 'antd';
 import { GiftOutlined, RightOutlined } from '@ant-design/icons';
 import {
@@ -7,29 +8,54 @@ import {
   ActivityTabs,
   ActivityGrid,
 } from '@/components/Activity';
-import { useActivityCenter } from '@/hooks/useActivityCenter';
+import {
+  useActivities,
+  useActivityStats,
+} from '@/hooks/queries';
+import type { ActivityStatus } from '@/services/activity';
 
 /**
- * 活动中心页面（优化版）
+ * 活动中心页面
  *
- * 优化点：
- * 1. ✅ 使用自定义 hook 管理所有业务逻辑
- * 2. ✅ 页面组件只负责布局和 UI 组合
- * 3. ✅ 所有子组件使用 React.memo 优化
- * 4. ✅ 类型和状态配置提取到配置文件
- * 5. ✅ 工具函数提取到配置文件
- * 6. ✅ 代码从 377 行减少到 ~60 行
+ * 功能：
+ * 1. 展示所有活动（支持按状态筛选）
+ * 2. 活动统计数据展示
+ * 3. 活动轮播图
+ * 4. Tab 切换（全部、进行中、即将开始、已结束）
+ * 5. 跳转到活动详情和我的优惠券
  */
 const ActivityCenter: React.FC = () => {
-  const {
-    loading,
-    activities,
-    stats,
-    activeTab,
-    handleTabChange,
-    goToActivityDetail,
-    goToMyCoupons,
-  } = useActivityCenter();
+  const navigate = useNavigate();
+
+  // 本地状态
+  const [activeTab, setActiveTab] = useState<ActivityStatus | 'all'>('all');
+
+  // React Query hooks - 并行查询
+  const { data: activitiesData, isLoading: loading } = useActivities({
+    status: activeTab === 'all' ? undefined : activeTab,
+    page: 1,
+    pageSize: 20,
+  });
+  const { data: stats } = useActivityStats();
+
+  const activities = activitiesData?.data || [];
+
+  // Tab 切换
+  const handleTabChange = useCallback((key: ActivityStatus | 'all') => {
+    setActiveTab(key);
+  }, []);
+
+  // 导航函数
+  const goToActivityDetail = useCallback(
+    (activityId: string) => {
+      navigate(`/activities/${activityId}`);
+    },
+    [navigate]
+  );
+
+  const goToMyCoupons = useCallback(() => {
+    navigate('/activities/coupons');
+  }, [navigate]);
 
   return (
     <div>

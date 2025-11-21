@@ -127,6 +127,51 @@ export class RolesController {
     };
   }
 
+  /**
+   * 批量删除角色
+   */
+  @Post('batch-delete')
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @RequirePermission('role.delete')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '批量删除角色', description: '批量删除多个角色' })
+  @ApiResponse({ status: 200, description: '批量删除完成' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async batchDelete(@Body() dto: { ids: string[] }) {
+    if (!dto.ids || !Array.isArray(dto.ids) || dto.ids.length === 0) {
+      return {
+        success: false,
+        message: '请提供要删除的角色 ID 列表',
+      };
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as { id: string; error: string }[],
+    };
+
+    // 使用 for-loop 避免并发问题
+    for (const id of dto.ids) {
+      try {
+        await this.rolesService.remove(id);
+        results.success++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          id,
+          error: error.message || '删除失败',
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: results,
+      message: `批量删除完成：成功 ${results.success} 个，失败 ${results.failed} 个`,
+    };
+  }
+
   @Post(':id/permissions')
   @HttpCode(200)
   @RequirePermission('role.update')

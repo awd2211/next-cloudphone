@@ -5,11 +5,7 @@
 import { memo } from 'react';
 import { Space, Button } from 'antd';
 import { EyeOutlined, HistoryOutlined } from '@ant-design/icons';
-
-interface Application {
-  id: string;
-  [key: string]: any;
-}
+import type { Application } from '@/types';
 
 interface ReviewedAppActionsProps {
   app: Application;

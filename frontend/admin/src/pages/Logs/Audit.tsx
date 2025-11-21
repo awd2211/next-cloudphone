@@ -52,7 +52,7 @@ const AuditLogList: React.FC = () => {
         loadingText="正在加载操作日志"
         emptyText="暂无操作日志数据"
         columns={columns}
-        dataSource={logs}
+        dataSource={logs as any}
         rowKey="id"
         loading={loading}
         pagination={{

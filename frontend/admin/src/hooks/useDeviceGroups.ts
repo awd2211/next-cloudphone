@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { message, Form } from 'antd';
 import { z } from 'zod';
 import request from '@/utils/request';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { DeviceGroupSchema } from '@/schemas/api.schemas';
 
 export interface DeviceGroup {
@@ -37,34 +37,29 @@ interface UseDeviceGroupsReturn {
  * 封装设备分组的 CRUD 操作
  */
 export const useDeviceGroups = (): UseDeviceGroupsReturn => {
-  // ✅ 使用 useSafeApi 加载设备分组
+  // ✅ 使用 useValidatedQuery 加载设备分组
   const {
     data: groupsData,
-    loading,
-    execute: executeLoadGroups,
-  } = useSafeApi(
-    () => request.get('/devices/groups'),
-    z.array(DeviceGroupSchema),
-    {
-      errorMessage: '加载分组失败',
-      fallbackValue: [],
-    }
-  );
+    isLoading: loading,
+    refetch,
+  } = useValidatedQuery({
+    queryKey: ['device-groups'],
+    queryFn: () => request.get('/devices/groups'),
+    schema: z.array(DeviceGroupSchema),
+    apiErrorMessage: '加载分组失败',
+    fallbackValue: [],
+    staleTime: 30 * 1000, // 30秒缓存
+  });
+
+  // Wrap refetch to match expected signature
+  const loadGroups = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   // 模态框和编辑状态
   const [modalVisible, setModalVisible] = useState(false);
   const [editingGroup, setEditingGroup] = useState<DeviceGroup | null>(null);
   const [form] = Form.useForm();
-
-  // ✅ 简化的加载函数
-  const loadGroups = useCallback(async () => {
-    await executeLoadGroups();
-  }, [executeLoadGroups]);
-
-  // 初始化加载
-  useEffect(() => {
-    loadGroups();
-  }, [loadGroups]);
 
   // 打开 Modal
   const openModal = useCallback(
@@ -111,7 +106,7 @@ export const useDeviceGroups = (): UseDeviceGroupsReturn => {
         await request.delete(`/devices/groups/${id}`);
         message.success('分组删除成功');
         loadGroups();
-      } catch (error) {
+      } catch (_error) {
         message.error('删除失败');
       }
     },

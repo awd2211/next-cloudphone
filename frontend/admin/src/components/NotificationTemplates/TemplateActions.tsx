@@ -3,28 +3,29 @@ import { Space, Button, Tooltip, Popconfirm } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { AccessibleButton } from '@/components/Accessible/AccessibleButton';
 
+// Frontend-specific NotificationTemplate type (different from backend API type)
 export interface NotificationTemplate {
   id: string;
   code: string;
   name: string;
   type: string;
+  language: string;
+  channels: string[];
   title: string;
   body: string;
   emailTemplate?: string;
   smsTemplate?: string;
-  channels: string[];
-  language: string;
-  isActive: boolean;
   description?: string;
-  createdAt: string;
-  updatedAt: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface TemplateActionsProps {
   template: NotificationTemplate;
   onPreview: (template: NotificationTemplate) => void;
   onEdit: (template: NotificationTemplate) => void;
-  onToggle: (id: string) => void;
+  onToggle: (id: string, isActive: boolean) => void;
   onDelete: (id: string) => void;
 }
 
@@ -49,7 +50,7 @@ export const TemplateActions = memo<TemplateActionsProps>(
           />
         </Tooltip>
         <Tooltip title={template.isActive ? '停用' : '激活'}>
-          <Button type="link" size="small" onClick={() => onToggle(template.id)}>
+          <Button type="link" size="small" onClick={() => onToggle(template.id, !template.isActive)}>
             {template.isActive ? '停用' : '激活'}
           </Button>
         </Tooltip>

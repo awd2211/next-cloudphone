@@ -72,9 +72,10 @@ export const changePassword = (
   return request.post(`/users/${userId}/change-password`, data);
 };
 
-// 重置密码
+// 重置密码（管理员重置用户密码）
+// 注意：后端使用 change-password 端点，但这里是管理员操作，不需要旧密码
 export const resetPassword = (userId: string, newPassword: string) => {
-  return request.post(`/users/${userId}/reset-password`, { newPassword });
+  return request.post(`/users/${userId}/change-password`, { newPassword });
 };
 
 // 批量删除用户

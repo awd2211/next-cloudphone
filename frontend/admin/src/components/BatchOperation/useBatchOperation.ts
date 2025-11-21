@@ -186,7 +186,7 @@ export const useBatchOperation = <T,>(
           processing.add(index);
           currentIndex++;
 
-          const promise = processItem(item, index);
+          const promise = processItem(item!, index);
           promises.push(promise);
         }
 

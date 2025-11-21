@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Card, Input, Button, Table, Tag, Space, message, Empty } from 'antd';
 import { SearchOutlined, ReloadOutlined, CopyOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
-import request from '@/utils/request';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import {
+  useVerificationCodeByPhone,
+  useMyVerificationCodes,
+} from '@/hooks/queries/useSMS';
 
 dayjs.extend(relativeTime);
 
@@ -32,25 +34,11 @@ const SMSVerification: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
 
-  // 查询验证码
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['sms-verification', searchPhone],
-    queryFn: async () => {
-      if (!searchPhone) return null;
-      const response = await request.get(`/sms/verification-code/${searchPhone}`);
-      return response;
-    },
+  // 使用自定义 React Query Hooks
+  const { data, isLoading, refetch } = useVerificationCodeByPhone(searchPhone, {
     enabled: !!searchPhone,
   });
-
-  // 查询我的验证码历史
-  const { data: historyData, isLoading: historyLoading } = useQuery({
-    queryKey: ['sms-history'],
-    queryFn: async () => {
-      const response = await request.get('/sms/my-codes');
-      return response;
-    },
-  });
+  const { data: historyData, isLoading: historyLoading } = useMyVerificationCodes();
 
   const handleSearch = () => {
     if (!phoneNumber.trim()) {

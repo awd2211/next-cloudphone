@@ -46,7 +46,7 @@ const GPUDashboard = () => {
     <div style={{ padding: '24px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* 统计卡片 */}
-        <GPUStatsCards stats={stats} />
+        <GPUStatsCards stats={stats as any} />
 
         {/* GPU 设备与分配记录 */}
         <Card>

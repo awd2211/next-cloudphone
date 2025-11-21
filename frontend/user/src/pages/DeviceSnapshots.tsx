@@ -1,5 +1,6 @@
-import React from 'react';
-import { Space, Button, Typography, Card } from 'antd';
+import React, { useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Space, Button, Typography, Card, Form } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, CameraOutlined } from '@ant-design/icons';
 import {
   DeviceInfo,
@@ -9,39 +10,99 @@ import {
   RestoreSnapshotModal,
   UsageGuide,
 } from '@/components/DeviceSnapshot';
-import { useDeviceSnapshots } from '@/hooks/useDeviceSnapshots';
+import {
+  useDevice,
+  useDeviceSnapshots,
+  useCreateDeviceSnapshot,
+  useRestoreDeviceSnapshot,
+  useDeleteDeviceSnapshot,
+} from '@/hooks/queries';
+import type { DeviceSnapshot } from '@/services/device';
 
 const { Title, Paragraph } = Typography;
 
 /**
- * 设备快照管理页面（优化版）
+ * 设备快照管理页面
  *
- * 优化点：
- * 1. ✅ 使用自定义 hook 管理所有业务逻辑
- * 2. ✅ 页面组件只负责布局和 UI 组合
- * 3. ✅ 所有子组件使用 React.memo 优化
- * 4. ✅ 表格列定义提取到配置文件
- * 5. ✅ 工具函数提取到配置文件
- * 6. ✅ 警告信息配置化
- * 7. ✅ 代码从 379 行减少到 ~105 行
+ * 功能：
+ * 1. 查看设备的所有快照
+ * 2. 创建新快照
+ * 3. 恢复到指定快照
+ * 4. 删除快照
+ * 5. 快照统计信息
  */
 const DeviceSnapshots: React.FC = () => {
-  const {
-    device,
-    snapshots,
-    loading,
-    createModalVisible,
-    restoreModalVisible,
-    selectedSnapshot,
-    form,
-    handleRestoreSnapshot,
-    handleDeleteSnapshot,
-    openCreateModal,
-    closeCreateModal,
-    openRestoreModal,
-    closeRestoreModal,
-    goBackToDeviceDetail,
-  } = useDeviceSnapshots();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [form] = Form.useForm();
+
+  // 本地状态
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [restoreModalVisible, setRestoreModalVisible] = useState(false);
+  const [selectedSnapshot, setSelectedSnapshot] = useState<DeviceSnapshot | null>(null);
+
+  // React Query hooks
+  const { data: device } = useDevice(id!);
+  const { data: snapshots, isLoading: loading } = useDeviceSnapshots(id!);
+
+  const createSnapshot = useCreateDeviceSnapshot();
+  const restoreSnapshot = useRestoreDeviceSnapshot();
+  const deleteSnapshot = useDeleteDeviceSnapshot();
+
+  // 创建快照
+  const handleCreateSnapshot = useCallback(async () => {
+    const values = await form.validateFields();
+    await createSnapshot.mutateAsync({
+      deviceId: id!,
+      ...values,
+    });
+    setCreateModalVisible(false);
+    form.resetFields();
+  }, [id, form, createSnapshot]);
+
+  // 恢复快照
+  const handleRestoreSnapshot = useCallback(async () => {
+    if (!selectedSnapshot) return;
+    await restoreSnapshot.mutateAsync({
+      deviceId: id!,
+      snapshotId: selectedSnapshot.id,
+    });
+    setRestoreModalVisible(false);
+    setSelectedSnapshot(null);
+  }, [id, selectedSnapshot, restoreSnapshot]);
+
+  // 删除快照
+  const handleDeleteSnapshot = useCallback(async (snapshotId: string) => {
+    await deleteSnapshot.mutateAsync({
+      deviceId: id!,
+      snapshotId,
+    });
+  }, [id, deleteSnapshot]);
+
+  // Modal 控制
+  const openCreateModal = useCallback(() => {
+    setCreateModalVisible(true);
+  }, []);
+
+  const closeCreateModal = useCallback(() => {
+    setCreateModalVisible(false);
+    form.resetFields();
+  }, [form]);
+
+  const openRestoreModal = useCallback((snapshot: DeviceSnapshot) => {
+    setSelectedSnapshot(snapshot);
+    setRestoreModalVisible(true);
+  }, []);
+
+  const closeRestoreModal = useCallback(() => {
+    setRestoreModalVisible(false);
+    setSelectedSnapshot(null);
+  }, []);
+
+  // 返回设备详情
+  const goBackToDeviceDetail = useCallback(() => {
+    navigate(`/devices/${id}`);
+  }, [id, navigate]);
 
   return (
     <div>
@@ -91,7 +152,8 @@ const DeviceSnapshots: React.FC = () => {
         visible={createModalVisible}
         form={form}
         onCancel={closeCreateModal}
-        onSubmit={() => form.submit()}
+        onSubmit={handleCreateSnapshot}
+        loading={createSnapshot.isPending}
       />
 
       {/* 恢复快照 Modal */}
@@ -100,6 +162,7 @@ const DeviceSnapshots: React.FC = () => {
         snapshot={selectedSnapshot}
         onCancel={closeRestoreModal}
         onConfirm={handleRestoreSnapshot}
+        loading={restoreSnapshot.isPending}
       />
 
       {/* 使用说明 */}

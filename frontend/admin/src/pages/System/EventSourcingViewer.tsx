@@ -22,6 +22,19 @@ const EVENT_TYPES = [
   'AccountLocked',
 ];
 
+// 事件类型颜色映射
+const getEventTypeColor = (type: string): string => {
+  const colorMap: Record<string, string> = {
+    UserCreated: 'green',
+    UserUpdated: 'blue',
+    PasswordChanged: 'orange',
+    UserDeleted: 'red',
+    LoginInfoUpdated: 'cyan',
+    AccountLocked: 'volcano',
+  };
+  return colorMap[type] || 'default';
+};
+
 /**
  * 事件溯源查看器（优化版 v2）
  *
@@ -55,25 +68,28 @@ const EventSourcingViewer = () => {
                 onEventTypeChange={hook.setSelectedEventType}
                 onRefresh={hook.loadRecentEvents}
                 onViewDetail={hook.viewEventDetail}
+                getEventTypeColor={getEventTypeColor}
               />
             </TabPane>
 
             <TabPane tab="用户事件历史" key="history">
               <UserHistoryTab
-                events={hook.userEvents}
+                userEvents={hook.userEvents}
                 loading={hook.loading}
                 selectedUserId={hook.selectedUserId}
                 onUserIdChange={hook.setSelectedUserId}
-                onSearch={hook.loadUserHistory}
+                onLoadHistory={hook.loadUserHistory}
                 onReplay={hook.handleReplay}
                 onReplayToVersion={() => hook.setVersionModalVisible(true)}
                 onTimeTravel={() => hook.setTimeTravelModalVisible(true)}
                 onViewDetail={hook.viewEventDetail}
+                onSetVersionForReplay={(version) => hook.versionForm.setFieldsValue({ version })}
+                getEventTypeColor={getEventTypeColor}
               />
             </TabPane>
 
             <TabPane tab="统计信息" key="stats">
-              <EventStatsTab stats={hook.stats} onRefresh={hook.loadStats} />
+              <EventStatsTab stats={hook.stats} getEventTypeColor={getEventTypeColor} />
             </TabPane>
           </Tabs>
         </Card>
@@ -83,6 +99,7 @@ const EventSourcingViewer = () => {
         visible={hook.detailVisible}
         event={hook.selectedEvent}
         onClose={() => hook.setDetailVisible(false)}
+        getEventTypeColor={getEventTypeColor}
       />
 
       <ReplayResultModal
@@ -94,14 +111,15 @@ const EventSourcingViewer = () => {
       <ReplayToVersionModal
         visible={hook.versionModalVisible}
         form={hook.versionForm}
-        onOk={hook.handleReplayToVersion}
+        userEventsCount={hook.userEvents.length}
+        onOk={() => hook.handleReplayToVersion(hook.versionForm.getFieldsValue())}
         onCancel={() => hook.setVersionModalVisible(false)}
       />
 
       <TimeTravelModal
         visible={hook.timeTravelModalVisible}
         form={hook.timeTravelForm}
-        onOk={hook.handleTimeTravel}
+        onOk={() => hook.handleTimeTravel(hook.timeTravelForm.getFieldsValue())}
         onCancel={() => hook.setTimeTravelModalVisible(false)}
       />
     </div>

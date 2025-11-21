@@ -1,11 +1,10 @@
 import { useMemo } from 'react';
-import { Tag, Progress, Table, theme } from 'antd';
+import { Tag, Progress, Table, } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UserMetering, DeviceMetering } from './constants';
 import { getProgressStatus } from './constants';
 
 export const useUserMeteringColumns = (): ColumnsType<UserMetering> => {
-  const { token } = theme.useToken();
   return useMemo(
     () => [
       {
@@ -65,7 +64,7 @@ export const useUserMeteringColumns = (): ColumnsType<UserMetering> => {
         align: 'right',
         sorter: (a, b) => a.cost - b.cost,
         render: (cost: number) => (
-          <span style={{ color: token.colorPrimary, fontWeight: 500 }}>¥{cost.toFixed(2)}</span>
+          <span style={{ color: '#1890ff', fontWeight: 500 }}>¥{cost.toFixed(2)}</span>
         ),
       },
     ],
@@ -74,7 +73,6 @@ export const useUserMeteringColumns = (): ColumnsType<UserMetering> => {
 };
 
 export const useDeviceMeteringColumns = (): ColumnsType<DeviceMetering> => {
-  const { token } = theme.useToken();
   return useMemo(
     () => [
       {
@@ -146,7 +144,6 @@ interface UseUserTableSummaryProps {
 }
 
 export const useUserTableSummary = ({ data }: UseUserTableSummaryProps) => {
-  const { token } = theme.useToken();
   return useMemo(
     () => () => {
       const totalHours = data.reduce((sum, item) => sum + item.totalHours, 0);
@@ -165,7 +162,7 @@ export const useUserTableSummary = ({ data }: UseUserTableSummaryProps) => {
             <Table.Summary.Cell index={4}>-</Table.Summary.Cell>
             <Table.Summary.Cell index={5}>-</Table.Summary.Cell>
             <Table.Summary.Cell index={6} align="right">
-              <strong style={{ color: token.colorPrimary }}>¥{totalCost.toFixed(2)}</strong>
+              <strong style={{ color: '#1890ff' }}>¥{totalCost.toFixed(2)}</strong>
             </Table.Summary.Cell>
           </Table.Summary.Row>
         </Table.Summary>

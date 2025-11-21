@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Form, message, Modal } from 'antd';
 import { z } from 'zod';
 import {
@@ -19,7 +19,7 @@ import type {
   UpdateLifecycleRuleDto,
   PaginationParams,
 } from '@/types';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   LifecycleRuleSchema,
   LifecycleExecutionHistorySchema,
@@ -33,7 +33,7 @@ import {
  * 生命周期管理仪表盘业务逻辑 Hook
  *
  * 功能:
- * 1. 数据加载 (规则、执行历史、统计、模板) - 使用 useSafeApi + Zod 验证
+ * 1. 数据加载 (规则、执行历史、统计、模板) - 使用 useValidatedQuery + Zod 验证
  * 2. 规则管理 (CRUD、启用/禁用、执行、测试)
  * 3. 模板管理
  * 4. 分页和筛选
@@ -59,17 +59,18 @@ export const useLifecycleDashboard = () => {
   const [form] = Form.useForm();
   const [configForm] = Form.useForm();
 
-  // ===== 数据加载 (使用 useSafeApi) =====
+  // ===== 数据加载 (使用 useValidatedQuery) =====
 
   /**
-   * 加载规则列表
+   * 加载规则列表（带分页和筛选）
    */
   const {
     data: rulesResponse,
-    loading,
-    execute: executeLoadRules,
-  } = useSafeApi(
-    () => {
+    isLoading: loading,
+    refetch: loadRules,
+  } = useValidatedQuery({
+    queryKey: ['lifecycle-rules', page, pageSize, filterType, filterEnabled],
+    queryFn: () => {
       const params: PaginationParams & { type?: string; enabled?: boolean } = {
         page,
         pageSize,
@@ -78,37 +79,35 @@ export const useLifecycleDashboard = () => {
       if (filterEnabled !== undefined) params.enabled = filterEnabled;
       return getLifecycleRules(params);
     },
-    PaginatedLifecycleRulesResponseSchema,
-    {
-      errorMessage: '加载规则失败',
-      fallbackValue: { data: [], total: 0 },
-      manual: true,
-    }
-  );
+    schema: PaginatedLifecycleRulesResponseSchema,
+    apiErrorMessage: '加载规则失败',
+    fallbackValue: { data: [], total: 0 },
+    staleTime: 30 * 1000, // 规则列表30秒缓存
+  });
 
   const rules = rulesResponse?.data || [];
   const total = rulesResponse?.total || 0;
 
   /**
-   * 加载执行历史
+   * 加载执行历史（仅当 activeTab === 'history' 时加载）
    */
   const {
     data: historyResponse,
-    loading: historyLoading,
-    execute: executeLoadHistory,
-  } = useSafeApi(
-    () =>
+    isLoading: historyLoading,
+    refetch: loadHistory,
+  } = useValidatedQuery({
+    queryKey: ['lifecycle-history', historyPage, historyPageSize],
+    queryFn: () =>
       getLifecycleHistory({
         page: historyPage,
         pageSize: historyPageSize,
       }),
-    PaginatedLifecycleHistoryResponseSchema,
-    {
-      errorMessage: '加载历史失败',
-      fallbackValue: { data: [], total: 0 },
-      manual: true,
-    }
-  );
+    schema: PaginatedLifecycleHistoryResponseSchema,
+    apiErrorMessage: '加载历史失败',
+    fallbackValue: { data: [], total: 0 },
+    enabled: activeTab === 'history', // 仅在 history tab 时加载
+    staleTime: 30 * 1000,
+  });
 
   const history = historyResponse?.data || [];
   const historyTotal = historyResponse?.total || 0;
@@ -116,43 +115,25 @@ export const useLifecycleDashboard = () => {
   /**
    * 加载统计信息
    */
-  const { data: stats } = useSafeApi(
-    getLifecycleStats,
-    LifecycleStatsSchema,
-    {
-      errorMessage: '加载统计失败',
-      showError: false,
-    }
-  );
+  const { data: stats } = useValidatedQuery({
+    queryKey: ['lifecycle-stats'],
+    queryFn: getLifecycleStats,
+    schema: LifecycleStatsSchema,
+    apiErrorMessage: '加载统计失败',
+    staleTime: 60 * 1000, // 统计数据1分钟缓存
+  });
 
   /**
    * 加载模板列表
    */
-  const { data: templates } = useSafeApi(
-    getLifecycleRuleTemplates,
-    z.array(LifecycleRuleTemplateSchema),
-    {
-      errorMessage: '加载模板失败',
-      fallbackValue: [],
-      showError: false,
-    }
-  );
-
-  /**
-   * 初始化加载规则
-   */
-  useEffect(() => {
-    executeLoadRules();
-  }, [executeLoadRules]);
-
-  /**
-   * 切换到历史标签时加载历史
-   */
-  useEffect(() => {
-    if (activeTab === 'history') {
-      executeLoadHistory();
-    }
-  }, [activeTab, executeLoadHistory]);
+  const { data: templates } = useValidatedQuery({
+    queryKey: ['lifecycle-templates'],
+    queryFn: getLifecycleRuleTemplates,
+    schema: z.array(LifecycleRuleTemplateSchema),
+    apiErrorMessage: '加载模板失败',
+    fallbackValue: [],
+    staleTime: 5 * 60 * 1000, // 模板很少变化，5分钟缓存
+  });
 
   // ===== 规则操作 =====
 
@@ -210,7 +191,7 @@ export const useLifecycleDashboard = () => {
       }
 
       setModalVisible(false);
-      executeLoadRules();
+      loadRules();
       // stats 会自动重新加载
     } catch (error: any) {
       if (error.errorFields) {
@@ -218,7 +199,7 @@ export const useLifecycleDashboard = () => {
       }
       message.error(error.message || '操作失败');
     }
-  }, [form, configForm, editingRule, executeLoadRules]);
+  }, [form, configForm, editingRule, loadRules]);
 
   /**
    * 删除规则
@@ -228,13 +209,13 @@ export const useLifecycleDashboard = () => {
       try {
         await deleteLifecycleRule(id);
         message.success('规则删除成功');
-        executeLoadRules();
+        loadRules();
         // stats 会自动重新加载
-      } catch (error) {
+      } catch (_error) {
         message.error('删除失败');
       }
     },
-    [executeLoadRules]
+    [loadRules]
   );
 
   /**
@@ -245,12 +226,12 @@ export const useLifecycleDashboard = () => {
       try {
         await toggleLifecycleRule(id, enabled);
         message.success(`规则已${enabled ? '启用' : '禁用'}`);
-        executeLoadRules();
-      } catch (error) {
+        loadRules();
+      } catch (_error) {
         message.error('操作失败');
       }
     },
-    [executeLoadRules]
+    [loadRules]
   );
 
   /**
@@ -262,13 +243,13 @@ export const useLifecycleDashboard = () => {
         await executeLifecycleRule(id);
         message.success(`规则 "${ruleName}" 已开始执行`);
         if (activeTab === 'history') {
-          executeLoadHistory();
+          loadHistory();
         }
-      } catch (error) {
+      } catch (_error) {
         message.error('执行失败');
       }
     },
-    [activeTab, executeLoadHistory]
+    [activeTab, loadHistory]
   );
 
   /**
@@ -289,7 +270,7 @@ export const useLifecycleDashboard = () => {
         ),
         width: 600,
       });
-    } catch (error) {
+    } catch (_error) {
       message.error('测试失败');
     }
   }, []);
@@ -303,7 +284,7 @@ export const useLifecycleDashboard = () => {
         const rule = await createRuleFromTemplate(templateId);
         message.success('规则创建成功');
         openModal(rule);
-      } catch (error) {
+      } catch (_error) {
         message.error('创建失败');
       }
     },

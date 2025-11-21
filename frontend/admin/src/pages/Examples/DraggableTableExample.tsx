@@ -76,7 +76,7 @@ const DraggableTableExample = () => {
           message.info(`编辑设备: ${device.name}`);
         },
       },
-      { key: 'divider-1', type: 'divider' },
+      { key: 'divider-1', type: 'divider', label: '' },
       {
         key: 'start',
         label: '启动',
@@ -103,7 +103,7 @@ const DraggableTableExample = () => {
           message.success(`重启设备: ${device.name}`);
         },
       },
-      { key: 'divider-2', type: 'divider' },
+      { key: 'divider-2', type: 'divider', label: '' },
       {
         key: 'delete',
         label: '删除',
@@ -138,7 +138,7 @@ const DraggableTableExample = () => {
       title: '状态',
       dataIndex: 'status',
       width: 120,
-      render: (status) => {
+      render: (status: 'running' | 'stopped' | 'error') => {
         const config = {
           running: { color: 'green', text: '运行中' },
           stopped: { color: 'default', text: '已停止' },

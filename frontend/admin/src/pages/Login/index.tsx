@@ -1,7 +1,7 @@
 import { Form, Input, Button, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { ErrorInfoAlert } from '@/components/ErrorAlert';
 import { CaptchaInput, TwoFactorModal, useLogin } from '@/components/Login';
+import ErrorAlert from '@/components/ErrorAlert';
 import './index.css';
 
 interface LoginForm {

@@ -510,6 +510,25 @@ export class ProxyController {
   }
 
   /**
+   * 使用记录管理路由（精确匹配）- 管理员专用
+   * 包括: 使用记录导出、查询等功能
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('billing/admin/usage')
+  async proxyBillingAdminUsageExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  /**
+   * 使用记录管理路由（通配符）- 管理员专用
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('billing/admin/usage/*path')
+  async proxyBillingAdminUsage(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  /**
    * 支付服务路由（精确匹配）
    */
   @UseGuards(JwtAuthGuard)
@@ -542,6 +561,25 @@ export class ProxyController {
   @UseGuards(JwtAuthGuard)
   @All('admin/payments/*path')
   async proxyAdminPayments(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  /**
+   * 计费管理服务路由（精确匹配）- 管理员专用
+   * 包括: 云端对账等高级计费功能
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('admin/billing')
+  async proxyAdminBillingExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('billing', req, res);
+  }
+
+  /**
+   * 计费管理服务路由（通配符）- 管理员专用
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('admin/billing/*path')
+  async proxyAdminBilling(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('billing', req, res);
   }
 

@@ -68,10 +68,10 @@ export const usePermission = () => {
 
       if (response.success) {
         globalPermissions = response.data || [];
-        globalIsSuperAdmin = globalPermissions.includes('*');
+        globalIsSuperAdmin = globalPermissions?.includes('*') ?? false;
 
         setContext({
-          permissions: globalPermissions,
+          permissions: globalPermissions || [],
           isSuperAdmin: globalIsSuperAdmin,
           loading: false,
           error: null,

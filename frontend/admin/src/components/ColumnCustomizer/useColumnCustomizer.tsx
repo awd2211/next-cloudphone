@@ -97,7 +97,7 @@ export const useColumnCustomizer = <T extends Record<string, any>>({
           return savedConfigs;
         }
       }
-    } catch (error) {
+    } catch (_error) {
       console.warn('Failed to load column configs from localStorage:', error);
     }
 
@@ -116,7 +116,7 @@ export const useColumnCustomizer = <T extends Record<string, any>>({
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(columnConfigs));
-    } catch (error) {
+    } catch (_error) {
       console.warn('Failed to save column configs to localStorage:', error);
     }
   }, [columnConfigs, storageKey]);

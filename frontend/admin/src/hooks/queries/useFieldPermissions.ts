@@ -2,8 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as fieldPermissionService from '@/services/fieldPermission';
 import type {
-  FieldPermission,
-  FieldAccessLevel,
   OperationType,
   CreateFieldPermissionDto,
   UpdateFieldPermissionDto

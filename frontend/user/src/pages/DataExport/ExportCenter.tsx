@@ -1,42 +1,148 @@
-import React from 'react';
-import { Card, Table, Button, Space, Typography, Empty } from 'antd';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Card, Table, Button, Space, Typography, Empty, Form } from 'antd';
 import { ExportOutlined } from '@ant-design/icons';
 import {
   ExportStatsCards,
   ExportToolbar,
   ExportCreateModal,
 } from '@/components/DataExport';
-import { useExportCenter } from '@/hooks/useExportCenter';
+import {
+  useExportTasks,
+  useExportStats,
+  useCreateExportTask,
+  useDeleteExportTask,
+  useBatchDeleteExportTasks,
+  useRetryExportTask,
+  useClearCompletedTasks,
+  useClearFailedTasks,
+  useDownloadExportFile,
+} from '@/hooks/queries';
+import type { ExportTaskListQuery, ExportDataType, ExportStatus, ExportRequest, ExportTask } from '@/services/export';
+import { createExportTableColumns } from '@/utils/exportTableColumns';
+import { triggerDownload } from '@/services/export';
 
 const { Title, Paragraph } = Typography;
 
 /**
  * 数据导出中心页面
- * 管理导出任务，支持多种数据类型和格式
+ *
+ * 功能：
+ * 1. 创建导出任务（支持多种数据类型和格式）
+ * 2. 任务列表管理（查看、下载、删除、重试）
+ * 3. 自动轮询刷新（5秒）
+ * 4. 批量操作（删除、清空）
+ * 5. 筛选（按状态、数据类型）
  */
 const ExportCenter: React.FC = () => {
-  const {
-    form,
-    loading,
-    tasks,
-    stats,
-    total,
-    query,
-    selectedRowKeys,
-    createModalVisible,
-    columns,
-    setSelectedRowKeys,
-    handleRefresh,
-    handleCreateExport,
-    handleBatchDelete,
-    handleClearCompleted,
-    handleClearFailed,
-    handleStatusChange,
-    handleDataTypeChange,
-    handlePageChange,
-    handleOpenCreateModal,
-    handleCloseCreateModal,
-  } = useExportCenter();
+  const [form] = Form.useForm();
+
+  // 本地状态
+  const [query, setQuery] = useState<ExportTaskListQuery>({
+    page: 1,
+    pageSize: 10,
+  });
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+
+  // React Query hooks
+  const { data: tasksData, isLoading: loading, refetch: refetchTasks } = useExportTasks(query, {
+    refetchInterval: 5000, // 每5秒自动刷新
+  });
+  const { data: stats, refetch: refetchStats } = useExportStats({
+    refetchInterval: 5000,
+  });
+
+  const createExportTask = useCreateExportTask();
+  const deleteExportTask = useDeleteExportTask();
+  const batchDeleteExportTasks = useBatchDeleteExportTasks();
+  const retryExportTask = useRetryExportTask();
+  const clearCompletedTasks = useClearCompletedTasks();
+  const clearFailedTasks = useClearFailedTasks();
+  const downloadExportFile = useDownloadExportFile();
+
+  const tasks = tasksData?.items || [];
+  const total = tasksData?.total || 0;
+
+  // 操作处理
+  const handleRefresh = useCallback(() => {
+    refetchTasks();
+    refetchStats();
+  }, [refetchTasks, refetchStats]);
+
+  const handleCreateExport = useCallback(async () => {
+    const values = await form.validateFields();
+
+    const exportData: ExportRequest = {
+      dataType: values.dataType,
+      format: values.format,
+    };
+
+    if (values.dateRange) {
+      exportData.startDate = values.dateRange[0].format('YYYY-MM-DD');
+      exportData.endDate = values.dateRange[1].format('YYYY-MM-DD');
+    }
+
+    await createExportTask.mutateAsync(exportData);
+    setCreateModalVisible(false);
+    form.resetFields();
+  }, [form, createExportTask]);
+
+  const handleDownload = useCallback(async (task: ExportTask) => {
+    const blob = await downloadExportFile.mutateAsync(task.id);
+    triggerDownload(blob, task.fileName);
+  }, [downloadExportFile]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    await deleteExportTask.mutateAsync(id);
+  }, [deleteExportTask]);
+
+  const handleBatchDelete = useCallback(async () => {
+    await batchDeleteExportTasks.mutateAsync(selectedRowKeys);
+    setSelectedRowKeys([]);
+  }, [selectedRowKeys, batchDeleteExportTasks]);
+
+  const handleRetry = useCallback(async (id: string) => {
+    await retryExportTask.mutateAsync(id);
+  }, [retryExportTask]);
+
+  const handleClearCompleted = useCallback(async () => {
+    await clearCompletedTasks.mutateAsync();
+  }, [clearCompletedTasks]);
+
+  const handleClearFailed = useCallback(async () => {
+    await clearFailedTasks.mutateAsync();
+  }, [clearFailedTasks]);
+
+  const handleStatusChange = useCallback((status?: ExportStatus) => {
+    setQuery((prev) => ({ ...prev, status, page: 1 }));
+  }, []);
+
+  const handleDataTypeChange = useCallback((dataType?: ExportDataType) => {
+    setQuery((prev) => ({ ...prev, dataType, page: 1 }));
+  }, []);
+
+  const handlePageChange = useCallback((page: number, pageSize: number) => {
+    setQuery((prev) => ({ ...prev, page, pageSize }));
+  }, []);
+
+  const handleOpenCreateModal = useCallback(() => {
+    setCreateModalVisible(true);
+  }, []);
+
+  const handleCloseCreateModal = useCallback(() => {
+    setCreateModalVisible(false);
+    form.resetFields();
+  }, [form]);
+
+  // 表格列配置
+  const columns = useMemo(
+    () => createExportTableColumns({
+      onDownload: handleDownload,
+      onDelete: handleDelete,
+      onRetry: handleRetry,
+    }),
+    [handleDownload, handleDelete, handleRetry]
+  );
 
   return (
     <div>

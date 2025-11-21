@@ -11,7 +11,6 @@ import {
   Modal,
   Form,
   Select,
-  message,
   Progress,
   Tooltip,
 } from 'antd';
@@ -22,10 +21,14 @@ import {
   ThunderboltOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import {
+  useMyProxies,
+  useMyProxyStats,
+  useAcquireProxy,
+  useReleaseProxy,
+} from '@/hooks/queries/useProxy';
 
 interface Proxy {
   id: string;
@@ -53,61 +56,21 @@ interface Proxy {
 const MyProxies: React.FC = () => {
   const [acquireModalVisible, setAcquireModalVisible] = useState(false);
   const [acquireForm] = Form.useForm();
-  const queryClient = useQueryClient();
 
-  // 查询我的代理
-  const { data, isLoading } = useQuery({
-    queryKey: ['my-proxies'],
-    queryFn: async () => {
-      const response = await request.get('/proxy/my-proxies');
-      return response;
-    },
-  });
-
-  // 查询统计数据
-  const { data: stats } = useQuery({
-    queryKey: ['my-proxy-stats'],
-    queryFn: async () => {
-      const response = await request.get('/proxy/my-stats');
-      return response;
-    },
-  });
-
-  // 申请代理
-  const acquireMutation = useMutation({
-    mutationFn: async (values: any) => {
-      return await request.post('/proxy/acquire', values);
-    },
-    onSuccess: () => {
-      message.success('代理申请成功');
-      setAcquireModalVisible(false);
-      acquireForm.resetFields();
-      queryClient.invalidateQueries({ queryKey: ['my-proxies'] });
-      queryClient.invalidateQueries({ queryKey: ['my-proxy-stats'] });
-    },
-    onError: (error: any) => {
-      message.error(error.message || '代理申请失败');
-    },
-  });
-
-  // 释放代理
-  const releaseMutation = useMutation({
-    mutationFn: async (proxyId: string) => {
-      return await request.post(`/proxy/release/${proxyId}`);
-    },
-    onSuccess: () => {
-      message.success('代理释放成功');
-      queryClient.invalidateQueries({ queryKey: ['my-proxies'] });
-      queryClient.invalidateQueries({ queryKey: ['my-proxy-stats'] });
-    },
-    onError: () => {
-      message.error('代理释放失败');
-    },
-  });
+  // 使用自定义 React Query Hooks
+  const { data, isLoading } = useMyProxies();
+  const { data: stats } = useMyProxyStats(); // 自动30秒刷新
+  const acquireMutation = useAcquireProxy();
+  const releaseMutation = useReleaseProxy();
 
   const handleAcquire = () => {
     acquireForm.validateFields().then((values) => {
-      acquireMutation.mutate(values);
+      acquireMutation.mutate(values, {
+        onSuccess: () => {
+          setAcquireModalVisible(false);
+          acquireForm.resetFields();
+        },
+      });
     });
   };
 

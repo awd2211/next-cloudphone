@@ -30,8 +30,8 @@ const PaymentDashboardContent: React.FC = () => {
   } = usePaymentDashboard();
 
   // 图表配置
-  const paymentMethodChartOption = usePaymentMethodChartOption(methodStats);
-  const dailyTrendChartOption = useDailyTrendChartOption(dailyStats);
+  const paymentMethodChartOption = usePaymentMethodChartOption(methodStats as any);
+  const dailyTrendChartOption = useDailyTrendChartOption(dailyStats as any);
 
   return (
     <div style={{ padding: '24px' }}>
@@ -45,17 +45,17 @@ const PaymentDashboardContent: React.FC = () => {
           <Row gutter={16}>
             <Col xs={24} lg={12}>
               <Card>
-                <ReactECharts option={paymentMethodChartOption} style={{ height: 400 }} />
+                <ReactECharts option={paymentMethodChartOption as any} style={{ height: 400 }} />
               </Card>
             </Col>
             <Col xs={24} lg={12}>
               <Card>
-                <ReactECharts option={dailyTrendChartOption} style={{ height: 400 }} />
+                <ReactECharts option={dailyTrendChartOption as any} style={{ height: 400 }} />
               </Card>
             </Col>
           </Row>
 
-          <PaymentMethodTable dataSource={methodStats} />
+          <PaymentMethodTable dataSource={methodStats as any} />
         </Spin>
       </Space>
     </div>

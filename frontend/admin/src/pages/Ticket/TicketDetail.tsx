@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Space } from 'antd';
+import { Button } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { TicketInfoCard, ReplyList, ReplyForm } from '@/components/TicketDetail';
@@ -11,6 +11,8 @@ const TicketDetail: React.FC = () => {
 
   const {
     ticket,
+    replies,
+    isLoading,
     replyContent,
     setReplyContent,
     isInternalNote,
@@ -23,6 +25,14 @@ const TicketDetail: React.FC = () => {
     handleResolveTicket,
   } = useTicketDetail(id || '');
 
+  if (isLoading) {
+    return <div>加载中...</div>;
+  }
+
+  if (!ticket) {
+    return <div>工单不存在</div>;
+  }
+
   return (
     <div>
       <Button
@@ -34,13 +44,13 @@ const TicketDetail: React.FC = () => {
       </Button>
 
       <TicketInfoCard
-        ticket={ticket}
+        ticket={ticket as any}
         onResolve={handleResolveTicket}
         onClose={handleCloseTicket}
       />
 
       <div style={{ marginTop: 16 }}>
-        <ReplyList replies={ticket.replies} />
+        <ReplyList replies={replies as any} />
       </div>
 
       {ticket.status !== 'closed' && (
@@ -48,8 +58,8 @@ const TicketDetail: React.FC = () => {
           <ReplyForm
             replyContent={replyContent}
             onReplyContentChange={setReplyContent}
-            newStatus={newStatus}
-            onStatusChange={setNewStatus}
+            newStatus={newStatus as any}
+            onStatusChange={setNewStatus as any}
             isInternalNote={isInternalNote}
             onInternalNoteChange={setIsInternalNote}
             onSubmit={handleSubmitReply}

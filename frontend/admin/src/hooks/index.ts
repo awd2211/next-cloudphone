@@ -23,12 +23,7 @@ export type {
   DataScopeQueryParams,
   DataScopeSelectorProps,
 } from './useDataScope';
-export type {
-  FieldPermission,
-  CreateFieldPermissionDto,
-  UpdateFieldPermissionDto,
-  FieldPermissionQueryParams,
-} from './useFieldPermission';
+// FieldPermission 相关类型已在 @/types 中定义，不需要从 hook 重新导出
 
 // 导出枚举
 export { ScopeType } from './useDataScope';

@@ -19,8 +19,8 @@ interface ProxySearchBarProps {
   onProtocolChange: (value?: ProxyProtocol) => void;
   onProviderChange: (value?: ProxyProvider) => void;
   onCountryChange: (value?: string) => void;
-  onMinQualityChange: (value?: number) => void;
-  onMaxLatencyChange: (value?: number) => void;
+  onMinQualityChange: (value: number | null) => void;
+  onMaxLatencyChange: (value: number | null) => void;
   onSearch: () => void;
   onReset: () => void;
   onRefreshPool: () => void;

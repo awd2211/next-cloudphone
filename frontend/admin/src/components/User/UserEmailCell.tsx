@@ -21,8 +21,8 @@ const maskEmail = (email: string | undefined): string => {
   if (!email) return '';
   const [username, domain] = email.split('@');
   if (!domain) return email;
-  const visiblePart = username.slice(0, 3);
-  const maskedPart = '*'.repeat(Math.max(0, username.length - 3));
+  const visiblePart = username?.slice(0, 3) ?? '';
+  const maskedPart = '*'.repeat(Math.max(0, (username?.length ?? 0) - 3));
   return `${visiblePart}${maskedPart}@${domain}`;
 };
 

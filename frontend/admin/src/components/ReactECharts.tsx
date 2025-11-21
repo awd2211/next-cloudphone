@@ -54,9 +54,12 @@ const ReactECharts: React.FC<ReactEChartsProps> = ({
     // 绑定事件
     if (onEvents) {
       Object.keys(onEvents).forEach((eventName) => {
-        chartInstance.on(eventName, (params) => {
-          onEvents[eventName](params, chartInstance);
-        });
+        const handler = onEvents[eventName];
+        if (handler) {
+          chartInstance.on(eventName, (params) => {
+            handler(params, chartInstance);
+          });
+        }
       });
     }
 

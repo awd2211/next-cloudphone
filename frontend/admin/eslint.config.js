@@ -30,6 +30,15 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      // ✅ 允许以 _ 开头的未使用变量 (表示故意不使用)
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       // ✅ 启用自定义规则
       'local/no-unsafe-array-assignment': 'warn', // 检测不安全的数组赋值
       'local/prefer-use-safe-api': 'off', // 建议使用 useSafeApi (可选开启)

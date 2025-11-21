@@ -166,7 +166,7 @@ export const dangerConfirm = (options: DangerConfirmOptions): Promise<boolean> =
     };
 
     // 创建并显示对话框
-    const modal = Modal.confirm({
+    Modal.confirm({
       title: (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ExclamationCircleOutlined style={{ color: '#ff4d4f', fontSize: 22 }} />

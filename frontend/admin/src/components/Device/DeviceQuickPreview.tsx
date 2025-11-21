@@ -5,7 +5,7 @@
  * 减少点击查看详情的操作路径
  */
 
-import { Popover, Descriptions, Tag , theme } from 'antd';
+import { Popover, Descriptions, Tag  } from 'antd';
 import { memo, ReactNode } from 'react';
 import type { Device } from '@/types';
 import { DeviceStatusTag } from './DeviceStatusTag';
@@ -27,20 +27,6 @@ interface DeviceQuickPreviewProps {
 /**
  * 格式化运行时间
  */
-const formatUptime = (uptime?: number): string => {
-  if (!uptime) return '-';
-
-  const days = Math.floor(uptime / (24 * 3600));
-  const hours = Math.floor((uptime % (24 * 3600)) / 3600);
-  const minutes = Math.floor((uptime % 3600) / 60);
-
-  const parts: string[] = [];
-  if (days > 0) parts.push(`${days}天`);
-  if (hours > 0) parts.push(`${hours}小时`);
-  if (minutes > 0) parts.push(`${minutes}分钟`);
-
-  return parts.length > 0 ? parts.join(' ') : '少于1分钟';
-};
 
 /**
  * 格式化日期时间
@@ -72,7 +58,7 @@ const formatDateTime = (dateString?: string): string => {
  */
 export const DeviceQuickPreview = memo<DeviceQuickPreviewProps>(
   ({ device, children, mouseEnterDelay = 500, placement = 'right' }) => {
-    const { token } = theme.useToken();
+    // Removed unused token
     // 预览卡片内容
     const content = (
       <div style={{ width: 360 }}>

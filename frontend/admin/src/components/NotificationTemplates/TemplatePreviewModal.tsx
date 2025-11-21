@@ -53,7 +53,7 @@ export const TemplatePreviewModal = memo<TemplatePreviewModalProps>(
             <div style={{ marginTop: 16 }}>
               <Text strong>通知渠道：</Text>
               <div style={{ marginTop: 8 }}>
-                {template.channels.map((channel) => (
+                {template.channels.map((channel: string) => (
                   <Tag key={channel}>{channel}</Tag>
                 ))}
               </div>

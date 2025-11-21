@@ -15,7 +15,7 @@ import {
   testStartDevice,
 } from '@/services/queue';
 import type { QueueJobDetail } from '@/types';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { QueuesStatusResponseSchema, QueueJobsResponseSchema, QueueJobDetailSchema } from '@/schemas/api.schemas';
 
 /**
@@ -40,72 +40,71 @@ export const useQueueManagement = () => {
 
   const [testForm] = Form.useForm();
 
-  // ✅ 使用 useSafeApi 加载队列状态
+  // ✅ 使用 useValidatedQuery 加载队列状态
   const {
     data: queuesStatusResponse,
-    execute: executeLoadQueuesStatus,
-  } = useSafeApi(getAllQueuesStatus, QueuesStatusResponseSchema, {
-    errorMessage: '加载队列状态失败',
+    refetch: loadQueuesStatus,
+  } = useValidatedQuery({
+    queryKey: ['queues-status'],
+    queryFn: getAllQueuesStatus,
+    schema: QueuesStatusResponseSchema,
+    apiErrorMessage: '加载队列状态失败',
     fallbackValue: { queues: [], summary: undefined },
+    staleTime: 10 * 1000,
+    refetchInterval: 10 * 1000, // 每10秒自动刷新
   });
 
-  // ✅ 使用 useSafeApi 加载任务列表
+  // ✅ 使用 useValidatedQuery 加载任务列表
   const {
     data: jobsResponse,
-    loading,
-    execute: executeLoadJobs,
-  } = useSafeApi(
-    () => {
+    isLoading: loading,
+    refetch: loadJobs,
+  } = useValidatedQuery({
+    queryKey: ['queue-jobs', selectedQueue, jobStatus],
+    queryFn: () => {
       if (!selectedQueue) return Promise.resolve({ jobs: [], total: 0 });
       return getQueueJobs(selectedQueue, jobStatus, 0, 50);
     },
-    QueueJobsResponseSchema,
-    {
-      errorMessage: '加载任务列表失败',
-      fallbackValue: { jobs: [], total: 0 },
-    }
-  );
+    schema: QueueJobsResponseSchema,
+    apiErrorMessage: '加载任务列表失败',
+    fallbackValue: { jobs: [], total: 0 },
+    enabled: !!selectedQueue,
+    staleTime: 5 * 1000,
+  });
 
-  // ✅ 使用 useSafeApi 加载任务详情
+  // ✅ 使用 useValidatedQuery 加载任务详情
   const {
-    execute: executeLoadJobDetail,
-  } = useSafeApi(
-    (queueName: string, jobId: string) => getJobDetail(queueName, jobId),
-    QueueJobDetailSchema,
-    {
-      errorMessage: '加载任务详情失败',
-      manual: true,
-    }
-  );
+    refetch: executeLoadJobDetail,
+  } = useValidatedQuery({
+    queryKey: ['job-detail'],
+    queryFn: ({ queryKey }) => {
+      const [, queueName, jobId] = queryKey as [string, string, string];
+      return getJobDetail(queueName, jobId);
+    },
+    schema: QueueJobDetailSchema,
+    apiErrorMessage: '加载任务详情失败',
+    enabled: false, // 手动触发
+  });
 
   // ===== 数据加载 =====
   /**
-   * 加载所有队列状态
+   * 自动选择第一个队列
    */
-  const loadQueuesStatus = useCallback(async () => {
-    const response = await executeLoadQueuesStatus();
-    // 如果还没选择队列，自动选择第一个（使用可选链避免数组访问警告）
-    if (!selectedQueue && response?.queues && response.queues.length > 0) {
-      const firstQueueName = response.queues?.[0]?.name;
+  useEffect(() => {
+    if (!selectedQueue && queuesStatusResponse?.queues && queuesStatusResponse.queues.length > 0) {
+      const firstQueueName = queuesStatusResponse.queues?.[0]?.name;
       if (firstQueueName) {
         setSelectedQueue(firstQueueName);
       }
     }
-  }, [executeLoadQueuesStatus, selectedQueue]);
-
-  /**
-   * 加载指定队列的任务列表
-   */
-  const loadJobs = useCallback(async () => {
-    if (!selectedQueue) return;
-    await executeLoadJobs();
-  }, [selectedQueue, executeLoadJobs]);
+  }, [selectedQueue, queuesStatusResponse]);
 
   /**
    * 查看任务详情
    */
-  const viewJobDetail = useCallback(async (queueName: string, jobId: string) => {
-    const detail = await executeLoadJobDetail(queueName, jobId);
+  const viewJobDetail = useCallback(async (_queueName: string, _jobId: string) => {
+    // TODO: 需要重构 executeLoadJobDetail 以支持动态参数
+    const { data: detail } = await executeLoadJobDetail();
     if (detail) {
       setJobDetail(detail);
       setJobDetailVisible(true);
@@ -122,7 +121,7 @@ export const useQueueManagement = () => {
         await retryJob(queueName, jobId);
         message.success('任务已重试');
         loadJobs();
-      } catch (error) {
+      } catch (_error) {
         message.error('重试失败');
       }
     },
@@ -139,7 +138,7 @@ export const useQueueManagement = () => {
         message.success('任务已删除');
         loadJobs();
         loadQueuesStatus();
-      } catch (error) {
+      } catch (_error) {
         message.error('删除失败');
       }
     },
@@ -156,7 +155,7 @@ export const useQueueManagement = () => {
         await pauseQueue(queueName);
         message.success(`队列 ${queueName} 已暂停`);
         loadQueuesStatus();
-      } catch (error) {
+      } catch (_error) {
         message.error('暂停失败');
       }
     },
@@ -172,7 +171,7 @@ export const useQueueManagement = () => {
         await resumeQueue(queueName);
         message.success(`队列 ${queueName} 已恢复`);
         loadQueuesStatus();
-      } catch (error) {
+      } catch (_error) {
         message.error('恢复失败');
       }
     },
@@ -189,7 +188,7 @@ export const useQueueManagement = () => {
         message.success(`队列 ${queueName} 已清空`);
         loadJobs();
         loadQueuesStatus();
-      } catch (error) {
+      } catch (_error) {
         message.error('清空失败');
       }
     },
@@ -206,7 +205,7 @@ export const useQueueManagement = () => {
         message.success(`已清理 ${queueName} 中的 ${type} 任务`);
         loadJobs();
         loadQueuesStatus();
-      } catch (error) {
+      } catch (_error) {
         message.error('清理失败');
       }
     },
@@ -239,7 +238,7 @@ export const useQueueManagement = () => {
         loadQueuesStatus();
         loadJobs();
       }, 500);
-    } catch (error) {
+    } catch (_error) {
       message.error('创建任务失败');
     }
   }, [testType, testForm, loadQueuesStatus, loadJobs]);
@@ -274,20 +273,6 @@ export const useQueueManagement = () => {
     testForm.resetFields();
   }, [testForm]);
 
-  // ===== 副作用 =====
-  // 初始加载和自动刷新
-  useEffect(() => {
-    loadQueuesStatus();
-    const interval = setInterval(loadQueuesStatus, 10000); // 每10秒刷新
-    return () => clearInterval(interval);
-  }, [loadQueuesStatus]);
-
-  // 当队列或状态改变时，重新加载任务列表
-  useEffect(() => {
-    if (selectedQueue) {
-      loadJobs();
-    }
-  }, [selectedQueue, jobStatus, loadJobs]);
 
   // ===== 返回所有状态和方法 =====
   return {

@@ -1,14 +1,14 @@
 import { useState, useMemo, useCallback } from 'react';
-import { message, Popconfirm } from 'antd';
+import { message } from 'antd';
 import type { Order } from '@/types';
-import { useOrders, useCancelOrder, useRefundOrder } from '@/hooks/useOrders';
+import { useOrders, useCancelOrder, useRefundOrder } from '@/hooks/queries';
 import * as billingService from '@/services/billing';
 import { exportToExcel, exportToCSV } from '@/utils/export';
 import dayjs from 'dayjs';
 import type { MenuProps } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import {
-  OrderStatsCards,
+
   OrderToolbar,
   OrderFilterBar,
   OrderTable,
@@ -101,20 +101,20 @@ const OrderList = () => {
 
   const handleOpenRefund = useCallback((record: Order) => {
     setSelectedOrder(record);
-    setRefundAmount(record.amount);
+    setRefundAmount(Number(record.amount));
     setRefundModalVisible(true);
   }, []);
 
   const handleCancelOrder = useCallback(async () => {
     if (!selectedOrder) return;
-    await cancelMutation.mutateAsync(selectedOrder.id);
+    await cancelMutation.mutateAsync({ id: selectedOrder.id, reason: cancelReason });
     setCancelModalVisible(false);
     setCancelReason('');
-  }, [selectedOrder, cancelMutation]);
+  }, [selectedOrder, cancelReason, cancelMutation]);
 
   const handleRefund = useCallback(async () => {
     if (!selectedOrder) return;
-    if (refundAmount <= 0 || refundAmount > selectedOrder.amount) {
+    if (refundAmount <= 0 || refundAmount > Number(selectedOrder.amount)) {
       message.error('退款金额无效');
       return;
     }
@@ -133,14 +133,14 @@ const OrderList = () => {
       await billingService.batchCancelOrders(selectedRowKeys as string[], '批量取消');
       message.success(`成功取消 ${selectedRowKeys.length} 个订单`);
       setSelectedRowKeys([]);
-    } catch (error) {
+    } catch (_error) {
       message.error('批量取消失败');
     }
   }, [selectedRowKeys]);
 
   // 导出数据
   const exportData = useMemo(() => {
-    return orders.map((order) => ({
+    return orders.map((order: any) => ({
       订单号: order.orderNo,
       用户: order.user?.username || '-',
       套餐: order.plan?.name || '-',

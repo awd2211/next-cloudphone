@@ -2,7 +2,7 @@ import React from 'react';
 import { List, Card, Badge, Button, Space, Tabs } from 'antd';
 import { CheckOutlined, PlusOutlined } from '@ant-design/icons';
 import { NotificationListItem, CreateNotificationModal } from '@/components/Notification';
-import { useNotificationCenter } from '@/hooks/useNotificationCenter';
+import { useNotificationCenter } from '@/hooks/queries/useNotificationCenter';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -65,7 +65,7 @@ const NotificationCenter: React.FC = () => {
         </Space>
       </Card>
 
-      <Tabs activeKey={selectedTab} items={tabItems} onChange={setSelectedTab} />
+      <Tabs activeKey={selectedTab} items={tabItems} onChange={(key) => setSelectedTab(key as any)} />
 
       <List
         loading={loading}
@@ -83,7 +83,7 @@ const NotificationCenter: React.FC = () => {
             item={item}
             onMarkAsRead={handleMarkAsRead}
             onDelete={handleDelete}
-            getTypeConfig={getTypeConfig}
+            getTypeConfig={getTypeConfig as any}
           />
         )}
       />

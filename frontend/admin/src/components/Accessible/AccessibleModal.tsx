@@ -72,7 +72,7 @@ const AccessibleModal: React.FC<AccessibleModalProps> = ({
 
   // 当模态框打开时，保存当前焦点并设置焦点捕获
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
 
     // 保存当前焦点，以便关闭时恢复
     restoreFocusRef.current = focusManagement.saveFocus();
@@ -82,10 +82,11 @@ const AccessibleModal: React.FC<AccessibleModalProps> = ({
       const cleanup = focusManagement.trapFocus(modalRef.current);
       return cleanup;
     }
+    return undefined;
   }, [open, trapFocus]);
 
   // 处理关闭
-  const handleClose = (e?: React.MouseEvent<HTMLElement>) => {
+  const handleClose = (e?: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => {
     // 恢复焦点
     if (restoreFocusRef.current) {
       restoreFocusRef.current();
@@ -97,8 +98,8 @@ const AccessibleModal: React.FC<AccessibleModalProps> = ({
       onClose();
     }
 
-    if (onCancel) {
-      onCancel(e!);
+    if (onCancel && e) {
+      onCancel(e as any);
     }
   };
 

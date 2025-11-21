@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider } from 'antd';
 import type { FormInstance } from 'antd';
+import type { CreateTemplateDto } from '@/types';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -8,18 +9,28 @@ const { Option } = Select;
 interface CreateTemplateModalProps {
   visible: boolean;
   form: FormInstance;
-  onOk: () => void;
+  onOk: (values: CreateTemplateDto) => Promise<void>;
   onCancel: () => void;
 }
 
 export const CreateTemplateModal = memo<CreateTemplateModalProps>(
   ({ visible, form, onOk, onCancel }) => {
+    const handleOk = async () => {
+      try {
+        const values = await form.validateFields();
+        await onOk(values);
+      } catch (error) {
+        // Form validation failed or onOk rejected
+        console.error('Form submission error:', error);
+      }
+    };
+
     return (
       <Modal
         title="新建设备模板"
         open={visible}
         onCancel={onCancel}
-        onOk={onOk}
+        onOk={handleOk}
         width={700}
       >
         <Form form={form} layout="vertical">

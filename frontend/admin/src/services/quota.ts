@@ -1,7 +1,6 @@
 import request from '@/utils/request';
 import type {
   Quota,
-  QuotaStatus,
   CreateQuotaDto,
   UpdateQuotaDto,
   CheckQuotaRequest,

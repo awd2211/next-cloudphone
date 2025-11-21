@@ -14,7 +14,7 @@ interface FieldPermissionDetailModalProps {
 export const FieldPermissionDetailModal = memo<FieldPermissionDetailModalProps>(({
   visible,
   detailPermission,
-  operationTypes,
+
   getOperationColor,
   getOperationLabel,
   onClose,

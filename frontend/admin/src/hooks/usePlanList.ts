@@ -7,7 +7,7 @@ import {
   useUpdatePlan,
   useDeletePlan,
   useTogglePlanStatus,
-} from './usePlans';
+} from './queries/usePlans';
 import { usePlanTableColumns } from '@/components/Plan/PlanTableColumns';
 
 /**
@@ -89,8 +89,8 @@ export const usePlanList = () => {
    * 切换套餐状态
    */
   const handleToggleStatus = useCallback(
-    async (id: string, isActive: boolean) => {
-      await toggleStatusMutation.mutateAsync({ id, isActive });
+    async (id: string, enabled: boolean) => {
+      await toggleStatusMutation.mutateAsync({ id, enabled });
     },
     [toggleStatusMutation]
   );

@@ -4,14 +4,13 @@
  * 展示筛选方案保存、加载、管理功能
  */
 
-import { Card, Form, Input, Select, DatePicker, Button, Space, Table, Tag, Typography } from 'antd';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Select, Button, Space, Table, Tag, Typography } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 import { useFilterPresets } from '@/hooks/useFilterPresets';
 import { FilterPresetManager } from '@/components/AdvancedFilter';
 import type { FilterPreset } from '@/hooks/useFilterPresets';
 
 const { Title, Text, Paragraph } = Typography;
-const { RangePicker } = DatePicker;
 
 /**
  * 筛选条件接口

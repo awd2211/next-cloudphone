@@ -28,11 +28,11 @@ export interface CaptchaResponse {
 }
 
 export const getCaptcha = () => {
-  return request.get<any, CaptchaResponse>('/auth/captcha');
+  return request.get<CaptchaResponse>('/auth/captcha');
 };
 
 export const login = (params: LoginParams) => {
-  return request.post<any, LoginResponse>('/auth/login', params);
+  return request.post<LoginResponse>('/auth/login', params);
 };
 
 export const logout = () => {

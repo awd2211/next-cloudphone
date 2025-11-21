@@ -3,22 +3,19 @@ import { Badge, Dropdown, List, Button, Empty, Spin } from 'antd';
 import { BellOutlined } from '@ant-design/icons';
 import type { Notification } from '@/services/notification';
 import { useNavigate } from 'react-router-dom';
-import { useNotificationCenter } from '@/hooks/useNotificationCenter';
+import { useNotificationCenter } from '@/hooks/queries/useNotificationCenter';
 
 const NotificationCenter: React.FC = () => {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // 获取当前用户 ID（从认证状态中获取）
-  const userId = localStorage.getItem('userId') || 'test-user-id';
-
-  // ✅ 使用重构后的 hook
+  // ✅ 使用重构后的 hook (hook 内部会从 localStorage 获取 userId)
   const {
     notifications,
     unreadCount,
     loading,
     handleMarkAsRead,
-  } = useNotificationCenter(userId);
+  } = useNotificationCenter();
 
   // 点击通知
   const handleNotificationClick = (notification: Notification) => {

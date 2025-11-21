@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { Input, Card, Space } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import type { ColumnsType } from 'antd/es/table';
-import { useUsageRecords } from '@/hooks/useUsage';
+import { useUsageRecords } from '@/hooks/queries/useUsage';
 import type { UsageRecord } from '@/types';
 import dayjs from 'dayjs';
 
@@ -126,7 +126,7 @@ const UsageList = () => {
         dataIndex: 'cost',
         key: 'cost',
         render: formatCost,
-        sorter: (a, b) => (a.cost || 0) - (b.cost || 0),
+        sorter: (a, b) => Number(a.cost || 0) - Number(b.cost || 0),
       },
     ],
     [formatDuration, formatCpuUsage, formatMemory, formatNetwork, formatCost]

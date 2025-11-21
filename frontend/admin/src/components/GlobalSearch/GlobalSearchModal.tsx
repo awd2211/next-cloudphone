@@ -8,14 +8,14 @@
  * 4. 键盘导航
  */
 
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Modal, Input, List, Empty, Tag, Space, Typography, Spin , theme } from 'antd';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Modal, Input, List, Empty, Tag, Space, Typography, Spin , } from 'antd';
 import {
   SearchOutlined,
   MobileOutlined,
   UserOutlined,
   AppstoreOutlined,
-  FileTextOutlined,
+
   LoadingOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -127,7 +127,6 @@ const getTypeName = (type: SearchResult['type']) => {
  * ```
  */
 export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ visible, onClose }) => {
-    const { token } = theme.useToken();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);

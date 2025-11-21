@@ -21,7 +21,7 @@ import { Device } from '../entities/device.entity';
 import { DeviceAllocation } from '../entities/device-allocation.entity';
 import { DeviceReservation } from '../entities/device-reservation.entity';
 import { AllocationQueue } from '../entities/allocation-queue.entity';
-import { SchedulingStrategy } from './entities/scheduling-strategy.entity';
+import { SchedulingStrategy } from '../entities/scheduling-strategy.entity';
 import { ResourceUsageHistory } from '../entities/resource-usage-history.entity';
 import { AuthModule } from '../auth/auth.module';
 import { EventBusModule, ServiceTokenService, DistributedLockModule } from '@cloudphone/shared';

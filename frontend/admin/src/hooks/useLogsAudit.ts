@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Modal, message } from 'antd';
-import { z } from 'zod';
 import dayjs from 'dayjs';
 import {
   getAuditLogs,
@@ -9,7 +8,7 @@ import {
   type LogParams,
 } from '@/services/log';
 import { exportToExcel } from '@/utils/export';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { AuditLogsResponseSchema } from '@/schemas/api.schemas';
 
 export const useLogsAudit = () => {
@@ -22,13 +21,14 @@ export const useLogsAudit = () => {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
-  // ✅ 使用 useSafeApi 加载日志
+  // ✅ 使用 useValidatedQuery 加载日志
   const {
     data: logsResponse,
-    loading,
-    execute: executeLoadLogs,
-  } = useSafeApi(
-    () => {
+    isLoading: loading,
+    refetch: loadLogs,
+  } = useValidatedQuery({
+    queryKey: ['audit-logs', page, pageSize, searchKeyword, actionFilter, resourceFilter, dateRange],
+    queryFn: () => {
       const params: LogParams = { page, pageSize };
       if (searchKeyword) params.search = searchKeyword;
       if (actionFilter) params.action = actionFilter;
@@ -39,21 +39,11 @@ export const useLogsAudit = () => {
       }
       return getAuditLogs(params);
     },
-    AuditLogsResponseSchema,
-    {
-      errorMessage: '加载日志失败',
-      fallbackValue: { data: [], total: 0 },
-    }
-  );
-
-  const loadLogs = useCallback(async () => {
-    await executeLoadLogs();
-  }, [executeLoadLogs]);
-
-  // 参数变化时自动重新加载
-  useEffect(() => {
-    loadLogs();
-  }, [page, pageSize, searchKeyword, actionFilter, resourceFilter, dateRange]);
+    schema: AuditLogsResponseSchema,
+    apiErrorMessage: '加载日志失败',
+    fallbackValue: { data: [], total: 0 },
+    staleTime: 30 * 1000,
+  });
 
   // 搜索处理
   const handleSearch = useCallback((value: string) => {
@@ -116,7 +106,7 @@ export const useLogsAudit = () => {
           await cleanExpiredLogs(30);
           message.success('清理成功');
           loadLogs();
-        } catch (error) {
+        } catch (_error) {
           message.error('清理失败');
         }
       },

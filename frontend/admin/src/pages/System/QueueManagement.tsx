@@ -84,7 +84,7 @@ const QueueManagement = () => {
             {/* 队列概览标签页 */}
             <TabPane tab="队列概览" key="queues">
               <QueueOverviewTab
-                queues={queues}
+                queues={queues as any}
                 onRefresh={loadQueuesStatus}
                 onTestJob={handleOpenTestModal}
                 onPauseQueue={handlePauseQueue}
@@ -99,7 +99,7 @@ const QueueManagement = () => {
               <JobListTab
                 selectedQueue={selectedQueue}
                 jobStatus={jobStatus}
-                jobs={jobs}
+                jobs={jobs as any}
                 loading={loading}
                 onJobStatusChange={setJobStatus}
                 onRefresh={loadJobs}

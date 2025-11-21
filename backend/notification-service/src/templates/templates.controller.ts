@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   Query,
@@ -67,6 +68,24 @@ export class TemplatesController {
   }
 
   /**
+   * 获取模板版本历史
+   * GET /templates/:id/versions
+   * 🔒 需要 notification.template-read 权限
+   */
+  @Get(':id/versions')
+  @RequirePermission('notification.template-read')
+  async getVersions(@Param('id') id: string) {
+    // TODO: 实现完整的版本管理功能,需要创建 TemplateVersion 实体和表
+    // 目前返回空数组,表示功能端点已存在但未完全实现
+    await this.templatesService.findOne(id); // 验证模板存在
+    return {
+      success: true,
+      data: [],
+      message: '版本历史功能待实现 - 需要 TemplateVersion 实体',
+    };
+  }
+
+  /**
    * 更新模板
    * PATCH /templates/:id
    * 🔒 需要 notification.template-update 权限
@@ -74,6 +93,18 @@ export class TemplatesController {
   @Patch(':id')
   @RequirePermission('notification.template-update')
   update(@Param('id') id: string, @Body() updateTemplateDto: UpdateTemplateDto) {
+    return this.templatesService.update(id, updateTemplateDto);
+  }
+
+  /**
+   * 更新模板 (PUT 别名)
+   * PUT /templates/:id
+   * 🔒 需要 notification.template-update 权限
+   * 为了兼容前端 PUT 请求,添加此别名端点
+   */
+  @Put(':id')
+  @RequirePermission('notification.template-update')
+  updateViaPut(@Param('id') id: string, @Body() updateTemplateDto: UpdateTemplateDto) {
     return this.templatesService.update(id, updateTemplateDto);
   }
 

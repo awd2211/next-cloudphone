@@ -1,9 +1,189 @@
 /**
  * API响应验证Schemas
  * 使用Zod进行运行时类型验证，防止API返回异常数据导致的崩溃
+ *
+ * 架构说明:
+ * 1. 导入 Types 层的 Enum，确保类型一致性
+ * 2. 基础 Schema 组件减少重复定义
+ * 3. Schema 工具函数提供验证和转换能力
  */
 
 import { z } from 'zod';
+import {
+  UserStatus,
+  DeviceStatus,
+} from '@/types';
+
+// ==================== 基础 Schema 组件 ====================
+
+/**
+ * BaseEntity Schema
+ * 所有实体的基础字段 (id, createdAt, updatedAt)
+ */
+export const BaseEntitySchema = z.object({
+  id: z.string().uuid('无效的 UUID 格式'),
+  createdAt: z.string().datetime('无效的日期时间格式'),
+  updatedAt: z.string().datetime('无效的日期时间格式'),
+});
+
+/**
+ * Timestamps Schema
+ * 仅时间戳字段
+ */
+export const TimestampsSchema = z.object({
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+/**
+ * 可选的 Timestamps Schema
+ */
+export const OptionalTimestampsSchema = z.object({
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+
+// ==================== 通用验证 Schema ====================
+
+/**
+ * Email Schema
+ * 验证邮箱格式
+ */
+export const EmailSchema = z.string().email('无效的邮箱格式');
+
+/**
+ * UUID Schema
+ * 验证 UUID v4 格式
+ */
+export const UUIDSchema = z.string().uuid('无效的 UUID 格式');
+
+/**
+ * 手机号 Schema (中国大陆)
+ * 验证 11 位手机号
+ */
+export const PhoneSchema = z
+  .string()
+  .regex(/^1[3-9]\d{9}$/, '无效的手机号格式');
+
+/**
+ * 金额 Schema
+ * PostgreSQL numeric 以字符串形式传输
+ */
+export const MoneyAmountSchema = z
+  .string()
+  .regex(/^\d+(\.\d{1,2})?$/, '无效的金额格式');
+
+/**
+ * URL Schema
+ * 验证 URL 格式
+ */
+export const URLSchema = z.string().url('无效的 URL 格式');
+
+/**
+ * 分页参数 Schema
+ */
+export const PaginationParamsSchema = z.object({
+  page: z.number().int().positive().default(1),
+  pageSize: z.number().int().positive().max(100).default(10),
+});
+
+/**
+ * 排序参数 Schema
+ */
+export const SortParamsSchema = z.object({
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+/**
+ * 查询参数 Schema (分页 + 排序)
+ */
+export const QueryParamsSchema = PaginationParamsSchema.merge(SortParamsSchema);
+
+// ==================== Schema 工具函数 ====================
+
+/**
+ * 创建可选字段的 Schema
+ * @param schema - 原始 schema
+ * @returns 所有字段可选的 schema
+ */
+export function makeOptional<T extends z.ZodObject<any>>(schema: T) {
+  return schema.partial();
+}
+
+/**
+ * 创建必填字段的 Schema
+ * @param schema - 原始 schema
+ * @param keys - 必填字段数组
+ * @returns 指定字段必填的 schema
+ */
+export function makeRequired<T extends z.ZodObject<any>>(
+  schema: T,
+  keys: (keyof T['shape'])[]
+) {
+  return schema.required(
+    Object.fromEntries(keys.map((key) => [key, true])) as any
+  );
+}
+
+/**
+ * 格式化 Zod 验证错误
+ * @param error - Zod 验证错误
+ * @returns 格式化的错误信息
+ */
+export function formatZodError(error: z.ZodError<unknown>): Record<string, string[]> {
+  const formatted: Record<string, string[]> = {};
+
+  error.issues.forEach((err: z.ZodIssue) => {
+    const path = err.path.join('.');
+    if (!formatted[path]) {
+      formatted[path] = [];
+    }
+    formatted[path].push(err.message);
+  });
+
+  return formatted;
+}
+
+/**
+ * 安全解析 Schema
+ * @param schema - Zod schema
+ * @param data - 待验证数据
+ * @returns 解析结果或错误信息
+ */
+export function safeParse<T>(
+  schema: z.ZodSchema<T>,
+  data: unknown
+): { success: true; data: T } | { success: false; errors: Record<string, string[]> } {
+  const result = schema.safeParse(data);
+
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+
+  return {
+    success: false,
+    errors: formatZodError(result.error),
+  };
+}
+
+/**
+ * 创建带 BaseEntity 的 Schema
+ * @param fields - 额外字段定义
+ * @returns 包含 BaseEntity 字段的 schema
+ */
+export function createEntitySchema<T extends z.ZodRawShape>(fields: T) {
+  return BaseEntitySchema.extend(fields);
+}
+
+/**
+ * 创建带可选 Timestamps 的 Schema
+ * @param fields - 字段定义
+ * @returns 包含可选时间戳的 schema
+ */
+export function createSchemaWithOptionalTimestamps<T extends z.ZodRawShape>(fields: T) {
+  return z.object(fields).merge(OptionalTimestampsSchema);
+}
 
 /**
  * 通用分页响应Schema
@@ -35,27 +215,53 @@ export const ArrayResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
 // ============ 业务实体 Schemas ============
 
 /**
- * 用户Schema
+ * 权限Schema
+ * 定义对特定资源的操作权限
  */
-export const UserSchema = z.object({
-  id: z.string(),
-  username: z.string(),
-  email: z.string().email(),
-  role: z.string(),
-  status: z.enum(['active', 'inactive', 'banned']).optional(),
-  createdAt: z.string().datetime().optional(),
-  updatedAt: z.string().datetime().optional(),
+export const PermissionSchema = createEntitySchema({
+  resource: z.string(),
+  action: z.string(),
+  description: z.string().optional(),
+});
+
+export type Permission = z.infer<typeof PermissionSchema>;
+
+/**
+ * 角色Schema
+ * RBAC 权限控制的核心
+ */
+export const RoleSchema = createEntitySchema({
+  name: z.string(),
+  description: z.string().optional(),
+  permissions: z.array(PermissionSchema),
+});
+
+export type Role = z.infer<typeof RoleSchema>;
+
+/**
+ * 用户Schema
+ * 使用 createEntitySchema 继承 BaseEntity 字段
+ * 使用 z.nativeEnum 与 Types 层 Enum 对齐
+ */
+export const UserSchema = createEntitySchema({
+  username: z.string().min(3, '用户名至少 3 个字符'),
+  email: EmailSchema,
+  phone: PhoneSchema.optional(),
+  balance: z.number().nonnegative('余额不能为负数'),
+  roles: z.array(RoleSchema),
+  status: z.nativeEnum(UserStatus),
+  avatar: URLSchema.optional(),
 });
 
 export type User = z.infer<typeof UserSchema>;
 
 /**
  * 设备Schema
+ * 使用 z.nativeEnum(DeviceStatus) 替代 z.enum()
  */
-export const DeviceSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  status: z.enum(['idle', 'running', 'stopped', 'error']),
+export const DeviceSchema = createEntitySchema({
+  name: z.string().min(1, '设备名称不能为空'),
+  status: z.nativeEnum(DeviceStatus),
   userId: z.string(),
   template: z.string().optional(),
   createdAt: z.string().datetime().optional(),
@@ -99,7 +305,7 @@ export const NotificationSchema = z.object({
   type: z.string(),
   isRead: z.boolean(),
   createdAt: z.string().datetime(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type Notification = z.infer<typeof NotificationSchema>;
@@ -235,10 +441,9 @@ export type Queue = z.infer<typeof QueueSchema>;
 
 /**
  * 数据范围类型Schema
+ * 注意：ScopeType 类型在 @/types 中定义，这里只用于运行时验证
  */
 export const ScopeTypeSchema = z.enum(['all', 'tenant', 'department', 'department_only', 'self', 'custom']);
-
-export type ScopeType = z.infer<typeof ScopeTypeSchema>;
 
 /**
  * 范围类型选项Schema
@@ -259,7 +464,7 @@ export const DataScopeSchema = z.object({
   role: z.any().optional(), // RoleSchema - 避免循环依赖
   resourceType: z.string(),
   scopeType: ScopeTypeSchema,
-  filter: z.record(z.any()).optional(),
+  filter: z.record(z.string(), z.any()).optional(),
   departmentIds: z.array(z.string()).optional(),
   includeSubDepartments: z.boolean().optional(),
   description: z.string().optional(),
@@ -269,7 +474,7 @@ export const DataScopeSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export type DataScope = z.infer<typeof DataScopeSchema>;
+// 注意：DataScope 类型在 @/types 中定义
 
 /**
  * 数据范围响应Schema
@@ -293,7 +498,7 @@ export const ScopeTypesResponseSchema = z.object({
 export const JobSchema = z.object({
   id: z.string(),
   name: z.string(),
-  data: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
   progress: z.number().min(0).max(100).optional(),
   attempts: z.number().int().nonnegative().optional(),
   timestamp: z.number().optional(),
@@ -473,10 +678,10 @@ export const FieldPermissionSchema = z.object({
   readOnlyFields: z.array(z.string()).optional(),
   writableFields: z.array(z.string()).optional(),
   requiredFields: z.array(z.string()).optional(),
-  fieldAccessMap: z.record(z.string()).optional(),
-  fieldTransforms: z.record(z.object({
+  fieldAccessMap: z.record(z.string(), z.string()).optional(),
+  fieldTransforms: z.record(z.string(), z.object({
     type: z.enum(['mask', 'hash', 'encrypt', 'truncate']),
-    config: z.record(z.any()).optional(),
+    config: z.record(z.string(), z.any()).optional(),
   })).optional(),
   description: z.string().optional(),
   isActive: z.boolean(),
@@ -582,7 +787,7 @@ export const DeviceTemplateSchema = z.object({
   memoryMB: z.number().int().positive(),
   storageMB: z.number().int().positive(),
   preInstalledApps: z.array(z.string()).optional(),
-  config: z.record(z.any()).optional(),
+  config: z.record(z.string(), z.any()).optional(),
   tags: z.array(z.string()).optional(),
   usageCount: z.number().int().nonnegative(),
   createdBy: z.string(),
@@ -629,7 +834,7 @@ export const MenuItemSchema: z.ZodType<any> = z.lazy(() =>
     component: z.string().optional(),
     permission: z.string().optional(),
     children: z.array(MenuItemSchema).optional(),
-    meta: z.record(z.any()).optional(),
+    meta: z.record(z.string(), z.any()).optional(),
   })
 );
 
@@ -697,7 +902,7 @@ export const SchedulingStrategySchema = z.object({
   name: z.string(),
   type: z.string(),
   description: z.string().optional(),
-  config: z.record(z.any()).optional(),
+  config: z.record(z.string(), z.any()).optional(),
   isActive: z.boolean(),
   createdAt: z.string().datetime(),
 });
@@ -740,7 +945,7 @@ export const LifecycleRuleSchema = z.object({
   enabled: z.boolean(),
   priority: z.number().int(),
   schedule: z.string().optional(), // Cron expression
-  config: z.record(z.any()),
+  config: z.record(z.string(), z.any()),
   lastExecutedAt: z.string().optional(),
   nextExecutionAt: z.string().optional(),
   executionCount: z.number().int().nonnegative(),
@@ -789,7 +994,7 @@ export const LifecycleRuleTemplateSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   type: z.enum(['cleanup', 'autoscaling', 'backup', 'expiration-warning']),
-  defaultConfig: z.record(z.any()),
+  defaultConfig: z.record(z.string(), z.any()),
   recommended: z.boolean().optional(),
 });
 
@@ -825,7 +1030,7 @@ export const EventHistorySchema = z.object({
  */
 export const EventStatsSchema = z.object({
   totalEvents: z.number().int().nonnegative(),
-  eventsByType: z.record(z.number().int().nonnegative()),
+  eventsByType: z.record(z.string(), z.number().int().nonnegative()),
 });
 
 /**
@@ -1158,7 +1363,7 @@ export const BillingRuleSchema = z.object({
   description: z.string().optional(),
   type: z.enum(['time-based', 'usage-based', 'tiered', 'custom']),
   formula: z.string(),
-  parameters: z.record(z.any()),
+  parameters: z.record(z.string(), z.any()),
   isActive: z.boolean(),
   priority: z.number().int(),
   validFrom: z.string().optional(),
@@ -1185,7 +1390,7 @@ export const BillingRuleTemplateSchema = z.object({
   description: z.string().optional(),
   type: z.enum(['time-based', 'usage-based', 'tiered', 'custom']),
   formula: z.string(),
-  defaultParameters: z.record(z.any()),
+  defaultParameters: z.record(z.string(), z.any()),
   category: z.string().optional(),
 });
 
@@ -1200,7 +1405,7 @@ export const BillingRuleTemplatesResponseSchema = z.array(BillingRuleTemplateSch
 export const PaymentConfigSchema = z.object({
   enabledMethods: z.array(z.string()),
   enabledCurrencies: z.array(z.string()),
-  providers: z.record(
+  providers: z.record(z.string(),
     z.object({
       enabled: z.boolean(),
       mode: z.string(),
@@ -1284,7 +1489,7 @@ export const QuotaSchema = z.object({
   validFrom: z.string().optional(),
   validUntil: z.string().optional(),
   autoRenew: z.boolean(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -1479,4 +1684,272 @@ export const TwoFactorSecretSchema = z.object({
   secret: z.string(),
   qrCode: z.string(),
   otpauthUrl: z.string().optional(),
+});
+
+// ============================================================================
+// 补充缺失的 Schemas
+// ============================================================================
+
+/**
+ * Ticket Schema
+ */
+export const TicketSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  status: z.enum(['open', 'in_progress', 'resolved', 'closed']),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']),
+  category: z.string(),
+  userId: z.string(),
+  assigneeId: z.string().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  resolvedAt: z.string().datetime().optional(),
+});
+
+/**
+ * Ticket Reply Schema
+ */
+export const TicketReplySchema = z.object({
+  id: z.string(),
+  ticketId: z.string(),
+  userId: z.string(),
+  content: z.string(),
+  isInternal: z.boolean().default(false),
+  attachments: z.array(z.string()).optional(),
+  createdAt: z.string().datetime(),
+});
+
+/**
+ * Ticket Statistics Schema
+ */
+export const TicketStatisticsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  open: z.number().int().nonnegative(),
+  inProgress: z.number().int().nonnegative(),
+  resolved: z.number().int().nonnegative(),
+  closed: z.number().int().nonnegative(),
+  averageResponseTime: z.number().nonnegative(),
+  averageResolutionTime: z.number().nonnegative(),
+});
+
+/**
+ * Device Snapshot Schema
+ */
+export const DeviceSnapshotSchema = z.object({
+  id: z.string(),
+  deviceId: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  status: z.enum(['creating', 'ready', 'restoring', 'error']),
+  size: z.number().int().nonnegative(),
+  compressed: z.boolean().default(false),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+/**
+ * Snapshot Stats Schema
+ */
+export const SnapshotStatsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  totalSize: z.number().nonnegative(),
+  byStatus: z.record(z.string(), z.number().int().nonnegative()),
+  byDevice: z.record(z.string(), z.number().int().nonnegative()).optional(),
+});
+
+/**
+ * Order Schema
+ */
+export const OrderSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  planId: z.string(),
+  amount: z.number().nonnegative(),
+  status: z.enum(['pending', 'paid', 'cancelled', 'refunded', 'expired']),
+  paymentMethod: z.string().optional(),
+  createdAt: z.string().datetime(),
+  paidAt: z.string().datetime().optional(),
+  expiredAt: z.string().datetime().optional(),
+});
+
+/**
+ * Order Stats Schema
+ */
+export const OrderStatsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  pending: z.number().int().nonnegative(),
+  paid: z.number().int().nonnegative(),
+  cancelled: z.number().int().nonnegative(),
+  totalRevenue: z.number().nonnegative(),
+  averageOrderValue: z.number().nonnegative(),
+});
+
+/**
+ * Payment Statistics Schema
+ */
+export const PaymentStatisticsSchema = z.object({
+  totalAmount: z.number().nonnegative(),
+  totalCount: z.number().int().nonnegative(),
+  successCount: z.number().int().nonnegative(),
+  failedCount: z.number().int().nonnegative(),
+  refundCount: z.number().int().nonnegative(),
+  successRate: z.number().min(0).max(100),
+  averageAmount: z.number().nonnegative(),
+});
+
+/**
+ * Provider Spec Schema
+ */
+export const ProviderSpecSchema = z.object({
+  id: z.string(),
+  provider: z.enum(['aws', 'azure', 'gcp', 'aliyun', 'tencent']),
+  name: z.string(),
+  region: z.string(),
+  cpu: z.number().int().positive(),
+  memory: z.number().int().positive(),
+  storage: z.number().int().positive(),
+  gpu: z.number().int().nonnegative().optional(),
+  price: z.number().nonnegative(),
+  available: z.boolean().default(true),
+});
+
+/**
+ * Provider Health Schema
+ */
+export const ProviderHealthSchema = z.object({
+  provider: z.string(),
+  status: z.enum(['healthy', 'degraded', 'down']),
+  latency: z.number().nonnegative(),
+  lastCheck: z.string().datetime(),
+  errorCount: z.number().int().nonnegative().optional(),
+  message: z.string().optional(),
+});
+
+/**
+ * Cloud Sync Status Schema
+ */
+export const CloudSyncStatusSchema = z.object({
+  id: z.string(),
+  provider: z.string(),
+  deviceId: z.string(),
+  status: z.enum(['pending', 'syncing', 'synced', 'failed']),
+  lastSyncAt: z.string().datetime().optional(),
+  nextSyncAt: z.string().datetime().optional(),
+  error: z.string().optional(),
+});
+
+/**
+ * GPU Usage Trend Schema
+ */
+export const GPUUsageTrendSchema = z.object({
+  timestamp: z.string().datetime(),
+  utilization: z.number().min(0).max(100),
+  memoryUsed: z.number().nonnegative(),
+  temperature: z.number().nonnegative().optional(),
+});
+
+/**
+ * Queue Status Schema
+ */
+export const QueueStatusSchema = z.object({
+  name: z.string(),
+  waiting: z.number().int().nonnegative(),
+  active: z.number().int().nonnegative(),
+  completed: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+  delayed: z.number().int().nonnegative(),
+  paused: z.boolean(),
+});
+
+/**
+ * Queue Job Schema
+ */
+export const QueueJobSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  data: z.any().optional(),
+  progress: z.number().min(0).max(100).optional(),
+  attemptsMade: z.number().int().nonnegative(),
+  timestamp: z.number().int().nonnegative(),
+  processedOn: z.number().int().nonnegative().optional(),
+  finishedOn: z.number().int().nonnegative().optional(),
+});
+
+/**
+ * Queue Summary Schema
+ */
+export const QueueSummarySchema = z.object({
+  totalQueues: z.number().int().nonnegative(),
+  totalJobs: z.number().int().nonnegative(),
+  activeJobs: z.number().int().nonnegative(),
+  waitingJobs: z.number().int().nonnegative(),
+  failedJobs: z.number().int().nonnegative(),
+});
+
+/**
+ * Scope Types Schema
+ */
+export const ScopeTypesSchema = z.array(
+  z.object({
+    value: z.string(),
+    label: z.string(),
+    description: z.string().optional(),
+  })
+);
+
+/**
+ * 游标分页响应Schema (用于无限滚动)
+ */
+export const CursorPaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
+  z.object({
+    data: z.array(itemSchema),
+    cursor: z.string().optional(),
+    hasMore: z.boolean(),
+    total: z.number().int().nonnegative().optional(),
+  });
+
+/**
+ * 设备应用Schema (扩展 ApplicationSchema,包含设备安装信息)
+ */
+export const DeviceApplicationSchema = ApplicationSchema.extend({
+  deviceId: z.string(),
+  installedAt: z.string().datetime().optional(),
+  installStatus: z.enum(['installing', 'installed', 'failed', 'uninstalling']).optional(),
+  installError: z.string().optional(),
+});
+
+/**
+ * 应用统计Schema
+ */
+export const AppStatsSchema = z.object({
+  totalApps: z.number().int().nonnegative(),
+  pendingReview: z.number().int().nonnegative(),
+  approved: z.number().int().nonnegative(),
+  rejected: z.number().int().nonnegative(),
+  totalInstalls: z.number().int().nonnegative(),
+  topApps: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      installCount: z.number().int().nonnegative(),
+    })
+  ).optional(),
+});
+
+/**
+ * 审计统计Schema
+ */
+export const AuditStatsSchema = z.object({
+  totalLogs: z.number().int().nonnegative(),
+  todayLogs: z.number().int().nonnegative(),
+  failedActions: z.number().int().nonnegative(),
+  topUsers: z.array(
+    z.object({
+      userId: z.string(),
+      username: z.string(),
+      actionCount: z.number().int().nonnegative(),
+    })
+  ).optional(),
+  actionDistribution: z.record(z.string(), z.number().int().nonnegative()).optional(),
 });

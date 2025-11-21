@@ -1,5 +1,5 @@
-import { IsString, IsEnum, IsOptional, IsBoolean, IsObject } from 'class-validator';
-import { StrategyType } from '../entities/scheduling-strategy.entity';
+import { IsString, IsEnum, IsOptional, IsBoolean, IsObject, IsNumber, Min, Max } from 'class-validator';
+import { StrategyType } from '../../entities/scheduling-strategy.entity';
 
 /**
  * 创建调度策略 DTO
@@ -18,6 +18,12 @@ export class CreateStrategyDto {
   @IsOptional()
   @IsObject()
   config?: Record<string, any>;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(1000)
+  priority?: number;
 }
 
 /**
@@ -43,4 +49,10 @@ export class UpdateStrategyDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(1000)
+  priority?: number;
 }

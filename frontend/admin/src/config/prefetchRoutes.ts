@@ -9,7 +9,7 @@ import { queryClient } from '@/lib/react-query';
 import type { RoutePrefetchConfig } from '@/hooks/usePrefetch';
 
 // 导入各个 service 和 query keys
-import { deviceKeys } from '@/hooks/useDevices';
+import { deviceKeys } from '@/hooks/queries';
 import { quotaKeys } from '@/hooks/queries/useQuotas';
 import { notificationKeys } from '@/hooks/queries/useNotifications';
 import * as deviceService from '@/services/device';
@@ -195,7 +195,7 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
         // 通知列表
         queryClient.prefetchQuery({
           queryKey: notificationKeys.list(userId),
-          queryFn: () => notificationService.getNotifications(userId),
+          queryFn: () => notificationService.getNotifications({ page: 1, pageSize: 10 }),
           staleTime: 10 * 1000, // 10 秒
         }),
         // 未读数

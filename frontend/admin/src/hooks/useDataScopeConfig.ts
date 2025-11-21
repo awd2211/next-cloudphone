@@ -53,7 +53,7 @@ export const useDataScopeConfig = () => {
       if (result && 'total' in result) {
         setTotal(result.total);
       }
-    } catch (error) {
+    } catch (_error) {
       message.error('加载数据范围配置失败');
     } finally {
       setLoading(false);
@@ -67,7 +67,7 @@ export const useDataScopeConfig = () => {
     try {
       const res = await getRoles({ page: 1, pageSize: 100 });
       setRoles(res.data);
-    } catch (error) {
+    } catch (_error) {
       message.error('加载角色列表失败');
     }
   }, []);
@@ -127,7 +127,7 @@ export const useDataScopeConfig = () => {
         await deleteDataScope(id);
         message.success('删除数据范围配置成功');
         loadData();
-      } catch (error) {
+      } catch (_error) {
         message.error('删除数据范围配置失败');
       }
     },
@@ -143,7 +143,7 @@ export const useDataScopeConfig = () => {
         await toggleDataScope(id);
         message.success('切换状态成功');
         loadData();
-      } catch (error) {
+      } catch (_error) {
         message.error('切换状态失败');
       }
     },
@@ -237,7 +237,7 @@ export const useDataScopeConfig = () => {
       document.body.removeChild(link);
 
       message.success('导出成功');
-    } catch (error) {
+    } catch (_error) {
       message.error('导出失败');
     }
   }, [dataScopes, roles]);

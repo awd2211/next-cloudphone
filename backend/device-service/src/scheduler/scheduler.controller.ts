@@ -36,6 +36,8 @@ import { ReservationService } from './reservation.service';
 import { QueueService } from './queue.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { NodeStatus } from '../entities/node.entity';
+import { StrategyService } from './strategy.service';
+import { CreateStrategyDto, UpdateStrategyDto } from './dto/strategy.dto';
 
 @Controller('scheduler')
 @UseGuards(JwtAuthGuard)
@@ -48,7 +50,8 @@ export class SchedulerController {
     private readonly resourceMonitorService: ResourceMonitorService,
     private readonly allocationService: AllocationService,
     private readonly reservationService: ReservationService,
-    private readonly queueService: QueueService
+    private readonly queueService: QueueService,
+    private readonly strategyService: StrategyService
   ) {}
 
   // ==================== 节点管理 API ====================
@@ -169,6 +172,98 @@ export class SchedulerController {
   @Get('nodes/stats/summary')
   async getNodesStats() {
     return await this.nodeManagerService.getNodesStats();
+  }
+
+  // ==================== 调度策略管理 API ====================
+
+  /**
+   * 获取所有调度策略
+   * GET /scheduler/strategies
+   */
+  @Get('strategies')
+  async getStrategies() {
+    const strategies = await this.strategyService.getAll();
+    return {
+      success: true,
+      data: strategies,
+    };
+  }
+
+  /**
+   * 获取当前激活的策略
+   * GET /scheduler/strategies/active
+   */
+  @Get('strategies/active')
+  async getActiveStrategy() {
+    try {
+      const strategy = await this.strategyService.getActive();
+      return {
+        success: true,
+        data: strategy,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        data: null,
+        message: error.message,
+      };
+    }
+  }
+
+  /**
+   * 创建新策略
+   * POST /scheduler/strategies
+   */
+  @Post('strategies')
+  async createStrategy(@Body() dto: CreateStrategyDto) {
+    const strategy = await this.strategyService.create(dto);
+    return {
+      success: true,
+      data: strategy,
+      message: '策略创建成功',
+    };
+  }
+
+  /**
+   * 更新策略
+   * PUT /scheduler/strategies/:id
+   */
+  @Put('strategies/:id')
+  async updateStrategy(@Param('id') id: string, @Body() dto: UpdateStrategyDto) {
+    const strategy = await this.strategyService.update(id, dto);
+    return {
+      success: true,
+      data: strategy,
+      message: '策略更新成功',
+    };
+  }
+
+  /**
+   * 删除策略
+   * DELETE /scheduler/strategies/:id
+   */
+  @Delete('strategies/:id')
+  async deleteStrategy(@Param('id') id: string) {
+    await this.strategyService.delete(id);
+    return {
+      success: true,
+      message: '策略删除成功',
+    };
+  }
+
+  /**
+   * 激活策略
+   * POST /scheduler/strategies/:id/activate
+   */
+  @Post('strategies/:id/activate')
+  async activateStrategy(@Param('id') id: string) {
+    await this.strategyService.activate(id);
+    const strategy = await this.strategyService.getById(id);
+    return {
+      success: true,
+      data: strategy,
+      message: `策略 ${strategy.name} 已激活`,
+    };
   }
 
   // ==================== 调度器 API ====================
@@ -919,64 +1014,63 @@ export class SchedulerController {
   }
 
   // ==================== 资源使用趋势分析 API ====================
-  // TODO: 临时注释 - 等待ResourceMonitorService实现这些方法
 
-  // /**
-  //  * 获取节点使用趋势
-  //  * GET /scheduler/nodes/:nodeId/usage-trend?hours=24
-  //  */
-  // @Get('nodes/:nodeId/usage-trend')
-  // async getNodeUsageTrend(
-  //   @Param('nodeId') nodeId: string,
-  //   @Query('hours') hours: string = '24'
-  // ) {
-  //   this.logger.log(`Getting usage trend for node ${nodeId}, hours: ${hours}`);
+  /**
+   * 获取节点使用趋势
+   * GET /scheduler/nodes/:nodeId/usage-trend?hours=24
+   */
+  @Get('nodes/:nodeId/usage-trend')
+  async getNodeUsageTrend(
+    @Param('nodeId') nodeId: string,
+    @Query('hours') hours: string = '24'
+  ) {
+    this.logger.log(`Getting usage trend for node ${nodeId}, hours: ${hours}`);
 
-  //   try {
-  //     const hoursNum = parseInt(hours, 10) || 24;
-  //     const trend = await this.resourceMonitorService.getNodeUsageTrend(nodeId, hoursNum);
+    try {
+      const hoursNum = parseInt(hours, 10) || 24;
+      const trend = await this.resourceMonitorService.getNodeUsageTrend(nodeId, hoursNum);
 
-  //     return {
-  //       success: true,
-  //       data: trend,
-  //       message: `Node usage trend data retrieved (${trend.dataPoints} data points)`,
-  //     };
-  //   } catch (error) {
-  //     this.logger.error(`Failed to get node usage trend: ${error.message}`);
+      return {
+        success: true,
+        data: trend,
+        message: `Node usage trend data retrieved (${trend.dataPoints} data points)`,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get node usage trend: ${error.message}`);
 
-  //     return {
-  //       success: false,
-  //       message: `Failed to get node usage trend: ${error.message}`,
-  //       error: error.message,
-  //     };
-  //   }
-  // }
+      return {
+        success: false,
+        message: `Failed to get node usage trend: ${error.message}`,
+        error: error.message,
+      };
+    }
+  }
 
-  // /**
-  //  * 获取集群使用趋势
-  //  * GET /scheduler/cluster/usage-trend?hours=24
-  //  */
-  // @Get('cluster/usage-trend')
-  // async getClusterUsageTrend(@Query('hours') hours: string = '24') {
-  //   this.logger.log(`Getting cluster usage trend, hours: ${hours}`);
+  /**
+   * 获取集群使用趋势
+   * GET /scheduler/cluster/usage-trend?hours=24
+   */
+  @Get('cluster/usage-trend')
+  async getClusterUsageTrend(@Query('hours') hours: string = '24') {
+    this.logger.log(`Getting cluster usage trend, hours: ${hours}`);
 
-  //   try {
-  //     const hoursNum = parseInt(hours, 10) || 24;
-  //     const trend = await this.resourceMonitorService.getClusterUsageTrend(hoursNum);
+    try {
+      const hoursNum = parseInt(hours, 10) || 24;
+      const trend = await this.resourceMonitorService.getClusterUsageTrend(hoursNum);
 
-  //     return {
-  //       success: true,
-  //       data: trend,
-  //       message: `Cluster usage trend data retrieved (${trend.dataPoints} data points)`,
-  //     };
-  //   } catch (error) {
-  //     this.logger.error(`Failed to get cluster usage trend: ${error.message}`);
+      return {
+        success: true,
+        data: trend,
+        message: `Cluster usage trend data retrieved (${trend.dataPoints} data points)`,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get cluster usage trend: ${error.message}`);
 
-  //     return {
-  //       success: false,
-  //       message: `Failed to get cluster usage trend: ${error.message}`,
-  //       error: error.message,
-  //     };
-  //   }
-  // }
+      return {
+        success: false,
+        message: `Failed to get cluster usage trend: ${error.message}`,
+        error: error.message,
+      };
+    }
+  }
 }

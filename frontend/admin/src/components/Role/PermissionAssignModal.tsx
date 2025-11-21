@@ -53,7 +53,7 @@ export const PermissionAssignModal: React.FC<PermissionAssignModalProps> = React
           if (!acc[permission.resource]) {
             acc[permission.resource] = [];
           }
-          acc[permission.resource].push(permission);
+          acc[permission.resource]?.push(permission);
           return acc;
         },
         {} as Record<string, Permission[]>
@@ -72,7 +72,7 @@ export const PermissionAssignModal: React.FC<PermissionAssignModalProps> = React
     const handleTreeCheck = (checkedKeys: any) => {
       // 只保留叶子节点（实际权限ID）
       const keys = Array.isArray(checkedKeys) ? checkedKeys : checkedKeys.checked;
-      const leafKeys = keys.filter((key) => permissions.some((p) => p.id === key));
+      const leafKeys = keys.filter((key: any) => permissions.some((p) => p.id === key));
       onPermissionChange(leafKeys as string[]);
     };
 
@@ -120,7 +120,7 @@ export const PermissionAssignModal: React.FC<PermissionAssignModalProps> = React
                   dataSource={transferDataSource}
                   titles={['可用权限', '已分配权限']}
                   targetKeys={selectedPermissions}
-                  onChange={onPermissionChange}
+                  onChange={(targetKeys) => onPermissionChange(targetKeys as string[])}
                   render={(item) => item.title}
                   listStyle={{
                     width: 350,

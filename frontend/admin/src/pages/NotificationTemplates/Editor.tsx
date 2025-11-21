@@ -59,7 +59,7 @@ const NotificationTemplateEditor = () => {
 
         <TemplateTable
           columns={columns}
-          dataSource={templates}
+          templates={templates}
           loading={loading}
           page={page}
           pageSize={pageSize}
@@ -75,7 +75,9 @@ const NotificationTemplateEditor = () => {
         availableVariables={availableVariables}
         onOk={handleSubmit}
         onCancel={() => setModalVisible(false)}
-        onTypeChange={loadVariables}
+        onTypeChange={(_type: string) => {
+          loadVariables();
+        }}
       />
 
       <TemplatePreviewModal

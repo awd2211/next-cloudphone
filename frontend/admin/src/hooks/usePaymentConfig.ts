@@ -1,35 +1,34 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import {
   getPaymentConfig,
   updatePaymentConfig,
   testProviderConnection,
 } from '@/services/payment-admin';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import { PaymentConfigSchema } from '@/schemas/api.schemas';
 
 export const usePaymentConfig = () => {
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
 
-  // ✅ 使用 useSafeApi 加载配置
+  // ✅ 使用 useValidatedQuery 加载配置
   const {
     data: config,
-    loading,
-    execute: executeLoadConfig,
-  } = useSafeApi(getPaymentConfig, PaymentConfigSchema, {
-    errorMessage: '加载配置失败',
+    isLoading: loading,
+    refetch,
+  } = useValidatedQuery({
+    queryKey: ['payment-config'],
+    queryFn: getPaymentConfig,
+    schema: PaymentConfigSchema,
+    apiErrorMessage: '加载配置失败',
     fallbackValue: null,
+    staleTime: 60 * 1000, // 配置数据1分钟缓存
   });
 
-  // 加载配置的包装函数
-  const loadConfig = useCallback(async () => {
-    await executeLoadConfig();
-  }, [executeLoadConfig]);
-
-  // 初始加载
-  useEffect(() => {
-    loadConfig();
-  }, [loadConfig]);
+  // Wrap refetch for onClick handler
+  const loadConfig = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   // 切换支付方式
   const handleToggleMethod = useCallback(
@@ -44,7 +43,7 @@ export const usePaymentConfig = () => {
         await updatePaymentConfig({ enabledMethods: newEnabledMethods });
         message.success(`${enabled ? '启用' : '禁用'}成功`);
         loadConfig();
-      } catch (error) {
+      } catch (_error) {
         message.error('更新配置失败');
       }
     },
@@ -64,7 +63,7 @@ export const usePaymentConfig = () => {
         await updatePaymentConfig({ enabledCurrencies: newEnabledCurrencies });
         message.success(`${enabled ? '启用' : '禁用'}成功`);
         loadConfig();
-      } catch (error) {
+      } catch (_error) {
         message.error('更新配置失败');
       }
     },
@@ -79,7 +78,7 @@ export const usePaymentConfig = () => {
         await testProviderConnection(provider);
         message.success(`${provider} 连接测试成功`);
         loadConfig();
-      } catch (error) {
+      } catch (_error) {
         message.error(`${provider} 连接测试失败`);
       } finally {
         setTestingProvider(null);

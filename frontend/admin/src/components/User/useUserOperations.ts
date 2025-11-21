@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
 import { Modal, message, type FormInstance } from 'antd';
 import type { User, CreateUserDto, UpdateUserDto } from '@/types';
+import { UserStatus } from '@/types';
 import {
   useCreateUser,
   useDeleteUser,
   useUpdateUser,
-  useToggleUserStatus,
-} from '@/hooks/useUsers';
+
+} from '@/hooks/queries/useUsers';
 import * as userService from '@/services/user';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import type { ErrorInfo } from '@/components/ErrorAlert';
@@ -46,7 +47,7 @@ export const useUserOperations = ({
   const createMutation = useCreateUser();
   const deleteMutation = useDeleteUser();
   const updateMutation = useUpdateUser();
-  const toggleStatusMutation = useToggleUserStatus();
+  // const toggleStatusMutation = useToggleUserStatus();
   const { execute: executeBalanceOperation } = useAsyncOperation();
 
   // 创建用户
@@ -80,7 +81,7 @@ export const useUserOperations = ({
 
   // 更新用户状态
   const handleUpdateStatus = useCallback(
-    async (id: string, status: 'active' | 'inactive' | 'banned') => {
+    async (id: string, status: UserStatus) => {
       await updateMutation.mutateAsync({ id, data: { status } });
     },
     [updateMutation]
@@ -203,7 +204,7 @@ export const useUserOperations = ({
 
   // 批量修改状态
   const handleBatchUpdateStatus = useCallback(
-    async (status: 'active' | 'inactive' | 'banned') => {
+    async (status: UserStatus) => {
       if (selectedRowKeys.length === 0) {
         message.warning('请至少选择一个用户');
         return;

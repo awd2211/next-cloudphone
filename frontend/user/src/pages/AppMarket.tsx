@@ -1,30 +1,86 @@
-import { Row, Col, Card, Empty, Button } from 'antd';
+import { useState, useCallback } from 'react';
+import { Row, Col, Card, Empty, Button, Form } from 'antd';
 import { AppSearchBar, AppCard, InstallAppModal } from '@/components/App';
-import { useAppMarket } from '@/hooks/useAppMarket';
+import { useApps, useInstallApp, useMyDevices } from '@/hooks/queries';
+import type { App } from '@/types';
 
 const AppMarket = () => {
-  const {
-    apps,
-    devices,
-    loading,
-    total,
+  // Form 实例
+  const [form] = Form.useForm();
+
+  // 本地状态
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState<string>('');
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(12);
+  const [installModalVisible, setInstallModalVisible] = useState(false);
+  const [selectedApp, setSelectedApp] = useState<App | null>(null);
+
+  // React Query hooks
+  const { data: appsData, isLoading: loading } = useApps({
     page,
     pageSize,
     search,
-    category,
-    categories,
-    installModalVisible,
-    selectedApp,
-    form,
-    setSearch,
-    setCategory,
-    handleSearch,
-    handleView,
-    handleInstall,
-    handleInstallConfirm,
-    handleInstallCancel,
-    handleLoadMore,
-  } = useAppMarket();
+    category
+  });
+  const { data: devicesData } = useMyDevices({ page: 1, pageSize: 100 });
+  const installApp = useInstallApp();
+
+  const apps = appsData?.items || [];
+  const total = appsData?.total || 0;
+  const devices = devicesData?.data || [];
+
+  // 应用分类（可以从API获取或配置）
+  const categories = [
+    { label: '全部', value: '' },
+    { label: '工具', value: 'tools' },
+    { label: '社交', value: 'social' },
+    { label: '娱乐', value: 'entertainment' },
+    { label: '办公', value: 'office' },
+  ];
+
+  // 搜索处理
+  const handleSearch = useCallback(() => {
+    setPage(1); // 重置页码
+  }, []);
+
+  // 查看应用详情
+  const handleView = useCallback((app: App) => {
+    // 跳转到应用详情页或打开详情弹窗
+    console.log('View app:', app);
+  }, []);
+
+  // 打开安装弹窗
+  const handleInstall = useCallback((app: App) => {
+    setSelectedApp(app);
+    setInstallModalVisible(true);
+  }, []);
+
+  // 确认安装
+  const handleInstallConfirm = useCallback(async () => {
+    if (!selectedApp) return;
+
+    const values = await form.validateFields();
+    await installApp.mutateAsync({
+      appId: selectedApp.id,
+      deviceIds: values.deviceIds,
+    });
+
+    setInstallModalVisible(false);
+    form.resetFields();
+  }, [selectedApp, form, installApp]);
+
+  // 取消安装
+  const handleInstallCancel = useCallback(() => {
+    setInstallModalVisible(false);
+    setSelectedApp(null);
+    form.resetFields();
+  }, [form]);
+
+  // 加载更多
+  const handleLoadMore = useCallback(() => {
+    setPage(prev => prev + 1);
+  }, []);
 
   return (
     <div>

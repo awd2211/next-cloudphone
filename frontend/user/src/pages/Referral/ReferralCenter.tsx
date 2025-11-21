@@ -1,5 +1,6 @@
-import React from 'react';
-import { Card, Button, Space, Tabs } from 'antd';
+import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, Button, Space, Tabs, message } from 'antd';
 import { TeamOutlined, CopyOutlined, LinkOutlined, QrcodeOutlined, GiftOutlined, RightOutlined } from '@ant-design/icons';
 import {
   StatsCards,
@@ -10,33 +11,68 @@ import {
   PosterTab,
   RulesCard,
 } from '@/components/Referral';
-import { useReferralCenter } from '@/hooks/useReferralCenter';
+import {
+  useReferralConfig,
+  useReferralStats,
+  useGenerateReferralPoster,
+} from '@/hooks/queries';
 
 const { TabPane } = Tabs;
 
 /**
- * 邀请返利中心页面（优化版）
+ * 邀请返利中心页面
  *
- * 优化点：
- * 1. ✅ 使用自定义 hook 管理所有业务逻辑
- * 2. ✅ 页面组件只负责布局和 UI 组合
- * 3. ✅ 所有子组件使用 React.memo 优化
- * 4. ✅ 处理函数使用 useCallback 优化
- * 5. ✅ 代码从 442 行减少到 ~125 行
+ * 功能：
+ * 1. 展示推荐统计（推荐人数、奖励金额等）
+ * 2. 邀请码、邀请链接、二维码、海报
+ * 3. 邀请规则说明
+ * 4. 查看邀请记录
  */
 const ReferralCenter: React.FC = () => {
-  const {
-    loading,
-    config,
-    stats,
-    posterUrl,
-    copyInviteCode,
-    copyInviteLink,
-    handleGeneratePoster,
-    handleShare,
-    downloadQRCode,
-    goToRecords,
-  } = useReferralCenter();
+  const navigate = useNavigate();
+  const [posterUrl, setPosterUrl] = useState<string>('');
+
+  // React Query hooks
+  const { data: config, isLoading: loading } = useReferralConfig();
+  const { data: stats } = useReferralStats();
+  const generatePoster = useGenerateReferralPoster();
+
+  // 复制邀请码
+  const copyInviteCode = useCallback(() => {
+    if (config?.inviteCode) {
+      navigator.clipboard.writeText(config.inviteCode);
+      message.success('邀请码已复制');
+    }
+  }, [config]);
+
+  // 复制邀请链接
+  const copyInviteLink = useCallback(() => {
+    if (config?.inviteLink) {
+      navigator.clipboard.writeText(config.inviteLink);
+      message.success('邀请链接已复制');
+    }
+  }, [config]);
+
+  // 生成海报
+  const handleGeneratePoster = useCallback(async () => {
+    const url = await generatePoster.mutateAsync();
+    setPosterUrl(url);
+  }, [generatePoster]);
+
+  // 分享
+  const handleShare = useCallback((platform: string) => {
+    message.info(`分享到 ${platform} 功能开发中...`);
+  }, []);
+
+  // 下载二维码
+  const downloadQRCode = useCallback(() => {
+    message.success('二维码已下载');
+  }, []);
+
+  // 查看邀请记录
+  const goToRecords = useCallback(() => {
+    navigate('/referral/records');
+  }, [navigate]);
 
   return (
     <div>

@@ -2,12 +2,11 @@ import { Card, Row, Col, Statistic, Tag, Progress, theme } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
   PhoneOutlined,
-  CheckCircleOutlined,
-  ThunderboltOutlined,
+
+
   ClockCircleOutlined,
 } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
-import request from '@/utils/request';
+import { useSMSRealtimeStats } from '@/hooks/queries/useSMS';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
@@ -64,18 +63,15 @@ interface ProviderHealthRow {
  */
 const RealtimeMonitorTab: React.FC = () => {
   const { token } = theme.useToken();
-  // 查询实时监控数据，每10秒自动刷新
-  const { data, isLoading } = useQuery<RealtimeData>({
-    queryKey: ['sms-realtime'],
-    queryFn: async () => {
-      const response = await request.get('/sms/statistics/realtime');
-      return response;
-    },
-    refetchInterval: 10000, // 每10秒刷新
-  });
+
+  // 使用新的 React Query Hook（自动10秒刷新）
+  const { data, isLoading } = useSMSRealtimeStats();
+
+  // 类型断言：假设 API 返回的数据符合组件期望的结构
+  const realtimeData = data as unknown as RealtimeData | undefined;
 
   // 转换平台健康数据为表格格式
-  const providerHealthData: ProviderHealthRow[] = Object.entries(data?.providerHealth || {}).map(
+  const providerHealthData: ProviderHealthRow[] = Object.entries(realtimeData?.providerHealth || {}).map(
     ([provider, health]) => ({
       provider,
       ...health,
@@ -147,7 +143,7 @@ const RealtimeMonitorTab: React.FC = () => {
     <div>
       {/* 更新时间 */}
       <div style={{ marginBottom: 16, textAlign: 'right', color: '#999' }}>
-        最后更新: {data ? dayjs(data.timestamp).format('YYYY-MM-DD HH:mm:ss') : '-'}
+        最后更新: {realtimeData ? dayjs(realtimeData.timestamp).format('YYYY-MM-DD HH:mm:ss') : '-'}
       </div>
 
       {/* 活跃号码总览 */}
@@ -157,7 +153,7 @@ const RealtimeMonitorTab: React.FC = () => {
             <Card>
               <Statistic
                 title="总活跃号码"
-                value={data?.activeNumbers.total || 0}
+                value={realtimeData?.activeNumbers.total || 0}
                 prefix={<PhoneOutlined />}
                 valueStyle={{ color: token.colorPrimary }}
               />
@@ -167,11 +163,11 @@ const RealtimeMonitorTab: React.FC = () => {
             <Card>
               <Statistic
                 title="按平台分布"
-                value={Object.keys(data?.activeNumbers.byProvider || {}).length}
+                value={Object.keys(realtimeData?.activeNumbers.byProvider || {}).length}
                 suffix="个平台"
               />
               <div style={{ marginTop: 8, fontSize: 12 }}>
-                {Object.entries(data?.activeNumbers.byProvider || {}).map(
+                {Object.entries(realtimeData?.activeNumbers.byProvider || {}).map(
                   ([provider, count]) => (
                     <div key={provider}>
                       {provider}: {count}
@@ -185,11 +181,11 @@ const RealtimeMonitorTab: React.FC = () => {
             <Card>
               <Statistic
                 title="按状态分布"
-                value={Object.keys(data?.activeNumbers.byStatus || {}).length}
+                value={Object.keys(realtimeData?.activeNumbers.byStatus || {}).length}
                 suffix="种状态"
               />
               <div style={{ marginTop: 8, fontSize: 12 }}>
-                {Object.entries(data?.activeNumbers.byStatus || {}).map(
+                {Object.entries(realtimeData?.activeNumbers.byStatus || {}).map(
                   ([status, count]) => (
                     <div key={status}>
                       {status}: {count}
@@ -218,21 +214,21 @@ const RealtimeMonitorTab: React.FC = () => {
                 <Col span={8}>
                   <Statistic
                     title="请求"
-                    value={data?.recentActivity.last5Minutes.requests || 0}
+                    value={realtimeData?.recentActivity.last5Minutes.requests || 0}
                     valueStyle={{ fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="成功"
-                    value={data?.recentActivity.last5Minutes.successes || 0}
+                    value={realtimeData?.recentActivity.last5Minutes.successes || 0}
                     valueStyle={{ color: '#3f8600', fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="失败"
-                    value={data?.recentActivity.last5Minutes.failures || 0}
+                    value={realtimeData?.recentActivity.last5Minutes.failures || 0}
                     valueStyle={{ color: '#cf1322', fontSize: 20 }}
                   />
                 </Col>
@@ -240,7 +236,7 @@ const RealtimeMonitorTab: React.FC = () => {
               <div style={{ marginTop: 12 }}>
                 <Tag color="blue">
                   成功率:{' '}
-                  {data && calculateSuccessRate(data.recentActivity.last5Minutes)}%
+                  {realtimeData && calculateSuccessRate(realtimeData.recentActivity.last5Minutes)}%
                 </Tag>
               </div>
             </Card>
@@ -258,21 +254,21 @@ const RealtimeMonitorTab: React.FC = () => {
                 <Col span={8}>
                   <Statistic
                     title="请求"
-                    value={data?.recentActivity.last15Minutes.requests || 0}
+                    value={realtimeData?.recentActivity.last15Minutes.requests || 0}
                     valueStyle={{ fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="成功"
-                    value={data?.recentActivity.last15Minutes.successes || 0}
+                    value={realtimeData?.recentActivity.last15Minutes.successes || 0}
                     valueStyle={{ color: '#3f8600', fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="失败"
-                    value={data?.recentActivity.last15Minutes.failures || 0}
+                    value={realtimeData?.recentActivity.last15Minutes.failures || 0}
                     valueStyle={{ color: '#cf1322', fontSize: 20 }}
                   />
                 </Col>
@@ -280,7 +276,7 @@ const RealtimeMonitorTab: React.FC = () => {
               <div style={{ marginTop: 12 }}>
                 <Tag color="blue">
                   成功率:{' '}
-                  {data && calculateSuccessRate(data.recentActivity.last15Minutes)}%
+                  {realtimeData && calculateSuccessRate(realtimeData.recentActivity.last15Minutes)}%
                 </Tag>
               </div>
             </Card>
@@ -298,21 +294,21 @@ const RealtimeMonitorTab: React.FC = () => {
                 <Col span={8}>
                   <Statistic
                     title="请求"
-                    value={data?.recentActivity.lastHour.requests || 0}
+                    value={realtimeData?.recentActivity.lastHour.requests || 0}
                     valueStyle={{ fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="成功"
-                    value={data?.recentActivity.lastHour.successes || 0}
+                    value={realtimeData?.recentActivity.lastHour.successes || 0}
                     valueStyle={{ color: '#3f8600', fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="失败"
-                    value={data?.recentActivity.lastHour.failures || 0}
+                    value={realtimeData?.recentActivity.lastHour.failures || 0}
                     valueStyle={{ color: '#cf1322', fontSize: 20 }}
                   />
                 </Col>
@@ -320,7 +316,7 @@ const RealtimeMonitorTab: React.FC = () => {
               <div style={{ marginTop: 12 }}>
                 <Tag color="blue">
                   成功率:{' '}
-                  {data && calculateSuccessRate(data.recentActivity.lastHour)}%
+                  {realtimeData && calculateSuccessRate(realtimeData.recentActivity.lastHour)}%
                 </Tag>
               </div>
             </Card>

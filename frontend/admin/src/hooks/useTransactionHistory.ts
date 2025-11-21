@@ -83,7 +83,7 @@ export const useTransactionHistory = () => {
     },
   ]);
 
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(transactions);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');

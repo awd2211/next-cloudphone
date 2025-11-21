@@ -8,7 +8,7 @@ import { DIRECTION_CONFIG } from './constants';
  */
 export const getDirectionTag = (direction: string): React.ReactNode => {
   const config = DIRECTION_CONFIG[direction] || DIRECTION_CONFIG.both;
-  return <Tag color={config.color}>{config.text}</Tag>;
+  return <Tag color={config?.color}>{config?.text}</Tag>;
 };
 
 /**

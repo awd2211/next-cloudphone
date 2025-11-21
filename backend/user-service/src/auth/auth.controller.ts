@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Headers, Param, Query, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Headers, Param, Query, Delete, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -78,6 +78,49 @@ export class AuthController {
   @ApiResponse({ status: 429, description: '登录尝试过于频繁，请稍后再试' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  /**
+   * 2FA 登录验证
+   * 🔒 限流: 60秒内最多5次
+   *
+   * 当用户启用了双因素认证时，需要调用此接口完成登录
+   */
+  @Public()
+  @Post('2fa/verify')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: '2FA登录验证', description: '使用双因素认证令牌完成登录' })
+  @ApiResponse({ status: 200, description: '验证成功，返回 Token' })
+  @ApiResponse({ status: 401, description: '2FA令牌无效或已过期' })
+  @ApiResponse({ status: 429, description: '请求过于频繁，请稍后再试' })
+  async verify2FALogin(@Body() dto: any) {
+    // dto 应该包含: username, password, captcha, captchaId, twoFactorToken
+    const { username, password, captcha, captchaId, twoFactorToken } = dto;
+
+    if (!twoFactorToken) {
+      throw new UnauthorizedException('请提供2FA验证码');
+    }
+
+    // 先验证用户名密码和验证码 (但不返回 token)
+    const loginResult = await this.authService.login({
+      username,
+      password,
+      captcha,
+      captchaId,
+    });
+
+    // 验证2FA令牌
+    const isValid = await this.twoFactorService.verify2FAToken(
+      loginResult.user.id,
+      twoFactorToken
+    );
+
+    if (!isValid) {
+      throw new UnauthorizedException('2FA令牌无效或已过期');
+    }
+
+    // 2FA验证通过，返回登录结果
+    return loginResult;
   }
 
   /**

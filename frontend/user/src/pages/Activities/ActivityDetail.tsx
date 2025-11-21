@@ -1,5 +1,6 @@
-import React from 'react';
-import { Button, Card, Spin, Result } from 'antd';
+import React, { useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Button, Card, Spin, Result, Modal } from 'antd';
 import { LeftOutlined, TrophyOutlined } from '@ant-design/icons';
 import {
   DetailBanner,
@@ -10,30 +11,74 @@ import {
   ActivityRewards,
   ParticipateActions,
 } from '@/components/Activity';
-import { useActivityDetail } from '@/hooks/useActivityDetail';
+import {
+  useActivityDetail,
+  useParticipateActivity,
+} from '@/hooks/queries';
+import type { ActivityStatus } from '@/services/activity';
 
 /**
- * 活动详情页面（优化版）
+ * 活动详情页面
  *
- * 优化点：
- * 1. ✅ 使用自定义 hook 管理所有业务逻辑
- * 2. ✅ 页面组件只负责布局和 UI 组合
- * 3. ✅ 所有子组件使用 React.memo 优化
- * 4. ✅ 配置文件扩展（类型、状态、工具函数）
- * 5. ✅ Modal 确认逻辑封装在 Hook 中
- * 6. ✅ 代码从 366 行减少到 ~105 行
+ * 功能：
+ * 1. 显示活动详细信息（标题、时间、规则、奖励等）
+ * 2. 参与活动（带确认 Modal）
+ * 3. 显示参与状态和条件检查
+ * 4. 导航（返回、跳转优惠券）
  */
 const ActivityDetail: React.FC = () => {
-  const {
-    loading,
-    participating,
-    activity,
-    hasParticipated,
-    canParticipate,
-    handleParticipate,
-    goBack,
-    goToMyCoupons,
-  } = useActivityDetail();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  // React Query hooks
+  const { data: activity, isLoading: loading } = useActivityDetail(id!);
+  const participateActivity = useParticipateActivity();
+
+  // 计算状态
+  const hasParticipated = activity?.hasParticipated || false;
+  const canParticipate =
+    activity?.status === ('ongoing' as ActivityStatus) && !hasParticipated;
+
+  // 参与活动
+  const handleParticipate = useCallback(async () => {
+    if (!activity) return;
+
+    Modal.confirm({
+      title: '确认参与活动',
+      content: `确定要参与 "${activity.title}" 吗?`,
+      onOk: async () => {
+        const result = await participateActivity.mutateAsync(activity.id);
+
+        Modal.success({
+          title: '参与成功!',
+          content: (
+            <div>
+              <p>{result.message}</p>
+              {result.rewards && result.rewards.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <strong>获得奖励:</strong>
+                  <ul>
+                    {result.rewards.map((reward, index) => (
+                      <li key={index}>{reward}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ),
+        });
+      },
+    });
+  }, [activity, participateActivity]);
+
+  // 导航函数
+  const goBack = useCallback(() => {
+    navigate('/activities');
+  }, [navigate]);
+
+  const goToMyCoupons = useCallback(() => {
+    navigate('/activities/coupons');
+  }, [navigate]);
 
   // Loading 状态
   if (loading) {
@@ -105,7 +150,7 @@ const ActivityDetail: React.FC = () => {
         {/* 参与按钮组 */}
         <ParticipateActions
           canParticipate={canParticipate}
-          participating={participating}
+          participating={participateActivity.isPending}
           onParticipate={handleParticipate}
           onViewCoupons={goToMyCoupons}
         />

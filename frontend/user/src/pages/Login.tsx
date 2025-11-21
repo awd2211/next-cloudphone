@@ -1,27 +1,92 @@
-import { Card, Tabs, Space, Typography } from 'antd';
+import { useState, useCallback } from 'react';
+import { Card, Tabs, Space, Typography, Form } from 'antd';
 import { LoginForm, RegisterForm, TwoFactorModal } from '@/components/Auth';
-import { useLogin } from '@/hooks/useLogin';
+import { useLogin, useRegister, useCaptcha, useVerify2FACode } from '@/hooks/queries';
 import { RocketOutlined, SafetyOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import type { LoginDto, RegisterDto } from '@/types';
 
 const { Title, Paragraph, Text } = Typography;
 
 const Login = () => {
-  const {
-    loginForm,
-    registerForm,
-    loading,
-    captchaSvg,
-    captchaLoading,
-    twoFactorModalVisible,
-    twoFactorToken,
-    handleLogin,
-    handleRegister,
-    fetchCaptcha,
-    handle2FAVerify,
-    handle2FACancel,
-    setTwoFactorToken,
-    handleSocialAuth,
-  } = useLogin();
+  // Form 实例
+  const [loginForm] = Form.useForm();
+  const [registerForm] = Form.useForm();
+
+  // 本地状态
+  const [twoFactorModalVisible, setTwoFactorModalVisible] = useState(false);
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [loginCredentials, setLoginCredentials] = useState<any>(null);
+
+  // React Query hooks
+  const { data: captchaData, isLoading: captchaLoading, refetch: fetchCaptcha } = useCaptcha();
+  const login = useLogin();
+  const register = useRegister();
+  const verify2FA = useVerify2FACode();
+
+  const captchaSvg = captchaData?.svg || '';
+  const captchaId = captchaData?.id || '';
+  const loading = login.isPending || register.isPending || verify2FA.isPending;
+
+  // 处理登录
+  const handleLogin = useCallback(
+    async (values: Omit<LoginDto, 'captchaId'>) => {
+      try {
+        const result: any = await login.mutateAsync({
+          ...values,
+          captchaId,
+        });
+
+        // 检查是否需要2FA验证
+        if (result.requiresTwoFactor) {
+          setLoginCredentials({ ...values, captchaId });
+          setTwoFactorModalVisible(true);
+          return;
+        }
+      } catch (error) {
+        // 登录失败后刷新验证码
+        fetchCaptcha();
+        loginForm.setFieldValue('captcha', '');
+      }
+    },
+    [captchaId, login, loginForm, fetchCaptcha]
+  );
+
+  // 处理2FA验证
+  const handle2FAVerify = useCallback(async () => {
+    if (!twoFactorToken || twoFactorToken.length !== 6) {
+      return;
+    }
+
+    await verify2FA.mutateAsync({
+      ...loginCredentials,
+      twoFactorToken,
+    });
+
+    setTwoFactorModalVisible(false);
+    setTwoFactorToken('');
+  }, [twoFactorToken, loginCredentials, verify2FA]);
+
+  // 处理注册
+  const handleRegister = useCallback(
+    async (values: RegisterDto) => {
+      await register.mutateAsync(values);
+      registerForm.resetFields();
+    },
+    [register, registerForm]
+  );
+
+  // 关闭2FA弹窗
+  const handle2FACancel = useCallback(() => {
+    setTwoFactorModalVisible(false);
+    setTwoFactorToken('');
+    setLoginCredentials(null);
+  }, []);
+
+  // 处理社交登录（暂时保留原有逻辑）
+  const handleSocialAuth = useCallback(async (provider: string) => {
+    // 社交登录逻辑
+    console.log('Social auth:', provider);
+  }, []);
 
   const tabItems = [
     {

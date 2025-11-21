@@ -15,13 +15,13 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
+import { useProxyUsageReport } from '@/hooks/queries/useProxy';
 import dayjs, { Dayjs } from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 
 const { RangePicker } = DatePicker;
 
+// 本地类型定义（匹配组件期望的数据结构）
 interface UsageReport {
   timeRange: {
     start: string;
@@ -65,21 +65,15 @@ const UsageReportTab: React.FC = () => {
     dayjs().subtract(7, 'day'),
     dayjs(),
   ]);
-  const queryClient = useQueryClient();
 
-  // 查询使用报告
-  const { data, isLoading } = useQuery<{ data: UsageReport }>({
-    queryKey: ['proxy-usage-report', dateRange],
-    queryFn: async () => {
-      const response = await request.get('/proxy/reports/usage', {
-        params: {
-          startDate: dateRange[0].toISOString(),
-          endDate: dateRange[1].toISOString(),
-        },
-      });
-      return response;
-    },
+  // 使用新的 React Query Hook
+  const { data, isLoading, refetch } = useProxyUsageReport({
+    startDate: dateRange[0].toISOString(),
+    endDate: dateRange[1].toISOString(),
   });
+
+  // 类型断言：假设 API 返回的数据符合组件期望的结构
+  const usageReport = data as unknown as UsageReport | undefined;
 
   const deviceColumns: ColumnsType<UsageReport['topDevices'][0]> = [
     {
@@ -184,9 +178,7 @@ const UsageReportTab: React.FC = () => {
           />
           <Button
             icon={<ReloadOutlined />}
-            onClick={() =>
-              queryClient.invalidateQueries({ queryKey: ['proxy-usage-report'] })
-            }
+            onClick={() => refetch()}
           >
             刷新
           </Button>
@@ -216,7 +208,7 @@ const UsageReportTab: React.FC = () => {
           <Card>
             <Statistic
               title="总请求数"
-              value={data?.data?.overview.totalRequests || 0}
+              value={usageReport?.overview.totalRequests || 0}
               prefix={<ThunderboltOutlined />}
             />
           </Card>
@@ -225,7 +217,7 @@ const UsageReportTab: React.FC = () => {
           <Card>
             <Statistic
               title="成功请求"
-              value={data?.data?.overview.successfulRequests || 0}
+              value={usageReport?.overview.successfulRequests || 0}
               prefix={<CheckCircleOutlined />}
               valueStyle={{ color: '#3f8600' }}
             />
@@ -235,7 +227,7 @@ const UsageReportTab: React.FC = () => {
           <Card>
             <Statistic
               title="失败请求"
-              value={data?.data?.overview.failedRequests || 0}
+              value={usageReport?.overview.failedRequests || 0}
               prefix={<CloseCircleOutlined />}
               valueStyle={{ color: '#cf1322' }}
             />
@@ -245,13 +237,13 @@ const UsageReportTab: React.FC = () => {
           <Card>
             <Statistic
               title="成功率"
-              value={data?.data?.overview.successRate.toFixed(1) || 0}
+              value={usageReport?.overview.successRate.toFixed(1) || 0}
               suffix="%"
               valueStyle={{
                 color:
-                  (data?.data?.overview.successRate || 0) >= 90
+                  (usageReport?.overview.successRate || 0) >= 90
                     ? '#3f8600'
-                    : (data?.data?.overview.successRate || 0) >= 70
+                    : (usageReport?.overview.successRate || 0) >= 70
                     ? '#faad14'
                     : '#cf1322',
               }}
@@ -262,7 +254,7 @@ const UsageReportTab: React.FC = () => {
           <Card>
             <Statistic
               title="总流量"
-              value={data?.data?.overview.totalBandwidth.toFixed(2) || 0}
+              value={usageReport?.overview.totalBandwidth.toFixed(2) || 0}
               suffix="GB"
             />
           </Card>
@@ -271,7 +263,7 @@ const UsageReportTab: React.FC = () => {
           <Card>
             <Statistic
               title="活跃设备数"
-              value={data?.data?.overview.uniqueDevices || 0}
+              value={usageReport?.overview.uniqueDevices || 0}
             />
           </Card>
         </Col>
@@ -279,7 +271,7 @@ const UsageReportTab: React.FC = () => {
           <Card>
             <Statistic
               title="活跃用户数"
-              value={data?.data?.overview.uniqueUsers || 0}
+              value={usageReport?.overview.uniqueUsers || 0}
             />
           </Card>
         </Col>
@@ -289,7 +281,7 @@ const UsageReportTab: React.FC = () => {
       <Card title="设备使用排名 TOP 10" style={{ marginBottom: 16 }}>
         <Table
           columns={deviceColumns}
-          dataSource={data?.data?.topDevices || []}
+          dataSource={usageReport?.topDevices || []}
           rowKey="deviceId"
           loading={isLoading}
           pagination={false}
@@ -300,7 +292,7 @@ const UsageReportTab: React.FC = () => {
       <Card title="用户使用排名 TOP 10">
         <Table
           columns={userColumns}
-          dataSource={data?.data?.topUsers || []}
+          dataSource={usageReport?.topUsers || []}
           rowKey="userId"
           loading={isLoading}
           pagination={false}

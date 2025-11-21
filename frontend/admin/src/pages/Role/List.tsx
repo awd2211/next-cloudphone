@@ -7,7 +7,7 @@ import {
   useUpdateRole,
   useDeleteRole,
   useAssignPermissions,
-} from '@/hooks/useRoles';
+} from '@/hooks/queries';
 import { RoleHeader, RoleTable, RoleFormModal, PermissionAssignModal } from '@/components/Role';
 
 /**
@@ -130,7 +130,7 @@ const RoleList = () => {
       <PermissionAssignModal
         visible={permissionModalVisible}
         role={selectedRole}
-        permissions={permissions}
+        permissions={permissions as any}
         selectedPermissions={selectedPermissions}
         loading={assignPermissionsMutation.isPending}
         onCancel={handlePermissionModalCancel}

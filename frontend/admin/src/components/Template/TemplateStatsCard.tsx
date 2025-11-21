@@ -7,7 +7,7 @@ interface TemplateStatsCardProps {
     publicTemplates?: number;
     privateTemplates?: number;
     totalUsage?: number;
-  };
+  } | null;
 }
 
 export const TemplateStatsCard = memo<TemplateStatsCardProps>(({ stats }) => {

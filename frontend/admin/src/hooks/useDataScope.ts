@@ -128,7 +128,7 @@ export const useDataScope = () => {
       if (params?.page) queryParams.append('page', String(params.page));
       if (params?.pageSize) queryParams.append('pageSize', String(params.pageSize));
 
-      const response = await request.get(
+      const response = await request.get<any>(
         `/data-scopes${queryParams.toString() ? `?${queryParams}` : ''}`
       );
 
@@ -167,7 +167,7 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.get(`/data-scopes/${id}`);
+      const response = await request.get<any>(`/data-scopes/${id}`);
 
       if (response.success) {
         return response.data as DataScope;
@@ -191,7 +191,7 @@ export const useDataScope = () => {
 
     try {
       const queryParams = resourceType ? `?resourceType=${resourceType}` : '';
-      const response = await request.get(`/data-scopes/role/${roleId}${queryParams}`);
+      const response = await request.get<any>(`/data-scopes/role/${roleId}${queryParams}`);
 
       if (response.success) {
         return response.data as Record<string, DataScope[]>;
@@ -214,7 +214,7 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.post('/data-scopes', dto);
+      const response = await request.post<any>('/data-scopes', dto);
 
       if (response.success) {
         return response.data as DataScope;
@@ -237,7 +237,7 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.put(`/data-scopes/${id}`, dto);
+      const response = await request.put<any>(`/data-scopes/${id}`, dto);
 
       if (response.success) {
         return response.data as DataScope;
@@ -260,7 +260,7 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.delete(`/data-scopes/${id}`);
+      const response = await request.delete<any>(`/data-scopes/${id}`);
 
       if (response.success) {
         return true;
@@ -283,7 +283,7 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.post('/data-scopes/batch', dtos);
+      const response = await request.post<any>('/data-scopes/batch', dtos);
 
       if (response.success) {
         return response.data as DataScope[];
@@ -306,7 +306,7 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.put(`/data-scopes/${id}/toggle`, {});
+      const response = await request.put<any>(`/data-scopes/${id}/toggle`, {});
 
       if (response.success) {
         return response.data as DataScope;
@@ -329,7 +329,7 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.get('/data-scopes/meta/scope-types');
+      const response = await request.get<any>('/data-scopes/meta/scope-types');
 
       if (response.success) {
         setScopeTypes(response.data || []);

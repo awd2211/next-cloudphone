@@ -9,13 +9,13 @@ export const generateLogs = (count: number): AuditLog[] => {
     id: `log-${i + 1}`,
     userId: `user-${Math.floor(Math.random() * 100)}`,
     userName: `用户${Math.floor(Math.random() * 100)}`,
-    action: actions[Math.floor(Math.random() * actions.length)],
-    resourceType: resources[Math.floor(Math.random() * resources.length)],
+    action: actions[Math.floor(Math.random() * actions.length)]!,
+    resourceType: resources[Math.floor(Math.random() * resources.length)]!,
     resourceId: `resource-${Math.floor(Math.random() * 1000)}`,
     ip: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
     userAgent: 'Mozilla/5.0',
     timestamp: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-    level: levels[Math.floor(Math.random() * levels.length)],
+    level: levels[Math.floor(Math.random() * levels.length)]!,
     details: `操作详情 ${i + 1}`,
   }));
 };

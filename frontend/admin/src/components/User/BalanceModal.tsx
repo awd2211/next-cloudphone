@@ -6,7 +6,7 @@ import { memo } from 'react';
 import { Modal, Form, Input, InputNumber } from 'antd';
 import type { FormInstance } from 'antd';
 import type { User } from '@/types';
-import { ErrorInfoAlert, type ErrorInfo } from '@/components/ErrorAlert';
+import { ErrorAlert, type ErrorInfo } from '@/components/ErrorAlert';
 
 interface BalanceModalProps {
   visible: boolean;

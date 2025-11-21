@@ -1,13 +1,14 @@
-import { Card, Result, Button, Typography } from 'antd';
+import { useState, useCallback } from 'react';
+import { Card, Result, Button, Typography, Form } from 'antd';
 import { ArrowLeftOutlined, LockOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { ForgotPasswordForm } from '@/components/Auth';
-import { useForgotPassword } from '@/hooks/useForgotPassword';
+import { useForgotPassword } from '@/hooks/queries';
 
 const { Title, Paragraph, Text } = Typography;
 
 /**
- * 忘记密码页面（优化版）
+ * 忘记密码页面（React Query 优化版）
  *
  * 功能：
  * 1. 用户输入邮箱或手机号
@@ -16,7 +17,25 @@ const { Title, Paragraph, Text } = Typography;
  */
 const ForgotPassword = () => {
   const navigate = useNavigate();
-  const { form, loading, success, handleSubmit } = useForgotPassword();
+
+  // Form 实例
+  const [form] = Form.useForm();
+
+  // 本地状态
+  const [success, setSuccess] = useState(false);
+
+  // React Query hooks
+  const forgotPassword = useForgotPassword();
+  const loading = forgotPassword.isPending;
+
+  // 提交表单
+  const handleSubmit = useCallback(
+    async (values: any) => {
+      await forgotPassword.mutateAsync(values);
+      setSuccess(true);
+    },
+    [forgotPassword]
+  );
 
   return (
     <div

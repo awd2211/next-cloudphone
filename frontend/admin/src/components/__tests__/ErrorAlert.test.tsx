@@ -4,14 +4,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '../../tests/test-utils';
-import {
-  ErrorAlert,
-  InlineError,
-  SuccessAlert,
-  WarningAlert,
-  type ErrorDetail,
-} from '../ErrorAlert';
+import { render, screen, fireEvent } from '../../test/test-utils';
+import { ErrorAlert, SimpleErrorAlert, type ErrorInfo } from '../ErrorAlert';
 
 describe('ErrorAlert Component', () => {
   beforeEach(() => {
@@ -22,7 +16,6 @@ describe('ErrorAlert Component', () => {
     it('应该渲染字符串错误', () => {
       render(<ErrorAlert error="测试错误信息" />);
       expect(screen.getByText('测试错误信息')).toBeInTheDocument();
-      expect(screen.getByText('操作失败')).toBeInTheDocument();
     });
 
     it('应该渲染 Error 对象', () => {
@@ -31,69 +24,181 @@ describe('ErrorAlert Component', () => {
       expect(screen.getByText('系统错误')).toBeInTheDocument();
     });
 
-    it('应该渲染 ErrorDetail 对象', () => {
-      const errorDetail: ErrorDetail = {
-        code: 'NETWORK_ERROR',
+    it('应该渲染 ErrorInfo 对象', () => {
+      const errorInfo: ErrorInfo = {
         message: '网络连接失败',
+        code: 'NETWORK_ERROR',
         requestId: 'req-123',
       };
-      render(<ErrorAlert error={errorDetail} />);
+      render(<ErrorAlert error={errorInfo} />);
       expect(screen.getByText('网络连接失败')).toBeInTheDocument();
-      expect(screen.getByText('错误 [NETWORK_ERROR]')).toBeInTheDocument();
+      expect(screen.getByText('错误代码: NETWORK_ERROR')).toBeInTheDocument();
+      expect(screen.getByText('Request ID: req-123')).toBeInTheDocument();
+    });
+
+    it('应该优先显示 userMessage', () => {
+      const errorInfo: ErrorInfo = {
+        message: '技术错误信息',
+        userMessage: '用户友好的错误信息',
+      };
+      render(<ErrorAlert error={errorInfo} />);
+      expect(screen.getByText('用户友好的错误信息')).toBeInTheDocument();
+    });
+
+    it('visible=false 时不应该渲染', () => {
+      const { container } = render(<ErrorAlert error="错误" visible={false} />);
+      expect(container.firstChild).toBeNull();
+    });
+
+    it('error=null 时不应该渲染', () => {
+      const { container } = render(<ErrorAlert error={null} />);
+      expect(container.firstChild).toBeNull();
     });
   });
 
-  describe('错误代码和建议', () => {
-    it('应该显示 NETWORK_ERROR 的建议', () => {
-      const error: ErrorDetail = {
-        code: 'NETWORK_ERROR',
-        message: '网络错误',
+  describe('恢复建议', () => {
+    it('应该显示恢复建议', () => {
+      const errorInfo: ErrorInfo = {
+        message: '操作失败',
+        recoverySuggestions: [
+          {
+            action: '检查网络',
+            description: '请确保网络连接正常',
+          },
+          {
+            action: '重试',
+            description: '稍后再试',
+          },
+        ],
       };
-      render(<ErrorAlert error={error} />);
-      expect(screen.getByText('请检查您的网络连接，然后重试')).toBeInTheDocument();
+      render(<ErrorAlert error={errorInfo} />);
+
+      expect(screen.getByText('解决方案：')).toBeInTheDocument();
+      expect(screen.getByText('检查网络:')).toBeInTheDocument();
+      expect(screen.getByText('请确保网络连接正常')).toBeInTheDocument();
+      expect(screen.getByText('重试:')).toBeInTheDocument();
+      expect(screen.getByText('稍后再试')).toBeInTheDocument();
     });
 
-    it('应该显示 TIMEOUT 的建议', () => {
-      const error: ErrorDetail = {
-        code: 'TIMEOUT',
-        message: '请求超时',
-      };
-      render(<ErrorAlert error={error} />);
-      expect(screen.getByText('请求超时，请检查网络或稍后重试')).toBeInTheDocument();
-    });
-
-    it('应该显示 UNAUTHORIZED 的建议', () => {
-      const error: ErrorDetail = {
-        code: 'UNAUTHORIZED',
-        message: '未授权',
-      };
-      render(<ErrorAlert error={error} />);
-      expect(screen.getByText('登录已过期，请重新登录')).toBeInTheDocument();
-    });
-
-    it('应该显示 QUOTA_EXCEEDED 的建议', () => {
-      const error: ErrorDetail = {
-        code: 'QUOTA_EXCEEDED',
+    it('应该显示恢复建议的跳转链接', () => {
+      const errorInfo: ErrorInfo = {
         message: '配额超限',
+        recoverySuggestions: [
+          {
+            action: '升级套餐',
+            description: '升级到更高级的套餐',
+            actionUrl: '/plans/upgrade',
+          },
+        ],
       };
-      render(<ErrorAlert error={error} />);
-      expect(screen.getByText('配额已用完，请升级套餐或联系管理员')).toBeInTheDocument();
+      render(<ErrorAlert error={errorInfo} />);
+
+      const link = screen.getByRole('link', { name: /前往/ });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', '/plans/upgrade');
     });
 
-    it('不应该显示未知错误代码的建议', () => {
-      const error: ErrorDetail = {
-        code: 'UNKNOWN_ERROR',
-        message: '未知错误',
+    it('showRecoverySuggestions=false 时不应该显示建议', () => {
+      const errorInfo: ErrorInfo = {
+        message: '错误',
+        recoverySuggestions: [{ action: '重试', description: '请重试' }],
       };
-      render(<ErrorAlert error={error} />);
-      expect(screen.queryByText('建议')).not.toBeInTheDocument();
+      render(<ErrorAlert error={errorInfo} showRecoverySuggestions={false} />);
+
+      expect(screen.queryByText('解决方案：')).not.toBeInTheDocument();
     });
   });
 
-  describe('操作按钮', () => {
+  describe('Request ID 和错误代码', () => {
+    it('应该显示 Request ID', () => {
+      const errorInfo: ErrorInfo = {
+        message: '错误',
+        requestId: 'req-abc-123',
+      };
+      render(<ErrorAlert error={errorInfo} />);
+
+      expect(screen.getByText('Request ID: req-abc-123')).toBeInTheDocument();
+    });
+
+    it('应该显示错误代码', () => {
+      const errorInfo: ErrorInfo = {
+        message: '错误',
+        code: 'ERR_TIMEOUT',
+      };
+      render(<ErrorAlert error={errorInfo} />);
+
+      expect(screen.getByText('错误代码: ERR_TIMEOUT')).toBeInTheDocument();
+    });
+
+    it('showRequestId=false 时不应该显示 Request ID', () => {
+      const errorInfo: ErrorInfo = {
+        message: '错误',
+        requestId: 'req-123',
+      };
+      render(<ErrorAlert error={errorInfo} showRequestId={false} />);
+
+      expect(screen.queryByText(/Request ID/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('技术详情', () => {
+    it('应该显示技术详情面板', () => {
+      const errorInfo: ErrorInfo = {
+        message: '错误',
+        technicalMessage: 'TypeError: Cannot read property',
+      };
+      render(<ErrorAlert error={errorInfo} />);
+
+      expect(screen.getByText('查看技术详情')).toBeInTheDocument();
+    });
+
+    it('点击后应该展开技术详情', () => {
+      const errorInfo: ErrorInfo = {
+        message: '错误',
+        technicalMessage: 'Stack trace details',
+      };
+      render(<ErrorAlert error={errorInfo} />);
+
+      const detailsHeader = screen.getByText('查看技术详情');
+      fireEvent.click(detailsHeader);
+
+      expect(screen.getByText('技术消息：')).toBeInTheDocument();
+      expect(screen.getByText('Stack trace details')).toBeInTheDocument();
+    });
+
+    it('应该显示详细信息', () => {
+      const errorInfo: ErrorInfo = {
+        message: '错误',
+        details: { errorCode: 500, path: '/api/users' },
+      };
+      render(<ErrorAlert error={errorInfo} />);
+
+      const detailsHeader = screen.getByText('查看技术详情');
+      fireEvent.click(detailsHeader);
+
+      expect(screen.getByText('详细信息：')).toBeInTheDocument();
+      expect(screen.getByText(/"errorCode": 500/)).toBeInTheDocument();
+    });
+
+    it('showTechnicalDetails=false 时不应该显示技术详情', () => {
+      const errorInfo: ErrorInfo = {
+        message: '错误',
+        technicalMessage: 'Technical error',
+      };
+      render(<ErrorAlert error={errorInfo} showTechnicalDetails={false} />);
+
+      expect(screen.queryByText('查看技术详情')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('操作按钮和链接', () => {
     it('应该渲染重试按钮并处理点击', () => {
       const onRetry = vi.fn();
-      render(<ErrorAlert error="错误信息" onRetry={onRetry} />);
+      const errorInfo: ErrorInfo = {
+        message: '错误信息',
+        retryable: true,
+      };
+      render(<ErrorAlert error={errorInfo} onRetry={onRetry} />);
 
       const retryButton = screen.getByRole('button', { name: /重试/i });
       expect(retryButton).toBeInTheDocument();
@@ -102,117 +207,48 @@ describe('ErrorAlert Component', () => {
       expect(onRetry).toHaveBeenCalledTimes(1);
     });
 
-    it('应该渲染报告问题按钮并处理点击', () => {
-      const onReport = vi.fn();
-      render(<ErrorAlert error="错误信息" onReport={onReport} />);
-
-      const reportButton = screen.getByRole('button', { name: /报告问题/i });
-      expect(reportButton).toBeInTheDocument();
-
-      fireEvent.click(reportButton);
-      expect(onReport).toHaveBeenCalledTimes(1);
-    });
-
-    it('应该同时渲染重试和报告按钮', () => {
+    it('retryable=false 时不应该显示重试按钮', () => {
       const onRetry = vi.fn();
-      const onReport = vi.fn();
-      render(<ErrorAlert error="错误信息" onRetry={onRetry} onReport={onReport} />);
-
-      expect(screen.getByRole('button', { name: /重试/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /报告问题/i })).toBeInTheDocument();
-    });
-
-    it('不传回调时不应该渲染按钮', () => {
-      render(<ErrorAlert error="错误信息" />);
+      const errorInfo: ErrorInfo = {
+        message: '错误',
+        retryable: false,
+      };
+      render(<ErrorAlert error={errorInfo} onRetry={onRetry} />);
 
       expect(screen.queryByRole('button', { name: /重试/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /报告问题/i })).not.toBeInTheDocument();
-    });
-  });
-
-  describe('详细信息', () => {
-    it('showDetails=false 时不应该显示详细信息', () => {
-      const error: ErrorDetail = {
-        message: '错误',
-        stack: 'Error stack trace',
-        requestId: 'req-123',
-      };
-      render(<ErrorAlert error={error} showDetails={false} />);
-
-      expect(screen.queryByText('查看详细信息')).not.toBeInTheDocument();
     });
 
-    it('showDetails=true 时应该显示详细信息面板', () => {
-      const error: ErrorDetail = {
+    it('应该显示文档链接', () => {
+      const errorInfo: ErrorInfo = {
         message: '错误',
-        stack: 'Error stack trace',
-        requestId: 'req-123',
+        documentationUrl: 'https://docs.example.com/errors',
       };
-      render(<ErrorAlert error={error} showDetails={true} />);
+      render(<ErrorAlert error={errorInfo} />);
 
-      expect(screen.getByText('查看详细信息')).toBeInTheDocument();
+      const docLink = screen.getByText('查看文档');
+      expect(docLink.closest('a')).toHaveAttribute('href', 'https://docs.example.com/errors');
+      expect(docLink.closest('a')).toHaveAttribute('target', '_blank');
     });
 
-    it('应该显示请求 ID', () => {
-      const error: ErrorDetail = {
+    it('应该显示技术支持链接', () => {
+      const errorInfo: ErrorInfo = {
         message: '错误',
-        requestId: 'req-abc-123',
+        supportUrl: '/support/tickets',
       };
-      render(<ErrorAlert error={error} showDetails={true} />);
+      render(<ErrorAlert error={errorInfo} />);
 
-      // 展开详细信息面板
-      const detailsHeader = screen.getByText('查看详细信息');
-      fireEvent.click(detailsHeader);
-
-      // 现在应该能看到请求 ID
-      expect(screen.getByText(/req-abc-123/i)).toBeInTheDocument();
+      const supportLink = screen.getByText('联系技术支持');
+      expect(supportLink.closest('a')).toHaveAttribute('href', '/support/tickets');
     });
 
-    it('应该显示时间戳', () => {
-      const timestamp = new Date('2025-01-01T12:00:00Z').toISOString();
-      const error: ErrorDetail = {
+    it('showDocumentation=false 时不应该显示文档链接', () => {
+      const errorInfo: ErrorInfo = {
         message: '错误',
-        timestamp,
-        requestId: 'req-123', // 添加 requestId 以显示详细信息面板
+        documentationUrl: 'https://docs.example.com',
       };
-      render(<ErrorAlert error={error} showDetails={true} />);
+      render(<ErrorAlert error={errorInfo} showDocumentation={false} />);
 
-      // 展开详细信息面板
-      const detailsHeader = screen.getByText('查看详细信息');
-      fireEvent.click(detailsHeader);
-
-      // 验证时间文本存在 (格式可能因时区而异)
-      expect(screen.getByText(/时间:/i)).toBeInTheDocument();
-    });
-
-    it('应该显示详细描述', () => {
-      const error: ErrorDetail = {
-        message: '错误',
-        details: '这是详细的错误描述',
-      };
-      render(<ErrorAlert error={error} showDetails={true} />);
-
-      // 展开详细信息面板
-      const detailsHeader = screen.getByText('查看详细信息');
-      fireEvent.click(detailsHeader);
-
-      expect(screen.getByText('详细信息:')).toBeInTheDocument();
-      expect(screen.getByText('这是详细的错误描述')).toBeInTheDocument();
-    });
-
-    it('应该显示堆栈跟踪', () => {
-      const error: ErrorDetail = {
-        message: '错误',
-        stack: 'Error: Test\n  at testFunction (test.js:10:15)',
-      };
-      render(<ErrorAlert error={error} showDetails={true} />);
-
-      // 展开详细信息面板
-      const detailsHeader = screen.getByText('查看详细信息');
-      fireEvent.click(detailsHeader);
-
-      expect(screen.getByText('堆栈跟踪:')).toBeInTheDocument();
-      expect(screen.getByText(/at testFunction/i)).toBeInTheDocument();
+      expect(screen.queryByText('查看文档')).not.toBeInTheDocument();
     });
   });
 
@@ -227,78 +263,124 @@ describe('ErrorAlert Component', () => {
       expect(container.querySelector('.ant-alert-warning')).toBeInTheDocument();
     });
 
+    it('应该渲染 info 类型的 Alert', () => {
+      const { container } = render(<ErrorAlert error="信息" type="info" />);
+      expect(container.querySelector('.ant-alert-info')).toBeInTheDocument();
+    });
+
     it('默认应该是 error 类型', () => {
       const { container } = render(<ErrorAlert error="错误" />);
       expect(container.querySelector('.ant-alert-error')).toBeInTheDocument();
     });
   });
+
+  describe('关闭功能', () => {
+    it('提供 onClose 时应该显示关闭按钮', () => {
+      const onClose = vi.fn();
+      const { container } = render(<ErrorAlert error="错误" onClose={onClose} />);
+
+      const closeButton = container.querySelector('.ant-alert-close-icon');
+      expect(closeButton).toBeInTheDocument();
+    });
+
+    it('点击关闭按钮应该触发 onClose', () => {
+      const onClose = vi.fn();
+      const { container } = render(<ErrorAlert error="错误" onClose={onClose} />);
+
+      const closeButton = container.querySelector('.ant-alert-close-icon');
+      if (closeButton) {
+        fireEvent.click(closeButton);
+        expect(onClose).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it('不提供 onClose 时不应该显示关闭按钮', () => {
+      const { container } = render(<ErrorAlert error="错误" />);
+
+      const closeButton = container.querySelector('.ant-alert-close-icon');
+      expect(closeButton).not.toBeInTheDocument();
+    });
+  });
+
+  describe('自定义样式', () => {
+    it('应该应用自定义 className', () => {
+      const { container } = render(
+        <ErrorAlert error="错误" className="custom-error-class" />
+      );
+
+      expect(container.querySelector('.custom-error-class')).toBeInTheDocument();
+    });
+
+    it('应该应用自定义 style', () => {
+      const customStyle = { marginTop: '20px', padding: '10px' };
+      const { container } = render(<ErrorAlert error="错误" style={customStyle} />);
+
+      const alert = container.querySelector('.ant-alert');
+      expect(alert).toHaveStyle({ marginTop: '20px', padding: '10px' });
+    });
+  });
+
+  describe('自定义标题', () => {
+    it('应该显示自定义标题', () => {
+      render(<ErrorAlert error="错误详情" title="自定义错误标题" />);
+
+      expect(screen.getByText('自定义错误标题')).toBeInTheDocument();
+    });
+
+    it('没有标题时应该显示错误消息', () => {
+      render(<ErrorAlert error="默认错误消息" />);
+
+      expect(screen.getByText('默认错误消息')).toBeInTheDocument();
+    });
+  });
 });
 
-describe('InlineError Component', () => {
-  it('应该渲染内联错误消息', () => {
-    render(<InlineError message="内联错误信息" />);
-    expect(screen.getByText('内联错误信息')).toBeInTheDocument();
+describe('SimpleErrorAlert Component', () => {
+  it('应该渲染字符串错误', () => {
+    render(<SimpleErrorAlert error="简单错误信息" />);
+    expect(screen.getByText('简单错误信息')).toBeInTheDocument();
+  });
+
+  it('应该渲染 Error 对象', () => {
+    const error = new Error('Error 对象消息');
+    render(<SimpleErrorAlert error={error} />);
+    expect(screen.getByText('Error 对象消息')).toBeInTheDocument();
+  });
+
+  it('error=null 时不应该渲染', () => {
+    const { container } = render(<SimpleErrorAlert error={null} />);
+    expect(container.firstChild).toBeNull();
   });
 
   it('应该是 error 类型', () => {
-    const { container } = render(<InlineError message="错误" />);
+    const { container } = render(<SimpleErrorAlert error="错误" />);
     expect(container.querySelector('.ant-alert-error')).toBeInTheDocument();
   });
 
   it('应该显示关闭图标', () => {
-    render(<InlineError message="错误" />);
-    // 验证关闭按钮存在 (Ant Design 用 close icon 实现)
-    const closeButton = document.querySelector('.ant-alert-close-icon');
+    const onClose = vi.fn();
+    const { container } = render(<SimpleErrorAlert error="错误" onClose={onClose} />);
+
+    const closeButton = container.querySelector('.ant-alert-close-icon');
     expect(closeButton).toBeInTheDocument();
   });
-});
 
-describe('SuccessAlert Component', () => {
-  it('应该渲染成功消息', () => {
-    render(<SuccessAlert message="操作成功" />);
-    expect(screen.getByText('操作成功')).toBeInTheDocument();
+  it('点击关闭应该触发回调', () => {
+    const onClose = vi.fn();
+    const { container } = render(<SimpleErrorAlert error="错误" onClose={onClose} />);
+
+    const closeButton = container.querySelector('.ant-alert-close-icon');
+    if (closeButton) {
+      fireEvent.click(closeButton);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    }
   });
 
-  it('应该渲染成功消息和描述', () => {
-    render(<SuccessAlert message="操作成功" description="数据已保存" />);
-    expect(screen.getByText('操作成功')).toBeInTheDocument();
-    expect(screen.getByText('数据已保存')).toBeInTheDocument();
-  });
+  it('应该应用自定义 className', () => {
+    const { container } = render(
+      <SimpleErrorAlert error="错误" className="simple-custom-class" />
+    );
 
-  it('应该是 success 类型', () => {
-    const { container } = render(<SuccessAlert message="成功" />);
-    expect(container.querySelector('.ant-alert-success')).toBeInTheDocument();
-  });
-
-  it('应该显示关闭图标', () => {
-    render(<SuccessAlert message="成功" />);
-    // 验证关闭按钮存在
-    const closeButton = document.querySelector('.ant-alert-close-icon');
-    expect(closeButton).toBeInTheDocument();
-  });
-});
-
-describe('WarningAlert Component', () => {
-  it('应该渲染警告消息', () => {
-    render(<WarningAlert message="警告信息" />);
-    expect(screen.getByText('警告信息')).toBeInTheDocument();
-  });
-
-  it('应该渲染警告消息和描述', () => {
-    render(<WarningAlert message="警告" description="请注意数据变化" />);
-    expect(screen.getByText('警告')).toBeInTheDocument();
-    expect(screen.getByText('请注意数据变化')).toBeInTheDocument();
-  });
-
-  it('应该是 warning 类型', () => {
-    const { container } = render(<WarningAlert message="警告" />);
-    expect(container.querySelector('.ant-alert-warning')).toBeInTheDocument();
-  });
-
-  it('应该显示关闭图标', () => {
-    render(<WarningAlert message="警告" />);
-    // 验证关闭按钮存在
-    const closeButton = document.querySelector('.ant-alert-close-icon');
-    expect(closeButton).toBeInTheDocument();
+    expect(container.querySelector('.simple-custom-class')).toBeInTheDocument();
   });
 });

@@ -1,38 +1,34 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { message, Form } from 'antd';
 import {
   getAllDataScopes,
-  getScopeTypes,
   createDataScope,
   updateDataScope,
   deleteDataScope,
   toggleDataScope,
 } from '@/services/dataScope';
-import type { DataScope, ScopeType, CreateDataScopeDto, UpdateDataScopeDto } from '@/types';
-import { useSafeApi } from './useSafeApi';
+import type { DataScope, CreateDataScopeDto, UpdateDataScopeDto } from '@/types';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   DataScopesResponseSchema,
-  ScopeTypesResponseSchema,
 } from '@/schemas/api.schemas';
 
 export const useDataScopeManagement = () => {
-  // ✅ 使用 useSafeApi 加载范围类型
-  const {
-    data: scopeTypesResponse,
-    execute: executeScopeTypesLoad,
-  } = useSafeApi(getScopeTypes, ScopeTypesResponseSchema, {
-    errorMessage: '加载范围类型失败',
-    fallbackValue: { success: false, data: [] },
-  });
+  // TODO: Fix getScopeTypes service function
+  const scopeTypesResponse = { success: false, data: [] };
 
-  // ✅ 使用 useSafeApi 加载数据范围
+  // ✅ 使用 useValidatedQuery 加载数据范围
   const {
     data: dataScopesResponse,
-    loading,
-    execute: executeDataScopesLoad,
-  } = useSafeApi(getAllDataScopes, DataScopesResponseSchema, {
-    errorMessage: '加载数据范围配置失败',
+    isLoading: loading,
+    refetch: loadDataScopes,
+  } = useValidatedQuery({
+    queryKey: ['data-scopes'],
+    queryFn: getAllDataScopes,
+    schema: DataScopesResponseSchema,
+    apiErrorMessage: '加载数据范围配置失败',
     fallbackValue: { success: false, data: [] },
+    staleTime: 30 * 1000,
   });
 
   // 模态框和表单状态
@@ -43,21 +39,6 @@ export const useDataScopeManagement = () => {
 
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
-
-  // ✅ 简化的加载函数
-  const loadScopeTypes = useCallback(async () => {
-    await executeScopeTypesLoad();
-  }, [executeScopeTypesLoad]);
-
-  const loadDataScopes = useCallback(async () => {
-    await executeDataScopesLoad();
-  }, [executeDataScopesLoad]);
-
-  // 初始化加载
-  useEffect(() => {
-    loadScopeTypes();
-    loadDataScopes();
-  }, [loadScopeTypes, loadDataScopes]);
 
   // 创建数据范围配置
   const handleCreate = useCallback(async () => {
@@ -72,7 +53,7 @@ export const useDataScopeManagement = () => {
       } else {
         message.error(res.message || '创建失败');
       }
-    } catch (error) {
+    } catch (_error) {
       message.error('创建失败');
     }
   }, [createForm, loadDataScopes]);
@@ -93,7 +74,7 @@ export const useDataScopeManagement = () => {
       } else {
         message.error(res.message || '更新失败');
       }
-    } catch (error) {
+    } catch (_error) {
       message.error('更新失败');
     }
   }, [selectedScope, editForm, loadDataScopes]);
@@ -109,7 +90,7 @@ export const useDataScopeManagement = () => {
         } else {
           message.error(res.message || '删除失败');
         }
-      } catch (error) {
+      } catch (_error) {
         message.error('删除失败');
       }
     },
@@ -127,7 +108,7 @@ export const useDataScopeManagement = () => {
         } else {
           message.error(res.message || '操作失败');
         }
-      } catch (error) {
+      } catch (_error) {
         message.error('操作失败');
       }
     },

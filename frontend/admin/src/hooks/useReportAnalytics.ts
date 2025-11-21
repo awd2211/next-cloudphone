@@ -1,11 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { z } from 'zod';
 import { getRevenueStats } from '@/services/billing';
 import { getUserGrowthStats, getPlanDistributionStats } from '@/services/stats';
 import { getDeviceStats } from '@/services/device';
 import type { PeriodType } from '@/components/ReportAnalytics/constants';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   RevenueStatsSchema,
   DeviceStatsSchema,
@@ -17,7 +17,7 @@ import {
  * 报表分析页面业务逻辑 Hook
  *
  * 功能:
- * 1. 数据加载 (收入、用户增长、设备、套餐分布) - 使用 useSafeApi + Zod 验证
+ * 1. 数据加载 (收入、用户增长、设备、套餐分布) - 使用 useValidatedQuery + Zod 验证
  * 2. 日期范围管理
  * 3. 周期类型管理
  */
@@ -28,104 +28,51 @@ export const useReportAnalytics = () => {
   ]);
   const [period, setPeriod] = useState<PeriodType>('day');
 
-  // ===== 数据加载 (使用 useSafeApi) =====
+  // ===== 数据加载 (使用 useValidatedQuery + Promise.all) =====
 
   /**
-   * 加载收入统计
+   * 并发加载所有报表数据
    */
   const {
-    data: revenueData,
-    loading: revenueLoading,
-    execute: executeLoadRevenue,
-  } = useSafeApi(
-    () => getRevenueStats(dateRange[0], dateRange[1]),
-    RevenueStatsSchema,
-    {
-      errorMessage: '加载收入统计失败',
-      fallbackValue: {
+    data: analyticsData,
+    isLoading: loading,
+  } = useValidatedQuery({
+    queryKey: ['report-analytics', dateRange[0], dateRange[1], period],
+    queryFn: async () => {
+      const [revenue, userGrowth, device, plan] = await Promise.all([
+        getRevenueStats(dateRange[0], dateRange[1]),
+        getUserGrowthStats(30),
+        getDeviceStats(),
+        getPlanDistributionStats(),
+      ]);
+      return { revenue, userGrowth, device, plan };
+    },
+    schema: z.object({
+      revenue: RevenueStatsSchema,
+      userGrowth: z.array(UserGrowthItemSchema),
+      device: DeviceStatsSchema,
+      plan: z.array(PlanDistributionItemSchema),
+    }),
+    apiErrorMessage: '加载报表数据失败',
+    fallbackValue: {
+      revenue: {
         totalRevenue: 0,
         totalOrders: 0,
         avgOrderValue: 0,
         dailyStats: [],
+        planStats: [],
       },
-      manual: true,
-    }
-  );
-
-  /**
-   * 加载用户增长统计
-   */
-  const {
-    data: userGrowthData,
-    loading: userGrowthLoading,
-    execute: executeLoadUserGrowth,
-  } = useSafeApi(
-    () => getUserGrowthStats(30),
-    z.array(UserGrowthItemSchema),
-    {
-      errorMessage: '加载用户增长统计失败',
-      fallbackValue: [],
-      manual: true,
-    }
-  );
-
-  /**
-   * 加载设备统计
-   */
-  const {
-    data: deviceData,
-    loading: deviceLoading,
-    execute: executeLoadDevice,
-  } = useSafeApi(
-    getDeviceStats,
-    DeviceStatsSchema,
-    {
-      errorMessage: '加载设备统计失败',
-      fallbackValue: {
+      userGrowth: [],
+      device: {
         total: 0,
         running: 0,
         idle: 0,
         stopped: 0,
       },
-      manual: true,
-    }
-  );
-
-  /**
-   * 加载套餐分布统计
-   */
-  const {
-    data: planData,
-    loading: planLoading,
-    execute: executeLoadPlan,
-  } = useSafeApi(
-    getPlanDistributionStats,
-    z.array(PlanDistributionItemSchema),
-    {
-      errorMessage: '加载套餐分布统计失败',
-      fallbackValue: [],
-      manual: true,
-    }
-  );
-
-  /**
-   * 加载所有数据
-   */
-  const loadData = useCallback(async () => {
-    await Promise.all([
-      executeLoadRevenue(),
-      executeLoadUserGrowth(),
-      executeLoadDevice(),
-      executeLoadPlan(),
-    ]);
-  }, [executeLoadRevenue, executeLoadUserGrowth, executeLoadDevice, executeLoadPlan]);
-
-  /**
-   * 初始化加载和依赖变化时重新加载
-   */
-  useEffect(() => {
-    loadData();
-  }, [loadData, period]);
+      plan: [],
+    },
+    staleTime: 60 * 1000, // 报表数据1分钟缓存
+  });
 
   /**
    * 日期范围变更处理
@@ -142,23 +89,23 @@ export const useReportAnalytics = () => {
   }, []);
 
   return {
-    loading: revenueLoading || userGrowthLoading || deviceLoading || planLoading,
+    loading,
     dateRange,
     period,
-    revenueData: revenueData || {
+    revenueData: analyticsData?.revenue || {
       totalRevenue: 0,
       totalOrders: 0,
       avgOrderValue: 0,
       dailyStats: [],
     },
-    userGrowthData: userGrowthData || [],
-    deviceData: deviceData || {
+    userGrowthData: analyticsData?.userGrowth || [],
+    deviceData: analyticsData?.device || {
       total: 0,
       running: 0,
       idle: 0,
       stopped: 0,
     },
-    planData: planData || [],
+    planData: analyticsData?.plan || [],
     handleDateRangeChange,
     handlePeriodChange,
   };

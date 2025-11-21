@@ -125,7 +125,7 @@ export const useFilterPresets = <T extends Record<string, any> = Record<string, 
         const uniqueDefaultPresets = defaultPresets.filter((p) => !savedIds.has(p.id));
         return [...parsed, ...uniqueDefaultPresets];
       }
-    } catch (error) {
+    } catch (_error) {
       console.warn('Failed to load filter presets from localStorage:', error);
     }
     return defaultPresets;
@@ -139,7 +139,7 @@ export const useFilterPresets = <T extends Record<string, any> = Record<string, 
   useEffect(() => {
     try {
       localStorage.setItem(`${storageKey}_presets`, JSON.stringify(presets));
-    } catch (error) {
+    } catch (_error) {
       console.warn('Failed to save filter presets to localStorage:', error);
     }
   }, [presets, storageKey]);

@@ -8,7 +8,7 @@ export interface SchedulerNode {
   name: string;
   host: string;
   port: number;
-  status: 'online' | 'offline' | 'maintenance' | 'draining';
+  status: 'active' | 'inactive' | 'maintenance' | 'draining';
   region?: string;
   zone?: string;
   capacity: {
@@ -46,7 +46,7 @@ export interface CreateNodeDto {
 
 export interface UpdateNodeDto {
   name?: string;
-  status?: 'online' | 'offline' | 'maintenance' | 'draining';
+  status?: 'active' | 'inactive' | 'maintenance' | 'draining';
   labels?: Record<string, string>;
 }
 
@@ -90,12 +90,11 @@ export const drainNode = (id: string) => {
 export interface SchedulingStrategy {
   id: string;
   name: string;
-  type: 'round-robin' | 'least-loaded' | 'random' | 'priority' | 'custom';
+  type: string;
   description?: string;
-  config: Record<string, any>;
+  config?: Record<string, any>;
   isActive: boolean;
   createdAt: string;
-  updatedAt: string;
 }
 
 // 获取调度策略
@@ -132,21 +131,13 @@ export const deleteStrategy = (id: string) => {
 
 export interface SchedulingTask {
   id: string;
+  nodeId: string;
   deviceId: string;
-  userId: string;
-  requestedAt: string;
-  scheduledAt?: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  priority: number;
+  createdAt: string;
+  startedAt?: string;
   completedAt?: string;
-  status: 'pending' | 'scheduled' | 'running' | 'completed' | 'failed';
-  nodeId?: string;
-  requirements: {
-    cpuCores: number;
-    memoryMB: number;
-    storageMB: number;
-    region?: string;
-    zone?: string;
-  };
-  error?: string;
 }
 
 // 获取调度任务列表
@@ -168,26 +159,21 @@ export const rescheduleDevice = (deviceId: string) => {
 
 export interface ClusterStats {
   totalNodes: number;
-  onlineNodes: number;
-  offlineNodes: number;
-  maintenanceNodes: number;
+  activeNodes: number;
   totalCapacity: {
     cpu: number;
     memory: number;
     storage: number;
-    maxDevices: number;
   };
   totalUsage: {
     cpu: number;
     memory: number;
     storage: number;
-    deviceCount: number;
   };
   utilizationRate: {
     cpu: number;
     memory: number;
     storage: number;
-    devices: number;
   };
 }
 

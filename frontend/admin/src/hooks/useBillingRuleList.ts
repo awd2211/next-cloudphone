@@ -9,7 +9,7 @@ import {
   useDeleteBillingRule,
   useToggleBillingRule,
   useTestBillingRule,
-} from './useBillingRules';
+} from '@/hooks/queries';
 import { useBillingRuleTableColumns } from '@/components/BillingRule/BillingRuleTableColumns';
 import dayjs from 'dayjs';
 

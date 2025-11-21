@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { z } from 'zod';
 import dayjs from 'dayjs';
 import type { TrendType } from '@/components/Metering';
@@ -7,7 +7,7 @@ import {
   getUserMeterings,
   getDeviceMeterings,
 } from '@/services/billing';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   MeteringOverviewSchema,
   UserMeteringSchema,
@@ -18,7 +18,7 @@ import {
  * 计量仪表板业务逻辑 Hook
  *
  * 功能:
- * 1. 数据加载 (概览、用户计量、设备计量) - 使用 useSafeApi + Zod 验证
+ * 1. 数据加载 (概览、用户计量、设备计量) - 使用 useValidatedQuery + Zod 验证
  * 2. 日期范围管理
  * 3. 趋势类型管理
  */
@@ -30,41 +30,39 @@ export const useMeteringDashboard = () => {
   ]);
   const [trendType, setTrendType] = useState<TrendType>('daily');
 
-  // ===== 数据加载 (使用 useSafeApi) =====
+  // ===== 数据加载 (使用 useValidatedQuery) =====
 
   /**
    * 加载概览数据
    */
-  const { data: overview } = useSafeApi(
-    getMeteringOverview,
-    MeteringOverviewSchema,
-    {
-      errorMessage: '加载概览数据失败',
-      showError: false,
-    }
-  );
+  const { data: overview } = useValidatedQuery({
+    queryKey: ['metering-overview'],
+    queryFn: getMeteringOverview,
+    schema: MeteringOverviewSchema,
+    apiErrorMessage: '加载概览数据失败',
+    staleTime: 5 * 60 * 1000, // 概览数据5分钟缓存
+  });
 
   /**
    * 加载用户计量
    */
   const {
     data: userMeteringsResponse,
-    loading: userMeteringsLoading,
-    execute: executeLoadUserMeterings,
-  } = useSafeApi(
-    () =>
+    isLoading: userMeteringsLoading,
+  } = useValidatedQuery({
+    queryKey: ['user-meterings', dateRange[0], dateRange[1]],
+    queryFn: () =>
       getUserMeterings({
         startDate: dateRange[0],
         endDate: dateRange[1],
       }),
-    z.object({
+    schema: z.object({
       data: z.array(UserMeteringSchema),
     }),
-    {
-      errorMessage: '加载用户计量失败',
-      fallbackValue: { data: [] },
-    }
-  );
+    apiErrorMessage: '加载用户计量失败',
+    fallbackValue: { data: [] },
+    staleTime: 60 * 1000, // 计量数据1分钟缓存
+  });
 
   const userMeterings = userMeteringsResponse?.data || [];
 
@@ -73,32 +71,23 @@ export const useMeteringDashboard = () => {
    */
   const {
     data: deviceMeteringsResponse,
-    loading: deviceMeteringsLoading,
-    execute: executeLoadDeviceMeterings,
-  } = useSafeApi(
-    () =>
+    isLoading: deviceMeteringsLoading,
+  } = useValidatedQuery({
+    queryKey: ['device-meterings', dateRange[0], dateRange[1]],
+    queryFn: () =>
       getDeviceMeterings({
         startDate: dateRange[0],
         endDate: dateRange[1],
       }),
-    z.object({
+    schema: z.object({
       data: z.array(DeviceMeteringSchema),
     }),
-    {
-      errorMessage: '加载设备计量失败',
-      fallbackValue: { data: [] },
-    }
-  );
+    apiErrorMessage: '加载设备计量失败',
+    fallbackValue: { data: [] },
+    staleTime: 60 * 1000, // 计量数据1分钟缓存
+  });
 
   const deviceMeterings = deviceMeteringsResponse?.data || [];
-
-  /**
-   * 日期范围变化时重新加载数据
-   */
-  useEffect(() => {
-    executeLoadUserMeterings();
-    executeLoadDeviceMeterings();
-  }, [dateRange, executeLoadUserMeterings, executeLoadDeviceMeterings]);
 
   /**
    * 日期范围变更处理

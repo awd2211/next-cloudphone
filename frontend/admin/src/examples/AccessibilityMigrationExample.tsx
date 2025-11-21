@@ -25,78 +25,31 @@ interface User {
 
 /**
  * ❌ 迁移前：缺少无障碍支持
+ *
+ * 以下展示了常见的无障碍问题：
+ * - 只用颜色区分状态（色盲用户无法识别）
+ * - 图标按钮没有文字标签（屏幕阅读器无法理解）
+ * - 表单字段只有 placeholder（不符合 WCAG 标准）
+ * - 模态框没有焦点管理（键盘用户无法操作）
  */
 export const BeforeMigration = () => {
-  const [visible, setVisible] = useState(false);
-  const [users] = useState<User[]>([
-    { id: '1', name: '张三', email: 'zhang@example.com', role: 'admin', status: 'active' },
-    { id: '2', name: '李四', email: 'li@example.com', role: 'user', status: 'inactive' },
-  ]);
-
-  const columns: ColumnsType<User> = [
-    {
-      title: '姓名',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: '邮箱',
-      dataIndex: 'email',
-      key: 'email',
-    },
-    {
-      title: '角色',
-      dataIndex: 'role',
-      key: 'role',
-      render: (role: string) => (
-        // ❌ 问题：只用颜色区分状态
-        <Tag color={role === 'admin' ? 'red' : 'blue'}>
-          {role === 'admin' ? '管理员' : '普通用户'}
-        </Tag>
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => (
-        // ❌ 问题：只用颜色传达信息
-        <span style={{ color: status === 'active' ? 'green' : 'red' }}>
-          {status === 'active' ? '激活' : '未激活'}
-        </span>
-      ),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      render: () => (
-        <Space>
-          {/* ❌ 问题：图标按钮没有 aria-label */}
-          <button>
-            <EyeOutlined />
-          </button>
-          <button>
-            <EditOutlined />
-          </button>
-          <button>
-            <DeleteOutlined />
-          </button>
-        </Space>
-      ),
-    },
-  ];
-
   return (
     <div>
-      {/* ❌ 问题：Table 缺少 aria-label */}
-      <table>
-        {/* ... */}
-      </table>
+      {/* ❌ 问题示例：只用颜色传达信息 */}
+      <div>
+        <span style={{ color: 'red' }}>管理员</span>
+        <span style={{ color: 'green' }}>激活</span>
+      </div>
 
-      {/* ❌ 问题：Modal 没有焦点管理 */}
-      <div className="modal" style={{ display: visible ? 'block' : 'none' }}>
-        <h2>编辑用户</h2>
-        {/* ❌ 问题：表单字段只有 placeholder */}
+      {/* ❌ 问题示例：图标按钮没有 aria-label */}
+      <Space>
+        <button><EyeOutlined /></button>
+        <button><EditOutlined /></button>
+        <button><DeleteOutlined /></button>
+      </Space>
+
+      {/* ❌ 问题示例：表单字段只有 placeholder */}
+      <div>
         <input placeholder="请输入姓名" />
         <input placeholder="请输入邮箱" />
       </div>

@@ -2,10 +2,15 @@ import { useMemo } from 'react';
 import { Space, Button, Popconfirm, Tag, Switch } from 'antd';
 import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import type { DataScope, ScopeType, ScopeTypeOption } from '@/hooks/useDataScope';
+import type { DataScope, ScopeType } from '@/hooks/useDataScope';
 import type { Role } from '@/types';
 import { resourceTypes } from './constants';
 import dayjs from 'dayjs';
+
+interface ScopeTypeOption {
+  value: string;
+  label: string;
+}
 
 interface DataScopeTableColumnsProps {
   roles: Role[];

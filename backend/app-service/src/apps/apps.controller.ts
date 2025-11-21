@@ -613,4 +613,59 @@ export class AppsController {
       ...result,
     };
   }
+
+  @Post(':id/publish')
+  @RequirePermission('app.publish')
+  @ApiOperation({ summary: '发布应用', description: '将已审核通过的应用发布到应用市场' })
+  @ApiParam({ name: 'id', description: '应用 ID' })
+  @ApiResponse({ status: 200, description: '发布成功' })
+  @ApiResponse({ status: 400, description: '应用状态不允许发布' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 404, description: '应用不存在' })
+  async publishApp(@Param('id') id: string) {
+    const app = await this.appsService.publishApp(id);
+    return {
+      success: true,
+      data: app,
+      message: '应用已成功发布',
+    };
+  }
+
+  @Post(':id/unpublish')
+  @RequirePermission('app.publish')
+  @ApiOperation({ summary: '下架应用', description: '将已发布的应用从应用市场下架' })
+  @ApiParam({ name: 'id', description: '应用 ID' })
+  @ApiResponse({ status: 200, description: '下架成功' })
+  @ApiResponse({ status: 400, description: '应用状态不允许下架' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 404, description: '应用不存在' })
+  async unpublishApp(@Param('id') id: string) {
+    const app = await this.appsService.unpublishApp(id);
+    return {
+      success: true,
+      data: app,
+      message: '应用已下架',
+    };
+  }
+
+  @Get(':id/reviews')
+  @RequirePermission('app.read')
+  @ApiOperation({ summary: '获取应用评审记录', description: '获取指定应用的所有评审记录' })
+  @ApiParam({ name: 'id', description: '应用 ID' })
+  @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 404, description: '应用不存在' })
+  async getAppReviews(
+    @Param('id') id: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10'
+  ) {
+    const result = await this.appsService.getAppReviews(id, parseInt(page), parseInt(limit));
+    return {
+      success: true,
+      ...result,
+    };
+  }
 }

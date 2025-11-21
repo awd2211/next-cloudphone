@@ -1,10 +1,9 @@
-import { useEffect, useCallback } from 'react';
 import { getDashboardStats, getUserGrowthStats, getPlanDistributionStats } from '@/services/stats';
 import { getRevenueStats } from '@/services/billing';
 import { getDeviceStats } from '@/services/device';
 import type { DashboardStats } from '@/types';
 import dayjs from 'dayjs';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   DashboardStatsSchema,
   ChartDataResponseSchema,
@@ -12,7 +11,7 @@ import {
 
 interface UseDashboardReturn {
   // 统计数据
-  stats: DashboardStats | undefined;
+  stats: DashboardStats | null | undefined;
   statsLoading: boolean;
   hasStatsError: boolean;
 
@@ -34,32 +33,34 @@ interface UseDashboardReturn {
  * 封装控制台的所有数据加载逻辑
  */
 export const useDashboard = (): UseDashboardReturn => {
-  // ✅ 使用 useSafeApi 加载统计数据
+  // ✅ 使用 useValidatedQuery 加载统计数据（自动30秒刷新）
   const {
     data: stats,
-    loading: statsLoading,
-    error: statsError,
-    execute: executeStatsLoad,
-  } = useSafeApi(
-    async () => {
+    isLoading: statsLoading,
+    isError: hasStatsError,
+    refetch: loadStats,
+  } = useValidatedQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
       const response: any = await getDashboardStats();
       return response?.data || response;
     },
-    DashboardStatsSchema,
-    {
-      errorMessage: '加载仪表盘统计数据失败',
-      fallbackValue: undefined,
-    }
-  );
+    schema: DashboardStatsSchema,
+    apiErrorMessage: '加载仪表盘统计数据失败',
+    fallbackValue: undefined,
+    staleTime: 30 * 1000, // 统计数据30秒缓存
+    refetchInterval: 30 * 1000, // 自动每30秒刷新
+  });
 
-  // ✅ 使用 useSafeApi 加载图表数据
+  // ✅ 使用 useValidatedQuery 加载图表数据（聚合多个API）
   const {
     data: chartData,
-    loading: chartsLoading,
-    error: chartsError,
-    execute: executeChartsLoad,
-  } = useSafeApi(
-    async () => {
+    isLoading: chartsLoading,
+    isError: hasChartsError,
+    refetch: loadChartData,
+  } = useValidatedQuery({
+    queryKey: ['dashboard-charts'],
+    queryFn: async () => {
       // 加载近7天收入数据
       const endDate = dayjs().format('YYYY-MM-DD');
       const startDate = dayjs().subtract(6, 'day').format('YYYY-MM-DD');
@@ -90,38 +91,16 @@ export const useDashboard = (): UseDashboardReturn => {
         planDistributionData: planDistResult,
       };
     },
-    ChartDataResponseSchema,
-    {
-      errorMessage: '加载图表数据失败',
-      fallbackValue: {
-        revenueData: [],
-        deviceStatusData: [],
-        userGrowthData: [],
-        planDistributionData: [],
-      },
-    }
-  );
-
-  // 计算错误状态
-  const hasStatsError = !!statsError;
-  const hasChartsError = !!chartsError;
-
-  // ✅ 简化的加载函数
-  const loadStats = useCallback(async () => {
-    await executeStatsLoad();
-  }, [executeStatsLoad]);
-
-  const loadChartData = useCallback(async () => {
-    await executeChartsLoad();
-  }, [executeChartsLoad]);
-
-  // 初始化加载 + 定时刷新统计数据
-  useEffect(() => {
-    loadStats();
-    loadChartData();
-    const interval = setInterval(loadStats, 30000); // 每30秒刷新统计数据
-    return () => clearInterval(interval);
-  }, [loadStats, loadChartData]);
+    schema: ChartDataResponseSchema,
+    apiErrorMessage: '加载图表数据失败',
+    fallbackValue: {
+      revenueData: [],
+      deviceStatusData: [],
+      userGrowthData: [],
+      planDistributionData: [],
+    },
+    staleTime: 60 * 1000, // 图表数据1分钟缓存
+  });
 
   return {
     // 统计数据
@@ -138,7 +117,7 @@ export const useDashboard = (): UseDashboardReturn => {
     hasChartsError,
 
     // 操作方法
-    loadStats,
-    loadChartData,
+    loadStats: async () => { await loadStats(); },
+    loadChartData: async () => { await loadChartData(); },
   };
 };

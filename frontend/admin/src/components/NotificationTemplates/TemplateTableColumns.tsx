@@ -16,7 +16,7 @@ const { Text } = Typography;
 interface UseTemplateColumnsProps {
   onEdit: (record: NotificationTemplate) => void;
   onPreview: (record: NotificationTemplate) => void;
-  onToggle: (id: string) => void;
+  onToggle: (id: string, isActive: boolean) => void;
   onDelete: (id: string) => void;
 }
 
@@ -33,7 +33,7 @@ export const useTemplateColumns = ({
         dataIndex: 'code',
         key: 'code',
         width: 200,
-        sorter: (a, b) => a.code.localeCompare(b.code),
+        sorter: (a: NotificationTemplate, b: NotificationTemplate) => a.code.localeCompare(b.code),
         render: (text: string) => <Text code>{text}</Text>,
       },
       {
@@ -41,14 +41,14 @@ export const useTemplateColumns = ({
         dataIndex: 'name',
         key: 'name',
         width: 200,
-        sorter: (a, b) => a.name.localeCompare(b.name),
+        sorter: (a: NotificationTemplate, b: NotificationTemplate) => a.name.localeCompare(b.name),
       },
       {
         title: '类型',
         dataIndex: 'type',
         key: 'type',
         width: 120,
-        sorter: (a, b) => a.type.localeCompare(b.type),
+        sorter: (a: NotificationTemplate, b: NotificationTemplate) => a.type.localeCompare(b.type),
         render: (type: string) => {
           const config = TYPE_CONFIG[type] || { color: 'default', label: type };
           return <Tag color={config.color}>{config.label}</Tag>;
@@ -77,7 +77,7 @@ export const useTemplateColumns = ({
         dataIndex: 'language',
         key: 'language',
         width: 80,
-        sorter: (a, b) => a.language.localeCompare(b.language),
+        sorter: (a: NotificationTemplate, b: NotificationTemplate) => a.language.localeCompare(b.language),
         render: (language: string) => <Tag>{language}</Tag>,
       },
       {
@@ -85,7 +85,7 @@ export const useTemplateColumns = ({
         dataIndex: 'isActive',
         key: 'isActive',
         width: 100,
-        sorter: (a, b) => Number(a.isActive) - Number(b.isActive),
+        sorter: (a: NotificationTemplate, b: NotificationTemplate) => Number(a.isActive) - Number(b.isActive),
         render: (isActive: boolean) =>
           isActive ? (
             <Tag color="success" icon={<CheckCircleOutlined />}>
@@ -121,7 +121,7 @@ export const useTemplateColumns = ({
               />
             </Tooltip>
             <Tooltip title={record.isActive ? '停用' : '激活'}>
-              <Button type="link" size="small" onClick={() => onToggle(record.id)}>
+              <Button type="link" size="small" onClick={() => onToggle(record.id, !record.isActive)}>
                 {record.isActive ? '停用' : '激活'}
               </Button>
             </Tooltip>

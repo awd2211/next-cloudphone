@@ -14,22 +14,22 @@ const AnalyticsDashboard: React.FC = () => {
   // 费用趋势图
   const getCostTrendOption = () => ({
     title: { text: '费用趋势' },
-    tooltip: { trigger: 'axis' },
+    tooltip: { trigger: 'axis' as const },
     xAxis: {
-      type: 'category',
+      type: 'category' as const,
       data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月'],
     },
-    yAxis: { type: 'value', name: '金额(元)' },
+    yAxis: { type: 'value' as const, name: '金额(元)' },
     series: [
       {
         name: '充值',
-        type: 'line',
+        type: 'line' as const,
         data: [5000, 6200, 5800, 7100, 6500, 7800, 8200],
         smooth: true,
       },
       {
         name: '消费',
-        type: 'line',
+        type: 'line' as const,
         data: [4200, 5100, 4800, 6200, 5800, 6900, 7100],
         smooth: true,
       },
@@ -39,10 +39,10 @@ const AnalyticsDashboard: React.FC = () => {
   // 工单统计饼图
   const getTicketStatsOption = () => ({
     title: { text: '工单状态分布', left: 'center' },
-    tooltip: { trigger: 'item' },
+    tooltip: { trigger: 'item' as const },
     series: [
       {
-        type: 'pie',
+        type: 'pie' as const,
         radius: '60%',
         data: [
           { value: 15, name: '待处理' },
@@ -57,16 +57,16 @@ const AnalyticsDashboard: React.FC = () => {
   // 资源使用柱状图
   const getResourceUsageOption = () => ({
     title: { text: '资源使用统计' },
-    tooltip: { trigger: 'axis' },
+    tooltip: { trigger: 'axis' as const },
     xAxis: {
-      type: 'category',
+      type: 'category' as const,
       data: ['设备', 'CPU', '内存', '存储', '带宽'],
     },
-    yAxis: { type: 'value', name: '使用率(%)' },
+    yAxis: { type: 'value' as const, name: '使用率(%)' },
     series: [
       {
         name: '使用率',
-        type: 'bar',
+        type: 'bar' as const,
         data: [75, 65, 82, 58, 48],
         itemStyle: {
           color: (params: any) => {
@@ -136,7 +136,7 @@ const AnalyticsDashboard: React.FC = () => {
       <Row gutter={16} style={{ marginTop: 16 }}>
         <Col span={24}>
           <Card>
-            <ReactECharts option={getResourceUsageOption()} style={{ height: 350 }} />
+            <ReactECharts option={getResourceUsageOption() as any} style={{ height: 350 }} />
           </Card>
         </Col>
       </Row>

@@ -2,8 +2,6 @@ import React, { useMemo, useCallback } from 'react';
 import { Card, message } from 'antd';
 import type {
   FieldPermission,
-  FieldAccessLevel,
-  OperationType,
   CreateFieldPermissionDto,
 } from '@/types';
 import {
@@ -27,11 +25,11 @@ const FieldPermissionManagement: React.FC = () => {
   const {
     permissions,
     total,
-    accessLevels,
+    // accessLevels, // 未使用
     operationTypes,
     loading,
     stats,
-    statsLoading,
+    // statsLoading, // 未使用
     page,
     pageSize,
     handlePageChange,
@@ -62,7 +60,7 @@ const FieldPermissionManagement: React.FC = () => {
           message.success(res.message);
           loadPermissions();
         }
-      } catch (error) {
+      } catch (_error) {
         message.error('删除字段权限配置失败');
       }
     },
@@ -77,7 +75,7 @@ const FieldPermissionManagement: React.FC = () => {
           message.success(res.message);
           loadPermissions();
         }
-      } catch (error) {
+      } catch (_error) {
         message.error('切换状态失败');
       }
     },
@@ -124,7 +122,7 @@ const FieldPermissionManagement: React.FC = () => {
           loadPermissions();
         }
       }
-    } catch (error) {
+    } catch (_error) {
       message.error(editingPermission ? '更新字段权限配置失败' : '创建字段权限配置失败');
     }
   }, [editingPermission, form, loadPermissions]);
@@ -136,10 +134,10 @@ const FieldPermissionManagement: React.FC = () => {
       active: stats?.active || 0,
       inactive: stats?.inactive || 0,
       byOperation: {
-        create: stats?.byOperation?.CREATE || 0,
-        update: stats?.byOperation?.UPDATE || 0,
-        view: stats?.byOperation?.VIEW || 0,
-        export: stats?.byOperation?.EXPORT || 0,
+        create: (stats?.byOperation as any)?.create || 0,
+        update: (stats?.byOperation as any)?.update || 0,
+        view: (stats?.byOperation as any)?.view || 0,
+        export: (stats?.byOperation as any)?.export || 0,
       },
     }),
     [stats]
@@ -157,8 +155,8 @@ const FieldPermissionManagement: React.FC = () => {
             filterResourceType={filterResourceType}
             filterOperation={filterOperation}
             operationTypes={operationTypes}
-            onFilterRoleIdChange={(e) => setFilterRoleId(e.target.value)}
-            onFilterResourceTypeChange={(e) => setFilterResourceType(e.target.value)}
+            onFilterRoleIdChange={(value) => setFilterRoleId(value)}
+            onFilterResourceTypeChange={(value) => setFilterResourceType(value)}
             onFilterOperationChange={setFilterOperation}
             onRefresh={loadPermissions}
             onCreate={handleCreate}
@@ -193,7 +191,7 @@ const FieldPermissionManagement: React.FC = () => {
         visible={isDetailModalVisible}
         detailPermission={detailPermission}
         operationTypes={operationTypes}
-        getOperationColor={(op) => 'blue'}
+        getOperationColor={() => 'blue'}
         getOperationLabel={(op) => getOperationLabel(op, operationTypes)}
         onClose={() => setIsDetailModalVisible(false)}
       />

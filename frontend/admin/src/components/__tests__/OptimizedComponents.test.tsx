@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '../../tests/test-utils';
+import { render, screen, fireEvent, act } from '../../tests/test-utils';
 import {
   OptimizedList,
   LazyImage,

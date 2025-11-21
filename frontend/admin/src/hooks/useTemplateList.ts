@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { Form, message } from 'antd';
 import { z } from 'zod';
 import {
@@ -13,7 +13,7 @@ import {
 } from '@/services/template';
 import { getUsers } from '@/services/user';
 import type { CreateTemplateDto } from '@/types';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   DeviceTemplateSchema,
   PaginatedTemplatesResponseSchema,
@@ -51,29 +51,29 @@ export const useTemplateList = () => {
   const [createDeviceForm] = Form.useForm();
   const [batchCreateForm] = Form.useForm();
 
-  // ===== 数据加载 (使用 useSafeApi) =====
+  // ===== 数据加载 (使用 useValidatedQuery) =====
 
   /**
    * 加载模板列表 (分页)
    */
   const {
     data: templatesResponse,
-    loading,
-    execute: executeLoadTemplates,
-  } = useSafeApi(
-    () => {
+    isLoading: loading,
+    refetch: loadTemplates,
+  } = useValidatedQuery({
+    queryKey: ['templates', page, pageSize, searchKeyword, categoryFilter, isPublicFilter],
+    queryFn: () => {
       const params: any = { page, pageSize };
       if (searchKeyword) params.search = searchKeyword;
       if (categoryFilter) params.category = categoryFilter;
       if (isPublicFilter !== undefined) params.isPublic = isPublicFilter;
       return getTemplates(params);
     },
-    PaginatedTemplatesResponseSchema,
-    {
-      errorMessage: '加载模板列表失败',
-      fallbackValue: { data: [], total: 0 },
-    }
-  );
+    schema: PaginatedTemplatesResponseSchema,
+    apiErrorMessage: '加载模板列表失败',
+    fallbackValue: { data: [], total: 0 },
+    staleTime: 30 * 1000,
+  });
 
   const templates = templatesResponse?.data || [];
   const total = templatesResponse?.total || 0;
@@ -81,55 +81,39 @@ export const useTemplateList = () => {
   /**
    * 加载热门模板
    */
-  const { data: popularTemplates } = useSafeApi(
-    getPopularTemplates,
-    z.array(DeviceTemplateSchema),
-    {
-      errorMessage: '加载热门模板失败',
-      fallbackValue: [],
-      showError: false, // 不显示错误消息，只在控制台记录
-    }
-  );
+  const { data: popularTemplates } = useValidatedQuery({
+    queryKey: ['popular-templates'],
+    queryFn: getPopularTemplates,
+    schema: z.array(DeviceTemplateSchema),
+    apiErrorMessage: '加载热门模板失败',
+    fallbackValue: [],
+    staleTime: 5 * 60 * 1000, // 热门模板变化较慢，5分钟缓存
+  });
 
   /**
    * 加载统计数据
    */
-  const { data: stats } = useSafeApi(
-    getTemplateStats,
-    TemplateStatsSchema,
-    {
-      errorMessage: '加载统计数据失败',
-      showError: false,
-    }
-  );
+  const { data: stats } = useValidatedQuery({
+    queryKey: ['template-stats'],
+    queryFn: getTemplateStats,
+    schema: TemplateStatsSchema,
+    apiErrorMessage: '加载统计数据失败',
+    staleTime: 60 * 1000, // 统计数据1分钟缓存
+  });
 
   /**
    * 加载用户列表
    */
-  const { data: usersResponse } = useSafeApi(
-    () => getUsers({ page: 1, pageSize: 1000 }),
-    PaginatedUsersResponseSchema,
-    {
-      errorMessage: '加载用户列表失败',
-      fallbackValue: { data: [], total: 0 },
-      showError: false,
-    }
-  );
+  const { data: usersResponse } = useValidatedQuery({
+    queryKey: ['users-for-template'],
+    queryFn: () => getUsers({ page: 1, pageSize: 1000 }),
+    schema: PaginatedUsersResponseSchema,
+    apiErrorMessage: '加载用户列表失败',
+    fallbackValue: { data: [], total: 0 },
+    staleTime: 2 * 60 * 1000, // 用户列表2分钟缓存
+  });
 
   const users = usersResponse?.data || [];
-
-  // ===== 自动加载数据 =====
-
-  /**
-   * 重新加载模板列表
-   */
-  const loadTemplates = useCallback(() => {
-    executeLoadTemplates();
-  }, [executeLoadTemplates]);
-
-  useEffect(() => {
-    loadTemplates();
-  }, [loadTemplates]);
 
   // ===== CRUD 操作 =====
 
@@ -144,7 +128,6 @@ export const useTemplateList = () => {
         setCreateModalVisible(false);
         form.resetFields();
         loadTemplates();
-        // 统计数据会自动重新加载，因为 useSafeApi 会在依赖变化时重新请求
       } catch (error: any) {
         message.error(error.message || '创建模板失败');
       }

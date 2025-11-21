@@ -260,6 +260,193 @@ export class BillingController {
     };
   }
 
+  @Post('orders/:id/confirm')
+  @RequirePermission('billing.update')
+  @ApiOperation({ summary: '确认订单', description: '管理员确认订单已完成支付' })
+  @ApiParam({ name: 'id', description: '订单 ID' })
+  @ApiBody({
+    description: '确认信息（可选）',
+    schema: {
+      type: 'object',
+      properties: {
+        paymentMethod: { type: 'string', description: '支付方式' },
+        transactionId: { type: 'string', description: '交易ID' },
+        note: { type: 'string', description: '备注' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: '订单已确认' })
+  @ApiResponse({ status: 400, description: '订单状态不允许确认' })
+  @ApiResponse({ status: 404, description: '订单不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async confirmOrder(
+    @Param('id') orderId: string,
+    @Body() body: { paymentMethod?: string; transactionId?: string; note?: string }
+  ) {
+    const order = await this.billingService.confirmOrder(orderId, body);
+    return {
+      success: true,
+      data: order,
+      message: '订单已确认',
+    };
+  }
+
+  /**
+   * 批量取消订单
+   */
+  @Post('orders/batch/cancel')
+  @RequirePermission('billing.update')
+  @ApiOperation({ summary: '批量取消订单', description: '批量取消多个待支付订单' })
+  @ApiBody({
+    description: '订单ID列表和取消原因',
+    schema: {
+      type: 'object',
+      required: ['ids'],
+      properties: {
+        ids: { type: 'array', items: { type: 'string' }, description: '订单ID列表' },
+        reason: { type: 'string', description: '取消原因（可选）' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: '批量取消完成' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async batchCancelOrders(@Body() dto: { ids: string[]; reason?: string }) {
+    if (!dto.ids || !Array.isArray(dto.ids) || dto.ids.length === 0) {
+      return {
+        success: false,
+        message: '请提供要取消的订单 ID 列表',
+      };
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as { id: string; error: string }[],
+    };
+
+    // 使用 for-loop 避免数据库连接池耗尽
+    for (const id of dto.ids) {
+      try {
+        await this.billingService.cancelOrder(id, dto.reason);
+        results.success++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          id,
+          error: error.message || '取消失败',
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: results,
+      message: `批量取消完成：成功 ${results.success} 个，失败 ${results.failed} 个`,
+    };
+  }
+
+  /**
+   * 获取订单统计
+   */
+  @Get('orders/stats')
+  @RequirePermission('billing.read')
+  @ApiOperation({ summary: '获取订单统计', description: '获取订单的各种统计数据' })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID（可选）' })
+  @ApiQuery({ name: 'startDate', required: false, description: '开始日期（YYYY-MM-DD）' })
+  @ApiQuery({ name: 'endDate', required: false, description: '结束日期（YYYY-MM-DD）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getOrderStats(
+    @Query('tenantId') tenantId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
+    const stats = await this.billingService.getOrderStats({ tenantId, startDate, endDate });
+    return {
+      success: true,
+      data: stats,
+      message: '订单统计获取成功',
+    };
+  }
+
+  /**
+   * 更新订单
+   */
+  @Patch('orders/:id')
+  @RequirePermission('billing.update')
+  @ApiOperation({ summary: '更新订单', description: '更新订单信息（仅限部分字段）' })
+  @ApiParam({ name: 'id', description: '订单 ID' })
+  @ApiBody({
+    description: '订单更新数据',
+    schema: {
+      type: 'object',
+      properties: {
+        remark: { type: 'string', description: '备注' },
+        metadata: { type: 'object', description: '元数据' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '订单不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async updateOrder(@Param('id') id: string, @Body() data: { remark?: string; metadata?: any }) {
+    const order = await this.billingService.updateOrder(id, data);
+    return {
+      success: true,
+      data: order,
+      message: '订单更新成功',
+    };
+  }
+
+  /**
+   * 删除订单（软删除）
+   */
+  @Delete('orders/:id')
+  @RequirePermission('billing.delete')
+  @ApiOperation({ summary: '删除订单', description: '删除订单（软删除，仅标记为已删除）' })
+  @ApiParam({ name: 'id', description: '订单 ID' })
+  @ApiResponse({ status: 200, description: '删除成功' })
+  @ApiResponse({ status: 404, description: '订单不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async deleteOrder(@Param('id') id: string) {
+    await this.billingService.deleteOrder(id);
+    return {
+      success: true,
+      message: '订单删除成功',
+    };
+  }
+
+  /**
+   * 订单退款
+   */
+  @Post('orders/:id/refund')
+  @RequirePermission('billing.refund')
+  @ApiOperation({ summary: '订单退款', description: '为已支付订单进行退款' })
+  @ApiParam({ name: 'id', description: '订单 ID' })
+  @ApiBody({
+    description: '退款信息',
+    schema: {
+      type: 'object',
+      required: ['amount'],
+      properties: {
+        amount: { type: 'number', description: '退款金额' },
+        reason: { type: 'string', description: '退款原因' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: '退款成功' })
+  @ApiResponse({ status: 400, description: '订单状态不允许退款或金额超出' })
+  @ApiResponse({ status: 404, description: '订单不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async refundOrder(@Param('id') id: string, @Body() dto: { amount: number; reason?: string }) {
+    const result = await this.billingService.refundOrder(id, dto.amount, dto.reason);
+    return {
+      success: true,
+      data: result,
+      message: '退款成功',
+    };
+  }
+
   @Get('usage/:userId')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取用户使用记录', description: '获取指定时间范围内的使用记录' })

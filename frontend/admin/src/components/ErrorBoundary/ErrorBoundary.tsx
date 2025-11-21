@@ -12,7 +12,7 @@
  * ```
  */
 
-import React, { Component, ReactNode, ErrorInfo } from 'react';
+import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { Result, Button } from 'antd';
 
 interface Props {

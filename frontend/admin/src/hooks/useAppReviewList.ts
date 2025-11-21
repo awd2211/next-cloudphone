@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Form, message } from 'antd';
 import { z } from 'zod';
 import {
@@ -16,7 +16,7 @@ import {
   createRecordColumns,
 } from '@/components/AppReview';
 import type { Application, AppReviewRecord } from '@/types';
-import { useSafeApi } from './useSafeApi';
+import { useValidatedQuery } from '@/hooks/utils';
 import {
   PaginatedAppsResponseSchema,
   PaginatedAppReviewRecordsResponseSchema,
@@ -29,52 +29,55 @@ export const useAppReviewList = () => {
   const [pageSize, setPageSize] = useState(10);
   const [activeTab, setActiveTab] = useState('pending');
 
-  // ✅ 使用 useSafeApi 加载待审核应用
+  // ✅ 使用 useValidatedQuery 加载待审核应用
   const {
     data: pendingAppsResponse,
-    loading: pendingLoading,
-    execute: executePendingLoad,
-  } = useSafeApi(
-    () => getPendingApps({ page, pageSize }),
-    PaginatedAppsResponseSchema,
-    {
-      errorMessage: '加载待审核应用失败',
-      fallbackValue: { data: [], total: 0 },
-    }
-  );
+    isLoading: pendingLoading,
+    refetch: loadPendingApps,
+  } = useValidatedQuery({
+    queryKey: ['pending-apps', page, pageSize],
+    queryFn: () => getPendingApps({ page, pageSize }),
+    schema: PaginatedAppsResponseSchema,
+    apiErrorMessage: '加载待审核应用失败',
+    fallbackValue: { data: [], total: 0 },
+    enabled: activeTab === 'pending',
+    staleTime: 30 * 1000,
+  });
 
-  // ✅ 使用 useSafeApi 加载已审核应用
+  // ✅ 使用 useValidatedQuery 加载已审核应用
   const {
     data: reviewedAppsResponse,
-    loading: reviewedLoading,
-    execute: executeReviewedLoad,
-  } = useSafeApi(
-    () =>
+    isLoading: reviewedLoading,
+    refetch: _loadReviewedApps,
+  } = useValidatedQuery({
+    queryKey: ['reviewed-apps', page, pageSize, activeTab],
+    queryFn: () =>
       getApps({
         page,
         pageSize,
         reviewStatus: activeTab === 'approved' ? 'approved' : 'rejected',
       } as any),
-    PaginatedAppsResponseSchema,
-    {
-      errorMessage: '加载已审核应用失败',
-      fallbackValue: { data: [], total: 0 },
-    }
-  );
+    schema: PaginatedAppsResponseSchema,
+    apiErrorMessage: '加载已审核应用失败',
+    fallbackValue: { data: [], total: 0 },
+    enabled: activeTab === 'approved' || activeTab === 'rejected',
+    staleTime: 30 * 1000,
+  });
 
-  // ✅ 使用 useSafeApi 加载审核记录
+  // ✅ 使用 useValidatedQuery 加载审核记录
   const {
     data: reviewRecordsResponse,
-    loading: recordsLoading,
-    execute: executeRecordsLoad,
-  } = useSafeApi(
-    () => getAppReviewRecords({ page, pageSize }),
-    PaginatedAppReviewRecordsResponseSchema,
-    {
-      errorMessage: '加载审核记录失败',
-      fallbackValue: { data: [], total: 0 },
-    }
-  );
+    isLoading: recordsLoading,
+    refetch: _loadReviewRecords,
+  } = useValidatedQuery({
+    queryKey: ['app-review-records', page, pageSize],
+    queryFn: () => getAppReviewRecords({ page, pageSize }),
+    schema: PaginatedAppReviewRecordsResponseSchema,
+    apiErrorMessage: '加载审核记录失败',
+    fallbackValue: { data: [], total: 0 },
+    enabled: activeTab === 'history',
+    staleTime: 30 * 1000,
+  });
 
   // 计算当前loading状态
   const loading = pendingLoading || reviewedLoading || recordsLoading;
@@ -89,30 +92,6 @@ export const useAppReviewList = () => {
 
   // Form 实例
   const [form] = Form.useForm();
-
-  // ✅ 简化的加载函数（调用 useSafeApi 的 execute）
-  const loadPendingApps = useCallback(async () => {
-    await executePendingLoad();
-  }, [executePendingLoad]);
-
-  const loadReviewedApps = useCallback(async () => {
-    await executeReviewedLoad();
-  }, [executeReviewedLoad]);
-
-  const loadReviewRecords = useCallback(async () => {
-    await executeRecordsLoad();
-  }, [executeRecordsLoad]);
-
-  // 根据activeTab加载对应数据
-  useEffect(() => {
-    if (activeTab === 'pending') {
-      loadPendingApps();
-    } else if (activeTab === 'approved' || activeTab === 'rejected') {
-      loadReviewedApps();
-    } else if (activeTab === 'history') {
-      loadReviewRecords();
-    }
-  }, [activeTab, loadPendingApps, loadReviewedApps, loadReviewRecords]);
 
   // 打开审核模态框
   const openReviewModal = useCallback(
@@ -173,7 +152,7 @@ export const useAppReviewList = () => {
         setReviewHistory([]); // 验证失败时使用空数组
       }
       setHistoryModalVisible(true);
-    } catch (error) {
+    } catch (_error) {
       message.error('加载审核历史失败');
       setReviewHistory([]); // 错误时重置为空数组
     }

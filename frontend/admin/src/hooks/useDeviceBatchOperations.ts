@@ -3,7 +3,7 @@ import { message } from 'antd';
 import { useBatchOperation } from '@/components/BatchOperation/useBatchOperation';
 import { startDevice, stopDevice, rebootDevice, deleteDevice } from '@/services/device';
 import { queryClient } from '@/lib/react-query';
-import { deviceKeys } from './useDevices';
+import { deviceKeys } from './queries';
 
 interface UseDeviceBatchOperationsProps {
   selectedRowKeys: React.Key[];
@@ -27,7 +27,8 @@ export const useDeviceBatchOperations = ({
 }: UseDeviceBatchOperationsProps) => {
   // 批量启动
   const batchStart = useBatchOperation({
-    sourceItems: devices.filter((d) => selectedRowKeys.includes(d.id)),
+    title: '批量启动设备',
+    items: devices.filter((d) => selectedRowKeys.includes(d.id)),
     getItemId: (device) => device.id,
     getItemName: (device) => device.name,
     operationFn: async (device) => {
@@ -45,7 +46,8 @@ export const useDeviceBatchOperations = ({
 
   // 批量停止
   const batchStop = useBatchOperation({
-    sourceItems: devices.filter((d) => selectedRowKeys.includes(d.id)),
+    title: '批量停止设备',
+    items: devices.filter((d) => selectedRowKeys.includes(d.id)),
     getItemId: (device) => device.id,
     getItemName: (device) => device.name,
     operationFn: async (device) => {
@@ -63,7 +65,8 @@ export const useDeviceBatchOperations = ({
 
   // 批量重启
   const batchReboot = useBatchOperation({
-    sourceItems: devices.filter((d) => selectedRowKeys.includes(d.id)),
+    title: '批量重启设备',
+    items: devices.filter((d) => selectedRowKeys.includes(d.id)),
     getItemId: (device) => device.id,
     getItemName: (device) => device.name,
     operationFn: async (device) => {
@@ -83,7 +86,8 @@ export const useDeviceBatchOperations = ({
 
   // 批量删除
   const batchDelete = useBatchOperation({
-    sourceItems: devices.filter((d) => selectedRowKeys.includes(d.id)),
+    title: '批量删除设备',
+    items: devices.filter((d) => selectedRowKeys.includes(d.id)),
     getItemId: (device) => device.id,
     getItemName: (device) => device.name,
     operationFn: async (device) => {

@@ -1,5 +1,6 @@
-import React from 'react';
-import { Card, Button, Spin, Space } from 'antd';
+import React, { useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, Button, Spin, Space, message } from 'antd';
 import { GiftOutlined, LeftOutlined } from '@ant-design/icons';
 import {
   StatsCards,
@@ -8,33 +9,78 @@ import {
   CouponDetailModal,
   EmptyState,
 } from '@/components/Coupon';
-import { useMyCoupons } from '@/hooks/useMyCoupons';
+import { useMyCoupons } from '@/hooks/queries';
+import type { Coupon, CouponStatus } from '@/services/activity';
+import { getUsageRoute, getUsageMessage } from '@/utils/couponConfig';
 
 /**
- * 我的优惠券页面（优化版）
+ * 我的优惠券页面
  *
- * 优化点：
- * 1. ✅ 使用自定义 hook 管理所有业务逻辑
- * 2. ✅ 页面组件只负责布局和 UI 组合
- * 3. ✅ 所有子组件使用 React.memo 优化
- * 4. ✅ 处理函数使用 useCallback 优化
- * 5. ✅ 统计数据使用 useMemo 优化
- * 6. ✅ 配置驱动的优惠券类型和状态展示
- * 7. ✅ 代码从 408 行减少到 ~105 行
+ * 功能：
+ * 1. 展示用户所有优惠券（可用、已用、已过期）
+ * 2. Tab 筛选不同状态的优惠券
+ * 3. 统计数据展示
+ * 4. 查看优惠券详情
+ * 5. 使用优惠券（跳转到对应页面）
  */
 const MyCoupons: React.FC = () => {
-  const {
-    loading,
-    coupons,
-    activeTab,
-    selectedCoupon,
-    stats,
-    handleTabChange,
-    showCouponDetail,
-    closeDetailModal,
-    handleUseCoupon,
-    goToActivities,
-  } = useMyCoupons();
+  const navigate = useNavigate();
+
+  // 本地状态
+  const [activeTab, setActiveTab] = useState<CouponStatus | 'all'>('all');
+  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+
+  // React Query hooks
+  const { data: couponsData, isLoading: loading } = useMyCoupons({
+    status: activeTab === 'all' ? undefined : activeTab,
+    page: 1,
+    pageSize: 100,
+  });
+
+  const coupons = couponsData?.data || [];
+
+  // 统计数据计算
+  const stats = useMemo(() => {
+    return {
+      total: coupons.length,
+      available: coupons.filter((c) => c.status === 'available').length,
+      used: coupons.filter((c) => c.status === 'used').length,
+      expired: coupons.filter((c) => c.status === 'expired').length,
+    };
+  }, [coupons]);
+
+  // Tab 切换
+  const handleTabChange = useCallback((key: CouponStatus | 'all') => {
+    setActiveTab(key);
+  }, []);
+
+  // 显示优惠券详情
+  const showCouponDetail = useCallback((coupon: Coupon) => {
+    setSelectedCoupon(coupon);
+  }, []);
+
+  // 关闭详情 Modal
+  const closeDetailModal = useCallback(() => {
+    setSelectedCoupon(null);
+  }, []);
+
+  // 使用优惠券
+  const handleUseCoupon = useCallback((coupon: Coupon) => {
+    const route = getUsageRoute(coupon.type);
+    const msg = getUsageMessage(coupon.type);
+
+    if (route) {
+      message.success(msg);
+      navigate(route);
+    } else {
+      message.info('该优惠券暂不支持在线使用');
+    }
+  }, [navigate]);
+
+  // 返回活动中心
+  const goToActivities = useCallback(() => {
+    navigate('/activities');
+  }, [navigate]);
 
   return (
     <div>

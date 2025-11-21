@@ -320,4 +320,65 @@ export class PermissionCacheService implements OnModuleInit {
       prefix: this.CACHE_PREFIX,
     };
   }
+
+  /**
+   * 导出所有缓存数据（用于调试和备份）
+   * @returns 缓存数据快照
+   */
+  async exportCache(): Promise<Record<string, any>> {
+    try {
+      // 从 Redis 获取所有权限缓存的键
+      const pattern = `${this.CACHE_PREFIX}*`;
+      const allKeys: string[] = [];
+      let cursor = '0';
+
+      // 使用 SCAN 命令遍历所有匹配的键
+      do {
+        const result = await this.cacheService['redis'].scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          100
+        );
+        cursor = result[0];
+        allKeys.push(...result[1]);
+      } while (cursor !== '0');
+
+      this.logger.debug(`Found ${allKeys.length} cached permission entries`);
+
+      // 批量获取缓存数据
+      const exportData: Record<string, any> = {};
+
+      for (const key of allKeys) {
+        const cached = await this.cacheService.get<CachedUserPermissions>(key, {
+          layer: CacheLayer.L2_ONLY, // 只从 Redis 读取
+        });
+
+        if (cached) {
+          // 提取用户ID（去掉前缀）
+          const userId = key.replace(this.CACHE_PREFIX, '');
+          exportData[userId] = {
+            userId: cached.userId,
+            tenantId: cached.tenantId,
+            isSuperAdmin: cached.isSuperAdmin,
+            rolesCount: cached.roles.length,
+            roles: cached.roles,
+            permissionsCount: cached.permissions.length,
+            permissions: cached.permissions.map((p) => p.name),
+            dataScopesCount: Object.keys(cached.dataScopes).length,
+            fieldPermissionsCount: Object.keys(cached.fieldPermissions).length,
+            cachedAt: cached.cachedAt,
+          };
+        }
+      }
+
+      this.logger.log(`Exported ${Object.keys(exportData).length} cache entries`);
+
+      return exportData;
+    } catch (error) {
+      this.logger.error(`Error exporting cache: ${error.message}`, error.stack);
+      return {};
+    }
+  }
 }

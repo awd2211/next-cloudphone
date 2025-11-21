@@ -412,6 +412,48 @@ export class UsersController {
     };
   }
 
+  @Post('batch-delete')
+  @RequirePermission('user.delete')
+  @DataScope(DataScopeType.ALL) // 只有管理员可以批量删除用户
+  @ApiOperation({ summary: '批量删除用户', description: '批量删除多个用户账号' })
+  @ApiResponse({ status: 200, description: '批量删除成功' })
+  @ApiResponse({ status: 400, description: '请求参数错误' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async batchDelete(@Body() dto: { ids: string[] }) {
+    if (!dto.ids || !Array.isArray(dto.ids) || dto.ids.length === 0) {
+      return {
+        success: false,
+        message: '请提供要删除的用户 ID 列表',
+      };
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as { id: string; error: string }[],
+    };
+
+    // 批量删除用户
+    for (const id of dto.ids) {
+      try {
+        await this.commandBus.execute(new DeleteUserCommand(id));
+        results.success++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          id,
+          error: error.message || '删除失败',
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: results,
+      message: `批量删除完成：成功 ${results.success} 个，失败 ${results.failed} 个`,
+    };
+  }
+
   // ============================================================================
   // 支付方式管理接口
   // ============================================================================
@@ -487,6 +529,27 @@ export class UsersController {
     return {
       success: true,
       message: '支付方式删除成功',
+    };
+  }
+
+  /**
+   * 管理员重置用户密码
+   */
+  @Post(':id/reset-password')
+  @RequirePermission('user.update')
+  @ApiOperation({ summary: '重置用户密码', description: '管理员为指定用户重置密码' })
+  @ApiParam({ name: 'id', description: '用户 ID' })
+  @ApiResponse({ status: 200, description: '密码重置成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async resetUserPassword(
+    @Param('id') userId: string,
+    @Body() body: { newPassword: string }
+  ) {
+    await this.usersService.resetUserPassword(userId, body.newPassword);
+    return {
+      success: true,
+      message: '密码重置成功',
     };
   }
 }

@@ -1,40 +1,101 @@
-import React from 'react';
-import { Card, Table, Button, Space, Typography, Empty } from 'antd';
-import { FileTextOutlined, PlusOutlined } from '@ant-design/icons';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Card, Table, Button, Space, Typography, Empty, Form } from 'antd';
+import { FileTextOutlined, PlusOutlined } from '@/icons';
 import {
   InvoiceStatsCards,
   InvoiceApplyModal,
   InvoiceDetailModal,
 } from '@/components/Invoice';
-import { useInvoiceList } from '@/hooks/useInvoiceList';
+import {
+  useInvoices,
+  useApplyInvoice,
+  useDownloadInvoice,
+  useBills,
+} from '@/hooks/queries';
+import { createInvoiceTableColumns } from '@/utils/invoiceTableColumns';
+import type { Invoice } from '@/types';
 
 const { Title } = Typography;
 
 /**
- * 发票列表页面
+ * 发票列表页面（React Query 优化版）
  * 展示所有发票，支持申请、查看详情、下载等操作
  */
 const InvoiceList: React.FC = () => {
-  const {
-    invoices,
-    bills,
-    loading,
-    downloading,
-    total,
-    page,
-    pageSize,
-    columns,
-    form,
-    applyModalVisible,
-    detailModalVisible,
-    selectedInvoice,
-    handleOpenApplyModal,
-    handleCloseApplyModal,
-    handleCloseDetailModal,
-    handleApplyInvoice,
-    handleDownload,
-    handlePageChange,
-  } = useInvoiceList();
+  // Form 实例
+  const [form] = Form.useForm();
+
+  // 本地状态
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [applyModalVisible, setApplyModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  // React Query hooks
+  const { data: invoicesData, isLoading: loading } = useInvoices({ page, pageSize });
+  const { data: billsData } = useBills({ page: 1, pageSize: 100, status: 'paid' }); // 获取已支付账单
+  const applyInvoice = useApplyInvoice();
+  const downloadInvoice = useDownloadInvoice();
+
+  const invoices = invoicesData?.items || [];
+  const bills = billsData?.items || [];
+  const total = invoicesData?.total || 0;
+  const downloading = downloadInvoice.isPending;
+
+  // 打开/关闭申请弹窗
+  const handleOpenApplyModal = useCallback(() => {
+    setApplyModalVisible(true);
+  }, []);
+
+  const handleCloseApplyModal = useCallback(() => {
+    setApplyModalVisible(false);
+    form.resetFields();
+  }, [form]);
+
+  // 打开/关闭详情弹窗
+  const handleOpenDetailModal = useCallback((invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setDetailModalVisible(true);
+  }, []);
+
+  const handleCloseDetailModal = useCallback(() => {
+    setDetailModalVisible(false);
+    setSelectedInvoice(null);
+  }, []);
+
+  // 申请发票
+  const handleApplyInvoice = useCallback(
+    async (values: any) => {
+      await applyInvoice.mutateAsync(values);
+      handleCloseApplyModal();
+    },
+    [applyInvoice, handleCloseApplyModal]
+  );
+
+  // 下载发票
+  const handleDownload = useCallback(
+    async (invoice: Invoice) => {
+      await downloadInvoice.mutateAsync(invoice.id);
+    },
+    [downloadInvoice]
+  );
+
+  // 分页变化
+  const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
+    setPage(newPage);
+    setPageSize(newPageSize);
+  }, []);
+
+  // 表格列配置
+  const columns = useMemo(
+    () =>
+      createInvoiceTableColumns({
+        onViewDetail: handleOpenDetailModal,
+        onDownload: handleDownload,
+      }),
+    [handleOpenDetailModal, handleDownload]
+  );
 
   return (
     <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>

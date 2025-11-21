@@ -10,11 +10,7 @@ import {
   EditOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-
-interface Application {
-  id: string;
-  [key: string]: any;
-}
+import type { Application } from '@/types';
 
 interface PendingAppActionsProps {
   app: Application;

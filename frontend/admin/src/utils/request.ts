@@ -1,5 +1,10 @@
 import axios from 'axios';
-import type { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
+import type {
+  AxiosError,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+  AxiosResponse
+} from 'axios';
 import { message, Modal } from 'antd';
 import type { ApiResponse } from '../types';
 
@@ -186,7 +191,7 @@ async function refreshAccessToken(): Promise<string> {
       } else {
         throw new Error('No token in response');
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Token 刷新失败:', error);
       reject(error);
     } finally {
@@ -437,7 +442,7 @@ axiosInstance.interceptors.response.use(
             // 重试原始请求
             console.log('🔄 Token 刷新成功，重试原始请求...');
             return axiosInstance(error.config!);
-          } catch (refreshError) {
+          } catch (_refreshError) {
             // Token 刷新失败，显示会话过期对话框
             console.error('❌ Token 刷新失败，会话已过期');
             showSessionExpiredModal();

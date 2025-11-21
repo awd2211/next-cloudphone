@@ -1,11 +1,11 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Space, Form } from 'antd';
 import {
-  usePayments,
+  useAdminPayments,
   useSyncPaymentStatus,
   useManualRefund,
   useExportPayments,
-} from '@/hooks/usePayments';
+} from '@/hooks/queries';
 import type { PaymentDetail, PaymentListParams } from '@/services/payment-admin';
 import { usePermission } from '@/hooks';
 import {
@@ -57,7 +57,7 @@ const PaymentList = () => {
     [page, pageSize, filters, searchValue]
   );
 
-  const { data, isLoading } = usePayments(params);
+  const { data, isLoading } = useAdminPayments(params);
   const syncStatusMutation = useSyncPaymentStatus();
   const refundMutation = useManualRefund();
   const exportMutation = useExportPayments();
@@ -125,19 +125,6 @@ const PaymentList = () => {
       setRefundModalVisible(true);
     },
     [refundForm]
-  );
-
-  const handleRefund = useCallback(
-    async (values: { amount?: number; reason: string; adminNote?: string }) => {
-      if (!selectedPayment) return;
-      await refundMutation.mutateAsync({
-        paymentId: selectedPayment.id,
-        data: values,
-      });
-      setRefundModalVisible(false);
-      refundForm.resetFields();
-    },
-    [selectedPayment, refundMutation, refundForm]
   );
 
   // ===== 渲染 =====

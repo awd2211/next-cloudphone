@@ -183,7 +183,7 @@ export const createHistoryColumns = (
     dataIndex: 'executedBy',
     key: 'executedBy',
     width: 100,
-    sorter: (a, b) => a.executedBy.localeCompare(b.executedBy),
+    sorter: (a, b) => a.executedBy?.localeCompare(b.executedBy ?? "") ?? 0,
     render: (type) => (type === 'manual' ? <Tag color="blue">手动</Tag> : <Tag>自动</Tag>),
   },
   {
