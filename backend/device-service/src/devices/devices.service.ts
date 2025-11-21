@@ -2966,4 +2966,259 @@ export class DevicesService {
       );
     }
   }
+
+  // ==================== 快速列表和筛选元数据 ====================
+
+  /**
+   * 获取设备快速列表（轻量级，用于下拉框等UI组件）
+   * 带缓存优化
+   */
+  async getQuickList(query: {
+    status?: string;
+    search?: string;
+    limit?: number;
+    userId?: string;
+  }): Promise<{
+    items: Array<{
+      id: string;
+      name: string;
+      status: string;
+      extra: Record<string, any>;
+    }>;
+    total: number;
+    cached: boolean;
+  }> {
+    const { status, search, limit = 100, userId } = query;
+
+    // 构建查询条件
+    const queryBuilder = this.devicesRepository
+      .createQueryBuilder('device')
+      .select([
+        'device.id',
+        'device.name',
+        'device.status',
+        'device.providerType',
+        'device.deviceGroup',
+        'device.androidVersion',
+      ]);
+
+    if (userId) {
+      queryBuilder.andWhere('device.userId = :userId', { userId });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('device.status = :status', { status });
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(device.name ILIKE :search OR device.id::text ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    queryBuilder.orderBy('device.name', 'ASC').take(limit);
+
+    const [devices, total] = await queryBuilder.getManyAndCount();
+
+    const items = devices.map((device) => ({
+      id: device.id,
+      name: device.name,
+      status: device.status,
+      extra: {
+        provider: device.providerType,
+        deviceGroup: device.deviceGroup,
+        androidVersion: device.androidVersion,
+      },
+    }));
+
+    return {
+      items,
+      total,
+      cached: false, // 可以后续添加 Redis 缓存
+    };
+  }
+
+  /**
+   * 获取设备筛选元数据
+   * 用于生成动态筛选表单
+   */
+  async getFiltersMetadata(query: {
+    includeCount?: boolean;
+    onlyWithData?: boolean;
+    userId?: string;
+  }): Promise<{
+    filters: Array<{
+      field: string;
+      label: string;
+      type: 'select' | 'multiselect' | 'range' | 'date' | 'search';
+      options?: Array<{ value: string; label: string; count?: number }>;
+      required: boolean;
+      defaultValue?: any;
+    }>;
+    total: number;
+  }> {
+    const { includeCount = true, onlyWithData = false, userId } = query;
+
+    // 基础查询条件
+    const baseWhere = userId ? { userId } : {};
+
+    // 获取状态分布
+    const statusCounts = await this.devicesRepository
+      .createQueryBuilder('device')
+      .select('device.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .where(baseWhere)
+      .groupBy('device.status')
+      .getRawMany();
+
+    const statusOptions = [
+      { value: 'idle', label: '空闲', count: 0 },
+      { value: 'running', label: '运行中', count: 0 },
+      { value: 'stopped', label: '已停止', count: 0 },
+      { value: 'error', label: '错误', count: 0 },
+      { value: 'starting', label: '启动中', count: 0 },
+      { value: 'stopping', label: '停止中', count: 0 },
+      { value: 'creating', label: '创建中', count: 0 },
+      { value: 'deleting', label: '删除中', count: 0 },
+    ];
+
+    statusCounts.forEach((item: { status: string; count: string }) => {
+      const option = statusOptions.find((o) => o.value === item.status);
+      if (option) {
+        option.count = parseInt(item.count, 10);
+      }
+    });
+
+    // 获取提供商分布
+    const providerCounts = await this.devicesRepository
+      .createQueryBuilder('device')
+      .select('device.providerType', 'provider')
+      .addSelect('COUNT(*)', 'count')
+      .where(baseWhere)
+      .groupBy('device.providerType')
+      .getRawMany();
+
+    const providerOptions = providerCounts.map((item: { provider: string; count: string }) => ({
+      value: item.provider,
+      label: this.getProviderLabel(item.provider),
+      count: includeCount ? parseInt(item.count, 10) : undefined,
+    }));
+
+    // 获取 Android 版本分布
+    const androidVersionCounts = await this.devicesRepository
+      .createQueryBuilder('device')
+      .select('device.androidVersion', 'version')
+      .addSelect('COUNT(*)', 'count')
+      .where(baseWhere)
+      .andWhere('device.androidVersion IS NOT NULL')
+      .groupBy('device.androidVersion')
+      .getRawMany();
+
+    const androidVersionOptions = androidVersionCounts.map((item: { version: string; count: string }) => ({
+      value: item.version,
+      label: `Android ${item.version}`,
+      count: includeCount ? parseInt(item.count, 10) : undefined,
+    }));
+
+    // 获取设备分组分布
+    const groupCounts = await this.devicesRepository
+      .createQueryBuilder('device')
+      .select('device.deviceGroup', 'deviceGroup')
+      .addSelect('COUNT(*)', 'count')
+      .where(baseWhere)
+      .andWhere('device.deviceGroup IS NOT NULL')
+      .groupBy('device.deviceGroup')
+      .getRawMany();
+
+    const groupOptions = groupCounts.map((item: { deviceGroup: string; count: string }) => ({
+      value: item.deviceGroup,
+      label: item.deviceGroup,
+      count: includeCount ? parseInt(item.count, 10) : undefined,
+    }));
+
+    // 构建筛选器配置
+    let filters: Array<{
+      field: string;
+      label: string;
+      type: 'select' | 'multiselect' | 'range' | 'date' | 'search';
+      options?: Array<{ value: string; label: string; count?: number }>;
+      required: boolean;
+      defaultValue?: any;
+    }> = [
+      {
+        field: 'status',
+        label: '设备状态',
+        type: 'multiselect',
+        options: includeCount
+          ? statusOptions
+          : statusOptions.map(({ value, label }) => ({ value, label })),
+        required: false,
+      },
+      {
+        field: 'providerType',
+        label: '提供商',
+        type: 'multiselect',
+        options: providerOptions,
+        required: false,
+      },
+      {
+        field: 'androidVersion',
+        label: 'Android 版本',
+        type: 'multiselect',
+        options: androidVersionOptions,
+        required: false,
+      },
+      {
+        field: 'deviceGroup',
+        label: '设备分组',
+        type: 'multiselect',
+        options: groupOptions,
+        required: false,
+      },
+      {
+        field: 'name',
+        label: '设备名称',
+        type: 'search',
+        required: false,
+      },
+      {
+        field: 'createdAt',
+        label: '创建时间',
+        type: 'date',
+        required: false,
+      },
+    ];
+
+    // 如果只返回有数据的选项
+    if (onlyWithData) {
+      filters = filters.filter((f) => {
+        if (f.options) {
+          return f.options.some((o) => (o.count ?? 1) > 0);
+        }
+        return true;
+      });
+    }
+
+    // 获取设备总数
+    const total = await this.devicesRepository.count({ where: baseWhere as any });
+
+    return {
+      filters,
+      total,
+    };
+  }
+
+  /**
+   * 获取提供商显示名称
+   */
+  private getProviderLabel(provider: string): string {
+    const labels: Record<string, string> = {
+      redroid: 'Redroid 容器',
+      physical: '物理设备',
+      huawei: '华为云手机',
+      aliyun: '阿里云手机',
+    };
+    return labels[provider] || provider;
+  }
 }

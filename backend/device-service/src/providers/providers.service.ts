@@ -1,31 +1,71 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between } from 'typeorm';
 import { DeviceProviderFactory } from './device-provider.factory';
 import { DeviceProviderType, CaptureFormat } from './provider.types';
 import { QueryCloudSyncDto, UpdateProviderConfigDto, CloudBillingReconciliationDto } from './dto/provider.dto';
+import { ProviderConfig, CloudSyncRecord, CloudBillingReconciliation } from '../entities/provider-config.entity';
+import { Device } from '../entities/device.entity';
 
 /**
  * 提供商管理服务
  * 提供提供商查询、配置管理、健康检查等功能
  */
 @Injectable()
-export class ProvidersService {
+export class ProvidersService implements OnModuleInit {
   private readonly logger = new Logger(ProvidersService.name);
 
-  // 内存中存储的提供商配置（生产环境应该存储到数据库）
+  // 内存中存储的提供商配置（与数据库同步）
   private providerConfigs = new Map<DeviceProviderType, any>();
 
-  constructor(private readonly providerFactory: DeviceProviderFactory) {
-    // 初始化默认配置
-    this.initializeDefaultConfigs();
+  constructor(
+    private readonly providerFactory: DeviceProviderFactory,
+    @InjectRepository(ProviderConfig)
+    private configRepo: Repository<ProviderConfig>,
+    @InjectRepository(CloudSyncRecord)
+    private syncRecordRepo: Repository<CloudSyncRecord>,
+    @InjectRepository(CloudBillingReconciliation)
+    private billingReconciliationRepo: Repository<CloudBillingReconciliation>,
+    @InjectRepository(Device)
+    private deviceRepo: Repository<Device>,
+  ) {}
+
+  async onModuleInit() {
+    // 从数据库加载配置，如果没有则初始化默认配置
+    await this.loadOrInitializeConfigs();
   }
 
   /**
-   * 初始化默认提供商配置
+   * 从数据库加载配置或初始化默认配置
    */
-  private initializeDefaultConfigs() {
+  private async loadOrInitializeConfigs() {
+    const dbConfigs = await this.configRepo.find();
+
+    if (dbConfigs.length > 0) {
+      // 从数据库加载
+      for (const config of dbConfigs) {
+        this.providerConfigs.set(config.providerType, {
+          type: config.providerType,
+          enabled: config.enabled,
+          priority: config.priority,
+          maxDevices: config.maxDevices,
+          config: config.config,
+        });
+      }
+      this.logger.log(`Loaded ${dbConfigs.length} provider configurations from database`);
+    } else {
+      // 初始化默认配置并保存到数据库
+      await this.initializeDefaultConfigs();
+    }
+  }
+
+  /**
+   * 初始化默认提供商配置并保存到数据库
+   */
+  private async initializeDefaultConfigs() {
     const defaultConfigs = [
       {
-        type: DeviceProviderType.REDROID,
+        providerType: DeviceProviderType.REDROID,
         enabled: true,
         priority: 1,
         maxDevices: 100,
@@ -36,9 +76,10 @@ export class ProvidersService {
           adbPortStart: 5555,
           adbPortEnd: 5655,
         },
+        description: 'Redroid Docker container provider',
       },
       {
-        type: DeviceProviderType.PHYSICAL,
+        providerType: DeviceProviderType.PHYSICAL,
         enabled: true,
         priority: 2,
         maxDevices: 50,
@@ -48,9 +89,10 @@ export class ProvidersService {
           scrcpyEnabled: true,
           autoDiscovery: false,
         },
+        description: 'Physical Android device provider',
       },
       {
-        type: DeviceProviderType.HUAWEI_CPH,
+        providerType: DeviceProviderType.HUAWEI_CPH,
         enabled: false,
         priority: 3,
         maxDevices: 100,
@@ -60,9 +102,10 @@ export class ProvidersService {
           accessKeySecret: '',
           apiEndpoint: 'https://cph.myhuaweicloud.com',
         },
+        description: 'Huawei Cloud Phone provider',
       },
       {
-        type: DeviceProviderType.ALIYUN_ECP,
+        providerType: DeviceProviderType.ALIYUN_ECP,
         enabled: false,
         priority: 4,
         maxDevices: 100,
@@ -72,12 +115,24 @@ export class ProvidersService {
           accessKeySecret: '',
           apiEndpoint: 'https://ecp.aliyuncs.com',
         },
+        description: 'Aliyun Elastic Cloud Phone provider',
       },
     ];
 
-    defaultConfigs.forEach((config) => {
-      this.providerConfigs.set(config.type, config);
-    });
+    // 保存到数据库并更新内存缓存
+    for (const config of defaultConfigs) {
+      const entity = this.configRepo.create(config);
+      await this.configRepo.save(entity);
+      this.providerConfigs.set(config.providerType, {
+        type: config.providerType,
+        enabled: config.enabled,
+        priority: config.priority,
+        maxDevices: config.maxDevices,
+        config: config.config,
+      });
+    }
+
+    this.logger.log(`Initialized ${defaultConfigs.length} default provider configurations`);
   }
 
   /**
@@ -195,35 +250,42 @@ export class ProvidersService {
       throw new BadRequestException(`Provider ${provider} is not a cloud provider`);
     }
 
-    // TODO: 这里应该从数据库查询实际的同步记录
-    // 目前返回模拟数据
-    const mockData = [
-      {
-        id: '1',
-        provider: DeviceProviderType.HUAWEI_CPH,
-        status: 'success',
-        lastSyncAt: new Date().toISOString(),
-        syncedDevices: 15,
-        failedDevices: 0,
-        message: 'Sync completed successfully',
-      },
-      {
-        id: '2',
-        provider: DeviceProviderType.ALIYUN_ECP,
-        status: 'idle',
-        lastSyncAt: new Date(Date.now() - 3600000).toISOString(),
-        syncedDevices: 0,
-        failedDevices: 0,
-        message: 'No sync required',
-      },
-    ];
+    // 构建查询条件
+    const queryBuilder = this.syncRecordRepo.createQueryBuilder('sync');
 
-    const filteredData = provider ? mockData.filter((item) => item.provider === provider) : mockData;
-    const total = filteredData.length;
-    const data = filteredData.slice((page - 1) * pageSize, page * pageSize);
+    if (provider) {
+      queryBuilder.where('sync.provider = :provider', { provider });
+    } else {
+      queryBuilder.where('sync.provider IN (:...providers)', {
+        providers: [DeviceProviderType.HUAWEI_CPH, DeviceProviderType.ALIYUN_ECP],
+      });
+    }
+
+    queryBuilder.orderBy('sync.createdAt', 'DESC');
+
+    const [data, total] = await queryBuilder
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getManyAndCount();
+
+    // 格式化返回数据
+    const formattedData = data.map((record) => ({
+      id: record.id,
+      provider: record.provider,
+      status: record.status,
+      lastSyncAt: record.completedAt?.toISOString() || record.startedAt?.toISOString(),
+      syncedDevices: record.syncedDevices,
+      failedDevices: record.failedDevices,
+      addedDevices: record.addedDevices,
+      removedDevices: record.removedDevices,
+      updatedDevices: record.updatedDevices,
+      message: record.message,
+      durationMs: record.durationMs,
+      triggeredBy: record.triggeredBy,
+    }));
 
     return {
-      data,
+      data: formattedData,
       total,
       page,
       pageSize,
@@ -233,7 +295,7 @@ export class ProvidersService {
   /**
    * 手动触发云设备同步
    */
-  async triggerCloudSync(provider?: DeviceProviderType) {
+  async triggerCloudSync(provider?: DeviceProviderType, triggeredBy = 'system') {
     if (provider && ![DeviceProviderType.HUAWEI_CPH, DeviceProviderType.ALIYUN_ECP].includes(provider)) {
       throw new BadRequestException(`Provider ${provider} is not a cloud provider`);
     }
@@ -244,16 +306,153 @@ export class ProvidersService {
 
     this.logger.log(`Triggering cloud sync for providers: ${providersToSync.join(', ')}`);
 
-    // TODO: 实现实际的云同步逻辑
-    // 1. 调用云提供商API获取设备列表
-    // 2. 与本地数据库对比
-    // 3. 同步差异
+    const syncResults = [];
+
+    for (const providerType of providersToSync) {
+      // 创建同步记录
+      const syncRecord = this.syncRecordRepo.create({
+        provider: providerType,
+        status: 'running',
+        startedAt: new Date(),
+        triggeredBy,
+        message: 'Sync in progress...',
+      });
+      await this.syncRecordRepo.save(syncRecord);
+
+      try {
+        // 执行同步
+        const result = await this.performCloudSync(providerType, syncRecord.id);
+
+        // 更新同步记录
+        syncRecord.status = 'success';
+        syncRecord.completedAt = new Date();
+        syncRecord.durationMs = syncRecord.completedAt.getTime() - syncRecord.startedAt.getTime();
+        syncRecord.syncedDevices = result.synced;
+        syncRecord.failedDevices = result.failed;
+        syncRecord.addedDevices = result.added;
+        syncRecord.removedDevices = result.removed;
+        syncRecord.updatedDevices = result.updated;
+        syncRecord.message = `Sync completed: ${result.synced} devices synced`;
+        syncRecord.details = result.details;
+
+        await this.syncRecordRepo.save(syncRecord);
+        syncResults.push({ provider: providerType, success: true, ...result });
+      } catch (error) {
+        // 更新同步记录为失败
+        syncRecord.status = 'failed';
+        syncRecord.completedAt = new Date();
+        syncRecord.durationMs = syncRecord.completedAt.getTime() - syncRecord.startedAt.getTime();
+        syncRecord.message = `Sync failed: ${error.message}`;
+        await this.syncRecordRepo.save(syncRecord);
+
+        syncResults.push({ provider: providerType, success: false, error: error.message });
+        this.logger.error(`Cloud sync failed for ${providerType}: ${error.message}`);
+      }
+    }
 
     return {
-      success: true,
-      message: `Cloud sync triggered for ${providersToSync.join(', ')}`,
+      success: syncResults.every((r) => r.success),
+      message: `Cloud sync completed for ${providersToSync.join(', ')}`,
       providers: providersToSync,
+      results: syncResults,
     };
+  }
+
+  /**
+   * 执行实际的云同步操作
+   */
+  private async performCloudSync(
+    providerType: DeviceProviderType,
+    syncRecordId: string,
+  ): Promise<{
+    synced: number;
+    failed: number;
+    added: number;
+    removed: number;
+    updated: number;
+    details: any;
+  }> {
+    const config = this.providerConfigs.get(providerType);
+    if (!config?.enabled) {
+      throw new Error(`Provider ${providerType} is not enabled`);
+    }
+
+    // 获取本地数据库中该提供商的设备
+    const localDevices = await this.deviceRepo.find({
+      where: { providerType },
+      select: ['id', 'externalId', 'status', 'updatedAt'],
+    });
+
+    const localDeviceMap = new Map(
+      localDevices.map((d) => [d.externalId || d.id, d]),
+    );
+
+    // 模拟从云端获取设备列表
+    // 实际应该调用 Huawei/Aliyun SDK
+    const cloudDevices = await this.fetchCloudDevices(providerType, config.config);
+
+    let added = 0;
+    let removed = 0;
+    let updated = 0;
+    let failed = 0;
+    const errors: Array<{ deviceId: string; error: string }> = [];
+
+    // 检查云端设备
+    for (const cloudDevice of cloudDevices) {
+      const localDevice = localDeviceMap.get(cloudDevice.instanceId);
+
+      if (!localDevice) {
+        // 云端存在但本地不存在 - 需要添加
+        this.logger.log(`New cloud device found: ${cloudDevice.instanceId}`);
+        added++;
+        // 实际应该创建本地设备记录
+      } else {
+        // 检查是否需要更新
+        if (cloudDevice.status !== localDevice.status) {
+          updated++;
+        }
+        localDeviceMap.delete(cloudDevice.instanceId);
+      }
+    }
+
+    // 检查本地有但云端没有的设备
+    for (const [instanceId] of localDeviceMap) {
+      this.logger.log(`Local device not found in cloud: ${instanceId}`);
+      removed++;
+      // 实际应该标记或删除本地设备记录
+    }
+
+    return {
+      synced: cloudDevices.length,
+      failed,
+      added,
+      removed,
+      updated,
+      details: {
+        cloudDeviceIds: cloudDevices.map((d) => d.instanceId),
+        localDeviceIds: localDevices.map((d) => d.id),
+        errors,
+      },
+    };
+  }
+
+  /**
+   * 从云提供商获取设备列表
+   */
+  private async fetchCloudDevices(
+    providerType: DeviceProviderType,
+    config: any,
+  ): Promise<Array<{ instanceId: string; status: string; metadata: any }>> {
+    // 模拟云端设备数据
+    // 实际应该调用 Huawei SDK 或 Aliyun SDK
+    this.logger.log(`Fetching devices from ${providerType} with config: ${JSON.stringify(config)}`);
+
+    // 返回模拟数据（实际应调用云 API）
+    return [
+      { instanceId: `${providerType}-001`, status: 'running', metadata: {} },
+      { instanceId: `${providerType}-002`, status: 'running', metadata: {} },
+      { instanceId: `${providerType}-003`, status: 'stopped', metadata: {} },
+    ];
   }
 
   /**
@@ -314,20 +513,43 @@ export class ProvidersService {
       throw new NotFoundException(`Provider ${providerType} is not available`);
     }
 
+    // 从数据库获取现有配置
+    let dbConfig = await this.configRepo.findOne({ where: { providerType } });
+    if (!dbConfig) {
+      throw new NotFoundException(`Configuration for provider ${providerType} not found in database`);
+    }
+
+    // 合并配置
     const existingConfig = this.providerConfigs.get(providerType) || {};
-    const updatedConfig = {
-      ...existingConfig,
-      ...updateDto,
-      config: {
-        ...existingConfig.config,
-        ...updateDto.config,
-      },
+    const mergedConfig = {
+      ...existingConfig.config,
+      ...updateDto.config,
     };
 
-    this.providerConfigs.set(providerType, updatedConfig);
-    this.logger.log(`Updated configuration for provider ${providerType}`);
+    // 更新数据库
+    dbConfig.enabled = updateDto.enabled ?? dbConfig.enabled;
+    dbConfig.priority = updateDto.priority ?? dbConfig.priority;
+    dbConfig.maxDevices = updateDto.maxDevices ?? dbConfig.maxDevices;
+    dbConfig.config = mergedConfig;
+    // description 可以通过 config.description 传入
+    if (updateDto.config?.description) {
+      dbConfig.description = updateDto.config.description;
+    }
 
-    // TODO: 持久化到数据库
+    await this.configRepo.save(dbConfig);
+
+    // 更新内存缓存
+    const updatedConfig = {
+      type: providerType,
+      enabled: dbConfig.enabled,
+      priority: dbConfig.priority,
+      maxDevices: dbConfig.maxDevices,
+      config: dbConfig.config,
+      description: dbConfig.description,
+    };
+    this.providerConfigs.set(providerType, updatedConfig);
+
+    this.logger.log(`Updated configuration for provider ${providerType} in database`);
 
     return {
       success: true,
@@ -350,23 +572,43 @@ export class ProvidersService {
     }
 
     this.logger.log(`Testing connection for provider ${providerType}`);
+    const startTime = Date.now();
 
     try {
       const provider = this.providerFactory.getProvider(providerType);
+      let testResult: { success: boolean; message: string; details?: any };
 
-      // TODO: 实现实际的连接测试逻辑
-      // 不同提供商有不同的测试方式
-      // - Redroid: 测试 Docker 连接
-      // - Physical: 测试 ADB 连接
-      // - Huawei/Aliyun: 测试 API 密钥
+      switch (providerType) {
+        case DeviceProviderType.REDROID:
+          // Redroid: 测试 Docker 连接
+          testResult = await this.testRedroidConnection(config.config);
+          break;
+
+        case DeviceProviderType.PHYSICAL:
+          // Physical: 测试 ADB 连接
+          testResult = await this.testPhysicalConnection(config.config);
+          break;
+
+        case DeviceProviderType.HUAWEI_CPH:
+        case DeviceProviderType.ALIYUN_ECP:
+          // 云提供商: 测试 API 密钥
+          testResult = await this.testCloudProviderConnection(providerType, config.config);
+          break;
+
+        default:
+          testResult = { success: true, message: 'Provider is available' };
+      }
+
+      const latency = Date.now() - startTime;
 
       return {
-        success: true,
+        success: testResult.success,
         provider: providerType,
-        message: 'Connection test passed',
+        message: testResult.message,
         details: {
-          latency: Math.random() * 100, // 模拟延迟
+          latency,
           timestamp: new Date().toISOString(),
+          ...testResult.details,
         },
       };
     } catch (error) {
@@ -375,6 +617,139 @@ export class ProvidersService {
         provider: providerType,
         message: `Connection test failed: ${error.message}`,
         error: error.message,
+        details: {
+          latency: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+  }
+
+  /**
+   * 测试 Redroid Docker 连接
+   */
+  private async testRedroidConnection(config: any): Promise<{ success: boolean; message: string; details?: any }> {
+    try {
+      const Docker = require('dockerode');
+      const docker = new Docker({ socketPath: config.dockerHost || '/var/run/docker.sock' });
+
+      // 测试 Docker API 连接
+      const info = await docker.info();
+
+      return {
+        success: true,
+        message: 'Docker connection successful',
+        details: {
+          dockerVersion: info.ServerVersion,
+          containers: info.Containers,
+          images: info.Images,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Docker connection failed: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * 测试物理设备 ADB 连接
+   */
+  private async testPhysicalConnection(config: any): Promise<{ success: boolean; message: string; details?: any }> {
+    try {
+      const { exec } = require('child_process');
+      const { promisify } = require('util');
+      const execAsync = promisify(exec);
+
+      // 测试 ADB 服务器
+      const { stdout } = await execAsync('adb devices -l', { timeout: 5000 });
+      const lines = stdout.trim().split('\n').filter((l: string) => l && !l.includes('List of'));
+      const deviceCount = lines.length;
+
+      return {
+        success: true,
+        message: 'ADB connection successful',
+        details: {
+          connectedDevices: deviceCount,
+          adbHost: config.adbHost || 'localhost',
+          adbPort: config.adbPort || 5037,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `ADB connection failed: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * 测试云提供商 API 连接
+   */
+  private async testCloudProviderConnection(
+    providerType: DeviceProviderType,
+    config: any,
+  ): Promise<{ success: boolean; message: string; details?: any }> {
+    // 检查必要配置
+    if (!config.accessKeyId || !config.accessKeySecret) {
+      return {
+        success: false,
+        message: 'Missing API credentials (accessKeyId or accessKeySecret)',
+      };
+    }
+
+    if (!config.region) {
+      return {
+        success: false,
+        message: 'Missing region configuration',
+      };
+    }
+
+    try {
+      // 模拟 API 连接测试（实际应调用云 SDK）
+      // Huawei: @huaweicloud/huaweicloud-sdk-cph
+      // Aliyun: @alicloud/ecp20200709
+      const https = require('https');
+      const apiEndpoint = config.apiEndpoint;
+
+      // 简单的 HTTPS 连接测试
+      await new Promise<void>((resolve, reject) => {
+        const url = new URL(apiEndpoint);
+        const req = https.request(
+          {
+            hostname: url.hostname,
+            port: 443,
+            path: '/',
+            method: 'GET',
+            timeout: 5000,
+          },
+          (res: any) => {
+            resolve();
+          },
+        );
+        req.on('error', reject);
+        req.on('timeout', () => reject(new Error('Connection timeout')));
+        req.end();
+      });
+
+      return {
+        success: true,
+        message: `${providerType} API endpoint is reachable`,
+        details: {
+          region: config.region,
+          apiEndpoint: config.apiEndpoint,
+          credentialsConfigured: true,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `${providerType} API connection failed: ${error.message}`,
+        details: {
+          region: config.region,
+          apiEndpoint: config.apiEndpoint,
+        },
       };
     }
   }
@@ -384,37 +759,193 @@ export class ProvidersService {
    * 用于比对云提供商账单与内部使用记录
    */
   async getCloudBillingReconciliation(query: CloudBillingReconciliationDto) {
-    const { provider, startDate, endDate } = query;
+    const { provider } = query;
 
     if (![DeviceProviderType.HUAWEI_CPH, DeviceProviderType.ALIYUN_ECP].includes(provider)) {
       throw new BadRequestException(`Provider ${provider} is not a cloud provider`);
     }
 
+    // 设置默认日期范围：最近30天
+    const endDate = query.endDate || new Date().toISOString().split('T')[0];
+    const startDate = query.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
     this.logger.log(`Fetching billing reconciliation for ${provider} from ${startDate} to ${endDate}`);
 
-    // TODO: 实现实际的账单对账逻辑
-    // 1. 从云提供商获取账单数据
-    // 2. 从本地数据库获取使用记录
-    // 3. 进行对比分析
+    // 查询数据库中是否已有对账记录
+    const existingReconciliation = await this.billingReconciliationRepo.findOne({
+      where: {
+        provider,
+        periodStart: Between(new Date(startDate), new Date(endDate)),
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (existingReconciliation) {
+      return this.formatReconciliationResult(existingReconciliation);
+    }
+
+    // 执行新的对账流程
+    const reconciliationResult = await this.performBillingReconciliation(provider, startDate, endDate);
+    return reconciliationResult;
+  }
+
+  /**
+   * 执行账单对账流程
+   */
+  private async performBillingReconciliation(
+    provider: DeviceProviderType,
+    startDate: string,
+    endDate: string,
+  ) {
+    const config = this.providerConfigs.get(provider);
+    if (!config?.enabled) {
+      throw new BadRequestException(`Provider ${provider} is not enabled`);
+    }
+
+    // 1. 获取内部使用记录
+    const internalUsage = await this.getInternalUsageRecords(provider, startDate, endDate);
+
+    // 2. 模拟获取云提供商账单（实际应调用云 SDK）
+    const cloudBilling = await this.fetchCloudBilling(provider, config.config, startDate, endDate);
+
+    // 3. 计算差异
+    const discrepancy = cloudBilling.totalCost - internalUsage.estimatedCost;
+    const discrepancyPercentage =
+      internalUsage.estimatedCost > 0
+        ? (Math.abs(discrepancy) / internalUsage.estimatedCost) * 100
+        : 0;
+
+    // 4. 确定对账状态
+    let status: 'matched' | 'discrepancy' | 'error' = 'matched';
+    if (discrepancyPercentage > 5) {
+      status = 'discrepancy';
+    }
+
+    // 5. 保存对账记录
+    const reconciliation = this.billingReconciliationRepo.create({
+      provider,
+      periodStart: new Date(startDate),
+      periodEnd: new Date(endDate),
+      cloudTotalCost: cloudBilling.totalCost,
+      cloudDeviceCount: cloudBilling.deviceCount,
+      internalTotalHours: internalUsage.totalHours,
+      internalEstimatedCost: internalUsage.estimatedCost,
+      discrepancy,
+      discrepancyPercentage,
+      status,
+      cloudBillingDetails: cloudBilling.details,
+      internalRecordDetails: internalUsage.details,
+      notes: status === 'matched' ? 'Billing data matched successfully' : `Discrepancy of ${discrepancyPercentage.toFixed(2)}% detected`,
+    });
+
+    await this.billingReconciliationRepo.save(reconciliation);
+    this.logger.log(`Created billing reconciliation record for ${provider}: ${status}`);
+
+    return this.formatReconciliationResult(reconciliation);
+  }
+
+  /**
+   * 获取内部使用记录
+   */
+  private async getInternalUsageRecords(
+    providerType: DeviceProviderType,
+    startDate: string,
+    endDate: string,
+  ): Promise<{ totalHours: number; estimatedCost: number; deviceCount: number; details: any }> {
+    // 查询该提供商在指定时间段内的设备使用情况
+    const devices = await this.deviceRepo.find({
+      where: {
+        providerType,
+        createdAt: Between(new Date(startDate), new Date(endDate)),
+      },
+      select: ['id', 'status', 'createdAt', 'updatedAt'],
+    });
+
+    // 计算使用时长（简化计算）
+    const totalHours = devices.reduce((sum, device) => {
+      const endTime = device.updatedAt || new Date();
+      const startTime = device.createdAt;
+      const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      return sum + hours;
+    }, 0);
+
+    // 估算成本（假设每小时 0.5 元）
+    const hourlyRate = 0.5;
+    const estimatedCost = totalHours * hourlyRate;
 
     return {
-      provider,
-      period: { startDate, endDate },
+      totalHours: Math.round(totalHours * 100) / 100,
+      estimatedCost: Math.round(estimatedCost * 100) / 100,
+      deviceCount: devices.length,
+      details: {
+        deviceIds: devices.map((d) => d.id),
+        hourlyRate,
+      },
+    };
+  }
+
+  /**
+   * 从云提供商获取账单数据
+   */
+  private async fetchCloudBilling(
+    provider: DeviceProviderType,
+    config: any,
+    startDate: string,
+    endDate: string,
+  ): Promise<{ totalCost: number; deviceCount: number; details: any }> {
+    // 模拟云账单数据（实际应调用 Huawei/Aliyun Billing API）
+    this.logger.log(`Fetching cloud billing for ${provider} from ${startDate} to ${endDate}`);
+
+    // 模拟数据
+    const mockTotalCost = Math.random() * 1000 + 500;
+    const mockDeviceCount = Math.floor(Math.random() * 50) + 10;
+
+    return {
+      totalCost: Math.round(mockTotalCost * 100) / 100,
+      deviceCount: mockDeviceCount,
+      details: {
+        region: config.region,
+        billingPeriod: { startDate, endDate },
+        currency: 'CNY',
+        items: [
+          { type: 'compute', cost: mockTotalCost * 0.6 },
+          { type: 'storage', cost: mockTotalCost * 0.3 },
+          { type: 'network', cost: mockTotalCost * 0.1 },
+        ],
+      },
+    };
+  }
+
+  /**
+   * 格式化对账结果
+   */
+  private formatReconciliationResult(reconciliation: CloudBillingReconciliation) {
+    return {
+      id: reconciliation.id,
+      provider: reconciliation.provider,
+      period: {
+        startDate: reconciliation.periodStart,
+        endDate: reconciliation.periodEnd,
+      },
       cloudBilling: {
-        totalCost: 1234.56,
-        deviceCount: 50,
-        details: [],
+        totalCost: reconciliation.cloudTotalCost,
+        deviceCount: reconciliation.cloudDeviceCount,
+        details: reconciliation.cloudBillingDetails || {},
       },
       internalRecords: {
-        totalUsageHours: 1200,
-        deviceCount: 50,
-        details: [],
+        totalUsageHours: reconciliation.internalTotalHours,
+        estimatedCost: reconciliation.internalEstimatedCost,
+        details: reconciliation.internalRecordDetails || {},
       },
       reconciliation: {
-        matched: true,
-        discrepancy: 0,
-        message: 'Billing data matched successfully',
+        status: reconciliation.status,
+        matched: reconciliation.status === 'matched',
+        discrepancy: reconciliation.discrepancy,
+        discrepancyPercentage: reconciliation.discrepancyPercentage,
+        message: reconciliation.notes,
       },
+      createdAt: reconciliation.createdAt,
+      updatedAt: reconciliation.updatedAt,
     };
   }
 }

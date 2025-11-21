@@ -1,4 +1,5 @@
 import { Module, OnModuleInit, Logger } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { DeviceProviderFactory } from './device-provider.factory';
 import { RedroidModule } from './redroid/redroid.module';
 import { RedroidProvider } from './redroid/redroid.provider';
@@ -10,6 +11,8 @@ import { AliyunModule } from './aliyun/aliyun.module';
 import { AliyunProvider } from './aliyun/aliyun.provider';
 import { ProvidersService } from './providers.service';
 import { ProvidersController } from './providers.controller';
+import { ProviderConfig, CloudSyncRecord, CloudBillingReconciliation } from '../entities/provider-config.entity';
+import { Device } from '../entities/device.entity';
 
 /**
  * ProvidersModule
@@ -30,6 +33,7 @@ import { ProvidersController } from './providers.controller';
  */
 @Module({
   imports: [
+    TypeOrmModule.forFeature([ProviderConfig, CloudSyncRecord, CloudBillingReconciliation, Device]),
     RedroidModule, // ✅ Redroid Provider
     PhysicalModule, // ✅ Physical Provider (Phase 2A)
     HuaweiModule, // ✅ Huawei Provider (Phase 3)

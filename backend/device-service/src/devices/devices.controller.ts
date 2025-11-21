@@ -135,98 +135,103 @@ export class DevicesController {
     };
   }
 
-  // TODO: 临时注释 - 等待实现 getQuickList 方法
-  // @Get('quick-list')
-  // @RequirePermission('device.read')
-  // @ApiOperation({
-  //   summary: '设备快速列表',
-  //   description: '返回轻量级设备列表，用于下拉框等UI组件（带缓存优化）',
-  // })
-  // @ApiQuery({ name: 'status', required: false, description: '状态过滤', example: 'online' })
-  // @ApiQuery({ name: 'search', required: false, description: '搜索关键词', example: 'device' })
-  // @ApiQuery({ name: 'limit', required: false, description: '限制数量', example: 100 })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: '获取成功',
-  //   schema: {
-  //     example: {
-  //       items: [
-  //         {
-  //           id: '123e4567-e89b-12d3-a456-426614174000',
-  //           name: 'device-001',
-  //           status: 'online',
-  //           extra: { provider: 'redroid', region: 'us-west' },
-  //         },
-  //       ],
-  //       total: 42,
-  //       cached: false,
-  //     },
-  //   },
-  // })
-  // @ApiResponse({ status: 403, description: '权限不足' })
-  // async getQuickList(@Query() query: any) {
-  //   return this.devicesService.getQuickList(query);
-  // }
+  @Get('quick-list')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '设备快速列表',
+    description: '返回轻量级设备列表，用于下拉框等UI组件（带缓存优化）',
+  })
+  @ApiQuery({ name: 'status', required: false, description: '状态过滤', example: 'online' })
+  @ApiQuery({ name: 'search', required: false, description: '搜索关键词', example: 'device' })
+  @ApiQuery({ name: 'limit', required: false, description: '限制数量', example: 100 })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    schema: {
+      example: {
+        items: [
+          {
+            id: '123e4567-e89b-12d3-a456-426614174000',
+            name: 'device-001',
+            status: 'online',
+            extra: { provider: 'redroid', region: 'us-west' },
+          },
+        ],
+        total: 42,
+        cached: false,
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getQuickList(
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+    @Query('limit') limit?: number,
+    @Req() req?: any,
+  ) {
+    const userId = req?.user?.sub;
+    return this.devicesService.getQuickList({ status, search, limit, userId });
+  }
 
-  // TODO: 临时注释 - 等待实现 getFiltersMetadata 方法
-  // @Get('filters/metadata')
-  // @RequirePermission('device.read')
-  // @ApiOperation({
-  //   summary: '设备筛选元数据',
-  //   description: '获取设备列表页所有可用的筛选选项及统计信息（用于生成动态筛选表单）',
-  // })
-  // @ApiQuery({
-  //   name: 'includeCount',
-  //   required: false,
-  //   description: '是否包含每个选项的记录数量',
-  //   example: true,
-  // })
-  // @ApiQuery({
-  //   name: 'onlyWithData',
-  //   required: false,
-  //   description: '是否只返回有数据的筛选选项',
-  //   example: false,
-  // })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: '获取成功',
-  //   schema: {
-  //     example: {
-  //       filters: [
-  //         {
-  //           field: 'status',
-  //           label: '设备状态',
-  //           type: 'select',
-  //           options: [
-  //             { value: 'online', label: '在线', count: 42 },
-  //             { value: 'offline', label: '离线', count: 15 },
-  //           ],
-  //           required: false,
-  //           placeholder: '请选择设备状态',
-  //         },
-  //         {
-  //           field: 'providerType',
-  //           label: '提供商类型',
-  //           type: 'select',
-  //           options: [{ value: 'redroid', label: 'Redroid', count: 30 }],
-  //           required: false,
-  //           placeholder: '请选择提供商',
-  //         },
-  //       ],
-  //       totalRecords: 150,
-  //       lastUpdated: '2025-11-03T10:30:00.000Z',
-  //       cached: false,
-  //       quickFilters: {
-  //         online: { status: 'online', label: '在线设备' },
-  //         offline: { status: 'offline', label: '离线设备' },
-  //       },
-  //     },
-  //   },
-  // })
-  // @ApiResponse({ status: 403, description: '权限不足' })
-  // async getFiltersMetadata(@Query() query: any) {
-  //   return this.devicesService.getFiltersMetadata(query);
-  // }
+  @Get('filters/metadata')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '设备筛选元数据',
+    description: '获取设备列表页所有可用的筛选选项及统计信息（用于生成动态筛选表单）',
+  })
+  @ApiQuery({
+    name: 'includeCount',
+    required: false,
+    description: '是否包含每个选项的记录数量',
+    example: true,
+  })
+  @ApiQuery({
+    name: 'onlyWithData',
+    required: false,
+    description: '是否只返回有数据的筛选选项',
+    example: false,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    schema: {
+      example: {
+        filters: [
+          {
+            field: 'status',
+            label: '设备状态',
+            type: 'multiselect',
+            options: [
+              { value: 'idle', label: '空闲', count: 42 },
+              { value: 'running', label: '运行中', count: 15 },
+            ],
+            required: false,
+          },
+          {
+            field: 'providerType',
+            label: '提供商',
+            type: 'multiselect',
+            options: [{ value: 'redroid', label: 'Redroid 容器', count: 30 }],
+            required: false,
+          },
+        ],
+        total: 150,
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getFiltersMetadata(
+    @Query('includeCount') includeCount?: string,
+    @Query('onlyWithData') onlyWithData?: string,
+    @Req() req?: any,
+  ) {
+    const userId = req?.user?.sub;
+    return this.devicesService.getFiltersMetadata({
+      includeCount: includeCount !== 'false',
+      onlyWithData: onlyWithData === 'true',
+      userId,
+    });
+  }
 
   @Get()
   @RequirePermission('device.read')

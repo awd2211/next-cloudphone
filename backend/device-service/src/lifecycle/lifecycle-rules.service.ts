@@ -2,6 +2,11 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LifecycleRule, LifecycleRuleType } from '../entities/lifecycle-rule.entity';
+import {
+  LifecycleExecutionHistory,
+  ExecutionStatus,
+  TriggerType,
+} from '../entities/lifecycle-execution-history.entity';
 import { CreateLifecycleRuleDto } from './dto/create-lifecycle-rule.dto';
 import { UpdateLifecycleRuleDto } from './dto/update-lifecycle-rule.dto';
 import * as parser from 'cron-parser';
@@ -13,6 +18,8 @@ export class LifecycleRulesService {
   constructor(
     @InjectRepository(LifecycleRule)
     private lifecycleRuleRepository: Repository<LifecycleRule>,
+    @InjectRepository(LifecycleExecutionHistory)
+    private executionHistoryRepository: Repository<LifecycleExecutionHistory>,
   ) {}
 
   /**
@@ -343,11 +350,189 @@ export class LifecycleRulesService {
   /**
    * 获取执行历史
    */
-  async getExecutions(ruleId: string): Promise<any[]> {
-    // TODO: 需要创建 LifecycleExecutionHistory 实体和表来存储执行历史
-    // 这里先返回空数组
-    this.logger.warn('getExecutions 功能尚未实现 - 需要创建执行历史表');
-    return [];
+  async getExecutions(
+    ruleId: string,
+    options?: {
+      page?: number;
+      pageSize?: number;
+      status?: ExecutionStatus;
+      startDate?: Date;
+      endDate?: Date;
+    },
+  ): Promise<{
+    data: LifecycleExecutionHistory[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
+    const page = options?.page || 1;
+    const pageSize = options?.pageSize || 20;
+    const skip = (page - 1) * pageSize;
+
+    const queryBuilder = this.executionHistoryRepository
+      .createQueryBuilder('history')
+      .where('history.ruleId = :ruleId', { ruleId });
+
+    if (options?.status) {
+      queryBuilder.andWhere('history.status = :status', { status: options.status });
+    }
+
+    if (options?.startDate) {
+      queryBuilder.andWhere('history.startedAt >= :startDate', { startDate: options.startDate });
+    }
+
+    if (options?.endDate) {
+      queryBuilder.andWhere('history.startedAt <= :endDate', { endDate: options.endDate });
+    }
+
+    queryBuilder.orderBy('history.startedAt', 'DESC').skip(skip).take(pageSize);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return { data, total, page, pageSize };
+  }
+
+  /**
+   * 记录执行开始
+   */
+  async startExecution(
+    rule: LifecycleRule,
+    triggerType: TriggerType = TriggerType.SCHEDULED,
+    triggeredBy?: string,
+  ): Promise<LifecycleExecutionHistory> {
+    const execution = this.executionHistoryRepository.create({
+      ruleId: rule.id,
+      ruleName: rule.name,
+      ruleType: rule.type,
+      status: ExecutionStatus.RUNNING,
+      triggerType,
+      triggeredBy: triggeredBy || 'system',
+      startedAt: new Date(),
+      config: rule.config,
+    });
+
+    return this.executionHistoryRepository.save(execution);
+  }
+
+  /**
+   * 记录执行完成（成功）
+   */
+  async completeExecution(
+    executionId: string,
+    result: {
+      affectedDevices: number;
+      successCount: number;
+      failedCount: number;
+      summary?: Record<string, any>;
+    },
+  ): Promise<LifecycleExecutionHistory> {
+    const execution = await this.executionHistoryRepository.findOne({
+      where: { id: executionId },
+    });
+
+    if (!execution) {
+      throw new NotFoundException(`执行记录 ${executionId} 未找到`);
+    }
+
+    const completedAt = new Date();
+    execution.status = ExecutionStatus.SUCCESS;
+    execution.completedAt = completedAt;
+    execution.durationMs = completedAt.getTime() - execution.startedAt.getTime();
+    execution.affectedDevices = result.affectedDevices;
+    execution.successCount = result.successCount;
+    execution.failedCount = result.failedCount;
+    if (result.summary) {
+      execution.summary = result.summary as any;
+    }
+
+    this.logger.log(
+      `规则 ${execution.ruleName} 执行完成 - 成功: ${result.successCount}, 失败: ${result.failedCount}, 耗时: ${execution.durationMs}ms`,
+    );
+
+    return this.executionHistoryRepository.save(execution);
+  }
+
+  /**
+   * 记录执行失败
+   */
+  async failExecution(
+    executionId: string,
+    error: {
+      message: string;
+      code?: string;
+      stack?: string;
+      context?: Record<string, any>;
+    },
+  ): Promise<LifecycleExecutionHistory> {
+    const execution = await this.executionHistoryRepository.findOne({
+      where: { id: executionId },
+    });
+
+    if (!execution) {
+      throw new NotFoundException(`执行记录 ${executionId} 未找到`);
+    }
+
+    const completedAt = new Date();
+    execution.status = ExecutionStatus.FAILED;
+    execution.completedAt = completedAt;
+    execution.durationMs = completedAt.getTime() - execution.startedAt.getTime();
+    execution.errorMessage = error.message;
+    execution.errorDetails = {
+      code: error.code,
+      stack: error.stack,
+      context: error.context,
+    };
+
+    this.logger.error(`规则 ${execution.ruleName} 执行失败: ${error.message}`);
+
+    return this.executionHistoryRepository.save(execution);
+  }
+
+  /**
+   * 获取执行统计
+   */
+  async getExecutionStats(ruleId?: string): Promise<{
+    totalExecutions: number;
+    successCount: number;
+    failedCount: number;
+    averageDuration: number;
+    lastExecution?: LifecycleExecutionHistory;
+  }> {
+    const queryBuilder = this.executionHistoryRepository.createQueryBuilder('history');
+
+    if (ruleId) {
+      queryBuilder.where('history.ruleId = :ruleId', { ruleId });
+    }
+
+    const totalExecutions = await queryBuilder.getCount();
+
+    const successCount = await queryBuilder
+      .clone()
+      .andWhere('history.status = :status', { status: ExecutionStatus.SUCCESS })
+      .getCount();
+
+    const failedCount = await queryBuilder
+      .clone()
+      .andWhere('history.status = :status', { status: ExecutionStatus.FAILED })
+      .getCount();
+
+    const avgResult = await queryBuilder
+      .clone()
+      .select('AVG(history.durationMs)', 'avgDuration')
+      .getRawOne();
+
+    const lastExecution = await queryBuilder
+      .clone()
+      .orderBy('history.startedAt', 'DESC')
+      .getOne();
+
+    return {
+      totalExecutions,
+      successCount,
+      failedCount,
+      averageDuration: Math.round(avgResult?.avgDuration || 0),
+      lastExecution: lastExecution || undefined,
+    };
   }
 
   // 私有辅助方法

@@ -10,6 +10,7 @@ import { LifecycleHistoryController } from './lifecycle-history.controller';
 import { Device } from '../entities/device.entity';
 import { DeviceSnapshot } from '../entities/device-snapshot.entity';
 import { LifecycleRule } from '../entities/lifecycle-rule.entity';
+import { LifecycleExecutionHistory } from '../entities/lifecycle-execution-history.entity';
 import { DockerModule } from '../docker/docker.module';
 import { AdbModule } from '../adb/adb.module';
 import { PortManagerModule } from '../port-manager/port-manager.module';
@@ -18,7 +19,7 @@ import { SnapshotsModule } from '../snapshots/snapshots.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Device, DeviceSnapshot, LifecycleRule]),
+    TypeOrmModule.forFeature([Device, DeviceSnapshot, LifecycleRule, LifecycleExecutionHistory]),
     DockerModule,
     AdbModule,
     PortManagerModule,
