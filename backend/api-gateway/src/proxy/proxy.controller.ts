@@ -860,7 +860,8 @@ export class ProxyController {
 
   /**
    * 帮助中心路由 (精确匹配)
-   * TODO: 需要创建 help-service 或临时路由到 notifications
+   * 当前回退到 notification-service 处理
+   * 未来可创建独立的 help-service 提供更完善的帮助文档功能
    */
   @UseGuards(JwtAuthGuard)
   @All('help')
@@ -876,7 +877,8 @@ export class ProxyController {
 
   /**
    * 数据导出路由 (精确匹配)
-   * TODO: 需要创建 export-service 或临时路由到相应业务服务
+   * 当前回退到 billing-service 处理（账单导出等）
+   * 未来可创建独立的 export-service 提供统一导出功能
    */
   @UseGuards(JwtAuthGuard)
   @All('export')
@@ -1008,7 +1010,8 @@ export class ProxyController {
 
   /**
    * Prometheus 监控路由 (精确匹配)
-   * TODO: 需要创建 monitoring-service 或临时路由到 devices
+   * 当前回退到 device-service 获取设备监控指标
+   * 未来可创建独立的 monitoring-service 聚合所有服务监控数据
    */
   @UseGuards(JwtAuthGuard)
   @All('prometheus')

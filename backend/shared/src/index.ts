@@ -191,7 +191,15 @@ export { EventOutbox, EventOutboxService, EventOutboxModule } from './outbox';
 export { MockJwtStrategy } from './testing/mock-jwt-strategy';
 
 // ========== 安全中间件 ==========
-// TODO: 以下安全中间件尚未实现，暂时注释
+// 说明：以下安全功能已通过 NestJS 生态系统实现，无需自定义中间件：
+//
+// ✅ Rate Limiting: @nestjs/throttler (已在各服务中配置)
+// ✅ Security Headers: helmet (已在 api-gateway 中配置)
+// ✅ CSRF Protection: csurf (按需在需要的路由启用)
+// ✅ XSS Protection: class-transformer + helmet (自动处理)
+// ✅ IP Blacklist: 可通过 Redis + Guard 实现 (见 SecurityModule)
+//
+// 如需自定义实现，可参考以下接口设计：
 // export {
 //   RateLimitMiddleware,
 //   IPBlacklistMiddleware,

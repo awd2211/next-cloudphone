@@ -9,6 +9,7 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Logger } from '@nestjs/common';
+import { permissionL1Cache } from '../permission-l1-cache';
 
 // 导入 SKIP_PERMISSION_KEY
 const SKIP_PERMISSION_KEY = 'skipPermission';
@@ -78,34 +79,59 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // ✅ JWT Token 优化：从 User Service 实时查询用户权限
-    // TODO: 添加权限缓存以提高性能
+    // ✅ L1 内存缓存：10秒 TTL，减少 User Service 请求
     let userPermissions: string[] = [];
-    try {
-      const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:30001';
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${userServiceUrl}/menu-permissions/user/${user.sub}/permissions`,
-          {
-            headers: {
-              Authorization: request.headers.authorization,
-            },
-            timeout: 3000, // 3秒超时
-          }
-        )
-      );
 
-      // 解析响应数据
-      if (response.data?.success && Array.isArray(response.data.data)) {
-        userPermissions = response.data.data;
-        this.logger.debug(`用户 ${user.username} 拥有 ${userPermissions.length} 个权限`);
-      } else {
-        this.logger.warn(`用户 ${user.username} 权限数据格式异常:`, response.data);
-        userPermissions = [];
+    // 1. 首先检查 L1 缓存
+    const cachedUser = permissionL1Cache.get(user.sub);
+    if (cachedUser && cachedUser.permissions) {
+      userPermissions = cachedUser.permissions;
+      this.logger.debug(
+        `[L1 Cache Hit] 用户 ${user.username} 拥有 ${userPermissions.length} 个权限`
+      );
+    } else {
+      // 2. L1 缓存未命中，从 User Service 查询
+      try {
+        const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:30001';
+        const response = await firstValueFrom(
+          this.httpService.get(
+            `${userServiceUrl}/menu-permissions/user/${user.sub}/permissions`,
+            {
+              headers: {
+                Authorization: request.headers.authorization,
+              },
+              timeout: 3000, // 3秒超时
+            }
+          )
+        );
+
+        // 解析响应数据
+        if (response.data?.success && Array.isArray(response.data.data)) {
+          userPermissions = response.data.data;
+          this.logger.debug(
+            `[L1 Cache Miss] 用户 ${user.username} 拥有 ${userPermissions.length} 个权限`
+          );
+
+          // 3. 写入 L1 缓存
+          permissionL1Cache.set(user.sub, {
+            id: user.sub,
+            userId: user.sub,
+            username: user.username,
+            email: user.email || '',
+            roles: user.roles || [],
+            permissions: userPermissions,
+            tenantId: user.tenantId || '',
+            isSuperAdmin: user.isSuperAdmin,
+          });
+        } else {
+          this.logger.warn(`用户 ${user.username} 权限数据格式异常:`, response.data);
+          userPermissions = [];
+        }
+      } catch (error) {
+        this.logger.error(`查询用户 ${user.username} 权限失败: ${error.message}`);
+        // 如果查询失败，拒绝访问（安全第一）
+        throw new ForbiddenException('无法验证用户权限，请稍后重试');
       }
-    } catch (error) {
-      this.logger.error(`查询用户 ${user.username} 权限失败: ${error.message}`);
-      // 如果查询失败，拒绝访问（安全第一）
-      throw new ForbiddenException('无法验证用户权限，请稍后重试');
     }
 
     const requiredPermissions = permissionRequirement.permissions;
