@@ -1,15 +1,19 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Headers, Param, Query, Delete, UnauthorizedException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { Controller, Post, Get, Body, UseGuards, Req, Headers, Param, Query, Delete, UnauthorizedException, Ip } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { Enable2FADto } from './dto/enable-2fa.dto';
 import { Disable2FADto } from './dto/disable-2fa.dto';
+import { ForgotPasswordDto, ResetPasswordDto, ChangePasswordDto, VerifyResetTokenDto } from './dto/password-reset.dto';
+import { LoginHistoryQueryDto, TerminateSessionDto } from './dto/session.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtRefreshGuard } from './jwt-refresh.guard';
 import { Public } from './decorators/public.decorator';
 import { TwoFactorService } from './two-factor.service';
+import { PasswordResetService } from './services/password-reset.service';
+import { SessionService } from './services/session.service';
 import { SocialProvider, SocialAuthCallbackDto, BindSocialAccountDto } from './dto/social-auth.dto';
 import { SocialAuthService } from './services/social-auth.service';
 
@@ -20,6 +24,8 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly twoFactorService: TwoFactorService,
     private readonly socialAuthService: SocialAuthService,
+    private readonly passwordResetService: PasswordResetService,
+    private readonly sessionService: SessionService,
   ) {}
 
   /**
@@ -317,5 +323,157 @@ export class AuthController {
   @ApiResponse({ status: 401, description: '未授权' })
   async getBoundAccounts(@Req() req: any) {
     return this.socialAuthService.getBoundAccounts(req.user.id);
+  }
+
+  // ========== 密码重置相关 API ==========
+
+  /**
+   * 忘记密码 - 发送重置链接
+   * 🔒 限流: 60秒内最多3次 (防止滥用)
+   */
+  @Public()
+  @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: '忘记密码', description: '发送密码重置链接到邮箱或手机' })
+  @ApiResponse({ status: 200, description: '如果账号存在，重置链接已发送' })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 429, description: '请求过于频繁，请稍后再试' })
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    return this.passwordResetService.forgotPassword(dto, ip, userAgent);
+  }
+
+  /**
+   * 验证重置令牌
+   * 🔒 限流: 60秒内最多10次
+   */
+  @Public()
+  @Post('verify-reset-token')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: '验证重置令牌', description: '验证密码重置令牌是否有效' })
+  @ApiResponse({ status: 200, description: '返回令牌有效性' })
+  async verifyResetToken(@Body() dto: VerifyResetTokenDto) {
+    return this.passwordResetService.verifyResetToken(dto.token);
+  }
+
+  /**
+   * 重置密码
+   * 🔒 限流: 60秒内最多3次
+   */
+  @Public()
+  @Post('reset-password')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: '重置密码', description: '使用重置令牌设置新密码' })
+  @ApiResponse({ status: 200, description: '密码重置成功' })
+  @ApiResponse({ status: 400, description: '令牌无效或已过期' })
+  @ApiResponse({ status: 429, description: '请求过于频繁，请稍后再试' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.passwordResetService.resetPassword(dto);
+  }
+
+  /**
+   * 修改密码
+   * 🔒 需要登录
+   */
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '修改密码', description: '已登录用户修改密码' })
+  @ApiResponse({ status: 200, description: '密码修改成功' })
+  @ApiResponse({ status: 400, description: '当前密码错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async changePassword(@Req() req: any, @Body() dto: ChangePasswordDto) {
+    return this.passwordResetService.changePassword(req.user.id, dto);
+  }
+
+  // ========== 2FA 状态相关 API ==========
+
+  /**
+   * 获取2FA状态
+   * 🔒 需要登录
+   */
+  @Get('2fa/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取2FA状态', description: '查询当前用户的双因素认证状态' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async get2FAStatus(@Req() req: any) {
+    const status = await this.twoFactorService.get2FAStatus(req.user.id);
+    return {
+      success: true,
+      data: status,
+    };
+  }
+
+  // ========== 会话管理相关 API ==========
+
+  /**
+   * 获取登录历史
+   * 🔒 需要登录
+   */
+  @Get('login-history')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取登录历史', description: '查询当前用户的登录历史记录' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async getLoginHistory(@Req() req: any, @Query() query: LoginHistoryQueryDto) {
+    return this.sessionService.getLoginHistory(req.user.id, query);
+  }
+
+  /**
+   * 获取活跃会话列表
+   * 🔒 需要登录
+   */
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取活跃会话', description: '查询当前用户的所有活跃会话' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async getActiveSessions(@Req() req: any, @Headers('authorization') auth?: string) {
+    const token = auth?.replace('Bearer ', '');
+    return this.sessionService.getActiveSessions(req.user.id, token);
+  }
+
+  /**
+   * 终止单个会话
+   * 🔒 需要登录
+   */
+  @Delete('sessions/:sessionId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '终止会话', description: '终止指定的会话' })
+  @ApiParam({ name: 'sessionId', description: '会话ID' })
+  @ApiResponse({ status: 200, description: '终止成功' })
+  @ApiResponse({ status: 404, description: '会话不存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async terminateSession(
+    @Req() req: any,
+    @Param('sessionId') sessionId: string,
+    @Body() dto?: { reason?: string },
+  ) {
+    await this.sessionService.terminateSession(req.user.id, sessionId, dto?.reason);
+    return { success: true, message: '会话已终止' };
+  }
+
+  /**
+   * 终止所有其他会话
+   * 🔒 需要登录
+   */
+  @Delete('sessions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '终止所有其他会话', description: '终止除当前会话外的所有会话' })
+  @ApiResponse({ status: 200, description: '终止成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async terminateAllOtherSessions(@Req() req: any, @Headers('authorization') auth?: string) {
+    const token = auth?.replace('Bearer ', '');
+    const result = await this.sessionService.terminateAllOtherSessions(req.user.id, token || '');
+    return { success: true, message: `已终止 ${result.count} 个会话` };
   }
 }

@@ -106,6 +106,28 @@ export class TwoFactorService {
   }
 
   /**
+   * 获取2FA状态
+   */
+  async get2FAStatus(userId: string): Promise<{
+    enabled: boolean;
+    hasSecret: boolean;
+  }> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'twoFactorEnabled', 'twoFactorSecret'],
+    });
+
+    if (!user) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    return {
+      enabled: user.twoFactorEnabled || false,
+      hasSecret: !!user.twoFactorSecret,
+    };
+  }
+
+  /**
    * 生成Base32密钥
    */
   private generateBase32Secret(): string {

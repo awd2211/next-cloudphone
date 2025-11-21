@@ -76,6 +76,7 @@
     "svg-captcha": "^1.4.0",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.27",
+    "ua-parser-js": "^2.0.6",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
@@ -89,6 +90,7 @@
     "@types/nodemailer": "^7.0.2",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.3",
+    "@types/ua-parser-js": "^0.7.39",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
     "eslint": "^9.38.0",

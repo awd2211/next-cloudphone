@@ -102,6 +102,20 @@ export class User {
   lastLoginIp: string;
 
   /**
+   * 密码修改时间
+   * 用于密码重置流程追踪
+   */
+  @Column({ name: 'password_changed_at', type: 'timestamp', nullable: true })
+  passwordChangedAt: Date;
+
+  /**
+   * 账号是否激活
+   * 与 status 配合使用，便于快速查询
+   */
+  @Column({ name: 'is_active', default: true })
+  isActive: boolean;
+
+  /**
    * 双因素认证密钥
    * 存储TOTP密钥，用于生成验证码
    */
