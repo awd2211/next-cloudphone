@@ -2955,7 +2955,10 @@ export class DevicesService {
       }
 
       // 返回最后一条 SMS 消息
-      // TODO: 如需完整历史，可以调用 SMS Receive Service 的 /devices/:deviceId/messages API
+      // 完整历史获取说明：
+      // 如需完整 SMS 历史，应通过 HttpClientService 调用：
+      // GET sms-receive-service/devices/:deviceId/messages?page=1&limit=50
+      // 当前仅返回元数据中缓存的最后一条消息（性能优化）
       return [lastSmsReceived as SmsMessageDto];
     } catch (error) {
       this.logger.error(`获取 SMS 消息失败: deviceId=${deviceId}, error=${error.message}`);

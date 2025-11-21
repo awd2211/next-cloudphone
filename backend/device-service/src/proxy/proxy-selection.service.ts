@@ -62,6 +62,24 @@ export class ProxySelectionService {
   // 轮询计数器（用于加权轮询）
   private roundRobinCounters: Map<string, number> = new Map();
 
+  // ✅ 统计跟踪
+  private selectionStats: {
+    strategyCounts: Record<ProxySelectionStrategy, number>;
+    totalSelectionTime: number;
+    totalSelections: number;
+  } = {
+    strategyCounts: {
+      [ProxySelectionStrategy.LEAST_CONNECTIONS]: 0,
+      [ProxySelectionStrategy.WEIGHTED_ROUND_ROBIN]: 0,
+      [ProxySelectionStrategy.LATENCY_FIRST]: 0,
+      [ProxySelectionStrategy.SUCCESS_RATE_FIRST]: 0,
+      [ProxySelectionStrategy.RANDOM]: 0,
+      [ProxySelectionStrategy.HIGHEST_SCORE]: 0,
+    },
+    totalSelectionTime: 0,
+    totalSelections: 0,
+  };
+
   constructor(private readonly proxyPool: ProxyPoolService) {}
 
   /**
@@ -70,6 +88,7 @@ export class ProxySelectionService {
   async selectProxy(
     request: ProxySelectionRequest,
   ): Promise<ProxySelectionResult> {
+    const startTime = Date.now(); // ✅ 统计计时开始
     const strategy =
       request.strategy || ProxySelectionStrategy.HIGHEST_SCORE;
     const minScore = request.minScore || 0;
@@ -312,13 +331,37 @@ export class ProxySelectionService {
 
   /**
    * 获取选择统计信息
+   * ✅ 已实现统计收集
    */
   getSelectionStatistics(): {
     strategyCounts: Record<ProxySelectionStrategy, number>;
     averageSelectionTime: number;
+    totalSelections: number;
   } {
-    // TODO: 实现统计收集
     return {
+      strategyCounts: { ...this.selectionStats.strategyCounts },
+      averageSelectionTime:
+        this.selectionStats.totalSelections > 0
+          ? this.selectionStats.totalSelectionTime / this.selectionStats.totalSelections
+          : 0,
+      totalSelections: this.selectionStats.totalSelections,
+    };
+  }
+
+  /**
+   * 记录选择统计（内部方法）
+   */
+  private recordSelection(strategy: ProxySelectionStrategy, durationMs: number): void {
+    this.selectionStats.strategyCounts[strategy]++;
+    this.selectionStats.totalSelectionTime += durationMs;
+    this.selectionStats.totalSelections++;
+  }
+
+  /**
+   * 重置统计（用于测试或定期清理）
+   */
+  resetStatistics(): void {
+    this.selectionStats = {
       strategyCounts: {
         [ProxySelectionStrategy.LEAST_CONNECTIONS]: 0,
         [ProxySelectionStrategy.WEIGHTED_ROUND_ROBIN]: 0,
@@ -327,7 +370,8 @@ export class ProxySelectionService {
         [ProxySelectionStrategy.RANDOM]: 0,
         [ProxySelectionStrategy.HIGHEST_SCORE]: 0,
       },
-      averageSelectionTime: 0,
+      totalSelectionTime: 0,
+      totalSelections: 0,
     };
   }
 

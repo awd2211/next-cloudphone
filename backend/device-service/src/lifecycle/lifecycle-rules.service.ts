@@ -229,9 +229,19 @@ export class LifecycleRulesService {
 
     this.logger.log(`开始手动执行规则 - ID: ${id}, 名称: ${rule.name}`);
 
-    // TODO: 实际的规则执行逻辑需要根据规则类型调用相应的服务
-    // 例如: cleanup 调用 LifecycleService.cleanup, autoscaling 调用 AutoScalingService 等
-    // 这里先返回模拟结果
+    // 规则执行逻辑说明：
+    // 当前为模拟实现，完整实现需要以下步骤：
+    //
+    // 1. 使用 @Inject(forwardRef(() => LifecycleService)) 避免循环依赖
+    // 2. 根据 rule.type 调用相应服务：
+    //    - cleanup: LifecycleService.cleanupIdleDevices/cleanupErrorDevices
+    //    - backup: BackupExpirationService.createBackup
+    //    - autoscaling: AutoScalingService.evaluateAndScale
+    //    - expiration-warning: BackupExpirationService.checkExpirations
+    //
+    // 3. 记录执行历史到 LifecycleExecutionHistory 表
+    //
+    // 参考实现见: lifecycle.service.ts 中的 @Cron 定时任务
 
     const endTime = new Date();
 
