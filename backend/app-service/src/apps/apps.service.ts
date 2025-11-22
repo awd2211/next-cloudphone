@@ -2070,4 +2070,76 @@ export class AppsService {
       limit,
     };
   }
+
+  /**
+   * ==================== Dashboard 统计端点 ====================
+   */
+
+  /**
+   * 获取应用计数
+   *
+   * @param filters - 筛选条件
+   * @returns 应用总数
+   */
+  async getCount(filters: { category?: string; tenantId?: string }): Promise<number> {
+    const qb = this.appsRepository.createQueryBuilder('app');
+
+    // 只统计可用状态的应用
+    qb.where('app.status = :status', { status: AppStatus.AVAILABLE });
+
+    if (filters.category) {
+      qb.andWhere('app.category = :category', { category: filters.category });
+    }
+
+    if (filters.tenantId) {
+      qb.andWhere('app.tenantId = :tenantId', { tenantId: filters.tenantId });
+    }
+
+    return await qb.getCount();
+  }
+
+  /**
+   * 获取热门应用排行
+   *
+   * 按安装次数降序排列
+   *
+   * @param limit - 返回数量限制，默认 10
+   * @returns 热门应用列表
+   */
+  async getTopApps(limit: number = 10): Promise<
+    Array<{
+      id: string;
+      name: string;
+      packageName: string;
+      installCount: number;
+      category?: string;
+      icon?: string;
+    }>
+  > {
+    const safeLimit = Math.min(limit, 50); // 限制最大返回数量
+
+    const apps = await this.appsRepository
+      .createQueryBuilder('app')
+      .select([
+        'app.id',
+        'app.name',
+        'app.packageName',
+        'app.installCount',
+        'app.category',
+        'app.icon',
+      ])
+      .where('app.status = :status', { status: AppStatus.AVAILABLE })
+      .orderBy('app.installCount', 'DESC')
+      .limit(safeLimit)
+      .getMany();
+
+    return apps.map((app) => ({
+      id: app.id,
+      name: app.name,
+      packageName: app.packageName,
+      installCount: app.installCount || 0,
+      category: app.category,
+      icon: app.icon,
+    }));
+  }
 }

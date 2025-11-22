@@ -127,6 +127,31 @@ export class AppsController {
     return { data: app, message: 'APK 上传成功' };
   }
 
+  @Get('count')
+  @RequirePermission('app.read')
+  @ApiOperation({ summary: '获取应用数量', description: '获取应用总数（支持分类过滤）' })
+  @ApiQuery({ name: 'category', required: false, description: '应用分类' })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getCount(
+    @Query('category') category?: string,
+    @Query('tenantId') tenantId?: string
+  ) {
+    const count = await this.appsService.getCount({ category, tenantId });
+    return { count };
+  }
+
+  @Get('top')
+  @RequirePermission('app.read')
+  @ApiOperation({ summary: '获取热门应用', description: '获取安装量最高的应用列表' })
+  @ApiQuery({ name: 'limit', required: false, description: '返回数量', example: 10 })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getTopApps(@Query('limit') limit: number = 10) {
+    return this.appsService.getTopApps(limit);
+  }
+
   @Get()
   @RequirePermission('app.read')
   @ApiOperation({ summary: '获取应用列表', description: '分页获取应用列表' })
