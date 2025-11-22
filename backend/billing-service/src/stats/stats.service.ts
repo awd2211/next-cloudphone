@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual } from 'typeorm';
 import { Order, OrderStatus } from '../billing/entities/order.entity';
+import { Plan } from '../billing/entities/plan.entity';
 import { HttpClientService } from '@cloudphone/shared';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../cache/cache.service';
@@ -14,6 +15,8 @@ export class StatsService {
   constructor(
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
+    @InjectRepository(Plan)
+    private planRepository: Repository<Plan>,
     private readonly httpClient: HttpClientService,
     private readonly configService: ConfigService,
     private readonly cacheService: CacheService, // ✅ 注入缓存服务
@@ -317,19 +320,40 @@ export class StatsService {
 
   /**
    * 获取套餐分布统计
+   * ✅ 直接从本地数据库查询（套餐和订单数据都在 billing-service）
    */
   async getPlanDistributionStats() {
     try {
-      const userServiceUrl = this.configService.get(
-        'USER_SERVICE_URL',
-        'http://user-service:30001'
+      // 获取所有活跃套餐
+      const plans = await this.planRepository.find({
+        where: { isActive: true },
+        select: ['id', 'name', 'price'],
+      });
+
+      // 统计每个套餐的订单数和收入
+      const stats = await Promise.all(
+        plans.map(async (plan) => {
+          const result = await this.orderRepository
+            .createQueryBuilder('order')
+            .select('COUNT(DISTINCT order.userId)', 'userCount')
+            .addSelect('SUM(order.amount)', 'revenue')
+            .where('order.planId = :planId', { planId: plan.id })
+            .andWhere('order.status = :status', { status: OrderStatus.PAID })
+            .getRawOne();
+
+          return {
+            planId: plan.id,
+            planName: plan.name,
+            userCount: parseInt(result?.userCount || '0'),
+            revenue: parseFloat(result?.revenue || '0'),
+          };
+        })
       );
-      const response = await this.httpClient.get<any>(
-        `${userServiceUrl}/plans/stats/distribution`,
-        {},
-        { timeout: 5000, retries: 2, circuitBreaker: true }
-      );
-      return response || [];
+
+      // 过滤掉没有用户的套餐，按用户数降序排列
+      return stats
+        .filter((s) => s.userCount > 0)
+        .sort((a, b) => b.userCount - a.userCount);
     } catch (error) {
       this.logger.warn(`Failed to get plan distribution stats: ${error.message}`);
       return [];
