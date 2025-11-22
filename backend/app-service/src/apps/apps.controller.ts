@@ -124,11 +124,7 @@ export class AppsController {
     }
 
     const app = await this.appsService.uploadApp(file, createAppDto);
-    return {
-      success: true,
-      data: app,
-      message: 'APK 上传成功',
-    };
+    return { data: app, message: 'APK 上传成功' };
   }
 
   @Get()
@@ -159,11 +155,7 @@ export class AppsController {
 
     // 返回标准格式：将 limit 转换为 pageSize
     const { limit: _, ...rest } = result;
-    return {
-      success: true,
-      ...rest,
-      pageSize: result.limit,
-    };
+    return { ...rest, pageSize: result.limit };
   }
 
   @Get('cursor')
@@ -186,7 +178,6 @@ export class AppsController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: [],
         nextCursor: 'MTY5ODc2NTQzMjAwMA==',
         hasMore: true,
@@ -201,10 +192,7 @@ export class AppsController {
     @Query('category') category?: string
   ) {
     const result = await this.appsService.findAllCursor(paginationDto, tenantId, category);
-    return {
-      success: true,
-      ...result,
-    };
+    return result;
   }
 
   @Get('filters/metadata')
@@ -233,11 +221,7 @@ export class AppsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async getFiltersMetadata(@Query() query: FilterMetadataQueryDto) {
     const result = await this.appsService.getFiltersMetadata(query);
-    return {
-      success: true,
-      data: result,
-      message: '应用筛选元数据获取成功',
-    };
+    return { data: result, message: '应用筛选元数据获取成功' };
   }
 
   @Get('quick-list')
@@ -257,11 +241,7 @@ export class AppsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async getQuickList(@Query() query: QuickListQueryDto) {
     const result = await this.appsService.getQuickList(query);
-    return {
-      success: true,
-      data: result,
-      message: '应用快速列表获取成功',
-    };
+    return { data: result, message: '应用快速列表获取成功' };
   }
 
   @Get(':id')
@@ -272,11 +252,7 @@ export class AppsController {
   @ApiResponse({ status: 404, description: '应用不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async findOne(@Param('id') id: string) {
-    const app = await this.appsService.findOne(id);
-    return {
-      success: true,
-      data: app,
-    };
+    return this.appsService.findOne(id);
   }
 
   @Get(':id/devices')
@@ -286,11 +262,7 @@ export class AppsController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getAppDevices(@Param('id') id: string) {
-    const devices = await this.appsService.getAppDevices(id);
-    return {
-      success: true,
-      data: devices,
-    };
+    return this.appsService.getAppDevices(id);
   }
 
   @Get('package/:packageName/versions')
@@ -301,11 +273,7 @@ export class AppsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async getAppVersions(@Param('packageName') packageName: string) {
     const versions = await this.appsService.getAppVersions(packageName);
-    return {
-      success: true,
-      data: versions,
-      total: versions.length,
-    };
+    return { data: versions, total: versions.length };
   }
 
   @Get('package/:packageName/latest')
@@ -322,10 +290,7 @@ export class AppsController {
       throw new NotFoundException(`应用 ${packageName} 不存在或无可用版本`);
     }
 
-    return {
-      success: true,
-      data: latestVersion,
-    };
+    return latestVersion;
   }
 
   @Patch(':id')
@@ -337,11 +302,7 @@ export class AppsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async update(@Param('id') id: string, @Body() updateAppDto: UpdateAppDto) {
     const app = await this.appsService.update(id, updateAppDto);
-    return {
-      success: true,
-      data: app,
-      message: '应用更新成功',
-    };
+    return { data: app, message: '应用更新成功' };
   }
 
   @Delete(':id')
@@ -353,10 +314,7 @@ export class AppsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async remove(@Param('id') id: string) {
     await this.appsService.remove(id);
-    return {
-      success: true,
-      message: '应用删除成功',
-    };
+    return { message: '应用删除成功' };
   }
 
   /**
@@ -394,7 +352,6 @@ export class AppsController {
 
         results.push({
           deviceId,
-          success: true,
           sagaId, // 返回 Saga ID 供查询
           message: 'Installation Saga started',
         });
@@ -407,11 +364,7 @@ export class AppsController {
       }
     }
 
-    return {
-      success: true,
-      data: results,
-      message: '应用安装 Saga 已启动，可通过 sagaId 查询进度',
-    };
+    return { data: results, message: '应用安装 Saga 已启动，可通过 sagaId 查询进度' };
   }
 
   /**
@@ -427,17 +380,14 @@ export class AppsController {
     try {
       const state = await this.installationSaga.getSagaStatus(sagaId);
       return {
-        success: true,
-        data: {
-          sagaId: state.sagaId,
-          status: state.status,
-          currentStep: state.currentStep,
-          stepIndex: state.stepIndex,
-          startedAt: state.startedAt,
-          completedAt: state.completedAt,
-          errorMessage: state.errorMessage,
-          state: state.state,
-        },
+        sagaId: state.sagaId,
+        status: state.status,
+        currentStep: state.currentStep,
+        stepIndex: state.stepIndex,
+        startedAt: state.startedAt,
+        completedAt: state.completedAt,
+        errorMessage: state.errorMessage,
+        state: state.state,
       };
     } catch (error) {
       throw new NotFoundException(`Saga ${sagaId} not found`);
@@ -458,7 +408,6 @@ export class AppsController {
         await this.appsService.uninstallFromDevice(uninstallAppDto.applicationId, deviceId);
         results.push({
           deviceId,
-          success: true,
         });
       } catch (error) {
         results.push({
@@ -469,11 +418,7 @@ export class AppsController {
       }
     }
 
-    return {
-      success: true,
-      data: results,
-      message: '应用卸载任务已创建',
-    };
+    return { data: results, message: '应用卸载任务已创建' };
   }
 
   @Get('devices/:deviceId/apps')
@@ -483,11 +428,7 @@ export class AppsController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getDeviceApps(@Param('deviceId') deviceId: string) {
-    const apps = await this.appsService.getDeviceApps(deviceId);
-    return {
-      success: true,
-      data: apps,
-    };
+    return this.appsService.getDeviceApps(deviceId);
   }
 
   // ==================== 应用审核相关接口 ====================
@@ -501,11 +442,7 @@ export class AppsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async submitForReview(@Param('id') id: string, @Body() dto: SubmitReviewDto) {
     const app = await this.appsService.submitForReview(id, dto);
-    return {
-      success: true,
-      data: app,
-      message: '应用已提交审核',
-    };
+    return { data: app, message: '应用已提交审核' };
   }
 
   @Post(':id/approve')
@@ -517,11 +454,7 @@ export class AppsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async approveApp(@Param('id') id: string, @Body() dto: ApproveAppDto) {
     const app = await this.appsService.approveApp(id, dto);
-    return {
-      success: true,
-      data: app,
-      message: '应用已批准',
-    };
+    return { data: app, message: '应用已批准' };
   }
 
   @Post(':id/reject')
@@ -533,11 +466,7 @@ export class AppsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async rejectApp(@Param('id') id: string, @Body() dto: RejectAppDto) {
     const app = await this.appsService.rejectApp(id, dto);
-    return {
-      success: true,
-      data: app,
-      message: '应用已拒绝',
-    };
+    return { data: app, message: '应用已拒绝' };
   }
 
   @Post(':id/request-changes')
@@ -549,11 +478,7 @@ export class AppsController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async requestChanges(@Param('id') id: string, @Body() dto: RequestChangesDto) {
     const app = await this.appsService.requestChanges(id, dto);
-    return {
-      success: true,
-      data: app,
-      message: '已要求开发者修改',
-    };
+    return { data: app, message: '已要求开发者修改' };
   }
 
   @Get(':id/audit-records')
@@ -563,11 +488,7 @@ export class AppsController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getAppAuditRecords(@Param('id') id: string) {
-    const records = await this.appsService.getAuditRecords(id);
-    return {
-      success: true,
-      data: records,
-    };
+    return this.appsService.getAuditRecords(id);
   }
 
   @Get('pending-review/list')
@@ -581,11 +502,7 @@ export class AppsController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10'
   ) {
-    const result = await this.appsService.getPendingReviewApps(parseInt(page), parseInt(limit));
-    return {
-      success: true,
-      ...result,
-    };
+    return this.appsService.getPendingReviewApps(parseInt(page), parseInt(limit));
   }
 
   @Get('audit-records/all')
@@ -599,7 +516,7 @@ export class AppsController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getAllAuditRecords(@Query() query: GetAuditRecordsQueryDto) {
-    const result = await this.appsService.getAllAuditRecords(
+    return this.appsService.getAllAuditRecords(
       parseInt(query.page?.toString() || '1'),
       parseInt(query.limit?.toString() || '10'),
       {
@@ -608,10 +525,6 @@ export class AppsController {
         action: query.action,
       }
     );
-    return {
-      success: true,
-      ...result,
-    };
   }
 
   @Post(':id/publish')
@@ -624,11 +537,7 @@ export class AppsController {
   @ApiResponse({ status: 404, description: '应用不存在' })
   async publishApp(@Param('id') id: string) {
     const app = await this.appsService.publishApp(id);
-    return {
-      success: true,
-      data: app,
-      message: '应用已成功发布',
-    };
+    return { data: app, message: '应用已成功发布' };
   }
 
   @Post(':id/unpublish')
@@ -641,11 +550,7 @@ export class AppsController {
   @ApiResponse({ status: 404, description: '应用不存在' })
   async unpublishApp(@Param('id') id: string) {
     const app = await this.appsService.unpublishApp(id);
-    return {
-      success: true,
-      data: app,
-      message: '应用已下架',
-    };
+    return { data: app, message: '应用已下架' };
   }
 
   @Get(':id/reviews')
@@ -662,10 +567,6 @@ export class AppsController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10'
   ) {
-    const result = await this.appsService.getAppReviews(id, parseInt(page), parseInt(limit));
-    return {
-      success: true,
-      ...result,
-    };
+    return this.appsService.getAppReviews(id, parseInt(page), parseInt(limit));
   }
 }
