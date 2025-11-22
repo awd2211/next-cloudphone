@@ -649,6 +649,139 @@ export class StateRecoveryService {
   }
 
   /**
+   * 恢复设备状态
+   * 将指定设备恢复到目标状态
+   */
+  async recoverDeviceState(
+    deviceId: string,
+    targetState: string
+  ): Promise<{ success: boolean; error?: string }> {
+    this.logger.log(`Recovering device ${deviceId} to state ${targetState}`);
+
+    try {
+      const device = await this.deviceRepository.findOne({
+        where: { id: deviceId },
+      });
+
+      if (!device) {
+        return { success: false, error: '设备不存在' };
+      }
+
+      // 根据目标状态执行不同的操作
+      switch (targetState.toLowerCase()) {
+        case 'running':
+          if (device.containerId) {
+            await this.dockerService.startContainer(device.containerId);
+          }
+          device.status = DeviceStatus.RUNNING;
+          break;
+
+        case 'stopped':
+          if (device.containerId) {
+            await this.dockerService.stopContainer(device.containerId);
+          }
+          device.status = DeviceStatus.STOPPED;
+          break;
+
+        case 'error':
+          device.status = DeviceStatus.ERROR;
+          break;
+
+        default:
+          return { success: false, error: `不支持的目标状态: ${targetState}` };
+      }
+
+      await this.deviceRepository.save(device);
+
+      // 发布恢复事件
+      this.eventBusService.publish('cloudphone.events', 'state.device_recovered', {
+        deviceId,
+        targetState,
+        timestamp: new Date(),
+      });
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`Failed to recover device ${deviceId}: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 批量修复所有不一致
+   */
+  async fixAllInconsistencies(): Promise<{ fixed: number; failed: number; details: any[] }> {
+    this.logger.log('Fixing all inconsistencies');
+
+    // 先执行一致性检查获取最新不一致
+    const inconsistencies = await this.detectInconsistencies();
+
+    let fixed = 0;
+    let failed = 0;
+    const details: any[] = [];
+
+    for (const inconsistency of inconsistencies) {
+      if (inconsistency.autoFixable) {
+        const result = await this.autoHeal(inconsistency);
+        if (result.success) {
+          fixed++;
+          details.push({ type: inconsistency.type, deviceId: inconsistency.deviceId, status: 'fixed' });
+        } else {
+          failed++;
+          details.push({ type: inconsistency.type, deviceId: inconsistency.deviceId, status: 'failed', error: result.error });
+        }
+      } else {
+        details.push({ type: inconsistency.type, deviceId: inconsistency.deviceId, status: 'skipped', reason: 'not auto-fixable' });
+      }
+    }
+
+    return { fixed, failed, details };
+  }
+
+  /**
+   * 验证所有设备一致性
+   * 返回不一致的设备列表
+   */
+  async validateAllDevices(): Promise<{ consistent: any[]; inconsistent: any[] }> {
+    this.logger.log('Validating all devices');
+
+    const inconsistencies = await this.detectInconsistencies();
+
+    // 获取所有设备
+    const allDevices = await this.deviceRepository.find();
+    const inconsistentDeviceIds = new Set(
+      inconsistencies.map((inc) => inc.deviceId).filter(Boolean)
+    );
+
+    const consistent: any[] = [];
+    const inconsistent: any[] = [];
+
+    for (const device of allDevices) {
+      if (inconsistentDeviceIds.has(device.id)) {
+        const deviceInconsistencies = inconsistencies.filter((inc) => inc.deviceId === device.id);
+        inconsistent.push({
+          id: device.id,
+          name: device.name,
+          status: device.status,
+          issues: deviceInconsistencies.map((inc) => ({
+            type: inc.type,
+            severity: inc.severity,
+            details: inc.details,
+          })),
+        });
+      } else {
+        consistent.push({
+          id: device.id,
+          name: device.name,
+          status: device.status,
+        });
+      }
+    }
+
+    return { consistent, inconsistent };
+  }
+
+  /**
    * 获取设备状态概览
    * 返回设备状态的统计信息（总数、一致、不一致、恢复中）
    */
@@ -689,6 +822,89 @@ export class StateRecoveryService {
       consistent: consistentCount,
       inconsistent: inconsistentCount,
       recovering: recoveringDevices,
+    };
+  }
+
+  /**
+   * 获取状态恢复记录列表
+   * 分页返回恢复操作记录
+   */
+  async getRecoveryRecords(params: {
+    status?: string;
+    deviceId?: string;
+    page: number;
+    limit: number;
+  }): Promise<{
+    data: any[];
+    meta: { total: number; page: number; limit: number };
+  }> {
+    // 从内存中的操作历史和不一致历史构建记录
+    let records: any[] = [];
+
+    // 添加操作历史记录
+    for (const op of this.operationHistory) {
+      records.push({
+        id: op.id,
+        type: 'operation',
+        operationType: op.operationType,
+        entityType: op.entityType,
+        entityId: op.entityId,
+        deviceId: op.entityType === 'device' ? op.entityId : undefined,
+        status: op.rolledBack ? 'rolled_back' : 'completed',
+        timestamp: op.timestamp,
+        details: {
+          beforeState: op.beforeState,
+          afterState: op.afterState,
+          executedBy: op.executedBy,
+          rollbackable: op.rollbackable,
+        },
+      });
+    }
+
+    // 添加不一致记录（作为恢复事件）
+    for (const inc of this.inconsistencyHistory) {
+      records.push({
+        id: `inc_${inc.timestamp.getTime()}_${inc.deviceId || 'unknown'}`,
+        type: 'inconsistency',
+        operationType: inc.type,
+        entityType: 'device',
+        entityId: inc.deviceId || inc.containerId,
+        deviceId: inc.deviceId,
+        status: inc.autoFixable ? 'auto_fixed' : 'detected',
+        severity: inc.severity,
+        timestamp: inc.timestamp,
+        details: {
+          expectedState: inc.expectedState,
+          actualState: inc.actualState,
+          description: inc.details,
+        },
+      });
+    }
+
+    // 按时间倒序排序
+    records.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // 过滤
+    if (params.status) {
+      records = records.filter((r) => r.status === params.status);
+    }
+    if (params.deviceId) {
+      records = records.filter((r) => r.deviceId === params.deviceId);
+    }
+
+    // 分页
+    const total = records.length;
+    const start = (params.page - 1) * params.limit;
+    const end = start + params.limit;
+    const paginatedRecords = records.slice(start, end);
+
+    return {
+      data: paginatedRecords,
+      meta: {
+        total,
+        page: params.page,
+        limit: params.limit,
+      },
     };
   }
 

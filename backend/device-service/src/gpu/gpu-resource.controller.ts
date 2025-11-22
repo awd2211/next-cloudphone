@@ -22,6 +22,10 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 /**
  * GPU 资源管理控制器
+ *
+ * 重要：路由顺序很关键！
+ * 具体路径（如 gpu/stats, gpu/allocations）必须在参数路由（如 gpu/:id）之前声明，
+ * 否则 NestJS 会将 "stats" 误匹配为 ":id" 参数。
  */
 @Controller('resources')
 @UseGuards(JwtAuthGuard)
@@ -42,6 +46,62 @@ export class GpuResourceController {
     return this.gpuResourceService.getGPUDevices(query);
   }
 
+  // ========== GPU 监控统计（必须在参数路由之前声明）==========
+
+  /**
+   * 获取 GPU 统计信息
+   * GET /resources/gpu/stats
+   */
+  @Get('gpu/stats')
+  async getGPUStats() {
+    this.logger.log('Fetching GPU statistics');
+    return this.gpuResourceService.getGPUStats();
+  }
+
+  /**
+   * 获取分配记录
+   * GET /resources/gpu/allocations
+   */
+  @Get('gpu/allocations')
+  async getGPUAllocations(@Query() query: QueryGPUAllocationsDto) {
+    this.logger.log(`Fetching GPU allocations with filters: ${JSON.stringify(query)}`);
+    return this.gpuResourceService.getGPUAllocations(query);
+  }
+
+  /**
+   * 获取集群 GPU 使用趋势
+   * GET /resources/gpu/cluster-trend
+   */
+  @Get('gpu/cluster-trend')
+  async getClusterGPUTrend(@Query() query: QueryGPUUsageTrendDto) {
+    this.logger.log('Fetching cluster GPU usage trend');
+    return this.gpuResourceService.getClusterGPUTrend(query);
+  }
+
+  // ========== GPU 驱动管理（driver 路径在 :id 之前）==========
+
+  /**
+   * 获取驱动信息
+   * GET /resources/gpu/driver/:nodeId
+   */
+  @Get('gpu/driver/:nodeId')
+  async getGPUDriverInfo(@Param('nodeId') nodeId: string) {
+    this.logger.log(`Fetching GPU driver info for node: ${nodeId}`);
+    return this.gpuResourceService.getGPUDriverInfo(nodeId);
+  }
+
+  /**
+   * 更新驱动
+   * POST /resources/gpu/driver/:nodeId/update
+   */
+  @Post('gpu/driver/:nodeId/update')
+  async updateGPUDriver(@Param('nodeId') nodeId: string, @Body() dto: UpdateGPUDriverDto) {
+    this.logger.log(`Updating GPU driver for node: ${nodeId}`);
+    return this.gpuResourceService.updateGPUDriver(nodeId, dto);
+  }
+
+  // ========== GPU 设备详情（参数路由放在最后）==========
+
   /**
    * 获取 GPU 设备详情
    * GET /resources/gpu/:id
@@ -60,6 +120,26 @@ export class GpuResourceController {
   async getGPUStatus(@Param('id') id: string) {
     this.logger.log(`Fetching GPU status: ${id}`);
     return this.gpuResourceService.getGPUStatus(id);
+  }
+
+  /**
+   * 获取 GPU 使用趋势
+   * GET /resources/gpu/:gpuId/usage-trend
+   */
+  @Get('gpu/:gpuId/usage-trend')
+  async getGPUUsageTrend(@Param('gpuId') gpuId: string, @Query() query: QueryGPUUsageTrendDto) {
+    this.logger.log(`Fetching GPU usage trend: ${gpuId}`);
+    return this.gpuResourceService.getGPUUsageTrend(gpuId, query);
+  }
+
+  /**
+   * 获取 GPU 性能分析
+   * GET /resources/gpu/:gpuId/performance
+   */
+  @Get('gpu/:gpuId/performance')
+  async getGPUPerformanceAnalysis(@Param('gpuId') gpuId: string) {
+    this.logger.log(`Fetching GPU performance analysis: ${gpuId}`);
+    return this.gpuResourceService.getGPUPerformanceAnalysis(gpuId);
   }
 
   // ========== GPU 分配管理 ==========
@@ -82,79 +162,5 @@ export class GpuResourceController {
   async deallocateGPU(@Param('gpuId') gpuId: string, @Body() dto: DeallocateGPUDto) {
     this.logger.log(`Deallocating GPU ${gpuId}`);
     return this.gpuResourceService.deallocateGPU(gpuId, dto);
-  }
-
-  /**
-   * 获取分配记录
-   * GET /resources/gpu/allocations
-   */
-  @Get('gpu/allocations')
-  async getGPUAllocations(@Query() query: QueryGPUAllocationsDto) {
-    this.logger.log(`Fetching GPU allocations with filters: ${JSON.stringify(query)}`);
-    return this.gpuResourceService.getGPUAllocations(query);
-  }
-
-  // ========== GPU 监控统计 ==========
-
-  /**
-   * 获取 GPU 统计信息
-   * GET /resources/gpu/stats
-   */
-  @Get('gpu/stats')
-  async getGPUStats() {
-    this.logger.log('Fetching GPU statistics');
-    return this.gpuResourceService.getGPUStats();
-  }
-
-  /**
-   * 获取 GPU 使用趋势
-   * GET /resources/gpu/:gpuId/usage-trend
-   */
-  @Get('gpu/:gpuId/usage-trend')
-  async getGPUUsageTrend(@Param('gpuId') gpuId: string, @Query() query: QueryGPUUsageTrendDto) {
-    this.logger.log(`Fetching GPU usage trend: ${gpuId}`);
-    return this.gpuResourceService.getGPUUsageTrend(gpuId, query);
-  }
-
-  /**
-   * 获取集群 GPU 使用趋势
-   * GET /resources/gpu/cluster-trend
-   */
-  @Get('gpu/cluster-trend')
-  async getClusterGPUTrend(@Query() query: QueryGPUUsageTrendDto) {
-    this.logger.log('Fetching cluster GPU usage trend');
-    return this.gpuResourceService.getClusterGPUTrend(query);
-  }
-
-  /**
-   * 获取 GPU 性能分析
-   * GET /resources/gpu/:gpuId/performance
-   */
-  @Get('gpu/:gpuId/performance')
-  async getGPUPerformanceAnalysis(@Param('gpuId') gpuId: string) {
-    this.logger.log(`Fetching GPU performance analysis: ${gpuId}`);
-    return this.gpuResourceService.getGPUPerformanceAnalysis(gpuId);
-  }
-
-  // ========== GPU 驱动管理 ==========
-
-  /**
-   * 获取驱动信息
-   * GET /resources/gpu/driver/:nodeId
-   */
-  @Get('gpu/driver/:nodeId')
-  async getGPUDriverInfo(@Param('nodeId') nodeId: string) {
-    this.logger.log(`Fetching GPU driver info for node: ${nodeId}`);
-    return this.gpuResourceService.getGPUDriverInfo(nodeId);
-  }
-
-  /**
-   * 更新驱动
-   * POST /resources/gpu/driver/:nodeId/update
-   */
-  @Post('gpu/driver/:nodeId/update')
-  async updateGPUDriver(@Param('nodeId') nodeId: string, @Body() dto: UpdateGPUDriverDto) {
-    this.logger.log(`Updating GPU driver for node: ${nodeId}`);
-    return this.gpuResourceService.updateGPUDriver(nodeId, dto);
   }
 }

@@ -75,7 +75,7 @@ export class SchedulingStrategy {
   config: StrategyConfig;
 
   // 是否激活（同时只能有一个策略激活）
-  @Column({ type: 'boolean', default: false })
+  @Column({ name: 'is_active', type: 'boolean', default: false })
   @Index()
   isActive: boolean;
 

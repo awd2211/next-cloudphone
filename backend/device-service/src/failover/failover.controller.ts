@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { FailoverService, FailoverConfig } from './failover.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -11,6 +11,36 @@ import { RequirePermission } from '@cloudphone/shared';
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class FailoverController {
   constructor(private readonly failoverService: FailoverService) {}
+
+  /**
+   * 获取故障转移记录列表
+   * 根路径必须放在最前面，避免被其他路由匹配
+   */
+  @Get()
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取故障转移记录列表',
+    description: '分页获取故障转移操作记录',
+  })
+  @ApiQuery({ name: 'status', required: false, description: '状态过滤' })
+  @ApiQuery({ name: 'deviceId', required: false, description: '设备ID过滤' })
+  @ApiQuery({ name: 'page', required: false, description: '页码', example: 1 })
+  @ApiQuery({ name: 'limit', required: false, description: '每页数量', example: 10 })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getFailoverRecords(
+    @Query('status') status?: string,
+    @Query('deviceId') deviceId?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.failoverService.getFailoverRecords({
+      status,
+      deviceId,
+      page: page || 1,
+      limit: limit || 10,
+    });
+  }
 
   /**
    * 获取故障转移配置
@@ -160,6 +190,28 @@ export class FailoverController {
       message: result.success
         ? `设备 ${deviceId} 恢复成功`
         : `设备 ${deviceId} 恢复失败: ${result.error}`,
+    };
+  }
+
+  /**
+   * 触发故障转移（前端调用别名）
+   */
+  @Post('trigger/:deviceId')
+  @RequirePermission('device.manage')
+  @ApiOperation({
+    summary: '触发故障转移',
+    description: '手动触发指定设备的故障转移（管理员权限）',
+  })
+  @ApiResponse({ status: 200, description: '故障转移已触发' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 404, description: '设备不存在' })
+  async triggerFailover(@Param('deviceId') deviceId: string) {
+    const result = await this.failoverService.triggerManualRecovery(deviceId);
+    return {
+      ...result,
+      message: result.success
+        ? `设备 ${deviceId} 故障转移成功`
+        : `设备 ${deviceId} 故障转移失败: ${result.error}`,
     };
   }
 }

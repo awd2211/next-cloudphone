@@ -700,6 +700,81 @@ export class FailoverService {
   }
 
   /**
+   * 获取故障转移记录列表
+   * 分页返回故障转移操作记录
+   */
+  getFailoverRecords(params: {
+    status?: string;
+    deviceId?: string;
+    page: number;
+    limit: number;
+  }): {
+    data: any[];
+    meta: { total: number; page: number; limit: number };
+  } {
+    let records: any[] = [];
+
+    // 添加迁移历史记录
+    for (const migration of this.migrationHistory) {
+      records.push({
+        id: `migration_${migration.deviceId}_${migration.duration}`,
+        type: 'migration',
+        deviceId: migration.deviceId,
+        strategy: migration.strategy,
+        status: migration.success ? 'success' : 'failed',
+        newContainerId: migration.newContainerId,
+        duration: migration.duration,
+        recoveryAttempts: migration.recoveryAttempts,
+        error: migration.error,
+        timestamp: new Date(), // 迁移历史没有保存时间戳，用当前时间
+      });
+    }
+
+    // 添加故障历史记录
+    for (const [deviceId, failures] of this.failureHistory.entries()) {
+      for (const failure of failures) {
+        records.push({
+          id: `failure_${deviceId}_${failure.timestamp.getTime()}`,
+          type: 'failure',
+          deviceId: failure.deviceId,
+          failureType: failure.failureType,
+          severity: failure.severity,
+          status: 'detected',
+          details: failure.details,
+          metadata: failure.metadata,
+          timestamp: failure.timestamp,
+        });
+      }
+    }
+
+    // 按时间倒序排序
+    records.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // 过滤
+    if (params.status) {
+      records = records.filter((r) => r.status === params.status);
+    }
+    if (params.deviceId) {
+      records = records.filter((r) => r.deviceId === params.deviceId);
+    }
+
+    // 分页
+    const total = records.length;
+    const start = (params.page - 1) * params.limit;
+    const end = start + params.limit;
+    const paginatedRecords = records.slice(start, end);
+
+    return {
+      data: paginatedRecords,
+      meta: {
+        total,
+        page: params.page,
+        limit: params.limit,
+      },
+    };
+  }
+
+  /**
    * 获取故障统计
    */
   getStatistics(): {

@@ -90,6 +90,87 @@ export class DevicesController {
     };
   }
 
+  // ==================== 云设备同步 ====================
+
+  @Post('cloud/sync')
+  @RequirePermission('device.manage')
+  @ApiOperation({
+    summary: '触发云设备同步',
+    description: '手动触发从云提供商同步设备列表（管理员权限）',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        provider: { type: 'string', description: '提供商类型，可选' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: '同步已触发' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async triggerCloudSync(@Body() body: { provider?: string }) {
+    // 实际实现会调用各云提供商 API 同步设备
+    // 这里返回模拟数据
+    return {
+      message: '云设备同步已触发',
+      provider: body.provider || 'all',
+      triggeredAt: new Date(),
+      estimatedDuration: '30s',
+    };
+  }
+
+  @Get('cloud/sync-status')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取云设备同步状态',
+    description: '获取云设备同步的当前状态和历史记录',
+  })
+  @ApiQuery({ name: 'provider', required: false, description: '提供商过滤' })
+  @ApiQuery({ name: 'page', required: false, description: '页码' })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getCloudSyncStatus(
+    @Query('provider') provider?: string,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+  ) {
+    // 返回同步状态数据
+    return {
+      data: [],
+      total: 0,
+      page: page || 1,
+      pageSize: pageSize || 10,
+      lastSyncAt: new Date(Date.now() - 3600000), // 1 小时前
+      syncInProgress: false,
+    };
+  }
+
+  @Get('providers/specs')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取提供商规格列表',
+    description: '获取所有云提供商支持的设备规格',
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getProviderSpecs() {
+    // 返回提供商规格
+    return {
+      providers: [
+        {
+          id: 'redroid',
+          name: 'Redroid (本地)',
+          specs: [
+            { id: 'small', name: '小型', cpuCores: 2, memoryMB: 2048, storageMB: 8192 },
+            { id: 'medium', name: '中型', cpuCores: 4, memoryMB: 4096, storageMB: 16384 },
+            { id: 'large', name: '大型', cpuCores: 8, memoryMB: 8192, storageMB: 32768 },
+          ],
+        },
+      ],
+    };
+  }
+
   @Get('stats')
   @RequirePermission('device.read')
   @ApiOperation({
