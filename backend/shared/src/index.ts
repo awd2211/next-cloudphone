@@ -265,3 +265,17 @@ export { LocalFileStorage } from './storage/local-file-storage.service';
 export { MinIOStorage } from './storage/minio-storage.service';
 export { StorageModule } from './storage/storage.module';
 export type { StorageModuleOptions } from './storage/storage.module';
+
+// 多云存储服务
+export { S3CompatibleStorage } from './storage/s3-compatible-storage.service';
+export type { S3CompatibleStorageConfig } from './storage/s3-compatible-storage.service';
+export { AliyunOSSStorage } from './storage/aliyun-oss-storage.service';
+export type { AliyunOSSStorageConfig } from './storage/aliyun-oss-storage.service';
+export { TencentCOSStorage } from './storage/tencent-cos-storage.service';
+export type { TencentCOSStorageConfig } from './storage/tencent-cos-storage.service';
+export { QiniuStorage } from './storage/qiniu-storage.service';
+export type { QiniuStorageConfig } from './storage/qiniu-storage.service';
+
+// 存储工厂服务
+export { StorageFactory } from './storage/storage-factory.service';
+export type { StorageType, StorageConfig } from './storage/storage-factory.service';
