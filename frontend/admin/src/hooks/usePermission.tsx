@@ -83,8 +83,18 @@ export const usePermission = () => {
     }
 
     try {
-      permissionPromise = api.get<string[]>('/menu-permissions/my-permissions');
-      globalPermissions = await permissionPromise || [];
+      permissionPromise = api.get<string[] | { data: string[] }>('/menu-permissions/my-permissions');
+      const result = await permissionPromise;
+
+      // 健壮处理：支持直接数组或 { data: [...] } 格式
+      if (Array.isArray(result)) {
+        globalPermissions = result;
+      } else if (result && typeof result === 'object' && 'data' in result && Array.isArray(result.data)) {
+        globalPermissions = result.data;
+      } else {
+        globalPermissions = [];
+      }
+
       globalIsSuperAdmin = globalPermissions?.includes('*') ?? false;
 
       setContext({

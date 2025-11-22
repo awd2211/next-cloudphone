@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards, Request, Logger, Req, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, Request, Logger, Req, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { MenuPermissionService } from '../menu-permission.service';
@@ -106,23 +106,19 @@ export class MenuPermissionController {
   })
   @ApiResponse({ status: 401, description: '未登录' })
   @SkipPermission()
-  async getMyPermissions(@Request() req: AuthenticatedRequest) {
+  async getMyPermissions(@Request() req: AuthenticatedRequest): Promise<string[]> {
     const userId = req.user?.id;
 
     if (!userId) {
       this.logger.warn('Unauthorized access attempt to my-permissions endpoint');
-      return {
-        success: false,
-        message: '未登录',
-      };
+      throw new UnauthorizedException('未登录');
     }
 
     this.logger.debug(`Fetching permissions for user: ${userId}`);
     const permissions = await this.menuPermissionService.getUserPermissionNames(userId);
 
-    return {
-      data: permissions,
-    };
+    // 直接返回权限数组，由 TransformInterceptor 统一包装为 { success: true, data: [...] }
+    return permissions;
   }
 
   /**
