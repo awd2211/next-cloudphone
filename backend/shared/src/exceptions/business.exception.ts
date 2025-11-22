@@ -270,7 +270,7 @@ export class BusinessErrors {
             actionUrl: '/support',
           },
         ],
-        documentationUrl: 'https://docs.cloudphone.com/billing',
+        documentationUrl: 'https://docs.cloudphone.run/billing',
         supportUrl: '/support/tickets/new',
         retryable: false,
       }
@@ -303,7 +303,7 @@ export class BusinessErrors {
             actionUrl: '/support/tickets/new',
           },
         ],
-        documentationUrl: 'https://docs.cloudphone.com/quotas',
+        documentationUrl: 'https://docs.cloudphone.run/quotas',
         supportUrl: '/support/tickets/new',
         retryable: false,
       }
@@ -335,7 +335,7 @@ export class BusinessErrors {
             actionUrl: '/support/tickets/new',
           },
         ],
-        documentationUrl: 'https://docs.cloudphone.com/troubleshooting',
+        documentationUrl: 'https://docs.cloudphone.run/troubleshooting',
         supportUrl: '/support/tickets/new',
         retryable: true,
       }

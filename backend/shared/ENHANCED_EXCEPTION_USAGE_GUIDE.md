@@ -134,7 +134,7 @@ throw new BusinessException(
     ],
 
     // 文档链接
-    documentationUrl: 'https://docs.cloudphone.com/troubleshooting/device-start-failed',
+    documentationUrl: 'https://docs.cloudphone.run/troubleshooting/device-start-failed',
 
     // 支持链接
     supportUrl: '/support/tickets/new',
@@ -264,7 +264,7 @@ retryable: false
 
 ```typescript
 {
-  documentationUrl: 'https://docs.cloudphone.com/quotas',  // 相关文档
+  documentationUrl: 'https://docs.cloudphone.run/quotas',  // 相关文档
   supportUrl: '/support/tickets/new',  // 创建工单
 }
 ```
@@ -316,7 +316,7 @@ throw new BusinessException(
         actionUrl: `/devices/${deviceId}/logs`,
       },
     ],
-    documentationUrl: 'https://docs.cloudphone.com/troubleshooting/device-start',
+    documentationUrl: 'https://docs.cloudphone.run/troubleshooting/device-start',
     retryable: true,
   }
 );

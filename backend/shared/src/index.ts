@@ -4,6 +4,9 @@
  * 此包提供跨服务共享的通用功能模块
  */
 
+// ========== API 响应规范 ==========
+export * from './response';
+
 // ========== 事件总线 ==========
 export { EventBusService } from './events/event-bus.service';
 export { EventBusModule } from './events/event-bus.module';

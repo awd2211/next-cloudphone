@@ -1,11 +1,13 @@
 import { Module, Global } from '@nestjs/common';
 import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import * as redisStore from 'cache-manager-redis-store';
+import { redisStore } from 'cache-manager-redis-yet';
 
 /**
  * 全局缓存模块
  * 使用 Redis 作为缓存存储
+ *
+ * 注意：使用 cache-manager-redis-yet 以兼容 cache-manager v5
  */
 @Global()
 @Module({
@@ -13,13 +15,15 @@ import * as redisStore from 'cache-manager-redis-store';
     NestCacheModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        store: redisStore as any,
-        host: configService.get('REDIS_HOST', 'localhost'),
-        port: configService.get('REDIS_PORT', 6379),
-        password: configService.get('REDIS_PASSWORD'),
-        db: configService.get('REDIS_CACHE_DB', 1), // 使用 DB 1 存缓存
-        ttl: 300, // 默认 TTL 5分钟
-        max: 1000, // 最多缓存 1000 个键
+        store: await redisStore({
+          socket: {
+            host: configService.get('REDIS_HOST', 'localhost'),
+            port: configService.get('REDIS_PORT', 6379),
+          },
+          password: configService.get('REDIS_PASSWORD'),
+          database: configService.get('REDIS_CACHE_DB', 1), // 使用 DB 1 存缓存
+        }),
+        ttl: 300 * 1000, // 默认 TTL 5分钟（毫秒）
       }),
       inject: [ConfigService],
     }),

@@ -56,12 +56,55 @@ export enum NotificationType {
   BILLING_INVOICE_GENERATED = 'billing.invoice_generated', // 账单生成
   BILLING_SUBSCRIPTION_EXPIRING = 'billing.subscription_expiring', // 套餐即将到期
   BILLING_SUBSCRIPTION_EXPIRED = 'billing.subscription_expired', // 套餐已到期
+  BILLING_REFUND_SUCCESS = 'billing.refund_success', // 退款成功
+  BILLING_REFUND_FAILED = 'billing.refund_failed', // 退款失败
 
   // ========== 用户相关 ==========
   USER_REGISTERED = 'user.registered', // 用户注册成功
   USER_LOGIN = 'user.login', // 用户登录（可选）
   USER_PASSWORD_CHANGED = 'user.password_changed', // 密码修改
   USER_PROFILE_UPDATED = 'user.profile_updated', // 个人信息更新
+  USER_2FA_ENABLED = 'user.2fa_enabled', // 双因素认证已启用
+  USER_2FA_DISABLED = 'user.2fa_disabled', // 双因素认证已禁用
+  USER_LOGIN_ANOMALY = 'user.login_anomaly', // 异常登录检测
+  USER_PASSWORD_RESET = 'user.password_reset', // 密码重置请求
+
+  // ========== 短信服务相关 ==========
+  SMS_NUMBER_ASSIGNED = 'sms.number_assigned', // 号码分配成功
+  SMS_NUMBER_RELEASED = 'sms.number_released', // 号码已释放
+  SMS_NUMBER_EXPIRING = 'sms.number_expiring', // 号码即将过期
+  SMS_VERIFICATION_RECEIVED = 'sms.verification_received', // 收到验证码短信
+  SMS_QUOTA_LOW = 'sms.quota_low', // 短信配额不足
+  SMS_QUOTA_EXHAUSTED = 'sms.quota_exhausted', // 短信配额用尽
+
+  // ========== 代理服务相关 ==========
+  PROXY_ASSIGNED = 'proxy.assigned', // 代理分配成功
+  PROXY_RELEASED = 'proxy.released', // 代理已释放
+  PROXY_QUOTA_LOW = 'proxy.quota_low', // 代理流量配额不足
+  PROXY_QUOTA_EXHAUSTED = 'proxy.quota_exhausted', // 代理流量用尽
+  PROXY_CONNECTION_FAILED = 'proxy.connection_failed', // 代理连接失败
+  PROXY_IP_CHANGED = 'proxy.ip_changed', // 代理 IP 变更
+
+  // ========== 工单相关 ==========
+  TICKET_CREATED = 'ticket.created', // 工单创建成功
+  TICKET_REPLIED = 'ticket.replied', // 工单有新回复
+  TICKET_STATUS_CHANGED = 'ticket.status_changed', // 工单状态变更
+  TICKET_RESOLVED = 'ticket.resolved', // 工单已解决
+  TICKET_CLOSED = 'ticket.closed', // 工单已关闭
+
+  // ========== 快照相关 ==========
+  SNAPSHOT_CREATED = 'snapshot.created', // 快照创建成功
+  SNAPSHOT_RESTORED = 'snapshot.restored', // 快照恢复成功
+  SNAPSHOT_DELETED = 'snapshot.deleted', // 快照已删除
+  SNAPSHOT_FAILED = 'snapshot.failed', // 快照操作失败
+  SNAPSHOT_QUOTA_LOW = 'snapshot.quota_low', // 快照配额不足
+
+  // ========== 优惠券/推荐奖励相关 ==========
+  COUPON_RECEIVED = 'coupon.received', // 获得优惠券
+  COUPON_EXPIRING = 'coupon.expiring', // 优惠券即将过期
+  COUPON_USED = 'coupon.used', // 优惠券已使用
+  REFERRAL_REWARD = 'referral.reward', // 推荐奖励到账
+  REFERRAL_SIGNUP = 'referral.signup', // 被推荐用户注册成功
 
   // ========== 系统相关 ==========
   SYSTEM_MAINTENANCE = 'system.maintenance', // 系统维护通知
@@ -80,6 +123,12 @@ export enum NotificationCategory {
   APP = 'app',
   BILLING = 'billing',
   USER = 'user',
+  SMS = 'sms',
+  PROXY = 'proxy',
+  TICKET = 'ticket',
+  SNAPSHOT = 'snapshot',
+  COUPON = 'coupon',
+  REFERRAL = 'referral',
   ALERT = 'alert',
   MESSAGE = 'message',
 }
@@ -100,6 +149,18 @@ export function getNotificationCategory(type: NotificationType): NotificationCat
     return NotificationCategory.USER;
   } else if (typeStr.startsWith('system.')) {
     return NotificationCategory.SYSTEM;
+  } else if (typeStr.startsWith('sms.')) {
+    return NotificationCategory.SMS;
+  } else if (typeStr.startsWith('proxy.')) {
+    return NotificationCategory.PROXY;
+  } else if (typeStr.startsWith('ticket.')) {
+    return NotificationCategory.TICKET;
+  } else if (typeStr.startsWith('snapshot.')) {
+    return NotificationCategory.SNAPSHOT;
+  } else if (typeStr.startsWith('coupon.')) {
+    return NotificationCategory.COUPON;
+  } else if (typeStr.startsWith('referral.')) {
+    return NotificationCategory.REFERRAL;
   } else {
     return NotificationCategory.ALERT;
   }
