@@ -14,12 +14,15 @@ import {
   Col,
   Typography,
   Tooltip,
+  Modal,
+  message,
 } from 'antd';
 import {
   SaveOutlined,
   SendOutlined,
   QuestionCircleOutlined,
   GlobalOutlined,
+  MailOutlined,
 } from '@ant-design/icons';
 import type { FormInstance } from 'antd';
 
@@ -90,7 +93,7 @@ interface EmailSettingsTabProps {
   loading: boolean;
   testLoading: boolean;
   onFinish: (values: any) => void;
-  onTest: () => void;
+  onTest: (testEmail: string) => void;
 }
 
 export const EmailSettingsTab = memo<EmailSettingsTabProps>(
@@ -98,6 +101,8 @@ export const EmailSettingsTab = memo<EmailSettingsTabProps>(
     const [selectedProvider, setSelectedProvider] = useState<string>(
       form.getFieldValue('emailProvider') || 'smtp'
     );
+    const [testModalVisible, setTestModalVisible] = useState(false);
+    const [testEmail, setTestEmail] = useState('');
 
     const handleProviderChange = (value: string) => {
       setSelectedProvider(value);
@@ -105,6 +110,33 @@ export const EmailSettingsTab = memo<EmailSettingsTabProps>(
     };
 
     const currentProvider = EMAIL_PROVIDERS.find((p) => p.value === selectedProvider);
+
+    // 打开测试邮件弹窗
+    const handleOpenTestModal = () => {
+      // 验证必填字段
+      const emailEnabled = form.getFieldValue('emailEnabled');
+      if (!emailEnabled) {
+        message.warning('请先启用邮件服务');
+        return;
+      }
+      setTestModalVisible(true);
+    };
+
+    // 发送测试邮件
+    const handleSendTestEmail = () => {
+      if (!testEmail) {
+        message.error('请输入接收测试邮件的邮箱地址');
+        return;
+      }
+      // 简单的邮箱格式验证
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(testEmail)) {
+        message.error('请输入有效的邮箱地址');
+        return;
+      }
+      onTest(testEmail);
+      setTestModalVisible(false);
+    };
 
     return (
       <Card>
@@ -582,12 +614,52 @@ export const EmailSettingsTab = memo<EmailSettingsTabProps>(
               <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={loading}>
                 保存设置
               </Button>
-              <Button icon={<SendOutlined />} onClick={onTest} loading={testLoading}>
+              <Button icon={<SendOutlined />} onClick={handleOpenTestModal} loading={testLoading}>
                 发送测试邮件
               </Button>
             </Space>
           </Form.Item>
         </Form>
+
+        {/* 测试邮件弹窗 */}
+        <Modal
+          title={
+            <Space>
+              <MailOutlined />
+              发送测试邮件
+            </Space>
+          }
+          open={testModalVisible}
+          onOk={handleSendTestEmail}
+          onCancel={() => setTestModalVisible(false)}
+          okText="发送"
+          cancelText="取消"
+          confirmLoading={testLoading}
+        >
+          <Alert
+            message="测试说明"
+            description="系统将向指定邮箱发送一封测试邮件，用于验证邮件服务配置是否正确。请确保已保存当前配置。"
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+          <Form layout="vertical">
+            <Form.Item
+              label="接收测试邮件的邮箱地址"
+              required
+              extra="请输入您能收到邮件的邮箱地址"
+            >
+              <Input
+                prefix={<MailOutlined />}
+                placeholder="your-email@example.com"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                onPressEnter={handleSendTestEmail}
+                size="large"
+              />
+            </Form.Item>
+          </Form>
+        </Modal>
       </Card>
     );
   }

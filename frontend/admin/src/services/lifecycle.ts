@@ -90,13 +90,13 @@ export const getLifecycleExecutionTrend = (
 
 // 获取规则模板
 export const getLifecycleRuleTemplates = (): Promise<any> =>
-  api.get('/devices/lifecycle/templates');
+  api.get('/devices/lifecycle/rules/templates');
 
 // 从模板创建规则
 export const createRuleFromTemplate = (
   templateId: string,
   customConfig?: Record<string, any>
 ): Promise<LifecycleRule> =>
-  api.post<LifecycleRule>(`/devices/lifecycle/templates/${templateId}/create`, {
+  api.post<LifecycleRule>(`/devices/lifecycle/rules/templates/${templateId}/create`, {
     config: customConfig,
   });

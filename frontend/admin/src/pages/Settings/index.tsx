@@ -133,14 +133,18 @@ const Settings = () => {
   };
 
   // 测试邮件发送
-  const handleTestEmail = async () => {
+  const handleTestEmail = async (testEmail: string) => {
     try {
       const values = await emailForm.validateFields();
       setTestEmailLoading(true);
-      await request.post('/settings/email/test', values);
-      message.success('测试邮件发送成功，请检查收件箱');
-    } catch (error) {
-      message.error('测试邮件发送失败');
+      await request.post('/email/test', {
+        ...values,
+        testEmail, // 用户输入的测试邮箱地址
+      });
+      message.success(`测试邮件已发送至 ${testEmail}，请检查收件箱`);
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message || error?.message || '测试邮件发送失败';
+      message.error(errorMsg);
       console.error('Failed to send test email:', error);
     } finally {
       setTestEmailLoading(false);
