@@ -1041,14 +1041,17 @@ export class DevicesService {
     limit: number = 10,
     userId?: string,
     tenantId?: string,
-    status?: DeviceStatus
+    status?: DeviceStatus,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc'
   ): Promise<{ data: Device[]; total: number; page: number; limit: number }> {
-    // 生成缓存键
+    // 生成缓存键（包含排序参数）
     let cacheKey: string | undefined;
+    const sortSuffix = sortBy ? `:${sortBy}:${sortOrder || 'desc'}` : '';
     if (userId) {
-      cacheKey = CacheKeys.deviceList(userId, status, page, limit);
+      cacheKey = CacheKeys.deviceList(userId, status, page, limit) + sortSuffix;
     } else if (tenantId) {
-      cacheKey = CacheKeys.tenantDeviceList(tenantId, status, page, limit);
+      cacheKey = CacheKeys.tenantDeviceList(tenantId, status, page, limit) + sortSuffix;
     } else {
       // 全局列表不缓存（管理员查询）
       cacheKey = undefined;
@@ -1058,13 +1061,13 @@ export class DevicesService {
     if (cacheKey) {
       return this.cacheService.wrap(
         cacheKey,
-        async () => this.queryDeviceList(page, limit, userId, tenantId, status),
+        async () => this.queryDeviceList(page, limit, userId, tenantId, status, sortBy, sortOrder),
         CacheTTL.DEVICE_LIST // 1 分钟 TTL
       );
     }
 
     // 无缓存键，直接查询
-    return this.queryDeviceList(page, limit, userId, tenantId, status);
+    return this.queryDeviceList(page, limit, userId, tenantId, status, sortBy, sortOrder);
   }
 
   // 提取查询逻辑为私有方法
@@ -1073,7 +1076,9 @@ export class DevicesService {
     limit: number,
     userId?: string,
     tenantId?: string,
-    status?: DeviceStatus
+    status?: DeviceStatus,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc'
   ): Promise<{ data: Device[]; total: number; page: number; limit: number }> {
     const skip = (page - 1) * limit;
 
@@ -1082,11 +1087,16 @@ export class DevicesService {
     if (tenantId) where.tenantId = tenantId;
     if (status) where.status = status;
 
+    // 构建排序条件
+    const allowedSortFields = ['name', 'status', 'androidVersion', 'createdAt', 'lastStartedAt', 'updatedAt'];
+    const orderField = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const orderDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
+
     const [data, total] = await this.devicesRepository.findAndCount({
       where,
       skip,
       take: limit,
-      order: { createdAt: 'DESC' },
+      order: { [orderField]: orderDirection },
     });
 
     return { data, total, page, limit };
@@ -1617,7 +1627,7 @@ export class DevicesService {
                 actionUrl: `/devices/${id}`,
               },
             ],
-            documentationUrl: 'https://docs.cloudphone.com/troubleshooting/device-start-failed',
+            documentationUrl: 'https://docs.cloudphone.run/troubleshooting/device-start-failed',
             retryable: true,
           }
         );
@@ -3223,5 +3233,85 @@ export class DevicesService {
       aliyun: '阿里云手机',
     };
     return labels[provider] || provider;
+  }
+
+  /**
+   * 高效获取设备统计信息（使用 SQL GROUP BY，避免加载全量数据）
+   * 性能优化：原方法加载 9999 条记录，优化后仅返回聚合结果
+   */
+  async getDeviceStats(userId?: string, tenantId?: string): Promise<{
+    total: number;
+    idle: number;
+    running: number;
+    stopped: number;
+    error: number;
+  }> {
+    // 缓存键
+    const cacheKey = userId
+      ? `device:stats:user:${userId}`
+      : tenantId
+        ? `device:stats:tenant:${tenantId}`
+        : 'device:stats:all';
+
+    // 尝试从缓存获取（60秒 TTL）
+    return this.cacheService.wrap(
+      cacheKey,
+      async () => {
+        // 使用 SQL GROUP BY 直接统计，避免加载所有设备数据
+        // 注意：devices 表没有软删除（deletedAt），直接按 status 分组统计
+        const qb = this.devicesRepository
+          .createQueryBuilder('d')
+          .select('d.status', 'status')
+          .addSelect('COUNT(*)', 'count');
+
+        if (userId) {
+          qb.where('d.userId = :userId', { userId });
+        }
+        if (tenantId) {
+          if (userId) {
+            qb.andWhere('d.tenantId = :tenantId', { tenantId });
+          } else {
+            qb.where('d.tenantId = :tenantId', { tenantId });
+          }
+        }
+
+        qb.groupBy('d.status');
+
+        const stats = await qb.getRawMany<{ status: string; count: string }>();
+
+        // 初始化结果
+        const result = {
+          total: 0,
+          idle: 0,
+          running: 0,
+          stopped: 0,
+          error: 0,
+        };
+
+        // 填充统计结果
+        for (const stat of stats) {
+          const count = parseInt(stat.count, 10);
+          result.total += count;
+
+          switch (stat.status) {
+            case DeviceStatus.IDLE:
+              result.idle = count;
+              break;
+            case DeviceStatus.RUNNING:
+              result.running = count;
+              break;
+            case DeviceStatus.STOPPED:
+              result.stopped = count;
+              break;
+            case DeviceStatus.ERROR:
+              result.error = count;
+              break;
+          }
+        }
+
+        return result;
+      },
+      60000 // 60秒缓存
+    );
   }
 }

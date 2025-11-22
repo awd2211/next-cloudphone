@@ -4,41 +4,41 @@ export class AddPerformanceIndexes1735700000000 implements MigrationInterface {
   name = 'AddPerformanceIndexes1735700000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // devices表索引优化
+    // devices表索引优化 (mixed)
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "idx_devices_user_status" ON "devices"("user_id", "status");
+      CREATE INDEX IF NOT EXISTS "idx_devices_user_status" ON "devices"("userId", "status");
     `);
-    
+
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "idx_devices_provider_status" ON "devices"("provider_type", "status");
     `);
-    
+
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "idx_devices_created_at" ON "devices"("created_at" DESC);
+      CREATE INDEX IF NOT EXISTS "idx_devices_created_at" ON "devices"("createdAt" DESC);
     `);
-    
+
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "idx_devices_external_id" ON "devices"("external_id") WHERE "external_id" IS NOT NULL;
     `);
-    
-    // device_allocations表索引
+
+    // device_allocations表索引 (snake_case)
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "idx_device_allocations_user_status" ON "device_allocations"("user_id", "status");
     `);
-    
-    // device_reservations表索引
+
+    // device_reservations表索引 (snake_case)
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "idx_device_reservations_user_status" ON "device_reservations"("user_id", "status");
     `);
-    
-    // snapshots表索引
+
+    // snapshots表索引 (camelCase, table name is device_snapshots)
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "idx_snapshots_device_id" ON "snapshots"("device_id");
+      CREATE INDEX IF NOT EXISTS "idx_snapshots_device_id" ON "device_snapshots"("deviceId");
     `);
-    
-    // templates表索引
+
+    // templates表索引 (camelCase, table name is device_templates)
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "idx_templates_public" ON "templates"("is_public");
+      CREATE INDEX IF NOT EXISTS "idx_templates_public" ON "device_templates"("isPublic");
     `);
   }
 

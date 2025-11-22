@@ -121,6 +121,8 @@ export class ProxySelectionService {
                 .map((p) => this.getProxyCountry(p.proxyId)),
             ),
           ];
+          // ✅ 记录统计（降级失败 - 首选国家无代理）
+          this.recordSelection(strategy, Date.now() - startTime);
           return {
             success: false,
             proxy: null,
@@ -131,6 +133,8 @@ export class ProxySelectionService {
         }
       }
 
+      // ✅ 记录统计（无可用代理）
+      this.recordSelection(strategy, Date.now() - startTime);
       return {
         success: false,
         proxy: null,
@@ -143,6 +147,8 @@ export class ProxySelectionService {
     const selectedProxy = this.applySelectionStrategy(strategy, candidates);
 
     if (!selectedProxy) {
+      // ✅ 记录统计（策略选择失败）
+      this.recordSelection(strategy, Date.now() - startTime);
       return {
         success: false,
         proxy: null,
@@ -158,6 +164,8 @@ export class ProxySelectionService {
       `Selected proxy ${selectedProxy.proxyId} (score: ${selectedProxy.score}, strategy: ${strategy})`,
     );
 
+    // ✅ 记录统计（选择成功）
+    this.recordSelection(strategy, Date.now() - startTime);
     return {
       success: true,
       proxy: selectedProxy,

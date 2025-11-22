@@ -124,7 +124,7 @@ async function bootstrap() {
     .addTag('lifecycle', '生命周期管理')
     .addTag('metrics', '指标监控')
     .addServer('http://localhost:30002', '本地开发环境')
-    .addServer('https://api.cloudphone.com', '生产环境')
+    .addServer('https://api.cloudphone.run', '生产环境')
     .addBearerAuth()
     .build();
 
