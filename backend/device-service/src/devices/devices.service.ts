@@ -3314,4 +3314,107 @@ export class DevicesService {
       60000 // 60秒缓存
     );
   }
+
+  /**
+   * 获取设备数量（支持过滤条件）
+   */
+  async getCount(options: {
+    status?: string;
+    userId?: string;
+    tenantId?: string;
+  }): Promise<number> {
+    const qb = this.devicesRepository.createQueryBuilder('device');
+
+    if (options.status) {
+      qb.andWhere('device.status = :status', { status: options.status });
+    }
+
+    if (options.userId) {
+      qb.andWhere('device.userId = :userId', { userId: options.userId });
+    }
+
+    if (options.tenantId) {
+      qb.andWhere('device.tenantId = :tenantId', { tenantId: options.tenantId });
+    }
+
+    return qb.getCount();
+  }
+
+  /**
+   * 获取设备状态分布
+   */
+  async getStatusDistribution(): Promise<{
+    idle: number;
+    running: number;
+    stopped: number;
+    error: number;
+  }> {
+    const stats = await this.devicesRepository
+      .createQueryBuilder('device')
+      .select('device.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('device.status')
+      .getRawMany<{ status: string; count: string }>();
+
+    const result = {
+      idle: 0,
+      running: 0,
+      stopped: 0,
+      error: 0,
+    };
+
+    for (const stat of stats) {
+      const count = parseInt(stat.count, 10);
+      switch (stat.status) {
+        case DeviceStatus.IDLE:
+          result.idle = count;
+          break;
+        case DeviceStatus.RUNNING:
+          result.running = count;
+          break;
+        case DeviceStatus.STOPPED:
+          result.stopped = count;
+          break;
+        case DeviceStatus.ERROR:
+          result.error = count;
+          break;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * 获取设备使用统计
+   */
+  async getUsageStats(): Promise<{
+    totalHours: number;
+    avgSessionDuration: number;
+    peakConcurrent: number;
+    utilizationRate: number;
+    statusDistribution: { name: string; value: number }[];
+  }> {
+    // 获取状态分布
+    const distribution = await this.getStatusDistribution();
+    const total = distribution.idle + distribution.running + distribution.stopped + distribution.error;
+
+    // 计算利用率（运行中设备占比）
+    const utilizationRate = total > 0 ? (distribution.running / total) * 100 : 0;
+
+    // 转换为图表友好的格式
+    const statusDistribution = [
+      { name: '运行中', value: distribution.running },
+      { name: '空闲', value: distribution.idle },
+      { name: '已停止', value: distribution.stopped },
+      { name: '错误', value: distribution.error },
+    ].filter(item => item.value > 0);
+
+    return {
+      totalHours: 0, // TODO: 需要从使用记录表计算
+      avgSessionDuration: 0, // TODO: 需要从使用记录表计算
+      peakConcurrent: distribution.running, // 当前并发数
+      utilizationRate: Math.round(utilizationRate * 100) / 100,
+      statusDistribution,
+    };
+  }
 }

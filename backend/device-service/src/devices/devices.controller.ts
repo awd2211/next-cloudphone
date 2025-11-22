@@ -185,6 +185,50 @@ export class DevicesController {
     return this.devicesService.getDeviceStats();
   }
 
+  @Get('count')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取设备数量',
+    description: '获取设备总数（支持状态过滤）',
+  })
+  @ApiQuery({ name: 'status', required: false, description: '设备状态', example: 'running' })
+  @ApiQuery({ name: 'userId', required: false, description: '用户 ID' })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getCount(
+    @Query('status') status?: string,
+    @Query('userId') userId?: string,
+    @Query('tenantId') tenantId?: string
+  ) {
+    const count = await this.devicesService.getCount({ status, userId, tenantId });
+    return { count };
+  }
+
+  @Get('stats/status-distribution')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取设备状态分布',
+    description: '获取各状态设备的数量分布',
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getStatusDistribution() {
+    return this.devicesService.getStatusDistribution();
+  }
+
+  @Get('stats/usage')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取设备使用统计',
+    description: '获取设备使用情况的统计数据',
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getUsageStats() {
+    return this.devicesService.getUsageStats();
+  }
+
   @Get('available')
   @RequirePermission('device.read')
   @ApiOperation({
