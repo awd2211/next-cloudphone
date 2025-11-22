@@ -21,7 +21,7 @@ interface TestUser {
 const TEST_USERS: TestUser[] = [
   {
     username: 'admin',
-    email: 'admin@cloudphone.com',
+    email: 'admin@cloudphone.run',
     password: 'admin123',
     phone: '13800138000',
     roleName: 'Super Admin',
@@ -29,7 +29,7 @@ const TEST_USERS: TestUser[] = [
   },
   {
     username: 'manager',
-    email: 'manager@cloudphone.com',
+    email: 'manager@cloudphone.run',
     password: 'manager123',
     phone: '13800138001',
     roleName: 'Admin',
@@ -37,7 +37,7 @@ const TEST_USERS: TestUser[] = [
   },
   {
     username: 'device_admin',
-    email: 'device@cloudphone.com',
+    email: 'device@cloudphone.run',
     password: 'device123',
     phone: '13800138002',
     roleName: 'Device Manager',
@@ -45,7 +45,7 @@ const TEST_USERS: TestUser[] = [
   },
   {
     username: 'user_admin',
-    email: 'usermgr@cloudphone.com',
+    email: 'usermgr@cloudphone.run',
     password: 'user123',
     phone: '13800138003',
     roleName: 'User Manager',
@@ -53,7 +53,7 @@ const TEST_USERS: TestUser[] = [
   },
   {
     username: 'finance',
-    email: 'finance@cloudphone.com',
+    email: 'finance@cloudphone.run',
     password: 'finance123',
     phone: '13800138004',
     roleName: 'Finance Manager',
@@ -61,7 +61,7 @@ const TEST_USERS: TestUser[] = [
   },
   {
     username: 'testuser',
-    email: 'user@cloudphone.com',
+    email: 'user@cloudphone.run',
     password: 'user123',
     phone: '13800138005',
     roleName: 'User',
@@ -69,7 +69,7 @@ const TEST_USERS: TestUser[] = [
   },
   {
     username: 'demo',
-    email: 'demo@cloudphone.com',
+    email: 'demo@cloudphone.run',
     password: 'demo123',
     phone: '13800138006',
     roleName: 'User',

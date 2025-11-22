@@ -7,10 +7,10 @@ import { QuotaMetricsService } from './quota-metrics.service';
 import { Quota } from '../entities/quota.entity';
 import { AuthModule } from '../auth/auth.module';
 import { EventBusModule } from '@cloudphone/shared';
-import { CacheModule } from '../cache/cache.module';
+// 注意：CACHE_MANAGER 由全局 AppCacheModule 提供，不需要导入自定义 CacheModule
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Quota]), AuthModule, EventBusModule, CacheModule],
+  imports: [TypeOrmModule.forFeature([Quota]), AuthModule, EventBusModule],
   controllers: [QuotasController, QuotasInternalController], // ✅ 添加内部控制器
   providers: [QuotasService, QuotaMetricsService], // ✅ 添加指标服务
   exports: [QuotasService, QuotaMetricsService],

@@ -138,7 +138,6 @@ export class TicketsController {
     });
 
     return {
-      success: true,
       data: tickets,
       total,
     };
@@ -192,7 +191,6 @@ export class TicketsController {
     });
 
     return {
-      success: true,
       data: tickets,
       total,
       page: currentPage,

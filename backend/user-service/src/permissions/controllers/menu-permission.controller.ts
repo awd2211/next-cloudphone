@@ -37,7 +37,6 @@ export class MenuPermissionController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: [
           {
             id: 'dashboard',
@@ -75,7 +74,6 @@ export class MenuPermissionController {
     const menus = await this.menuPermissionService.getUserMenus(userId);
 
     return {
-      success: true,
       data: menus,
     };
   }
@@ -93,7 +91,6 @@ export class MenuPermissionController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: [
           'user:read',
           'user:create',
@@ -124,7 +121,6 @@ export class MenuPermissionController {
     const permissions = await this.menuPermissionService.getUserPermissionNames(userId);
 
     return {
-      success: true,
       data: permissions,
     };
   }
@@ -143,7 +139,6 @@ export class MenuPermissionController {
     description: '检查成功',
     schema: {
       example: {
-        success: true,
         data: { hasAccess: true }
       }
     }
@@ -164,7 +159,6 @@ export class MenuPermissionController {
     const hasAccess = await this.menuPermissionService.checkMenuAccess(userId, path);
 
     return {
-      success: true,
       data: { hasAccess },
     };
   }
@@ -182,7 +176,6 @@ export class MenuPermissionController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: [
           {
             id: 'dashboard',
@@ -222,7 +215,6 @@ export class MenuPermissionController {
     const menus = this.menuPermissionService.getAllMenus();
 
     return {
-      success: true,
       data: menus,
     };
   }
@@ -241,7 +233,6 @@ export class MenuPermissionController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: [
           {
             id: 'dashboard',
@@ -267,7 +258,6 @@ export class MenuPermissionController {
     const menus = await this.menuPermissionService.getUserMenus(userId);
 
     return {
-      success: true,
       data: menus,
     };
   }
@@ -291,7 +281,6 @@ export class MenuPermissionController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: [
           'user:read',
           'user:create',
@@ -324,7 +313,6 @@ export class MenuPermissionController {
     const permissions = await this.menuPermissionService.getUserPermissionNames(userId);
 
     return {
-      success: true,
       data: permissions,
     };
   }
@@ -343,7 +331,6 @@ export class MenuPermissionController {
     description: '构建成功',
     schema: {
       example: {
-        success: true,
         data: [
           { title: '首页', path: '/' },
           { title: '系统管理', path: '/system' },
@@ -365,7 +352,6 @@ export class MenuPermissionController {
     const breadcrumb = this.menuPermissionService.buildBreadcrumb(path);
 
     return {
-      success: true,
       data: breadcrumb,
     };
   }
@@ -384,7 +370,6 @@ export class MenuPermissionController {
     description: '刷新成功',
     schema: {
       example: {
-        success: true,
         message: '用户权限缓存已刷新'
       }
     }
@@ -396,7 +381,6 @@ export class MenuPermissionController {
     await this.permissionCacheService.loadAndCacheUserPermissions(userId);
 
     return {
-      success: true,
       message: '用户权限缓存已刷新',
     };
   }
@@ -414,7 +398,6 @@ export class MenuPermissionController {
     description: '清空成功',
     schema: {
       example: {
-        success: true,
         message: '所有权限缓存已清空'
       }
     }
@@ -425,7 +408,6 @@ export class MenuPermissionController {
     this.permissionCacheService.invalidateCache();
 
     return {
-      success: true,
       message: '所有权限缓存已清空',
     };
   }
@@ -443,7 +425,6 @@ export class MenuPermissionController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: {
           totalCachedUsers: 250,
           cacheHitRate: 0.92,
@@ -460,7 +441,6 @@ export class MenuPermissionController {
     const stats = this.permissionCacheService.getCacheStats();
 
     return {
-      success: true,
       data: stats,
     };
   }
@@ -479,7 +459,6 @@ export class MenuPermissionController {
     description: '预热成功',
     schema: {
       example: {
-        success: true,
         message: '已预热 100 个活跃用户的权限缓存'
       }
     }
@@ -491,7 +470,6 @@ export class MenuPermissionController {
     await this.permissionCacheService.warmupActiveUsersCache(warmupLimit);
 
     return {
-      success: true,
       message: `已预热 ${warmupLimit} 个活跃用户的权限缓存`,
     };
   }
@@ -509,7 +487,6 @@ export class MenuPermissionController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: {
           totalCachedUsers: 250,
           cacheHitRate: 0.92,
@@ -530,7 +507,6 @@ export class MenuPermissionController {
     const stats = this.permissionCacheService.getCacheStats();
 
     return {
-      success: true,
       data: stats,
       message: '缓存统计信息获取成功',
     };
@@ -549,7 +525,6 @@ export class MenuPermissionController {
     description: '导出成功',
     schema: {
       example: {
-        success: true,
         data: {
           'user-uuid-1': {
             userId: 'user-uuid-1',
@@ -586,7 +561,6 @@ export class MenuPermissionController {
     const cacheData = await this.permissionCacheService.exportCache();
 
     return {
-      success: true,
       data: cacheData,
       message: '缓存数据导出成功',
     };

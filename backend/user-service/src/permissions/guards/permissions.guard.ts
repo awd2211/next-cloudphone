@@ -19,17 +19,17 @@ export const REQUIRE_SUPER_ADMIN_KEY = 'requireSuperAdmin';
 export const SKIP_PERMISSION_KEY = 'skipPermission';
 
 /**
- * 增强权限守卫
+ * 权限守卫
  * 整合功能权限、跨租户控制、超级管理员检查
  *
  * 使用方式：
- * @UseGuards(EnhancedPermissionsGuard)
+ * @UseGuards(JwtAuthGuard, PermissionsGuard)
  * @RequirePermissions('user:create')
  * @Controller('users')
  */
 @Injectable()
-export class EnhancedPermissionsGuard implements CanActivate {
-  private readonly logger = new Logger(EnhancedPermissionsGuard.name);
+export class PermissionsGuard implements CanActivate {
+  private readonly logger = new Logger(PermissionsGuard.name);
 
   constructor(
     private reflector: Reflector,

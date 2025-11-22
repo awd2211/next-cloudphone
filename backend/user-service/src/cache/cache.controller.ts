@@ -22,7 +22,6 @@ export class CacheController {
   @Get('stats')
   getStats() {
     return {
-      success: true,
       data: this.cacheService.getStats(),
       timestamp: new Date().toISOString(),
     };
@@ -78,7 +77,6 @@ export class CacheController {
     const deletedCount = await this.cacheService.delPattern(pattern);
 
     return {
-      success: true,
       data: {
         pattern,
         deletedCount,
@@ -100,7 +98,6 @@ export class CacheController {
     const exists = await this.cacheService.exists(key);
 
     return {
-      success: true,
       data: {
         key,
         exists,
@@ -123,7 +120,6 @@ export class CacheController {
     await this.cacheWarmupService.manualWarmup();
 
     return {
-      success: true,
       message: 'Cache warmup completed successfully',
       timestamp: new Date().toISOString(),
     };
@@ -143,7 +139,6 @@ export class CacheController {
     await this.cacheWarmupService.clearAndWarmup();
 
     return {
-      success: true,
       message: 'Cache cleared and warmed up successfully',
       timestamp: new Date().toISOString(),
     };

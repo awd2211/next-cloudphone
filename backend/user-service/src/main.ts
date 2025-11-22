@@ -109,7 +109,7 @@ async function bootstrap() {
     .addTag('auth', '认证授权 - 登录、JWT、2FA')
     .addTag('quotas', '配额管理 - 用户资源配额控制')
     .addServer('http://localhost:30001', '本地开发环境')
-    .addServer('https://api.cloudphone.com', '生产环境')
+    .addServer('https://api.cloudphone.run', '生产环境')
     .addBearerAuth(
       {
         type: 'http',

@@ -246,12 +246,35 @@ export class SettingsService {
       // 基本设置
       { category: SettingCategory.BASIC, key: 'siteName', value: '云手机平台' },
       { category: SettingCategory.BASIC, key: 'siteUrl', value: 'http://localhost:5173' },
-      { category: SettingCategory.BASIC, key: 'contactEmail', value: 'support@cloudphone.com' },
+      { category: SettingCategory.BASIC, key: 'contactEmail', value: 'support@cloudphone.run' },
 
-      // 邮件设置
-      { category: SettingCategory.EMAIL, key: 'smtpHost', value: 'smtp.example.com' },
+      // 邮件设置 - 支持多种邮件服务商
+      // 可选值: smtp, mailgun, sendgrid, ses, postmark, resend, sparkpost
+      { category: SettingCategory.EMAIL, key: 'emailProvider', value: 'smtp' },
+      { category: SettingCategory.EMAIL, key: 'emailEnabled', value: 'false' },
+      // SMTP 配置
+      { category: SettingCategory.EMAIL, key: 'smtpHost', value: '' },
       { category: SettingCategory.EMAIL, key: 'smtpPort', value: '587' },
-      { category: SettingCategory.EMAIL, key: 'smtpFrom', value: 'noreply@cloudphone.com' },
+      { category: SettingCategory.EMAIL, key: 'smtpSecure', value: 'false' },
+      { category: SettingCategory.EMAIL, key: 'smtpUser', value: '' },
+      { category: SettingCategory.EMAIL, key: 'smtpFrom', value: 'CloudPhone <noreply@cloudphone.run>' },
+      // Mailgun 配置
+      { category: SettingCategory.EMAIL, key: 'mailgunApiKey', value: '' },
+      { category: SettingCategory.EMAIL, key: 'mailgunDomain', value: '' },
+      { category: SettingCategory.EMAIL, key: 'mailgunRegion', value: 'us' },
+      // SendGrid 配置
+      { category: SettingCategory.EMAIL, key: 'sendgridApiKey', value: '' },
+      // Amazon SES 配置
+      { category: SettingCategory.EMAIL, key: 'sesRegion', value: 'us-east-1' },
+      { category: SettingCategory.EMAIL, key: 'sesAccessKeyId', value: '' },
+      // Postmark 配置
+      { category: SettingCategory.EMAIL, key: 'postmarkServerToken', value: '' },
+      { category: SettingCategory.EMAIL, key: 'postmarkMessageStream', value: 'outbound' },
+      // Resend 配置
+      { category: SettingCategory.EMAIL, key: 'resendApiKey', value: '' },
+      // SparkPost 配置
+      { category: SettingCategory.EMAIL, key: 'sparkpostApiKey', value: '' },
+      { category: SettingCategory.EMAIL, key: 'sparkpostRegion', value: 'us' },
 
       // 短信设置
       { category: SettingCategory.SMS, key: 'provider', value: 'aliyun' },

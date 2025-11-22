@@ -12,7 +12,7 @@ import request from 'supertest';
 import { JwtService } from '@nestjs/jwt';
 import { DataScopeController } from './data-scope.controller';
 import { DataScope, ScopeType } from '../../entities/data-scope.entity';
-import { EnhancedPermissionsGuard } from '../guards/enhanced-permissions.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
 import { AuditPermissionInterceptor } from '../interceptors/audit-permission.interceptor';
 import { SanitizationPipe } from '@cloudphone/shared/validators/sanitization.pipe';
 
@@ -75,9 +75,9 @@ describe('DataScopeController', () => {
     }
   };
 
-  // Mock EnhancedPermissionsGuard - simplified for controller testing
+  // Mock PermissionsGuard - simplified for controller testing
   // It checks user existence and permissions from JWT token
-  const mockEnhancedPermissionsGuard = {
+  const mockPermissionsGuard = {
     canActivate: (context: ExecutionContext) => {
       const req = context.switchToHttp().getRequest();
       const authHeader = req.headers.authorization;
@@ -158,8 +158,8 @@ describe('DataScopeController', () => {
         },
       ],
     })
-      .overrideGuard(EnhancedPermissionsGuard)
-      .useValue(mockEnhancedPermissionsGuard)
+      .overrideGuard(PermissionsGuard)
+      .useValue(mockPermissionsGuard)
       .overrideInterceptor(AuditPermissionInterceptor)
       .useValue(mockAuditInterceptor)
       .compile();

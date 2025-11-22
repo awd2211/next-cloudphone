@@ -974,7 +974,7 @@ async function createDefaultAdmin(
 
     const admin = userRepo.create({
       username: 'admin',
-      email: 'admin@cloudphone.com',
+      email: 'admin@cloudphone.run',
       password: hashedPassword,
       phone: '13800138000',
       isSuperAdmin: true,

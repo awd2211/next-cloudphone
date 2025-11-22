@@ -25,7 +25,8 @@ import {
   Min,
 } from 'class-validator';
 import { DataScope, ScopeType } from '../../entities/data-scope.entity';
-import { EnhancedPermissionsGuard } from '../guards/enhanced-permissions.guard';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
 import { AuditPermissionInterceptor } from '../interceptors/audit-permission.interceptor';
 import {
   RequirePermissions,
@@ -139,7 +140,7 @@ class UpdateDataScopeDto {
 @ApiTags('数据范围管理')
 @ApiBearerAuth()
 @Controller('data-scopes')
-@UseGuards(EnhancedPermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)  // 添加 JwtAuthGuard 以设置 request.user
 @UseInterceptors(AuditPermissionInterceptor)
 export class DataScopeController {
   constructor(
@@ -161,7 +162,6 @@ export class DataScopeController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: [
           { value: 'ALL', label: '全部数据' },
           { value: 'TENANT', label: '本租户数据' },
@@ -177,7 +177,6 @@ export class DataScopeController {
   @RequirePermissions('permission:dataScope:view')
   getScopeTypes() {
     return {
-      success: true,
       data: Object.values(ScopeType).map((type) => ({
         value: type,
         label: this.getScopeTypeLabel(type),
@@ -203,7 +202,6 @@ export class DataScopeController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: [
           {
             id: 'scope-uuid-1',
@@ -248,7 +246,6 @@ export class DataScopeController {
     });
 
     return {
-      success: true,
       data: scopes,
       total,
       page: currentPage,
@@ -270,7 +267,6 @@ export class DataScopeController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: {
           id: 'scope-uuid-1',
           roleId: 'role-uuid-1',
@@ -315,7 +311,6 @@ export class DataScopeController {
     }
 
     return {
-      success: true,
       data: scope,
     };
   }
@@ -334,7 +329,6 @@ export class DataScopeController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: {
           device: [
             {
@@ -380,7 +374,6 @@ export class DataScopeController {
     );
 
     return {
-      success: true,
       data: grouped,
       total: scopes.length,
     };
@@ -399,7 +392,6 @@ export class DataScopeController {
     description: '创建成功',
     schema: {
       example: {
-        success: true,
         message: '数据范围配置创建成功',
         data: {
           id: 'scope-uuid-1',
@@ -450,7 +442,6 @@ export class DataScopeController {
     await this.dataScopeRepository.save(scope);
 
     return {
-      success: true,
       message: '数据范围配置创建成功',
       data: scope,
     };
@@ -470,7 +461,6 @@ export class DataScopeController {
     description: '更新成功',
     schema: {
       example: {
-        success: true,
         message: '数据范围配置更新成功',
         data: {
           id: 'scope-uuid-1',
@@ -510,7 +500,6 @@ export class DataScopeController {
     await this.dataScopeRepository.save(scope);
 
     return {
-      success: true,
       message: '数据范围配置更新成功',
       data: scope,
     };
@@ -530,7 +519,6 @@ export class DataScopeController {
     description: '删除成功',
     schema: {
       example: {
-        success: true,
         message: '数据范围配置删除成功'
       }
     }
@@ -563,7 +551,6 @@ export class DataScopeController {
     await this.dataScopeRepository.remove(scope);
 
     return {
-      success: true,
       message: '数据范围配置删除成功',
     };
   }
@@ -581,7 +568,6 @@ export class DataScopeController {
     description: '批量创建成功',
     schema: {
       example: {
-        success: true,
         message: '成功创建 2 条数据范围配置',
         data: [
           {
@@ -615,7 +601,6 @@ export class DataScopeController {
     await this.dataScopeRepository.save(scopes);
 
     return {
-      success: true,
       message: `成功创建 ${scopes.length} 条数据范围配置`,
       data: scopes,
     };
@@ -635,7 +620,6 @@ export class DataScopeController {
     description: '切换成功',
     schema: {
       example: {
-        success: true,
         message: '数据范围配置已启用',
         data: {
           id: 'scope-uuid-1',
@@ -673,7 +657,6 @@ export class DataScopeController {
     await this.dataScopeRepository.save(scope);
 
     return {
-      success: true,
       message: `数据范围配置已${scope.isActive ? '启用' : '禁用'}`,
       data: scope,
     };

@@ -49,6 +49,13 @@ export class SensitiveDataInterceptor implements NestInterceptor {
       return data;
     }
 
+    // 处理 Date 对象 - 直接返回，不做任何处理
+    // Date 对象的 typeof 是 'object'，但 Object.keys() 返回空数组
+    // 如果不特殊处理，会被转换为空对象 {}
+    if (data instanceof Date) {
+      return data;
+    }
+
     // 处理数组
     if (Array.isArray(data)) {
       return data.map((item) => this.removeSensitiveData(item, skipMask));

@@ -5,7 +5,7 @@ import {
   ALLOW_CROSS_TENANT_KEY,
   REQUIRE_SUPER_ADMIN_KEY,
   SKIP_PERMISSION_KEY,
-} from '../guards/enhanced-permissions.guard';
+} from '../guards/permissions.guard';
 
 /**
  * 要求特定权限

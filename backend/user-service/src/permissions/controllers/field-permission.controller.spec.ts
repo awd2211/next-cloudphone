@@ -16,7 +16,7 @@ import {
   FieldAccessLevel,
   OperationType,
 } from '../../entities/field-permission.entity';
-import { EnhancedPermissionsGuard } from '../guards/enhanced-permissions.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
 import { AuditPermissionInterceptor } from '../interceptors/audit-permission.interceptor';
 
 describe('FieldPermissionController', () => {
@@ -33,8 +33,8 @@ describe('FieldPermissionController', () => {
     remove: jest.fn((entity) => Promise.resolve(entity)),
   };
 
-  // Mock EnhancedPermissionsGuard that checks JWT permissions
-  const mockEnhancedPermissionsGuard = {
+  // Mock PermissionsGuard that checks JWT permissions
+  const mockPermissionsGuard = {
     canActivate: (context: ExecutionContext) => {
       const req = context.switchToHttp().getRequest();
       const authHeader = req.headers.authorization;
@@ -103,7 +103,7 @@ describe('FieldPermissionController', () => {
     intercept: jest.fn((context, next) => next.handle()),
   };
 
-  // Mock AuthGuard (passthrough, auth is handled by EnhancedPermissionsGuard in our tests)
+  // Mock AuthGuard (passthrough, auth is handled by PermissionsGuard in our tests)
   const mockAuthGuard = {
     canActivate: jest.fn(() => true),
   };
@@ -124,8 +124,8 @@ describe('FieldPermissionController', () => {
         },
       ],
     })
-      .overrideGuard(EnhancedPermissionsGuard)
-      .useValue(mockEnhancedPermissionsGuard)
+      .overrideGuard(PermissionsGuard)
+      .useValue(mockPermissionsGuard)
       .overrideInterceptor(AuditPermissionInterceptor)
       .useValue(mockAuditInterceptor)
       .overrideGuard(require('@nestjs/passport').AuthGuard('jwt'))

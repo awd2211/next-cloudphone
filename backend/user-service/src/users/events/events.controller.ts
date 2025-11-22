@@ -41,7 +41,6 @@ export class EventsController {
   async getUserEventHistory(@Param('userId') userId: string) {
     const history = await this.eventReplay.getUserEventHistory(userId);
     return {
-      success: true,
       data: history,
       message: '事件历史获取成功',
     };
@@ -60,7 +59,6 @@ export class EventsController {
   async replayUserEvents(@Param('userId') userId: string) {
     const userState = await this.eventReplay.replayUserEvents(userId);
     return {
-      success: true,
       data: userState,
       message: '事件重放成功',
     };
@@ -82,7 +80,6 @@ export class EventsController {
   ) {
     const userState = await this.eventReplay.replayToVersion(userId, version);
     return {
-      success: true,
       data: userState,
       message: `重放到版本 ${version} 成功`,
     };
@@ -115,7 +112,6 @@ export class EventsController {
 
     const userState = await this.eventReplay.replayToTimestamp(userId, targetDate);
     return {
-      success: true,
       data: userState,
       message: `时间旅行到 ${targetDate.toISOString()} 成功`,
     };
@@ -154,7 +150,6 @@ export class EventsController {
     }
 
     return {
-      success: true,
       data: {
         totalEvents,
         eventsByType: eventCounts,
@@ -192,7 +187,6 @@ export class EventsController {
     );
 
     return {
-      success: true,
       data: events.map((e) => ({
         id: e.id,
         aggregateId: e.aggregateId,

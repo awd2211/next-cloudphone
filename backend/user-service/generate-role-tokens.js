@@ -6,7 +6,7 @@ const JWT_SECRET = 'dev-secret-key-change-in-production';
 const superAdmin = jwt.sign({
   sub: '10000000-0000-0000-0000-000000000001',
   username: 'super-admin',
-  email: 'super-admin@cloudphone.com',
+  email: 'super-admin@cloudphone.run',
   roles: [{ name: 'super_admin' }],
   permissions: ['device:read', 'device:create', 'device:update', 'device:delete']
 }, JWT_SECRET, { expiresIn: '24h', issuer: 'cloudphone-platform', audience: 'cloudphone-users' });

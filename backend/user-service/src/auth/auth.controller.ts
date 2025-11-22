@@ -184,7 +184,6 @@ export class AuthController {
   async generate2FA(@Req() req: any) {
     const result = await this.twoFactorService.generate2FASecret(req.user.id);
     return {
-      success: true,
       data: result,
       message: '2FA密钥生成成功',
     };
@@ -204,7 +203,6 @@ export class AuthController {
   async enable2FA(@Req() req: any, @Body() dto: Enable2FADto) {
     await this.twoFactorService.enable2FA(req.user.id, dto.token);
     return {
-      success: true,
       message: '双因素认证已启用',
     };
   }
@@ -223,7 +221,6 @@ export class AuthController {
   async disable2FA(@Req() req: any, @Body() dto: Disable2FADto) {
     await this.twoFactorService.disable2FA(req.user.id, dto.token);
     return {
-      success: true,
       message: '双因素认证已禁用',
     };
   }
@@ -308,7 +305,7 @@ export class AuthController {
     @Param('provider') provider: SocialProvider,
   ) {
     await this.socialAuthService.unbindAccount(req.user.id, provider);
-    return { success: true, message: '解绑成功' };
+    return { message: '解绑成功' };
   }
 
   /**
@@ -404,7 +401,6 @@ export class AuthController {
   async get2FAStatus(@Req() req: any) {
     const status = await this.twoFactorService.get2FAStatus(req.user.id);
     return {
-      success: true,
       data: status,
     };
   }
@@ -458,7 +454,7 @@ export class AuthController {
     @Body() dto?: { reason?: string },
   ) {
     await this.sessionService.terminateSession(req.user.id, sessionId, dto?.reason);
-    return { success: true, message: '会话已终止' };
+    return { message: '会话已终止' };
   }
 
   /**
@@ -474,6 +470,6 @@ export class AuthController {
   async terminateAllOtherSessions(@Req() req: any, @Headers('authorization') auth?: string) {
     const token = auth?.replace('Bearer ', '');
     const result = await this.sessionService.terminateAllOtherSessions(req.user.id, token || '');
-    return { success: true, message: `已终止 ${result.count} 个会话` };
+    return { message: `已终止 ${result.count} 个会话` };
   }
 }

@@ -41,7 +41,6 @@ export class PermissionsController {
     description: '权限创建成功',
     schema: {
       example: {
-        success: true,
         data: {
           id: 'perm-uuid-123',
           name: 'device:create',
@@ -60,7 +59,6 @@ export class PermissionsController {
   async create(@Body() createPermissionDto: CreatePermissionDto) {
     const permission = await this.permissionsService.create(createPermissionDto);
     return {
-      success: true,
       data: permission,
       message: '权限创建成功',
     };
@@ -74,7 +72,6 @@ export class PermissionsController {
     description: '批量创建成功',
     schema: {
       example: {
-        success: true,
         data: [
           {
             id: 'perm-uuid-1',
@@ -107,7 +104,6 @@ export class PermissionsController {
   async bulkCreate(@Body() bulkDto: BulkCreatePermissionsDto) {
     const permissions = await this.permissionsService.bulkCreate(bulkDto.permissions);
     return {
-      success: true,
       data: permissions,
       message: `成功创建 ${permissions.length} 个权限`,
     };
@@ -125,7 +121,6 @@ export class PermissionsController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: [
           {
             id: 'perm-uuid-1',
@@ -164,7 +159,6 @@ export class PermissionsController {
     // 返回标准格式：将 limit 转换为 pageSize
     const { limit: _, ...rest } = result;
     return {
-      success: true,
       ...rest,
       pageSize: result.limit,
     };
@@ -179,7 +173,6 @@ export class PermissionsController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: [
           {
             id: 'perm-uuid-1',
@@ -217,7 +210,6 @@ export class PermissionsController {
   async findByResource(@Param('resource') resource: string) {
     const permissions = await this.permissionsService.findByResource(resource);
     return {
-      success: true,
       data: permissions,
     };
   }
@@ -231,7 +223,6 @@ export class PermissionsController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: {
           id: 'perm-uuid-123',
           name: 'device:create',
@@ -253,7 +244,6 @@ export class PermissionsController {
   async findOne(@Param('id') id: string) {
     const permission = await this.permissionsService.findOne(id);
     return {
-      success: true,
       data: permission,
     };
   }
@@ -267,7 +257,6 @@ export class PermissionsController {
     description: '更新成功',
     schema: {
       example: {
-        success: true,
         data: {
           id: 'perm-uuid-123',
           name: 'device:create',
@@ -285,7 +274,6 @@ export class PermissionsController {
   async update(@Param('id') id: string, @Body() updatePermissionDto: UpdatePermissionDto) {
     const permission = await this.permissionsService.update(id, updatePermissionDto);
     return {
-      success: true,
       data: permission,
       message: '权限更新成功',
     };
@@ -300,7 +288,6 @@ export class PermissionsController {
     description: '删除成功',
     schema: {
       example: {
-        success: true,
         message: '权限删除成功'
       }
     }
@@ -310,7 +297,6 @@ export class PermissionsController {
   async remove(@Param('id') id: string) {
     await this.permissionsService.remove(id);
     return {
-      success: true,
       message: '权限删除成功',
     };
   }

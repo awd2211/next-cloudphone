@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { EnhancedPermissionsGuard } from './enhanced-permissions.guard';
+import { PermissionsGuard } from './permissions.guard';
 import { PermissionCheckerService } from '../permission-checker.service';
 import { TenantIsolationService } from '../tenant-isolation.service';
 
-describe('EnhancedPermissionsGuard', () => {
-  let guard: EnhancedPermissionsGuard;
+describe('PermissionsGuard', () => {
+  let guard: PermissionsGuard;
   let reflector: Reflector;
   let permissionChecker: jest.Mocked<PermissionCheckerService>;
   let tenantIsolation: jest.Mocked<TenantIsolationService>;
@@ -29,7 +29,7 @@ describe('EnhancedPermissionsGuard', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        EnhancedPermissionsGuard,
+        PermissionsGuard,
         Reflector,
         {
           provide: PermissionCheckerService,
@@ -42,7 +42,7 @@ describe('EnhancedPermissionsGuard', () => {
       ],
     }).compile();
 
-    guard = module.get<EnhancedPermissionsGuard>(EnhancedPermissionsGuard);
+    guard = module.get<PermissionsGuard>(PermissionsGuard);
     reflector = module.get<Reflector>(Reflector);
     permissionChecker = module.get(PermissionCheckerService);
     tenantIsolation = module.get(TenantIsolationService);

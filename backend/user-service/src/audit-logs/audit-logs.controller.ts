@@ -12,7 +12,7 @@ import { SearchLogsDto } from './dto/search-logs.dto';
 @ApiTags('audit-logs')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('logs/audit')
+@Controller('audit-logs')  // 修改路径以匹配前端 API 调用
 export class AuditLogsController {
   private readonly logger = new Logger(AuditLogsController.name);
 
@@ -111,7 +111,6 @@ export class AuditLogsController {
     const pageSize = limit;
 
     return {
-      success: true,
       logs: result.logs,
       total: result.total,
       page,
@@ -174,7 +173,6 @@ export class AuditLogsController {
     const deletedCount = await this.auditLogsService.cleanupOldLogs(daysToKeep);
 
     return {
-      success: true,
       data: {
         deletedCount,
         daysKept: daysToKeep,

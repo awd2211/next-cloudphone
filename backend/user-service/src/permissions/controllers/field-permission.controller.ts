@@ -30,7 +30,7 @@ import {
   FieldAccessLevel,
   OperationType,
 } from '../../entities/field-permission.entity';
-import { EnhancedPermissionsGuard } from '../guards/enhanced-permissions.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
 import { AuditPermissionInterceptor } from '../interceptors/audit-permission.interceptor';
 import { RequirePermissions, AuditCreate, AuditUpdate, AuditDelete } from '../decorators';
 import { FieldTransformMap, FieldPermissionWhereCondition } from '../types';
@@ -176,7 +176,7 @@ class UpdateFieldPermissionDto {
 @ApiTags('字段权限管理')
 @ApiBearerAuth()
 @Controller('field-permissions')
-@UseGuards(AuthGuard('jwt'), EnhancedPermissionsGuard)
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 @UseInterceptors(AuditPermissionInterceptor)
 export class FieldPermissionController {
   constructor(
@@ -205,7 +205,6 @@ export class FieldPermissionController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: [
           {
             id: 'field-perm-uuid-1',
@@ -261,7 +260,6 @@ export class FieldPermissionController {
     });
 
     return {
-      success: true,
       data: permissions,
       total,
       page: currentPage,
@@ -283,7 +281,6 @@ export class FieldPermissionController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: {
           total: 150,
           active: 120,
@@ -351,7 +348,6 @@ export class FieldPermissionController {
     );
 
     return {
-      success: true,
       data: {
         total,
         active,
@@ -376,7 +372,6 @@ export class FieldPermissionController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: {
           id: 'field-perm-uuid-1',
           roleId: 'role-uuid-1',
@@ -421,7 +416,6 @@ export class FieldPermissionController {
     }
 
     return {
-      success: true,
       data: permission,
     };
   }
@@ -441,7 +435,6 @@ export class FieldPermissionController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: {
           'device:VIEW': [
             {
@@ -497,7 +490,6 @@ export class FieldPermissionController {
     );
 
     return {
-      success: true,
       data: grouped,
       total: permissions.length,
     };
@@ -516,7 +508,6 @@ export class FieldPermissionController {
     description: '创建成功',
     schema: {
       example: {
-        success: true,
         message: '字段权限配置创建成功',
         data: {
           id: 'field-perm-uuid-new',
@@ -554,7 +545,6 @@ export class FieldPermissionController {
     await this.fieldPermissionRepository.save(permission);
 
     return {
-      success: true,
       message: '字段权限配置创建成功',
       data: permission,
     };
@@ -574,7 +564,6 @@ export class FieldPermissionController {
     description: '更新成功',
     schema: {
       example: {
-        success: true,
         message: '字段权限配置更新成功',
         data: {
           id: 'field-perm-uuid-1',
@@ -612,7 +601,6 @@ export class FieldPermissionController {
     await this.fieldPermissionRepository.save(permission);
 
     return {
-      success: true,
       message: '字段权限配置更新成功',
       data: permission,
     };
@@ -632,7 +620,6 @@ export class FieldPermissionController {
     description: '删除成功',
     schema: {
       example: {
-        success: true,
         message: '字段权限配置删除成功'
       }
     }
@@ -656,7 +643,6 @@ export class FieldPermissionController {
     await this.fieldPermissionRepository.remove(permission);
 
     return {
-      success: true,
       message: '字段权限配置删除成功',
     };
   }
@@ -674,7 +660,6 @@ export class FieldPermissionController {
     description: '批量创建成功',
     schema: {
       example: {
-        success: true,
         message: '成功创建 3 条字段权限配置',
         data: [
           {
@@ -724,7 +709,6 @@ export class FieldPermissionController {
     await this.fieldPermissionRepository.save(permissions);
 
     return {
-      success: true,
       message: `成功创建 ${permissions.length} 条字段权限配置`,
       data: permissions,
     };
@@ -744,7 +728,6 @@ export class FieldPermissionController {
     description: '切换成功',
     schema: {
       example: {
-        success: true,
         message: '字段权限配置已启用',
         data: {
           id: 'field-perm-uuid-1',
@@ -778,7 +761,6 @@ export class FieldPermissionController {
     await this.fieldPermissionRepository.save(permission);
 
     return {
-      success: true,
       message: `字段权限配置已${permission.isActive ? '启用' : '禁用'}`,
       data: permission,
     };
@@ -797,7 +779,6 @@ export class FieldPermissionController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: [
           { value: 'HIDDEN', label: '隐藏' },
           { value: 'READ', label: '只读' },
@@ -811,7 +792,6 @@ export class FieldPermissionController {
   @RequirePermissions('field-permission:meta')
   getAccessLevels() {
     return {
-      success: true,
       data: Object.values(FieldAccessLevel).map((level) => ({
         value: level,
         label: this.getAccessLevelLabel(level),
@@ -832,7 +812,6 @@ export class FieldPermissionController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: [
           { value: 'CREATE', label: '创建' },
           { value: 'UPDATE', label: '更新' },
@@ -846,7 +825,6 @@ export class FieldPermissionController {
   @RequirePermissions('field-permission:meta')
   getOperationTypes() {
     return {
-      success: true,
       data: Object.values(OperationType).map((type) => ({
         value: type,
         label: this.getOperationTypeLabel(type),
@@ -867,7 +845,6 @@ export class FieldPermissionController {
     description: '查询成功',
     schema: {
       example: {
-        success: true,
         data: {
           mask: {
             description: '字段脱敏',
@@ -912,7 +889,6 @@ export class FieldPermissionController {
   @RequirePermissions('field-permission:meta')
   getTransformExamples() {
     return {
-      success: true,
       data: {
         mask: {
           description: '字段脱敏',

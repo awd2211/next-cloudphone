@@ -47,7 +47,6 @@ export class ApiKeysController {
     });
 
     return {
-      success: true,
       data: apiKeys,
       total,
       page: currentPage,

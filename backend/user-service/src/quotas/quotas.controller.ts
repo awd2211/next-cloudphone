@@ -63,7 +63,6 @@ export class QuotasController {
     // 返回标准格式：将 limit 转换为 pageSize
     const { limit: _, ...rest } = result;
     return {
-      success: true,
       ...rest,
       pageSize: result.limit,
     };
@@ -157,7 +156,7 @@ export class QuotasController {
   async deleteQuota(@Param('id') id: string) {
     this.logger.log(`删除配额 - ID: ${id}`);
     await this.quotasService.deleteQuota(id);
-    return { success: true, message: '配额删除成功' };
+    return { message: '配额删除成功' };
   }
 
   /**

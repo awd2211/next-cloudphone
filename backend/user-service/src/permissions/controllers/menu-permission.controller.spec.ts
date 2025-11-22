@@ -11,7 +11,7 @@ import { Reflector } from '@nestjs/core';
 import { MenuPermissionController } from './menu-permission.controller';
 import { MenuPermissionService, MenuItem } from '../menu-permission.service';
 import { PermissionCacheService } from '../permission-cache.service';
-import { EnhancedPermissionsGuard } from '../guards/enhanced-permissions.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
 
 describe('MenuPermissionController', () => {
   let app: INestApplication;
@@ -36,8 +36,8 @@ describe('MenuPermissionController', () => {
     warmupActiveUsersCache: jest.fn(),
   };
 
-  // Mock EnhancedPermissionsGuard that checks JWT permissions
-  const mockEnhancedPermissionsGuard = {
+  // Mock PermissionsGuard that checks JWT permissions
+  const mockPermissionsGuard = {
     canActivate: (context: ExecutionContext) => {
       const req = context.switchToHttp().getRequest();
       const authHeader = req.headers.authorization;
@@ -101,7 +101,7 @@ describe('MenuPermissionController', () => {
     },
   };
 
-  // Mock AuthGuard (passthrough, auth is handled by EnhancedPermissionsGuard in our tests)
+  // Mock AuthGuard (passthrough, auth is handled by PermissionsGuard in our tests)
   const mockAuthGuard = {
     canActivate: jest.fn(() => true),
   };
@@ -126,8 +126,8 @@ describe('MenuPermissionController', () => {
         },
       ],
     })
-      .overrideGuard(EnhancedPermissionsGuard)
-      .useValue(mockEnhancedPermissionsGuard)
+      .overrideGuard(PermissionsGuard)
+      .useValue(mockPermissionsGuard)
       .overrideGuard(require('@nestjs/passport').AuthGuard('jwt'))
       .useValue(mockAuthGuard)
       .compile();

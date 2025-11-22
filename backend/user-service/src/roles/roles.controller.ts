@@ -45,7 +45,6 @@ export class RolesController {
   async create(@Body() createRoleDto: CreateRoleDto) {
     const role = await this.rolesService.create(createRoleDto);
     return {
-      success: true,
       data: role,
       message: '角色创建成功',
     };
@@ -60,22 +59,29 @@ export class RolesController {
   @ApiQuery({ name: 'pageSize', required: false, description: '每页数量', example: 10 })
   @ApiQuery({ name: 'limit', required: false, description: '每页数量（兼容参数）', example: 10 })
   @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiQuery({ name: 'includePermissions', required: false, description: '是否包含权限列表', example: 'true' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async findAll(
     @Query('page') page: string = '1',
     @Query('pageSize') pageSize?: string,
     @Query('limit') limit?: string,
-    @Query('tenantId') tenantId?: string
+    @Query('tenantId') tenantId?: string,
+    @Query('includePermissions') includePermissions?: string
   ) {
     // 支持 pageSize 或 limit 参数
     const itemsPerPage = pageSize || limit || '10';
-    const result = await this.rolesService.findAll(parseInt(page), parseInt(itemsPerPage), tenantId);
+    const includePerms = includePermissions === 'true';
+    const result = await this.rolesService.findAll(
+      parseInt(page),
+      parseInt(itemsPerPage),
+      tenantId,
+      { includePermissions: includePerms }
+    );
 
     // 返回标准格式：将 limit 转换为 pageSize
     const { limit: _, ...rest } = result;
     return {
-      success: true,
       ...rest,
       pageSize: result.limit,
     };
@@ -91,7 +97,6 @@ export class RolesController {
   async findOne(@Param('id') id: string) {
     const role = await this.rolesService.findOne(id);
     return {
-      success: true,
       data: role,
     };
   }
@@ -106,7 +111,6 @@ export class RolesController {
   async update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
     const role = await this.rolesService.update(id, updateRoleDto);
     return {
-      success: true,
       data: role,
       message: '角色更新成功',
     };
@@ -122,7 +126,6 @@ export class RolesController {
   async remove(@Param('id') id: string) {
     await this.rolesService.remove(id);
     return {
-      success: true,
       message: '角色删除成功',
     };
   }
@@ -166,7 +169,6 @@ export class RolesController {
     }
 
     return {
-      success: true,
       data: results,
       message: `批量删除完成：成功 ${results.success} 个，失败 ${results.failed} 个`,
     };
@@ -184,7 +186,6 @@ export class RolesController {
   async addPermissions(@Param('id') id: string, @Body() dto: AddPermissionsDto) {
     const role = await this.rolesService.addPermissions(id, dto.permissionIds);
     return {
-      success: true,
       data: role,
       message: '权限添加成功',
     };
@@ -200,7 +201,6 @@ export class RolesController {
   async removePermissions(@Param('id') id: string, @Body('permissionIds') permissionIds: string[]) {
     const role = await this.rolesService.removePermissions(id, permissionIds);
     return {
-      success: true,
       data: role,
       message: '权限移除成功',
     };

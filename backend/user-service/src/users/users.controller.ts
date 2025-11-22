@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -31,7 +32,14 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { RolesService } from '../roles/roles.service';
-import { CursorPaginationDto, DataScopeGuard, DataScope, DataScopeType } from '@cloudphone/shared';
+import {
+  CursorPaginationDto,
+  DataScopeGuard,
+  DataScope,
+  DataScopeType,
+  ActionResult,
+  BatchActionResult,
+} from '@cloudphone/shared';
 import {
   CreateUserCommand,
   UpdateUserCommand,
@@ -61,14 +69,11 @@ export class UsersController {
   @ApiResponse({ status: 201, description: '用户创建成功' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async create(@Body() createUserDto: CreateUserDto) {
+  async create(@Body() createUserDto: CreateUserDto): Promise<ActionResult<any>> {
     const user = await this.commandBus.execute(new CreateUserCommand(createUserDto));
     const { password, ...userWithoutPassword } = user;
-    return {
-      success: true,
-      data: userWithoutPassword,
-      message: '用户创建成功',
-    };
+    // TransformInterceptor 会自动包装为 { success: true, data: { data, message }, ... }
+    return { data: userWithoutPassword, message: '用户创建成功' };
   }
 
   @Get('roles')
@@ -87,15 +92,8 @@ export class UsersController {
     @Query('tenantId') tenantId?: string
   ) {
     const itemsPerPage = pageSize || limit || '100';
-    const result = await this.rolesService.findAll(
-      parseInt(page),
-      parseInt(itemsPerPage),
-      tenantId
-    );
-    return {
-      success: true,
-      ...result,
-    };
+    // 直接返回 service 结果，TransformInterceptor 自动包装
+    return this.rolesService.findAll(parseInt(page), parseInt(itemsPerPage), tenantId);
   }
 
   @Get('stats')
@@ -105,12 +103,8 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getStats(@Query('tenantId') tenantId?: string) {
-    const stats = await this.queryBus.execute(new GetUserStatsQuery(tenantId));
-    return {
-      success: true,
-      data: stats,
-      message: '用户统计获取成功',
-    };
+    // 直接返回统计数据
+    return this.queryBus.execute(new GetUserStatsQuery(tenantId));
   }
 
   @Get('filters/metadata')
@@ -138,12 +132,7 @@ export class UsersController {
   })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getFiltersMetadata(@Query() query: FilterMetadataQueryDto) {
-    const result = await this.usersService.getFiltersMetadata(query);
-    return {
-      success: true,
-      data: result,
-      message: '用户筛选元数据获取成功',
-    };
+    return this.usersService.getFiltersMetadata(query);
   }
 
   @Get('quick-list')
@@ -162,12 +151,7 @@ export class UsersController {
   })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getQuickList(@Query() query: QuickListQueryDto) {
-    const result = await this.usersService.getQuickList(query);
-    return {
-      success: true,
-      data: result,
-      message: '用户快速列表获取成功',
-    };
+    return this.usersService.getQuickList(query);
   }
 
   @Get('filter')
@@ -180,16 +164,14 @@ export class UsersController {
   @ApiResponse({ status: 400, description: '参数验证失败' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async findAllWithFilters(@Query() filters: any) {
-    // 使用 FilterUsersDto 进行验证
     const result = await this.usersService.findAll(
       filters.page || 1,
       filters.limit || 10,
       undefined,
       { includeRoles: filters.includeRoles === 'true', filters }
     );
-
+    // 返回带分页元信息的结果
     return {
-      success: true,
       ...result,
       totalPages: Math.ceil(result.total / result.limit),
       hasMore: result.page < Math.ceil(result.total / result.limit),
@@ -212,19 +194,13 @@ export class UsersController {
     @Query('limit') limit?: string,
     @Query('tenantId') tenantId?: string
   ) {
-    // 支持 pageSize 或 limit 参数
     const itemsPerPage = pageSize || limit || '10';
     const result = await this.queryBus.execute(
       new GetUsersQuery(parseInt(page), parseInt(itemsPerPage), tenantId)
     );
-
     // 返回标准格式：将 limit 转换为 pageSize
     const { limit: _, ...rest } = result;
-    return {
-      success: true,
-      ...rest,
-      pageSize: result.limit,
-    };
+    return { ...rest, pageSize: result.limit };
   }
 
   @Get('cursor')
@@ -252,7 +228,6 @@ export class UsersController {
     description: '获取成功',
     schema: {
       example: {
-        success: true,
         data: [],
         nextCursor: 'MTY5ODc2NTQzMjAwMA==',
         hasMore: true,
@@ -266,24 +241,16 @@ export class UsersController {
     @Query('tenantId') tenantId?: string,
     @Query('includeRoles') includeRoles?: string
   ) {
-    const result = await this.usersService.findAllCursor(paginationDto, tenantId, {
+    return this.usersService.findAllCursor(paginationDto, tenantId, {
       includeRoles: includeRoles === 'true',
     });
-    return {
-      success: true,
-      ...result,
-    };
   }
 
   @Get('me')
   @ApiOperation({ summary: '获取当前登录用户信息', description: '获取当前登录用户的详细信息' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getMe(@Request() req: any) {
-    const user = await this.queryBus.execute(new GetUserQuery(req.user.id));
-    return {
-      success: true,
-      data: user,
-    };
+    return this.queryBus.execute(new GetUserQuery(req.user.id));
   }
 
   @Get('batch')
@@ -293,19 +260,12 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '获取成功' })
   async batchFindUsers(@Query('ids') idsParam: string) {
     if (!idsParam) {
-      return {
-        success: true,
-        data: [],
-      };
+      return [];
     }
 
     const ids = idsParam.split(',').map((id) => id.trim()).filter(Boolean);
-
     if (ids.length === 0) {
-      return {
-        success: true,
-        data: [],
-      };
+      return [];
     }
 
     // 批量查询用户（最多100个）
@@ -313,16 +273,11 @@ export class UsersController {
     const users = await this.usersService.findByIds(limitedIds);
 
     // 只返回基本信息（id, username, email）
-    const basicUsers = users.map((user) => ({
+    return users.map((user) => ({
       id: user.id,
       username: user.username,
       email: user.email,
     }));
-
-    return {
-      success: true,
-      data: basicUsers,
-    };
   }
 
   @Get(':id')
@@ -334,11 +289,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: '用户不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async findOne(@Param('id') id: string) {
-    const user = await this.queryBus.execute(new GetUserQuery(id));
-    return {
-      success: true,
-      data: user,
-    };
+    return this.queryBus.execute(new GetUserQuery(id));
   }
 
   @Patch(':id')
@@ -349,14 +300,10 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<ActionResult<any>> {
     const user = await this.commandBus.execute(new UpdateUserCommand(id, updateUserDto));
     const { password, ...userWithoutPassword } = user;
-    return {
-      success: true,
-      data: userWithoutPassword,
-      message: '用户更新成功',
-    };
+    return { data: userWithoutPassword, message: '用户更新成功' };
   }
 
   @Post(':id/change-password')
@@ -367,12 +314,9 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '密码修改成功' })
   @ApiResponse({ status: 400, description: '原密码错误' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async changePassword(@Param('id') id: string, @Body() changePasswordDto: ChangePasswordDto) {
+  async changePassword(@Param('id') id: string, @Body() changePasswordDto: ChangePasswordDto): Promise<ActionResult> {
     await this.commandBus.execute(new ChangePasswordCommand(id, changePasswordDto));
-    return {
-      success: true,
-      message: '密码修改成功',
-    };
+    return { message: '密码修改成功' };
   }
 
   @Patch(':id/preferences')
@@ -386,14 +330,10 @@ export class UsersController {
   async updatePreferences(
     @Param('id') id: string,
     @Body() updatePreferencesDto: UpdatePreferencesDto
-  ) {
+  ): Promise<ActionResult<any>> {
     const user = await this.usersService.updatePreferences(id, updatePreferencesDto);
     const { password, ...userWithoutPassword } = user;
-    return {
-      success: true,
-      data: userWithoutPassword,
-      message: '偏好设置更新成功',
-    };
+    return { data: userWithoutPassword, message: '偏好设置更新成功' };
   }
 
   @Delete(':id')
@@ -404,12 +344,9 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string): Promise<ActionResult> {
     await this.commandBus.execute(new DeleteUserCommand(id));
-    return {
-      success: true,
-      message: '用户删除成功',
-    };
+    return { message: '用户删除成功' };
   }
 
   @Post('batch-delete')
@@ -419,38 +356,28 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '批量删除成功' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async batchDelete(@Body() dto: { ids: string[] }) {
+  async batchDelete(@Body() dto: { ids: string[] }): Promise<BatchActionResult<string>> {
     if (!dto.ids || !Array.isArray(dto.ids) || dto.ids.length === 0) {
-      return {
-        success: false,
-        message: '请提供要删除的用户 ID 列表',
-      };
+      throw new BadRequestException('请提供要删除的用户 ID 列表');
     }
 
-    const results = {
-      success: 0,
-      failed: 0,
-      errors: [] as { id: string; error: string }[],
-    };
+    const succeeded: string[] = [];
+    const failed: Array<{ item: string; error: string }> = [];
 
     // 批量删除用户
     for (const id of dto.ids) {
       try {
         await this.commandBus.execute(new DeleteUserCommand(id));
-        results.success++;
+        succeeded.push(id);
       } catch (error) {
-        results.failed++;
-        results.errors.push({
-          id,
-          error: error.message || '删除失败',
-        });
+        failed.push({ item: id, error: error.message || '删除失败' });
       }
     }
 
     return {
-      success: true,
-      data: results,
-      message: `批量删除完成：成功 ${results.success} 个，失败 ${results.failed} 个`,
+      succeeded,
+      failed,
+      message: `批量删除完成：成功 ${succeeded.length} 个，失败 ${failed.length} 个`,
     };
   }
 
@@ -464,12 +391,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 403, description: '权限不足' })
   async getPaymentMethods(@Request() req: any) {
-    const paymentMethods = await this.usersService.getPaymentMethods(req.user.id);
-    return {
-      success: true,
-      data: paymentMethods,
-      message: '支付方式列表获取成功',
-    };
+    return this.usersService.getPaymentMethods(req.user.id);
   }
 
   @Post('profile/payment-methods')
@@ -481,16 +403,12 @@ export class UsersController {
   async createPaymentMethod(
     @Request() req: any,
     @Body() createPaymentMethodDto: CreatePaymentMethodDto
-  ) {
+  ): Promise<ActionResult<any>> {
     const paymentMethod = await this.usersService.createPaymentMethod(
       req.user.id,
       createPaymentMethodDto
     );
-    return {
-      success: true,
-      data: paymentMethod,
-      message: '支付方式添加成功',
-    };
+    return { data: paymentMethod, message: '支付方式添加成功' };
   }
 
   @Patch('profile/payment-methods/:id')
@@ -504,17 +422,13 @@ export class UsersController {
     @Request() req: any,
     @Param('id') id: string,
     @Body() updatePaymentMethodDto: UpdatePaymentMethodDto
-  ) {
+  ): Promise<ActionResult<any>> {
     const paymentMethod = await this.usersService.updatePaymentMethod(
       req.user.id,
       id,
       updatePaymentMethodDto
     );
-    return {
-      success: true,
-      data: paymentMethod,
-      message: '支付方式更新成功',
-    };
+    return { data: paymentMethod, message: '支付方式更新成功' };
   }
 
   @Delete('profile/payment-methods/:id')
@@ -524,12 +438,9 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '支付方式不存在' })
   @ApiResponse({ status: 403, description: '权限不足' })
-  async deletePaymentMethod(@Request() req: any, @Param('id') id: string) {
+  async deletePaymentMethod(@Request() req: any, @Param('id') id: string): Promise<ActionResult> {
     await this.usersService.deletePaymentMethod(req.user.id, id);
-    return {
-      success: true,
-      message: '支付方式删除成功',
-    };
+    return { message: '支付方式删除成功' };
   }
 
   /**
@@ -545,11 +456,8 @@ export class UsersController {
   async resetUserPassword(
     @Param('id') userId: string,
     @Body() body: { newPassword: string }
-  ) {
+  ): Promise<ActionResult> {
     await this.usersService.resetUserPassword(userId, body.newPassword);
-    return {
-      success: true,
-      message: '密码重置成功',
-    };
+    return { message: '密码重置成功' };
   }
 }

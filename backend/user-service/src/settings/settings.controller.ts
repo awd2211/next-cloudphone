@@ -42,7 +42,7 @@ export class SettingsController {
   @Roles('admin')
   async updateBasic(@Body() data: Record<string, any>) {
     await this.settingsService.updateCategory(SettingCategory.BASIC, data);
-    return { success: true, message: 'Basic settings updated' };
+    return { message: 'Basic settings updated' };
   }
 
   /**
@@ -54,7 +54,7 @@ export class SettingsController {
   @Roles('admin')
   async updateEmail(@Body() data: Record<string, any>) {
     await this.settingsService.updateCategory(SettingCategory.EMAIL, data);
-    return { success: true, message: 'Email settings updated' };
+    return { message: 'Email settings updated' };
   }
 
   /**
@@ -66,7 +66,7 @@ export class SettingsController {
   @Roles('admin')
   async updateSms(@Body() data: Record<string, any>) {
     await this.settingsService.updateCategory(SettingCategory.SMS, data);
-    return { success: true, message: 'SMS settings updated' };
+    return { message: 'SMS settings updated' };
   }
 
   /**
@@ -78,7 +78,7 @@ export class SettingsController {
   @Roles('admin')
   async updatePayment(@Body() data: Record<string, any>) {
     await this.settingsService.updateCategory(SettingCategory.PAYMENT, data);
-    return { success: true, message: 'Payment settings updated' };
+    return { message: 'Payment settings updated' };
   }
 
   /**
@@ -90,7 +90,7 @@ export class SettingsController {
   @Roles('admin')
   async updateStorage(@Body() data: Record<string, any>) {
     await this.settingsService.updateCategory(SettingCategory.STORAGE, data);
-    return { success: true, message: 'Storage settings updated' };
+    return { message: 'Storage settings updated' };
   }
 
   /**
@@ -102,6 +102,6 @@ export class SettingsController {
   @Roles('admin')
   async initialize() {
     await this.settingsService.initializeDefaults();
-    return { success: true, message: 'Default settings initialized' };
+    return { message: 'Default settings initialized' };
   }
 }
