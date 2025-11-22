@@ -311,7 +311,7 @@ const Login = () => {
             borderRadius: 16,
             border: '1px solid rgba(255, 255, 255, 0.1)',
           }}
-          bodyStyle={{ padding: 40 }}
+          styles={{ body: { padding: 40 } }}
         >
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <div

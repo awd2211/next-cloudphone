@@ -289,7 +289,7 @@ const ResidentialProxy: React.FC = () => {
                   borderRadius: 12,
                   border: '1px solid #e2e8f0',
                 }}
-                bodyStyle={{ padding: 32 }}
+                styles={{ body: { padding: 32 } }}
               >
                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                   <div
@@ -353,7 +353,7 @@ const ResidentialProxy: React.FC = () => {
                     position: 'relative',
                     overflow: 'hidden',
                   }}
-                  bodyStyle={{ padding: 32 }}
+                  styles={{ body: { padding: 32 } }}
                 >
                   {type.recommended && (
                     <div
@@ -439,7 +439,7 @@ const ResidentialProxy: React.FC = () => {
                   borderRadius: 12,
                   border: '1px solid #e2e8f0',
                 }}
-                bodyStyle={{ padding: 24 }}
+                styles={{ body: { padding: 24 } }}
               >
                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                   <div style={{ fontSize: 48 }}>{useCase.icon}</div>

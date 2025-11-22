@@ -18,6 +18,7 @@ import { QueueModule } from './queues/queue.module';
 import { CacheModule } from './cache/cache.module';
 import { SettingsModule } from './settings/settings.module';
 import { MenusModule } from './menus/menus.module';
+import { CmsModule } from './cms/cms.module';
 import { HealthController } from './health.controller';
 import { MetricsController } from './metrics.controller';
 // 通知功能已迁移到独立的 notification-service
@@ -90,6 +91,7 @@ import { validate } from './common/config/env.validation';
     CacheModule, // ✅ 添加缓存管理模块
     SettingsModule, // ✅ 系统设置管理
     MenusModule, // ✅ 菜单管理模块
+    CmsModule, // ✅ CMS 内容管理模块
     ConsulModule, // ✅ 已修复 DiscoveryService 依赖问题
     EventBusModule.forRoot(), // ✅ 事件总线（用于错误通知）
     DistributedLockModule.forRoot(), // ✅ K8s 集群安全：Redis 分布式锁（防止定时任务重复执行）

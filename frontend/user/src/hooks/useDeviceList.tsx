@@ -27,7 +27,7 @@ export function useDeviceList() {
     setLoading(true);
     try {
       const res = await getMyDevices({ page, pageSize });
-      setDevices(res.data);
+      setDevices(res.data ?? []);
       setTotal(res.total);
     } catch (error) {
       message.error('加载设备列表失败');

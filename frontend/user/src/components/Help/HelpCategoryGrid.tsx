@@ -43,7 +43,7 @@ export const HelpCategoryGrid: React.FC<HelpCategoryGridProps> = React.memo(({
                 borderColor: category.color,
                 cursor: 'pointer',
               }}
-              bodyStyle={{ padding: '24px 16px' }}
+              styles={{ body: { padding: '24px 16px' } }}
             >
               <div style={{ color: category.color, marginBottom: 12 }}>
                 {getIcon(category.icon)}

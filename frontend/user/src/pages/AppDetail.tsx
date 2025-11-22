@@ -65,7 +65,7 @@ const AppDetail = () => {
   const loadDevices = async () => {
     try {
       const res = await getMyDevices({ page: 1, pageSize: 100 });
-      setDevices(res.data.filter((d) => d.status === 'running' || d.status === 'idle'));
+      setDevices((res.data ?? []).filter((d) => d.status === 'running' || d.status === 'idle'));
     } catch (error) {
       console.error('加载设备列表失败', error);
     }

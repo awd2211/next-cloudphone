@@ -113,7 +113,7 @@ const ForgotPassword = () => {
           position: 'relative',
           zIndex: 1,
         }}
-        bodyStyle={{ padding: 40 }}
+        styles={{ body: { padding: 40 } }}
       >
         {!success ? (
           <>

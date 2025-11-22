@@ -56,7 +56,7 @@ export const InstalledAppCard: React.FC<InstalledAppCardProps> = React.memo(
           height: '100%',
           border: selected ? '2px solid #1890ff' : undefined,
         }}
-        bodyStyle={{ padding: 12 }}
+        styles={{ body: { padding: 12 } }}
       >
         <div style={{ position: 'relative' }}>
           {/* 复选框 */}

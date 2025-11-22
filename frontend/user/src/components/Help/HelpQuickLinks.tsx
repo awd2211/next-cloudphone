@@ -75,7 +75,7 @@ export const HelpQuickLinks: React.FC<HelpQuickLinksProps> = React.memo(({
               cursor: 'pointer',
               transition: 'all 0.3s',
             }}
-            bodyStyle={{ padding: '32px 16px' }}
+            styles={{ body: { padding: '32px 16px' } }}
           >
             <div style={{ color: link.color, marginBottom: 12 }}>
               {link.icon}

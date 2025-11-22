@@ -137,7 +137,7 @@ export const HelpFooter: React.FC<HelpFooterProps> = React.memo(({
 
       <Card
         className="footer-card"
-        bodyStyle={{ padding: '60px 24px', position: 'relative', zIndex: 1 }}
+        styles={{ body: { padding: '60px 24px', position: 'relative', zIndex: 1 } }}
         style={{
           textAlign: 'center',
           animation: 'footerSlideUp 0.6s ease-out',

@@ -28,7 +28,7 @@ const UsageRecords = () => {
         startDate: dateRange[0].format('YYYY-MM-DD'),
         endDate: dateRange[1].format('YYYY-MM-DD'),
       });
-      setRecords(res.data);
+      setRecords(res.data ?? []);
       setTotal(res.total);
     } catch (error) {
       console.error('加载使用记录失败', error);

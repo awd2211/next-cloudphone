@@ -62,6 +62,7 @@ const PrivacyPolicy = lazy(() => import('@/pages/Legal/PrivacyPolicy'));
 const ServiceLevelAgreement = lazy(() => import('@/pages/Legal/ServiceLevelAgreement'));
 const RefundPolicy = lazy(() => import('@/pages/Legal/RefundPolicy'));
 const SecurityPage = lazy(() => import('@/pages/Legal/Security'));
+const DynamicLegal = lazy(() => import('@/pages/Legal/DynamicLegal'));
 
 // 营销页面（不需要登录）
 const Product = lazy(() => import('@/pages/Product'));
@@ -243,7 +244,7 @@ export const router = createBrowserRouter([
         path: '/help/tutorials/:id',
         element: withSuspense(TutorialDetail),
       },
-      // 法律合规页面
+      // 法律合规页面（静态回退页面，CMS 加载失败时使用）
       {
         path: '/legal/terms',
         element: withSuspense(TermsOfService),
@@ -263,6 +264,11 @@ export const router = createBrowserRouter([
       {
         path: '/legal/security',
         element: withSuspense(SecurityPage),
+      },
+      // 动态法律文档（从 CMS API 加载）
+      {
+        path: '/legal/:type',
+        element: withSuspense(DynamicLegal),
       },
     ],
   },

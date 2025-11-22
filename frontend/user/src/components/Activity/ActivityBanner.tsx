@@ -25,7 +25,7 @@ export const ActivityBanner: React.FC<ActivityBannerProps> = React.memo(
     if (bannerActivities.length === 0) return null;
 
     return (
-      <Card style={{ marginBottom: 24 }} bodyStyle={{ padding: 0 }}>
+      <Card style={{ marginBottom: 24 }} styles={{ body: { padding: 0 } }}>
         <Carousel autoplay>
           {bannerActivities.map((activity) => (
             <div key={activity.id}>

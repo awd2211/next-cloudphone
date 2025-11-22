@@ -433,7 +433,7 @@ const Product: React.FC = () => {
             borderRadius: 12,
             textAlign: 'center',
           }}
-          bodyStyle={{ padding: 48 }}
+          styles={{ body: { padding: 48 } }}
         >
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Title level={2} style={{ color: 'white', marginBottom: 0 }}>

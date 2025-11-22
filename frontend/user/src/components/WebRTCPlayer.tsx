@@ -472,7 +472,7 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
 
       {/* 统计信息面板 */}
       {isConnected && showStatsPanel && stats && (
-        <Card size="small" title="连接统计" style={{ marginTop: 16 }} bodyStyle={{ padding: 16 }}>
+        <Card size="small" title="连接统计" style={{ marginTop: 16 }} styles={{ body: { padding: 16 } }}>
           <Row gutter={[16, 16]}>
             <Col span={6}>
               <Statistic

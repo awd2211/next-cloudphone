@@ -205,7 +205,7 @@ const SocialAuthCallback: React.FC = () => {
           position: 'relative',
           zIndex: 1,
         }}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 } }}
       >
         {renderContent()}
       </Card>

@@ -261,7 +261,7 @@ const CloudDeviceManagement: React.FC = () => {
             border: 'none',
             textAlign: 'center',
           }}
-          bodyStyle={{ padding: 64 }}
+          styles={{ body: { padding: 64 } }}
         >
           <Title level={2} style={{ color: 'white', marginBottom: 16 }}>
             立即开始使用云手机管理

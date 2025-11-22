@@ -68,7 +68,7 @@ export const PlatformStats: React.FC<PlatformStatsProps> = React.memo(({ data })
           background: 'white',
           overflow: 'hidden',
         }}
-        bodyStyle={{ padding: '48px 32px' }}
+        styles={{ body: { padding: '48px 32px' } }}
       >
         <Row gutter={[48, 48]}>
           {stats.map((stat, index) => (

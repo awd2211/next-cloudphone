@@ -94,7 +94,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = React.memo(({
             <Col key={category.id} xs={24} sm={12} lg={8}>
               <Card
                 className="category-card"
-                bodyStyle={{ padding: 20 }}
+                styles={{ body: { padding: 20 } }}
                 onClick={() => onCategoryClick(category.id)}
                 style={{
                   animation: `categorySlideIn 0.5s ease-out ${index * 0.1}s backwards`,

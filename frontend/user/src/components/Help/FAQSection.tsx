@@ -160,7 +160,7 @@ export const FAQSection: React.FC<FAQSectionProps> = React.memo(({
             查看全部
           </Button>
         }
-        bodyStyle={{ padding: '12px 24px 24px' }}
+        styles={{ body: { padding: '12px 24px 24px' } }}
         style={{
           animation: 'faqSlideIn 0.5s ease-out',
         }}

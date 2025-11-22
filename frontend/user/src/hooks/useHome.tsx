@@ -70,7 +70,7 @@ export function useHome() {
     setLoading(true);
     try {
       const data = await getActivePlans();
-      setPlans(data);
+      setPlans(data ?? []);
     } catch (error) {
       console.error('加载套餐失败:', error);
       // 暂时不显示错误，因为 billing-service 可能未启动

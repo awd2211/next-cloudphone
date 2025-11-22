@@ -42,7 +42,7 @@ export function useAppMarket() {
     setLoading(true);
     try {
       const res = await getApps({ page, pageSize, category, search });
-      setApps(res.data);
+      setApps(res.data ?? []);
       setTotal(res.total);
     } catch (error) {
       message.error('加载应用列表失败');
@@ -55,7 +55,7 @@ export function useAppMarket() {
   const loadDevices = useCallback(async () => {
     try {
       const res = await getMyDevices({ page: 1, pageSize: 100 });
-      setDevices(res.data.filter((d) => d.status === 'running'));
+      setDevices((res.data ?? []).filter((d) => d.status === 'running'));
     } catch (error) {
       console.error('加载设备列表失败', error);
     }

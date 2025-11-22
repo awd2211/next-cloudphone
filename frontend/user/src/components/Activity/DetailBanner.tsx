@@ -17,7 +17,7 @@ interface DetailBannerProps {
  */
 export const DetailBanner: React.FC<DetailBannerProps> = React.memo(({ activity }) => {
   return (
-    <Card bodyStyle={{ padding: 0 }} style={{ marginBottom: 24 }}>
+    <Card styles={{ body: { padding: 0 } }} style={{ marginBottom: 24 }}>
       <div
         style={{
           height: 320,

@@ -16,7 +16,7 @@ const MyOrders = () => {
     setLoading(true);
     try {
       const res = await getMyOrders({ page, pageSize });
-      setOrders(res.data);
+      setOrders(res.data ?? []);
       setTotal(res.total);
     } catch (error) {
       message.error('加载订单列表失败');

@@ -134,7 +134,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <Card
                 key={idx}
                 className="product-card"
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
                 onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                 style={{
                   border: 'none',
@@ -189,7 +189,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <Card
                 key={idx}
                 className="product-card"
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
                 onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                 style={{
                   border: 'none',
@@ -242,7 +242,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <Card
                 key={idx}
                 className="product-card"
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
                 onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                 style={{
                   border: 'none',
@@ -297,7 +297,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <Card
                 key={idx}
                 className="product-card"
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
                 onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                 style={{
                   border: 'none',
@@ -391,7 +391,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <Card
                 key={idx}
                 className="help-card"
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
                 onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                 style={{
                   animation: `slideInUp 0.4s ease-out ${idx * 0.1}s backwards`,
@@ -443,7 +443,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <Card
                 key={idx}
                 className="help-card"
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
                 onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                 style={{
                   animation: `slideInUp 0.4s ease-out ${idx * 0.1 + 0.15}s backwards`,

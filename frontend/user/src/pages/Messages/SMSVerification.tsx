@@ -9,7 +9,6 @@ import {
   useMyVerificationCodes,
 } from '@/hooks/queries/useSMS';
 import type { VerificationCode } from '@/services/sms';
-import { getListData } from '@/types';
 
 dayjs.extend(relativeTime);
 
@@ -194,9 +193,9 @@ const SMSVerification: React.FC = () => {
           </Button>
         }
       >
-        <Table
+        <Table<VerificationCode>
           columns={columns}
-          dataSource={getListData(historyData)}
+          dataSource={historyData?.data ?? []}
           rowKey="id"
           loading={historyLoading}
           pagination={{

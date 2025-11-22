@@ -103,6 +103,9 @@ const FailoverManagement = lazy(() => import('@/pages/Failover/Management'));
 // 状态恢复管理
 const StateRecoveryManagement = lazy(() => import('@/pages/StateRecovery/Management'));
 
+// CMS 内容管理
+const CmsManagement = lazy(() => import('@/pages/CMS/Management'));
+
 // ✅ 导入优化的页面加载骨架屏
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 
@@ -417,6 +420,11 @@ export const router = createBrowserRouter([
       {
         path: 'devices/state-recovery',
         element: withAdminRoute(StateRecoveryManagement), // 管理员专属 - 设备状态恢复管理
+      },
+      // CMS 内容管理 - 管理员专属
+      {
+        path: 'cms',
+        element: withAdminRoute(CmsManagement), // 管理员专属 - 官网内容管理
       },
     ],
   },

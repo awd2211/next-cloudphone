@@ -1,5 +1,5 @@
-import React from 'react';
-import { Card, Row, Col, Button, Tag } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Card, Row, Col, Button, Tag, Spin, Empty } from 'antd';
 import {
   TeamOutlined,
   RocketOutlined,
@@ -9,16 +9,40 @@ import {
   DollarOutlined,
   SafetyOutlined,
   CoffeeOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { getJobPositions, type JobPosition } from '@/services/cms';
 
 /**
  * CloudPhone.run 招聘/加入我们页面
  * 展示公司文化、福利待遇和招聘职位
+ * 职位数据从 CMS API 动态加载
  * Header 和 Footer 由 PublicLayout 提供
  */
 const Careers: React.FC = () => {
   const navigate = useNavigate();
+  const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 从 CMS API 加载招聘职位
+  useEffect(() => {
+    const loadJobPositions = async () => {
+      try {
+        setLoading(true);
+        const positions = await getJobPositions();
+        setJobPositions(positions);
+      } catch (error) {
+        console.error('Failed to load job positions:', error);
+        // 加载失败时显示空状态
+        setJobPositions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadJobPositions();
+  }, []);
 
   // 公司文化价值观
   const cultureValues = [
@@ -75,94 +99,6 @@ const Careers: React.FC = () => {
       icon: <HeartOutlined />,
       title: '团队建设活动',
       description: '定期团建 + 节日福利 + 年度旅游',
-    },
-  ];
-
-  // 招聘职位
-  const jobPositions = [
-    {
-      title: '高级前端工程师',
-      department: '技术部',
-      location: '北京 / 上海 / 远程',
-      type: '全职',
-      salary: '25K-40K',
-      requirements: [
-        '3年以上前端开发经验',
-        '精通 React/Vue 等主流框架',
-        '熟悉 TypeScript 和现代前端工程化',
-        '有云平台或 SaaS 产品开发经验优先',
-      ],
-      tags: ['React', 'TypeScript', 'Vite', 'Ant Design'],
-    },
-    {
-      title: '后端开发工程师',
-      department: '技术部',
-      location: '北京 / 上海',
-      type: '全职',
-      salary: '25K-45K',
-      requirements: [
-        '3年以上后端开发经验',
-        '精通 Node.js/NestJS 或 Go/Python',
-        '熟悉微服务架构和容器化技术',
-        '有分布式系统经验优先',
-      ],
-      tags: ['NestJS', 'PostgreSQL', 'Docker', 'Redis'],
-    },
-    {
-      title: 'DevOps 工程师',
-      department: '技术部',
-      location: '北京',
-      type: '全职',
-      salary: '30K-50K',
-      requirements: [
-        '3年以上 DevOps 经验',
-        '熟悉 Kubernetes、Docker 等容器技术',
-        '精通 CI/CD 流程和自动化部署',
-        '有云平台运维经验优先',
-      ],
-      tags: ['Kubernetes', 'Docker', 'CI/CD', 'Prometheus'],
-    },
-    {
-      title: '产品经理',
-      department: '产品部',
-      location: '北京 / 深圳',
-      type: '全职',
-      salary: '20K-35K',
-      requirements: [
-        '3年以上产品经理经验',
-        '有 SaaS 或云服务产品经验',
-        '优秀的需求分析和产品设计能力',
-        '良好的沟通协调能力',
-      ],
-      tags: ['SaaS', '云平台', 'B端产品', '用户研究'],
-    },
-    {
-      title: 'UI/UX 设计师',
-      department: '设计部',
-      location: '北京 / 上海 / 远程',
-      type: '全职',
-      salary: '18K-30K',
-      requirements: [
-        '2年以上 UI/UX 设计经验',
-        '精通 Figma、Sketch 等设计工具',
-        '有 B 端产品设计经验优先',
-        '良好的审美和创意能力',
-      ],
-      tags: ['Figma', 'UI Design', 'UX', '交互设计'],
-    },
-    {
-      title: '测试工程师',
-      department: '技术部',
-      location: '北京 / 上海',
-      type: '全职',
-      salary: '15K-25K',
-      requirements: [
-        '2年以上测试经验',
-        '熟悉自动化测试工具和框架',
-        '有性能测试和安全测试经验',
-        '熟悉 CI/CD 流程',
-      ],
-      tags: ['Jest', 'Cypress', 'Playwright', '自动化测试'],
     },
   ];
 
@@ -247,62 +183,85 @@ const Careers: React.FC = () => {
             <h2 style={{ fontSize: 28, marginBottom: 32, textAlign: 'center' }}>
               热招职位
             </h2>
-            <Row gutter={[24, 24]}>
-              {jobPositions.map((job, index) => (
-                <Col xs={24} lg={12} key={index}>
-                  <Card
-                    hoverable
-                    style={{ height: '100%' }}
-                    actions={[
-                      <Button
-                        type="primary"
-                        onClick={() => handleApply(job.title)}
-                        key="apply"
-                      >
-                        立即申请
-                      </Button>,
-                    ]}
-                  >
-                    <div style={{ marginBottom: 16 }}>
-                      <h3 style={{ fontSize: 20, marginBottom: 8 }}>{job.title}</h3>
-                      <div style={{ color: '#666', fontSize: 14 }}>
-                        <span style={{ marginRight: 16 }}>{job.department}</span>
-                        <span style={{ marginRight: 16 }}>
-                          <EnvironmentOutlined /> {job.location}
-                        </span>
-                        <span style={{ marginRight: 16 }}>
-                          <Tag color="blue">{job.type}</Tag>
-                        </span>
-                        <span style={{ color: '#f5222d', fontWeight: 600 }}>
-                          {job.salary}
-                        </span>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
+                <p style={{ marginTop: 16, color: '#666' }}>正在加载职位...</p>
+              </div>
+            ) : jobPositions.length === 0 ? (
+              <Empty
+                description="暂无招聘职位"
+                style={{ padding: '60px 0' }}
+              />
+            ) : (
+              <Row gutter={[24, 24]}>
+                {jobPositions.map((job) => (
+                  <Col xs={24} lg={12} key={job.id}>
+                    <Card
+                      hoverable
+                      style={{ height: '100%' }}
+                      actions={[
+                        <Button
+                          type="primary"
+                          onClick={() => handleApply(job.title)}
+                          key="apply"
+                        >
+                          立即申请
+                        </Button>,
+                      ]}
+                    >
+                      <div style={{ marginBottom: 16 }}>
+                        <h3 style={{ fontSize: 20, marginBottom: 8 }}>{job.title}</h3>
+                        <div style={{ color: '#666', fontSize: 14 }}>
+                          <span style={{ marginRight: 16 }}>{job.department}</span>
+                          <span style={{ marginRight: 16 }}>
+                            <EnvironmentOutlined /> {job.location}
+                          </span>
+                          <span style={{ marginRight: 16 }}>
+                            <Tag color="blue">
+                              {job.employmentType === 'full-time' ? '全职' :
+                               job.employmentType === 'part-time' ? '兼职' :
+                               job.employmentType === 'contract' ? '合同' :
+                               job.employmentType === 'intern' ? '实习' : job.employmentType}
+                            </Tag>
+                          </span>
+                          {job.salaryRange && (
+                            <span style={{ color: '#f5222d', fontWeight: 600 }}>
+                              {job.salaryRange}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div style={{ marginBottom: 16 }}>
-                      <h4 style={{ fontSize: 14, marginBottom: 8, color: '#333' }}>
-                        岗位要求：
-                      </h4>
-                      <ul style={{ margin: 0, paddingLeft: 20, color: '#666', fontSize: 14 }}>
-                        {job.requirements.map((req, reqIndex) => (
-                          <li key={reqIndex} style={{ marginBottom: 4 }}>
-                            {req}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                      {job.requirements && job.requirements.length > 0 && (
+                        <div style={{ marginBottom: 16 }}>
+                          <h4 style={{ fontSize: 14, marginBottom: 8, color: '#333' }}>
+                            岗位要求：
+                          </h4>
+                          <ul style={{ margin: 0, paddingLeft: 20, color: '#666', fontSize: 14 }}>
+                            {job.requirements.map((req, reqIndex) => (
+                              <li key={reqIndex} style={{ marginBottom: 4 }}>
+                                {req}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
-                    <div>
-                      {job.tags.map((tag, tagIndex) => (
-                        <Tag key={tagIndex} style={{ marginBottom: 4 }}>
-                          {tag}
-                        </Tag>
-                      ))}
-                    </div>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
+                      {job.tags && job.tags.length > 0 && (
+                        <div>
+                          {job.tags.map((tag, tagIndex) => (
+                            <Tag key={tagIndex} style={{ marginBottom: 4 }}>
+                              {tag}
+                            </Tag>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            )}
           </div>
 
           {/* CTA 区域 */}

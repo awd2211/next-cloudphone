@@ -1235,6 +1235,94 @@ export class ProxyController {
     return this.handleProxy('media', req, res);
   }
 
+  // ============================================================================
+  // CMS 内容管理系统路由 - 官网内容管理
+  // ============================================================================
+
+  /**
+   * CMS 设置路由 (公开访问)
+   * GET /cms/settings - 官网获取网站设置（Logo、联系方式等）
+   */
+  @Public()
+  @All('cms/settings')
+  async proxyCmsSettingsPublic(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * CMS 内容路由 (公开访问)
+   * GET /cms/contents - 官网获取页面内容
+   */
+  @Public()
+  @All('cms/contents')
+  async proxyCmsContentsPublic(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * CMS 职位路由 (公开访问)
+   * GET /cms/jobs - 官网获取招聘职位
+   */
+  @Public()
+  @All('cms/jobs')
+  async proxyCmsJobsPublic(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * CMS 法律文档路由 (公开访问)
+   * GET /cms/legal - 官网获取法律文档
+   * GET /cms/legal/:type - 获取指定类型法律文档
+   */
+  @Public()
+  @All('cms/legal')
+  async proxyCmsLegalPublic(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  @Public()
+  @All('cms/legal/*path')
+  async proxyCmsLegalPathPublic(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * CMS 客户案例路由 (公开访问)
+   * GET /cms/cases - 官网获取客户案例
+   */
+  @Public()
+  @All('cms/cases')
+  async proxyCmsCasesPublic(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * CMS 定价方案路由 (公开访问)
+   * GET /cms/pricing - 官网获取定价方案
+   */
+  @Public()
+  @All('cms/pricing')
+  async proxyCmsPricingPublic(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  /**
+   * CMS 管理路由 (需要认证)
+   * 包括: 设置管理、内容管理、职位管理、案例管理、定价管理等
+   * 所有 /cms/* 下的管理操作（POST/PUT/DELETE）
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('cms')
+  async proxyCmsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('cms/*path')
+  async proxyCms(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('users', req, res);
+  }
+
   /**
    * 通用代理处理方法
    */
