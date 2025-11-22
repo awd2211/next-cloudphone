@@ -706,12 +706,8 @@ export class LifecycleRulesService {
       },
     ];
 
-    return {
-      success: true,
-      data: templates,
-      total: templates.length,
-      categories: ['资源优化', '故障恢复', '数据保护', '性能优化', '通知提醒'],
-    };
+    // 直接返回模板数组，让 TransformInterceptor 统一包装响应
+    return templates;
   }
 
   /**
@@ -736,9 +732,9 @@ export class LifecycleRulesService {
   async createFromTemplate(templateId: string, customConfig?: Record<string, any>): Promise<LifecycleRule> {
     this.logger.log(`从模板创建规则 - 模板ID: ${templateId}`);
 
-    // 获取所有模板
-    const templatesData = await this.getTemplates();
-    const template = templatesData.templates.find((t: any) => t.id === templateId);
+    // 获取所有模板 (getTemplates 现在直接返回数组)
+    const templates = await this.getTemplates();
+    const template = templates.find((t: any) => t.id === templateId);
 
     if (!template) {
       throw new NotFoundException(`模板 ${templateId} 不存在`);

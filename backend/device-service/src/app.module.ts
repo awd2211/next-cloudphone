@@ -71,6 +71,8 @@ import { SmsEventsConsumer } from './rabbitmq/consumers/sms-events.consumer';
     ProvidersModule, // ✅ 设备 Provider 抽象层（多设备源支持）
     PhysicalDevicesModule, // ✅ 物理设备池管理模块
     AuthModule,
+    // ⚠️ LifecycleModule 必须在 DevicesModule 之前，否则 /devices/lifecycle/* 会被 /devices/:id 匹配
+    LifecycleModule, // 生命周期自动化
     DevicesModule,
     DockerModule,
     AdbModule,
@@ -82,7 +84,6 @@ import { SmsEventsConsumer } from './rabbitmq/consumers/sms-events.consumer';
     MetricsModule, // Prometheus 指标采集
     HealthModule, // 增强健康检查
     QuotaModule, // 多租户配额管理
-    LifecycleModule, // 生命周期自动化
     FailoverModule, // 故障转移和自动恢复
     StateRecoveryModule, // 状态自愈和回滚
     SagaModule, // Saga 编排模块（用于分布式事务）

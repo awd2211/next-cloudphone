@@ -34,6 +34,16 @@ export class LifecycleRulesController {
   }
 
   /**
+   * 获取规则模板列表 (必须放在 :id 路由之前)
+   */
+  @Get('templates')
+  @ApiOperation({ summary: '获取生命周期规则模板', description: '获取预定义的规则模板，用于快速创建常用规则' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getTemplates() {
+    return await this.lifecycleRulesService.getTemplates();
+  }
+
+  /**
    * 获取规则列表
    */
   @Get()
@@ -203,18 +213,7 @@ export class LifecycleRulesController {
   }
 
   /**
-   * 获取规则模板列表
-   */
-  @Get('templates')
-  @ApiOperation({ summary: '获取生命周期规则模板', description: '获取预定义的规则模板，用于快速创建常用规则' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  async getTemplates() {
-    return await this.lifecycleRulesService.getTemplates();
-  }
-
-  /**
    * 从模板创建规则
-   * 注意：这个路由必须定义在其他包含 :id 的路由之后
    */
   @Post('templates/:templateId/create')
   @ApiOperation({ summary: '从模板创建生命周期规则', description: '基于预定义模板快速创建规则' })

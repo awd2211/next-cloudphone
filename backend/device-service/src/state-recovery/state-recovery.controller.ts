@@ -13,6 +13,22 @@ export class StateRecoveryController {
   constructor(private readonly stateRecoveryService: StateRecoveryService) {}
 
   /**
+   * 获取设备状态概览
+   * 必须放在其他 GET 路由之前，避免被参数路由匹配
+   */
+  @Get('device-states')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取设备状态概览',
+    description: '获取设备状态的统计概览（总数、一致、不一致、恢复中）',
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getDeviceStates() {
+    return this.stateRecoveryService.getDeviceStates();
+  }
+
+  /**
    * 获取状态恢复配置
    */
   @Get('config')

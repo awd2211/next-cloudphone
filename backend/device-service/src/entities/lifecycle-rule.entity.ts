@@ -43,18 +43,18 @@ export class LifecycleRule {
   @Column({ type: 'jsonb' })
   config: Record<string, any>;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'last_executed_at', type: 'timestamp', nullable: true })
   lastExecutedAt: Date | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'next_execution_at', type: 'timestamp', nullable: true })
   nextExecutionAt: Date | null;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'execution_count', type: 'int', default: 0 })
   executionCount: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

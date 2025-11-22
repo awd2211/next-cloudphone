@@ -649,6 +649,50 @@ export class StateRecoveryService {
   }
 
   /**
+   * 获取设备状态概览
+   * 返回设备状态的统计信息（总数、一致、不一致、恢复中）
+   */
+  async getDeviceStates(): Promise<{
+    total: number;
+    consistent: number;
+    inconsistent: number;
+    recovering: number;
+  }> {
+    // 获取所有设备数量
+    const totalDevices = await this.deviceRepository.count();
+
+    // 获取运行中的设备（需要检查一致性的设备）
+    const runningDevices = await this.deviceRepository.count({
+      where: { status: DeviceStatus.RUNNING },
+    });
+
+    // 获取恢复中的设备（ERROR 状态）
+    const recoveringDevices = await this.deviceRepository.count({
+      where: { status: DeviceStatus.ERROR },
+    });
+
+    // 根据最近的不一致历史计算不一致数量
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentInconsistencies = this.inconsistencyHistory.filter(
+      (inc) => inc.timestamp > oneHourAgo && inc.deviceId
+    );
+    const uniqueInconsistentDevices = new Set(
+      recentInconsistencies.map((inc) => inc.deviceId).filter(Boolean)
+    );
+    const inconsistentCount = uniqueInconsistentDevices.size;
+
+    // 一致的设备 = 总数 - 不一致 - 恢复中
+    const consistentCount = Math.max(0, totalDevices - inconsistentCount - recoveringDevices);
+
+    return {
+      total: totalDevices,
+      consistent: consistentCount,
+      inconsistent: inconsistentCount,
+      recovering: recoveringDevices,
+    };
+  }
+
+  /**
    * 获取统计信息
    */
   getStatistics(): {
