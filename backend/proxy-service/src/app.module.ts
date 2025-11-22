@@ -66,10 +66,9 @@ import { ProxyProviderConfigController } from './proxy/controllers/proxy-provide
     // ✅ Consul 服务注册与发现
     ConsulModule,
 
-    // ⚠️ EventBusModule 暂不启用
-    // 原因：proxy-service 不需要消费或发布事件（独立服务）
-    // 说明：proxy-service 只提供代理管理功能，不参与事件驱动架构
-    // EventBusModule.forRoot(),
+    // ✅ EventBusModule - 用于发布代理相关事件
+    // 事件类型：proxy.health_changed, proxy.cost_alert, proxy.pool_low 等
+    EventBusModule.forRoot(),
 
     // ✅ Redis 缓存 (ProxyPoolManager 需要)
     AppCacheModule,

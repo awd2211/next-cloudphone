@@ -9,6 +9,7 @@ import {
   ProxyAlertRule,
   ProxyAlertHistory,
 } from '../entities';
+import { EventBusService } from '@cloudphone/shared';
 
 /**
  * 代理告警管理服务
@@ -33,6 +34,7 @@ export class ProxyAlertService {
     @InjectRepository(ProxyAlertHistory)
     private historyRepo: Repository<ProxyAlertHistory>,
     private configService: ConfigService,
+    private eventBusService: EventBusService,
   ) {
     this.initializeEmailTransporter();
   }
@@ -774,6 +776,21 @@ export class ProxyAlertService {
 
     await this.historyRepo.save(alert);
 
+    // 发布代理告警事件
+    await this.eventBusService.publishProxyEvent('alert_triggered', {
+      alertId: alert.id,
+      userId: alert.userId,
+      deviceId: alert.deviceId,
+      ruleId: alert.ruleId,
+      ruleName: alert.ruleName,
+      alertLevel: alert.alertLevel,
+      alertTitle: alert.alertTitle,
+      alertMessage: alert.alertMessage,
+      triggerMetric: alert.triggerMetric,
+      triggerValue: alert.triggerValue,
+      thresholdValue: alert.thresholdValue,
+    });
+
     this.logger.log(`Created alert history: ${alert.alertTitle}`);
 
     return alert;
@@ -868,6 +885,15 @@ export class ProxyAlertService {
     alert.status = 'resolved';
 
     await this.historyRepo.save(alert);
+
+    // 发布告警解决事件
+    await this.eventBusService.publishProxyEvent('alert_resolved', {
+      alertId: alert.id,
+      userId: alert.userId,
+      alertTitle: alert.alertTitle,
+      resolvedBy,
+      resolutionDuration: duration,
+    });
 
     this.logger.log(`Alert resolved: ${alert.alertTitle} (${duration}s)`);
 
