@@ -180,6 +180,70 @@ export class EventBusService {
   }
 
   /**
+   * 发布代理相关事件（类型安全）
+   * @param eventType 事件类型（不含前缀）
+   * @param payload 事件负载
+   */
+  async publishProxyEvent<T extends Record<string, unknown>>(
+    eventType: string,
+    payload: T
+  ): Promise<void> {
+    await this.publish('cloudphone.events', `proxy.${eventType}`, {
+      type: `proxy.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    } as SimpleEvent & T);
+  }
+
+  /**
+   * 发布短信相关事件（类型安全）
+   * @param eventType 事件类型（不含前缀）
+   * @param payload 事件负载
+   */
+  async publishSmsEvent<T extends Record<string, unknown>>(
+    eventType: string,
+    payload: T
+  ): Promise<void> {
+    await this.publish('cloudphone.events', `sms.${eventType}`, {
+      type: `sms.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    } as SimpleEvent & T);
+  }
+
+  /**
+   * 发布媒体相关事件（类型安全）
+   * @param eventType 事件类型（不含前缀）
+   * @param payload 事件负载
+   */
+  async publishMediaEvent<T extends Record<string, unknown>>(
+    eventType: string,
+    payload: T
+  ): Promise<void> {
+    await this.publish('cloudphone.events', `media.${eventType}`, {
+      type: `media.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    } as SimpleEvent & T);
+  }
+
+  /**
+   * 发布配额相关事件（类型安全）
+   * @param eventType 事件类型（不含前缀）
+   * @param payload 事件负载
+   */
+  async publishQuotaEvent<T extends Record<string, unknown>>(
+    eventType: string,
+    payload: T
+  ): Promise<void> {
+    await this.publish('cloudphone.events', `quota.${eventType}`, {
+      type: `quota.${eventType}`,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    } as SimpleEvent & T);
+  }
+
+  /**
    * 发布系统错误事件（用于管理员通知）
    *
    * @param severity 错误严重程度: critical | high | medium | low
