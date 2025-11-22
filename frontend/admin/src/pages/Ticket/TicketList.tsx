@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Card, Button, Space, Tag, Select, Input } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
-import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useTickets } from '@/hooks/queries/useTickets';
@@ -38,10 +38,6 @@ const TicketListPage: React.FC = () => {
   // 导航处理函数
   const handleViewDetail = (ticket: Ticket) => {
     navigate(`/tickets/${ticket.id}`);
-  };
-
-  const handleCreateTicket = () => {
-    navigate('/tickets/create');
   };
 
   // 客户端搜索过滤（仅对当前页）
@@ -284,17 +280,13 @@ const TicketListPage: React.FC = () => {
           <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
             刷新
           </Button>
-
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTicket}>
-            创建工单
-          </Button>
         </Space>
 
         {/* 数据表格 */}
         <AccessibleTable<Ticket>
           ariaLabel="工单列表"
           loadingText="正在加载工单列表"
-          emptyText="暂无工单数据，点击右上角创建工单"
+          emptyText="暂无工单数据"
           columns={columns}
           dataSource={filteredTickets as any}
           rowKey="id"
