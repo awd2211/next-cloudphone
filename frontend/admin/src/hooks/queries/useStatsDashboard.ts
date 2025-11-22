@@ -55,9 +55,15 @@ export const useStatsDashboard = () => {
   // 获取用户增长数据
   const { data: userGrowth } = useQuery<UserGrowthData>({
     queryKey: ['stats-user-growth', timeRange],
-    queryFn: () => api.get<UserGrowthData>('/stats/user-growth', {
-      params: { range: timeRange },
-    }),
+    queryFn: async () => {
+      // 后端路径是 /stats/users/growth，使用 days 参数
+      const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
+      const result = await api.get<{ data: Array<{ date: string; newUsers: number; totalUsers: number }> }>('/stats/users/growth', {
+        params: { days },
+      });
+      // 后端返回 { data: [...] }，需要转换为前端期望的格式
+      return { data: result.data || [] };
+    },
   });
 
   // 获取设备使用情况

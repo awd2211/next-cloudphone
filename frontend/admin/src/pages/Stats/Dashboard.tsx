@@ -26,6 +26,12 @@ import {
 } from '@/components/StatsDashboard';
 import { useStatsDashboard } from '@/hooks/queries/useStatsDashboard';
 
+// 确保数据是数组的辅助函数
+const ensureArray = <T,>(data: T[] | undefined | null | unknown): T[] => {
+  if (Array.isArray(data)) return data;
+  return [];
+};
+
 interface TopApp {
   id: string;
   rank: number;
@@ -66,7 +72,7 @@ const StatsDashboard: React.FC = () => {
         <Col span={12}>
           <Card title="用户增长趋势" loading={trendsLoading}>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={userGrowth?.data || []}>
+              <LineChart data={ensureArray(userGrowth?.data)}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
@@ -91,7 +97,7 @@ const StatsDashboard: React.FC = () => {
         <Col span={12}>
           <Card title="设备使用趋势" loading={trendsLoading}>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={trends?.deviceTrends || []}>
+              <AreaChart data={ensureArray(trends?.deviceTrends)}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
@@ -124,7 +130,7 @@ const StatsDashboard: React.FC = () => {
         <Col span={12}>
           <Card title="收入统计">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenue?.data || []}>
+              <BarChart data={ensureArray(revenue?.data)}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
@@ -141,7 +147,7 @@ const StatsDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={deviceUsage?.statusDistribution || []}
+                  data={ensureArray(deviceUsage?.statusDistribution)}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -152,7 +158,7 @@ const StatsDashboard: React.FC = () => {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {(deviceUsage?.statusDistribution || []).map(
+                  {ensureArray(deviceUsage?.statusDistribution).map(
                     (_entry: any, index: number) => (
                       <Cell
                         key={`cell-${index}`}
@@ -176,7 +182,7 @@ const StatsDashboard: React.FC = () => {
           loadingText="正在加载热门应用数据"
           emptyText="暂无热门应用数据"
           columns={topAppsColumns}
-          dataSource={(topApps?.data || []) as any}
+          dataSource={ensureArray(topApps?.data) as any}
           rowKey="id"
           pagination={false}
           scroll={{ y: 400 }}
