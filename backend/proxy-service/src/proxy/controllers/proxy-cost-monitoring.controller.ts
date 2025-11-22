@@ -268,4 +268,74 @@ export class ProxyCostMonitoringController {
     const dashboardData = await this.costMonitoringService.getDashboardSummary(userId);
     return ProxyApiResponse.success(dashboardData as any);
   }
+
+  // ========== 前端兼容端点 ==========
+
+  /**
+   * 获取成本报告 (GET 方法，前端兼容)
+   */
+  @Get('report')
+  @RequirePermission('proxy.cost.stats')
+  @ApiOperation({ summary: '获取成本报告' })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  async getCostReport(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<ProxyApiResponse<any>> {
+    const now = new Date();
+    const defaultStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // 返回前端兼容的静态响应
+    return ProxyApiResponse.success({
+      totalCost: 0,
+      periodStart: startDate || defaultStartDate.toISOString(),
+      periodEnd: endDate || now.toISOString(),
+      byProvider: [],
+      byDeviceGroup: [],
+      trend: [],
+    });
+  }
+
+  /**
+   * 获取成本统计概览 (GET 方法，前端兼容)
+   */
+  @Get('stats')
+  @RequirePermission('proxy.cost.stats')
+  @ApiOperation({ summary: '获取成本统计概览' })
+  @ApiQuery({ name: 'period', required: false, enum: ['day', 'week', 'month'] })
+  async getCostStats(
+    @Query('period') period?: string,
+  ): Promise<ProxyApiResponse<any>> {
+    // 返回前端兼容的静态响应
+    return ProxyApiResponse.success({
+      totalCost: 0,
+      averageDailyCost: 0,
+      costChange: 0,
+      period: period || 'month',
+      breakdown: [],
+    });
+  }
+
+  /**
+   * 获取成本趋势 (GET 方法，前端兼容)
+   */
+  @Get('trend')
+  @RequirePermission('proxy.cost.stats')
+  @ApiOperation({ summary: '获取成本趋势' })
+  @ApiQuery({ name: 'days', required: false, type: Number })
+  async getCostTrend(
+    @Query('days') days?: number,
+  ): Promise<ProxyApiResponse<any>> {
+    // 返回前端兼容的静态响应
+    return ProxyApiResponse.success({
+      trend: [],
+      summary: {
+        totalCost: 0,
+        averageDailyCost: 0,
+        peakDay: null,
+        lowestDay: null,
+      },
+    });
+  }
 }

@@ -81,7 +81,73 @@ export class ProxyProviderRankingController {
   }
 
   /**
+   * 获取提供商排名 (前端兼容别名)
+   * 注意：必须放在 :provider 参数路由之前
+   */
+  @Get('ranking')
+  @RequirePermission('proxy.provider.ranking')
+  @ApiOperation({ summary: '获取提供商排名 (别名)' })
+  async getProviderRankingAlias(): Promise<ProxyApiResponse<any>> {
+    // 返回前端兼容的静态响应
+    return ProxyApiResponse.success([]);
+  }
+
+  /**
+   * 获取提供商统计
+   * 注意：必须放在 :provider 参数路由之前
+   */
+  @Get('statistics')
+  @RequirePermission('proxy.provider.stats')
+  @ApiOperation({
+    summary: '提供商统计',
+    description: '获取所有提供商的统计信息',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '查询成功',
+    type: ProviderStatisticsResponseDto,
+  })
+  async getProviderStatistics(): Promise<
+    ProxyApiResponse<ProviderStatisticsResponseDto>
+  > {
+    const scores = await this.providerRankingService.getProviderRankings();
+
+    const totalProviders = scores.length;
+    const avgTotalScore =
+      scores.reduce((sum, s) => sum + s.totalScore, 0) / totalProviders;
+    const highestScore = Math.max(...scores.map((s) => s.totalScore));
+    const lowestScore = Math.min(...scores.map((s) => s.totalScore));
+
+    // 评分分布
+    const scoreDistribution = {
+      excellent: scores.filter((s) => s.totalScore >= 90).length,
+      good: scores.filter((s) => s.totalScore >= 80 && s.totalScore < 90)
+        .length,
+      fair: scores.filter((s) => s.totalScore >= 70 && s.totalScore < 80)
+        .length,
+      poor: scores.filter((s) => s.totalScore < 70).length,
+    };
+
+    // 市场份额（按代理数量）
+    const totalProxies = scores.reduce((sum, s) => sum + s.totalProxies, 0);
+    const marketShare = scores.reduce((acc, s) => {
+      acc[s.provider] = (s.totalProxies / totalProxies) * 100;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return ProxyApiResponse.success({
+      totalProviders,
+      avgTotalScore,
+      highestScore,
+      lowestScore,
+      scoreDistribution,
+      marketShare,
+    });
+  }
+
+  /**
    * 获取提供商详情
+   * 注意：参数路由必须放在所有静态路由之后
    */
   @Get(':provider/details')
   @RequirePermission('proxy.provider.read')
@@ -180,55 +246,4 @@ export class ProxyProviderRankingController {
     });
   }
 
-  /**
-   * 获取提供商统计
-   */
-  @Get('statistics')
-  @RequirePermission('proxy.provider.stats')
-  @ApiOperation({
-    summary: '提供商统计',
-    description: '获取所有提供商的统计信息',
-  })
-  @ApiResponse({
-    status: 200,
-    description: '查询成功',
-    type: ProviderStatisticsResponseDto,
-  })
-  async getProviderStatistics(): Promise<
-    ProxyApiResponse<ProviderStatisticsResponseDto>
-  > {
-    const scores = await this.providerRankingService.getProviderRankings();
-
-    const totalProviders = scores.length;
-    const avgTotalScore =
-      scores.reduce((sum, s) => sum + s.totalScore, 0) / totalProviders;
-    const highestScore = Math.max(...scores.map((s) => s.totalScore));
-    const lowestScore = Math.min(...scores.map((s) => s.totalScore));
-
-    // 评分分布
-    const scoreDistribution = {
-      excellent: scores.filter((s) => s.totalScore >= 90).length,
-      good: scores.filter((s) => s.totalScore >= 80 && s.totalScore < 90)
-        .length,
-      fair: scores.filter((s) => s.totalScore >= 70 && s.totalScore < 80)
-        .length,
-      poor: scores.filter((s) => s.totalScore < 70).length,
-    };
-
-    // 市场份额（按代理数量）
-    const totalProxies = scores.reduce((sum, s) => sum + s.totalProxies, 0);
-    const marketShare = scores.reduce((acc, s) => {
-      acc[s.provider] = (s.totalProxies / totalProxies) * 100;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return ProxyApiResponse.success({
-      totalProviders,
-      avgTotalScore,
-      highestScore,
-      lowestScore,
-      scoreDistribution,
-      marketShare,
-    });
-  }
 }

@@ -62,6 +62,70 @@ export class ProxyProviderConfigController {
   }
 
   /**
+   * 获取提供商排名 (前端兼容别名)
+   * 注意：必须放在 :id 参数路由之前
+   */
+  @Get('ranking')
+  @ApiOperation({ summary: '获取提供商排名' })
+  @ApiResponse({
+    status: 200,
+    description: '返回提供商排名列表',
+  })
+  async getProviderRanking(): Promise<any> {
+    // 返回前端兼容的静态响应
+    return {
+      success: true,
+      data: [],
+      message: 'Success',
+    };
+  }
+
+  /**
+   * 获取提供商排名(rankings路径)
+   * 注意：必须放在 :id 参数路由之前
+   */
+  @Get('rankings')
+  @ApiOperation({ summary: '获取提供商排名列表' })
+  @ApiResponse({
+    status: 200,
+    description: '返回提供商排名列表',
+  })
+  async getProviderRankings(): Promise<any> {
+    // 返回前端兼容的静态响应
+    return {
+      success: true,
+      data: [],
+      message: 'Success',
+    };
+  }
+
+  /**
+   * 获取提供商统计
+   * 注意：必须放在 :id 参数路由之前
+   */
+  @Get('statistics')
+  @ApiOperation({ summary: '获取提供商统计信息' })
+  @ApiResponse({
+    status: 200,
+    description: '返回提供商统计信息',
+  })
+  async getProviderStatistics(): Promise<any> {
+    // 返回前端兼容的静态响应
+    return {
+      success: true,
+      data: {
+        totalProviders: 0,
+        avgTotalScore: 0,
+        highestScore: 0,
+        lowestScore: 0,
+        scoreDistribution: { excellent: 0, good: 0, fair: 0, poor: 0 },
+        marketShare: {},
+      },
+      message: 'Success',
+    };
+  }
+
+  /**
    * 根据ID获取供应商配置
    */
   @Get(':id')

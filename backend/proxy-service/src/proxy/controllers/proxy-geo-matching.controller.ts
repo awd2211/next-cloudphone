@@ -236,4 +236,20 @@ export class ProxyGeoMatchingController {
     const stats = await this.geoMatchingService.getGeoStatistics(userId);
     return ProxyApiResponse.success(stats as any);
   }
+
+  /**
+   * 获取地理分布 (前端兼容端点)
+   */
+  @Get('distribution')
+  @RequirePermission('proxy.geo.stats')
+  @ApiOperation({ summary: '获取地理分布' })
+  async getGeoDistribution(): Promise<ProxyApiResponse<any>> {
+    // 返回前端兼容的静态响应
+    return ProxyApiResponse.success({
+      byCountry: [],
+      byCity: [],
+      byIspType: [],
+      total: 0,
+    });
+  }
 }

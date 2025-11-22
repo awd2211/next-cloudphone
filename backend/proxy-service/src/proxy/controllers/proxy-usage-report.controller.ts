@@ -136,6 +136,38 @@ export class ProxyUsageReportController {
   }
 
   /**
+   * 获取使用报告 (前端兼容端点 - GET /proxy/reports/usage)
+   * 注意：必须放在 :reportId 参数路由之前，否则 "usage" 会被当作 reportId
+   */
+  @Get('usage')
+  @RequirePermission('proxy.report.read')
+  @ApiOperation({ summary: '获取使用报告' })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({ name: 'groupBy', required: false })
+  async getUsageReport(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('groupBy') groupBy?: string,
+  ): Promise<ProxyApiResponse<any>> {
+    const now = new Date();
+    const defaultStartDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    return ProxyApiResponse.success({
+      periodStart: startDate || defaultStartDate.toISOString(),
+      periodEnd: endDate || now.toISOString(),
+      totalRequests: 0,
+      totalTraffic: 0,
+      successRate: 100,
+      topDevices: [],
+      topUsers: [],
+      byProvider: [],
+      byCountry: [],
+      dailyTrend: [],
+    });
+  }
+
+  /**
    * 获取报告详情
    */
   @Get(':reportId')
