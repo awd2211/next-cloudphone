@@ -43,11 +43,11 @@ ON CONFLICT DO NOTHING;
 -- 4. 创建用户
 INSERT INTO users (id, username, email, password, "fullName", phone, status, "createdAt", "updatedAt")
 VALUES
-  ('00000000-0000-0000-0000-000000000001', 'admin', 'admin@cloudphone.com', '$2b$10$wOU0atFSYKCDWcwlWI4A4efLjV.C4LyFI4ZBY.iaYRSKStICaNowu', '系统管理员', '13800138000', 'active', NOW(), NOW()),
+  ('00000000-0000-0000-0000-000000000001', 'admin', 'admin@cloudphone.run', '$2b$10$wOU0atFSYKCDWcwlWI4A4efLjV.C4LyFI4ZBY.iaYRSKStICaNowu', '系统管理员', '13800138000', 'active', NOW(), NOW()),
   ('00000000-0000-0000-0000-000000000002', 'testuser1', 'user1@test.com', '$2b$10$jF70SpaFHv.MveAbxauwT.9Mj2saIEP35L5ofqinw4Dh7ikYTSuv2', '测试用户1', '13800138001', 'active', NOW(), NOW()),
   ('00000000-0000-0000-0000-000000000003', 'testuser2', 'user2@test.com', '$2b$10$jF70SpaFHv.MveAbxauwT.9Mj2saIEP35L5ofqinw4Dh7ikYTSuv2', '测试用户2', '13800138002', 'active', NOW(), NOW()),
   ('00000000-0000-0000-0000-000000000004', 'testuser3', 'user3@test.com', '$2b$10$jF70SpaFHv.MveAbxauwT.9Mj2saIEP35L5ofqinw4Dh7ikYTSuv2', '测试用户3', '13800138003', 'active', NOW(), NOW()),
-  ('00000000-0000-0000-0000-000000000005', 'support1', 'support@cloudphone.com', '$2b$10$jF70SpaFHv.MveAbxauwT.9Mj2saIEP35L5ofqinw4Dh7ikYTSuv2', '客服人员', '13800138009', 'active', NOW(), NOW())
+  ('00000000-0000-0000-0000-000000000005', 'support1', 'support@cloudphone.run', '$2b$10$jF70SpaFHv.MveAbxauwT.9Mj2saIEP35L5ofqinw4Dh7ikYTSuv2', '客服人员', '13800138009', 'active', NOW(), NOW())
 ON CONFLICT (username) DO NOTHING;
 
 -- 5. 关联用户和角色

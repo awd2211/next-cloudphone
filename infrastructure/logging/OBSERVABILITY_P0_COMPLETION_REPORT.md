@@ -620,8 +620,8 @@ docker-compose up -d
 ```yaml
 global:
   smtp_smarthost: 'smtp.example.com:587'
-  smtp_from: 'alerts@cloudphone.com'
-  smtp_auth_username: 'alerts@cloudphone.com'
+  smtp_from: 'alerts@cloudphone.run'
+  smtp_auth_username: 'alerts@cloudphone.run'
   smtp_auth_password: 'password'
   smtp_require_tls: true
 ```

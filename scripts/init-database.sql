@@ -206,7 +206,7 @@ ON CONFLICT DO NOTHING;
 -- 创建管理员用户（密码: admin123，需要使用 bcrypt 加密）
 -- 注意：这里的密码 hash 仅用于演示，实际应用中应该通过 API 注册
 INSERT INTO users (username, email, password_hash, role, tenant_id) VALUES
-('admin', 'admin@cloudphone.com', '$2b$10$YourBcryptHashHere', 'admin', '00000000-0000-0000-0000-000000000001')
+('admin', 'admin@cloudphone.run', '$2b$10$YourBcryptHashHere', 'admin', '00000000-0000-0000-0000-000000000001')
 ON CONFLICT (username) DO NOTHING;
 
 -- 创建默认计费套餐

@@ -124,9 +124,9 @@ DB_USERNAME=postgres
 DB_PASSWORD=postgres
 
 # 测试用户凭证
-TEST_USER_EMAIL=e2e.test@cloudphone.com
+TEST_USER_EMAIL=e2e.test@cloudphone.run
 TEST_USER_PASSWORD=E2ETestPassword123!
-TEST_ADMIN_EMAIL=e2e.admin@cloudphone.com
+TEST_ADMIN_EMAIL=e2e.admin@cloudphone.run
 TEST_ADMIN_PASSWORD=E2EAdminPassword123!
 
 # 测试配置

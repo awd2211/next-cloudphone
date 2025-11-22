@@ -13,7 +13,7 @@ keywords:
 
 maintainers:
   - name: Cloud Phone Team
-    email: dev@cloudphone.com
+    email: dev@cloudphone.run
 
 dependencies:
   - name: postgresql

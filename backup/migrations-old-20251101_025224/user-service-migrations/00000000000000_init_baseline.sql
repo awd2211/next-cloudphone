@@ -105,7 +105,7 @@ ON CONFLICT (name) DO NOTHING;
 
 -- 默认管理员用户 (密码: admin123)
 INSERT INTO users (id, username, email, password, status, "isSuperAdmin") VALUES
-  ('10000000-0000-0000-0000-000000000001', 'admin', 'admin@cloudphone.com', '$2b$10$rDXJZKp.qYmJKYZ5YZnDOeK8vL3qJx7KqY1F2YvH3yP4xH5yH6yH7', 'active', true)
+  ('10000000-0000-0000-0000-000000000001', 'admin', 'admin@cloudphone.run', '$2b$10$rDXJZKp.qYmJKYZ5YZnDOeK8vL3qJx7KqY1F2YvH3yP4xH5yH6yH7', 'active', true)
 ON CONFLICT (username) DO NOTHING;
 
 -- 关联管理员到 admin 角色

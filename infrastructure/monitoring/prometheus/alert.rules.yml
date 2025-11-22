@@ -71,7 +71,7 @@ groups:
     annotations:
       summary: "微服务下线 ({{ $labels.service }})"
       description: "{{ $labels.service }} 无法访问，请立即检查"
-      runbook_url: "https://docs.cloudphone.com/runbooks/service-down"
+      runbook_url: "https://docs.cloudphone.run/runbooks/service-down"
 
   # HTTP 错误率过高 (5xx)
   - alert: HighHTTPErrorRate
@@ -246,7 +246,7 @@ groups:
     annotations:
       summary: "PostgreSQL 数据库下线"
       description: "数据库无法访问，系统将无法正常工作"
-      runbook_url: "https://docs.cloudphone.com/runbooks/postgres-down"
+      runbook_url: "https://docs.cloudphone.run/runbooks/postgres-down"
 
   # PostgreSQL 连接数过多
   - alert: PostgreSQLTooManyConnections
@@ -326,7 +326,7 @@ groups:
     annotations:
       summary: "RabbitMQ 消息队列下线"
       description: "消息队列不可用，事件驱动功能将失效"
-      runbook_url: "https://docs.cloudphone.com/runbooks/rabbitmq-down"
+      runbook_url: "https://docs.cloudphone.run/runbooks/rabbitmq-down"
 
   # 队列消息堆积
   - alert: RabbitMQQueueBacklog

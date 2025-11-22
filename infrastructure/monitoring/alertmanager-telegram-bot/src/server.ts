@@ -227,7 +227,7 @@ async function sendToTelegram(message: string, buttons: any): Promise<void> {
         parse_mode: PARSE_MODE,
         reply_markup: buttons,
         disable_web_page_preview: true,
-      });
+      } as any);
       logger.info({ chatId }, 'Message sent successfully');
     } catch (error: any) {
       logger.error({ chatId, error: error.message }, 'Failed to send message');
