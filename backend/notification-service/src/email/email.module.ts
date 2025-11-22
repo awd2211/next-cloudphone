@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { EmailService } from './email.service';
+import { EmailController } from './email.controller';
 import { SmtpProvider } from './providers/smtp.provider';
 import { MailgunProvider } from './providers/mailgun.provider';
 import { SendGridProvider } from './providers/sendgrid.provider';
@@ -21,6 +22,7 @@ import { SparkPostProvider } from './providers/sparkpost.provider';
  * - SparkPost: 企业级邮件发送平台
  */
 @Module({
+  controllers: [EmailController],
   providers: [
     EmailService,
     SmtpProvider,
