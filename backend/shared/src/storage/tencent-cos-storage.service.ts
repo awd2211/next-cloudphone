@@ -316,13 +316,13 @@ export class TencentCOSStorage implements IStorageService {
             Marker: marker,
             MaxKeys: 1000,
           },
-          (err, data) => {
+          (err: any, data: any) => {
             if (err) {
               reject(err);
               return;
             }
 
-            if (data.Contents) {
+            if (data?.Contents) {
               for (const obj of data.Contents) {
                 if (obj.Key) {
                   files.push(obj.Key);
@@ -330,7 +330,7 @@ export class TencentCOSStorage implements IStorageService {
               }
             }
 
-            if (data.IsTruncated === 'true' && data.NextMarker) {
+            if (data?.IsTruncated === 'true' && data?.NextMarker) {
               listPage(data.NextMarker);
             } else {
               resolve(files);
@@ -361,12 +361,12 @@ export class TencentCOSStorage implements IStorageService {
           Sign: true,
           Expires: expiresIn,
         },
-        (err, data) => {
+        (err: any, data: any) => {
           if (err) {
             reject(err);
             return;
           }
-          resolve(data.Url);
+          resolve(data?.Url || '');
         },
       );
     });
