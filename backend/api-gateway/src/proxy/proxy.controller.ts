@@ -417,6 +417,25 @@ export class ProxyController {
   }
 
   /**
+   * 邮件服务路由（精确匹配）- 路由到 notification-service
+   * 用于测试邮件发送等功能
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('email')
+  async proxyEmailExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  /**
+   * 邮件服务路由（通配符）- 路由到 notification-service
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('email/*path')
+  async proxyEmail(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  /**
    * 设备组管理路由（精确匹配）- 路由到 proxy-service
    * 注意：必须在 devices/*path 之前定义，以确保优先匹配
    */
