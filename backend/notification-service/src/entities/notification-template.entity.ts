@@ -54,6 +54,14 @@ export class NotificationTemplate {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: 'plain',
+    name: 'content_format',
+  })
+  contentFormat: 'plain' | 'html' | 'markdown';
+
   // Role-based notification fields
   @Column({ type: 'text', array: true, default: '{}', name: 'target_roles' })
   @Index()

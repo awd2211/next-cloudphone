@@ -71,7 +71,7 @@ export class MailgunProvider implements EmailProvider {
       domain: this.configService.get<string>('MAILGUN_DOMAIN'),
       fromEmail: this.configService.get<string>(
         'MAILGUN_FROM',
-        'CloudPhone <noreply@cloudphone.com>'
+        'CloudPhone <noreply@cloudphone.run>'
       ),
       region,
       baseUrl,

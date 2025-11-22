@@ -11,8 +11,10 @@ export interface EmailOptions {
   from?: string;
   cc?: string | string[];
   bcc?: string | string[];
+  replyTo?: string | string[];
   attachments?: EmailAttachment[];
   headers?: Record<string, string>;
+  tags?: Array<{ name: string; value: string }>;
 }
 
 /**

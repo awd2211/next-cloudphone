@@ -132,10 +132,9 @@ describe('NotificationPreferencesController', () => {
         NotificationType.DEVICE_CREATED,
         updateDto
       );
-      expect(result.success).toBe(true);
       expect(result.message).toBe('Notification preference updated successfully');
-      expect(result.preference.enabled).toBe(false);
-      expect(result.preference.enabledChannels).toEqual([NotificationChannel.WEBSOCKET]);
+      expect(result.data.enabled).toBe(false);
+      expect(result.data.enabledChannels).toEqual([NotificationChannel.WEBSOCKET]);
     });
 
     it('should update only enabled flag', async () => {
@@ -149,8 +148,8 @@ describe('NotificationPreferencesController', () => {
         updateDto
       );
 
-      expect(result.preference.enabled).toBe(false);
-      expect(result.preference.enabledChannels).toEqual(mockPreference.enabledChannels);
+      expect(result.data.enabled).toBe(false);
+      expect(result.data.enabledChannels).toEqual(mockPreference.enabledChannels);
     });
 
     it('should update custom settings', async () => {
@@ -167,7 +166,7 @@ describe('NotificationPreferencesController', () => {
         updateDto
       );
 
-      expect(result.preference.customSettings).toEqual({ emailFrequency: 'daily' });
+      expect(result.data.customSettings).toEqual({ emailFrequency: 'daily' });
     });
   });
 
@@ -203,9 +202,8 @@ describe('NotificationPreferencesController', () => {
         'user-123',
         batchDto.preferences
       );
-      expect(result.success).toBe(true);
       expect(result.message).toBe('2 preferences updated successfully');
-      expect(result.updatedCount).toBe(2);
+      expect(result.data.updatedCount).toBe(2);
     });
 
     it('should handle empty batch update', async () => {
@@ -214,7 +212,7 @@ describe('NotificationPreferencesController', () => {
 
       const result = await controller.batchUpdatePreferences('user-123', batchDto);
 
-      expect(result.updatedCount).toBe(0);
+      expect(result.data.updatedCount).toBe(0);
       expect(result.message).toBe('0 preferences updated successfully');
     });
   });
@@ -231,9 +229,8 @@ describe('NotificationPreferencesController', () => {
       const result = await controller.resetToDefault('user-123');
 
       expect(service.resetToDefault).toHaveBeenCalledWith('user-123');
-      expect(result.success).toBe(true);
       expect(result.message).toBe('Preferences reset to default successfully');
-      expect(result.totalPreferences).toBe(3);
+      expect(result.data.totalPreferences).toBe(3);
     });
   });
 

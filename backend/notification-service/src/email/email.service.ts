@@ -67,7 +67,7 @@ export class EmailService {
       }
 
       const mailOptions = {
-        from: this.configService.get('SMTP_FROM', 'Cloud Phone <noreply@cloudphone.com>'),
+        from: this.configService.get('SMTP_FROM', 'Cloud Phone <noreply@cloudphone.run>'),
         to: options.to,
         subject: options.subject,
         text: options.text,

@@ -86,7 +86,7 @@ async function bootstrap() {
     .addTag('websocket', 'WebSocket 实时通知')
     .addTag('email', '邮件通知')
     .addServer('http://localhost:30006', '本地开发环境')
-    .addServer('https://api.cloudphone.com', '生产环境')
+    .addServer('https://api.cloudphone.run', '生产环境')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

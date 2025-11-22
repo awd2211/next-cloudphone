@@ -685,7 +685,7 @@ export const initialTemplates = [
         <p style="color: #ff4d4f;">⚠️ 维护期间，部分服务可能无法使用，请提前做好准备。</p>
         <p>给您带来的不便，敬请谅解！</p>
         <p style="color: #999; font-size: 12px; margin-top: 30px;">
-          如有疑问，请联系客服：support@cloudphone.com
+          如有疑问，请联系客服：support@cloudphone.run
         </p>
       </div>
     `,

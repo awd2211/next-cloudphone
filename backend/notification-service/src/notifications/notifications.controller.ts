@@ -1,10 +1,22 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto, QueryNotificationDto } from './dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '@cloudphone/shared';
+import { RequirePermission, ActionResult } from '@cloudphone/shared';
 import { Public } from '../auth/decorators/public.decorator';
 
 /**
@@ -43,9 +55,9 @@ export class NotificationsController {
   @RequirePermission('notification.broadcast')
   async broadcast(
     @Body() body: { title: string; message: string; data?: Record<string, unknown> }
-  ) {
+  ): Promise<ActionResult> {
     await this.notificationsService.broadcast(body.title, body.message, body.data);
-    return { success: true, message: '广播已发送' };
+    return { message: '广播已发送' };
   }
 
   /**
@@ -77,17 +89,14 @@ export class NotificationsController {
   ) {
     if (unreadOnly === 'true') {
       const data = await this.notificationsService.getUnreadNotifications(userId);
-      return { success: true, data, total: data.length };
+      return { data, total: data.length };
     }
-    // ✅ 优先使用 pageSize，如果没有则使用 limit
     const pageNum = page ? Number(page) : 1;
     const itemsPerPage = pageSize ? Number(pageSize) : (limit ? Number(limit) : 10);
 
     const result = await this.notificationsService.getUserNotifications(userId, pageNum, itemsPerPage);
 
-    // ✅ 返回标准格式
     return {
-      success: true,
       data: result.data,
       total: result.total,
       page: pageNum,
@@ -104,9 +113,9 @@ export class NotificationsController {
   markAsRead(@Param('id') id: string) {
     const notification = this.notificationsService.markAsRead(id);
     if (!notification) {
-      return { success: false, message: '通知不存在' };
+      throw new NotFoundException('通知不存在');
     }
-    return { success: true, notification };
+    return notification;
   }
 
   /**
@@ -115,15 +124,14 @@ export class NotificationsController {
    */
   @Post('read-all')
   @RequirePermission('notification.update')
-  async markAllAsRead(@Body('userId') userId: string) {
+  async markAllAsRead(@Body('userId') userId: string): Promise<ActionResult<any>> {
     if (!userId) {
-      return { success: false, message: '缺少userId参数' };
+      throw new BadRequestException('缺少userId参数');
     }
     const result = await this.notificationsService.markAllAsRead(userId);
     return {
-      success: true,
-      message: `已标记 ${result.updated} 条通知为已读`,
       data: result,
+      message: `已标记 ${result.updated} 条通知为已读`,
     };
   }
 
@@ -133,12 +141,12 @@ export class NotificationsController {
    */
   @Delete(':id')
   @RequirePermission('notification.delete')
-  delete(@Param('id') id: string) {
-    const success = this.notificationsService.deleteNotification(id);
-    if (!success) {
-      return { success: false, message: '通知不存在' };
+  delete(@Param('id') id: string): ActionResult {
+    const deleted = this.notificationsService.deleteNotification(id);
+    if (!deleted) {
+      throw new NotFoundException('通知不存在');
     }
-    return { success: true, message: '通知已删除' };
+    return { message: '通知已删除' };
   }
 
   /**
@@ -147,15 +155,14 @@ export class NotificationsController {
    */
   @Post('batch/delete')
   @RequirePermission('notification.batch-delete')
-  async batchDelete(@Body('ids') ids: string[]) {
+  async batchDelete(@Body('ids') ids: string[]): Promise<ActionResult<any>> {
     if (!ids || ids.length === 0) {
-      return { success: false, message: '请提供要删除的通知ID列表' };
+      throw new BadRequestException('请提供要删除的通知ID列表');
     }
     const result = await this.notificationsService.batchDelete(ids);
     return {
-      success: true,
-      message: `已删除 ${result.deleted} 条通知`,
       data: result,
+      message: `已删除 ${result.deleted} 条通知`,
     };
   }
 

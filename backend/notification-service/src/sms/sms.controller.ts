@@ -237,9 +237,6 @@ export class SmsController {
   async clearOtp(@Body() body: { phoneNumber: string; type: OtpType }) {
     await this.otpService.clearOtp(body.phoneNumber, body.type);
 
-    return {
-      success: true,
-      message: 'OTP cleared successfully',
-    };
+    return { message: 'OTP cleared successfully' };
   }
 }

@@ -30,7 +30,7 @@ describe('EmailService', () => {
         SMTP_SECURE: 'false',
         SMTP_USER: 'test@test.com',
         SMTP_PASS: 'password',
-        SMTP_FROM: 'Cloud Phone <noreply@cloudphone.com>',
+        SMTP_FROM: 'Cloud Phone <noreply@cloudphone.run>',
       };
       return config[key] !== undefined ? config[key] : defaultValue;
     });
@@ -100,7 +100,7 @@ describe('EmailService', () => {
           to: 'test@example.com',
           subject: 'Test Subject',
           text: 'Test content',
-          from: 'Cloud Phone <noreply@cloudphone.com>',
+          from: 'Cloud Phone <noreply@cloudphone.run>',
         })
       );
     });

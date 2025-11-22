@@ -70,6 +70,12 @@ export class DeviceEventsConsumer {
       const deviceUrl = `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/devices/${event.deviceId}`;
       const providerDisplayName = this.getProviderDisplayName(event.providerType);
 
+      // 扩展事件类型支持可选统计数据（由 device-service 在发布时填充）
+      const extEvent = event as DeviceCreatedEvent & {
+        systemStats?: { onlineDevices?: number; todayCreated?: number; totalDevices?: number };
+        tenantStats?: { totalDevices?: number; activeDevices?: number; totalUsers?: number; todayCreated?: number; onlineDevices?: number; quotaUsage?: number };
+      };
+
       await this.notificationsService.createRoleBasedNotification(
         event.userId,
         event.userRole, // ✅ 用户角色
@@ -91,26 +97,23 @@ export class DeviceEventsConsumer {
           diskSizeGB: event.deviceConfig?.storageGB,
           // ✅ 简化的设备规格字符串（user 模板使用）
           spec: `${event.deviceConfig?.cpuCores}核 / ${event.deviceConfig?.memoryMB}MB / ${event.deviceConfig?.storageGB}GB`,
-          // ✅ 系统统计（管理员模板可能需要）
-          // 注：统计数据应由 device-service 在发布事件时包含在 payload 中
-          // 当前使用占位值，模板渲染时会优雅降级显示
-          onlineDevices: event.systemStats?.onlineDevices ?? 0,
-          todayCreated: event.systemStats?.todayCreated ?? 0,
-          totalDevices: event.systemStats?.totalDevices ?? 0,
+          // ✅ 系统统计（管理员模板可能需要）- 默认值优雅降级
+          onlineDevices: extEvent.systemStats?.onlineDevices ?? 0,
+          todayCreated: extEvent.systemStats?.todayCreated ?? 0,
+          totalDevices: extEvent.systemStats?.totalDevices ?? 0,
           systemStats: {
-            onlineDevices: event.systemStats?.onlineDevices ?? 0,
-            todayCreated: event.systemStats?.todayCreated ?? 0,
-            totalDevices: event.systemStats?.totalDevices ?? 0,
+            onlineDevices: extEvent.systemStats?.onlineDevices ?? 0,
+            todayCreated: extEvent.systemStats?.todayCreated ?? 0,
+            totalDevices: extEvent.systemStats?.totalDevices ?? 0,
           },
-          // ✅ 租户统计（tenant_admin 模板需要）
-          // 注：租户统计应由 device-service 在发布事件时包含
+          // ✅ 租户统计（tenant_admin 模板需要）- 默认值优雅降级
           tenantStats: {
-            totalDevices: event.tenantStats?.totalDevices ?? 0,
-            activeDevices: event.tenantStats?.activeDevices ?? 0,
-            totalUsers: event.tenantStats?.totalUsers ?? 0,
-            todayCreated: event.tenantStats?.todayCreated ?? 0,
-            onlineDevices: event.tenantStats?.onlineDevices ?? 0,
-            quotaUsage: event.tenantStats?.quotaUsage ?? 0,
+            totalDevices: extEvent.tenantStats?.totalDevices ?? 0,
+            activeDevices: extEvent.tenantStats?.activeDevices ?? 0,
+            totalUsers: extEvent.tenantStats?.totalUsers ?? 0,
+            todayCreated: extEvent.tenantStats?.todayCreated ?? 0,
+            onlineDevices: extEvent.tenantStats?.onlineDevices ?? 0,
+            quotaUsage: extEvent.tenantStats?.quotaUsage ?? 0,
           },
           adminDashboardUrl: `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/admin/dashboard`,
           tenantDashboardUrl: `${process.env.FRONTEND_URL || 'https://cloudphone.example.com'}/tenant/dashboard`,

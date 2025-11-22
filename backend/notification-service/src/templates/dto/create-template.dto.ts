@@ -61,6 +61,10 @@ export class CreateTemplateDto {
   @IsOptional()
   description?: string;
 
+  @IsString()
+  @IsOptional()
+  contentFormat?: 'plain' | 'html' | 'markdown';
+
   // Role-based notification fields
   @IsArray()
   @IsString({ each: true })

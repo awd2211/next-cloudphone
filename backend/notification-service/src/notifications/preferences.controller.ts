@@ -18,7 +18,7 @@ import { Type } from 'class-transformer';
 import { getAllNotificationTypes } from './default-preferences';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '@cloudphone/shared';
+import { RequirePermission, ActionResult } from '@cloudphone/shared';
 import { Public } from '../auth/decorators/public.decorator';
 
 /**
@@ -145,15 +145,14 @@ export class NotificationPreferencesController {
     const preference = await this.preferencesService.updateUserPreference(userId, type, dto);
 
     return {
-      success: true,
-      message: 'Notification preference updated successfully',
-      preference: {
+      data: {
         notificationType: preference.notificationType,
         enabled: preference.enabled,
         enabledChannels: preference.enabledChannels,
         customSettings: preference.customSettings,
         updatedAt: preference.updatedAt,
       },
+      message: 'Notification preference updated successfully',
     };
   }
 
@@ -173,9 +172,8 @@ export class NotificationPreferencesController {
     );
 
     return {
-      success: true,
+      data: { updatedCount: preferences.length },
       message: `${preferences.length} preferences updated successfully`,
-      updatedCount: preferences.length,
     };
   }
 
@@ -189,9 +187,8 @@ export class NotificationPreferencesController {
     const preferences = await this.preferencesService.resetToDefault(userId);
 
     return {
-      success: true,
+      data: { totalPreferences: preferences.length },
       message: 'Preferences reset to default successfully',
-      totalPreferences: preferences.length,
     };
   }
 

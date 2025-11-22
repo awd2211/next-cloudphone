@@ -23,12 +23,16 @@ import { Public } from '../auth/decorators/public.decorator';
 /**
  * 通知模板管理控制器
  *
+ * 路由说明：
+ * - API Gateway 将 /notification-templates/* 路由到此服务
+ * - /templates/* 已被分配给 device-service (设备模板)
+ *
  * 使用双层守卫：
  * 1. JwtAuthGuard - 验证 JWT token，设置 request.user
  * 2. PermissionsGuard - 检查用户权限
  */
 @ApiTags('Notification Templates')
-@Controller('templates')
+@Controller('notification-templates')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class TemplatesController {
@@ -36,7 +40,7 @@ export class TemplatesController {
 
   /**
    * 创建模板
-   * POST /templates
+   * POST /notification-templates
    * 🔒 需要 notification.template-create 权限
    */
   @Post()
@@ -47,7 +51,7 @@ export class TemplatesController {
 
   /**
    * 查询模板列表
-   * GET /templates?type=system&language=zh-CN&page=1&limit=10
+   * GET /notification-templates?type=system&language=zh-CN&page=1&limit=10
    * 🔒 需要 notification.template-read 权限
    */
   @Get()
@@ -58,7 +62,7 @@ export class TemplatesController {
 
   /**
    * 根据 ID 查找模板
-   * GET /templates/:id
+   * GET /notification-templates/:id
    * 🔒 需要 notification.template-read 权限
    */
   @Get(':id')
@@ -69,25 +73,44 @@ export class TemplatesController {
 
   /**
    * 获取模板版本历史
-   * GET /templates/:id/versions
+   * GET /notification-templates/:id/versions
    * 🔒 需要 notification.template-read 权限
    */
   @Get(':id/versions')
   @RequirePermission('notification.template-read')
   async getVersions(@Param('id') id: string) {
-    // TODO: 实现完整的版本管理功能,需要创建 TemplateVersion 实体和表
-    // 目前返回空数组,表示功能端点已存在但未完全实现
+    /**
+     * 🚧 模板版本管理功能 - 待实现
+     *
+     * 实现方案:
+     * 1. 创建 TemplateVersion 实体:
+     *    - id, templateId, version, content, variables, createdAt, createdBy
+     * 2. 在 templates.service.ts 的 update() 方法中:
+     *    - 更新前保存当前版本到 template_versions 表
+     *    - 自动递增版本号
+     * 3. 实现版本回滚接口 POST /templates/:id/rollback/:versionId
+     *
+     * 数据库迁移:
+     * CREATE TABLE template_versions (
+     *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     *   template_id UUID NOT NULL REFERENCES notification_templates(id),
+     *   version INTEGER NOT NULL,
+     *   content TEXT NOT NULL,
+     *   variables JSONB,
+     *   created_at TIMESTAMPTZ DEFAULT NOW(),
+     *   created_by UUID
+     * );
+     */
     await this.templatesService.findOne(id); // 验证模板存在
     return {
-      success: true,
       data: [],
-      message: '版本历史功能待实现 - 需要 TemplateVersion 实体',
+      message: '版本历史功能开发中 - 参见代码注释了解实现方案',
     };
   }
 
   /**
    * 更新模板
-   * PATCH /templates/:id
+   * PATCH /notification-templates/:id
    * 🔒 需要 notification.template-update 权限
    */
   @Patch(':id')
@@ -98,7 +121,7 @@ export class TemplatesController {
 
   /**
    * 更新模板 (PUT 别名)
-   * PUT /templates/:id
+   * PUT /notification-templates/:id
    * 🔒 需要 notification.template-update 权限
    * 为了兼容前端 PUT 请求,添加此别名端点
    */
@@ -110,7 +133,7 @@ export class TemplatesController {
 
   /**
    * 删除模板
-   * DELETE /templates/:id
+   * DELETE /notification-templates/:id
    * 🔒 需要 notification.template-delete 权限
    */
   @Delete(':id')
@@ -122,7 +145,7 @@ export class TemplatesController {
 
   /**
    * 激活/停用模板
-   * PATCH /templates/:id/toggle
+   * PATCH /notification-templates/:id/toggle
    * 🔒 需要 notification.template-toggle 权限
    */
   @Patch(':id/toggle')
@@ -133,7 +156,7 @@ export class TemplatesController {
 
   /**
    * 根据 code 查找模板
-   * GET /templates/by-code/:code
+   * GET /notification-templates/by-code/:code
    * 🔒 需要 notification.template-read 权限
    */
   @Get('by-code/:code')
@@ -144,7 +167,7 @@ export class TemplatesController {
 
   /**
    * 渲染模板
-   * POST /templates/render
+   * POST /notification-templates/render
    * 🔒 需要 notification.template-render 权限
    */
   @Post('render')
@@ -155,7 +178,7 @@ export class TemplatesController {
 
   /**
    * 验证模板语法
-   * POST /templates/validate
+   * POST /notification-templates/validate
    * 🔒 需要 notification.template-update 权限
    */
   @Post('validate')
@@ -166,7 +189,7 @@ export class TemplatesController {
 
   /**
    * 批量创建模板
-   * POST /templates/bulk
+   * POST /notification-templates/bulk
    * 🔒 需要 notification.template-create 权限
    */
   @Post('bulk')
@@ -177,7 +200,7 @@ export class TemplatesController {
 
   /**
    * 清除模板缓存
-   * POST /templates/clear-cache
+   * POST /notification-templates/clear-cache
    * 🔒 需要 notification.template-update 权限（管理员操作）
    */
   @Post('clear-cache')

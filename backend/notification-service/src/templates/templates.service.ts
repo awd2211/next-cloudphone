@@ -8,6 +8,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import * as Handlebars from 'handlebars';
+import { marked } from 'marked';
+import * as sanitizeHtml from 'sanitize-html';
+import { convert as htmlToText } from 'html-to-text';
 import { NotificationTemplate } from '../entities/notification-template.entity';
 import { CreateTemplateDto, UpdateTemplateDto, QueryTemplateDto, RenderTemplateDto } from './dto';
 import { CacheService } from '../cache/cache.service';
@@ -664,6 +667,11 @@ export class TemplatesService {
 
   /**
    * 渲染模板
+   *
+   * 支持三种内容格式：
+   * - plain: 纯文本
+   * - html: HTML 格式
+   * - markdown: Markdown 格式（会转换为 HTML）
    */
   async render(
     templateCode: string,
@@ -672,10 +680,13 @@ export class TemplatesService {
   ): Promise<{
     title: string;
     body: string;
+    bodyHtml: string;
     emailHtml?: string;
     smsText?: string;
+    contentFormat: string;
   }> {
     const template = await this.findByCode(templateCode, language);
+    const contentFormat = template.contentFormat || 'plain';
 
     // 合并默认数据和传入数据
     const mergedData = {
@@ -684,31 +695,40 @@ export class TemplatesService {
     };
 
     try {
-      // 渲染标题
+      // 渲染标题（标题总是纯文本）
       const title = this.compileAndRender(
         template.title,
         mergedData,
         `${templateCode}:title:${language}`
       );
 
-      // 渲染内容
-      const body = this.compileAndRender(
+      // 渲染内容（原始格式）
+      const rawBody = this.compileAndRender(
         template.body,
         mergedData,
         `${templateCode}:body:${language}`
       );
 
-      // 渲染邮件模板（如果有）
+      // 根据格式转换内容
+      const body = rawBody; // 保留原始格式（前端可以选择如何显示）
+      const bodyHtml = this.convertContent(rawBody, contentFormat, false);
+
+      // 渲染邮件模板
       let emailHtml: string | undefined;
       if (template.emailTemplate) {
-        emailHtml = this.compileAndRender(
+        const rawEmail = this.compileAndRender(
           template.emailTemplate,
           mergedData,
           `${templateCode}:email:${language}`
         );
+        // 邮件模板如果是 Markdown，也需要转换
+        emailHtml = this.convertContent(rawEmail, contentFormat, true);
+      } else {
+        // 没有专用邮件模板时，使用 body 的 HTML 版本
+        emailHtml = this.convertContent(rawBody, contentFormat, true);
       }
 
-      // 渲染短信模板（如果有）
+      // 渲染短信模板（短信只支持纯文本）
       let smsText: string | undefined;
       if (template.smsTemplate) {
         smsText = this.compileAndRender(
@@ -716,15 +736,20 @@ export class TemplatesService {
           mergedData,
           `${templateCode}:sms:${language}`
         );
+      } else {
+        // 没有专用短信模板时，从 body 提取纯文本
+        smsText = this.getPlainTextVersion(rawBody, contentFormat);
       }
 
-      this.logger.log(`Template rendered: ${templateCode}`);
+      this.logger.log(`Template rendered: ${templateCode} (format: ${contentFormat})`);
 
       return {
         title,
         body,
+        bodyHtml,
         emailHtml,
         smsText,
+        contentFormat,
       };
     } catch (error) {
       this.logger.error(`Failed to render template ${templateCode}:`, error);
@@ -832,6 +857,106 @@ export class TemplatesService {
   clearCache() {
     this.compiledTemplates.clear();
     this.logger.log('Template compilation cache cleared');
+  }
+
+  /**
+   * 将 Markdown 转换为 HTML（带安全过滤）
+   * @param markdown Markdown 文本
+   * @returns 安全的 HTML 字符串
+   */
+  private markdownToHtml(markdown: string): string {
+    // 使用 marked 转换为 HTML
+    const rawHtml = marked.parse(markdown, { async: false }) as string;
+
+    // 使用 sanitize-html 清理，防止 XSS 攻击
+    const cleanHtml = sanitizeHtml(rawHtml, {
+      allowedTags: [
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'p', 'br', 'hr',
+        'ul', 'ol', 'li',
+        'strong', 'b', 'em', 'i', 'u', 's', 'del',
+        'a', 'code', 'pre', 'blockquote',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        'img', 'span', 'div',
+      ],
+      allowedAttributes: {
+        a: ['href', 'title', 'target'],
+        img: ['src', 'alt', 'title', 'width', 'height'],
+        '*': ['class', 'style'],
+      },
+      allowedSchemes: ['http', 'https', 'mailto'],
+      // 不允许 javascript: 等危险协议
+      disallowedTagsMode: 'discard',
+    });
+
+    return cleanHtml;
+  }
+
+  /**
+   * 将 HTML 转换为纯文本
+   * @param html HTML 字符串
+   * @returns 纯文本
+   */
+  private htmlToPlainText(html: string): string {
+    return htmlToText(html, {
+      wordwrap: 80,
+      selectors: [
+        { selector: 'a', options: { ignoreHref: true } },
+        { selector: 'img', format: 'skip' },
+      ],
+    });
+  }
+
+  /**
+   * 根据内容格式转换文本
+   * @param text 原始文本（已完成 Handlebars 渲染）
+   * @param contentFormat 内容格式
+   * @param forEmail 是否用于邮件（邮件需要 HTML 格式）
+   * @returns 转换后的文本
+   */
+  private convertContent(
+    text: string,
+    contentFormat: 'plain' | 'html' | 'markdown',
+    forEmail: boolean = false,
+  ): string {
+    if (contentFormat === 'markdown') {
+      // Markdown 总是转换为 HTML（用于邮件和 WebSocket 预览）
+      return this.markdownToHtml(text);
+    }
+
+    if (contentFormat === 'html') {
+      // HTML 直接返回，但需要清理
+      return sanitizeHtml(text, {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2']),
+        allowedAttributes: {
+          ...sanitizeHtml.defaults.allowedAttributes,
+          '*': ['class', 'style'],
+        },
+      });
+    }
+
+    // plain 纯文本
+    if (forEmail) {
+      // 邮件需要将换行转换为 <br>
+      return text.replace(/\n/g, '<br>');
+    }
+    return text;
+  }
+
+  /**
+   * 获取纯文本版本（用于短信）
+   */
+  private getPlainTextVersion(
+    text: string,
+    contentFormat: 'plain' | 'html' | 'markdown',
+  ): string {
+    if (contentFormat === 'plain') {
+      return text;
+    }
+
+    // HTML 或 Markdown 都需要转换为纯文本
+    const html = contentFormat === 'markdown' ? this.markdownToHtml(text) : text;
+    return this.htmlToPlainText(html);
   }
 
   /**

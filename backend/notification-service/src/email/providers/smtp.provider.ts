@@ -19,7 +19,7 @@ import { Transporter } from 'nodemailer';
  * - SMTP_SECURE: 是否使用 SSL/TLS (默认: false)
  * - SMTP_USER: SMTP 用户名
  * - SMTP_PASS: SMTP 密码
- * - SMTP_FROM: 默认发件人 (例如: CloudPhone <noreply@cloudphone.com>)
+ * - SMTP_FROM: 默认发件人 (例如: CloudPhone <noreply@cloudphone.run>)
  *
  * 使用示例:
  * ```typescript
@@ -67,7 +67,7 @@ export class SmtpProvider implements EmailProvider {
       secure: this.configService.get<string>('SMTP_SECURE', 'false') === 'true',
       user: this.configService.get<string>('SMTP_USER'),
       pass: this.configService.get<string>('SMTP_PASS'),
-      fromEmail: this.configService.get<string>('SMTP_FROM', 'CloudPhone <noreply@cloudphone.com>'),
+      fromEmail: this.configService.get<string>('SMTP_FROM', 'CloudPhone <noreply@cloudphone.run>'),
     };
 
     // 验证必需配置
