@@ -1672,6 +1672,178 @@ export class UsersService {
     this.logger.log(`管理员重置了用户密码 - 用户ID: ${userId}`);
   }
 
+  // ============================================================================
+  // 统计端点方法（供 billing-service 调用）
+  // ============================================================================
+
+  /**
+   * 获取用户数量（支持过滤条件）
+   */
+  async getCount(options: {
+    status?: string;
+    createdAfter?: string;
+    tenantId?: string;
+  }): Promise<number> {
+    const qb = this.usersRepository.createQueryBuilder('user');
+
+    // 排除已删除用户
+    qb.where('user.status != :deleted', { deleted: UserStatus.DELETED });
+
+    if (options.status) {
+      qb.andWhere('user.status = :status', { status: options.status });
+    }
+
+    if (options.createdAfter) {
+      qb.andWhere('user.createdAt >= :createdAfter', {
+        createdAfter: new Date(options.createdAfter),
+      });
+    }
+
+    if (options.tenantId) {
+      qb.andWhere('user.tenantId = :tenantId', { tenantId: options.tenantId });
+    }
+
+    return qb.getCount();
+  }
+
+  /**
+   * 获取用户增长统计
+   * 返回每天的新增用户数和累计用户数
+   */
+  async getGrowthStats(
+    days: number = 30,
+    tenantId?: string
+  ): Promise<Array<{ date: string; newUsers: number; totalUsers: number }>> {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // 按日期分组统计新增用户
+    const qb = this.usersRepository
+      .createQueryBuilder('user')
+      .select("DATE(user.createdAt)", 'date')
+      .addSelect('COUNT(*)', 'newUsers')
+      .where('user.createdAt >= :startDate', { startDate })
+      .andWhere('user.createdAt <= :endDate', { endDate })
+      .andWhere('user.status != :deleted', { deleted: UserStatus.DELETED });
+
+    if (tenantId) {
+      qb.andWhere('user.tenantId = :tenantId', { tenantId });
+    }
+
+    qb.groupBy('DATE(user.createdAt)').orderBy('date', 'ASC');
+
+    const dailyNewUsers = await qb.getRawMany();
+
+    // 获取起始日期之前的总用户数
+    const baseCountQb = this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.createdAt < :startDate', { startDate })
+      .andWhere('user.status != :deleted', { deleted: UserStatus.DELETED });
+
+    if (tenantId) {
+      baseCountQb.andWhere('user.tenantId = :tenantId', { tenantId });
+    }
+
+    const baseCount = await baseCountQb.getCount();
+
+    // 生成完整的日期范围并填充数据
+    const result: Array<{ date: string; newUsers: number; totalUsers: number }> = [];
+    const dateMap = new Map(
+      dailyNewUsers.map((row) => [row.date, parseInt(row.newUsers)])
+    );
+
+    let runningTotal = baseCount;
+    const current = new Date(startDate);
+
+    while (current <= endDate) {
+      const dateStr = current.toISOString().split('T')[0];
+      const newUsers = dateMap.get(dateStr) || 0;
+      runningTotal += newUsers;
+
+      result.push({
+        date: dateStr,
+        newUsers,
+        totalUsers: runningTotal,
+      });
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    return result;
+  }
+
+  /**
+   * 获取用户活跃度统计
+   * 返回每天的活跃用户数和新增用户数
+   */
+  async getActivityStats(
+    days: number = 7,
+    tenantId?: string
+  ): Promise<Array<{ date: string; activeUsers: number; newUsers: number }>> {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // 按最后登录日期统计活跃用户
+    const activeQb = this.usersRepository
+      .createQueryBuilder('user')
+      .select("DATE(user.lastLoginAt)", 'date')
+      .addSelect('COUNT(*)', 'activeUsers')
+      .where('user.lastLoginAt >= :startDate', { startDate })
+      .andWhere('user.lastLoginAt <= :endDate', { endDate })
+      .andWhere('user.status != :deleted', { deleted: UserStatus.DELETED });
+
+    if (tenantId) {
+      activeQb.andWhere('user.tenantId = :tenantId', { tenantId });
+    }
+
+    activeQb.groupBy('DATE(user.lastLoginAt)');
+
+    // 按注册日期统计新增用户
+    const newQb = this.usersRepository
+      .createQueryBuilder('user')
+      .select("DATE(user.createdAt)", 'date')
+      .addSelect('COUNT(*)', 'newUsers')
+      .where('user.createdAt >= :startDate', { startDate })
+      .andWhere('user.createdAt <= :endDate', { endDate })
+      .andWhere('user.status != :deleted', { deleted: UserStatus.DELETED });
+
+    if (tenantId) {
+      newQb.andWhere('user.tenantId = :tenantId', { tenantId });
+    }
+
+    newQb.groupBy('DATE(user.createdAt)');
+
+    const [activeData, newData] = await Promise.all([
+      activeQb.getRawMany(),
+      newQb.getRawMany(),
+    ]);
+
+    // 合并数据
+    const activeMap = new Map(
+      activeData.map((row) => [row.date, parseInt(row.activeUsers)])
+    );
+    const newMap = new Map(
+      newData.map((row) => [row.date, parseInt(row.newUsers)])
+    );
+
+    const result: Array<{ date: string; activeUsers: number; newUsers: number }> = [];
+    const current = new Date(startDate);
+
+    while (current <= endDate) {
+      const dateStr = current.toISOString().split('T')[0];
+      result.push({
+        date: dateStr,
+        activeUsers: activeMap.get(dateStr) || 0,
+        newUsers: newMap.get(dateStr) || 0,
+      });
+      current.setDate(current.getDate() + 1);
+    }
+
+    return result;
+  }
+
   /**
    * 释放分布式锁
    */

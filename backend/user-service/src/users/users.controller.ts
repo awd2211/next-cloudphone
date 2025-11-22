@@ -107,6 +107,51 @@ export class UsersController {
     return this.queryBus.execute(new GetUserStatsQuery(tenantId));
   }
 
+  @Get('count')
+  @RequirePermission('user.read')
+  @ApiOperation({ summary: '获取用户数量', description: '获取用户总数（支持状态和时间过滤）' })
+  @ApiQuery({ name: 'status', required: false, description: '用户状态', example: 'active' })
+  @ApiQuery({ name: 'createdAfter', required: false, description: '创建时间之后（ISO 8601）' })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getCount(
+    @Query('status') status?: string,
+    @Query('createdAfter') createdAfter?: string,
+    @Query('tenantId') tenantId?: string
+  ) {
+    const count = await this.usersService.getCount({ status, createdAfter, tenantId });
+    return { count };
+  }
+
+  @Get('stats/growth')
+  @RequirePermission('user.read')
+  @ApiOperation({ summary: '获取用户增长统计', description: '获取指定天数内的用户增长趋势' })
+  @ApiQuery({ name: 'days', required: false, description: '天数', example: 30 })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getGrowthStats(
+    @Query('days') days: number = 30,
+    @Query('tenantId') tenantId?: string
+  ) {
+    return this.usersService.getGrowthStats(days, tenantId);
+  }
+
+  @Get('stats/activity')
+  @RequirePermission('user.read')
+  @ApiOperation({ summary: '获取用户活跃度统计', description: '获取指定天数内的用户活跃度数据' })
+  @ApiQuery({ name: 'days', required: false, description: '天数', example: 7 })
+  @ApiQuery({ name: 'tenantId', required: false, description: '租户 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getActivityStats(
+    @Query('days') days: number = 7,
+    @Query('tenantId') tenantId?: string
+  ) {
+    return this.usersService.getActivityStats(days, tenantId);
+  }
+
   @Get('filters/metadata')
   @RequirePermission('user.read')
   @ApiOperation({
