@@ -394,9 +394,9 @@ MAX_POOL_SIZE=20
 
 有问题？
 
-- 📧 Email: support@cloudphone.com
+- 📧 Email: support@cloudphone.run
 - 💬 Discord: [Join us](https://discord.gg/cloudphone)
-- 📖 Docs: https://docs.cloudphone.com
+- 📖 Docs: https://docs.cloudphone.run
 - 🐛 Issues: [GitHub Issues](https://github.com/cloudphone/sms-receive-service/issues)
 
 ---

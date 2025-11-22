@@ -5,6 +5,8 @@ import {
   Delete,
   Body,
   Param,
+  Query,
+  Req,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -16,6 +18,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
+  ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { NumberManagementService } from '../services/number-management.service';
@@ -48,7 +51,7 @@ import { Public } from '../auth/decorators/public.decorator';
  * 2. PermissionsGuard - 检查用户权限
  */
 @ApiTags('Virtual Numbers')
-@Controller('numbers')
+@Controller('sms/numbers')  // 修改路径以匹配前端 API 调用
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class NumbersController {
@@ -63,6 +66,80 @@ export class NumbersController {
     @InjectRepository(SmsMessage)
     private readonly messageRepo: Repository<SmsMessage>,
   ) {}
+
+  /**
+   * 调试端点：测试 JWT 认证（需要认证）
+   */
+  @Get('debug/auth')
+  @ApiOperation({ summary: '调试认证' })
+  async debugAuth(@Req() req: any) {
+    return {
+      hasAuthHeader: !!req.headers.authorization,
+      user: req.user || null,
+      isSuperAdmin: req.user?.isSuperAdmin || false,
+    };
+  }
+
+  /**
+   * 获取虚拟号码列表
+   */
+  @Get()
+  @RequirePermission('sms.read')
+  @ApiOperation({
+    summary: '获取虚拟号码列表',
+    description: '查询虚拟号码列表，支持分页和筛选',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: '页码' })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number, description: '每页数量' })
+  @ApiQuery({ name: 'status', required: false, type: String, description: '状态筛选' })
+  @ApiQuery({ name: 'provider', required: false, type: String, description: '平台筛选' })
+  @ApiQuery({ name: 'deviceId', required: false, type: String, description: '设备ID筛选' })
+  @ApiQuery({ name: 'userId', required: false, type: String, description: '用户ID筛选' })
+  @ApiResponse({
+    status: 200,
+    description: '查询成功',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'array', items: { $ref: '#/components/schemas/NumberResponseDto' } },
+        total: { type: 'number' },
+        page: { type: 'number' },
+        pageSize: { type: 'number' },
+      },
+    },
+  })
+  async getNumbers(
+    @Query('page') page = 1,
+    @Query('pageSize') pageSize = 20,
+    @Query('status') status?: string,
+    @Query('provider') provider?: string,
+    @Query('deviceId') deviceId?: string,
+    @Query('userId') userId?: string,
+  ) {
+    const pageNum = Number(page) || 1;
+    const pageSizeNum = Math.min(Number(pageSize) || 20, 100);
+    const skip = (pageNum - 1) * pageSizeNum;
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (provider) where.provider = provider;
+    if (deviceId) where.deviceId = deviceId;
+    if (userId) where.userId = userId;
+
+    const [numbers, total] = await this.numberRepo.findAndCount({
+      where,
+      order: { activatedAt: 'DESC' },
+      skip,
+      take: pageSizeNum,
+    });
+
+    return {
+      data: numbers.map((n) => this.mapToResponseDto(n)),
+      total,
+      page: pageNum,
+      pageSize: pageSizeNum,
+    };
+  }
 
   /**
    * 请求虚拟号码

@@ -80,7 +80,7 @@ interface RealtimeMonitorResponse {
 
 @ApiTags('统计与监控')
 @ApiBearerAuth()
-@Controller('statistics')
+@Controller('sms/statistics')  // 修改路径以匹配前端 API 调用
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class StatisticsController {
   private readonly logger = new Logger(StatisticsController.name);

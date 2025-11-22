@@ -408,9 +408,9 @@ cat infrastructure/monitoring/prometheus/prometheus.yml | grep sms-receive
 
 如有问题，请联系：
 
-- 📧 Email: support@cloudphone.com
+- 📧 Email: support@cloudphone.run
 - 💬 Discord: [Join us](https://discord.gg/cloudphone)
-- 📖 Docs: https://docs.cloudphone.com
+- 📖 Docs: https://docs.cloudphone.run
 - 🐛 Issues: [GitHub Issues](https://github.com/cloudphone/sms-receive-service/issues)
 
 ## 📚 相关文档

@@ -66,7 +66,7 @@ class ConsumeCodeDto {
  * 提供验证码相关的API接口，供device-service等其他服务调用
  */
 @ApiTags('验证码')
-@Controller('verification-codes')
+@Controller('sms/verification-codes')  // 修改路径以匹配前端 API 调用
 export class VerificationCodeController {
   private readonly logger = new Logger(VerificationCodeController.name);
   private readonly tracer = trace.getTracer('sms-receive-service');
@@ -100,7 +100,6 @@ export class VerificationCodeController {
     }
 
     return {
-      success: true,
       data: result,
     };
   }
@@ -166,7 +165,6 @@ export class VerificationCodeController {
                 span.setStatus({ code: SpanStatusCode.OK });
 
                 return {
-                  success: true,
                   data: {
                     ...extracted,
                     phoneNumber,
@@ -198,7 +196,6 @@ export class VerificationCodeController {
           span.setStatus({ code: SpanStatusCode.OK });
 
           return {
-            success: true,
             data: {
               ...cached,
               source: 'cache',
@@ -238,7 +235,6 @@ export class VerificationCodeController {
     }
 
     return {
-      success: true,
       data: {
         ...cached,
         source: 'cache',
@@ -265,7 +261,6 @@ export class VerificationCodeController {
     );
 
     return {
-      success: true,
       valid: isValid,
     };
   }
@@ -343,7 +338,6 @@ export class VerificationCodeController {
     const patterns = this.extractorService.getSupportedPatterns();
 
     return {
-      success: true,
       data: {
         total: patterns.length,
         patterns,
@@ -369,7 +363,6 @@ export class VerificationCodeController {
     }
 
     return {
-      success: true,
       data: result,
     };
   }
@@ -386,7 +379,6 @@ export class VerificationCodeController {
     const stats = await this.cacheService.getCacheStatistics();
 
     return {
-      success: true,
       data: stats,
     };
   }
@@ -414,7 +406,6 @@ export class VerificationCodeController {
     }));
 
     return {
-      success: true,
       data: response,
     };
   }
