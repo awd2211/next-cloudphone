@@ -82,12 +82,10 @@ export const useCacheManagement = () => {
     try {
       const values = await patternForm.validateFields();
       const res = await deleteCachePattern(values.pattern);
-      if (res.success) {
-        message.success(`已删除 ${res.data.deletedCount} 个缓存键`);
-        patternForm.resetFields();
-        setDeletePatternModalVisible(false);
-        await loadStats();
-      }
+      message.success(`已删除 ${res.deletedCount} 个缓存键`);
+      patternForm.resetFields();
+      setDeletePatternModalVisible(false);
+      await loadStats();
     } catch (error) {
       message.error('批量删除失败');
     }
@@ -98,9 +96,7 @@ export const useCacheManagement = () => {
     try {
       const values = await checkForm.validateFields();
       const res = await checkCacheExists(values.key);
-      if (res.success) {
-        setCheckResult(res.data);
-      }
+      setCheckResult(res);
     } catch (error) {
       message.error('检查失败');
     }

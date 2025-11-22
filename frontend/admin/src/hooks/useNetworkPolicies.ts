@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Form, message, Modal } from 'antd';
 import type { NetworkPolicy, PolicyFormValues, TestFormValues, TestResult } from '@/components/NetworkPolicy';
 import { DEFAULT_FORM_VALUES } from '@/components/NetworkPolicy';
-import request from '@/utils/request';
+import { api } from '@/utils/api';
 import { useValidatedQuery } from '@/hooks/utils';
 import { NetworkPoliciesResponseSchema } from '@/schemas/api.schemas';
 
@@ -24,7 +24,7 @@ export const useNetworkPolicies = () => {
     refetch: loadPolicies,
   } = useValidatedQuery({
     queryKey: ['network-policies'],
-    queryFn: () => request.get('/devices/network-policies'),
+    queryFn: () => api.get('/devices/network-policies'),
     schema: NetworkPoliciesResponseSchema,
     apiErrorMessage: '加载策略失败',
     fallbackValue: [],
@@ -75,10 +75,10 @@ export const useNetworkPolicies = () => {
     try {
       const values = await form.validateFields();
       if (editingPolicy) {
-        await request.put(`/devices/network-policies/${editingPolicy.id}`, values);
+        await api.put(`/devices/network-policies/${editingPolicy.id}`, values);
         message.success('策略更新成功');
       } else {
-        await request.post('/devices/network-policies', values);
+        await api.post('/devices/network-policies', values);
         message.success('策略创建成功');
       }
       closeModal();
@@ -95,7 +95,7 @@ export const useNetworkPolicies = () => {
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        await request.delete(`/devices/network-policies/${id}`);
+        await api.delete(`/devices/network-policies/${id}`);
         message.success('策略删除成功');
         loadPolicies();
       } catch (error) {
@@ -111,7 +111,7 @@ export const useNetworkPolicies = () => {
   const handleToggle = useCallback(
     async (id: string, isEnabled: boolean) => {
       try {
-        await request.patch(`/devices/network-policies/${id}/toggle`, { isEnabled });
+        await api.patch(`/devices/network-policies/${id}/toggle`, { isEnabled });
         message.success(`策略已${isEnabled ? '启用' : '停用'}`);
         loadPolicies();
       } catch (error) {
@@ -141,7 +141,7 @@ export const useNetworkPolicies = () => {
   const handleTest = useCallback(async () => {
     try {
       const values = await testForm.validateFields();
-      const result: TestResult = await request.post('/devices/network-policies/test', values);
+      const result: TestResult = await api.post('/devices/network-policies/test', values);
       Modal.success({
         title: '测试结果',
         content: `连通性: ${result.connected ? '成功' : '失败'}\n延迟: ${result.latency}ms\n带宽: ${result.bandwidth} Mbps`,

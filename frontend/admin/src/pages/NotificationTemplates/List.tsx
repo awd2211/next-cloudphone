@@ -10,8 +10,11 @@ import {
 import { useNotificationTemplates } from '@/hooks/queries';
 
 const NotificationTemplatesList = () => {
+  // 一次性获取所有模板（pageSize=500 足够覆盖所有通知类型）
+  // 前端分页提供更好的用户体验（无需等待网络请求）
   const {
     data,
+    total,
     isLoading,
     isModalVisible,
     previewModalVisible,
@@ -28,7 +31,7 @@ const NotificationTemplatesList = () => {
     handleSubmit,
     handleCancel,
     handlePreviewCancel,
-  } = useNotificationTemplates();
+  } = useNotificationTemplates({ pageSize: 500 });
 
   const columns = useTemplateColumns({
     onEdit: handleEdit as unknown as (record: ComponentNotificationTemplate) => void,
@@ -54,13 +57,14 @@ const NotificationTemplatesList = () => {
         dataSource={(data || []) as unknown as readonly ComponentNotificationTemplate[]}
         rowKey="id"
         loading={isLoading}
-        scroll={{ x: 1400, y: 600 }}
+        scroll={{ x: 1900, y: 600 }}
         virtual
         pagination={{
           showSizeChanger: true,
           showQuickJumper: true,
-          showTotal: (total) => `共 ${total} 条`,
+          showTotal: (dataTotal) => `共 ${dataTotal} 条模板`,
           pageSizeOptions: ['10', '20', '50', '100', '200'],
+          defaultPageSize: 20,
         }}
       />
 

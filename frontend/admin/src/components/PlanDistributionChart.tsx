@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
 import { Empty } from 'antd';
@@ -13,23 +14,24 @@ interface PlanDistributionChartProps {
   loading?: boolean;
 }
 
-const PlanDistributionChart = ({ data, loading }: PlanDistributionChartProps) => {
-  if (!data || data.length === 0) {
-    return <Empty description="暂无数据" />;
-  }
+// ✅ 提取颜色数组为常量
+const CHART_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272'];
 
-  const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272'];
+const PlanDistributionChart = memo(({ data, loading }: PlanDistributionChartProps) => {
+  // ✅ 使用 useMemo 缓存 option
+  const option: ECOption | null = useMemo(() => {
+    if (!data || data.length === 0) return null;
 
-  const chartData = data.map((item, index) => ({
-    value: item.userCount,
-    name: item.planName,
-    itemStyle: {
-      color: colors[index % colors.length],
-    },
-    revenue: item.revenue,
-  }));
+    const chartData = data.map((item, index) => ({
+      value: item.userCount,
+      name: item.planName,
+      itemStyle: {
+        color: CHART_COLORS[index % CHART_COLORS.length],
+      },
+      revenue: item.revenue,
+    }));
 
-  const option: ECOption = {
+    return {
     title: {
       text: '套餐用户分布',
       left: 'center',
@@ -86,8 +88,15 @@ const PlanDistributionChart = ({ data, loading }: PlanDistributionChartProps) =>
       },
     ],
   };
+  }, [data]);
+
+  if (!option) {
+    return <Empty description="暂无数据" />;
+  }
 
   return <ReactECharts option={option} style={{ height: '400px' }} showLoading={loading} />;
-};
+});
+
+PlanDistributionChart.displayName = 'PlanDistributionChart';
 
 export default PlanDistributionChart;

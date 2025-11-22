@@ -7,7 +7,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import * as statsService from '@/services/stats';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 
 /**
  * Query Keys

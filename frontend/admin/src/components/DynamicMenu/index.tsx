@@ -3,7 +3,7 @@
  * 根据用户角色动态渲染菜单
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo, useCallback, useMemo } from 'react';
 import { Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { MenuProps } from 'antd';
@@ -54,7 +54,8 @@ interface DynamicMenuProps {
   style?: React.CSSProperties;
 }
 
-export const DynamicMenu: React.FC<DynamicMenuProps> = ({
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+export const DynamicMenu: React.FC<DynamicMenuProps> = memo(({
   mode = 'inline',
   theme = 'dark',
   className,
@@ -101,15 +102,15 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     setOpenKeys(openKeysArray);
   }, [location.pathname]);
 
-  // 菜单点击事件
-  const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
+  // ✅ 使用 useCallback 包装菜单点击事件
+  const handleMenuClick: MenuProps['onClick'] = useCallback(({ key }) => {
     navigate(key);
-  };
+  }, [navigate]);
 
-  // 子菜单展开/收起事件
-  const handleOpenChange: MenuProps['onOpenChange'] = (keys) => {
+  // ✅ 使用 useCallback 包装子菜单展开/收起事件
+  const handleOpenChange: MenuProps['onOpenChange'] = useCallback((keys) => {
     setOpenKeys(keys);
-  };
+  }, []);
 
   if (loading) {
     return <div>Loading menus...</div>;
@@ -128,6 +129,8 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
       style={style}
     />
   );
-};
+});
+
+DynamicMenu.displayName = 'DynamicMenu';
 
 export default DynamicMenu;

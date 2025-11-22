@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo, useCallback, useMemo } from 'react';
 import { Input, Button, Space, message } from 'antd';
 import { SendOutlined, ClearOutlined } from '@ant-design/icons';
 import { executeShellCommand } from '@/services/device';
@@ -13,7 +13,18 @@ interface ConsoleMessage {
   timestamp: Date;
 }
 
-const ADBConsole = ({ deviceId }: ADBConsoleProps) => {
+// ✅ 提取常用命令为常量，避免每次渲染重建
+const COMMON_COMMANDS = [
+  { label: '查看设备信息', command: 'getprop' },
+  { label: '列出应用', command: 'pm list packages' },
+  { label: '查看系统日志', command: 'logcat -d -t 50' },
+  { label: '查看内存使用', command: 'dumpsys meminfo' },
+  { label: '查看 CPU 信息', command: 'cat /proc/cpuinfo' },
+  { label: '查看存储', command: 'df -h' },
+  { label: '列出文件', command: 'ls -la /sdcard' },
+] as const;
+
+const ADBConsole = memo(({ deviceId }: ADBConsoleProps) => {
   const [command, setCommand] = useState('');
   const [messages, setMessages] = useState<ConsoleMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,7 +37,8 @@ const ADBConsole = ({ deviceId }: ADBConsoleProps) => {
     }
   }, [messages]);
 
-  const handleExecute = async () => {
+  // ✅ 使用 useCallback 包装事件处理函数
+  const handleExecute = useCallback(async () => {
     if (!command.trim()) return;
 
     const inputMessage: ConsoleMessage = {
@@ -57,39 +69,34 @@ const ADBConsole = ({ deviceId }: ADBConsoleProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [command, deviceId]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setMessages([]);
-  };
+  }, []);
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleExecute();
-    }
-  };
+  const handleKeyPress = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleExecute();
+      }
+    },
+    [handleExecute]
+  );
 
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleTimeString('zh-CN', { hour12: false });
-  };
-
-  const getCommonCommands = () => [
-    { label: '查看设备信息', command: 'getprop' },
-    { label: '列出应用', command: 'pm list packages' },
-    { label: '查看系统日志', command: 'logcat -d -t 50' },
-    { label: '查看内存使用', command: 'dumpsys meminfo' },
-    { label: '查看 CPU 信息', command: 'cat /proc/cpuinfo' },
-    { label: '查看存储', command: 'df -h' },
-    { label: '列出文件', command: 'ls -la /sdcard' },
-  ];
+  // ✅ 使用 useMemo 缓存时间格式化函数
+  const formatTimestamp = useMemo(
+    () => (date: Date) => date.toLocaleTimeString('zh-CN', { hour12: false }),
+    []
+  );
 
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
         <Space wrap>
           <span style={{ fontWeight: 'bold' }}>常用命令：</span>
-          {getCommonCommands().map((item, index) => (
+          {COMMON_COMMANDS.map((item, index) => (
             <Button key={index} size="small" onClick={() => setCommand(item.command)}>
               {item.label}
             </Button>
@@ -170,6 +177,8 @@ const ADBConsole = ({ deviceId }: ADBConsoleProps) => {
       </div>
     </div>
   );
-};
+});
+
+ADBConsole.displayName = 'ADBConsole';
 
 export default ADBConsole;

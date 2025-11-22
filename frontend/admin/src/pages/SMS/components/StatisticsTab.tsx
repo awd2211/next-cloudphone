@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import {
   Card,
   Row,
@@ -64,7 +64,8 @@ interface StatisticsData {
  * - 平台性能对比
  * - 服务使用分析
  */
-const StatisticsTab: React.FC = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const StatisticsTab: React.FC = memo(() => {
   const { token } = theme.useToken();
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(7, 'day'),
@@ -80,7 +81,11 @@ const StatisticsTab: React.FC = () => {
   // 类型断言：假设 API 返回的数据符合组件期望的结构
   const statisticsData = data as unknown as StatisticsData | undefined;
 
-  const providerColumns: ColumnsType<StatisticsData['providerStats'][0]> = [
+  // ✅ 使用 useMemo 缓存列定义，避免每次渲染都重新创建
+  type ProviderStatItem = StatisticsData['providerStats'][0];
+  type ServiceStatItem = StatisticsData['serviceStats'][0];
+
+  const providerColumns: ColumnsType<ProviderStatItem> = useMemo(() => [
     {
       title: '平台',
       dataIndex: 'provider',
@@ -92,68 +97,68 @@ const StatisticsTab: React.FC = () => {
       dataIndex: 'requests',
       key: 'requests',
       width: 100,
-      sorter: (a, b) => a.requests - b.requests,
+      sorter: (a: ProviderStatItem, b: ProviderStatItem) => a.requests - b.requests,
     },
     {
       title: '成功数',
       dataIndex: 'successes',
       key: 'successes',
       width: 100,
-      render: (value) => <span style={{ color: '#52c41a' }}>{value}</span>,
+      render: (value: number) => <span style={{ color: '#52c41a' }}>{value}</span>,
     },
     {
       title: '失败数',
       dataIndex: 'failures',
       key: 'failures',
       width: 100,
-      render: (value) => <span style={{ color: '#ff4d4f' }}>{value}</span>,
+      render: (value: number) => <span style={{ color: '#ff4d4f' }}>{value}</span>,
     },
     {
       title: '成功率',
       dataIndex: 'successRate',
       key: 'successRate',
       width: 100,
-      sorter: (a, b) => a.successRate - b.successRate,
-      render: (rate) => `${rate.toFixed(1)}%`,
+      sorter: (a: ProviderStatItem, b: ProviderStatItem) => a.successRate - b.successRate,
+      render: (rate: number) => `${rate.toFixed(1)}%`,
     },
     {
       title: '平均响应时间',
       dataIndex: 'averageResponseTime',
       key: 'averageResponseTime',
       width: 120,
-      sorter: (a, b) => a.averageResponseTime - b.averageResponseTime,
-      render: (time) => `${time.toFixed(1)}s`,
+      sorter: (a: ProviderStatItem, b: ProviderStatItem) => a.averageResponseTime - b.averageResponseTime,
+      render: (time: number) => `${time.toFixed(1)}s`,
     },
     {
       title: '平均成本',
       dataIndex: 'averageCost',
       key: 'averageCost',
       width: 100,
-      sorter: (a, b) => a.averageCost - b.averageCost,
-      render: (cost) => `$${cost.toFixed(4)}`,
+      sorter: (a: ProviderStatItem, b: ProviderStatItem) => a.averageCost - b.averageCost,
+      render: (cost: number) => `$${cost.toFixed(4)}`,
     },
     {
       title: '总成本',
       dataIndex: 'totalCost',
       key: 'totalCost',
       width: 100,
-      sorter: (a, b) => a.totalCost - b.totalCost,
-      render: (cost) => `$${cost.toFixed(4)}`,
+      sorter: (a: ProviderStatItem, b: ProviderStatItem) => a.totalCost - b.totalCost,
+      render: (cost: number) => `$${cost.toFixed(4)}`,
     },
     {
       title: '健康状态',
       dataIndex: 'healthStatus',
       key: 'healthStatus',
       width: 100,
-      render: (status) => (
+      render: (status: string) => (
         <Tag color={status === 'healthy' ? 'success' : 'default'}>
           {status === 'healthy' ? '健康' : '未知'}
         </Tag>
       ),
     },
-  ];
+  ], []);
 
-  const serviceColumns: ColumnsType<StatisticsData['serviceStats'][0]> = [
+  const serviceColumns: ColumnsType<ServiceStatItem> = useMemo(() => [
     {
       title: '服务代码',
       dataIndex: 'service',
@@ -165,25 +170,25 @@ const StatisticsTab: React.FC = () => {
       dataIndex: 'requests',
       key: 'requests',
       width: 120,
-      sorter: (a, b) => a.requests - b.requests,
+      sorter: (a: ServiceStatItem, b: ServiceStatItem) => a.requests - b.requests,
     },
     {
       title: '平均接收时间',
       dataIndex: 'averageSmsReceiveTime',
       key: 'averageSmsReceiveTime',
       width: 150,
-      sorter: (a, b) => a.averageSmsReceiveTime - b.averageSmsReceiveTime,
-      render: (time) => `${time.toFixed(1)}s`,
+      sorter: (a: ServiceStatItem, b: ServiceStatItem) => a.averageSmsReceiveTime - b.averageSmsReceiveTime,
+      render: (time: number) => `${time.toFixed(1)}s`,
     },
     {
       title: '平均成本',
       dataIndex: 'averageCost',
       key: 'averageCost',
       width: 120,
-      sorter: (a, b) => a.averageCost - b.averageCost,
-      render: (cost) => `$${cost.toFixed(4)}`,
+      sorter: (a: ServiceStatItem, b: ServiceStatItem) => a.averageCost - b.averageCost,
+      render: (cost: number) => `$${cost.toFixed(4)}`,
     },
-  ];
+  ], []);
 
   return (
     <div>
@@ -318,6 +323,8 @@ const StatisticsTab: React.FC = () => {
       </Card>
     </div>
   );
-};
+});
+
+StatisticsTab.displayName = 'SMS.StatisticsTab';
 
 export default StatisticsTab;

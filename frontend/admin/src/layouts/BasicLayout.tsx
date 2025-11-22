@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Avatar, Dropdown, Drawer } from 'antd';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -6,6 +6,8 @@ import { smartPrefetch, prefetchMultipleRoutes } from '@/config/prefetchRoutes';
 import { GlobalSearchModal, useGlobalSearch } from '@/components/GlobalSearch';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { useTheme } from '@/hooks/useTheme';
+import { clearPermissionCache } from '@/hooks/usePermission';
+import { clearMenuCache } from '@/hooks/useMenu';
 import {
   DashboardOutlined,
   MobileOutlined,
@@ -107,35 +109,67 @@ const BasicLayout = () => {
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
+  // ==================== 优化后的菜单分类 ====================
+  // 分为 6 大模块：总览、业务管理、运营管理、财务管理、运维管理、系统管理
   const menuItems: MenuProps['items'] = [
+    // ==================== 1. 总览 ====================
     {
       key: '/',
       icon: <DashboardOutlined />,
-      label: '仪表盘',
+      label: '工作台',
       onClick: () => navigate('/'),
     },
     {
-      key: '/analytics',
+      key: 'data-overview',
       icon: <PieChartOutlined />,
-      label: '数据分析',
-      onClick: () => navigate('/analytics'),
+      label: '数据总览',
+      children: [
+        {
+          key: '/analytics',
+          icon: <PieChartOutlined />,
+          label: '数据分析',
+          onClick: () => navigate('/analytics'),
+        },
+        {
+          key: '/stats',
+          icon: <LineChartOutlined />,
+          label: '统计仪表板',
+          onClick: () => navigate('/stats'),
+        },
+        {
+          key: '/reports/revenue',
+          icon: <DollarOutlined />,
+          label: '收入报表',
+          onClick: () => navigate('/reports/revenue'),
+        },
+      ],
+    },
+
+    // ==================== 2. 业务管理 ====================
+    {
+      type: 'divider',
     },
     {
-      key: '/stats',
-      icon: <LineChartOutlined />,
-      label: '统计仪表板',
-      onClick: () => navigate('/stats'),
+      key: 'business-title',
+      type: 'group',
+      label: '业务管理',
     },
     {
       key: 'devices-menu',
       icon: <MobileOutlined />,
-      label: '设备管理',
+      label: '设备中心',
       children: [
         {
           key: '/devices',
           icon: <MobileOutlined />,
           label: '设备列表',
           onClick: () => navigate('/devices'),
+        },
+        {
+          key: '/devices/groups',
+          icon: <TeamOutlined />,
+          label: '设备分组',
+          onClick: () => navigate('/devices/groups'),
         },
         {
           key: '/templates',
@@ -155,66 +189,88 @@ const BasicLayout = () => {
           label: '物理设备',
           onClick: () => navigate('/physical-devices'),
         },
-        {
-          key: '/devices/groups',
-          icon: <TeamOutlined />,
-          label: '设备分组',
-          onClick: () => navigate('/devices/groups'),
-        },
-        {
-          key: '/devices/lifecycle',
-          icon: <ClockCircleOutlined />,
-          label: '生命周期管理',
-          onClick: () => navigate('/devices/lifecycle'),
-        },
-        {
-          key: '/devices/failover',
-          icon: <ThunderboltOutlined />,
-          label: '故障转移',
-          onClick: () => navigate('/devices/failover'),
-        },
-        {
-          key: '/devices/state-recovery',
-          icon: <SyncOutlined />,
-          label: '状态恢复',
-          onClick: () => navigate('/devices/state-recovery'),
-        },
       ],
-    },
-    {
-      key: '/users',
-      icon: <UserOutlined />,
-      label: '用户管理',
-      onClick: () => navigate('/users'),
-    },
-    {
-      key: '/quotas',
-      icon: <DashboardFilled />,
-      label: '配额管理',
-      onClick: () => navigate('/quotas'),
     },
     {
       key: '/apps',
       icon: <AppstoreOutlined />,
-      label: '应用管理',
+      label: '应用市场',
       onClick: () => navigate('/apps'),
     },
     {
-      key: '/orders',
+      key: 'users-menu',
+      icon: <UserOutlined />,
+      label: '用户中心',
+      children: [
+        {
+          key: '/users',
+          icon: <UserOutlined />,
+          label: '用户列表',
+          onClick: () => navigate('/users'),
+        },
+        {
+          key: '/quotas',
+          icon: <DashboardFilled />,
+          label: '配额管理',
+          onClick: () => navigate('/quotas'),
+        },
+      ],
+    },
+
+    // ==================== 3. 运营管理 ====================
+    {
+      type: 'divider',
+    },
+    {
+      key: 'operation-title',
+      type: 'group',
+      label: '运营管理',
+    },
+    {
+      key: 'commerce-menu',
       icon: <ShoppingOutlined />,
-      label: '订单管理',
-      onClick: () => navigate('/orders'),
+      label: '商业运营',
+      children: [
+        {
+          key: '/orders',
+          icon: <ShoppingOutlined />,
+          label: '订单管理',
+          onClick: () => navigate('/orders'),
+        },
+        {
+          key: '/plans',
+          icon: <GoldOutlined />,
+          label: '套餐管理',
+          onClick: () => navigate('/plans'),
+        },
+        {
+          key: '/usage',
+          icon: <ClockCircleOutlined />,
+          label: '使用记录',
+          onClick: () => navigate('/usage'),
+        },
+      ],
     },
     {
-      key: '/plans',
-      icon: <GoldOutlined />,
-      label: '套餐管理',
-      onClick: () => navigate('/plans'),
+      key: '/tickets',
+      icon: <CustomerServiceOutlined />,
+      label: '工单服务',
+      onClick: () => navigate('/tickets'),
+    },
+
+    // ==================== 4. 财务管理 ====================
+    {
+      type: 'divider',
     },
     {
-      key: 'billing',
+      key: 'finance-title',
+      type: 'group',
+      label: '财务管理',
+    },
+    {
+      key: 'billing-menu',
       icon: <WalletOutlined />,
-      label: '账单管理',
+      label: '账务中心',
       children: [
         {
           key: '/billing/balance',
@@ -231,51 +287,26 @@ const BasicLayout = () => {
         {
           key: '/billing/invoices',
           icon: <FileTextOutlined />,
-          label: '账单列表',
+          label: '账单发票',
           onClick: () => navigate('/billing/invoices'),
         },
       ],
     },
     {
-      key: '/tickets',
-      icon: <CustomerServiceOutlined />,
-      label: '工单系统',
-      onClick: () => navigate('/tickets'),
-    },
-    {
-      key: 'reports',
-      icon: <BarChartOutlined />,
-      label: '报表中心',
-      children: [
-        {
-          key: '/reports/revenue',
-          icon: <DollarOutlined />,
-          label: '收入统计',
-          onClick: () => navigate('/reports/revenue'),
-        },
-      ],
-    },
-    {
-      key: '/usage',
-      icon: <ClockCircleOutlined />,
-      label: '使用记录',
-      onClick: () => navigate('/usage'),
-    },
-    {
-      key: 'payments',
+      key: 'payments-menu',
       icon: <CreditCardOutlined />,
-      label: '支付管理',
+      label: '支付中心',
       children: [
         {
           key: '/payments/dashboard',
           icon: <PieChartOutlined />,
-          label: '支付统计',
+          label: '支付概览',
           onClick: () => navigate('/payments/dashboard'),
         },
         {
           key: '/payments',
           icon: <UnorderedListOutlined />,
-          label: '支付列表',
+          label: '支付记录',
           onClick: () => navigate('/payments'),
         },
         {
@@ -293,7 +324,7 @@ const BasicLayout = () => {
         {
           key: '/payments/webhooks',
           icon: <LinkOutlined />,
-          label: 'Webhook日志',
+          label: 'Webhook 日志',
           onClick: () => navigate('/payments/webhooks'),
         },
         {
@@ -304,15 +335,122 @@ const BasicLayout = () => {
         },
       ],
     },
+
+    // ==================== 5. 运维管理 ====================
     {
-      key: 'system',
-      icon: <SafetyOutlined />,
+      type: 'divider',
+    },
+    {
+      key: 'devops-title',
+      type: 'group',
+      label: '运维管理',
+    },
+    {
+      key: 'device-ops-menu',
+      icon: <ThunderboltOutlined />,
+      label: '设备运维',
+      children: [
+        {
+          key: '/devices/lifecycle',
+          icon: <ClockCircleOutlined />,
+          label: '生命周期',
+          onClick: () => navigate('/devices/lifecycle'),
+        },
+        {
+          key: '/devices/failover',
+          icon: <ThunderboltOutlined />,
+          label: '故障转移',
+          onClick: () => navigate('/devices/failover'),
+        },
+        {
+          key: '/devices/state-recovery',
+          icon: <SyncOutlined />,
+          label: '状态恢复',
+          onClick: () => navigate('/devices/state-recovery'),
+        },
+      ],
+    },
+    {
+      key: 'service-ops-menu',
+      icon: <GlobalOutlined />,
+      label: '服务运维',
+      children: [
+        {
+          key: '/proxy',
+          icon: <GlobalOutlined />,
+          label: '代理监控',
+          onClick: () => navigate('/proxy'),
+        },
+        {
+          key: '/proxy/providers',
+          icon: <SettingOutlined />,
+          label: '代理配置',
+          onClick: () => navigate('/proxy/providers'),
+        },
+        {
+          key: '/sms',
+          icon: <MessageOutlined />,
+          label: 'SMS 监控',
+          onClick: () => navigate('/sms'),
+        },
+        {
+          key: '/sms/providers',
+          icon: <SettingOutlined />,
+          label: 'SMS 配置',
+          onClick: () => navigate('/sms/providers'),
+        },
+      ],
+    },
+
+    // ==================== 6. 系统管理 ====================
+    {
+      type: 'divider',
+    },
+    {
+      key: 'system-title',
+      type: 'group',
       label: '系统管理',
+    },
+    {
+      key: 'access-control-menu',
+      icon: <SafetyOutlined />,
+      label: '访问控制',
+      children: [
+        {
+          key: '/roles',
+          icon: <TeamOutlined />,
+          label: '角色管理',
+          onClick: () => navigate('/roles'),
+        },
+        {
+          key: '/permissions',
+          icon: <LockOutlined />,
+          label: '权限管理',
+          onClick: () => navigate('/permissions'),
+        },
+        {
+          key: '/permissions/data-scope',
+          icon: <EyeOutlined />,
+          label: '数据范围',
+          onClick: () => navigate('/permissions/data-scope'),
+        },
+        {
+          key: '/permissions/field-permission',
+          icon: <FileProtectOutlined />,
+          label: '字段权限',
+          onClick: () => navigate('/permissions/field-permission'),
+        },
+      ],
+    },
+    {
+      key: 'system-config-menu',
+      icon: <SettingOutlined />,
+      label: '系统配置',
       children: [
         {
           key: '/settings',
           icon: <SettingOutlined />,
-          label: '系统设置',
+          label: '基础设置',
           onClick: () => navigate('/settings'),
         },
         {
@@ -322,83 +460,18 @@ const BasicLayout = () => {
           onClick: () => navigate('/notifications/templates'),
         },
         {
-          key: 'sms-menu',
-          icon: <MessageOutlined />,
-          label: 'SMS 管理',
-          children: [
-            {
-              key: '/sms',
-              label: 'SMS 监控',
-              onClick: () => navigate('/sms'),
-            },
-            {
-              key: '/sms/providers',
-              label: '供应商配置',
-              onClick: () => navigate('/sms/providers'),
-            },
-          ],
-        },
-        {
-          key: 'proxy-menu',
-          icon: <GlobalOutlined />,
-          label: '代理IP管理',
-          children: [
-            {
-              key: '/proxy',
-              label: '代理监控',
-              onClick: () => navigate('/proxy'),
-            },
-            {
-              key: '/proxy/providers',
-              label: '供应商配置',
-              onClick: () => navigate('/proxy/providers'),
-            },
-          ],
-        },
-        {
-          key: '/roles',
-          icon: <TeamOutlined />,
-          label: '角色管理',
-          onClick: () => navigate('/roles'),
-        },
-        {
-          key: 'permissions',
-          icon: <LockOutlined />,
-          label: '权限管理',
-          children: [
-            {
-              key: '/permissions',
-              icon: <SafetyCertificateOutlined />,
-              label: '权限列表',
-              onClick: () => navigate('/permissions'),
-            },
-            {
-              key: '/permissions/data-scope',
-              icon: <EyeOutlined />,
-              label: '数据范围配置',
-              onClick: () => navigate('/permissions/data-scope'),
-            },
-            {
-              key: '/permissions/field-permission',
-              icon: <FileProtectOutlined />,
-              label: '字段权限配置',
-              onClick: () => navigate('/permissions/field-permission'),
-            },
-          ],
-        },
-        {
-          key: '/audit-logs',
-          icon: <ProfileOutlined />,
-          label: '审计日志',
-          onClick: () => navigate('/audit-logs'),
-        },
-        {
           key: '/api-keys',
           icon: <ApiOutlined />,
           label: 'API 密钥',
           onClick: () => navigate('/api-keys'),
         },
       ],
+    },
+    {
+      key: '/audit-logs',
+      icon: <ProfileOutlined />,
+      label: '审计日志',
+      onClick: () => navigate('/audit-logs'),
     },
   ];
 
@@ -419,6 +492,10 @@ const BasicLayout = () => {
       icon: <LogoutOutlined />,
       label: '退出登录',
       onClick: () => {
+        // 清理全局缓存，防止内存泄漏
+        clearPermissionCache();
+        clearMenuCache();
+        // 清理本地存储
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('userId');

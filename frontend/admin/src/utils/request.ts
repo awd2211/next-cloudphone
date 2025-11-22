@@ -173,8 +173,11 @@ async function refreshAccessToken(): Promise<string> {
       }
 
       // 使用当前 token 请求新 token
+      // 前端通过 Vite 代理访问，/api/xxx 会被转发到 http://localhost:30000/xxx
+      // 所以这里使用 /api/auth/refresh，经过代理后变成 /auth/refresh
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:30000/api'}/auth/refresh`,
+        `${baseUrl}/auth/refresh`,
         {},
         {
           headers: {
@@ -373,7 +376,8 @@ axiosInstance.interceptors.response.use(
       );
     }
 
-    // 直接返回 response.data，保持后端返回的结构
+    // 返回完整响应，由 service 层显式解包
+    // 后端格式: { success: true, data: T, timestamp, path, requestId }
     return response.data;
   },
   async (error: AxiosError) => {

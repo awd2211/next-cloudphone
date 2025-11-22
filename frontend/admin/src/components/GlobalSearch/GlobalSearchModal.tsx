@@ -8,7 +8,7 @@
  * 4. 键盘导航
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { Modal, Input, List, Empty, Tag, Space, Typography, Spin , } from 'antd';
 import {
   SearchOutlined,
@@ -126,7 +126,8 @@ const getTypeName = (type: SearchResult['type']) => {
  * return <GlobalSearchModal visible={searchVisible} onClose={() => setSearchVisible(false)} />;
  * ```
  */
-export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ visible, onClose }) => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = memo(({ visible, onClose }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -311,4 +312,6 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ visible, o
       </div>
     </Modal>
   );
-};
+});
+
+GlobalSearchModal.displayName = 'GlobalSearchModal';

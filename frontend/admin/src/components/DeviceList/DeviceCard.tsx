@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useCallback } from 'react';
 import { Card, Tag, Button, Space, Avatar, Tooltip, message, Modal } from 'antd';
 import {
   PlayCircleOutlined,
@@ -64,63 +64,73 @@ const DeviceCard: React.FC<DeviceCardProps> = memo(({ device, onClick, onDeviceC
   const providerName = ProviderDisplayNamesCN[device.providerType] || device.providerType;
   const statusName = statusNames[device.status] || device.status;
 
-  const handleStart = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setLoading(true);
-    try {
-      await startDevice(device.id);
-      message.success(`设备 "${device.name}" 启动成功`);
-      // Refresh device list to show updated status
-      onDeviceChanged?.();
-    } catch (error: any) {
-      message.error(
-        `启动设备失败: ${error.response?.data?.message || error.message || '未知错误'}`
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ✅ 使用 useCallback 包装事件处理函数，稳定函数引用
+  const handleStart = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setLoading(true);
+      try {
+        await startDevice(device.id);
+        message.success(`设备 "${device.name}" 启动成功`);
+        // Refresh device list to show updated status
+        onDeviceChanged?.();
+      } catch (error: any) {
+        message.error(
+          `启动设备失败: ${error.response?.data?.message || error.message || '未知错误'}`
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [device.id, device.name, onDeviceChanged]
+  );
 
-  const handleStop = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setLoading(true);
-    try {
-      await stopDevice(device.id);
-      message.success(`设备 "${device.name}" 停止成功`);
-      // Refresh device list to show updated status
-      onDeviceChanged?.();
-    } catch (error: any) {
-      message.error(
-        `停止设备失败: ${error.response?.data?.message || error.message || '未知错误'}`
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleStop = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setLoading(true);
+      try {
+        await stopDevice(device.id);
+        message.success(`设备 "${device.name}" 停止成功`);
+        // Refresh device list to show updated status
+        onDeviceChanged?.();
+      } catch (error: any) {
+        message.error(
+          `停止设备失败: ${error.response?.data?.message || error.message || '未知错误'}`
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [device.id, device.name, onDeviceChanged]
+  );
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    Modal.confirm({
-      title: '确认删除设备',
-      icon: <ExclamationCircleOutlined />,
-      content: `确定要删除设备 "${device.name}" 吗？此操作无法撤销。`,
-      okText: '确认删除',
-      okType: 'danger',
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          await deleteDevice(device.id);
-          message.success(`设备 "${device.name}" 删除成功`);
-          // Refresh device list to remove deleted device
-          onDeviceChanged?.();
-        } catch (error: any) {
-          message.error(
-            `删除设备失败: ${error.response?.data?.message || error.message || '未知错误'}`
-          );
-        }
-      },
-    });
-  };
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      Modal.confirm({
+        title: '确认删除设备',
+        icon: <ExclamationCircleOutlined />,
+        content: `确定要删除设备 "${device.name}" 吗？此操作无法撤销。`,
+        okText: '确认删除',
+        okType: 'danger',
+        cancelText: '取消',
+        onOk: async () => {
+          try {
+            await deleteDevice(device.id);
+            message.success(`设备 "${device.name}" 删除成功`);
+            // Refresh device list to remove deleted device
+            onDeviceChanged?.();
+          } catch (error: any) {
+            message.error(
+              `删除设备失败: ${error.response?.data?.message || error.message || '未知错误'}`
+            );
+          }
+        },
+      });
+    },
+    [device.id, device.name, onDeviceChanged]
+  );
 
   return (
     <Card

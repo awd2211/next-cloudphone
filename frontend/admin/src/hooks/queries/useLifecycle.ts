@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as lifecycleService from '@/services/lifecycle';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import {
   LifecycleRuleSchema,
   LifecycleExecutionHistorySchema,

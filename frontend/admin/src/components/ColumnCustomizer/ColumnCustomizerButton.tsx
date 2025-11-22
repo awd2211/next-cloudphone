@@ -5,12 +5,10 @@
  */
 
 import { memo, useMemo } from 'react';
-import { Button, Dropdown, Checkbox, Space, Typography } from 'antd';
+import { Button, Dropdown, Checkbox, Space } from 'antd';
 import { SettingOutlined, EyeOutlined, EyeInvisibleOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import type { ColumnConfig } from './useColumnCustomizer';
-
-const { Text } = Typography;
 
 export interface ColumnCustomizerButtonProps {
   /** 列配置数组 */
@@ -74,11 +72,9 @@ export const ColumnCustomizerButton = memo<ColumnCustomizerButtonProps>(
         {
           key: 'stats',
           label: (
-            <Space>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                显示 {stats.visible} / {stats.total} 列
-              </Text>
-            </Space>
+            <span style={{ fontSize: 12, color: 'rgba(0, 0, 0, 0.45)' }}>
+              显示 {stats.visible} / {stats.total} 列
+            </span>
           ),
           disabled: true,
         },
@@ -97,9 +93,9 @@ export const ColumnCustomizerButton = memo<ColumnCustomizerButtonProps>(
             >
               {config.title}
               {config.fixed && (
-                <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+                <span style={{ fontSize: 12, marginLeft: 4, color: 'rgba(0, 0, 0, 0.45)' }}>
                   (固定)
-                </Text>
+                </span>
               )}
             </Checkbox>
           ),
@@ -167,9 +163,9 @@ export const ColumnCustomizerButton = memo<ColumnCustomizerButtonProps>(
         <Button icon={buttonIcon}>
           {buttonText}
           {stats.hidden > 0 && (
-            <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+            <span style={{ fontSize: 12, marginLeft: 4, color: 'rgba(0, 0, 0, 0.45)' }}>
               ({stats.hidden} 隐藏)
-            </Text>
+            </span>
           )}
         </Button>
       </Dropdown>

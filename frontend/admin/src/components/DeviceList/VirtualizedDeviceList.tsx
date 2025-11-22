@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, memo } from 'react';
 import { List, ListImperativeAPI, RowComponentProps } from 'react-window';
 // @ts-ignore
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -37,7 +37,8 @@ interface DeviceListRowProps {
   onDeviceClick: (device: Device) => void;
 }
 
-export const VirtualizedDeviceList: React.FC<VirtualizedDeviceListProps> = ({
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+export const VirtualizedDeviceList: React.FC<VirtualizedDeviceListProps> = memo(({
   devices,
   hasNextPage,
   isNextPageLoading,
@@ -106,6 +107,8 @@ export const VirtualizedDeviceList: React.FC<VirtualizedDeviceListProps> = ({
       </AutoSizer>
     </div>
   );
-};
+});
+
+VirtualizedDeviceList.displayName = 'VirtualizedDeviceList';
 
 export default VirtualizedDeviceList;

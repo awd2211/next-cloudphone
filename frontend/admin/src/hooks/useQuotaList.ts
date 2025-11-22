@@ -82,7 +82,7 @@ export const useQuotaList = (): UseQuotaListReturn => {
   const updateMutation = useUpdateQuota();
 
   // 解构数据
-  const quotas = quotasResponse?.success && quotasResponse.data ? quotasResponse.data : [];
+  const quotas = quotasResponse?.data || [];
   const total = quotasResponse?.total || 0;
   const loading = quotasLoading || alertsLoading;
 

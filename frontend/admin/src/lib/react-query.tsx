@@ -33,8 +33,9 @@ export const queryClient = new QueryClient({
       // 重试延迟（指数退避）
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
 
-      // 窗口聚焦时重新获取（用户回到页面时刷新数据）
-      refetchOnWindowFocus: true,
+      // 窗口聚焦时重新获取 - 默认关闭，减少不必要的请求
+      // 对需要实时性的数据（如在线设备、未读通知），在各 hook 中单独启用
+      refetchOnWindowFocus: false,
 
       // 重新连接时重新获取
       refetchOnReconnect: true,

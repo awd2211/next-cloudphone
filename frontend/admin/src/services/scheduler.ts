@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 调度器管理 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 import type { PaginationParams, PaginatedResponse } from '@/types';
 
 // ========== 节点管理 ==========
@@ -51,39 +55,34 @@ export interface UpdateNodeDto {
 }
 
 // 获取节点列表
-export const getNodes = (params?: PaginationParams & { status?: string; region?: string }) => {
-  return request.get<PaginatedResponse<SchedulerNode>>('/scheduler/nodes', { params });
-};
+export const getNodes = (
+  params?: PaginationParams & { status?: string; region?: string }
+): Promise<PaginatedResponse<SchedulerNode>> =>
+  api.get<PaginatedResponse<SchedulerNode>>('/scheduler/nodes', { params });
 
 // 获取节点详情
-export const getNode = (id: string) => {
-  return request.get<SchedulerNode>(`/scheduler/nodes/${id}`);
-};
+export const getNode = (id: string): Promise<SchedulerNode> =>
+  api.get<SchedulerNode>(`/scheduler/nodes/${id}`);
 
 // 创建节点
-export const createNode = (data: CreateNodeDto) => {
-  return request.post<SchedulerNode>('/scheduler/nodes', data);
-};
+export const createNode = (data: CreateNodeDto): Promise<SchedulerNode> =>
+  api.post<SchedulerNode>('/scheduler/nodes', data);
 
 // 更新节点
-export const updateNode = (id: string, data: UpdateNodeDto) => {
-  return request.put<SchedulerNode>(`/scheduler/nodes/${id}`, data);
-};
+export const updateNode = (id: string, data: UpdateNodeDto): Promise<SchedulerNode> =>
+  api.put<SchedulerNode>(`/scheduler/nodes/${id}`, data);
 
 // 删除节点
-export const deleteNode = (id: string) => {
-  return request.delete(`/scheduler/nodes/${id}`);
-};
+export const deleteNode = (id: string): Promise<void> =>
+  api.delete(`/scheduler/nodes/${id}`);
 
 // 节点进入维护模式
-export const setNodeMaintenance = (id: string, enable: boolean) => {
-  return request.post(`/scheduler/nodes/${id}/maintenance`, { enable });
-};
+export const setNodeMaintenance = (id: string, enable: boolean): Promise<void> =>
+  api.post(`/scheduler/nodes/${id}/maintenance`, { enable });
 
 // 排空节点
-export const drainNode = (id: string) => {
-  return request.post(`/scheduler/nodes/${id}/drain`);
-};
+export const drainNode = (id: string): Promise<void> =>
+  api.post(`/scheduler/nodes/${id}/drain`);
 
 // ========== 调度策略 ==========
 
@@ -98,34 +97,31 @@ export interface SchedulingStrategy {
 }
 
 // 获取调度策略
-export const getStrategies = () => {
-  return request.get<SchedulingStrategy[]>('/scheduler/strategies');
-};
+export const getStrategies = (): Promise<SchedulingStrategy[]> =>
+  api.get<SchedulingStrategy[]>('/scheduler/strategies');
 
 // 获取当前激活的策略
-export const getActiveStrategy = () => {
-  return request.get<SchedulingStrategy>('/scheduler/strategies/active');
-};
+export const getActiveStrategy = (): Promise<SchedulingStrategy> =>
+  api.get<SchedulingStrategy>('/scheduler/strategies/active');
 
 // 设置激活的策略
-export const setActiveStrategy = (id: string) => {
-  return request.post(`/scheduler/strategies/${id}/activate`);
-};
+export const setActiveStrategy = (id: string): Promise<void> =>
+  api.post(`/scheduler/strategies/${id}/activate`);
 
 // 创建策略
-export const createStrategy = (data: Partial<SchedulingStrategy>) => {
-  return request.post<SchedulingStrategy>('/scheduler/strategies', data);
-};
+export const createStrategy = (data: Partial<SchedulingStrategy>): Promise<SchedulingStrategy> =>
+  api.post<SchedulingStrategy>('/scheduler/strategies', data);
 
 // 更新策略
-export const updateStrategy = (id: string, data: Partial<SchedulingStrategy>) => {
-  return request.put<SchedulingStrategy>(`/scheduler/strategies/${id}`, data);
-};
+export const updateStrategy = (
+  id: string,
+  data: Partial<SchedulingStrategy>
+): Promise<SchedulingStrategy> =>
+  api.put<SchedulingStrategy>(`/scheduler/strategies/${id}`, data);
 
 // 删除策略
-export const deleteStrategy = (id: string) => {
-  return request.delete(`/scheduler/strategies/${id}`);
-};
+export const deleteStrategy = (id: string): Promise<void> =>
+  api.delete(`/scheduler/strategies/${id}`);
 
 // ========== 调度任务 ==========
 
@@ -141,19 +137,18 @@ export interface SchedulingTask {
 }
 
 // 获取调度任务列表
-export const getTasks = (params?: PaginationParams & { status?: string; userId?: string }) => {
-  return request.get<PaginatedResponse<SchedulingTask>>('/scheduler/tasks', { params });
-};
+export const getTasks = (
+  params?: PaginationParams & { status?: string; userId?: string }
+): Promise<PaginatedResponse<SchedulingTask>> =>
+  api.get<PaginatedResponse<SchedulingTask>>('/scheduler/tasks', { params });
 
 // 手动调度设备
-export const scheduleDevice = (deviceId: string, nodeId?: string) => {
-  return request.post('/scheduler/schedule', { deviceId, nodeId });
-};
+export const scheduleDevice = (deviceId: string, nodeId?: string): Promise<void> =>
+  api.post('/scheduler/schedule', { deviceId, nodeId });
 
 // 重新调度
-export const rescheduleDevice = (deviceId: string) => {
-  return request.post(`/scheduler/reschedule/${deviceId}`);
-};
+export const rescheduleDevice = (deviceId: string): Promise<void> =>
+  api.post(`/scheduler/reschedule/${deviceId}`);
 
 // ========== 集群统计 ==========
 
@@ -178,20 +173,21 @@ export interface ClusterStats {
 }
 
 // 获取集群统计
-export const getClusterStats = () => {
-  return request.get<ClusterStats>('/scheduler/stats');
-};
+export const getClusterStats = (): Promise<ClusterStats> =>
+  api.get<ClusterStats>('/scheduler/stats');
 
 // 获取节点资源使用趋势
-export const getNodeUsageTrend = (nodeId: string, startDate?: string, endDate?: string) => {
-  return request.get(`/scheduler/nodes/${nodeId}/usage-trend`, {
+export const getNodeUsageTrend = (
+  nodeId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<any> =>
+  api.get(`/scheduler/nodes/${nodeId}/usage-trend`, {
     params: { startDate, endDate },
   });
-};
 
 // 获取集群资源使用趋势
-export const getClusterUsageTrend = (startDate?: string, endDate?: string) => {
-  return request.get('/scheduler/cluster/usage-trend', {
+export const getClusterUsageTrend = (startDate?: string, endDate?: string): Promise<any> =>
+  api.get('/scheduler/cluster/usage-trend', {
     params: { startDate, endDate },
   });
-};

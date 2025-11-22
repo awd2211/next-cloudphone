@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as eventsService from '@/services/events';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 
 /**
  * Query Keys

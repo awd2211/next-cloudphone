@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as gpuService from '@/services/gpu';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import {
   GPUDeviceSchema,
   GPUAllocationSchema,
@@ -75,7 +75,8 @@ export const useGPUStatus = (id: string) => {
     queryKey: gpuKeys.deviceStatus(id),
     queryFn: () => gpuService.getGPUStatus(id),
     enabled: !!id,
-    refetchInterval: 5 * 1000, // 每5秒刷新
+    refetchInterval: 30 * 1000, // 每30秒刷新（GPU 状态变化不频繁）
+    staleTime: 20 * 1000, // 20秒内使用缓存
   });
 };
 
@@ -100,7 +101,7 @@ export const useGPUStats = () => {
     queryKey: gpuKeys.stats(),
     queryFn: () => gpuService.getGPUStats(),
     schema: GPUStatsSchema,
-    staleTime: 30 * 1000, // 30秒
+    staleTime: 60 * 1000, // 60秒（统计数据聚合，变化较慢）
   });
 };
 

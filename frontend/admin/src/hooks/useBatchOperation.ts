@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { message, Form } from 'antd';
-import request from '@/utils/request';
+import { api } from '@/utils/api';
 import type { DeviceGroup } from './useDeviceGroups';
 
 interface UseBatchOperationReturn {
@@ -41,7 +41,7 @@ export const useBatchOperation = (): UseBatchOperationReturn => {
   const handleBatchOperation = useCallback(async () => {
     try {
       const values = await batchForm.validateFields();
-      await request.post('/devices/groups/batch-operation', {
+      await api.post('/devices/groups/batch-operation', {
         groupId: selectedGroup!.id,
         operation: values.operation,
         params: values.params ? JSON.parse(values.params) : {},

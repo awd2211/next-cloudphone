@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import {
   Table,
   Tag,
@@ -46,7 +46,8 @@ import dayjs from 'dayjs';
  * - 测试代理
  * - 刷新代理池
  */
-const ProxyPoolTab: React.FC = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const ProxyPoolTab: React.FC = memo(() => {
   const { token } = theme.useToken();
   const [filters, setFilters] = useState({
     status: undefined as string | undefined,
@@ -72,35 +73,38 @@ const ProxyPoolTab: React.FC = () => {
   const testMutation = useTestProxy();
   const refreshMutation = useRefreshProxyPool();
 
-  const handleReleaseProxy = (record: ProxyRecord) => {
+  // ✅ 使用 useCallback 包装事件处理函数
+  const handleReleaseProxy = useCallback((record: ProxyRecord) => {
     Modal.confirm({
       title: '确认释放代理',
       content: `确定要释放代理 ${record.host}:${record.port} 吗？`,
       onOk: () => releaseMutation.mutate(record.id),
     });
-  };
+  }, [releaseMutation]);
 
-  const handleTestProxy = (record: ProxyRecord) => {
+  const handleTestProxy = useCallback((record: ProxyRecord) => {
     testMutation.mutate(record.id);
-  };
+  }, [testMutation]);
 
-  const getQualityLevel = (quality: number) => {
+  // ✅ 使用 useCallback 缓存辅助函数
+  const getQualityLevel = useCallback((quality: number) => {
     if (quality >= 90) return { text: '优秀', color: 'success' };
     if (quality >= 70) return { text: '良好', color: 'normal' };
     if (quality >= 50) return { text: '一般', color: 'exception' };
     return { text: '差', color: 'exception' };
-  };
+  }, []);
 
-  const getStatusConfig = (status: string) => {
+  const getStatusConfig = useCallback((status: string) => {
     const configs: Record<string, { color: string; text: string }> = {
       available: { color: 'success', text: '可用' },
       in_use: { color: 'processing', text: '使用中' },
       unavailable: { color: 'default', text: '不可用' },
     };
     return configs[status] || { color: 'default', text: status };
-  };
+  }, []);
 
-  const columns: ColumnsType<ProxyRecord> = [
+  // ✅ 使用 useMemo 缓存列定义，避免每次渲染都重新创建
+  const columns: ColumnsType<ProxyRecord> = useMemo(() => [
     {
       title: '代理地址',
       key: 'address',
@@ -243,7 +247,7 @@ const ProxyPoolTab: React.FC = () => {
         </Space>
       ),
     },
-  ];
+  ], [getQualityLevel, getStatusConfig, handleTestProxy, handleReleaseProxy, testMutation.isPending, releaseMutation.isPending]);
 
   return (
     <div>
@@ -420,6 +424,8 @@ const ProxyPoolTab: React.FC = () => {
       />
     </div>
   );
-};
+});
+
+ProxyPoolTab.displayName = 'ProxyPoolTab';
 
 export default ProxyPoolTab;

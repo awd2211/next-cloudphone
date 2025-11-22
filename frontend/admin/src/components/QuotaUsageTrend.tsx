@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, memo, useCallback } from 'react';
 import { Card, Select, Spin, Empty, DatePicker, Space, Button , theme } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import ReactECharts from '@/components/ReactECharts';
@@ -42,7 +42,8 @@ interface QuotaUsageTrendProps {
  * 4. 支持指标筛选
  * 5. 自动计算使用率和预测
  */
-const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = memo(({
   userId,
   height = 400,
   showCard = true,
@@ -75,10 +76,10 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
     staleTime: 30 * 1000, // 30秒缓存
   });
 
-  // Wrap refetch for onClick handler
-  const loadStatistics = () => {
+  // ✅ 使用 useCallback 包装刷新函数
+  const loadStatistics = useCallback(() => {
     refetch();
-  };
+  }, [refetch]);
 
   const statistics = statisticsResponse?.success ? statisticsResponse.data : null;
 
@@ -310,6 +311,8 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = ({
   }
 
   return chartContent;
-};
+});
+
+QuotaUsageTrend.displayName = 'QuotaUsageTrend';
 
 export default QuotaUsageTrend;

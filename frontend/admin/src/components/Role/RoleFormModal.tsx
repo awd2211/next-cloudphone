@@ -16,12 +16,20 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = React.memo(
     const [form] = Form.useForm();
 
     useEffect(() => {
-      if (visible && editingRole) {
-        form.setFieldsValue(editingRole);
-      } else if (!visible) {
-        form.resetFields();
+      if (visible) {
+        // Modal 打开时，根据是否有 editingRole 设置表单值或重置
+        if (editingRole) {
+          form.setFieldsValue(editingRole);
+        } else {
+          form.resetFields();
+        }
       }
     }, [visible, editingRole, form]);
+
+    // 处理 Modal 关闭后的清理（通过 afterClose）
+    const handleAfterClose = () => {
+      form.resetFields();
+    };
 
     return (
       <Modal
@@ -30,6 +38,8 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = React.memo(
         onCancel={onCancel}
         onOk={() => form.submit()}
         confirmLoading={loading}
+        afterClose={handleAfterClose}
+        destroyOnClose={false}
       >
         <Form form={form} onFinish={onSubmit} layout="vertical">
           <Form.Item

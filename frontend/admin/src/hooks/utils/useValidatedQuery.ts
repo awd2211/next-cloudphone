@@ -91,20 +91,28 @@ export function useValidatedQuery<
         // 1. 调用 API
         const response = await queryFn(context);
 
-        // 2. Zod 验证
+        // 2. Zod 验证 (开发模式下仅警告，不阻塞)
         const validationResult = schema.safeParse(response);
 
         if (!validationResult.success) {
           // 验证失败
           if (logValidationErrors) {
-            console.error('❌ API响应验证失败:', {
+            console.warn('⚠️ API响应验证警告 (开发模式):', {
+              queryKey: queryOptions.queryKey,
               response,
-              errors: validationResult.error.issues,
+              errors: validationResult.error.issues.slice(0, 5), // 只显示前5个错误
+              totalErrors: validationResult.error.issues.length,
               schema: schema.description || 'Schema',
             });
           }
 
-          // 抛出验证错误
+          // 开发模式: 返回原始响应，不阻塞应用
+          // 生产模式: 严格验证
+          if (process.env.NODE_ENV === 'development') {
+            return response as TQueryFnData;
+          }
+
+          // 生产模式: 抛出验证错误
           const error = new Error(validationErrorMessage);
           (error as any).validationErrors = validationResult.error.issues;
           (error as any).isValidationError = true;
@@ -117,7 +125,8 @@ export function useValidatedQuery<
         // 区分验证错误和 API 错误
         if ((error as any).isValidationError) {
           message.error(validationErrorMessage);
-        } else {
+        } else if (!(error as any).isValidationError) {
+          // 只在非验证错误时显示消息
           message.error(apiErrorMessage);
         }
         throw error;
@@ -159,6 +168,15 @@ export function useValidatedMutation<
       const validationResult = schema.safeParse(response);
 
       if (!validationResult.success) {
+        // 开发模式仅警告
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ Mutation响应验证警告 (开发模式):', {
+            errors: validationResult.error.issues.slice(0, 5),
+            totalErrors: validationResult.error.issues.length,
+          });
+          return response as TData;
+        }
+        // 生产模式抛出错误
         console.error('❌ Mutation响应验证失败:', validationResult.error.issues);
         throw new Error('响应数据格式错误');
       }

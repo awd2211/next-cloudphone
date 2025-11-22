@@ -1,3 +1,8 @@
+/**
+ * 支付管理 API (管理员)
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 import request from '@/utils/request';
 
 // ==================== 类型定义 ====================
@@ -106,130 +111,133 @@ export interface PaymentConfig {
 /**
  * 获取支付统计数据
  */
-export const getPaymentStatistics = (startDate?: string, endDate?: string) => {
-  return request.get<PaymentStatistics>('/admin/payments/statistics', {
+export const getPaymentStatistics = (
+  startDate?: string,
+  endDate?: string
+): Promise<PaymentStatistics> =>
+  api.get<PaymentStatistics>('/admin/payments/statistics', {
     params: { startDate, endDate },
   });
-};
 
 /**
  * 获取支付方式统计
  */
-export const getPaymentMethodsStats = (startDate?: string, endDate?: string) => {
-  return request.get<PaymentMethodStat[]>('/admin/payments/statistics/payment-methods', {
+export const getPaymentMethodsStats = (
+  startDate?: string,
+  endDate?: string
+): Promise<PaymentMethodStat[]> =>
+  api.get<PaymentMethodStat[]>('/admin/payments/statistics/payment-methods', {
     params: { startDate, endDate },
   });
-};
 
 /**
  * 获取每日统计
  */
-export const getDailyStatistics = (days: number = 30) => {
-  return request.get<DailyStat[]>('/admin/payments/statistics/daily', {
+export const getDailyStatistics = (days: number = 30): Promise<DailyStat[]> =>
+  api.get<DailyStat[]>('/admin/payments/statistics/daily', {
     params: { days },
   });
-};
 
 /**
  * 获取所有支付记录（管理员）
  */
-export const getAdminPayments = (params: PaymentListParams) => {
-  return request.get<PaginatedResponse<PaymentDetail>>('/admin/payments', { params });
-};
+export const getAdminPayments = (
+  params: PaymentListParams
+): Promise<PaginatedResponse<PaymentDetail>> =>
+  api.get<PaginatedResponse<PaymentDetail>>('/admin/payments', { params });
 
 /**
  * 获取支付详情（管理员）
  */
-export const getAdminPaymentDetail = (id: string) => {
-  return request.get<PaymentDetail>(`/admin/payments/${id}`);
-};
+export const getAdminPaymentDetail = (id: string): Promise<PaymentDetail> =>
+  api.get<PaymentDetail>(`/admin/payments/${id}`);
 
 /**
  * 手动发起退款
  */
-export const manualRefund = (paymentId: string, data: RefundRequest) => {
-  return request.post(`/admin/payments/${paymentId}/refund`, data);
-};
+export const manualRefund = (paymentId: string, data: RefundRequest): Promise<void> =>
+  api.post(`/admin/payments/${paymentId}/refund`, data);
 
 /**
  * 获取待审核退款列表
  */
-export const getPendingRefunds = () => {
-  return request.get<PaymentDetail[]>('/admin/payments/refunds/pending');
-};
+export const getPendingRefunds = (): Promise<PaymentDetail[]> =>
+  api.get<PaymentDetail[]>('/admin/payments/refunds/pending');
 
 /**
  * 批准退款
  */
-export const approveRefund = (paymentId: string, adminNote?: string) => {
-  return request.post(`/admin/payments/refunds/${paymentId}/approve`, { adminNote });
-};
+export const approveRefund = (paymentId: string, adminNote?: string): Promise<void> =>
+  api.post(`/admin/payments/refunds/${paymentId}/approve`, { adminNote });
 
 /**
  * 拒绝退款
  */
-export const rejectRefund = (paymentId: string, reason: string, adminNote?: string) => {
-  return request.post(`/admin/payments/refunds/${paymentId}/reject`, { reason, adminNote });
-};
+export const rejectRefund = (
+  paymentId: string,
+  reason: string,
+  adminNote?: string
+): Promise<void> =>
+  api.post(`/admin/payments/refunds/${paymentId}/reject`, { reason, adminNote });
 
 /**
  * 获取异常支付列表
  */
-export const getExceptionPayments = (page: number = 1, limit: number = 20) => {
-  return request.get<PaginatedResponse<PaymentDetail>>('/admin/payments/exceptions/list', {
+export const getExceptionPayments = (
+  page: number = 1,
+  limit: number = 20
+): Promise<PaginatedResponse<PaymentDetail>> =>
+  api.get<PaginatedResponse<PaymentDetail>>('/admin/payments/exceptions/list', {
     params: { page, limit },
   });
-};
 
 /**
  * 手动同步支付状态
  */
-export const syncPaymentStatus = (paymentId: string) => {
-  return request.post(`/admin/payments/${paymentId}/sync`);
-};
+export const syncPaymentStatus = (paymentId: string): Promise<void> =>
+  api.post(`/admin/payments/${paymentId}/sync`);
 
 /**
- * 导出支付数据为 Excel
+ * 导出支付数据为 Excel (使用 raw request 因为需要 blob)
  */
 export const exportPaymentsToExcel = (params: {
   startDate?: string;
   endDate?: string;
   status?: string;
   method?: string;
-}) => {
-  return request.get('/admin/payments/export/excel', {
+}): Promise<Blob> =>
+  request.get('/admin/payments/export/excel', {
     params,
     responseType: 'blob',
   });
-};
 
 /**
  * 获取支付配置
  */
-export const getPaymentConfig = () => {
-  return request.get<PaymentConfig>('/admin/payments/config/all');
-};
+export const getPaymentConfig = (): Promise<PaymentConfig> =>
+  api.get<PaymentConfig>('/admin/payments/config/all');
 
 /**
  * 更新支付配置
  */
-export const updatePaymentConfig = (config: Partial<PaymentConfig>) => {
-  return request.put('/admin/payments/config', config);
-};
+export const updatePaymentConfig = (config: Partial<PaymentConfig>): Promise<void> =>
+  api.put('/admin/payments/config', config);
 
 /**
  * 测试支付提供商连接
  */
-export const testProviderConnection = (provider: string) => {
-  return request.post(`/admin/payments/config/test/${provider}`);
-};
+export const testProviderConnection = (provider: string): Promise<any> =>
+  api.post(`/admin/payments/config/test/${provider}`);
 
 /**
  * 获取 Webhook 日志
  */
-export const getWebhookLogs = (params: { page?: number; limit?: number; provider?: string }) => {
-  return request.get('/admin/payments/webhooks/logs', { params });
-};
+export const getWebhookLogs = (params: {
+  page?: number;
+  limit?: number;
+  provider?: string;
+}): Promise<any> =>
+  api.get('/admin/payments/webhooks/logs', { params });
 
 /**
  * 下载 Excel 文件（辅助函数）
@@ -239,7 +247,7 @@ export const downloadExcelFile = async (params: {
   endDate?: string;
   status?: string;
   method?: string;
-}) => {
+}): Promise<boolean> => {
   try {
     const response = await exportPaymentsToExcel(params);
 

@@ -5,10 +5,13 @@ import { Card, Skeleton, Space } from 'antd';
  *
  * 提供更好的加载体验，替代简单的 Spin 组件
  * 模拟页面的基本布局结构
+ *
+ * 注意：此组件被嵌套在 BasicLayout 的 Content 内部，
+ * Content 已设置 padding 和背景色，因此这里不再重复设置
  */
 export const PageLoadingSkeleton = () => {
   return (
-    <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh' }}>
+    <div>
       {/* 页面标题区域 */}
       <div style={{ marginBottom: 24 }}>
         <Skeleton.Input active style={{ width: 200, height: 32 }} />
@@ -118,10 +121,13 @@ export const TableLoadingSkeleton = ({ rows = 10 }: { rows?: number }) => {
 
 /**
  * Dashboard 加载骨架屏 - 用于仪表板页面
+ *
+ * 注意：此组件被嵌套在 BasicLayout 的 Content 内部，
+ * Content 已设置 padding 和背景色，因此这里不再重复设置
  */
 export const DashboardLoadingSkeleton = () => {
   return (
-    <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh' }}>
+    <div>
       {/* 统计卡片行 */}
       <div
         style={{

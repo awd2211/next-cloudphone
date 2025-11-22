@@ -85,6 +85,8 @@ export function useUnreadCount(userId: string) {
     gcTime: 5 * 60 * 1000,
     enabled: !!userId,
     refetchInterval: 30 * 1000, // 每 30 秒自动刷新一次
+    // 窗口聚焦时刷新 - 未读通知需要实时性
+    refetchOnWindowFocus: true,
   });
 }
 

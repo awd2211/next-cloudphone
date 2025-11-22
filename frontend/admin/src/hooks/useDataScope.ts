@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import request from '../utils/request';
+import { api } from '../utils/api';
 
 /**
  * 数据范围类型
@@ -128,29 +128,18 @@ export const useDataScope = () => {
       if (params?.page) queryParams.append('page', String(params.page));
       if (params?.pageSize) queryParams.append('pageSize', String(params.pageSize));
 
-      const response = await request.get<any>(
+      const response = await api.get<{ data: DataScope[]; total: number; page: number; pageSize: number }>(
         `/data-scopes${queryParams.toString() ? `?${queryParams}` : ''}`
       );
 
-      console.log('🔍 useDataScope fetchDataScopes 响应:', response);
-      console.log('📊 response.success:', response.success);
-      console.log('📊 response.data:', response.data);
-      console.log('📊 response.total:', response.total);
-
-      if (response.success) {
-        const scopesData = response.data || [];
-        console.log('✅ 设置 dataScopes:', scopesData);
-        setDataScopes(scopesData);
-        // ✅ 返回分页信息
-        return {
-          data: scopesData as DataScope[],
-          total: response.total || 0,
-          page: response.page || params?.page || 1,
-          pageSize: response.pageSize || params?.pageSize || 20,
-        };
-      } else {
-        throw new Error(response.message || '获取数据范围失败');
-      }
+      const scopesData = response.data || [];
+      setDataScopes(scopesData);
+      return {
+        data: scopesData,
+        total: response.total || 0,
+        page: response.page || params?.page || 1,
+        pageSize: response.pageSize || params?.pageSize || 20,
+      };
     } catch (err: any) {
       setError(err);
       throw err;
@@ -167,13 +156,7 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.get<any>(`/data-scopes/${id}`);
-
-      if (response.success) {
-        return response.data as DataScope;
-      } else {
-        throw new Error(response.message || '获取数据范围失败');
-      }
+      return api.get<DataScope>(`/data-scopes/${id}`);
     } catch (err: any) {
       setError(err);
       throw err;
@@ -191,13 +174,7 @@ export const useDataScope = () => {
 
     try {
       const queryParams = resourceType ? `?resourceType=${resourceType}` : '';
-      const response = await request.get<any>(`/data-scopes/role/${roleId}${queryParams}`);
-
-      if (response.success) {
-        return response.data as Record<string, DataScope[]>;
-      } else {
-        throw new Error(response.message || '获取角色数据范围失败');
-      }
+      return api.get<Record<string, DataScope[]>>(`/data-scopes/role/${roleId}${queryParams}`);
     } catch (err: any) {
       setError(err);
       throw err;
@@ -214,13 +191,8 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.post<any>('/data-scopes', dto);
-
-      if (response.success) {
-        return response.data as DataScope;
-      } else {
-        throw new Error(response.message || '创建数据范围失败');
-      }
+      const result = await api.post<{ data: DataScope }>('/data-scopes', dto);
+      return result.data;
     } catch (err: any) {
       setError(err);
       throw err;
@@ -237,13 +209,8 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.put<any>(`/data-scopes/${id}`, dto);
-
-      if (response.success) {
-        return response.data as DataScope;
-      } else {
-        throw new Error(response.message || '更新数据范围失败');
-      }
+      const result = await api.put<{ data: DataScope }>(`/data-scopes/${id}`, dto);
+      return result.data;
     } catch (err: any) {
       setError(err);
       throw err;
@@ -260,13 +227,8 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.delete<any>(`/data-scopes/${id}`);
-
-      if (response.success) {
-        return true;
-      } else {
-        throw new Error(response.message || '删除数据范围失败');
-      }
+      await api.delete(`/data-scopes/${id}`);
+      return true;
     } catch (err: any) {
       setError(err);
       throw err;
@@ -283,13 +245,8 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.post<any>('/data-scopes/batch', dtos);
-
-      if (response.success) {
-        return response.data as DataScope[];
-      } else {
-        throw new Error(response.message || '批量创建数据范围失败');
-      }
+      const result = await api.post<{ data: DataScope[] }>('/data-scopes/batch', dtos);
+      return result.data;
     } catch (err: any) {
       setError(err);
       throw err;
@@ -306,13 +263,8 @@ export const useDataScope = () => {
     setError(null);
 
     try {
-      const response = await request.put<any>(`/data-scopes/${id}/toggle`, {});
-
-      if (response.success) {
-        return response.data as DataScope;
-      } else {
-        throw new Error(response.message || '切换数据范围状态失败');
-      }
+      const result = await api.put<{ data: DataScope }>(`/data-scopes/${id}/toggle`, {});
+      return result.data;
     } catch (err: any) {
       setError(err);
       throw err;
@@ -323,20 +275,18 @@ export const useDataScope = () => {
 
   /**
    * 获取数据范围类型元数据
+   * ✅ 修复：API 返回 { data: [...] } 格式，需要提取 .data
    */
   const getScopeTypes = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await request.get<any>('/data-scopes/meta/scope-types');
-
-      if (response.success) {
-        setScopeTypes(response.data || []);
-        return response.data as ScopeTypeMetadata[];
-      } else {
-        throw new Error(response.message || '获取范围类型失败');
-      }
+      const result = await api.get<{ data: ScopeTypeMetadata[] }>('/data-scopes/meta/scope-types');
+      // ✅ 修复：提取 data 数组，确保 scopeTypes 是数组
+      const scopeTypesArray = Array.isArray(result) ? result : (result?.data || []);
+      setScopeTypes(scopeTypesArray);
+      return scopeTypesArray;
     } catch (err: any) {
       setError(err);
       throw err;

@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 双因素认证服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 
 export interface TwoFactorSecret {
   secret: string;
@@ -21,27 +25,23 @@ export interface Verify2FADto {
 /**
  * 生成2FA密钥和二维码
  */
-export const generate2FASecret = () => {
-  return request.get<TwoFactorSecret>('/auth/2fa/generate');
-};
+export const generate2FASecret = (): Promise<TwoFactorSecret> =>
+  api.get<TwoFactorSecret>('/auth/2fa/generate');
 
 /**
  * 启用2FA
  */
-export const enable2FA = (data: Enable2FADto) => {
-  return request.post('/auth/2fa/enable', data);
-};
+export const enable2FA = (data: Enable2FADto): Promise<void> =>
+  api.post<void>('/auth/2fa/enable', data);
 
 /**
  * 禁用2FA
  */
-export const disable2FA = (data: Enable2FADto) => {
-  return request.post('/auth/2fa/disable', data);
-};
+export const disable2FA = (data: Enable2FADto): Promise<void> =>
+  api.post<void>('/auth/2fa/disable', data);
 
 /**
  * 2FA登录验证
  */
-export const verify2FA = (data: Verify2FADto) => {
-  return request.post<{ token: string; user: any }>('/auth/2fa/verify', data);
-};
+export const verify2FA = (data: Verify2FADto): Promise<{ token: string; user: any }> =>
+  api.post<{ token: string; user: any }>('/auth/2fa/verify', data);

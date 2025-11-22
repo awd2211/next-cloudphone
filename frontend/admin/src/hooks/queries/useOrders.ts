@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as orderService from '@/services/order';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import { OrderSchema, OrderStatsSchema } from '@/schemas/api.schemas';
 import type { Order, PaginatedResponse } from '@/types';
 

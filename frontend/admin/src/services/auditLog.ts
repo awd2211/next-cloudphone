@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 用户审计日志服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 import type { AuditLog, AuditAction, AuditLevel, AuditLogStatistics } from '@/types';
 
 /**
@@ -14,26 +18,32 @@ export const getUserAuditLogs = (
     limit?: number;
     offset?: number;
   }
-) => {
-  return request.get<{
-    success: boolean;
+): Promise<{
+  data: AuditLog[];
+  total: number;
+}> =>
+  api.get<{
     data: AuditLog[];
     total: number;
   }>(`/audit-logs/user/${userId}`, { params });
-};
 
 /**
  * 获取资源的审计日志
  */
-export const getResourceAuditLogs = (resourceType: string, resourceId: string, limit?: number) => {
-  return request.get<{
-    success: boolean;
+export const getResourceAuditLogs = (
+  resourceType: string,
+  resourceId: string,
+  limit?: number
+): Promise<{
+  data: AuditLog[];
+  total: number;
+}> =>
+  api.get<{
     data: AuditLog[];
     total: number;
   }>(`/audit-logs/resource/${resourceType}/${resourceId}`, {
     params: limit ? { limit } : undefined,
   });
-};
 
 /**
  * 搜索审计日志（管理员）
@@ -50,22 +60,23 @@ export const searchAuditLogs = (params?: {
   success?: boolean;
   limit?: number;
   offset?: number;
-}) => {
-  return request.get<{
-    success: boolean;
+}): Promise<{
+  data: AuditLog[];
+  total: number;
+}> =>
+  api.get<{
     data: AuditLog[];
     total: number;
   }>('/audit-logs/search', { params });
-};
 
 /**
  * 获取审计日志统计
  */
-export const getAuditLogStatistics = (userId?: string) => {
-  return request.get<{
-    success: boolean;
+export const getAuditLogStatistics = (userId?: string): Promise<{
+  data: AuditLogStatistics;
+}> =>
+  api.get<{
     data: AuditLogStatistics;
   }>('/audit-logs/statistics', {
     params: userId ? { userId } : undefined,
   });
-};

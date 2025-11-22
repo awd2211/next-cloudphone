@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback, memo } from 'react';
 import {
   Table,
   Card,
@@ -50,7 +50,8 @@ interface ProviderStat {
  * - 性能对比（成功率、响应时间、成本）
  * - 平台推荐
  */
-const ProviderMonitorTab: React.FC = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const ProviderMonitorTab: React.FC = memo(() => {
   const { token } = theme.useToken();
 
   // 使用新的 React Query Hook
@@ -59,7 +60,8 @@ const ProviderMonitorTab: React.FC = () => {
   // 类型断言：假设 API 返回的数据符合组件期望的结构
   const providers = data as unknown as ProviderStat[] | undefined;
 
-  const getHealthBadge = (isHealthy: boolean, consecutiveFailures: number) => {
+  // ✅ 使用 useCallback 缓存辅助函数
+  const getHealthBadge = useCallback((isHealthy: boolean, consecutiveFailures: number) => {
     if (consecutiveFailures >= 3) {
       return <Badge status="error" text="异常" />;
     }
@@ -67,9 +69,10 @@ const ProviderMonitorTab: React.FC = () => {
       return <Badge status="warning" text="不稳定" />;
     }
     return <Badge status="success" text="健康" />;
-  };
+  }, []);
 
-  const columns: ColumnsType<ProviderStat> = [
+  // ✅ 使用 useMemo 缓存列定义
+  const columns: ColumnsType<ProviderStat> = useMemo(() => [
     {
       title: '平台',
       dataIndex: 'provider',
@@ -170,10 +173,10 @@ const ProviderMonitorTab: React.FC = () => {
         </div>
       ),
     },
-  ];
+  ], [getHealthBadge]);
 
-  // 计算总览统计
-  const totalStats = providers?.reduce(
+  // ✅ 使用 useMemo 缓存总览统计计算
+  const totalStats = useMemo(() => providers?.reduce(
     (acc: any, p: any) => ({
       totalRequests: acc.totalRequests + p.totalRequests,
       successCount: acc.successCount + p.successCount,
@@ -181,15 +184,15 @@ const ProviderMonitorTab: React.FC = () => {
       totalCost: acc.totalCost + p.averageCost * p.totalRequests,
     }),
     { totalRequests: 0, successCount: 0, failureCount: 0, totalCost: 0 }
-  ) || { totalRequests: 0, successCount: 0, failureCount: 0, totalCost: 0 };
+  ) || { totalRequests: 0, successCount: 0, failureCount: 0, totalCost: 0 }, [providers]);
 
-  const avgSuccessRate =
+  const avgSuccessRate = useMemo(() =>
     totalStats.totalRequests > 0
       ? (totalStats.successCount / totalStats.totalRequests) * 100
-      : 0;
+      : 0, [totalStats]);
 
   // 获取推荐信息 (假设返回的第一个 provider 包含 recommendation 字段)
-  const recommendation = providers?.[0] ? (providers[0] as any).recommendation : null;
+  const recommendation = useMemo(() => providers?.[0] ? (providers[0] as any).recommendation : null, [providers]);
 
   return (
     <div>
@@ -275,6 +278,8 @@ const ProviderMonitorTab: React.FC = () => {
       />
     </div>
   );
-};
+});
+
+ProviderMonitorTab.displayName = 'SMS.ProviderMonitorTab';
 
 export default ProviderMonitorTab;

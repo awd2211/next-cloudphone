@@ -1057,15 +1057,22 @@ export interface UsageRecord {
 }
 
 // 统计相关
+// 注意: 后端 API 返回的字段与某些组件使用的不同
+// 实际 API 返回: totalUsers, activeDevices, todayRevenue, monthRevenue, todayOrders, pendingOrders, lastUpdated
 export interface DashboardStats {
-  totalDevices: number;
-  onlineDevices: number;
+  // 实际 API 返回的字段
   totalUsers: number;
-  totalApps: number;
+  activeDevices: number;
   todayRevenue: number;
   monthRevenue: number;
   todayOrders: number;
-  monthOrders: number;
+  pendingOrders: number;
+  lastUpdated?: string;
+  // 兼容旧字段 (可选)
+  totalDevices?: number;
+  onlineDevices?: number;
+  totalApps?: number;
+  monthOrders?: number;
 }
 
 export interface RevenueStats {
@@ -1398,44 +1405,56 @@ export interface GPUUsageTrend {
 }
 
 // 通知模板相关
+export type ContentFormat = 'plain' | 'html' | 'markdown';
+
 export interface NotificationTemplate {
   id: string;
+  code: string; // 模板代码，如 USER_REGISTERED
   name: string;
+  type: 'system' | 'user' | 'device' | 'billing' | 'app';
+  title: string; // 通知标题
+  body: string; // 通知内容
+  emailTemplate?: string; // 邮件专用 HTML 模板
+  smsTemplate?: string; // 短信专用模板
+  channels: ('websocket' | 'email' | 'sms')[]; // 通知渠道
+  contentFormat: ContentFormat; // 内容格式：plain/html/markdown
+  defaultData?: Record<string, unknown>; // 默认变量数据
   description?: string;
-  type: 'email' | 'sms' | 'websocket';
-  subject?: string; // 仅邮件
-  content: string;
-  contentType: 'plain' | 'html' | 'markdown';
-  variables: string[]; // 可用变量列表
-  isActive: boolean;
   language: string; // 语言代码
-  category?: string;
-  version: number;
-  createdBy?: string;
+  isActive: boolean;
+  priority?: number;
+  targetRoles?: string[];
+  excludeRoles?: string[];
+  roleSpecificData?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateNotificationTemplateDto {
+  code: string;
   name: string;
+  type: 'system' | 'user' | 'device' | 'billing' | 'app';
+  title: string;
+  body: string;
+  emailTemplate?: string;
+  smsTemplate?: string;
+  channels: ('websocket' | 'email' | 'sms')[];
+  contentFormat?: ContentFormat;
   description?: string;
-  type: 'email' | 'sms' | 'websocket';
-  subject?: string;
-  content: string;
-  contentType: 'plain' | 'html' | 'markdown';
-  isActive?: boolean;
   language?: string;
-  category?: string;
+  isActive?: boolean;
 }
 
 export interface UpdateNotificationTemplateDto {
   name?: string;
+  title?: string;
+  body?: string;
+  emailTemplate?: string;
+  smsTemplate?: string;
+  channels?: ('websocket' | 'email' | 'sms')[];
+  contentFormat?: ContentFormat;
   description?: string;
-  subject?: string;
-  content?: string;
-  contentType?: 'plain' | 'html' | 'markdown';
   isActive?: boolean;
-  category?: string;
 }
 
 export interface NotificationTemplateVersion {

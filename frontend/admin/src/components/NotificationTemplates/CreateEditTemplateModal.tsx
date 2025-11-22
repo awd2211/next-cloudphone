@@ -100,6 +100,19 @@ export const CreateEditTemplateModal = memo<CreateEditTemplateModalProps>(
             />
           </Form.Item>
 
+          <Form.Item
+            label="内容格式"
+            name="contentFormat"
+            initialValue="plain"
+            tooltip="Markdown 格式支持标题、列表、链接等富文本；邮件发送时会自动转换为 HTML"
+          >
+            <Select placeholder="请选择内容格式">
+              <Select.Option value="plain">纯文本</Select.Option>
+              <Select.Option value="html">HTML</Select.Option>
+              <Select.Option value="markdown">Markdown</Select.Option>
+            </Select>
+          </Form.Item>
+
           <Form.Item label="邮件模板" name="emailTemplate">
             <TextArea rows={4} placeholder="邮件专用 HTML 模板（可选）" />
           </Form.Item>

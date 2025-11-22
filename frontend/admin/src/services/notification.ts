@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 通知服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 import type { PaginationParams, PaginatedResponse } from '@/types';
 import { io, Socket } from 'socket.io-client';
 
@@ -30,45 +34,41 @@ export interface CreateNotificationDto {
 // 获取通知列表
 export const getNotifications = (
   params?: PaginationParams & { isRead?: boolean; type?: string; userId?: string }
-) => {
+): Promise<PaginatedResponse<Notification>> => {
   // 如果没有 userId,从 localStorage 获取当前用户 ID
   const userId = params?.userId || localStorage.getItem('userId') || 'test-user-id';
-  return request.get<PaginatedResponse<Notification>>(`/notifications/user/${userId}`, { params });
+  return api.get<PaginatedResponse<Notification>>(`/notifications/user/${userId}`, { params });
 };
 
 // 获取未读通知数量
-export const getUnreadCount = (userId?: string) => {
+export const getUnreadCount = (userId?: string): Promise<{ count: number }> => {
   const uid = userId || localStorage.getItem('userId') || '';
-  return request.get<{ count: number }>('/notifications/unread/count', {
+  return api.get<{ count: number }>('/notifications/unread/count', {
     params: { userId: uid }
   });
 };
 
 // 创建通知
-export const createNotification = (data: CreateNotificationDto) => {
-  return request.post<Notification>('/notifications', data);
-};
+export const createNotification = (data: CreateNotificationDto): Promise<Notification> =>
+  api.post<Notification>('/notifications', data);
 
 // 标记为已读
-export const markAsRead = (id: string) => {
-  return request.post(`/notifications/${id}/read`);
-};
+export const markAsRead = (id: string): Promise<void> =>
+  api.post<void>(`/notifications/${id}/read`);
 
 // 批量标记为已读
-export const markAllAsRead = (userId?: string) => {
+export const markAllAsRead = (userId?: string): Promise<void> => {
   const uid = userId || localStorage.getItem('userId') || '';
-  return request.post('/notifications/read-all', { userId: uid });
+  return api.post<void>('/notifications/read-all', { userId: uid });
 };
 
 // 删除通知
-export const deleteNotification = (id: string) => {
-  return request.delete(`/notifications/${id}`);
-};
+export const deleteNotification = (id: string): Promise<void> =>
+  api.delete<void>(`/notifications/${id}`);
 
 // 批量删除通知
-export const batchDeleteNotifications = (ids: string[]) => {
-  return request.post('/notifications/batch/delete', { ids });
-};
+export const batchDeleteNotifications = (ids: string[]): Promise<void> =>
+  api.post<void>('/notifications/batch/delete', { ids });
 
 // WebSocket 通知服务
 class NotificationWebSocket {

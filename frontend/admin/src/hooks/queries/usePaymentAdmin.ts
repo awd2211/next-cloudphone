@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as paymentAdminService from '@/services/payment-admin';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import {
   PaymentStatisticsSchema,
   PaymentDetailSchema,
@@ -103,7 +103,7 @@ export const usePendingRefunds = () => {
   return useQuery({
     queryKey: paymentAdminKeys.pendingRefunds(),
     queryFn: () => paymentAdminService.getPendingRefunds(),
-    refetchInterval: 30 * 1000, // 每30秒自动刷新
+    refetchInterval: 60 * 1000, // 待审核退款 - 中等实时性
   });
 };
 

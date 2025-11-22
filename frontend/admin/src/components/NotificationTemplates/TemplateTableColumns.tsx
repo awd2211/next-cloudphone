@@ -40,8 +40,44 @@ export const useTemplateColumns = ({
         title: '模板名称',
         dataIndex: 'name',
         key: 'name',
-        width: 200,
+        width: 180,
         sorter: (a: NotificationTemplate, b: NotificationTemplate) => a.name.localeCompare(b.name),
+        ellipsis: {
+          showTitle: false,
+        },
+        render: (text: string) => (
+          <Tooltip placement="topLeft" title={text}>
+            <span>{text}</span>
+          </Tooltip>
+        ),
+      },
+      {
+        title: '通知标题',
+        dataIndex: 'title',
+        key: 'title',
+        width: 200,
+        ellipsis: {
+          showTitle: false,
+        },
+        render: (text: string) => (
+          <Tooltip placement="topLeft" title={text}>
+            <span>{text || '-'}</span>
+          </Tooltip>
+        ),
+      },
+      {
+        title: '通知内容',
+        dataIndex: 'body',
+        key: 'body',
+        width: 300,
+        ellipsis: {
+          showTitle: false,
+        },
+        render: (text: string) => (
+          <Tooltip placement="topLeft" title={text} overlayStyle={{ maxWidth: 500 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>{text || '-'}</Text>
+          </Tooltip>
+        ),
       },
       {
         title: '类型',

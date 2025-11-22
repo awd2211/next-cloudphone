@@ -129,6 +129,7 @@ const PermissionList = () => {
         dataIndex: 'name',
         key: 'name',
         width: 200,
+        sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
         render: (text: string) => <code>{text}</code>,
       },
       {
@@ -136,6 +137,7 @@ const PermissionList = () => {
         dataIndex: 'resource',
         key: 'resource',
         width: 150,
+        sorter: (a, b) => (a.resource || '').localeCompare(b.resource || ''),
         render: (text: string) => <span style={{ color: token.colorPrimary }}>{text}</span>,
       },
       {
@@ -143,6 +145,15 @@ const PermissionList = () => {
         dataIndex: 'action',
         key: 'action',
         width: 120,
+        sorter: (a, b) => (a.action || '').localeCompare(b.action || ''),
+        filters: [
+          { text: '创建', value: 'create' },
+          { text: '读取', value: 'read' },
+          { text: '更新', value: 'update' },
+          { text: '删除', value: 'delete' },
+          { text: '管理', value: 'manage' },
+        ],
+        onFilter: (value, record) => record.action === value,
         render: (text: string) => <span style={{ color: '#52c41a' }}>{text}</span>,
       },
       {
@@ -150,12 +161,15 @@ const PermissionList = () => {
         dataIndex: 'description',
         key: 'description',
         ellipsis: true,
+        sorter: (a, b) => (a.description || '').localeCompare(b.description || ''),
       },
       {
         title: '创建时间',
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 180,
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        defaultSortOrder: 'descend',
         render: (date: string) => new Date(date).toLocaleString('zh-CN'),
       },
       {

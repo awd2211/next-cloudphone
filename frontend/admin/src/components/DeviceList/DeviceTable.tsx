@@ -23,7 +23,11 @@ interface DeviceTableProps {
  *
  * 性能优化:
  * - ✅ 使用 memo 避免不必要的重渲染
- * - ✅ 启用虚拟滚动，提升大数据场景性能
+ * - ✅ 启用虚拟滚动，提升大数据场景性能（仅在非拖拽模式下）
+ *
+ * 注意：
+ * - antd Table 的 virtual 属性与 @dnd-kit 存在兼容性问题
+ * - 当启用拖拽（传入 components）时，自动禁用虚拟滚动
  */
 export const DeviceTable = memo<DeviceTableProps>(
   ({
@@ -39,6 +43,15 @@ export const DeviceTable = memo<DeviceTableProps>(
     components,
     onRow,
   }) => {
+    // 当使用自定义 components（如 dnd-kit 拖拽）时，禁用虚拟滚动
+    // 因为 antd virtual 与 dnd-kit 存在已知兼容性问题
+    const enableVirtual = !components;
+
+    // 拖拽模式下完全禁用 scroll.y 和 virtual，避免 antd 内部的滚动监听冲突
+    const scrollConfig = enableVirtual
+      ? { x: 1200, y: 600 }
+      : { x: 1200 }; // 拖拽模式只保留横向滚动
+
     return (
       <Table<Device>
         rowKey="id"
@@ -59,13 +72,10 @@ export const DeviceTable = memo<DeviceTableProps>(
           showQuickJumper: true,
           showTotal: (total) => `共 ${total} 台设备`,
           onChange: onPageChange,
-          pageSizeOptions: ['10', '20', '50', '100'], // 虚拟滚动模式下支持更大页面
+          pageSizeOptions: ['10', '20', '50', '100'],
         }}
-        scroll={{
-          x: 1200,
-          y: 600, // 固定高度，启用虚拟滚动
-        }}
-        virtual // ✅ 启用虚拟滚动，大数据场景性能提升 80%+
+        scroll={scrollConfig}
+        {...(enableVirtual ? { virtual: true } : {})} // 仅在非拖拽模式下添加 virtual 属性
       />
     );
   }

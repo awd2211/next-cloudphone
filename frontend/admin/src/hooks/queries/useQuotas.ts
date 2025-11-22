@@ -52,10 +52,7 @@ export function useQuotas(filters?: { status?: string; limit?: number; page?: nu
 export function useUserQuota(userId: string) {
   return useQuery({
     queryKey: quotaKeys.userQuota(userId),
-    queryFn: async () => {
-      const response = await getUserQuota(userId);
-      return response.data;
-    },
+    queryFn: () => getUserQuota(userId),
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     enabled: !!userId,
@@ -94,14 +91,10 @@ export function useCreateQuota() {
   return useMutation({
     mutationFn: createQuota,
 
-    onSuccess: (response) => {
-      if (response.success) {
-        // 失效列表缓存，触发重新获取
-        queryClient.invalidateQueries({ queryKey: quotaKeys.lists() });
-        message.success('创建配额成功');
-      } else {
-        message.error(response.message || '创建配额失败');
-      }
+    onSuccess: () => {
+      // 失效列表缓存，触发重新获取
+      queryClient.invalidateQueries({ queryKey: quotaKeys.lists() });
+      message.success('创建配额成功');
     },
 
     onError: (error: any) => {
@@ -154,12 +147,8 @@ export function useUpdateQuota() {
       message.error(error.message || '更新配额失败');
     },
 
-    onSuccess: (response) => {
-      if (response.success) {
-        message.success('更新配额成功');
-      } else {
-        message.error(response.message || '更新配额失败');
-      }
+    onSuccess: () => {
+      message.success('更新配额成功');
     },
 
     onSettled: () => {
@@ -209,12 +198,8 @@ export function useDeleteQuota() {
       message.error(error.message || '删除配额失败');
     },
 
-    onSuccess: (response) => {
-      if (response.success) {
-        message.success('删除配额成功');
-      } else {
-        message.error(response.message || '删除配额失败');
-      }
+    onSuccess: () => {
+      message.success('删除配额成功');
     },
 
     onSettled: () => {
@@ -240,10 +225,7 @@ export function useDeleteQuota() {
 export function useQuotaStatistics(userId: string) {
   return useQuery({
     queryKey: quotaKeys.statistics(userId),
-    queryFn: async () => {
-      const response = await getUsageStats(userId);
-      return response.success ? response.data : null;
-    },
+    queryFn: () => getUsageStats(userId),
     staleTime: 30 * 1000, // 30 秒
     gcTime: 5 * 60 * 1000, // 5 分钟
     enabled: !!userId, // 仅在有 userId 时才请求

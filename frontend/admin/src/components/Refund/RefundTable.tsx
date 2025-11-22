@@ -15,6 +15,8 @@ interface RefundTableProps {
   onViewDetail: (refund: PaymentDetail) => void;
   onApprove: (refund: PaymentDetail) => void;
   onReject: (refund: PaymentDetail) => void;
+  /** 每页显示数量，默认为 10 */
+  pageSize?: number;
 }
 
 export const RefundTable: React.FC<RefundTableProps> = React.memo(
@@ -26,6 +28,7 @@ export const RefundTable: React.FC<RefundTableProps> = React.memo(
     onViewDetail,
     onApprove,
     onReject,
+    pageSize = 10,
   }) => {
     const columns: ColumnsType<PaymentDetail> = useMemo(
       () => [
@@ -144,9 +147,14 @@ export const RefundTable: React.FC<RefundTableProps> = React.memo(
         dataSource={refunds}
         rowKey="id"
         loading={loading}
-        pagination={false}
-        scroll={{ x: 1600, y: 600 }}
-        virtual
+        pagination={{
+          pageSize,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          pageSizeOptions: ['10', '20', '50'],
+          showTotal: (total) => `共 ${total} 条退款申请`,
+        }}
+        scroll={{ x: 1600 }}
         locale={{ emptyText: '暂无待审核的退款申请' }}
       />
     );

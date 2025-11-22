@@ -1,9 +1,10 @@
-import request from '@/utils/request';
-
 /**
  * 代理服务 API
+ * 使用 api 包装器自动解包响应
  * 提供代理池管理、供应商配置、成本监控等功能
  */
+import { api } from '@/utils/api';
+import request from '@/utils/request';
 
 // ==================== 类型定义 ====================
 
@@ -145,109 +146,97 @@ export interface CreateProxyProviderDto {
 /**
  * 获取代理列表
  */
-export const getProxyList = (params?: ProxyListParams) => {
-  return request.get<ProxyListResponse>('/proxy/list', { params });
-};
+export const getProxyList = (params?: ProxyListParams): Promise<ProxyListResponse> =>
+  api.get<ProxyListResponse>('/proxy/list', { params });
 
 /**
  * 获取代理池统计
  */
-export const getProxyStats = () => {
-  return request.get<ProxyStats>('/proxy/stats/pool');
-};
+export const getProxyStats = (): Promise<ProxyStats> =>
+  api.get<ProxyStats>('/proxy/stats/pool');
 
 /**
  * 释放代理
  */
-export const releaseProxy = (proxyId: string) => {
-  return request.post(`/proxy/release/${proxyId}`);
-};
+export const releaseProxy = (proxyId: string): Promise<void> =>
+  api.post<void>(`/proxy/release/${proxyId}`);
 
 /**
  * 测试代理
  */
-export const testProxy = (proxyId: string) => {
-  return request.post(`/proxy/test/${proxyId}`);
-};
+export const testProxy = (proxyId: string): Promise<any> =>
+  api.post(`/proxy/test/${proxyId}`);
 
 /**
  * 刷新代理池 (管理员)
  */
-export const refreshProxyPool = () => {
-  return request.post('/proxy/admin/refresh-pool');
-};
+export const refreshProxyPool = (): Promise<void> =>
+  api.post<void>('/proxy/admin/refresh-pool');
 
 /**
  * 批量释放代理
  */
-export const batchReleaseProxies = (proxyIds: string[]) => {
-  return request.post('/proxy/batch/release', { proxyIds });
-};
+export const batchReleaseProxies = (proxyIds: string[]): Promise<void> =>
+  api.post<void>('/proxy/batch/release', { proxyIds });
 
 /**
  * 批量测试代理
  */
-export const batchTestProxies = (proxyIds: string[]) => {
-  return request.post('/proxy/batch/test', { proxyIds });
-};
+export const batchTestProxies = (proxyIds: string[]): Promise<any> =>
+  api.post('/proxy/batch/test', { proxyIds });
 
 // ==================== 供应商管理 ====================
 
 /**
  * 获取代理供应商列表
  */
-export const getProxyProviders = () => {
-  return request.get<ProxyProvider[]>('/proxy/providers');
-};
+export const getProxyProviders = (): Promise<ProxyProvider[]> =>
+  api.get<ProxyProvider[]>('/proxy/providers');
 
 /**
  * 获取供应商详情
  */
-export const getProxyProvider = (providerId: string) => {
-  return request.get<ProxyProvider>(`/proxy/providers/${providerId}`);
-};
+export const getProxyProvider = (providerId: string): Promise<ProxyProvider> =>
+  api.get<ProxyProvider>(`/proxy/providers/${providerId}`);
 
 /**
  * 创建代理供应商
  */
-export const createProxyProvider = (data: CreateProxyProviderDto) => {
-  return request.post<ProxyProvider>('/proxy/providers', data);
-};
+export const createProxyProvider = (data: CreateProxyProviderDto): Promise<ProxyProvider> =>
+  api.post<ProxyProvider>('/proxy/providers', data);
 
 /**
  * 更新代理供应商配置
  */
-export const updateProxyProvider = (providerId: string, data: Partial<CreateProxyProviderDto>) => {
-  return request.put<ProxyProvider>(`/proxy/providers/${providerId}`, data);
-};
+export const updateProxyProvider = (
+  providerId: string,
+  data: Partial<CreateProxyProviderDto>
+): Promise<ProxyProvider> =>
+  api.put<ProxyProvider>(`/proxy/providers/${providerId}`, data);
 
 /**
  * 删除代理供应商
  */
-export const deleteProxyProvider = (providerId: string) => {
-  return request.delete(`/proxy/providers/${providerId}`);
-};
+export const deleteProxyProvider = (providerId: string): Promise<void> =>
+  api.delete<void>(`/proxy/providers/${providerId}`);
 
 /**
  * 启用/禁用供应商
  */
-export const toggleProxyProvider = (providerId: string, enabled: boolean) => {
-  return request.patch(`/proxy/providers/${providerId}/toggle`, { enabled });
-};
+export const toggleProxyProvider = (providerId: string, enabled: boolean): Promise<any> =>
+  api.patch(`/proxy/providers/${providerId}/toggle`, { enabled });
 
 /**
  * 测试供应商连接
  */
-export const testProxyProvider = (providerId: string) => {
-  return request.post(`/proxy/providers/${providerId}/test`);
-};
+export const testProxyProvider = (providerId: string): Promise<any> =>
+  api.post(`/proxy/providers/${providerId}/test`);
 
 /**
  * 获取供应商排名
  */
-export const getProxyProviderRanking = () => {
-  return request.get<ProxyProviderRanking[]>('/proxy/providers/ranking');
-};
+export const getProxyProviderRanking = (): Promise<ProxyProviderRanking[]> =>
+  api.get<ProxyProviderRanking[]>('/proxy/providers/ranking');
 
 // ==================== 使用报表 ====================
 
@@ -260,23 +249,21 @@ export const getProxyUsageReport = (params: {
   groupBy?: 'day' | 'week' | 'month';
   provider?: string;
   country?: string;
-}) => {
-  return request.get<ProxyUsageReport>('/proxy/reports/usage', { params });
-};
+}): Promise<ProxyUsageReport> =>
+  api.get<ProxyUsageReport>('/proxy/reports/usage', { params });
 
 /**
- * 导出使用报表
+ * 导出使用报表 (使用 raw request 因为需要 blob)
  */
 export const exportProxyUsageReport = (params: {
   startDate: string;
   endDate: string;
   format?: 'csv' | 'excel';
-}) => {
-  return request.get('/proxy/reports/usage/export', {
+}): Promise<Blob> =>
+  request.get('/proxy/reports/usage/export', {
     params,
     responseType: 'blob',
   });
-};
 
 // ==================== 成本监控 ====================
 
@@ -288,32 +275,29 @@ export const getProxyCostReport = (params: {
   endDate: string;
   groupBy?: 'day' | 'week' | 'month';
   provider?: string;
-}) => {
-  return request.get<ProxyCostReport>('/proxy/cost/report', { params });
-};
+}): Promise<ProxyCostReport> =>
+  api.get<ProxyCostReport>('/proxy/cost/report', { params });
 
 /**
- * 导出成本报表
+ * 导出成本报表 (使用 raw request 因为需要 blob)
  */
 export const exportProxyCostReport = (params: {
   startDate: string;
   endDate: string;
   format?: 'csv' | 'excel';
-}) => {
-  return request.get('/proxy/cost/export', {
+}): Promise<Blob> =>
+  request.get('/proxy/cost/export', {
     params,
     responseType: 'blob',
   });
-};
 
 /**
  * 获取成本统计
  */
 export const getProxyCostStats = (params?: {
   period?: 'today' | 'week' | 'month' | 'year';
-}) => {
-  return request.get('/proxy/cost/stats', { params });
-};
+}): Promise<any> =>
+  api.get('/proxy/cost/stats', { params });
 
 /**
  * 获取成本趋势
@@ -322,25 +306,22 @@ export const getProxyCostTrend = (params: {
   startDate: string;
   endDate: string;
   granularity?: 'hour' | 'day' | 'week';
-}) => {
-  return request.get('/proxy/cost/trend', { params });
-};
+}): Promise<any> =>
+  api.get('/proxy/cost/trend', { params });
 
 // ==================== 高级功能 ====================
 
 /**
  * 获取代理地理位置分布
  */
-export const getProxyGeoDistribution = () => {
-  return request.get('/proxy/geo/distribution');
-};
+export const getProxyGeoDistribution = (): Promise<any> =>
+  api.get('/proxy/geo/distribution');
 
 /**
  * 获取代理质量分布
  */
-export const getProxyQualityDistribution = () => {
-  return request.get('/proxy/quality/distribution');
-};
+export const getProxyQualityDistribution = (): Promise<any> =>
+  api.get('/proxy/quality/distribution');
 
 /**
  * 获取代理使用历史
@@ -349,16 +330,14 @@ export const getProxyUsageHistory = (proxyId: string, params?: {
   startDate?: string;
   endDate?: string;
   limit?: number;
-}) => {
-  return request.get(`/proxy/${proxyId}/history`, { params });
-};
+}): Promise<any> =>
+  api.get(`/proxy/${proxyId}/history`, { params });
 
 /**
  * 获取设备使用的代理
  */
-export const getDeviceProxies = (deviceId: string) => {
-  return request.get(`/proxy/device/${deviceId}/proxies`);
-};
+export const getDeviceProxies = (deviceId: string): Promise<any> =>
+  api.get(`/proxy/device/${deviceId}/proxies`);
 
 /**
  * 为设备分配代理
@@ -367,16 +346,14 @@ export const allocateProxyForDevice = (deviceId: string, params?: {
   country?: string;
   protocol?: string;
   minQuality?: number;
-}) => {
-  return request.post(`/proxy/device/${deviceId}/allocate`, params);
-};
+}): Promise<any> =>
+  api.post(`/proxy/device/${deviceId}/allocate`, params);
 
 /**
  * 释放设备的代理
  */
-export const releaseDeviceProxy = (deviceId: string) => {
-  return request.post(`/proxy/device/${deviceId}/release`);
-};
+export const releaseDeviceProxy = (deviceId: string): Promise<void> =>
+  api.post<void>(`/proxy/device/${deviceId}/release`);
 
 /**
  * 获取代理告警
@@ -386,23 +363,20 @@ export const getProxyAlerts = (params?: {
   limit?: number;
   status?: 'active' | 'resolved';
   severity?: 'low' | 'medium' | 'high' | 'critical';
-}) => {
-  return request.get('/proxy/alerts', { params });
-};
+}): Promise<any> =>
+  api.get('/proxy/alerts', { params });
 
 /**
  * 确认告警
  */
-export const acknowledgeProxyAlert = (alertId: string) => {
-  return request.post(`/proxy/alerts/${alertId}/acknowledge`);
-};
+export const acknowledgeProxyAlert = (alertId: string): Promise<void> =>
+  api.post<void>(`/proxy/alerts/${alertId}/acknowledge`);
 
 /**
  * 解决告警
  */
-export const resolveProxyAlert = (alertId: string, note?: string) => {
-  return request.post(`/proxy/alerts/${alertId}/resolve`, { note });
-};
+export const resolveProxyAlert = (alertId: string, note?: string): Promise<void> =>
+  api.post<void>(`/proxy/alerts/${alertId}/resolve`, { note });
 
 // ==================== 智能调度 ====================
 
@@ -413,9 +387,8 @@ export const getProxySchedulingSuggestion = (params: {
   deviceId?: string;
   country?: string;
   targetUrl?: string;
-}) => {
-  return request.post('/proxy/intelligence/suggest', params);
-};
+}): Promise<any> =>
+  api.post('/proxy/intelligence/suggest', params);
 
 /**
  * 获取代理性能预测
@@ -423,16 +396,14 @@ export const getProxySchedulingSuggestion = (params: {
 export const getProxyPerformancePrediction = (proxyId: string, params?: {
   targetUrl?: string;
   timeWindow?: number;
-}) => {
-  return request.get(`/proxy/${proxyId}/prediction`, { params });
-};
+}): Promise<any> =>
+  api.get(`/proxy/${proxyId}/prediction`, { params });
 
 /**
  * 获取最优代理池配置建议
  */
-export const getOptimalPoolConfig = () => {
-  return request.get('/proxy/intelligence/optimal-config');
-};
+export const getOptimalPoolConfig = (): Promise<any> =>
+  api.get('/proxy/intelligence/optimal-config');
 
 // ==================== 审计日志 ====================
 
@@ -447,20 +418,18 @@ export const getProxyAuditLogs = (params?: {
   proxyId?: string;
   startDate?: string;
   endDate?: string;
-}) => {
-  return request.get('/proxy/audit-logs', { params });
-};
+}): Promise<any> =>
+  api.get('/proxy/audit-logs', { params });
 
 /**
- * 导出审计日志
+ * 导出审计日志 (使用 raw request 因为需要 blob)
  */
 export const exportProxyAuditLogs = (params?: {
   startDate?: string;
   endDate?: string;
   format?: 'csv' | 'excel';
-}) => {
-  return request.get('/proxy/audit-logs/export', {
+}): Promise<Blob> =>
+  request.get('/proxy/audit-logs/export', {
     params,
     responseType: 'blob',
   });
-};

@@ -193,12 +193,14 @@ const ApiKeyList: React.FC = () => {
         key: 'name',
         width: 150,
         fixed: 'left',
+        sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
       },
       {
         title: 'Access Key',
         dataIndex: 'key',
         key: 'key',
         width: 200,
+        sorter: (a, b) => (a.key || '').localeCompare(b.key || ''),
         render: (key: string) => (
           <Space>
             <code>{key}</code>
@@ -240,6 +242,7 @@ const ApiKeyList: React.FC = () => {
         dataIndex: 'scopes',
         key: 'scopes',
         width: 200,
+        sorter: (a, b) => (a.scopes?.length || 0) - (b.scopes?.length || 0),
         render: (scopes: string[]) => (
           <Space wrap>
             {scopes.slice(0, 2).map((scope) => (
@@ -254,6 +257,13 @@ const ApiKeyList: React.FC = () => {
         dataIndex: 'status',
         key: 'status',
         width: 90,
+        sorter: (a, b) => (a.status || '').localeCompare(b.status || ''),
+        filters: [
+          { text: '激活', value: 'active' },
+          { text: '禁用', value: 'inactive' },
+          { text: '已过期', value: 'expired' },
+        ],
+        onFilter: (value, record) => record.status === value,
         render: renderStatusTag,
       },
       {
@@ -261,6 +271,7 @@ const ApiKeyList: React.FC = () => {
         dataIndex: 'usageCount',
         key: 'usageCount',
         width: 100,
+        sorter: (a, b) => (a.usageCount || 0) - (b.usageCount || 0),
         render: (count: number) => count.toLocaleString(),
       },
       {
@@ -268,6 +279,11 @@ const ApiKeyList: React.FC = () => {
         dataIndex: 'lastUsedAt',
         key: 'lastUsedAt',
         width: 160,
+        sorter: (a, b) => {
+          const timeA = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
+          const timeB = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
+          return timeA - timeB;
+        },
         render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'),
       },
       {
@@ -275,6 +291,11 @@ const ApiKeyList: React.FC = () => {
         dataIndex: 'expiresAt',
         key: 'expiresAt',
         width: 120,
+        sorter: (a, b) => {
+          const timeA = a.expiresAt ? new Date(a.expiresAt).getTime() : Infinity;
+          const timeB = b.expiresAt ? new Date(b.expiresAt).getTime() : Infinity;
+          return timeA - timeB;
+        },
         render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD') : '永不过期'),
       },
       {

@@ -1,4 +1,5 @@
-import { Row, Col, Card, Statistic , theme } from 'antd';
+import { memo, useMemo } from 'react';
+import { Row, Col, Card, Statistic, theme } from 'antd';
 import {
   GlobalOutlined,
   CheckCircleOutlined,
@@ -23,7 +24,8 @@ interface ProxyStatsCardsProps {
 /**
  * 代理IP统计卡片组件
  */
-const ProxyStatsCards: React.FC<ProxyStatsCardsProps> = ({
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const ProxyStatsCards: React.FC<ProxyStatsCardsProps> = memo(({
   total,
   available,
   inUse,
@@ -34,7 +36,9 @@ const ProxyStatsCards: React.FC<ProxyStatsCardsProps> = ({
   totalCost,
 }) => {
   const { token } = theme.useToken();
-  const stats = [
+
+  // ✅ 使用 useMemo 缓存统计数据
+  const stats = useMemo(() => [
     {
       title: '总代理数',
       value: total,
@@ -91,7 +95,7 @@ const ProxyStatsCards: React.FC<ProxyStatsCardsProps> = ({
       color: '#eb2f96',
       precision: 2,
     },
-  ];
+  ], [total, available, inUse, unavailable, avgQuality, avgLatency, totalBandwidth, totalCost, token.colorPrimary]);
 
   return (
     <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
@@ -111,6 +115,8 @@ const ProxyStatsCards: React.FC<ProxyStatsCardsProps> = ({
       ))}
     </Row>
   );
-};
+});
+
+ProxyStatsCards.displayName = 'ProxyStatsCards';
 
 export default ProxyStatsCards;

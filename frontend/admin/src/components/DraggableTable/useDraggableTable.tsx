@@ -9,7 +9,7 @@
  * 4. 排序持久化
  */
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import type { DragEndEvent } from '@dnd-kit/core';
 import {
   DndContext,
@@ -98,19 +98,18 @@ export interface UseDraggableTableResult<T> {
   /** 当前排序后的数据源 */
   sortedDataSource: T[];
 
-  /** DndContext 组件 */
-  DndWrapper: React.FC<{ children: React.ReactNode }>;
+  /** DndContext 渲染函数 - 使用 render props 模式包裹表格 */
+  renderDndWrapper: (children: React.ReactNode) => React.ReactNode;
 
-  /** 表格组件配置 */
+  /** 表格组件配置 - 传给 antd Table 的 components 属性 */
   tableComponents: TableProps<T>['components'];
 
-  /** 拖拽列配置 */
+  /** 拖拽列配置 - 放在 columns 数组最前面 */
   sortColumn: {
     key: string;
     title: string;
     width: number;
     align: 'center';
-    fixed: 'left';
   };
 }
 
@@ -119,7 +118,7 @@ export interface UseDraggableTableResult<T> {
  *
  * @example
  * ```tsx
- * const { sortedDataSource, DndWrapper, tableComponents, sortColumn } = useDraggableTable({
+ * const { sortedDataSource, renderDndWrapper, tableComponents, sortColumn } = useDraggableTable({
  *   dataSource: devices,
  *   getRowKey: (device) => device.id,
  *   onSortEnd: (newDevices) => {
@@ -128,15 +127,13 @@ export interface UseDraggableTableResult<T> {
  *   },
  * });
  *
- * return (
- *   <DndWrapper>
- *     <Table
- *       columns={[sortColumn, ...otherColumns]}
- *       dataSource={sortedDataSource}
- *       components={tableComponents}
- *       rowKey="id"
- *     />
- *   </DndWrapper>
+ * return renderDndWrapper(
+ *   <Table
+ *     columns={[sortColumn, ...otherColumns]}
+ *     dataSource={sortedDataSource}
+ *     components={tableComponents}
+ *     rowKey="id"
+ *   />
  * );
  * ```
  */
@@ -163,47 +160,63 @@ export const useDraggableTable = <T extends Record<string, any>>({
     })
   );
 
+  // 使用 ref 存储回调函数引用，避免依赖变化
+  const onSortEndRef = useRef(onSortEnd);
+  const getRowKeyRef = useRef(getRowKey);
+
+  useEffect(() => {
+    onSortEndRef.current = onSortEnd;
+    getRowKeyRef.current = getRowKey;
+  }, [onSortEnd, getRowKey]);
+
   // 拖拽结束处理
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over || active.id === over.id) {
       return;
     }
 
-    const activeIndex = sortedDataSource.findIndex(
-      (item) => getRowKey(item) === active.id
-    );
-    const overIndex = sortedDataSource.findIndex((item) => getRowKey(item) === over.id);
+    setSortedDataSource((prev) => {
+      const activeIndex = prev.findIndex((item) => getRowKeyRef.current(item) === active.id);
+      const overIndex = prev.findIndex((item) => getRowKeyRef.current(item) === over.id);
 
-    if (activeIndex !== -1 && overIndex !== -1) {
-      const newDataSource = arrayMove(sortedDataSource, activeIndex, overIndex);
-      setSortedDataSource(newDataSource);
-      onSortEnd?.(newDataSource);
-    }
-  };
+      if (activeIndex !== -1 && overIndex !== -1) {
+        const newDataSource = arrayMove(prev, activeIndex, overIndex);
+        onSortEndRef.current?.(newDataSource);
+        return newDataSource;
+      }
+      return prev;
+    });
+  }, []);
 
-  // DndContext 包装器组件
-  const DndWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    if (disabled) {
-      return <>{children}</>;
-    }
+  // 获取排序项 IDs
+  const sortableItems = useMemo(
+    () => sortedDataSource.map(getRowKey),
+    [sortedDataSource, getRowKey]
+  );
 
-    return (
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={sortedDataSource.map(getRowKey)}
-          strategy={verticalListSortingStrategy}
+  // 使用 render props 模式 - 返回稳定的渲染函数
+  const renderDndWrapper = useCallback(
+    (children: React.ReactNode): React.ReactNode => {
+      if (disabled) {
+        return children;
+      }
+
+      return (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          {children}
-        </SortableContext>
-      </DndContext>
-    );
-  };
+          <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
+            {children}
+          </SortableContext>
+        </DndContext>
+      );
+    },
+    [disabled, sensors, handleDragEnd, sortableItems]
+  );
 
   // 表格组件配置
   const tableComponents = useMemo<TableProps<T>['components']>(
@@ -216,20 +229,20 @@ export const useDraggableTable = <T extends Record<string, any>>({
   );
 
   // 拖拽列配置
+  // 注意：不使用 fixed: 'left'，因为固定列与 dnd-kit 存在兼容性问题
   const sortColumn = useMemo(
     () => ({
       key: 'sort',
       title: '',
       width: 50,
       align: 'center' as const,
-      fixed: 'left' as const,
     }),
     []
   );
 
   return {
     sortedDataSource,
-    DndWrapper,
+    renderDndWrapper,
     tableComponents,
     sortColumn,
   };

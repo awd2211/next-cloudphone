@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import {
   Table,
   Tag,
@@ -36,7 +36,8 @@ type VirtualNumber = PhoneNumber & {
  * - 取消号码（退款）
  * - 查看号码详情和收到的短信
  */
-const NumberPoolTab: React.FC = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const NumberPoolTab: React.FC = memo(() => {
   const [filters, setFilters] = useState({
     status: undefined as string | undefined,
     provider: undefined as string | undefined,
@@ -58,15 +59,16 @@ const NumberPoolTab: React.FC = () => {
 
   const releaseMutation = useReleaseNumber();
 
-  const handleCancelNumber = (record: VirtualNumber) => {
+  // ✅ 使用 useCallback 包装事件处理函数
+  const handleCancelNumber = useCallback((record: VirtualNumber) => {
     Modal.confirm({
       title: '确认取消号码',
       content: `确定要取消号码 ${record.phoneNumber} 吗？将申请退款 $${record.cost}`,
       onOk: () => releaseMutation.mutate(record.id),
     });
-  };
+  }, [releaseMutation]);
 
-  const handleViewDetail = async (record: VirtualNumber) => {
+  const handleViewDetail = useCallback(async (record: VirtualNumber) => {
     // 查询该号码收到的短信
     try {
       const response = await getSMSNumberHistory(record.id);
@@ -76,9 +78,10 @@ const NumberPoolTab: React.FC = () => {
     } catch (error) {
       message.error('获取短信详情失败');
     }
-  };
+  }, []);
 
-  const getStatusConfig = (status: string) => {
+  // ✅ 使用 useCallback 缓存辅助函数
+  const getStatusConfig = useCallback((status: string) => {
     const configs: Record<string, { color: string; text: string }> = {
       active: { color: 'blue', text: '激活中' },
       waiting_sms: { color: 'orange', text: '等待短信' },
@@ -88,9 +91,10 @@ const NumberPoolTab: React.FC = () => {
       failed: { color: 'error', text: '失败' },
     };
     return configs[status] || { color: 'default', text: status };
-  };
+  }, []);
 
-  const columns: ColumnsType<VirtualNumber> = [
+  // ✅ 使用 useMemo 缓存列定义，避免每次渲染都重新创建
+  const columns: ColumnsType<VirtualNumber> = useMemo(() => [
     {
       title: '号码',
       dataIndex: 'phoneNumber',
@@ -191,7 +195,7 @@ const NumberPoolTab: React.FC = () => {
         </Space>
       ),
     },
-  ];
+  ], [getStatusConfig, handleViewDetail, handleCancelNumber]);
 
   return (
     <div>
@@ -294,6 +298,8 @@ const NumberPoolTab: React.FC = () => {
       </Modal>
     </div>
   );
-};
+});
+
+NumberPoolTab.displayName = 'NumberPoolTab';
 
 export default NumberPoolTab;

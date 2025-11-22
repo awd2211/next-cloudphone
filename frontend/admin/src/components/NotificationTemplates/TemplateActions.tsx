@@ -15,6 +15,7 @@ export interface NotificationTemplate {
   body: string;
   emailTemplate?: string;
   smsTemplate?: string;
+  contentFormat?: 'plain' | 'html' | 'markdown';
   description?: string;
   isActive: boolean;
   createdAt?: string;

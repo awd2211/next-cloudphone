@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Table, Button, Space, Tag, Popconfirm, message, Tooltip } from 'antd';
 import {
   RollbackOutlined,
@@ -24,11 +24,13 @@ interface SnapshotListTableProps {
   onRestore?: (snapshotId: string, snapshotName: string) => void;
 }
 
-const SnapshotListTable: React.FC<SnapshotListTableProps> = ({ deviceId, onRestore }) => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const SnapshotListTable: React.FC<SnapshotListTableProps> = memo(({ deviceId, onRestore }) => {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchSnapshots = async () => {
+  // ✅ 使用 useCallback 包装加载函数
+  const fetchSnapshots = useCallback(async () => {
     setLoading(true);
     try {
       // 注意: 这里需要后端提供快照列表API
@@ -55,13 +57,14 @@ const SnapshotListTable: React.FC<SnapshotListTableProps> = ({ deviceId, onResto
     } finally {
       setLoading(false);
     }
-  };
+  }, [deviceId]);
 
   useEffect(() => {
     fetchSnapshots();
   }, [deviceId]);
 
-  const handleDelete = async (snapshotId: string) => {
+  // ✅ 使用 useCallback 包装删除函数
+  const handleDelete = useCallback(async (snapshotId: string) => {
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/devices/${deviceId}/snapshots/${snapshotId}`,
@@ -82,16 +85,18 @@ const SnapshotListTable: React.FC<SnapshotListTableProps> = ({ deviceId, onResto
     } catch (error: any) {
       message.error(error.message || '删除快照失败');
     }
-  };
+  }, [deviceId, fetchSnapshots]);
 
-  const formatSize = (bytes?: number) => {
+  // ✅ 使用 useCallback 缓存格式化函数
+  const formatSize = useCallback((bytes?: number) => {
     if (!bytes) return '-';
     const mb = bytes / (1024 * 1024);
     if (mb < 1024) return `${mb.toFixed(2)} MB`;
     return `${(mb / 1024).toFixed(2)} GB`;
-  };
+  }, []);
 
-  const columns: ColumnsType<Snapshot> = [
+  // ✅ 使用 useMemo 缓存列定义，避免每次渲染都重新创建
+  const columns: ColumnsType<Snapshot> = useMemo(() => [
     {
       title: '快照名称',
       dataIndex: 'name',
@@ -168,7 +173,7 @@ const SnapshotListTable: React.FC<SnapshotListTableProps> = ({ deviceId, onResto
         </Space>
       ),
     },
-  ];
+  ], [formatSize, handleDelete, onRestore]);
 
   return (
     <div>
@@ -198,6 +203,8 @@ const SnapshotListTable: React.FC<SnapshotListTableProps> = ({ deviceId, onResto
       />
     </div>
   );
-};
+});
+
+SnapshotListTable.displayName = 'SnapshotListTable';
 
 export default SnapshotListTable;

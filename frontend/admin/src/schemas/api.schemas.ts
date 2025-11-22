@@ -376,14 +376,13 @@ export type DailyStat = z.infer<typeof DailyStatSchema>;
  * Dashboard统计Schema
  */
 export const DashboardStatsSchema = z.object({
-  totalDevices: z.number().int().nonnegative(),
-  onlineDevices: z.number().int().nonnegative(),
   totalUsers: z.number().int().nonnegative(),
-  totalApps: z.number().int().nonnegative(),
+  activeDevices: z.number().int().nonnegative(),
   todayRevenue: z.number().nonnegative(),
   monthRevenue: z.number().nonnegative(),
   todayOrders: z.number().int().nonnegative(),
-  monthOrders: z.number().int().nonnegative(),
+  pendingOrders: z.number().int().nonnegative(),
+  lastUpdated: z.string().optional(),
 });
 
 export type DashboardStats = z.infer<typeof DashboardStatsSchema>;
@@ -930,6 +929,7 @@ export const DeviceStatsSchema = z.object({
   running: z.number().int().nonnegative(),
   idle: z.number().int().nonnegative(),
   stopped: z.number().int().nonnegative(),
+  error: z.number().int().nonnegative(),
 });
 
 // ===== Lifecycle Management Schemas =====

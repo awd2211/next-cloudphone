@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback, useMemo } from 'react';
 import { Badge, Dropdown, List, Button, Empty, Spin } from 'antd';
 import { BellOutlined } from '@ant-design/icons';
 import type { Notification } from '@/services/notification';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationCenter } from '@/hooks/queries/useNotificationCenter';
 
-const NotificationCenter: React.FC = () => {
+const NotificationCenter: React.FC = memo(() => {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -17,16 +17,25 @@ const NotificationCenter: React.FC = () => {
     handleMarkAsRead,
   } = useNotificationCenter();
 
-  // 点击通知
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.isRead) {
-      handleMarkAsRead(notification.id);
-    }
-    if (notification.actionUrl) {
-      navigate(notification.actionUrl);
-      setDropdownOpen(false);
-    }
-  };
+  // ✅ 使用 useCallback 包装点击处理函数
+  const handleNotificationClick = useCallback(
+    (notification: Notification) => {
+      if (!notification.isRead) {
+        handleMarkAsRead(notification.id);
+      }
+      if (notification.actionUrl) {
+        navigate(notification.actionUrl);
+        setDropdownOpen(false);
+      }
+    },
+    [handleMarkAsRead, navigate]
+  );
+
+  // ✅ 使用 useCallback 包装查看全部按钮的点击处理
+  const handleViewAll = useCallback(() => {
+    navigate('/notifications');
+    setDropdownOpen(false);
+  }, [navigate]);
 
   const dropdownMenu = (
     <div
@@ -101,13 +110,7 @@ const NotificationCenter: React.FC = () => {
       )}
 
       <div style={{ padding: '8px 16px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
-        <Button
-          type="link"
-          onClick={() => {
-            navigate('/notifications');
-            setDropdownOpen(false);
-          }}
-        >
+        <Button type="link" onClick={handleViewAll}>
           查看全部通知
         </Button>
       </div>
@@ -131,6 +134,8 @@ const NotificationCenter: React.FC = () => {
       </Badge>
     </Dropdown>
   );
-};
+});
+
+NotificationCenter.displayName = 'NotificationCenter';
 
 export default NotificationCenter;

@@ -131,7 +131,7 @@ export * from './useStateRecovery';
 export * from './useStatsDashboard';
 
 // ============================================================================
-// 工具函数
+// 工具函数 (从 utils 导入)
 // ============================================================================
 
-export { useValidatedQuery } from './useValidatedQuery';
+export { useValidatedQuery, useValidatedMutation, ensureArray, safeGet } from '../utils/useValidatedQuery';

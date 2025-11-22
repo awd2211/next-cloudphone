@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as cacheService from '@/services/cache';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import { CacheStatsSchema } from '@/schemas/api.schemas';
 
 /**
@@ -26,10 +26,10 @@ export const cacheKeys = {
 export const useCacheStats = () => {
   return useValidatedQuery({
     queryKey: cacheKeys.stats(),
-    queryFn: () => cacheService.getCacheStats().then(res => res.data),
+    queryFn: () => cacheService.getCacheStats().then(res => res.data), // getCacheStats 返回 { data, timestamp }
     schema: CacheStatsSchema,
-    staleTime: 10 * 1000, // 10秒
-    refetchInterval: 30 * 1000, // 每30秒自动刷新
+    staleTime: 30 * 1000, // 30秒
+    refetchInterval: 60 * 1000, // 缓存统计 - 中等实时性
   });
 };
 
@@ -111,7 +111,7 @@ export const useDeleteCachePattern = () => {
     mutationFn: (pattern: string) => cacheService.deleteCachePattern(pattern),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: cacheKeys.stats() });
-      const deletedCount = response?.data?.deletedCount || 0;
+      const deletedCount = response?.deletedCount || 0;
       message.success(`已删除 ${deletedCount} 个缓存`);
     },
     onError: () => {

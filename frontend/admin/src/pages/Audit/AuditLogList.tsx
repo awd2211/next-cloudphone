@@ -104,24 +104,39 @@ const AuditLogList: React.FC = () => {
         key: 'userName',
         width: 120,
         fixed: 'left',
+        sorter: (a, b) => (a.userName || '').localeCompare(b.userName || ''),
       },
       {
         title: '操作',
         dataIndex: 'action',
         key: 'action',
         width: 150,
+        sorter: (a, b) => (a.action || '').localeCompare(b.action || ''),
       },
       {
         title: '资源',
         dataIndex: 'resource',
         key: 'resource',
         width: 120,
+        sorter: (a, b) => (a.resource || '').localeCompare(b.resource || ''),
       },
       {
         title: '资源类型',
         dataIndex: 'resourceType',
         key: 'resourceType',
         width: 110,
+        sorter: (a, b) => (a.resourceType || '').localeCompare(b.resourceType || ''),
+        filters: [
+          { text: '用户', value: 'user' },
+          { text: '设备', value: 'device' },
+          { text: '套餐', value: 'plan' },
+          { text: '配额', value: 'quota' },
+          { text: '账单', value: 'billing' },
+          { text: '工单', value: 'ticket' },
+          { text: 'API密钥', value: 'apikey' },
+          { text: '系统', value: 'system' },
+        ],
+        onFilter: (value, record) => record.resourceType === value,
         render: (type: string) => {
           const typeMap: Record<string, string> = {
             user: '用户',
@@ -141,6 +156,15 @@ const AuditLogList: React.FC = () => {
         dataIndex: 'method',
         key: 'method',
         width: 80,
+        sorter: (a, b) => (a.method || '').localeCompare(b.method || ''),
+        filters: [
+          { text: 'GET', value: 'GET' },
+          { text: 'POST', value: 'POST' },
+          { text: 'PUT', value: 'PUT' },
+          { text: 'DELETE', value: 'DELETE' },
+          { text: 'PATCH', value: 'PATCH' },
+        ],
+        onFilter: (value, record) => record.method === value,
         render: (method: string) => {
           const colorMap: Record<string, string> = {
             GET: 'blue',
@@ -157,6 +181,13 @@ const AuditLogList: React.FC = () => {
         dataIndex: 'status',
         key: 'status',
         width: 80,
+        sorter: (a, b) => (a.status || '').localeCompare(b.status || ''),
+        filters: [
+          { text: '成功', value: 'success' },
+          { text: '失败', value: 'failed' },
+          { text: '警告', value: 'warning' },
+        ],
+        onFilter: (value, record) => record.status === value,
         render: renderStatusTag,
       },
       {
@@ -164,6 +195,7 @@ const AuditLogList: React.FC = () => {
         dataIndex: 'ipAddress',
         key: 'ipAddress',
         width: 130,
+        sorter: (a, b) => (a.ipAddress || '').localeCompare(b.ipAddress || ''),
       },
       {
         title: '详情',
@@ -187,6 +219,8 @@ const AuditLogList: React.FC = () => {
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 160,
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        defaultSortOrder: 'descend',
         render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
       },
     ],

@@ -104,6 +104,7 @@ const TicketListPage: React.FC = () => {
         key: 'ticketNo',
         width: 140,
         fixed: 'left',
+        sorter: (a, b) => (a.ticketNo || '').localeCompare(b.ticketNo || ''),
       },
       {
         title: '主题',
@@ -111,12 +112,22 @@ const TicketListPage: React.FC = () => {
         key: 'subject',
         width: 250,
         ellipsis: true,
+        sorter: (a, b) => (a.subject || '').localeCompare(b.subject || ''),
       },
       {
         title: '类别',
         dataIndex: 'category',
         key: 'category',
         width: 120,
+        sorter: (a, b) => (a.category || '').localeCompare(b.category || ''),
+        filters: [
+          { text: '技术问题', value: 'technical' },
+          { text: '账单问题', value: 'billing' },
+          { text: '功能请求', value: 'feature_request' },
+          { text: 'Bug反馈', value: 'bug_report' },
+          { text: '其他', value: 'other' },
+        ],
+        onFilter: (value, record) => record.category === value,
         render: (category: string) => {
           const categoryMap: Record<string, string> = {
             technical: '技术问题',
@@ -133,6 +144,17 @@ const TicketListPage: React.FC = () => {
         dataIndex: 'priority',
         key: 'priority',
         width: 100,
+        sorter: (a, b) => {
+          const priorityOrder: Record<string, number> = { urgent: 4, high: 3, medium: 2, low: 1 };
+          return (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0);
+        },
+        filters: [
+          { text: '紧急', value: 'urgent' },
+          { text: '高', value: 'high' },
+          { text: '中', value: 'medium' },
+          { text: '低', value: 'low' },
+        ],
+        onFilter: (value, record) => record.priority === value,
         render: renderPriorityTag,
       },
       {
@@ -140,6 +162,15 @@ const TicketListPage: React.FC = () => {
         dataIndex: 'status',
         key: 'status',
         width: 120,
+        sorter: (a, b) => (a.status || '').localeCompare(b.status || ''),
+        filters: [
+          { text: '待处理', value: 'open' },
+          { text: '处理中', value: 'in_progress' },
+          { text: '等待用户', value: 'waiting_customer' },
+          { text: '已解决', value: 'resolved' },
+          { text: '已关闭', value: 'closed' },
+        ],
+        onFilter: (value, record) => record.status === value,
         render: renderStatusTag,
       },
       {
@@ -147,12 +178,15 @@ const TicketListPage: React.FC = () => {
         dataIndex: ['user', 'username'],
         key: 'userName',
         width: 120,
+        sorter: (a, b) => (a.user?.username || '').localeCompare(b.user?.username || ''),
       },
       {
         title: '创建时间',
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 160,
+        sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        defaultSortOrder: 'descend',
         render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
       },
       {
@@ -160,6 +194,7 @@ const TicketListPage: React.FC = () => {
         dataIndex: 'updatedAt',
         key: 'updatedAt',
         width: 160,
+        sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
         render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
       },
       {

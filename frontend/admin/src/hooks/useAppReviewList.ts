@@ -148,8 +148,9 @@ export const useAppReviewList = () => {
       if (validationResult.success) {
         setReviewHistory(validationResult.data);
       } else {
-        console.error('审核历史数据验证失败:', validationResult.error.issues);
-        setReviewHistory([]); // 验证失败时使用空数组
+        // 开发模式仅警告，仍然使用原始数据
+        console.warn('⚠️ 审核历史数据验证警告:', validationResult.error.issues.slice(0, 3));
+        setReviewHistory(Array.isArray(history) ? history : []);
       }
       setHistoryModalVisible(true);
     } catch (error) {

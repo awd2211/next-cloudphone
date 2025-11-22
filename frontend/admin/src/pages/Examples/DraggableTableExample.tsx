@@ -6,7 +6,7 @@
  * 2. 右键菜单
  */
 
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Card, Table, Tag, Space, message, Button } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -42,11 +42,12 @@ const generateExampleData = (): ExampleDevice[] => {
 /**
  * 可拖拽表格示例页面
  */
-const DraggableTableExample = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const DraggableTableExample: React.FC = memo(() => {
   const [dataSource, setDataSource] = useState<ExampleDevice[]>(generateExampleData());
 
   // 使用可拖拽表格 Hook
-  const { sortedDataSource, DndWrapper, tableComponents, sortColumn } = useDraggableTable({
+  const { sortedDataSource, renderDndWrapper, tableComponents, sortColumn } = useDraggableTable({
     dataSource,
     getRowKey: (device) => device.id,
     onSortEnd: (newDataSource) => {
@@ -116,8 +117,8 @@ const DraggableTableExample = () => {
     ],
   });
 
-  // 表格列定义
-  const columns: ColumnsType<ExampleDevice> = [
+  // ✅ 使用 useMemo 缓存列定义，避免每次渲染都重新创建
+  const columns: ColumnsType<ExampleDevice> = useMemo(() => [
     sortColumn, // 拖拽手柄列
     {
       title: '序号',
@@ -147,7 +148,7 @@ const DraggableTableExample = () => {
         return <Tag color={config[status].color}>{config[status].text}</Tag>;
       },
     },
-  ];
+  ], [sortColumn]);
 
   return (
     <div style={{ padding: '24px' }}>
@@ -187,7 +188,7 @@ const DraggableTableExample = () => {
 
         {/* 数据表格 */}
         <Card title="设备列表（支持拖拽排序 + 右键菜单）" bordered={false}>
-          <DndWrapper>
+          {renderDndWrapper(
             <Table
               columns={columns}
               dataSource={sortedDataSource}
@@ -198,12 +199,14 @@ const DraggableTableExample = () => {
                 onContextMenu: (e) => onContextMenu(record, e),
               })}
             />
-          </DndWrapper>
+          )}
           {contextMenu}
         </Card>
       </Space>
     </div>
   );
-};
+});
+
+DraggableTableExample.displayName = 'Examples.DraggableTableExample';
 
 export default DraggableTableExample;

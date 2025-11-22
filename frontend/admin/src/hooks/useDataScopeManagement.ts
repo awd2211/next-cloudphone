@@ -44,15 +44,11 @@ export const useDataScopeManagement = () => {
   const handleCreate = useCallback(async () => {
     try {
       const values = await createForm.validateFields();
-      const res = await createDataScope(values as CreateDataScopeDto);
-      if (res.success) {
-        message.success(res.message || '创建成功');
-        createForm.resetFields();
-        setCreateModalVisible(false);
-        loadDataScopes();
-      } else {
-        message.error(res.message || '创建失败');
-      }
+      await createDataScope(values as CreateDataScopeDto);
+      message.success('创建成功');
+      createForm.resetFields();
+      setCreateModalVisible(false);
+      loadDataScopes();
     } catch (error) {
       message.error('创建失败');
     }
@@ -64,16 +60,12 @@ export const useDataScopeManagement = () => {
 
     try {
       const values = await editForm.validateFields();
-      const res = await updateDataScope(selectedScope.id, values as UpdateDataScopeDto);
-      if (res.success) {
-        message.success(res.message || '更新成功');
-        editForm.resetFields();
-        setEditModalVisible(false);
-        setSelectedScope(null);
-        loadDataScopes();
-      } else {
-        message.error(res.message || '更新失败');
-      }
+      await updateDataScope(selectedScope.id, values as UpdateDataScopeDto);
+      message.success('更新成功');
+      editForm.resetFields();
+      setEditModalVisible(false);
+      setSelectedScope(null);
+      loadDataScopes();
     } catch (error) {
       message.error('更新失败');
     }
@@ -83,13 +75,9 @@ export const useDataScopeManagement = () => {
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        const res = await deleteDataScope(id);
-        if (res.success) {
-          message.success(res.message || '删除成功');
-          loadDataScopes();
-        } else {
-          message.error(res.message || '删除失败');
-        }
+        await deleteDataScope(id);
+        message.success('删除成功');
+        loadDataScopes();
       } catch (error) {
         message.error('删除失败');
       }
@@ -101,13 +89,9 @@ export const useDataScopeManagement = () => {
   const handleToggle = useCallback(
     async (id: string) => {
       try {
-        const res = await toggleDataScope(id);
-        if (res.success) {
-          message.success(res.message);
-          loadDataScopes();
-        } else {
-          message.error(res.message || '操作失败');
-        }
+        await toggleDataScope(id);
+        message.success('操作成功');
+        loadDataScopes();
       } catch (error) {
         message.error('操作失败');
       }

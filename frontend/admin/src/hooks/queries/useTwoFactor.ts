@@ -8,7 +8,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as twoFactorService from '@/services/twoFactor';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import { TwoFactorSecretSchema } from '@/schemas/api.schemas';
 
 /**

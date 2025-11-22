@@ -33,11 +33,12 @@ interface UseDashboardReturn {
  * 封装控制台的所有数据加载逻辑
  */
 export const useDashboard = (): UseDashboardReturn => {
-  // ✅ 使用 useValidatedQuery 加载统计数据（自动30秒刷新）
+  // ✅ 阶段1: 加载统计数据（首屏关键数据，优先加载）
   const {
     data: stats,
     isLoading: statsLoading,
     isError: hasStatsError,
+    isSuccess: statsLoaded,
     refetch: loadStats,
   } = useValidatedQuery({
     queryKey: ['dashboard-stats'],
@@ -48,11 +49,11 @@ export const useDashboard = (): UseDashboardReturn => {
     schema: DashboardStatsSchema,
     apiErrorMessage: '加载仪表盘统计数据失败',
     fallbackValue: undefined,
-    staleTime: 30 * 1000, // 统计数据30秒缓存
-    refetchInterval: 30 * 1000, // 自动每30秒刷新
+    staleTime: 60 * 1000, // 统计数据60秒缓存
+    refetchInterval: 60 * 1000, // 自动每60秒刷新（实时设备数由 useOnlineDevicesCount 负责）
   });
 
-  // ✅ 使用 useValidatedQuery 加载图表数据（聚合多个API）
+  // ✅ 阶段2: 延迟加载图表数据（等统计数据加载完成后再加载）
   const {
     data: chartData,
     isLoading: chartsLoading,
@@ -60,16 +61,20 @@ export const useDashboard = (): UseDashboardReturn => {
     refetch: loadChartData,
   } = useValidatedQuery({
     queryKey: ['dashboard-charts'],
+    // 分阶段加载: 统计数据加载完成后再加载图表
+    enabled: statsLoaded,
     queryFn: async () => {
       // 加载近7天收入数据
       const endDate = dayjs().format('YYYY-MM-DD');
       const startDate = dayjs().subtract(6, 'day').format('YYYY-MM-DD');
       const revenueRes: any = await getRevenueStats(startDate, endDate);
-      const revenueDataResult = revenueRes?.data?.dailyStats || revenueRes?.dailyStats || [];
+      // ✅ 修复: API 返回 dailyRevenue，不是 dailyStats（request.ts 已自动解包响应）
+      const revenueDataResult = revenueRes?.dailyRevenue || revenueRes?.dailyStats || [];
 
       // 加载设备状态数据
       const deviceRes: any = await getDeviceStats();
-      const deviceData = deviceRes?.data || deviceRes;
+      // ✅ request.ts 已自动解包响应，直接使用
+      const deviceData = deviceRes || {};
       const statusData = [
         { status: 'idle', count: deviceData.idle || 0 },
         { status: 'running', count: deviceData.running || 0 },
@@ -78,11 +83,13 @@ export const useDashboard = (): UseDashboardReturn => {
 
       // 加载用户增长数据（近30天）
       const userGrowthRes: any = await getUserGrowthStats(30);
-      const userGrowthResult = userGrowthRes?.data || userGrowthRes || [];
+      // ✅ request.ts 已自动解包响应
+      const userGrowthResult = userGrowthRes || [];
 
       // 加载套餐分布数据
       const planDistRes: any = await getPlanDistributionStats();
-      const planDistResult = planDistRes?.data || planDistRes || [];
+      // ✅ request.ts 已自动解包响应
+      const planDistResult = planDistRes || [];
 
       return {
         revenueData: revenueDataResult,

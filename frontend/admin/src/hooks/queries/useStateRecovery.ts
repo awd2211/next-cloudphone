@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message, Modal } from 'antd';
-import request from '@/utils/request';
+import { api } from '@/utils/api';
 
 interface SearchParams {
   status?: string;
@@ -41,28 +41,21 @@ export const useStateRecovery = () => {
   // 查询状态恢复记录
   const { data, isLoading, refetch } = useQuery<StateRecoveryResponse>({
     queryKey: ['state-recovery-records', searchParams],
-    queryFn: async () => {
-      const response = await request.get('/state-recovery', {
-        params: searchParams,
-      });
-      return response as StateRecoveryResponse;
-    },
+    queryFn: () => api.get<StateRecoveryResponse>('/state-recovery', {
+      params: searchParams,
+    }),
   });
 
   // 获取设备当前状态
   const { data: deviceStates } = useQuery<DeviceStatesResponse>({
     queryKey: ['device-states'],
-    queryFn: async () => {
-      const response = await request.get('/state-recovery/device-states');
-      return response as DeviceStatesResponse;
-    },
+    queryFn: () => api.get<DeviceStatesResponse>('/state-recovery/device-states'),
   });
 
   // 触发状态恢复
   const recoveryMutation = useMutation({
-    mutationFn: async (params: { deviceId: string; targetState: string }) => {
-      return await request.post('/state-recovery/recover', params);
-    },
+    mutationFn: (params: { deviceId: string; targetState: string }) =>
+      api.post('/state-recovery/recover', params),
     onSuccess: () => {
       message.success('状态恢复已触发');
       setRecoveryModalVisible(false);
@@ -78,9 +71,7 @@ export const useStateRecovery = () => {
 
   // 验证一致性
   const validateMutation = useMutation({
-    mutationFn: async () => {
-      return await request.post<any>('/state-recovery/validate-all');
-    },
+    mutationFn: () => api.post<any>('/state-recovery/validate-all'),
     onSuccess: (data: any) => {
       if (data.inconsistent?.length > 0) {
         Modal.warning({
@@ -89,7 +80,7 @@ export const useStateRecovery = () => {
           okText: '立即修复',
           onOk: () => {
             // 触发批量修复
-            request.post('/state-recovery/fix-inconsistencies').then(() => {
+            api.post('/state-recovery/fix-inconsistencies').then(() => {
               message.success('状态修复已触发');
               queryClient.invalidateQueries({
                 queryKey: ['state-recovery-records'],

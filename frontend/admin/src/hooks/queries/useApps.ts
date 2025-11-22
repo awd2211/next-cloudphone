@@ -8,7 +8,7 @@
 import { useMutation, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as appService from '@/services/app';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import {
   ApplicationSchema,
   PaginatedResponseSchema,
@@ -105,7 +105,7 @@ export const usePendingApps = (params?: PaginationParams) => {
     queryKey: appKeys.pendingList(params),
     queryFn: () => appService.getPendingApps(params),
     schema: PaginatedResponseSchema(ApplicationSchema),
-    refetchInterval: 30 * 1000, // 每30秒自动刷新
+    refetchInterval: 60 * 1000, // 待审核应用 - 中等实时性
   });
 };
 

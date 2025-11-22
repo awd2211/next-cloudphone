@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Modal, Space, Descriptions, Card, Typography } from 'antd';
 import dayjs from 'dayjs';
 import type { WebhookLog } from '@/types/webhook';
@@ -12,7 +12,8 @@ interface DetailModalProps {
   onClose: () => void;
 }
 
-export const DetailModal: React.FC<DetailModalProps> = ({ visible, log, onClose }) => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+export const DetailModal: React.FC<DetailModalProps> = memo(({ visible, log, onClose }) => {
   if (!log) return null;
 
   return (
@@ -84,4 +85,6 @@ export const DetailModal: React.FC<DetailModalProps> = ({ visible, log, onClose 
       </Space>
     </Modal>
   );
-};
+});
+
+DetailModal.displayName = 'WebhookLogs.DetailModal';

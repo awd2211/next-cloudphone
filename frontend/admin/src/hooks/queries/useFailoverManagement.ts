@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
-import request from '@/utils/request';
+import { api } from '@/utils/api';
 import type { FailoverRecord } from '@/components/Failover';
 
 interface SearchParams {
@@ -36,17 +36,12 @@ export const useFailoverManagement = () => {
   // 查询故障转移记录
   const { data, isLoading, refetch } = useQuery<FailoverResponse>({
     queryKey: ['failover-records', searchParams],
-    queryFn: async () => {
-      const response = await request.get('/failover', { params: searchParams });
-      return response as FailoverResponse;
-    },
+    queryFn: () => api.get<FailoverResponse>('/failover', { params: searchParams }),
   });
 
   // 触发故障转移
   const triggerMutation = useMutation({
-    mutationFn: async (deviceId: string) => {
-      return await request.post(`/failover/trigger/${deviceId}`);
-    },
+    mutationFn: (deviceId: string) => api.post(`/failover/trigger/${deviceId}`),
     onSuccess: () => {
       message.success('故障转移已触发');
       setTriggerModalVisible(false);

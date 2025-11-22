@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 订单管理服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 
 export interface Order {
   id: string;
@@ -12,37 +16,32 @@ export interface Order {
 /**
  * 获取订单列表
  */
-export const getOrders = (params?: any) => {
-  return request.get('/billing/orders', { params });
-};
+export const getOrders = (params?: any): Promise<any> =>
+  api.get('/billing/orders', { params });
 
 /**
  * 获取订单详情
  */
-export const getOrderById = (id: string) => {
-  return request.get(`/billing/orders/${id}`);
-};
+export const getOrderById = (id: string): Promise<Order> =>
+  api.get<Order>(`/billing/orders/${id}`);
 
 /**
  * 创建订单
  */
-export const createOrder = (data: any) => {
-  return request.post('/billing/orders', data);
-};
+export const createOrder = (data: any): Promise<Order> =>
+  api.post<Order>('/billing/orders', data);
 
 /**
  * 更新订单
  */
-export const updateOrder = (id: string, data: any) => {
-  return request.put(`/billing/orders/${id}`, data);
-};
+export const updateOrder = (id: string, data: any): Promise<Order> =>
+  api.put<Order>(`/billing/orders/${id}`, data);
 
 /**
  * 删除订单
  */
-export const deleteOrder = (id: string) => {
-  return request.delete(`/billing/orders/${id}`);
-};
+export const deleteOrder = (id: string): Promise<void> =>
+  api.delete<void>(`/billing/orders/${id}`);
 
 /**
  * 获取订单详情（别名）
@@ -52,27 +51,23 @@ export const getOrder = getOrderById;
 /**
  * 获取订单统计
  */
-export const getOrderStats = () => {
-  return request.get('/billing/orders/stats');
-};
+export const getOrderStats = (): Promise<any> =>
+  api.get('/billing/orders/stats');
 
 /**
  * 取消订单
  */
-export const cancelOrder = (id: string, reason?: string) => {
-  return request.post(`/billing/orders/${id}/cancel`, { reason });
-};
+export const cancelOrder = (id: string, reason?: string): Promise<void> =>
+  api.post<void>(`/billing/orders/${id}/cancel`, { reason });
 
 /**
  * 退款订单
  */
-export const refundOrder = (id: string, amount?: number, reason?: string) => {
-  return request.post(`/billing/orders/${id}/refund`, { amount, reason });
-};
+export const refundOrder = (id: string, amount?: number, reason?: string): Promise<void> =>
+  api.post<void>(`/billing/orders/${id}/refund`, { amount, reason });
 
 /**
  * 确认订单
  */
-export const confirmOrder = (id: string) => {
-  return request.post(`/billing/orders/${id}/confirm`);
-};
+export const confirmOrder = (id: string): Promise<void> =>
+  api.post<void>(`/billing/orders/${id}/confirm`);

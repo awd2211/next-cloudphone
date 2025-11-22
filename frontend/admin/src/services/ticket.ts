@@ -1,9 +1,10 @@
-import request from '@/utils/request';
-
 /**
  * 工单服务 API (管理员后台)
+ * 使用 api 包装器自动解包响应
  * 提供完整的工单管理、客服分配、统计分析等功能
  */
+import { api } from '@/utils/api';
+import request from '@/utils/request';
 
 // ==================== 类型定义 ====================
 
@@ -147,7 +148,7 @@ export interface TicketListResponse {
 /**
  * 获取所有工单列表（管理员）
  */
-export const getAllTickets = (params?: TicketListParams) => {
+export const getAllTickets = (params?: TicketListParams): Promise<TicketListResponse> => {
   // 支持两种分页模式
   const queryParams: any = { ...params };
   if (params?.page && params?.pageSize) {
@@ -157,114 +158,105 @@ export const getAllTickets = (params?: TicketListParams) => {
     delete queryParams.pageSize;
   }
 
-  return request.get<TicketListResponse>('/tickets', { params: queryParams });
+  return api.get<TicketListResponse>('/tickets', { params: queryParams });
 };
 
 /**
  * 获取工单详情
  */
-export const getTicketById = (id: string) => {
-  return request.get<Ticket>(`/tickets/${id}`);
-};
+export const getTicketById = (id: string): Promise<Ticket> =>
+  api.get<Ticket>(`/tickets/${id}`);
 
 /**
  * 创建工单（代用户创建）
  */
-export const createTicket = (data: CreateTicketDto) => {
-  return request.post<Ticket>('/tickets', data);
-};
+export const createTicket = (data: CreateTicketDto): Promise<Ticket> =>
+  api.post<Ticket>('/tickets', data);
 
 /**
  * 更新工单
  */
-export const updateTicket = (id: string, data: UpdateTicketDto) => {
-  return request.put<Ticket>(`/tickets/${id}`, data);
-};
+export const updateTicket = (id: string, data: UpdateTicketDto): Promise<Ticket> =>
+  api.put<Ticket>(`/tickets/${id}`, data);
 
 /**
  * 删除工单
  */
-export const deleteTicket = (id: string) => {
-  return request.delete(`/tickets/${id}`);
-};
+export const deleteTicket = (id: string): Promise<void> =>
+  api.delete(`/tickets/${id}`);
 
 /**
  * 批量删除工单
  */
-export const batchDeleteTickets = (ids: string[]) => {
-  return request.post('/tickets/batch/delete', { ids });
-};
+export const batchDeleteTickets = (ids: string[]): Promise<void> =>
+  api.post('/tickets/batch/delete', { ids });
 
 // ==================== 工单分配 ====================
 
 /**
  * 分配工单给客服
  */
-export const assignTicket = (ticketId: string, agentId: string) => {
-  return request.post(`/tickets/${ticketId}/assign`, { agentId });
-};
+export const assignTicket = (ticketId: string, agentId: string): Promise<void> =>
+  api.post(`/tickets/${ticketId}/assign`, { agentId });
 
 /**
  * 批量分配工单
  */
-export const batchAssignTickets = (ticketIds: string[], agentId: string) => {
-  return request.post('/tickets/batch/assign', { ticketIds, agentId });
-};
+export const batchAssignTickets = (ticketIds: string[], agentId: string): Promise<void> =>
+  api.post('/tickets/batch/assign', { ticketIds, agentId });
 
 /**
  * 转移工单到其他客服
  */
-export const transferTicket = (ticketId: string, fromAgentId: string, toAgentId: string, reason?: string) => {
-  return request.post(`/tickets/${ticketId}/transfer`, {
+export const transferTicket = (
+  ticketId: string,
+  fromAgentId: string,
+  toAgentId: string,
+  reason?: string
+): Promise<void> =>
+  api.post(`/tickets/${ticketId}/transfer`, {
     fromAgentId,
     toAgentId,
     reason,
   });
-};
 
 /**
  * 取消分配
  */
-export const unassignTicket = (ticketId: string) => {
-  return request.post(`/tickets/${ticketId}/unassign`);
-};
+export const unassignTicket = (ticketId: string): Promise<void> =>
+  api.post(`/tickets/${ticketId}/unassign`);
 
 // ==================== 工单状态管理 ====================
 
 /**
  * 关闭工单
  */
-export const closeTicket = (id: string, resolution?: string) => {
-  return request.post(`/tickets/${id}/close`, { resolution });
-};
+export const closeTicket = (id: string, resolution?: string): Promise<void> =>
+  api.post(`/tickets/${id}/close`, { resolution });
 
 /**
  * 批量关闭工单
  */
-export const batchCloseTickets = (ids: string[], resolution?: string) => {
-  return request.post('/tickets/batch/close', { ids, resolution });
-};
+export const batchCloseTickets = (ids: string[], resolution?: string): Promise<void> =>
+  api.post('/tickets/batch/close', { ids, resolution });
 
 /**
  * 重新打开工单
  */
-export const reopenTicket = (id: string, reason?: string) => {
-  return request.post(`/tickets/${id}/reopen`, { reason });
-};
+export const reopenTicket = (id: string, reason?: string): Promise<void> =>
+  api.post(`/tickets/${id}/reopen`, { reason });
 
 /**
  * 标记为已解决
  */
-export const resolveTicket = (id: string, solution: string) => {
-  return request.post(`/tickets/${id}/resolve`, { solution });
-};
+export const resolveTicket = (id: string, solution: string): Promise<void> =>
+  api.post(`/tickets/${id}/resolve`, { solution });
 
 /**
  * 设置工单优先级
  */
-export const setTicketPriority = (id: string, priority: TicketPriority) => {
-  return request.patch(`/tickets/${id}/priority`, { priority });
-};
+export const setTicketPriority = (id: string, priority: TicketPriority): Promise<void> =>
+  api.patch(`/tickets/${id}/priority`, { priority });
 
 // ==================== 回复管理 ====================
 
@@ -273,9 +265,8 @@ export const setTicketPriority = (id: string, priority: TicketPriority) => {
  */
 export const getTicketReplies = (ticketId: string, params?: {
   includeInternal?: boolean;
-}) => {
-  return request.get<TicketReply[]>(`/tickets/${ticketId}/replies`, { params });
-};
+}): Promise<TicketReply[]> =>
+  api.get<TicketReply[]>(`/tickets/${ticketId}/replies`, { params });
 
 /**
  * 添加工单回复
@@ -284,26 +275,23 @@ export const addTicketReply = (ticketId: string, data: {
   content: string;
   isInternal?: boolean;
   attachmentIds?: string[];
-}) => {
-  return request.post<TicketReply>(`/tickets/${ticketId}/replies`, data);
-};
+}): Promise<TicketReply> =>
+  api.post<TicketReply>(`/tickets/${ticketId}/replies`, data);
 
 /**
  * 添加内部备注（不通知用户）
  */
-export const addInternalNote = (ticketId: string, content: string) => {
-  return request.post<TicketReply>(`/tickets/${ticketId}/internal-notes`, {
+export const addInternalNote = (ticketId: string, content: string): Promise<TicketReply> =>
+  api.post<TicketReply>(`/tickets/${ticketId}/internal-notes`, {
     content,
     isInternal: true,
   });
-};
 
 /**
  * 删除回复
  */
-export const deleteReply = (ticketId: string, replyId: string) => {
-  return request.delete(`/tickets/${ticketId}/replies/${replyId}`);
-};
+export const deleteReply = (ticketId: string, replyId: string): Promise<void> =>
+  api.delete(`/tickets/${ticketId}/replies/${replyId}`);
 
 // ==================== 统计分析 ====================
 
@@ -314,9 +302,8 @@ export const getTicketStatistics = (params?: {
   startDate?: string;
   endDate?: string;
   agentId?: string;
-}) => {
-  return request.get<TicketStatistics>('/tickets/statistics/overview', { params });
-};
+}): Promise<TicketStatistics> =>
+  api.get<TicketStatistics>('/tickets/statistics/overview', { params });
 
 /**
  * 获取客服工作统计
@@ -324,25 +311,30 @@ export const getTicketStatistics = (params?: {
 export const getAgentStats = (agentId?: string, params?: {
   startDate?: string;
   endDate?: string;
-}) => {
+}): Promise<AgentStats | AgentStats[]> => {
   const endpoint = agentId
     ? `/tickets/statistics/agents/${agentId}`
     : '/tickets/statistics/agents';
-  return request.get<AgentStats | AgentStats[]>(endpoint, { params });
+  return api.get<AgentStats | AgentStats[]>(endpoint, { params });
 };
 
 /**
  * 获取客服工作负载
  */
-export const getAgentWorkload = () => {
-  return request.get<Array<{
+export const getAgentWorkload = (): Promise<Array<{
+  agentId: string;
+  agentName: string;
+  activeTickets: number;
+  capacity: number;
+  utilizationRate: number;
+}>> =>
+  api.get<Array<{
     agentId: string;
     agentName: string;
     activeTickets: number;
     capacity: number;
     utilizationRate: number;
   }>>('/tickets/statistics/workload');
-};
 
 /**
  * 获取响应时间分析
@@ -351,9 +343,8 @@ export const getResponseTimeAnalysis = (params?: {
   startDate?: string;
   endDate?: string;
   groupBy?: 'hour' | 'day' | 'week';
-}) => {
-  return request.get('/tickets/analytics/response-time', { params });
-};
+}): Promise<any> =>
+  api.get('/tickets/analytics/response-time', { params });
 
 /**
  * 获取解决时间分析
@@ -362,9 +353,8 @@ export const getResolutionTimeAnalysis = (params?: {
   startDate?: string;
   endDate?: string;
   groupBy?: 'hour' | 'day' | 'week';
-}) => {
-  return request.get('/tickets/analytics/resolution-time', { params });
-};
+}): Promise<any> =>
+  api.get('/tickets/analytics/resolution-time', { params });
 
 /**
  * 获取工单趋势
@@ -373,9 +363,8 @@ export const getTicketTrend = (params?: {
   startDate?: string;
   endDate?: string;
   groupBy?: 'day' | 'week' | 'month';
-}) => {
-  return request.get('/tickets/analytics/trend', { params });
-};
+}): Promise<any> =>
+  api.get('/tickets/analytics/trend', { params });
 
 /**
  * 获取满意度统计
@@ -384,20 +373,19 @@ export const getSatisfactionStats = (params?: {
   startDate?: string;
   endDate?: string;
   agentId?: string;
-}) => {
-  return request.get('/tickets/analytics/satisfaction', { params });
-};
+}): Promise<any> =>
+  api.get('/tickets/analytics/satisfaction', { params });
 
 // ==================== SLA 管理 ====================
 
 /**
  * 获取 SLA 状态
  */
-export const getSLAStatus = (ticketId?: string) => {
+export const getSLAStatus = (ticketId?: string): Promise<any> => {
   const endpoint = ticketId
     ? `/tickets/${ticketId}/sla`
     : '/tickets/sla/overview';
-  return request.get(endpoint);
+  return api.get(endpoint);
 };
 
 /**
@@ -406,32 +394,28 @@ export const getSLAStatus = (ticketId?: string) => {
 export const getSLAViolations = (params?: {
   severity?: 'warning' | 'critical';
   limit?: number;
-}) => {
-  return request.get('/tickets/sla/violations', { params });
-};
+}): Promise<any> =>
+  api.get('/tickets/sla/violations', { params });
 
 // ==================== 标签管理 ====================
 
 /**
  * 获取所有标签
  */
-export const getAllTags = () => {
-  return request.get<string[]>('/tickets/tags');
-};
+export const getAllTags = (): Promise<string[]> =>
+  api.get<string[]>('/tickets/tags');
 
 /**
  * 添加标签到工单
  */
-export const addTagsToTicket = (ticketId: string, tags: string[]) => {
-  return request.post(`/tickets/${ticketId}/tags`, { tags });
-};
+export const addTagsToTicket = (ticketId: string, tags: string[]): Promise<void> =>
+  api.post(`/tickets/${ticketId}/tags`, { tags });
 
 /**
  * 从工单移除标签
  */
-export const removeTagFromTicket = (ticketId: string, tag: string) => {
-  return request.delete(`/tickets/${ticketId}/tags/${tag}`);
-};
+export const removeTagFromTicket = (ticketId: string, tag: string): Promise<void> =>
+  api.delete(`/tickets/${ticketId}/tags/${tag}`);
 
 // ==================== 模板管理 ====================
 
@@ -441,9 +425,8 @@ export const removeTagFromTicket = (ticketId: string, tag: string) => {
 export const getReplyTemplates = (params?: {
   type?: TicketType;
   keyword?: string;
-}) => {
-  return request.get('/tickets/templates/replies', { params });
-};
+}): Promise<any> =>
+  api.get('/tickets/templates/replies', { params });
 
 /**
  * 创建回复模板
@@ -453,9 +436,8 @@ export const createReplyTemplate = (data: {
   content: string;
   type?: TicketType;
   tags?: string[];
-}) => {
-  return request.post('/tickets/templates/replies', data);
-};
+}): Promise<any> =>
+  api.post('/tickets/templates/replies', data);
 
 /**
  * 更新回复模板
@@ -465,44 +447,40 @@ export const updateReplyTemplate = (id: string, data: {
   content?: string;
   type?: TicketType;
   tags?: string[];
-}) => {
-  return request.put(`/tickets/templates/replies/${id}`, data);
-};
+}): Promise<any> =>
+  api.put(`/tickets/templates/replies/${id}`, data);
 
 /**
  * 删除回复模板
  */
-export const deleteReplyTemplate = (id: string) => {
-  return request.delete(`/tickets/templates/replies/${id}`);
-};
+export const deleteReplyTemplate = (id: string): Promise<void> =>
+  api.delete(`/tickets/templates/replies/${id}`);
 
 // ==================== 导出功能 ====================
 
 /**
- * 导出工单数据
+ * 导出工单数据 (使用 raw request 因为需要 blob)
  */
 export const exportTickets = (params?: {
   startDate?: string;
   endDate?: string;
   status?: TicketStatus;
   format?: 'csv' | 'excel';
-}) => {
-  return request.get('/tickets/export', {
+}): Promise<Blob> =>
+  request.get('/tickets/export', {
     params,
     responseType: 'blob',
   });
-};
 
 /**
- * 导出统计报表
+ * 导出统计报表 (使用 raw request 因为需要 blob)
  */
 export const exportStatisticsReport = (params?: {
   startDate?: string;
   endDate?: string;
   format?: 'pdf' | 'excel';
-}) => {
-  return request.get('/tickets/statistics/export', {
+}): Promise<Blob> =>
+  request.get('/tickets/statistics/export', {
     params,
     responseType: 'blob',
   });
-};

@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
 import { Empty } from 'antd';
@@ -12,27 +13,28 @@ interface DeviceStatusChartProps {
   loading?: boolean;
 }
 
-const DeviceStatusChart = ({ data, loading }: DeviceStatusChartProps) => {
-  if (!data || data.length === 0) {
-    return <Empty description="暂无数据" />;
-  }
+// ✅ 提取状态映射为常量
+const STATUS_MAP: Record<string, { name: string; color: string }> = {
+  idle: { name: '空闲', color: '#d9d9d9' },
+  running: { name: '运行中', color: '#52c41a' },
+  stopped: { name: '已停止', color: '#ff4d4f' },
+  error: { name: '错误', color: '#faad14' },
+};
 
-  const statusMap: Record<string, { name: string; color: string }> = {
-    idle: { name: '空闲', color: '#d9d9d9' },
-    running: { name: '运行中', color: '#52c41a' },
-    stopped: { name: '已停止', color: '#ff4d4f' },
-    error: { name: '错误', color: '#faad14' },
-  };
+const DeviceStatusChart = memo(({ data, loading }: DeviceStatusChartProps) => {
+  // ✅ 使用 useMemo 缓存 option
+  const option: ECOption | null = useMemo(() => {
+    if (!data || data.length === 0) return null;
 
-  const chartData = data.map((item) => ({
-    value: item.count,
-    name: statusMap[item.status]?.name || item.status,
-    itemStyle: {
-      color: statusMap[item.status]?.color || '#d9d9d9',
-    },
-  }));
+    const chartData = data.map((item) => ({
+      value: item.count,
+      name: STATUS_MAP[item.status]?.name || item.status,
+      itemStyle: {
+        color: STATUS_MAP[item.status]?.color || '#d9d9d9',
+      },
+    }));
 
-  const option: ECOption = {
+    return {
     title: {
       text: '设备状态分布',
       left: 'center',
@@ -75,8 +77,15 @@ const DeviceStatusChart = ({ data, loading }: DeviceStatusChartProps) => {
       },
     ],
   };
+  }, [data]);
+
+  if (!option) {
+    return <Empty description="暂无数据" />;
+  }
 
   return <ReactECharts option={option} style={{ height: '400px' }} showLoading={loading} />;
-};
+});
+
+DeviceStatusChart.displayName = 'DeviceStatusChart';
 
 export default DeviceStatusChart;

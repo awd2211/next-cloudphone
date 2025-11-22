@@ -24,31 +24,31 @@ const Settings = () => {
   const loadSettings = async () => {
     try {
       // 从后端 API 加载设置
-      const response = await request.get('/settings') as any;
-      const settings = response.data;
+      // request.get 已经返回 response.data，无需再取 .data
+      const settings = await request.get('/settings') as any;
 
       // 设置基本配置
-      if (settings.basic) {
+      if (settings?.basic) {
         basicForm.setFieldsValue(settings.basic);
       }
 
       // 设置邮件配置
-      if (settings.email) {
+      if (settings?.email) {
         emailForm.setFieldsValue(settings.email);
       }
 
       // 设置短信配置
-      if (settings.sms) {
+      if (settings?.sms) {
         smsForm.setFieldsValue(settings.sms);
       }
 
       // 设置支付配置
-      if (settings.payment) {
+      if (settings?.payment) {
         paymentForm.setFieldsValue(settings.payment);
       }
 
       // 设置存储配置
-      if (settings.storage) {
+      if (settings?.storage) {
         storageForm.setFieldsValue(settings.storage);
       }
     } catch (error) {

@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 认证服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 
 export interface LoginParams {
   username: string;
@@ -8,7 +12,6 @@ export interface LoginParams {
 }
 
 export interface LoginResponse {
-  success?: boolean;
   token: string;
   user: {
     id: string;
@@ -27,26 +30,21 @@ export interface CaptchaResponse {
   svg: string;
 }
 
-export const getCaptcha = () => {
-  return request.get<CaptchaResponse>('/auth/captcha');
-};
+export const getCaptcha = (): Promise<CaptchaResponse> =>
+  api.get<CaptchaResponse>('/auth/captcha');
 
-export const login = (params: LoginParams) => {
-  return request.post<LoginResponse>('/auth/login', params);
-};
+export const login = (params: LoginParams): Promise<LoginResponse> =>
+  api.post<LoginResponse>('/auth/login', params);
 
-export const logout = () => {
-  return request.post('/auth/logout');
-};
+export const logout = (): Promise<void> =>
+  api.post<void>('/auth/logout');
 
-export const getCurrentUser = () => {
-  return request.get('/auth/me');
-};
+export const getCurrentUser = () =>
+  api.get('/auth/me');
 
 /**
  * 刷新 Token
  * 使用当前有效的 token 获取新的 token
  */
-export const refreshToken = () => {
-  return request.post<any, { token: string; expiresIn?: string }>('/auth/refresh');
-};
+export const refreshToken = (): Promise<{ token: string; expiresIn?: string }> =>
+  api.post<{ token: string; expiresIn?: string }>('/auth/refresh');

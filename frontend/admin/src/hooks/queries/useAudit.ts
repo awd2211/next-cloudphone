@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as auditService from '@/services/audit';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import {
   AuditStatsSchema,
 } from '@/schemas/api.schemas';

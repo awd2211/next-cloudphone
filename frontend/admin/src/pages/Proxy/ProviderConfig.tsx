@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import {
   Card,
   Table,
@@ -39,7 +39,8 @@ import {
 } from '@/hooks/queries/useProxy';
 import type { ColumnsType } from 'antd/es/table';
 
-const ProviderConfig: React.FC = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const ProviderConfig: React.FC = memo(() => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<ProxyProvider | null>(null);
   const [form] = Form.useForm();
@@ -52,13 +53,14 @@ const ProviderConfig: React.FC = () => {
   const toggleMutation = useToggleProxyProvider();
   const testMutation = useTestProxyProvider();
 
-  const handleAdd = () => {
+  // ✅ 使用 useCallback 包装事件处理函数
+  const handleAdd = useCallback(() => {
     setEditingProvider(null);
     form.resetFields();
     setIsModalOpen(true);
-  };
+  }, [form]);
 
-  const handleEdit = (provider: ProxyProvider) => {
+  const handleEdit = useCallback((provider: ProxyProvider) => {
     setEditingProvider(provider);
     form.setFieldsValue({
       name: provider.name,
@@ -69,9 +71,9 @@ const ProviderConfig: React.FC = () => {
       config: undefined, // 配置为空对象，需要手动填写
     });
     setIsModalOpen(true);
-  };
+  }, [form]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     try {
       const values = await form.validateFields();
 
@@ -97,9 +99,10 @@ const ProviderConfig: React.FC = () => {
     } catch (error) {
       console.error('表单验证失败:', error);
     }
-  };
+  }, [form, editingProvider, updateMutation, createMutation]);
 
-  const columns: ColumnsType<ProxyProvider> = [
+  // ✅ 使用 useMemo 缓存列定义，避免每次渲染都重新创建
+  const columns: ColumnsType<ProxyProvider> = useMemo(() => [
     {
       title: '供应商',
       key: 'provider',
@@ -116,14 +119,14 @@ const ProviderConfig: React.FC = () => {
       dataIndex: 'priority',
       key: 'priority',
       width: 100,
-      sorter: (a, b) => a.priority - b.priority,
+      sorter: (a: ProxyProvider, b: ProxyProvider) => a.priority - b.priority,
     },
     {
       title: '成本',
       dataIndex: 'costPerGB',
       key: 'costPerGB',
       width: 120,
-      sorter: (a, b) => a.costPerGB - b.costPerGB,
+      sorter: (a: ProxyProvider, b: ProxyProvider) => a.costPerGB - b.costPerGB,
       render: (cost: number) => <span>${cost.toFixed(2)}/GB</span>,
     },
     {
@@ -143,7 +146,7 @@ const ProviderConfig: React.FC = () => {
       dataIndex: 'successRate',
       key: 'successRate',
       width: 100,
-      sorter: (a, b) => a.successRate - b.successRate,
+      sorter: (a: ProxyProvider, b: ProxyProvider) => a.successRate - b.successRate,
       render: (rate: number) => (
         <span style={{
           color: rate >= 90 ? '#52c41a' : rate >= 70 ? '#faad14' : '#ff4d4f',
@@ -158,7 +161,7 @@ const ProviderConfig: React.FC = () => {
       dataIndex: 'avgLatencyMs',
       key: 'avgLatencyMs',
       width: 100,
-      sorter: (a, b) => a.avgLatencyMs - b.avgLatencyMs,
+      sorter: (a: ProxyProvider, b: ProxyProvider) => a.avgLatencyMs - b.avgLatencyMs,
       render: (latency: number) => <span>{latency}ms</span>,
     },
     {
@@ -223,14 +226,18 @@ const ProviderConfig: React.FC = () => {
         </Space>
       ),
     },
-  ];
+  ], [handleEdit, testMutation, toggleMutation, deleteMutation]);
 
-  const totalProviders = providers?.length || 0;
-  const enabledProviders = providers?.filter(p => p.enabled).length || 0;
-  const avgSuccessRate = providers && providers.length > 0
-    ? providers.reduce((sum, p) => sum + p.successRate, 0) / providers.length
-    : 0;
-  const totalRequests = providers?.reduce((sum, p) => sum + p.totalRequests, 0) || 0;
+  // ✅ 使用 useMemo 缓存总览统计计算
+  const { totalProviders, enabledProviders, avgSuccessRate, totalRequests } = useMemo(() => {
+    const total = providers?.length || 0;
+    const enabled = providers?.filter(p => p.enabled).length || 0;
+    const avgRate = providers && providers.length > 0
+      ? providers.reduce((sum, p) => sum + p.successRate, 0) / providers.length
+      : 0;
+    const requests = providers?.reduce((sum, p) => sum + p.totalRequests, 0) || 0;
+    return { totalProviders: total, enabledProviders: enabled, avgSuccessRate: avgRate, totalRequests: requests };
+  }, [providers]);
 
   return (
     <div>
@@ -401,6 +408,8 @@ const ProviderConfig: React.FC = () => {
       </Modal>
     </div>
   );
-};
+});
+
+ProviderConfig.displayName = 'Proxy.ProviderConfig';
 
 export default ProviderConfig;

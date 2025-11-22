@@ -32,7 +32,7 @@ import {
   UserActivityStatsSchema,
   RevenueTrendSchema,
 } from '@/schemas/stats.schema';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 
 /**
  * Dashboard 主统计数据
@@ -65,6 +65,8 @@ export const useOnlineDevicesCount = () => {
     staleTime: 30 * 1000,
     // 启用自动刷新 (每 30 秒)
     refetchInterval: 30 * 1000,
+    // 窗口聚焦时刷新 - 实时性要求高
+    refetchOnWindowFocus: true,
   });
 };
 

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { Card, Table, Tag, Button } from 'antd';
 import { EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -16,7 +16,8 @@ interface LogsTableProps {
   onViewDetail: (log: WebhookLog) => void;
 }
 
-export const LogsTable: React.FC<LogsTableProps> = ({
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+export const LogsTable: React.FC<LogsTableProps> = memo(({
   loading,
   logs,
   total,
@@ -122,4 +123,6 @@ export const LogsTable: React.FC<LogsTableProps> = ({
       />
     </Card>
   );
-};
+});
+
+LogsTable.displayName = 'WebhookLogs.LogsTable';

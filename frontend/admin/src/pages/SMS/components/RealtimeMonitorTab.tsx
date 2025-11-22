@@ -1,3 +1,4 @@
+import { useMemo, useCallback, memo } from 'react';
 import { Card, Row, Col, Statistic, Tag, Progress, theme } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import {
@@ -61,7 +62,8 @@ interface ProviderHealthRow {
  * - 最近活动统计（5分钟/15分钟/1小时）
  * - 平台健康状态实时监控
  */
-const RealtimeMonitorTab: React.FC = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const RealtimeMonitorTab: React.FC = memo(() => {
   const { token } = theme.useToken();
 
   // 使用新的 React Query Hook（自动10秒刷新）
@@ -78,7 +80,8 @@ const RealtimeMonitorTab: React.FC = () => {
     })
   );
 
-  const healthColumns: ColumnsType<ProviderHealthRow> = [
+  // ✅ 使用 useMemo 缓存列定义，避免每次渲染都重新创建
+  const healthColumns: ColumnsType<ProviderHealthRow> = useMemo(() => [
     {
       title: '平台',
       dataIndex: 'provider',
@@ -90,7 +93,7 @@ const RealtimeMonitorTab: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 120,
-      render: (status) => (
+      render: (status: string) => (
         <Tag color={status === 'healthy' ? 'success' : 'error'}>
           {status === 'healthy' ? '健康' : '不健康'}
         </Tag>
@@ -101,7 +104,7 @@ const RealtimeMonitorTab: React.FC = () => {
       dataIndex: 'successRate',
       key: 'successRate',
       width: 150,
-      render: (rate) => (
+      render: (rate: number) => (
         <Progress
           percent={rate}
           size="small"
@@ -114,7 +117,7 @@ const RealtimeMonitorTab: React.FC = () => {
       dataIndex: 'avgResponseTime',
       key: 'avgResponseTime',
       width: 150,
-      render: (time) => (
+      render: (time: number) => (
         <span style={{ color: time > 60 ? '#ff4d4f' : '#52c41a' }}>
           {time.toFixed(1)}s
         </span>
@@ -125,19 +128,19 @@ const RealtimeMonitorTab: React.FC = () => {
       dataIndex: 'consecutiveFailures',
       key: 'consecutiveFailures',
       width: 120,
-      render: (failures) => (
+      render: (failures: number) => (
         <Tag color={failures >= 3 ? 'error' : failures > 0 ? 'warning' : 'success'}>
           {failures}
         </Tag>
       ),
     },
-  ];
+  ], []);
 
-  // 计算活动统计的成功率
-  const calculateSuccessRate = (activity: { requests: number; successes: number }) => {
+  // ✅ 使用 useCallback 缓存辅助函数
+  const calculateSuccessRate = useCallback((activity: { requests: number; successes: number }) => {
     if (activity.requests === 0) return 0;
     return ((activity.successes / activity.requests) * 100).toFixed(1);
-  };
+  }, []);
 
   return (
     <div>
@@ -341,6 +344,8 @@ const RealtimeMonitorTab: React.FC = () => {
       </Card>
     </div>
   );
-};
+});
+
+RealtimeMonitorTab.displayName = 'SMS.RealtimeMonitorTab';
 
 export default RealtimeMonitorTab;

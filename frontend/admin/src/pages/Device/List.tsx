@@ -101,7 +101,7 @@ const DeviceList = () => {
   const total = (devicesData as any)?.total || 0;
 
   // ✅ P3 优化：拖拽排序
-  const { sortedDataSource, DndWrapper, tableComponents, sortColumn } = useDraggableTable({
+  const { sortedDataSource, renderDndWrapper, tableComponents, sortColumn } = useDraggableTable({
     dataSource: devices,
     getRowKey: (device) => device.id,
     onSortEnd: (newDevices) => {
@@ -360,7 +360,7 @@ const DeviceList = () => {
 
       {/* 设备列表表格（支持拖拽排序 + 右键菜单） */}
       <Card>
-        <DndWrapper>
+        {renderDndWrapper(
           <DeviceTable
             columns={columns}
             dataSource={sortedDataSource as Device[]}
@@ -378,7 +378,7 @@ const DeviceList = () => {
               onContextMenu: (e) => onContextMenu(record, e),
             })}
           />
-        </DndWrapper>
+        )}
         {contextMenu}
       </Card>
 

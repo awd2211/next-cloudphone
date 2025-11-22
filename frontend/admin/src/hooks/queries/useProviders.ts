@@ -30,7 +30,7 @@ export const providerKeys = {
 export const useProviderSpecs = () => {
   return useQuery({
     queryKey: providerKeys.specs(),
-    queryFn: () => providerService.getProviderSpecs().then(res => res.data),
+    queryFn: () => providerService.getProviderSpecs(),
     staleTime: 10 * 60 * 1000, // 10分钟
   });
 };
@@ -41,7 +41,7 @@ export const useProviderSpecs = () => {
 export const useProviderSpecsByType = (provider: any) => {
   return useQuery({
     queryKey: providerKeys.specsByType(provider),
-    queryFn: () => providerService.getProviderSpecsByType(provider).then(res => res.data),
+    queryFn: () => providerService.getProviderSpecsByType(provider),
     enabled: !!provider,
     staleTime: 10 * 60 * 1000, // 10分钟
   });
@@ -67,7 +67,7 @@ export const useCloudSyncStatus = (params?: {
 export const useProviderHealth = () => {
   return useQuery({
     queryKey: providerKeys.health(),
-    queryFn: () => providerService.getProviderHealth().then(res => res.data),
+    queryFn: () => providerService.getProviderHealth(),
     staleTime: 30 * 1000, // 30秒
     refetchInterval: 60 * 1000, // 每分钟自动刷新
   });

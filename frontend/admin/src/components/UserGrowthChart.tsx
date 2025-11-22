@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
 import { Empty, theme } from 'antd';
@@ -13,18 +14,18 @@ interface UserGrowthChartProps {
   loading?: boolean;
 }
 
-const UserGrowthChart = ({ data, loading }: UserGrowthChartProps) => {
+const UserGrowthChart = memo(({ data, loading }: UserGrowthChartProps) => {
   const { token } = theme.useToken();
 
-  if (!data || data.length === 0) {
-    return <Empty description="暂无数据" />;
-  }
+  // ✅ 使用 useMemo 缓存 option
+  const option: ECOption | null = useMemo(() => {
+    if (!data || data.length === 0) return null;
 
-  const dates = data.map((item) => item.date);
-  const newUsers = data.map((item) => item.newUsers);
-  const totalUsers = data.map((item) => item.totalUsers);
+    const dates = data.map((item) => item.date);
+    const newUsers = data.map((item) => item.newUsers);
+    const totalUsers = data.map((item) => item.totalUsers);
 
-  const option: ECOption = {
+    return {
     title: {
       text: '用户增长趋势',
       left: 'center',
@@ -120,8 +121,15 @@ const UserGrowthChart = ({ data, loading }: UserGrowthChartProps) => {
       },
     ],
   };
+  }, [data, token.colorPrimary]);
+
+  if (!option) {
+    return <Empty description="暂无数据" />;
+  }
 
   return <ReactECharts option={option} style={{ height: '400px' }} showLoading={loading} />;
-};
+});
+
+UserGrowthChart.displayName = 'UserGrowthChart';
 
 export default UserGrowthChart;

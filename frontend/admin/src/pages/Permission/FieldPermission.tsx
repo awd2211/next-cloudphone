@@ -55,11 +55,9 @@ const FieldPermissionManagement: React.FC = () => {
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        const res = await deleteFieldPermission(id);
-        if (res.success) {
-          message.success(res.message);
-          loadPermissions();
-        }
+        await deleteFieldPermission(id);
+        message.success('删除成功');
+        loadPermissions();
       } catch (error) {
         message.error('删除字段权限配置失败');
       }
@@ -70,11 +68,9 @@ const FieldPermissionManagement: React.FC = () => {
   const handleToggle = useCallback(
     async (record: FieldPermission) => {
       try {
-        const res = await toggleFieldPermission(record.id);
-        if (res.success) {
-          message.success(res.message);
-          loadPermissions();
-        }
+        await toggleFieldPermission(record.id);
+        message.success('状态切换成功');
+        loadPermissions();
       } catch (error) {
         message.error('切换状态失败');
       }
@@ -108,19 +104,15 @@ const FieldPermissionManagement: React.FC = () => {
       };
 
       if (editingPermission) {
-        const res = await updateFieldPermission(editingPermission.id, data);
-        if (res.success) {
-          message.success(res.message);
-          setIsModalVisible(false);
-          loadPermissions();
-        }
+        await updateFieldPermission(editingPermission.id, data);
+        message.success('更新成功');
+        setIsModalVisible(false);
+        loadPermissions();
       } else {
-        const res = await createFieldPermission(data);
-        if (res.success) {
-          message.success(res.message);
-          setIsModalVisible(false);
-          loadPermissions();
-        }
+        await createFieldPermission(data);
+        message.success('创建成功');
+        setIsModalVisible(false);
+        loadPermissions();
       }
     } catch (error) {
       message.error(editingPermission ? '更新字段权限配置失败' : '创建字段权限配置失败');

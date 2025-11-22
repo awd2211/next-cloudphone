@@ -150,7 +150,7 @@ export const useSMSStats = () => {
   return useQuery<SMSStats>({
     queryKey: smsKeys.stats(),
     queryFn: getSMSStats,
-    refetchInterval: 30000, // 每30秒自动刷新
+    refetchInterval: 60000, // SMS统计 - 中等实时性
   });
 };
 
@@ -176,7 +176,7 @@ export const useSMSRealtimeStats = () => {
   return useQuery<SMSRealtimeStats>({
     queryKey: smsKeys.realtimeStats(),
     queryFn: getSMSRealtimeStats,
-    refetchInterval: 10000, // 每10秒刷新
+    refetchInterval: 30000, // SMS实时统计 - 高实时性
   });
 };
 

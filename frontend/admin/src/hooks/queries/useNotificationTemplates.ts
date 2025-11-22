@@ -230,7 +230,7 @@ export const useNotificationTemplates = (
   const handleCreate = useCallback(() => {
     setEditingTemplate(null);
     form.resetFields();
-    form.setFieldsValue({ contentType: 'plain', language: 'zh-CN', isActive: true });
+    form.setFieldsValue({ language: 'zh-CN', isActive: true, channels: ['websocket'] });
     setIsModalVisible(true);
   }, [form]);
 
@@ -238,15 +238,18 @@ export const useNotificationTemplates = (
     (template: NotificationTemplate) => {
       setEditingTemplate(template);
       form.setFieldsValue({
+        code: template.code,
         name: template.name,
-        description: template.description,
         type: template.type,
-        subject: template.subject,
-        content: template.content,
-        contentType: template.contentType,
-        isActive: template.isActive,
         language: template.language,
-        category: template.category,
+        channels: template.channels,
+        title: template.title,
+        body: template.body,
+        contentFormat: template.contentFormat || 'plain',
+        emailTemplate: template.emailTemplate,
+        smsTemplate: template.smsTemplate,
+        description: template.description,
+        isActive: template.isActive,
       });
       setIsModalVisible(true);
     },
@@ -279,25 +282,30 @@ export const useNotificationTemplates = (
       if (editingTemplate) {
         const data: UpdateNotificationTemplateDto = {
           name: values.name,
+          title: values.title,
+          body: values.body,
+          contentFormat: values.contentFormat,
+          emailTemplate: values.emailTemplate,
+          smsTemplate: values.smsTemplate,
+          channels: values.channels,
           description: values.description,
-          subject: values.subject,
-          content: values.content,
-          contentType: values.contentType,
           isActive: values.isActive,
-          category: values.category,
         };
         await updateMutation.mutateAsync({ id: editingTemplate.id, data });
       } else {
         const data: CreateNotificationTemplateDto = {
+          code: values.code,
           name: values.name,
-          description: values.description,
           type: values.type,
-          subject: values.subject,
-          content: values.content,
-          contentType: values.contentType,
-          isActive: values.isActive,
           language: values.language,
-          category: values.category,
+          channels: values.channels,
+          title: values.title,
+          body: values.body,
+          contentFormat: values.contentFormat || 'plain',
+          emailTemplate: values.emailTemplate,
+          smsTemplate: values.smsTemplate,
+          description: values.description,
+          isActive: values.isActive,
         };
         await createMutation.mutateAsync(data);
       }

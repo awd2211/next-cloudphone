@@ -88,7 +88,7 @@ export const useProxyStats = () => {
   return useQuery<ProxyStats>({
     queryKey: proxyKeys.stats(),
     queryFn: getProxyStats,
-    refetchInterval: 30000, // 每30秒自动刷新
+    refetchInterval: 60000, // 代理池统计 - 中等实时性
   });
 };
 
@@ -275,7 +275,7 @@ export const useProxyProviderRanking = () => {
   return useQuery<ProxyProviderRanking[]>({
     queryKey: proxyKeys.providerRanking(),
     queryFn: getProxyProviderRanking,
-    refetchInterval: 30000, // 每30秒自动刷新
+    refetchInterval: 60000, // 供应商排名 - 中等实时性
   });
 };
 

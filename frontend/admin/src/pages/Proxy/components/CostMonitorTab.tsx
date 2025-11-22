@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import {
   Card,
   Row,
@@ -59,7 +59,8 @@ interface CostReport {
  * - 按设备组成本分析
  * - 成本优化建议
  */
-const CostMonitorTab: React.FC = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const CostMonitorTab: React.FC = memo(() => {
   const { token } = theme.useToken();
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(7, 'day'),
@@ -75,7 +76,11 @@ const CostMonitorTab: React.FC = () => {
   // 类型断言：假设 API 返回的数据符合组件期望的结构
   const costReport = data as unknown as CostReport | undefined;
 
-  const providerColumns: ColumnsType<CostReport['byProvider'][0]> = [
+  // ✅ 使用 useMemo 缓存列定义，避免每次渲染都重新创建
+  type ProviderItem = CostReport['byProvider'][0];
+  type DeviceGroupItem = CostReport['byDeviceGroup'][0];
+
+  const providerColumns: ColumnsType<ProviderItem> = useMemo(() => [
     {
       title: '供应商',
       dataIndex: 'provider',
@@ -87,7 +92,7 @@ const CostMonitorTab: React.FC = () => {
       dataIndex: 'totalCost',
       key: 'totalCost',
       width: 120,
-      sorter: (a, b) => a.totalCost - b.totalCost,
+      sorter: (a: ProviderItem, b: ProviderItem) => a.totalCost - b.totalCost,
       render: (cost: number) => `$${cost.toFixed(2)}`,
     },
     {
@@ -95,7 +100,7 @@ const CostMonitorTab: React.FC = () => {
       dataIndex: 'bandwidth',
       key: 'bandwidth',
       width: 120,
-      sorter: (a, b) => a.bandwidth - b.bandwidth,
+      sorter: (a: ProviderItem, b: ProviderItem) => a.bandwidth - b.bandwidth,
       render: (bandwidth: number) => `${bandwidth.toFixed(2)} GB`,
     },
     {
@@ -103,14 +108,14 @@ const CostMonitorTab: React.FC = () => {
       dataIndex: 'requests',
       key: 'requests',
       width: 100,
-      sorter: (a, b) => a.requests - b.requests,
+      sorter: (a: ProviderItem, b: ProviderItem) => a.requests - b.requests,
     },
     {
       title: '平均成本',
       dataIndex: 'avgCostPerGB',
       key: 'avgCostPerGB',
       width: 120,
-      sorter: (a, b) => a.avgCostPerGB - b.avgCostPerGB,
+      sorter: (a: ProviderItem, b: ProviderItem) => a.avgCostPerGB - b.avgCostPerGB,
       render: (cost: number) => `$${cost.toFixed(2)}/GB`,
     },
     {
@@ -120,9 +125,9 @@ const CostMonitorTab: React.FC = () => {
       width: 100,
       render: (percentage: number) => `${percentage.toFixed(1)}%`,
     },
-  ];
+  ], []);
 
-  const deviceGroupColumns: ColumnsType<CostReport['byDeviceGroup'][0]> = [
+  const deviceGroupColumns: ColumnsType<DeviceGroupItem> = useMemo(() => [
     {
       title: '设备组',
       dataIndex: 'groupName',
@@ -134,7 +139,7 @@ const CostMonitorTab: React.FC = () => {
       dataIndex: 'totalCost',
       key: 'totalCost',
       width: 120,
-      sorter: (a, b) => a.totalCost - b.totalCost,
+      sorter: (a: DeviceGroupItem, b: DeviceGroupItem) => a.totalCost - b.totalCost,
       render: (cost: number) => `$${cost.toFixed(2)}`,
     },
     {
@@ -142,7 +147,7 @@ const CostMonitorTab: React.FC = () => {
       dataIndex: 'bandwidth',
       key: 'bandwidth',
       width: 120,
-      sorter: (a, b) => a.bandwidth - b.bandwidth,
+      sorter: (a: DeviceGroupItem, b: DeviceGroupItem) => a.bandwidth - b.bandwidth,
       render: (bandwidth: number) => `${bandwidth.toFixed(2)} GB`,
     },
     {
@@ -150,9 +155,9 @@ const CostMonitorTab: React.FC = () => {
       dataIndex: 'requests',
       key: 'requests',
       width: 100,
-      sorter: (a, b) => a.requests - b.requests,
+      sorter: (a: DeviceGroupItem, b: DeviceGroupItem) => a.requests - b.requests,
     },
-  ];
+  ], []);
 
   return (
     <div>
@@ -269,6 +274,8 @@ const CostMonitorTab: React.FC = () => {
       </Card>
     </div>
   );
-};
+});
+
+CostMonitorTab.displayName = 'Proxy.CostMonitorTab';
 
 export default CostMonitorTab;

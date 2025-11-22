@@ -123,6 +123,8 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       // 默认降级 UI
+      // 注意：不设置 minHeight: 100vh，因为可能嵌套在 Layout 内部
+      // 使用 flexGrow 来填充可用空间
       return (
         <div
           style={{
@@ -130,8 +132,8 @@ export class ErrorBoundary extends Component<Props, State> {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            minHeight: '100vh',
-            backgroundColor: '#f0f2f5',
+            minHeight: '400px',
+            flexGrow: 1,
           }}
         >
           <Result

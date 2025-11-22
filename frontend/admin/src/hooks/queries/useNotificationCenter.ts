@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Form, message } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import request from '@/utils/request';
+import { api } from '@/utils/api';
 
 /**
  * 通知类型
@@ -77,8 +77,7 @@ export const useNotificationCenter = () => {
       }
 
       // ✅ 调用正确的后端端点: /notifications/user/:userId
-      const response = await request.get(`/notifications/user/${userId}`, { params: queryParams });
-      return response as { data: any[]; total: number };
+      return api.get<{ data: any[]; total: number }>(`/notifications/user/${userId}`, { params: queryParams });
     },
     staleTime: 10 * 1000, // 10 秒
   });
@@ -98,9 +97,7 @@ export const useNotificationCenter = () => {
    * 标记通知为已读
    */
   const markAsReadMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await request.patch(`/notifications/${id}/read`);
-    },
+    mutationFn: (id: string) => api.patch(`/notifications/${id}/read`),
     onSuccess: () => {
       message.success('已标记为已读');
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -114,7 +111,7 @@ export const useNotificationCenter = () => {
    * 全部标记为已读
    */
   const markAllAsReadMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: () => {
       // ✅ 从 localStorage 获取当前用户 ID
       const userId = localStorage.getItem('userId');
       if (!userId) {
@@ -122,7 +119,7 @@ export const useNotificationCenter = () => {
       }
 
       // ✅ 发送 userId 到后端
-      return await request.post('/notifications/read-all', { userId });
+      return api.post('/notifications/read-all', { userId });
     },
     onSuccess: () => {
       message.success('已全部标记为已读');
@@ -137,9 +134,7 @@ export const useNotificationCenter = () => {
    * 删除通知
    */
   const deleteNotificationMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await request.delete(`/notifications/${id}`);
-    },
+    mutationFn: (id: string) => api.delete(`/notifications/${id}`),
     onSuccess: () => {
       message.success('通知已删除');
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -153,9 +148,7 @@ export const useNotificationCenter = () => {
    * 创建通知（管理员）
    */
   const createNotificationMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return await request.post('/notifications', data);
-    },
+    mutationFn: (data: any) => api.post('/notifications', data),
     onSuccess: () => {
       message.success('通知已发送');
       queryClient.invalidateQueries({ queryKey: ['notifications'] });

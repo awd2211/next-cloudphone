@@ -17,7 +17,7 @@ import {
 } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as deviceService from '@/services/device';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import {
   DeviceSchema,
   PaginatedResponseSchema,

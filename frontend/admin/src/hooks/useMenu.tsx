@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import request from '../utils/request';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { api } from '../utils/api';
 
 /**
  * 菜单项接口
@@ -33,6 +33,25 @@ export interface BreadcrumbItem {
  */
 let globalMenus: MenuItem[] | null = null;
 let menusPromise: Promise<any> | null = null;
+
+/**
+ * 清除菜单缓存（独立函数，供登出时调用）
+ *
+ * @example
+ * import { clearMenuCache } from '@/hooks/useMenu';
+ *
+ * // 登出时清理缓存
+ * const handleLogout = () => {
+ *   clearPermissionCache();
+ *   clearMenuCache();
+ *   localStorage.clear();
+ *   navigate('/login');
+ * };
+ */
+export const clearMenuCache = () => {
+  globalMenus = null;
+  menusPromise = null;
+};
 
 /**
  * useMenu Hook
@@ -78,16 +97,11 @@ export const useMenu = () => {
 
     try {
       setLoading(true);
-      menusPromise = request.get('/menu-permissions/my-menus');
-      const response = await menusPromise;
+      menusPromise = api.get<MenuItem[]>('/menu-permissions/my-menus');
+      const menuData = await menusPromise;
 
-      if (response.success) {
-        const menuData = response.data || [];
-        globalMenus = menuData;
-        setMenus(menuData);
-      } else {
-        throw new Error(response.message || '获取菜单失败');
-      }
+      globalMenus = menuData || [];
+      setMenus(globalMenus);
     } catch (err: any) {
       setError(err);
       console.error('Failed to load menus:', err);
@@ -123,14 +137,11 @@ export const useMenu = () => {
    */
   const checkMenuAccess = useCallback(async (path: string): Promise<boolean> => {
     try {
+      // ✅ request.ts 已自动解包响应，直接返回 data
       const response = await request.get<any>('/menu-permissions/check-menu-access', {
         params: { path },
       });
-
-      if (response.success) {
-        return response.data?.hasAccess || false;
-      }
-      return false;
+      return response?.hasAccess || false;
     } catch (err) {
       console.error('Failed to check menu access:', err);
       return false;
@@ -142,14 +153,9 @@ export const useMenu = () => {
    */
   const getBreadcrumb = useCallback(async (path: string): Promise<BreadcrumbItem[]> => {
     try {
-      const response = await request.get<any>('/menu-permissions/breadcrumb', {
+      return await api.get<BreadcrumbItem[]>('/menu-permissions/breadcrumb', {
         params: { path },
-      });
-
-      if (response.success) {
-        return response.data || [];
-      }
-      return [];
+      }) || [];
     } catch (err) {
       console.error('Failed to get breadcrumb:', err);
       return [];
@@ -161,12 +167,7 @@ export const useMenu = () => {
    */
   const getAllMenus = useCallback(async (): Promise<MenuItem[]> => {
     try {
-      const response = await request.get<any>('/menu-permissions/all-menus');
-
-      if (response.success) {
-        return response.data || [];
-      }
-      return [];
+      return await api.get<MenuItem[]>('/menu-permissions/all-menus') || [];
     } catch (err) {
       console.error('Failed to get all menus:', err);
       return [];
@@ -424,7 +425,8 @@ export interface MenuGuardProps {
   fallback?: React.ReactNode;
 }
 
-export const MenuGuard: React.FC<MenuGuardProps> = ({ children, path, fallback = null }) => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+export const MenuGuard: React.FC<MenuGuardProps> = memo(({ children, path, fallback = null }) => {
   const { findMenuByPath, loading } = useMenu();
 
   if (loading) {
@@ -433,6 +435,8 @@ export const MenuGuard: React.FC<MenuGuardProps> = ({ children, path, fallback =
 
   const menu = findMenuByPath(path);
   return menu ? <>{children}</> : <>{fallback}</>;
-};
+});
+
+MenuGuard.displayName = 'MenuGuard';
 
 export default useMenu;

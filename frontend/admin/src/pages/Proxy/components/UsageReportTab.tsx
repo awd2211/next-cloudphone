@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import {
   Table,
   DatePicker,
@@ -60,7 +60,8 @@ interface UsageReport {
  * - 设备使用排名
  * - 用户使用排名
  */
-const UsageReportTab: React.FC = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const UsageReportTab: React.FC = memo(() => {
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(7, 'day'),
     dayjs(),
@@ -75,18 +76,19 @@ const UsageReportTab: React.FC = () => {
   // 类型断言：假设 API 返回的数据符合组件期望的结构
   const usageReport = data as unknown as UsageReport | undefined;
 
-  const deviceColumns: ColumnsType<UsageReport['topDevices'][0]> = [
+  // ✅ 使用 useMemo 缓存列定义，避免每次渲染都重新创建
+  const deviceColumns: ColumnsType<UsageReport['topDevices'][0]> = useMemo(() => [
     {
       title: '排名',
       key: 'rank',
       width: 80,
-      render: (_, __, index) => `#${index + 1}`,
+      render: (_: unknown, __: unknown, index: number) => `#${index + 1}`,
     },
     {
       title: '设备',
       key: 'device',
       width: 200,
-      render: (_, record) => (
+      render: (_: unknown, record: UsageReport['topDevices'][0]) => (
         <div>
           <div style={{ fontWeight: 500 }}>{record.deviceName}</div>
           <div style={{ fontSize: 12, color: '#999' }}>{record.deviceId}</div>
@@ -98,14 +100,14 @@ const UsageReportTab: React.FC = () => {
       dataIndex: 'requests',
       key: 'requests',
       width: 120,
-      sorter: (a, b) => a.requests - b.requests,
+      sorter: (a: UsageReport['topDevices'][0], b: UsageReport['topDevices'][0]) => a.requests - b.requests,
     },
     {
       title: '流量',
       dataIndex: 'bandwidth',
       key: 'bandwidth',
       width: 120,
-      sorter: (a, b) => a.bandwidth - b.bandwidth,
+      sorter: (a: UsageReport['topDevices'][0], b: UsageReport['topDevices'][0]) => a.bandwidth - b.bandwidth,
       render: (bandwidth: number) => `${bandwidth.toFixed(2)} GB`,
     },
     {
@@ -113,23 +115,23 @@ const UsageReportTab: React.FC = () => {
       dataIndex: 'successRate',
       key: 'successRate',
       width: 100,
-      sorter: (a, b) => a.successRate - b.successRate,
+      sorter: (a: UsageReport['topDevices'][0], b: UsageReport['topDevices'][0]) => a.successRate - b.successRate,
       render: (rate: number) => `${rate.toFixed(1)}%`,
     },
-  ];
+  ], []);
 
-  const userColumns: ColumnsType<UsageReport['topUsers'][0]> = [
+  const userColumns: ColumnsType<UsageReport['topUsers'][0]> = useMemo(() => [
     {
       title: '排名',
       key: 'rank',
       width: 80,
-      render: (_, __, index) => `#${index + 1}`,
+      render: (_: unknown, __: unknown, index: number) => `#${index + 1}`,
     },
     {
       title: '用户',
       key: 'user',
       width: 200,
-      render: (_, record) => (
+      render: (_: unknown, record: UsageReport['topUsers'][0]) => (
         <div>
           <div style={{ fontWeight: 500 }}>{record.username}</div>
           <div style={{ fontSize: 12, color: '#999' }}>{record.userId}</div>
@@ -141,14 +143,14 @@ const UsageReportTab: React.FC = () => {
       dataIndex: 'requests',
       key: 'requests',
       width: 120,
-      sorter: (a, b) => a.requests - b.requests,
+      sorter: (a: UsageReport['topUsers'][0], b: UsageReport['topUsers'][0]) => a.requests - b.requests,
     },
     {
       title: '流量',
       dataIndex: 'bandwidth',
       key: 'bandwidth',
       width: 120,
-      sorter: (a, b) => a.bandwidth - b.bandwidth,
+      sorter: (a: UsageReport['topUsers'][0], b: UsageReport['topUsers'][0]) => a.bandwidth - b.bandwidth,
       render: (bandwidth: number) => `${bandwidth.toFixed(2)} GB`,
     },
     {
@@ -156,10 +158,10 @@ const UsageReportTab: React.FC = () => {
       dataIndex: 'cost',
       key: 'cost',
       width: 100,
-      sorter: (a, b) => a.cost - b.cost,
+      sorter: (a: UsageReport['topUsers'][0], b: UsageReport['topUsers'][0]) => a.cost - b.cost,
       render: (cost: number) => `$${cost.toFixed(2)}`,
     },
-  ];
+  ], []);
 
   return (
     <div>
@@ -300,6 +302,8 @@ const UsageReportTab: React.FC = () => {
       </Card>
     </div>
   );
-};
+});
+
+UsageReportTab.displayName = 'Proxy.UsageReportTab';
 
 export default UsageReportTab;

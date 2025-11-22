@@ -1,3 +1,4 @@
+import { useMemo, memo } from 'react';
 import {
   Table,
   Card,
@@ -24,11 +25,13 @@ import type { ColumnsType } from 'antd/es/table';
  * - 各项指标对比
  * - 健康状态监控
  */
-const ProviderMonitorTab: React.FC = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const ProviderMonitorTab: React.FC = memo(() => {
   // 使用新的 React Query Hook
   const { data: providers = [], isLoading, refetch } = useProxyProviderRanking();
 
-  const columns: ColumnsType<ProxyProviderRanking> = [
+  // ✅ 使用 useMemo 缓存列定义
+  const columns: ColumnsType<ProxyProviderRanking> = useMemo(() => [
     {
       title: '排名',
       dataIndex: 'rank',
@@ -127,15 +130,18 @@ const ProviderMonitorTab: React.FC = () => {
         </div>
       ),
     },
-  ];
+  ], []);
 
-  // 计算总览统计
-  const totalProxies = providers.reduce((sum: number, p: any) => sum + p.totalProxies, 0);
-  const totalAvailable = providers.reduce((sum: number, p: any) => sum + p.availableProxies, 0);
-  const avgScore = providers.length > 0
-    ? providers.reduce((sum: number, p: any) => sum + p.score, 0) / providers.length
-    : 0;
-  const bestProvider = providers.length > 0 ? providers[0] : null;
+  // ✅ 使用 useMemo 缓存总览统计计算
+  const { totalProxies, totalAvailable, avgScore, bestProvider } = useMemo(() => {
+    const total = providers.reduce((sum: number, p: any) => sum + p.totalProxies, 0);
+    const available = providers.reduce((sum: number, p: any) => sum + p.availableProxies, 0);
+    const avg = providers.length > 0
+      ? providers.reduce((sum: number, p: any) => sum + p.score, 0) / providers.length
+      : 0;
+    const best = providers.length > 0 ? providers[0] : null;
+    return { totalProxies: total, totalAvailable: available, avgScore: avg, bestProvider: best };
+  }, [providers]);
 
   return (
     <div>
@@ -224,6 +230,8 @@ const ProviderMonitorTab: React.FC = () => {
       />
     </div>
   );
-};
+});
+
+ProviderMonitorTab.displayName = 'Proxy.ProviderMonitorTab';
 
 export default ProviderMonitorTab;

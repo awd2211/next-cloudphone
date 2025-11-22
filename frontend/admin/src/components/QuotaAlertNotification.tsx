@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { notification, Badge, Popover, List, Tag, Button, Divider } from 'antd';
 import { BellOutlined, WarningOutlined } from '@ant-design/icons';
 import type { QuotaAlert } from '@/types';
@@ -43,34 +43,33 @@ const QuotaAlertNotification: React.FC<QuotaAlertNotificationProps> = ({
 }) => {
   const [alerts, setAlerts] = useState<QuotaAlert[]>([]);
   const [loading, setLoading] = useState(false);
-  const [notifiedAlerts, setNotifiedAlerts] = useState<Set<string>>(new Set());
+  // ✅ 使用 useRef 存储已通知的告警，避免 useCallback 依赖变化导致无限循环
+  const notifiedAlertsRef = useRef<Set<string>>(new Set());
 
   // 加载配额告警
   const loadAlerts = useCallback(async () => {
     setLoading(true);
     try {
       const result = await quotaService.getQuotaAlerts(threshold);
-      if (result.success && result.data) {
-        const newAlerts = result.data;
-        setAlerts(newAlerts);
+      const newAlerts = result?.data || [];
+      setAlerts(newAlerts);
 
-        // 自动弹出新告警通知
-        if (autoNotify) {
-          newAlerts.forEach((alert) => {
-            const alertKey = `${alert.userId}-${alert.quotaType}`;
-            if (!notifiedAlerts.has(alertKey)) {
-              showNotification(alert);
-              setNotifiedAlerts((prev) => new Set(prev).add(alertKey));
-            }
-          });
-        }
+      // 自动弹出新告警通知
+      if (autoNotify) {
+        newAlerts.forEach((alert) => {
+          const alertKey = `${alert.userId}-${alert.quotaType}`;
+          if (!notifiedAlertsRef.current.has(alertKey)) {
+            showNotification(alert);
+            notifiedAlertsRef.current.add(alertKey);
+          }
+        });
       }
     } catch (error) {
       console.error('加载配额告警失败:', error);
     } finally {
       setLoading(false);
     }
-  }, [threshold, autoNotify, notifiedAlerts]);
+  }, [threshold, autoNotify]); // ✅ 移除 notifiedAlerts 依赖，使用 ref 代替
 
   // 显示通知
   const showNotification = (alert: QuotaAlert) => {

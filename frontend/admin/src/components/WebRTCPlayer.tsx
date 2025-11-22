@@ -1,11 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import { message, Spin } from 'antd';
 
 interface WebRTCPlayerProps {
   deviceId: string;
 }
 
-const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
+// ✅ 提取 WebRTC 配置为常量，避免每次渲染重建
+const WEBRTC_CONFIGURATION: RTCConfiguration = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ],
+};
+
+// ✅ 重连配置常量
+const MAX_RETRIES = 5;
+const BASE_DELAY = 1000; // 1秒基础延迟
+const MAX_DELAY = 30000; // 最大30秒
+
+const WebRTCPlayer = memo(({ deviceId }: WebRTCPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -14,8 +27,6 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
 
   // 重连相关状态
   const retryCountRef = useRef(0);
-  const maxRetries = 5;
-  const baseDelay = 1000; // 1秒基础延迟
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const shouldReconnectRef = useRef(true);
 
@@ -30,14 +41,14 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
       }
 
       // 检查重连次数
-      if (retryCountRef.current >= maxRetries) {
-        setError(`连接失败（已重试 ${maxRetries} 次），请稍后刷新页面重试`);
+      if (retryCountRef.current >= MAX_RETRIES) {
+        setError(`连接失败（已重试 ${MAX_RETRIES} 次），请稍后刷新页面重试`);
         setLoading(false);
         message.error('无法连接到流媒体服务，请稍后重试');
         return;
       }
 
-      console.log(`Connecting WebSocket (attempt ${retryCountRef.current + 1}/${maxRetries})...`);
+      console.log(`Connecting WebSocket (attempt ${retryCountRef.current + 1}/${MAX_RETRIES})...`);
 
       const ws = new WebSocket(`${wsUrl}/ws/device/${deviceId}`);
       wsRef.current = ws;
@@ -79,15 +90,15 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
         }
 
         // 判断是否需要重连
-        if (shouldReconnectRef.current && retryCountRef.current < maxRetries) {
+        if (shouldReconnectRef.current && retryCountRef.current < MAX_RETRIES) {
           // 使用指数退避策略计算延迟
           const delay = Math.min(
-            baseDelay * Math.pow(2, retryCountRef.current),
-            30000 // 最大30秒
+            BASE_DELAY * Math.pow(2, retryCountRef.current),
+            MAX_DELAY
           );
 
           console.log(
-            `Will retry in ${delay}ms (attempt ${retryCountRef.current + 1}/${maxRetries})`
+            `Will retry in ${delay}ms (attempt ${retryCountRef.current + 1}/${MAX_RETRIES})`
           );
 
           setError(`连接断开，${delay / 1000}秒后重连...`);
@@ -126,15 +137,8 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
   }, [deviceId]);
 
   const initWebRTC = () => {
-    // 创建 RTCPeerConnection
-    const configuration: RTCConfiguration = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-      ],
-    };
-
-    const pc = new RTCPeerConnection(configuration);
+    // 创建 RTCPeerConnection（使用顶层常量配置）
+    const pc = new RTCPeerConnection(WEBRTC_CONFIGURATION);
     peerConnectionRef.current = pc;
 
     // 处理接收到的流
@@ -305,6 +309,8 @@ const WebRTCPlayer = ({ deviceId }: WebRTCPlayerProps) => {
       />
     </div>
   );
-};
+});
+
+WebRTCPlayer.displayName = 'WebRTCPlayer';
 
 export default WebRTCPlayer;

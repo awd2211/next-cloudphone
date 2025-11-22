@@ -58,10 +58,7 @@ export const useDataScope = (
 ) => {
   return useQuery({
     queryKey: dataScopeKeys.detail(id),
-    queryFn: async () => {
-      const response = await dataScopeService.getDataScopeById(id);
-      return response.data;
-    },
+    queryFn: () => dataScopeService.getDataScopeById(id),
     enabled: !!id,
     ...options,
   });
@@ -144,7 +141,7 @@ export const useBatchCreateDataScopes = () => {
     mutationFn: (data: CreateDataScopeDto[]) => dataScopeService.batchCreateDataScopes(data),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: dataScopeKeys.lists() });
-      const count = response?.data?.length || 0;
+      const count = response?.length || 0;
       message.success(`成功创建 ${count} 个数据范围配置`);
     },
     onError: () => {

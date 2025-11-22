@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as ticketService from '@/services/ticket';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import {
   TicketStatisticsSchema,
 } from '@/schemas/api.schemas';
@@ -465,7 +465,7 @@ export const useAgentWorkload = () => {
   return useQuery({
     queryKey: [...ticketKeys.statistics(), 'workload'],
     queryFn: ticketService.getAgentWorkload,
-    refetchInterval: 30000, // 每30秒自动刷新
+    refetchInterval: 60000, // 客服工作负载 - 中等实时性
   });
 };
 
@@ -550,7 +550,7 @@ export const useSLAViolations = (params?: {
   return useQuery({
     queryKey: [...ticketKeys.all, 'sla', 'violations', params],
     queryFn: () => ticketService.getSLAViolations(params),
-    refetchInterval: 30000, // 每30秒刷新
+    refetchInterval: 60000, // SLA违规 - 中等实时性
   });
 };
 

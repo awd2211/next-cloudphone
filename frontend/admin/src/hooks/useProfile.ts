@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Form, message } from 'antd';
 import { applyTheme, type User } from '@/components/Profile/constants';
-import request from '@/utils/request';
+import { api } from '@/utils/api';
 
 export const useProfile = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -57,7 +57,7 @@ export const useProfile = () => {
         }
 
         // 调用后端 API 修改密码
-        await request.post(`/users/${userId}/change-password`, {
+        await api.post(`/users/${userId}/change-password`, {
           oldPassword: values.oldPassword,
           newPassword: values.newPassword,
         });
@@ -94,21 +94,19 @@ export const useProfile = () => {
         }
 
         // 调用后端 API 保存偏好设置
-        const response = await request.patch<any>(`/users/${userId}/preferences`, {
+        await api.patch(`/users/${userId}/preferences`, {
           language: values.language,
           theme: values.theme,
         });
 
-        // 更新本地用户信息（从后端响应中获取更新后的用户数据）
-        if (response.data) {
-          const updatedUser = {
-            ...user,
-            language: values.language,
-            theme: values.theme,
-          };
-          setUser(updatedUser);
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-        }
+        // 更新本地用户信息
+        const updatedUser = {
+          ...user,
+          language: values.language,
+          theme: values.theme,
+        };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
 
         // 应用主题设置
         applyTheme(values.theme);

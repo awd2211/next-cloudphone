@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import request from '../utils/request';
+import { useState, useEffect, useCallback, memo } from 'react';
+import { api } from '../utils/api';
 
 /**
  * 权限上下文
@@ -17,6 +17,26 @@ interface PermissionContext {
 let globalPermissions: string[] | null = null;
 let globalIsSuperAdmin = false;
 let permissionPromise: Promise<any> | null = null;
+
+/**
+ * 清除权限缓存（独立函数，供登出时调用）
+ *
+ * @example
+ * import { clearPermissionCache } from '@/hooks/usePermission';
+ *
+ * // 登出时清理缓存
+ * const handleLogout = () => {
+ *   clearPermissionCache();
+ *   clearMenuCache();
+ *   localStorage.clear();
+ *   navigate('/login');
+ * };
+ */
+export const clearPermissionCache = () => {
+  globalPermissions = null;
+  globalIsSuperAdmin = false;
+  permissionPromise = null;
+};
 
 /**
  * usePermission Hook
@@ -63,22 +83,16 @@ export const usePermission = () => {
     }
 
     try {
-      permissionPromise = request.get('/menu-permissions/my-permissions');
-      const response = await permissionPromise;
+      permissionPromise = api.get<string[]>('/menu-permissions/my-permissions');
+      globalPermissions = await permissionPromise || [];
+      globalIsSuperAdmin = globalPermissions?.includes('*') ?? false;
 
-      if (response.success) {
-        globalPermissions = response.data || [];
-        globalIsSuperAdmin = globalPermissions?.includes('*') ?? false;
-
-        setContext({
-          permissions: globalPermissions || [],
-          isSuperAdmin: globalIsSuperAdmin,
-          loading: false,
-          error: null,
-        });
-      } else {
-        throw new Error(response.message || '获取权限失败');
-      }
+      setContext({
+        permissions: globalPermissions || [],
+        isSuperAdmin: globalIsSuperAdmin,
+        loading: false,
+        error: null,
+      });
     } catch (error: any) {
       setContext((prev) => ({
         ...prev,
@@ -202,7 +216,8 @@ interface PermissionGuardProps {
   fallback?: React.ReactNode;
 }
 
-export const PermissionGuard: React.FC<PermissionGuardProps> = ({
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+export const PermissionGuard: React.FC<PermissionGuardProps> = memo(({
   children,
   permission,
   anyOf,
@@ -226,7 +241,9 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   }
 
   return hasAccess ? <>{children}</> : <>{fallback}</>;
-};
+});
+
+PermissionGuard.displayName = 'PermissionGuard';
 
 /**
  * usePermissionGuard Hook

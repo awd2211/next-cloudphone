@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { message } from 'antd';
-import request from '@/utils/request';
+import { api } from '@/utils/api';
 import { useInvoiceTableColumns, type Invoice } from '@/components/Billing';
 
 export const useInvoiceList = () => {
@@ -69,7 +69,7 @@ export const useInvoiceList = () => {
   const handleDownload = useCallback(async (invoice: Invoice) => {
     try {
       // 调用后端 API 下载发票 PDF
-      const response = await request.get(`/invoices/${invoice.id}/download`, {
+      const response = await api.get(`/invoices/${invoice.id}/download`, {
         responseType: 'blob', // 关键：告诉 axios 响应类型是 blob
       });
 

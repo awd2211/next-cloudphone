@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import {
   Card,
   Table,
@@ -48,7 +48,8 @@ type SMSProviderConfig = SMSProvider;
 /**
  * SMS供应商配置管理页面
  */
-const ProviderConfig: React.FC = () => {
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const ProviderConfig: React.FC = memo(() => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<SMSProviderConfig | null>(null);
   const [form] = Form.useForm();
@@ -62,13 +63,14 @@ const ProviderConfig: React.FC = () => {
   const testMutation = useTestProvider();
   const refreshBalanceMutation = useRefreshProviderBalance();
 
-  const handleAdd = () => {
+  // ✅ 使用 useCallback 包装事件处理函数
+  const handleAdd = useCallback(() => {
     setEditingProvider(null);
     form.resetFields();
     setIsModalOpen(true);
-  };
+  }, [form]);
 
-  const handleEdit = (provider: SMSProviderConfig) => {
+  const handleEdit = useCallback((provider: SMSProviderConfig) => {
     setEditingProvider(provider);
     form.setFieldsValue({
       ...provider,
@@ -76,9 +78,9 @@ const ProviderConfig: React.FC = () => {
       apiKey: undefined,
     });
     setIsModalOpen(true);
-  };
+  }, [form]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     try {
       const values = await form.validateFields();
 
@@ -109,18 +111,20 @@ const ProviderConfig: React.FC = () => {
     } catch (error) {
       console.error('表单验证失败:', error);
     }
-  };
+  }, [form, editingProvider, updateMutation, createMutation]);
 
-  const getHealthStatusConfig = (status: string) => {
+  // ✅ 使用 useCallback 缓存辅助函数
+  const getHealthStatusConfig = useCallback((status: string) => {
     const configs: Record<string, { color: string; text: string }> = {
       healthy: { color: 'success', text: '健康' },
       degraded: { color: 'warning', text: '降级' },
       down: { color: 'error', text: '故障' },
     };
     return configs[status] || { color: 'default', text: status };
-  };
+  }, []);
 
-  const columns: ColumnsType<SMSProviderConfig> = [
+  // ✅ 使用 useMemo 缓存列定义，避免每次渲染都重新创建
+  const columns: ColumnsType<SMSProviderConfig> = useMemo(() => [
     {
       title: '供应商',
       key: 'provider',
@@ -162,7 +166,7 @@ const ProviderConfig: React.FC = () => {
       dataIndex: 'priority',
       key: 'priority',
       width: 80,
-      sorter: (a, b) => a.priority - b.priority,
+      sorter: (a: SMSProviderConfig, b: SMSProviderConfig) => a.priority - b.priority,
     },
     {
       title: '请求统计',
@@ -181,7 +185,7 @@ const ProviderConfig: React.FC = () => {
       dataIndex: 'successRate',
       key: 'successRate',
       width: 100,
-      sorter: (a, b) => (a.successRate || 0) - (b.successRate || 0),
+      sorter: (a: SMSProviderConfig, b: SMSProviderConfig) => (a.successRate || 0) - (b.successRate || 0),
       render: (rate: number) => (
         <span style={{
           color: rate >= 90 ? '#52c41a' : rate >= 70 ? '#faad14' : '#ff4d4f',
@@ -262,15 +266,18 @@ const ProviderConfig: React.FC = () => {
         </Space>
       ),
     },
-  ];
+  ], [getHealthStatusConfig, handleEdit, testMutation, refreshBalanceMutation, toggleMutation, deleteMutation]);
 
-  // 计算总览统计
-  const totalProviders = providers?.length || 0;
-  const enabledProviders = providers?.filter(p => p.enabled).length || 0;
-  const avgSuccessRate = providers && providers.length > 0
-    ? providers.reduce((sum, p) => sum + (p.successRate || 0), 0) / providers.length
-    : 0;
-  const totalRequests = providers?.reduce((sum, p) => sum + (p.totalRequests || 0), 0) || 0;
+  // ✅ 使用 useMemo 缓存总览统计计算
+  const { totalProviders, enabledProviders, avgSuccessRate, totalRequests } = useMemo(() => {
+    const total = providers?.length || 0;
+    const enabled = providers?.filter(p => p.enabled).length || 0;
+    const avgRate = providers && providers.length > 0
+      ? providers.reduce((sum, p) => sum + (p.successRate || 0), 0) / providers.length
+      : 0;
+    const requests = providers?.reduce((sum, p) => sum + (p.totalRequests || 0), 0) || 0;
+    return { totalProviders: total, enabledProviders: enabled, avgSuccessRate: avgRate, totalRequests: requests };
+  }, [providers]);
 
   return (
     <div>
@@ -569,6 +576,8 @@ const ProviderConfig: React.FC = () => {
       </Modal>
     </div>
   );
-};
+});
+
+ProviderConfig.displayName = 'SMS.ProviderConfig';
 
 export default ProviderConfig;

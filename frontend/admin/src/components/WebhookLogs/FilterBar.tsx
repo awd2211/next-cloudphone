@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, Space, Select, Button } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
@@ -10,7 +10,8 @@ interface FilterBarProps {
   onRefresh: () => void;
 }
 
-export const FilterBar: React.FC<FilterBarProps> = ({
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+export const FilterBar: React.FC<FilterBarProps> = memo(({
   provider,
   onProviderChange,
   onRefresh,
@@ -43,4 +44,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       </Space>
     </Card>
   );
-};
+});
+
+FilterBar.displayName = 'WebhookLogs.FilterBar';

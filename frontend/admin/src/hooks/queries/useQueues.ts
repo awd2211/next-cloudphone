@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import * as queueService from '@/services/queue';
-import { useValidatedQuery } from './useValidatedQuery';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
 import {
   QueueJobDetailSchema,
 } from '@/schemas/api.schemas';
@@ -32,8 +32,8 @@ export const useAllQueuesStatus = () => {
   return useQuery({
     queryKey: queueKeys.status(),
     queryFn: () => queueService.getAllQueuesStatus(),
-    staleTime: 10 * 1000, // 10秒
-    refetchInterval: 30 * 1000, // 每30秒自动刷新
+    staleTime: 30 * 1000, // 30秒
+    refetchInterval: 60 * 1000, // 队列状态 - 中等实时性
   });
 };
 

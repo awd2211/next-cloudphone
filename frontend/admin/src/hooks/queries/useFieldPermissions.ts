@@ -236,7 +236,8 @@ export function useBatchCreateFieldPermissions() {
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: fieldPermissionKeys.lists() });
       queryClient.invalidateQueries({ queryKey: [...fieldPermissionKeys.all, 'stats'] });
-      const count = response.data?.length || 0;
+      // ✅ request.ts 已自动解包响应
+      const count = Array.isArray(response) ? response.length : 0;
       message.success(`成功创建 ${count} 条字段权限配置`);
     },
     onError: (error: any) => {
@@ -257,7 +258,8 @@ export function useToggleFieldPermission() {
       queryClient.invalidateQueries({ queryKey: fieldPermissionKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: fieldPermissionKeys.lists() });
       queryClient.invalidateQueries({ queryKey: [...fieldPermissionKeys.all, 'stats'] });
-      const isActive = response.data?.isActive;
+      // 后端响应格式: { success, message, data: FieldPermission }
+      const isActive = response?.data?.isActive;
       message.success(`字段权限配置已${isActive ? '启用' : '禁用'}`);
     },
     onError: (error: any) => {

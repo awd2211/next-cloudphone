@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import request from '@/utils/request';
+import { api } from '@/utils/api';
 
 interface OverviewData {
   totalUsers: number;
@@ -36,66 +36,50 @@ export const useStatsDashboard = () => {
   // 获取概览统计
   const { data: overview, isLoading: overviewLoading } = useQuery<OverviewData>({
     queryKey: ['stats-overview'],
-    queryFn: async () => {
-      const response = await request.get('/stats/overview');
-      return response as OverviewData;
-    },
+    queryFn: () => api.get<OverviewData>('/stats/overview'),
   });
 
   // 获取趋势数据
   const { data: trends, isLoading: trendsLoading } = useQuery<TrendsData>({
     queryKey: ['stats-trends', timeRange, dateRange],
-    queryFn: async () => {
+    queryFn: () => {
       const params: any = { range: timeRange };
       if (dateRange) {
         params.startDate = dateRange[0].toISOString();
         params.endDate = dateRange[1].toISOString();
       }
-      const response = await request.get('/stats/trends', { params });
-      return response as TrendsData;
+      return api.get<TrendsData>('/stats/trends', { params });
     },
   });
 
   // 获取用户增长数据
   const { data: userGrowth } = useQuery<UserGrowthData>({
     queryKey: ['stats-user-growth', timeRange],
-    queryFn: async () => {
-      const response = await request.get('/stats/user-growth', {
-        params: { range: timeRange },
-      });
-      return response as UserGrowthData;
-    },
+    queryFn: () => api.get<UserGrowthData>('/stats/user-growth', {
+      params: { range: timeRange },
+    }),
   });
 
   // 获取设备使用情况
   const { data: deviceUsage } = useQuery<DeviceUsageData>({
     queryKey: ['stats-device-usage'],
-    queryFn: async () => {
-      const response = await request.get('/stats/device-usage');
-      return response as DeviceUsageData;
-    },
+    queryFn: () => api.get<DeviceUsageData>('/stats/device-usage'),
   });
 
   // 获取收入统计
   const { data: revenue } = useQuery<RevenueData>({
     queryKey: ['stats-revenue', timeRange],
-    queryFn: async () => {
-      const response = await request.get('/stats/revenue', {
-        params: { range: timeRange },
-      });
-      return response as RevenueData;
-    },
+    queryFn: () => api.get<RevenueData>('/stats/revenue', {
+      params: { range: timeRange },
+    }),
   });
 
   // 获取热门应用
   const { data: topApps } = useQuery<TopAppsData>({
     queryKey: ['stats-top-apps'],
-    queryFn: async () => {
-      const response = await request.get('/stats/top-apps', {
-        params: { limit: 10 },
-      });
-      return response as TopAppsData;
-    },
+    queryFn: () => api.get<TopAppsData>('/stats/top-apps', {
+      params: { limit: 10 },
+    }),
   });
 
   return {

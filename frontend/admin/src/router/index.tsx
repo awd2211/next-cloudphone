@@ -4,7 +4,7 @@ import { createBrowserRouter } from 'react-router-dom';
 // Layout 和 Login 保持同步导入(首屏必需)
 import Layout from '@/layouts/BasicLayout';
 import Login from '@/pages/Login';
-import ErrorBoundary from '@/components/ErrorBoundary';
+// 注意：ErrorBoundary 已移至 App.tsx 级别，这里不再需要
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminRoute } from '@/components/AdminRoute';
 
@@ -106,46 +106,58 @@ const StateRecoveryManagement = lazy(() => import('@/pages/StateRecovery/Managem
 // ✅ 导入优化的页面加载骨架屏
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 
-// ✅ Suspense 包裹组件（使用骨架屏替代 Spin）
+/**
+ * ✅ Suspense 包裹组件（使用骨架屏替代 Spin）
+ *
+ * 优化说明：
+ * - 移除了重复的 ErrorBoundary（App 级别已有全局 ErrorBoundary）
+ * - 仅保留 Suspense 用于懒加载
+ */
 const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => (
-  <ErrorBoundary>
-    <Suspense fallback={<PageLoadingSkeleton />}>
-      <Component />
-    </Suspense>
-  </ErrorBoundary>
+  <Suspense fallback={<PageLoadingSkeleton />}>
+    <Component />
+  </Suspense>
 );
 
-// ✅ 管理员路由包裹（使用骨架屏）
+/**
+ * ✅ 管理员路由包裹（使用骨架屏）
+ *
+ * 优化说明：
+ * - 移除了重复的 ErrorBoundary
+ * - AdminRoute 放在 Suspense 外部，先检查权限再加载组件
+ *   这样无权限用户不会先看到骨架屏再看到 403
+ */
 const withAdminRoute = (
   Component: React.LazyExoticComponent<React.ComponentType<any>>,
   requireSuperAdmin = false
 ) => (
-  <ErrorBoundary>
+  <AdminRoute requireSuperAdmin={requireSuperAdmin} showForbidden>
     <Suspense fallback={<PageLoadingSkeleton />}>
-      <AdminRoute requireSuperAdmin={requireSuperAdmin} showForbidden>
-        <Component />
-      </AdminRoute>
+      <Component />
     </Suspense>
-  </ErrorBoundary>
+  </AdminRoute>
 );
 
+/**
+ * 路由配置
+ *
+ * 嵌套结构优化说明：
+ * - ErrorBoundary 仅在 App.tsx 级别保留一个（全局错误捕获）
+ * - ProtectedRoute 负责认证检查
+ * - AdminRoute 负责权限检查（放在 Suspense 外部，先检查权限）
+ * - Suspense 负责懒加载
+ */
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: (
-      <ErrorBoundary>
-        <Login />
-      </ErrorBoundary>
-    ),
+    element: <Login />,
   },
   {
     path: '/',
     element: (
-      <ErrorBoundary>
-        <ProtectedRoute>
-          <Layout />
-        </ProtectedRoute>
-      </ErrorBoundary>
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
     ),
     children: [
       {

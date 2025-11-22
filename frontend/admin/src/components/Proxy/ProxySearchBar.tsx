@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Card, Row, Col, Select, InputNumber, Button, Space } from 'antd';
 import { SearchOutlined, ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import {
@@ -29,7 +30,8 @@ interface ProxySearchBarProps {
 /**
  * 代理IP搜索栏组件
  */
-const ProxySearchBar: React.FC<ProxySearchBarProps> = ({
+// ✅ 使用 memo 包装组件，避免不必要的重渲染
+const ProxySearchBar: React.FC<ProxySearchBarProps> = memo(({
   status,
   protocol,
   provider,
@@ -143,6 +145,8 @@ const ProxySearchBar: React.FC<ProxySearchBarProps> = ({
       </Row>
     </Card>
   );
-};
+});
+
+ProxySearchBar.displayName = 'ProxySearchBar';
 
 export default ProxySearchBar;

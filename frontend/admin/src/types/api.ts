@@ -276,16 +276,26 @@ export interface ExportResponse {
 
 /**
  * 检查是否为成功响应
+ * @deprecated 使用 api 包装器时，错误会抛出异常，不需要手动检查
+ *
+ * 兼容新旧两种响应格式：
+ * - 旧格式：{ success: true, data: T }
+ * - 新格式：直接返回 T（ActionResult 除外）
  */
-export function isSuccessResponse<T>(response: ApiResponse<T>): response is ApiResponse<T> & { data: T } {
-  return response.success === true && response.data !== undefined;
+export function isSuccessResponse<T>(response: ApiResponse<T> | any): response is ApiResponse<T> & { data: T } {
+  if (response && typeof response === 'object' && 'success' in response) {
+    return response.success === true && response.data !== undefined;
+  }
+  // 新格式：无 success 字段，直接返回数据视为成功
+  return response !== undefined && response !== null;
 }
 
 /**
  * 检查是否为错误响应
+ * @deprecated 使用 api 包装器时，错误会抛出异常
  */
-export function isErrorResponse(response: ApiResponse | ApiError): response is ApiError {
-  return response.success === false;
+export function isErrorResponse(response: ApiResponse | ApiError | any): response is ApiError {
+  return response && typeof response === 'object' && 'success' in response && response.success === false;
 }
 
 /**

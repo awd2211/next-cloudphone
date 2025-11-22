@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
 import { Empty, theme } from 'antd';
@@ -13,13 +14,14 @@ interface RevenueChartProps {
   loading?: boolean;
 }
 
-const RevenueChart = ({ data, loading }: RevenueChartProps) => {
+const RevenueChart = memo(({ data, loading }: RevenueChartProps) => {
   const { token } = theme.useToken();
-  if (!data || data.length === 0) {
-    return <Empty description="暂无数据" />;
-  }
 
-  const option: ECOption = {
+  // ✅ 使用 useMemo 缓存 option，避免每次渲染重建
+  const option: ECOption = useMemo(() => {
+    if (!data || data.length === 0) return null;
+
+    return {
     title: {
       text: '收入趋势',
       left: 'center',
@@ -104,8 +106,15 @@ const RevenueChart = ({ data, loading }: RevenueChartProps) => {
       },
     ],
   };
+  }, [data, token.colorPrimary]);
+
+  if (!option) {
+    return <Empty description="暂无数据" />;
+  }
 
   return <ReactECharts option={option} style={{ height: '400px' }} showLoading={loading} />;
-};
+});
+
+RevenueChart.displayName = 'RevenueChart';
 
 export default RevenueChart;

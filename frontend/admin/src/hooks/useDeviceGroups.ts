@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { message, Form } from 'antd';
 import { z } from 'zod';
-import request from '@/utils/request';
+import { api } from '@/utils/api';
 import { useValidatedQuery } from '@/hooks/utils';
 import { DeviceGroupSchema } from '@/schemas/api.schemas';
 
@@ -44,7 +44,7 @@ export const useDeviceGroups = (): UseDeviceGroupsReturn => {
     refetch,
   } = useValidatedQuery({
     queryKey: ['device-groups'],
-    queryFn: () => request.get('/devices/groups'),
+    queryFn: () => api.get('/devices/groups'),
     schema: z.array(DeviceGroupSchema),
     apiErrorMessage: '加载分组失败',
     fallbackValue: [],
@@ -85,10 +85,10 @@ export const useDeviceGroups = (): UseDeviceGroupsReturn => {
     try {
       const values = await form.validateFields();
       if (editingGroup) {
-        await request.put(`/devices/groups/${editingGroup.id}`, values);
+        await api.put(`/devices/groups/${editingGroup.id}`, values);
         message.success('分组更新成功');
       } else {
-        await request.post('/devices/groups', values);
+        await api.post('/devices/groups', values);
         message.success('分组创建成功');
       }
       setModalVisible(false);
@@ -103,7 +103,7 @@ export const useDeviceGroups = (): UseDeviceGroupsReturn => {
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        await request.delete(`/devices/groups/${id}`);
+        await api.delete(`/devices/groups/${id}`);
         message.success('分组删除成功');
         loadGroups();
       } catch (error) {
