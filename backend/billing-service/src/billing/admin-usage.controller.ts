@@ -19,7 +19,6 @@ import {
   AdminUsageStatsDto,
   ExportUsageDto,
 } from './dto/admin-usage.dto';
-
 /**
  * 管理员使用监控Controller
  *
@@ -34,9 +33,7 @@ import {
 @Controller('billing/admin/usage')
 export class AdminUsageController {
   private readonly logger = new Logger(AdminUsageController.name);
-
   constructor(private readonly adminUsageService: AdminUsageService) {}
-
   /**
    * 获取所有用户的使用记录（管理员专用）
    */
@@ -51,7 +48,6 @@ export class AdminUsageController {
   @ApiResponse({ status: 401, description: '未授权' })
   async getUsageRecords(@Query() query: AdminUsageQueryDto): Promise<AdminUsageRecordsResponseDto> {
     this.logger.log(`Admin fetching usage records with filters: ${JSON.stringify(query)}`);
-
     // 验证日期范围
     if (query.startDate && query.endDate) {
       const start = new Date(query.startDate);
@@ -60,10 +56,8 @@ export class AdminUsageController {
         throw new BadRequestException('开始日期不能大于结束日期');
       }
     }
-
     return this.adminUsageService.getUsageRecords(query);
   }
-
   /**
    * 获取使用统计数据（管理员专用）
    */
@@ -78,7 +72,6 @@ export class AdminUsageController {
   @ApiResponse({ status: 401, description: '未授权' })
   async getUsageStats(@Query() query: AdminUsageQueryDto): Promise<AdminUsageStatsDto> {
     this.logger.log(`Admin fetching usage stats with filters: ${JSON.stringify(query)}`);
-
     // 验证日期范围
     if (query.startDate && query.endDate) {
       const start = new Date(query.startDate);
@@ -87,10 +80,8 @@ export class AdminUsageController {
         throw new BadRequestException('开始日期不能大于结束日期');
       }
     }
-
     return this.adminUsageService.getUsageStats(query);
   }
-
   /**
    * 导出使用记录（管理员专用）
    */
@@ -109,7 +100,6 @@ export class AdminUsageController {
   @ApiResponse({ status: 401, description: '未授权' })
   async exportUsageRecords(@Query() query: ExportUsageDto, @Res() res: Response): Promise<void> {
     this.logger.log(`Admin exporting usage records with format: ${query.format}`);
-
     // 验证日期范围
     if (query.startDate && query.endDate) {
       const start = new Date(query.startDate);
@@ -118,15 +108,12 @@ export class AdminUsageController {
         throw new BadRequestException('开始日期不能大于结束日期');
       }
     }
-
     try {
       const result = await this.adminUsageService.exportUsageRecords(query);
-
       // 设置响应头
       const timestamp = new Date().toISOString().split('T')[0];
       let contentType: string;
       let extension: string;
-
       switch (query.format) {
         case 'csv':
           contentType = 'text/csv';
@@ -144,13 +131,11 @@ export class AdminUsageController {
           contentType = 'text/csv';
           extension = 'csv';
       }
-
       res.setHeader('Content-Type', contentType);
       res.setHeader(
         'Content-Disposition',
         `attachment; filename="usage-records-${timestamp}.${extension}"`
       );
-
       res.send(result.data);
     } catch (error) {
       this.logger.error(`Failed to export usage records: ${error.message}`, error.stack);

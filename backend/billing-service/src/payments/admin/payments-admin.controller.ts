@@ -36,7 +36,6 @@ export class PaymentsAdminController {
   async getStatistics(@Query('startDate') startDate?: string, @Query('endDate') endDate?: string) {
     const stats = await this.paymentsAdminService.getPaymentStatistics(startDate, endDate);
     return {
-      success: true,
       data: stats,
       message: '获取统计数据成功',
     };
@@ -55,7 +54,6 @@ export class PaymentsAdminController {
   ) {
     const stats = await this.paymentsAdminService.getPaymentMethodsStatistics(startDate, endDate);
     return {
-      success: true,
       data: stats,
       message: '获取支付方式统计成功',
     };
@@ -70,7 +68,6 @@ export class PaymentsAdminController {
   async getDailyStatistics(@Query('days') days: number = 30) {
     const stats = await this.paymentsAdminService.getDailyStatistics(days);
     return {
-      success: true,
       data: stats,
       message: '获取每日统计成功',
     };
@@ -115,7 +112,6 @@ export class PaymentsAdminController {
     });
 
     return {
-      success: true,
       data: result.items,
       pagination: {
         page: result.page,
@@ -136,7 +132,6 @@ export class PaymentsAdminController {
   async findOne(@Param('id') id: string) {
     const payment = await this.paymentsAdminService.findOneWithRelations(id);
     return {
-      success: true,
       data: payment,
       message: '获取支付详情成功',
     };
@@ -159,7 +154,6 @@ export class PaymentsAdminController {
       body.adminNote
     );
     return {
-      success: true,
       data: result,
       message: '退款处理成功',
     };
@@ -173,7 +167,6 @@ export class PaymentsAdminController {
   async getPendingRefunds() {
     const refunds = await this.paymentsAdminService.getPendingRefunds();
     return {
-      success: true,
       data: refunds,
       message: '获取待审核退款成功',
     };
@@ -188,7 +181,6 @@ export class PaymentsAdminController {
   async approveRefund(@Param('id') id: string, @Body() body: { adminNote?: string }) {
     const result = await this.paymentsAdminService.approveRefund(id, body.adminNote);
     return {
-      success: true,
       data: result,
       message: '退款已批准',
     };
@@ -206,7 +198,6 @@ export class PaymentsAdminController {
   ) {
     await this.paymentsAdminService.rejectRefund(id, body.reason, body.adminNote);
     return {
-      success: true,
       message: '退款已拒绝',
     };
   }
@@ -221,7 +212,6 @@ export class PaymentsAdminController {
   async getExceptions(@Query('page') page: number = 1, @Query('limit') limit: number = 20) {
     const result = await this.paymentsAdminService.getExceptionPayments(page, limit);
     return {
-      success: true,
       data: result.items,
       pagination: {
         page: result.page,
@@ -242,7 +232,6 @@ export class PaymentsAdminController {
   async syncPaymentStatus(@Param('id') id: string) {
     const result = await this.paymentsAdminService.syncPaymentStatus(id);
     return {
-      success: true,
       data: result,
       message: '同步成功',
     };
@@ -271,7 +260,6 @@ export class PaymentsAdminController {
     });
 
     return {
-      success: true,
       data: {
         buffer: buffer.toString('base64'),
         filename: `payments_${new Date().toISOString().split('T')[0]}.xlsx`,
@@ -288,7 +276,6 @@ export class PaymentsAdminController {
   async getPaymentConfig() {
     const config = await this.paymentsAdminService.getPaymentConfig();
     return {
-      success: true,
       data: config,
       message: '获取配置成功',
     };
@@ -309,7 +296,6 @@ export class PaymentsAdminController {
   ) {
     const result = await this.paymentsAdminService.updatePaymentConfig(config);
     return {
-      success: true,
       data: result,
       message: '配置更新成功',
     };
@@ -345,7 +331,6 @@ export class PaymentsAdminController {
   ) {
     const result = await this.paymentsAdminService.getWebhookLogs(page, limit, provider);
     return {
-      success: true,
       data: result.items,
       pagination: {
         page: result.page,

@@ -89,7 +89,7 @@ async function bootstrap() {
     .addTag('invoices', '发票管理')
     .addTag('payments', '支付管理')
     .addServer('http://localhost:30005', '本地开发环境')
-    .addServer('https://api.cloudphone.com', '生产环境')
+    .addServer('https://api.cloudphone.run', '生产环境')
     .addBearerAuth()
     .build();
 

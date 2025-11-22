@@ -23,14 +23,12 @@ import { BillingService } from './billing.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '@cloudphone/shared';
 import { QuickListQueryDto, QuickListResponseDto } from './dto/quick-list.dto';
-
 @ApiTags('billing')
 @ApiBearerAuth()
 @Controller('billing')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
-
   @Get('stats')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取计费统计', description: '获取计费和收入统计信息' })
@@ -40,12 +38,10 @@ export class BillingController {
   async getStats(@Query('tenantId') tenantId?: string) {
     const stats = await this.billingService.getStats(tenantId);
     return {
-      success: true,
       data: stats,
       message: '计费统计获取成功',
     };
   }
-
   @Get('plans')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取套餐列表', description: '获取所有可用的套餐计划' })
@@ -56,7 +52,6 @@ export class BillingController {
   async getPlans(@Query('page') page: string = '1', @Query('pageSize') pageSize: string = '10') {
     return this.billingService.getPlans(+page, +pageSize);
   }
-
   @Get('plans/quick-list')
   @RequirePermission('billing.read')
   @ApiOperation({
@@ -80,12 +75,10 @@ export class BillingController {
   async getPlansQuickList(@Query() query: QuickListQueryDto) {
     const result = await this.billingService.getPlansQuickList(query);
     return {
-      success: true,
       data: result,
       message: '套餐快速列表获取成功',
     };
   }
-
   @Get('plans/:id')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取套餐详情', description: '根据ID获取套餐详情' })
@@ -96,7 +89,6 @@ export class BillingController {
   async getPlan(@Param('id') id: string) {
     return this.billingService.getPlan(id);
   }
-
   @Post('plans')
   @RequirePermission('billing.create')
   @ApiOperation({ summary: '创建套餐', description: '创建新的套餐' })
@@ -106,7 +98,6 @@ export class BillingController {
   async createPlan(@Body() data: any) {
     return this.billingService.createPlan(data);
   }
-
   @Patch('plans/:id')
   @RequirePermission('billing.update')
   @ApiOperation({ summary: '更新套餐', description: '更新套餐信息' })
@@ -117,7 +108,6 @@ export class BillingController {
   async updatePlan(@Param('id') id: string, @Body() data: any) {
     return this.billingService.updatePlan(id, data);
   }
-
   @Delete('plans/:id')
   @RequirePermission('billing.delete')
   @ApiOperation({ summary: '删除套餐', description: '删除指定套餐' })
@@ -128,7 +118,6 @@ export class BillingController {
   async deletePlan(@Param('id') id: string) {
     return this.billingService.deletePlan(id);
   }
-
   @Get('orders')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取订单列表', description: '分页获取所有订单' })
@@ -163,16 +152,13 @@ export class BillingController {
       startDate,
       endDate,
     });
-
     // 返回标准格式：将 limit 转换为 pageSize
     const { limit: _, ...rest } = result;
     return {
-      success: true,
       ...rest,
       pageSize: result.limit,
     };
   }
-
   @Post('orders')
   @RequirePermission('billing.create')
   @ApiOperation({ summary: '创建订单', description: '创建新的套餐订单' })
@@ -194,7 +180,6 @@ export class BillingController {
   async createOrder(@Body() createOrderDto: any) {
     return this.billingService.createOrder(createOrderDto);
   }
-
   @Get('orders/quick-list')
   @RequirePermission('billing.read')
   @ApiOperation({
@@ -218,12 +203,10 @@ export class BillingController {
   async getOrdersQuickList(@Query() query: QuickListQueryDto) {
     const result = await this.billingService.getOrdersQuickList(query);
     return {
-      success: true,
       data: result,
       message: '订单快速列表获取成功',
     };
   }
-
   @Get('orders/:userId')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取用户订单', description: '获取指定用户的所有订单' })
@@ -233,7 +216,6 @@ export class BillingController {
   async getUserOrders(@Param('userId') userId: string) {
     return this.billingService.getUserOrders(userId);
   }
-
   @Post('orders/:orderId/cancel')
   @RequirePermission('billing.update')
   @ApiOperation({ summary: '取消订单', description: '取消待支付的订单' })
@@ -254,12 +236,10 @@ export class BillingController {
   async cancelOrder(@Param('orderId') orderId: string, @Body() body: { reason?: string }) {
     const order = await this.billingService.cancelOrder(orderId, body.reason);
     return {
-      success: true,
       data: order,
       message: '订单已取消',
     };
   }
-
   @Post('orders/:id/confirm')
   @RequirePermission('billing.update')
   @ApiOperation({ summary: '确认订单', description: '管理员确认订单已完成支付' })
@@ -285,12 +265,10 @@ export class BillingController {
   ) {
     const order = await this.billingService.confirmOrder(orderId, body);
     return {
-      success: true,
       data: order,
       message: '订单已确认',
     };
   }
-
   /**
    * 批量取消订单
    */
@@ -317,13 +295,11 @@ export class BillingController {
         message: '请提供要取消的订单 ID 列表',
       };
     }
-
     const results = {
       success: 0,
       failed: 0,
       errors: [] as { id: string; error: string }[],
     };
-
     // 使用 for-loop 避免数据库连接池耗尽
     for (const id of dto.ids) {
       try {
@@ -337,14 +313,11 @@ export class BillingController {
         });
       }
     }
-
     return {
-      success: true,
       data: results,
       message: `批量取消完成：成功 ${results.success} 个，失败 ${results.failed} 个`,
     };
   }
-
   /**
    * 获取订单统计
    */
@@ -363,12 +336,10 @@ export class BillingController {
   ) {
     const stats = await this.billingService.getOrderStats({ tenantId, startDate, endDate });
     return {
-      success: true,
       data: stats,
       message: '订单统计获取成功',
     };
   }
-
   /**
    * 更新订单
    */
@@ -392,12 +363,10 @@ export class BillingController {
   async updateOrder(@Param('id') id: string, @Body() data: { remark?: string; metadata?: any }) {
     const order = await this.billingService.updateOrder(id, data);
     return {
-      success: true,
       data: order,
       message: '订单更新成功',
     };
   }
-
   /**
    * 删除订单（软删除）
    */
@@ -411,11 +380,9 @@ export class BillingController {
   async deleteOrder(@Param('id') id: string) {
     await this.billingService.deleteOrder(id);
     return {
-      success: true,
       message: '订单删除成功',
     };
   }
-
   /**
    * 订单退款
    */
@@ -441,12 +408,10 @@ export class BillingController {
   async refundOrder(@Param('id') id: string, @Body() dto: { amount: number; reason?: string }) {
     const result = await this.billingService.refundOrder(id, dto.amount, dto.reason);
     return {
-      success: true,
       data: result,
       message: '退款成功',
     };
   }
-
   @Get('usage/:userId')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取用户使用记录', description: '获取指定时间范围内的使用记录' })
@@ -462,7 +427,6 @@ export class BillingController {
   ) {
     return this.billingService.getUserUsage(userId, startDate, endDate);
   }
-
   @Post('usage/start')
   @RequirePermission('billing.create')
   @ApiOperation({ summary: '开始使用记录', description: '开始记录设备使用时间' })
@@ -483,7 +447,6 @@ export class BillingController {
   async startUsage(@Body() body: { userId: string; deviceId: string; tenantId: string }) {
     return this.billingService.startUsage(body);
   }
-
   @Post('usage/stop')
   @RequirePermission('billing.update')
   @ApiOperation({ summary: '停止使用记录', description: '停止记录设备使用时间并计算费用' })
@@ -503,11 +466,9 @@ export class BillingController {
   async stopUsage(@Body() body: { recordId: string }) {
     return this.billingService.stopUsage(body.recordId);
   }
-
   // ============================================================================
   // P1 新增接口 - 云对账功能
   // ============================================================================
-
   @Get('admin/cloud-reconciliation')
   @RequirePermission('billing.read')
   @ApiOperation({
@@ -584,9 +545,7 @@ export class BillingController {
       provider,
       reconciliationType,
     });
-
     return {
-      success: true,
       data: result,
       message: '云对账完成',
     };

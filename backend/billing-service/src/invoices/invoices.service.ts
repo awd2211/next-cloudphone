@@ -98,8 +98,12 @@ export class InvoicesService {
       endDate?: Date;
       limit?: number;
       offset?: number;
+      page?: number;
+      pageSize?: number;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
     }
-  ): Promise<{ invoices: Invoice[]; total: number }> {
+  ): Promise<{ items: Invoice[]; total: number; page: number; pageSize: number }> {
     const queryBuilder = this.invoiceRepository
       .createQueryBuilder('invoice')
       .where('invoice.userId = :userId', { userId });
@@ -121,21 +125,26 @@ export class InvoicesService {
       });
     }
 
-    queryBuilder.orderBy('invoice.createdAt', 'DESC');
+    // 排序支持
+    const allowedSortFields = ['createdAt', 'total', 'status', 'dueDate', 'billingPeriodStart'];
+    const sortField = options?.sortBy && allowedSortFields.includes(options.sortBy)
+      ? `invoice.${options.sortBy}`
+      : 'invoice.createdAt';
+    const sortOrder = options?.sortOrder === 'asc' ? 'ASC' : 'DESC';
+    queryBuilder.orderBy(sortField, sortOrder);
 
     const total = await queryBuilder.getCount();
 
-    if (options?.limit) {
-      queryBuilder.limit(options.limit);
-    }
+    // 分页支持（page/pageSize 优先于 limit/offset）
+    const page = options?.page || 1;
+    const pageSize = options?.pageSize || options?.limit || 10;
+    const offset = options?.offset ?? (page - 1) * pageSize;
 
-    if (options?.offset) {
-      queryBuilder.offset(options.offset);
-    }
+    queryBuilder.limit(pageSize).offset(offset);
 
-    const invoices = await queryBuilder.getMany();
+    const items = await queryBuilder.getMany();
 
-    return { invoices, total };
+    return { items, total, page, pageSize };
   }
 
   /**

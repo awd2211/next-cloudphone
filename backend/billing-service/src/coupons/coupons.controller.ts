@@ -12,17 +12,14 @@ import {
 import { CouponsService } from './coupons.service';
 import { QueryCouponDto, UseCouponDto } from './dto/query-coupon.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-
 /**
  * 优惠券控制器
  */
-@Controller('api/coupons')
+@Controller('coupons')
 @UseGuards(JwtAuthGuard)
 export class CouponsController {
   private readonly logger = new Logger(CouponsController.name);
-
   constructor(private readonly couponsService: CouponsService) {}
-
   /**
    * 获取我的优惠券列表
    * GET /api/coupons/my
@@ -33,7 +30,6 @@ export class CouponsController {
     this.logger.log(`Fetching coupons for user ${userId} with query: ${JSON.stringify(query)}`);
     return this.couponsService.getMyCoupons(userId, query);
   }
-
   /**
    * 获取优惠券详情
    * GET /api/coupons/:id
@@ -44,7 +40,6 @@ export class CouponsController {
     this.logger.log(`Fetching coupon ${id} for user ${userId}`);
     return this.couponsService.findOne(id, userId);
   }
-
   /**
    * 使用优惠券
    * POST /api/coupons/:id/use
@@ -55,7 +50,6 @@ export class CouponsController {
     this.logger.log(`User ${userId} using coupon ${id} for order ${dto.orderId}`);
     return this.couponsService.useCoupon(id, userId, dto.orderId);
   }
-
   /**
    * 获取优惠券统计
    * GET /api/coupons/stats

@@ -9,6 +9,7 @@ import {
 } from './entities/balance-transaction.entity';
 import { CacheService } from '../cache/cache.service';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
+import { transformDecimalFields, transformDecimalFieldsInArray } from '../common/utils/decimal.utils';
 
 export interface CreateBalanceDto {
   userId: string;
@@ -73,6 +74,38 @@ export class BalanceService {
     private cacheService: CacheService
   ) {}
 
+  // UserBalance 实体的 decimal 字段
+  private readonly balanceDecimalFields = [
+    'balance',
+    'frozenAmount',
+    'totalRecharge',
+    'totalConsumption',
+    'lowBalanceThreshold',
+    'autoRechargeAmount',
+    'autoRechargeTrigger',
+  ] as const;
+
+  // BalanceTransaction 实体的 decimal 字段
+  private readonly transactionDecimalFields = [
+    'amount',
+    'balanceBefore',
+    'balanceAfter',
+  ] as const;
+
+  /**
+   * 转换 UserBalance 的 decimal 字段
+   */
+  private transformBalance(balance: UserBalance) {
+    return transformDecimalFields(balance, [...this.balanceDecimalFields]);
+  }
+
+  /**
+   * 转换 BalanceTransaction 的 decimal 字段
+   */
+  private transformTransaction(transaction: BalanceTransaction) {
+    return transformDecimalFields(transaction, [...this.transactionDecimalFields]);
+  }
+
   /**
    * 创建用户余额账户
    */
@@ -123,7 +156,7 @@ export class BalanceService {
    */
   async getUserBalance(userId: string): Promise<UserBalance> {
     // 使用缓存包装器：先查缓存，未命中则查数据库并缓存
-    return this.cacheService.wrap(
+    const balance = await this.cacheService.wrap(
       CacheKeys.userBalance(userId),
       async () => {
         const balance = await this.balanceRepository.findOne({
@@ -141,6 +174,9 @@ export class BalanceService {
       },
       CacheTTL.USER_BALANCE // 30 秒 TTL
     );
+
+    // 转换 decimal 字段为数字（TypeORM 返回字符串）
+    return this.transformBalance(balance) as UserBalance;
   }
 
   /**
@@ -596,7 +632,11 @@ export class BalanceService {
 
     const transactions = await queryBuilder.getMany();
 
-    return { transactions, total };
+    // 转换 decimal 字段为数字
+    return {
+      transactions: transactions.map((t) => this.transformTransaction(t) as BalanceTransaction),
+      total,
+    };
   }
 
   /**

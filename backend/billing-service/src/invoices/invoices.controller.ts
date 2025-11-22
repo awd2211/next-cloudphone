@@ -17,16 +17,13 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { InvoiceStatus, InvoiceType } from './entities/invoice.entity';
-
 @ApiTags('invoices')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('invoices')
 export class InvoicesController {
   private readonly logger = new Logger(InvoicesController.name);
-
   constructor(private readonly invoicesService: InvoicesService) {}
-
   /**
    * 获取所有账单列表（管理员）
    */
@@ -47,7 +44,6 @@ export class InvoicesController {
   ) {
     // 支持 pageSize 或 limit 参数
     const itemsPerPage = pageSize || limit || '10';
-
     const result = await this.invoicesService.getAllInvoices({
       page: parseInt(page),
       limit: parseInt(itemsPerPage),
@@ -58,16 +54,13 @@ export class InvoicesController {
       endDate: endDate ? new Date(endDate) : undefined,
       search,
     });
-
     // 返回标准格式：将 limit 转换为 pageSize
     const { limit: _, ...rest } = result;
     return {
-      success: true,
       ...rest,
       pageSize: result.limit,
     };
   }
-
   /**
    * 创建账单
    */
@@ -79,7 +72,6 @@ export class InvoicesController {
     this.logger.log(`创建账单 - 用户: ${dto.userId}`);
     return await this.invoicesService.createInvoice(dto);
   }
-
   /**
    * 获取账单详情
    */
@@ -89,12 +81,11 @@ export class InvoicesController {
   async getInvoice(@Param('id') id: string) {
     return await this.invoicesService.getInvoice(id);
   }
-
   /**
    * 获取用户账单列表
    */
   @Get('user/:userId')
-  @ApiOperation({ summary: '获取用户账单列表' })
+  @ApiOperation({ summary: '获取用户账单列表（支持分页和排序）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getUserInvoices(
     @Param('userId') userId: string,
@@ -102,19 +93,26 @@ export class InvoicesController {
     @Query('type') type?: InvoiceType,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
     @Query('limit') limit?: number,
-    @Query('offset') offset?: number
+    @Query('offset') offset?: number,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc'
   ) {
     return await this.invoicesService.getUserInvoices(userId, {
       status,
       type,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
+      page: page ? parseInt(page) : undefined,
+      pageSize: pageSize ? parseInt(pageSize) : undefined,
       limit: limit ? Number(limit) : undefined,
       offset: offset ? Number(offset) : undefined,
+      sortBy,
+      sortOrder,
     });
   }
-
   /**
    * 发布账单
    */
@@ -126,7 +124,6 @@ export class InvoicesController {
     this.logger.log(`发布账单 - ID: ${id}`);
     return await this.invoicesService.publishInvoice(id);
   }
-
   /**
    * 支付账单
    */
@@ -144,7 +141,6 @@ export class InvoicesController {
       ...body,
     });
   }
-
   /**
    * 取消账单
    */
@@ -156,7 +152,6 @@ export class InvoicesController {
     this.logger.log(`取消账单 - ID: ${id}`);
     return await this.invoicesService.cancelInvoice(id, body.reason);
   }
-
   /**
    * 获取账单统计
    */

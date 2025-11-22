@@ -24,16 +24,13 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { TransactionType, TransactionStatus } from './entities/balance-transaction.entity';
-
 @ApiTags('balance')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('balance')
 export class BalanceController {
   private readonly logger = new Logger(BalanceController.name);
-
   constructor(private readonly balanceService: BalanceService) {}
-
   /**
    * 创建用户余额账户
    */
@@ -45,7 +42,6 @@ export class BalanceController {
     this.logger.log(`创建余额账户 - 用户: ${dto.userId}`);
     return await this.balanceService.createBalance(dto);
   }
-
   /**
    * 获取用户余额
    */
@@ -55,7 +51,6 @@ export class BalanceController {
   async getUserBalance(@Param('userId') userId: string) {
     return await this.balanceService.getUserBalance(userId);
   }
-
   /**
    * 充值
    */
@@ -67,7 +62,6 @@ export class BalanceController {
     this.logger.log(`余额充值 - 用户: ${dto.userId}, 金额: ${dto.amount}`);
     return await this.balanceService.recharge(dto);
   }
-
   /**
    * 消费
    */
@@ -79,7 +73,6 @@ export class BalanceController {
     this.logger.log(`余额消费 - 用户: ${dto.userId}, 金额: ${dto.amount}`);
     return await this.balanceService.consume(dto);
   }
-
   /**
    * 冻结余额
    */
@@ -92,7 +85,6 @@ export class BalanceController {
     this.logger.log(`冻结余额 - 用户: ${dto.userId}, 金额: ${dto.amount}`);
     return await this.balanceService.freezeBalance(dto);
   }
-
   /**
    * 解冻余额
    */
@@ -105,7 +97,6 @@ export class BalanceController {
     this.logger.log(`解冻余额 - 用户: ${body.userId}, 金额: ${body.amount}`);
     return await this.balanceService.unfreezeBalance(body.userId, body.amount, body.reason);
   }
-
   /**
    * 余额调整（管理员）
    */
@@ -120,7 +111,6 @@ export class BalanceController {
     );
     return await this.balanceService.adjustBalance(dto);
   }
-
   /**
    * 获取交易记录
    */
@@ -141,7 +131,6 @@ export class BalanceController {
       offset: offset ? Number(offset) : undefined,
     });
   }
-
   /**
    * 获取余额统计
    */

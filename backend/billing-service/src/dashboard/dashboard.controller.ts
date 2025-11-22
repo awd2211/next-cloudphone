@@ -12,14 +12,12 @@ import { AuthGuard } from '@nestjs/passport';
 import { DashboardService, WarningConfig } from './dashboard.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '@cloudphone/shared';
-
 @ApiTags('dashboard')
 @ApiBearerAuth()
 @Controller('dashboard')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
-
   @Get('usage-forecast/:userId')
   @RequirePermission('billing.read')
   @ApiOperation({
@@ -53,14 +51,11 @@ export class DashboardController {
       Number(forecastDays),
       Number(historicalDays)
     );
-
     return {
-      success: true,
       data: forecast,
       message: '使用量预测获取成功',
     };
   }
-
   @Get('cost-warning/:userId')
   @RequirePermission('billing.read')
   @ApiOperation({
@@ -73,17 +68,13 @@ export class DashboardController {
   async getCostWarning(@Param('userId') userId: string) {
     // 获取用户配置
     const config = await this.dashboardService.getWarningConfig(userId);
-
     // 生成预警
     const warning = await this.dashboardService.getCostWarning(userId, config);
-
     return {
-      success: true,
       data: warning,
       message: '成本预警获取成功',
     };
   }
-
   @Get('warning-config/:userId')
   @RequirePermission('billing.read')
   @ApiOperation({
@@ -95,14 +86,11 @@ export class DashboardController {
   @ApiResponse({ status: 403, description: '权限不足' })
   async getWarningConfig(@Param('userId') userId: string) {
     const config = await this.dashboardService.getWarningConfig(userId);
-
     return {
-      success: true,
       data: config,
       message: '预警配置获取成功',
     };
   }
-
   @Put('warning-config/:userId')
   @RequirePermission('billing.update')
   @ApiOperation({
@@ -135,9 +123,7 @@ export class DashboardController {
     @Body() config: Partial<WarningConfig>
   ) {
     const updatedConfig = await this.dashboardService.updateWarningConfig(userId, config);
-
     return {
-      success: true,
       data: updatedConfig,
       message: '预警配置更新成功',
     };

@@ -11,14 +11,12 @@ import { AuthGuard } from '@nestjs/passport';
 import { MeteringService } from './metering.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '@cloudphone/shared';
-
 @ApiTags('metering')
 @ApiBearerAuth()
 @Controller('metering')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class MeteringController {
   constructor(private readonly meteringService: MeteringService) {}
-
   @Get('users/:userId')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取用户使用统计', description: '获取指定用户的资源使用统计数据' })
@@ -34,14 +32,11 @@ export class MeteringController {
   ) {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
-
     const stats = await this.meteringService.getUserUsageStats(userId, start, end);
     return {
-      success: true,
       data: stats,
     };
   }
-
   @Get('devices/:deviceId')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取设备使用统计', description: '获取指定设备的资源使用统计数据' })
@@ -57,14 +52,11 @@ export class MeteringController {
   ) {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
-
     const stats = await this.meteringService.getDeviceUsageStats(deviceId, start, end);
     return {
-      success: true,
       data: stats,
     };
   }
-
   @Get('tenants/:tenantId')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取租户使用统计', description: '获取指定租户的资源使用统计数据' })
@@ -80,14 +72,11 @@ export class MeteringController {
   ) {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
-
     const stats = await this.meteringService.getTenantUsageStats(tenantId, start, end);
     return {
-      success: true,
       data: stats,
     };
   }
-
   @Get('overview')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取计量概览', description: '获取平台计量数据的高层次概览' })
@@ -101,14 +90,11 @@ export class MeteringController {
   ) {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
-
     const overview = await this.meteringService.getOverview(start, end);
     return {
-      success: true,
       data: overview,
     };
   }
-
   @Get('users')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取所有用户计量统计', description: '获取所有用户的聚合计量数据' })
@@ -129,22 +115,18 @@ export class MeteringController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     const itemsPerPage = pageSize || limit || '20';
-
     const result = await this.meteringService.getAllUsersStats(
       start,
       end,
       parseInt(page),
       parseInt(itemsPerPage)
     );
-
     const { limit: _, ...rest } = result;
     return {
-      success: true,
       ...rest,
       pageSize: result.limit,
     };
   }
-
   @Get('devices')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取所有设备计量统计', description: '获取所有设备的聚合计量数据' })
@@ -165,22 +147,18 @@ export class MeteringController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     const itemsPerPage = pageSize || limit || '20';
-
     const result = await this.meteringService.getAllDevicesStats(
       start,
       end,
       parseInt(page),
       parseInt(itemsPerPage)
     );
-
     const { limit: _, ...rest } = result;
     return {
-      success: true,
       ...rest,
       pageSize: result.limit,
     };
   }
-
   @Get('trend')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取计量趋势分析', description: '获取时间序列的计量趋势数据' })
@@ -196,14 +174,11 @@ export class MeteringController {
   ) {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
-
     const trend = await this.meteringService.getTrend(start, end, interval);
     return {
-      success: true,
       data: trend,
     };
   }
-
   @Get('resource-analysis')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取资源分析', description: '获取资源使用的详细分析数据' })
@@ -217,14 +192,11 @@ export class MeteringController {
   ) {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
-
     const analysis = await this.meteringService.getResourceAnalysis(start, end);
     return {
-      success: true,
       data: analysis,
     };
   }
-
   @Get('stats')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取计量统计', description: '获取平台整体的计量统计数据' })
@@ -238,10 +210,8 @@ export class MeteringController {
   ) {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
-
     const stats = await this.meteringService.getMeteringStats(start, end);
     return {
-      success: true,
       data: stats,
     };
   }

@@ -26,6 +26,29 @@ export class ReferralsService {
   private readonly MIN_WITHDRAW_AMOUNT = 10; // 最低提现金额
   private readonly WITHDRAW_FEE_RATE = 0.01; // 提现手续费率 1%
 
+  /**
+   * 转换提现记录的 decimal 字段为数字
+   * TypeORM 将 PostgreSQL decimal 类型返回为字符串
+   */
+  private transformWithdrawRecord(record: WithdrawRecord) {
+    return {
+      ...record,
+      amount: Number(record.amount),
+      fee: Number(record.fee),
+      actualAmount: Number(record.actualAmount),
+    };
+  }
+
+  /**
+   * 转换收益记录的 decimal 字段为数字
+   */
+  private transformEarningsRecord(record: EarningsRecord) {
+    return {
+      ...record,
+      amount: Number(record.amount),
+    };
+  }
+
   constructor(
     @InjectRepository(ReferralConfig)
     private readonly configRepository: Repository<ReferralConfig>,
@@ -107,6 +130,7 @@ export class ReferralsService {
 
   /**
    * 获取邀请统计
+   * 注意：PostgreSQL decimal 类型被 TypeORM 返回为字符串，需要转换为数字
    */
   async getReferralStats(userId: string) {
     const config = await this.getOrCreateConfig(userId);
@@ -119,9 +143,9 @@ export class ReferralsService {
       totalInvites: config.totalInvites,
       confirmedInvites: config.confirmedInvites,
       pendingInvites,
-      totalRewards: config.totalEarned,
-      availableBalance: config.availableBalance,
-      withdrawnAmount: config.totalWithdrawn,
+      totalRewards: Number(config.totalEarned),
+      availableBalance: Number(config.availableBalance),
+      withdrawnAmount: Number(config.totalWithdrawn),
       conversionRate: config.getConversionRate(),
     };
   }
@@ -184,7 +208,7 @@ export class ReferralsService {
     const [data, total] = await queryBuilder.getManyAndCount();
 
     return {
-      data,
+      data: data.map((record) => this.transformWithdrawRecord(record)),
       total,
       page,
       pageSize,
@@ -205,7 +229,7 @@ export class ReferralsService {
       throw new BadRequestException(`Minimum withdraw amount is ${this.MIN_WITHDRAW_AMOUNT}`);
     }
 
-    if (dto.amount > config.availableBalance) {
+    if (dto.amount > Number(config.availableBalance)) {
       throw new BadRequestException('Insufficient balance');
     }
 
@@ -310,7 +334,7 @@ export class ReferralsService {
     const [data, total] = await queryBuilder.getManyAndCount();
 
     return {
-      data,
+      data: data.map((record) => this.transformEarningsRecord(record)),
       total,
       page,
       pageSize,

@@ -19,16 +19,13 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '@cloudphone/shared';
 import { Public } from '../auth/decorators/public.decorator';
-
 @ApiTags('Payments')
 @ApiBearerAuth()
 @Controller('payments')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PaymentsController {
   private readonly logger = new Logger(PaymentsController.name);
-
   constructor(private readonly paymentsService: PaymentsService) {}
-
   /**
    * 创建支付订单
    * 🔒 限流: 5分钟内最多10次 (防止恶意创建订单)
@@ -42,12 +39,10 @@ export class PaymentsController {
   async create(@Body() createPaymentDto: CreatePaymentDto, @Headers('user-id') userId: string) {
     const payment = await this.paymentsService.createPayment(createPaymentDto, userId);
     return {
-      success: true,
       data: payment,
       message: '支付订单创建成功',
     };
   }
-
   @Get()
   @RequirePermission('billing.payment-read')
   @ApiOperation({ summary: '获取支付列表' })
@@ -63,12 +58,10 @@ export class PaymentsController {
       userId,
     );
     return {
-      success: true,
       ...result,
       message: '获取支付列表成功',
     };
   }
-
   @Get(':id')
   @RequirePermission('billing.payment-read')
   @ApiOperation({ summary: '获取支付详情' })
@@ -76,12 +69,10 @@ export class PaymentsController {
   async findOne(@Param('id') id: string) {
     const payment = await this.paymentsService.findOne(id);
     return {
-      success: true,
       data: payment,
       message: '获取支付详情成功',
     };
   }
-
   @Post('query')
   @RequirePermission('billing.payment-read')
   @ApiOperation({ summary: '查询支付状态' })
@@ -89,12 +80,10 @@ export class PaymentsController {
   async query(@Body() queryPaymentDto: QueryPaymentDto) {
     const result = await this.paymentsService.queryPayment(queryPaymentDto.paymentNo);
     return {
-      success: true,
       data: result,
       message: '查询支付状态成功',
     };
   }
-
   /**
    * 申请退款
    * 🔒 限流: 5分钟内最多5次 (防止恶意退款)
@@ -108,12 +97,10 @@ export class PaymentsController {
   async refund(@Param('id') id: string, @Body() refundPaymentDto: RefundPaymentDto) {
     const payment = await this.paymentsService.refundPayment(id, refundPaymentDto);
     return {
-      success: true,
       data: payment,
       message: '退款申请成功',
     };
   }
-
   @Public()
   @Post('notify/wechat')
   @HttpCode(HttpStatus.OK)
@@ -134,7 +121,6 @@ export class PaymentsController {
       };
     }
   }
-
   @Public()
   @Post('notify/alipay')
   @HttpCode(HttpStatus.OK)
