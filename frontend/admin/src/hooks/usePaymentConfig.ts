@@ -35,9 +35,11 @@ export const usePaymentConfig = () => {
     async (method: string, enabled: boolean) => {
       if (!config) return;
 
+      // 防御性检查：确保 enabledMethods 为数组
+      const currentMethods = Array.isArray(config.enabledMethods) ? config.enabledMethods : [];
       const newEnabledMethods = enabled
-        ? [...config.enabledMethods, method]
-        : config.enabledMethods.filter((m) => m !== method);
+        ? [...currentMethods, method]
+        : currentMethods.filter((m) => m !== method);
 
       try {
         await updatePaymentConfig({ enabledMethods: newEnabledMethods });
@@ -55,9 +57,11 @@ export const usePaymentConfig = () => {
     async (currency: string, enabled: boolean) => {
       if (!config) return;
 
+      // 防御性检查：确保 enabledCurrencies 为数组
+      const currentCurrencies = Array.isArray(config.enabledCurrencies) ? config.enabledCurrencies : [];
       const newEnabledCurrencies = enabled
-        ? [...config.enabledCurrencies, currency]
-        : config.enabledCurrencies.filter((c) => c !== currency);
+        ? [...currentCurrencies, currency]
+        : currentCurrencies.filter((c) => c !== currency);
 
       try {
         await updatePaymentConfig({ enabledCurrencies: newEnabledCurrencies });
