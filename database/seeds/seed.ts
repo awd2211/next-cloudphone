@@ -97,7 +97,7 @@ async function seed() {
 
     // 3. 创建管理员用户
     console.log('🔐 创建管理员用户...');
-    const adminEmail = 'admin@cloudphone.com';
+    const adminEmail = 'admin@cloudphone.run';
     let adminUser = await userRepo.findOne({ where: { email: adminEmail } });
 
     if (!adminUser) {
@@ -114,7 +114,7 @@ async function seed() {
       await userRepo.save(adminUser);
       console.log('✅ 创建管理员用户成功');
       console.log('   用户名: admin');
-      console.log('   邮箱: admin@cloudphone.com');
+      console.log('   邮箱: admin@cloudphone.run');
       console.log('   密码: admin123456');
     } else {
       console.log('⚠️  管理员用户已存在');
@@ -122,7 +122,7 @@ async function seed() {
 
     // 4. 创建测试用户
     console.log('👤 创建测试用户...');
-    const testEmail = 'test@cloudphone.com';
+    const testEmail = 'test@cloudphone.run';
     let testUser = await userRepo.findOne({ where: { email: testEmail } });
 
     if (!testUser) {
@@ -139,7 +139,7 @@ async function seed() {
       await userRepo.save(testUser);
       console.log('✅ 创建测试用户成功');
       console.log('   用户名: testuser');
-      console.log('   邮箱: test@cloudphone.com');
+      console.log('   邮箱: test@cloudphone.run');
       console.log('   密码: test123456');
     } else {
       console.log('⚠️  测试用户已存在');

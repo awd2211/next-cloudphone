@@ -47,10 +47,10 @@ CREATE INDEX IF NOT EXISTS idx_settings_category_key ON settings (category, key)
 INSERT INTO settings (category, key, value, "isPublic") VALUES
   ('basic', 'siteName', '"云手机平台"', true),
   ('basic', 'siteUrl', '"http://localhost:5173"', true),
-  ('basic', 'contactEmail', '"support@cloudphone.com"', true),
+  ('basic', 'contactEmail', '"support@cloudphone.run"', true),
   ('email', 'smtpHost', '"smtp.example.com"', false),
   ('email', 'smtpPort', '"587"', false),
-  ('email', 'smtpFrom', '"noreply@cloudphone.com"', true),
+  ('email', 'smtpFrom', '"noreply@cloudphone.run"', true),
   ('sms', 'provider', '"aliyun"', false),
   ('sms', 'signName', '"云手机平台"', false),
   ('payment', 'enableAlipay', '"true"', false),

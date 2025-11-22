@@ -65,7 +65,7 @@ ON CONFLICT (name) DO NOTHING;
 -- 密码: admin123 (使用 bcrypt hash)
 -- Hash生成: bcrypt.hashSync('admin123', 10)
 INSERT INTO users (id, username, email, password, status) VALUES
-  ('10000000-0000-0000-0000-000000000001', 'admin', 'admin@cloudphone.com', '$2b$10$rDXJZKp.qYmJKYZ5YZnDOeK8YqYqYqYqYqYqYqYqYqYqYqYqYqY', 'active')
+  ('10000000-0000-0000-0000-000000000001', 'admin', 'admin@cloudphone.run', '$2b$10$rDXJZKp.qYmJKYZ5YZnDOeK8YqYqYqYqYqYqYqYqYqYqYqYqYqY', 'active')
 ON CONFLICT (username) DO NOTHING;
 
 -- 9. 关联管理员用户到 admin 角色
