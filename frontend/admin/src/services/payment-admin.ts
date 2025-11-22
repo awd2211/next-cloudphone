@@ -106,6 +106,83 @@ export interface PaymentConfig {
   };
 }
 
+// ==================== 支付提供商配置类型 ====================
+
+export type PaymentProviderType = 'stripe' | 'paypal' | 'paddle' | 'wechat' | 'alipay';
+export type PaymentProviderMode = 'test' | 'live' | 'sandbox' | 'production';
+
+export interface PaymentProviderConfigResponse {
+  id: string;
+  provider: PaymentProviderType;
+  enabled: boolean;
+  mode: PaymentProviderMode;
+  displayName: string;
+  webhookUrl?: string;
+
+  // 各平台特有公开信息
+  stripeTestPublicKey?: string;
+  stripeLivePublicKey?: string;
+  paypalSandboxClientId?: string;
+  paypalLiveClientId?: string;
+  paypalWebhookId?: string;
+  wechatAppId?: string;
+  wechatMchId?: string;
+  alipayAppId?: string;
+  alipayGateway?: string;
+
+  // 敏感信息掩码显示
+  hasSecretKey: boolean;
+  hasWebhookSecret: boolean;
+  secretKeyMasked?: string;
+  webhookSecretMasked?: string;
+
+  // 连接状态
+  lastTestedAt?: string;
+  lastTestSuccess?: boolean;
+  lastTestMessage?: string;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentProviderConfigUpdate {
+  enabled?: boolean;
+  mode?: PaymentProviderMode;
+  displayName?: string;
+
+  // Stripe
+  stripeTestPublicKey?: string;
+  stripeTestSecretKey?: string;
+  stripeLivePublicKey?: string;
+  stripeLiveSecretKey?: string;
+  stripeWebhookSecret?: string;
+
+  // PayPal
+  paypalSandboxClientId?: string;
+  paypalSandboxSecret?: string;
+  paypalLiveClientId?: string;
+  paypalLiveSecret?: string;
+  paypalWebhookId?: string;
+
+  // Paddle
+  paddleApiKey?: string;
+  paddleWebhookSecret?: string;
+
+  // 微信支付
+  wechatAppId?: string;
+  wechatMchId?: string;
+  wechatSerialNo?: string;
+  wechatApiV3Key?: string;
+  wechatPrivateKey?: string;
+  wechatPublicKey?: string;
+
+  // 支付宝
+  alipayAppId?: string;
+  alipayPrivateKey?: string;
+  alipayPublicKey?: string;
+  alipayGateway?: string;
+}
+
 // ==================== API 方法 ====================
 
 /**
@@ -238,6 +315,58 @@ export const getWebhookLogs = (params: {
   provider?: string;
 }): Promise<any> =>
   api.get('/admin/payments/webhooks/logs', { params });
+
+// ==================== 支付提供商配置 API ====================
+
+/**
+ * 获取所有支付提供商配置
+ */
+export const getProviderConfigs = (): Promise<PaymentProviderConfigResponse[]> =>
+  api.get<PaymentProviderConfigResponse[]>('/admin/payments/providers/config');
+
+/**
+ * 获取单个支付提供商配置
+ */
+export const getProviderConfig = (provider: PaymentProviderType): Promise<PaymentProviderConfigResponse> =>
+  api.get<PaymentProviderConfigResponse>(`/admin/payments/providers/config/${provider}`);
+
+/**
+ * 更新支付提供商配置
+ */
+export const updateProviderConfig = (
+  provider: PaymentProviderType,
+  config: PaymentProviderConfigUpdate
+): Promise<PaymentProviderConfigResponse> =>
+  api.put<PaymentProviderConfigResponse>(`/admin/payments/providers/config/${provider}`, config);
+
+/**
+ * 测试支付提供商连接
+ */
+export const testProviderConnectionNew = (
+  provider: PaymentProviderType
+): Promise<{ success: boolean; message: string }> =>
+  api.post<{ success: boolean; message: string }>(`/admin/payments/providers/config/${provider}/test`);
+
+/**
+ * 切换支付提供商启用状态
+ */
+export const toggleProviderEnabled = (
+  provider: PaymentProviderType,
+  enabled: boolean
+): Promise<PaymentProviderConfigResponse> =>
+  api.post<PaymentProviderConfigResponse>(`/admin/payments/providers/config/${provider}/toggle`, { enabled });
+
+/**
+ * 获取启用的支付方式列表
+ */
+export const getEnabledProviders = (): Promise<PaymentProviderType[]> =>
+  api.get<PaymentProviderType[]>('/admin/payments/providers/enabled');
+
+/**
+ * 清除配置缓存
+ */
+export const clearProviderConfigCache = (): Promise<void> =>
+  api.post('/admin/payments/providers/config/cache/clear');
 
 /**
  * 下载 Excel 文件（辅助函数）

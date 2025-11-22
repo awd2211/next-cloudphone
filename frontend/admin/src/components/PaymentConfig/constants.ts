@@ -68,9 +68,9 @@ export const getCurrencyName = (currency: string): string => {
 
 export const CONFIG_INFO_TEXTS = {
   envConfig: {
-    title: '环境配置',
+    title: '网页配置',
     description:
-      '支付提供商的 API 密钥、模式等配置需要在后端环境变量中设置。请查看 backend/billing-service/.env 文件中的配置项。',
+      '支付提供商的 API 密钥、模式等配置可以通过本页面进行设置。所有敏感信息均使用 AES-256-GCM 加密存储。',
   },
   testMode: {
     title: '测试模式',
@@ -80,6 +80,6 @@ export const CONFIG_INFO_TEXTS = {
   connectionTest: {
     title: '连接测试',
     description:
-      '点击"测试连接"按钮可以验证支付提供商的配置是否正确。如果测试失败，请检查环境变量配置和网络连接。',
+      '点击"测试"按钮可以验证支付提供商的配置是否正确。如果测试失败，请检查密钥配置和网络连接。',
   },
 };

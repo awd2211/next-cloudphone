@@ -13,6 +13,8 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { PaymentsAdminService } from './payments-admin.service';
 import { PaymentStatus, PaymentMethod } from '../entities/payment.entity';
+import { PaymentConfigService, PaymentProviderConfigDto } from '../services/payment-config.service';
+import { PaymentProviderType } from '../entities/payment-provider-config.entity';
 
 /**
  * 支付管理后台 Controller
@@ -23,7 +25,10 @@ import { PaymentStatus, PaymentMethod } from '../entities/payment.entity';
 @ApiBearerAuth()
 // @UseGuards(AdminGuard) // 添加管理员权限守卫
 export class PaymentsAdminController {
-  constructor(private readonly paymentsAdminService: PaymentsAdminService) {}
+  constructor(
+    private readonly paymentsAdminService: PaymentsAdminService,
+    private readonly paymentConfigService: PaymentConfigService,
+  ) {}
 
   /**
    * 获取支付统计数据
@@ -339,6 +344,150 @@ export class PaymentsAdminController {
         totalPages: result.totalPages,
       },
       message: '获取日志成功',
+    };
+  }
+
+  // ==================== 支付提供商配置管理 API ====================
+
+  /**
+   * 获取所有支付提供商配置
+   */
+  @Get('providers/config')
+  @ApiOperation({ summary: '获取所有支付提供商配置' })
+  @ApiResponse({ status: 200, description: '支付提供商配置列表' })
+  async getProviderConfigs() {
+    const configs = await this.paymentConfigService.getAllConfigs();
+    return {
+      success: true,
+      data: configs,
+      message: '获取配置成功',
+    };
+  }
+
+  /**
+   * 获取单个支付提供商配置
+   */
+  @Get('providers/config/:provider')
+  @ApiOperation({ summary: '获取单个支付提供商配置' })
+  @ApiResponse({ status: 200, description: '支付提供商配置' })
+  async getProviderConfig(@Param('provider') provider: PaymentProviderType) {
+    const config = await this.paymentConfigService.getConfig(provider);
+    return {
+      success: true,
+      data: config,
+      message: '获取配置成功',
+    };
+  }
+
+  /**
+   * 更新支付提供商配置
+   */
+  @Put('providers/config/:provider')
+  @ApiOperation({ summary: '更新支付提供商配置' })
+  @ApiResponse({ status: 200, description: '配置更新成功' })
+  async updateProviderConfig(
+    @Param('provider') provider: PaymentProviderType,
+    @Body() dto: Omit<PaymentProviderConfigDto, 'provider'>
+  ) {
+    const config = await this.paymentConfigService.updateConfig({
+      provider,
+      ...dto,
+    });
+    return {
+      success: true,
+      data: config,
+      message: '配置更新成功',
+    };
+  }
+
+  /**
+   * 测试支付提供商连接（使用数据库配置）
+   */
+  @Post('providers/config/:provider/test')
+  @ApiOperation({ summary: '测试支付提供商连接' })
+  @HttpCode(HttpStatus.OK)
+  async testProviderConnectionNew(@Param('provider') provider: PaymentProviderType) {
+    // 先获取配置以验证是否已配置
+    const config = await this.paymentConfigService.getConfig(provider);
+
+    if (!config.hasSecretKey) {
+      const result = { success: false, message: '未配置 API 密钥' };
+      await this.paymentConfigService.recordTestResult(provider, false, result.message);
+      return {
+        success: false,
+        data: result,
+        message: result.message,
+      };
+    }
+
+    // 转换 provider type 到 payment method
+    const providerToMethod: Record<PaymentProviderType, PaymentMethod> = {
+      [PaymentProviderType.STRIPE]: PaymentMethod.STRIPE,
+      [PaymentProviderType.PAYPAL]: PaymentMethod.PAYPAL,
+      [PaymentProviderType.PADDLE]: PaymentMethod.PADDLE,
+      [PaymentProviderType.WECHAT]: PaymentMethod.WECHAT,
+      [PaymentProviderType.ALIPAY]: PaymentMethod.ALIPAY,
+    };
+
+    const method = providerToMethod[provider];
+    const result = await this.paymentsAdminService.testProviderConnection(method);
+
+    // 记录测试结果
+    await this.paymentConfigService.recordTestResult(provider, result.success, result.message);
+
+    return {
+      success: result.success,
+      data: result,
+      message: result.success ? '连接测试成功' : '连接测试失败',
+    };
+  }
+
+  /**
+   * 获取启用的支付方式列表
+   */
+  @Get('providers/enabled')
+  @ApiOperation({ summary: '获取启用的支付方式列表' })
+  async getEnabledProviders() {
+    const providers = await this.paymentConfigService.getEnabledMethods();
+    return {
+      success: true,
+      data: providers,
+      message: '获取成功',
+    };
+  }
+
+  /**
+   * 切换支付提供商启用状态
+   */
+  @Post('providers/config/:provider/toggle')
+  @ApiOperation({ summary: '切换支付提供商启用/禁用' })
+  @HttpCode(HttpStatus.OK)
+  async toggleProvider(
+    @Param('provider') provider: PaymentProviderType,
+    @Body() body: { enabled: boolean }
+  ) {
+    const config = await this.paymentConfigService.updateConfig({
+      provider,
+      enabled: body.enabled,
+    });
+    return {
+      success: true,
+      data: config,
+      message: body.enabled ? '已启用' : '已禁用',
+    };
+  }
+
+  /**
+   * 清除配置缓存
+   */
+  @Post('providers/config/cache/clear')
+  @ApiOperation({ summary: '清除配置缓存' })
+  @HttpCode(HttpStatus.OK)
+  async clearConfigCache() {
+    this.paymentConfigService.clearCache();
+    return {
+      success: true,
+      message: '缓存已清除',
     };
   }
 }

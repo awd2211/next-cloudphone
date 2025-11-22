@@ -9,6 +9,7 @@ import { PaymentsAdminController } from './admin/payments-admin.controller';
 import { PaymentsAdminService } from './admin/payments-admin.service';
 import { Payment } from './entities/payment.entity';
 import { Subscription } from './entities/subscription.entity';
+import { PaymentProviderConfig } from './entities/payment-provider-config.entity';
 import { Order } from '../billing/entities/order.entity';
 import { CurrencyModule } from '../currency/currency.module';
 import { WeChatPayProvider } from './providers/wechat-pay.provider';
@@ -17,10 +18,12 @@ import { StripeProvider } from './providers/stripe.provider';
 import { PayPalProvider } from './providers/paypal.provider';
 import { PaddleProvider } from './providers/paddle.provider';
 import { BalanceClientService } from './clients/balance-client.service';
+import { EncryptionService } from './services/encryption.service';
+import { PaymentConfigService } from './services/payment-config.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Payment, Subscription, Order]),
+    TypeOrmModule.forFeature([Payment, Subscription, Order, PaymentProviderConfig]),
     ConfigModule,
     HttpModule,
     HttpClientModule,
@@ -37,7 +40,9 @@ import { BalanceClientService } from './clients/balance-client.service';
     PayPalProvider,
     PaddleProvider,
     BalanceClientService,
+    EncryptionService,
+    PaymentConfigService,
   ],
-  exports: [PaymentsService],
+  exports: [PaymentsService, PaymentConfigService, EncryptionService],
 })
 export class PaymentsModule {}
