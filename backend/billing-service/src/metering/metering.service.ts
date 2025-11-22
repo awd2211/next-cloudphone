@@ -720,28 +720,28 @@ export class MeteringService {
     const start = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 默认30天
     const end = endDate || new Date();
 
-    // 根据间隔确定日期分组格式
+    // 根据间隔确定日期分组格式 (PostgreSQL TO_CHAR 格式)
     let dateFormat: string;
     switch (interval) {
       case 'hour':
-        dateFormat = '%Y-%m-%d %H:00:00';
+        dateFormat = 'YYYY-MM-DD HH24:00:00';
         break;
       case 'day':
-        dateFormat = '%Y-%m-%d';
+        dateFormat = 'YYYY-MM-DD';
         break;
       case 'week':
-        dateFormat = '%Y-%u';
+        dateFormat = 'IYYY-IW'; // ISO week format for PostgreSQL
         break;
       case 'month':
-        dateFormat = '%Y-%m';
+        dateFormat = 'YYYY-MM';
         break;
       default:
-        dateFormat = '%Y-%m-%d';
+        dateFormat = 'YYYY-MM-DD';
     }
 
     const query = this.usageRecordRepository
       .createQueryBuilder('record')
-      .select(`DATE_FORMAT(record.startTime, '${dateFormat}')`, 'period')
+      .select(`TO_CHAR(record.startTime, '${dateFormat}')`, 'period')
       .addSelect('COUNT(record.id)', 'recordCount')
       .addSelect('SUM(record.durationSeconds)', 'totalDuration')
       .addSelect('SUM(record.cost)', 'totalCost')

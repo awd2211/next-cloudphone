@@ -129,6 +129,75 @@ export class StatsController {
       message: '统计概览获取成功',
     };
   }
+
+  @Get('trends')
+  @RequirePermission('billing.read')
+  @ApiOperation({
+    summary: '获取综合趋势统计',
+    description: '获取指定时间范围内的用户、设备、收入等综合趋势数据',
+  })
+  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
+  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
+  @ApiQuery({ name: 'granularity', required: false, description: '粒度（hour, day, week, month）', example: 'day' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getTrends(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('granularity') granularity: string = 'day',
+  ) {
+    const trends = await this.statsService.getTrends(startDate, endDate, granularity);
+    return {
+      data: trends,
+    };
+  }
+
+  @Get('device-usage')
+  @RequirePermission('billing.read')
+  @ApiOperation({
+    summary: '获取设备使用统计',
+    description: '获取设备使用情况的统计数据',
+  })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getDeviceUsage() {
+    const usage = await this.statsService.getDeviceUsage();
+    return {
+      data: usage,
+    };
+  }
+
+  @Get('revenue')
+  @RequirePermission('billing.read')
+  @ApiOperation({
+    summary: '获取收入统计',
+    description: '获取收入统计的详细数据',
+  })
+  @ApiQuery({ name: 'period', required: false, description: '周期（today, week, month, year）', example: 'month' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getRevenueStats(@Query('period') period: string = 'month') {
+    const revenue = await this.statsService.getRevenueStats(period);
+    return {
+      data: revenue,
+    };
+  }
+
+  @Get('top-apps')
+  @RequirePermission('billing.read')
+  @ApiOperation({
+    summary: '获取热门应用排行',
+    description: '获取安装量最高的应用排行榜',
+  })
+  @ApiQuery({ name: 'limit', required: false, description: '返回数量', example: 10 })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getTopApps(@Query('limit') limit: number = 10) {
+    const topApps = await this.statsService.getTopApps(limit);
+    return {
+      data: topApps,
+    };
+  }
   @Get('performance')
   @RequirePermission('billing.read')
   @ApiOperation({

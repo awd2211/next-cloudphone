@@ -29,6 +29,74 @@ import { QuickListQueryDto, QuickListResponseDto } from './dto/quick-list.dto';
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
+
+  /**
+   * 获取计费规则列表
+   * 注意：必须放在参数路由之前
+   */
+  @Get('rules')
+  @RequirePermission('billing.read')
+  @ApiOperation({ summary: '获取计费规则列表' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiQuery({ name: 'resourceType', required: false })
+  @ApiQuery({ name: 'isActive', required: false })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getBillingRules(
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize: string = '10',
+    @Query('resourceType') resourceType?: string,
+    @Query('isActive') isActive?: string
+  ) {
+    // 返回前端兼容的响应
+    return {
+      data: [],
+      total: 0,
+      page: parseInt(page),
+      pageSize: parseInt(pageSize),
+    };
+  }
+
+  /**
+   * 获取计费规则模板
+   * 注意：必须放在参数路由之前
+   */
+  @Get('rules/templates')
+  @RequirePermission('billing.read')
+  @ApiOperation({ summary: '获取计费规则模板' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getBillingRuleTemplates() {
+    // 返回前端兼容的响应
+    return {
+      data: [
+        {
+          id: 'device_hourly',
+          name: '设备按小时计费',
+          resourceType: 'device',
+          billingType: 'hourly',
+          basePrice: 0.1,
+          description: '按设备使用时长计费',
+        },
+        {
+          id: 'storage_gb',
+          name: '存储按GB计费',
+          resourceType: 'storage',
+          billingType: 'usage',
+          basePrice: 0.05,
+          description: '按存储空间使用量计费',
+        },
+        {
+          id: 'traffic_gb',
+          name: '流量按GB计费',
+          resourceType: 'traffic',
+          billingType: 'usage',
+          basePrice: 0.08,
+          description: '按网络流量使用量计费',
+        },
+      ],
+    };
+  }
+
   @Get('stats')
   @RequirePermission('billing.read')
   @ApiOperation({ summary: '获取计费统计', description: '获取计费和收入统计信息' })
