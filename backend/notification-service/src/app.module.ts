@@ -5,7 +5,8 @@ import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { HttpThrottlerGuard } from './common/guards/http-throttler.guard';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { createLoggerConfig, ConsulModule, DistributedLockModule, AllExceptionsFilter } from '@cloudphone/shared';
 import { HealthController } from './health/health.controller';
@@ -118,9 +119,10 @@ import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusM
       useClass: AllExceptionsFilter,
     },
     // 全局 Throttler 守卫（限流保护）
+    // 使用自定义 HttpThrottlerGuard 跳过非 HTTP 上下文（如 RabbitMQ 消费者）
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: HttpThrottlerGuard,
     },
     TasksService,
     NotificationEventsHandler,
