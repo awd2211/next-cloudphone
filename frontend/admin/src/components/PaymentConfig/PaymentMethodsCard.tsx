@@ -12,6 +12,9 @@ interface PaymentMethodsCardProps {
 
 export const PaymentMethodsCard: React.FC<PaymentMethodsCardProps> = React.memo(
   ({ config, hasEditPermission, onToggleMethod }) => {
+    // 防御性检查：确保 enabledMethods 存在且为数组
+    const enabledMethods = config?.enabledMethods ?? [];
+
     return (
       <Card
         title={
@@ -34,14 +37,14 @@ export const PaymentMethodsCard: React.FC<PaymentMethodsCardProps> = React.memo(
                 <Space style={{ width: '100%', justifyContent: 'space-between' }}>
                   <Space>
                     <span style={{ fontWeight: 500 }}>{getMethodName(method)}</span>
-                    {config.enabledMethods.includes(method) ? (
+                    {enabledMethods.includes(method) ? (
                       <Tag color="green">已启用</Tag>
                     ) : (
                       <Tag>已禁用</Tag>
                     )}
                   </Space>
                   <Switch
-                    checked={config.enabledMethods.includes(method)}
+                    checked={enabledMethods.includes(method)}
                     onChange={(checked) => onToggleMethod(method, checked)}
                     disabled={!hasEditPermission}
                   />

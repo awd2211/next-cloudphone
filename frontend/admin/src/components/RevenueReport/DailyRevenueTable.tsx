@@ -10,6 +10,9 @@ interface DailyRevenueTableProps {
 }
 
 export const DailyRevenueTable: React.FC<DailyRevenueTableProps> = ({ loading, data }) => {
+  // 防御性检查：确保 data 是数组
+  const safeData = Array.isArray(data) ? data : [];
+
   const columns: ColumnsType<DailyStats> = useMemo(
     () => [
       {
@@ -40,7 +43,7 @@ export const DailyRevenueTable: React.FC<DailyRevenueTableProps> = ({ loading, d
     <Card title="每日收入统计">
       <Table
         columns={columns}
-        dataSource={data}
+        dataSource={safeData}
         rowKey="date"
         loading={loading}
         pagination={{ pageSize: 10, showSizeChanger: true }}

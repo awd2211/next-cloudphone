@@ -14,6 +14,9 @@ export const PlanRevenueTable: React.FC<PlanRevenueTableProps> = ({
   data,
   totalRevenue,
 }) => {
+  // 防御性检查：确保 data 是数组
+  const safeData = Array.isArray(data) ? data : [];
+
   const columns: ColumnsType<PlanStats> = useMemo(
     () => [
       {
@@ -49,7 +52,7 @@ export const PlanRevenueTable: React.FC<PlanRevenueTableProps> = ({
 
   return (
     <Card title="套餐收入统计">
-      <Table columns={columns} dataSource={data} rowKey="planId" loading={loading} pagination={false} />
+      <Table columns={columns} dataSource={safeData} rowKey="planId" loading={loading} pagination={false} />
     </Card>
   );
 };

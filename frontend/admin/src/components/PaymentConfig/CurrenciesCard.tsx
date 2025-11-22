@@ -11,6 +11,9 @@ interface CurrenciesCardProps {
 
 export const CurrenciesCard: React.FC<CurrenciesCardProps> = React.memo(
   ({ config, hasEditPermission, onToggleCurrency }) => {
+    // 防御性检查：确保 enabledCurrencies 存在且为数组
+    const enabledCurrencies = config?.enabledCurrencies ?? [];
+
     return (
       <Card title="支持币种管理">
         <Alert
@@ -27,14 +30,14 @@ export const CurrenciesCard: React.FC<CurrenciesCardProps> = React.memo(
                 <Space style={{ width: '100%', justifyContent: 'space-between' }}>
                   <Space>
                     <span style={{ fontWeight: 500 }}>{getCurrencyName(currency)}</span>
-                    {config.enabledCurrencies.includes(currency) ? (
+                    {enabledCurrencies.includes(currency) ? (
                       <Tag color="green">已启用</Tag>
                     ) : (
                       <Tag>已禁用</Tag>
                     )}
                   </Space>
                   <Switch
-                    checked={config.enabledCurrencies.includes(currency)}
+                    checked={enabledCurrencies.includes(currency)}
                     onChange={(checked) => onToggleCurrency(currency, checked)}
                     disabled={!hasEditPermission}
                   />

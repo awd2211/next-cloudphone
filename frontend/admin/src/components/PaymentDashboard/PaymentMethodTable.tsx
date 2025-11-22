@@ -9,6 +9,9 @@ interface PaymentMethodTableProps {
 
 export const PaymentMethodTable: React.FC<PaymentMethodTableProps> = React.memo(
   ({ dataSource }) => {
+    // 防御性检查：确保 dataSource 是数组
+    const safeDataSource = Array.isArray(dataSource) ? dataSource : [];
+
     const columns: ColumnsType<PaymentMethodStat> = useMemo(
       () => [
         {
@@ -60,7 +63,7 @@ export const PaymentMethodTable: React.FC<PaymentMethodTableProps> = React.memo(
       <Card title="支付方式详情">
         <Table
           columns={columns}
-          dataSource={dataSource}
+          dataSource={safeDataSource}
           rowKey="method"
           pagination={false}
         />
