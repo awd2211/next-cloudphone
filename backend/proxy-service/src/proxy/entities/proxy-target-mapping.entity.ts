@@ -34,7 +34,6 @@ export class ProxyTargetMapping {
   targetCategory: string; // social_media, e-commerce, streaming, etc.
 
   @Column({ name: 'proxy_id', type: 'varchar', length: 50 })
-  @Index()
   proxyId: string;
 
   @Column({ name: 'proxy_provider', type: 'varchar', length: 50 })
@@ -65,7 +64,6 @@ export class ProxyTargetMapping {
   failureCount: number;
 
   @Column({ name: 'avg_success_rate', type: 'decimal', precision: 5, scale: 2, default: 0 })
-  @Index()
   avgSuccessRate: number;
 
   // 简化字段（兼容Service使用）

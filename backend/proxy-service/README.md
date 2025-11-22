@@ -366,7 +366,7 @@ UNLICENSED - 内部项目
 
 ## 联系方式
 
-- 技术支持：tech@cloudphone.com
+- 技术支持：tech@cloudphone.run
 - 文档：/docs/PROXY_SERVICE_ENTERPRISE_IMPLEMENTATION.md
 - Issue跟踪：GitHub Issues
 

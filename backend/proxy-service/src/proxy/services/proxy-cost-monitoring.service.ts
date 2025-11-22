@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThan } from 'typeorm';
 import { CronExpression } from '@nestjs/schedule';
@@ -36,9 +36,9 @@ export class ProxyCostMonitoringService {
     @InjectRepository(ProxyCostDailySummary)
     private summaryRepo: Repository<ProxyCostDailySummary>,
     private poolManager: ProxyPoolManager,
-    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
-    private readonly eventBus: EventBusService,
-    @InjectRedis() private readonly redis: Redis,
+    @Optional() private readonly lockService: DistributedLockService, // ✅ Optional: proxy-service 暂未配置 Redis 分布式锁模块
+    @Optional() private readonly eventBus: EventBusService, // ✅ Optional: proxy-service 不参与事件架构
+    @Optional() @InjectRedis() private readonly redis: Redis, // ✅ Optional: 仅用于阻止用户功能，不影响核心成本记录
   ) {}
 
   /**
@@ -237,22 +237,26 @@ export class ProxyCostMonitoringService {
     // 根据阈值确定告警类型
     const alertType = params.threshold >= 100 ? 'exceeded' : params.threshold >= 90 ? 'critical' : 'warning';
 
-    await this.eventBus.publish('cloudphone.events', 'proxy.cost_alert', {
-      alertId: alert.id,
-      userId: params.userId,
-      deviceId: params.deviceId,
-      alertType,
-      threshold: params.threshold,
-      budgetAmount: params.budgetAmount,
-      currentSpending: params.currentSpending,
-      percentage: params.percentage,
-      message: `成本告警：您的代理使用已达到预算的 ${params.percentage.toFixed(1)}%`,
-      periodStart: params.periodStart,
-      periodEnd: params.periodEnd,
-      timestamp: new Date().toISOString(),
-    });
-
-    this.logger.log(`Cost alert notification sent for alert ${alert.id}`);
+    // ✅ Optional: 仅当 EventBusService 可用时发送事件
+    if (this.eventBus) {
+      await this.eventBus.publish('cloudphone.events', 'proxy.cost_alert', {
+        alertId: alert.id,
+        userId: params.userId,
+        deviceId: params.deviceId,
+        alertType,
+        threshold: params.threshold,
+        budgetAmount: params.budgetAmount,
+        currentSpending: params.currentSpending,
+        percentage: params.percentage,
+        message: `成本告警：您的代理使用已达到预算的 ${params.percentage.toFixed(1)}%`,
+        periodStart: params.periodStart,
+        periodEnd: params.periodEnd,
+        timestamp: new Date().toISOString(),
+      });
+      this.logger.log(`Cost alert notification sent for alert ${alert.id}`);
+    } else {
+      this.logger.warn(`EventBusService not available, skipping cost alert notification for ${alert.id}`);
+    }
 
     return alert;
   }
@@ -274,31 +278,39 @@ export class ProxyCostMonitoringService {
       this.logger.log(`Terminated ${terminatedCount} active sessions for user ${userId}`);
 
       // 2. 在 Redis 中设置阻止标记，阻止新的代理分配请求
-      const blockKey = deviceId
-        ? `proxy:blocked:${userId}:${deviceId}`
-        : `proxy:blocked:${userId}`;
+      if (this.redis) {
+        const blockKey = deviceId
+          ? `proxy:blocked:${userId}:${deviceId}`
+          : `proxy:blocked:${userId}`;
 
-      // 阻止标记有效期 24 小时（可配置）
-      await this.redis.set(blockKey, JSON.stringify({
-        reason: 'budget_exceeded',
-        blockedAt: new Date().toISOString(),
-        userId,
-        deviceId,
-      }), 'EX', 86400);
+        // 阻止标记有效期 24 小时（可配置）
+        await this.redis.set(blockKey, JSON.stringify({
+          reason: 'budget_exceeded',
+          blockedAt: new Date().toISOString(),
+          userId,
+          deviceId,
+        }), 'EX', 86400);
 
-      this.logger.log(`Set proxy block for user ${userId}, device ${deviceId || 'all'}`);
+        this.logger.log(`Set proxy block for user ${userId}, device ${deviceId || 'all'}`);
+      } else {
+        this.logger.warn(`Redis not available, cannot set proxy block for user ${userId}`);
+      }
 
       // 3. 发送停止通知
-      await this.eventBus.publish('cloudphone.events', 'proxy.usage_stopped', {
-        userId,
-        deviceId,
-        reason: 'budget_exceeded',
-        terminatedSessions: terminatedCount,
-        message: `代理使用已自动停止：超出预算限制`,
-        timestamp: new Date().toISOString(),
-      });
-
-      this.logger.log(`Sent proxy usage stopped notification for user ${userId}`);
+      // ✅ Optional: 仅当 EventBusService 可用时发送事件
+      if (this.eventBus) {
+        await this.eventBus.publish('cloudphone.events', 'proxy.usage_stopped', {
+          userId,
+          deviceId,
+          reason: 'budget_exceeded',
+          terminatedSessions: terminatedCount,
+          message: `代理使用已自动停止：超出预算限制`,
+          timestamp: new Date().toISOString(),
+        });
+        this.logger.log(`Sent proxy usage stopped notification for user ${userId}`);
+      } else {
+        this.logger.warn(`EventBusService not available, skipping usage stopped notification for user ${userId}`);
+      }
     } catch (error) {
       this.logger.error(`Failed to auto-stop proxy usage for user ${userId}: ${error.message}`);
       throw error;
@@ -309,6 +321,12 @@ export class ProxyCostMonitoringService {
    * 检查用户是否被阻止使用代理
    */
   async isUserBlocked(userId: string, deviceId?: string): Promise<boolean> {
+    // ✅ Optional: 如果 Redis 不可用，默认不阻止
+    if (!this.redis) {
+      this.logger.warn('Redis not available, assuming user is not blocked');
+      return false;
+    }
+
     // 检查用户级别的阻止
     const userBlockKey = `proxy:blocked:${userId}`;
     const userBlocked = await this.redis.get(userBlockKey);
@@ -328,6 +346,12 @@ export class ProxyCostMonitoringService {
    * 解除用户代理阻止
    */
   async unblockUser(userId: string, deviceId?: string): Promise<void> {
+    // ✅ Optional: 如果 Redis 不可用，直接返回
+    if (!this.redis) {
+      this.logger.warn('Redis not available, cannot unblock user');
+      return;
+    }
+
     if (deviceId) {
       await this.redis.del(`proxy:blocked:${userId}:${deviceId}`);
     } else {

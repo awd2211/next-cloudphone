@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
 import { CronExpression } from '@nestjs/schedule';
@@ -32,7 +32,7 @@ export class ProxyUsageReportService {
     private summaryRepo: Repository<ProxyUsageSummary>,
     @InjectRepository(ProxyReportExport)
     private reportRepo: Repository<ProxyReportExport>,
-    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
+    @Optional() private readonly lockService: DistributedLockService, // ✅ Optional: proxy-service 暂未配置 Redis 分布式锁模块
     private readonly configService: ConfigService,
   ) {
     this.initializeEmailTransporter();
@@ -824,7 +824,7 @@ export class ProxyUsageReportService {
       return;
     }
 
-    const smtpFrom = this.configService.get<string>('SMTP_FROM', 'noreply@cloudphone.com');
+    const smtpFrom = this.configService.get<string>('SMTP_FROM', 'noreply@cloudphone.run');
     const appUrl = this.configService.get<string>('APP_URL', 'http://localhost:5173');
 
     // 构建邮件内容

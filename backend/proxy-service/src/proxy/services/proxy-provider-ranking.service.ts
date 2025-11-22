@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CronExpression } from '@nestjs/schedule';
@@ -25,7 +25,7 @@ export class ProxyProviderRankingService {
     @InjectRepository(ProxyProviderScoreHistory)
     private historyRepo: Repository<ProxyProviderScoreHistory>,
     private poolManager: ProxyPoolManager,
-    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
+    @Optional() private readonly lockService: DistributedLockService, // ✅ Optional: proxy-service 暂未配置 Redis 分布式锁模块
   ) {}
 
   /**

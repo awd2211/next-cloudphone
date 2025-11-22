@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CronExpression } from '@nestjs/schedule';
 import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
@@ -40,7 +40,7 @@ export class ProxyService {
   constructor(
     private readonly poolManager: ProxyPoolManager,
     private readonly configService: ConfigService,
-    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
+    @Optional() private readonly lockService: DistributedLockService, // ✅ Optional: proxy-service 暂未配置 Redis 分布式锁模块
   ) {
     this.logger.log('ProxyService initialized');
   }

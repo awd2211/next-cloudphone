@@ -329,7 +329,13 @@ export class ProxyDeviceGroupService {
     const totalDevices = devices.length;
     const activeDevices = devices.filter((d) => d.status === 'active').length;
 
-    // TODO: 从成本监控服务获取实际数据
+    /**
+     * 成本数据集成说明:
+     * 可注入 ProxyCostMonitoringService 获取实际成本数据:
+     *   const costData = await this.costMonitoringService.getCostByDeviceGroup(groupId, period);
+     * 或者从 CostRecord 实体直接聚合查询
+     * 当前使用默认值 0，待业务需求明确后实现
+     */
     const totalRequests = 0;
     const totalDataTransferred = 0;
     const totalCost = 0;

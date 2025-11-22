@@ -23,7 +23,12 @@ import { HealthModule } from './health/health.module';
 import { AdaptersModule } from './adapters/adapters.module';
 import { PoolModule } from './pool/pool.module';
 import { ProxyModule } from './proxy/proxy.module';
-// TODO: 待实现的模块
+/**
+ * 🚧 预留模块（按需实现）
+ * - StatisticsModule: 代理使用统计分析（当前由 ProxyUsageReportService 处理）
+ * - MonitoringModule: 代理健康监控告警（当前由 ProxyAlertService 处理）
+ * - EventsModule: 事件处理（proxy-service 为独立服务，暂不参与事件架构）
+ */
 // import { StatisticsModule } from './statistics/statistics.module';
 // import { MonitoringModule } from './monitoring/monitoring.module';
 // import { EventsModule } from './events/events.module';
@@ -107,10 +112,10 @@ import { ProxyProviderConfigController } from './proxy/controllers/proxy-provide
     AdaptersModule, // 供应商适配器
     PoolModule, // 代理池管理
     ProxyModule, // 代理业务逻辑
-    // TODO: 待实现的模块
-    // StatisticsModule,  // 统计分析
-    // MonitoringModule,  // 监控告警
-    // EventsModule,      // 事件处理
+    // 🚧 预留模块 - 当前功能已由 ProxyModule 内的 Services 覆盖
+    // StatisticsModule,  // → ProxyUsageReportService
+    // MonitoringModule,  // → ProxyAlertService + ProxyHealthCheckService
+    // EventsModule,      // → 独立服务，不参与事件架构
   ],
   controllers: [ProxyProviderConfigController],
   providers: [

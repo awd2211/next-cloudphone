@@ -268,7 +268,7 @@ export class ProxyAlertService {
     }
 
     const levelEmoji = this.getLevelEmoji(alert.level);
-    const smtpFrom = this.configService.get<string>('SMTP_FROM', 'noreply@cloudphone.com');
+    const smtpFrom = this.configService.get<string>('SMTP_FROM', 'noreply@cloudphone.run');
 
     await this.emailTransporter.sendMail({
       from: smtpFrom,

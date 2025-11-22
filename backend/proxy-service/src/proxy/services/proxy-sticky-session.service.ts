@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { CronExpression } from '@nestjs/schedule';
@@ -26,7 +26,7 @@ export class ProxyStickySessionService {
     @InjectRepository(ProxySessionRenewal)
     private renewalRepo: Repository<ProxySessionRenewal>,
     private poolManager: ProxyPoolManager,
-    private readonly lockService: DistributedLockService, // ✅ K8s cluster safety: Required for @ClusterSafeCron
+    @Optional() private readonly lockService: DistributedLockService, // ✅ Optional: proxy-service 暂未配置 Redis 分布式锁模块
     private readonly alertService: ProxyAlertService, // ✅ 告警服务
   ) {}
 

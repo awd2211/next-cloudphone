@@ -468,10 +468,9 @@ export class ProxyPoolManager {
     criteria?: ProxyCriteria,
   ): Promise<ProxyInfo | null> {
     // 根据优先级和可用性选择供应商
-    const sortedProviders = [...this.providers].sort((a, b) => {
-      // TODO: 可以基于供应商的成功率、成本等进行排序
-      return 0;
-    });
+    // 扩展点: 可基于 provider.getMetrics() 获取成功率/成本进行智能排序
+    // 当前保持注册顺序，确保稳定性
+    const sortedProviders = [...this.providers];
 
     for (const provider of sortedProviders) {
       try {

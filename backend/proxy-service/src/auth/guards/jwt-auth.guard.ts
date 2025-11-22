@@ -41,13 +41,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    *
    * @param err - 认证过程中的错误
    * @param user - 认证成功后的用户对象
+   * @param info - Passport 提供的额外信息
    * @returns 用户对象
    * @throws UnauthorizedException 当认证失败时
    */
-  handleRequest(err: any, user: any) {
+  handleRequest(err: any, user: any, info: any) {
     // 如果有错误或者没有用户信息，抛出401异常
     if (err || !user) {
-      throw err || new UnauthorizedException('未授权访问');
+      const message = info?.message || err?.message || '未授权访问';
+      throw err || new UnauthorizedException(message);
     }
     return user;
   }

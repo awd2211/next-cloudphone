@@ -562,7 +562,7 @@ this.metrics.recordDuration('operation', duration);
 
 - **文档**: `/docs`
 - **Issue追踪**: GitHub Issues
-- **Email**: support@cloudphone.com
+- **Email**: support@cloudphone.run
 
 ---
 

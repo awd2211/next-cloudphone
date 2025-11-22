@@ -42,7 +42,7 @@ import {
  * 提供设备组管理、成员管理、代理池分配功能
  */
 @ApiTags('Proxy Device Groups')
-@Controller('proxy/device-groups')
+@Controller('devices/groups')  // 修改路径以匹配前端 API 调用
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class ProxyDeviceGroupController {

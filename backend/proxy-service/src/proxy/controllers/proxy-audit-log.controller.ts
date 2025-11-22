@@ -82,7 +82,6 @@ export class ProxyAuditLogController {
       ipAddress: dto.ipAddress || req.ip,
       userAgent: dto.userAgent || req.headers['user-agent'],
       riskLevel: dto.riskLevel,
-      success: true,
     });
 
     return ProxyApiResponse.success(log, 'Audit log created');

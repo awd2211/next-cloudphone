@@ -62,7 +62,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
 
     // 实体配置
     entities: [`${__dirname}/../../**/*.entity{.ts,.js}`],
-    synchronize: false, // ✅ 使用迁移脚本管理数据库架构
+    synchronize: false, // 生产环境禁用，表已通过迁移脚本创建
     logging: isDevelopment ? 'all' : ['error', 'warn', 'schema'],
 
     // ========================================================================
