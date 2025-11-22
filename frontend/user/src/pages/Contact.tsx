@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Card, Form, Input, Button, Row, Col, message } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Form, Input, Button, Row, Col, message, Spin } from 'antd';
 import {
   PhoneOutlined,
   MailOutlined,
@@ -7,8 +7,10 @@ import {
   ClockCircleOutlined,
   WechatOutlined,
   QqOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { getSiteSettings, type SiteSettings } from '@/services/cms';
 
 const { TextArea } = Input;
 
@@ -16,57 +18,108 @@ const { TextArea } = Input;
  * 联系我们页面
  * 提供联系表单、联系方式和办公地址
  */
+// 默认联系方式（CMS 加载失败时使用）
+const defaultContactMethods = [
+  {
+    icon: <PhoneOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+    title: '电话咨询',
+    content: '400-123-4567',
+    description: '工作日 9:00-18:00',
+  },
+  {
+    icon: <MailOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+    title: '邮箱联系',
+    content: 'support@cloudphone.run',
+    description: '我们会在24小时内回复',
+  },
+  {
+    icon: <WechatOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+    title: '微信客服',
+    content: 'CloudPhone_Support',
+    description: '扫码添加客服微信',
+  },
+  {
+    icon: <QqOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+    title: 'QQ 群',
+    content: '123456789',
+    description: '加入开发者交流群',
+  },
+];
+
+// 默认办公地址
+const defaultOffices = [
+  {
+    city: '北京总部',
+    address: '北京市朝阳区建国路 88 号 SOHO 现代城',
+    phone: '010-12345678',
+  },
+  {
+    city: '上海分公司',
+    address: '上海市浦东新区陆家嘴环路 1000 号',
+    phone: '021-12345678',
+  },
+  {
+    city: '深圳分公司',
+    address: '深圳市南山区科技园南区科苑路 15 号',
+    phone: '0755-12345678',
+  },
+];
+
 const Contact: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
-  // 联系方式信息
-  const contactMethods = [
-    {
-      icon: <PhoneOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
-      title: '电话咨询',
-      content: '400-123-4567',
-      description: '工作日 9:00-18:00',
-    },
-    {
-      icon: <MailOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
-      title: '邮箱联系',
-      content: 'support@cloudphone.run',
-      description: '我们会在24小时内回复',
-    },
-    {
-      icon: <WechatOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
-      title: '微信客服',
-      content: 'CloudPhone_Support',
-      description: '扫码添加客服微信',
-    },
-    {
-      icon: <QqOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
-      title: 'QQ 群',
-      content: '123456789',
-      description: '加入开发者交流群',
-    },
-  ];
+  // 从 CMS 加载网站设置
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setLoading(true);
+        const settings = await getSiteSettings();
+        setSiteSettings(settings);
+      } catch (error) {
+        console.error('Failed to load site settings from CMS, using defaults:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSettings();
+  }, []);
 
-  // 办公地址信息
-  const offices = [
-    {
-      city: '北京总部',
-      address: '北京市朝阳区建国路 88 号 SOHO 现代城',
-      phone: '010-12345678',
-    },
-    {
-      city: '上海分公司',
-      address: '上海市浦东新区陆家嘴环路 1000 号',
-      phone: '021-12345678',
-    },
-    {
-      city: '深圳分公司',
-      address: '深圳市南山区科技园南区科苑路 15 号',
-      phone: '0755-12345678',
-    },
-  ];
+  // 根据 CMS 数据生成联系方式
+  const contactMethods = siteSettings
+    ? [
+        {
+          icon: <PhoneOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+          title: '电话咨询',
+          content: siteSettings.contact.phone,
+          description: '工作日 9:00-18:00',
+        },
+        {
+          icon: <MailOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+          title: '邮箱联系',
+          content: siteSettings.contact.email,
+          description: '我们会在24小时内回复',
+        },
+        {
+          icon: <WechatOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+          title: '微信客服',
+          content: siteSettings.contact.wechat,
+          description: '扫码添加客服微信',
+        },
+        {
+          icon: <QqOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+          title: 'QQ 群',
+          content: siteSettings.contact.qq_group,
+          description: '加入开发者交流群',
+        },
+      ]
+    : defaultContactMethods;
+
+  // 办公地址
+  const offices = siteSettings?.company?.offices ?? defaultOffices;
 
   // 处理表单提交
   const handleSubmit = async (values: any) => {
@@ -107,6 +160,13 @@ const Contact: React.FC = () => {
         </div>
 
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 24px' }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
+              <p style={{ marginTop: 16, color: '#666' }}>正在加载联系信息...</p>
+            </div>
+          ) : (
+          <>
           {/* 联系方式 */}
           <div style={{ marginBottom: 60 }}>
             <h2 style={{ fontSize: 28, marginBottom: 32, textAlign: 'center' }}>联系方式</h2>
@@ -266,6 +326,8 @@ const Contact: React.FC = () => {
               前往帮助中心
             </Button>
           </Card>
+          </>
+          )}
         </div>
       </div>
     </div>

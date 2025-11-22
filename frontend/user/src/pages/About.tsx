@@ -1,11 +1,13 @@
-import React from 'react';
-import { Card, Row, Col, Timeline, Statistic } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Timeline, Statistic, Spin } from 'antd';
 import {
   RocketOutlined,
   TeamOutlined,
   TrophyOutlined,
   GlobalOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
+import { getSiteSettings, type SiteSettings } from '@/services/cms';
 
 /**
  * CloudPhone.run 关于我们页面
@@ -13,6 +15,27 @@ import {
  * Header 和 Footer 由 PublicLayout 提供
  */
 const About: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setLoading(true);
+        const settings = await getSiteSettings();
+        setSiteSettings(settings);
+      } catch (error) {
+        console.error('Failed to load site settings from CMS:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  // 从 CMS 获取公司信息
+  const companySlogan = siteSettings?.company?.slogan || '致力于为全球开发者提供最优质的云手机服务';
+  const foundedYear = siteSettings?.company?.founded_year || '2020';
   return (
     <div>
       {/* 页面内容 */}
@@ -28,16 +51,23 @@ const About: React.FC = () => {
         >
           <h1 style={{ fontSize: 48, marginBottom: 16, color: 'white' }}>关于我们</h1>
           <p style={{ fontSize: 20, opacity: 0.9 }}>
-            致力于为全球开发者提供最优质的云手机服务
+            {companySlogan}
           </p>
         </div>
 
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 24px' }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
+              <p style={{ marginTop: 16, color: '#666' }}>正在加载公司信息...</p>
+            </div>
+          ) : (
+          <>
           {/* 公司简介 */}
           <Card style={{ marginBottom: 40 }}>
             <h2 style={{ fontSize: 28, marginBottom: 24, textAlign: 'center' }}>公司简介</h2>
             <p style={{ fontSize: 16, lineHeight: 1.8, textAlign: 'center', maxWidth: 800, margin: '0 auto' }}>
-              我们是一家专注于云手机技术的创新型公司，成立于 2020 年。
+              我们是一家专注于云手机技术的创新型公司，成立于 {foundedYear} 年。
               通过先进的容器化技术和虚拟化方案，为全球开发者、企业和游戏工作室提供稳定、高效的云端 Android 设备服务。
               我们的使命是让每个人都能轻松使用云手机，提升开发测试效率，降低硬件成本。
             </p>
@@ -195,6 +225,8 @@ const About: React.FC = () => {
               </Col>
             </Row>
           </Card>
+          </>
+          )}
         </div>
       </div>
     </div>

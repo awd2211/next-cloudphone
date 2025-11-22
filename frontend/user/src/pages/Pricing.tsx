@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Card,
   Row,
@@ -14,6 +14,7 @@ import {
   InputNumber,
   Statistic,
   Alert,
+  Spin,
 } from 'antd';
 import {
   CheckOutlined,
@@ -22,12 +23,28 @@ import {
   StarFilled,
   QuestionCircleOutlined,
   CalculatorOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import { PricingHero } from '@/components/Pricing/PricingHero';
 import { usePricing } from '@/hooks/usePricing';
-import { plans, comparisonData, faqData } from '@/utils/pricingData';
+import { plans as defaultPlans, comparisonData, faqData } from '@/utils/pricingData';
+import { getPricingPlans, type PricingPlan } from '@/services/cms';
 
 const { Title, Paragraph, Text } = Typography;
+
+// 定义前端 Plan 类型
+interface Plan {
+  name: string;
+  key: string;
+  tagline: string;
+  monthlyPrice: number | null;
+  yearlyPrice: number | null;
+  discount?: string;
+  tag?: string;
+  customPrice?: boolean;
+  highlighted?: boolean;
+  features: { name: string; value: string }[];
+}
 
 /**
  * 详细定价页（优化版）
@@ -44,6 +61,23 @@ const { Title, Paragraph, Text } = Typography;
  * 3. 定价FAQ
  * 4. 引导用户购买
  */
+// 将 CMS PricingPlan 转换为前端 Plan 格式
+const transformCMSPlan = (cmsPlan: PricingPlan): Plan => ({
+  name: cmsPlan.name,
+  key: cmsPlan.id,
+  tagline: cmsPlan.description,
+  monthlyPrice: cmsPlan.monthlyPrice ? parseFloat(cmsPlan.monthlyPrice) : null,
+  yearlyPrice: cmsPlan.yearlyPrice ? parseFloat(cmsPlan.yearlyPrice) : null,
+  discount: '年付享8折',
+  tag: cmsPlan.tag,
+  customPrice: cmsPlan.isCustomPrice,
+  highlighted: cmsPlan.tag === '热门',
+  features: cmsPlan.features.map((f) => ({
+    name: f.name,
+    value: f.limit || (f.included ? '✓' : '✗'),
+  })),
+});
+
 const Pricing: React.FC = () => {
   const {
     billingCycle,
@@ -54,6 +88,28 @@ const Pricing: React.FC = () => {
     savedAmount,
     navigate,
   } = usePricing();
+
+  // CMS 数据加载
+  const [plans, setPlans] = useState<Plan[]>(defaultPlans as Plan[]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadPlans = async () => {
+      try {
+        setLoading(true);
+        const cmsPlans = await getPricingPlans();
+        if (cmsPlans && cmsPlans.length > 0) {
+          setPlans(cmsPlans.map(transformCMSPlan));
+        }
+      } catch (error) {
+        console.error('Failed to load pricing plans from CMS, using defaults:', error);
+        // 加载失败时使用默认数据
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPlans();
+  }, []);
 
   // 功能对比表格列
   const comparisonColumns = useMemo(
@@ -90,6 +146,12 @@ const Pricing: React.FC = () => {
 
       {/* 套餐卡片 */}
       <div style={{ maxWidth: 1400, margin: '-60px auto 0', padding: '0 24px' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
+            <p style={{ marginTop: 16, color: '#666' }}>正在加载定价方案...</p>
+          </div>
+        ) : (
         <Row gutter={[24, 24]}>
           {plans.map((plan) => (
             <Col xs={24} sm={12} lg={6} key={plan.key}>
@@ -190,6 +252,7 @@ const Pricing: React.FC = () => {
             </Col>
           ))}
         </Row>
+        )}
       </div>
 
       {/* 功能对比表格 */}
