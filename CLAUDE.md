@@ -905,7 +905,7 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=notifications@example.com
 SMTP_PASS=password
-SMTP_FROM=noreply@cloudphone.com
+SMTP_FROM=noreply@cloudphone.run
 
 # WebSocket
 WS_PORT=30006

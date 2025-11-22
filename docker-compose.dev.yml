@@ -503,7 +503,7 @@ services:
       EMAIL_PORT: 587
       EMAIL_USER: your-email@gmail.com
       EMAIL_PASSWORD: your-app-password
-      EMAIL_FROM: noreply@cloudphone.com
+      EMAIL_FROM: noreply@cloudphone.run
     ports:
       - "30006:30006"
     volumes:
