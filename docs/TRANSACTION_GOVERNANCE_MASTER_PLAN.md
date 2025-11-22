@@ -1242,8 +1242,8 @@ Week 7-8: 回归测试和文档完善
 
 如有疑问或建议，请联系：
 
-- **架构组**: architecture@cloudphone.com
-- **DevOps 组**: devops@cloudphone.com
+- **架构组**: architecture@cloudphone.run
+- **DevOps 组**: devops@cloudphone.run
 - **文档仓库**: https://github.com/cloudphone/docs
 
 ---

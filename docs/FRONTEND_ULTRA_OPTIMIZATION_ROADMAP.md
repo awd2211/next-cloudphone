@@ -1632,7 +1632,7 @@ export const initSentry = () => {
     // 性能监控
     integrations: [
       new BrowserTracing({
-        tracingOrigins: ['localhost', 'cloudphone.com', /^\//],
+        tracingOrigins: ['localhost', 'cloudphone.run', /^\//],
       }),
     ],
     tracesSampleRate: 0.1, // 10% 采样率

@@ -43,7 +43,7 @@ Cloud Phone 平台所有8个后端微服务均已配置 Swagger/OpenAPI 文档�
 生产环境通过 API Gateway 统一入口访问：
 
 ```
-https://api.cloudphone.com/docs  (API Gateway)
+https://api.cloudphone.run/docs  (API Gateway)
 ```
 
 后端服务文档仅在内网可访问（需要VPN或跳板机）。

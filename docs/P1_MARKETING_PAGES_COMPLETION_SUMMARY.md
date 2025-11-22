@@ -373,7 +373,7 @@ const calculatePrice = () => {
 ## 📞 技术支持
 
 如有任何问题或改进建议，请联系：
-- 📧 邮箱：marketing@cloudphone.com
+- 📧 邮箱：marketing@cloudphone.run
 - 📱 电话：400-123-4567
 - 🎫 工单系统：登录后提交工单
 

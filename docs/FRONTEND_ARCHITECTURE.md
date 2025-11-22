@@ -1044,8 +1044,8 @@ VITE_WS_URL=http://localhost:30006
 VITE_ENV=development
 
 # .env.production
-VITE_API_URL=https://api.cloudphone.com
-VITE_WS_URL=https://ws.cloudphone.com
+VITE_API_URL=https://api.cloudphone.run
+VITE_WS_URL=https://ws.cloudphone.run
 VITE_ENV=production
 ```
 

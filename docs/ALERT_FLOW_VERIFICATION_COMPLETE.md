@@ -489,9 +489,9 @@ curl -X POST http://localhost:5002/test
 ```yaml
 email_configs:
 - to: 'ops-critical@example.com'
-  from: 'alertmanager@cloudphone.com'
+  from: 'alertmanager@cloudphone.run'
   smarthost: 'smtp.example.com:587'
-  auth_username: 'alertmanager@cloudphone.com'
+  auth_username: 'alertmanager@cloudphone.run'
   auth_password: 'your-password'
   require_tls: true
 ```

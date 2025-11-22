@@ -178,7 +178,7 @@ API Gateway (30000)
 **URL 结构:**
 
 ```
-https://api.cloudphone.com/api/v1/users
+https://api.cloudphone.run/api/v1/users
                           ↑       ↑     ↑
                           |       |     └─ 资源
                           |       └─ API 版本

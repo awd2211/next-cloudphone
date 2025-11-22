@@ -387,8 +387,8 @@ pm2 logs notification-service --lines 100
 ## 📞 Support & Questions
 
 For questions about these fixes or deployment assistance:
-- Security Team: security@cloudphone.com
-- DevOps Team: devops@cloudphone.com
+- Security Team: security@cloudphone.run
+- DevOps Team: devops@cloudphone.run
 - Slack Channel: #security-audit-2025
 
 ---

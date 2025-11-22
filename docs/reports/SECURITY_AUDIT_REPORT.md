@@ -820,7 +820,7 @@ private validateInstallEvent(event: SecureAppInstallEvent): void {
 
   // Whitelist allowed domains
   const allowedDomains = this.configService.get<string[]>('ALLOWED_APK_DOMAINS', [
-    'minio.internal.cloudphone.com',
+    'minio.internal.cloudphone.run',
     's3.amazonaws.com',
     'storage.googleapis.com',
   ]);
@@ -1554,7 +1554,7 @@ this.logger.log(`CORS enabled for origins: ${allowedOrigins.join(', ')}`);
 **Update .env:**
 ```bash
 # Production
-CORS_ORIGINS=https://admin.cloudphone.com,https://user.cloudphone.com
+CORS_ORIGINS=https://admin.cloudphone.run,https://user.cloudphone.run
 
 # Development
 CORS_ORIGINS=http://localhost:5173,http://localhost:5174
@@ -2121,7 +2121,7 @@ The platform would benefit from:
 
 **Report Generated:** 2025-10-29
 **Auditor:** Security Auditing Engineer (Claude)
-**Contact:** security@cloudphone.com
+**Contact:** security@cloudphone.run
 
 ---
 

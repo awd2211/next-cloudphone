@@ -554,9 +554,9 @@ kubectl set resources deployment api-gateway \
 
 ## 联系支持
 
-- 文档: https://docs.cloudphone.com
+- 文档: https://docs.cloudphone.run
 - 问题反馈: https://github.com/your-org/next-cloudphone/issues
-- 技术支持: support@cloudphone.com
+- 技术支持: support@cloudphone.run
 
 ---
 

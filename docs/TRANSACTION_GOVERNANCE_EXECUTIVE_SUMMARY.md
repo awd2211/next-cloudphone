@@ -256,9 +256,9 @@ L1: 单数据库事务 → 使用 @Transactional 装饰器（需要封装）
 
 **详细方案**: [事务治理总体方案](/docs/TRANSACTION_GOVERNANCE_MASTER_PLAN.md)
 
-**问题咨询**: architecture@cloudphone.com
+**问题咨询**: architecture@cloudphone.run
 
-**紧急联系**: devops@cloudphone.com
+**紧急联系**: devops@cloudphone.run
 
 ---
 
