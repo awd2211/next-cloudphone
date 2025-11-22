@@ -1,11 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Card, Table, Empty } from 'antd';
+import type { TablePaginationConfig } from 'antd';
+import type { SorterResult } from 'antd/es/table/interface';
 import { useNavigate } from 'react-router-dom';
 import { BillStatsCards, BillFilterBar, PaymentModal } from '@/components/Billing';
 import { useBills, useBillStats, usePayBill, useCancelBill, useDownloadBill } from '@/hooks/queries';
 import { createBillTableColumns } from '@/utils/billTableColumns';
 import type { BillListQuery, Bill } from '@/services/billing';
 import { PaymentMethod } from '@/services/billing';
+import { getListData } from '@/types';
 
 /**
  * 账单列表页面
@@ -18,6 +21,8 @@ const BillList: React.FC = () => {
   const [query, setQuery] = useState<BillListQuery>({
     page: 1,
     pageSize: 10,
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
   });
 
   // 支付弹窗状态
@@ -32,8 +37,8 @@ const BillList: React.FC = () => {
   const cancelBill = useCancelBill();
   const downloadBill = useDownloadBill();
 
-  // useBills 返回 BillListResponse = { items: Bill[], total, page, pageSize }
-  const bills: Bill[] = billsData?.items || [];
+  // useBills 返回 PaginatedResponse<Bill> = { items/data: Bill[], total, page, pageSize }
+  const bills: Bill[] = getListData(billsData);
   const total = billsData?.total ?? 0;
 
   // 筛选变化
@@ -98,6 +103,28 @@ const BillList: React.FC = () => {
     // React Query 的 invalidateQueries 已在 mutations 中自动处理
   }, []);
 
+  // 处理表格变化（分页、排序）
+  const handleTableChange = useCallback(
+    (
+      pagination: TablePaginationConfig,
+      _filters: Record<string, any>,
+      sorter: SorterResult<Bill> | SorterResult<Bill>[]
+    ) => {
+      const singleSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+      const sortField = singleSorter?.field as string | undefined;
+      const sortOrder = singleSorter?.order;
+
+      setQuery((prev) => ({
+        ...prev,
+        page: pagination.current || 1,
+        pageSize: pagination.pageSize || 10,
+        sortBy: sortField as BillListQuery['sortBy'],
+        sortOrder: sortOrder === 'ascend' ? 'asc' : sortOrder === 'descend' ? 'desc' : undefined,
+      }));
+    },
+    []
+  );
+
   // 表格列配置
   const columns = useMemo(
     () =>
@@ -131,6 +158,7 @@ const BillList: React.FC = () => {
           dataSource={bills}
           rowKey="id"
           loading={loading}
+          onChange={handleTableChange}
           pagination={{
             current: query.page,
             pageSize: query.pageSize,
@@ -138,7 +166,6 @@ const BillList: React.FC = () => {
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total) => `共 ${total} 条账单`,
-            onChange: (page, pageSize) => setQuery({ ...query, page, pageSize }),
           }}
           locale={{
             emptyText: <Empty description="暂无账单" />,

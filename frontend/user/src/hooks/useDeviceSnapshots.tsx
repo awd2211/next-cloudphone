@@ -54,8 +54,9 @@ export function useDeviceSnapshots() {
     if (!id) return;
     setLoading(true);
     try {
+      // api 包装器已自动解包，直接使用返回数据
       const res = await getDeviceSnapshots(id);
-      setSnapshots(res.data || []);
+      setSnapshots(res || []);
     } catch (error) {
       message.error('加载快照列表失败');
     } finally {

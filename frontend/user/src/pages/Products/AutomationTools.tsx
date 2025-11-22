@@ -39,8 +39,8 @@ const AutomationTools: React.FC = () => {
   return (
     <div style={{ background: '#f9fafb', minHeight: '100vh' }}>
       <SEO
-        title="自动化工具 - Ultrathink"
-        description="Ultrathink 自动化工具，脚本录制、定时任务、批量执行。无需编程，可视化操作，提升运营效率。"
+        title="自动化工具 - CloudPhone.run"
+        description="CloudPhone.run 自动化工具，脚本录制、定时任务、批量执行。无需编程，可视化操作，提升运营效率。"
         keywords="自动化工具,脚本录制,定时任务,批量执行,RPA"
       />
 

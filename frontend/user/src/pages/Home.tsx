@@ -11,7 +11,7 @@ import { SEO, AnimatedSection } from '@/components';
 import { useHome } from '@/hooks/useHome';
 
 /**
- * Ultrathink 营销型首页
+ * CloudPhone.run 营销型首页
  * 包含完整的产品介绍、功能特性、使用流程、定价方案等内容
  * Header 和 Footer 由 PublicLayout 提供
  */
@@ -27,9 +27,9 @@ const Home = () => {
   return (
     <div>
       <SEO
-        title="Ultrathink - 企业级云手机平台"
-        description="Ultrathink 提供稳定高效的云端 Android 设备服务，支持应用测试、自动化运营、游戏多开等场景。思维无界，云端赋能。"
-        keywords="云手机,云端Android,应用测试,自动化运营,游戏多开,移动设备云,云测试平台,Ultrathink"
+        title="CloudPhone.run - 企业级云手机平台"
+        description="CloudPhone.run 提供稳定高效的云端 Android 设备服务，支持应用测试、自动化运营、游戏多开等场景。思维无界，云端赋能。"
+        keywords="云手机,云端Android,应用测试,自动化运营,游戏多开,移动设备云,云测试平台,CloudPhone.run"
         url="https://ultrathink.com"
       />
       {/* 1. 头部横幅 - 品牌宣传 */}

@@ -17,7 +17,7 @@ const AppTesting: React.FC = () => {
 
   return (
     <div style={{ background: '#f9fafb', minHeight: '100vh' }}>
-      <SEO title="应用测试 - Ultrathink" description="Ultrathink 应用测试解决方案，兼容性测试、性能测试、自动化测试。提升应用质量。" keywords="应用测试,兼容性测试,性能测试,自动化测试,质量保障" />
+      <SEO title="应用测试 - CloudPhone.run" description="CloudPhone.run 应用测试解决方案，兼容性测试、性能测试、自动化测试。提升应用质量。" keywords="应用测试,兼容性测试,性能测试,自动化测试,质量保障" />
       <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', padding: '120px 24px 80px', color: 'white', textAlign: 'center' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <Tag color="gold" style={{ fontSize: 14, marginBottom: 24 }}><ExperimentOutlined /> 行业方案</Tag>

@@ -2,14 +2,15 @@
  * 账单管理 React Query Hooks (用户端)
  *
  * 提供账单列表、详情、支付、取消、下载等功能
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
+import type { PaginatedResponse } from '@/types';
 import type {
   Bill,
   BillListQuery,
-  BillListResponse,
   BillStats,
   PaymentRequest,
   PaymentResult,
@@ -24,6 +25,36 @@ import {
   handleMutationSuccess,
 } from '../utils/errorHandler';
 import { StaleTimeConfig } from '../utils/cacheConfig';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import { BillSchema, PaginatedBillsResponseSchema } from '@/schemas/api.schemas';
+import { z } from 'zod';
+
+// 账单统计 Schema
+const BillStatsSchema = z.object({
+  totalAmount: z.number().optional(),
+  paidAmount: z.number().optional(),
+  unpaidAmount: z.number().optional(),
+  overdueAmount: z.number().optional(),
+  totalCount: z.number().int().optional(),
+  paidCount: z.number().int().optional(),
+  unpaidCount: z.number().int().optional(),
+}).passthrough();
+
+// 发票列表 Schema
+const InvoiceSchema = z.object({
+  id: z.string(),
+  invoiceNo: z.string().optional(),
+  billId: z.string().optional(),
+  amount: z.number().optional(),
+  status: z.string().optional(),
+  type: z.string().optional(),
+  createdAt: z.string().optional(),
+}).passthrough();
+
+const InvoiceListResponseSchema = z.object({
+  items: z.array(InvoiceSchema),
+  total: z.number().int(),
+});
 
 // ==================== Query Keys ====================
 
@@ -42,13 +73,20 @@ export const billKeys = {
 
 // ==================== Query Hooks ====================
 
+// 发票列表响应类型
+export interface InvoiceListResponse {
+  items: Invoice[];
+  total: number;
+}
+
 /**
  * 获取账单列表
  */
 export const useBills = (params?: BillListQuery) => {
-  return useQuery<BillListResponse>({
+  return useValidatedQuery<PaginatedResponse<Bill>>({
     queryKey: billKeys.list(params),
     queryFn: () => billingService.getBills(params),
+    schema: PaginatedBillsResponseSchema,
     staleTime: StaleTimeConfig.bills,
     placeholderData: (previousData) => previousData,
   });
@@ -58,9 +96,10 @@ export const useBills = (params?: BillListQuery) => {
  * 获取账单详情
  */
 export const useBillDetail = (id: string, options?: { enabled?: boolean }) => {
-  return useQuery<Bill>({
+  return useValidatedQuery<Bill>({
     queryKey: billKeys.detail(id),
     queryFn: () => billingService.getBillDetail(id),
+    schema: BillSchema,
     enabled: options?.enabled !== false && !!id,
     staleTime: StaleTimeConfig.billDetail,
   });
@@ -70,9 +109,10 @@ export const useBillDetail = (id: string, options?: { enabled?: boolean }) => {
  * 获取账单统计
  */
 export const useBillStats = (params?: { startDate?: string; endDate?: string }) => {
-  return useQuery<BillStats>({
+  return useValidatedQuery<BillStats>({
     queryKey: billKeys.stats(params),
     queryFn: () => billingService.getBillStats(params),
+    schema: BillStatsSchema,
     staleTime: StaleTimeConfig.billDetail,
   });
 };
@@ -81,9 +121,10 @@ export const useBillStats = (params?: { startDate?: string; endDate?: string }) 
  * 获取发票列表
  */
 export const useInvoices = (params?: { page?: number; pageSize?: number }) => {
-  return useQuery<{ items: Invoice[]; total: number }>({
+  return useValidatedQuery<InvoiceListResponse>({
     queryKey: billKeys.invoiceList(params),
     queryFn: () => billingService.getInvoices(params),
+    schema: InvoiceListResponseSchema,
     staleTime: StaleTimeConfig.bills,
   });
 };

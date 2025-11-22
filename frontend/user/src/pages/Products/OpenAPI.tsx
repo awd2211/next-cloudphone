@@ -17,7 +17,7 @@ const OpenAPI: React.FC = () => {
 
   return (
     <div style={{ background: '#f9fafb', minHeight: '100vh' }}>
-      <SEO title="开放 API - Ultrathink" description="Ultrathink 开放 API，RESTful 设计，完整文档，SDK 支持。轻松集成到您的系统。" keywords="开放API,RESTful,SDK,API文档,集成" />
+      <SEO title="开放 API - CloudPhone.run" description="CloudPhone.run 开放 API，RESTful 设计，完整文档，SDK 支持。轻松集成到您的系统。" keywords="开放API,RESTful,SDK,API文档,集成" />
       <div style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', padding: '120px 24px 80px', color: 'white', textAlign: 'center' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <Tag color="gold" style={{ fontSize: 14, marginBottom: 24 }}><ApiOutlined /> 核心产品</Tag>

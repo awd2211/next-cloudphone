@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 社交登录服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 import type { User } from '@/types';
 
 /**
@@ -29,9 +33,8 @@ export interface SocialAuthConfig {
  * 获取社交登录授权 URL
  * @param provider 社交平台提供商
  */
-export const getSocialAuthUrl = (provider: SocialProvider) => {
-  return request.get<{ authUrl: string }>(`/auth/social/${provider}/url`);
-};
+export const getSocialAuthUrl = (provider: SocialProvider) =>
+  api.get<{ authUrl: string }>(`/auth/social/${provider}/url`);
 
 /**
  * 处理社交登录回调
@@ -44,26 +47,23 @@ export interface SocialAuthCallbackDto {
   state?: string;
 }
 
-export const handleSocialAuthCallback = (provider: SocialProvider, data: SocialAuthCallbackDto) => {
-  return request.post<SocialAuthResponse>(`/auth/social/${provider}/callback`, data);
-};
+export const handleSocialAuthCallback = (provider: SocialProvider, data: SocialAuthCallbackDto) =>
+  api.post<SocialAuthResponse>(`/auth/social/${provider}/callback`, data);
 
 /**
  * 绑定社交账号
  * @param provider 社交平台提供商
  * @param code 授权码
  */
-export const bindSocialAccount = (provider: SocialProvider, code: string) => {
-  return request.post(`/auth/social/${provider}/bind`, { code });
-};
+export const bindSocialAccount = (provider: SocialProvider, code: string) =>
+  api.post(`/auth/social/${provider}/bind`, { code });
 
 /**
  * 解绑社交账号
  * @param provider 社交平台提供商
  */
-export const unbindSocialAccount = (provider: SocialProvider) => {
-  return request.delete(`/auth/social/${provider}/unbind`);
-};
+export const unbindSocialAccount = (provider: SocialProvider) =>
+  api.delete(`/auth/social/${provider}/unbind`);
 
 /**
  * 获取已绑定的社交账号列表
@@ -77,9 +77,8 @@ export interface BoundSocialAccount {
   boundAt: string;
 }
 
-export const getBoundSocialAccounts = () => {
-  return request.get<BoundSocialAccount[]>('/auth/social/bound');
-};
+export const getBoundSocialAccounts = () =>
+  api.get<BoundSocialAccount[]>('/auth/social/bound');
 
 /**
  * 客户端社交登录配置

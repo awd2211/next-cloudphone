@@ -244,7 +244,7 @@ const Login = () => {
             </div>
 
             <Title level={1} style={{ color: '#fff', fontSize: 56, fontWeight: 700, marginBottom: 16, lineHeight: 1.2 }}>
-              Ultrathink
+              CloudPhone.run
             </Title>
             <Title level={2} style={{ color: 'rgba(255, 255, 255, 0.95)', fontSize: 32, fontWeight: 600, marginBottom: 24 }}>
               云端手机，触手可及

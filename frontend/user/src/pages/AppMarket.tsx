@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
-import { Row, Col, Card, Empty, Button, Form } from 'antd';
+import { Row, Col, Card, Empty, Form, Pagination, Spin } from 'antd';
 import { AppSearchBar, AppCard, InstallAppModal } from '@/components/App';
 import { useApps, useInstallApp, useMyDevices } from '@/hooks/queries';
 import type { Application, Device } from '@/types';
+import { getListData } from '@/types';
 
 const AppMarket = () => {
   // Form 实例
@@ -12,7 +13,7 @@ const AppMarket = () => {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>('');
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(12);
+  const [pageSize, setPageSize] = useState(12);
   const [installModalVisible, setInstallModalVisible] = useState(false);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
 
@@ -26,10 +27,10 @@ const AppMarket = () => {
   const { data: devicesData } = useMyDevices({ page: 1, pageSize: 100 });
   const installApp = useInstallApp();
 
-  // useApps 返回 PaginatedResponse<Application> = { data: Application[], total, page, pageSize }
-  const apps: Application[] = appsData?.data || [];
+  // useApps 返回 PaginatedResponse<Application> = { items/data: Application[], total, page, pageSize }
+  const apps: Application[] = getListData(appsData);
   const total = appsData?.total ?? 0;
-  const devices: Device[] = devicesData?.data || [];
+  const devices: Device[] = getListData(devicesData);
 
   // 应用分类（可以从API获取或配置）
   const categories = [
@@ -82,9 +83,10 @@ const AppMarket = () => {
     form.resetFields();
   }, [form]);
 
-  // 加载更多
-  const handleLoadMore = useCallback(() => {
-    setPage(prev => prev + 1);
+  // 分页变化
+  const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
+    setPage(newPage);
+    setPageSize(newPageSize);
   }, []);
 
   return (
@@ -100,41 +102,44 @@ const AppMarket = () => {
         onCategoryChange={setCategory}
       />
 
-      {apps.length === 0 && !loading ? (
-        <Card>
-          <Empty description="暂无应用" />
-        </Card>
-      ) : (
-        <>
-          <Row gutter={[16, 16]}>
-            {apps.map((app: Application) => (
-              <Col key={app.id} xs={24} sm={12} md={8} lg={6}>
-                <AppCard
-                  app={app}
-                  loading={loading}
-                  onView={handleView}
-                  onInstall={handleInstall}
-                />
-              </Col>
-            ))}
-          </Row>
+      <Spin spinning={loading}>
+        {apps.length === 0 && !loading ? (
+          <Card>
+            <Empty description="暂无应用" />
+          </Card>
+        ) : (
+          <>
+            <Row gutter={[16, 16]}>
+              {apps.map((app: Application) => (
+                <Col key={app.id} xs={24} sm={12} md={8} lg={6}>
+                  <AppCard
+                    app={app}
+                    loading={false}
+                    onView={handleView}
+                    onInstall={handleInstall}
+                  />
+                </Col>
+              ))}
+            </Row>
 
-          {total > pageSize && (
-            <div style={{ textAlign: 'center', marginTop: 24 }}>
-              <Button
-                size="large"
-                onClick={handleLoadMore}
-                disabled={page * pageSize >= total}
-              >
-                加载更多
-              </Button>
-              <div style={{ marginTop: 8, color: '#999' }}>
-                已加载 {apps.length} / {total} 个应用
+            {/* 分页 */}
+            {total > 0 && (
+              <div style={{ marginTop: 24, textAlign: 'center' }}>
+                <Pagination
+                  current={page}
+                  pageSize={pageSize}
+                  total={total}
+                  showSizeChanger
+                  showQuickJumper
+                  pageSizeOptions={['12', '24', '36', '48']}
+                  showTotal={(total) => `共 ${total} 个应用`}
+                  onChange={handlePageChange}
+                />
               </div>
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
+      </Spin>
 
       <InstallAppModal
         visible={installModalVisible}

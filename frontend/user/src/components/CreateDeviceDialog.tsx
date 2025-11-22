@@ -96,11 +96,9 @@ export const CreateDeviceDialog: React.FC<CreateDeviceDialogProps> = ({
 
       const res = await createDevice(createDto);
 
-      if (res.success) {
-        // 轮询 Saga 状态
-        const { sagaId, device } = res.data;
-        await pollCreationStatus(sagaId, device);
-      }
+      // api 包装器已自动解包，直接使用返回数据
+      const { sagaId, device } = res;
+      await pollCreationStatus(sagaId, device);
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || '创建失败');
       setCreating(false);

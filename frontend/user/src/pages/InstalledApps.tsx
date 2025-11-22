@@ -4,6 +4,7 @@ import { MobileOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useInstalledApps, useUninstallApp, useBatchUninstallApps, useUpdateApp, useMyDevices } from '@/hooks/queries';
 import { InstalledAppList } from '@/components/App/InstalledAppList';
 import type { Device } from '@/types';
+import { getListData } from '@/types';
 import type { InstalledAppInfo } from '@/services/app';
 
 const { Title, Text } = Typography;
@@ -32,8 +33,8 @@ const InstalledApps: React.FC = () => {
   const batchUninstallAppsMutation = useBatchUninstallApps();
   const updateAppMutation = useUpdateApp();
 
-  // 响应格式: PaginatedResponse<Device> -> { data: Device[], total, ... }
-  const devices: Device[] = devicesData?.data || [];
+  // 响应格式: PaginatedResponse<Device> -> { items/data: Device[], total, ... }
+  const devices: Device[] = getListData(devicesData);
   // useInstalledApps 返回 InstalledAppInfo[]
   const apps: InstalledAppInfo[] = installedAppsData || [];
 

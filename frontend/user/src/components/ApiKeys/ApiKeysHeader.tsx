@@ -21,7 +21,7 @@ export const ApiKeysHeader = memo<ApiKeysHeaderProps>(({ onCreate }) => {
         <Col>
           <Space>
             <Button
-              href="https://docs.cloudphone.com/api"
+              href="https://docs.cloudphone.run/api"
               target="_blank"
               icon={<ApiOutlined />}
             >

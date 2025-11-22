@@ -1,10 +1,10 @@
-import request from '@/utils/request';
-
 /**
  * 媒体服务 API (Go/Gin 服务)
+ * 使用 api 包装器自动解包响应
  *
- * ⚠️ 注意：后端使用 /api/media/... 路径
+ * 注意：baseURL 已包含 /api，路径不需要再加 /api 前缀
  */
+import { api } from '@/utils/api';
 
 export interface WebRTCSession {
   id: string;
@@ -33,40 +33,28 @@ export interface AddICECandidateDto {
 }
 
 // 创建 WebRTC 会话
-// 后端路径: /api/media/sessions
-export const createSession = (data: CreateSessionDto) => {
-  return request.post<WebRTCSession>('/api/media/sessions', data);
-};
+export const createSession = (data: CreateSessionDto) =>
+  api.post<WebRTCSession>('/media/sessions', data);
 
 // 设置 Answer
-// 后端路径: /api/media/sessions/answer
-export const setAnswer = (data: SetAnswerDto) => {
-  return request.post('/api/media/sessions/answer', data);
-};
+export const setAnswer = (data: SetAnswerDto) =>
+  api.post('/media/sessions/answer', data);
 
 // 添加 ICE 候选
-// 后端路径: /api/media/sessions/ice-candidate
-export const addICECandidate = (data: AddICECandidateDto) => {
-  return request.post('/api/media/sessions/ice-candidate', data);
-};
+export const addICECandidate = (data: AddICECandidateDto) =>
+  api.post('/media/sessions/ice-candidate', data);
 
 // 获取会话
-// 后端路径: /api/media/sessions/:id
-export const getSession = (id: string) => {
-  return request.get<WebRTCSession>(`/api/media/sessions/${id}`);
-};
+export const getSession = (id: string) =>
+  api.get<WebRTCSession>(`/media/sessions/${id}`);
 
 // 关闭会话
-// 后端路径: /api/media/sessions/:id
-export const closeSession = (id: string) => {
-  return request.delete(`/api/media/sessions/${id}`);
-};
+export const closeSession = (id: string) =>
+  api.delete(`/media/sessions/${id}`);
 
 // 获取统计信息
-// 后端路径: /api/media/stats
-export const getMediaStats = () => {
-  return request.get('/api/media/stats');
-};
+export const getMediaStats = () =>
+  api.get('/media/stats');
 
 // 获取 WebSocket URL (用于实时通信)
 export const getWebSocketUrl = () => {

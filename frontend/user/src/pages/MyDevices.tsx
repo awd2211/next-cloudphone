@@ -1,9 +1,12 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Card, Table, Button } from 'antd';
+import type { TablePaginationConfig } from 'antd';
+import type { SorterResult } from 'antd/es/table/interface';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
-import type { Device } from '@/types';
+import type { Device, PaginationParams } from '@/types';
+import { getListData } from '@/types';
 import { CreateDeviceDialog } from '@/components/CreateDeviceDialog';
 import {
   DeviceStatusTag,
@@ -24,18 +27,22 @@ const MyDevices = () => {
   // 本地状态
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [queryParams, setQueryParams] = useState<PaginationParams>({
+    page: 1,
+    pageSize: 10,
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  });
 
   // React Query hooks
-  const { data: devicesData, isLoading: loading, refetch: refetchDevices } = useMyDevices({ page, pageSize });
+  const { data: devicesData, isLoading: loading, refetch: refetchDevices } = useMyDevices(queryParams);
   const { data: stats, refetch: refetchStats } = useDeviceStats();
   const startDevice = useStartDevice();
   const stopDevice = useStopDevice();
   const rebootDevice = useRebootDevice();
 
-  // useMyDevices 返回 PaginatedResponse<Device>: { data: Device[], total, page, pageSize }
-  const devices: Device[] = devicesData?.data || [];
+  // useMyDevices 返回 PaginatedResponse<Device>: { items/data: Device[], total, page, pageSize }
+  const devices: Device[] = getListData(devicesData);
   const total = devicesData?.total ?? 0;
 
   // 设备操作处理函数
@@ -68,10 +75,27 @@ const MyDevices = () => {
     [refetchDevices, refetchStats]
   );
 
-  const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
-    setPage(newPage);
-    setPageSize(newPageSize);
-  }, []);
+  // 处理表格变化（分页、排序）
+  const handleTableChange = useCallback(
+    (
+      pagination: TablePaginationConfig,
+      _filters: Record<string, any>,
+      sorter: SorterResult<Device> | SorterResult<Device>[]
+    ) => {
+      const singleSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+      const sortField = singleSorter?.field as string | undefined;
+      const sortOrder = singleSorter?.order;
+
+      setQueryParams((prev) => ({
+        ...prev,
+        page: pagination.current || 1,
+        pageSize: pagination.pageSize || 10,
+        sortBy: sortField,
+        sortOrder: sortOrder === 'ascend' ? 'asc' : sortOrder === 'descend' ? 'desc' : undefined,
+      }));
+    },
+    []
+  );
 
   const handleRefresh = useCallback(() => {
     refetchDevices();
@@ -93,14 +117,14 @@ const MyDevices = () => {
   // 分页配置
   const pagination = useMemo(
     () => ({
-      current: page,
-      pageSize,
+      current: queryParams.page,
+      pageSize: queryParams.pageSize,
       total,
       showSizeChanger: true,
+      showQuickJumper: true,
       showTotal: (total: number) => `共 ${total} 条`,
-      onChange: handlePageChange,
     }),
-    [page, pageSize, total, handlePageChange]
+    [queryParams.page, queryParams.pageSize, total]
   );
 
   // 批量操作相关
@@ -206,17 +230,20 @@ const MyDevices = () => {
         title: '设备名称',
         dataIndex: 'name',
         key: 'name',
+        sorter: true,
       },
       {
         title: '状态',
         dataIndex: 'status',
         key: 'status',
+        sorter: true,
         render: (status: string) => <DeviceStatusTag status={status} />,
       },
       {
         title: 'Android 版本',
         dataIndex: 'androidVersion',
         key: 'androidVersion',
+        sorter: true,
       },
       {
         title: '配置',
@@ -229,6 +256,8 @@ const MyDevices = () => {
         title: '创建时间',
         dataIndex: 'createdAt',
         key: 'createdAt',
+        sorter: true,
+        defaultSortOrder: 'descend',
         render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
       },
       {
@@ -266,7 +295,8 @@ const MyDevices = () => {
         </Button>
       </div>
 
-      <DeviceStatsCards stats={stats?.data} />
+      {/* api 包装器已自动解包，stats 直接是统计对象 */}
+      <DeviceStatsCards stats={stats ?? null} />
 
       {/* 批量操作工具栏 */}
       {selectedRowKeys.length > 0 && (
@@ -287,6 +317,7 @@ const MyDevices = () => {
           dataSource={devices}
           rowKey="id"
           loading={loading}
+          onChange={handleTableChange}
           pagination={pagination}
           rowSelection={rowSelection}
         />

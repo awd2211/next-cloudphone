@@ -4,16 +4,34 @@
  *
  * ✅ 统一使用 const 箭头函数风格
  * ✅ 使用类型化的错误处理
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { PaginationParams } from '@/types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { PaginationParams, Device, PaginatedResponse } from '@/types';
 import * as deviceService from '@/services/device';
 import {
   handleMutationError,
   handleMutationSuccess,
 } from '../utils/errorHandler';
 import { StaleTimeConfig } from '../utils/cacheConfig';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import {
+  PaginatedDevicesResponseSchema,
+  DeviceSchema,
+  DeviceStatsSchema,
+} from '@/schemas/api.schemas';
+
+// ==================== 类型定义 ====================
+
+/** 设备统计数据 */
+export interface DeviceStats {
+  total: number;
+  running: number;
+  stopped: number;
+  idle?: number;
+  error?: number;
+}
 
 // ==================== Query Keys ====================
 
@@ -36,12 +54,11 @@ export const deviceKeys = {
  * 获取我的设备列表
  */
 export const useMyDevices = (params: PaginationParams) => {
-  return useQuery({
+  return useValidatedQuery<PaginatedResponse<Device>>({
     queryKey: deviceKeys.list(params),
     queryFn: () => deviceService.getMyDevices(params),
+    schema: PaginatedDevicesResponseSchema,
     staleTime: StaleTimeConfig.devices,
-    // 保持上一次的数据，避免页面切换时闪烁
-    placeholderData: (previousData) => previousData,
   });
 };
 
@@ -49,9 +66,10 @@ export const useMyDevices = (params: PaginationParams) => {
  * 获取设备详情
  */
 export const useDevice = (id: string, options?: { enabled?: boolean }) => {
-  return useQuery({
+  return useValidatedQuery<Device>({
     queryKey: deviceKeys.detail(id),
     queryFn: () => deviceService.getDevice(id),
+    schema: DeviceSchema,
     enabled: options?.enabled !== false && !!id,
     staleTime: StaleTimeConfig.deviceDetail,
   });
@@ -61,9 +79,10 @@ export const useDevice = (id: string, options?: { enabled?: boolean }) => {
  * 获取设备统计数据
  */
 export const useDeviceStats = () => {
-  return useQuery({
+  return useValidatedQuery<DeviceStats>({
     queryKey: deviceKeys.stats(),
     queryFn: () => deviceService.getMyDeviceStats(),
+    schema: DeviceStatsSchema,
     staleTime: StaleTimeConfig.deviceStats,
   });
 };

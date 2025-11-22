@@ -343,6 +343,8 @@ request.interceptors.response.use(
       );
     }
 
+    // 返回完整响应，由 service 层显式解包
+    // 后端格式: { success: true, data: T, timestamp, path, requestId }
     return response.data;
   },
   async (error: AxiosError) => {

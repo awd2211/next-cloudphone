@@ -8,7 +8,7 @@ import {
 } from '@ant-design/icons';
 
 /**
- * Ultrathink 关于我们页面
+ * CloudPhone.run 关于我们页面
  * 展示公司信息、团队、里程碑等
  * Header 和 Footer 由 PublicLayout 提供
  */

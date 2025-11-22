@@ -149,7 +149,7 @@ const ResidentialProxy: React.FC = () => {
   return (
     <div style={{ background: '#f9fafb', minHeight: '100vh' }}>
       <SEO
-        title="家宽代理服务 - Ultrathink"
+        title="家宽代理服务 - CloudPhone.run"
         description="提供真实家庭宽带 IP 代理，覆盖全球 200+ 国家，3000万+ IP 池，支持数据采集、价格监控、广告验证等场景"
         keywords="家宽代理,住宅代理,IP代理,数据采集,爬虫代理,真实IP"
       />

@@ -484,7 +484,7 @@ const RefundPolicy: React.FC = () => {
           <Paragraph>
             如您对退款政策有任何疑问，或需要帮助处理退款申请，请联系我们：
             <ul>
-              <li>退款专员邮箱：refund@cloudphone.com</li>
+              <li>退款专员邮箱：refund@cloudphone.run</li>
               <li>客服电话：400-123-4567</li>
               <li>工单系统：登录后提交"退款申请"或"退款咨询"工单</li>
               <li>在线客服：工作日 9:00-18:00</li>

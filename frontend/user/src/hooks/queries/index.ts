@@ -15,6 +15,7 @@ export {
   useStopDevice,
   useRebootDevice,
 } from './useDevices';
+export type { DeviceStats } from './useDevices';
 
 // ==================== 代理管理 ====================
 export {
@@ -30,6 +31,12 @@ export {
   useRenewProxy,
   useTestProxy,
   useReportProxyIssue,
+} from './useProxy';
+export type {
+  ProxyStats,
+  ProxyListResponse,
+  ProxyUsageRecord,
+  ProxyUsageHistoryResponse,
 } from './useProxy';
 
 // ==================== 短信管理 ====================
@@ -48,6 +55,17 @@ export {
   useRenewNumber,
   useMarkSMSAsRead,
   useBatchMarkAsRead,
+} from './useSMS';
+export type {
+  SMSRecord,
+  SMSStats,
+  VerificationCode,
+  PhoneNumber,
+  SMSListResponse,
+  VerificationCodesListResponse,
+  OTPActiveStatus,
+  NumbersListResponse,
+  NumberStats,
 } from './useSMS';
 
 // ==================== 工单管理 ====================
@@ -96,6 +114,7 @@ export {
   useApplyInvoice,
   useDownloadInvoice,
 } from './useBills';
+export type { InvoiceListResponse } from './useBills';
 
 // ==================== 支付方式管理 ====================
 export {
@@ -104,13 +123,24 @@ export {
   useIsPaymentMethodEnabled,
   useAvailablePaymentMethods,
 } from './usePaymentMethods';
+export type { PaymentMethodItem } from './usePaymentMethods';
 
 // ==================== 账户余额管理 ====================
 export {
   balanceKeys,
   useBalance,
+  useUserBalance,
+  useBalanceTransactions,
+  useBalanceStatistics,
   useRecharge,
   formatBalance,
+} from './useBalance';
+export type {
+  UserBalance,
+  BalanceTransaction,
+  BalanceStatistics,
+  TransactionListParams,
+  TransactionListResponse,
 } from './useBalance';
 
 // ==================== 认证管理 ====================
@@ -128,11 +158,20 @@ export {
   useForgotPassword,
   useVerifyResetToken,
   useResetPassword,
+  useGenerate2FA,
   useEnable2FA,
   useVerify2FACode,
   useDisable2FA,
   useTerminateSession,
   useTerminateAllSessions,
+} from './useAuth';
+export type {
+  CaptchaResponse,
+  TwoFactorStatus,
+  LoginHistoryItem,
+  LoginHistoryResponse,
+  Session,
+  VerifyResetTokenResponse,
 } from './useAuth';
 
 // ==================== 快照管理 ====================
@@ -166,6 +205,7 @@ export {
   useLatestArticles,
   useFAQs,
 } from './useHelp';
+export type { FAQListResponse } from './useHelp';
 
 // ==================== 导出中心 ====================
 export {
@@ -180,6 +220,7 @@ export {
   useClearCompletedTasks,
   useClearFailedTasks,
 } from './useExport';
+export type { ExportStats, ExportTasksResponse } from './useExport';
 
 // ==================== 消息通知 ====================
 export {
@@ -196,6 +237,11 @@ export {
   useUpdateNotificationSettings,
   useRealtimeNotifications,
 } from './useNotifications';
+export type {
+  NotificationStats,
+  NotificationListResponse,
+  UnreadCountResponse,
+} from './useNotifications';
 
 // ==================== 活动中心 ====================
 export {
@@ -209,6 +255,12 @@ export {
   useParticipateActivity,
   useClaimCoupon,
   useUseCoupon,
+} from './useActivities';
+export type {
+  ActivityListResponse,
+  ParticipationListResponse,
+  CouponListResponse,
+  ActivityStats,
 } from './useActivities';
 
 // ==================== 推荐返利 ====================
@@ -224,6 +276,16 @@ export {
   useCancelWithdraw,
   useGeneratePoster,
   useShareToSocial,
+} from './useReferrals';
+export type {
+  ReferralStats,
+  ReferralConfig,
+  ReferralRecord,
+  WithdrawRecord,
+  ReferralRecordsResponse,
+  WithdrawRecordsResponse,
+  EarningDetail,
+  EarningsResponse,
 } from './useReferrals';
 
 // ==================== 套餐计划 ====================

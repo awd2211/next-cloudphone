@@ -19,17 +19,17 @@ interface SEOProps {
  * 提升搜索引擎优化和社交分享效果
  */
 const SEO: React.FC<SEOProps> = ({
-  title = 'Ultrathink - 企业级云手机平台 | Cloud Phone Platform',
-  description = 'Ultrathink 提供稳定高效的云端 Android 设备服务，支持应用测试、自动化运营、游戏多开等场景。专业的云手机解决方案，助力企业数字化转型。',
-  keywords = '云手机,云端Android,应用测试,自动化运营,游戏多开,移动设备云,云测试平台,Ultrathink',
+  title = 'CloudPhone.run - 企业级云手机平台 | Cloud Phone Platform',
+  description = 'CloudPhone.run 提供稳定高效的云端 Android 设备服务，支持应用测试、自动化运营、游戏多开等场景。专业的云手机解决方案，助力企业数字化转型。',
+  keywords = '云手机,云端Android,应用测试,自动化运营,游戏多开,移动设备云,云测试平台,CloudPhone.run',
   image = 'https://ultrathink.com/og-image.jpg',
   url = 'https://ultrathink.com',
   type = 'website',
-  author = 'Ultrathink Team',
+  author = 'CloudPhone.run Team',
   publishedTime,
   modifiedTime,
 }) => {
-  const siteTitle = 'Ultrathink';
+  const siteTitle = 'CloudPhone.run';
   const fullTitle = title.includes(siteTitle) ? title : `${title} | ${siteTitle}`;
 
   return (
@@ -84,7 +84,7 @@ const SEO: React.FC<SEOProps> = ({
         {JSON.stringify({
           '@context': 'https://schema.org',
           '@type': 'Organization',
-          name: 'Ultrathink',
+          name: 'CloudPhone.run',
           url: 'https://ultrathink.com',
           logo: 'https://ultrathink.com/logo.png',
           description: description,
@@ -107,7 +107,7 @@ const SEO: React.FC<SEOProps> = ({
         {JSON.stringify({
           '@context': 'https://schema.org',
           '@type': 'WebSite',
-          name: 'Ultrathink',
+          name: 'CloudPhone.run',
           url: 'https://ultrathink.com',
           potentialAction: {
             '@type': 'SearchAction',

@@ -1,9 +1,8 @@
-import request from '@/utils/request';
-
 /**
  * 短信服务 API (用户端)
- * 提供用户短信接收、验证码查询等功能
+ * 使用 api 包装器自动解包响应
  */
+import { api } from '@/utils/api';
 
 // ==================== 类型定义 ====================
 
@@ -81,25 +80,22 @@ export interface SMSNumber {
  * 后端端点: GET /sms (使用查询参数过滤)
  * 注意: 后端 SMS 服务主要用于发送，接收功能需要 sms-receive-service
  */
-export const getMySMS = (params?: SMSListParams) => {
-  return request.get<SMSListResponse>('/sms', { params });
-};
+export const getMySMS = (params?: SMSListParams) =>
+  api.get<SMSListResponse>('/sms', { params });
 
 /**
  * 获取短信详情
  * 后端端点: GET /sms/:id
  */
-export const getSMSDetail = (id: string) => {
-  return request.get<SMSRecord>(`/sms/${id}`);
-};
+export const getSMSDetail = (id: string) =>
+  api.get<SMSRecord>(`/sms/${id}`);
 
 /**
  * 获取我的短信统计
  * 后端端点: GET /sms/stats
  */
-export const getMySMSStats = () => {
-  return request.get<SMSStats>('/sms/stats');
-};
+export const getMySMSStats = () =>
+  api.get<SMSStats>('/sms/stats');
 
 /**
  * 删除短信记录
@@ -143,14 +139,13 @@ export const getMyVerificationCodes = (params?: {
  * 检查手机号是否有活跃验证码
  * 后端端点: GET /sms/otp/active
  */
-export const getVerificationCodeByPhone = (phone: string, type?: string) => {
-  return request.get<{
+export const getVerificationCodeByPhone = (phone: string, type?: string) =>
+  api.get<{
     phoneNumber: string;
     type: string;
     hasActive: boolean;
     remainingSeconds: number;
   }>('/sms/otp/active', { params: { phoneNumber: phone, type: type || 'login' } });
-};
 
 /**
  * 检查是否有活跃验证码
@@ -159,8 +154,8 @@ export const getVerificationCodeByPhone = (phone: string, type?: string) => {
 export const getLatestVerificationCode = (params?: {
   phone?: string;
   codeType?: string;
-}) => {
-  return request.get<{
+}) =>
+  api.get<{
     phoneNumber: string;
     type: string;
     hasActive: boolean;
@@ -168,14 +163,13 @@ export const getLatestVerificationCode = (params?: {
   }>('/sms/otp/active', {
     params: { phoneNumber: params?.phone, type: params?.codeType || 'login' },
   });
-};
 
 /**
  * 验证验证码
  * 后端端点: POST /sms/otp/verify
  */
-export const verifyCode = (phone: string, code: string, type?: string) => {
-  return request.post<{
+export const verifyCode = (phone: string, code: string, type?: string) =>
+  api.post<{
     success: boolean;
     message?: string;
   }>('/sms/otp/verify', {
@@ -183,7 +177,6 @@ export const verifyCode = (phone: string, code: string, type?: string) => {
     code,
     type: type || 'login',
   });
-};
 
 /**
  * 标记验证码为已使用

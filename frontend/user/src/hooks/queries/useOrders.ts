@@ -3,9 +3,10 @@
  *
  * ✅ 统一使用 const 箭头函数风格
  * ✅ 使用类型化的错误处理
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PaginationParams } from '@/types';
 import * as orderService from '@/services/order';
 import {
@@ -13,6 +14,8 @@ import {
   handleMutationSuccess,
 } from '../utils/errorHandler';
 import { StaleTimeConfig } from '../utils/cacheConfig';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import { PaginatedOrdersResponseSchema, OrderSchema } from '@/schemas/api.schemas';
 
 // ==================== Query Keys ====================
 
@@ -30,11 +33,11 @@ export const orderKeys = {
  * 获取我的订单列表
  */
 export const useMyOrders = (params: PaginationParams) => {
-  return useQuery({
+  return useValidatedQuery({
     queryKey: orderKeys.list(params),
     queryFn: () => orderService.getMyOrders(params),
+    schema: PaginatedOrdersResponseSchema,
     staleTime: StaleTimeConfig.orders,
-    placeholderData: (previousData) => previousData,
   });
 };
 
@@ -42,9 +45,10 @@ export const useMyOrders = (params: PaginationParams) => {
  * 获取订单详情
  */
 export const useOrder = (id: string, options?: { enabled?: boolean }) => {
-  return useQuery({
+  return useValidatedQuery({
     queryKey: orderKeys.detail(id),
     queryFn: () => orderService.getOrder(id),
+    schema: OrderSchema,
     enabled: options?.enabled !== false && !!id,
     staleTime: StaleTimeConfig.orderDetail,
   });

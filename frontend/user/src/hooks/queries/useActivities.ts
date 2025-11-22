@@ -2,9 +2,10 @@
  * 活动中心 React Query Hooks (用户端)
  *
  * 提供营销活动、优惠券管理、参与记录等功能
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
   Activity,
   ActivityType,
@@ -19,6 +20,52 @@ import {
   handleMutationSuccess,
 } from '../utils/errorHandler';
 import { StaleTimeConfig } from '../utils/cacheConfig';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import { ActivitySchema, CouponSchema } from '@/schemas/api.schemas';
+import { z } from 'zod';
+
+// 活动列表响应 Schema
+const ActivityListResponseSchema = z.object({
+  data: z.array(ActivitySchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  pageSize: z.number().int(),
+});
+
+// 参与记录 Schema
+const ParticipationSchema = z.object({
+  id: z.string(),
+  activityId: z.string(),
+  userId: z.string().optional(),
+  status: z.string().optional(),
+  rewards: z.array(z.string()).optional(),
+  createdAt: z.string().optional(),
+}).passthrough();
+
+const ParticipationListResponseSchema = z.object({
+  data: z.array(ParticipationSchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  pageSize: z.number().int(),
+});
+
+// 优惠券列表响应 Schema
+const CouponListResponseSchema = z.object({
+  data: z.array(CouponSchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  pageSize: z.number().int(),
+});
+
+// 活动统计 Schema
+const ActivityStatsSchema = z.object({
+  totalActivities: z.number().int().nonnegative(),
+  ongoingActivities: z.number().int().nonnegative(),
+  myCoupons: z.number().int().nonnegative(),
+  availableCoupons: z.number().int().nonnegative(),
+  totalParticipations: z.number().int().nonnegative(),
+  totalRewards: z.number().nonnegative(),
+});
 
 // ==================== Query Keys ====================
 
@@ -40,6 +87,38 @@ export const couponKeys = {
     [...couponKeys.lists(), params] as const,
 };
 
+// ==================== 类型定义 ====================
+
+export interface ActivityListResponse {
+  data: Activity[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface ParticipationListResponse {
+  data: Participation[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface CouponListResponse {
+  data: Coupon[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface ActivityStats {
+  totalActivities: number;
+  ongoingActivities: number;
+  myCoupons: number;
+  availableCoupons: number;
+  totalParticipations: number;
+  totalRewards: number;
+}
+
 // ==================== Query Hooks ====================
 
 /**
@@ -51,14 +130,10 @@ export const useActivities = (params?: {
   page?: number;
   pageSize?: number;
 }) => {
-  return useQuery<{
-    data: Activity[];
-    total: number;
-    page: number;
-    pageSize: number;
-  }>({
+  return useValidatedQuery<ActivityListResponse>({
     queryKey: activityKeys.list(params),
     queryFn: () => activityService.getActivities(params),
+    schema: ActivityListResponseSchema,
     staleTime: StaleTimeConfig.activities, // 1分钟
     placeholderData: (previousData) => previousData,
   });
@@ -68,9 +143,10 @@ export const useActivities = (params?: {
  * 获取活动详情
  */
 export const useActivityDetail = (id: string, options?: { enabled?: boolean }) => {
-  return useQuery<Activity>({
+  return useValidatedQuery<Activity>({
     queryKey: activityKeys.detail(id),
     queryFn: () => activityService.getActivityDetail(id),
+    schema: ActivitySchema,
     enabled: options?.enabled !== false && !!id,
     staleTime: StaleTimeConfig.activities,
   });
@@ -84,14 +160,10 @@ export const useMyParticipations = (params?: {
   page?: number;
   pageSize?: number;
 }) => {
-  return useQuery<{
-    data: Participation[];
-    total: number;
-    page: number;
-    pageSize: number;
-  }>({
+  return useValidatedQuery<ParticipationListResponse>({
     queryKey: activityKeys.participations(params),
     queryFn: () => activityService.getMyParticipations(params),
+    schema: ParticipationListResponseSchema,
     staleTime: StaleTimeConfig.MEDIUM, // 30秒
   });
 };
@@ -104,14 +176,10 @@ export const useMyCoupons = (params?: {
   page?: number;
   pageSize?: number;
 }) => {
-  return useQuery<{
-    data: Coupon[];
-    total: number;
-    page: number;
-    pageSize: number;
-  }>({
+  return useValidatedQuery<CouponListResponse>({
     queryKey: couponKeys.list(params),
     queryFn: () => activityService.getMyCoupons(params),
+    schema: CouponListResponseSchema,
     staleTime: StaleTimeConfig.MEDIUM, // 30秒
     placeholderData: (previousData) => previousData,
   });
@@ -121,16 +189,10 @@ export const useMyCoupons = (params?: {
  * 获取活动统计
  */
 export const useActivityStats = () => {
-  return useQuery<{
-    totalActivities: number;
-    ongoingActivities: number;
-    myCoupons: number;
-    availableCoupons: number;
-    totalParticipations: number;
-    totalRewards: number;
-  }>({
+  return useValidatedQuery<ActivityStats>({
     queryKey: activityKeys.stats(),
     queryFn: () => activityService.getActivityStats(),
+    schema: ActivityStatsSchema,
     staleTime: StaleTimeConfig.MEDIUM, // 30秒
   });
 };

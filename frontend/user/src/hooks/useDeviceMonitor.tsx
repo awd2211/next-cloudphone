@@ -66,20 +66,28 @@ export function useDeviceMonitor(id: string | undefined) {
     if (!id) return;
     setLoading(true);
     try {
-      const res = await getDeviceStats(id);
-      const newStats = res.data;
-      setStats(newStats);
+      // api 包装器已自动解包，直接使用返回数据
+      const newStats = await getDeviceStats(id);
+      setStats({
+        cpuUsage: newStats.cpu,
+        memoryUsed: newStats.memory,
+        memoryTotal: 100, // 百分比形式，总量设为100
+        storageUsed: newStats.storage,
+        storageTotal: 100, // 百分比形式，总量设为100
+        networkIn: 0,
+        networkOut: 0,
+        uptime: 0,
+      });
 
       // 添加到历史数据（最多保留 MAX_HISTORY_DATA 条）
       setHistoryData((prev) => {
         const now = new Date().toLocaleTimeString();
-        const memoryUsagePercent = (newStats.memoryUsed / newStats.memoryTotal) * 100;
         const newData = [
           ...prev,
           {
             time: now,
-            cpuUsage: newStats.cpuUsage,
-            memoryUsage: memoryUsagePercent,
+            cpuUsage: newStats.cpu,
+            memoryUsage: newStats.memory,
           },
         ];
         return newData.slice(-MAX_HISTORY_DATA);

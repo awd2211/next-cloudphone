@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 通知服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 import { io, Socket } from 'socket.io-client';
 
 // 通知类型
@@ -110,35 +114,23 @@ export interface NotificationStats {
 export const getNotifications = (
   userId: string,
   params?: Omit<NotificationListQuery, 'userId'>
-): Promise<NotificationListResponse> => {
-  return request({
-    url: `/notifications/user/${userId}`,
-    method: 'GET',
-    params,
-  });
-};
+): Promise<NotificationListResponse> =>
+  api.get<NotificationListResponse>(`/notifications/user/${userId}`, { params });
 
 /**
  * 获取消息详情
  */
-export const getNotificationDetail = (id: string): Promise<Notification> => {
-  return request({
-    url: `/notifications/${id}`,
-    method: 'GET',
-  });
-};
+export const getNotificationDetail = (id: string): Promise<Notification> =>
+  api.get<Notification>(`/notifications/${id}`);
 
 /**
  * 获取未读消息数量
  * 后端端点: GET /notifications/unread/count
  */
-export const getUnreadCount = (userId?: string): Promise<{ count: number }> => {
-  return request({
-    url: '/notifications/unread/count',
-    method: 'GET',
+export const getUnreadCount = (userId?: string): Promise<{ count: number }> =>
+  api.get<{ count: number }>('/notifications/unread/count', {
     params: userId ? { userId } : undefined,
   });
-};
 
 /**
  * 标记单条消息为已读
@@ -148,12 +140,7 @@ export const getUnreadCount = (userId?: string): Promise<{ count: number }> => {
 export const markAsRead = (ids: string[]): Promise<void> => {
   // 后端仅支持单条标记，这里按顺序标记
   return Promise.all(
-    ids.map((id) =>
-      request({
-        url: `/notifications/${id}/read`,
-        method: 'PATCH',
-      })
-    )
+    ids.map((id) => api.patch(`/notifications/${id}/read`))
   ).then(() => undefined);
 };
 
@@ -161,25 +148,15 @@ export const markAsRead = (ids: string[]): Promise<void> => {
  * 标记所有消息为已读
  * 后端端点: POST /notifications/read-all
  */
-export const markAllAsRead = (userId: string): Promise<void> => {
-  return request({
-    url: '/notifications/read-all',
-    method: 'POST',
-    data: { userId },
-  });
-};
+export const markAllAsRead = (userId: string): Promise<void> =>
+  api.post<void>('/notifications/read-all', { userId });
 
 /**
  * 批量删除消息
  * 后端端点: POST /notifications/batch/delete
  */
-export const deleteNotifications = (ids: string[]): Promise<void> => {
-  return request({
-    url: '/notifications/batch/delete',
-    method: 'POST',
-    data: { ids },
-  });
-};
+export const deleteNotifications = (ids: string[]): Promise<void> =>
+  api.post<void>('/notifications/batch/delete', { ids });
 
 /**
  * 清空所有已读消息
@@ -197,13 +174,8 @@ export const clearReadNotifications = (): Promise<void> => {
  * 注意: 后端返回的是按类型分组的偏好列表，与前端期望的扁平结构不同
  * TODO: 需要适配后端返回格式或后端添加兼容接口
  */
-export const getNotificationSettings = (userId: string): Promise<NotificationSettings> => {
-  return request({
-    url: '/notifications/preferences',
-    method: 'GET',
-    params: { userId },
-  });
-};
+export const getNotificationSettings = (userId: string): Promise<NotificationSettings> =>
+  api.get<NotificationSettings>('/notifications/preferences', { params: { userId } });
 
 /**
  * 更新通知偏好设置
@@ -214,24 +186,16 @@ export const getNotificationSettings = (userId: string): Promise<NotificationSet
 export const updateNotificationSettings = (
   userId: string,
   settings: Partial<NotificationSettings>
-): Promise<NotificationSettings> => {
-  return request({
-    url: '/notifications/preferences/batch',
-    method: 'POST',
+): Promise<NotificationSettings> =>
+  api.post<NotificationSettings>('/notifications/preferences/batch', { preferences: settings }, {
     params: { userId },
-    data: { preferences: settings },
   });
-};
 
 /**
  * 获取通知统计
  */
-export const getNotificationStats = (): Promise<NotificationStats> => {
-  return request({
-    url: '/notifications/stats',
-    method: 'GET',
-  });
-};
+export const getNotificationStats = (): Promise<NotificationStats> =>
+  api.get<NotificationStats>('/notifications/stats');
 
 // WebSocket 通知服务
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

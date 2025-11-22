@@ -211,7 +211,7 @@ const TermsOfService: React.FC = () => {
           <Paragraph>
             如您对本服务条款有任何疑问，请通过以下方式联系我们：
             <ul>
-              <li>客服邮箱：support@cloudphone.com</li>
+              <li>客服邮箱：support@cloudphone.run</li>
               <li>客服电话：400-123-4567</li>
               <li>工单系统：登录平台后提交工单</li>
             </ul>

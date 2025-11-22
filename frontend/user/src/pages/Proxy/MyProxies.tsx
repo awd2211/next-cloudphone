@@ -30,6 +30,7 @@ import {
   useReleaseProxy,
 } from '@/hooks/queries/useProxy';
 import type { ProxyRecord } from '@/services/proxy';
+import { getListData } from '@/types';
 
 /**
  * 我的代理IP页面 - 用户端
@@ -244,7 +245,7 @@ const MyProxies: React.FC = () => {
       >
         <Table
           columns={columns}
-          dataSource={data?.data || []}
+          dataSource={getListData(data)}
           rowKey="id"
           loading={isLoading}
           scroll={{ x: 1000 }}

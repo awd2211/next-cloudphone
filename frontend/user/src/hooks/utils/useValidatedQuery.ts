@@ -9,10 +9,11 @@
  *
  * @example
  * ```typescript
- * const { data, isLoading, error } = useValidatedQuery({
+ * // 基本用法 - 指定返回类型
+ * const { data, isLoading, error } = useValidatedQuery<DeviceListResponse>({
  *   queryKey: ['devices'],
  *   queryFn: () => deviceService.getMyDevices(),
- *   schema: DevicesResponseSchema,
+ *   schema: DevicesResponseSchema, // 仅用于运行时验证
  * });
  * ```
  */
@@ -21,17 +22,25 @@ import { useQuery, type UseQueryOptions, type QueryKey } from '@tanstack/react-q
 import { z } from 'zod';
 import { message } from 'antd';
 
-interface UseValidatedQueryOptions<TData, TError = Error, TQueryKey extends QueryKey = QueryKey>
-  extends Omit<UseQueryOptions<TData, TError, TData, TQueryKey>, 'queryFn'> {
+/**
+ * useValidatedQuery 的配置选项
+ *
+ * @typeParam TOutput - 返回类型（由调用方显式指定）
+ * @typeParam TQueryKey - Query key 类型
+ */
+interface UseValidatedQueryOptions<
+  TOutput,
+  TQueryKey extends QueryKey = QueryKey,
+> extends Omit<UseQueryOptions<TOutput, Error, TOutput, TQueryKey>, 'queryFn'> {
   /**
    * 查询函数 (返回未验证的数据)
    */
   queryFn: () => Promise<unknown>;
 
   /**
-   * Zod Schema (用于验证返回数据)
+   * Zod Schema (仅用于运行时验证，类型不参与推断)
    */
-  schema: z.ZodSchema<TData>;
+  schema: z.ZodType<unknown>;
 
   /**
    * 验证失败时是否显示错误提示
@@ -49,47 +58,59 @@ interface UseValidatedQueryOptions<TData, TError = Error, TQueryKey extends Quer
 /**
  * 带 Zod 验证的 useQuery Hook
  *
- * 自动验证 API 响应,确保数据类型安全
+ * 自动验证 API 响应,确保数据符合预期格式。
+ * TypeScript 类型由泛型参数 TOutput 控制，不依赖 Schema 推断。
+ *
+ * @typeParam TOutput - 返回数据类型（必须显式指定）
+ * @typeParam TQueryKey - Query key 类型
  */
-export function useValidatedQuery<TData, TQueryKey extends QueryKey = QueryKey>({
+export function useValidatedQuery<
+  TOutput,
+  TQueryKey extends QueryKey = QueryKey,
+>({
   queryFn,
   schema,
   showValidationError = true,
   logValidationErrors = import.meta.env.DEV,
   ...options
-}: UseValidatedQueryOptions<TData, Error, TQueryKey>) {
-  return useQuery<TData, Error, TData, TQueryKey>({
+}: UseValidatedQueryOptions<TOutput, TQueryKey>) {
+  return useQuery<TOutput, Error, TOutput, TQueryKey>({
     ...options,
     queryFn: async () => {
       try {
         // 执行 API 请求
         const response = await queryFn();
 
-        // Zod 验证
+        // Zod 运行时验证
         const result = schema.safeParse(response);
 
         if (!result.success) {
-          // 验证失败
-          const validationError = new Error('API 响应数据格式验证失败');
-
+          // 验证失败 - 开发模式仅警告，不阻塞
           if (logValidationErrors) {
-            console.error('❌ API 响应验证失败:', {
+            console.warn('⚠️ API响应验证警告 (开发模式):', {
               queryKey: options.queryKey,
               response,
-              errors: result.error.issues,
+              errors: result.error.issues.slice(0, 5), // 只显示前5个
+              totalErrors: result.error.issues.length,
               schema: schema.description || 'Schema',
             });
           }
 
+          // 开发模式: 返回原始响应，不阻塞应用
+          if (import.meta.env.DEV) {
+            return response as TOutput;
+          }
+
+          // 生产模式: 严格验证
           if (showValidationError) {
             message.error('数据格式错误,请刷新页面重试');
           }
-
-          throw validationError;
+          throw new Error('API 响应数据格式验证失败');
         }
 
-        // 验证成功,返回类型安全的数据
-        return result.data;
+        // 验证成功,返回数据
+        // 使用类型断言将 unknown 转换为 TOutput
+        return result.data as TOutput;
       } catch (error) {
         // 如果是验证错误,直接抛出
         if (error instanceof Error && error.message.includes('验证失败')) {
@@ -101,5 +122,22 @@ export function useValidatedQuery<TData, TQueryKey extends QueryKey = QueryKey>(
         throw error;
       }
     },
+  });
+}
+
+/**
+ * 简化版 useValidatedQuery - 不进行验证，仅用于类型
+ *
+ * 当你不需要运行时验证时使用此版本，仅提供类型支持。
+ */
+export function useTypedQuery<TData, TQueryKey extends QueryKey = QueryKey>({
+  queryFn,
+  ...options
+}: {
+  queryFn: () => Promise<TData>;
+} & Omit<UseQueryOptions<TData, Error, TData, TQueryKey>, 'queryFn'>) {
+  return useQuery<TData, Error, TData, TQueryKey>({
+    ...options,
+    queryFn,
   });
 }

@@ -181,7 +181,7 @@ const SMSReception: React.FC = () => {
   return (
     <div style={{ background: '#f9fafb', minHeight: '100vh' }}>
       <SEO
-        title="短信接收服务 - Ultrathink"
+        title="短信接收服务 - CloudPhone.run"
         description="提供全球短信接收和验证码服务，覆盖 150+ 国家，实时接收，API 集成，适用于账号注册、应用测试、自动化运营等场景"
         keywords="短信接收,验证码接收,临时手机号,虚拟手机号,SMS接收,验证码API"
       />

@@ -171,7 +171,7 @@ const LiveChatWidget: React.FC = () => {
               </Text>
               <Space direction="vertical" size="small">
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  📧 邮箱: support@cloudphone.com
+                  📧 邮箱: support@cloudphone.run
                 </Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   📞 电话: 400-123-4567

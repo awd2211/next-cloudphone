@@ -75,8 +75,8 @@ const AppMarket: React.FC = () => {
   return (
     <div style={{ background: '#f9fafb', minHeight: '100vh' }}>
       <SEO
-        title="应用市场 - Ultrathink"
-        description="Ultrathink 应用市场提供10万+应用，一键安装，批量部署，安全可靠。支持自动更新、版本管理、API集成。"
+        title="应用市场 - CloudPhone.run"
+        description="CloudPhone.run 应用市场提供10万+应用，一键安装，批量部署，安全可靠。支持自动更新、版本管理、API集成。"
         keywords="应用市场,APK安装,批量部署,应用管理,Android应用"
       />
 

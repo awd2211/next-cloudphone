@@ -2,25 +2,54 @@
  * 消息通知 React Query Hooks (用户端)
  *
  * 提供消息列表、通知设置、WebSocket 实时通知等功能
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { useEffect } from 'react';
 import type {
   Notification,
   NotificationListQuery,
-  NotificationListResponse,
   NotificationSettings,
-  NotificationStats,
+  NotificationListResponse as ServiceNotificationListResponse,
+  NotificationStats as ServiceNotificationStats,
 } from '@/services/notification';
 import * as notificationService from '@/services/notification';
+
+// 重新导出 service 类型供 pages 使用
+export type { Notification, NotificationListQuery, NotificationSettings } from '@/services/notification';
+export type NotificationStats = ServiceNotificationStats;
+export type NotificationListResponse = ServiceNotificationListResponse;
 import { notificationWS } from '@/services/notification';
 import {
   handleMutationError,
   handleMutationSuccess,
 } from '../utils/errorHandler';
 import { StaleTimeConfig } from '../utils/cacheConfig';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import { NotificationSchema, PaginatedNotificationsResponseSchema } from '@/schemas/api.schemas';
+import { z } from 'zod';
+
+// 未读数量 Schema
+const UnreadCountSchema = z.object({
+  count: z.number().int().nonnegative(),
+});
+
+// 通知设置 Schema
+const NotificationSettingsSchema = z.object({
+  emailEnabled: z.boolean().optional(),
+  smsEnabled: z.boolean().optional(),
+  pushEnabled: z.boolean().optional(),
+  categories: z.record(z.string(), z.boolean()).optional(),
+}).passthrough();
+
+// 通知统计 Schema
+const NotificationStatsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  unread: z.number().int().nonnegative(),
+  read: z.number().int().nonnegative().optional(),
+}).passthrough();
 
 // ==================== Query Keys ====================
 
@@ -35,6 +64,12 @@ export const notificationKeys = {
   stats: () => [...notificationKeys.all, 'stats'] as const,
 };
 
+// ==================== 类型定义 ====================
+
+export interface UnreadCountResponse {
+  count: number;
+}
+
 // ==================== Query Hooks ====================
 
 /**
@@ -43,11 +78,11 @@ export const notificationKeys = {
  * @param params - 查询参数
  */
 export const useNotifications = (userId: string, params?: NotificationListQuery) => {
-  return useQuery<NotificationListResponse>({
+  return useValidatedQuery<ServiceNotificationListResponse>({
     queryKey: notificationKeys.list(params),
     queryFn: () => notificationService.getNotifications(userId, params),
+    schema: PaginatedNotificationsResponseSchema,
     staleTime: StaleTimeConfig.notifications, // 30秒
-    placeholderData: (previousData) => previousData,
     enabled: !!userId,
   });
 };
@@ -56,9 +91,10 @@ export const useNotifications = (userId: string, params?: NotificationListQuery)
  * 获取消息详情
  */
 export const useNotificationDetail = (id: string, options?: { enabled?: boolean }) => {
-  return useQuery<Notification>({
+  return useValidatedQuery<Notification>({
     queryKey: notificationKeys.detail(id),
     queryFn: () => notificationService.getNotificationDetail(id),
+    schema: NotificationSchema,
     enabled: options?.enabled !== false && !!id,
     staleTime: StaleTimeConfig.notifications,
   });
@@ -69,9 +105,10 @@ export const useNotificationDetail = (id: string, options?: { enabled?: boolean 
  * @param userId - 用户ID (可选，传入后用于过滤)
  */
 export const useUnreadCount = (userId?: string) => {
-  return useQuery<{ count: number }>({
+  return useValidatedQuery<UnreadCountResponse>({
     queryKey: notificationKeys.unreadCount(),
     queryFn: () => notificationService.getUnreadCount(userId),
+    schema: UnreadCountSchema,
     staleTime: StaleTimeConfig.SHORT, // 5秒，保持实时性
     refetchInterval: 30000, // 每30秒轮询一次
   });
@@ -82,9 +119,10 @@ export const useUnreadCount = (userId?: string) => {
  * @param userId - 用户ID (必需)
  */
 export const useNotificationSettings = (userId: string) => {
-  return useQuery<NotificationSettings>({
+  return useValidatedQuery<NotificationSettings>({
     queryKey: notificationKeys.settings(),
     queryFn: () => notificationService.getNotificationSettings(userId),
+    schema: NotificationSettingsSchema,
     staleTime: StaleTimeConfig.VERY_LONG, // 5分钟
     enabled: !!userId,
   });
@@ -94,9 +132,10 @@ export const useNotificationSettings = (userId: string) => {
  * 获取通知统计
  */
 export const useNotificationStats = () => {
-  return useQuery<NotificationStats>({
+  return useValidatedQuery<ServiceNotificationStats>({
     queryKey: notificationKeys.stats(),
     queryFn: () => notificationService.getNotificationStats(),
+    schema: NotificationStatsSchema,
     staleTime: StaleTimeConfig.MEDIUM, // 30秒
   });
 };

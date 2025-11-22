@@ -2,13 +2,52 @@
 export interface PaginationParams {
   page?: number;
   pageSize?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
+  /** 数据列表（后端可能返回 data 或 items） */
+  data?: T[];
+  /** 数据列表（后端可能返回 data 或 items） */
+  items?: T[];
   total: number;
   page: number;
   pageSize: number;
+}
+
+/**
+ * 从分页响应中提取数据列表
+ * 支持 data 或 items 字段
+ */
+export function getListData<T>(response: PaginatedResponse<T> | undefined): T[] {
+  if (!response) return [];
+  return response.items ?? response.data ?? [];
+}
+
+/**
+ * 后端标准 API 响应格式
+ * 由 TransformInterceptor 包装
+ */
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data: T;
+  message?: string;
+  timestamp?: string;
+  path?: string;
+  requestId?: string | number;
+}
+
+/**
+ * 从 API 响应中提取 data
+ * @example const users = unwrap(await getUsers());
+ */
+export function unwrap<T>(response: ApiResponse<T>): T {
+  if (response?.success && 'data' in response) {
+    return response.data;
+  }
+  // 兼容非标准响应
+  return response as unknown as T;
 }
 
 // 用户相关

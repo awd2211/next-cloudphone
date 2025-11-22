@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 活动服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 
 // ========== 活动相关接口 ==========
 
@@ -88,121 +92,93 @@ export interface Participation {
 /**
  * 获取活动列表
  */
-export async function getActivities(params?: {
+export const getActivities = (params?: {
   type?: ActivityType;
   status?: ActivityStatus;
   page?: number;
   pageSize?: number;
-}) {
-  return request<{
+}) =>
+  api.get<{
     data: Activity[];
     total: number;
     page: number;
     pageSize: number;
-  }>('/api/activities', {
-    method: 'GET',
-    params,
-  });
-}
+  }>('/activities', { params });
 
 /**
  * 获取活动详情
  */
-export async function getActivityDetail(id: string) {
-  return request<Activity>(`/api/activities/${id}`, {
-    method: 'GET',
-  });
-}
+export const getActivityDetail = (id: string) =>
+  api.get<Activity>(`/activities/${id}`);
 
 /**
  * 参与活动
  */
-export async function participateActivity(id: string) {
-  return request<{
+export const participateActivity = (id: string) =>
+  api.post<{
     participation: Participation;
     rewards: string[];
     message: string;
-  }>(`/api/activities/${id}/participate`, {
-    method: 'POST',
-  });
-}
+  }>(`/activities/${id}/participate`);
 
 /**
  * 获取我的参与记录
  */
-export async function getMyParticipations(params?: {
+export const getMyParticipations = (params?: {
   activityId?: string;
   page?: number;
   pageSize?: number;
-}) {
-  return request<{
+}) =>
+  api.get<{
     data: Participation[];
     total: number;
     page: number;
     pageSize: number;
-  }>('/api/activities/my/participations', {
-    method: 'GET',
-    params,
-  });
-}
+  }>('/activities/my/participations', { params });
 
 /**
  * 获取我的优惠券列表
  */
-export async function getMyCoupons(params?: {
+export const getMyCoupons = (params?: {
   status?: CouponStatus;
   page?: number;
   pageSize?: number;
-}) {
-  return request<{
+}) =>
+  api.get<{
     data: Coupon[];
     total: number;
     page: number;
     pageSize: number;
-  }>('/api/coupons/my', {
-    method: 'GET',
-    params,
-  });
-}
+  }>('/coupons/my', { params });
 
 /**
  * 使用优惠券
  */
-export async function useCoupon(couponId: string, orderId: string) {
-  return request<{
+export const useCoupon = (couponId: string, orderId: string) =>
+  api.post<{
     success: boolean;
     message: string;
     discount: number;
-  }>(`/api/coupons/${couponId}/use`, {
-    method: 'POST',
-    data: { orderId },
-  });
-}
+  }>(`/coupons/${couponId}/use`, { orderId });
 
 /**
  * 领取优惠券
  */
-export async function claimCoupon(activityId: string) {
-  return request<{
+export const claimCoupon = (activityId: string) =>
+  api.post<{
     coupon: Coupon;
     message: string;
-  }>(`/api/activities/${activityId}/claim-coupon`, {
-    method: 'POST',
-  });
-}
+  }>(`/activities/${activityId}/claim-coupon`);
 
 /**
  * 获取活动统计
  */
-export async function getActivityStats() {
-  return request<{
+export const getActivityStats = () =>
+  api.get<{
     totalActivities: number;
     ongoingActivities: number;
     myCoupons: number;
     availableCoupons: number;
     totalParticipations: number;
     totalRewards: number;
-  }>('/api/activities/stats', {
-    method: 'GET',
-  });
-}
+  }>('/activities/stats');

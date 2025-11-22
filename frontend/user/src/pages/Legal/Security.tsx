@@ -345,8 +345,8 @@ const Security: React.FC = () => {
             </p>
             <p style={{ fontSize: 16, marginBottom: 24 }}>
               <strong>安全邮箱：</strong>{' '}
-              <a href="mailto:security@cloudphone.com" style={{ color: '#1890ff' }}>
-                security@cloudphone.com
+              <a href="mailto:security@cloudphone.run" style={{ color: '#1890ff' }}>
+                security@cloudphone.run
               </a>
             </p>
             <p style={{ color: '#999', fontSize: 14 }}>

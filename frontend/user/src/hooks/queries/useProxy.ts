@@ -5,9 +5,10 @@
  *
  * ✅ 统一使用 const 箭头函数风格
  * ✅ 使用类型化的错误处理
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getMyProxies,
   getMyProxyStats,
@@ -21,15 +22,64 @@ import {
   getAvailableProxies,
   reportProxyIssue,
   type ProxyListParams,
-  type ProxyListResponse,
   type ProxyRecord,
-  type ProxyStats,
 } from '@/services/proxy';
 import {
   handleMutationError,
   handleMutationSuccess,
 } from '../utils/errorHandler';
 import { StaleTimeConfig, RefetchIntervalConfig } from '../utils/cacheConfig';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import { ProxySchema, PaginatedProxiesResponseSchema } from '@/schemas/api.schemas';
+import { z } from 'zod';
+
+// 代理列表 Schema
+const ProxiesSchema = z.array(ProxySchema);
+
+// 代理统计 Schema
+const ProxyStatsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  active: z.number().int().nonnegative(),
+  expired: z.number().int().nonnegative().optional(),
+  available: z.number().int().nonnegative().optional(),
+  totalBandwidthUsed: z.number().nonnegative().optional(),
+}).passthrough();
+
+// ==================== 类型定义 ====================
+
+export interface ProxyStats {
+  total: number;
+  active: number;
+  expired?: number;
+  available?: number;
+  totalBandwidthUsed?: number;
+}
+
+export interface ProxyListResponse {
+  data: ProxyRecord[];
+  total: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ProxyUsageRecord {
+  id: string;
+  proxyId: string;
+  bytesIn?: number;
+  bytesOut?: number;
+  requestCount?: number;
+  date?: string;
+  createdAt?: string;
+}
+
+export interface ProxyUsageHistoryResponse {
+  data: ProxyUsageRecord[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+  };
+}
 
 // ==================== Query Keys ====================
 
@@ -48,11 +98,11 @@ export const proxyKeys = {
  * 获取我的代理列表
  */
 export const useMyProxies = (params?: ProxyListParams) => {
-  return useQuery<ProxyListResponse>({
+  return useValidatedQuery<ProxyListResponse>({
     queryKey: proxyKeys.myProxies(params),
     queryFn: () => getMyProxies(params),
+    schema: PaginatedProxiesResponseSchema,
     staleTime: StaleTimeConfig.proxies,
-    placeholderData: (previousData) => previousData,
   });
 };
 
@@ -60,9 +110,10 @@ export const useMyProxies = (params?: ProxyListParams) => {
  * 获取代理详情
  */
 export const useProxyDetail = (id: string, options?: { enabled?: boolean }) => {
-  return useQuery<ProxyRecord>({
+  return useValidatedQuery<ProxyRecord>({
     queryKey: proxyKeys.detail(id),
     queryFn: () => getProxyDetail(id),
+    schema: ProxySchema,
     enabled: options?.enabled !== false && !!id,
     staleTime: StaleTimeConfig.proxies,
   });
@@ -72,9 +123,10 @@ export const useProxyDetail = (id: string, options?: { enabled?: boolean }) => {
  * 获取我的代理统计
  */
 export const useMyProxyStats = () => {
-  return useQuery<ProxyStats>({
+  return useValidatedQuery<ProxyStats>({
     queryKey: proxyKeys.stats(),
     queryFn: getMyProxyStats,
+    schema: ProxyStatsSchema,
     staleTime: StaleTimeConfig.proxyStats,
     refetchInterval: RefetchIntervalConfig.normal,
   });
@@ -88,12 +140,31 @@ export const useAvailableProxies = (params?: {
   protocol?: string;
   limit?: number;
 }) => {
-  return useQuery<ProxyRecord[]>({
+  return useValidatedQuery<ProxyRecord[]>({
     queryKey: proxyKeys.available(params),
     queryFn: () => getAvailableProxies(params),
+    schema: ProxiesSchema,
     staleTime: StaleTimeConfig.proxies,
   });
 };
+
+// 代理使用历史 Schema
+const ProxyUsageHistorySchema = z.object({
+  data: z.array(z.object({
+    id: z.string(),
+    proxyId: z.string(),
+    bytesIn: z.number().optional(),
+    bytesOut: z.number().optional(),
+    requestCount: z.number().optional(),
+    date: z.string().optional(),
+    createdAt: z.string().optional(),
+  }).passthrough()),
+  meta: z.object({
+    total: z.number().int(),
+    page: z.number().int(),
+    limit: z.number().int(),
+  }),
+});
 
 /**
  * 获取代理使用历史
@@ -105,9 +176,10 @@ export const useProxyUsageHistory = (params?: {
   page?: number;
   limit?: number;
 }) => {
-  return useQuery({
+  return useValidatedQuery<ProxyUsageHistoryResponse>({
     queryKey: proxyKeys.usage(params),
     queryFn: () => getProxyUsageHistory(params),
+    schema: ProxyUsageHistorySchema,
     staleTime: StaleTimeConfig.proxies,
   });
 };

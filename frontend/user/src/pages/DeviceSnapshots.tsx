@@ -122,8 +122,8 @@ const DeviceSnapshots: React.FC = () => {
       {/* 设备信息 */}
       <DeviceInfo device={device ?? null} />
 
-      {/* 统计卡片 */}
-      <StatsCards snapshots={snapshots?.data || []} />
+      {/* 统计卡片 - 现在 snapshots 直接是 Snapshot[] 数组 */}
+      <StatsCards snapshots={snapshots || []} />
 
       {/* 快照列表 */}
       <Card
@@ -140,7 +140,7 @@ const DeviceSnapshots: React.FC = () => {
         }
       >
         <SnapshotTable
-          snapshots={snapshots?.data || []}
+          snapshots={snapshots || []}
           loading={loading}
           onRestore={openRestoreModal}
           onDelete={handleDeleteSnapshot}

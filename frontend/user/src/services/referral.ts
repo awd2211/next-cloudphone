@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 邀请返利服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 
 // ========== 邀请返利相关接口 ==========
 
@@ -89,128 +93,101 @@ export interface ReferralConfig {
 /**
  * 获取邀请配置
  */
-export async function getReferralConfig() {
-  return request<ReferralConfig>('/api/referral/config', {
-    method: 'GET',
-  });
-}
+export const getReferralConfig = () =>
+  api.get<ReferralConfig>('/referral/config');
 
 /**
  * 生成邀请码
  */
-export async function generateInviteCode() {
-  return request<{
+export const generateInviteCode = () =>
+  api.post<{
     code: string;
     link: string;
     qrCodeUrl: string;
-  }>('/api/referral/generate-code', {
-    method: 'POST',
-  });
-}
+  }>('/referral/generate-code');
 
 /**
  * 获取邀请统计
  */
-export async function getReferralStats() {
-  return request<ReferralStats>('/api/referral/stats', {
-    method: 'GET',
-  });
-}
+export const getReferralStats = () =>
+  api.get<ReferralStats>('/referral/stats');
 
 /**
  * 获取邀请记录
  */
-export async function getReferralRecords(params?: {
+export const getReferralRecords = (params?: {
   status?: ReferralStatus;
   page?: number;
   pageSize?: number;
   startDate?: string;
   endDate?: string;
-}) {
-  return request<{
+}) =>
+  api.get<{
     data: ReferralRecord[];
     total: number;
     page: number;
     pageSize: number;
-  }>('/api/referral/records', {
-    method: 'GET',
-    params,
-  });
-}
+  }>('/referral/records', { params });
 
 /**
  * 获取提现记录
  */
-export async function getWithdrawRecords(params?: {
+export const getWithdrawRecords = (params?: {
   status?: WithdrawStatus;
   page?: number;
   pageSize?: number;
-}) {
-  return request<{
+}) =>
+  api.get<{
     data: WithdrawRecord[];
     total: number;
     page: number;
     pageSize: number;
-  }>('/api/referral/withdrawals', {
-    method: 'GET',
-    params,
-  });
-}
+  }>('/referral/withdrawals', { params });
 
 /**
  * 申请提现
  */
-export async function applyWithdraw(data: {
+export const applyWithdraw = (data: {
   amount: number;
   method: 'alipay' | 'wechat' | 'bank';
   account: string;
   accountName?: string;
   remark?: string;
-}) {
-  return request<{
+}) =>
+  api.post<{
     withdrawId: string;
     message: string;
     estimatedArrival: string; // 预计到账时间
-  }>('/api/referral/withdraw', {
-    method: 'POST',
-    data,
-  });
-}
+  }>('/referral/withdraw', data);
 
 /**
  * 取消提现
  */
-export async function cancelWithdraw(withdrawId: string) {
-  return request<{
+export const cancelWithdraw = (withdrawId: string) =>
+  api.post<{
     success: boolean;
     message: string;
-  }>(`/api/referral/withdrawals/${withdrawId}/cancel`, {
-    method: 'POST',
-  });
-}
+  }>(`/referral/withdrawals/${withdrawId}/cancel`);
 
 /**
  * 生成邀请海报
  */
-export async function generatePoster() {
-  return request<{
+export const generatePoster = () =>
+  api.post<{
     posterUrl: string;
-  }>('/api/referral/generate-poster', {
-    method: 'POST',
-  });
-}
+  }>('/referral/generate-poster');
 
 /**
  * 获取收益明细
  */
-export async function getEarningsDetail(params?: {
+export const getEarningsDetail = (params?: {
   type?: 'invite' | 'bonus' | 'other';
   page?: number;
   pageSize?: number;
   startDate?: string;
   endDate?: string;
-}) {
-  return request<{
+}) =>
+  api.get<{
     data: Array<{
       id: string;
       type: 'invite' | 'bonus' | 'other';
@@ -221,24 +198,16 @@ export async function getEarningsDetail(params?: {
     total: number;
     page: number;
     pageSize: number;
-  }>('/api/referral/earnings', {
-    method: 'GET',
-    params,
-  });
-}
+  }>('/referral/earnings', { params });
 
 /**
  * 分享到社交平台
  */
-export async function shareToSocial(params: {
+export const shareToSocial = (params: {
   platform: 'wechat' | 'qq' | 'weibo' | 'link';
   inviteCode: string;
-}) {
-  return request<{
+}) =>
+  api.post<{
     shareUrl: string;
     shareText: string;
-  }>('/api/referral/share', {
-    method: 'POST',
-    data: params,
-  });
-}
+  }>('/referral/share', params);

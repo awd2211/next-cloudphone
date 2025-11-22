@@ -1,42 +1,44 @@
-import request from '@/utils/request';
+/**
+ * 设备服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 import type { Device, PaginationParams, PaginatedResponse } from '@/types';
 
-// 获取我的设备列表
-export const getMyDevices = (params?: PaginationParams) => {
-  return request.get<PaginatedResponse<Device>>('/devices/my', { params });
-};
+// ========== 设备查询 ==========
 
-// 获取设备详情
-export const getDevice = (id: string) => {
-  return request.get<Device>(`/devices/${id}`);
-};
+/** 获取我的设备列表 */
+export const getMyDevices = (params?: PaginationParams) =>
+  api.get<PaginatedResponse<Device>>('/devices/my', { params });
 
-// 启动设备
-export const startDevice = (id: string) => {
-  return request.post(`/devices/${id}/start`);
-};
+/** 获取设备详情 */
+export const getDevice = (id: string) =>
+  api.get<Device>(`/devices/${id}`);
 
-// 停止设备
-export const stopDevice = (id: string) => {
-  return request.post(`/devices/${id}/stop`);
-};
+/** 获取设备统计 */
+export const getMyDeviceStats = () =>
+  api.get<{ total: number; idle: number; running: number; stopped: number; error: number }>('/devices/my/stats');
 
-// 重启设备
-export const rebootDevice = (id: string) => {
-  return request.post(`/devices/${id}/reboot`);
-};
+/** 获取单个设备的资源统计 */
+export const getDeviceStats = (id: string) =>
+  api.get<{ cpu: number; memory: number; storage: number }>(`/devices/${id}/stats`);
 
-// 获取设备统计
-export const getMyDeviceStats = () => {
-  return request.get('/devices/my/stats');
-};
+// ========== 设备操作 ==========
 
-// 获取单个设备的资源统计
-export const getDeviceStats = (id: string) => {
-  return request.get(`/devices/${id}/stats`);
-};
+/** 启动设备 */
+export const startDevice = (id: string) =>
+  api.post<void>(`/devices/${id}/start`);
 
-// 创建设备
+/** 停止设备 */
+export const stopDevice = (id: string) =>
+  api.post<void>(`/devices/${id}/stop`);
+
+/** 重启设备 */
+export const rebootDevice = (id: string) =>
+  api.post<void>(`/devices/${id}/reboot`);
+
+// ========== 设备创建 ==========
+
 export interface CreateDeviceDto {
   name: string;
   description?: string;
@@ -49,37 +51,33 @@ export interface CreateDeviceDto {
   dpi?: number;
   androidVersion?: string;
   tags?: string[];
-  metadata?: Record<string, any>;
-  providerSpecificConfig?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+  providerSpecificConfig?: Record<string, unknown>;
 }
 
-export const createDevice = (data: CreateDeviceDto) => {
-  return request.post<{
-    success: boolean;
-    data: {
-      sagaId: string;
-      device: any;
-    };
-    message: string;
-  }>('/devices', data);
-};
+interface CreateDeviceResponse {
+  sagaId: string;
+  device: Device;
+}
 
-// 查询设备创建进度（Saga 状态）
-export const getDeviceCreationStatus = (sagaId: string) => {
-  return request.get<{
-    sagaId: string;
-    status: 'pending' | 'completed' | 'failed';
-    currentStep: string;
-    device?: any;
-    error?: string;
-  }>(`/devices/saga/${sagaId}`);
-};
+/** 创建设备（Saga 模式） */
+export const createDevice = (data: CreateDeviceDto) =>
+  api.post<CreateDeviceResponse>('/devices', data);
 
-// ========== 批量操作相关 API ==========
+interface DeviceCreationStatus {
+  sagaId: string;
+  status: 'pending' | 'completed' | 'failed';
+  currentStep: string;
+  device?: Device;
+  error?: string;
+}
 
-/**
- * 批量启动设备
- */
+/** 查询设备创建进度 */
+export const getDeviceCreationStatus = (sagaId: string) =>
+  api.get<DeviceCreationStatus>(`/devices/saga/${sagaId}`);
+
+// ========== 批量操作 ==========
+
 export interface BatchDevicesDto {
   deviceIds: string[];
 }
@@ -92,48 +90,32 @@ export interface BatchOperationResponse {
   }>;
 }
 
-export const batchStartDevices = (data: BatchDevicesDto) => {
-  // 后端期望 { ids } 而不是 { deviceIds }
-  return request.post<BatchOperationResponse>('/devices/batch/start', { ids: data.deviceIds });
-};
+/** 批量启动设备 */
+export const batchStartDevices = (data: BatchDevicesDto) =>
+  api.post<BatchOperationResponse>('/devices/batch/start', { ids: data.deviceIds });
 
-/**
- * 批量停止设备
- */
-export const batchStopDevices = (data: BatchDevicesDto) => {
-  // 后端期望 { ids } 而不是 { deviceIds }
-  return request.post<BatchOperationResponse>('/devices/batch/stop', { ids: data.deviceIds });
-};
+/** 批量停止设备 */
+export const batchStopDevices = (data: BatchDevicesDto) =>
+  api.post<BatchOperationResponse>('/devices/batch/stop', { ids: data.deviceIds });
 
-/**
- * 批量重启设备
- */
-export const batchRestartDevices = (data: BatchDevicesDto) => {
-  // 后端使用 /devices/batch/reboot 而不是 restart，且期望 { ids }
-  return request.post<BatchOperationResponse>('/devices/batch/reboot', { ids: data.deviceIds });
-};
+/** 批量重启设备 */
+export const batchRestartDevices = (data: BatchDevicesDto) =>
+  api.post<BatchOperationResponse>('/devices/batch/reboot', { ids: data.deviceIds });
 
-/**
- * 批量删除设备
- */
-export const batchDeleteDevices = (data: BatchDevicesDto) => {
-  // 后端使用 POST /devices/batch/delete 而不是 DELETE /devices/batch，且期望 { ids }
-  return request.post<BatchOperationResponse>('/devices/batch/delete', { ids: data.deviceIds });
-};
+/** 批量删除设备 */
+export const batchDeleteDevices = (data: BatchDevicesDto) =>
+  api.post<BatchOperationResponse>('/devices/batch/delete', { ids: data.deviceIds });
 
-/**
- * 批量安装应用
- */
+// ========== 应用安装 ==========
+
 export interface BatchInstallAppDto {
   appId: string;
   deviceIds: string[];
 }
 
-export const batchInstallApp = (data: BatchInstallAppDto) => {
-  // 注意：设备批量安装应用应该通过 apps 服务的 install 端点
-  // POST /apps/install 支持传入 deviceIds 数组
-  return request.post<BatchOperationResponse>('/apps/install', {
+/** 批量安装应用 */
+export const batchInstallApp = (data: BatchInstallAppDto) =>
+  api.post<BatchOperationResponse>('/apps/install', {
     applicationId: data.appId,
     deviceIds: data.deviceIds,
   });
-};

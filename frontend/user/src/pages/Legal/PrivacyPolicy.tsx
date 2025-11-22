@@ -380,7 +380,7 @@ const PrivacyPolicy: React.FC = () => {
           <Paragraph>
             如您对本隐私政策有任何疑问、意见或建议，或者需要行使您的权利，请通过以下方式联系我们：
             <ul>
-              <li>隐私保护专员邮箱：privacy@cloudphone.com</li>
+              <li>隐私保护专员邮箱：privacy@cloudphone.run</li>
               <li>客服电话：400-123-4567</li>
               <li>通讯地址：[公司地址]</li>
               <li>在线工单：登录平台后提交工单</li>

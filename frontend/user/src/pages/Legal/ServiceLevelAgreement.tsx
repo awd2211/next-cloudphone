@@ -377,7 +377,7 @@ const ServiceLevelAgreement: React.FC = () => {
               <li>平台内消息通知</li>
               <li>注册邮箱</li>
               <li>短信（影响范围较大时）</li>
-              <li>状态页面：<a href="https://status.cloudphone.com">status.cloudphone.com</a></li>
+              <li>状态页面：<a href="https://status.cloudphone.run">status.cloudphone.run</a></li>
             </ul>
           </Paragraph>
           <Paragraph>
@@ -445,11 +445,11 @@ const ServiceLevelAgreement: React.FC = () => {
           <Paragraph>
             如您对本SLA有任何疑问，或需要申请赔偿，请联系我们：
             <ul>
-              <li>SLA专员邮箱：sla@cloudphone.com</li>
+              <li>SLA专员邮箱：sla@cloudphone.run</li>
               <li>客服电话：400-123-4567（7×24小时）</li>
               <li>工单系统：登录平台后提交"SLA赔偿申请"工单</li>
               <li>
-                服务状态页：<a href="https://status.cloudphone.com">status.cloudphone.com</a>
+                服务状态页：<a href="https://status.cloudphone.run">status.cloudphone.run</a>
               </li>
             </ul>
           </Paragraph>

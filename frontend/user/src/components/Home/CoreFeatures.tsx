@@ -19,7 +19,7 @@ interface Feature {
 }
 
 /**
- * Ultrathink 核心功能特性组件
+ * CloudPhone.run 核心功能特性组件
  * 展示平台的6大核心功能
  */
 export const CoreFeatures: React.FC = React.memo(() => {
@@ -101,7 +101,7 @@ export const CoreFeatures: React.FC = React.memo(() => {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          为什么选择 Ultrathink
+          为什么选择 CloudPhone.run
         </h2>
         <p style={{ fontSize: 18, color: '#64748b', maxWidth: 600, margin: '0 auto', lineHeight: 1.8 }}>
           企业级云手机解决方案，助力您的业务快速增长

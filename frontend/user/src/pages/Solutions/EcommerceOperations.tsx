@@ -17,7 +17,7 @@ const EcommerceOperations: React.FC = () => {
 
   return (
     <div style={{ background: '#f9fafb', minHeight: '100vh' }}>
-      <SEO title="电商运营 - Ultrathink" description="Ultrathink 电商运营解决方案，多账号管理、自动化运营、数据采集。提升运营效率。" keywords="电商运营,多账号管理,自动化运营,数据采集,电商自动化" />
+      <SEO title="电商运营 - CloudPhone.run" description="CloudPhone.run 电商运营解决方案，多账号管理、自动化运营、数据采集。提升运营效率。" keywords="电商运营,多账号管理,自动化运营,数据采集,电商自动化" />
       <div style={{ background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)', padding: '120px 24px 80px', color: 'white', textAlign: 'center' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <Tag color="gold" style={{ fontSize: 14, marginBottom: 24 }}><ShoppingOutlined /> 行业方案</Tag>

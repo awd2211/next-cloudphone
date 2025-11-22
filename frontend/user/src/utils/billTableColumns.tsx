@@ -88,6 +88,7 @@ export const createBillTableColumns = (
     dataIndex: 'finalAmount',
     key: 'finalAmount',
     width: 120,
+    sorter: true,
     render: (amount: number) => (
       <span style={{ fontWeight: 500, color: '#1890ff' }}>
         {formatAmount(amount)}
@@ -99,6 +100,7 @@ export const createBillTableColumns = (
     dataIndex: 'status',
     key: 'status',
     width: 100,
+    sorter: true,
     render: (status: BillStatus) => {
       const config = statusConfig[status];
       return <Tag color={config.color}>{config.label}</Tag>;
@@ -134,6 +136,8 @@ export const createBillTableColumns = (
     dataIndex: 'createdAt',
     key: 'createdAt',
     width: 180,
+    sorter: true,
+    defaultSortOrder: 'descend',
     render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
   },
   {

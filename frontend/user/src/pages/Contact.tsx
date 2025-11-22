@@ -32,7 +32,7 @@ const Contact: React.FC = () => {
     {
       icon: <MailOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
       title: '邮箱联系',
-      content: 'support@cloudphone.com',
+      content: 'support@cloudphone.run',
       description: '我们会在24小时内回复',
     },
     {

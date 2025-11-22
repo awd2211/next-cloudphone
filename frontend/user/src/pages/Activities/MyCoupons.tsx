@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Button, Spin, Space, message } from 'antd';
+import { Card, Button, Spin, Space, message, Pagination } from 'antd';
 import { GiftOutlined, LeftOutlined } from '@ant-design/icons';
 import {
   StatsCards,
@@ -12,6 +12,7 @@ import {
 import { useMyCoupons } from '@/hooks/queries';
 import type { Coupon, CouponStatus } from '@/services/activity';
 import { getUsageRoute, getUsageMessage } from '@/utils/couponConfig';
+import { getListData } from '@/types';
 
 /**
  * 我的优惠券页面
@@ -29,16 +30,19 @@ const MyCoupons: React.FC = () => {
   // 本地状态
   const [activeTab, setActiveTab] = useState<CouponStatus | 'all'>('all');
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
 
   // React Query hooks
   const { data: couponsData, isLoading: loading } = useMyCoupons({
     status: activeTab === 'all' ? undefined : activeTab,
-    page: 1,
-    pageSize: 100,
+    page,
+    pageSize,
   });
 
-  // useMyCoupons 返回 { data: Coupon[], total, page, pageSize }
-  const coupons: Coupon[] = couponsData?.data || [];
+  // useMyCoupons 返回 { items/data: Coupon[], total, page, pageSize }
+  const coupons: Coupon[] = getListData(couponsData);
+  const total = couponsData?.total ?? 0;
 
   // 统计数据计算
   const stats = useMemo(() => {
@@ -50,9 +54,16 @@ const MyCoupons: React.FC = () => {
     };
   }, [coupons]);
 
-  // Tab 切换
+  // Tab 切换（重置分页）
   const handleTabChange = useCallback((key: CouponStatus | 'all') => {
     setActiveTab(key);
+    setPage(1);
+  }, []);
+
+  // 分页变化
+  const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
+    setPage(newPage);
+    setPageSize(newPageSize);
   }, []);
 
   // 显示优惠券详情
@@ -117,6 +128,21 @@ const MyCoupons: React.FC = () => {
             <EmptyState onGoToActivities={goToActivities} />
           )}
         </Spin>
+
+        {/* 分页 */}
+        {total > pageSize && (
+          <div style={{ marginTop: 24, textAlign: 'center' }}>
+            <Pagination
+              current={page}
+              pageSize={pageSize}
+              total={total}
+              showSizeChanger
+              showQuickJumper
+              showTotal={(total) => `共 ${total} 张优惠券`}
+              onChange={handlePageChange}
+            />
+          </div>
+        )}
       </Card>
 
       {/* 优惠券详情 Modal */}

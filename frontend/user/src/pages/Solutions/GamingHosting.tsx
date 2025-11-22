@@ -17,7 +17,7 @@ const GamingHosting: React.FC = () => {
 
   return (
     <div style={{ background: '#f9fafb', minHeight: '100vh' }}>
-      <SEO title="游戏托管 - Ultrathink" description="Ultrathink 游戏托管解决方案，24/7挂机、多开、自动化养号。游戏工作室的最佳选择。" keywords="游戏托管,游戏多开,挂机,自动化养号,游戏工作室" />
+      <SEO title="游戏托管 - CloudPhone.run" description="CloudPhone.run 游戏托管解决方案，24/7挂机、多开、自动化养号。游戏工作室的最佳选择。" keywords="游戏托管,游戏多开,挂机,自动化养号,游戏工作室" />
       <div style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', padding: '120px 24px 80px', color: 'white', textAlign: 'center' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <Tag color="gold" style={{ fontSize: 14, marginBottom: 24 }}><TrophyOutlined /> 行业方案</Tag>

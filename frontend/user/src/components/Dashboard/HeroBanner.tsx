@@ -17,7 +17,7 @@ const bannerSlides = [
     id: 1,
     title: '思维无界',
     subtitle: '云端赋能',
-    description: 'Ultrathink 为您提供稳定可靠的云端 Android 设备\n随时随地，轻松管理数百台设备，专注核心业务',
+    description: 'CloudPhone.run 为您提供稳定可靠的云端 Android 设备\n随时随地，轻松管理数百台设备，专注核心业务',
     tag: '企业级云手机平台 · 全球领先',
     bgGradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
     primaryColor: '#6366f1',
@@ -60,7 +60,7 @@ const bannerSlides = [
 ];
 
 /**
- * Ultrathink 首页头部横幅组件
+ * CloudPhone.run 首页头部横幅组件
  * 现代化设计，展示品牌价值主张，支持多图轮播
  */
 export const HeroBanner: React.FC<HeroBannerProps> = React.memo(({

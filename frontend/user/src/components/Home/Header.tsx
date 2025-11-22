@@ -38,7 +38,7 @@ interface HeaderProps {
 }
 
 /**
- * Ultrathink 首页头部导航组件
+ * CloudPhone.run 首页头部导航组件
  * 现代化设计，支持滚动效果和响应式布局
  */
 export const Header: React.FC<HeaderProps> = React.memo(({
@@ -646,7 +646,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 letterSpacing: '-0.5px',
                 transition: 'font-size 0.3s ease',
               }}>
-                Ultrathink
+                CloudPhone.run
               </h2>
               <p style={{
                 margin: 0,
@@ -925,7 +925,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             >
               <span style={{ fontSize: 18, fontWeight: 'bold', color: 'white' }}>U</span>
             </div>
-            <span style={{ fontSize: 18, fontWeight: 700, color: '#1e293b' }}>Ultrathink</span>
+            <span style={{ fontSize: 18, fontWeight: 700, color: '#1e293b' }}>CloudPhone.run</span>
           </div>
         }
         placement="right"

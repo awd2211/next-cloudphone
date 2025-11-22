@@ -1,9 +1,8 @@
-import request from '@/utils/request';
-
 /**
  * 代理服务 API (用户端)
- * 提供用户代理获取、查看、释放等功能
+ * 使用 api 包装器自动解包响应
  */
+import { api } from '@/utils/api';
 
 // ==================== 类型定义 ====================
 
@@ -74,56 +73,49 @@ export interface ProxyUsageHistory {
  * 获取我的代理列表
  * 后端端点: GET /proxy/list
  */
-export const getMyProxies = (params?: ProxyListParams) => {
-  return request.get<ProxyListResponse>('/proxy/list', { params });
-};
+export const getMyProxies = (params?: ProxyListParams) =>
+  api.get<ProxyListResponse>('/proxy/list', { params });
 
 /**
  * 获取我的代理统计
  * 后端端点: GET /proxy/stats/pool
  */
-export const getMyProxyStats = () => {
-  return request.get<ProxyStats>('/proxy/stats/pool');
-};
+export const getMyProxyStats = () =>
+  api.get<ProxyStats>('/proxy/stats/pool');
 
 /**
  * 获取单个代理详情
  */
-export const getProxyDetail = (proxyId: string) => {
-  return request.get<ProxyRecord>(`/proxy/${proxyId}`);
-};
+export const getProxyDetail = (proxyId: string) =>
+  api.get<ProxyRecord>(`/proxy/${proxyId}`);
 
 /**
  * 获取代理 (分配新代理)
  */
-export const acquireProxy = (data?: AcquireProxyDto) => {
-  return request.post<ProxyRecord>('/proxy/acquire', data);
-};
+export const acquireProxy = (data?: AcquireProxyDto) =>
+  api.post<ProxyRecord>('/proxy/acquire', data);
 
 /**
  * 释放代理
  */
-export const releaseProxy = (proxyId: string) => {
-  return request.post(`/proxy/release/${proxyId}`);
-};
+export const releaseProxy = (proxyId: string): Promise<void> =>
+  api.post<void>(`/proxy/release/${proxyId}`);
 
 /**
  * 测试代理连接
  */
-export const testProxy = (proxyId: string) => {
-  return request.post<{
+export const testProxy = (proxyId: string) =>
+  api.post<{
     success: boolean;
     latency?: number;
     error?: string;
   }>(`/proxy/test/${proxyId}`);
-};
 
 /**
  * 续期代理
  */
-export const renewProxy = (proxyId: string, duration: number) => {
-  return request.post(`/proxy/${proxyId}/renew`, { duration });
-};
+export const renewProxy = (proxyId: string, duration: number): Promise<void> =>
+  api.post<void>(`/proxy/${proxyId}/renew`, { duration });
 
 // ==================== 使用记录 ====================
 
@@ -135,8 +127,8 @@ export const getProxyUsageHistory = (params?: {
   limit?: number;
   startDate?: string;
   endDate?: string;
-}) => {
-  return request.get<{
+}) =>
+  api.get<{
     data: ProxyUsageHistory[];
     meta: {
       total: number;
@@ -144,14 +136,12 @@ export const getProxyUsageHistory = (params?: {
       limit: number;
     };
   }>('/proxy/usage-history', { params });
-};
 
 /**
  * 获取特定代理的使用记录
  */
-export const getProxyUsageDetail = (proxyId: string) => {
-  return request.get<ProxyUsageHistory[]>(`/proxy/${proxyId}/usage`);
-};
+export const getProxyUsageDetail = (proxyId: string) =>
+  api.get<ProxyUsageHistory[]>(`/proxy/${proxyId}/usage`);
 
 // ==================== 代理列表查询 ====================
 
@@ -164,9 +154,8 @@ export const getAvailableProxies = (params?: {
   minQuality?: number;
   sortBy?: 'price' | 'quality' | 'latency';
   limit?: number;
-}) => {
-  return request.get<ProxyRecord[]>('/proxy/available', { params });
-};
+}) =>
+  api.get<ProxyRecord[]>('/proxy/available', { params });
 
 /**
  * 获取代理价格信息
@@ -175,8 +164,8 @@ export const getProxyPricing = (params?: {
   country?: string;
   protocol?: string;
   duration?: number;
-}) => {
-  return request.get<{
+}) =>
+  api.get<{
     basePrice: number;
     pricePerHour: number;
     currency: string;
@@ -185,28 +174,26 @@ export const getProxyPricing = (params?: {
       discount: number;
     }>;
   }>('/proxy/pricing', { params });
-};
 
 // ==================== 批量操作 ====================
 
 /**
  * 批量释放代理
  */
-export const batchReleaseProxies = (proxyIds: string[]) => {
-  return request.post<{
+export const batchReleaseProxies = (proxyIds: string[]) =>
+  api.post<{
     results: Array<{
       proxyId: string;
       success: boolean;
       error?: string;
     }>;
   }>('/proxy/batch/release', { proxyIds });
-};
 
 /**
  * 批量测试代理
  */
-export const batchTestProxies = (proxyIds: string[]) => {
-  return request.post<{
+export const batchTestProxies = (proxyIds: string[]) =>
+  api.post<{
     results: Array<{
       proxyId: string;
       success: boolean;
@@ -214,7 +201,6 @@ export const batchTestProxies = (proxyIds: string[]) => {
       error?: string;
     }>;
   }>('/proxy/batch/test', { proxyIds });
-};
 
 // ==================== 问题反馈 ====================
 
@@ -225,9 +211,8 @@ export const reportProxyIssue = (
   proxyId: string,
   issue: string,
   description?: string
-) => {
-  return request.post(`/proxy/${proxyId}/report-issue`, { issue, description });
-};
+): Promise<void> =>
+  api.post<void>(`/proxy/${proxyId}/report-issue`, { issue, description });
 
 // ==================== 类型别名 ====================
 

@@ -59,9 +59,10 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
 
   const fetchStatus = async () => {
     try {
+      // api 包装器已自动解包，直接使用返回数据
       const response = await get2FAStatus();
       setStatus({
-        enabled: response.data.enabled,
+        enabled: response.enabled,
       });
     } catch (error) {
       console.error('Failed to fetch 2FA status:', error);
@@ -72,11 +73,12 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
   const handleEnableStart = async () => {
     setLoading(true);
     try {
+      // api 包装器已自动解包，直接使用返回数据
       const response = await generate2FA();
       setStatus({
         enabled: false,
-        qrCode: response.data.otpauthUrl, // 使用 otpauthUrl 生成二维码
-        secret: response.data.secret,
+        qrCode: response.otpauthUrl, // 使用 otpauthUrl 生成二维码
+        secret: response.secret,
       });
       setEnableModalVisible(true);
     } catch (error: any) {

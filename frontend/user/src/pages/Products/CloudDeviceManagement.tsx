@@ -98,8 +98,8 @@ const CloudDeviceManagement: React.FC = () => {
   return (
     <div style={{ background: '#f9fafb', minHeight: '100vh' }}>
       <SEO
-        title="云手机管理 - Ultrathink"
-        description="Ultrathink 云手机管理平台，提供一键创建、远程控制、批量操作等强大功能。支持游戏托管、应用测试、电商运营等多种场景。"
+        title="云手机管理 - CloudPhone.run"
+        description="CloudPhone.run 云手机管理平台，提供一键创建、远程控制、批量操作等强大功能。支持游戏托管、应用测试、电商运营等多种场景。"
         keywords="云手机管理,Android云端,远程控制,批量操作,游戏托管,应用测试"
       />
 

@@ -65,7 +65,7 @@ const Product: React.FC = () => {
       company: '某大型游戏公司',
       position: '技术总监',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1',
-      content: '使用 Ultrathink 后，我们的游戏测试效率提升了 300%，成本降低了 60%。团队再也不用为设备管理发愁了。',
+      content: '使用 CloudPhone.run 后，我们的游戏测试效率提升了 300%，成本降低了 60%。团队再也不用为设备管理发愁了。',
       rating: 5,
     },
     {
@@ -89,9 +89,9 @@ const Product: React.FC = () => {
   return (
     <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 80 }}>
       <SEO
-        title="产品介绍 - Ultrathink 云手机平台"
-        description="Ultrathink 云手机平台采用先进的容器化技术，提供稳定、高效、可扩展的云端 Android 设备管理服务。支持应用测试、自动化运营、游戏托管等多种场景。"
-        keywords="云手机产品,Android容器化,应用测试平台,自动化运营,游戏托管,Ultrathink产品"
+        title="产品介绍 - CloudPhone.run 云手机平台"
+        description="CloudPhone.run 云手机平台采用先进的容器化技术，提供稳定、高效、可扩展的云端 Android 设备管理服务。支持应用测试、自动化运营、游戏托管等多种场景。"
+        keywords="云手机产品,Android容器化,应用测试平台,自动化运营,游戏托管,CloudPhone.run产品"
         url="https://ultrathink.com/product"
       />
       {/* Hero Section */}
@@ -217,7 +217,7 @@ const Product: React.FC = () => {
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <Title level={2}>产品演示</Title>
           <Paragraph style={{ fontSize: 16, color: '#666' }}>
-            观看视频，快速了解 Ultrathink 云手机平台
+            观看视频，快速了解 CloudPhone.run 云手机平台
           </Paragraph>
         </div>
         <Card style={{ borderRadius: 12, overflow: 'hidden' }}>
@@ -234,13 +234,13 @@ const Product: React.FC = () => {
               }}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              title="Ultrathink 产品演示"
+              title="CloudPhone.run 产品演示"
             />
           </div>
           <div style={{ padding: 24, background: '#fafafa', textAlign: 'center' }}>
             <Space>
               <PlayCircleOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-              <Text>点击播放，了解 Ultrathink 如何帮助您提升效率</Text>
+              <Text>点击播放，了解 CloudPhone.run 如何帮助您提升效率</Text>
             </Space>
           </div>
         </Card>
@@ -249,9 +249,9 @@ const Product: React.FC = () => {
       {/* 竞品对比 */}
       <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <Title level={2}>为什么选择 Ultrathink？</Title>
+          <Title level={2}>为什么选择 CloudPhone.run？</Title>
           <Paragraph style={{ fontSize: 16, color: '#666' }}>
-            与竞品对比，Ultrathink 的优势一目了然
+            与竞品对比，CloudPhone.run 的优势一目了然
           </Paragraph>
         </div>
         <Card style={{ borderRadius: 12 }}>
@@ -276,7 +276,7 @@ const Product: React.FC = () => {
                       WebkitTextFillColor: 'transparent',
                       fontWeight: 700,
                     }}>
-                      Ultrathink
+                      CloudPhone.run
                     </span>
                     <Tag color="success">推荐</Tag>
                   </Space>

@@ -17,7 +17,7 @@ const SocialMedia: React.FC = () => {
 
   return (
     <div style={{ background: '#f9fafb', minHeight: '100vh' }}>
-      <SEO title="社交媒体 - Ultrathink" description="Ultrathink 社交媒体解决方案，账号矩阵、内容发布、粉丝互动。社交营销的强力助手。" keywords="社交媒体,账号矩阵,内容发布,粉丝互动,社交营销" />
+      <SEO title="社交媒体 - CloudPhone.run" description="CloudPhone.run 社交媒体解决方案，账号矩阵、内容发布、粉丝互动。社交营销的强力助手。" keywords="社交媒体,账号矩阵,内容发布,粉丝互动,社交营销" />
       <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '120px 24px 80px', color: 'white', textAlign: 'center' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <Tag color="gold" style={{ fontSize: 14, marginBottom: 24 }}><WechatOutlined /> 行业方案</Tag>

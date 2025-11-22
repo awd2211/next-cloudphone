@@ -2,9 +2,10 @@
  * 设备快照管理 React Query Hooks (用户端)
  *
  * 提供快照列表、创建、恢复、删除等功能
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Snapshot } from '@/utils/snapshotConfig';
 import * as snapshotService from '@/services/snapshot';
 import {
@@ -12,6 +13,12 @@ import {
   handleMutationSuccess,
 } from '../utils/errorHandler';
 import { StaleTimeConfig } from '../utils/cacheConfig';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import { SnapshotSchema } from '@/schemas/api.schemas';
+import { z } from 'zod';
+
+// 快照列表 Schema
+const SnapshotsSchema = z.array(SnapshotSchema);
 
 // ==================== Query Keys ====================
 
@@ -30,9 +37,10 @@ export const snapshotKeys = {
  * 获取设备的所有快照
  */
 export const useDeviceSnapshots = (deviceId: string, options?: { enabled?: boolean }) => {
-  return useQuery<{ data: Snapshot[] }>({
+  return useValidatedQuery<Snapshot[]>({
     queryKey: snapshotKeys.list(deviceId),
     queryFn: () => snapshotService.getDeviceSnapshots(deviceId),
+    schema: SnapshotsSchema,
     enabled: options?.enabled !== false && !!deviceId,
     staleTime: StaleTimeConfig.snapshots,
   });
@@ -42,9 +50,10 @@ export const useDeviceSnapshots = (deviceId: string, options?: { enabled?: boole
  * 获取用户的所有快照
  */
 export const useUserSnapshots = () => {
-  return useQuery<Snapshot[]>({
+  return useValidatedQuery<Snapshot[]>({
     queryKey: snapshotKeys.userSnapshots(),
     queryFn: () => snapshotService.getUserSnapshots(),
+    schema: SnapshotsSchema,
     staleTime: StaleTimeConfig.snapshots,
   });
 };
@@ -53,9 +62,10 @@ export const useUserSnapshots = () => {
  * 获取快照详情
  */
 export const useSnapshot = (id: string, options?: { enabled?: boolean }) => {
-  return useQuery<Snapshot>({
+  return useValidatedQuery<Snapshot>({
     queryKey: snapshotKeys.detail(id),
     queryFn: () => snapshotService.getSnapshot(id),
+    schema: SnapshotSchema,
     enabled: options?.enabled !== false && !!id,
     staleTime: StaleTimeConfig.snapshots,
   });
@@ -69,7 +79,7 @@ export const useSnapshot = (id: string, options?: { enabled?: boolean }) => {
 export const useCreateSnapshot = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, unknown, { deviceId: string; name: string; description?: string }>({
+  return useMutation<Snapshot, unknown, { deviceId: string; name: string; description?: string }>({
     mutationFn: ({ deviceId, name, description }) =>
       snapshotService.createSnapshot(deviceId, { name, description }),
     onSuccess: (_, variables) => {

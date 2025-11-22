@@ -1,4 +1,8 @@
-import request from '@/utils/request';
+/**
+ * 账单服务 API
+ * 使用 api 包装器自动解包响应
+ */
+import { api } from '@/utils/api';
 
 // 账单类型
 export enum BillType {
@@ -91,6 +95,8 @@ export interface BillListQuery {
   minAmount?: number;
   maxAmount?: number;
   keyword?: string;
+  sortBy?: 'createdAt' | 'finalAmount' | 'dueDate' | 'status';
+  sortOrder?: 'asc' | 'desc';
 }
 
 // 账单列表响应
@@ -169,23 +175,15 @@ export const getBills = (params?: BillListQuery): Promise<BillListResponse> => {
   if (!userId) {
     return Promise.resolve({ items: [], total: 0, page: 1, pageSize: 10 });
   }
-  return request({
-    url: `/invoices/user/${userId}`,
-    method: 'GET',
-    params,
-  });
+  return api.get<BillListResponse>(`/invoices/user/${userId}`, { params });
 };
 
 /**
  * 获取账单详情
  * 后端使用 /invoices/:id
  */
-export const getBillDetail = (id: string): Promise<Bill> => {
-  return request({
-    url: `/invoices/${id}`,
-    method: 'GET',
-  });
-};
+export const getBillDetail = (id: string): Promise<Bill> =>
+  api.get<Bill>(`/invoices/${id}`);
 
 /**
  * 获取账单统计
@@ -210,50 +208,32 @@ export const getBillStats = (params?: {
       monthlyTrend: [],
     });
   }
-  return request({
-    url: `/invoices/statistics/${userId}`,
-    method: 'GET',
-    params,
-  });
+  return api.get<BillStats>(`/invoices/statistics/${userId}`, { params });
 };
 
 /**
  * 支付账单
  * 后端使用 POST /invoices/:id/pay
  */
-export const payBill = (data: PaymentRequest): Promise<PaymentResult> => {
-  return request({
-    url: `/invoices/${data.billId}/pay`,
-    method: 'POST',
-    data: {
-      paymentMethod: data.paymentMethod,
-      amount: data.amount,
-    },
+export const payBill = (data: PaymentRequest): Promise<PaymentResult> =>
+  api.post<PaymentResult>(`/invoices/${data.billId}/pay`, {
+    paymentMethod: data.paymentMethod,
+    amount: data.amount,
   });
-};
 
 /**
  * 取消账单
  * 后端使用 PUT /invoices/:id/cancel
  */
-export const cancelBill = (id: string): Promise<void> => {
-  return request({
-    url: `/invoices/${id}/cancel`,
-    method: 'PUT',
-  });
-};
+export const cancelBill = (id: string): Promise<void> =>
+  api.put<void>(`/invoices/${id}/cancel`);
 
 /**
  * 申请退款
  * 后端使用 POST /payments/:id/refund
  */
-export const requestRefund = (id: string, reason: string): Promise<void> => {
-  return request({
-    url: `/payments/${id}/refund`,
-    method: 'POST',
-    data: { reason },
-  });
-};
+export const requestRefund = (id: string, reason: string): Promise<void> =>
+  api.post<void>(`/payments/${id}/refund`, { reason });
 
 /**
  * 下载账单
@@ -268,13 +248,8 @@ export const downloadBill = (_id: string): Promise<Blob> => {
  * 申请发票
  * 后端使用 POST /invoices
  */
-export const applyInvoice = (data: InvoiceRequest): Promise<Invoice> => {
-  return request({
-    url: '/invoices',
-    method: 'POST',
-    data,
-  });
-};
+export const applyInvoice = (data: InvoiceRequest): Promise<Invoice> =>
+  api.post<Invoice>('/invoices', data);
 
 /**
  * 获取发票列表
@@ -288,11 +263,7 @@ export const getInvoices = (params?: {
   if (!userId) {
     return Promise.resolve({ items: [], total: 0 });
   }
-  return request({
-    url: `/invoices/user/${userId}`,
-    method: 'GET',
-    params,
-  });
+  return api.get<{ items: Invoice[]; total: number }>(`/invoices/user/${userId}`, { params });
 };
 
 /**

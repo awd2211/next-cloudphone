@@ -5,9 +5,10 @@
  *
  * ✅ 统一使用 const 箭头函数风格
  * ✅ 使用类型化的错误处理
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getMySMS,
   getMySMSStats,
@@ -22,17 +23,101 @@ import {
   getMyNumberStats,
   markSMSAsRead,
   batchMarkAsRead,
-  type SMSRecord,
-  type SMSStats,
-  type VerificationCode,
-  type PhoneNumber,
-  type NumberStats,
 } from '@/services/sms';
+import type {
+  SMSRecord as ServiceSMSRecord,
+  SMSStats as ServiceSMSStats,
+  VerificationCode as ServiceVerificationCode,
+  SMSNumber as ServicePhoneNumber,
+} from '@/services/sms';
+
+// 重新导出 service 类型供 pages 使用
+export type SMSRecord = ServiceSMSRecord;
+export type SMSStats = ServiceSMSStats;
+export type VerificationCode = ServiceVerificationCode;
+export type PhoneNumber = ServicePhoneNumber;
 import {
   handleMutationError,
   handleMutationSuccess,
 } from '../utils/errorHandler';
 import { StaleTimeConfig, RefetchIntervalConfig } from '../utils/cacheConfig';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import { SMSSchema } from '@/schemas/api.schemas';
+import { z } from 'zod';
+
+// SMS 记录 Schema
+const SMSRecordSchema = SMSSchema;
+
+// SMS 列表响应 Schema
+const SMSListResponseSchema = z.object({
+  data: z.array(SMSRecordSchema),
+  meta: z.object({
+    total: z.number().int(),
+    page: z.number().int(),
+    limit: z.number().int(),
+  }),
+});
+
+// SMS 统计 Schema
+const SMSStatsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  unread: z.number().int().nonnegative(),
+  today: z.number().int().nonnegative().optional(),
+}).passthrough();
+
+// 验证码 Schema
+const VerificationCodeSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  type: z.string().optional(),
+  phone: z.string().optional(),
+  expiresAt: z.string().optional(),
+  used: z.boolean().optional(),
+  createdAt: z.string().optional(),
+}).nullable();
+
+const VerificationCodesListSchema = z.object({
+  data: z.array(VerificationCodeSchema.unwrap()),
+  meta: z.object({
+    total: z.number().int(),
+    page: z.number().int(),
+    limit: z.number().int(),
+  }),
+});
+
+// OTP 活跃状态 Schema
+const OTPActiveStatusSchema = z.object({
+  phoneNumber: z.string(),
+  type: z.string(),
+  hasActive: z.boolean(),
+  remainingSeconds: z.number().int(),
+});
+
+// 号码 Schema
+const PhoneNumberSchema = z.object({
+  id: z.string(),
+  number: z.string(),
+  country: z.string().optional(),
+  status: z.string(),
+  expiresAt: z.string().optional(),
+  createdAt: z.string().optional(),
+}).passthrough();
+
+const NumbersListSchema = z.object({
+  data: z.array(PhoneNumberSchema),
+  meta: z.object({
+    total: z.number().int(),
+    page: z.number().int(),
+    limit: z.number().int(),
+  }),
+});
+
+// 号码统计 Schema
+const NumberStatsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  active: z.number().int().nonnegative(),
+  expired: z.number().int().nonnegative().optional(),
+}).passthrough();
 
 // ==================== Query Keys ====================
 
@@ -54,6 +139,48 @@ export const smsKeys = {
   numberStats: () => [...smsKeys.numbers(), 'stats'] as const,
 };
 
+// ==================== 类型定义 ====================
+
+export interface SMSListResponse {
+  data: ServiceSMSRecord[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+  };
+}
+
+export interface VerificationCodesListResponse {
+  data: ServiceVerificationCode[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+  };
+}
+
+export interface OTPActiveStatus {
+  phoneNumber: string;
+  type: string;
+  hasActive: boolean;
+  remainingSeconds: number;
+}
+
+export interface NumbersListResponse {
+  data: ServicePhoneNumber[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+  };
+}
+
+export interface NumberStats {
+  total: number;
+  active: number;
+  expired?: number;
+}
+
 // ==================== SMS 消息查询 ====================
 
 /**
@@ -69,14 +196,11 @@ export const useMySMS = (params?: {
   endDate?: string;
   unread?: boolean;
 }) => {
-  return useQuery<{
-    data: SMSRecord[];
-    meta: { total: number; page: number; limit: number };
-  }>({
+  return useValidatedQuery<SMSListResponse>({
     queryKey: smsKeys.mySMS(params),
     queryFn: () => getMySMS(params),
+    schema: SMSListResponseSchema,
     staleTime: StaleTimeConfig.sms,
-    placeholderData: (previousData) => previousData,
   });
 };
 
@@ -84,9 +208,10 @@ export const useMySMS = (params?: {
  * 获取我的短信统计
  */
 export const useMySMSStats = () => {
-  return useQuery<SMSStats>({
+  return useValidatedQuery<ServiceSMSStats>({
     queryKey: smsKeys.stats(),
     queryFn: getMySMSStats,
+    schema: SMSStatsSchema,
     staleTime: StaleTimeConfig.sms,
     refetchInterval: RefetchIntervalConfig.normal,
   });
@@ -104,9 +229,10 @@ export const useDeviceSMS = (
   },
   options?: { enabled?: boolean }
 ) => {
-  return useQuery({
+  return useValidatedQuery<SMSListResponse>({
     queryKey: smsKeys.deviceSMS(deviceId, params),
     queryFn: () => getDeviceSMS(deviceId, params),
+    schema: SMSListResponseSchema,
     enabled: options?.enabled !== false && !!deviceId,
     staleTime: StaleTimeConfig.sms,
   });
@@ -124,12 +250,10 @@ export const useMyVerificationCodes = (params?: {
   phone?: string;
   unused?: boolean;
 }) => {
-  return useQuery<{
-    data: VerificationCode[];
-    meta: { total: number; page: number; limit: number };
-  }>({
+  return useValidatedQuery<VerificationCodesListResponse>({
     queryKey: smsKeys.myCodes(params),
     queryFn: () => getMyVerificationCodes(params),
+    schema: VerificationCodesListSchema,
     staleTime: StaleTimeConfig.sms,
   });
 };
@@ -139,14 +263,10 @@ export const useMyVerificationCodes = (params?: {
  * 注意: 后端返回格式已更改为 OTP 活跃状态检查
  */
 export const useVerificationCodeByPhone = (phone: string, options?: { enabled?: boolean }) => {
-  return useQuery<{
-    phoneNumber: string;
-    type: string;
-    hasActive: boolean;
-    remainingSeconds: number;
-  }>({
+  return useValidatedQuery<OTPActiveStatus>({
     queryKey: smsKeys.codeByPhone(phone),
     queryFn: () => getVerificationCodeByPhone(phone),
+    schema: OTPActiveStatusSchema,
     enabled: options?.enabled !== false && !!phone,
     staleTime: StaleTimeConfig.sms,
   });
@@ -163,9 +283,10 @@ export const useDeviceLatestCode = (
   },
   options?: { enabled?: boolean }
 ) => {
-  return useQuery<VerificationCode | null>({
+  return useValidatedQuery<ServiceVerificationCode | null>({
     queryKey: smsKeys.deviceLatestCode(deviceId, params),
     queryFn: () => getDeviceLatestCode(deviceId, params),
+    schema: VerificationCodeSchema,
     enabled: options?.enabled !== false && !!deviceId,
     staleTime: StaleTimeConfig.sms,
   });
@@ -182,12 +303,10 @@ export const useMyNumbers = (params?: {
   status?: string;
   country?: string;
 }) => {
-  return useQuery<{
-    data: PhoneNumber[];
-    meta: { total: number; page: number; limit: number };
-  }>({
+  return useValidatedQuery<NumbersListResponse>({
     queryKey: smsKeys.myNumbers(params),
     queryFn: () => getMyNumbers(params),
+    schema: NumbersListSchema,
     staleTime: StaleTimeConfig.sms,
   });
 };
@@ -196,9 +315,10 @@ export const useMyNumbers = (params?: {
  * 获取我的号码统计
  */
 export const useMyNumberStats = () => {
-  return useQuery<NumberStats>({
+  return useValidatedQuery<NumberStats>({
     queryKey: smsKeys.numberStats(),
     queryFn: getMyNumberStats,
+    schema: NumberStatsSchema,
     staleTime: StaleTimeConfig.sms,
     refetchInterval: RefetchIntervalConfig.normal,
   });
@@ -210,7 +330,7 @@ export const useMyNumberStats = () => {
 export const useAcquireNumber = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<PhoneNumber, Error, Parameters<typeof acquireNumber>[0]>({
+  return useMutation<ServicePhoneNumber, Error, Parameters<typeof acquireNumber>[0]>({
     mutationFn: acquireNumber,
     onSuccess: () => {
       handleMutationSuccess('号码获取成功');

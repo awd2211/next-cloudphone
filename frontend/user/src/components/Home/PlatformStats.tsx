@@ -15,7 +15,7 @@ interface PlatformStatsProps {
 }
 
 /**
- * Ultrathink 平台数据统计组件
+ * CloudPhone.run 平台数据统计组件
  * 展示关键业务指标，建立信任感
  */
 export const PlatformStats: React.FC<PlatformStatsProps> = React.memo(({ data }) => {
@@ -220,7 +220,7 @@ export const PlatformStats: React.FC<PlatformStatsProps> = React.memo(({ data })
           }}
         >
           <p style={{ fontSize: 15, color: '#64748b', margin: 0, fontWeight: 500 }}>
-            实时数据更新，展示 Ultrathink 的全球服务规模与可靠性
+            实时数据更新，展示 CloudPhone.run 的全球服务规模与可靠性
           </p>
         </div>
       </Card>

@@ -1,9 +1,8 @@
-import request from '@/utils/request';
-
 /**
  * 工单服务 API (用户端)
- * 提供用户提交工单、查看工单、回复工单等功能
+ * 使用 api 包装器自动解包响应
  */
+import { api } from '@/utils/api';
 
 // ==================== 类型定义 ====================
 
@@ -127,30 +126,26 @@ export interface TicketListResponse {
 /**
  * 获取我的工单列表
  */
-export const getMyTickets = (params?: TicketListQuery) => {
-  return request.get<TicketListResponse>('/tickets/my', { params });
-};
+export const getMyTickets = (params?: TicketListQuery) =>
+  api.get<TicketListResponse>('/tickets/my', { params });
 
 /**
  * 获取工单详情
  */
-export const getTicketDetail = (id: string) => {
-  return request.get<Ticket>(`/tickets/${id}`);
-};
+export const getTicketDetail = (id: string) =>
+  api.get<Ticket>(`/tickets/${id}`);
 
 /**
  * 创建工单
  */
-export const createTicket = (data: CreateTicketDto) => {
-  return request.post<Ticket>('/tickets', data);
-};
+export const createTicket = (data: CreateTicketDto) =>
+  api.post<Ticket>('/tickets', data);
 
 /**
  * 更新工单
  */
-export const updateTicket = (id: string, data: UpdateTicketDto) => {
-  return request.put<Ticket>(`/tickets/${id}`, data);
-};
+export const updateTicket = (id: string, data: UpdateTicketDto) =>
+  api.put<Ticket>(`/tickets/${id}`, data);
 
 /**
  * 关闭工单
@@ -175,16 +170,14 @@ export const reopenTicket = (_id: string, _reason?: string) => {
 /**
  * 获取工单回复列表
  */
-export const getTicketReplies = (ticketId: string) => {
-  return request.get<TicketReply[]>(`/tickets/${ticketId}/replies`);
-};
+export const getTicketReplies = (ticketId: string) =>
+  api.get<TicketReply[]>(`/tickets/${ticketId}/replies`);
 
 /**
  * 添加工单回复
  */
-export const addTicketReply = (ticketId: string, data: AddReplyDto) => {
-  return request.post<TicketReply>(`/tickets/${ticketId}/replies`, data);
-};
+export const addTicketReply = (ticketId: string, data: AddReplyDto) =>
+  api.post<TicketReply>(`/tickets/${ticketId}/replies`, data);
 
 // ==================== 附件管理 ====================
 
@@ -220,9 +213,8 @@ export const downloadAttachment = (_id: string, _filename: string) => {
 /**
  * 获取我的工单统计
  */
-export const getMyTicketStats = () => {
-  return request.get<TicketStats>('/tickets/my/stats');
-};
+export const getMyTicketStats = () =>
+  api.get<TicketStats>('/tickets/my/stats');
 
 /**
  * 获取未读回复数量
@@ -238,9 +230,8 @@ export const getUnreadRepliesCount = () => {
 /**
  * 对工单进行评分
  */
-export const rateTicket = (id: string, rating: number, feedback?: string) => {
-  return request.post(`/tickets/${id}/rate`, { rating, feedback });
-};
+export const rateTicket = (id: string, rating: number, feedback?: string): Promise<void> =>
+  api.post<void>(`/tickets/${id}/rate`, { rating, feedback });
 
 /**
  * 提交满意度调查

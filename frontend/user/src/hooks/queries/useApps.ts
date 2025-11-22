@@ -2,10 +2,11 @@
  * 应用管理 React Query Hooks (用户端)
  *
  * 提供应用市场、已安装应用管理功能
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Application, PaginationParams, PaginatedResponse } from '@/types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { PaginationParams, Application, PaginatedResponse } from '@/types';
 import type { InstalledAppInfo } from '@/services/app';
 import * as appService from '@/services/app';
 import {
@@ -13,6 +14,19 @@ import {
   handleMutationSuccess,
 } from '../utils/errorHandler';
 import { StaleTimeConfig } from '../utils/cacheConfig';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import { AppSchema, PaginatedAppsResponseSchema } from '@/schemas/api.schemas';
+import { z } from 'zod';
+
+// 已安装应用 Schema
+const InstalledAppSchema = z.object({
+  packageName: z.string(),
+  appName: z.string(),
+  versionName: z.string().optional(),
+  versionCode: z.number().optional(),
+  installedAt: z.string().optional(),
+});
+const InstalledAppsSchema = z.array(InstalledAppSchema);
 
 // ==================== Query Keys ====================
 
@@ -31,11 +45,11 @@ export const appKeys = {
  * 获取应用市场列表
  */
 export const useApps = (params?: PaginationParams & { category?: string; search?: string }) => {
-  return useQuery<PaginatedResponse<Application>>({
+  return useValidatedQuery<PaginatedResponse<Application>>({
     queryKey: appKeys.list(params),
     queryFn: () => appService.getApps(params),
+    schema: PaginatedAppsResponseSchema,
     staleTime: StaleTimeConfig.appMarket,
-    placeholderData: (previousData) => previousData,
   });
 };
 
@@ -43,9 +57,10 @@ export const useApps = (params?: PaginationParams & { category?: string; search?
  * 获取应用详情
  */
 export const useApp = (id: string, options?: { enabled?: boolean }) => {
-  return useQuery<Application>({
+  return useValidatedQuery<Application>({
     queryKey: appKeys.detail(id),
     queryFn: () => appService.getApp(id),
+    schema: AppSchema,
     enabled: options?.enabled !== false && !!id,
     staleTime: StaleTimeConfig.appMarket,
   });
@@ -55,9 +70,10 @@ export const useApp = (id: string, options?: { enabled?: boolean }) => {
  * 获取设备已安装应用列表
  */
 export const useInstalledApps = (deviceId: string, options?: { enabled?: boolean }) => {
-  return useQuery<InstalledAppInfo[]>({
+  return useValidatedQuery<InstalledAppInfo[]>({
     queryKey: appKeys.installed(deviceId),
     queryFn: () => appService.getInstalledApps(deviceId),
+    schema: InstalledAppsSchema,
     enabled: options?.enabled !== false && !!deviceId,
     staleTime: StaleTimeConfig.installedApps,
   });

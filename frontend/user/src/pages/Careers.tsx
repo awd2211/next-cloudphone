@@ -13,7 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 /**
- * Ultrathink 招聘/加入我们页面
+ * CloudPhone.run 招聘/加入我们页面
  * 展示公司文化、福利待遇和招聘职位
  * Header 和 Footer 由 PublicLayout 提供
  */
@@ -319,7 +319,7 @@ const Careers: React.FC = () => {
               没有找到合适的职位？
             </h2>
             <p style={{ fontSize: 16, marginBottom: 24, opacity: 0.9 }}>
-              您可以发送简历到 hr@cloudphone.com，我们会尽快与您联系
+              您可以发送简历到 hr@cloudphone.run，我们会尽快与您联系
             </p>
             <Button
               size="large"

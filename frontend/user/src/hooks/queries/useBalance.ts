@@ -2,13 +2,16 @@
  * 账户余额管理 React Query Hooks (用户端)
  *
  * 提供余额查询、充值、交易记录等功能
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { shouldRetry } from '../utils/errorHandler';
 import { StaleTimeConfig } from '../utils/cacheConfig';
-import request from '@/utils/request';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import { api } from '@/utils/api';
+import { z } from 'zod';
 
 // ==================== 类型定义 ====================
 
@@ -61,6 +64,50 @@ export interface TransactionListResponse {
   total: number;
 }
 
+// ==================== Zod Schemas ====================
+
+const UserBalanceSchema = z.object({
+  userId: z.string(),
+  availableBalance: z.number(),
+  frozenBalance: z.number(),
+  totalBalance: z.number(),
+  currency: z.string(),
+  lowBalanceThreshold: z.number(),
+  alertEnabled: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+}).passthrough();
+
+const BalanceTransactionSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  type: z.enum(['recharge', 'consume', 'freeze', 'unfreeze', 'adjust', 'refund']),
+  amount: z.number(),
+  balanceBefore: z.number(),
+  balanceAfter: z.number(),
+  description: z.string(),
+  status: z.enum(['pending', 'success', 'failed']),
+  createdAt: z.string(),
+});
+
+const TransactionListResponseSchema = z.object({
+  data: z.array(BalanceTransactionSchema),
+  total: z.number().int(),
+});
+
+const BalanceStatisticsSchema = z.object({
+  userId: z.string(),
+  currentBalance: z.number(),
+  yesterdayBalance: z.number(),
+  monthStartBalance: z.number(),
+  monthConsumption: z.number(),
+  avgDailyConsumption: z.number(),
+  forecastDaysLeft: z.number(),
+  totalRecharge: z.number(),
+  totalConsume: z.number(),
+  transactionCount: z.number().int(),
+}).passthrough();
+
 // ==================== Query Keys ====================
 
 export const balanceKeys = {
@@ -79,12 +126,10 @@ export const balanceKeys = {
  * @param options - 查询选项
  */
 export function useUserBalance(userId: string, options?: { enabled?: boolean }) {
-  return useQuery<UserBalance>({
+  return useValidatedQuery<UserBalance>({
     queryKey: balanceKeys.current(userId),
-    queryFn: async () => {
-      const res = await request.get(`/balance/user/${userId}`);
-      return res.data;
-    },
+    queryFn: () => api.get(`/balance/user/${userId}`),
+    schema: UserBalanceSchema,
     enabled: !!userId && (options?.enabled ?? true),
     staleTime: StaleTimeConfig.SHORT, // 5秒缓存
     retry: shouldRetry,
@@ -97,12 +142,10 @@ export function useUserBalance(userId: string, options?: { enabled?: boolean }) 
  * @param params - 查询参数
  */
 export function useBalanceTransactions(userId: string, params?: TransactionListParams) {
-  return useQuery<TransactionListResponse>({
+  return useValidatedQuery<TransactionListResponse>({
     queryKey: balanceKeys.transactions(userId, params),
-    queryFn: async () => {
-      const res = await request.get(`/balance/transactions/${userId}`, { params });
-      return res.data;
-    },
+    queryFn: () => api.get(`/balance/transactions/${userId}`, { params }),
+    schema: TransactionListResponseSchema,
     enabled: !!userId,
     staleTime: StaleTimeConfig.SHORT,
     retry: shouldRetry,
@@ -114,12 +157,10 @@ export function useBalanceTransactions(userId: string, params?: TransactionListP
  * @param userId - 用户ID
  */
 export function useBalanceStatistics(userId: string) {
-  return useQuery<BalanceStatistics>({
+  return useValidatedQuery<BalanceStatistics>({
     queryKey: balanceKeys.stats(userId),
-    queryFn: async () => {
-      const res = await request.get(`/balance/statistics/${userId}`);
-      return res.data;
-    },
+    queryFn: () => api.get(`/balance/statistics/${userId}`),
+    schema: BalanceStatisticsSchema,
     enabled: !!userId,
     staleTime: StaleTimeConfig.SHORT,
     retry: shouldRetry,
@@ -139,10 +180,7 @@ export function useRecharge() {
     Error,
     { userId: string; amount: number; description?: string }
   >({
-    mutationFn: async (data) => {
-      const res = await request.post('/balance/recharge', data);
-      return res.data;
-    },
+    mutationFn: (data) => api.post('/balance/recharge', data),
     onSuccess: (_, variables) => {
       message.success('充值成功！');
       // 刷新相关缓存

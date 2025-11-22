@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { RocketOutlined, MessageOutlined } from '@ant-design/icons';
 
 /**
- * Ultrathink CTA (Call To Action) 横幅组件
+ * CloudPhone.run CTA (Call To Action) 横幅组件
  * 鼓励用户注册或联系销售
  */
 export const CTABanner: React.FC = React.memo(() => {
@@ -113,7 +113,7 @@ export const CTABanner: React.FC = React.memo(() => {
             margin: '0 auto 40px',
           }}
         >
-          加入 10,000+ 企业客户，享受 Ultrathink 提供的企业级云手机服务
+          加入 10,000+ 企业客户，享受 CloudPhone.run 提供的企业级云手机服务
           <br />
           免费试用 14 天，无需信用卡
         </p>

@@ -123,14 +123,19 @@ export function createEntitySchema<T extends z.ZodRawShape>(fields: T) {
 
 /**
  * 通用分页响应 Schema
+ * 支持 items 或 data 字段名（后端可能返回任一种）
  */
 export const PaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
   z.object({
-    data: z.array(itemSchema),
+    items: z.array(itemSchema).optional(),
+    data: z.array(itemSchema).optional(),
     total: z.number().int().nonnegative(),
     page: z.number().int().positive().optional(),
     pageSize: z.number().int().positive().optional(),
-  });
+  }).refine(
+    (val) => val.items !== undefined || val.data !== undefined,
+    { message: '分页响应必须包含 items 或 data 字段' }
+  );
 
 /**
  * 通用成功响应 Schema
@@ -160,6 +165,7 @@ export const DeviceStatusEnum = z.enum([
 
 /**
  * 设备 Schema
+ * 使用 passthrough() 允许额外字段，因为后端可能返回更多属性
  */
 export const DeviceSchema = z.object({
   id: z.string(),
@@ -169,11 +175,13 @@ export const DeviceSchema = z.object({
   template: z.string().optional(),
   adbPort: z.number().int().optional(),
   webrtcPort: z.number().int().optional(),
+  androidVersion: z.string().optional(),
+  cpuCores: z.number().int().optional(),
+  memoryMB: z.number().int().optional(),
+  storageMB: z.number().int().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-});
-
-export type Device = z.infer<typeof DeviceSchema>;
+}).passthrough();
 
 /**
  * 设备统计 Schema
@@ -210,9 +218,7 @@ export const OrderSchema = z.object({
   createdAt: z.string(),
   paidAt: z.string().optional(),
   expiredAt: z.string().optional(),
-});
-
-export type Order = z.infer<typeof OrderSchema>;
+}).passthrough();
 
 /**
  * 账单 Schema
@@ -223,15 +229,18 @@ export const BillSchema = z.object({
   type: z.string(),
   amount: z.number().nonnegative(),
   status: z.enum(['unpaid', 'paid', 'cancelled', 'refunding', 'refunded']),
+  billNo: z.string().optional(),
+  cycle: z.string().optional(),
+  finalAmount: z.number().optional(),
+  items: z.array(z.unknown()).optional(),
   description: z.string().optional(),
   periodStart: z.string().optional(),
   periodEnd: z.string().optional(),
   dueDate: z.string().optional(),
   paidAt: z.string().optional(),
   createdAt: z.string(),
-});
-
-export type Bill = z.infer<typeof BillSchema>;
+  updatedAt: z.string().optional(),
+}).passthrough();
 
 /**
  * 账单统计 Schema
@@ -299,9 +308,7 @@ export const TicketSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   resolvedAt: z.string().optional(),
-});
-
-export type Ticket = z.infer<typeof TicketSchema>;
+}).passthrough();
 
 /**
  * 工单回复 Schema
@@ -327,9 +334,7 @@ export const SnapshotSchema = z.object({
   status: z.enum(['creating', 'ready', 'restoring', 'error', 'deleting']),
   size: z.number().int().nonnegative(),
   createdAt: z.string(),
-});
-
-export type Snapshot = z.infer<typeof SnapshotSchema>;
+}).passthrough();
 
 /**
  * 应用 Schema
@@ -338,6 +343,7 @@ export const AppSchema = z.object({
   id: z.string(),
   name: z.string(),
   packageName: z.string(),
+  version: z.string().optional(),
   versionName: z.string(),
   versionCode: z.number().int(),
   size: z.number().nonnegative(),
@@ -345,9 +351,7 @@ export const AppSchema = z.object({
   description: z.string().optional(),
   category: z.string().optional(),
   createdAt: z.string(),
-});
-
-export type App = z.infer<typeof AppSchema>;
+}).passthrough();
 
 /**
  * 套餐 Schema
@@ -366,9 +370,7 @@ export const PlanSchema = z.object({
   storageMB: z.number().int().positive(),
   isPopular: z.boolean().optional(),
   isActive: z.boolean(),
-});
-
-export type Plan = z.infer<typeof PlanSchema>;
+}).passthrough();
 
 /**
  * 通知 Schema
@@ -381,9 +383,7 @@ export const NotificationSchema = z.object({
   isRead: z.boolean(),
   createdAt: z.string(),
   metadata: z.record(z.string(), z.unknown()).optional(),
-});
-
-export type Notification = z.infer<typeof NotificationSchema>;
+}).passthrough();
 
 /**
  * 代理 Schema
@@ -398,9 +398,7 @@ export const ProxySchema = z.object({
   status: z.enum(['active', 'expired', 'disabled']),
   expiresAt: z.string().optional(),
   createdAt: z.string(),
-});
-
-export type Proxy = z.infer<typeof ProxySchema>;
+}).passthrough();
 
 /**
  * 短信 Schema
@@ -413,9 +411,7 @@ export const SMSSchema = z.object({
   receivedAt: z.string(),
   isRead: z.boolean(),
   deviceId: z.string().optional(),
-});
-
-export type SMS = z.infer<typeof SMSSchema>;
+}).passthrough();
 
 /**
  * 活动 Schema
@@ -425,14 +421,17 @@ export const ActivitySchema = z.object({
   title: z.string(),
   description: z.string(),
   type: z.enum(['discount', 'bonus', 'trial', 'referral']),
+  status: z.string().optional(),
   startTime: z.string(),
   endTime: z.string(),
   rules: z.string().optional(),
   imageUrl: z.string().optional(),
   isActive: z.boolean(),
-});
-
-export type Activity = z.infer<typeof ActivitySchema>;
+  conditions: z.unknown().optional(),
+  rewards: z.unknown().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+}).passthrough();
 
 /**
  * 优惠券 Schema
@@ -445,11 +444,11 @@ export const CouponSchema = z.object({
   value: z.number().nonnegative(),
   minAmount: z.number().nonnegative().optional(),
   status: z.enum(['unused', 'used', 'expired']),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
   expiresAt: z.string(),
   createdAt: z.string(),
-});
-
-export type Coupon = z.infer<typeof CouponSchema>;
+}).passthrough();
 
 /**
  * 推荐返利 Schema
@@ -461,9 +460,7 @@ export const ReferralSchema = z.object({
   totalEarnings: z.number().nonnegative(),
   pendingEarnings: z.number().nonnegative(),
   withdrawnEarnings: z.number().nonnegative(),
-});
-
-export type Referral = z.infer<typeof ReferralSchema>;
+}).passthrough();
 
 /**
  * 帮助文章 Schema
@@ -473,13 +470,17 @@ export const HelpArticleSchema = z.object({
   title: z.string(),
   content: z.string(),
   category: z.string(),
+  categoryId: z.string().optional(),
+  categoryName: z.string().optional(),
+  summary: z.string().optional(),
+  views: z.number().int().optional(),
+  helpful: z.number().int().optional(),
+  notHelpful: z.number().int().optional(),
   tags: z.array(z.string()).optional(),
   viewCount: z.number().int().nonnegative(),
   createdAt: z.string(),
   updatedAt: z.string(),
-});
-
-export type HelpArticle = z.infer<typeof HelpArticleSchema>;
+}).passthrough();
 
 /**
  * 导出任务 Schema
@@ -487,15 +488,16 @@ export type HelpArticle = z.infer<typeof HelpArticleSchema>;
 export const ExportTaskSchema = z.object({
   id: z.string(),
   type: z.string(),
+  dataType: z.string().optional(),
+  format: z.string().optional(),
+  userId: z.string().optional(),
   status: z.enum(['pending', 'processing', 'completed', 'failed']),
   fileName: z.string().optional(),
   fileUrl: z.string().optional(),
   errorMessage: z.string().optional(),
   createdAt: z.string(),
   completedAt: z.string().optional(),
-});
-
-export type ExportTask = z.infer<typeof ExportTaskSchema>;
+}).passthrough();
 
 // ==================== 分页响应 Schemas ====================
 

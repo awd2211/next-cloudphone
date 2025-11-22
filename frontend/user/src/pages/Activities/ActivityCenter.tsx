@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Space, Button } from 'antd';
+import { Card, Space, Button, Pagination } from 'antd';
 import { GiftOutlined, RightOutlined } from '@ant-design/icons';
 import {
   ActivityBanner,
@@ -13,6 +13,7 @@ import {
   useActivityStats,
 } from '@/hooks/queries';
 import type { ActivityStatus } from '@/services/activity';
+import { getListData } from '@/types';
 
 /**
  * 活动中心页面
@@ -29,21 +30,31 @@ const ActivityCenter: React.FC = () => {
 
   // 本地状态
   const [activeTab, setActiveTab] = useState<ActivityStatus | 'all'>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
 
   // React Query hooks - 并行查询
   const { data: activitiesData, isLoading: loading } = useActivities({
     status: activeTab === 'all' ? undefined : activeTab,
-    page: 1,
-    pageSize: 20,
+    page,
+    pageSize,
   });
   const { data: stats } = useActivityStats();
 
-  // useActivities 返回 { data: Activity[], total, page, pageSize }
-  const activities = activitiesData?.data || [];
+  // useActivities 返回 { items/data: Activity[], total, page, pageSize }
+  const activities = getListData(activitiesData);
+  const total = activitiesData?.total ?? 0;
 
-  // Tab 切换
+  // Tab 切换（重置分页）
   const handleTabChange = useCallback((key: ActivityStatus | 'all') => {
     setActiveTab(key);
+    setPage(1);
+  }, []);
+
+  // 分页变化
+  const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
+    setPage(newPage);
+    setPageSize(newPageSize);
   }, []);
 
   // 导航函数
@@ -89,6 +100,21 @@ const ActivityCenter: React.FC = () => {
           loading={loading}
           onActivityClick={goToActivityDetail}
         />
+
+        {/* 分页 */}
+        {total > pageSize && (
+          <div style={{ marginTop: 24, textAlign: 'center' }}>
+            <Pagination
+              current={page}
+              pageSize={pageSize}
+              total={total}
+              showSizeChanger
+              showQuickJumper
+              showTotal={(total) => `共 ${total} 个活动`}
+              onChange={handlePageChange}
+            />
+          </div>
+        )}
       </Card>
     </div>
   );

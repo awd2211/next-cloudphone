@@ -2,22 +2,49 @@
  * 导出中心 React Query Hooks (用户端)
  *
  * 提供导出任务的创建、查询、下载、管理功能
+ * ✅ 使用 Zod Schema 验证 API 响应
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import type {
   ExportTask,
   ExportRequest,
-  ExportStats,
   ExportTaskListQuery,
+  ExportTaskListResponse as ServiceExportTaskListResponse,
+  ExportStats as ServiceExportStats,
 } from '@/services/export';
 import * as exportService from '@/services/export';
+
+// 重新导出 service 类型供 pages 使用
+export type { ExportTask, ExportRequest, ExportTaskListQuery } from '@/services/export';
+export type ExportStats = ServiceExportStats;
+export type ExportTasksResponse = ServiceExportTaskListResponse;
 import {
   handleMutationError,
   handleMutationSuccess,
 } from '../utils/errorHandler';
 import { StaleTimeConfig } from '../utils/cacheConfig';
+import { useValidatedQuery } from '../utils/useValidatedQuery';
+import { ExportTaskSchema } from '@/schemas/api.schemas';
+import { z } from 'zod';
+
+// 导出任务列表响应 Schema
+const ExportTasksResponseSchema = z.object({
+  items: z.array(ExportTaskSchema),
+  total: z.number().int(),
+});
+
+// 导出统计 Schema
+const ExportStatsSchema = z.object({
+  totalTasks: z.number().int().nonnegative().optional(),
+  pendingTasks: z.number().int().nonnegative().optional(),
+  processingTasks: z.number().int().nonnegative().optional(),
+  completedTasks: z.number().int().nonnegative().optional(),
+  failedTasks: z.number().int().nonnegative().optional(),
+  totalSize: z.number().nonnegative().optional(),
+}).passthrough();
+
 
 // ==================== Query Keys ====================
 
@@ -34,11 +61,12 @@ export const exportKeys = {
  * 获取导出任务列表
  */
 export const useExportTasks = (params?: ExportTaskListQuery) => {
-  return useQuery<{ items: ExportTask[]; total: number }>({
+  return useValidatedQuery<ServiceExportTaskListResponse>({
     queryKey: exportKeys.list(params),
     queryFn: () => exportService.getExportTasks(params),
+    schema: ExportTasksResponseSchema,
     staleTime: StaleTimeConfig.MEDIUM, // 30秒
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData: ServiceExportTaskListResponse | undefined) => previousData,
   });
 };
 
@@ -46,9 +74,10 @@ export const useExportTasks = (params?: ExportTaskListQuery) => {
  * 获取导出统计
  */
 export const useExportStats = () => {
-  return useQuery<ExportStats>({
+  return useValidatedQuery<ServiceExportStats>({
     queryKey: exportKeys.stats(),
     queryFn: () => exportService.getExportStats(),
+    schema: ExportStatsSchema,
     staleTime: StaleTimeConfig.MEDIUM, // 30秒
   });
 };

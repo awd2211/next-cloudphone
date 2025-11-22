@@ -14,6 +14,7 @@ import {
 } from '@/hooks/queries';
 import { createInvoiceTableColumns } from '@/utils/invoiceTableColumns';
 import type { Invoice } from '@/services/billing';
+import { getListData } from '@/types';
 
 const { Title } = Typography;
 
@@ -38,10 +39,10 @@ const InvoiceList: React.FC = () => {
   const applyInvoice = useApplyInvoice();
   const downloadInvoice = useDownloadInvoice();
 
-  // useInvoices 返回 { items: Invoice[], total }
-  // useBills 返回 BillListResponse { items: Bill[], total, stats }
+  // useInvoices 返回 InvoiceListResponse { items: Invoice[], total }
+  // useBills 返回 PaginatedResponse<Bill> { items/data: Bill[], total }
   const invoices: Invoice[] = invoicesData?.items || [];
-  const bills = billsData?.items || [];
+  const bills = getListData(billsData);
   const total = invoicesData?.total ?? 0;
   const downloading = downloadInvoice.isPending;
 

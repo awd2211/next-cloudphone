@@ -21,7 +21,7 @@ interface FooterSection {
 }
 
 /**
- * Ultrathink 页脚导航组件
+ * CloudPhone.run 页脚导航组件
  * 提供完整的导航链接和联系信息
  */
 export const Footer: React.FC = React.memo(() => {
@@ -124,7 +124,7 @@ export const Footer: React.FC = React.memo(() => {
                       letterSpacing: '-0.5px',
                     }}
                   >
-                    Ultrathink
+                    CloudPhone.run
                   </h3>
                   <p
                     style={{
@@ -148,7 +148,7 @@ export const Footer: React.FC = React.memo(() => {
                   marginBottom: 24,
                 }}
               >
-                Ultrathink 致力于为全球企业提供稳定可靠的云端 Android 设备服务，助力业务创新与增长。
+                CloudPhone.run 致力于为全球企业提供稳定可靠的云端 Android 设备服务，助力业务创新与增长。
               </p>
 
               {/* 社交媒体链接 */}
@@ -317,7 +317,7 @@ export const Footer: React.FC = React.memo(() => {
                 <div>
                   <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>微信</div>
                   <div style={{ fontSize: 15, color: '#cbd5e1', fontWeight: 500 }}>
-                    Ultrathink_Support
+                    CloudPhone.run_Support
                   </div>
                 </div>
               </div>
@@ -354,7 +354,7 @@ export const Footer: React.FC = React.memo(() => {
         <Row justify="space-between" align="middle">
           <Col xs={24} md={12} style={{ textAlign: 'center', marginBottom: 16 }}>
             <div style={{ fontSize: 14, color: '#64748b' }}>
-              © 2025 Ultrathink. All rights reserved.
+              © 2025 CloudPhone.run. All rights reserved.
             </div>
           </Col>
           <Col xs={24} md={12} style={{ textAlign: 'center' }}>
