@@ -16,6 +16,37 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { lastValueFrom } from 'rxjs';
 import { trace, SpanStatusCode } from '@opentelemetry/api';
+import * as os from 'os';
+
+// 缓存系统信息（启动时计算一次，避免每次请求都调用）
+const SYSTEM_INFO = {
+  hostname: os.hostname(),
+  platform: os.platform(),
+  cpuCores: os.cpus().length,
+  cpuModel: os.cpus()[0]?.model || 'unknown',
+  totalMemory: os.totalmem(),
+};
+
+// 内存信息缓存（5秒）
+let memoryCache: { data: any; timestamp: number } | null = null;
+const MEMORY_CACHE_TTL = 5000;
+
+function getMemoryInfo() {
+  const now = Date.now();
+  if (memoryCache && now - memoryCache.timestamp < MEMORY_CACHE_TTL) {
+    return memoryCache.data;
+  }
+  const freeMemory = os.freemem();
+  const usedMemory = SYSTEM_INFO.totalMemory - freeMemory;
+  const data = {
+    total: Math.floor(SYSTEM_INFO.totalMemory / 1024 / 1024),
+    free: Math.floor(freeMemory / 1024 / 1024),
+    used: Math.floor(usedMemory / 1024 / 1024),
+    usagePercent: Math.floor((usedMemory / SYSTEM_INFO.totalMemory) * 100),
+  };
+  memoryCache = { data, timestamp: now };
+  return data;
+}
 
 // 扩展 Request 类型以包含 JWT 用户信息和 Request ID
 interface RequestWithUser extends Request {
@@ -57,7 +88,6 @@ export class ProxyController {
     const serviceName = req.query.service as string;
     this.proxyService.clearServiceUrlCache(serviceName);
     return {
-      success: true,
       message: serviceName
         ? `Cleared cache for service: ${serviceName}`
         : 'Cleared all service URL caches',
@@ -67,6 +97,7 @@ export class ProxyController {
 
   /**
    * 健康检查端点（公开访问）- 聚合所有微服务健康状态
+   * 性能优化：使用缓存的系统信息，避免每次请求都调用 os 模块
    */
   @Public()
   @All('health')
@@ -74,10 +105,8 @@ export class ProxyController {
     const services = await this.proxyService.checkServicesHealth();
     const allHealthy = Object.values(services).every((s: any) => s.status === 'healthy');
 
-    const os = await import('os');
-    const totalMemory = os.totalmem();
-    const freeMemory = os.freemem();
-    const usedMemory = totalMemory - freeMemory;
+    // 使用缓存的内存信息（5秒 TTL）
+    const memory = getMemoryInfo();
 
     return {
       status: allHealthy ? 'ok' : 'degraded',
@@ -86,17 +115,12 @@ export class ProxyController {
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
       system: {
-        hostname: os.hostname(),
-        platform: os.platform(),
-        memory: {
-          total: Math.floor(totalMemory / 1024 / 1024), // MB
-          free: Math.floor(freeMemory / 1024 / 1024), // MB
-          used: Math.floor(usedMemory / 1024 / 1024), // MB
-          usagePercent: Math.floor((usedMemory / totalMemory) * 100),
-        },
+        hostname: SYSTEM_INFO.hostname,
+        platform: SYSTEM_INFO.platform,
+        memory,
         cpu: {
-          cores: os.cpus().length,
-          model: os.cpus()[0]?.model || 'unknown',
+          cores: SYSTEM_INFO.cpuCores,
+          model: SYSTEM_INFO.cpuModel,
         },
       },
       services,
@@ -393,6 +417,25 @@ export class ProxyController {
   }
 
   /**
+   * 设备组管理路由（精确匹配）- 路由到 proxy-service
+   * 注意：必须在 devices/*path 之前定义，以确保优先匹配
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('devices/groups')
+  async proxyDeviceGroupsExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('proxy-service', req, res);
+  }
+
+  /**
+   * 设备组管理路由（通配符）- 路由到 proxy-service
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('devices/groups/*path')
+  async proxyDeviceGroups(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('proxy-service', req, res);
+  }
+
+  /**
    * 设备服务路由（精确匹配）
    */
   @UseGuards(JwtAuthGuard)
@@ -565,8 +608,18 @@ export class ProxyController {
   }
 
   /**
+   * 云端对账路由（精确匹配）- 管理员专用
+   * 路由到 device-service (providers.controller.ts)
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('admin/billing/cloud-reconciliation')
+  async proxyAdminBillingCloudReconciliation(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  /**
    * 计费管理服务路由（精确匹配）- 管理员专用
-   * 包括: 云端对账等高级计费功能
+   * 包括: 其他高级计费功能
    */
   @UseGuards(JwtAuthGuard)
   @All('admin/billing')
@@ -607,7 +660,7 @@ export class ProxyController {
   @UseGuards(JwtAuthGuard)
   @All('balance')
   async proxyBalanceExact(@Req() req: Request, @Res() res: Response) {
-    return this.handleProxy('users', req, res);
+    return this.handleProxy('billing', req, res);
   }
 
   /**
@@ -616,7 +669,7 @@ export class ProxyController {
   @UseGuards(JwtAuthGuard)
   @All('balance/*path')
   async proxyBalance(@Req() req: Request, @Res() res: Response) {
-    return this.handleProxy('users', req, res);
+    return this.handleProxy('billing', req, res);
   }
 
   /**
@@ -823,18 +876,66 @@ export class ProxyController {
   }
 
   /**
-   * 通知模板服务路由 - 独立路由
+   * 设备模板服务路由 - 特定路由（必须在通用 /templates 路由之前）
+   * GET /templates/popular - 获取热门设备模板
+   * GET /templates/stats - 获取设备模板统计
+   * POST /templates/:id/create-device - 从模板创建设备
+   * POST /templates/:id/batch-create - 批量创建设备
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('templates/popular')
+  async proxyDeviceTemplatesPopular(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('templates/stats')
+  async proxyDeviceTemplatesStats(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('templates/:id/create-device')
+  async proxyDeviceTemplatesCreateDevice(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('templates/:id/batch-create')
+  async proxyDeviceTemplatesBatchCreate(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  /**
+   * 设备模板服务路由 - 通用路由
    * GET/POST/PATCH/DELETE /templates
+   * 所有 /templates 请求都路由到 device-service
    */
   @UseGuards(JwtAuthGuard)
   @All('templates')
   async proxyTemplatesExact(@Req() req: Request, @Res() res: Response) {
-    return this.handleProxy('notifications', req, res);
+    return this.handleProxy('devices', req, res);
   }
 
   @UseGuards(JwtAuthGuard)
   @All('templates/*path')
   async proxyTemplates(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('devices', req, res);
+  }
+
+  /**
+   * 通知模板服务路由 - 使用独立路径避免冲突
+   * GET/POST/PATCH/DELETE /notification-templates
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('notification-templates')
+  async proxyNotificationTemplatesExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('notifications', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('notification-templates/*path')
+  async proxyNotificationTemplates(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('notifications', req, res);
   }
 
@@ -897,13 +998,13 @@ export class ProxyController {
    * 路由到 billing-service 处理营销相关功能
    */
   @UseGuards(JwtAuthGuard)
-  @All('api/activities')
+  @All('activities')
   async proxyActivitiesExact(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('billing', req, res);
   }
 
   @UseGuards(JwtAuthGuard)
-  @All('api/activities/*path')
+  @All('activities/*path')
   async proxyActivities(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('billing', req, res);
   }
@@ -913,13 +1014,13 @@ export class ProxyController {
    * 路由到 billing-service 处理优惠券功能
    */
   @UseGuards(JwtAuthGuard)
-  @All('api/coupons')
+  @All('coupons')
   async proxyCouponsExact(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('billing', req, res);
   }
 
   @UseGuards(JwtAuthGuard)
-  @All('api/coupons/*path')
+  @All('coupons/*path')
   async proxyCoupons(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('billing', req, res);
   }
@@ -929,13 +1030,13 @@ export class ProxyController {
    * 路由到 billing-service 处理邀请返利功能
    */
   @UseGuards(JwtAuthGuard)
-  @All('api/referral')
+  @All('referral')
   async proxyReferralExact(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('billing', req, res);
   }
 
   @UseGuards(JwtAuthGuard)
-  @All('api/referral/*path')
+  @All('referral/*path')
   async proxyReferral(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('billing', req, res);
   }
@@ -1069,15 +1170,16 @@ export class ProxyController {
   /**
    * API日志路由 (精确匹配)
    * 路由到 user-service 的日志模块
+   * 注意：使用 api-logs 避免与 logs/audit 路由冲突
    */
   @UseGuards(JwtAuthGuard)
-  @All('api/logs')
+  @All('api-logs')
   async proxyApiLogsExact(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('users', req, res);
   }
 
   @UseGuards(JwtAuthGuard)
-  @All('api/logs/*path')
+  @All('api-logs/*path')
   async proxyApiLogs(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('users', req, res);
   }
@@ -1103,13 +1205,13 @@ export class ProxyController {
    * 路由到 media-service 的WebRTC模块
    */
   @UseGuards(JwtAuthGuard)
-  @All('api/webrtc')
+  @All('webrtc')
   async proxyWebrtcExact(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('media', req, res);
   }
 
   @UseGuards(JwtAuthGuard)
-  @All('api/webrtc/*path')
+  @All('webrtc/*path')
   async proxyWebrtc(@Req() req: Request, @Res() res: Response) {
     return this.handleProxy('media', req, res);
   }
@@ -1133,13 +1235,9 @@ export class ProxyController {
           const urlParts = req.url.split('?');
           const pathParts = urlParts[0].split('/').filter((p) => p);
 
-          // 后端服务已移除 app.setGlobalPrefix('api/v1')
-          // 统一由 API Gateway 处理路由，不再添加 /api/v1 前缀
-          // 直接转发路径即可
-
-          let targetPath: string;
-          // 直接使用原始路径，不添加任何前缀
-          targetPath = `/${pathParts.join('/')}`;
+          // 前端通过 Vite/Nginx 代理时已 rewrite 移除 /api 前缀
+          // 直接转发路径到后端服务
+          const targetPath = `/${pathParts.join('/')}`;
 
           // 获取 Request ID
           const reqWithUser = req as RequestWithUser;

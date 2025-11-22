@@ -102,7 +102,6 @@ describe('ProxyController', () => {
 
       const result = await controller.clearServiceCache(mockReq);
 
-      expect(result.success).toBe(true);
       expect(result.message).toContain('user-service');
       expect(result.timestamp).toBeDefined();
       expect(proxyService.clearServiceUrlCache).toHaveBeenCalledWith('user-service');
@@ -115,7 +114,6 @@ describe('ProxyController', () => {
 
       const result = await controller.clearServiceCache(mockReq);
 
-      expect(result.success).toBe(true);
       expect(result.message).toContain('all service URL caches');
       expect(proxyService.clearServiceUrlCache).toHaveBeenCalledWith(undefined);
     });
@@ -129,7 +127,6 @@ describe('ProxyController', () => {
 
       const result = await controller.clearServiceCache(mockReq);
 
-      expect(result.success).toBe(true);
       expect(proxyService.clearServiceUrlCache).toHaveBeenCalledWith('');
     });
   });

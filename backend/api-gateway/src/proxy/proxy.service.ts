@@ -117,6 +117,15 @@ export class ProxyService {
           timeout: 10000,
         },
       ],
+      [
+        'proxy-service',
+        {
+          name: 'Proxy Service',
+          consulName: 'proxy-service',
+          healthCheck: '/health',
+          timeout: 10000,
+        },
+      ],
     ]);
 
     // 初始化微服务路由配置（静态配置，作为 fallback）
@@ -193,6 +202,15 @@ export class ProxyService {
           timeout: 10000,
         },
       ],
+      [
+        'proxy-service',
+        {
+          name: 'Proxy Service',
+          url: this.configService.get('PROXY_SERVICE_URL') || 'http://localhost:30007',
+          healthCheck: '/health',
+          timeout: 10000,
+        },
+      ],
     ]);
 
     // 初始化熔断器
@@ -205,18 +223,30 @@ export class ProxyService {
 
   /**
    * 初始化每个服务的熔断器
+   * 性能优化：调整阈值配置，更快检测故障
    */
   private initializeCircuitBreakers(): void {
+    // 服务级别的熔断器配置（不同服务有不同的容错需求）
+    const circuitBreakerConfigs: Record<string, Partial<CircuitBreaker.Options>> = {
+      users: { errorThresholdPercentage: 25, volumeThreshold: 30 },
+      devices: { errorThresholdPercentage: 25, volumeThreshold: 30 },
+      apps: { errorThresholdPercentage: 30, volumeThreshold: 50 },      // 文件操作容错高些
+      billing: { errorThresholdPercentage: 20, volumeThreshold: 30 },   // 支付严格
+      notifications: { errorThresholdPercentage: 30, volumeThreshold: 30 },
+      media: { errorThresholdPercentage: 30, volumeThreshold: 20 },     // 实时性要求高
+    };
+
     // 为每个服务创建独立的熔断器
     for (const [serviceName, config] of this.serviceConfigs.entries()) {
+      const cbConfig = circuitBreakerConfigs[serviceName] || {};
       const options: CircuitBreaker.Options = {
         timeout: config.timeout || 10000, // 请求超时时间
-        errorThresholdPercentage: 50, // 错误率阈值 50%
+        errorThresholdPercentage: cbConfig.errorThresholdPercentage || 25, // 优化：25% 错误率即熔断（原 50%）
         resetTimeout: 30000, // 熔断器半开状态重试时间 30s
         rollingCountTimeout: 10000, // 滑动窗口时间 10s
         rollingCountBuckets: 10, // 滑动窗口桶数
-        volumeThreshold: 10, // 最小请求数量阈值
-        capacity: 100, // 信号量容量（并发请求数）
+        volumeThreshold: cbConfig.volumeThreshold || 30, // 优化：30 个请求样本（原 10）
+        capacity: 150, // 优化：提高并发容量（原 100）
       };
 
       // 创建熔断器，包装 HTTP 请求函数

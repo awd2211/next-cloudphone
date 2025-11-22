@@ -16,7 +16,6 @@ export class CacheController {
   @Get('stats')
   getStats() {
     return {
-      success: true,
       data: {
         l1: permissionL1Cache.getStats(),
       },

@@ -16,6 +16,7 @@ import { MetricsModule } from './metrics/metrics.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { MetricsInterceptor } from './metrics/metrics.interceptor';
 import { validate } from './common/config/env.validation';
+// CacheControlInterceptor 已移至 main.ts 作为 Express 中间件，更可靠
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { validate } from './common/config/env.validation';
       provide: APP_INTERCEPTOR,
       useClass: MetricsInterceptor,
     },
+    // 缓存控制已移至 main.ts 作为 Express 中间件
   ],
 })
 export class AppModule implements NestModule {

@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
+import { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { ConsulService, setupMetricsEndpoint, initTracing } from '@cloudphone/shared';
 
@@ -38,6 +39,31 @@ async function bootstrap() {
       crossOriginResourcePolicy: { policy: 'cross-origin' }, // API需要
     })
   );
+
+  // ========== 缓存控制配置 ==========
+
+  // 为 GET 请求添加 Cache-Control 头，减少客户端重复请求
+  const cacheConfig: Record<string, number> = {
+    '/health': 5,
+    '/devices/stats': 30,
+    '/apps/categories': 300,
+    '/plans': 300,
+    '/settings': 60,
+  };
+  const noCachePrefixes = ['/auth', '/notifications'];
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      const isNoCache = noCachePrefixes.some((prefix) => req.path.startsWith(prefix));
+      if (isNoCache) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      } else {
+        const cacheTime = cacheConfig[req.path] || 10;
+        res.setHeader('Cache-Control', `private, max-age=${cacheTime}`);
+      }
+    }
+    next();
+  });
 
   // ========== 日志配置 ==========
 
@@ -95,19 +121,12 @@ async function bootstrap() {
     exposedHeaders: ['X-Request-ID', 'x-request-id'],
   });
 
-  // ========== API 版本控制 ==========
+  // ========== API 前缀配置 ==========
 
-  // API Gateway 不设置全局前缀，因为它是代理，路由直接映射到后端服务
-  // 后端服务自己有 setGlobalPrefix('api/v1')
-  // app.setGlobalPrefix("api/v1", {
-  //   exclude: [
-  //     'health',           // 健康检查不需要版本
-  //     'health/detailed',
-  //     'health/liveness',
-  //     'health/readiness',
-  //     'metrics',          // Prometheus metrics 不需要版本
-  //   ],
-  // });
+  // API Gateway 不设置全局前缀
+  // 前端通过 Vite/Nginx 代理时会 rewrite 移除 /api 前缀
+  // 所以 API Gateway 直接接收 /devices, /users 等路径
+  // app.setGlobalPrefix('api');
 
   // ========== Swagger API 文档配置 ==========
 
@@ -121,7 +140,7 @@ async function bootstrap() {
     .addTag('circuit-breaker', '熔断器')
     .addTag('rate-limiting', '限流')
     .addServer('http://localhost:30000', '本地开发环境')
-    .addServer('https://api.cloudphone.com', '生产环境')
+    .addServer('https://api.cloudphone.run', '生产环境')
     .addBearerAuth()
     .build();
 
@@ -146,7 +165,7 @@ async function bootstrap() {
 
   try {
     const consulService = app.get(ConsulService);
-    await consulService.registerService('api-gateway', port, ['v1', 'gateway'], '/api/health');
+    await consulService.registerService('api-gateway', port, ['v1', 'gateway'], '/health');
     console.log(`✅ Service registered to Consul`);
   } catch (error) {
     console.warn(`⚠️  Failed to register to Consul: ${error.message}`);
