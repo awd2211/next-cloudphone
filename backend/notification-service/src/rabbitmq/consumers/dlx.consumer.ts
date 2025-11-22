@@ -28,7 +28,7 @@ export class DlxConsumer {
    * 处理用户事件失败
    */
   @RabbitSubscribe({
-    exchange: 'cloudphone.notifications.dlx',
+    exchange: 'cloudphone.dlx',
     routingKey: 'user.*.failed',
     queue: 'notification-service.dlx.user',
     queueOptions: {
@@ -43,7 +43,7 @@ export class DlxConsumer {
    * 处理设备事件失败
    */
   @RabbitSubscribe({
-    exchange: 'cloudphone.notifications.dlx',
+    exchange: 'cloudphone.dlx',
     routingKey: 'device.*.failed',
     queue: 'notification-service.dlx.device',
     queueOptions: {
@@ -58,7 +58,7 @@ export class DlxConsumer {
    * 处理应用事件失败
    */
   @RabbitSubscribe({
-    exchange: 'cloudphone.notifications.dlx',
+    exchange: 'cloudphone.dlx',
     routingKey: 'app.*.failed',
     queue: 'notification-service.dlx.app',
     queueOptions: {
@@ -73,7 +73,7 @@ export class DlxConsumer {
    * 处理计费事件失败
    */
   @RabbitSubscribe({
-    exchange: 'cloudphone.notifications.dlx',
+    exchange: 'cloudphone.dlx',
     routingKey: 'billing.*.failed',
     queue: 'notification-service.dlx.billing',
     queueOptions: {

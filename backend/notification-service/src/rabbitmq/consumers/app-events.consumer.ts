@@ -39,7 +39,11 @@ export class AppEventsConsumer {
     exchange: 'cloudphone.events',
     routingKey: NotificationEventTypes.APP_INSTALLED,
     queue: 'notification-service.app.installed',
-    queueOptions: { durable: true },
+    queueOptions: {
+      durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'app.installed.failed',
+    },
   })
   async handleAppInstalled(event: AppInstalledEvent, msg: ConsumeMessage) {
     this.logger.log(`应用安装成功: ${event.payload.appName} - Role: ${event.payload.userRole}`);
@@ -88,7 +92,11 @@ export class AppEventsConsumer {
     exchange: 'cloudphone.events',
     routingKey: NotificationEventTypes.APP_INSTALL_FAILED,
     queue: 'notification-service.app.install_failed',
-    queueOptions: { durable: true },
+    queueOptions: {
+      durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'app.install_failed.failed',
+    },
   })
   async handleAppInstallFailed(event: AppInstallFailedEvent, msg: ConsumeMessage) {
     this.logger.warn(`应用安装失败: ${event.payload.appName} - Role: ${event.payload.userRole}`);
@@ -137,7 +145,11 @@ export class AppEventsConsumer {
     exchange: 'cloudphone.events',
     routingKey: NotificationEventTypes.APP_UPDATED,
     queue: 'notification-service.app.updated',
-    queueOptions: { durable: true },
+    queueOptions: {
+      durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
+      deadLetterRoutingKey: 'app.updated.failed',
+    },
   })
   async handleAppUpdated(event: AppUpdatedEvent, msg: ConsumeMessage) {
     this.logger.log(`应用更新成功: ${event.payload.appName} - Role: ${event.payload.userRole}`);
