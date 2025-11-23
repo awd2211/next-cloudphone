@@ -1087,16 +1087,18 @@ export class UsersService {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     // 使用一次查询获取所有统计数据
+    // 注意: PostgreSQL 中 "user" 是保留字，必须用双引号包裹
+    // 列名使用驼峰命名（camelCase），与 TypeORM 实体一致
     const queryBuilder = this.usersRepository
       .createQueryBuilder('user')
       .select([
         'COUNT(*) as total_users',
-        `COUNT(CASE WHEN user.status = '${UserStatus.ACTIVE}' THEN 1 END) as active_users`,
-        `COUNT(CASE WHEN user.status = '${UserStatus.INACTIVE}' THEN 1 END) as inactive_users`,
-        'COUNT(CASE WHEN user.created_at >= :sevenDays THEN 1 END) as new_users_7d',
-        'COUNT(CASE WHEN user.created_at >= :thirtyDays THEN 1 END) as new_users_30d',
-        'COUNT(CASE WHEN user.last_login_at >= :sevenDays THEN 1 END) as recently_active',
-        'COUNT(CASE WHEN user.locked_until IS NOT NULL AND user.locked_until > NOW() THEN 1 END) as locked_users',
+        `COUNT(CASE WHEN "user"."status" = '${UserStatus.ACTIVE}' THEN 1 END) as active_users`,
+        `COUNT(CASE WHEN "user"."status" = '${UserStatus.INACTIVE}' THEN 1 END) as inactive_users`,
+        'COUNT(CASE WHEN "user"."createdAt" >= :sevenDays THEN 1 END) as new_users_7d',
+        'COUNT(CASE WHEN "user"."createdAt" >= :thirtyDays THEN 1 END) as new_users_30d',
+        'COUNT(CASE WHEN "user"."lastLoginAt" >= :sevenDays THEN 1 END) as recently_active',
+        'COUNT(CASE WHEN "user"."lockedUntil" IS NOT NULL AND "user"."lockedUntil" > NOW() THEN 1 END) as locked_users',
       ])
       .setParameters({
         sevenDays: sevenDaysAgo,
@@ -1104,7 +1106,7 @@ export class UsersService {
       });
 
     if (tenantId) {
-      queryBuilder.where('user.tenantId = :tenantId', { tenantId });
+      queryBuilder.where('"user"."tenantId" = :tenantId', { tenantId });
     }
 
     const rawStats = await queryBuilder.getRawOne();
