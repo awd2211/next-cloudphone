@@ -142,6 +142,16 @@ export class AppsController {
     return { count };
   }
 
+  @Get('stats')
+  @RequirePermission('app.read')
+  @ApiOperation({ summary: '获取应用统计', description: '获取应用总数和分类统计' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getStats() {
+    const stats = await this.appsService.getStats();
+    return stats;
+  }
+
   @Get('top')
   @RequirePermission('app.read')
   @ApiOperation({ summary: '获取热门应用', description: '获取安装量最高的应用列表' })

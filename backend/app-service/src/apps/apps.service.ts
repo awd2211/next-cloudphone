@@ -2099,6 +2099,35 @@ export class AppsService {
   }
 
   /**
+   * 获取应用统计数据
+   *
+   * 返回应用总数和各分类的应用数量
+   */
+  async getStats(): Promise<{ total: number; categories: Record<string, number> }> {
+    // 获取所有可用应用的总数
+    const total = await this.appsRepository.count({
+      where: { status: AppStatus.AVAILABLE },
+    });
+
+    // 获取各分类的应用数量
+    const categoryStats = await this.appsRepository
+      .createQueryBuilder('app')
+      .select('app.category', 'category')
+      .addSelect('COUNT(*)', 'count')
+      .where('app.status = :status', { status: AppStatus.AVAILABLE })
+      .groupBy('app.category')
+      .getRawMany();
+
+    // 转换为 Record<string, number> 格式
+    const categories: Record<string, number> = {};
+    for (const stat of categoryStats) {
+      categories[stat.category || 'unknown'] = parseInt(stat.count, 10);
+    }
+
+    return { total, categories };
+  }
+
+  /**
    * 获取热门应用排行
    *
    * 按安装次数降序排列

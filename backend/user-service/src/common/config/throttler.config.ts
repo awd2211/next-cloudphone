@@ -17,7 +17,7 @@ export const throttlerConfig: ThrottlerModuleOptions = {
     {
       name: 'default',
       ttl: 60000, // 60 秒
-      limit: 100, // 100 次请求
+      limit: 300, // 300 次请求（管理后台需要较高的限制）
     },
     {
       name: 'strict',
