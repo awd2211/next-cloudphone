@@ -34,13 +34,13 @@ export const useStatsDashboard = () => {
   const [dateRange, setDateRange] = useState<any>(null);
 
   // 获取概览统计
-  const { data: overview, isLoading: overviewLoading } = useQuery<OverviewData>({
+  const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = useQuery<OverviewData>({
     queryKey: ['stats-overview'],
     queryFn: () => api.get<OverviewData>('/stats/overview'),
   });
 
   // 获取趋势数据
-  const { data: trends, isLoading: trendsLoading } = useQuery<TrendsData>({
+  const { data: trends, isLoading: trendsLoading, refetch: refetchTrends } = useQuery<TrendsData>({
     queryKey: ['stats-trends', timeRange, dateRange],
     queryFn: () => {
       const params: any = { range: timeRange };
@@ -53,7 +53,7 @@ export const useStatsDashboard = () => {
   });
 
   // 获取用户增长数据
-  const { data: userGrowth } = useQuery<UserGrowthData>({
+  const { data: userGrowth, refetch: refetchUserGrowth } = useQuery<UserGrowthData>({
     queryKey: ['stats-user-growth', timeRange],
     queryFn: async () => {
       // 后端路径是 /stats/users/growth，使用 days 参数
@@ -67,13 +67,13 @@ export const useStatsDashboard = () => {
   });
 
   // 获取设备使用情况
-  const { data: deviceUsage } = useQuery<DeviceUsageData>({
+  const { data: deviceUsage, refetch: refetchDeviceUsage } = useQuery<DeviceUsageData>({
     queryKey: ['stats-device-usage'],
     queryFn: () => api.get<DeviceUsageData>('/stats/device-usage'),
   });
 
   // 获取收入统计
-  const { data: revenue } = useQuery<RevenueData>({
+  const { data: revenue, refetch: refetchRevenue } = useQuery<RevenueData>({
     queryKey: ['stats-revenue', timeRange],
     queryFn: () => api.get<RevenueData>('/stats/revenue', {
       params: { range: timeRange },
@@ -81,12 +81,27 @@ export const useStatsDashboard = () => {
   });
 
   // 获取热门应用
-  const { data: topApps } = useQuery<TopAppsData>({
+  const { data: topApps, refetch: refetchTopApps } = useQuery<TopAppsData>({
     queryKey: ['stats-top-apps'],
     queryFn: () => api.get<TopAppsData>('/stats/top-apps', {
       params: { limit: 10 },
     }),
   });
+
+  // 统一刷新所有数据
+  const refetchAll = async () => {
+    await Promise.all([
+      refetchOverview(),
+      refetchTrends(),
+      refetchUserGrowth(),
+      refetchDeviceUsage(),
+      refetchRevenue(),
+      refetchTopApps(),
+    ]);
+  };
+
+  // 计算整体加载状态
+  const isLoading = overviewLoading || trendsLoading;
 
   return {
     timeRange,
@@ -100,5 +115,8 @@ export const useStatsDashboard = () => {
     deviceUsage,
     revenue,
     topApps,
+    // 刷新方法
+    refetchAll,
+    isLoading,
   };
 };

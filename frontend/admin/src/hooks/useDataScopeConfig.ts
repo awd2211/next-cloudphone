@@ -309,5 +309,7 @@ export const useDataScopeConfig = () => {
     handleExport,
     // 工具函数
     getScopeDescription,
+    // ✅ 暴露 loadData 用于刷新
+    loadData,
   };
 };

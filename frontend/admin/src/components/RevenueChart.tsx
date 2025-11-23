@@ -19,7 +19,14 @@ const RevenueChart = memo(({ data, loading }: RevenueChartProps) => {
 
   // ✅ 使用 useMemo 缓存 option，避免每次渲染重建
   const option: ECOption = useMemo(() => {
-    if (!data || data.length === 0) return null;
+    // 健壮处理：支持直接数组或 { data: [...] } 格式
+    const normalizedData = Array.isArray(data)
+      ? data
+      : (data && typeof data === 'object' && 'data' in data && Array.isArray((data as any).data))
+        ? (data as any).data
+        : [];
+
+    if (normalizedData.length === 0) return null;
 
     return {
     title: {
@@ -45,7 +52,7 @@ const RevenueChart = memo(({ data, loading }: RevenueChartProps) => {
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: data.map((item) => item.date),
+      data: normalizedData.map((item: RevenueData) => item.date),
     },
     yAxis: [
       {
@@ -70,7 +77,7 @@ const RevenueChart = memo(({ data, loading }: RevenueChartProps) => {
         name: '收入',
         type: 'line',
         smooth: true,
-        data: data.map((item) => item.revenue),
+        data: normalizedData.map((item: RevenueData) => item.revenue),
         itemStyle: {
           color: token.colorPrimary,
         },
@@ -99,7 +106,7 @@ const RevenueChart = memo(({ data, loading }: RevenueChartProps) => {
         type: 'line',
         smooth: true,
         yAxisIndex: 1,
-        data: data.map((item) => item.orders),
+        data: normalizedData.map((item: RevenueData) => item.orders),
         itemStyle: {
           color: '#52c41a',
         },

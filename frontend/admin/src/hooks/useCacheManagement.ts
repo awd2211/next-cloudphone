@@ -26,6 +26,8 @@ export const useCacheManagement = () => {
   const {
     data: statsResponse,
     refetch: loadStats,
+    isLoading: isStatsLoading,
+    error: statsError,
   } = useValidatedQuery({
     queryKey: ['cache-stats'],
     queryFn: getCacheStats,
@@ -135,6 +137,8 @@ export const useCacheManagement = () => {
     // 状态
     stats,
     loading,
+    isStatsLoading,
+    statsError,
     deleteKeyModalVisible,
     deletePatternModalVisible,
     checkKeyModalVisible,

@@ -23,6 +23,7 @@ export const useRefundManagement = () => {
   const {
     data: refundsData,
     isLoading: loading,
+    error,
     refetch: loadRefunds,
   } = useValidatedQuery({
     queryKey: ['pending-refunds'],
@@ -101,6 +102,7 @@ export const useRefundManagement = () => {
   return {
     // 状态
     loading,
+    error,
     refunds: refundsData || [], // ✅ 确保永远返回数组
     selectedRefund,
     approveModalVisible,

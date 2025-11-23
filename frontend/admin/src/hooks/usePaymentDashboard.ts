@@ -26,6 +26,7 @@ export const usePaymentDashboard = () => {
   const {
     data: dashboardData,
     isLoading: loading,
+    refetch,
   } = useValidatedQuery({
     queryKey: ['payment-dashboard', dateRange[0].format('YYYY-MM-DD'), dateRange[1].format('YYYY-MM-DD')],
     queryFn: async () => {
@@ -54,5 +55,6 @@ export const usePaymentDashboard = () => {
     dailyStats: dashboardData?.[2] || [], // ✅ 从 tuple 中提取
     dateRange,
     handleDateRangeChange,
+    refetch, // ✅ 暴露刷新方法
   };
 };

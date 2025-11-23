@@ -51,6 +51,8 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
   const {
     data: device,
     isLoading: loading,
+    isError: hasError,
+    error: deviceError,
     refetch: loadDevice,
   } = useValidatedQuery({
     queryKey: ['device-detail', deviceId],
@@ -280,6 +282,9 @@ export const useDeviceDetail = (deviceId: string | undefined) => {
   return {
     device: device || null,
     loading,
+    error: deviceError,
+    hasError,
+    refetch: loadDevice,
     installedApps,
     uploadModalVisible,
     fileList,

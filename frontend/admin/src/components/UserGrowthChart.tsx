@@ -19,12 +19,18 @@ const UserGrowthChart = memo(({ data, loading }: UserGrowthChartProps) => {
 
   // ✅ 使用 useMemo 缓存 option
   const option: ECOption | null = useMemo(() => {
-    // 确保 data 是有效的数组
-    if (!data || !Array.isArray(data) || data.length === 0) return null;
+    // 健壮处理：支持直接数组或 { data: [...] } 格式
+    const normalizedData = Array.isArray(data)
+      ? data
+      : (data && typeof data === 'object' && 'data' in data && Array.isArray((data as any).data))
+        ? (data as any).data
+        : [];
 
-    const dates = data.map((item) => item.date);
-    const newUsers = data.map((item) => item.newUsers);
-    const totalUsers = data.map((item) => item.totalUsers);
+    if (normalizedData.length === 0) return null;
+
+    const dates = normalizedData.map((item: UserGrowthData) => item.date);
+    const newUsers = normalizedData.map((item: UserGrowthData) => item.newUsers);
+    const totalUsers = normalizedData.map((item: UserGrowthData) => item.totalUsers);
 
     return {
     title: {

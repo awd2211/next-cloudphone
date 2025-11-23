@@ -1,9 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { message } from 'antd';
 import { api } from '@/utils/api';
 import { useInvoiceTableColumns, type Invoice } from '@/components/Billing';
 
 export const useInvoiceList = () => {
+  // 分页状态
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // 搜索状态
+  const [searchKeyword, setSearchKeyword] = useState('');
+
   // Mock 数据状态
   const [invoices, _setInvoices] = useState<Invoice[]>([
     {
@@ -56,8 +63,48 @@ export const useInvoiceList = () => {
   ]);
 
   const [loading, _setLoading] = useState(false);
+  const [error, _setError] = useState<Error | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  // 筛选后的账单数据
+  const filteredInvoices = useMemo(() => {
+    if (!searchKeyword) return invoices;
+    return invoices.filter(
+      (inv) =>
+        inv.invoiceNo.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        inv.billingPeriod.includes(searchKeyword)
+    );
+  }, [invoices, searchKeyword]);
+
+  // 统计数据
+  const stats = useMemo(() => {
+    const paid = invoices.filter((i) => i.status === 'paid').length;
+    const unpaid = invoices.filter((i) => i.status === 'unpaid').length;
+    const totalAmount = invoices.reduce((sum, i) => sum + i.amount, 0);
+    const unpaidAmount = invoices
+      .filter((i) => i.status === 'unpaid')
+      .reduce((sum, i) => sum + i.amount, 0);
+    return {
+      total: invoices.length,
+      paid,
+      unpaid,
+      totalAmount,
+      unpaidAmount,
+    };
+  }, [invoices]);
+
+  // 刷新数据
+  const refetch = useCallback(() => {
+    // TODO: 当有真实 API 时实现
+    message.info('账单数据已刷新');
+  }, []);
+
+  // 搜索处理
+  const handleSearch = useCallback((keyword: string) => {
+    setSearchKeyword(keyword);
+    setPage(1);
+  }, []);
 
   // 查看详情
   const handleViewDetail = useCallback((invoice: Invoice) => {
@@ -109,13 +156,32 @@ export const useInvoiceList = () => {
 
   return {
     // 数据状态
-    invoices,
+    invoices: filteredInvoices,
+    total: filteredInvoices.length,
     loading,
+    error,
+    refetch,
+
+    // 分页状态
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+
+    // 搜索状态
+    searchKeyword,
+    handleSearch,
+
+    // 统计数据
+    stats,
+
     // 模态框状态
     detailModalVisible,
     selectedInvoice,
+
     // 表格列
     columns,
+
     // 处理函数
     handleViewDetail,
     handleDownload,

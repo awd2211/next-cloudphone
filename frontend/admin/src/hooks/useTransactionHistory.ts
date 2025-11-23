@@ -1,10 +1,28 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import dayjs from 'dayjs';
 import { useTransactionTableColumns, type Transaction } from '@/components/Billing';
 
+/**
+ * 交易统计数据
+ */
+export interface TransactionStatistics {
+  /** 总交易数 */
+  totalCount: number;
+  /** 总收入（充值+退款+解冻） */
+  totalIncome: number;
+  /** 总支出（消费+冻结） */
+  totalExpense: number;
+  /** 成功交易数 */
+  successCount: number;
+  /** 处理中交易数 */
+  pendingCount: number;
+  /** 失败交易数 */
+  failedCount: number;
+}
+
 export const useTransactionHistory = () => {
   // Mock 交易数据
-  const [transactions] = useState<Transaction[]>([
+  const [transactions, setTransactions] = useState<Transaction[]>([
     {
       id: 'txn-001',
       type: 'recharge',
@@ -83,8 +101,44 @@ export const useTransactionHistory = () => {
     },
   ]);
 
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(transactions);
+
+  // 计算统计数据
+  const statistics = useMemo<TransactionStatistics>(() => {
+    const stats: TransactionStatistics = {
+      totalCount: filteredTransactions.length,
+      totalIncome: 0,
+      totalExpense: 0,
+      successCount: 0,
+      pendingCount: 0,
+      failedCount: 0,
+    };
+
+    filteredTransactions.forEach((t) => {
+      // 统计收入/支出
+      if (t.amount > 0) {
+        stats.totalIncome += t.amount;
+      } else {
+        stats.totalExpense += Math.abs(t.amount);
+      }
+
+      // 统计状态
+      switch (t.status) {
+        case 'success':
+          stats.successCount++;
+          break;
+        case 'pending':
+          stats.pendingCount++;
+          break;
+        case 'failed':
+          stats.failedCount++;
+          break;
+      }
+    });
+
+    return stats;
+  }, [filteredTransactions]);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchText, setSearchText] = useState<string>('');
@@ -166,6 +220,17 @@ export const useTransactionHistory = () => {
     setSearchText('');
   }, []);
 
+  // 刷新数据（模拟）
+  const refetch = useCallback(() => {
+    setLoading(true);
+    // 模拟 API 请求
+    setTimeout(() => {
+      // 实际应用中这里会调用 API
+      setTransactions((prev) => [...prev]);
+      setLoading(false);
+    }, 500);
+  }, []);
+
   // 表格列定义
   const columns = useTransactionTableColumns();
 
@@ -173,6 +238,7 @@ export const useTransactionHistory = () => {
     // 数据状态
     filteredTransactions,
     loading,
+    statistics,
     // 筛选状态
     typeFilter,
     statusFilter,
@@ -186,5 +252,6 @@ export const useTransactionHistory = () => {
     // 操作函数
     handleExport,
     handleReset,
+    refetch,
   };
 };

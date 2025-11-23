@@ -218,7 +218,7 @@ export const useNotificationTemplates = (
   const [previewTemplate, setPreviewTemplate] = useState<NotificationTemplate | null>(null);
 
   // 查询
-  const { data, isLoading } = useNotificationTemplateList(params);
+  const { data, isLoading, error, refetch } = useNotificationTemplateList(params);
 
   // Mutations
   const createMutation = useCreateNotificationTemplate();
@@ -332,6 +332,8 @@ export const useNotificationTemplates = (
     data: data?.data,
     total: data?.total,
     isLoading,
+    error,
+    refetch,
 
     // Modal state
     isModalVisible,

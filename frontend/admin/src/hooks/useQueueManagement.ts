@@ -44,6 +44,8 @@ export const useQueueManagement = () => {
   const {
     data: queuesStatusResponse,
     refetch: loadQueuesStatus,
+    isLoading: isQueuesLoading,
+    error: queuesError,
   } = useValidatedQuery({
     queryKey: ['queues-status'],
     queryFn: getAllQueuesStatus,
@@ -283,6 +285,8 @@ export const useQueueManagement = () => {
     jobs: jobsResponse?.jobs || [],
     jobStatus,
     loading,
+    isQueuesLoading,
+    queuesError,
     jobDetailVisible,
     jobDetail,
     testModalVisible,

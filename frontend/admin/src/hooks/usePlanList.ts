@@ -32,9 +32,12 @@ export const usePlanList = () => {
   // 表单实例
   const [form] = Form.useForm();
 
+  // 搜索状态
+  const [searchKeyword, setSearchKeyword] = useState('');
+
   // React Query hooks
-  const params = useMemo(() => ({ page, pageSize }), [page, pageSize]);
-  const { data, isLoading } = usePlans(params);
+  const params = useMemo(() => ({ page, pageSize, search: searchKeyword }), [page, pageSize, searchKeyword]);
+  const { data, isLoading, error, refetch } = usePlans(params);
 
   // Mutations
   const createMutation = useCreatePlan();
@@ -45,6 +48,17 @@ export const usePlanList = () => {
   // 数据源
   const plans = data?.data || [];
   const total = data?.total || 0;
+
+  // 统计数据
+  const stats = useMemo(() => {
+    const activePlans = plans.filter((p: Plan) => p.isActive).length;
+    const inactivePlans = plans.filter((p: Plan) => !p.isActive).length;
+    return {
+      total,
+      active: activePlans,
+      inactive: inactivePlans,
+    };
+  }, [plans, total]);
 
   /**
    * 提交表单（创建或更新）
@@ -113,6 +127,14 @@ export const usePlanList = () => {
     form.resetFields();
   }, [form]);
 
+  /**
+   * 搜索处理
+   */
+  const handleSearch = useCallback((keyword: string) => {
+    setSearchKeyword(keyword);
+    setPage(1);
+  }, []);
+
   // 表格列配置
   const columns = usePlanTableColumns({
     onEdit: handleEdit,
@@ -126,8 +148,17 @@ export const usePlanList = () => {
     plans,
     total,
     isLoading,
+    error,
+    refetch,
     page,
     pageSize,
+
+    // 统计数据
+    stats,
+
+    // 搜索状态
+    searchKeyword,
+    handleSearch,
 
     // 模态框状态
     modalVisible,

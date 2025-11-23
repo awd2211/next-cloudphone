@@ -12,6 +12,7 @@ interface UseQuotaListReturn {
   // 数据状态
   quotas: Quota[];
   loading: boolean;
+  error: Error | null;
   total: number;
   alerts: any[];
 
@@ -68,6 +69,7 @@ export const useQuotaList = (): UseQuotaListReturn => {
   const {
     data: quotasResponse,
     isLoading: quotasLoading,
+    error: quotasError,
     refetch: refetchQuotas,
   } = useQuotas({ page, limit: pageSize });
 
@@ -85,6 +87,7 @@ export const useQuotaList = (): UseQuotaListReturn => {
   const quotas = quotasResponse?.data || [];
   const total = quotasResponse?.total || 0;
   const loading = quotasLoading || alertsLoading;
+  const error = quotasError ? (quotasError as Error) : null;
 
   // 手动刷新
   const loadQuotas = useCallback(() => {
@@ -133,6 +136,7 @@ export const useQuotaList = (): UseQuotaListReturn => {
     // 数据状态
     quotas,
     loading,
+    error,
     total,
     alerts,
 

@@ -290,6 +290,7 @@ export const useTemplateList = () => {
     users,
     loading,
     total,
+    refetch: loadTemplates,
 
     // 分页筛选
     page,

@@ -186,6 +186,12 @@ export const useBalanceOverview = () => {
     }
   }, []);
 
+  // ===== 刷新数据 =====
+  /**
+   * 刷新余额数据 (别名)
+   */
+  const refetch = loadBalanceData;
+
   // ===== 返回所有状态和方法 =====
   return {
     // 状态
@@ -205,5 +211,6 @@ export const useBalanceOverview = () => {
 
     // 数据加载
     loadBalanceData,
+    refetch,
   };
 };

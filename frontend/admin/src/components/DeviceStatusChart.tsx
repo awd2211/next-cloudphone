@@ -24,9 +24,16 @@ const STATUS_MAP: Record<string, { name: string; color: string }> = {
 const DeviceStatusChart = memo(({ data, loading }: DeviceStatusChartProps) => {
   // ✅ 使用 useMemo 缓存 option
   const option: ECOption | null = useMemo(() => {
-    if (!data || data.length === 0) return null;
+    // 健壮处理：支持直接数组或 { data: [...] } 格式
+    const normalizedData = Array.isArray(data)
+      ? data
+      : (data && typeof data === 'object' && 'data' in data && Array.isArray((data as any).data))
+        ? (data as any).data
+        : [];
 
-    const chartData = data.map((item) => ({
+    if (normalizedData.length === 0) return null;
+
+    const chartData = normalizedData.map((item: DeviceStatusData) => ({
       value: item.count,
       name: STATUS_MAP[item.status]?.name || item.status,
       itemStyle: {
