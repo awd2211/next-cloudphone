@@ -1,9 +1,19 @@
 import React from 'react';
 import { Row, Col, Card } from 'antd';
-import { BugOutlined, RobotOutlined, TrophyOutlined, LaptopOutlined } from '@ant-design/icons';
+import {
+  BugOutlined,
+  RobotOutlined,
+  TrophyOutlined,
+  LaptopOutlined,
+  ShopOutlined,
+  VideoCameraOutlined,
+  SafetyOutlined,
+  GlobalOutlined,
+} from '@ant-design/icons';
+import { useUseCasesContent } from '@/hooks/useCmsContent';
 
 interface UseCase {
-  icon: React.ReactNode;
+  icon: string;
   title: string;
   description: string;
   users: string;
@@ -11,52 +21,44 @@ interface UseCase {
   bgColor: string;
 }
 
+// 图标映射
+const iconMap: Record<string, React.ReactNode> = {
+  BugOutlined: <BugOutlined style={{ fontSize: 48 }} />,
+  RobotOutlined: <RobotOutlined style={{ fontSize: 48 }} />,
+  TrophyOutlined: <TrophyOutlined style={{ fontSize: 48 }} />,
+  LaptopOutlined: <LaptopOutlined style={{ fontSize: 48 }} />,
+  ShopOutlined: <ShopOutlined style={{ fontSize: 48 }} />,
+  VideoCameraOutlined: <VideoCameraOutlined style={{ fontSize: 48 }} />,
+  SafetyOutlined: <SafetyOutlined style={{ fontSize: 48 }} />,
+  GlobalOutlined: <GlobalOutlined style={{ fontSize: 48 }} />,
+};
+
+// 默认数据（回退用）
+const defaultUseCases: UseCase[] = [
+  { icon: 'BugOutlined', title: 'APP 测试', description: '自动化测试、兼容性测试、性能测试，覆盖多机型多版本', users: '开发者 & 测试团队', color: '#1890ff', bgColor: '#e6f7ff' },
+  { icon: 'RobotOutlined', title: '自动化任务', description: '批量操作、脚本执行、定时任务，提升效率10倍以上', users: '运营团队 & 工作室', color: '#52c41a', bgColor: '#f6ffed' },
+  { icon: 'TrophyOutlined', title: '游戏多开', description: '云端多开，无需购买硬件，随时扩容，降本增效', users: '游戏工作室 & 玩家', color: '#faad14', bgColor: '#fff7e6' },
+  { icon: 'LaptopOutlined', title: '移动办公', description: '远程访问，数据安全，多人协作，随时随地办公', users: '企业 & 团队', color: '#722ed1', bgColor: '#f9f0ff' },
+];
+
 /**
  * 应用场景组件
- * 展示4大典型应用场景
+ * 展示4大典型应用场景，内容从 CMS 动态加载
  */
 export const UseCases: React.FC = React.memo(() => {
-  const useCases: UseCase[] = [
-    {
-      icon: <BugOutlined style={{ fontSize: 48 }} />,
-      title: 'APP 测试',
-      description: '自动化测试、兼容性测试、性能测试，覆盖多机型多版本',
-      users: '开发者 & 测试团队',
-      color: '#1890ff',
-      bgColor: '#e6f7ff',
-    },
-    {
-      icon: <RobotOutlined style={{ fontSize: 48 }} />,
-      title: '自动化任务',
-      description: '批量操作、脚本执行、定时任务，提升效率10倍以上',
-      users: '运营团队 & 工作室',
-      color: '#52c41a',
-      bgColor: '#f6ffed',
-    },
-    {
-      icon: <TrophyOutlined style={{ fontSize: 48 }} />,
-      title: '游戏多开',
-      description: '云端多开，无需购买硬件，随时扩容，降本增效',
-      users: '游戏工作室 & 玩家',
-      color: '#faad14',
-      bgColor: '#fff7e6',
-    },
-    {
-      icon: <LaptopOutlined style={{ fontSize: 48 }} />,
-      title: '移动办公',
-      description: '远程访问，数据安全，多人协作，随时随地办公',
-      users: '企业 & 团队',
-      color: '#722ed1',
-      bgColor: '#f9f0ff',
-    },
-  ];
+  // 从 CMS 获取内容
+  const { data: useCasesContent } = useUseCasesContent();
+
+  const useCases = useCasesContent?.cases || defaultUseCases;
+  const sectionTitle = useCasesContent?.sectionTitle || '应用场景';
+  const sectionSubtitle = useCasesContent?.sectionSubtitle || '广泛应用于自动化测试、游戏托管、移动办公等领域';
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
       <div style={{ textAlign: 'center', marginBottom: 48 }}>
-        <h2 style={{ fontSize: 32, marginBottom: 16 }}>应用场景</h2>
+        <h2 style={{ fontSize: 32, marginBottom: 16 }}>{sectionTitle}</h2>
         <p style={{ fontSize: 16, color: '#666' }}>
-          广泛应用于自动化测试、游戏托管、移动办公等领域
+          {sectionSubtitle}
         </p>
       </div>
 
@@ -86,7 +88,7 @@ export const UseCases: React.FC = React.memo(() => {
                   color: useCase.color,
                 }}
               >
-                {useCase.icon}
+                {iconMap[useCase.icon] || <BugOutlined style={{ fontSize: 48 }} />}
               </div>
               <h3 style={{ fontSize: 18, marginBottom: 12, textAlign: 'center', fontWeight: 600 }}>
                 {useCase.title}

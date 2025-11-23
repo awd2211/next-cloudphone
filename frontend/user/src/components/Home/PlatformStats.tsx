@@ -2,6 +2,7 @@ import React from 'react';
 import { Row, Col, Card } from 'antd';
 import { UserOutlined, MobileOutlined, CheckCircleOutlined, TeamOutlined } from '@ant-design/icons';
 import { CountUp } from '@/components';
+import { useStatsContent } from '@/hooks/useCmsContent';
 
 export interface PlatformStatsData {
   users: string;
@@ -11,52 +12,38 @@ export interface PlatformStatsData {
 }
 
 interface PlatformStatsProps {
-  data: PlatformStatsData;
+  data?: PlatformStatsData;
 }
+
+// 图标映射
+const iconMap: Record<string, React.ReactNode> = {
+  UserOutlined: <UserOutlined style={{ fontSize: 36 }} />,
+  MobileOutlined: <MobileOutlined style={{ fontSize: 36 }} />,
+  CheckCircleOutlined: <CheckCircleOutlined style={{ fontSize: 36 }} />,
+  TeamOutlined: <TeamOutlined style={{ fontSize: 36 }} />,
+};
 
 /**
  * CloudPhone.run 平台数据统计组件
- * 展示关键业务指标，建立信任感
+ * 展示关键业务指标，建立信任感，内容从 CMS 动态加载
  */
 export const PlatformStats: React.FC<PlatformStatsProps> = React.memo(({ data }) => {
-  const stats = [
-    {
-      title: '注册用户',
-      value: data.users,
-      icon: <UserOutlined style={{ fontSize: 36 }} />,
-      color: '#6366f1',
-      gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-      bgColor: 'rgba(99, 102, 241, 0.1)',
-      description: '活跃用户数',
-    },
-    {
-      title: '在线设备',
-      value: data.devices,
-      icon: <MobileOutlined style={{ fontSize: 36 }} />,
-      color: '#10b981',
-      gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-      bgColor: 'rgba(16, 185, 129, 0.1)',
-      description: '云端运行中',
-    },
-    {
-      title: '服务可用性',
-      value: data.uptime,
-      icon: <CheckCircleOutlined style={{ fontSize: 36 }} />,
-      color: '#f59e0b',
-      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-      bgColor: 'rgba(245, 158, 11, 0.1)',
-      description: 'SLA 保障',
-    },
-    {
-      title: '企业客户',
-      value: data.companies,
-      icon: <TeamOutlined style={{ fontSize: 36 }} />,
-      color: '#8b5cf6',
-      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-      bgColor: 'rgba(139, 92, 246, 0.1)',
-      description: '遍布全球',
-    },
+  // 从 CMS 获取统计数据配置
+  const { data: statsContent } = useStatsContent();
+
+  // 使用 CMS 配置的统计数据，或者合并传入的 data
+  const stats = statsContent?.stats?.map(stat => ({
+    ...stat,
+    // 如果传入了 data，则用传入的值覆盖 CMS 的值
+    value: data?.[stat.key as keyof PlatformStatsData] || stat.value,
+  })) || [
+    { key: 'users', title: '注册用户', value: data?.users || '10,000+', icon: 'UserOutlined', color: '#6366f1', gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', bgColor: 'rgba(99, 102, 241, 0.1)', description: '活跃用户数' },
+    { key: 'devices', title: '在线设备', value: data?.devices || '50,000+', icon: 'MobileOutlined', color: '#10b981', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', bgColor: 'rgba(16, 185, 129, 0.1)', description: '云端运行中' },
+    { key: 'uptime', title: '服务可用性', value: data?.uptime || '99.9%', icon: 'CheckCircleOutlined', color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', bgColor: 'rgba(245, 158, 11, 0.1)', description: 'SLA 保障' },
+    { key: 'companies', title: '企业客户', value: data?.companies || '500+', icon: 'TeamOutlined', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', bgColor: 'rgba(139, 92, 246, 0.1)', description: '遍布全球' },
   ];
+
+  const footerText = statsContent?.footerText || '实时数据更新，展示 CloudPhone.run 的全球服务规模与可靠性';
 
   return (
     <div style={{ maxWidth: 1200, margin: '-80px auto 120px', padding: '0 24px', position: 'relative', zIndex: 10 }}>
@@ -129,7 +116,7 @@ export const PlatformStats: React.FC<PlatformStatsProps> = React.memo(({ data })
                         opacity: 0.15,
                       }}
                     />
-                    <span style={{ color: stat.color }}>{stat.icon}</span>
+                    <span style={{ color: stat.color }}>{iconMap[stat.icon] || <UserOutlined style={{ fontSize: 36 }} />}</span>
                   </div>
 
                   {/* 标题 */}
@@ -220,7 +207,7 @@ export const PlatformStats: React.FC<PlatformStatsProps> = React.memo(({ data })
           }}
         >
           <p style={{ fontSize: 15, color: '#64748b', margin: 0, fontWeight: 500 }}>
-            实时数据更新，展示 CloudPhone.run 的全球服务规模与可靠性
+            {footerText}
           </p>
         </div>
       </Card>

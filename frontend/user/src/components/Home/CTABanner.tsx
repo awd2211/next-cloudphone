@@ -1,14 +1,47 @@
 import React from 'react';
 import { Button, Space } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { RocketOutlined, MessageOutlined } from '@ant-design/icons';
+import { RocketOutlined, MessageOutlined, PhoneOutlined, MailOutlined } from '@ant-design/icons';
+import { useCTABannerContent } from '@/hooks/useCmsContent';
+
+// 图标映射
+const iconMap: Record<string, React.ReactNode> = {
+  RocketOutlined: <RocketOutlined />,
+  MessageOutlined: <MessageOutlined />,
+  PhoneOutlined: <PhoneOutlined />,
+  MailOutlined: <MailOutlined />,
+};
+
+// 默认内容
+const defaultContent = {
+  tag: '立即行动',
+  title: '准备好体验',
+  highlightText: '未来的云手机服务',
+  titleSuffix: '了吗？',
+  description: '加入 10,000+ 企业客户，享受 CloudPhone.run 提供的企业级云手机服务\n免费试用 14 天，无需信用卡',
+  primaryButton: { text: '免费开始使用', icon: 'RocketOutlined', link: '/login' },
+  secondaryButton: { text: '联系销售', icon: 'MessageOutlined', link: '/help' },
+  trustBadges: ['✓ 14 天免费试用', '✓ 无需信用卡', '✓ 随时取消', '✓ 即刻开通'],
+};
 
 /**
  * CloudPhone.run CTA (Call To Action) 横幅组件
- * 鼓励用户注册或联系销售
+ * 鼓励用户注册或联系销售，内容从 CMS 动态加载
  */
 export const CTABanner: React.FC = React.memo(() => {
   const navigate = useNavigate();
+
+  // 从 CMS 获取内容
+  const { data: ctaContent } = useCTABannerContent();
+
+  const tag = ctaContent?.tag || defaultContent.tag;
+  const title = ctaContent?.title || defaultContent.title;
+  const highlightText = ctaContent?.highlightText || defaultContent.highlightText;
+  const titleSuffix = ctaContent?.titleSuffix || defaultContent.titleSuffix;
+  const description = ctaContent?.description || defaultContent.description;
+  const primaryButton = ctaContent?.primaryButton || defaultContent.primaryButton;
+  const secondaryButton = ctaContent?.secondaryButton || defaultContent.secondaryButton;
+  const trustBadges = ctaContent?.trustBadges || defaultContent.trustBadges;
 
   return (
     <div
@@ -73,7 +106,7 @@ export const CTABanner: React.FC = React.memo(() => {
           }}
         >
           <span style={{ fontSize: 13, fontWeight: 600, color: '#a5b4fc' }}>
-            立即行动
+            {tag}
           </span>
         </div>
 
@@ -88,7 +121,7 @@ export const CTABanner: React.FC = React.memo(() => {
             letterSpacing: '-1px',
           }}
         >
-          准备好体验
+          {title}
           <br />
           <span
             style={{
@@ -97,9 +130,9 @@ export const CTABanner: React.FC = React.memo(() => {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            未来的云手机服务
+            {highlightText}
           </span>
-          了吗？
+          {titleSuffix}
         </h2>
 
         {/* 描述 */}
@@ -111,11 +144,10 @@ export const CTABanner: React.FC = React.memo(() => {
             lineHeight: 1.8,
             maxWidth: 700,
             margin: '0 auto 40px',
+            whiteSpace: 'pre-line',
           }}
         >
-          加入 10,000+ 企业客户，享受 CloudPhone.run 提供的企业级云手机服务
-          <br />
-          免费试用 14 天，无需信用卡
+          {description}
         </p>
 
         {/* 按钮组 */}
@@ -123,8 +155,8 @@ export const CTABanner: React.FC = React.memo(() => {
           <Button
             type="primary"
             size="large"
-            icon={<RocketOutlined />}
-            onClick={() => navigate('/login')}
+            icon={iconMap[primaryButton.icon] || <RocketOutlined />}
+            onClick={() => navigate(primaryButton.link)}
             style={{
               height: 56,
               padding: '0 48px',
@@ -147,13 +179,13 @@ export const CTABanner: React.FC = React.memo(() => {
               target.style.boxShadow = '0 10px 40px rgba(99, 102, 241, 0.4)';
             }}
           >
-            免费开始使用
+            {primaryButton.text}
           </Button>
 
           <Button
             size="large"
-            icon={<MessageOutlined />}
-            onClick={() => navigate('/help')}
+            icon={iconMap[secondaryButton.icon] || <MessageOutlined />}
+            onClick={() => navigate(secondaryButton.link)}
             style={{
               height: 56,
               padding: '0 48px',
@@ -177,13 +209,13 @@ export const CTABanner: React.FC = React.memo(() => {
               target.style.transform = 'translateY(0)';
             }}
           >
-            联系销售
+            {secondaryButton.text}
           </Button>
         </Space>
 
         {/* 信任标记 */}
         <div style={{ marginTop: 48, display: 'flex', justifyContent: 'center', gap: 32, flexWrap: 'wrap' }}>
-          {['✓ 14 天免费试用', '✓ 无需信用卡', '✓ 随时取消', '✓ 即刻开通'].map((item, idx) => (
+          {trustBadges.map((item: string, idx: number) => (
             <div key={idx} style={{ color: '#94a3b8', fontSize: 15, fontWeight: 500 }}>
               {item}
             </div>

@@ -8,7 +8,10 @@ import {
   PhoneOutlined,
   TwitterOutlined,
   LinkedinOutlined,
+  YoutubeOutlined,
+  InstagramOutlined,
 } from '@ant-design/icons';
+import { useFooterNavContent } from '@/hooks/useCmsContent';
 
 interface FooterLink {
   label: string;
@@ -20,56 +23,97 @@ interface FooterSection {
   links: FooterLink[];
 }
 
+// 图标映射
+const socialIconMap: Record<string, React.ReactNode> = {
+  GithubOutlined: <GithubOutlined />,
+  TwitterOutlined: <TwitterOutlined />,
+  LinkedinOutlined: <LinkedinOutlined />,
+  WechatOutlined: <WechatOutlined />,
+  YoutubeOutlined: <YoutubeOutlined />,
+  InstagramOutlined: <InstagramOutlined />,
+};
+
+// 默认数据
+const defaultSections: FooterSection[] = [
+  {
+    title: '产品',
+    links: [
+      { label: '产品介绍', path: '/product' },
+      { label: '价格方案', path: '/pricing' },
+      { label: '应用市场', path: '/app-market' },
+      { label: '设备模板', path: '/device-templates' },
+    ],
+  },
+  {
+    title: '开发者',
+    links: [
+      { label: 'API 文档', path: '/help/api' },
+      { label: '使用教程', path: '/help/tutorials' },
+      { label: 'SDK 下载', path: '/help/sdk' },
+      { label: '开发者社区', path: '/help/community' },
+    ],
+  },
+  {
+    title: '公司',
+    links: [
+      { label: '关于我们', path: '/about' },
+      { label: '帮助中心', path: '/help' },
+      { label: '联系我们', path: '/contact' },
+      { label: '加入我们', path: '/careers' },
+    ],
+  },
+  {
+    title: '法律',
+    links: [
+      { label: '服务条款', path: '/legal/terms' },
+      { label: '隐私政策', path: '/legal/privacy' },
+      { label: '服务协议', path: '/legal/sla' },
+      { label: '安全保障', path: '/legal/security' },
+    ],
+  },
+];
+
+const defaultSocialLinks = [
+  { icon: 'GithubOutlined', name: 'GitHub', url: '#' },
+  { icon: 'TwitterOutlined', name: 'Twitter', url: '#' },
+  { icon: 'LinkedinOutlined', name: 'LinkedIn', url: '#' },
+  { icon: 'WechatOutlined', name: 'WeChat', url: '#' },
+];
+
+const defaultContactInfo = {
+  phone: '400-123-4567',
+  email: 'support@ultrathink.com',
+  wechat: 'CloudPhone.run_Support',
+  serviceHours: '7×24 小时',
+};
+
+const defaultBrandInfo = {
+  name: 'CloudPhone.run',
+  slogan: 'Cloud Phone Platform',
+  description: 'CloudPhone.run 致力于为全球企业提供稳定可靠的云端 Android 设备服务，助力业务创新与增长。',
+};
+
+const defaultCopyright = {
+  text: '© 2025 CloudPhone.run. All rights reserved.',
+  links: [
+    { label: 'ICP备案号', path: '/legal/icp' },
+    { label: '营业执照', path: '/legal/license' },
+  ],
+};
+
 /**
  * CloudPhone.run 页脚导航组件
- * 提供完整的导航链接和联系信息
+ * 提供完整的导航链接和联系信息，内容从 CMS 动态加载
  */
 export const Footer: React.FC = React.memo(() => {
-  const sections: FooterSection[] = [
-    {
-      title: '产品',
-      links: [
-        { label: '产品介绍', path: '/product' },
-        { label: '价格方案', path: '/pricing' },
-        { label: '应用市场', path: '/app-market' },
-        { label: '设备模板', path: '/device-templates' },
-      ],
-    },
-    {
-      title: '开发者',
-      links: [
-        { label: 'API 文档', path: '/help/api' },
-        { label: '使用教程', path: '/help/tutorials' },
-        { label: 'SDK 下载', path: '/help/sdk' },
-        { label: '开发者社区', path: '/help/community' },
-      ],
-    },
-    {
-      title: '公司',
-      links: [
-        { label: '关于我们', path: '/about' },
-        { label: '帮助中心', path: '/help' },
-        { label: '联系我们', path: '/contact' },
-        { label: '加入我们', path: '/careers' },
-      ],
-    },
-    {
-      title: '法律',
-      links: [
-        { label: '服务条款', path: '/legal/terms' },
-        { label: '隐私政策', path: '/legal/privacy' },
-        { label: '服务协议', path: '/legal/sla' },
-        { label: '安全保障', path: '/legal/security' },
-      ],
-    },
-  ];
+  // 从 CMS 获取内容
+  const { data: footerContent } = useFooterNavContent();
 
-  const socialLinks = [
-    { icon: <GithubOutlined />, name: 'GitHub', url: '#' },
-    { icon: <TwitterOutlined />, name: 'Twitter', url: '#' },
-    { icon: <LinkedinOutlined />, name: 'LinkedIn', url: '#' },
-    { icon: <WechatOutlined />, name: 'WeChat', url: '#' },
-  ];
+  const sections = footerContent?.sections || defaultSections;
+  const socialLinks = footerContent?.socialLinks || defaultSocialLinks;
+  const contactInfo = footerContent?.contactInfo || defaultContactInfo;
+  const brandInfo = footerContent?.brandInfo || defaultBrandInfo;
+  const copyright = footerContent?.copyright || defaultCopyright;
 
   return (
     <footer
@@ -124,7 +168,7 @@ export const Footer: React.FC = React.memo(() => {
                       letterSpacing: '-0.5px',
                     }}
                   >
-                    CloudPhone.run
+                    {brandInfo.name}
                   </h3>
                   <p
                     style={{
@@ -134,7 +178,7 @@ export const Footer: React.FC = React.memo(() => {
                       letterSpacing: '0.5px',
                     }}
                   >
-                    Cloud Phone Platform
+                    {brandInfo.slogan}
                   </p>
                 </div>
               </div>
@@ -148,7 +192,7 @@ export const Footer: React.FC = React.memo(() => {
                   marginBottom: 24,
                 }}
               >
-                CloudPhone.run 致力于为全球企业提供稳定可靠的云端 Android 设备服务，助力业务创新与增长。
+                {brandInfo.description}
               </p>
 
               {/* 社交媒体链接 */}
@@ -185,7 +229,7 @@ export const Footer: React.FC = React.memo(() => {
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
-                    {social.icon}
+                    {socialIconMap[social.icon] || <GithubOutlined />}
                   </a>
                 ))}
               </div>
@@ -269,7 +313,7 @@ export const Footer: React.FC = React.memo(() => {
                 <div>
                   <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>电话</div>
                   <div style={{ fontSize: 15, color: '#cbd5e1', fontWeight: 500 }}>
-                    400-123-4567
+                    {contactInfo.phone}
                   </div>
                 </div>
               </div>
@@ -293,7 +337,7 @@ export const Footer: React.FC = React.memo(() => {
                 <div>
                   <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>邮箱</div>
                   <div style={{ fontSize: 15, color: '#cbd5e1', fontWeight: 500 }}>
-                    support@ultrathink.com
+                    {contactInfo.email}
                   </div>
                 </div>
               </div>
@@ -317,7 +361,7 @@ export const Footer: React.FC = React.memo(() => {
                 <div>
                   <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>微信</div>
                   <div style={{ fontSize: 15, color: '#cbd5e1', fontWeight: 500 }}>
-                    CloudPhone.run_Support
+                    {contactInfo.wechat}
                   </div>
                 </div>
               </div>
@@ -340,7 +384,7 @@ export const Footer: React.FC = React.memo(() => {
                 </div>
                 <div>
                   <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>服务时间</div>
-                  <div style={{ fontSize: 15, color: '#cbd5e1', fontWeight: 500 }}>7×24 小时</div>
+                  <div style={{ fontSize: 15, color: '#cbd5e1', fontWeight: 500 }}>{contactInfo.serviceHours}</div>
                 </div>
               </div>
             </Col>
@@ -354,17 +398,16 @@ export const Footer: React.FC = React.memo(() => {
         <Row justify="space-between" align="middle">
           <Col xs={24} md={12} style={{ textAlign: 'center', marginBottom: 16 }}>
             <div style={{ fontSize: 14, color: '#64748b' }}>
-              © 2025 CloudPhone.run. All rights reserved.
+              {copyright.text}
             </div>
           </Col>
           <Col xs={24} md={12} style={{ textAlign: 'center' }}>
             <Space size="large">
-              <Link to="/legal/icp" style={{ color: '#64748b', fontSize: 14 }}>
-                ICP备案号
-              </Link>
-              <Link to="/legal/license" style={{ color: '#64748b', fontSize: 14 }}>
-                营业执照
-              </Link>
+              {copyright.links.map((link: { label: string; path: string }, index: number) => (
+                <Link key={index} to={link.path} style={{ color: '#64748b', fontSize: 14 }}>
+                  {link.label}
+                </Link>
+              ))}
             </Space>
           </Col>
         </Row>

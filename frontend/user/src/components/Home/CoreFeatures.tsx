@@ -8,9 +8,10 @@ import {
   ClusterOutlined,
   CloudServerOutlined,
 } from '@ant-design/icons';
+import { useFeaturesContent } from '@/hooks/useCmsContent';
 
 interface Feature {
-  icon: React.ReactNode;
+  icon: string;
   title: string;
   description: string;
   color: string;
@@ -18,61 +19,44 @@ interface Feature {
   gradient: string;
 }
 
+// 图标映射
+const iconMap: Record<string, React.ReactNode> = {
+  ThunderboltOutlined: <ThunderboltOutlined style={{ fontSize: 40 }} />,
+  SafetyOutlined: <SafetyOutlined style={{ fontSize: 40 }} />,
+  DollarOutlined: <DollarOutlined style={{ fontSize: 40 }} />,
+  ApiOutlined: <ApiOutlined style={{ fontSize: 40 }} />,
+  ClusterOutlined: <ClusterOutlined style={{ fontSize: 40 }} />,
+  CloudServerOutlined: <CloudServerOutlined style={{ fontSize: 40 }} />,
+};
+
+// 默认功能数据（回退用）
+const defaultFeatures: Feature[] = [
+  { icon: 'ThunderboltOutlined', title: '极致性能', description: '基于 Docker 容器化技术，真实 Android 环境，流畅运行各类应用，响应速度提升 300%', color: '#6366f1', bgColor: 'rgba(99, 102, 241, 0.1)', gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' },
+  { icon: 'SafetyOutlined', title: '企业级安全', description: '数据隔离存储，端到端加密传输，通过 ISO 27001 认证，7×24 小时实时监控保障', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' },
+  { icon: 'DollarOutlined', title: '灵活计费', description: '按需付费，无隐藏费用，多种套餐选择，成本降低 60%，性价比行业领先', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.1)', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' },
+  { icon: 'ApiOutlined', title: '完善 API', description: '提供 REST API 和 WebSocket 实时通信，支持主流编程语言 SDK，轻松集成', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)', gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' },
+  { icon: 'ClusterOutlined', title: '批量管理', description: '支持批量操作，图形化管理界面，一键部署应用，管理效率提升 500%', color: '#06b6d4', bgColor: 'rgba(6, 182, 212, 0.1)', gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' },
+  { icon: 'CloudServerOutlined', title: '弹性伸缩', description: '自动扩容缩容，无需关心基础设施，专注业务核心逻辑，支持全球多地域部署', color: '#ec4899', bgColor: 'rgba(236, 72, 153, 0.1)', gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' },
+];
+
 /**
  * CloudPhone.run 核心功能特性组件
- * 展示平台的6大核心功能
+ * 展示平台的6大核心功能，内容从 CMS 动态加载
  */
 export const CoreFeatures: React.FC = React.memo(() => {
-  const features: Feature[] = [
-    {
-      icon: <ThunderboltOutlined style={{ fontSize: 40 }} />,
-      title: '极致性能',
-      description: '基于 Docker 容器化技术，真实 Android 环境，流畅运行各类应用，响应速度提升 300%',
-      color: '#6366f1',
-      bgColor: 'rgba(99, 102, 241, 0.1)',
-      gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-    },
-    {
-      icon: <SafetyOutlined style={{ fontSize: 40 }} />,
-      title: '企业级安全',
-      description: '数据隔离存储，端到端加密传输，通过 ISO 27001 认证，7×24 小时实时监控保障',
-      color: '#10b981',
-      bgColor: 'rgba(16, 185, 129, 0.1)',
-      gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-    },
-    {
-      icon: <DollarOutlined style={{ fontSize: 40 }} />,
-      title: '灵活计费',
-      description: '按需付费，无隐藏费用，多种套餐选择，成本降低 60%，性价比行业领先',
-      color: '#f59e0b',
-      bgColor: 'rgba(245, 158, 11, 0.1)',
-      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-    },
-    {
-      icon: <ApiOutlined style={{ fontSize: 40 }} />,
-      title: '完善 API',
-      description: '提供 REST API 和 WebSocket 实时通信，支持主流编程语言 SDK，轻松集成',
-      color: '#8b5cf6',
-      bgColor: 'rgba(139, 92, 246, 0.1)',
-      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-    },
-    {
-      icon: <ClusterOutlined style={{ fontSize: 40 }} />,
-      title: '批量管理',
-      description: '支持批量操作，图形化管理界面，一键部署应用，管理效率提升 500%',
-      color: '#06b6d4',
-      bgColor: 'rgba(6, 182, 212, 0.1)',
-      gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-    },
-    {
-      icon: <CloudServerOutlined style={{ fontSize: 40 }} />,
-      title: '弹性伸缩',
-      description: '自动扩容缩容，无需关心基础设施，专注业务核心逻辑，支持全球多地域部署',
-      color: '#ec4899',
-      bgColor: 'rgba(236, 72, 153, 0.1)',
-      gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-    },
-  ];
+  // 从 CMS 获取功能特性内容
+  const { data: featuresContent } = useFeaturesContent();
+
+  // 使用 CMS 数据或回退到默认值
+  const features = featuresContent?.features || defaultFeatures;
+  const sectionTitle = featuresContent?.sectionTitle || '为什么选择 CloudPhone.run';
+  const sectionSubtitle = featuresContent?.sectionSubtitle || '企业级云手机解决方案，助力您的业务快速增长';
+  const sectionTag = featuresContent?.sectionTag || '核心优势';
+  const cta = featuresContent?.cta || {
+    title: '还在犹豫？立即体验',
+    subtitle: '免费试用 14 天，无需信用卡，随时取消',
+    badges: ['无需信用卡', '即刻开通', '专属技术支持'],
+  };
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto 120px', padding: '0 24px' }}>
@@ -87,7 +71,7 @@ export const CoreFeatures: React.FC = React.memo(() => {
           }}
         >
           <span style={{ fontSize: 14, fontWeight: 600, color: '#6366f1' }}>
-            核心优势
+            {sectionTag}
           </span>
         </div>
         <h2
@@ -101,10 +85,10 @@ export const CoreFeatures: React.FC = React.memo(() => {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          为什么选择 CloudPhone.run
+          {sectionTitle}
         </h2>
         <p style={{ fontSize: 18, color: '#64748b', maxWidth: 600, margin: '0 auto', lineHeight: 1.8 }}>
-          企业级云手机解决方案，助力您的业务快速增长
+          {sectionSubtitle}
         </p>
       </div>
 
@@ -177,7 +161,7 @@ export const CoreFeatures: React.FC = React.memo(() => {
                       opacity: 0.15,
                     }}
                   />
-                  {feature.icon}
+                  {iconMap[feature.icon] || <ThunderboltOutlined style={{ fontSize: 40 }} />}
                 </div>
 
                 {/* 标题 */}
@@ -224,10 +208,10 @@ export const CoreFeatures: React.FC = React.memo(() => {
         }}
       >
         <h3 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12, color: '#1e293b' }}>
-          还在犹豫？立即体验
+          {cta.title}
         </h3>
         <p style={{ fontSize: 16, color: '#64748b', marginBottom: 24 }}>
-          免费试用 14 天，无需信用卡，随时取消
+          {cta.subtitle}
         </p>
         <div
           style={{
@@ -238,18 +222,12 @@ export const CoreFeatures: React.FC = React.memo(() => {
             justifyContent: 'center',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', color: '#10b981', fontSize: 15, fontWeight: 500 }}>
-            <span style={{ fontSize: 20, marginRight: 8 }}>✓</span>
-            无需信用卡
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', color: '#10b981', fontSize: 15, fontWeight: 500 }}>
-            <span style={{ fontSize: 20, marginRight: 8 }}>✓</span>
-            即刻开通
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', color: '#10b981', fontSize: 15, fontWeight: 500 }}>
-            <span style={{ fontSize: 20, marginRight: 8 }}>✓</span>
-            专属技术支持
-          </div>
+          {cta.badges.map((badge, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', color: '#10b981', fontSize: 15, fontWeight: 500 }}>
+              <span style={{ fontSize: 20, marginRight: 8 }}>✓</span>
+              {badge}
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -27,8 +27,22 @@ import {
   WifiOutlined,
   PhoneOutlined,
 } from '@ant-design/icons';
+import { useHeaderNavContent } from '@/hooks/useCmsContent';
 
 const { Text } = Typography;
+
+// 默认品牌信息
+const defaultBrandInfo = {
+  name: 'CloudPhone.run',
+  slogan: 'Cloud Phone Platform',
+  logoText: 'U',
+};
+
+// 默认简单菜单项
+const defaultMenuItems = [
+  { key: '/pricing', label: '价格' },
+  { key: '/about', label: '关于' },
+];
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -51,6 +65,11 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // 从 CMS 获取内容
+  const { data: headerContent } = useHeaderNavContent();
+  const brandInfo = headerContent?.brandInfo || defaultBrandInfo;
+  const menuItems = headerContent?.menuItems || defaultMenuItems;
 
   // 监听滚动事件
   useEffect(() => {
@@ -526,11 +545,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     </div>
   );
 
-  // 桌面端简单菜单（移除了"帮助"，因为它现在有单独的下拉菜单）
-  const menuItems = [
-    { key: '/pricing', label: '价格' },
-    { key: '/about', label: '关于' },
-  ];
+  // 桌面端简单菜单 - 从 CMS 获取
+  // menuItems 已在组件顶部从 CMS 获取
 
   // 移动端菜单（包含产品和帮助子菜单）
   const mobileMenuItems = [
@@ -632,7 +648,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   transition: 'font-size 0.3s ease',
                 }}
               >
-                U
+                {brandInfo.logoText}
               </span>
             </div>
             <div>
@@ -646,7 +662,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 letterSpacing: '-0.5px',
                 transition: 'font-size 0.3s ease',
               }}>
-                CloudPhone.run
+                {brandInfo.name}
               </h2>
               <p style={{
                 margin: 0,
@@ -656,7 +672,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 fontWeight: 500,
                 transition: 'font-size 0.3s ease',
               }}>
-                Cloud Phone Platform
+                {brandInfo.slogan}
               </p>
             </div>
           </div>
@@ -750,7 +766,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             </Dropdown>
 
             {/* 其他菜单项 */}
-            {menuItems.map(item => (
+            {menuItems.map((item: { key: string; label: string }) => (
               <a
                 key={item.key}
                 href={item.key}
@@ -923,9 +939,9 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 marginRight: 12,
               }}
             >
-              <span style={{ fontSize: 18, fontWeight: 'bold', color: 'white' }}>U</span>
+              <span style={{ fontSize: 18, fontWeight: 'bold', color: 'white' }}>{brandInfo.logoText}</span>
             </div>
-            <span style={{ fontSize: 18, fontWeight: 700, color: '#1e293b' }}>CloudPhone.run</span>
+            <span style={{ fontSize: 18, fontWeight: 700, color: '#1e293b' }}>{brandInfo.name}</span>
           </div>
         }
         placement="right"

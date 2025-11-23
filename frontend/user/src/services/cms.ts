@@ -1,8 +1,187 @@
 /**
  * CMS 内容管理服务
- * 用于获取官网动态内容：设置、职位、法律文档、案例、定价等
+ * 用于获取官网动态内容：设置、职位、法律文档、案例、定价、页面内容块等
  */
 import request from '@/utils/request';
+
+// ==================== 页面内容块类型定义 ====================
+
+export interface CmsContent<T = Record<string, any>> {
+  id: string;
+  page: string;
+  section: string;
+  title: string;
+  content: T;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Hero Banner 类型
+export interface HeroSlide {
+  id: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  tag: string;
+  bgGradient: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+}
+
+export interface HeroContent {
+  slides: HeroSlide[];
+  trustBadges: string[];
+  ctaButtons: {
+    primary: { text: string; icon: string };
+    secondary: { text: string; icon: string };
+  };
+}
+
+// Features 类型
+export interface Feature {
+  icon: string;
+  title: string;
+  description: string;
+  color: string;
+  bgColor: string;
+  gradient: string;
+}
+
+export interface FeaturesContent {
+  sectionTitle: string;
+  sectionSubtitle: string;
+  sectionTag: string;
+  features: Feature[];
+  cta: {
+    title: string;
+    subtitle: string;
+    badges: string[];
+  };
+}
+
+// Stats 类型
+export interface StatItem {
+  key: string;
+  title: string;
+  value: string;
+  icon: string;
+  color: string;
+  gradient: string;
+  bgColor: string;
+  description: string;
+}
+
+export interface StatsContent {
+  stats: StatItem[];
+  footerText: string;
+}
+
+// How It Works 类型
+export interface HowItWorksStep {
+  icon: string;
+  title: string;
+  description: string;
+  time: string;
+  color: string;
+}
+
+export interface HowItWorksContent {
+  sectionTitle: string;
+  sectionSubtitle: string;
+  steps: HowItWorksStep[];
+}
+
+// Use Cases 类型
+export interface UseCase {
+  icon: string;
+  title: string;
+  description: string;
+  users: string;
+  color: string;
+  bgColor: string;
+}
+
+export interface UseCasesContent {
+  sectionTitle: string;
+  sectionSubtitle: string;
+  cases: UseCase[];
+}
+
+// CTA Banner 类型
+export interface CTABannerContent {
+  tag: string;
+  title: string;
+  highlightText: string;
+  titleSuffix: string;
+  description: string;
+  primaryButton: { text: string; icon: string; link: string };
+  secondaryButton: { text: string; icon: string; link: string };
+  trustBadges: string[];
+}
+
+// Navigation 类型
+export interface NavMenuItem {
+  icon: string;
+  title: string;
+  desc: string;
+  color: string;
+  path: string;
+}
+
+export interface NavMenuColumn {
+  title: string;
+  color: string;
+  items: NavMenuItem[];
+}
+
+export interface HeaderNavContent {
+  brandInfo: { name: string; slogan: string; logoText: string };
+  menuItems: { key: string; label: string }[];
+  // 复杂下拉菜单保持代码控制
+  productMenu?: { title: string; columns: NavMenuColumn[] };
+  helpMenu?: { title: string; columns: NavMenuColumn[]; quickLinks: { text: string; path: string }[] };
+}
+
+export interface FooterLink {
+  label: string;
+  path: string;
+}
+
+export interface FooterSection {
+  title: string;
+  links: FooterLink[];
+}
+
+export interface FooterNavContent {
+  brandInfo: { name: string; slogan: string; description: string };
+  sections: FooterSection[];
+  socialLinks: { icon: string; name: string; url: string }[];
+  contactInfo: { phone: string; email: string; wechat: string; serviceHours: string };
+  copyright: { text: string; links: FooterLink[] };
+}
+
+// FAQ 类型
+export interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+export interface FAQContent {
+  sectionTitle: string;
+  sectionSubtitle: string;
+  items: FAQItem[];
+}
+
+// SEO 类型
+export interface SEOContent {
+  title: string;
+  description: string;
+  keywords: string;
+  url: string;
+}
 
 // ==================== 类型定义 ====================
 
@@ -159,4 +338,75 @@ export const getPricingPlans = async (): Promise<PricingPlan[]> => {
  */
 export const getPricingPlanById = async (id: string): Promise<PricingPlan> => {
   return request.get(`/cms/pricing/${id}`);
+};
+
+// ==================== 页面内容块 API ====================
+
+/**
+ * 获取页面内容块
+ * @param page 页面标识 (如 'home', 'global')
+ * @param section 区块标识 (如 'hero', 'features')
+ */
+export const getContents = async <T = Record<string, any>>(
+  page?: string,
+  section?: string
+): Promise<CmsContent<T>[]> => {
+  const params = new URLSearchParams();
+  if (page) params.append('page', page);
+  if (section) params.append('section', section);
+  const queryString = params.toString();
+  return request.get(`/cms/contents${queryString ? `?${queryString}` : ''}`);
+};
+
+/**
+ * 获取单个页面内容块
+ */
+export const getContentById = async <T = Record<string, any>>(id: string): Promise<CmsContent<T>> => {
+  return request.get(`/cms/contents/${id}`);
+};
+
+/**
+ * 获取首页所有内容块
+ */
+export const getHomeContents = async (): Promise<{
+  hero?: HeroContent;
+  features?: FeaturesContent;
+  stats?: StatsContent;
+  howItWorks?: HowItWorksContent;
+  useCases?: UseCasesContent;
+  ctaBanner?: CTABannerContent;
+  faq?: FAQContent;
+  seo?: SEOContent;
+}> => {
+  const contents = await getContents('home');
+  const result: Record<string, any> = {};
+
+  for (const content of contents) {
+    // 将 section 名称转换为 camelCase
+    const key = content.section.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    result[key] = content.content;
+  }
+
+  return result;
+};
+
+/**
+ * 获取全局导航内容
+ */
+export const getNavigationContents = async (): Promise<{
+  header?: HeaderNavContent;
+  footer?: FooterNavContent;
+}> => {
+  const contents = await getContents('global');
+  const result: Record<string, any> = {};
+
+  for (const content of contents) {
+    if (content.section === 'header-nav') {
+      result.header = content.content;
+    } else if (content.section === 'footer-nav') {
+      result.footer = content.content;
+    }
+  }
+
+  return result;
 };

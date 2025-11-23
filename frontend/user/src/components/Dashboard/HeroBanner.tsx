@@ -2,6 +2,20 @@ import React, { useRef } from 'react';
 import { Button, Space, Carousel } from 'antd';
 import { RocketOutlined, PlayCircleOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 import type { CarouselRef } from 'antd/es/carousel';
+import { useHeroContent } from '@/hooks/useCmsContent';
+
+// Banner slide 类型
+interface BannerSlide {
+  id: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  tag: string;
+  bgGradient: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+}
 
 interface HeroBannerProps {
   onGetStarted: () => void;
@@ -11,8 +25,8 @@ interface HeroBannerProps {
   onDashboard?: () => void;
 }
 
-// Banner slides 数据
-const bannerSlides = [
+// 默认 Banner slides 数据（回退用）
+const defaultBannerSlides: BannerSlide[] = [
   {
     id: 1,
     title: '思维无界',
@@ -59,14 +73,28 @@ const bannerSlides = [
   },
 ];
 
+const defaultTrustBadges = ['企业级安全', '99.9% 可用性', '7×24 小时支持', 'ISO 27001 认证'];
+
 /**
  * CloudPhone.run 首页头部横幅组件
  * 现代化设计，展示品牌价值主张，支持多图轮播
+ * 内容从 CMS 动态加载，支持后台配置
  */
 export const HeroBanner: React.FC<HeroBannerProps> = React.memo(({
   onGetStarted,
 }) => {
   const carouselRef = useRef<CarouselRef>(null);
+
+  // 从 CMS 获取 Hero 内容
+  const { data: heroContent } = useHeroContent();
+
+  // 使用 CMS 数据或回退到默认值
+  const bannerSlides = heroContent?.slides || defaultBannerSlides;
+  const trustBadges = heroContent?.trustBadges || defaultTrustBadges;
+  const ctaButtons = heroContent?.ctaButtons || {
+    primary: { text: '立即开始', icon: 'RocketOutlined' },
+    secondary: { text: '观看演示', icon: 'PlayCircleOutlined' },
+  };
 
   return (
     <div
@@ -350,7 +378,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = React.memo(({
                         target.style.boxShadow = `0 10px 40px ${slide.primaryColor}66`;
                       }}
                     >
-                      立即开始
+                      {ctaButtons.primary.text}
                     </Button>
 
                     <Button
@@ -379,7 +407,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = React.memo(({
                         target.style.transform = 'translateY(0)';
                       }}
                     >
-                      观看演示
+                      {ctaButtons.secondary.text}
                     </Button>
                   </Space>
 
@@ -404,7 +432,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = React.memo(({
                         flexWrap: 'wrap',
                       }}
                     >
-                      {['企业级安全', '99.9% 可用性', '7×24 小时支持', 'ISO 27001 认证'].map((item, idx) => (
+                      {trustBadges.map((item, idx) => (
                         <div
                           key={idx}
                           style={{

@@ -9,6 +9,21 @@ import {
 } from '@/components/Home';
 import { SEO, AnimatedSection } from '@/components';
 import { useHome } from '@/hooks/useHome';
+import { useSEOContent, usePageContent } from '@/hooks/useCmsContent';
+
+// 默认 SEO 数据
+const defaultSEO = {
+  title: 'CloudPhone.run - 企业级云手机平台',
+  description: 'CloudPhone.run 提供稳定高效的云端 Android 设备服务，支持应用测试、自动化运营、游戏多开等场景。思维无界，云端赋能。',
+  keywords: '云手机,云端Android,应用测试,自动化运营,游戏多开,移动设备云,云测试平台,CloudPhone.run',
+  url: 'https://cloudphone.run',
+};
+
+// 默认定价区块数据
+const defaultPricingSection = {
+  title: '选择适合您的套餐',
+  subtitle: '灵活的套餐选择，按需付费，无隐藏费用',
+};
 
 /**
  * CloudPhone.run 营销型首页
@@ -24,13 +39,20 @@ const Home = () => {
     handleGetStarted,
   } = useHome();
 
+  // 从 CMS 获取 SEO 和定价区块内容
+  const { data: seoContent } = useSEOContent();
+  const { data: pricingSection } = usePageContent<{ title: string; subtitle: string }>('home', 'pricing-section');
+
+  const seo = seoContent || defaultSEO;
+  const pricing = pricingSection?.[0]?.content || defaultPricingSection;
+
   return (
     <div>
       <SEO
-        title="CloudPhone.run - 企业级云手机平台"
-        description="CloudPhone.run 提供稳定高效的云端 Android 设备服务，支持应用测试、自动化运营、游戏多开等场景。思维无界，云端赋能。"
-        keywords="云手机,云端Android,应用测试,自动化运营,游戏多开,移动设备云,云测试平台,CloudPhone.run"
-        url="https://ultrathink.com"
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        url={seo.url}
       />
       {/* 1. 头部横幅 - 品牌宣传 */}
       <AnimatedSection animation="fadeIn" duration={0.8}>
@@ -56,9 +78,9 @@ const Home = () => {
       <AnimatedSection animation="fadeInUp" delay={0.1}>
         <div style={{ maxWidth: 1200, margin: '80px auto', padding: '0 24px' }}>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <h2 style={{ fontSize: 32, marginBottom: 16 }}>选择适合您的套餐</h2>
+            <h2 style={{ fontSize: 32, marginBottom: 16 }}>{pricing.title}</h2>
             <p style={{ fontSize: 16, color: '#666' }}>
-              灵活的套餐选择，按需付费，无隐藏费用
+              {pricing.subtitle}
             </p>
           </div>
 
