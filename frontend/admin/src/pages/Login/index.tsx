@@ -1,4 +1,5 @@
-import { Form, Input, Button, Typography, Divider, Space, Checkbox } from 'antd';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Form, Input, Button, Typography, Divider, Space, Checkbox, Skeleton } from 'antd';
 import {
   UserOutlined,
   LockOutlined,
@@ -6,7 +7,11 @@ import {
   SafetyCertificateOutlined,
   MobileOutlined,
   GlobalOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
+import Particles, { initParticlesEngine } from '@tsparticles/react';
+import { loadSlim } from '@tsparticles/slim';
+import type { ISourceOptions } from '@tsparticles/engine';
 import { CaptchaInput, TwoFactorModal, useLogin } from '@/components/Login';
 import ErrorAlert from '@/components/ErrorAlert';
 import './index.css';
@@ -20,22 +25,78 @@ interface LoginForm {
   remember?: boolean;
 }
 
+// 打字机效果 Hook
+const useTypewriter = (text: string, speed: number = 50) => {
+  const [displayText, setDisplayText] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    setDisplayText('');
+    setIsComplete(false);
+    let index = 0;
+    const timer = setInterval(() => {
+      if (index < text.length) {
+        setDisplayText(text.slice(0, index + 1));
+        index++;
+      } else {
+        setIsComplete(true);
+        clearInterval(timer);
+      }
+    }, speed);
+    return () => clearInterval(timer);
+  }, [text, speed]);
+
+  return { displayText, isComplete };
+};
+
+// 粒子配置
+const particlesOptions: ISourceOptions = {
+  fullScreen: false,
+  background: { color: { value: 'transparent' } },
+  fpsLimit: 60,
+  particles: {
+    color: { value: '#4facfe' },
+    links: {
+      color: '#4facfe',
+      distance: 150,
+      enable: true,
+      opacity: 0.3,
+      width: 1,
+    },
+    move: {
+      enable: true,
+      speed: 1,
+      direction: 'none',
+      random: true,
+      straight: false,
+      outModes: { default: 'bounce' },
+    },
+    number: {
+      density: { enable: true, area: 800 },
+      value: 60,
+    },
+    opacity: { value: 0.5 },
+    shape: { type: 'circle' },
+    size: { value: { min: 1, max: 3 } },
+  },
+  detectRetina: true,
+};
+
 const Login = () => {
   const [form] = Form.useForm();
+  const [particlesInit, setParticlesInit] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [loginSuccess, setLoginSuccess] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const {
-    // 验证码相关
     captchaSvg,
     captchaLoading,
     fetchCaptcha,
-
-    // 登录相关
     loginLoading,
     loginError,
     setLoginError,
     handleLogin,
-
-    // 2FA 相关
     twoFactorModalVisible,
     twoFactorToken,
     twoFactorLoading,
@@ -46,21 +107,86 @@ const Login = () => {
     handleTwoFactorCancel,
   } = useLogin();
 
+  // 初始化粒子引擎
+  useEffect(() => {
+    initParticlesEngine(async (engine) => {
+      await loadSlim(engine);
+    }).then(() => {
+      setParticlesInit(true);
+    });
+  }, []);
+
+  // 模拟页面加载
+  useEffect(() => {
+    const timer = setTimeout(() => setPageLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 打字机效果文字
+  const description = '企业级云端 Android 设备管理解决方案，支持大规模部署、智能调度、实时监控';
+  const { displayText, isComplete } = useTypewriter(description, 40);
+
   const onFinish = async (values: LoginForm) => {
-    await handleLogin(values, () => form.setFieldValue('captcha', ''));
+    const success = await handleLogin(values, () => form.setFieldValue('captcha', ''));
+    if (success) {
+      setLoginSuccess(true);
+    }
   };
 
   // 平台特性
-  const features = [
+  const features = useMemo(() => [
     { icon: <MobileOutlined />, text: '云端设备管理' },
     { icon: <GlobalOutlined />, text: '全球节点部署' },
     { icon: <SafetyCertificateOutlined />, text: '企业级安全' },
-  ];
+  ], []);
+
+  // 骨架屏加载中
+  if (pageLoading) {
+    return (
+      <div className="login-page">
+        <div className="login-brand">
+          <div className="brand-content">
+            <Skeleton.Avatar active size={60} style={{ marginBottom: 20 }} />
+            <Skeleton active paragraph={{ rows: 4 }} />
+          </div>
+        </div>
+        <div className="login-form-section glass-effect">
+          <div className="login-form-container">
+            <Skeleton active paragraph={{ rows: 6 }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 登录成功动画
+  if (loginSuccess) {
+    return (
+      <div className="login-page">
+        <div className="login-success-overlay">
+          <div className="success-content">
+            <CheckCircleOutlined className="success-icon" />
+            <Title level={3} style={{ color: '#fff', marginTop: 20 }}>登录成功</Title>
+            <Text style={{ color: 'rgba(255,255,255,0.8)' }}>正在跳转...</Text>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="login-page">
       {/* 左侧品牌区域 */}
       <div className="login-brand">
+        {/* 粒子背景 */}
+        {particlesInit && (
+          <Particles
+            id="tsparticles"
+            options={particlesOptions}
+            className="particles-bg"
+          />
+        )}
+
         <div className="brand-content">
           <div className="brand-logo">
             <CloudOutlined className="logo-icon" />
@@ -69,12 +195,31 @@ const Login = () => {
           <Title level={2} className="brand-title">
             云手机管理平台
           </Title>
-          <Paragraph className="brand-description">
-            企业级云端 Android 设备管理解决方案，支持大规模部署、智能调度、实时监控
+          <Paragraph className="brand-description typewriter">
+            {displayText}
+            {!isComplete && <span className="cursor">|</span>}
           </Paragraph>
+
+          {/* 3D 手机展示 */}
+          <div className="phone-3d-container">
+            <div className="phone-3d">
+              <div className="phone-screen">
+                <div className="phone-status-bar">
+                  <span>9:41</span>
+                  <span>⚡ 100%</span>
+                </div>
+                <div className="phone-app-grid">
+                  {[...Array(9)].map((_, i) => (
+                    <div key={i} className="phone-app-icon" style={{ animationDelay: `${i * 0.1}s` }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="brand-features">
             {features.map((feature, index) => (
-              <div key={index} className="feature-item">
+              <div key={index} className="feature-item" style={{ animationDelay: `${index * 0.1}s` }}>
                 <span className="feature-icon">{feature.icon}</span>
                 <span className="feature-text">{feature.text}</span>
               </div>
@@ -100,8 +245,8 @@ const Login = () => {
         </div>
       </div>
 
-      {/* 右侧登录表单 */}
-      <div className="login-form-section">
+      {/* 右侧登录表单 - 玻璃拟态 */}
+      <div className="login-form-section glass-effect">
         <div className="login-form-container">
           <div className="form-header">
             <Title level={3} className="form-title">管理员登录</Title>
@@ -110,7 +255,6 @@ const Login = () => {
             </Text>
           </div>
 
-          {/* 登录错误提示 */}
           {loginError && (
             <ErrorAlert
               error={loginError}
@@ -130,31 +274,35 @@ const Login = () => {
           >
             <Form.Item
               name="username"
-              label="用户名"
+              label={<span className={`floating-label ${focusedField === 'username' ? 'focused' : ''}`}>用户名</span>}
               rules={[{ required: true, message: '请输入用户名' }]}
             >
               <Input
                 prefix={<UserOutlined className="input-icon" />}
                 placeholder="请输入用户名"
                 autoComplete="username"
+                onFocus={() => setFocusedField('username')}
+                onBlur={() => setFocusedField(null)}
               />
             </Form.Item>
 
             <Form.Item
               name="password"
-              label="密码"
+              label={<span className={`floating-label ${focusedField === 'password' ? 'focused' : ''}`}>密码</span>}
               rules={[{ required: true, message: '请输入密码' }]}
             >
               <Input.Password
                 prefix={<LockOutlined className="input-icon" />}
                 placeholder="请输入密码"
                 autoComplete="current-password"
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
               />
             </Form.Item>
 
             <Form.Item
               name="captcha"
-              label="验证码"
+              label={<span className={`floating-label ${focusedField === 'captcha' ? 'focused' : ''}`}>验证码</span>}
               rules={[
                 { required: true, message: '请输入验证码' },
                 { len: 4, message: '验证码为4位' },
@@ -210,7 +358,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* 2FA 验证 Modal */}
       <TwoFactorModal
         visible={twoFactorModalVisible}
         loading={twoFactorLoading}
