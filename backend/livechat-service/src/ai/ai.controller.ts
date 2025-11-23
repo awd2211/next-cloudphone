@@ -3,10 +3,10 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AiService } from './ai.service';
 
-@ApiTags('ai')
+@ApiTags('livechat/ai')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('ai')
+@Controller('livechat/ai')
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 

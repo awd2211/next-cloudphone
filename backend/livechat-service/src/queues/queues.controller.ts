@@ -13,10 +13,10 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, CurrentUserData } from '../auth/decorators/current-user.decorator';
 import { QueuesService } from './queues.service';
 
-@ApiTags('queues')
+@ApiTags('livechat/queues')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('queues')
+@Controller('livechat/queues')
 export class QueuesController {
   constructor(private readonly queuesService: QueuesService) {}
 

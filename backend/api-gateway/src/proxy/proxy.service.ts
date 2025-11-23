@@ -126,6 +126,15 @@ export class ProxyService {
           timeout: 10000,
         },
       ],
+      [
+        'livechat',
+        {
+          name: 'LiveChat Service',
+          consulName: 'livechat-service',
+          healthCheck: '/health',
+          timeout: 15000,
+        },
+      ],
     ]);
 
     // 初始化微服务路由配置（静态配置，作为 fallback）
@@ -211,6 +220,15 @@ export class ProxyService {
           timeout: 10000,
         },
       ],
+      [
+        'livechat',
+        {
+          name: 'LiveChat Service',
+          url: this.configService.get('LIVECHAT_SERVICE_URL') || 'http://localhost:30010',
+          healthCheck: '/health',
+          timeout: 15000,
+        },
+      ],
     ]);
 
     // 初始化熔断器
@@ -234,6 +252,7 @@ export class ProxyService {
       billing: { errorThresholdPercentage: 20, volumeThreshold: 30 },   // 支付严格
       notifications: { errorThresholdPercentage: 30, volumeThreshold: 30 },
       media: { errorThresholdPercentage: 30, volumeThreshold: 20 },     // 实时性要求高
+      livechat: { errorThresholdPercentage: 25, volumeThreshold: 30 },  // 在线客服
     };
 
     // 为每个服务创建独立的熔断器

@@ -257,6 +257,55 @@ const BasicLayout = () => {
       label: '工单服务',
       onClick: () => navigate('/tickets'),
     },
+    {
+      key: 'livechat-menu',
+      icon: <MessageOutlined />,
+      label: '在线客服',
+      children: [
+        {
+          key: '/livechat/conversations',
+          icon: <MessageOutlined />,
+          label: '会话监控',
+          onClick: () => navigate('/livechat/conversations'),
+        },
+        {
+          key: '/livechat/agents',
+          icon: <CustomerServiceOutlined />,
+          label: '客服管理',
+          onClick: () => navigate('/livechat/agents'),
+        },
+        {
+          key: '/livechat/groups',
+          icon: <TeamOutlined />,
+          label: '客服分组',
+          onClick: () => navigate('/livechat/groups'),
+        },
+        {
+          key: '/livechat/queues',
+          icon: <ControlOutlined />,
+          label: '排队配置',
+          onClick: () => navigate('/livechat/queues'),
+        },
+        {
+          key: '/livechat/canned-responses',
+          icon: <ThunderboltOutlined />,
+          label: '快捷回复',
+          onClick: () => navigate('/livechat/canned-responses'),
+        },
+        {
+          key: '/livechat/sensitive-words',
+          icon: <SafetyCertificateOutlined />,
+          label: '敏感词管理',
+          onClick: () => navigate('/livechat/sensitive-words'),
+        },
+        {
+          key: '/livechat/analytics',
+          icon: <BarChartOutlined />,
+          label: '数据统计',
+          onClick: () => navigate('/livechat/analytics'),
+        },
+      ],
+    },
 
     // ==================== 4. 财务管理 ====================
     {

@@ -17,10 +17,14 @@ export interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
+    const secretOrKey = configService.get<string>('JWT_SECRET');
+    if (!secretOrKey) {
+      throw new Error('JWT_SECRET must be defined');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get('JWT_SECRET'),
+      secretOrKey,
     });
   }
 

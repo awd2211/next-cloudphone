@@ -17,10 +17,10 @@ import { CreateConversationDto, SendMessageDto, UpdateConversationDto } from './
 import { ConversationStatus } from '../entities/conversation.entity';
 import { MessageSender } from '../entities/message.entity';
 
-@ApiTags('chat')
+@ApiTags('livechat/chat')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('chat')
+@Controller('livechat/chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
@@ -125,9 +125,9 @@ export class ChatController {
   @ApiQuery({ name: 'before', required: false, type: String })
   async getMessages(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: CurrentUserData,
     @Query('limit') limit: number = 50,
     @Query('before') before?: string,
-    @CurrentUser() user: CurrentUserData,
   ) {
     const beforeDate = before ? new Date(before) : undefined;
     return this.chatService.getMessages(id, user.tenantId, limit, beforeDate);
@@ -151,8 +151,8 @@ export class ChatController {
   @ApiResponse({ status: 200, description: '返回客服会话列表' })
   @ApiQuery({ name: 'status', required: false, enum: ConversationStatus })
   async getAgentConversations(
-    @Query('status') status?: ConversationStatus,
     @CurrentUser() user: CurrentUserData,
+    @Query('status') status?: ConversationStatus,
   ) {
     return this.chatService.getAgentConversations(user.userId, user.tenantId, status);
   }

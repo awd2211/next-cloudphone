@@ -1323,6 +1323,38 @@ export class ProxyController {
     return this.handleProxy('users', req, res);
   }
 
+  // ============================================================================
+  // LiveChat 在线客服服务路由
+  // ============================================================================
+
+  /**
+   * LiveChat 服务统一路由 (精确匹配)
+   * 所有路由使用 /livechat/* 前缀，明确区分服务归属
+   *
+   * 路由示例:
+   * - /livechat/chat/*        - 会话管理
+   * - /livechat/agents/*      - 客服管理
+   * - /livechat/queues/*      - 排队管理
+   * - /livechat/ai/*          - AI 智能客服
+   * - /livechat/analytics/*   - 统计分析
+   * - /livechat/quality/*     - 质检管理
+   * - /livechat/archives/*    - 归档管理
+   * - /livechat/device-assist/* - 设备协助
+   * - /livechat/tickets/*     - 会话转工单
+   * - /livechat/media/*       - 媒体上传
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('livechat')
+  async proxyLivechatExact(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('livechat', req, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @All('livechat/*path')
+  async proxyLivechat(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('livechat', req, res);
+  }
+
   /**
    * 通用代理处理方法
    */

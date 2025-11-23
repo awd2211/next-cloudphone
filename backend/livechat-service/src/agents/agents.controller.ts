@@ -15,10 +15,10 @@ import { CurrentUser, CurrentUserData } from '../auth/decorators/current-user.de
 import { AgentsService } from './agents.service';
 import { AgentStatus } from '../entities/agent.entity';
 
-@ApiTags('agents')
+@ApiTags('livechat/agents')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('agents')
+@Controller('livechat/agents')
 export class AgentsController {
   constructor(private readonly agentsService: AgentsService) {}
 

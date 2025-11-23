@@ -106,6 +106,15 @@ const StateRecoveryManagement = lazy(() => import('@/pages/StateRecovery/Managem
 // CMS 内容管理
 const CmsManagement = lazy(() => import('@/pages/CMS/Management'));
 
+// LiveChat 在线客服管理
+const LiveChatAgentList = lazy(() => import('@/pages/LiveChat/Agents/List'));
+const LiveChatGroupList = lazy(() => import('@/pages/LiveChat/Groups/List'));
+const LiveChatQueueConfig = lazy(() => import('@/pages/LiveChat/Queues/List'));
+const LiveChatCannedResponses = lazy(() => import('@/pages/LiveChat/CannedResponses/List'));
+const LiveChatSensitiveWords = lazy(() => import('@/pages/LiveChat/SensitiveWords/List'));
+const LiveChatConversations = lazy(() => import('@/pages/LiveChat/Conversations/List'));
+const LiveChatAnalytics = lazy(() => import('@/pages/LiveChat/Analytics/Dashboard'));
+
 // ✅ 导入优化的页面加载骨架屏
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 
@@ -425,6 +434,42 @@ export const router = createBrowserRouter([
       {
         path: 'cms',
         element: withAdminRoute(CmsManagement), // 管理员专属 - 官网内容管理
+      },
+      // ============ LiveChat 在线客服管理 - 管理员专属 ============
+      // 客服管理
+      {
+        path: 'livechat/agents',
+        element: withAdminRoute(LiveChatAgentList), // 客服列表管理
+      },
+      // 客服分组
+      {
+        path: 'livechat/groups',
+        element: withAdminRoute(LiveChatGroupList), // 客服分组管理
+      },
+      // 排队配置
+      {
+        path: 'livechat/queues',
+        element: withAdminRoute(LiveChatQueueConfig), // 排队策略配置
+      },
+      // 快捷回复
+      {
+        path: 'livechat/canned-responses',
+        element: withAdminRoute(LiveChatCannedResponses), // 快捷回复管理
+      },
+      // 敏感词管理
+      {
+        path: 'livechat/sensitive-words',
+        element: withAdminRoute(LiveChatSensitiveWords), // 敏感词过滤
+      },
+      // 会话监控
+      {
+        path: 'livechat/conversations',
+        element: withAdminRoute(LiveChatConversations), // 实时会话监控
+      },
+      // 数据统计
+      {
+        path: 'livechat/analytics',
+        element: withAdminRoute(LiveChatAnalytics), // 客服数据统计
       },
     ],
   },

@@ -37,6 +37,7 @@ PM2 configuration is in `ecosystem.config.js` with cluster mode for scalable ser
 - **notification-service**: 1 instance (fork mode)
 - **sms-receive-service**: 1 instance (fork mode)
 - **proxy-service**: 2 instances (cluster mode)
+- **livechat-service**: 1-2 instances (fork/cluster mode) - 在线客服系统
 - **frontend-admin**: 1 instance (fork mode)
 - **frontend-user**: 1 instance (fork mode)
 
@@ -136,6 +137,7 @@ pnpm preview
 - `cloudphone_user` - User service database
 - `cloudphone_device` - Device service database
 - `cloudphone_notification` - Notification service database
+- `cloudphone_livechat` - LiveChat service database
 
 **Database initialization:**
 ```bash
@@ -263,10 +265,21 @@ docker compose -f docker-compose.dev.yml down -v
    - Cron job management
    - Task queue processing
 
-8. **media-service** - Go/Gin (Port TBD)
+8. **media-service** - Go/Gin (Port 30009)
    - WebRTC streaming for device screens
    - Screen recording
    - Multi-encoder support (H264, VP8, VP9)
+
+9. **livechat-service** (Port 30010) - 在线客服系统
+   - WebSocket 实时聊天 (Socket.IO)
+   - 智能排队分配 (5种路由策略: Round Robin, Least Busy, Skill-based, Priority, Random)
+   - AI 智能客服 (OpenAI 集成)
+   - 多媒体消息支持 (图片、文件、语音)
+   - 设备远程协助 (ADB 命令执行)
+   - 会话转工单集成
+   - 绩效统计和质检评分
+   - 消息加密 (AES-256-GCM) 和归档
+   - RabbitMQ 事件消费 (device.*, user.*, ticket.* 事件)
 
 **Frontend Applications:**
 
@@ -594,6 +607,7 @@ curl http://localhost:30002/health  # Device Service
 curl http://localhost:30003/health  # App Service
 curl http://localhost:30005/health  # Billing Service
 curl http://localhost:30006/health  # Notification Service
+curl http://localhost:30010/health  # LiveChat Service
 
 # Check all services with script
 ./scripts/check-health.sh
@@ -1110,6 +1124,7 @@ max_memory_restart: '2G'
 - Consul UI: http://localhost:8500
 - RabbitMQ Management: http://localhost:15672 (admin/admin123)
 - MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
+- LiveChat Swagger: http://localhost:30010/docs
 
 **Documentation:**
 - Architecture: `docs/ARCHITECTURE.md`

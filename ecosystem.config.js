@@ -346,6 +346,56 @@ module.exports = {
       instance_var: 'INSTANCE_ID',
     },
     {
+      name: 'livechat-service',
+      version: '1.0.0',
+      script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
+      args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
+      cwd: './backend/livechat-service',
+
+      // Node.js 参数 - 增加请求头大小限制
+      node_args: '--max-http-header-size=32768', // 32KB
+
+      // 💬 在线客服服务 - 支持集群模式（WebSocket 使用 Redis Adapter）
+      // 开发环境: 1 实例方便调试
+      // 生产环境: 2 实例提供冗余和负载均衡
+      instances: process.env.NODE_ENV === 'production' ? 2 : 1,
+      exec_mode: process.env.NODE_ENV === 'production' ? 'cluster' : 'fork',
+
+      autorestart: true,
+      watch: false, // 使用NestJS内置的热重载
+
+      // 资源限制
+      max_memory_restart: '1G',
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000,
+
+      // 🔄 优雅重启
+      kill_timeout: 5000,
+
+      env: {
+        NODE_ENV: 'development',
+        PORT: 30010,
+        DB_DATABASE: 'cloudphone_livechat',
+      },
+
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 30010,
+        LOG_LEVEL: 'info',
+        DB_DATABASE: 'cloudphone_livechat',
+      },
+
+      error_file: './logs/livechat-service-error.log',
+      out_file: './logs/livechat-service-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+
+      // 📊 监控
+      pmx: true,
+      instance_var: 'INSTANCE_ID',
+    },
+    {
       name: 'frontend-admin',
       version: '1.0.0',
       script: 'pnpm',

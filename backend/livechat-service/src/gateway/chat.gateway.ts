@@ -74,10 +74,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
       // 记录在线状态
       if (client.isAgent) {
-        await this.redis.sadd(this.cacheService.onlineAgentsKey(client.tenantId), client.userId);
-        await this.redis.set(this.cacheService.agentStatusKey(client.userId), 'online', 'EX', 3600);
+        await this.redis.sadd(this.cacheService.onlineAgentsKey(client.tenantId!), client.userId!);
+        await this.redis.set(this.cacheService.agentStatusKey(client.userId!), 'online', 'EX', 3600);
       } else {
-        await this.redis.sadd(this.cacheService.onlineUsersKey(client.tenantId), client.userId);
+        await this.redis.sadd(this.cacheService.onlineUsersKey(client.tenantId!), client.userId!);
       }
 
       this.logger.log(`Client connected: ${client.id} (${client.username}, isAgent: ${client.isAgent})`);

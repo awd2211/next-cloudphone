@@ -11,10 +11,10 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagg
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { MediaService } from './media.service';
 
-@ApiTags('media')
+@ApiTags('livechat/media')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('media')
+@Controller('livechat/media')
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
