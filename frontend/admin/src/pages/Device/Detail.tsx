@@ -119,7 +119,7 @@ const DeviceDetail = () => {
 
   return (
     <div>
-      <DeviceDetailHeader onBack={() => navigate('/devices')} />
+      <DeviceDetailHeader onBack={() => navigate('/admin/business/devices')} />
 
       {device && (
         <DeviceInfoCard

@@ -28,7 +28,7 @@ const AppReviewDetail = () => {
   const handleReviewSubmit = async (values: any) => {
     const success = await handleReview(values);
     if (success) {
-      setTimeout(() => navigate('/app-review'), 1000);
+      setTimeout(() => navigate('/admin/business/apps/review'), 1000);
     }
   };
 
@@ -37,7 +37,7 @@ const AppReviewDetail = () => {
       <div style={{ padding: 24 }}>
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/app-review')}
+          onClick={() => navigate('/admin/business/apps/review')}
           style={{ marginBottom: 24 }}
         >
           返回列表
@@ -49,7 +49,7 @@ const AppReviewDetail = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <ReviewDetailHeader onBack={() => navigate('/app-review')} />
+      <ReviewDetailHeader onBack={() => navigate('/admin/business/apps/review')} />
 
       {/* 审核状态提示 */}
       <ReviewStatusAlert reviewStatus={app.reviewStatus || 'pending'} />

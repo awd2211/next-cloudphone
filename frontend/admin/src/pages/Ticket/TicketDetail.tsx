@@ -37,7 +37,7 @@ const TicketDetail: React.FC = () => {
     <div>
       <Button
         icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/tickets')}
+        onClick={() => navigate('/admin/operations/tickets')}
         style={{ marginBottom: 16 }}
       >
         返回工单列表

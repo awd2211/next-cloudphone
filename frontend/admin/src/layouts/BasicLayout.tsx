@@ -89,7 +89,7 @@ const BasicLayout = () => {
     // 延迟执行，避免阻塞初始渲染
     const timer = setTimeout(() => {
       // 预加载最常访问的页面
-      prefetchMultipleRoutes(['/', '/devices', '/users']).catch((error) => {
+      prefetchMultipleRoutes(['/admin/dashboard', '/admin/business/devices', '/admin/business/users']).catch((error) => {
         console.warn('Failed to prefetch common routes:', error);
       });
     }, 1000); // 1 秒后开始预加载
@@ -111,13 +111,14 @@ const BasicLayout = () => {
 
   // ==================== 优化后的菜单分类 ====================
   // 分为 6 大模块：总览、业务管理、运营管理、财务管理、运维管理、系统管理
+  // 路由格式：/admin/{模块}/{功能}/{子功能}
   const menuItems: MenuProps['items'] = [
     // ==================== 1. 总览 ====================
     {
-      key: '/',
+      key: '/admin/dashboard',
       icon: <DashboardOutlined />,
       label: '工作台',
-      onClick: () => navigate('/'),
+      onClick: () => navigate('/admin/dashboard'),
     },
     {
       key: 'data-overview',
@@ -125,22 +126,22 @@ const BasicLayout = () => {
       label: '数据总览',
       children: [
         {
-          key: '/analytics',
+          key: '/admin/overview/analytics',
           icon: <PieChartOutlined />,
           label: '数据分析',
-          onClick: () => navigate('/analytics'),
+          onClick: () => navigate('/admin/overview/analytics'),
         },
         {
-          key: '/stats',
+          key: '/admin/overview/stats',
           icon: <LineChartOutlined />,
           label: '统计仪表板',
-          onClick: () => navigate('/stats'),
+          onClick: () => navigate('/admin/overview/stats'),
         },
         {
-          key: '/reports/revenue',
+          key: '/admin/overview/reports/revenue',
           icon: <DollarOutlined />,
           label: '收入报表',
-          onClick: () => navigate('/reports/revenue'),
+          onClick: () => navigate('/admin/overview/reports/revenue'),
         },
       ],
     },
@@ -160,42 +161,42 @@ const BasicLayout = () => {
       label: '设备中心',
       children: [
         {
-          key: '/devices',
+          key: '/admin/business/devices',
           icon: <MobileOutlined />,
           label: '设备列表',
-          onClick: () => navigate('/devices'),
+          onClick: () => navigate('/admin/business/devices'),
         },
         {
-          key: '/devices/groups',
+          key: '/admin/business/devices/groups',
           icon: <TeamOutlined />,
           label: '设备分组',
-          onClick: () => navigate('/devices/groups'),
+          onClick: () => navigate('/admin/business/devices/groups'),
         },
         {
-          key: '/templates',
+          key: '/admin/business/devices/templates',
           icon: <AppstoreOutlined />,
           label: '设备模板',
-          onClick: () => navigate('/templates'),
+          onClick: () => navigate('/admin/business/devices/templates'),
         },
         {
-          key: '/snapshots',
+          key: '/admin/business/devices/snapshots',
           icon: <CreditCardOutlined />,
           label: '设备快照',
-          onClick: () => navigate('/snapshots'),
+          onClick: () => navigate('/admin/business/devices/snapshots'),
         },
         {
-          key: '/physical-devices',
+          key: '/admin/business/devices/physical',
           icon: <SettingOutlined />,
           label: '物理设备',
-          onClick: () => navigate('/physical-devices'),
+          onClick: () => navigate('/admin/business/devices/physical'),
         },
       ],
     },
     {
-      key: '/apps',
+      key: '/admin/business/apps',
       icon: <AppstoreOutlined />,
       label: '应用市场',
-      onClick: () => navigate('/apps'),
+      onClick: () => navigate('/admin/business/apps'),
     },
     {
       key: 'users-menu',
@@ -203,16 +204,16 @@ const BasicLayout = () => {
       label: '用户中心',
       children: [
         {
-          key: '/users',
+          key: '/admin/business/users',
           icon: <UserOutlined />,
           label: '用户列表',
-          onClick: () => navigate('/users'),
+          onClick: () => navigate('/admin/business/users'),
         },
         {
-          key: '/quotas',
+          key: '/admin/business/users/quotas',
           icon: <DashboardFilled />,
           label: '配额管理',
-          onClick: () => navigate('/quotas'),
+          onClick: () => navigate('/admin/business/users/quotas'),
         },
       ],
     },
@@ -232,30 +233,30 @@ const BasicLayout = () => {
       label: '商业运营',
       children: [
         {
-          key: '/orders',
+          key: '/admin/operations/orders',
           icon: <ShoppingOutlined />,
           label: '订单管理',
-          onClick: () => navigate('/orders'),
+          onClick: () => navigate('/admin/operations/orders'),
         },
         {
-          key: '/plans',
+          key: '/admin/operations/plans',
           icon: <GoldOutlined />,
           label: '套餐管理',
-          onClick: () => navigate('/plans'),
+          onClick: () => navigate('/admin/operations/plans'),
         },
         {
-          key: '/usage',
+          key: '/admin/operations/usage',
           icon: <ClockCircleOutlined />,
           label: '使用记录',
-          onClick: () => navigate('/usage'),
+          onClick: () => navigate('/admin/operations/usage'),
         },
       ],
     },
     {
-      key: '/tickets',
+      key: '/admin/operations/tickets',
       icon: <CustomerServiceOutlined />,
       label: '工单服务',
-      onClick: () => navigate('/tickets'),
+      onClick: () => navigate('/admin/operations/tickets'),
     },
     {
       key: 'livechat-menu',
@@ -263,46 +264,46 @@ const BasicLayout = () => {
       label: '在线客服',
       children: [
         {
-          key: '/livechat/conversations',
+          key: '/admin/operations/livechat/conversations',
           icon: <MessageOutlined />,
           label: '会话监控',
-          onClick: () => navigate('/livechat/conversations'),
+          onClick: () => navigate('/admin/operations/livechat/conversations'),
         },
         {
-          key: '/livechat/agents',
+          key: '/admin/operations/livechat/agents',
           icon: <CustomerServiceOutlined />,
           label: '客服管理',
-          onClick: () => navigate('/livechat/agents'),
+          onClick: () => navigate('/admin/operations/livechat/agents'),
         },
         {
-          key: '/livechat/groups',
+          key: '/admin/operations/livechat/groups',
           icon: <TeamOutlined />,
           label: '客服分组',
-          onClick: () => navigate('/livechat/groups'),
+          onClick: () => navigate('/admin/operations/livechat/groups'),
         },
         {
-          key: '/livechat/queues',
+          key: '/admin/operations/livechat/queues',
           icon: <ControlOutlined />,
           label: '排队配置',
-          onClick: () => navigate('/livechat/queues'),
+          onClick: () => navigate('/admin/operations/livechat/queues'),
         },
         {
-          key: '/livechat/canned-responses',
+          key: '/admin/operations/livechat/canned-responses',
           icon: <ThunderboltOutlined />,
           label: '快捷回复',
-          onClick: () => navigate('/livechat/canned-responses'),
+          onClick: () => navigate('/admin/operations/livechat/canned-responses'),
         },
         {
-          key: '/livechat/sensitive-words',
+          key: '/admin/operations/livechat/sensitive-words',
           icon: <SafetyCertificateOutlined />,
           label: '敏感词管理',
-          onClick: () => navigate('/livechat/sensitive-words'),
+          onClick: () => navigate('/admin/operations/livechat/sensitive-words'),
         },
         {
-          key: '/livechat/analytics',
+          key: '/admin/operations/livechat/analytics',
           icon: <BarChartOutlined />,
           label: '数据统计',
-          onClick: () => navigate('/livechat/analytics'),
+          onClick: () => navigate('/admin/operations/livechat/analytics'),
         },
       ],
     },
@@ -322,22 +323,22 @@ const BasicLayout = () => {
       label: '账务中心',
       children: [
         {
-          key: '/billing/balance',
+          key: '/admin/finance/billing/balance',
           icon: <AccountBookOutlined />,
           label: '余额概览',
-          onClick: () => navigate('/billing/balance'),
+          onClick: () => navigate('/admin/finance/billing/balance'),
         },
         {
-          key: '/billing/transactions',
+          key: '/admin/finance/billing/transactions',
           icon: <TransactionOutlined />,
           label: '交易记录',
-          onClick: () => navigate('/billing/transactions'),
+          onClick: () => navigate('/admin/finance/billing/transactions'),
         },
         {
-          key: '/billing/invoices',
+          key: '/admin/finance/billing/invoices',
           icon: <FileTextOutlined />,
           label: '账单发票',
-          onClick: () => navigate('/billing/invoices'),
+          onClick: () => navigate('/admin/finance/billing/invoices'),
         },
       ],
     },
@@ -347,40 +348,40 @@ const BasicLayout = () => {
       label: '支付中心',
       children: [
         {
-          key: '/payments/dashboard',
+          key: '/admin/finance/payments/dashboard',
           icon: <PieChartOutlined />,
           label: '支付概览',
-          onClick: () => navigate('/payments/dashboard'),
+          onClick: () => navigate('/admin/finance/payments/dashboard'),
         },
         {
-          key: '/payments',
+          key: '/admin/finance/payments',
           icon: <UnorderedListOutlined />,
           label: '支付记录',
-          onClick: () => navigate('/payments'),
+          onClick: () => navigate('/admin/finance/payments'),
         },
         {
-          key: '/payments/refunds',
+          key: '/admin/finance/payments/refunds',
           icon: <MoneyCollectOutlined />,
           label: '退款管理',
-          onClick: () => navigate('/payments/refunds'),
+          onClick: () => navigate('/admin/finance/payments/refunds'),
         },
         {
-          key: '/payments/exceptions',
+          key: '/admin/finance/payments/exceptions',
           icon: <ExceptionOutlined />,
           label: '异常监控',
-          onClick: () => navigate('/payments/exceptions'),
+          onClick: () => navigate('/admin/finance/payments/exceptions'),
         },
         {
-          key: '/payments/webhooks',
+          key: '/admin/finance/payments/webhooks',
           icon: <LinkOutlined />,
           label: 'Webhook 日志',
-          onClick: () => navigate('/payments/webhooks'),
+          onClick: () => navigate('/admin/finance/payments/webhooks'),
         },
         {
-          key: '/payments/config',
+          key: '/admin/finance/payments/config',
           icon: <ControlOutlined />,
           label: '支付配置',
-          onClick: () => navigate('/payments/config'),
+          onClick: () => navigate('/admin/finance/payments/config'),
         },
       ],
     },
@@ -400,22 +401,22 @@ const BasicLayout = () => {
       label: '设备运维',
       children: [
         {
-          key: '/devices/lifecycle',
+          key: '/admin/devops/devices/lifecycle',
           icon: <ClockCircleOutlined />,
           label: '生命周期',
-          onClick: () => navigate('/devices/lifecycle'),
+          onClick: () => navigate('/admin/devops/devices/lifecycle'),
         },
         {
-          key: '/devices/failover',
+          key: '/admin/devops/devices/failover',
           icon: <ThunderboltOutlined />,
           label: '故障转移',
-          onClick: () => navigate('/devices/failover'),
+          onClick: () => navigate('/admin/devops/devices/failover'),
         },
         {
-          key: '/devices/state-recovery',
+          key: '/admin/devops/devices/state-recovery',
           icon: <SyncOutlined />,
           label: '状态恢复',
-          onClick: () => navigate('/devices/state-recovery'),
+          onClick: () => navigate('/admin/devops/devices/state-recovery'),
         },
       ],
     },
@@ -425,28 +426,28 @@ const BasicLayout = () => {
       label: '服务运维',
       children: [
         {
-          key: '/proxy',
+          key: '/admin/devops/proxy',
           icon: <GlobalOutlined />,
           label: '代理监控',
-          onClick: () => navigate('/proxy'),
+          onClick: () => navigate('/admin/devops/proxy'),
         },
         {
-          key: '/proxy/providers',
+          key: '/admin/devops/proxy/providers',
           icon: <SettingOutlined />,
           label: '代理配置',
-          onClick: () => navigate('/proxy/providers'),
+          onClick: () => navigate('/admin/devops/proxy/providers'),
         },
         {
-          key: '/sms',
+          key: '/admin/devops/sms',
           icon: <MessageOutlined />,
           label: 'SMS 监控',
-          onClick: () => navigate('/sms'),
+          onClick: () => navigate('/admin/devops/sms'),
         },
         {
-          key: '/sms/providers',
+          key: '/admin/devops/sms/providers',
           icon: <SettingOutlined />,
           label: 'SMS 配置',
-          onClick: () => navigate('/sms/providers'),
+          onClick: () => navigate('/admin/devops/sms/providers'),
         },
       ],
     },
@@ -466,28 +467,28 @@ const BasicLayout = () => {
       label: '访问控制',
       children: [
         {
-          key: '/roles',
+          key: '/admin/system/access/roles',
           icon: <TeamOutlined />,
           label: '角色管理',
-          onClick: () => navigate('/roles'),
+          onClick: () => navigate('/admin/system/access/roles'),
         },
         {
-          key: '/permissions',
+          key: '/admin/system/access/permissions',
           icon: <LockOutlined />,
           label: '权限管理',
-          onClick: () => navigate('/permissions'),
+          onClick: () => navigate('/admin/system/access/permissions'),
         },
         {
-          key: '/permissions/data-scope',
+          key: '/admin/system/access/data-scope',
           icon: <EyeOutlined />,
           label: '数据范围',
-          onClick: () => navigate('/permissions/data-scope'),
+          onClick: () => navigate('/admin/system/access/data-scope'),
         },
         {
-          key: '/permissions/field-permission',
+          key: '/admin/system/access/field-permission',
           icon: <FileProtectOutlined />,
           label: '字段权限',
-          onClick: () => navigate('/permissions/field-permission'),
+          onClick: () => navigate('/admin/system/access/field-permission'),
         },
       ],
     },
@@ -497,30 +498,30 @@ const BasicLayout = () => {
       label: '系统配置',
       children: [
         {
-          key: '/settings',
+          key: '/admin/system/config/settings',
           icon: <SettingOutlined />,
           label: '基础设置',
-          onClick: () => navigate('/settings'),
+          onClick: () => navigate('/admin/system/config/settings'),
         },
         {
-          key: '/notifications/templates',
+          key: '/admin/system/config/notifications/templates',
           icon: <BellOutlined />,
           label: '通知模板',
-          onClick: () => navigate('/notifications/templates'),
+          onClick: () => navigate('/admin/system/config/notifications/templates'),
         },
         {
-          key: '/api-keys',
+          key: '/admin/system/config/api-keys',
           icon: <ApiOutlined />,
           label: 'API 密钥',
-          onClick: () => navigate('/api-keys'),
+          onClick: () => navigate('/admin/system/config/api-keys'),
         },
       ],
     },
     {
-      key: '/audit-logs',
+      key: '/admin/system/logs/audit',
       icon: <ProfileOutlined />,
       label: '审计日志',
-      onClick: () => navigate('/audit-logs'),
+      onClick: () => navigate('/admin/system/logs/audit'),
     },
   ];
 
@@ -530,7 +531,7 @@ const BasicLayout = () => {
       icon: <UserOutlined />,
       label: '个人中心',
       onClick: () => {
-        navigate('/profile');
+        navigate('/admin/profile');
       },
     },
     {
@@ -573,7 +574,8 @@ const BasicLayout = () => {
       </div>
       <Menu
         theme="dark"
-        defaultSelectedKeys={['/']}
+        defaultSelectedKeys={['/admin/dashboard']}
+        selectedKeys={[location.pathname]}
         mode="inline"
         items={menuItems}
         onClick={() => isMobile && setMobileDrawerVisible(false)}

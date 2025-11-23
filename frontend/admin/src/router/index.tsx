@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 // Layout 和 Login 保持同步导入(首屏必需)
 import Layout from '@/layouts/BasicLayout';
@@ -158,136 +158,329 @@ const withAdminRoute = (
  * - ProtectedRoute 负责认证检查
  * - AdminRoute 负责权限检查（放在 Suspense 外部，先检查权限）
  * - Suspense 负责懒加载
+ *
+ * 路由层次结构：
+ * /admin                           # 管理后台根路径
+ * ├── /admin/dashboard             # 工作台
+ * ├── /admin/overview/*            # 数据总览
+ * ├── /admin/business/*            # 业务管理 (设备、用户、应用)
+ * ├── /admin/operations/*          # 运营管理 (订单、工单、客服)
+ * ├── /admin/finance/*             # 财务管理 (账单、支付)
+ * ├── /admin/devops/*              # 运维管理 (设备运维、服务运维)
+ * └── /admin/system/*              # 系统管理 (权限、配置、日志)
  */
 export const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
   },
+  // 根路径重定向到 /admin/dashboard
   {
     path: '/',
+    element: <Navigate to="/admin/dashboard" replace />,
+  },
+  {
+    path: '/admin',
     element: (
       <ProtectedRoute>
         <Layout />
       </ProtectedRoute>
     ),
     children: [
+      // 默认重定向到仪表板
       {
         index: true,
+        element: <Navigate to="/admin/dashboard" replace />,
+      },
+      // ==================== 工作台 ====================
+      {
+        path: 'dashboard',
         element: withSuspense(Dashboard),
       },
+
+      // ==================== 数据总览 /admin/overview/* ====================
       {
-        path: 'devices',
-        element: withSuspense(DeviceList),
+        path: 'overview/analytics',
+        element: withSuspense(AnalyticsDashboard),
       },
       {
-        path: 'devices/:id',
-        element: withSuspense(DeviceDetail),
+        path: 'overview/stats',
+        element: withSuspense(StatsDashboard),
       },
       {
-        path: 'templates',
-        element: withAdminRoute(TemplateList), // 管理员专属 - 设备模板管理
-      },
-      {
-        path: 'snapshots',
-        element: withAdminRoute(SnapshotList), // 管理员专属 - 设备快照管理
-      },
-      {
-        path: 'physical-devices',
-        element: withAdminRoute(PhysicalDeviceList), // 管理员专属 - 物理设备管理
-      },
-      {
-        path: 'users',
-        element: withAdminRoute(UserList), // Admin only
-      },
-      {
-        path: 'apps',
-        element: withSuspense(AppList),
-      },
-      {
-        path: 'app-review',
-        element: withAdminRoute(AppReviewList), // Admin only
-      },
-      {
-        path: 'app-review/:id',
-        element: withAdminRoute(AppReviewDetail), // Admin only
-      },
-      {
-        path: 'metering',
-        element: withSuspense(MeteringDashboard),
-      },
-      {
-        path: 'orders',
-        element: withSuspense(OrderList),
-      },
-      {
-        path: 'plans',
-        element: withSuspense(PlanList),
-      },
-      {
-        path: 'reports/revenue',
+        path: 'overview/reports/revenue',
         element: withSuspense(RevenueReport),
       },
       {
-        path: 'reports/analytics',
+        path: 'overview/reports/analytics',
         element: withSuspense(Analytics),
       },
+
+      // ==================== 业务管理 /admin/business/* ====================
+      // --- 设备中心 ---
       {
-        path: 'usage',
-        element: withAdminRoute(UsageMonitor), // 管理员专属 - 用户设备使用监控
+        path: 'business/devices',
+        element: withSuspense(DeviceList),
       },
       {
-        path: 'payments',
-        element: withSuspense(PaymentList),
+        path: 'business/devices/:id',
+        element: withSuspense(DeviceDetail),
       },
       {
-        path: 'payments/dashboard',
+        path: 'business/devices/groups',
+        element: withAdminRoute(DeviceGroupManagement),
+      },
+      {
+        path: 'business/devices/templates',
+        element: withAdminRoute(TemplateList),
+      },
+      {
+        path: 'business/devices/snapshots',
+        element: withAdminRoute(SnapshotList),
+      },
+      {
+        path: 'business/devices/physical',
+        element: withAdminRoute(PhysicalDeviceList),
+      },
+      // --- 用户中心 ---
+      {
+        path: 'business/users',
+        element: withAdminRoute(UserList),
+      },
+      {
+        path: 'business/users/quotas',
+        element: withSuspense(QuotaList),
+      },
+      // --- 应用市场 ---
+      {
+        path: 'business/apps',
+        element: withSuspense(AppList),
+      },
+      {
+        path: 'business/apps/review',
+        element: withAdminRoute(AppReviewList),
+      },
+      {
+        path: 'business/apps/review/:id',
+        element: withAdminRoute(AppReviewDetail),
+      },
+
+      // ==================== 运营管理 /admin/operations/* ====================
+      // --- 商业运营 ---
+      {
+        path: 'operations/orders',
+        element: withSuspense(OrderList),
+      },
+      {
+        path: 'operations/plans',
+        element: withSuspense(PlanList),
+      },
+      {
+        path: 'operations/usage',
+        element: withAdminRoute(UsageMonitor),
+      },
+      {
+        path: 'operations/metering',
+        element: withSuspense(MeteringDashboard),
+      },
+      // --- 工单服务 ---
+      {
+        path: 'operations/tickets',
+        element: withSuspense(TicketList),
+      },
+      {
+        path: 'operations/tickets/:id',
+        element: withSuspense(TicketDetail),
+      },
+      // --- 在线客服 ---
+      {
+        path: 'operations/livechat/conversations',
+        element: withAdminRoute(LiveChatConversations),
+      },
+      {
+        path: 'operations/livechat/agents',
+        element: withAdminRoute(LiveChatAgentList),
+      },
+      {
+        path: 'operations/livechat/groups',
+        element: withAdminRoute(LiveChatGroupList),
+      },
+      {
+        path: 'operations/livechat/queues',
+        element: withAdminRoute(LiveChatQueueConfig),
+      },
+      {
+        path: 'operations/livechat/canned-responses',
+        element: withAdminRoute(LiveChatCannedResponses),
+      },
+      {
+        path: 'operations/livechat/sensitive-words',
+        element: withAdminRoute(LiveChatSensitiveWords),
+      },
+      {
+        path: 'operations/livechat/analytics',
+        element: withAdminRoute(LiveChatAnalytics),
+      },
+      // --- CMS 内容管理 ---
+      {
+        path: 'operations/cms',
+        element: withAdminRoute(CmsManagement),
+      },
+
+      // ==================== 财务管理 /admin/finance/* ====================
+      // --- 账务中心 ---
+      {
+        path: 'finance/billing/balance',
+        element: withSuspense(BalanceOverview),
+      },
+      {
+        path: 'finance/billing/transactions',
+        element: withSuspense(TransactionHistory),
+      },
+      {
+        path: 'finance/billing/invoices',
+        element: withSuspense(InvoiceList),
+      },
+      {
+        path: 'finance/billing/rules',
+        element: withSuspense(BillingRuleList),
+      },
+      // --- 支付中心 ---
+      {
+        path: 'finance/payments/dashboard',
         element: withSuspense(PaymentDashboard),
       },
       {
-        path: 'payments/refunds',
+        path: 'finance/payments',
+        element: withSuspense(PaymentList),
+      },
+      {
+        path: 'finance/payments/refunds',
         element: withSuspense(RefundManagement),
       },
       {
-        path: 'payments/config',
-        element: withSuspense(PaymentConfig),
-      },
-      {
-        path: 'payments/webhooks',
-        element: withSuspense(WebhookLogs),
-      },
-      {
-        path: 'payments/exceptions',
+        path: 'finance/payments/exceptions',
         element: withSuspense(ExceptionPayments),
       },
       {
-        path: 'roles',
-        element: withAdminRoute(RoleList), // Admin only
+        path: 'finance/payments/webhooks',
+        element: withSuspense(WebhookLogs),
       },
       {
-        path: 'permissions',
-        element: withAdminRoute(PermissionList), // Admin only
+        path: 'finance/payments/config',
+        element: withSuspense(PaymentConfig),
+      },
+
+      // ==================== 运维管理 /admin/devops/* ====================
+      // --- 设备运维 ---
+      {
+        path: 'devops/devices/lifecycle',
+        element: withAdminRoute(LifecycleDashboard),
       },
       {
-        path: 'permissions/data-scope',
-        element: withAdminRoute(DataScopeConfig), // Admin only
+        path: 'devops/devices/failover',
+        element: withAdminRoute(FailoverManagement),
       },
       {
-        path: 'permissions/field-permission',
-        element: withAdminRoute(FieldPermissionConfig), // Admin only
+        path: 'devops/devices/state-recovery',
+        element: withAdminRoute(StateRecoveryManagement),
       },
       {
-        path: 'permissions/menu',
-        element: withAdminRoute(MenuPermissionConfig), // Admin only
+        path: 'devops/devices/network-policies',
+        element: withAdminRoute(NetworkPolicyConfiguration),
+      },
+      // --- 服务运维 ---
+      {
+        path: 'devops/proxy',
+        element: withSuspense(ProxyManagement),
       },
       {
-        path: 'settings',
+        path: 'devops/proxy/providers',
+        element: withSuspense(ProxyProviderConfig),
+      },
+      {
+        path: 'devops/sms',
+        element: withSuspense(SMSManagement),
+      },
+      {
+        path: 'devops/sms/providers',
+        element: withSuspense(SMSProviderConfig),
+      },
+      // --- 资源管理 ---
+      {
+        path: 'devops/resources/gpu',
+        element: withSuspense(GPUDashboard),
+      },
+      {
+        path: 'devops/scheduler',
+        element: withSuspense(SchedulerDashboard),
+      },
+
+      // ==================== 系统管理 /admin/system/* ====================
+      // --- 访问控制 ---
+      {
+        path: 'system/access/roles',
+        element: withAdminRoute(RoleList),
+      },
+      {
+        path: 'system/access/permissions',
+        element: withAdminRoute(PermissionList),
+      },
+      {
+        path: 'system/access/data-scope',
+        element: withAdminRoute(DataScopeConfig),
+      },
+      {
+        path: 'system/access/field-permission',
+        element: withAdminRoute(FieldPermissionConfig),
+      },
+      {
+        path: 'system/access/menu-permission',
+        element: withAdminRoute(MenuPermissionConfig),
+      },
+      // --- 系统配置 ---
+      {
+        path: 'system/config/settings',
         element: withSuspense(Settings),
       },
       {
-        path: 'logs/audit',
-        element: withSuspense(AuditLogList),
+        path: 'system/config/notifications/templates',
+        element: withAdminRoute(NotificationTemplatesList),
       },
+      {
+        path: 'system/config/notifications/templates/editor',
+        element: withSuspense(NotificationTemplateEditor),
+      },
+      {
+        path: 'system/config/api-keys',
+        element: withSuspense(ApiKeyList),
+      },
+      // --- 监控与日志 ---
+      {
+        path: 'system/monitor/cache',
+        element: withAdminRoute(CacheManagement, true),
+      },
+      {
+        path: 'system/monitor/queue',
+        element: withAdminRoute(QueueManagement, true),
+      },
+      {
+        path: 'system/monitor/events',
+        element: withAdminRoute(EventSourcingViewer, true),
+      },
+      {
+        path: 'system/monitor/consul',
+        element: withAdminRoute(ConsulMonitor, true),
+      },
+      {
+        path: 'system/monitor/prometheus',
+        element: withAdminRoute(PrometheusMonitor, true),
+      },
+      {
+        path: 'system/logs/audit',
+        element: withSuspense(AuditLog),
+      },
+      // --- 用户相关 ---
       {
         path: 'notifications',
         element: withSuspense(NotificationCenter),
@@ -295,181 +488,6 @@ export const router = createBrowserRouter([
       {
         path: 'profile',
         element: withSuspense(Profile),
-      },
-      // 配额管理
-      {
-        path: 'quotas',
-        element: withSuspense(QuotaList),
-      },
-      // 数据分析
-      {
-        path: 'analytics',
-        element: withSuspense(AnalyticsDashboard),
-      },
-      // 账单管理
-      {
-        path: 'billing/balance',
-        element: withSuspense(BalanceOverview),
-      },
-      {
-        path: 'billing/transactions',
-        element: withSuspense(TransactionHistory),
-      },
-      {
-        path: 'billing/invoices',
-        element: withSuspense(InvoiceList),
-      },
-      {
-        path: 'billing/rules',
-        element: withSuspense(BillingRuleList),
-      },
-      // 工单系统
-      {
-        path: 'tickets',
-        element: withSuspense(TicketList),
-      },
-      {
-        path: 'tickets/:id',
-        element: withSuspense(TicketDetail),
-      },
-      // 审计日志（新路径）
-      {
-        path: 'audit-logs',
-        element: withSuspense(AuditLog),
-      },
-      // API 密钥管理
-      {
-        path: 'api-keys',
-        element: withSuspense(ApiKeyList),
-      },
-      // 调度器管理
-      {
-        path: 'scheduler',
-        element: withSuspense(SchedulerDashboard),
-      },
-      // 生命周期自动化 - 管理员专属
-      {
-        path: 'devices/lifecycle',
-        element: withAdminRoute(LifecycleDashboard), // 管理员专属 - 设备生命周期自动化管理
-      },
-      // GPU 资源管理
-      {
-        path: 'resources/gpu',
-        element: withSuspense(GPUDashboard),
-      },
-      // 通知模板管理
-      {
-        path: 'notifications/templates',
-        element: withAdminRoute(NotificationTemplatesList), // Admin only
-      },
-      // 通知模板编辑器
-      {
-        path: 'notifications/templates/editor',
-        element: withSuspense(NotificationTemplateEditor),
-      },
-      // 系统管理 - Super Admin only
-      {
-        path: 'system/cache',
-        element: withAdminRoute(CacheManagement, true), // Super Admin only
-      },
-      {
-        path: 'system/queue',
-        element: withAdminRoute(QueueManagement, true), // Super Admin only
-      },
-      {
-        path: 'system/events',
-        element: withAdminRoute(EventSourcingViewer, true), // Super Admin only
-      },
-      {
-        path: 'system/consul',
-        element: withAdminRoute(ConsulMonitor, true), // Super Admin only
-      },
-      {
-        path: 'system/monitoring',
-        element: withAdminRoute(PrometheusMonitor, true), // Super Admin only
-      },
-      // 设备高级功能 - 管理员专属
-      {
-        path: 'devices/groups',
-        element: withAdminRoute(DeviceGroupManagement), // 管理员专属 - 设备分组管理
-      },
-      {
-        path: 'devices/network-policies',
-        element: withAdminRoute(NetworkPolicyConfiguration), // 管理员专属 - 网络策略配置
-      },
-      // SMS 管理
-      {
-        path: 'sms',
-        element: withSuspense(SMSManagement),
-      },
-      {
-        path: 'sms/providers',
-        element: withSuspense(SMSProviderConfig),
-      },
-      // 代理IP管理
-      {
-        path: 'proxy',
-        element: withSuspense(ProxyManagement),
-      },
-      {
-        path: 'proxy/providers',
-        element: withSuspense(ProxyProviderConfig),
-      },
-      // 统计仪表板
-      {
-        path: 'stats',
-        element: withSuspense(StatsDashboard),
-      },
-      // 故障转移管理 - 管理员专属
-      {
-        path: 'devices/failover',
-        element: withAdminRoute(FailoverManagement), // 管理员专属 - 设备故障转移管理
-      },
-      // 状态恢复管理 - 管理员专属
-      {
-        path: 'devices/state-recovery',
-        element: withAdminRoute(StateRecoveryManagement), // 管理员专属 - 设备状态恢复管理
-      },
-      // CMS 内容管理 - 管理员专属
-      {
-        path: 'cms',
-        element: withAdminRoute(CmsManagement), // 管理员专属 - 官网内容管理
-      },
-      // ============ LiveChat 在线客服管理 - 管理员专属 ============
-      // 客服管理
-      {
-        path: 'livechat/agents',
-        element: withAdminRoute(LiveChatAgentList), // 客服列表管理
-      },
-      // 客服分组
-      {
-        path: 'livechat/groups',
-        element: withAdminRoute(LiveChatGroupList), // 客服分组管理
-      },
-      // 排队配置
-      {
-        path: 'livechat/queues',
-        element: withAdminRoute(LiveChatQueueConfig), // 排队策略配置
-      },
-      // 快捷回复
-      {
-        path: 'livechat/canned-responses',
-        element: withAdminRoute(LiveChatCannedResponses), // 快捷回复管理
-      },
-      // 敏感词管理
-      {
-        path: 'livechat/sensitive-words',
-        element: withAdminRoute(LiveChatSensitiveWords), // 敏感词过滤
-      },
-      // 会话监控
-      {
-        path: 'livechat/conversations',
-        element: withAdminRoute(LiveChatConversations), // 实时会话监控
-      },
-      // 数据统计
-      {
-        path: 'livechat/analytics',
-        element: withAdminRoute(LiveChatAnalytics), // 客服数据统计
       },
     ],
   },

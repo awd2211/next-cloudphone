@@ -28,7 +28,7 @@ import * as notificationService from '@/services/notification';
 export const prefetchRoutes: RoutePrefetchConfig[] = [
   // ==================== 首页 Dashboard ====================
   {
-    path: '/',
+    path: '/admin/dashboard',
     prefetch: async () => {
       // 预加载仪表盘的关键数据
       await Promise.all([
@@ -53,7 +53,7 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
 
   // ==================== 设备管理 ====================
   {
-    path: '/devices',
+    path: '/admin/business/devices',
     prefetch: async () => {
       // 预加载设备列表（第一页）
       await queryClient.prefetchQuery({
@@ -67,22 +67,9 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
     },
   },
 
-  // {
-  //   path: '/devices/templates',
-  //   prefetch: async () => {
-  //     // 预加载设备模板列表
-  //     // TODO: 实现 deviceService.getDeviceTemplates()
-  //     await queryClient.prefetchQuery({
-  //       queryKey: ['device-templates'],
-  //       queryFn: () => deviceService.getDeviceTemplates(),
-  //       staleTime: 5 * 60 * 1000, // 5 分钟
-  //     });
-  //   },
-  // },
-
   // ==================== 配额管理 ====================
   {
-    path: '/quotas',
+    path: '/admin/business/users/quotas',
     prefetch: async () => {
       await Promise.all([
         // 配额列表
@@ -103,7 +90,7 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
 
   // ==================== 用户管理 ====================
   {
-    path: '/users',
+    path: '/admin/business/users',
     prefetch: async () => {
       // 预加载用户列表
       await queryClient.prefetchQuery({
@@ -114,30 +101,9 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
     },
   },
 
-  // {
-  //   path: '/users/roles',
-  //   prefetch: async () => {
-  //     // TODO: 实现 userService.getRoles() 和 userService.getPermissions()
-  //     await Promise.all([
-  //       // 角色列表
-  //       queryClient.prefetchQuery({
-  //         queryKey: ['roles'],
-  //         queryFn: () => userService.getRoles(),
-  //         staleTime: 5 * 60 * 1000, // 角色变化不频繁，缓存 5 分钟
-  //       }),
-  //       // 权限列表
-  //       queryClient.prefetchQuery({
-  //         queryKey: ['permissions'],
-  //         queryFn: () => userService.getPermissions(),
-  //         staleTime: 5 * 60 * 1000,
-  //       }),
-  //     ]);
-  //   },
-  // },
-
   // ==================== 应用管理 ====================
   {
-    path: '/apps',
+    path: '/admin/business/apps',
     prefetch: async () => {
       // 预加载应用列表
       await queryClient.prefetchQuery({
@@ -153,7 +119,7 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
 
   // ==================== 计费管理 ====================
   {
-    path: '/billing',
+    path: '/admin/finance/billing/balance',
     prefetch: async () => {
       await Promise.all([
         // 计费概览
@@ -170,7 +136,7 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
   },
 
   {
-    path: '/billing/invoices',
+    path: '/admin/finance/billing/invoices',
     prefetch: async () => {
       // 预加载发票列表
       await queryClient.prefetchQuery({
@@ -186,7 +152,7 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
 
   // ==================== 通知中心 ====================
   {
-    path: '/notifications',
+    path: '/admin/notifications',
     prefetch: async () => {
       // 假设当前用户 ID（实际应该从用户上下文获取）
       const userId = localStorage.getItem('userId') || 'current-user';
@@ -213,7 +179,7 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
 
   // ==================== 审计日志 ====================
   {
-    path: '/audit',
+    path: '/admin/system/logs/audit',
     prefetch: async () => {
       // 预加载审计日志列表
       await queryClient.prefetchQuery({
@@ -229,7 +195,7 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
 
   // ==================== 分析报表 ====================
   {
-    path: '/analytics',
+    path: '/admin/overview/analytics',
     prefetch: async () => {
       // 预加载分析数据（过去 7 天）
       await queryClient.prefetchQuery({
@@ -248,7 +214,7 @@ export const prefetchRoutes: RoutePrefetchConfig[] = [
 
   // ==================== 系统设置 ====================
   {
-    path: '/settings',
+    path: '/admin/system/config/settings',
     prefetch: async () => {
       // 预加载系统设置
       await queryClient.prefetchQuery({
@@ -292,14 +258,12 @@ export async function prefetchMultipleRoutes(paths: string[]): Promise<void> {
  */
 export async function smartPrefetch(currentPath: string): Promise<void> {
   const smartPrefetchMap: Record<string, string[]> = {
-    // TODO: 设备列表 → 设备模板（需要实现 getDeviceTemplates）
-    // '/devices': ['/devices/templates'],
-
-    // TODO: 用户管理 → 角色和权限（需要实现 getRoles 和 getPermissions）
-    // '/users': ['/users/roles'],
-
     // 访问计费后，预加载发票列表
-    '/billing': ['/billing/invoices'],
+    '/admin/finance/billing/balance': ['/admin/finance/billing/invoices'],
+    // 访问设备列表后，预加载配额管理
+    '/admin/business/devices': ['/admin/business/users/quotas'],
+    // 访问用户列表后，预加载配额管理
+    '/admin/business/users': ['/admin/business/users/quotas'],
   };
 
   const relatedPaths = smartPrefetchMap[currentPath];
