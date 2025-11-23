@@ -204,6 +204,24 @@
   color: #bbb;
 }
 
+/* 验证码区域样式统一 */
+.login-form .captcha-wrapper {
+  height: 44px !important;
+  border: 1.5px solid #e8e8e8 !important;
+  border-radius: 8px !important;
+  background: #fafafa !important;
+  transition: all 0.3s;
+}
+
+.login-form .captcha-wrapper:hover {
+  border-color: #4facfe !important;
+}
+
+.login-form .captcha-wrapper svg {
+  height: 38px;
+  width: auto;
+}
+
 /* 表单额外信息行 */
 .form-extra {
   display: flex;
@@ -343,6 +361,11 @@
 [data-theme='dark'] .login-form .ant-input-affix-wrapper {
   background: #2a2a2a;
   border-color: #3a3a3a;
+}
+
+[data-theme='dark'] .login-form .captcha-wrapper {
+  background: #2a2a2a !important;
+  border-color: #3a3a3a !important;
 }
 
 [data-theme='dark'] .security-tips {
