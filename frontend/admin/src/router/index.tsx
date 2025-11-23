@@ -105,6 +105,12 @@ const StateRecoveryManagement = lazy(() => import('@/pages/StateRecovery/Managem
 
 // CMS 内容管理
 const CmsManagement = lazy(() => import('@/pages/CMS/Management'));
+const CmsPageContents = lazy(() => import('@/pages/CMS/PageContents'));
+const CmsSiteSettings = lazy(() => import('@/pages/CMS/SiteSettings'));
+const CmsJobPositions = lazy(() => import('@/pages/CMS/JobPositions'));
+const CmsLegalDocuments = lazy(() => import('@/pages/CMS/LegalDocuments'));
+const CmsCaseStudies = lazy(() => import('@/pages/CMS/CaseStudies'));
+const CmsPricingPlans = lazy(() => import('@/pages/CMS/PricingPlans'));
 
 // LiveChat 在线客服管理
 const LiveChatAgentList = lazy(() => import('@/pages/LiveChat/Agents/List'));
@@ -324,7 +330,31 @@ export const router = createBrowserRouter([
       // --- CMS 内容管理 ---
       {
         path: 'operations/cms',
-        element: withAdminRoute(CmsManagement),
+        element: <Navigate to="/admin/operations/cms/page-contents" replace />,
+      },
+      {
+        path: 'operations/cms/page-contents',
+        element: withAdminRoute(CmsPageContents),
+      },
+      {
+        path: 'operations/cms/settings',
+        element: withAdminRoute(CmsSiteSettings),
+      },
+      {
+        path: 'operations/cms/jobs',
+        element: withAdminRoute(CmsJobPositions),
+      },
+      {
+        path: 'operations/cms/legal',
+        element: withAdminRoute(CmsLegalDocuments),
+      },
+      {
+        path: 'operations/cms/cases',
+        element: withAdminRoute(CmsCaseStudies),
+      },
+      {
+        path: 'operations/cms/pricing',
+        element: withAdminRoute(CmsPricingPlans),
       },
 
       // ==================== 财务管理 /admin/finance/* ====================

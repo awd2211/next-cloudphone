@@ -51,6 +51,16 @@ import {
   SyncOutlined,
   LineChartOutlined,
   GlobalOutlined,
+  AuditOutlined,
+  DatabaseOutlined,
+  CloudServerOutlined,
+  DesktopOutlined,
+  ClusterOutlined,
+  CalculatorOutlined,
+  FormOutlined,
+  MonitorOutlined,
+  CloudOutlined,
+  FundOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -143,6 +153,12 @@ const BasicLayout = () => {
           label: '收入报表',
           onClick: () => navigate('/admin/overview/reports/revenue'),
         },
+        {
+          key: '/admin/overview/reports/analytics',
+          icon: <BarChartOutlined />,
+          label: '分析报表',
+          onClick: () => navigate('/admin/overview/reports/analytics'),
+        },
       ],
     },
 
@@ -193,10 +209,23 @@ const BasicLayout = () => {
       ],
     },
     {
-      key: '/admin/business/apps',
+      key: 'apps-menu',
       icon: <AppstoreOutlined />,
       label: '应用市场',
-      onClick: () => navigate('/admin/business/apps'),
+      children: [
+        {
+          key: '/admin/business/apps',
+          icon: <AppstoreOutlined />,
+          label: '应用列表',
+          onClick: () => navigate('/admin/business/apps'),
+        },
+        {
+          key: '/admin/business/apps/review',
+          icon: <AuditOutlined />,
+          label: '应用审核',
+          onClick: () => navigate('/admin/business/apps/review'),
+        },
+      ],
     },
     {
       key: 'users-menu',
@@ -249,6 +278,12 @@ const BasicLayout = () => {
           icon: <ClockCircleOutlined />,
           label: '使用记录',
           onClick: () => navigate('/admin/operations/usage'),
+        },
+        {
+          key: '/admin/operations/metering',
+          icon: <FundOutlined />,
+          label: '计量仪表板',
+          onClick: () => navigate('/admin/operations/metering'),
         },
       ],
     },
@@ -307,6 +342,49 @@ const BasicLayout = () => {
         },
       ],
     },
+    {
+      key: 'cms-menu',
+      icon: <GlobalOutlined />,
+      label: '官网管理',
+      children: [
+        {
+          key: '/admin/operations/cms/page-contents',
+          icon: <GlobalOutlined />,
+          label: '官网内容',
+          onClick: () => navigate('/admin/operations/cms/page-contents'),
+        },
+        {
+          key: '/admin/operations/cms/settings',
+          icon: <SettingOutlined />,
+          label: '网站设置',
+          onClick: () => navigate('/admin/operations/cms/settings'),
+        },
+        {
+          key: '/admin/operations/cms/jobs',
+          icon: <TeamOutlined />,
+          label: '招聘职位',
+          onClick: () => navigate('/admin/operations/cms/jobs'),
+        },
+        {
+          key: '/admin/operations/cms/legal',
+          icon: <SafetyOutlined />,
+          label: '法律文档',
+          onClick: () => navigate('/admin/operations/cms/legal'),
+        },
+        {
+          key: '/admin/operations/cms/cases',
+          icon: <ProfileOutlined />,
+          label: '客户案例',
+          onClick: () => navigate('/admin/operations/cms/cases'),
+        },
+        {
+          key: '/admin/operations/cms/pricing',
+          icon: <DollarOutlined />,
+          label: '定价方案',
+          onClick: () => navigate('/admin/operations/cms/pricing'),
+        },
+      ],
+    },
 
     // ==================== 4. 财务管理 ====================
     {
@@ -339,6 +417,12 @@ const BasicLayout = () => {
           icon: <FileTextOutlined />,
           label: '账单发票',
           onClick: () => navigate('/admin/finance/billing/invoices'),
+        },
+        {
+          key: '/admin/finance/billing/rules',
+          icon: <FormOutlined />,
+          label: '计费规则',
+          onClick: () => navigate('/admin/finance/billing/rules'),
         },
       ],
     },
@@ -451,6 +535,25 @@ const BasicLayout = () => {
         },
       ],
     },
+    {
+      key: 'resource-ops-menu',
+      icon: <CloudServerOutlined />,
+      label: '资源运维',
+      children: [
+        {
+          key: '/admin/devops/resources/gpu',
+          icon: <DesktopOutlined />,
+          label: 'GPU 资源',
+          onClick: () => navigate('/admin/devops/resources/gpu'),
+        },
+        {
+          key: '/admin/devops/scheduler',
+          icon: <ClusterOutlined />,
+          label: '调度管理',
+          onClick: () => navigate('/admin/devops/scheduler'),
+        },
+      ],
+    },
 
     // ==================== 6. 系统管理 ====================
     {
@@ -522,6 +625,43 @@ const BasicLayout = () => {
       icon: <ProfileOutlined />,
       label: '审计日志',
       onClick: () => navigate('/admin/system/logs/audit'),
+    },
+    {
+      key: 'system-monitor-menu',
+      icon: <MonitorOutlined />,
+      label: '系统监控',
+      children: [
+        {
+          key: '/admin/system/monitor/cache',
+          icon: <DatabaseOutlined />,
+          label: '缓存监控',
+          onClick: () => navigate('/admin/system/monitor/cache'),
+        },
+        {
+          key: '/admin/system/monitor/queue',
+          icon: <UnorderedListOutlined />,
+          label: '队列监控',
+          onClick: () => navigate('/admin/system/monitor/queue'),
+        },
+        {
+          key: '/admin/system/monitor/events',
+          icon: <ThunderboltOutlined />,
+          label: '事件监控',
+          onClick: () => navigate('/admin/system/monitor/events'),
+        },
+        {
+          key: '/admin/system/monitor/consul',
+          icon: <CloudOutlined />,
+          label: 'Consul 服务',
+          onClick: () => navigate('/admin/system/monitor/consul'),
+        },
+        {
+          key: '/admin/system/monitor/prometheus',
+          icon: <BarChartOutlined />,
+          label: 'Prometheus',
+          onClick: () => navigate('/admin/system/monitor/prometheus'),
+        },
+      ],
     },
   ];
 

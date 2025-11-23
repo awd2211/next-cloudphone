@@ -29,6 +29,7 @@ export function createTimeColumn<T = any>(
   return {
     title,
     dataIndex,
+    key: dataIndex, // 添加 key 属性，用于列过滤
     width,
     sorter: sorter ? (a: any, b: any) => {
       const aTime = a[dataIndex];
