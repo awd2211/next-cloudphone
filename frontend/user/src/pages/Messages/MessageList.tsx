@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Card, List, Empty, Modal } from 'antd';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Card, List, Empty, Modal, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   MessageStatsCards,
   MessageFilterBar,
@@ -155,7 +156,21 @@ const MessageList: React.FC = () => {
     // 刷新数据由 React Query 自动处理
   }, []);
 
+  // 快捷键监听
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+        message.success('刷新成功');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
+
   return (
+    <ErrorBoundary>
     <div>
       {/* 统计卡片 */}
       <MessageStatsCards stats={stats ?? null} />
@@ -213,6 +228,7 @@ const MessageList: React.FC = () => {
         onRead={handleNotificationRead}
       />
     </div>
+    </ErrorBoundary>
   );
 };
 

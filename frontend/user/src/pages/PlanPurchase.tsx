@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -13,12 +13,13 @@ import {
   Spin,
 } from 'antd';
 import { ArrowLeftOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getPlan } from '@/services/plan';
 import { createOrder, createPayment, queryPaymentStatus } from '@/services/order';
 import type { Plan, Order, Payment } from '@/types';
 import dayjs from 'dayjs';
 
-const PlanPurchase = () => {
+const PlanPurchaseContent = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -31,7 +32,7 @@ const PlanPurchase = () => {
   const [polling, setPolling] = useState(false);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
-  const loadPlan = async () => {
+  const loadPlan = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -42,16 +43,32 @@ const PlanPurchase = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     loadPlan();
+  }, [loadPlan]);
+
+  useEffect(() => {
     return () => {
       if (pollingInterval) {
         clearInterval(pollingInterval);
       }
     };
-  }, [id, pollingInterval]);
+  }, [pollingInterval]);
+
+  // 快捷键支持: Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        loadPlan();
+        message.info('刷新套餐信息');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loadPlan]);
 
   const handleCreateOrder = async () => {
     if (!id) return;
@@ -306,6 +323,14 @@ const PlanPurchase = () => {
         )}
       </Modal>
     </div>
+  );
+};
+
+const PlanPurchase = () => {
+  return (
+    <ErrorBoundary>
+      <PlanPurchaseContent />
+    </ErrorBoundary>
   );
 };
 

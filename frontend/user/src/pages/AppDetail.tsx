@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -20,6 +20,7 @@ import {
   Avatar,
   Tabs,
 } from 'antd';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   DownloadOutlined,
   ArrowLeftOutlined,
@@ -44,12 +45,7 @@ const AppDetail = () => {
   const [installing, setInstalling] = useState(false);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    loadAppDetail();
-    loadDevices();
-  }, [id]);
-
-  const loadAppDetail = async () => {
+  const loadAppDetail = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -60,16 +56,35 @@ const AppDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const loadDevices = async () => {
+  const loadDevices = useCallback(async () => {
     try {
       const res = await getMyDevices({ page: 1, pageSize: 100 });
       setDevices((res.data ?? []).filter((d) => d.status === 'running' || d.status === 'idle'));
     } catch (error) {
       console.error('加载设备列表失败', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadAppDetail();
+    loadDevices();
+  }, [loadAppDetail, loadDevices]);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        loadAppDetail();
+        loadDevices();
+        message.info('正在刷新应用详情...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loadAppDetail, loadDevices]);
 
   const handleInstall = () => {
     if (devices.length === 0) {
@@ -127,20 +142,25 @@ const AppDetail = () => {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" tip="加载中..." />
-      </div>
+      <ErrorBoundary>
+        <div style={{ textAlign: 'center', padding: '100px 0' }}>
+          <Spin size="large" tip="加载中..." />
+        </div>
+      </ErrorBoundary>
     );
   }
 
   if (!app) {
     return (
-      <Alert message="应用不存在" description="未找到该应用，可能已被删除" type="error" showIcon />
+      <ErrorBoundary>
+        <Alert message="应用不存在" description="未找到该应用，可能已被删除" type="error" showIcon />
+      </ErrorBoundary>
     );
   }
 
   return (
-    <div>
+    <ErrorBoundary>
+      <div>
       <Button
         icon={<ArrowLeftOutlined />}
         onClick={() => navigate('/apps')}
@@ -333,7 +353,8 @@ const AppDetail = () => {
           )}
         </Form>
       </Modal>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

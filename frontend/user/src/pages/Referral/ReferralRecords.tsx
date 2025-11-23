@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -20,6 +20,7 @@ import {
   GiftOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   getReferralRecords,
   getReferralStats,
@@ -40,6 +41,29 @@ const ReferralRecords = () => {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
   const [activeTab, setActiveTab] = useState('records');
   const [withdrawModalVisible, setWithdrawModalVisible] = useState(false);
+
+  // 刷新数据
+  const handleRefresh = useCallback(() => {
+    loadStats();
+    if (activeTab === 'records') {
+      loadRecords();
+    } else if (activeTab === 'earnings') {
+      loadEarnings();
+    }
+    message.success('数据已刷新');
+  }, [activeTab]);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
 
   useEffect(() => {
     loadStats();
@@ -187,116 +211,118 @@ const ReferralRecords = () => {
   ];
 
   return (
-    <div>
-      <Button
-        icon={<LeftOutlined />}
-        onClick={() => navigate('/referral')}
-        style={{ marginBottom: 16 }}
-      >
-        返回邀请中心
-      </Button>
+    <ErrorBoundary>
+      <div>
+        <Button
+          icon={<LeftOutlined />}
+          onClick={() => navigate('/referral')}
+          style={{ marginBottom: 16 }}
+        >
+          返回邀请中心
+        </Button>
 
-      {/* 统计卡片 */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="累计邀请"
-              value={stats?.totalInvites || 0}
-              suffix="人"
-              prefix={<TeamOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="成功邀请"
-              value={stats?.confirmedInvites || 0}
-              suffix="人"
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="累计收益"
-              value={stats?.totalRewards || 0}
-              prefix="¥"
-              precision={2}
-              valueStyle={{ color: '#cf1322' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="可提现余额"
-              value={stats?.availableBalance || 0}
-              prefix="¥"
-              precision={2}
-              valueStyle={{ color: '#faad14' }}
-            />
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => setWithdrawModalVisible(true)}
-              style={{ marginTop: 8 }}
-              disabled={(stats?.availableBalance || 0) <= 0}
-            >
-              申请提现
-            </Button>
-          </Card>
-        </Col>
-      </Row>
+        {/* 统计卡片 */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="累计邀请"
+                value={stats?.totalInvites || 0}
+                suffix="人"
+                prefix={<TeamOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="成功邀请"
+                value={stats?.confirmedInvites || 0}
+                suffix="人"
+                prefix={<CheckCircleOutlined />}
+                valueStyle={{ color: '#3f8600' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="累计收益"
+                value={stats?.totalRewards || 0}
+                prefix="¥"
+                precision={2}
+                valueStyle={{ color: '#cf1322' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="可提现余额"
+                value={stats?.availableBalance || 0}
+                prefix="¥"
+                precision={2}
+                valueStyle={{ color: '#faad14' }}
+              />
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => setWithdrawModalVisible(true)}
+                style={{ marginTop: 8 }}
+                disabled={(stats?.availableBalance || 0) <= 0}
+              >
+                申请提现
+              </Button>
+            </Card>
+          </Col>
+        </Row>
 
-      {/* 记录列表 */}
-      <Card>
-        <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane tab="邀请记录" key="records">
-            <Table
-              columns={recordColumns}
-              dataSource={records}
-              rowKey="id"
-              loading={loading}
-              pagination={{
-                current: pagination.current,
-                pageSize: pagination.pageSize,
-                total: pagination.total,
-                onChange: (page) => setPagination({ ...pagination, current: page }),
-              }}
-            />
-          </TabPane>
-          <TabPane tab="收益明细" key="earnings">
-            <Table
-              columns={earningsColumns}
-              dataSource={earnings}
-              rowKey="id"
-              loading={loading}
-              pagination={{
-                current: pagination.current,
-                pageSize: pagination.pageSize,
-                total: pagination.total,
-                onChange: (page) => setPagination({ ...pagination, current: page }),
-              }}
-            />
-          </TabPane>
-        </Tabs>
-      </Card>
+        {/* 记录列表 */}
+        <Card>
+          <Tabs activeKey={activeTab} onChange={setActiveTab}>
+            <TabPane tab="邀请记录" key="records">
+              <Table
+                columns={recordColumns}
+                dataSource={records}
+                rowKey="id"
+                loading={loading}
+                pagination={{
+                  current: pagination.current,
+                  pageSize: pagination.pageSize,
+                  total: pagination.total,
+                  onChange: (page) => setPagination({ ...pagination, current: page }),
+                }}
+              />
+            </TabPane>
+            <TabPane tab="收益明细" key="earnings">
+              <Table
+                columns={earningsColumns}
+                dataSource={earnings}
+                rowKey="id"
+                loading={loading}
+                pagination={{
+                  current: pagination.current,
+                  pageSize: pagination.pageSize,
+                  total: pagination.total,
+                  onChange: (page) => setPagination({ ...pagination, current: page }),
+                }}
+              />
+            </TabPane>
+          </Tabs>
+        </Card>
 
-      {/* 提现 Modal */}
-      <WithdrawModal
-        visible={withdrawModalVisible}
-        availableBalance={stats?.availableBalance || 0}
-        onCancel={() => setWithdrawModalVisible(false)}
-        onSuccess={() => {
-          setWithdrawModalVisible(false);
-          loadStats();
-        }}
-      />
-    </div>
+        {/* 提现 Modal */}
+        <WithdrawModal
+          visible={withdrawModalVisible}
+          availableBalance={stats?.availableBalance || 0}
+          onCancel={() => setWithdrawModalVisible(false)}
+          onSuccess={() => {
+            setWithdrawModalVisible(false);
+            loadStats();
+          }}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

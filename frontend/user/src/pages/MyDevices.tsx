@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Card, Table, Button } from 'antd';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Card, Table, Button, message } from 'antd';
 import type { TablePaginationConfig } from 'antd';
 import type { SorterResult } from 'antd/es/table/interface';
 import { PlusOutlined } from '@ant-design/icons';
@@ -17,6 +17,7 @@ import {
   BatchOperationModal,
   BatchInstallAppModal,
 } from '@/components/Device';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useMyDevices, useDeviceStats, useStartDevice, useStopDevice, useRebootDevice } from '@/hooks/queries';
 import { useBatchDeviceOperation } from '@/hooks/useBatchDeviceOperation';
 import dayjs from 'dayjs';
@@ -159,6 +160,23 @@ const MyDevices = () => {
     setCreateDialogOpen(true);
   }, []);
 
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+        message.info('正在刷新...');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleOpenDialog();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh, handleOpenDialog]);
+
   // 获取选中设备的名称映射
   const getSelectedDeviceNames = useCallback(() => {
     const nameMap: Record<string, string> = {};
@@ -280,72 +298,74 @@ const MyDevices = () => {
   );
 
   return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 16,
-        }}
-      >
-        <h2 style={{ margin: 0 }}>我的设备</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenDialog}>
-          创建云手机
-        </Button>
+    <ErrorBoundary>
+      <div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <h2 style={{ margin: 0 }}>我的设备</h2>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenDialog}>
+            创建云手机
+          </Button>
+        </div>
+
+        {/* api 包装器已自动解包，stats 直接是统计对象 */}
+        <DeviceStatsCards stats={stats ?? null} />
+
+        {/* 批量操作工具栏 */}
+        {selectedRowKeys.length > 0 && (
+          <BatchOperationToolbar
+            selectedCount={selectedRowKeys.length}
+            onBatchStart={onBatchStart}
+            onBatchStop={onBatchStop}
+            onBatchRestart={onBatchRestart}
+            onBatchDelete={onBatchDelete}
+            onBatchInstallApp={openInstallAppModal}
+            onClearSelection={onClearSelection}
+          />
+        )}
+
+        <Card>
+          <Table
+            columns={columns}
+            dataSource={devices}
+            rowKey="id"
+            loading={loading}
+            onChange={handleTableChange}
+            pagination={pagination}
+            rowSelection={rowSelection}
+          />
+        </Card>
+
+        <CreateDeviceDialog
+          open={createDialogOpen}
+          onClose={handleCloseDialog}
+          onSuccess={actions.handleCreateSuccess}
+        />
+
+        {/* 批量操作进度模态框 */}
+        <BatchOperationModal
+          open={modalVisible}
+          title={modalTitle}
+          operationType={operationType}
+          results={results}
+          onClose={closeModal}
+        />
+
+        {/* 批量安装应用模态框 */}
+        <BatchInstallAppModal
+          open={installAppModalVisible}
+          deviceCount={selectedRowKeys.length}
+          onConfirm={onBatchInstallApp}
+          onCancel={closeInstallAppModal}
+        />
       </div>
-
-      {/* api 包装器已自动解包，stats 直接是统计对象 */}
-      <DeviceStatsCards stats={stats ?? null} />
-
-      {/* 批量操作工具栏 */}
-      {selectedRowKeys.length > 0 && (
-        <BatchOperationToolbar
-          selectedCount={selectedRowKeys.length}
-          onBatchStart={onBatchStart}
-          onBatchStop={onBatchStop}
-          onBatchRestart={onBatchRestart}
-          onBatchDelete={onBatchDelete}
-          onBatchInstallApp={openInstallAppModal}
-          onClearSelection={onClearSelection}
-        />
-      )}
-
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={devices}
-          rowKey="id"
-          loading={loading}
-          onChange={handleTableChange}
-          pagination={pagination}
-          rowSelection={rowSelection}
-        />
-      </Card>
-
-      <CreateDeviceDialog
-        open={createDialogOpen}
-        onClose={handleCloseDialog}
-        onSuccess={actions.handleCreateSuccess}
-      />
-
-      {/* 批量操作进度模态框 */}
-      <BatchOperationModal
-        open={modalVisible}
-        title={modalTitle}
-        operationType={operationType}
-        results={results}
-        onClose={closeModal}
-      />
-
-      {/* 批量安装应用模态框 */}
-      <BatchInstallAppModal
-        open={installAppModalVisible}
-        deviceCount={selectedRowKeys.length}
-        onConfirm={onBatchInstallApp}
-        onCancel={closeInstallAppModal}
-      />
-    </div>
+    </ErrorBoundary>
   );
 };
 

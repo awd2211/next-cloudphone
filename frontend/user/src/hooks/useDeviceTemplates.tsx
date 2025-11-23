@@ -280,5 +280,8 @@ export function useDeviceTemplates() {
 
     // 表格操作处理器
     tableHandlers,
+
+    // 刷新数据
+    refetch: loadTemplates,
   };
 }

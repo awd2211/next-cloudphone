@@ -201,5 +201,8 @@ export function usePaymentMethods() {
 
     // 导航
     goBack,
+
+    // 刷新
+    refetch: loadPaymentMethods,
   };
 }

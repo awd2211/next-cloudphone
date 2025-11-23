@@ -1,11 +1,12 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Card, Table, Button, Space, Typography, Empty, Form } from 'antd';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { Card, Table, Button, Space, Typography, Empty, Form, message } from 'antd';
 import { FileTextOutlined, PlusOutlined } from '@ant-design/icons';
 import {
   InvoiceStatsCards,
   InvoiceApplyModal,
   InvoiceDetailModal,
 } from '@/components/Invoice';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   useInvoices,
   useApplyInvoice,
@@ -22,7 +23,7 @@ const { Title } = Typography;
  * 发票列表页面（React Query 优化版）
  * 展示所有发票，支持申请、查看详情、下载等操作
  */
-const InvoiceList: React.FC = () => {
+const InvoiceListContent: React.FC = () => {
   // Form 实例
   const [form] = Form.useForm();
 
@@ -34,7 +35,7 @@ const InvoiceList: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   // React Query hooks
-  const { data: invoicesData, isLoading: loading } = useInvoices({ page, pageSize });
+  const { data: invoicesData, isLoading: loading, refetch } = useInvoices({ page, pageSize });
   const { data: billsData } = useBills({ page: 1, pageSize: 100 }); // 获取账单列表
   const applyInvoice = useApplyInvoice();
   const downloadInvoice = useDownloadInvoice();
@@ -89,6 +90,19 @@ const InvoiceList: React.FC = () => {
     setPage(newPage);
     setPageSize(newPageSize);
   }, []);
+
+  // 快捷键支持: Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('刷新发票列表');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
 
   // 表格列配置
   const columns = useMemo(
@@ -181,6 +195,14 @@ const InvoiceList: React.FC = () => {
         onDownload={handleDownload}
       />
     </div>
+  );
+};
+
+const InvoiceList: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <InvoiceListContent />
+    </ErrorBoundary>
   );
 };
 

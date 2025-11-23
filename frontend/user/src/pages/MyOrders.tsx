@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Table, Tag, Button, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { getMyOrders, cancelOrder } from '@/services/order';
 import type { Order } from '@/types';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import dayjs from 'dayjs';
 
 const MyOrders = () => {
@@ -12,7 +13,7 @@ const MyOrders = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getMyOrders({ page, pageSize });
@@ -23,11 +24,24 @@ const MyOrders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize]);
 
   useEffect(() => {
     loadOrders();
-  }, [page, pageSize]);
+  }, [loadOrders]);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        loadOrders();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loadOrders]);
 
   const handleCancel = async (id: string) => {
     try {
@@ -123,30 +137,32 @@ const MyOrders = () => {
   ];
 
   return (
-    <div>
-      <h2>我的订单</h2>
+    <ErrorBoundary>
+      <div>
+        <h2>我的订单</h2>
 
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={orders}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            current: page,
-            pageSize,
-            total,
-            showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: (page, pageSize) => {
-              setPage(page);
-              setPageSize(pageSize);
-            },
-          }}
-          scroll={{ x: 1200 }}
-        />
-      </Card>
-    </div>
+        <Card>
+          <Table
+            columns={columns}
+            dataSource={orders}
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              current: page,
+              pageSize,
+              total,
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条`,
+              onChange: (page, pageSize) => {
+                setPage(page);
+                setPageSize(pageSize);
+              },
+            }}
+            scroll={{ x: 1200 }}
+          />
+        </Card>
+      </div>
+    </ErrorBoundary>
   );
 };
 

@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, Spin, Space, message, Pagination } from 'antd';
 import { GiftOutlined, LeftOutlined } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   StatsCards,
   CouponGrid,
@@ -34,11 +35,29 @@ const MyCoupons: React.FC = () => {
   const [pageSize, setPageSize] = useState(12);
 
   // React Query hooks
-  const { data: couponsData, isLoading: loading } = useMyCoupons({
+  const { data: couponsData, isLoading: loading, refetch } = useMyCoupons({
     status: activeTab === 'all' ? undefined : activeTab,
     page,
     pageSize,
   });
+
+  // 刷新数据
+  const handleRefresh = useCallback(() => {
+    refetch();
+    message.success('数据已刷新');
+  }, [refetch]);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
 
   // useMyCoupons 返回 { items/data: Coupon[], total, page, pageSize }
   const coupons: Coupon[] = getListData(couponsData);
@@ -95,63 +114,65 @@ const MyCoupons: React.FC = () => {
   }, [navigate]);
 
   return (
-    <div>
-      {/* 顶部返回按钮 */}
-      <Button icon={<LeftOutlined />} onClick={goToActivities} style={{ marginBottom: 16 }}>
-        返回活动中心
-      </Button>
+    <ErrorBoundary>
+      <div>
+        {/* 顶部返回按钮 */}
+        <Button icon={<LeftOutlined />} onClick={goToActivities} style={{ marginBottom: 16 }}>
+          返回活动中心
+        </Button>
 
-      {/* 统计卡片 */}
-      <StatsCards stats={stats} />
+        {/* 统计卡片 */}
+        <StatsCards stats={stats} />
 
-      {/* 优惠券列表 */}
-      <Card
-        title={
-          <Space>
-            <GiftOutlined style={{ fontSize: 20, color: '#1890ff' }} />
-            <span style={{ fontSize: 20 }}>我的优惠券</span>
-          </Space>
-        }
-      >
-        {/* 标签页 */}
-        <CouponTabs activeTab={activeTab} stats={stats} onTabChange={handleTabChange} />
+        {/* 优惠券列表 */}
+        <Card
+          title={
+            <Space>
+              <GiftOutlined style={{ fontSize: 20, color: '#1890ff' }} />
+              <span style={{ fontSize: 20 }}>我的优惠券</span>
+            </Space>
+          }
+        >
+          {/* 标签页 */}
+          <CouponTabs activeTab={activeTab} stats={stats} onTabChange={handleTabChange} />
 
-        {/* 优惠券网格或空状态 */}
-        <Spin spinning={loading}>
-          {coupons.length > 0 ? (
-            <CouponGrid
-              coupons={coupons}
-              onShowDetail={showCouponDetail}
-              onUseCoupon={handleUseCoupon}
-            />
-          ) : (
-            <EmptyState onGoToActivities={goToActivities} />
+          {/* 优惠券网格或空状态 */}
+          <Spin spinning={loading}>
+            {coupons.length > 0 ? (
+              <CouponGrid
+                coupons={coupons}
+                onShowDetail={showCouponDetail}
+                onUseCoupon={handleUseCoupon}
+              />
+            ) : (
+              <EmptyState onGoToActivities={goToActivities} />
+            )}
+          </Spin>
+
+          {/* 分页 */}
+          {total > pageSize && (
+            <div style={{ marginTop: 24, textAlign: 'center' }}>
+              <Pagination
+                current={page}
+                pageSize={pageSize}
+                total={total}
+                showSizeChanger
+                showQuickJumper
+                showTotal={(total) => `共 ${total} 张优惠券`}
+                onChange={handlePageChange}
+              />
+            </div>
           )}
-        </Spin>
+        </Card>
 
-        {/* 分页 */}
-        {total > pageSize && (
-          <div style={{ marginTop: 24, textAlign: 'center' }}>
-            <Pagination
-              current={page}
-              pageSize={pageSize}
-              total={total}
-              showSizeChanger
-              showQuickJumper
-              showTotal={(total) => `共 ${total} 张优惠券`}
-              onChange={handlePageChange}
-            />
-          </div>
-        )}
-      </Card>
-
-      {/* 优惠券详情 Modal */}
-      <CouponDetailModal
-        coupon={selectedCoupon}
-        onClose={closeDetailModal}
-        onUseCoupon={handleUseCoupon}
-      />
-    </div>
+        {/* 优惠券详情 Modal */}
+        <CouponDetailModal
+          coupon={selectedCoupon}
+          onClose={closeDetailModal}
+          onUseCoupon={handleUseCoupon}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

@@ -6,10 +6,11 @@ import {
   AlipayOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { createPayment, queryPaymentStatus } from '@/services/order';
 import type { Payment } from '@/types';
 
-const Recharge = () => {
+const RechargeContent = () => {
   const [amount, setAmount] = useState<number>(100);
   const [currentStep, setCurrentStep] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<'wechat' | 'alipay'>('wechat');
@@ -263,6 +264,14 @@ const Recharge = () => {
         )}
       </Modal>
     </div>
+  );
+};
+
+const Recharge = () => {
+  return (
+    <ErrorBoundary>
+      <RechargeContent />
+    </ErrorBoundary>
   );
 };
 

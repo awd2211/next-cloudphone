@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Card, Table, Empty } from 'antd';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { Card, Table, Empty, message } from 'antd';
 import type { TablePaginationConfig } from 'antd';
 import type { SorterResult } from 'antd/es/table/interface';
 import { useNavigate } from 'react-router-dom';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { BillStatsCards, BillFilterBar, PaymentModal } from '@/components/Billing';
 import { useBills, useBillStats, usePayBill, useCancelBill, useDownloadBill } from '@/hooks/queries';
 import { createBillTableColumns } from '@/utils/billTableColumns';
@@ -31,7 +32,7 @@ const BillList: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('balance' as PaymentMethod);
 
   // React Query hooks
-  const { data: billsData, isLoading: loading } = useBills(query);
+  const { data: billsData, isLoading: loading, refetch } = useBills(query);
   const { data: stats } = useBillStats();
   const payBill = usePayBill();
   const cancelBill = useCancelBill();
@@ -98,10 +99,23 @@ const BillList: React.FC = () => {
     await downloadBill.mutateAsync(bill);
   }, [downloadBill]);
 
-  // 刷新（React Query 自动处理）
+  // 刷新
   const handleRefresh = useCallback(() => {
-    // React Query 的 invalidateQueries 已在 mutations 中自动处理
-  }, []);
+    refetch();
+    message.success('刷新成功');
+  }, [refetch]);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
 
   // 处理表格变化（分页、排序）
   const handleTableChange = useCallback(
@@ -138,52 +152,54 @@ const BillList: React.FC = () => {
   );
 
   return (
-    <div>
-      {/* 统计卡片 */}
-      <BillStatsCards stats={stats ?? null} />
+    <ErrorBoundary>
+      <div>
+        {/* 统计卡片 */}
+        <BillStatsCards stats={stats ?? null} />
 
-      {/* 筛选工具栏 */}
-      <BillFilterBar
-        onSearch={(keyword) => handleFilterChange('keyword', keyword)}
-        onTypeChange={(type) => handleFilterChange('type', type)}
-        onStatusChange={(status) => handleFilterChange('status', status)}
-        onDateRangeChange={handleDateRangeChange}
-        onRefresh={handleRefresh}
-      />
-
-      {/* 账单列表 */}
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={bills}
-          rowKey="id"
-          loading={loading}
-          onChange={handleTableChange}
-          pagination={{
-            current: query.page,
-            pageSize: query.pageSize,
-            total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条账单`,
-          }}
-          locale={{
-            emptyText: <Empty description="暂无账单" />,
-          }}
-          scroll={{ x: 1400 }}
+        {/* 筛选工具栏 */}
+        <BillFilterBar
+          onSearch={(keyword) => handleFilterChange('keyword', keyword)}
+          onTypeChange={(type) => handleFilterChange('type', type)}
+          onStatusChange={(status) => handleFilterChange('status', status)}
+          onDateRangeChange={handleDateRangeChange}
+          onRefresh={handleRefresh}
         />
-      </Card>
 
-      {/* 支付弹窗 */}
-      <PaymentModal
-        visible={paymentModalVisible}
-        bill={selectedBill}
-        paymentMethod={paymentMethod}
-        onPaymentMethodChange={setPaymentMethod}
-        onConfirm={handleConfirmPay}
-        onCancel={() => setPaymentModalVisible(false)}
-      />
-    </div>
+        {/* 账单列表 */}
+        <Card>
+          <Table
+            columns={columns}
+            dataSource={bills}
+            rowKey="id"
+            loading={loading}
+            onChange={handleTableChange}
+            pagination={{
+              current: query.page,
+              pageSize: query.pageSize,
+              total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条账单`,
+            }}
+            locale={{
+              emptyText: <Empty description="暂无账单" />,
+            }}
+            scroll={{ x: 1400 }}
+          />
+        </Card>
+
+        {/* 支付弹窗 */}
+        <PaymentModal
+          visible={paymentModalVisible}
+          bill={selectedBill}
+          paymentMethod={paymentMethod}
+          onPaymentMethodChange={setPaymentMethod}
+          onConfirm={handleConfirmPay}
+          onCancel={() => setPaymentModalVisible(false)}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

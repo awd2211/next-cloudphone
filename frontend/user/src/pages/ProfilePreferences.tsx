@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -22,6 +22,7 @@ import {
   BellOutlined,
 } from '@ant-design/icons';
 import { getUserInfo, updateUserPreferences } from '@/services/user';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -41,9 +42,26 @@ const ProfilePreferences = () => {
   const [loading, setLoading] = useState(false);
   const [initialValues, setInitialValues] = useState<UserPreferences | null>(null);
 
+  const refetch = useCallback(() => {
+    loadPreferences();
+    message.success('数据已刷新');
+  }, []);
+
   useEffect(() => {
     loadPreferences();
   }, []);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
 
   const loadPreferences = async () => {
     try {
@@ -111,12 +129,13 @@ const ProfilePreferences = () => {
   };
 
   return (
-    <div>
-      <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/profile')}>
-          返回个人中心
-        </Button>
-      </Space>
+    <ErrorBoundary>
+      <div>
+        <Space style={{ marginBottom: 24 }}>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/profile')}>
+            返回个人中心
+          </Button>
+        </Space>
 
       <Title level={2}>偏好设置</Title>
       <Paragraph type="secondary">自定义您的使用体验，包括语言、主题和通知偏好</Paragraph>
@@ -232,17 +251,18 @@ const ProfilePreferences = () => {
         </Form>
       </Card>
 
-      {/* 说明 */}
-      <Card style={{ marginTop: 24 }} bordered={false}>
-        <Title level={5}>关于偏好设置</Title>
-        <ul>
-          <li>语言和主题设置会立即应用到您的账户</li>
-          <li>部分设置可能需要刷新页面后生效</li>
-          <li>通知偏好不会影响安全相关的关键通知</li>
-          <li>即使关闭营销邮件，您仍会收到账单和系统通知</li>
-        </ul>
-      </Card>
-    </div>
+        {/* 说明 */}
+        <Card style={{ marginTop: 24 }} bordered={false}>
+          <Title level={5}>关于偏好设置</Title>
+          <ul>
+            <li>语言和主题设置会立即应用到您的账户</li>
+            <li>部分设置可能需要刷新页面后生效</li>
+            <li>通知偏好不会影响安全相关的关键通知</li>
+            <li>即使关闭营销邮件，您仍会收到账单和系统通知</li>
+          </ul>
+        </Card>
+      </div>
+    </ErrorBoundary>
   );
 };
 

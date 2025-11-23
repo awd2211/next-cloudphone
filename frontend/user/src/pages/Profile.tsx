@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   Descriptions,
@@ -26,6 +26,7 @@ import { updateProfile, changePassword, getBalance } from '@/services/user';
 import type { User } from '@/types';
 import dayjs from 'dayjs';
 import TwoFactorSettings from '@/components/TwoFactorSettings';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -58,10 +59,28 @@ const Profile = () => {
     }
   };
 
+  const refetch = useCallback(() => {
+    loadUser();
+    loadBalance();
+    message.success('数据已刷新');
+  }, []);
+
   useEffect(() => {
     loadUser();
     loadBalance();
   }, []);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
 
   const handleUpdateProfile = async (values: { email?: string; phone?: string }) => {
     try {
@@ -103,10 +122,11 @@ const Profile = () => {
   }
 
   return (
-    <div>
-      <h2>个人中心</h2>
+    <ErrorBoundary>
+      <div>
+        <h2>个人中心</h2>
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={12}>
           <Card>
             <Statistic
@@ -283,7 +303,8 @@ const Profile = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

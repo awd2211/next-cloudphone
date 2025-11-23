@@ -1,7 +1,8 @@
-import React from 'react';
-import { Row } from 'antd';
+import React, { useEffect, useCallback } from 'react';
+import { Row, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
 import {
@@ -43,11 +44,25 @@ const Dashboard: React.FC = () => {
     handleRefresh,
   } = useDashboard();
 
-  const handleCreateDevice = () => {
+  const handleCreateDevice = useCallback(() => {
     navigate('/devices');
-  };
+  }, [navigate]);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
 
   return (
+    <ErrorBoundary>
     <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh' }}>
       <DashboardHeader
         loading={loading}
@@ -71,6 +86,7 @@ const Dashboard: React.FC = () => {
         <RecentActivities activities={recentActivities} />
       </Row>
     </div>
+    </ErrorBoundary>
   );
 };
 

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { message } from 'antd';
 import {
   BalanceHeader,
   LowBalanceAlert,
@@ -8,6 +9,7 @@ import {
   TransactionTable,
   AlertSettingsModal,
 } from '@/components/AccountBalance';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAccountBalance } from '@/hooks/useAccountBalance';
 
 /**
@@ -44,37 +46,52 @@ const AccountBalance: React.FC = () => {
     handleCloseAlertSettings,
   } = useAccountBalance();
 
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh?.();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
+
   return (
-    <div style={{ padding: 24 }}>
-      <BalanceHeader
-        loading={loading}
-        onRefresh={handleRefresh}
-        onOpenAlertSettings={handleOpenAlertSettings}
-      />
+    <ErrorBoundary>
+      <div style={{ padding: 24 }}>
+        <BalanceHeader
+          loading={loading}
+          onRefresh={handleRefresh}
+          onOpenAlertSettings={handleOpenAlertSettings}
+        />
 
-      <LowBalanceAlert balanceData={balanceData} isLowBalance={isLowBalance} />
+        <LowBalanceAlert balanceData={balanceData} isLowBalance={isLowBalance} />
 
-      <BalanceMetrics
-        balanceData={balanceData}
-        balanceChange={balanceChange}
-        balanceChangePercent={balanceChangePercent}
-        monthConsumptionPercent={monthConsumptionPercent}
-        isLowBalance={isLowBalance}
-      />
+        <BalanceMetrics
+          balanceData={balanceData}
+          balanceChange={balanceChange}
+          balanceChangePercent={balanceChangePercent}
+          monthConsumptionPercent={monthConsumptionPercent}
+          isLowBalance={isLowBalance}
+        />
 
-      <BalanceTrendChart lineChartConfig={lineChartConfig} />
+        <BalanceTrendChart lineChartConfig={lineChartConfig} />
 
-      <ForecastCards balanceData={balanceData} />
+        <ForecastCards balanceData={balanceData} />
 
-      <TransactionTable transactions={transactions} columns={columns} loading={loading} />
+        <TransactionTable transactions={transactions} columns={columns} loading={loading} />
 
-      <AlertSettingsModal
-        visible={alertSettingsVisible}
-        form={form}
-        onSave={handleSaveAlertSettings}
-        onClose={handleCloseAlertSettings}
-      />
-    </div>
+        <AlertSettingsModal
+          visible={alertSettingsVisible}
+          form={form}
+          onSave={handleSaveAlertSettings}
+          onClose={handleCloseAlertSettings}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

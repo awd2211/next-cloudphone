@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
-import { Card } from 'antd';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Card, message } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   BillHeader,
   BillStatusSteps,
@@ -43,10 +44,28 @@ const BillDetail: React.FC = () => {
   const [taxId, setTaxId] = useState('');
 
   // React Query hooks
-  const { data: bill, isLoading: loading } = useBillDetail(id!);
+  const { data: bill, isLoading: loading, refetch } = useBillDetail(id!);
   const payBill = usePayBill();
   const downloadBill = useDownloadBill();
   const applyInvoice = useApplyInvoice();
+
+  // 刷新
+  const handleRefresh = useCallback(() => {
+    refetch();
+    message.success('刷新成功');
+  }, [refetch]);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
 
   // 打开/关闭支付弹窗
   const openPaymentModal = useCallback(() => setPaymentModalVisible(true), []);
@@ -105,49 +124,51 @@ const BillDetail: React.FC = () => {
   }
 
   return (
-    <div>
-      {/* 页头 */}
-      <BillHeader
-        bill={bill}
-        onBack={handleBack}
-        onPay={openPaymentModal}
-        onApplyInvoice={openInvoiceModal}
-        onDownload={handleDownload}
-        onPrint={handlePrint}
-      />
+    <ErrorBoundary>
+      <div>
+        {/* 页头 */}
+        <BillHeader
+          bill={bill}
+          onBack={handleBack}
+          onPay={openPaymentModal}
+          onApplyInvoice={openInvoiceModal}
+          onDownload={handleDownload}
+          onPrint={handlePrint}
+        />
 
-      {/* 状态步骤 */}
-      <BillStatusSteps bill={bill} />
+        {/* 状态步骤 */}
+        <BillStatusSteps bill={bill} />
 
-      {/* 账单信息 */}
-      <BillInfoCard bill={bill} />
+        {/* 账单信息 */}
+        <BillInfoCard bill={bill} />
 
-      {/* 账单明细 */}
-      <BillItemsTable bill={bill} />
+        {/* 账单明细 */}
+        <BillItemsTable bill={bill} />
 
-      {/* 支付 Modal */}
-      <PaymentModal
-        visible={paymentModalVisible}
-        bill={bill}
-        paymentMethod={paymentMethod}
-        onPaymentMethodChange={setPaymentMethod}
-        onOk={handlePay}
-        onCancel={closePaymentModal}
-      />
+        {/* 支付 Modal */}
+        <PaymentModal
+          visible={paymentModalVisible}
+          bill={bill}
+          paymentMethod={paymentMethod}
+          onPaymentMethodChange={setPaymentMethod}
+          onOk={handlePay}
+          onCancel={closePaymentModal}
+        />
 
-      {/* 发票 Modal */}
-      <InvoiceModal
-        visible={invoiceModalVisible}
-        invoiceType={invoiceType}
-        invoiceTitle={invoiceTitle}
-        taxId={taxId}
-        onInvoiceTypeChange={setInvoiceType}
-        onInvoiceTitleChange={setInvoiceTitle}
-        onTaxIdChange={setTaxId}
-        onOk={handleApplyInvoice}
-        onCancel={closeInvoiceModal}
-      />
-    </div>
+        {/* 发票 Modal */}
+        <InvoiceModal
+          visible={invoiceModalVisible}
+          invoiceType={invoiceType}
+          invoiceTitle={invoiceTitle}
+          taxId={taxId}
+          onInvoiceTypeChange={setInvoiceType}
+          onInvoiceTitleChange={setInvoiceTitle}
+          onTaxIdChange={setTaxId}
+          onOk={handleApplyInvoice}
+          onCancel={closeInvoiceModal}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

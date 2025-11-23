@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   Row,
@@ -13,7 +13,9 @@ import {
   Select,
   Progress,
   Tooltip,
+  message,
 } from 'antd';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   GlobalOutlined,
   PlusOutlined,
@@ -45,10 +47,29 @@ const MyProxies: React.FC = () => {
   const [acquireForm] = Form.useForm();
 
   // 使用自定义 React Query Hooks
-  const { data, isLoading } = useMyProxies();
-  const { data: stats } = useMyProxyStats(); // 自动30秒刷新
+  const { data, isLoading, refetch } = useMyProxies();
+  const { data: stats, refetch: refetchStats } = useMyProxyStats(); // 自动30秒刷新
   const acquireMutation = useAcquireProxy();
   const releaseMutation = useReleaseProxy();
+
+  // 刷新处理
+  const handleRefresh = useCallback(() => {
+    refetch();
+    refetchStats();
+    message.success('已刷新');
+  }, [refetch, refetchStats]);
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
 
   const handleAcquire = () => {
     acquireForm.validateFields().then((values) => {
@@ -179,9 +200,10 @@ const MyProxies: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      {/* 统计卡片 */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+    <ErrorBoundary>
+      <div style={{ padding: '24px' }}>
+        {/* 统计卡片 */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
@@ -238,7 +260,7 @@ const MyProxies: React.FC = () => {
             >
               申请代理
             </Button>
-            <Button icon={<ReloadOutlined />}>刷新</Button>
+            <Button icon={<ReloadOutlined />} onClick={handleRefresh}>刷新</Button>
           </Space>
         }
       >
@@ -296,7 +318,8 @@ const MyProxies: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

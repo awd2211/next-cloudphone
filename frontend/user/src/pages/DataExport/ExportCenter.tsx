@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Card, Table, Button, Space, Typography, Empty, Form } from 'antd';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Card, Table, Button, Space, Typography, Empty, Form, message } from 'antd';
 import { ExportOutlined } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   ExportStatsCards,
   ExportToolbar,
@@ -58,6 +59,20 @@ const ExportCenter: React.FC = () => {
   // useExportTasks 返回 { items: ExportTask[], total: number }
   const tasks: ExportTask[] = tasksData?.items || [];
   const total = tasksData?.total ?? 0;
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refetchTasks();
+        refetchStats();
+        message.success('已刷新');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetchTasks, refetchStats]);
 
   // 操作处理
   const handleRefresh = useCallback(() => {
@@ -140,80 +155,82 @@ const ExportCenter: React.FC = () => {
   );
 
   return (
-    <div>
-      {/* 页头 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <Title level={3} style={{ margin: 0 }}>
-                <ExportOutlined /> 数据导出中心
-              </Title>
-              <Paragraph type="secondary" style={{ margin: 0 }}>
-                导出您的数据，支持多种格式
-              </Paragraph>
+    <ErrorBoundary>
+      <div>
+        {/* 页头 */}
+        <Card style={{ marginBottom: 16 }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <Title level={3} style={{ margin: 0 }}>
+                  <ExportOutlined /> 数据导出中心
+                </Title>
+                <Paragraph type="secondary" style={{ margin: 0 }}>
+                  导出您的数据，支持多种格式
+                </Paragraph>
+              </div>
+              <Button
+                type="primary"
+                size="large"
+                icon={<ExportOutlined />}
+                onClick={handleOpenCreateModal}
+              >
+                创建导出任务
+              </Button>
             </div>
-            <Button
-              type="primary"
-              size="large"
-              icon={<ExportOutlined />}
-              onClick={handleOpenCreateModal}
-            >
-              创建导出任务
-            </Button>
-          </div>
-        </Space>
-      </Card>
+          </Space>
+        </Card>
 
-      {/* 统计卡片 */}
-      <ExportStatsCards stats={stats ?? null} />
+        {/* 统计卡片 */}
+        <ExportStatsCards stats={stats ?? null} />
 
-      {/* 工具栏 */}
-      <ExportToolbar
-        selectedCount={selectedRowKeys.length}
-        onRefresh={handleRefresh}
-        onBatchDelete={handleBatchDelete}
-        onClearCompleted={handleClearCompleted}
-        onClearFailed={handleClearFailed}
-        onStatusChange={handleStatusChange}
-        onDataTypeChange={handleDataTypeChange}
-      />
-
-      {/* 任务列表 */}
-      <Card>
-        <Table
-          rowSelection={{
-            selectedRowKeys,
-            onChange: (keys) => setSelectedRowKeys(keys as string[]),
-          }}
-          columns={columns}
-          dataSource={tasks}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            current: query.page,
-            pageSize: query.pageSize,
-            total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 个任务`,
-            onChange: handlePageChange,
-          }}
-          locale={{
-            emptyText: <Empty description="暂无导出任务" />,
-          }}
-          scroll={{ x: 1200 }}
+        {/* 工具栏 */}
+        <ExportToolbar
+          selectedCount={selectedRowKeys.length}
+          onRefresh={handleRefresh}
+          onBatchDelete={handleBatchDelete}
+          onClearCompleted={handleClearCompleted}
+          onClearFailed={handleClearFailed}
+          onStatusChange={handleStatusChange}
+          onDataTypeChange={handleDataTypeChange}
         />
-      </Card>
 
-      {/* 创建导出 Modal */}
-      <ExportCreateModal
-        visible={createModalVisible}
-        form={form}
-        onOk={handleCreateExport}
-        onCancel={handleCloseCreateModal}
-      />
-    </div>
+        {/* 任务列表 */}
+        <Card>
+          <Table
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (keys) => setSelectedRowKeys(keys as string[]),
+            }}
+            columns={columns}
+            dataSource={tasks}
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              current: query.page,
+              pageSize: query.pageSize,
+              total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 个任务`,
+              onChange: handlePageChange,
+            }}
+            locale={{
+              emptyText: <Empty description="暂无导出任务" />,
+            }}
+            scroll={{ x: 1200 }}
+          />
+        </Card>
+
+        {/* 创建导出 Modal */}
+        <ExportCreateModal
+          visible={createModalVisible}
+          form={form}
+          onOk={handleCreateExport}
+          onCancel={handleCloseCreateModal}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

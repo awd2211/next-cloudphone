@@ -1,5 +1,5 @@
-import React from 'react';
-import { Card, Button, Empty, Typography } from 'antd';
+import React, { useEffect } from 'react';
+import { Card, Button, Empty, Typography, message } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
 import {
   SecurityAlert,
@@ -7,6 +7,7 @@ import {
   AddPaymentModal,
   UsageGuide,
 } from '@/components/Payment';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
 const { Title } = Typography;
@@ -23,7 +24,7 @@ const { Title } = Typography;
  * 6. ✅ 动态表单通过配置驱动生成
  * 7. ✅ 代码从 351 行减少到 ~70 行
  */
-const PaymentMethods: React.FC = () => {
+const PaymentMethodsContent: React.FC = () => {
   const {
     paymentMethods,
     loading,
@@ -35,7 +36,21 @@ const PaymentMethods: React.FC = () => {
     showAddModal,
     hideAddModal,
     goBack,
+    refetch,
   } = usePaymentMethods();
+
+  // 快捷键支持: Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('刷新支付方式列表');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
 
   return (
     <div>
@@ -89,6 +104,14 @@ const PaymentMethods: React.FC = () => {
       {/* 使用指南 */}
       <UsageGuide />
     </div>
+  );
+};
+
+const PaymentMethods: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <PaymentMethodsContent />
+    </ErrorBoundary>
   );
 };
 

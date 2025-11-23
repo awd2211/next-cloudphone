@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Space, Button, Pagination } from 'antd';
+import { Card, Space, Button, Pagination, message } from 'antd';
 import { GiftOutlined, RightOutlined } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   ActivityBanner,
   StatsCards,
@@ -34,12 +35,31 @@ const ActivityCenter: React.FC = () => {
   const [pageSize, setPageSize] = useState(12);
 
   // React Query hooks - 并行查询
-  const { data: activitiesData, isLoading: loading } = useActivities({
+  const { data: activitiesData, isLoading: loading, refetch: refetchActivities } = useActivities({
     status: activeTab === 'all' ? undefined : activeTab,
     page,
     pageSize,
   });
-  const { data: stats } = useActivityStats();
+  const { data: stats, refetch: refetchStats } = useActivityStats();
+
+  // 刷新数据
+  const handleRefresh = useCallback(() => {
+    refetchActivities();
+    refetchStats();
+    message.success('数据已刷新');
+  }, [refetchActivities, refetchStats]);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
 
   // useActivities 返回 { items/data: Activity[], total, page, pageSize }
   const activities = getListData(activitiesData);
@@ -70,53 +90,55 @@ const ActivityCenter: React.FC = () => {
   }, [navigate]);
 
   return (
-    <div>
-      <Card
-        title={
-          <Space>
-            <GiftOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-            <span style={{ fontSize: 24, fontWeight: 'bold' }}>活动中心</span>
-          </Space>
-        }
-        extra={
-          <Button onClick={goToMyCoupons}>
-            我的优惠券 <RightOutlined />
-          </Button>
-        }
-        bordered={false}
-      >
-        {/* 轮播图 */}
-        <ActivityBanner activities={activities} onActivityClick={goToActivityDetail} />
+    <ErrorBoundary>
+      <div>
+        <Card
+          title={
+            <Space>
+              <GiftOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              <span style={{ fontSize: 24, fontWeight: 'bold' }}>活动中心</span>
+            </Space>
+          }
+          extra={
+            <Button onClick={goToMyCoupons}>
+              我的优惠券 <RightOutlined />
+            </Button>
+          }
+          bordered={false}
+        >
+          {/* 轮播图 */}
+          <ActivityBanner activities={activities} onActivityClick={goToActivityDetail} />
 
-        {/* 统计数据 */}
-        <StatsCards stats={stats ?? null} />
+          {/* 统计数据 */}
+          <StatsCards stats={stats ?? null} />
 
-        {/* Tab切换 */}
-        <ActivityTabs activeKey={activeTab} onChange={handleTabChange} />
+          {/* Tab切换 */}
+          <ActivityTabs activeKey={activeTab} onChange={handleTabChange} />
 
-        {/* 活动列表 */}
-        <ActivityGrid
-          activities={activities}
-          loading={loading}
-          onActivityClick={goToActivityDetail}
-        />
+          {/* 活动列表 */}
+          <ActivityGrid
+            activities={activities}
+            loading={loading}
+            onActivityClick={goToActivityDetail}
+          />
 
-        {/* 分页 */}
-        {total > pageSize && (
-          <div style={{ marginTop: 24, textAlign: 'center' }}>
-            <Pagination
-              current={page}
-              pageSize={pageSize}
-              total={total}
-              showSizeChanger
-              showQuickJumper
-              showTotal={(total) => `共 ${total} 个活动`}
-              onChange={handlePageChange}
-            />
-          </div>
-        )}
-      </Card>
-    </div>
+          {/* 分页 */}
+          {total > pageSize && (
+            <div style={{ marginTop: 24, textAlign: 'center' }}>
+              <Pagination
+                current={page}
+                pageSize={pageSize}
+                total={total}
+                showSizeChanger
+                showQuickJumper
+                showTotal={(total) => `共 ${total} 个活动`}
+                onChange={handlePageChange}
+              />
+            </div>
+          )}
+        </Card>
+      </div>
+    </ErrorBoundary>
   );
 };
 

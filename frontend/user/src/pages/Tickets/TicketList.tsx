@@ -1,9 +1,10 @@
-import React from 'react';
-import { Card, Button, Space } from 'antd';
+import React, { useEffect } from 'react';
+import { Card, Button, Space, message } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import CreateTicketModal from '@/components/CreateTicketModal';
 import { StatsCards, FilterBar, TicketTable } from '@/components/TicketList';
 import { useTicketList } from '@/hooks/useTicketList';
@@ -43,56 +44,89 @@ const TicketList: React.FC = () => {
     goToDetail,
   } = useTicketList();
 
-  return (
-    <div style={{ padding: '24px' }}>
-      {/* 统计卡片 */}
-      <StatsCards stats={stats} />
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 忽略输入框中的快捷键
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
 
-      {/* 主卡片 */}
-      <Card
-        title="我的工单"
-        extra={
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
-              刷新
-            </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
-              新建工单
-            </Button>
-          </Space>
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'r':
+            e.preventDefault();
+            handleRefresh();
+            message.info('刷新工单列表');
+            break;
+          case 'n':
+            e.preventDefault();
+            openCreateModal();
+            message.info('新建工单');
+            break;
         }
-      >
-        {/* 筛选器 */}
-        <FilterBar
-          status={query.status}
-          type={query.type}
-          priority={query.priority}
-          onSearch={handleSearch}
-          onStatusChange={handleStatusChange}
-          onTypeChange={handleTypeChange}
-          onPriorityChange={handlePriorityChange}
-        />
+      }
+    };
 
-        {/* 工单列表 */}
-        <TicketTable
-          tickets={tickets}
-          loading={loading}
-          total={total}
-          page={query.page || 1}
-          pageSize={query.pageSize || 10}
-          onPageChange={handlePageChange}
-          onViewDetail={goToDetail}
-          onCreateTicket={openCreateModal}
-        />
-      </Card>
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh, openCreateModal]);
 
-      {/* 创建工单 Modal */}
-      <CreateTicketModal
-        visible={createModalVisible}
-        onCancel={closeCreateModal}
-        onSuccess={handleCreateSuccess}
-      />
-    </div>
+  return (
+    <ErrorBoundary>
+      <div style={{ padding: '24px' }}>
+        {/* 统计卡片 */}
+        <StatsCards stats={stats} />
+
+        {/* 主卡片 */}
+        <Card
+          title="我的工单"
+          extra={
+            <Space>
+              <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
+                刷新
+              </Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+                新建工单
+              </Button>
+            </Space>
+          }
+        >
+          {/* 筛选器 */}
+          <FilterBar
+            status={query.status}
+            type={query.type}
+            priority={query.priority}
+            onSearch={handleSearch}
+            onStatusChange={handleStatusChange}
+            onTypeChange={handleTypeChange}
+            onPriorityChange={handlePriorityChange}
+          />
+
+          {/* 工单列表 */}
+          <TicketTable
+            tickets={tickets}
+            loading={loading}
+            total={total}
+            page={query.page || 1}
+            pageSize={query.pageSize || 10}
+            onPageChange={handlePageChange}
+            onViewDetail={goToDetail}
+            onCreateTicket={openCreateModal}
+          />
+        </Card>
+
+        {/* 创建工单 Modal */}
+        <CreateTicketModal
+          visible={createModalVisible}
+          onCancel={closeCreateModal}
+          onSuccess={handleCreateSuccess}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

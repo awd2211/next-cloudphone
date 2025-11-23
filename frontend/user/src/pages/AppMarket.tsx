@@ -1,5 +1,7 @@
-import { useState, useCallback } from 'react';
-import { Row, Col, Card, Empty, Form, Pagination, Spin } from 'antd';
+import { useState, useCallback, useEffect } from 'react';
+import { Row, Col, Form, Pagination, message } from 'antd';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 import { AppSearchBar, AppCard, InstallAppModal } from '@/components/App';
 import { useApps, useInstallApp, useMyDevices } from '@/hooks/queries';
 import type { Application, Device } from '@/types';
@@ -89,67 +91,80 @@ const AppMarket = () => {
     setPageSize(newPageSize);
   }, []);
 
+  // 刷新函数
+  const handleRefresh = useCallback(() => {
+    // 触发重新查询
+    setPage(1);
+  }, []);
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
+
   return (
-    <div>
-      <h2>应用市场</h2>
+    <ErrorBoundary>
+      <div>
+        <h2>应用市场</h2>
 
-      <AppSearchBar
-        search={search}
-        category={category}
-        categories={categories}
-        onSearchChange={setSearch}
-        onSearch={handleSearch}
-        onCategoryChange={setCategory}
-      />
+        <AppSearchBar
+          search={search}
+          category={category}
+          categories={categories}
+          onSearchChange={setSearch}
+          onSearch={handleSearch}
+          onCategoryChange={setCategory}
+        />
 
-      <Spin spinning={loading}>
-        {apps.length === 0 && !loading ? (
-          <Card>
-            <Empty description="暂无应用" />
-          </Card>
-        ) : (
-          <>
-            <Row gutter={[16, 16]}>
-              {apps.map((app: Application) => (
-                <Col key={app.id} xs={24} sm={12} md={8} lg={6}>
-                  <AppCard
-                    app={app}
-                    loading={false}
-                    onView={handleView}
-                    onInstall={handleInstall}
-                  />
-                </Col>
-              ))}
-            </Row>
-
-            {/* 分页 */}
-            {total > 0 && (
-              <div style={{ marginTop: 24, textAlign: 'center' }}>
-                <Pagination
-                  current={page}
-                  pageSize={pageSize}
-                  total={total}
-                  showSizeChanger
-                  showQuickJumper
-                  pageSizeOptions={['12', '24', '36', '48']}
-                  showTotal={(total) => `共 ${total} 个应用`}
-                  onChange={handlePageChange}
+        <LoadingState loading={loading} empty={apps.length === 0 && !loading}>
+          <Row gutter={[16, 16]}>
+            {apps.map((app: Application) => (
+              <Col key={app.id} xs={24} sm={12} md={8} lg={6}>
+                <AppCard
+                  app={app}
+                  loading={false}
+                  onView={handleView}
+                  onInstall={handleInstall}
                 />
-              </div>
-            )}
-          </>
-        )}
-      </Spin>
+              </Col>
+            ))}
+          </Row>
 
-      <InstallAppModal
-        visible={installModalVisible}
-        app={selectedApp}
-        devices={devices}
-        form={form}
-        onConfirm={handleInstallConfirm}
-        onCancel={handleInstallCancel}
-      />
-    </div>
+          {/* 分页 */}
+          {total > 0 && (
+            <div style={{ marginTop: 24, textAlign: 'center' }}>
+              <Pagination
+                current={page}
+                pageSize={pageSize}
+                total={total}
+                showSizeChanger
+                showQuickJumper
+                pageSizeOptions={['12', '24', '36', '48']}
+                showTotal={(total) => `共 ${total} 个应用`}
+                onChange={handlePageChange}
+              />
+            </div>
+          )}
+        </LoadingState>
+
+        <InstallAppModal
+          visible={installModalVisible}
+          app={selectedApp}
+          devices={devices}
+          form={form}
+          onConfirm={handleInstallConfirm}
+          onCancel={handleInstallCancel}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Card,
   Row,
@@ -55,7 +56,7 @@ const TutorialList: React.FC = () => {
   });
 
   // 加载教程列表
-  const loadTutorials = async () => {
+  const loadTutorials = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getTutorials(query);
@@ -66,11 +67,25 @@ const TutorialList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query]);
 
   useEffect(() => {
     loadTutorials();
-  }, [query]);
+  }, [loadTutorials]);
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        loadTutorials().then(() => {
+          message.success('数据已刷新');
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loadTutorials]);
 
   // 搜索
   const handleSearch = (value: string) => {
@@ -97,12 +112,13 @@ const TutorialList: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* 页头 */}
-      <Card style={{ marginBottom: 24 }}>
-        <Space direction="vertical" style={{ width: '100%' }} size="large">
-          <div style={{ textAlign: 'center' }}>
-            <BookOutlined style={{ fontSize: 48, color: '#faad14', marginBottom: 16 }} />
+    <ErrorBoundary>
+      <div>
+        {/* 页头 */}
+        <Card style={{ marginBottom: 24 }}>
+          <Space direction="vertical" style={{ width: '100%' }} size="large">
+            <div style={{ textAlign: 'center' }}>
+              <BookOutlined style={{ fontSize: 48, color: '#faad14', marginBottom: 16 }} />
             <Title level={2} style={{ marginBottom: 8 }}>
               视频教程
             </Title>
@@ -317,19 +333,20 @@ const TutorialList: React.FC = () => {
         </Card>
       )}
 
-      {/* 底部提示 */}
-      <Card style={{ marginTop: 24, textAlign: 'center', background: '#fafafa' }}>
-        <Space direction="vertical">
-          <Text>需要更多帮助？</Text>
-          <Space>
-            <Button type="primary" onClick={() => navigate('/help/faqs')}>
-              查看 FAQ
-            </Button>
-            <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
+        {/* 底部提示 */}
+        <Card style={{ marginTop: 24, textAlign: 'center', background: '#fafafa' }}>
+          <Space direction="vertical">
+            <Text>需要更多帮助？</Text>
+            <Space>
+              <Button type="primary" onClick={() => navigate('/help/faqs')}>
+                查看 FAQ
+              </Button>
+              <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
+            </Space>
           </Space>
-        </Space>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </ErrorBoundary>
   );
 };
 

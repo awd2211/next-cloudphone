@@ -1,7 +1,8 @@
-import React from 'react';
-import { Spin } from 'antd';
+import React, { useEffect } from 'react';
+import { Spin, message } from 'antd';
 import { useParams } from 'react-router-dom';
 import 'dayjs/locale/zh-cn';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TicketStatus } from '@/services/ticket';
 import {
   TicketHeader,
@@ -42,46 +43,76 @@ const TicketDetail: React.FC = () => {
     handleBack,
   } = useTicketDetail(id);
 
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 忽略输入框中的快捷键
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'r':
+            e.preventDefault();
+            handleRefresh();
+            message.info('刷新工单详情');
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
+
   // 加载中状态
   if (loading || !ticket) {
     return (
-      <div style={{ padding: '24px', textAlign: 'center' }}>
-        <Spin size="large" />
-      </div>
+      <ErrorBoundary>
+        <div style={{ padding: '24px', textAlign: 'center' }}>
+          <Spin size="large" />
+        </div>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <div style={{ padding: '24px' }}>
-      {/* 头部 */}
-      <TicketHeader
-        ticket={ticket}
-        onBack={handleBack}
-        onRefresh={handleRefresh}
-        onClose={handleCloseTicket}
-        onReopen={handleReopenTicket}
-      />
-
-      {/* 工单信息 */}
-      <TicketInfoCard ticket={ticket} />
-
-      {/* 回复列表 */}
-      <ReplyTimeline replies={replies} loading={repliesLoading} />
-
-      {/* 添加回复表单 */}
-      {ticket.status !== TicketStatus.CLOSED && (
-        <ReplyForm
-          replyContent={replyContent}
-          fileList={fileList}
-          submitLoading={submitLoading}
-          onReplyChange={setReplyContent}
-          onFileListChange={setFileList}
-          onUpload={handleUpload}
-          onRemove={handleRemoveFile}
-          onSubmit={handleSubmitReply}
+    <ErrorBoundary>
+      <div style={{ padding: '24px' }}>
+        {/* 头部 */}
+        <TicketHeader
+          ticket={ticket}
+          onBack={handleBack}
+          onRefresh={handleRefresh}
+          onClose={handleCloseTicket}
+          onReopen={handleReopenTicket}
         />
-      )}
-    </div>
+
+        {/* 工单信息 */}
+        <TicketInfoCard ticket={ticket} />
+
+        {/* 回复列表 */}
+        <ReplyTimeline replies={replies} loading={repliesLoading} />
+
+        {/* 添加回复表单 */}
+        {ticket.status !== TicketStatus.CLOSED && (
+          <ReplyForm
+            replyContent={replyContent}
+            fileList={fileList}
+            submitLoading={submitLoading}
+            onReplyChange={setReplyContent}
+            onFileListChange={setFileList}
+            onUpload={handleUpload}
+            onRemove={handleRemoveFile}
+            onSubmit={handleSubmitReply}
+          />
+        )}
+      </div>
+    </ErrorBoundary>
   );
 };
 

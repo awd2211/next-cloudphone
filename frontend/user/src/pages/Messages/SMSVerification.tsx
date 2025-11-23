@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Input, Button, Table, Tag, Space, message, Empty } from 'antd';
 import { SearchOutlined, ReloadOutlined, CopyOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   useVerificationCodeByPhone,
   useMyVerificationCodes,
@@ -28,7 +29,26 @@ const SMSVerification: React.FC = () => {
   const { data, isLoading, refetch } = useVerificationCodeByPhone(searchPhone, {
     enabled: !!searchPhone,
   });
-  const { data: historyData, isLoading: historyLoading } = useMyVerificationCodes();
+  const { data: historyData, isLoading: historyLoading, refetch: refetchHistory } = useMyVerificationCodes();
+
+  // 刷新数据
+  const handleRefresh = useCallback(() => {
+    refetch();
+    refetchHistory();
+    message.success('刷新成功');
+  }, [refetch, refetchHistory]);
+
+  // 快捷键监听
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
 
   const handleSearch = () => {
     if (!phoneNumber.trim()) {
@@ -112,6 +132,7 @@ const SMSVerification: React.FC = () => {
   ];
 
   return (
+    <ErrorBoundary>
     <div style={{ padding: '24px' }}>
       {/* 搜索区域 */}
       <Card style={{ marginBottom: 16 }}>
@@ -209,6 +230,7 @@ const SMSVerification: React.FC = () => {
         />
       </Card>
     </div>
+    </ErrorBoundary>
   );
 };
 

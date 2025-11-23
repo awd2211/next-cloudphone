@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Card, Table, Tag, DatePicker, Button, Row, Col } from 'antd';
+import { useState, useEffect, useCallback } from 'react';
+import { Card, Table, Tag, DatePicker, Button, Row, Col, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { RangePickerProps } from 'antd/es/date-picker';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getUsageRecords } from '@/services/order';
 import type { UsageRecord } from '@/types';
 import dayjs, { Dayjs } from 'dayjs';
 
 const { RangePicker } = DatePicker;
 
-const UsageRecords = () => {
+const UsageRecordsContent = () => {
   const [records, setRecords] = useState<UsageRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -19,7 +20,7 @@ const UsageRecords = () => {
     dayjs(),
   ]);
 
-  const loadRecords = async () => {
+  const loadRecords = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getUsageRecords({
@@ -35,11 +36,24 @@ const UsageRecords = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize, dateRange]);
 
   useEffect(() => {
     loadRecords();
-  }, [page, pageSize]);
+  }, [loadRecords]);
+
+  // 快捷键支持: Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        loadRecords();
+        message.info('刷新使用记录');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loadRecords]);
 
   const handleDateChange: RangePickerProps['onChange'] = (dates) => {
     if (dates && dates[0] && dates[1]) {
@@ -154,6 +168,14 @@ const UsageRecords = () => {
         />
       </Card>
     </div>
+  );
+};
+
+const UsageRecords = () => {
+  return (
+    <ErrorBoundary>
+      <UsageRecordsContent />
+    </ErrorBoundary>
   );
 };
 

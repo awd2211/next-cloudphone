@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Card,
   Collapse,
@@ -63,7 +64,7 @@ const FAQList: React.FC = () => {
   });
 
   // 加载 FAQ 列表
-  const loadFAQs = async () => {
+  const loadFAQs = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getFAQs(query);
@@ -74,11 +75,25 @@ const FAQList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query]);
 
   useEffect(() => {
     loadFAQs();
-  }, [query]);
+  }, [loadFAQs]);
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        loadFAQs().then(() => {
+          message.success('数据已刷新');
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loadFAQs]);
 
   // 搜索
   const handleSearch = (value: string) => {
@@ -133,9 +148,10 @@ const FAQList: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* 页头 */}
-      <Card style={{ marginBottom: 24 }}>
+    <ErrorBoundary>
+      <div>
+        {/* 页头 */}
+        <Card style={{ marginBottom: 24 }}>
         <Space direction="vertical" style={{ width: '100%' }} size="large">
           <div style={{ textAlign: 'center' }}>
             <QuestionCircleOutlined style={{ fontSize: 48, color: '#52c41a', marginBottom: 16 }} />
@@ -311,19 +327,20 @@ const FAQList: React.FC = () => {
         )}
       </Card>
 
-      {/* 底部提示 */}
-      <Card style={{ marginTop: 24, textAlign: 'center', background: '#fafafa' }}>
-        <Space direction="vertical">
-          <Text>还没有找到答案？</Text>
-          <Space>
-            <Button type="primary" onClick={() => navigate('/tickets')}>
-              提交工单
-            </Button>
-            <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
+        {/* 底部提示 */}
+        <Card style={{ marginTop: 24, textAlign: 'center', background: '#fafafa' }}>
+          <Space direction="vertical">
+            <Text>还没有找到答案？</Text>
+            <Space>
+              <Button type="primary" onClick={() => navigate('/tickets')}>
+                提交工单
+              </Button>
+              <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
+            </Space>
           </Space>
-        </Space>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </ErrorBoundary>
   );
 };
 

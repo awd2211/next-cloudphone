@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect } from 'react';
-import { Card, Form, Button, Space, Typography, Spin } from 'antd';
+import { Card, Form, Button, Space, Typography, Spin, message } from 'antd';
 import { BellOutlined, SaveOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs, { Dayjs } from 'dayjs';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   NotificationMethodCards,
   NotificationTypeList,
@@ -33,8 +34,26 @@ const MessageSettings: React.FC = () => {
   const userId = localStorage.getItem('userId') || '';
 
   // React Query hooks
-  const { data: settings, isLoading: loading } = useNotificationSettings(userId);
+  const { data: settings, isLoading: loading, refetch } = useNotificationSettings(userId);
   const updateSettings = useUpdateNotificationSettings();
+
+  // 刷新数据
+  const handleRefresh = useCallback(() => {
+    refetch();
+    message.success('刷新成功');
+  }, [refetch]);
+
+  // 快捷键监听
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefresh]);
 
   // 加载设置到表单
   useEffect(() => {
@@ -101,6 +120,7 @@ const MessageSettings: React.FC = () => {
   }
 
   return (
+    <ErrorBoundary>
     <div>
       {/* 页面标题 */}
       <Card style={{ marginBottom: 16 }}>
@@ -161,6 +181,7 @@ const MessageSettings: React.FC = () => {
         </Card>
       </Form>
     </div>
+    </ErrorBoundary>
   );
 };
 

@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Space, Button, Typography, Card, Form } from 'antd';
+import { Space, Button, Typography, Card, Form, message } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, CameraOutlined } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   DeviceInfo,
   StatsCards,
@@ -43,9 +44,22 @@ const DeviceSnapshots: React.FC = () => {
 
   // React Query hooks
   const { data: device } = useDevice(id!);
-  const { data: snapshots, isLoading: loading } = useDeviceSnapshots(id!);
+  const { data: snapshots, isLoading: loading, refetch } = useDeviceSnapshots(id!);
 
   const createSnapshot = useCreateSnapshot();
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新快照列表...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
   const restoreSnapshot = useRestoreSnapshot();
   const deleteSnapshot = useDeleteSnapshot();
 
@@ -105,67 +119,69 @@ const DeviceSnapshots: React.FC = () => {
   }, [id, navigate]);
 
   return (
-    <div>
-      {/* 返回按钮 */}
-      <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={goBackToDeviceDetail}>
-          返回设备详情
-        </Button>
-      </Space>
-
-      {/* 页面标题 */}
-      <Title level={2}>
-        <CameraOutlined /> 设备快照管理
-      </Title>
-      <Paragraph type="secondary">快照可以保存设备的完整状态，包括系统、应用和数据</Paragraph>
-
-      {/* 设备信息 */}
-      <DeviceInfo device={device ?? null} />
-
-      {/* 统计卡片 - 现在 snapshots 直接是 Snapshot[] 数组 */}
-      <StatsCards snapshots={snapshots || []} />
-
-      {/* 快照列表 */}
-      <Card
-        title="快照列表"
-        extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={openCreateModal}
-            disabled={device?.status !== 'running' && device?.status !== 'stopped'}
-          >
-            创建快照
+    <ErrorBoundary>
+      <div>
+        {/* 返回按钮 */}
+        <Space style={{ marginBottom: 24 }}>
+          <Button icon={<ArrowLeftOutlined />} onClick={goBackToDeviceDetail}>
+            返回设备详情
           </Button>
-        }
-      >
-        <SnapshotTable
-          snapshots={snapshots || []}
-          loading={loading}
-          onRestore={openRestoreModal}
-          onDelete={handleDeleteSnapshot}
+        </Space>
+
+        {/* 页面标题 */}
+        <Title level={2}>
+          <CameraOutlined /> 设备快照管理
+        </Title>
+        <Paragraph type="secondary">快照可以保存设备的完整状态，包括系统、应用和数据</Paragraph>
+
+        {/* 设备信息 */}
+        <DeviceInfo device={device ?? null} />
+
+        {/* 统计卡片 - 现在 snapshots 直接是 Snapshot[] 数组 */}
+        <StatsCards snapshots={snapshots || []} />
+
+        {/* 快照列表 */}
+        <Card
+          title="快照列表"
+          extra={
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreateModal}
+              disabled={device?.status !== 'running' && device?.status !== 'stopped'}
+            >
+              创建快照
+            </Button>
+          }
+        >
+          <SnapshotTable
+            snapshots={snapshots || []}
+            loading={loading}
+            onRestore={openRestoreModal}
+            onDelete={handleDeleteSnapshot}
+          />
+        </Card>
+
+        {/* 创建快照 Modal */}
+        <CreateSnapshotModal
+          visible={createModalVisible}
+          form={form}
+          onCancel={closeCreateModal}
+          onSubmit={handleCreateSnapshot}
         />
-      </Card>
 
-      {/* 创建快照 Modal */}
-      <CreateSnapshotModal
-        visible={createModalVisible}
-        form={form}
-        onCancel={closeCreateModal}
-        onSubmit={handleCreateSnapshot}
-      />
+        {/* 恢复快照 Modal */}
+        <RestoreSnapshotModal
+          visible={restoreModalVisible}
+          snapshot={selectedSnapshot}
+          onCancel={closeRestoreModal}
+          onConfirm={handleRestoreSnapshot}
+        />
 
-      {/* 恢复快照 Modal */}
-      <RestoreSnapshotModal
-        visible={restoreModalVisible}
-        snapshot={selectedSnapshot}
-        onCancel={closeRestoreModal}
-        onConfirm={handleRestoreSnapshot}
-      />
-
-      {/* 使用说明 */}
-      <UsageGuide />
-    </div>
+        {/* 使用说明 */}
+        <UsageGuide />
+      </div>
+    </ErrorBoundary>
   );
 };
 

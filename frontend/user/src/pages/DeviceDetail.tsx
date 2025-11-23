@@ -1,6 +1,7 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Spin } from 'antd';
+import { Spin, message } from 'antd';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   DeviceHeaderActions,
   DeviceStatsRow,
@@ -30,9 +31,22 @@ const DeviceDetail = () => {
 
   // React Query hooks
   // 注意: useDevice 只支持 enabled 选项，refetchInterval 应在组件层处理
-  const { data: device, isLoading } = useDevice(id!, {
+  const { data: device, isLoading, refetch } = useDevice(id!, {
     enabled: !!id,
   });
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch?.();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
   const startDevice = useStartDevice();
   const stopDevice = useStopDevice();
   const rebootDevice = useRebootDevice();
@@ -75,31 +89,33 @@ const DeviceDetail = () => {
   }
 
   return (
-    <div>
-      <DeviceHeaderActions
-        onBack={handleBack}
-        onMonitor={handleMonitor}
-        onSnapshots={handleSnapshots}
-      />
+    <ErrorBoundary>
+      <div>
+        <DeviceHeaderActions
+          onBack={handleBack}
+          onMonitor={handleMonitor}
+          onSnapshots={handleSnapshots}
+        />
 
-      <DeviceStatsRow device={device} />
+        <DeviceStatsRow device={device} />
 
-      <DeviceInfoCard device={device} loading={isLoading} />
+        <DeviceInfoCard device={device} loading={isLoading} />
 
-      <div style={{ marginTop: 24, marginBottom: 24 }}>
-        <DeviceControlButtons
-          status={device.status}
-          onStart={handleStart}
-          onStop={handleStop}
-          onReboot={handleReboot}
+        <div style={{ marginTop: 24, marginBottom: 24 }}>
+          <DeviceControlButtons
+            status={device.status}
+            onStart={handleStart}
+            onStop={handleStop}
+            onReboot={handleReboot}
+          />
+        </div>
+
+        <DevicePlayerCard
+          deviceId={device.id}
+          isRunning={device.status === 'running'}
         />
       </div>
-
-      <DevicePlayerCard
-        deviceId={device.id}
-        isRunning={device.status === 'running'}
-      />
-    </div>
+    </ErrorBoundary>
   );
 };
 

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Card,
   Steps,
@@ -52,7 +53,7 @@ const TutorialDetail: React.FC = () => {
   const [completed, setCompleted] = useState(false);
 
   // 加载教程详情
-  const loadTutorial = async () => {
+  const loadTutorial = useCallback(async () => {
     if (!id) return;
 
     setLoading(true);
@@ -69,11 +70,25 @@ const TutorialDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     loadTutorial();
-  }, [id]);
+  }, [loadTutorial]);
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        loadTutorial().then(() => {
+          message.success('数据已刷新');
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loadTutorial]);
 
   // 点赞
   const handleLike = async () => {
@@ -127,16 +142,17 @@ const TutorialDetail: React.FC = () => {
   const isLastStep = currentStep === tutorial.steps.length - 1;
 
   return (
-    <div>
-      {/* 教程信息 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Space>
-              <Button icon={<LeftOutlined />} onClick={() => navigate('/help/tutorials')}>
-                返回教程列表
-              </Button>
-            </Space>
+    <ErrorBoundary>
+      <div>
+        {/* 教程信息 */}
+        <Card style={{ marginBottom: 16 }}>
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Space>
+                <Button icon={<LeftOutlined />} onClick={() => navigate('/help/tutorials')}>
+                  返回教程列表
+                </Button>
+              </Space>
             <Space>
               <Button
                 type={liked ? 'primary' : 'default'}
@@ -358,25 +374,26 @@ const TutorialDetail: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 底部操作 */}
-      <Card style={{ marginTop: 16, textAlign: 'center' }}>
-        <Space direction="vertical">
-          <Text>觉得这个教程有帮助吗？</Text>
-          <Space>
-            <Button
-              type={liked ? 'primary' : 'default'}
-              icon={liked ? <LikeFilled /> : <LikeOutlined />}
-              onClick={handleLike}
-              disabled={liked}
-            >
-              {liked ? '已点赞' : '点赞'}
-            </Button>
-            <Button onClick={() => navigate('/help/tutorials')}>浏览更多教程</Button>
-            <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
+        {/* 底部操作 */}
+        <Card style={{ marginTop: 16, textAlign: 'center' }}>
+          <Space direction="vertical">
+            <Text>觉得这个教程有帮助吗？</Text>
+            <Space>
+              <Button
+                type={liked ? 'primary' : 'default'}
+                icon={liked ? <LikeFilled /> : <LikeOutlined />}
+                onClick={handleLike}
+                disabled={liked}
+              >
+                {liked ? '已点赞' : '点赞'}
+              </Button>
+              <Button onClick={() => navigate('/help/tutorials')}>浏览更多教程</Button>
+              <Button onClick={() => navigate('/help')}>返回帮助中心</Button>
+            </Space>
           </Space>
-        </Space>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </ErrorBoundary>
   );
 };
 

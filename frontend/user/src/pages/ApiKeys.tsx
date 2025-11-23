@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { message } from 'antd';
 import {
   ApiKeysHeader,
   ApiKeysStats,
@@ -8,6 +9,7 @@ import {
   StatsModal,
 } from '@/components/ApiKeys';
 import { useApiKeys } from '@/hooks/useApiKeys';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 /**
  * API Keys 管理页（优化版）
@@ -26,6 +28,19 @@ import { useApiKeys } from '@/hooks/useApiKeys';
  * 5. 复制 API Key
  */
 const ApiKeys: React.FC = () => {
+  // 快捷键支持：Ctrl+R 刷新页面
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        window.location.reload();
+        message.success('页面已刷新');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const {
     loading,
     apiKeys,
@@ -48,39 +63,41 @@ const ApiKeys: React.FC = () => {
   } = useApiKeys();
 
   return (
-    <div style={{ padding: 24 }}>
-      <ApiKeysHeader onCreate={handleCreate} />
+    <ErrorBoundary>
+      <div style={{ padding: 24 }}>
+        <ApiKeysHeader onCreate={handleCreate} />
 
-      <ApiKeysStats stats={stats} />
+        <ApiKeysStats stats={stats} />
 
-      <SecurityAlert />
+        <SecurityAlert />
 
-      <ApiKeysTable
-        apiKeys={apiKeys}
-        loading={loading}
-        visibleKeys={visibleKeys}
-        maskKey={maskKey}
-        onToggleVisibility={toggleKeyVisibility}
-        onCopyKey={handleCopyKey}
-        onViewStats={handleViewStats}
-        onRevoke={handleRevoke}
-        onDelete={handleDelete}
-      />
+        <ApiKeysTable
+          apiKeys={apiKeys}
+          loading={loading}
+          visibleKeys={visibleKeys}
+          maskKey={maskKey}
+          onToggleVisibility={toggleKeyVisibility}
+          onCopyKey={handleCopyKey}
+          onViewStats={handleViewStats}
+          onRevoke={handleRevoke}
+          onDelete={handleDelete}
+        />
 
-      <CreateApiKeyModal
-        visible={createModalVisible}
-        loading={loading}
-        form={form}
-        onSubmit={handleSubmitCreate}
-        onClose={handleCloseCreateModal}
-      />
+        <CreateApiKeyModal
+          visible={createModalVisible}
+          loading={loading}
+          form={form}
+          onSubmit={handleSubmitCreate}
+          onClose={handleCloseCreateModal}
+        />
 
-      <StatsModal
-        visible={statsModalVisible}
-        selectedApiKey={selectedApiKey}
-        onClose={handleCloseStatsModal}
-      />
-    </div>
+        <StatsModal
+          visible={statsModalVisible}
+          selectedApiKey={selectedApiKey}
+          onClose={handleCloseStatsModal}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

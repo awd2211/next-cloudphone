@@ -1,5 +1,6 @@
-import React from 'react';
-import { Card } from 'antd';
+import React, { useEffect } from 'react';
+import { Card, message } from 'antd';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   PageHeader,
   StatsCards,
@@ -41,61 +42,77 @@ const DeviceTemplates: React.FC = () => {
     hideUseTemplateModal,
     hideDetailModal,
     tableHandlers,
+    refetch,
   } = useDeviceTemplates();
 
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新模板列表...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
+
   return (
-    <div style={{ padding: 24 }}>
-      {/* 页面标题和创建按钮 */}
-      <PageHeader onCreate={handleCreate} />
+    <ErrorBoundary>
+      <div style={{ padding: 24 }}>
+        {/* 页面标题和创建按钮 */}
+        <PageHeader onCreate={handleCreate} />
 
-      {/* 统计卡片 */}
-      <StatsCards stats={stats} />
+        {/* 统计卡片 */}
+        <StatsCards stats={stats} />
 
-      {/* 使用提示 */}
-      <UsageTip />
+        {/* 使用提示 */}
+        <UsageTip />
 
-      {/* 模板列表表格 */}
-      <Card>
-        <TemplateTable
-          templates={templates}
+        {/* 模板列表表格 */}
+        <Card>
+          <TemplateTable
+            templates={templates}
+            loading={loading}
+            handlers={tableHandlers}
+          />
+        </Card>
+
+        {/* 创建/编辑模板弹窗 */}
+        <CreateTemplateModal
+          visible={createModalVisible}
           loading={loading}
-          handlers={tableHandlers}
+          isEditing={isEditing}
+          form={form}
+          onSubmit={handleSubmitCreate}
+          onCancel={hideCreateModal}
         />
-      </Card>
 
-      {/* 创建/编辑模板弹窗 */}
-      <CreateTemplateModal
-        visible={createModalVisible}
-        loading={loading}
-        isEditing={isEditing}
-        form={form}
-        onSubmit={handleSubmitCreate}
-        onCancel={hideCreateModal}
-      />
+        {/* 使用模板弹窗 */}
+        <UseTemplateModal
+          visible={useTemplateModalVisible}
+          loading={loading}
+          template={selectedTemplate}
+          form={useTemplateForm}
+          onSubmit={handleSubmitUseTemplate}
+          onCancel={hideUseTemplateModal}
+        />
 
-      {/* 使用模板弹窗 */}
-      <UseTemplateModal
-        visible={useTemplateModalVisible}
-        loading={loading}
-        template={selectedTemplate}
-        form={useTemplateForm}
-        onSubmit={handleSubmitUseTemplate}
-        onCancel={hideUseTemplateModal}
-      />
-
-      {/* 模板详情弹窗 */}
-      <TemplateDetailModal
-        visible={detailModalVisible}
-        template={selectedTemplate}
-        onUseTemplate={() => {
-          if (selectedTemplate) {
-            hideDetailModal();
-            tableHandlers.onUseTemplate(selectedTemplate);
-          }
-        }}
-        onClose={hideDetailModal}
-      />
-    </div>
+        {/* 模板详情弹窗 */}
+        <TemplateDetailModal
+          visible={detailModalVisible}
+          template={selectedTemplate}
+          onUseTemplate={() => {
+            if (selectedTemplate) {
+              hideDetailModal();
+              tableHandlers.onUseTemplate(selectedTemplate);
+            }
+          }}
+          onClose={hideDetailModal}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

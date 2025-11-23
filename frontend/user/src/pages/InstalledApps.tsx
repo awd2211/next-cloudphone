@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Card, Select, Empty, Alert, Space, Typography, Spin } from 'antd';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Card, Select, Empty, Alert, Space, Typography, Spin, message } from 'antd';
 import { MobileOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useInstalledApps, useUninstallApp, useBatchUninstallApps, useUpdateApp, useMyDevices } from '@/hooks/queries';
 import { InstalledAppList } from '@/components/App/InstalledAppList';
 import type { Device } from '@/types';
@@ -105,97 +106,116 @@ const InstalledApps: React.FC = () => {
     refetch();
   }, [refetch]);
 
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        if (selectedDeviceId) {
+          refetch();
+          message.info('正在刷新应用列表...');
+        } else {
+          message.warning('请先选择设备');
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch, selectedDeviceId]);
+
   return (
-    <div style={{ padding: '24px' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 24,
-        }}
-      >
-        <Space>
-          <AppstoreOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-          <Title level={2} style={{ margin: 0 }}>
-            已安装应用管理
-          </Title>
-        </Space>
+    <ErrorBoundary>
+      <div style={{ padding: '24px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 24,
+          }}
+        >
+          <Space>
+            <AppstoreOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+            <Title level={2} style={{ margin: 0 }}>
+              已安装应用管理
+            </Title>
+          </Space>
 
-        <Space>
-          <Text type="secondary">选择设备:</Text>
-          <Select
-            style={{ width: 300 }}
-            placeholder="请选择要查看的设备"
-            value={selectedDeviceId}
-            onChange={handleDeviceChange}
-            optionFilterProp="children"
-            showSearch
-            size="large"
-          >
-            {runningDevices.map((device) => (
-              <Select.Option key={device.id} value={device.id}>
-                <Space>
-                  <MobileOutlined />
-                  <span>{device.name}</span>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    ({device.androidVersion})
-                  </Text>
-                </Space>
-              </Select.Option>
-            ))}
-          </Select>
-        </Space>
+          <Space>
+            <Text type="secondary">选择设备:</Text>
+            <Select
+              style={{ width: 300 }}
+              placeholder="请选择要查看的设备"
+              value={selectedDeviceId}
+              onChange={handleDeviceChange}
+              optionFilterProp="children"
+              showSearch
+              size="large"
+            >
+              {runningDevices.map((device) => (
+                <Select.Option key={device.id} value={device.id}>
+                  <Space>
+                    <MobileOutlined />
+                    <span>{device.name}</span>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      ({device.androidVersion})
+                    </Text>
+                  </Space>
+                </Select.Option>
+              ))}
+            </Select>
+          </Space>
+        </div>
+
+        {/* 提示信息 */}
+        {!selectedDeviceId && (
+          <Alert
+            message="请选择设备"
+            description="请从上方下拉菜单中选择一个运行中的设备，查看该设备上已安装的应用。"
+            type="info"
+            showIcon
+          />
+        )}
+
+        {selectedDeviceId && runningDevices.length === 0 && (
+          <Alert
+            message="暂无运行中的设备"
+            description="只有运行中的设备才能查看已安装应用。请先启动至少一个设备。"
+            type="warning"
+            showIcon
+          />
+        )}
+
+        {/* 应用列表 */}
+        {selectedDeviceId && (
+          <Card>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                <Spin size="large" tip="正在加载已安装应用..." />
+              </div>
+            ) : apps.length === 0 ? (
+              <Empty
+                description="该设备暂无已安装应用"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            ) : (
+              <InstalledAppList
+                apps={apps}
+                stats={stats}
+                selectedAppIds={selectedPackageNames}
+                onSelectApp={handleSelectApp}
+                onSelectAll={handleSelectAll}
+                onClearSelection={handleClearSelection}
+                onUninstall={handleUninstall}
+                onBatchUninstall={handleBatchUninstall}
+                onUpdate={handleUpdate}
+                onRefresh={handleRefresh}
+              />
+            )}
+          </Card>
+        )}
       </div>
-
-      {/* 提示信息 */}
-      {!selectedDeviceId && (
-        <Alert
-          message="请选择设备"
-          description="请从上方下拉菜单中选择一个运行中的设备，查看该设备上已安装的应用。"
-          type="info"
-          showIcon
-        />
-      )}
-
-      {selectedDeviceId && runningDevices.length === 0 && (
-        <Alert
-          message="暂无运行中的设备"
-          description="只有运行中的设备才能查看已安装应用。请先启动至少一个设备。"
-          type="warning"
-          showIcon
-        />
-      )}
-
-      {/* 应用列表 */}
-      {selectedDeviceId && (
-        <Card>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <Spin size="large" tip="正在加载已安装应用..." />
-            </div>
-          ) : apps.length === 0 ? (
-            <Empty
-              description="该设备暂无已安装应用"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          ) : (
-            <InstalledAppList
-              apps={apps}
-              stats={stats}
-              selectedAppIds={selectedPackageNames}
-              onSelectApp={handleSelectApp}
-              onSelectAll={handleSelectAll}
-              onClearSelection={handleClearSelection}
-              onUninstall={handleUninstall}
-              onBatchUninstall={handleBatchUninstall}
-              onUpdate={handleUpdate}
-              onRefresh={handleRefresh}
-            />
-          )}
-        </Card>
-      )}
-    </div>
+    </ErrorBoundary>
   );
 };
 
