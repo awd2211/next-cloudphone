@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Space, Button, Modal, Form, Input, Popconfirm, Select, Card, Row, Col, theme } from 'antd';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Space, Button, Modal, Form, Input, Popconfirm, Select, Card, Row, Col, theme, Statistic, Tag, message } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
-import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, KeyOutlined, SafetyOutlined, AppstoreOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Permission } from '@/types';
 import {
@@ -10,6 +10,8 @@ import {
   useUpdatePermission,
   useDeletePermission,
 } from '@/hooks/queries';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 
 /**
  * 权限列表页面（优化版 - 使用 React Query + 分页）
@@ -21,6 +23,10 @@ import {
  * 4. ✅ 统一表格显示（替代分组显示）
  * 5. ✅ 使用 useMemo 优化重复计算
  * 6. ✅ 使用 useCallback 优化事件处理函数
+ * 7. ✅ ErrorBoundary 错误边界包裹
+ * 8. ✅ LoadingState 统一加载状态
+ * 9. ✅ 统计卡片展示
+ * 10. ✅ 快捷键支持 (Ctrl+N 新建, Ctrl+R 刷新)
  */
 const PermissionList = () => {
   const { token } = theme.useToken();
@@ -34,7 +40,7 @@ const PermissionList = () => {
   const [resourceFilter, setResourceFilter] = useState<string>('');
 
   // ✅ 使用 React Query hooks 替换手动状态管理（支持分页）
-  const { data, isLoading, refetch } = usePermissions({
+  const { data, isLoading, error, refetch } = usePermissions({
     page,
     limit: pageSize,
     resource: resourceFilter || undefined,
@@ -47,6 +53,21 @@ const PermissionList = () => {
   const createMutation = useCreatePermission();
   const updateMutation = useUpdatePermission();
   const deleteMutation = useDeletePermission();
+
+  // ✅ 统计数据计算
+  const stats = useMemo(() => {
+    const resourceTypes = new Set<string>();
+    const actionTypes = new Set<string>();
+    permissions.forEach((p) => {
+      if (p.resource) resourceTypes.add(p.resource);
+      if (p.action) actionTypes.add(p.action);
+    });
+    return {
+      total,
+      resourceCount: resourceTypes.size,
+      actionCount: actionTypes.size,
+    };
+  }, [permissions, total]);
 
   // ✅ 提取所有资源类型用于筛选器
   const resourceTypes = useMemo(() => {
@@ -120,6 +141,29 @@ const PermissionList = () => {
     setResourceFilter(value);
     setPage(1); // 重置到第一页
   }, []);
+
+  // ✅ 刷新处理
+  const handleRefresh = useCallback(() => {
+    refetch();
+    message.success('刷新成功');
+  }, [refetch]);
+
+  // ✅ 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleCreate();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleCreate, refetch]);
 
   // 表格列定义
   const columns: ColumnsType<Permission> = useMemo(
@@ -201,13 +245,64 @@ const PermissionList = () => {
         ),
       },
     ],
-    [handleEdit, handleDelete]
+    [handleEdit, handleDelete, token.colorPrimary]
   );
 
   return (
-    <div>
-      <Card>
-        <h2 style={{ marginBottom: 24 }}>权限管理</h2>
+    <ErrorBoundary boundaryName="PermissionList">
+      <Card bordered={false}>
+        {/* 页面标题 */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <h2 style={{ marginBottom: 0 }}>
+            <KeyOutlined style={{ marginRight: 8 }} />
+            权限管理
+            <Tag
+              icon={<ReloadOutlined spin={isLoading} />}
+              color="processing"
+              style={{ marginLeft: 12, cursor: 'pointer' }}
+              onClick={() => refetch()}
+            >
+              Ctrl+R 刷新
+            </Tag>
+          </h2>
+          <span style={{ fontSize: 12, color: '#999' }}>Ctrl+N 新建</span>
+        </div>
+
+        {/* 统计卡片 */}
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic title="权限总数" value={stats.total} prefix={<KeyOutlined />} />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title="资源类型数"
+                value={stats.resourceCount}
+                valueStyle={{ color: '#1890ff' }}
+                prefix={<AppstoreOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title="操作类型数"
+                value={stats.actionCount}
+                valueStyle={{ color: '#52c41a' }}
+                prefix={<SafetyOutlined />}
+              />
+            </Card>
+          </Col>
+        </Row>
 
         {/* ✅ 工具栏：筛选 + 操作按钮 */}
         <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -229,7 +324,7 @@ const PermissionList = () => {
               </Select>
               <Button
                 icon={<ReloadOutlined />}
-                onClick={() => refetch()}
+                onClick={handleRefresh}
                 loading={isLoading}
               >
                 刷新
@@ -243,28 +338,38 @@ const PermissionList = () => {
           </Col>
         </Row>
 
-        {/* ✅ 统一表格（带分页） */}
-        <AccessibleTable<Permission>
-          ariaLabel="权限列表"
-          loadingText="正在加载权限列表"
-          emptyText="暂无权限数据，点击右上角创建权限"
-          columns={columns}
-          dataSource={permissions}
-          rowKey="id"
+        {/* ✅ 使用 LoadingState 包裹表格 */}
+        <LoadingState
           loading={isLoading}
-          scroll={{ x: 1200, y: 600 }}
-          virtual
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: handlePageChange,
-            pageSizeOptions: ['10', '20', '50', '100', '200'],
-          }}
-        />
+          error={error}
+          empty={!isLoading && !error && permissions.length === 0}
+          onRetry={refetch}
+          loadingType="skeleton"
+          skeletonRows={5}
+          emptyDescription="暂无权限数据，点击右上角创建权限"
+        >
+          <AccessibleTable<Permission>
+            ariaLabel="权限列表"
+            loadingText="正在加载权限列表"
+            emptyText="暂无权限数据，点击右上角创建权限"
+            columns={columns}
+            dataSource={permissions}
+            rowKey="id"
+            loading={false}
+            scroll={{ x: 1200, y: 600 }}
+            virtual
+            pagination={{
+              current: page,
+              pageSize: pageSize,
+              total: total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条`,
+              onChange: handlePageChange,
+              pageSizeOptions: ['10', '20', '50', '100', '200'],
+            }}
+          />
+        </LoadingState>
       </Card>
 
       {/* 创建/编辑权限对话框 */}
@@ -297,7 +402,7 @@ const PermissionList = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </ErrorBoundary>
   );
 };
 

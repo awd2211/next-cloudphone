@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Space, Form, message, Card } from 'antd';
+import { Space, Form, message, Card, Input, Modal } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   EyeOutlined,
@@ -8,6 +8,7 @@ import {
   PlayCircleOutlined,
   StopOutlined,
   ReloadOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import type { Device, CreateDeviceDto } from '@/types';
 import { useRole } from '@/hooks/useRole';
@@ -23,6 +24,10 @@ import {
   useDeviceColumns,
 } from '@/components/DeviceList';
 import { BatchProgressModal } from '@/components/BatchOperation/BatchProgressModal';
+
+// ✅ 错误边界和加载状态
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 
 // ✅ P2 & P3 优化组件
 import { useFilterState } from '@/hooks/useFilterState';
@@ -53,7 +58,7 @@ import { queryClient } from '@/lib/react-query';
 import { deviceKeys } from '@/hooks/queries';
 
 /**
- * 设备列表页面（优化版 - 使用 React Query）
+ * 设备列表页面（优化版 v2 - 添加 ErrorBoundary + LoadingState + 快捷键）
  *
  * 优化点：
  * 1. ✅ 使用 React Query 自动管理状态和缓存
@@ -62,6 +67,9 @@ import { deviceKeys } from '@/hooks/queries';
  * 4. ✅ 提取导出逻辑到 utils
  * 5. ✅ 提取表格列定义到 components
  * 6. ✅ 提取批量操作到 hooks
+ * 7. ✅ ErrorBoundary - 错误边界保护
+ * 8. ✅ LoadingState - 统一加载状态
+ * 9. ✅ 快捷键支持 - Ctrl+K 搜索、Ctrl+N 新建、Ctrl+R 刷新
  */
 const DeviceList = () => {
   const { } = useRole();
@@ -80,13 +88,15 @@ const DeviceList = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [realtimeEnabled, setRealtimeEnabled] = useState(true);
+  const [quickSearchVisible, setQuickSearchVisible] = useState(false);
+  const [quickSearchValue, setQuickSearchValue] = useState('');
   const [form] = Form.useForm();
 
   // ✅ 使用 React Query hooks（自动管理 loading、error、data）
   const params = useMemo(() => filters, [filters]);
 
   // ✅ 自动缓存、去重、后台刷新
-  const { data: devicesData, isLoading } = useDevices(params);
+  const { data: devicesData, isLoading, error, refetch } = useDevices(params);
   const { data: stats } = useDeviceStats();
 
   // ✅ Mutation hooks（自动失效缓存）
@@ -99,6 +109,52 @@ const DeviceList = () => {
   // 解构数据
   const devices = (devicesData as any)?.data || devicesData || [];
   const total = (devicesData as any)?.total || 0;
+
+  // ===== 快捷键支持 =====
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K 快速搜索
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setQuickSearchVisible(true);
+        return;
+      }
+
+      // Ctrl+N 新建设备
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        setCreateModalVisible(true);
+        return;
+      }
+
+      // Ctrl+R 刷新列表
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+        return;
+      }
+
+      // Escape 关闭快速搜索
+      if (e.key === 'Escape' && quickSearchVisible) {
+        setQuickSearchVisible(false);
+        setQuickSearchValue('');
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quickSearchVisible, refetch]);
+
+  // ===== 快速搜索处理 =====
+  const handleQuickSearch = useCallback((value: string) => {
+    setQuickSearchValue('');
+    setQuickSearchVisible(false);
+    if (value.trim()) {
+      setFilters({ search: value.trim(), page: 1 });
+    }
+  }, [setFilters]);
 
   // ✅ P3 优化：拖拽排序
   const { sortedDataSource, renderDndWrapper, tableComponents, sortColumn } = useDraggableTable({
@@ -316,111 +372,159 @@ const DeviceList = () => {
   const columns = useMemo(() => [sortColumn, ...visibleColumns], [sortColumn, visibleColumns]);
 
   return (
-    <div style={{ padding: '24px' }}>
-      {/* 统计卡片 */}
-      <DeviceStatsCards stats={stats} />
+    <ErrorBoundary boundaryName="DeviceList">
+      <div style={{ padding: '24px' }}>
+        {/* 统计卡片 */}
+        <ErrorBoundary boundaryName="DeviceStatsCards">
+          <DeviceStatsCards stats={stats} />
+        </ErrorBoundary>
 
-      {/* 筛选和操作栏 */}
-      <Card style={{ marginBottom: '16px' }}>
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          {/* 第一行：搜索和筛选 */}
-          <DeviceFilterBar
-            onSearch={(search) => setFilters({ search, page: 1 })}
-            onStatusChange={(status) => setFilters({ status, page: 1 })}
-            onAndroidVersionChange={(androidVersion) => setFilters({ androidVersion, page: 1 })}
-            onDateRangeChange={() => {
-              // TODO: 将日期范围添加到筛选器
-            }}
-            isConnected={isConnected}
-            realtimeEnabled={realtimeEnabled}
-            onRealtimeToggle={() => setRealtimeEnabled(!realtimeEnabled)}
-          />
+        {/* 筛选和操作栏 */}
+        <Card style={{ marginBottom: '16px' }}>
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            {/* 第一行：搜索和筛选 */}
+            <DeviceFilterBar
+              onSearch={(search) => setFilters({ search, page: 1 })}
+              onStatusChange={(status) => setFilters({ status, page: 1 })}
+              onAndroidVersionChange={(androidVersion) => setFilters({ androidVersion, page: 1 })}
+              onDateRangeChange={() => {
+                // TODO: 将日期范围添加到筛选器
+              }}
+              isConnected={isConnected}
+              realtimeEnabled={realtimeEnabled}
+              onRealtimeToggle={() => setRealtimeEnabled(!realtimeEnabled)}
+            />
 
-          {/* 第二行：批量操作和导出 */}
-          <DeviceBatchActions
-            selectedCount={selectedRowKeys.length}
-            onCreateClick={() => setCreateModalVisible(true)}
-            onBatchStart={handleBatchStart}
-            onBatchStop={handleBatchStop}
-            onBatchReboot={handleBatchReboot}
-            onBatchDelete={handleBatchDelete}
-            exportMenuItems={exportMenuItems}
-            extraActions={
-              <ColumnCustomizerButton
-                configs={columnConfigs}
-                onToggle={toggleColumn}
-                onShowAll={showAllColumns}
-                onHideAll={hideAllColumns}
-                onReset={resetColumns}
-              />
-            }
-          />
-        </Space>
-      </Card>
+            {/* 第二行：批量操作和导出 */}
+            <DeviceBatchActions
+              selectedCount={selectedRowKeys.length}
+              onCreateClick={() => setCreateModalVisible(true)}
+              onBatchStart={handleBatchStart}
+              onBatchStop={handleBatchStop}
+              onBatchReboot={handleBatchReboot}
+              onBatchDelete={handleBatchDelete}
+              exportMenuItems={exportMenuItems}
+              extraActions={
+                <ColumnCustomizerButton
+                  configs={columnConfigs}
+                  onToggle={toggleColumn}
+                  onShowAll={showAllColumns}
+                  onHideAll={hideAllColumns}
+                  onReset={resetColumns}
+                />
+              }
+            />
+          </Space>
+        </Card>
 
-      {/* 设备列表表格（支持拖拽排序 + 右键菜单） */}
-      <Card>
-        {renderDndWrapper(
-          <DeviceTable
-            columns={columns}
-            dataSource={sortedDataSource as Device[]}
+        {/* 设备列表表格（支持拖拽排序 + 右键菜单） */}
+        <Card
+          title={
+            <Space>
+              <span>设备列表</span>
+              <span style={{ fontSize: 12, color: '#999' }}>
+                快捷键：Ctrl+K 搜索 | Ctrl+N 新建 | Ctrl+R 刷新
+              </span>
+            </Space>
+          }
+        >
+          <LoadingState
             loading={isLoading}
-            selectedRowKeys={selectedRowKeys}
-            onSelectionChange={setSelectedRowKeys}
-            page={filters.page}
-            pageSize={filters.pageSize}
-            total={total}
-            onPageChange={(page, pageSize) => {
-              setFilters({ page, pageSize });
-            }}
-            components={tableComponents}
-            onRow={(record) => ({
-              onContextMenu: (e) => onContextMenu(record, e),
-            })}
+            error={error}
+            empty={!isLoading && !error && devices.length === 0}
+            onRetry={refetch}
+            loadingType="skeleton"
+            skeletonRows={5}
+            emptyDescription="暂无设备，点击上方按钮创建新设备"
+          >
+            {renderDndWrapper(
+              <DeviceTable
+                columns={columns}
+                dataSource={sortedDataSource as Device[]}
+                loading={false} // LoadingState 已处理
+                selectedRowKeys={selectedRowKeys}
+                onSelectionChange={setSelectedRowKeys}
+                page={filters.page}
+                pageSize={filters.pageSize}
+                total={total}
+                onPageChange={(page, pageSize) => {
+                  setFilters({ page, pageSize });
+                }}
+                components={tableComponents}
+                onRow={(record) => ({
+                  onContextMenu: (e) => onContextMenu(record, e),
+                })}
+              />
+            )}
+          </LoadingState>
+          {contextMenu}
+        </Card>
+
+        {/* 快速搜索弹窗 */}
+        <Modal
+          open={quickSearchVisible}
+          title="快速搜索设备"
+          footer={null}
+          onCancel={() => {
+            setQuickSearchVisible(false);
+            setQuickSearchValue('');
+          }}
+          destroyOnClose
+        >
+          <Input
+            placeholder="输入设备名称或 ID 进行搜索..."
+            prefix={<SearchOutlined />}
+            value={quickSearchValue}
+            onChange={(e) => setQuickSearchValue(e.target.value)}
+            onPressEnter={(e) => handleQuickSearch((e.target as HTMLInputElement).value)}
+            autoFocus
+            allowClear
           />
-        )}
-        {contextMenu}
-      </Card>
+          <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+            按 Enter 搜索，按 Escape 关闭
+          </div>
+        </Modal>
 
-      {/* 创建设备弹窗 */}
-      <CreateDeviceModal
-        visible={createModalVisible}
-        form={form}
-        loading={createDeviceMutation.isPending}
-        onOk={() => form.submit()}
-        onCancel={() => {
-          setCreateModalVisible(false);
-          form.resetFields();
-        }}
-        onFinish={handleCreate}
-      />
+        {/* 创建设备弹窗 */}
+        <CreateDeviceModal
+          visible={createModalVisible}
+          form={form}
+          loading={createDeviceMutation.isPending}
+          onOk={() => form.submit()}
+          onCancel={() => {
+            setCreateModalVisible(false);
+            form.resetFields();
+          }}
+          onFinish={handleCreate}
+        />
 
-      {/* 批量操作进度弹窗 */}
-      <BatchProgressModal
-        visible={batchStartProgress.visible}
-        title={batchStartProgress.title}
-        items={batchStartProgress.items}
-        onClose={batchStartProgress.close}
-      />
-      <BatchProgressModal
-        visible={batchStopProgress.visible}
-        title={batchStopProgress.title}
-        items={batchStopProgress.items}
-        onClose={batchStopProgress.close}
-      />
-      <BatchProgressModal
-        visible={batchRebootProgress.visible}
-        title={batchRebootProgress.title}
-        items={batchRebootProgress.items}
-        onClose={batchRebootProgress.close}
-      />
-      <BatchProgressModal
-        visible={batchDeleteProgress.visible}
-        title={batchDeleteProgress.title}
-        items={batchDeleteProgress.items}
-        onClose={batchDeleteProgress.close}
-      />
-    </div>
+        {/* 批量操作进度弹窗 */}
+        <BatchProgressModal
+          visible={batchStartProgress.visible}
+          title={batchStartProgress.title}
+          items={batchStartProgress.items}
+          onClose={batchStartProgress.close}
+        />
+        <BatchProgressModal
+          visible={batchStopProgress.visible}
+          title={batchStopProgress.title}
+          items={batchStopProgress.items}
+          onClose={batchStopProgress.close}
+        />
+        <BatchProgressModal
+          visible={batchRebootProgress.visible}
+          title={batchRebootProgress.title}
+          items={batchRebootProgress.items}
+          onClose={batchRebootProgress.close}
+        />
+        <BatchProgressModal
+          visible={batchDeleteProgress.visible}
+          title={batchDeleteProgress.title}
+          items={batchDeleteProgress.items}
+          onClose={batchDeleteProgress.close}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

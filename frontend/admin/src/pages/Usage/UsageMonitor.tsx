@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Card,
   Row,
@@ -29,6 +29,8 @@ import { useAdminUsageRecords, useAdminUsageStats, useUsers, useDevices } from '
 import type { UsageRecord, User, Device } from '@/types';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 
 const { Search } = Input;
 const { RangePicker } = DatePicker;
@@ -44,7 +46,7 @@ const { Option } = Select;
  * 4. ✅ 导出功能
  * 5. ✅ 用户使用详情查看
  */
-const UsageMonitor = () => {
+const UsageMonitorContent = () => {
   const { token } = theme.useToken();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -69,10 +71,35 @@ const UsageMonitor = () => {
   }, [page, pageSize, userFilter, deviceFilter, statusFilter, searchKeyword, dateRange]);
 
   // 使用新的 React Query Hook
-  const { data, isLoading, refetch } = useAdminUsageRecords(params);
+  const { data, isLoading, error, refetch } = useAdminUsageRecords(params);
 
   const { data: usersData } = useUsers({ page: 1, pageSize: 1000 });
   const { data: devicesData } = useDevices({ page: 1, pageSize: 1000 });
+
+  // ============ 页面标题 ============
+  useEffect(() => {
+    document.title = '使用监控 - 云手机管理平台';
+    return () => {
+      document.title = '云手机管理平台';
+    };
+  }, []);
+
+  // ============ 快捷键支持 ============
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+R 刷新数据
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新数据...');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [refetch]);
 
   const usageRecords = data?.data || [];
   const total = data?.total || 0;
@@ -338,6 +365,11 @@ const UsageMonitor = () => {
           <h2 style={{ margin: 0 }}>用户设备使用监控</h2>
           <p style={{ color: '#666', marginTop: 8, marginBottom: 0 }}>
             实时监控用户设备使用情况，包括使用时长、资源消耗和费用统计
+            <Tooltip title="Ctrl+R 刷新数据">
+              <Tag color="blue" style={{ marginLeft: 8 }}>
+                快捷键: Ctrl+R
+              </Tag>
+            </Tooltip>
           </p>
         </Card>
 
@@ -460,41 +492,65 @@ const UsageMonitor = () => {
               导出
             </Button>
 
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => refetch()}
-              loading={isLoading}
-            >
-              刷新
-            </Button>
+            <Tooltip title="Ctrl+R">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => refetch()}
+                loading={isLoading}
+              >
+                刷新
+              </Button>
+            </Tooltip>
           </Space>
         </Card>
 
         {/* 使用记录表格 */}
         <Card>
-          <Table
-            columns={columns}
-            dataSource={usageRecords}
-            rowKey="id"
+          <LoadingState
             loading={isLoading}
-            pagination={{
-              current: page,
-              pageSize,
-              total,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total) => `共 ${total} 条记录`,
-              pageSizeOptions: ['10', '20', '50', '100'],
-              onChange: (page, pageSize) => {
-                setPage(page);
-                setPageSize(pageSize);
-              },
-            }}
-            scroll={{ x: 1600 }}
-          />
+            error={error}
+            empty={!isLoading && usageRecords.length === 0}
+            emptyDescription="暂无使用记录"
+            errorDescription="加载使用记录失败"
+            onRetry={() => refetch()}
+            loadingType="skeleton"
+            skeletonRows={5}
+          >
+            <Table
+              columns={columns}
+              dataSource={usageRecords}
+              rowKey="id"
+              pagination={{
+                current: page,
+                pageSize,
+                total,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total) => `共 ${total} 条记录`,
+                pageSizeOptions: ['10', '20', '50', '100'],
+                onChange: (page, pageSize) => {
+                  setPage(page);
+                  setPageSize(pageSize);
+                },
+              }}
+              scroll={{ x: 1600 }}
+            />
+          </LoadingState>
         </Card>
       </Space>
     </div>
+  );
+};
+
+/**
+ * 用户设备使用监控页面
+ * 包含 ErrorBoundary 错误边界保护
+ */
+const UsageMonitor = () => {
+  return (
+    <ErrorBoundary>
+      <UsageMonitorContent />
+    </ErrorBoundary>
   );
 };
 

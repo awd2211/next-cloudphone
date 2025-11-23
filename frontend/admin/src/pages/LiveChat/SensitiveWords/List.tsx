@@ -8,7 +8,7 @@
  * - 启用/禁用敏感词
  * - 批量导入敏感词
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   Table,
@@ -43,6 +43,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 import {
   getSensitiveWords,
   createSensitiveWord,
@@ -79,10 +81,27 @@ const SensitiveWordsPage: React.FC = () => {
   } | null>(null);
 
   // 获取敏感词列表
-  const { data: words = [], isLoading, refetch } = useQuery({
+  const { data: words = [], isLoading, error, refetch } = useQuery({
     queryKey: ['livechat-sensitive-words'],
     queryFn: getSensitiveWords,
   });
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleOpenModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
 
   // 统计数据
   const stats = useMemo(() => {
@@ -299,10 +318,19 @@ const SensitiveWordsPage: React.FC = () => {
   ];
 
   return (
+    <ErrorBoundary boundaryName="SensitiveWordsPage">
     <div>
       <h2>
         <SafetyCertificateOutlined style={{ marginRight: 8 }} />
         敏感词管理
+        <Tag
+          icon={<ReloadOutlined spin={isLoading} />}
+          color="processing"
+          style={{ marginLeft: 12, cursor: 'pointer' }}
+          onClick={() => refetch()}
+        >
+          Ctrl+R 刷新
+        </Tag>
       </h2>
 
       {/* 统计卡片 */}
@@ -383,17 +411,27 @@ const SensitiveWordsPage: React.FC = () => {
           </Button>
         </Space>
 
-        <Table
-          columns={columns}
-          dataSource={filteredWords}
-          rowKey="id"
+        <LoadingState
           loading={isLoading}
-          pagination={{
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-          }}
-        />
+          error={error}
+          empty={!isLoading && !error && filteredWords.length === 0}
+          onRetry={refetch}
+          loadingType="skeleton"
+          skeletonRows={5}
+          emptyDescription="暂无敏感词"
+        >
+          <Table
+            columns={columns}
+            dataSource={filteredWords}
+            rowKey="id"
+            loading={false}
+            pagination={{
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
+          />
+        </LoadingState>
       </Card>
 
       {/* 新建/编辑弹窗 */}
@@ -524,6 +562,7 @@ const SensitiveWordsPage: React.FC = () => {
         )}
       </Modal>
     </div>
+    </ErrorBoundary>
   );
 };
 

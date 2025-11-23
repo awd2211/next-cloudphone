@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Card,
   Button,
@@ -13,8 +13,13 @@ import {
   DatePicker,
   message,
   Popconfirm,
+  Row,
+  Col,
+  Statistic,
 } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 import {
   PlusOutlined,
   CopyOutlined,
@@ -22,6 +27,9 @@ import {
   ReloadOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
+  KeyOutlined,
+  CheckCircleOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -39,7 +47,7 @@ const { Option } = Select;
 /**
  * API 密钥管理页面
  */
-const ApiKeyList: React.FC = () => {
+const ApiKeyListContent: React.FC = () => {
   // 分页状态
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -53,7 +61,7 @@ const ApiKeyList: React.FC = () => {
   const [form] = Form.useForm();
 
   // 查询数据
-  const { data, isLoading, refetch } = useApiKeys({
+  const { data, isLoading, error, refetch } = useApiKeys({
     page,
     pageSize,
     status: statusFilter || undefined,
@@ -62,10 +70,46 @@ const ApiKeyList: React.FC = () => {
   const apiKeys = data?.apiKeys || [];
   const total = data?.total || 0;
 
+  // 统计数据
+  const stats = useMemo(() => {
+    const totalCount = apiKeys.length;
+    const activeCount = apiKeys.filter((k) => k.status === 'active').length;
+    const inactiveCount = totalCount - activeCount;
+    return { total: totalCount, activeCount, inactiveCount };
+  }, [apiKeys]);
+
   // Mutations
   const createMutation = useCreateApiKey();
   const deleteMutation = useDeleteApiKey();
   const toggleStatusMutation = useToggleApiKeyStatus();
+
+  /**
+   * 打开创建弹窗
+   */
+  const handleCreate = useCallback(() => {
+    setCreateModalVisible(true);
+  }, []);
+
+  /**
+   * 快捷键支持
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+N 或 Cmd+N 新建
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleCreate();
+      }
+      // Ctrl+R 或 Cmd+R 刷新
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch, handleCreate]);
 
   /**
    * 分页变化处理
@@ -120,7 +164,7 @@ const ApiKeyList: React.FC = () => {
             content: (
               <div>
                 <p style={{ color: '#ff4d4f', fontWeight: 600, marginTop: 16 }}>
-                  ⚠️ 请立即保存以下密钥，关闭后将无法再次查看完整 Secret！
+                  请立即保存以下密钥，关闭后将无法再次查看完整 Secret！
                 </p>
                 <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}>
                   <div>
@@ -341,10 +385,61 @@ const ApiKeyList: React.FC = () => {
   return (
     <div style={{ padding: '24px' }}>
       <Card>
-        <h2>API 密钥管理</h2>
+        {/* 页面标题 */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <h2 style={{ marginBottom: 0 }}>
+            <KeyOutlined style={{ marginRight: 8 }} />
+            API Key 管理
+            <Tag
+              icon={<ReloadOutlined spin={isLoading} />}
+              color="processing"
+              style={{ marginLeft: 12, cursor: 'pointer' }}
+              onClick={() => refetch()}
+            >
+              Ctrl+R 刷新
+            </Tag>
+          </h2>
+          <span style={{ fontSize: 12, color: '#999' }}>Ctrl+N 新建</span>
+        </div>
         <p style={{ color: '#666', marginBottom: 24 }}>
           管理系统API密钥，用于程序化访问平台资源
         </p>
+
+        {/* 统计卡片 */}
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic title="API Key 总数" value={stats.total} prefix={<KeyOutlined />} />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title="已启用"
+                value={stats.activeCount}
+                valueStyle={{ color: '#52c41a' }}
+                prefix={<CheckCircleOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title="已停用"
+                value={stats.inactiveCount}
+                valueStyle={{ color: '#ff4d4f' }}
+                prefix={<StopOutlined />}
+              />
+            </Card>
+          </Col>
+        </Row>
 
         {/* 筛选栏 */}
         <Space wrap style={{ marginBottom: 16 }}>
@@ -367,37 +462,43 @@ const ApiKeyList: React.FC = () => {
             刷新
           </Button>
 
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setCreateModalVisible(true)}
-          >
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             创建密钥
           </Button>
         </Space>
 
-        {/* 数据表格 */}
-        <AccessibleTable<ApiKey>
-          ariaLabel="API密钥列表"
-          loadingText="正在加载API密钥列表"
-          emptyText="暂无API密钥数据，点击右上角创建密钥"
-          columns={columns}
-          dataSource={apiKeys}
-          rowKey="id"
+        {/* 数据表格 - 使用 LoadingState 包裹 */}
+        <LoadingState
           loading={isLoading}
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: handlePageChange,
-            pageSizeOptions: ['10', '20', '50', '100'],
-          }}
-          scroll={{ x: 1500, y: 600 }}
-          virtual
-        />
+          error={error}
+          empty={!isLoading && !error && apiKeys.length === 0}
+          onRetry={refetch}
+          loadingType="skeleton"
+          skeletonRows={5}
+          emptyDescription="暂无 API Key 数据"
+        >
+          <AccessibleTable<ApiKey>
+            ariaLabel="API密钥列表"
+            loadingText="正在加载API密钥列表"
+            emptyText="暂无API密钥数据，点击右上角创建密钥"
+            columns={columns}
+            dataSource={apiKeys}
+            rowKey="id"
+            loading={false}
+            pagination={{
+              current: page,
+              pageSize: pageSize,
+              total: total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条`,
+              onChange: handlePageChange,
+              pageSizeOptions: ['10', '20', '50', '100'],
+            }}
+            scroll={{ x: 1500, y: 600 }}
+            virtual
+          />
+        </LoadingState>
       </Card>
 
       {/* 创建密钥模态框 */}
@@ -457,6 +558,17 @@ const ApiKeyList: React.FC = () => {
         </Form>
       </Modal>
     </div>
+  );
+};
+
+/**
+ * API 密钥管理页面 - 包装 ErrorBoundary
+ */
+const ApiKeyList: React.FC = () => {
+  return (
+    <ErrorBoundary boundaryName="ApiKeyList">
+      <ApiKeyListContent />
+    </ErrorBoundary>
   );
 };
 

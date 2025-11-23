@@ -1,17 +1,35 @@
-import React from 'react';
-import { Card, Space, Result, Button, Spin } from 'antd';
-import { LockOutlined } from '@ant-design/icons';
+import React, { useEffect, useMemo } from 'react';
+import { Card, Space, Result, Button, Spin, Row, Col, Statistic, Tag, message } from 'antd';
+import {
+  LockOutlined,
+  ReloadOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  DollarOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { usePermission } from '@/hooks';
 import { useRefundManagement } from '@/hooks/useRefundManagement';
 import {
-  RefundHeader,
   RefundTable,
   RefundDetailModal,
   RefundApproveModal,
   RefundRejectModal,
 } from '@/components/Refund';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 
+/**
+ * 退款管理页面（优化版）
+ *
+ * 优化点：
+ * 1. ErrorBoundary - 错误边界包裹
+ * 2. LoadingState - 统一加载状态
+ * 3. 统计卡片 - 显示待处理、已批准、已拒绝等数据
+ * 4. 快捷键支持 - Ctrl+R 刷新, Ctrl+K 搜索
+ * 5. 页面标题优化 - 添加刷新标签
+ */
 const RefundManagement: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermission, loading: permissionLoading } = usePermission();
@@ -43,13 +61,18 @@ const RefundManagement: React.FC = () => {
     );
   }
 
-  return <RefundManagementContent />;
+  return (
+    <ErrorBoundary boundaryName="RefundManagement">
+      <RefundManagementContent />
+    </ErrorBoundary>
+  );
 };
 
 const RefundManagementContent: React.FC = () => {
   const { hasPermission } = usePermission();
   const {
     loading,
+    error,
     refunds,
     selectedRefund,
     approveModalVisible,
@@ -66,23 +89,130 @@ const RefundManagementContent: React.FC = () => {
     closeRejectModal,
   } = useRefundManagement();
 
+  // ===== 统计计算 =====
+  const stats = useMemo(() => {
+    const pendingCount = refunds.filter((r) => r.status === 'pending').length;
+    const approvedCount = refunds.filter((r) => r.status === 'success' || r.status === 'refunded').length;
+    const rejectedCount = refunds.filter((r) => r.status === 'failed').length;
+    const totalAmount = refunds.reduce((sum, r) => sum + (r.amount || 0), 0);
+    return { total: refunds.length, pendingCount, approvedCount, rejectedCount, totalAmount };
+  }, [refunds]);
+
+  // ===== 快捷键支持 =====
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+R 或 Cmd+R 刷新数据
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        message.info('正在刷新退款列表...');
+        loadRefunds();
+      }
+      // Ctrl+K 或 Cmd+K 聚焦搜索（如果有搜索框）
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>(
+          '.ant-input-search input'
+        );
+        if (searchInput) {
+          searchInput.focus();
+          message.info('搜索框已聚焦');
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loadRefunds]);
+
   return (
     <div style={{ padding: '24px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* 页面标题 */}
-        <RefundHeader refundCount={refunds.length} onRefresh={loadRefunds} />
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 0,
+          }}
+        >
+          <h2 style={{ marginBottom: 0 }}>
+            退款管理
+            <Tag
+              icon={<ReloadOutlined spin={loading} />}
+              color="processing"
+              style={{ marginLeft: 12, cursor: 'pointer' }}
+              onClick={() => loadRefunds()}
+            >
+              Ctrl+R 刷新
+            </Tag>
+          </h2>
+          <span style={{ fontSize: 12, color: '#999' }}>快捷键: Ctrl+K 搜索</span>
+        </div>
 
-        {/* 退款列表 */}
+        {/* 统计卡片 */}
+        <Row gutter={16}>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title="退款总数"
+                value={stats.total}
+                prefix={<DollarOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title="待处理"
+                value={stats.pendingCount}
+                prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
+                valueStyle={{ color: '#faad14' }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title="已批准"
+                value={stats.approvedCount}
+                prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title="已拒绝"
+                value={stats.rejectedCount}
+                prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
+                valueStyle={{ color: '#ff4d4f' }}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 退款列表 - 使用 LoadingState 统一管理加载状态 */}
         <Card>
-          <RefundTable
-            refunds={refunds}
+          <LoadingState
             loading={loading}
-            hasApprovePermission={hasPermission('payment:refund:approve')}
-            hasRejectPermission={hasPermission('payment:refund:reject')}
-            onViewDetail={showDetail}
-            onApprove={showApproveModal}
-            onReject={showRejectModal}
-          />
+            error={error}
+            empty={!loading && !error && refunds.length === 0}
+            onRetry={loadRefunds}
+            loadingType="skeleton"
+            skeletonRows={5}
+            emptyDescription="暂无退款数据"
+          >
+            <RefundTable
+              refunds={refunds}
+              loading={false}
+              hasApprovePermission={hasPermission('payment:refund:approve')}
+              hasRejectPermission={hasPermission('payment:refund:reject')}
+              onViewDetail={showDetail}
+              onApprove={showApproveModal}
+              onReject={showRejectModal}
+            />
+          </LoadingState>
         </Card>
       </Space>
 

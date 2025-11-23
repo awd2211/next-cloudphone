@@ -1,14 +1,22 @@
-import { useState, useMemo, useCallback } from 'react';
-import { message } from 'antd';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { message, Card, Row, Col, Statistic, Tag, Modal, Input, Space } from 'antd';
+import {
+  ShoppingOutlined,
+  DollarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import type { Order } from '@/types';
-import { useOrders, useCancelOrder, useRefundOrder } from '@/hooks/queries';
+import { useOrders, useCancelOrder, useRefundOrder, useOrderStats } from '@/hooks/queries';
 import * as billingService from '@/services/billing';
 import { exportToExcel, exportToCSV } from '@/utils/export';
 import dayjs from 'dayjs';
 import type { MenuProps } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import {
-
   OrderToolbar,
   OrderFilterBar,
   OrderTable,
@@ -20,9 +28,11 @@ import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
 } from '@/components/Order';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 
 /**
- * 订单列表页面（优化版）
+ * 订单列表页面（优化版 v2 - 添加 ErrorBoundary + LoadingState + 统计卡片 + 快捷键）
  *
  * 优化点：
  * 1. ✅ 使用 React Query 自动管理状态和缓存
@@ -30,6 +40,10 @@ import {
  * 3. ✅ 使用 useCallback 优化事件处理函数
  * 4. ✅ 组件拆分 - 提取 OrderTable, OrderFilterBar 等
  * 5. ✅ 常量提取 - constants.ts
+ * 6. ✅ ErrorBoundary - 错误边界保护
+ * 7. ✅ LoadingState - 统一加载状态
+ * 8. ✅ 统计卡片 - 订单数量/金额统计
+ * 9. ✅ 快捷键支持 - Ctrl+K 搜索、Ctrl+R 刷新
  */
 const OrderList = () => {
   // ===== 状态管理 =====
@@ -47,6 +61,8 @@ const OrderList = () => {
   const [refundModalVisible, setRefundModalVisible] = useState(false);
   const [refundAmount, setRefundAmount] = useState(0);
   const [refundReason, setRefundReason] = useState('');
+  const [quickSearchVisible, setQuickSearchVisible] = useState(false);
+  const [quickSearchValue, setQuickSearchValue] = useState('');
 
   // ===== 数据查询 =====
   const params = useMemo(() => {
@@ -61,12 +77,62 @@ const OrderList = () => {
     return p;
   }, [page, pageSize, statusFilter, paymentMethodFilter, searchKeyword, dateRange]);
 
-  const { data, isLoading } = useOrders(params);
+  const { data, isLoading, error, refetch } = useOrders(params);
+  const { data: statsData } = useOrderStats();
   const cancelMutation = useCancelOrder();
   const refundMutation = useRefundOrder();
 
   const orders = data?.data || [];
   const total = data?.total || 0;
+
+  // 统计数据
+  const stats = useMemo(() => ({
+    total: statsData?.total || total,
+    paid: statsData?.paid || 0,
+    pending: statsData?.pending || 0,
+    cancelled: statsData?.cancelled || 0,
+    totalAmount: statsData?.totalAmount || 0,
+  }), [statsData, total]);
+
+  // ===== 快捷键支持 =====
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K 快速搜索
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setQuickSearchVisible(true);
+        return;
+      }
+
+      // Ctrl+R 刷新列表
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+        return;
+      }
+
+      // Escape 关闭快速搜索
+      if (e.key === 'Escape' && quickSearchVisible) {
+        setQuickSearchVisible(false);
+        setQuickSearchValue('');
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quickSearchVisible, refetch]);
+
+  // ===== 快速搜索处理 =====
+  const handleQuickSearch = useCallback((value: string) => {
+    setQuickSearchValue('');
+    setQuickSearchVisible(false);
+    if (value.trim()) {
+      setSearchKeyword(value.trim());
+      setPage(1);
+    }
+  }, []);
 
   // ===== 事件处理 =====
   const handleSearchChange = useCallback((keyword: string) => {
@@ -182,78 +248,189 @@ const OrderList = () => {
 
   // ===== 渲染 =====
   return (
-    <div>
-      <h2>订单管理</h2>
+    <ErrorBoundary boundaryName="OrderList">
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ marginBottom: 0 }}>
+            订单管理
+            <Tag
+              icon={<ReloadOutlined spin={isLoading} />}
+              color="processing"
+              style={{ marginLeft: 12, cursor: 'pointer' }}
+              onClick={() => refetch()}
+            >
+              Ctrl+R 刷新
+            </Tag>
+          </h2>
+          <Space>
+            <span style={{ fontSize: 12, color: '#999' }}>
+              快捷键：Ctrl+K 搜索
+            </span>
+          </Space>
+        </div>
 
-      {/* 筛选栏 */}
-      <OrderFilterBar
-        onSearchChange={handleSearchChange}
-        onStatusChange={handleStatusChange}
-        onPaymentMethodChange={handlePaymentMethodChange}
-        onDateRangeChange={handleDateRangeChange}
-      />
+        {/* 统计卡片 */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={12} lg={4}>
+            <Card>
+              <Statistic
+                title="订单总数"
+                value={stats.total}
+                prefix={<ShoppingOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={4}>
+            <Card>
+              <Statistic
+                title="已支付"
+                value={stats.paid}
+                prefix={<CheckCircleOutlined />}
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={4}>
+            <Card>
+              <Statistic
+                title="待支付"
+                value={stats.pending}
+                prefix={<ClockCircleOutlined />}
+                valueStyle={{ color: '#faad14' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={4}>
+            <Card>
+              <Statistic
+                title="已取消"
+                value={stats.cancelled}
+                prefix={<CloseCircleOutlined />}
+                valueStyle={{ color: '#ff4d4f' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={24} lg={8}>
+            <Card>
+              <Statistic
+                title="总金额"
+                value={stats.totalAmount}
+                prefix={<DollarOutlined />}
+                precision={2}
+                suffix="元"
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-      {/* 操作按钮栏 */}
-      <OrderToolbar
-        selectedCount={selectedRowKeys.length}
-        exportMenuItems={exportMenuItems}
-        onBatchCancel={handleBatchCancel}
-      />
+        <Card>
+          {/* 筛选栏 */}
+          <OrderFilterBar
+            onSearchChange={handleSearchChange}
+            onStatusChange={handleStatusChange}
+            onPaymentMethodChange={handlePaymentMethodChange}
+            onDateRangeChange={handleDateRangeChange}
+          />
 
-      {/* 订单表格 */}
-      <OrderTable
-        orders={orders}
-        loading={isLoading}
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        selectedRowKeys={selectedRowKeys}
-        onPageChange={(page, pageSize) => {
-          setPage(page);
-          setPageSize(pageSize);
-        }}
-        onSelectionChange={setSelectedRowKeys}
-        onViewDetail={handleViewDetail}
-        onCancel={handleOpenCancel}
-        onRefund={handleOpenRefund}
-      />
+          {/* 操作按钮栏 */}
+          <OrderToolbar
+            selectedCount={selectedRowKeys.length}
+            exportMenuItems={exportMenuItems}
+            onBatchCancel={handleBatchCancel}
+          />
 
-      {/* 订单详情弹窗 */}
-      <OrderDetailModal
-        visible={detailModalVisible}
-        order={selectedOrder}
-        onCancel={() => setDetailModalVisible(false)}
-      />
+          {/* 订单表格 */}
+          <LoadingState
+            loading={isLoading}
+            error={error}
+            empty={!isLoading && !error && orders.length === 0}
+            onRetry={refetch}
+            loadingType="skeleton"
+            skeletonRows={5}
+            emptyDescription="暂无订单数据"
+          >
+            <OrderTable
+              orders={orders}
+              loading={false} // LoadingState 已处理
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              selectedRowKeys={selectedRowKeys}
+              onPageChange={(page, pageSize) => {
+                setPage(page);
+                setPageSize(pageSize);
+              }}
+              onSelectionChange={setSelectedRowKeys}
+              onViewDetail={handleViewDetail}
+              onCancel={handleOpenCancel}
+              onRefund={handleOpenRefund}
+            />
+          </LoadingState>
+        </Card>
 
-      {/* 取消订单弹窗 */}
-      <CancelOrderModal
-        visible={cancelModalVisible}
-        order={selectedOrder}
-        reason={cancelReason}
-        onReasonChange={setCancelReason}
-        onConfirm={handleCancelOrder}
-        onCancel={() => {
-          setCancelModalVisible(false);
-          setCancelReason('');
-        }}
-      />
+        {/* 快速搜索弹窗 */}
+        <Modal
+          open={quickSearchVisible}
+          title="快速搜索订单"
+          footer={null}
+          onCancel={() => {
+            setQuickSearchVisible(false);
+            setQuickSearchValue('');
+          }}
+          destroyOnClose
+        >
+          <Input
+            placeholder="输入订单号或用户名进行搜索..."
+            prefix={<SearchOutlined />}
+            value={quickSearchValue}
+            onChange={(e) => setQuickSearchValue(e.target.value)}
+            onPressEnter={(e) => handleQuickSearch((e.target as HTMLInputElement).value)}
+            autoFocus
+            allowClear
+          />
+          <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+            按 Enter 搜索，按 Escape 关闭
+          </div>
+        </Modal>
 
-      {/* 退款弹窗 */}
-      <RefundOrderModal
-        visible={refundModalVisible}
-        order={selectedOrder}
-        amount={refundAmount}
-        reason={refundReason}
-        onAmountChange={setRefundAmount}
-        onReasonChange={setRefundReason}
-        onConfirm={handleRefund}
-        onCancel={() => {
-          setRefundModalVisible(false);
-          setRefundAmount(0);
-          setRefundReason('');
-        }}
-      />
-    </div>
+        {/* 订单详情弹窗 */}
+        <OrderDetailModal
+          visible={detailModalVisible}
+          order={selectedOrder}
+          onCancel={() => setDetailModalVisible(false)}
+        />
+
+        {/* 取消订单弹窗 */}
+        <CancelOrderModal
+          visible={cancelModalVisible}
+          order={selectedOrder}
+          reason={cancelReason}
+          onReasonChange={setCancelReason}
+          onConfirm={handleCancelOrder}
+          onCancel={() => {
+            setCancelModalVisible(false);
+            setCancelReason('');
+          }}
+        />
+
+        {/* 退款弹窗 */}
+        <RefundOrderModal
+          visible={refundModalVisible}
+          order={selectedOrder}
+          amount={refundAmount}
+          reason={refundReason}
+          onAmountChange={setRefundAmount}
+          onReasonChange={setRefundReason}
+          onConfirm={handleRefund}
+          onCancel={() => {
+            setRefundModalVisible(false);
+            setRefundAmount(0);
+            setRefundReason('');
+          }}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

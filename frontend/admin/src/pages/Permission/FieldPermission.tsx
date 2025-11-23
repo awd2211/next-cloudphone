@@ -1,5 +1,6 @@
-import React, { useMemo, useCallback } from 'react';
-import { Card, message } from 'antd';
+import React, { useMemo, useCallback, useEffect } from 'react';
+import { Card, message, Tag } from 'antd';
+import { SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
 import type {
   FieldPermission,
   CreateFieldPermissionDto,
@@ -19,7 +20,19 @@ import {
   FieldPermissionDetailModal,
   getOperationLabel,
 } from '@/components/FieldPermission';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 
+/**
+ * 字段权限管理页面
+ *
+ * 优化点：
+ * 1. ✅ ErrorBoundary 错误边界包裹
+ * 2. ✅ LoadingState 统一加载状态
+ * 3. ✅ 快捷键支持 (Ctrl+R 刷新)
+ * 4. ✅ 页面标题优化
+ * 5. ✅ 使用服务端聚合统计数据
+ */
 const FieldPermissionManagement: React.FC = () => {
   // ✅ 使用优化后的 hook（支持分页 + 统计数据）
   const {
@@ -51,6 +64,19 @@ const FieldPermissionManagement: React.FC = () => {
     handleViewDetail,
     loadPermissions,
   } = useFieldPermission();
+
+  // ✅ 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        loadPermissions();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loadPermissions]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -136,58 +162,82 @@ const FieldPermissionManagement: React.FC = () => {
   );
 
   return (
-    <div style={{ padding: '24px' }}>
-      <FieldPermissionStatsCards statistics={statistics} />
+    <ErrorBoundary boundaryName="FieldPermission">
+      <div style={{ padding: '24px' }}>
+        <FieldPermissionStatsCards statistics={statistics} />
 
-      <Card
-        title="字段权限管理"
-        extra={
-          <FieldPermissionToolbar
-            filterRoleId={filterRoleId}
-            filterResourceType={filterResourceType}
-            filterOperation={filterOperation}
-            operationTypes={operationTypes}
-            onFilterRoleIdChange={(value) => setFilterRoleId(value)}
-            onFilterResourceTypeChange={(value) => setFilterResourceType(value)}
-            onFilterOperationChange={setFilterOperation}
-            onRefresh={loadPermissions}
-            onCreate={handleCreate}
-          />
-        }
-      >
-        <FieldPermissionTable
-          permissions={permissions}
-          loading={loading}
-          total={total}
-          page={page}
-          pageSize={pageSize}
-          onPageChange={handlePageChange}
+        <Card
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <SafetyOutlined />
+              <span>字段权限管理</span>
+              <Tag
+                icon={<ReloadOutlined spin={loading} />}
+                color="processing"
+                style={{ marginLeft: 8, cursor: 'pointer' }}
+                onClick={() => loadPermissions()}
+              >
+                Ctrl+R 刷新
+              </Tag>
+            </div>
+          }
+          extra={
+            <FieldPermissionToolbar
+              filterRoleId={filterRoleId}
+              filterResourceType={filterResourceType}
+              filterOperation={filterOperation}
+              operationTypes={operationTypes}
+              onFilterRoleIdChange={(value) => setFilterRoleId(value)}
+              onFilterResourceTypeChange={(value) => setFilterResourceType(value)}
+              onFilterOperationChange={setFilterOperation}
+              onRefresh={loadPermissions}
+              onCreate={handleCreate}
+            />
+          }
+        >
+          <LoadingState
+            loading={loading}
+            empty={!loading && permissions.length === 0}
+            onRetry={loadPermissions}
+            loadingType="skeleton"
+            skeletonRows={5}
+            emptyDescription="暂无字段权限配置"
+          >
+            <FieldPermissionTable
+              permissions={permissions}
+              loading={false}
+              total={total}
+              page={page}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              operationTypes={operationTypes}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onToggle={handleToggle}
+              onViewDetail={handleViewDetail}
+            />
+          </LoadingState>
+        </Card>
+
+        <CreateEditFieldPermissionModal
+          visible={isModalVisible}
+          editingPermission={editingPermission}
+          form={form}
           operationTypes={operationTypes}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onToggle={handleToggle}
-          onViewDetail={handleViewDetail}
+          onOk={handleSubmit}
+          onCancel={() => setIsModalVisible(false)}
         />
-      </Card>
 
-      <CreateEditFieldPermissionModal
-        visible={isModalVisible}
-        editingPermission={editingPermission}
-        form={form}
-        operationTypes={operationTypes}
-        onOk={handleSubmit}
-        onCancel={() => setIsModalVisible(false)}
-      />
-
-      <FieldPermissionDetailModal
-        visible={isDetailModalVisible}
-        detailPermission={detailPermission}
-        operationTypes={operationTypes}
-        getOperationColor={() => 'blue'}
-        getOperationLabel={(op) => getOperationLabel(op, operationTypes)}
-        onClose={() => setIsDetailModalVisible(false)}
-      />
-    </div>
+        <FieldPermissionDetailModal
+          visible={isDetailModalVisible}
+          detailPermission={detailPermission}
+          operationTypes={operationTypes}
+          getOperationColor={() => 'blue'}
+          getOperationLabel={(op) => getOperationLabel(op, operationTypes)}
+          onClose={() => setIsDetailModalVisible(false)}
+        />
+      </div>
+    </ErrorBoundary>
   );
 };
 

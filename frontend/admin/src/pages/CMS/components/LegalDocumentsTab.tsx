@@ -139,7 +139,13 @@ const LegalDocumentsTab: React.FC = () => {
         dataSource={data}
         rowKey="id"
         loading={loading}
-        pagination={false}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          pageSizeOptions: ['10', '20', '50'],
+          showTotal: (total) => `共 ${total} 条记录`,
+        }}
       />
 
       <Modal

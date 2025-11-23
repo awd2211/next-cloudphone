@@ -1,5 +1,12 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Space, Form } from 'antd';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Space, Form, Row, Col, Card, Statistic, Tag, message } from 'antd';
+import {
+  DollarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import {
   useAdminPayments,
   useSyncPaymentStatus,
@@ -7,6 +14,15 @@ import {
   useExportPayments,
 } from '@/hooks/queries';
 import type { PaymentDetail, PaymentListParams } from '@/services/payment-admin';
+import type { Dayjs } from 'dayjs';
+
+/** 筛选表单值类型 */
+interface FilterFormValues {
+  status?: string;
+  method?: string;
+  userId?: string;
+  dateRange?: [Dayjs, Dayjs];
+}
 import { usePermission } from '@/hooks';
 import {
   PaymentToolbar,
@@ -18,6 +34,8 @@ import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
 } from '@/components/Payment';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 
 /**
  * 支付列表页面（优化版）
@@ -28,8 +46,12 @@ import {
  * 3. ✅ 使用 useCallback 优化事件处理函数
  * 4. ✅ 组件拆分 - 提取 PaymentTable, PaymentFilterPanel 等
  * 5. ✅ 常量提取 - constants.ts
+ * 6. ✅ ErrorBoundary - 错误边界包裹
+ * 7. ✅ LoadingState - 统一加载状态
+ * 8. ✅ 统计卡片 - 显示关键数据指标
+ * 9. ✅ 快捷键支持 - Ctrl+K 搜索, Ctrl+R 刷新
  */
-const PaymentList = () => {
+const PaymentListContent = () => {
   const { hasPermission } = usePermission();
 
   // ===== 状态管理 =====
@@ -57,13 +79,47 @@ const PaymentList = () => {
     [page, pageSize, filters, searchValue]
   );
 
-  const { data, isLoading } = useAdminPayments(params);
+  const { data, isLoading, error, refetch } = useAdminPayments(params);
   const syncStatusMutation = useSyncPaymentStatus();
   const refundMutation = useManualRefund();
   const exportMutation = useExportPayments();
 
-  const payments = data?.data || [];
+  const payments = useMemo(() => data?.data || [], [data?.data]);
   const total = data?.pagination?.total || 0;
+
+  // ===== 统计计算 =====
+  const stats = useMemo(() => {
+    const successCount = payments.filter((p) => p.status === 'success').length;
+    const pendingCount = payments.filter((p) => p.status === 'pending').length;
+    const failedCount = payments.filter((p) => p.status === 'failed').length;
+    const totalAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    return { total, successCount, pendingCount, failedCount, totalAmount };
+  }, [payments, total]);
+
+  // ===== 快捷键支持 =====
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K 或 Cmd+K 聚焦搜索
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>(
+          '.ant-input-search input'
+        );
+        if (searchInput) {
+          searchInput.focus();
+          message.info('搜索框已聚焦');
+        }
+      }
+      // Ctrl+R 或 Cmd+R 刷新数据
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        message.info('正在刷新...');
+        refetch();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
 
   // ===== 事件处理 =====
   const handleSearch = useCallback(() => {
@@ -75,7 +131,7 @@ const PaymentList = () => {
     setPage(1);
   }, []);
 
-  const handleFilter = useCallback((values: any) => {
+  const handleFilter = useCallback((values: FilterFormValues) => {
     const newFilters: PaymentListParams = {
       status: values.status,
       method: values.method,
@@ -131,6 +187,74 @@ const PaymentList = () => {
   return (
     <div style={{ padding: '24px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        {/* 页面标题 */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 0,
+          }}
+        >
+          <h2 style={{ marginBottom: 0 }}>
+            支付管理
+            <Tag
+              icon={<ReloadOutlined spin={isLoading} />}
+              color="processing"
+              style={{ marginLeft: 12, cursor: 'pointer' }}
+              onClick={() => refetch()}
+            >
+              Ctrl+R 刷新
+            </Tag>
+          </h2>
+          <span style={{ fontSize: 12, color: '#999' }}>快捷键: Ctrl+K 搜索</span>
+        </div>
+
+        {/* 统计卡片 */}
+        <Row gutter={16}>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title="支付总数"
+                value={stats.total}
+                prefix={<DollarOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title="成功支付"
+                value={stats.successCount}
+                prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title="待处理"
+                value={stats.pendingCount}
+                prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
+                valueStyle={{ color: '#faad14' }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title="支付金额"
+                value={stats.totalAmount}
+                precision={2}
+                prefix={<CloseCircleOutlined style={{ color: '#1890ff' }} />}
+                valueStyle={{ color: '#1890ff' }}
+                suffix="元"
+              />
+            </Card>
+          </Col>
+        </Row>
+
         {/* 工具栏 */}
         <PaymentToolbar
           showFilters={showFilters}
@@ -156,22 +280,32 @@ const PaymentList = () => {
           />
         )}
 
-        {/* 数据表格 */}
-        <PaymentTable
-          payments={payments}
+        {/* 数据表格 - 使用 LoadingState 统一管理加载状态 */}
+        <LoadingState
           loading={isLoading}
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          hasRefundPermission={hasPermission('payment:refund:create')}
-          onPageChange={(page, pageSize) => {
-            setPage(page);
-            setPageSize(pageSize);
-          }}
-          onSyncStatus={handleSyncStatus}
-          onShowQRCode={handleShowQRCode}
-          onRefund={handleOpenRefund}
-        />
+          error={error}
+          empty={!isLoading && !error && payments.length === 0}
+          onRetry={refetch}
+          loadingType="skeleton"
+          skeletonRows={5}
+          emptyDescription="暂无支付数据"
+        >
+          <PaymentTable
+            payments={payments}
+            loading={false}
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            hasRefundPermission={hasPermission('payment:refund:create')}
+            onPageChange={(page, pageSize) => {
+              setPage(page);
+              setPageSize(pageSize);
+            }}
+            onSyncStatus={handleSyncStatus}
+            onShowQRCode={handleShowQRCode}
+            onRefund={handleOpenRefund}
+          />
+        </LoadingState>
       </Space>
 
       {/* 退款对话框 */}
@@ -194,6 +328,18 @@ const PaymentList = () => {
         onCancel={() => setQrCodeModalVisible(false)}
       />
     </div>
+  );
+};
+
+/**
+ * 支付列表页面
+ * 使用 ErrorBoundary 包裹，捕获组件错误
+ */
+const PaymentList = () => {
+  return (
+    <ErrorBoundary boundaryName="PaymentList">
+      <PaymentListContent />
+    </ErrorBoundary>
   );
 };
 

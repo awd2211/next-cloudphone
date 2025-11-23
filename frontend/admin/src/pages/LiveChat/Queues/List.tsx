@@ -8,7 +8,7 @@
  * - 设置优先级权重
  * - 关联客服分组
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   Table,
@@ -41,6 +41,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 import {
   getQueueConfigs,
   createQueueConfig,
@@ -73,10 +75,27 @@ const QueueConfigPage: React.FC = () => {
   const [editingConfig, setEditingConfig] = useState<QueueConfig | null>(null);
 
   // 获取排队配置列表
-  const { data: configs = [], isLoading, refetch } = useQuery({
+  const { data: configs = [], isLoading, error, refetch } = useQuery({
     queryKey: ['livechat-queue-configs'],
     queryFn: getQueueConfigs,
   });
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleOpenModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
 
   // 获取排队统计
   const { data: stats } = useQuery({
@@ -284,10 +303,19 @@ const QueueConfigPage: React.FC = () => {
   ];
 
   return (
+    <ErrorBoundary boundaryName="QueueConfigPage">
     <div>
       <h2>
         <SettingOutlined style={{ marginRight: 8 }} />
         排队配置管理
+        <Tag
+          icon={<ReloadOutlined spin={isLoading} />}
+          color="processing"
+          style={{ marginLeft: 12, cursor: 'pointer' }}
+          onClick={() => refetch()}
+        >
+          Ctrl+R 刷新
+        </Tag>
       </h2>
 
       {/* 实时统计 */}
@@ -344,16 +372,26 @@ const QueueConfigPage: React.FC = () => {
           </Button>
         </Space>
 
-        <Table
-          columns={columns}
-          dataSource={configs}
-          rowKey="id"
+        <LoadingState
           loading={isLoading}
-          pagination={{
-            showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`,
-          }}
-        />
+          error={error}
+          empty={!isLoading && !error && configs.length === 0}
+          onRetry={refetch}
+          loadingType="skeleton"
+          skeletonRows={5}
+          emptyDescription="暂无排队配置"
+        >
+          <Table
+            columns={columns}
+            dataSource={configs}
+            rowKey="id"
+            loading={false}
+            pagination={{
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
+          />
+        </LoadingState>
       </Card>
 
       {/* 新建/编辑弹窗 */}
@@ -442,6 +480,7 @@ const QueueConfigPage: React.FC = () => {
         </Form>
       </Modal>
     </div>
+    </ErrorBoundary>
   );
 };
 

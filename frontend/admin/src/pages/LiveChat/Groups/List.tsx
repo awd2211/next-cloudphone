@@ -7,7 +7,7 @@
  * - 设置默认分组
  * - 查看分组内客服数量
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Card,
   Table,
@@ -21,6 +21,9 @@ import {
   message,
   Popconfirm,
   Tooltip,
+  Row,
+  Col,
+  Statistic,
 } from 'antd';
 import {
   PlusOutlined,
@@ -28,7 +31,10 @@ import {
   EditOutlined,
   DeleteOutlined,
   TeamOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -51,10 +57,33 @@ const GroupListPage: React.FC = () => {
   const [editingGroup, setEditingGroup] = useState<AgentGroup | null>(null);
 
   // 获取分组列表
-  const { data: groups = [], isLoading, refetch } = useQuery({
+  const { data: groups = [], isLoading, error, refetch } = useQuery({
     queryKey: ['livechat-agent-groups'],
     queryFn: getAgentGroups,
   });
+
+  // 统计数据
+  const stats = useMemo(() => ({
+    total: groups.length,
+    defaultCount: groups.filter((g) => g.isDefault).length,
+  }), [groups]);
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleOpenModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
 
   // 创建分组
   const createMutation = useMutation({
@@ -200,34 +229,66 @@ const GroupListPage: React.FC = () => {
   ];
 
   return (
-    <div>
-      <h2>
-        <TeamOutlined style={{ marginRight: 8 }} />
-        客服分组管理
-      </h2>
+    <ErrorBoundary boundaryName="GroupList">
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ marginBottom: 0 }}>
+            <TeamOutlined style={{ marginRight: 8 }} />
+            客服分组管理
+            <Tag
+              icon={<ReloadOutlined spin={isLoading} />}
+              color="processing"
+              style={{ marginLeft: 12, cursor: 'pointer' }}
+              onClick={() => refetch()}
+            >
+              Ctrl+R 刷新
+            </Tag>
+          </h2>
+          <span style={{ fontSize: 12, color: '#999' }}>Ctrl+N 新建</span>
+        </div>
 
-      <Card>
-        <Space style={{ marginBottom: 16 }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>
-            新建分组
-          </Button>
-          <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-            刷新
-          </Button>
-        </Space>
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={12}>
+            <Card size="small">
+              <Statistic title="分组总数" value={stats.total} prefix={<TeamOutlined />} />
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card size="small">
+              <Statistic title="默认分组" value={stats.defaultCount} valueStyle={{ color: '#1890ff' }} />
+            </Card>
+          </Col>
+        </Row>
 
-        <Table
-          columns={columns}
-          dataSource={groups}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-          }}
-        />
-      </Card>
+        <Card>
+          <Space style={{ marginBottom: 16 }}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>
+              新建分组
+            </Button>
+          </Space>
+
+          <LoadingState
+            loading={isLoading}
+            error={error}
+            empty={!isLoading && !error && groups.length === 0}
+            onRetry={refetch}
+            loadingType="skeleton"
+            skeletonRows={5}
+            emptyDescription="暂无分组数据"
+          >
+            <Table
+              columns={columns}
+              dataSource={groups}
+              rowKey="id"
+              loading={false}
+              pagination={{
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total) => `共 ${total} 条`,
+              }}
+            />
+          </LoadingState>
+        </Card>
 
       {/* 新建/编辑弹窗 */}
       <Modal
@@ -265,7 +326,8 @@ const GroupListPage: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

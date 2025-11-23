@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { Card, Select, Input, Button, Space, Tag, Tooltip } from 'antd';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Card, Select, Input, Button, Space, Tag, Tooltip, Typography } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 import {
   SearchOutlined,
   ReloadOutlined,
@@ -11,6 +13,8 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useAuditLogs, useExportAuditLogs } from '@/hooks/queries';
 import type { AuditLog } from '@/services/audit';
+
+const { Title, Text } = Typography;
 
 const { Option } = Select;
 
@@ -29,7 +33,7 @@ const AuditLogList: React.FC = () => {
   const [methodFilter, setMethodFilter] = useState<string>('');
 
   // 查询数据
-  const { data, isLoading, refetch } = useAuditLogs({
+  const { data, isLoading, error, refetch } = useAuditLogs({
     page,
     pageSize,
     resourceType: resourceTypeFilter || undefined,
@@ -43,6 +47,35 @@ const AuditLogList: React.FC = () => {
 
   // 导出功能
   const exportMutation = useExportAuditLogs();
+
+  // 刷新回调
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  // 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+R 刷新数据
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleRefresh]);
+
+  // 设置页面标题
+  useEffect(() => {
+    document.title = '审计日志 - 云手机管理平台';
+    return () => {
+      document.title = '云手机管理平台';
+    };
+  }, []);
 
   /**
    * 分页变化处理
@@ -228,116 +261,141 @@ const AuditLogList: React.FC = () => {
   );
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Card>
-        <h2>审计日志</h2>
-        <p style={{ color: '#666', marginBottom: 24 }}>
-          查看系统所有操作记录，支持按资源类型、状态、方法筛选
-        </p>
+    <ErrorBoundary>
+      <div style={{ padding: '24px' }}>
+        <Card>
+          {/* 页面标题 */}
+          <div style={{ marginBottom: 24 }}>
+            <Title level={3} style={{ marginBottom: 8 }}>
+              审计日志
+            </Title>
+            <Text type="secondary">
+              查看系统所有操作记录，支持按资源类型、状态、方法筛选
+              <Tooltip title="按 Ctrl+R 刷新数据">
+                <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                  (Ctrl+R 刷新)
+                </Text>
+              </Tooltip>
+            </Text>
+          </div>
 
-        {/* 筛选栏 */}
-        <Space wrap style={{ marginBottom: 16 }}>
-          <Input
-            placeholder="搜索用户名、操作、详情..."
-            prefix={<SearchOutlined />}
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setPage(1); // 重置到第一页
-            }}
-            style={{ width: 240 }}
-            allowClear
-          />
+          {/* 筛选栏 */}
+          <Space wrap style={{ marginBottom: 16 }}>
+            <Input
+              placeholder="搜索用户名、操作、详情..."
+              prefix={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => {
+                setSearchText(e.target.value);
+                setPage(1); // 重置到第一页
+              }}
+              style={{ width: 240 }}
+              allowClear
+            />
 
-          <Select
-            placeholder="资源类型"
-            value={resourceTypeFilter || undefined}
-            onChange={(value) => {
-              setResourceTypeFilter(value || '');
-              setPage(1);
-            }}
-            style={{ width: 140 }}
-            allowClear
+            <Select
+              placeholder="资源类型"
+              value={resourceTypeFilter || undefined}
+              onChange={(value) => {
+                setResourceTypeFilter(value || '');
+                setPage(1);
+              }}
+              style={{ width: 140 }}
+              allowClear
+            >
+              <Option value="user">用户</Option>
+              <Option value="device">设备</Option>
+              <Option value="plan">套餐</Option>
+              <Option value="quota">配额</Option>
+              <Option value="billing">账单</Option>
+              <Option value="ticket">工单</Option>
+              <Option value="apikey">API密钥</Option>
+              <Option value="system">系统</Option>
+            </Select>
+
+            <Select
+              placeholder="状态"
+              value={statusFilter || undefined}
+              onChange={(value) => {
+                setStatusFilter(value || '');
+                setPage(1);
+              }}
+              style={{ width: 120 }}
+              allowClear
+            >
+              <Option value="success">成功</Option>
+              <Option value="failed">失败</Option>
+              <Option value="warning">警告</Option>
+            </Select>
+
+            <Select
+              placeholder="方法"
+              value={methodFilter || undefined}
+              onChange={(value) => {
+                setMethodFilter(value || '');
+                setPage(1);
+              }}
+              style={{ width: 120 }}
+              allowClear
+            >
+              <Option value="GET">GET</Option>
+              <Option value="POST">POST</Option>
+              <Option value="PUT">PUT</Option>
+              <Option value="DELETE">DELETE</Option>
+              <Option value="PATCH">PATCH</Option>
+            </Select>
+
+            <Button icon={<FilterOutlined />} onClick={handleReset}>
+              重置
+            </Button>
+
+            <Tooltip title="Ctrl+R">
+              <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
+                刷新
+              </Button>
+            </Tooltip>
+
+            <Button icon={<ExportOutlined />} onClick={handleExport}>
+              导出
+            </Button>
+          </Space>
+
+          {/* 数据表格 - 使用 LoadingState 统一管理加载状态 */}
+          <LoadingState
+            loading={isLoading}
+            error={error}
+            empty={!isLoading && logs.length === 0}
+            emptyDescription="暂无审计日志数据"
+            errorDescription="加载审计日志失败"
+            onRetry={handleRefresh}
+            loadingType="skeleton"
+            skeletonRows={10}
           >
-            <Option value="user">用户</Option>
-            <Option value="device">设备</Option>
-            <Option value="plan">套餐</Option>
-            <Option value="quota">配额</Option>
-            <Option value="billing">账单</Option>
-            <Option value="ticket">工单</Option>
-            <Option value="apikey">API密钥</Option>
-            <Option value="system">系统</Option>
-          </Select>
-
-          <Select
-            placeholder="状态"
-            value={statusFilter || undefined}
-            onChange={(value) => {
-              setStatusFilter(value || '');
-              setPage(1);
-            }}
-            style={{ width: 120 }}
-            allowClear
-          >
-            <Option value="success">成功</Option>
-            <Option value="failed">失败</Option>
-            <Option value="warning">警告</Option>
-          </Select>
-
-          <Select
-            placeholder="方法"
-            value={methodFilter || undefined}
-            onChange={(value) => {
-              setMethodFilter(value || '');
-              setPage(1);
-            }}
-            style={{ width: 120 }}
-            allowClear
-          >
-            <Option value="GET">GET</Option>
-            <Option value="POST">POST</Option>
-            <Option value="PUT">PUT</Option>
-            <Option value="DELETE">DELETE</Option>
-            <Option value="PATCH">PATCH</Option>
-          </Select>
-
-          <Button icon={<FilterOutlined />} onClick={handleReset}>
-            重置
-          </Button>
-
-          <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-            刷新
-          </Button>
-
-          <Button icon={<ExportOutlined />} onClick={handleExport}>
-            导出
-          </Button>
-        </Space>
-
-        {/* 数据表格 */}
-        <AccessibleTable<AuditLog>
-          ariaLabel="审计日志列表"
-          loadingText="正在加载审计日志"
-          emptyText="暂无审计日志数据"
-          columns={columns}
-          dataSource={logs}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: handlePageChange,
-            pageSizeOptions: ['10', '20', '50', '100', '200'],
-          }}
-          scroll={{ x: 1400, y: 600 }}
-          virtual
-        />
-      </Card>
-    </div>
+            <AccessibleTable<AuditLog>
+              ariaLabel="审计日志列表"
+              loadingText="正在加载审计日志"
+              emptyText="暂无审计日志数据"
+              columns={columns}
+              dataSource={logs}
+              rowKey="id"
+              loading={false}
+              pagination={{
+                current: page,
+                pageSize: pageSize,
+                total: total,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total) => `共 ${total} 条`,
+                onChange: handlePageChange,
+                pageSizeOptions: ['10', '20', '50', '100', '200'],
+              }}
+              scroll={{ x: 1400, y: 600 }}
+              virtual
+            />
+          </LoadingState>
+        </Card>
+      </div>
+    </ErrorBoundary>
   );
 };
 

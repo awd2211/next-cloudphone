@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Card, message } from 'antd';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Card, message, Row, Col, Statistic, Tag } from 'antd';
+import { TeamOutlined, SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { Role } from '@/types';
 import {
   useRoles,
@@ -11,6 +12,8 @@ import {
   useBatchDeleteRoles,
 } from '@/hooks/queries';
 import { RoleHeader, RoleTable, RoleFormModal, PermissionAssignModal } from '@/components/Role';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 
 /**
  * 角色列表页面（优化版 - 使用 React Query + 组件化 + 多选）
@@ -24,6 +27,10 @@ import { RoleHeader, RoleTable, RoleFormModal, PermissionAssignModal } from '@/c
  * 6. ✅ 多选功能支持
  * 7. ✅ 批量删除功能
  * 8. ✅ 系统角色保护（不可删除）
+ * 9. ✅ ErrorBoundary 错误边界包裹
+ * 10. ✅ LoadingState 统一加载状态
+ * 11. ✅ 统计卡片展示
+ * 12. ✅ 快捷键支持 (Ctrl+N 新建, Ctrl+R 刷新)
  */
 const RoleList = () => {
   const [page, setPage] = useState(1);
@@ -38,7 +45,7 @@ const RoleList = () => {
 
   // ✅ 使用 React Query hooks
   const params = useMemo(() => ({ page, pageSize }), [page, pageSize]);
-  const { data, isLoading, refetch } = useRoles(params);
+  const { data, isLoading, error, refetch } = useRoles(params);
   // ✅ 修复：获取所有权限用于权限分配（不分页）
   const { data: permissionsData } = usePermissions({ limit: 1000 });
   const permissions = permissionsData?.permissions || [];
@@ -52,6 +59,13 @@ const RoleList = () => {
 
   const roles = data?.data || [];
   const total = data?.total || 0;
+
+  // ✅ 统计数据计算
+  const stats = useMemo(() => {
+    const systemRoles = roles.filter((r) => r.isSystem).length;
+    const customRoles = roles.filter((r) => !r.isSystem).length;
+    return { total, systemRoles, customRoles };
+  }, [roles, total]);
 
   // ✅ 事件处理函数
   const handleCreate = useCallback(() => {
@@ -150,49 +164,131 @@ const RoleList = () => {
     message.success('刷新成功');
   }, [refetch]);
 
+  // ✅ 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleCreate();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleCreate, refetch]);
+
   return (
-    <Card bordered={false}>
-      <RoleHeader
-        onCreate={handleCreate}
-        selectedCount={selectedRowKeys.length}
-        onBatchDelete={handleBatchDelete}
-        onRefresh={handleRefresh}
-        batchDeleteLoading={batchDeleteMutation.isPending}
-      />
+    <ErrorBoundary boundaryName="RoleList">
+      <Card bordered={false}>
+        {/* 页面标题 */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <h2 style={{ marginBottom: 0 }}>
+            <TeamOutlined style={{ marginRight: 8 }} />
+            角色管理
+            <Tag
+              icon={<ReloadOutlined spin={isLoading} />}
+              color="processing"
+              style={{ marginLeft: 12, cursor: 'pointer' }}
+              onClick={() => refetch()}
+            >
+              Ctrl+R 刷新
+            </Tag>
+          </h2>
+          <span style={{ fontSize: 12, color: '#999' }}>Ctrl+N 新建</span>
+        </div>
 
-      <RoleTable
-        roles={roles}
-        loading={isLoading}
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        selectedRowKeys={selectedRowKeys}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onManagePermissions={handleManagePermissions}
-        onPageChange={handlePageChange}
-        onSelectionChange={handleSelectionChange}
-      />
+        {/* 统计卡片 */}
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic title="角色总数" value={stats.total} prefix={<TeamOutlined />} />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title="系统角色"
+                value={stats.systemRoles}
+                valueStyle={{ color: '#1890ff' }}
+                prefix={<SafetyOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title="自定义角色"
+                value={stats.customRoles}
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-      <RoleFormModal
-        visible={modalVisible}
-        editingRole={editingRole}
-        loading={createMutation.isPending || updateMutation.isPending}
-        onCancel={handleModalCancel}
-        onSubmit={handleSubmit}
-      />
+        <RoleHeader
+          onCreate={handleCreate}
+          selectedCount={selectedRowKeys.length}
+          onBatchDelete={handleBatchDelete}
+          onRefresh={handleRefresh}
+          batchDeleteLoading={batchDeleteMutation.isPending}
+        />
 
-      <PermissionAssignModal
-        visible={permissionModalVisible}
-        role={selectedRole}
-        permissions={permissions}
-        selectedPermissions={selectedPermissions}
-        loading={assignPermissionsMutation.isPending}
-        onCancel={handlePermissionModalCancel}
-        onSubmit={handleAssignPermissions}
-        onPermissionChange={setSelectedPermissions}
-      />
-    </Card>
+        {/* 使用 LoadingState 包裹表格 */}
+        <LoadingState
+          loading={isLoading}
+          error={error}
+          empty={!isLoading && !error && roles.length === 0}
+          onRetry={refetch}
+          loadingType="skeleton"
+          skeletonRows={5}
+          emptyDescription="暂无角色数据"
+        >
+          <RoleTable
+            roles={roles}
+            loading={false}
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            selectedRowKeys={selectedRowKeys}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onManagePermissions={handleManagePermissions}
+            onPageChange={handlePageChange}
+            onSelectionChange={handleSelectionChange}
+          />
+        </LoadingState>
+
+        <RoleFormModal
+          visible={modalVisible}
+          editingRole={editingRole}
+          loading={createMutation.isPending || updateMutation.isPending}
+          onCancel={handleModalCancel}
+          onSubmit={handleSubmit}
+        />
+
+        <PermissionAssignModal
+          visible={permissionModalVisible}
+          role={selectedRole}
+          permissions={permissions}
+          selectedPermissions={selectedPermissions}
+          loading={assignPermissionsMutation.isPending}
+          onCancel={handlePermissionModalCancel}
+          onSubmit={handleAssignPermissions}
+          onPermissionChange={setSelectedPermissions}
+        />
+      </Card>
+    </ErrorBoundary>
   );
 };
 

@@ -1,8 +1,17 @@
-import React, { useState, useMemo } from 'react';
-import { Card, Button, Space, Tag, Select, Input } from 'antd';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Card, Button, Space, Tag, Select, Input, Row, Col, Statistic, Modal, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
-import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
+import {
+  ReloadOutlined,
+  SearchOutlined,
+  FileTextOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useTickets } from '@/hooks/queries/useTickets';
@@ -23,8 +32,12 @@ const TicketListPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<TicketStatus | undefined>();
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | undefined>();
 
+  // 快捷搜索状态
+  const [quickSearchVisible, setQuickSearchVisible] = useState(false);
+  const [quickSearchValue, setQuickSearchValue] = useState('');
+
   // 使用新的 React Query Hooks
-  const { data, isLoading, refetch } = useTickets({
+  const { data, isLoading, error, refetch } = useTickets({
     page,
     limit: pageSize,
     status: statusFilter as any,
@@ -35,10 +48,26 @@ const TicketListPage: React.FC = () => {
   const tickets = data?.data || [];
   const total = data?.total || 0;
 
+  // 统计计算
+  const stats = useMemo(() => {
+    const openCount = tickets.filter((t: any) => t.status === 'open').length;
+    const inProgressCount = tickets.filter((t: any) => t.status === 'in_progress').length;
+    const resolvedCount = tickets.filter(
+      (t: any) => t.status === 'resolved' || t.status === 'closed'
+    ).length;
+    const urgentCount = tickets.filter(
+      (t: any) => t.priority === 'urgent' || t.priority === 'high'
+    ).length;
+    return { total, openCount, inProgressCount, resolvedCount, urgentCount };
+  }, [tickets, total]);
+
   // 导航处理函数
-  const handleViewDetail = (ticket: Ticket) => {
-    navigate(`/tickets/${ticket.id}`);
-  };
+  const handleViewDetail = useCallback(
+    (ticket: Ticket) => {
+      navigate(`/tickets/${ticket.id}`);
+    },
+    [navigate]
+  );
 
   // 客户端搜索过滤（仅对当前页）
   const filteredTickets = useMemo(() => {
@@ -49,6 +78,36 @@ const TicketListPage: React.FC = () => {
         ticket.ticketNumber?.toLowerCase().includes(searchText.toLowerCase())
     );
   }, [tickets, searchText]);
+
+  // 快速搜索处理
+  const handleQuickSearch = useCallback((value: string) => {
+    setQuickSearchValue('');
+    setQuickSearchVisible(false);
+    if (value.trim()) {
+      setSearchText(value.trim());
+    }
+  }, []);
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setQuickSearchVisible(true);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+      }
+      if (e.key === 'Escape' && quickSearchVisible) {
+        setQuickSearchVisible(false);
+        setQuickSearchValue('');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quickSearchVisible, refetch]);
 
   /**
    * 分页变化处理
@@ -209,103 +268,198 @@ const TicketListPage: React.FC = () => {
   );
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Card>
-        <h2>工单管理</h2>
-        <p style={{ color: '#666', marginBottom: 24 }}>
-          管理和跟踪所有用户工单
-        </p>
+    <ErrorBoundary boundaryName="TicketList">
+      <div style={{ padding: '24px' }}>
+        <Card>
+          {/* 页面标题 */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 16,
+            }}
+          >
+            <h2 style={{ marginBottom: 0 }}>
+              <FileTextOutlined style={{ marginRight: 8 }} />
+              工单管理
+              <Tag
+                icon={<ReloadOutlined spin={isLoading} />}
+                color="processing"
+                style={{ marginLeft: 12, cursor: 'pointer' }}
+                onClick={() => refetch()}
+              >
+                Ctrl+R 刷新
+              </Tag>
+            </h2>
+            <span style={{ fontSize: 12, color: '#999' }}>Ctrl+K 搜索</span>
+          </div>
 
-        {/* 筛选栏 */}
-        <Space wrap style={{ marginBottom: 16 }}>
+          {/* 统计卡片 */}
+          <Row gutter={16} style={{ marginBottom: 16 }}>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic title="工单总数" value={stats.total} prefix={<FileTextOutlined />} />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic
+                  title="待处理"
+                  value={stats.openCount}
+                  valueStyle={{ color: '#1890ff' }}
+                  prefix={<ClockCircleOutlined />}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic
+                  title="紧急/高优先级"
+                  value={stats.urgentCount}
+                  valueStyle={{ color: '#ff4d4f' }}
+                  prefix={<ExclamationCircleOutlined />}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic
+                  title="已解决"
+                  value={stats.resolvedCount}
+                  valueStyle={{ color: '#52c41a' }}
+                  prefix={<CheckCircleOutlined />}
+                />
+              </Card>
+            </Col>
+          </Row>
+
+          {/* 筛选栏 */}
+          <Space wrap style={{ marginBottom: 16 }}>
+            <Input
+              placeholder="搜索工单号、主题..."
+              prefix={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              style={{ width: 240 }}
+              allowClear
+            />
+
+            <Select
+              placeholder="类别筛选"
+              value={categoryFilter || undefined}
+              onChange={(value) => {
+                setCategoryFilter(value || '');
+                setPage(1);
+              }}
+              style={{ width: 140 }}
+              allowClear
+            >
+              <Option value="technical">技术问题</Option>
+              <Option value="billing">账单问题</Option>
+              <Option value="feature_request">功能请求</Option>
+              <Option value="bug_report">Bug反馈</Option>
+              <Option value="other">其他</Option>
+            </Select>
+
+            <Select
+              placeholder="状态筛选"
+              value={statusFilter || undefined}
+              onChange={(value) => {
+                setStatusFilter(value || '');
+                setPage(1);
+              }}
+              style={{ width: 140 }}
+              allowClear
+            >
+              <Option value="open">待处理</Option>
+              <Option value="in_progress">处理中</Option>
+              <Option value="waiting_customer">等待用户</Option>
+              <Option value="resolved">已解决</Option>
+              <Option value="closed">已关闭</Option>
+            </Select>
+
+            <Select
+              placeholder="优先级筛选"
+              value={priorityFilter || undefined}
+              onChange={(value) => {
+                setPriorityFilter(value || '');
+                setPage(1);
+              }}
+              style={{ width: 120 }}
+              allowClear
+            >
+              <Option value="urgent">紧急</Option>
+              <Option value="high">高</Option>
+              <Option value="medium">中</Option>
+              <Option value="low">低</Option>
+            </Select>
+
+            <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
+              刷新
+            </Button>
+          </Space>
+
+          {/* 数据表格 */}
+          <LoadingState
+            loading={isLoading}
+            error={error}
+            empty={!isLoading && !error && filteredTickets.length === 0}
+            onRetry={refetch}
+            loadingType="skeleton"
+            skeletonRows={5}
+            emptyDescription="暂无工单数据"
+          >
+            <AccessibleTable<Ticket>
+              ariaLabel="工单列表"
+              loadingText="正在加载工单列表"
+              emptyText="暂无工单数据"
+              columns={columns}
+              dataSource={filteredTickets as any}
+              rowKey="id"
+              loading={false}
+              pagination={{
+                current: page,
+                pageSize: pageSize,
+                total: total,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total) => `共 ${total} 条`,
+                onChange: handlePageChange,
+                pageSizeOptions: ['10', '20', '50', '100', '200'],
+              }}
+              scroll={{ x: 1400, y: 600 }}
+              virtual
+            />
+          </LoadingState>
+        </Card>
+
+        {/* 快速搜索弹窗 */}
+        <Modal
+          open={quickSearchVisible}
+          title="快速搜索工单"
+          footer={null}
+          onCancel={() => {
+            setQuickSearchVisible(false);
+            setQuickSearchValue('');
+          }}
+          destroyOnClose
+        >
           <Input
-            placeholder="搜索工单号、主题..."
+            placeholder="输入工单号或主题进行搜索..."
             prefix={<SearchOutlined />}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 240 }}
+            value={quickSearchValue}
+            onChange={(e) => setQuickSearchValue(e.target.value)}
+            onPressEnter={(e) => handleQuickSearch((e.target as HTMLInputElement).value)}
+            autoFocus
             allowClear
           />
-
-          <Select
-            placeholder="类别筛选"
-            value={categoryFilter || undefined}
-            onChange={(value) => {
-              setCategoryFilter(value || '');
-              setPage(1);
-            }}
-            style={{ width: 140 }}
-            allowClear
-          >
-            <Option value="technical">技术问题</Option>
-            <Option value="billing">账单问题</Option>
-            <Option value="feature_request">功能请求</Option>
-            <Option value="bug_report">Bug反馈</Option>
-            <Option value="other">其他</Option>
-          </Select>
-
-          <Select
-            placeholder="状态筛选"
-            value={statusFilter || undefined}
-            onChange={(value) => {
-              setStatusFilter(value || '');
-              setPage(1);
-            }}
-            style={{ width: 140 }}
-            allowClear
-          >
-            <Option value="open">待处理</Option>
-            <Option value="in_progress">处理中</Option>
-            <Option value="waiting_customer">等待用户</Option>
-            <Option value="resolved">已解决</Option>
-            <Option value="closed">已关闭</Option>
-          </Select>
-
-          <Select
-            placeholder="优先级筛选"
-            value={priorityFilter || undefined}
-            onChange={(value) => {
-              setPriorityFilter(value || '');
-              setPage(1);
-            }}
-            style={{ width: 120 }}
-            allowClear
-          >
-            <Option value="urgent">紧急</Option>
-            <Option value="high">高</Option>
-            <Option value="medium">中</Option>
-            <Option value="low">低</Option>
-          </Select>
-
-          <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-            刷新
-          </Button>
-        </Space>
-
-        {/* 数据表格 */}
-        <AccessibleTable<Ticket>
-          ariaLabel="工单列表"
-          loadingText="正在加载工单列表"
-          emptyText="暂无工单数据"
-          columns={columns}
-          dataSource={filteredTickets as any}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: handlePageChange,
-            pageSizeOptions: ['10', '20', '50', '100', '200'],
-          }}
-          scroll={{ x: 1400, y: 600 }}
-          virtual
-        />
-      </Card>
-    </div>
+          <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+            按 Enter 搜索，按 Escape 关闭
+          </div>
+        </Modal>
+      </div>
+    </ErrorBoundary>
   );
 };
 

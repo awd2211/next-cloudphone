@@ -271,7 +271,13 @@ const PageContentsTab: React.FC = () => {
         dataSource={contents}
         rowKey="id"
         loading={isLoading}
-        pagination={false}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          pageSizeOptions: ['10', '20', '50'],
+          showTotal: (total) => `共 ${total} 条记录`,
+        }}
         size="middle"
       />
 

@@ -1,7 +1,9 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Space, Button, Select, Card, Alert, Form } from 'antd';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Space, Button, Select, Card, Alert, Form, Tooltip } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
-import { PlusOutlined } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { DeviceSnapshot } from '@/types';
 import {
   useSnapshots,
@@ -31,8 +33,12 @@ const { Option } = Select;
  * 4. ✅ 组件拆分 - 提取 SnapshotStatsCards, CreateSnapshotModal
  * 5. ✅ 提取表格列定义到 hook
  * 6. ✅ 提取常量和工具函数
+ * 7. ✅ ErrorBoundary 错误边界
+ * 8. ✅ LoadingState 统一加载状态
+ * 9. ✅ 快捷键支持 (Ctrl+R 刷新)
+ * 10. ✅ 页面标题优化
  */
-const SnapshotList = () => {
+const SnapshotListContent = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -48,9 +54,37 @@ const SnapshotList = () => {
     return p;
   }, [page, pageSize, deviceFilter, statusFilter]);
 
-  const { data, isLoading } = useSnapshots(params);
+  const { data, isLoading, error, refetch } = useSnapshots(params);
   const { data: stats } = useSnapshotStats();
   const { data: devicesData } = useDevices({ page: 1, pageSize: 1000 });
+
+  // ✅ 刷新回调
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  // ✅ 快捷键支持：Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleRefresh]);
+
+  // ✅ 设置页面标题
+  useEffect(() => {
+    document.title = '设备快照 - 云手机管理平台';
+    return () => {
+      document.title = '云手机管理平台';
+    };
+  }, []);
 
   // Mutations
   const createMutation = useCreateSnapshot();
@@ -142,6 +176,11 @@ const SnapshotList = () => {
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateModalOpen}>
             创建快照
           </Button>
+          <Tooltip title="刷新数据 (Ctrl+R)">
+            <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={isLoading}>
+              刷新
+            </Button>
+          </Tooltip>
           <Select
             placeholder="筛选设备"
             allowClear
@@ -168,30 +207,42 @@ const SnapshotList = () => {
           </Select>
         </Space>
 
-        <AccessibleTable<DeviceSnapshot>
-          ariaLabel="设备快照列表"
-          loadingText="正在加载设备快照列表"
-          emptyText="暂无设备快照数据，点击上方创建快照"
-          columns={columns}
-          dataSource={snapshots}
-          rowKey="id"
+        {/* ✅ 使用 LoadingState 统一加载状态 */}
+        <LoadingState
           loading={isLoading}
-          scroll={{ x: 1400, y: 600 }}
-          virtual
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: (page, pageSize) => {
-              setPage(page);
-              setPageSize(pageSize);
-            },
-            pageSizeOptions: ['10', '20', '50', '100', '200'],
-          }}
-        />
+          error={error}
+          empty={!isLoading && snapshots.length === 0}
+          emptyDescription="暂无设备快照数据，点击上方创建快照"
+          errorDescription="加载快照列表失败"
+          onRetry={handleRefresh}
+          loadingType="skeleton"
+          skeletonRows={5}
+        >
+          <AccessibleTable<DeviceSnapshot>
+            ariaLabel="设备快照列表"
+            loadingText="正在加载设备快照列表"
+            emptyText="暂无设备快照数据，点击上方创建快照"
+            columns={columns}
+            dataSource={snapshots}
+            rowKey="id"
+            loading={false}
+            scroll={{ x: 1400, y: 600 }}
+            virtual
+            pagination={{
+              current: page,
+              pageSize: pageSize,
+              total: total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条`,
+              onChange: (page, pageSize) => {
+                setPage(page);
+                setPageSize(pageSize);
+              },
+              pageSizeOptions: ['10', '20', '50', '100', '200'],
+            }}
+          />
+        </LoadingState>
       </Card>
 
       {/* 创建快照模态框 */}
@@ -205,6 +256,17 @@ const SnapshotList = () => {
         onFinish={handleCreate}
       />
     </div>
+  );
+};
+
+/**
+ * 快照列表页面（带错误边界）
+ */
+const SnapshotList = () => {
+  return (
+    <ErrorBoundary>
+      <SnapshotListContent />
+    </ErrorBoundary>
   );
 };
 

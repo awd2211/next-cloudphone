@@ -1,17 +1,19 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Space, Button, Image, Upload, Modal, message, Popconfirm, Progress } from 'antd';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Space, Button, Image, Upload, Modal, message, Popconfirm, Progress, Card, Row, Col, Statistic, Input, Tag } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, AppstoreOutlined, CloudUploadOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { Application } from '@/types';
 import dayjs from 'dayjs';
-import { useApps, useUploadApp, useDeleteApp } from '@/hooks/queries';
+import { useApps, useUploadApp, useDeleteApp, useAppStats } from '@/hooks/queries';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { ErrorAlert, type ErrorInfo } from '@/components/ErrorAlert';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 
 /**
- * 应用列表页面（优化版 - 使用 React Query）
+ * 应用列表页面（优化版 v2 - 添加 ErrorBoundary + LoadingState + 统计卡片 + 快捷键）
  *
  * 优化点：
  * 1. ✅ 使用 React Query 自动管理状态和缓存
@@ -19,6 +21,10 @@ import { ErrorAlert, type ErrorInfo } from '@/components/ErrorAlert';
  * 3. ✅ 使用 useCallback 优化事件处理函数
  * 4. ✅ 自动请求去重和缓存
  * 5. ✅ 乐观更新支持
+ * 6. ✅ ErrorBoundary - 错误边界保护
+ * 7. ✅ LoadingState - 统一加载状态
+ * 8. ✅ 统计卡片 - 应用数量统计
+ * 9. ✅ 快捷键支持 - Ctrl+K 搜索、Ctrl+N 新建、Ctrl+R 刷新
  */
 const AppList = () => {
   // Modal和上传状态
@@ -28,13 +34,17 @@ const AppList = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadError, setUploadError] = useState<ErrorInfo | null>(null);
+  const [quickSearchVisible, setQuickSearchVisible] = useState(false);
+  const [quickSearchValue, setQuickSearchValue] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   // 使用异步操作hook
   const { execute: executeUpload } = useAsyncOperation();
 
   // ✅ 使用 React Query hooks 替换手动状态管理
-  const params = useMemo(() => ({ page, pageSize }), [page, pageSize]);
-  const { data, isLoading } = useApps(params);
+  const params = useMemo(() => ({ page, pageSize, search: searchKeyword }), [page, pageSize, searchKeyword]);
+  const { data, isLoading, error, refetch } = useApps(params);
+  const { data: statsData } = useAppStats();
 
   // Mutations
   const uploadMutation = useUploadApp();
@@ -42,6 +52,60 @@ const AppList = () => {
 
   const apps = data?.data || [];
   const total = data?.total || 0;
+
+  // 统计数据
+  const stats = useMemo(() => ({
+    total: statsData?.total || total,
+    categories: statsData?.categories || 0,
+    totalSize: statsData?.totalSize || 0,
+  }), [statsData, total]);
+
+  // ===== 快捷键支持 =====
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K 快速搜索
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setQuickSearchVisible(true);
+        return;
+      }
+
+      // Ctrl+N 上传应用
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        setUploadModalVisible(true);
+        return;
+      }
+
+      // Ctrl+R 刷新列表
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+        return;
+      }
+
+      // Escape 关闭快速搜索
+      if (e.key === 'Escape' && quickSearchVisible) {
+        setQuickSearchVisible(false);
+        setQuickSearchValue('');
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quickSearchVisible, refetch]);
+
+  // ===== 快速搜索处理 =====
+  const handleQuickSearch = useCallback((value: string) => {
+    setQuickSearchValue('');
+    setQuickSearchVisible(false);
+    if (value.trim()) {
+      setSearchKeyword(value.trim());
+      setPage(1);
+    }
+  }, []);
 
   // ✅ useCallback 优化事件处理函数
   const handleUpload = useCallback(async () => {
@@ -208,73 +272,169 @@ const AppList = () => {
   );
 
   return (
-    <div>
-      <h2>应用管理</h2>
+    <ErrorBoundary boundaryName="AppList">
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ marginBottom: 0 }}>
+            应用管理
+            <Tag
+              icon={<ReloadOutlined spin={isLoading} />}
+              color="processing"
+              style={{ marginLeft: 12, cursor: 'pointer' }}
+              onClick={() => refetch()}
+            >
+              Ctrl+R 刷新
+            </Tag>
+          </h2>
+          <Space>
+            <span style={{ fontSize: 12, color: '#999' }}>
+              快捷键：Ctrl+K 搜索 | Ctrl+N 上传
+            </span>
+          </Space>
+        </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploadModalVisible(true)}>
-          上传应用
-        </Button>
-      </div>
+        {/* 统计卡片 */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={8}>
+            <Card>
+              <Statistic
+                title="应用总数"
+                value={stats.total}
+                prefix={<AppstoreOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card>
+              <Statistic
+                title="分类数量"
+                value={stats.categories}
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card>
+              <Statistic
+                title="总存储空间"
+                value={(stats.totalSize / 1024 / 1024 / 1024).toFixed(2)}
+                suffix="GB"
+                prefix={<CloudUploadOutlined />}
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-      <AccessibleTable<Application>
-        ariaLabel="应用列表"
-        loadingText="正在加载应用列表"
-        emptyText="暂无应用数据，点击右上角上传应用"
-        columns={columns}
-        dataSource={apps}
-        rowKey="id"
-        loading={isLoading}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`,
-          onChange: (page, pageSize) => {
-            setPage(page);
-            setPageSize(pageSize);
-          },
-          pageSizeOptions: ['10', '20', '50', '100', '200'],
-        }}
-        scroll={{ x: 1000, y: 600 }}
-        virtual
-      />
+        <Card>
+          <div style={{ marginBottom: 16 }}>
+            <Space>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploadModalVisible(true)}>
+                上传应用
+              </Button>
+              {searchKeyword && (
+                <Tag closable onClose={() => setSearchKeyword('')}>
+                  搜索: {searchKeyword}
+                </Tag>
+              )}
+            </Space>
+          </div>
 
-      {/* 上传应用Modal */}
-      <Modal
-        title="上传应用"
-        open={uploadModalVisible}
-        onCancel={handleModalCancel}
-        onOk={handleUpload}
-        confirmLoading={uploadMutation.isPending}
-      >
-        {/* 上传错误提示 */}
-        {uploadError && (
-          <ErrorAlert
-            error={uploadError}
-            onClose={() => setUploadError(null)}
-            onRetry={handleUpload}
-            style={{ marginBottom: 16 }}
-          />
-        )}
+          <LoadingState
+            loading={isLoading}
+            error={error}
+            empty={!isLoading && !error && apps.length === 0}
+            onRetry={refetch}
+            loadingType="skeleton"
+            skeletonRows={5}
+            emptyDescription="暂无应用数据，点击上方按钮上传应用"
+          >
+            <AccessibleTable<Application>
+              ariaLabel="应用列表"
+              loadingText="正在加载应用列表"
+              emptyText="暂无应用数据，点击右上角上传应用"
+              columns={columns}
+              dataSource={apps}
+              rowKey="id"
+              loading={false} // LoadingState 已处理
+              pagination={{
+                current: page,
+                pageSize,
+                total,
+                showSizeChanger: true,
+                showTotal: (total) => `共 ${total} 条`,
+                onChange: (page, pageSize) => {
+                  setPage(page);
+                  setPageSize(pageSize);
+                },
+                pageSizeOptions: ['10', '20', '50', '100', '200'],
+              }}
+              scroll={{ x: 1000, y: 600 }}
+              virtual
+            />
+          </LoadingState>
+        </Card>
 
-        <Upload.Dragger
-          fileList={fileList}
-          onChange={handleFileListChange}
-          beforeUpload={() => false}
-          accept=".apk"
-          maxCount={1}
+        {/* 快速搜索弹窗 */}
+        <Modal
+          open={quickSearchVisible}
+          title="快速搜索应用"
+          footer={null}
+          onCancel={() => {
+            setQuickSearchVisible(false);
+            setQuickSearchValue('');
+          }}
+          destroyOnClose
         >
-          <p className="ant-upload-drag-icon">📱</p>
-          <p className="ant-upload-text">点击或拖拽 APK 文件到此区域</p>
-          <p className="ant-upload-hint">支持单个 APK 文件上传，最大 100MB</p>
-        </Upload.Dragger>
-        {uploadMutation.isPending && uploadProgress > 0 && (
-          <Progress percent={uploadProgress} style={{ marginTop: 16 }} />
-        )}
-      </Modal>
-    </div>
+          <Input
+            placeholder="输入应用名称或包名进行搜索..."
+            prefix={<SearchOutlined />}
+            value={quickSearchValue}
+            onChange={(e) => setQuickSearchValue(e.target.value)}
+            onPressEnter={(e) => handleQuickSearch((e.target as HTMLInputElement).value)}
+            autoFocus
+            allowClear
+          />
+          <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+            按 Enter 搜索，按 Escape 关闭
+          </div>
+        </Modal>
+
+        {/* 上传应用Modal */}
+        <Modal
+          title="上传应用"
+          open={uploadModalVisible}
+          onCancel={handleModalCancel}
+          onOk={handleUpload}
+          confirmLoading={uploadMutation.isPending}
+        >
+          {/* 上传错误提示 */}
+          {uploadError && (
+            <ErrorAlert
+              error={uploadError}
+              onClose={() => setUploadError(null)}
+              onRetry={handleUpload}
+              style={{ marginBottom: 16 }}
+            />
+          )}
+
+          <Upload.Dragger
+            fileList={fileList}
+            onChange={handleFileListChange}
+            beforeUpload={() => false}
+            accept=".apk"
+            maxCount={1}
+          >
+            <p className="ant-upload-drag-icon">📱</p>
+            <p className="ant-upload-text">点击或拖拽 APK 文件到此区域</p>
+            <p className="ant-upload-hint">支持单个 APK 文件上传，最大 100MB</p>
+          </Upload.Dragger>
+          {uploadMutation.isPending && uploadProgress > 0 && (
+            <Progress percent={uploadProgress} style={{ marginTop: 16 }} />
+          )}
+        </Modal>
+      </div>
+    </ErrorBoundary>
   );
 };
 

@@ -8,7 +8,7 @@
  * - 设置最大并发会话数
  * - 管理客服技能标签
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Card,
   Table,
@@ -37,7 +37,10 @@ import {
   UserOutlined,
   TeamOutlined,
   CustomerServiceOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -61,9 +64,12 @@ const AgentListPage: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [statusFilter, setStatusFilter] = useState<AgentStatus | undefined>();
+  const [quickSearchVisible, setQuickSearchVisible] = useState(false);
+  const [quickSearchValue, setQuickSearchValue] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   // 获取客服列表
-  const { data: agents = [], isLoading, refetch } = useQuery({
+  const { data: agents = [], isLoading, error, refetch } = useQuery({
     queryKey: ['livechat-agents', statusFilter],
     queryFn: () => getAgents({ status: statusFilter }),
   });
@@ -111,6 +117,54 @@ const AgentListPage: React.FC = () => {
     const offline = agents.filter((a) => a.status === 'offline').length;
     return { total, online, busy, offline };
   }, [agents]);
+
+  // 筛选后的数据
+  const filteredAgents = useMemo(() => {
+    if (!searchKeyword) return agents;
+    return agents.filter(
+      (a) =>
+        a.displayName?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        a.userId?.toLowerCase().includes(searchKeyword.toLowerCase())
+    );
+  }, [agents, searchKeyword]);
+
+  // ===== 快捷键支持 =====
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setQuickSearchVisible(true);
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleOpenModal();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+        return;
+      }
+      if (e.key === 'Escape' && quickSearchVisible) {
+        setQuickSearchVisible(false);
+        setQuickSearchValue('');
+        return;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quickSearchVisible, refetch]);
+
+  // 快速搜索处理
+  const handleQuickSearch = useCallback((value: string) => {
+    setQuickSearchValue('');
+    setQuickSearchVisible(false);
+    if (value.trim()) {
+      setSearchKeyword(value.trim());
+    }
+  }, []);
 
   // 打开新建/编辑弹窗
   const handleOpenModal = (agent?: Agent) => {
@@ -280,14 +334,30 @@ const AgentListPage: React.FC = () => {
   ];
 
   return (
-    <div>
-      <h2>
-        <CustomerServiceOutlined style={{ marginRight: 8 }} />
-        客服管理
-      </h2>
+    <ErrorBoundary boundaryName="AgentList">
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ marginBottom: 0 }}>
+            <CustomerServiceOutlined style={{ marginRight: 8 }} />
+            客服管理
+            <Tag
+              icon={<ReloadOutlined spin={isLoading} />}
+              color="processing"
+              style={{ marginLeft: 12, cursor: 'pointer' }}
+              onClick={() => refetch()}
+            >
+              Ctrl+R 刷新
+            </Tag>
+          </h2>
+          <Space>
+            <span style={{ fontSize: 12, color: '#999' }}>
+              快捷键：Ctrl+K 搜索 | Ctrl+N 新建
+            </span>
+          </Space>
+        </div>
 
-      {/* 统计卡片 */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
+        {/* 统计卡片 */}
+        <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}>
           <Card size="small">
             <Statistic
@@ -344,24 +414,36 @@ const AgentListPage: React.FC = () => {
             <Option value="busy">忙碌</Option>
             <Option value="away">离开</Option>
           </Select>
-          <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-            刷新
-          </Button>
+          {searchKeyword && (
+            <Tag closable onClose={() => setSearchKeyword('')}>
+              搜索: {searchKeyword}
+            </Tag>
+          )}
         </Space>
 
         {/* 客服列表 */}
-        <Table
-          columns={columns}
-          dataSource={agents}
-          rowKey="id"
+        <LoadingState
           loading={isLoading}
-          scroll={{ x: 1200 }}
-          pagination={{
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-          }}
-        />
+          error={error}
+          empty={!isLoading && !error && filteredAgents.length === 0}
+          onRetry={refetch}
+          loadingType="skeleton"
+          skeletonRows={5}
+          emptyDescription="暂无客服数据"
+        >
+          <Table
+            columns={columns}
+            dataSource={filteredAgents}
+            rowKey="id"
+            loading={false}
+            scroll={{ x: 1200 }}
+            pagination={{
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
+          />
+        </LoadingState>
       </Card>
 
       {/* 新建/编辑弹窗 */}
@@ -421,7 +503,33 @@ const AgentListPage: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* 快速搜索弹窗 */}
+      <Modal
+        open={quickSearchVisible}
+        title="快速搜索客服"
+        footer={null}
+        onCancel={() => {
+          setQuickSearchVisible(false);
+          setQuickSearchValue('');
+        }}
+        destroyOnClose
+      >
+        <Input
+          placeholder="输入客服名称或用户ID进行搜索..."
+          prefix={<SearchOutlined />}
+          value={quickSearchValue}
+          onChange={(e) => setQuickSearchValue(e.target.value)}
+          onPressEnter={(e) => handleQuickSearch((e.target as HTMLInputElement).value)}
+          autoFocus
+          allowClear
+        />
+        <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+          按 Enter 搜索，按 Escape 关闭
+        </div>
+      </Modal>
     </div>
+    </ErrorBoundary>
   );
 };
 

@@ -8,7 +8,7 @@
  * - 评分分布
  * - 高峰时段分析
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   Row,
@@ -22,6 +22,7 @@ import {
   Tag,
   Tooltip,
   Empty,
+  message,
 } from 'antd';
 import {
   MessageOutlined,
@@ -33,8 +34,11 @@ import {
   UserOutlined,
   BarChartOutlined,
   LineChartOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import {
@@ -51,6 +55,8 @@ const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const AnalyticsDashboard: React.FC = () => {
+  const queryClient = useQueryClient();
+
   // 状态管理
   const [days, setDays] = useState(7);
   const [dateRange, setDateRange] = useState<[string, string] | null>(null);
@@ -60,8 +66,30 @@ const AnalyticsDashboard: React.FC = () => {
     ? { startDate: dateRange[0], endDate: dateRange[1] }
     : undefined;
 
+  // 刷新所有数据
+  const refetchAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['livechat-analytics-overview'] });
+    queryClient.invalidateQueries({ queryKey: ['livechat-conversation-trends'] });
+    queryClient.invalidateQueries({ queryKey: ['livechat-agent-performance'] });
+    queryClient.invalidateQueries({ queryKey: ['livechat-rating-distribution'] });
+    queryClient.invalidateQueries({ queryKey: ['livechat-peak-hours'] });
+  };
+
+  // 快捷键支持 (数据统计页面只支持刷新)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetchAll();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // 获取概览统计
-  const { data: overview, isLoading: overviewLoading } = useQuery({
+  const { data: overview, isLoading: overviewLoading, error: overviewError } = useQuery({
     queryKey: ['livechat-analytics-overview', dateParams],
     queryFn: () => getAnalyticsOverview(dateParams),
   });
@@ -73,7 +101,7 @@ const AnalyticsDashboard: React.FC = () => {
   });
 
   // 获取客服绩效
-  const { data: agentPerformance = [], isLoading: performanceLoading } = useQuery({
+  const { data: agentPerformance = [], isLoading: performanceLoading, error: performanceError } = useQuery({
     queryKey: ['livechat-agent-performance', dateParams],
     queryFn: () => getAgentPerformance(dateParams),
   });
@@ -261,11 +289,23 @@ const AnalyticsDashboard: React.FC = () => {
     );
   };
 
+  // 判断是否正在加载
+  const isLoading = overviewLoading || trendsLoading || performanceLoading || ratingLoading || peakLoading;
+
   return (
+    <ErrorBoundary boundaryName="AnalyticsDashboard">
     <div>
       <h2>
         <BarChartOutlined style={{ marginRight: 8 }} />
         数据统计
+        <Tag
+          icon={<ReloadOutlined spin={isLoading} />}
+          color="processing"
+          style={{ marginLeft: 12, cursor: 'pointer' }}
+          onClick={() => refetchAll()}
+        >
+          Ctrl+R 刷新
+        </Tag>
       </h2>
 
       {/* 筛选器 */}
@@ -387,15 +427,24 @@ const AnalyticsDashboard: React.FC = () => {
                 客服绩效排行
               </Space>
             }
-            loading={performanceLoading}
           >
-            <Table
-              columns={performanceColumns}
-              dataSource={agentPerformance}
-              rowKey="agentId"
-              pagination={false}
-              size="small"
-            />
+            <LoadingState
+              loading={performanceLoading}
+              error={performanceError}
+              empty={!performanceLoading && !performanceError && agentPerformance.length === 0}
+              onRetry={refetchAll}
+              loadingType="skeleton"
+              skeletonRows={5}
+              emptyDescription="暂无绩效数据"
+            >
+              <Table
+                columns={performanceColumns}
+                dataSource={agentPerformance}
+                rowKey="agentId"
+                pagination={false}
+                size="small"
+              />
+            </LoadingState>
           </Card>
         </Col>
 
@@ -425,6 +474,7 @@ const AnalyticsDashboard: React.FC = () => {
         </Col>
       </Row>
     </div>
+    </ErrorBoundary>
   );
 };
 

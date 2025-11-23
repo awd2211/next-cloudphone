@@ -1,20 +1,24 @@
-import React from 'react';
-import { Card, Space, Button, Spin, Tabs, Alert } from 'antd';
-import { ReloadOutlined, SettingOutlined, DollarOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import React, { useEffect } from 'react';
+import { Card, Space, Tag, Tabs, Alert, message } from 'antd';
+import { ReloadOutlined, SettingOutlined, DollarOutlined, InfoCircleOutlined, ToolOutlined } from '@ant-design/icons';
 import {
   PermissionGuard,
   PaymentMethodsCard,
   CurrenciesCard,
   ProviderConfigCards,
 } from '@/components/PaymentConfig';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 import { usePaymentConfig } from '@/hooks/usePaymentConfig';
 import { usePermission } from '@/hooks';
 
 const PaymentConfigPage: React.FC = () => {
   return (
-    <PermissionGuard permission="payment:config:view">
-      <PaymentConfigContent />
-    </PermissionGuard>
+    <ErrorBoundary boundaryName="PaymentConfig">
+      <PermissionGuard permission="payment:config:view">
+        <PaymentConfigContent />
+      </PermissionGuard>
+    </ErrorBoundary>
   );
 };
 
@@ -27,6 +31,19 @@ const PaymentConfigContent: React.FC = () => {
     handleToggleMethod,
     handleToggleCurrency,
   } = usePaymentConfig();
+
+  // 快捷键支持 - Ctrl+R 刷新
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        loadConfig();
+        message.info('正在刷新...');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loadConfig]);
 
   const tabItems = [
     {
@@ -51,22 +68,20 @@ const PaymentConfigContent: React.FC = () => {
       ),
       children: (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Spin spinning={loading}>
-            {config && (
-              <PaymentMethodsCard
-                config={config}
-                hasEditPermission={hasPermission('payment:config:edit')}
-                onToggleMethod={handleToggleMethod}
-              />
-            )}
-            {config && (
-              <CurrenciesCard
-                config={config}
-                hasEditPermission={hasPermission('payment:config:edit')}
-                onToggleCurrency={handleToggleCurrency}
-              />
-            )}
-          </Spin>
+          {config && (
+            <PaymentMethodsCard
+              config={config}
+              hasEditPermission={hasPermission('payment:config:edit')}
+              onToggleMethod={handleToggleMethod}
+            />
+          )}
+          {config && (
+            <CurrenciesCard
+              config={config}
+              hasEditPermission={hasPermission('payment:config:edit')}
+              onToggleCurrency={handleToggleCurrency}
+            />
+          )}
         </Space>
       ),
     },
@@ -127,19 +142,27 @@ const PaymentConfigContent: React.FC = () => {
     <div style={{ padding: '24px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* 页面标题 */}
-        <Card>
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <h2 style={{ margin: 0 }}>支付配置管理</h2>
-            <Button icon={<ReloadOutlined />} onClick={loadConfig}>
-              刷新
-            </Button>
-          </Space>
-        </Card>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ marginBottom: 0 }}>
+            <ToolOutlined style={{ marginRight: 8 }} />
+            支付配置管理
+            <Tag
+              icon={<ReloadOutlined spin={loading} />}
+              color="processing"
+              style={{ marginLeft: 12, cursor: 'pointer' }}
+              onClick={() => loadConfig()}
+            >
+              Ctrl+R 刷新
+            </Tag>
+          </h2>
+        </div>
 
         {/* 标签页 */}
-        <Card>
-          <Tabs items={tabItems} defaultActiveKey="providers" />
-        </Card>
+        <LoadingState loading={loading} loadingType="skeleton" skeletonRows={6}>
+          <Card>
+            <Tabs items={tabItems} defaultActiveKey="providers" />
+          </Card>
+        </LoadingState>
       </Space>
     </div>
   );

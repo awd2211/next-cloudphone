@@ -21,7 +21,6 @@ import {
   SearchOutlined,
   SettingOutlined,
   HistoryOutlined,
-  KeyboardIcon,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -132,20 +131,24 @@ const UserList = () => {
   }, []);
 
   // ===== 列设置菜单 =====
+  // 注意：'action' 列是必需的，不能被隐藏
   const columnSettingsItems: MenuProps['items'] = ALL_COLUMNS.map(col => ({
     key: col.key,
     label: (
       <Checkbox
         checked={visibleColumns.includes(col.key)}
+        disabled={col.key === 'action'} // 操作列不能被隐藏
         onChange={(e) => {
           if (e.target.checked) {
             setVisibleColumns([...visibleColumns, col.key]);
           } else {
+            // 不允许隐藏操作列
+            if (col.key === 'action') return;
             setVisibleColumns(visibleColumns.filter(k => k !== col.key));
           }
         }}
       >
-        {col.label}
+        {col.label}{col.key === 'action' ? ' (必需)' : ''}
       </Checkbox>
     ),
   }));

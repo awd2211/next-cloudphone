@@ -7,7 +7,7 @@
  * - 分类管理
  * - 使用统计
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   Table,
@@ -37,6 +37,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { LoadingState } from '@/components/Feedback/LoadingState';
 import {
   getCannedResponses,
   createCannedResponse,
@@ -71,10 +73,27 @@ const CannedResponsesPage: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>();
 
   // 获取快捷回复列表
-  const { data: responses = [], isLoading, refetch } = useQuery({
+  const { data: responses = [], isLoading, error, refetch } = useQuery({
     queryKey: ['livechat-canned-responses'],
     queryFn: getCannedResponses,
   });
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refetch();
+        message.info('正在刷新...');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleOpenModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [refetch]);
 
   // 获取客服分组
   const { data: groups = [] } = useQuery({
@@ -292,10 +311,19 @@ const CannedResponsesPage: React.FC = () => {
   ];
 
   return (
+    <ErrorBoundary boundaryName="CannedResponsesPage">
     <div>
       <h2>
         <MessageOutlined style={{ marginRight: 8 }} />
         快捷回复管理
+        <Tag
+          icon={<ReloadOutlined spin={isLoading} />}
+          color="processing"
+          style={{ marginLeft: 12, cursor: 'pointer' }}
+          onClick={() => refetch()}
+        >
+          Ctrl+R 刷新
+        </Tag>
       </h2>
 
       <Card>
@@ -327,18 +355,28 @@ const CannedResponsesPage: React.FC = () => {
           </Col>
         </Row>
 
-        <Table
-          columns={columns}
-          dataSource={filteredResponses}
-          rowKey="id"
+        <LoadingState
           loading={isLoading}
-          scroll={{ x: 1200 }}
-          pagination={{
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-          }}
-        />
+          error={error}
+          empty={!isLoading && !error && filteredResponses.length === 0}
+          onRetry={refetch}
+          loadingType="skeleton"
+          skeletonRows={5}
+          emptyDescription="暂无快捷回复"
+        >
+          <Table
+            columns={columns}
+            dataSource={filteredResponses}
+            rowKey="id"
+            loading={false}
+            scroll={{ x: 1200 }}
+            pagination={{
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
+          />
+        </LoadingState>
       </Card>
 
       {/* 新建/编辑弹窗 */}
@@ -413,6 +451,7 @@ const CannedResponsesPage: React.FC = () => {
         </Form>
       </Modal>
     </div>
+    </ErrorBoundary>
   );
 };
 
