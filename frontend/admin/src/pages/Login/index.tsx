@@ -82,6 +82,22 @@ const particlesOptions: ISourceOptions = {
   detectRetina: true,
 };
 
+// 记住密码的存储 key
+const REMEMBER_KEY = 'cloudphone_remember_login';
+
+// 简单的加密/解密函数（生产环境建议使用更安全的方案）
+const encodeCredentials = (username: string, password: string): string => {
+  return btoa(encodeURIComponent(JSON.stringify({ username, password })));
+};
+
+const decodeCredentials = (encoded: string): { username: string; password: string } | null => {
+  try {
+    return JSON.parse(decodeURIComponent(atob(encoded)));
+  } catch {
+    return null;
+  }
+};
+
 const Login = () => {
   const [form] = Form.useForm();
   const [particlesInit, setParticlesInit] = useState(false);
@@ -116,6 +132,21 @@ const Login = () => {
     });
   }, []);
 
+  // 页面加载时恢复记住的凭据
+  useEffect(() => {
+    const savedCredentials = localStorage.getItem(REMEMBER_KEY);
+    if (savedCredentials) {
+      const credentials = decodeCredentials(savedCredentials);
+      if (credentials) {
+        form.setFieldsValue({
+          username: credentials.username,
+          password: credentials.password,
+          remember: true,
+        });
+      }
+    }
+  }, [form]);
+
   // 模拟页面加载
   useEffect(() => {
     const timer = setTimeout(() => setPageLoading(false), 800);
@@ -130,11 +161,12 @@ const Login = () => {
     // 从表单值中移除 remember 字段，后端不需要这个字段
     const { remember, ...loginData } = values;
 
-    // TODO: 如果需要"记住我"功能，可以在这里保存到 localStorage
+    // 处理"记住我"功能 - 保存或清除凭据
     if (remember) {
-      localStorage.setItem('rememberLogin', 'true');
+      const encoded = encodeCredentials(values.username, values.password);
+      localStorage.setItem(REMEMBER_KEY, encoded);
     } else {
-      localStorage.removeItem('rememberLogin');
+      localStorage.removeItem(REMEMBER_KEY);
     }
 
     const success = await handleLogin(loginData, () => form.setFieldValue('captcha', ''));
