@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventBusService } from '@cloudphone/shared';
 import { Conversation, ConversationStatus, ConversationPriority } from '../entities/conversation.entity';
 import { Message, MessageSender, MessageStatus, MessageType } from '../entities/message.entity';
 import { EncryptionService } from '../encryption/encryption.service';
@@ -18,6 +19,7 @@ export class ChatService {
     private messageRepo: Repository<Message>,
     private encryptionService: EncryptionService,
     private eventEmitter: EventEmitter2,
+    private eventBus: EventBusService,
   ) {}
 
   // ========== 会话管理 ==========
@@ -39,7 +41,21 @@ export class ChatService {
 
     const saved = await this.conversationRepo.save(conversation);
 
+    // 本地事件 (用于 WebSocket 广播)
     this.eventEmitter.emit('conversation.created', { conversation: saved });
+
+    // RabbitMQ 跨服务事件
+    await this.eventBus.publish('cloudphone.events', 'livechat.conversation_created', {
+      conversationId: saved.id,
+      userId: saved.userId,
+      tenantId: saved.tenantId,
+      channel: saved.channel,
+      subject: saved.subject,
+      priority: saved.priority,
+      deviceId: saved.deviceId,
+      createdAt: saved.createdAt,
+    });
+
     this.logger.log(`Conversation created: ${saved.id} by user ${userId}`);
 
     return saved;
@@ -92,7 +108,38 @@ export class ChatService {
 
     const saved = await this.conversationRepo.save(conversation);
 
+    // 本地事件 (用于 WebSocket 广播)
     this.eventEmitter.emit('conversation.updated', { conversation: saved });
+
+    // RabbitMQ 跨服务事件 - 根据状态发布不同事件
+    if (dto.status === ConversationStatus.RESOLVED) {
+      await this.eventBus.publish('cloudphone.events', 'livechat.conversation_resolved', {
+        conversationId: saved.id,
+        userId: saved.userId,
+        agentId: saved.agentId,
+        tenantId: saved.tenantId,
+        resolvedAt: saved.resolvedAt,
+        duration: saved.resolvedAt && saved.createdAt
+          ? Math.floor((saved.resolvedAt.getTime() - saved.createdAt.getTime()) / 1000)
+          : null,
+      });
+    } else if (dto.status === ConversationStatus.CLOSED) {
+      await this.eventBus.publish('cloudphone.events', 'livechat.conversation_closed', {
+        conversationId: saved.id,
+        userId: saved.userId,
+        agentId: saved.agentId,
+        tenantId: saved.tenantId,
+        closedAt: saved.closedAt,
+        messageCount: saved.messageCount,
+      });
+    } else {
+      await this.eventBus.publish('cloudphone.events', 'livechat.conversation_updated', {
+        conversationId: saved.id,
+        tenantId: saved.tenantId,
+        status: saved.status,
+        updatedAt: saved.updatedAt,
+      });
+    }
 
     return saved;
   }
@@ -113,7 +160,19 @@ export class ChatService {
 
     const saved = await this.conversationRepo.save(conversation);
 
+    // 本地事件 (用于 WebSocket 广播)
     this.eventEmitter.emit('conversation.assigned', { conversation: saved, agentId });
+
+    // RabbitMQ 跨服务事件 - 通知其他服务客服已分配
+    await this.eventBus.publish('cloudphone.events', 'livechat.agent_assigned', {
+      conversationId: saved.id,
+      userId: saved.userId,
+      agentId: saved.agentId,
+      tenantId: saved.tenantId,
+      isTransfer: !!saved.transferredFrom,
+      previousAgentId: saved.transferredFrom,
+      firstResponseAt: saved.firstResponseAt,
+    });
 
     return saved;
   }
@@ -133,7 +192,19 @@ export class ChatService {
 
     const saved = await this.conversationRepo.save(conversation);
 
+    // 本地事件 (用于 WebSocket 广播)
     this.eventEmitter.emit('conversation.transferred', { conversation: saved, toAgentId, reason });
+
+    // RabbitMQ 跨服务事件 - 通知会话转移
+    await this.eventBus.publish('cloudphone.events', 'livechat.conversation_transferred', {
+      conversationId: saved.id,
+      userId: saved.userId,
+      fromAgentId: saved.transferredFrom,
+      toAgentId: saved.agentId,
+      tenantId: saved.tenantId,
+      reason,
+      transferredAt: new Date(),
+    });
 
     return saved;
   }
@@ -192,7 +263,22 @@ export class ChatService {
 
     await this.conversationRepo.save(conversation);
 
+    // 本地事件 (用于 WebSocket 广播)
     this.eventEmitter.emit('message.sent', { message: saved, conversation });
+
+    // RabbitMQ 跨服务事件 - 不发送加密内容到消息总线
+    await this.eventBus.publish('cloudphone.events', 'livechat.message_sent', {
+      messageId: saved.id,
+      conversationId: saved.conversationId,
+      sender: saved.sender,
+      senderId: saved.senderId,
+      type: saved.type,
+      tenantId: conversation.tenantId,
+      userId: conversation.userId,
+      agentId: conversation.agentId,
+      hasAttachments: !!saved.attachments?.length,
+      createdAt: saved.createdAt,
+    });
 
     return saved;
   }

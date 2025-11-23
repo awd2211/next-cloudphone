@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { EventBusService } from '@cloudphone/shared';
 import { QualityReview, ReviewStatus, QualityScores, ReviewIssue } from '../entities/quality-review.entity';
 import { SensitiveWord, SensitiveWordLevel } from '../entities/sensitive-word.entity';
 import { SatisfactionRating } from '../entities/satisfaction-rating.entity';
@@ -23,6 +24,7 @@ export class QualityService {
     @InjectRepository(Message)
     private messageRepo: Repository<Message>,
     private configService: ConfigService,
+    private eventBus: EventBusService,
   ) {
     this.enabled = configService.get('QUALITY_CHECK_ENABLED', true);
   }
@@ -53,11 +55,31 @@ export class QualityService {
       review.overallScore = this.calculateOverallScore(data.scores);
     }
 
-    if (data.status === ReviewStatus.COMPLETED) {
+    const isCompleting = data.status === ReviewStatus.COMPLETED && review.status !== ReviewStatus.COMPLETED;
+    if (isCompleting) {
       review.reviewedAt = new Date();
     }
 
-    return this.reviewRepo.save(review);
+    const saved = await this.reviewRepo.save(review);
+
+    // RabbitMQ 事件 - 质检完成时通知
+    if (isCompleting) {
+      await this.eventBus.publish('cloudphone.events', 'livechat.quality_review_completed', {
+        reviewId: saved.id,
+        conversationId: saved.conversationId,
+        agentId: saved.agentId,
+        reviewerId: saved.reviewerId,
+        tenantId: saved.tenantId,
+        overallScore: saved.overallScore,
+        scores: saved.scores,
+        hasIssues: saved.issues && saved.issues.length > 0,
+        reviewedAt: saved.reviewedAt,
+      });
+
+      this.logger.log(`Quality review completed for conversation ${saved.conversationId}: score ${saved.overallScore}`);
+    }
+
+    return saved;
   }
 
   async listReviews(tenantId: string, status?: ReviewStatus): Promise<QualityReview[]> {
@@ -99,7 +121,23 @@ export class QualityService {
 
   async createRating(data: Partial<SatisfactionRating>): Promise<SatisfactionRating> {
     const rating = this.ratingRepo.create(data);
-    return this.ratingRepo.save(rating);
+    const saved = await this.ratingRepo.save(rating);
+
+    // RabbitMQ 事件 - 通知满意度评价已提交
+    await this.eventBus.publish('cloudphone.events', 'livechat.rating_submitted', {
+      ratingId: saved.id,
+      conversationId: saved.conversationId,
+      agentId: saved.agentId,
+      userId: saved.userId,
+      tenantId: saved.tenantId,
+      rating: saved.rating,
+      hasComment: !!saved.comment,
+      createdAt: saved.createdAt,
+    });
+
+    this.logger.log(`Rating submitted for conversation ${saved.conversationId}: ${saved.rating}`);
+
+    return saved;
   }
 
   async getConversationRating(conversationId: string): Promise<SatisfactionRating | null> {

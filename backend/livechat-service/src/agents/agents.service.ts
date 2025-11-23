@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventBusService } from '@cloudphone/shared';
 import { Agent, AgentStatus, AgentRole } from '../entities/agent.entity';
 import { AgentGroup, GroupType } from '../entities/agent-group.entity';
 import { CannedResponse } from '../entities/canned-response.entity';
@@ -16,6 +17,7 @@ export class AgentsService {
     private groupRepo: Repository<AgentGroup>,
     @InjectRepository(CannedResponse)
     private cannedResponseRepo: Repository<CannedResponse>,
+    private eventBus: EventBusService,
   ) {}
 
   // ========== 客服管理 ==========
@@ -60,6 +62,7 @@ export class AgentsService {
       throw new NotFoundException(`Agent not found for user ${userId}`);
     }
 
+    const previousStatus = agent.status;
     agent.status = status;
     agent.lastActiveAt = new Date();
 
@@ -67,7 +70,22 @@ export class AgentsService {
       agent.lastLoginAt = new Date();
     }
 
-    return this.agentRepo.save(agent);
+    const saved = await this.agentRepo.save(agent);
+
+    // RabbitMQ 事件 - 通知客服状态变化
+    await this.eventBus.publish('cloudphone.events', 'livechat.agent_status_changed', {
+      agentId: saved.id,
+      userId: saved.userId,
+      tenantId: saved.tenantId,
+      previousStatus,
+      newStatus: status,
+      isOnline: status === AgentStatus.ONLINE,
+      timestamp: new Date(),
+    });
+
+    this.logger.log(`Agent ${saved.id} status changed: ${previousStatus} -> ${status}`);
+
+    return saved;
   }
 
   async listAgents(tenantId: string, status?: AgentStatus): Promise<Agent[]> {

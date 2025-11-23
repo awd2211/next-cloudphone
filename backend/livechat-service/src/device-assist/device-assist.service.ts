@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import { ConsulService, HttpClientService } from '@cloudphone/shared';
 
 export interface DeviceInfo {
   id: string;
@@ -16,29 +16,51 @@ export interface DeviceInfo {
 @Injectable()
 export class DeviceAssistService {
   private readonly logger = new Logger(DeviceAssistService.name);
-  private readonly deviceServiceUrl: string;
+  private readonly fallbackUrl: string;
 
-  constructor(private configService: ConfigService) {
-    this.deviceServiceUrl = configService.get('DEVICE_SERVICE_URL', 'http://localhost:30002');
+  constructor(
+    private configService: ConfigService,
+    private consulService: ConsulService,
+    private httpClient: HttpClientService,
+  ) {
+    // 降级 URL（当 Consul 不可用时使用）
+    this.fallbackUrl = configService.get('DEVICE_SERVICE_URL', 'http://localhost:30002');
+  }
+
+  /**
+   * 获取设备服务地址（优先使用 Consul 服务发现）
+   */
+  private async getDeviceServiceUrl(): Promise<string> {
+    try {
+      return await this.consulService.getService('device-service');
+    } catch (error) {
+      this.logger.warn(`Consul service discovery failed, using fallback URL: ${this.fallbackUrl}`);
+      return this.fallbackUrl;
+    }
   }
 
   async getDeviceInfo(deviceId: string, authToken: string): Promise<DeviceInfo | null> {
     try {
-      const response = await axios.get(`${this.deviceServiceUrl}/devices/${deviceId}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
+      const baseUrl = await this.getDeviceServiceUrl();
+      const response = await this.httpClient.getWithCircuitBreaker<any>(
+        'device-service',
+        `${baseUrl}/devices/${deviceId}`,
+        { headers: { Authorization: `Bearer ${authToken}` } },
+        { fallbackValue: null },
+      );
+
+      if (!response) return null;
 
       return {
-        id: response.data.id,
-        name: response.data.name,
-        status: response.data.status,
-        androidVersion: response.data.androidVersion,
-        lastActiveAt: response.data.lastActiveAt,
-        cpuUsage: response.data.metrics?.cpuUsage,
-        memoryUsage: response.data.metrics?.memoryUsage,
-        diskUsage: response.data.metrics?.diskUsage,
+        id: response.id,
+        name: response.name,
+        status: response.status,
+        androidVersion: response.androidVersion,
+        lastActiveAt: response.lastActiveAt,
+        cpuUsage: response.metrics?.cpuUsage,
+        memoryUsage: response.metrics?.memoryUsage,
+        diskUsage: response.metrics?.diskUsage,
       };
-
     } catch (error) {
       this.logger.error(`Failed to get device info: ${error.message}`);
       return null;
@@ -47,14 +69,18 @@ export class DeviceAssistService {
 
   async getDeviceScreenshot(deviceId: string, authToken: string): Promise<{ url: string } | null> {
     try {
-      const response = await axios.post(
-        `${this.deviceServiceUrl}/devices/${deviceId}/screenshot`,
+      const baseUrl = await this.getDeviceServiceUrl();
+      const response = await this.httpClient.postWithCircuitBreaker<any>(
+        'device-service',
+        `${baseUrl}/devices/${deviceId}/screenshot`,
         {},
         { headers: { Authorization: `Bearer ${authToken}` } },
+        { fallbackValue: null },
       );
 
-      return { url: response.data.url };
+      if (!response) return null;
 
+      return { url: response.url };
     } catch (error) {
       this.logger.error(`Failed to get device screenshot: ${error.message}`);
       return null;
@@ -63,19 +89,26 @@ export class DeviceAssistService {
 
   async getUserDevices(userId: string, authToken: string): Promise<DeviceInfo[]> {
     try {
-      const response = await axios.get(`${this.deviceServiceUrl}/devices`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-        params: { userId },
-      });
+      const baseUrl = await this.getDeviceServiceUrl();
+      const response = await this.httpClient.getWithCircuitBreaker<any>(
+        'device-service',
+        `${baseUrl}/devices`,
+        {
+          headers: { Authorization: `Bearer ${authToken}` },
+          params: { userId },
+        },
+        { fallbackValue: { items: [] } },
+      );
 
-      return response.data.items?.map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        status: d.status,
-        androidVersion: d.androidVersion,
-        lastActiveAt: d.lastActiveAt,
-      })) || [];
-
+      return (
+        response?.items?.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          status: d.status,
+          androidVersion: d.androidVersion,
+          lastActiveAt: d.lastActiveAt,
+        })) || []
+      );
     } catch (error) {
       this.logger.error(`Failed to get user devices: ${error.message}`);
       return [];
@@ -84,13 +117,14 @@ export class DeviceAssistService {
 
   async restartDevice(deviceId: string, authToken: string): Promise<boolean> {
     try {
-      await axios.post(
-        `${this.deviceServiceUrl}/devices/${deviceId}/restart`,
+      const baseUrl = await this.getDeviceServiceUrl();
+      await this.httpClient.postWithCircuitBreaker(
+        'device-service',
+        `${baseUrl}/devices/${deviceId}/restart`,
         {},
         { headers: { Authorization: `Bearer ${authToken}` } },
       );
       return true;
-
     } catch (error) {
       this.logger.error(`Failed to restart device: ${error.message}`);
       return false;
@@ -99,16 +133,18 @@ export class DeviceAssistService {
 
   async getDeviceLogs(deviceId: string, lines: number, authToken: string): Promise<string[]> {
     try {
-      const response = await axios.get(
-        `${this.deviceServiceUrl}/devices/${deviceId}/logs`,
+      const baseUrl = await this.getDeviceServiceUrl();
+      const response = await this.httpClient.getWithCircuitBreaker<any>(
+        'device-service',
+        `${baseUrl}/devices/${deviceId}/logs`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
           params: { lines },
         },
+        { fallbackValue: { logs: [] } },
       );
 
-      return response.data.logs || [];
-
+      return response?.logs || [];
     } catch (error) {
       this.logger.error(`Failed to get device logs: ${error.message}`);
       return [];

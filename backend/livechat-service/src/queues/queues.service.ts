@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { EventBusService } from '@cloudphone/shared';
 import { QueueConfig, RoutingStrategy } from '../entities/queue-config.entity';
 import { QueueItem, QueueItemStatus } from '../entities/queue-item.entity';
 import { AgentsService } from '../agents/agents.service';
@@ -19,6 +20,7 @@ export class QueuesService {
     private queueItemRepo: Repository<QueueItem>,
     private agentsService: AgentsService,
     private eventEmitter: EventEmitter2,
+    private eventBus: EventBusService,
   ) {}
 
   // ========== 排队配置管理 ==========
@@ -87,6 +89,18 @@ export class QueuesService {
     const saved = await this.queueItemRepo.save(item);
 
     this.logger.log(`Enqueued conversation ${data.conversationId}, position: ${position + 1}`);
+
+    // RabbitMQ 事件 - 通知用户进入排队
+    await this.eventBus.publish('cloudphone.events', 'livechat.user_queued', {
+      queueItemId: saved.id,
+      conversationId: saved.conversationId,
+      userId: saved.userId,
+      tenantId: saved.tenantId,
+      groupId: saved.groupId,
+      position: saved.position,
+      estimatedWaitTime: saved.estimatedWaitTime,
+      createdAt: saved.createdAt,
+    });
 
     // 尝试自动分配
     this.tryAutoAssign(saved);
@@ -181,10 +195,24 @@ export class QueuesService {
       queueItem.assignedAt = new Date();
       await this.queueItemRepo.save(queueItem);
 
-      // 触发分配事件
+      // 本地事件 (用于 WebSocket 广播)
       this.eventEmitter.emit('queue.assigned', {
         queueItem,
         agent: selectedAgent,
+      });
+
+      // RabbitMQ 事件 - 通知排队分配成功
+      await this.eventBus.publish('cloudphone.events', 'livechat.queue_assigned', {
+        queueItemId: queueItem.id,
+        conversationId: queueItem.conversationId,
+        userId: queueItem.userId,
+        agentId: selectedAgent.id,
+        tenantId: queueItem.tenantId,
+        waitTime: queueItem.assignedAt && queueItem.createdAt
+          ? Math.floor((queueItem.assignedAt.getTime() - queueItem.createdAt.getTime()) / 1000)
+          : 0,
+        strategy: config?.routingStrategy || RoutingStrategy.LEAST_BUSY,
+        assignedAt: queueItem.assignedAt,
       });
 
       this.logger.log(`Auto-assigned conversation ${queueItem.conversationId} to agent ${selectedAgent.id}`);
@@ -277,7 +305,19 @@ export class QueuesService {
       item.status = QueueItemStatus.TIMEOUT;
       await this.queueItemRepo.save(item);
 
+      // 本地事件 (用于 WebSocket 广播)
       this.eventEmitter.emit('queue.timeout', { queueItem: item });
+
+      // RabbitMQ 事件 - 通知排队超时
+      await this.eventBus.publish('cloudphone.events', 'livechat.queue_timeout', {
+        queueItemId: item.id,
+        conversationId: item.conversationId,
+        userId: item.userId,
+        tenantId: item.tenantId,
+        waitTime: timeout,
+        timedOutAt: new Date(),
+      });
+
       this.logger.warn(`Queue item ${item.id} timed out`);
     }
   }

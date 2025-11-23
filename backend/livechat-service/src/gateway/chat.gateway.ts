@@ -9,10 +9,12 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Logger, UseGuards } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
+import { createAdapter } from '@socket.io/redis-adapter';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { CacheService } from '../cache/cache.service';
 
@@ -43,10 +45,72 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     @InjectRedis() private redis: Redis,
     private cacheService: CacheService,
     private eventEmitter: EventEmitter2,
+    private configService: ConfigService,
   ) {}
 
   afterInit(server: Server) {
     this.logger.log('LiveChat WebSocket Gateway initialized');
+    // 注意: Redis Adapter 配置已移至 GatewayModule 的 IoAdapter 中
+    // 在 NestJS 中，namespace 模式下的 afterInit 接收的是 Namespace 对象
+    // adapter 需要在 IoAdapter 层配置或使用延迟初始化
+    this.setupRedisAdapterDelayed();
+  }
+
+  /**
+   * 延迟配置 Redis Adapter 实现多实例间的 WebSocket 消息同步
+   * 当服务运行在集群模式（多实例）时，需要 Redis Adapter 来同步广播消息
+   */
+  private setupRedisAdapterDelayed(): void {
+    // 延迟执行确保 server 已完全初始化
+    setTimeout(() => {
+      this.setupRedisAdapter();
+    }, 100);
+  }
+
+  private setupRedisAdapter(): void {
+    try {
+      // 获取底层的 Socket.IO Server 实例
+      const ioServer = (this.server as any)?.server;
+      if (!ioServer) {
+        this.logger.warn('Socket.IO Server not available, skipping Redis Adapter setup');
+        return;
+      }
+
+      const redisHost = this.configService.get('REDIS_HOST', 'localhost');
+      const redisPort = this.configService.get('REDIS_PORT', 6379);
+      const redisPassword = this.configService.get('REDIS_PASSWORD');
+      const redisDb = this.configService.get('REDIS_DB', 0);
+
+      const redisOptions: any = {
+        host: redisHost,
+        port: redisPort,
+        db: redisDb,
+      };
+
+      if (redisPassword) {
+        redisOptions.password = redisPassword;
+      }
+
+      // 创建专用的 Pub/Sub Redis 客户端
+      const pubClient = new Redis(redisOptions);
+      const subClient = pubClient.duplicate();
+
+      // 设置 Redis Adapter
+      ioServer.adapter(createAdapter(pubClient, subClient));
+
+      this.logger.log(`✅ Redis Adapter configured for cluster support (${redisHost}:${redisPort})`);
+
+      // 监听连接错误
+      pubClient.on('error', (err) => {
+        this.logger.error(`Redis Adapter pubClient error: ${err.message}`);
+      });
+
+      subClient.on('error', (err) => {
+        this.logger.error(`Redis Adapter subClient error: ${err.message}`);
+      });
+    } catch (error) {
+      this.logger.warn(`Failed to setup Redis Adapter: ${error.message}. Running in standalone mode.`);
+    }
   }
 
   async handleConnection(client: AuthenticatedSocket) {

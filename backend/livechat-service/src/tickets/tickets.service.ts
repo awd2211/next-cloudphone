@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EventBusService } from '@cloudphone/shared';
-import axios from 'axios';
+import { EventBusService, ConsulService, HttpClientService } from '@cloudphone/shared';
 import { ChatService } from '../chat/chat.service';
 
 export interface CreateTicketRequest {
@@ -23,14 +22,29 @@ export interface TicketInfo {
 @Injectable()
 export class TicketsService {
   private readonly logger = new Logger(TicketsService.name);
-  private readonly userServiceUrl: string;
+  private readonly fallbackUrl: string;
 
   constructor(
     private configService: ConfigService,
     private chatService: ChatService,
     private eventBus: EventBusService,
+    private consulService: ConsulService,
+    private httpClient: HttpClientService,
   ) {
-    this.userServiceUrl = configService.get('USER_SERVICE_URL', 'http://localhost:30001');
+    // 降级 URL（当 Consul 不可用时使用）
+    this.fallbackUrl = configService.get('USER_SERVICE_URL', 'http://localhost:30001');
+  }
+
+  /**
+   * 获取用户服务地址（优先使用 Consul 服务发现）
+   */
+  private async getUserServiceUrl(): Promise<string> {
+    try {
+      return await this.consulService.getService('user-service');
+    } catch (error) {
+      this.logger.warn(`Consul service discovery failed, using fallback URL: ${this.fallbackUrl}`);
+      return this.fallbackUrl;
+    }
   }
 
   async createTicketFromConversation(
@@ -53,9 +67,11 @@ export class TicketsService {
 
       const fullDescription = `${request.description}\n\n--- 聊天记录 ---\n${messageHistory}`;
 
-      // 调用 user-service 创建工单
-      const response = await axios.post(
-        `${this.userServiceUrl}/tickets`,
+      // 调用 user-service 创建工单（使用服务发现和断路器）
+      const baseUrl = await this.getUserServiceUrl();
+      const response = await this.httpClient.postWithCircuitBreaker<any>(
+        'user-service',
+        `${baseUrl}/tickets`,
         {
           subject: request.subject || conversation.subject || '在线客服会话转工单',
           description: fullDescription,
@@ -69,7 +85,11 @@ export class TicketsService {
         { headers: { Authorization: `Bearer ${authToken}` } },
       );
 
-      const ticketId = response.data.id;
+      if (!response) {
+        throw new Error('Failed to create ticket - empty response');
+      }
+
+      const ticketId = response.id;
 
       // 更新会话关联工单
       await this.chatService.updateConversation(
@@ -90,12 +110,11 @@ export class TicketsService {
 
       return {
         id: ticketId,
-        subject: response.data.subject,
-        status: response.data.status,
-        priority: response.data.priority,
-        createdAt: response.data.createdAt,
+        subject: response.subject,
+        status: response.status,
+        priority: response.priority,
+        createdAt: response.createdAt,
       };
-
     } catch (error) {
       this.logger.error(`Failed to create ticket: ${error.message}`);
       return null;
@@ -104,18 +123,23 @@ export class TicketsService {
 
   async getTicketInfo(ticketId: string, authToken: string): Promise<TicketInfo | null> {
     try {
-      const response = await axios.get(`${this.userServiceUrl}/tickets/${ticketId}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
+      const baseUrl = await this.getUserServiceUrl();
+      const response = await this.httpClient.getWithCircuitBreaker<any>(
+        'user-service',
+        `${baseUrl}/tickets/${ticketId}`,
+        { headers: { Authorization: `Bearer ${authToken}` } },
+        { fallbackValue: null },
+      );
+
+      if (!response) return null;
 
       return {
-        id: response.data.id,
-        subject: response.data.subject,
-        status: response.data.status,
-        priority: response.data.priority,
-        createdAt: response.data.createdAt,
+        id: response.id,
+        subject: response.subject,
+        status: response.status,
+        priority: response.priority,
+        createdAt: response.createdAt,
       };
-
     } catch (error) {
       this.logger.error(`Failed to get ticket info: ${error.message}`);
       return null;
