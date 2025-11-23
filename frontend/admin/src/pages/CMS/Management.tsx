@@ -11,17 +11,29 @@ import {
   SafetyOutlined,
   TrophyOutlined,
   DollarOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons';
 import SiteSettingsTab from './components/SiteSettingsTab';
+import PageContentsTab from './components/PageContentsTab';
 import JobPositionsTab from './components/JobPositionsTab';
 import LegalDocumentsTab from './components/LegalDocumentsTab';
 import CaseStudiesTab from './components/CaseStudiesTab';
 import PricingPlansTab from './components/PricingPlansTab';
 
 const CmsManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('settings');
+  const [activeTab, setActiveTab] = useState('page-contents');
 
   const items = [
+    {
+      key: 'page-contents',
+      label: (
+        <span>
+          <GlobalOutlined />
+          官网内容
+        </span>
+      ),
+      children: <PageContentsTab />,
+    },
     {
       key: 'settings',
       label: (
