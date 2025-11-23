@@ -12,6 +12,23 @@ import {
 } from './index';
 import { createTimeColumn } from '@/utils/tableColumns';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
+import { Avatar, Space, Tooltip, Button } from 'antd';
+import { UserOutlined, HistoryOutlined } from '@ant-design/icons';
+
+// 根据用户名生成头像颜色
+const getAvatarColor = (username: string): string => {
+  const colors = ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae', '#87d068', '#1890ff', '#722ed1', '#eb2f96'];
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+// 获取用户名首字母
+const getInitials = (username: string): string => {
+  return username.charAt(0).toUpperCase();
+};
 
 interface UserTableProps {
   users: User[];
@@ -21,6 +38,7 @@ interface UserTableProps {
   total: number;
   selectedRowKeys: string[];
   visibleEmails: Set<string>;
+  visibleColumns?: string[];
   onPageChange: (page: number, pageSize: number) => void;
   onSelectionChange: (keys: string[]) => void;
   onEdit: (user: User) => void;
@@ -30,6 +48,7 @@ interface UserTableProps {
   onUpdateStatus: (id: string, status: UserStatus) => void;
   onDelete: (id: string) => void;
   onToggleEmailVisibility: (userId: string) => void;
+  onViewActivity?: (user: User) => void;
 }
 
 export const UserTable = memo<UserTableProps>(
@@ -41,6 +60,7 @@ export const UserTable = memo<UserTableProps>(
     total,
     selectedRowKeys,
     visibleEmails,
+    visibleColumns = ['id', 'username', 'email', 'phone', 'balance', 'roles', 'status', 'createdAt', 'action'],
     onPageChange,
     onSelectionChange,
     onEdit,
@@ -50,6 +70,7 @@ export const UserTable = memo<UserTableProps>(
     onUpdateStatus,
     onDelete,
     onToggleEmailVisibility,
+    onViewActivity,
   }) => {
     // 表格行选择配置
     const rowSelection: TableRowSelection<User> = useMemo(
@@ -60,8 +81,8 @@ export const UserTable = memo<UserTableProps>(
       [selectedRowKeys, onSelectionChange]
     );
 
-    // 表格列配置
-    const columns: ColumnsType<User> = useMemo(
+    // 所有可用列配置
+    const allColumns: ColumnsType<User> = useMemo(
       () => [
         {
           title: '用户 ID',
@@ -75,6 +96,17 @@ export const UserTable = memo<UserTableProps>(
           dataIndex: 'username',
           key: 'username',
           sorter: (a, b) => a.username.localeCompare(b.username),
+          render: (username: string) => (
+            <Space>
+              <Avatar
+                size="small"
+                style={{ backgroundColor: getAvatarColor(username), verticalAlign: 'middle' }}
+              >
+                {getInitials(username)}
+              </Avatar>
+              <span>{username}</span>
+            </Space>
+          ),
         },
         {
           title: '邮箱',
@@ -119,18 +151,30 @@ export const UserTable = memo<UserTableProps>(
         {
           title: '操作',
           key: 'action',
-          width: 250,
+          width: 280,
           fixed: 'right',
           render: (_, record) => (
-            <UserActions
-              user={record}
-              onEdit={onEdit}
-              onResetPassword={onResetPassword}
-              onRecharge={onRecharge}
-              onDeduct={onDeduct}
-              onUpdateStatus={onUpdateStatus}
-              onDelete={onDelete}
-            />
+            <Space size={0}>
+              <UserActions
+                user={record}
+                onEdit={onEdit}
+                onResetPassword={onResetPassword}
+                onRecharge={onRecharge}
+                onDeduct={onDeduct}
+                onUpdateStatus={onUpdateStatus}
+                onDelete={onDelete}
+              />
+              {onViewActivity && (
+                <Tooltip title="查看活动">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<HistoryOutlined />}
+                    onClick={() => onViewActivity(record)}
+                  />
+                </Tooltip>
+              )}
+            </Space>
           ),
         },
       ],
@@ -143,7 +187,14 @@ export const UserTable = memo<UserTableProps>(
         onUpdateStatus,
         onDelete,
         onToggleEmailVisibility,
+        onViewActivity,
       ]
+    );
+
+    // 根据 visibleColumns 过滤显示的列
+    const columns = useMemo(
+      () => allColumns.filter(col => visibleColumns.includes(col.key as string)),
+      [allColumns, visibleColumns]
     );
 
     return (

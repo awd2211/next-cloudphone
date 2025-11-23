@@ -33,7 +33,7 @@ const NotificationCenter: React.FC = memo(() => {
 
   // ✅ 使用 useCallback 包装查看全部按钮的点击处理
   const handleViewAll = useCallback(() => {
-    navigate('/notifications');
+    navigate('/admin/notifications');
     setDropdownOpen(false);
   }, [navigate]);
 

@@ -19,7 +19,8 @@ const UserGrowthChart = memo(({ data, loading }: UserGrowthChartProps) => {
 
   // ✅ 使用 useMemo 缓存 option
   const option: ECOption | null = useMemo(() => {
-    if (!data || data.length === 0) return null;
+    // 确保 data 是有效的数组
+    if (!data || !Array.isArray(data) || data.length === 0) return null;
 
     const dates = data.map((item) => item.date);
     const newUsers = data.map((item) => item.newUsers);
