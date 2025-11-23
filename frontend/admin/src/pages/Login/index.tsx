@@ -127,7 +127,17 @@ const Login = () => {
   const { displayText, isComplete } = useTypewriter(description, 40);
 
   const onFinish = async (values: LoginForm) => {
-    const success = await handleLogin(values, () => form.setFieldValue('captcha', ''));
+    // 从表单值中移除 remember 字段，后端不需要这个字段
+    const { remember, ...loginData } = values;
+
+    // TODO: 如果需要"记住我"功能，可以在这里保存到 localStorage
+    if (remember) {
+      localStorage.setItem('rememberLogin', 'true');
+    } else {
+      localStorage.removeItem('rememberLogin');
+    }
+
+    const success = await handleLogin(loginData, () => form.setFieldValue('captcha', ''));
     if (success) {
       setLoginSuccess(true);
     }
