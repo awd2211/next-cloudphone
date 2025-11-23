@@ -31,8 +31,8 @@ export class TwoFactorService {
     const accountName = user.email || user.username;
     const otpauthUrl = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountName)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}`;
 
-    // 生成二维码的Data URL (使用SVG格式，不需要额外的包)
-    const qrCode = this.generateQRCodeSVG(otpauthUrl);
+    // 生成二维码的 Data URL (使用 qrcode 库本地生成 Base64 PNG)
+    const qrCode = await this.generateQRCodeDataURL(otpauthUrl);
 
     // 临时存储secret到用户记录（但不启用）
     user.twoFactorSecret = secret;
@@ -219,20 +219,22 @@ export class TwoFactorService {
   }
 
   /**
-   * 生成二维码SVG (简化版本，不依赖qrcode包)
-   * 返回base64编码的SVG作为Data URL
+   * 生成二维码 Data URL
+   * 使用 qrcode 库本地生成，返回 Base64 编码的 PNG 图片
    */
-  private generateQRCodeSVG(text: string): string {
-    // 使用在线二维码API生成
-    const encodedText = encodeURIComponent(text);
-
-    // 使用多个备选API以提高可用性
-    // 1. QR Server API (主要)
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodedText}`;
-
-    // 2. 也可以使用 Chart.googleapis.com (备选)
-    // const qrCodeUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodedText}`;
-
-    return qrCodeUrl;
+  private async generateQRCodeDataURL(text: string): Promise<string> {
+    try {
+      // 生成 Base64 Data URL，直接可用于 <img src="...">
+      const dataUrl = await QRCode.toDataURL(text, {
+        width: 300,
+        margin: 2,
+        errorCorrectionLevel: 'M',
+      });
+      return dataUrl;
+    } catch (error) {
+      // 如果本地生成失败，回退到外部 API
+      const encodedText = encodeURIComponent(text);
+      return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodedText}`;
+    }
   }
 }
