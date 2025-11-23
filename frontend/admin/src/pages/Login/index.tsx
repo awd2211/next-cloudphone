@@ -158,18 +158,18 @@ const Login = () => {
   const { displayText, isComplete } = useTypewriter(description, 40);
 
   const onFinish = async (values: LoginForm) => {
-    // 从表单值中移除 remember 字段，后端不需要这个字段
-    const { remember, ...loginData } = values;
-
-    // 处理"记住我"功能 - 保存或清除凭据
-    if (remember) {
+    // 处理"记住我"功能 - 保存或清除凭据到本地存储
+    if (values.remember) {
       const encoded = encodeCredentials(values.username, values.password);
       localStorage.setItem(REMEMBER_KEY, encoded);
     } else {
       localStorage.removeItem(REMEMBER_KEY);
     }
 
-    const success = await handleLogin(loginData, () => form.setFieldValue('captcha', ''));
+    // ✅ 发送 remember 字段到后端，后端会根据此字段设置不同的 Token 过期时间
+    // - 勾选 "记住我": Token 有效期 7 天
+    // - 未勾选: Token 有效期 24 小时
+    const success = await handleLogin(values, () => form.setFieldValue('captcha', ''));
     if (success) {
       setLoginSuccess(true);
     }

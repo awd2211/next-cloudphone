@@ -11,6 +11,7 @@ interface LoginForm {
   username: string;
   password: string;
   captcha: string;
+  remember?: boolean; // 记住我 - 勾选后 Token 有效期延长至 7 天
 }
 
 interface UseLoginReturn {
