@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, Matches, MaxLength, MinLength, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, Matches, MaxLength, MinLength, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
@@ -37,4 +37,15 @@ export class LoginDto {
   @IsString({ message: '验证码ID必须是字符串' })
   @Matches(/^[a-f0-9-]{36}$/, { message: '验证码ID格式无效' })
   captchaId?: string;
+
+  @ApiProperty({
+    description: '记住我 - 勾选后 Token 有效期延长至 7 天',
+    example: true,
+    required: false,
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean({ message: 'remember 必须是布尔值' })
+  @Transform(({ value }) => value === true || value === 'true')
+  remember?: boolean;
 }

@@ -333,7 +333,15 @@ export class AuthService {
       this.logger.log(`🐛 DEBUG Payload keys BEFORE sign: ${JSON.stringify(Object.keys(payload))}`);
       this.logger.log(`🐛 DEBUG Payload JSON BEFORE sign: ${JSON.stringify(payload)}`);
 
-      const token = this.jwtService.sign(payload);
+      // ✅ 根据 "记住我" 设置不同的 Token 过期时间
+      // - 勾选 "记住我": Token 有效期 7 天 (604800 秒)
+      // - 未勾选: Token 有效期 24 小时 (86400 秒)
+      const expiresInSeconds = loginDto.remember ? 7 * 24 * 60 * 60 : 24 * 60 * 60;
+      const expiresInLabel = loginDto.remember ? '7 days' : '24 hours';
+
+      this.logger.log(`Token expiration: ${expiresInLabel} (${expiresInSeconds}s, remember: ${loginDto.remember || false})`);
+
+      const token = this.jwtService.sign(payload, { expiresIn: expiresInSeconds });
 
       // 🐛 DEBUG: 解码 Token 检查实际内容
       const decoded = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
