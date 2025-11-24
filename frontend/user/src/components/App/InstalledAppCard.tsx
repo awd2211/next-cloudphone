@@ -8,6 +8,7 @@ import {
   Tag,
   Popconfirm,
   Tooltip,
+  theme,
 } from 'antd';
 import {
   DeleteOutlined,
@@ -18,6 +19,7 @@ import {
 import type { InstalledAppInfo } from '@/services/app';
 
 const { Text, Paragraph } = Typography;
+const { useToken } = theme;
 
 interface InstalledAppCardProps {
   app: InstalledAppInfo;
@@ -41,6 +43,8 @@ interface InstalledAppCardProps {
  */
 export const InstalledAppCard: React.FC<InstalledAppCardProps> = React.memo(
   ({ app, selected, onSelect, onUninstall, onUpdate }) => {
+    const { token } = useToken();
+
     const formatSize = (bytes: number) => {
       if (bytes === 0) return '0 B';
       const k = 1024;
@@ -54,7 +58,7 @@ export const InstalledAppCard: React.FC<InstalledAppCardProps> = React.memo(
         hoverable
         style={{
           height: '100%',
-          border: selected ? '2px solid #1890ff' : undefined,
+          border: selected ? `2px solid ${token.colorPrimary}` : undefined,
         }}
         styles={{ body: { padding: 12 } }}
       >
@@ -83,7 +87,7 @@ export const InstalledAppCard: React.FC<InstalledAppCardProps> = React.memo(
                   if (parent) {
                     const icon = document.createElement('div');
                     icon.style.cssText =
-                      'width: 64px; height: 64px; border-radius: 12px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #1890ff;';
+                      `width: 64px; height: 64px; border-radius: 12px; background: ${token.colorBgLayout}; display: flex; align-items: center; justify-content: center; font-size: 32px; color: ${token.colorPrimary};`;
                     icon.innerHTML = '<span>📱</span>';
                     parent.appendChild(icon);
                   }
@@ -95,14 +99,14 @@ export const InstalledAppCard: React.FC<InstalledAppCardProps> = React.memo(
                   width: 64,
                   height: 64,
                   borderRadius: 12,
-                  background: '#f0f0f0',
+                  background: token.colorBgLayout,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: 32,
                 }}
               >
-                <AndroidOutlined style={{ color: '#1890ff' }} />
+                <AndroidOutlined style={{ color: token.colorPrimary }} />
               </div>
             )}
           </div>
@@ -153,7 +157,7 @@ export const InstalledAppCard: React.FC<InstalledAppCardProps> = React.memo(
           {/* 版本和大小 */}
           <div
             style={{
-              background: '#fafafa',
+              background: token.colorBgLayout,
               padding: 8,
               borderRadius: 4,
               marginBottom: 12,

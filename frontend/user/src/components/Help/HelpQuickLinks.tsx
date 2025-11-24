@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, Row, Col, Typography } from 'antd';
+import { Card, Row, Col, Typography, theme } from 'antd';
 import {
   FileTextOutlined,
   QuestionCircleOutlined,
@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
+const { useToken } = theme;
 
 interface QuickLinkConfig {
   icon: React.ReactNode;
@@ -28,38 +29,40 @@ interface HelpQuickLinksProps {
 export const HelpQuickLinks: React.FC<HelpQuickLinksProps> = React.memo(({
   onNavigate,
 }) => {
+  const { token } = useToken();
+
   const quickLinks: QuickLinkConfig[] = useMemo(
     () => [
       {
         icon: <FileTextOutlined style={{ fontSize: 32 }} />,
         title: '帮助文档',
         description: '详细的产品使用指南',
-        color: '#1890ff',
+        color: token.colorPrimary,
         onClick: () => onNavigate('/help/docs'),
       },
       {
         icon: <QuestionCircleOutlined style={{ fontSize: 32 }} />,
         title: '常见问题',
         description: '快速找到问题答案',
-        color: '#52c41a',
+        color: token.colorSuccess,
         onClick: () => onNavigate('/help/faq'),
       },
       {
         icon: <VideoCameraOutlined style={{ fontSize: 32 }} />,
         title: '视频教程',
         description: '观看操作演示视频',
-        color: '#faad14',
+        color: token.colorWarning,
         onClick: () => onNavigate('/help/tutorials'),
       },
       {
         icon: <CustomerServiceOutlined style={{ fontSize: 32 }} />,
         title: '联系客服',
         description: '7x24 小时在线支持',
-        color: '#f5222d',
+        color: token.colorError,
         onClick: () => onNavigate('/support/ticket/create'),
       },
     ],
-    [onNavigate]
+    [onNavigate, token]
   );
 
   return (

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Select, Form, Alert, Space, Typography } from 'antd';
+import { Modal, Select, Form, Alert, Space, Typography, theme } from 'antd';
 import { AppstoreOutlined } from '@ant-design/icons';
 import { getAppList } from '@/services/app';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface App {
   id: string;
@@ -30,6 +31,7 @@ interface BatchInstallAppModalProps {
  */
 export const BatchInstallAppModal: React.FC<BatchInstallAppModalProps> = React.memo(
   ({ open, deviceCount, onConfirm, onCancel }) => {
+    const { token } = useToken();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [apps, setApps] = useState<App[]>([]);
@@ -78,7 +80,7 @@ export const BatchInstallAppModal: React.FC<BatchInstallAppModalProps> = React.m
       <Modal
         title={
           <Space>
-            <AppstoreOutlined style={{ color: '#1890ff' }} />
+            <AppstoreOutlined style={{ color: token.colorPrimary }} />
             <span>批量安装应用</span>
           </Space>
         }

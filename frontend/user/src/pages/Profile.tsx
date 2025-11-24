@@ -11,6 +11,7 @@ import {
   Col,
   Statistic,
   Space,
+  theme,
 } from 'antd';
 import {
   EditOutlined,
@@ -28,8 +29,11 @@ import dayjs from 'dayjs';
 import TwoFactorSettings from '@/components/TwoFactorSettings';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
+const { useToken } = theme;
+
 const Profile = () => {
   const navigate = useNavigate();
+  const { token } = useToken();
   const [user, setUser] = useState<User | null>(null);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -134,7 +138,7 @@ const Profile = () => {
               value={balance}
               precision={2}
               prefix="¥"
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: token.colorSuccess }}
             />
             <Space style={{ marginTop: 16 }}>
               <Button

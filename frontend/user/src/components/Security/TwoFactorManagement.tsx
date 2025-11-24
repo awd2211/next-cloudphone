@@ -6,11 +6,11 @@ import {
   Alert,
   Modal,
   Input,
-  QRCode,
   Space,
   Typography,
   Divider,
   message,
+  theme,
 } from 'antd';
 import {
   SafetyOutlined,
@@ -26,6 +26,7 @@ import {
 } from '@/services/auth';
 
 const { Text, Paragraph } = Typography;
+const { useToken } = theme;
 
 interface TwoFactorDisplayStatus {
   enabled: boolean;
@@ -43,6 +44,7 @@ interface TwoFactorDisplayStatus {
  * 4. 验证 2FA 代码
  */
 export const TwoFactorManagement: React.FC = React.memo(() => {
+  const { token } = useToken();
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<TwoFactorDisplayStatus>({
     enabled: false,
@@ -77,7 +79,7 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
       const response = await generate2FA();
       setStatus({
         enabled: false,
-        qrCode: response.otpauthUrl, // 使用 otpauthUrl 生成二维码
+        qrCode: response.qrCode, // 使用后端生成的 Base64 二维码图片
         secret: response.secret,
       });
       setEnableModalVisible(true);
@@ -162,7 +164,7 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
       <Card
         title={
           <Space>
-            <SafetyOutlined style={{ color: '#1890ff' }} />
+            <SafetyOutlined style={{ color: token.colorPrimary }} />
             <span>双因素认证状态</span>
           </Space>
         }
@@ -190,7 +192,7 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CheckCircleOutlined
-                  style={{ color: '#52c41a', fontSize: 20 }}
+                  style={{ color: token.colorSuccess, fontSize: 20 }}
                 />
                 <Text>您的账户已受到双因素认证保护</Text>
               </div>
@@ -270,7 +272,11 @@ export const TwoFactorManagement: React.FC = React.memo(() => {
                   borderRadius: '8px',
                 }}
               >
-                <QRCode value={status.qrCode} size={200} />
+                <img
+                  src={status.qrCode}
+                  alt="2FA QR Code"
+                  style={{ width: 200, height: 200 }}
+                />
               </div>
             </div>
           )}

@@ -299,6 +299,12 @@ const BasicLayout = () => {
       label: '在线客服',
       children: [
         {
+          key: '/admin/operations/livechat/workspace',
+          icon: <CustomerServiceOutlined />,
+          label: '客服工作台',
+          onClick: () => navigate('/admin/operations/livechat/workspace'),
+        },
+        {
           key: '/admin/operations/livechat/conversations',
           icon: <MessageOutlined />,
           label: '会话监控',

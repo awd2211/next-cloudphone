@@ -1,5 +1,6 @@
 import { IsString, IsNumber, IsOptional, IsEnum, Min, Max, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { QueueStatus, UserPriority } from '../../entities/allocation-queue.entity';
 
 /**
@@ -102,6 +103,7 @@ export class QueryQueueDto {
     minimum: 1,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   page?: number = 1;
@@ -113,6 +115,7 @@ export class QueryQueueDto {
     maximum: 100,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   @Max(100)

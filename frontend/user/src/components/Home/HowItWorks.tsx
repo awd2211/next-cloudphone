@@ -1,7 +1,9 @@
 import React from 'react';
-import { Row, Col, Steps, Card } from 'antd';
+import { Row, Col, Steps, Card, theme } from 'antd';
 import { UserAddOutlined, ShoppingOutlined, MobileOutlined, RocketOutlined, SettingOutlined, CloudOutlined } from '@ant-design/icons';
 import { useHowItWorksContent } from '@/hooks/useCmsContent';
+
+const { useToken } = theme;
 
 interface Step {
   icon: string;
@@ -23,7 +25,7 @@ const iconMap: Record<string, (color: string) => React.ReactNode> = {
 
 // 默认数据（回退用）
 const defaultSteps: Step[] = [
-  { icon: 'UserAddOutlined', title: '注册账号', description: '快速注册，1分钟完成', time: '1 分钟', color: '#1890ff' },
+  { icon: 'UserAddOutlined', title: '注册账号', description: '快速注册，1分钟完成', time: '1 分钟', color: '#1677ff' },
   { icon: 'ShoppingOutlined', title: '选择套餐', description: '灵活套餐，按需选择', time: '30 秒', color: '#52c41a' },
   { icon: 'MobileOutlined', title: '创建设备', description: '一键创建，即刻使用', time: '10 秒', color: '#faad14' },
 ];
@@ -33,6 +35,7 @@ const defaultSteps: Step[] = [
  * 展示3步快速开始流程，内容从 CMS 动态加载
  */
 export const HowItWorks: React.FC = React.memo(() => {
+  const { token } = useToken();
   // 从 CMS 获取内容
   const { data: howItWorksContent } = useHowItWorksContent();
 
@@ -41,11 +44,11 @@ export const HowItWorks: React.FC = React.memo(() => {
   const sectionSubtitle = howItWorksContent?.sectionSubtitle || '只需3步，快速体验云手机服务';
 
   return (
-    <div style={{ background: '#fafafa', padding: '80px 0' }}>
+    <div style={{ background: token.colorBgLayout, padding: '80px 0' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <h2 style={{ fontSize: 32, marginBottom: 16 }}>{sectionTitle}</h2>
-          <p style={{ fontSize: 16, color: '#666' }}>
+          <p style={{ fontSize: 16, color: token.colorTextSecondary }}>
             {sectionSubtitle}
           </p>
         </div>
@@ -90,7 +93,7 @@ export const HowItWorks: React.FC = React.memo(() => {
                     width: 40,
                     height: 40,
                     borderRadius: '50%',
-                    background: '#1890ff',
+                    background: token.colorPrimary,
                     color: 'white',
                     fontSize: 20,
                     fontWeight: 'bold',
@@ -103,8 +106,8 @@ export const HowItWorks: React.FC = React.memo(() => {
                   {index + 1}
                 </div>
                 <h3 style={{ fontSize: 20, marginBottom: 12 }}>{step.title}</h3>
-                <p style={{ color: '#666', marginBottom: 8 }}>{step.description}</p>
-                <p style={{ color: '#1890ff', fontWeight: 600 }}>预计用时：{step.time}</p>
+                <p style={{ color: token.colorTextSecondary, marginBottom: 8 }}>{step.description}</p>
+                <p style={{ color: token.colorPrimary, fontWeight: 600 }}>预计用时：{step.time}</p>
               </Card>
             </Col>
           ))}

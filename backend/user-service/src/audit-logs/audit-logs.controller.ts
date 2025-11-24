@@ -70,6 +70,7 @@ export class AuditLogsController {
 
   /**
    * 搜索审计日志（管理员）
+   * 返回前端期望的格式，包含 userName、status、method 等字段
    */
   @Get('search')
   @Roles('admin')
@@ -92,7 +93,8 @@ export class AuditLogsController {
       offset = query.offset || 0;
     }
 
-    const result = await this.auditLogsService.searchLogs({
+    // 使用新的格式化方法，返回前端期望的数据格式
+    const result = await this.auditLogsService.searchLogsFormatted({
       userId: query.userId,
       action: query.action,
       level: query.level,
@@ -102,6 +104,9 @@ export class AuditLogsController {
       startDate: query.startDate ? new Date(query.startDate) : undefined,
       endDate: query.endDate ? new Date(query.endDate) : undefined,
       success: query.success,
+      status: query.status,
+      method: query.method,
+      search: query.search,
       limit,
       offset,
     });

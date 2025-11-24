@@ -1,5 +1,5 @@
 import React from 'react';
-import { Space, Button, Dropdown, Popconfirm, Tag } from 'antd';
+import { Space, Button, Dropdown, Popconfirm, Tag, theme } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   PlayCircleOutlined,
@@ -10,6 +10,8 @@ import {
   DownOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
+
+const { useToken } = theme;
 
 interface BatchOperationToolbarProps {
   selectedCount: number;
@@ -43,6 +45,8 @@ export const BatchOperationToolbar: React.FC<BatchOperationToolbarProps> = React
     onClearSelection,
     loading = false,
   }) => {
+    const { token } = useToken();
+
     // 更多操作菜单
     const moreMenuItems: MenuProps['items'] = [
       {
@@ -57,7 +61,7 @@ export const BatchOperationToolbar: React.FC<BatchOperationToolbarProps> = React
       <div
         style={{
           padding: '12px 16px',
-          background: '#e6f7ff',
+          background: token.colorPrimaryBg,
           borderRadius: '8px',
           marginBottom: '16px',
           display: 'flex',
@@ -108,10 +112,10 @@ export const BatchOperationToolbar: React.FC<BatchOperationToolbarProps> = React
             description={
               <div>
                 <p>
-                  <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} /> 即将删除{' '}
+                  <ExclamationCircleOutlined style={{ color: token.colorError }} /> 即将删除{' '}
                   <strong>{selectedCount}</strong> 个设备
                 </p>
-                <p style={{ marginBottom: 0, color: '#8c8c8c' }}>
+                <p style={{ marginBottom: 0, color: token.colorTextSecondary }}>
                   删除后数据无法恢复，确定要继续吗？
                 </p>
               </div>

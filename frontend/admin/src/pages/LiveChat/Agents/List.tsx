@@ -257,9 +257,9 @@ const AgentListPage: React.FC = () => {
       key: 'chats',
       width: 120,
       render: (_, record) => (
-        <Tooltip title={`最大并发: ${record.maxConcurrentChats}`}>
+        <Tooltip title={`最大并发: ${record.maxConcurrentChats ?? 5}`}>
           <span>
-            {record.currentChats} / {record.maxConcurrentChats}
+            {record.currentChats ?? 0} / {record.maxConcurrentChats ?? 5}
           </span>
         </Tooltip>
       ),
@@ -285,14 +285,18 @@ const AgentListPage: React.FC = () => {
       dataIndex: 'rating',
       key: 'rating',
       width: 100,
-      sorter: (a, b) => a.rating - b.rating,
-      render: (rating: number, record) => (
-        <Tooltip title={`${record.totalRatings} 次评价`}>
-          <span style={{ color: rating >= 4 ? '#52c41a' : rating >= 3 ? '#faad14' : '#ff4d4f' }}>
-            ⭐ {rating.toFixed(1)}
-          </span>
-        </Tooltip>
-      ),
+      sorter: (a, b) => (a.rating ?? 0) - (b.rating ?? 0),
+      render: (rating: number | undefined, record) => {
+        const displayRating = rating ?? 0;
+        const totalRatings = record.totalRatings ?? 0;
+        return (
+          <Tooltip title={`${totalRatings} 次评价`}>
+            <span style={{ color: displayRating >= 4 ? '#52c41a' : displayRating >= 3 ? '#faad14' : '#ff4d4f' }}>
+              ⭐ {displayRating.toFixed(1)}
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: '最后活跃',

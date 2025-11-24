@@ -20,7 +20,7 @@ const Security: React.FC = () => {
   // 安全特性
   const securityFeatures = [
     {
-      icon: <LockOutlined style={{ fontSize: 48, color: '#1890ff' }} />,
+      icon: <LockOutlined style={{ fontSize: 48, color: '#1677ff' }} />,
       title: '数据加密',
       description: '采用 AES-256 加密算法，传输使用 TLS 1.3 协议',
       details: [
@@ -93,7 +93,7 @@ const Security: React.FC = () => {
       title: 'ISO 27001',
       description: '信息安全管理体系认证',
       status: '已认证',
-      color: '#1890ff',
+      color: '#1677ff',
     },
     {
       title: 'ISO 9001',
@@ -345,7 +345,7 @@ const Security: React.FC = () => {
             </p>
             <p style={{ fontSize: 16, marginBottom: 24 }}>
               <strong>安全邮箱：</strong>{' '}
-              <a href="mailto:security@cloudphone.run" style={{ color: '#1890ff' }}>
+              <a href="mailto:security@cloudphone.run" style={{ color: '#1677ff' }}>
                 security@cloudphone.run
               </a>
             </p>

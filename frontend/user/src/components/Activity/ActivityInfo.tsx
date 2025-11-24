@@ -1,5 +1,5 @@
 import React from 'react';
-import { Descriptions, Progress } from 'antd';
+import { Descriptions, Progress, theme } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import type { Activity } from '@/services/activity';
 import {
@@ -8,6 +8,8 @@ import {
   calculateProgress,
   formatDateTime,
 } from '@/utils/activityConfig';
+
+const { useToken } = theme;
 
 interface ActivityInfoProps {
   activity: Activity;
@@ -22,6 +24,7 @@ interface ActivityInfoProps {
  * - 进度条可视化
  */
 export const ActivityInfo: React.FC<ActivityInfoProps> = React.memo(({ activity }) => {
+  const { token } = useToken();
   const typeConfig = getTypeConfig(activity.type);
   const progress = calculateProgress(activity.currentParticipants, activity.maxParticipants);
 
@@ -41,7 +44,7 @@ export const ActivityInfo: React.FC<ActivityInfoProps> = React.memo(({ activity 
       </Descriptions.Item>
       {activity.discount && (
         <Descriptions.Item label="折扣力度">
-          <span style={{ fontSize: 24, fontWeight: 'bold', color: '#ff4d4f' }}>
+          <span style={{ fontSize: 24, fontWeight: 'bold', color: token.colorError }}>
             {activity.discount}折
           </span>
         </Descriptions.Item>

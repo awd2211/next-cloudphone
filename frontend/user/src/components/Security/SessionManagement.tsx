@@ -11,6 +11,7 @@ import {
   Tooltip,
   Empty,
   message,
+  theme,
 } from 'antd';
 import {
   LaptopOutlined,
@@ -30,6 +31,7 @@ dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 /**
  * 会话管理组件
@@ -41,6 +43,7 @@ const { Text } = Typography;
  * 4. 终止所有其他会话
  */
 export const SessionManagement: React.FC = React.memo(() => {
+  const { token } = useToken();
   const [loading, setLoading] = useState(false);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [terminatingId, setTerminatingId] = useState<string | null>(null);
@@ -120,9 +123,9 @@ export const SessionManagement: React.FC = React.memo(() => {
   const getDeviceIcon = (deviceType: string) => {
     const lowerDevice = deviceType.toLowerCase();
     if (lowerDevice === 'mobile') {
-      return <MobileOutlined style={{ fontSize: 24, color: '#1890ff' }} />;
+      return <MobileOutlined style={{ fontSize: 24, color: token.colorPrimary }} />;
     }
-    return <LaptopOutlined style={{ fontSize: 24, color: '#52c41a' }} />;
+    return <LaptopOutlined style={{ fontSize: 24, color: token.colorSuccess }} />;
   };
 
   return (
@@ -172,7 +175,7 @@ export const SessionManagement: React.FC = React.memo(() => {
           <Card
             style={{
               marginBottom: 16,
-              border: session.isCurrent ? '2px solid #1890ff' : undefined,
+              border: session.isCurrent ? `2px solid ${token.colorPrimary}` : undefined,
             }}
             hoverable={!session.isCurrent}
           >
@@ -205,7 +208,7 @@ export const SessionManagement: React.FC = React.memo(() => {
                         <Text>{session.browser}</Text>
                       </Space>
                       <Space size={4}>
-                        <EnvironmentOutlined style={{ color: '#8c8c8c' }} />
+                        <EnvironmentOutlined style={{ color: token.colorTextSecondary }} />
                         <Text type="secondary">{session.location}</Text>
                       </Space>
                     </Space>
@@ -218,7 +221,7 @@ export const SessionManagement: React.FC = React.memo(() => {
                         </Text>
                       </Space>
                       <Space size={4}>
-                        <ClockCircleOutlined style={{ color: '#8c8c8c' }} />
+                        <ClockCircleOutlined style={{ color: token.colorTextSecondary }} />
                         <Tooltip
                           title={dayjs(session.lastActiveAt).format(
                             'YYYY-MM-DD HH:mm:ss'

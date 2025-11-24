@@ -1,7 +1,9 @@
 import React from 'react';
-import { Card, Row, Col, Statistic } from 'antd';
+import { Card, Row, Col, Statistic, theme } from 'antd';
 import { ClockCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import type { TicketStats } from '@/services/ticket';
+
+const { useToken } = theme;
 
 interface StatsCardsProps {
   stats: TicketStats | null;
@@ -15,6 +17,8 @@ interface StatsCardsProps {
  * - 3 个统计卡片：全部、待处理、处理中
  */
 export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats }) => {
+  const { token } = useToken();
+
   if (!stats) return null;
 
   return (
@@ -29,7 +33,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats }) => {
           <Statistic
             title="待处理"
             value={stats.open}
-            valueStyle={{ color: '#faad14' }}
+            valueStyle={{ color: token.colorWarning }}
             prefix={<ClockCircleOutlined />}
           />
         </Card>
@@ -39,7 +43,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats }) => {
           <Statistic
             title="处理中"
             value={stats.inProgress}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
             prefix={<SyncOutlined spin />}
           />
         </Card>

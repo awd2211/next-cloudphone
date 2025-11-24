@@ -90,7 +90,7 @@ export const createBillTableColumns = (
     width: 120,
     sorter: true,
     render: (amount: number) => (
-      <span style={{ fontWeight: 500, color: '#1890ff' }}>
+      <span style={{ fontWeight: 500, color: '#1677ff' }}>
         {formatAmount(amount)}
       </span>
     ),

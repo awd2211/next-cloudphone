@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Space, Tag, Button } from 'antd';
+import { Card, Space, Tag, Button, theme } from 'antd';
 import { RightOutlined } from '@ant-design/icons';
 import type { Activity } from '@/services/activity';
 import { ActivityStatus } from '@/services/activity';
@@ -10,6 +10,8 @@ import {
   formatDateRange,
   getActivityButtonText,
 } from '@/utils/activityConfig';
+
+const { useToken } = theme;
 
 interface ActivityCardProps {
   activity: Activity;
@@ -27,6 +29,7 @@ interface ActivityCardProps {
  */
 export const ActivityCard: React.FC<ActivityCardProps> = React.memo(
   ({ activity, onClick }) => {
+    const { token } = useToken();
     const typeConfig = getTypeConfig(activity.type);
     const progress = calculateProgress(activity.currentParticipants, activity.maxParticipants);
 
@@ -79,7 +82,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = React.memo(
               <p
                 style={{
                   margin: '12px 0',
-                  color: '#666',
+                  color: token.colorTextSecondary,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   display: '-webkit-box',
@@ -93,20 +96,20 @@ export const ActivityCard: React.FC<ActivityCardProps> = React.memo(
               <Space direction="vertical" style={{ width: '100%' }} size="small">
                 {/* 折扣信息 */}
                 {activity.discount && (
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#ff4d4f' }}>
+                  <div style={{ fontSize: 24, fontWeight: 'bold', color: token.colorError }}>
                     {activity.discount}折
                   </div>
                 )}
 
                 {/* 参与进度 */}
                 {activity.maxParticipants && (
-                  <div style={{ fontSize: 12, color: '#999' }}>
+                  <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
                     已参与: {activity.currentParticipants} / {activity.maxParticipants}
                     <div
                       style={{
                         marginTop: 4,
                         height: 4,
-                        background: '#f0f0f0',
+                        background: token.colorBgLayout,
                         borderRadius: 2,
                         overflow: 'hidden',
                       }}
@@ -124,7 +127,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = React.memo(
                 )}
 
                 {/* 日期范围 */}
-                <div style={{ fontSize: 12, color: '#999' }}>
+                <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
                   {formatDateRange(activity.startTime, activity.endTime)}
                 </div>
               </Space>

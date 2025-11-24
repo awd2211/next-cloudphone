@@ -124,7 +124,7 @@ export const statsCardConfig = [
     key: 'total',
     title: '全部模板',
     icon: <AppstoreOutlined />,
-    color: '#1890ff',
+    color: '#1677ff',
   },
   {
     key: 'system',

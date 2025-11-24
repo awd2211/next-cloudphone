@@ -294,7 +294,7 @@ describe('invoiceTableColumns 发票表格列配置', () => {
       if (amountColumn?.render) {
         const result = amountColumn.render(100, {} as Invoice, 0) as any;
         expect(result.props.strong).toBe(true);
-        expect(result.props.style.color).toBe('#1890ff');
+        expect(result.props.style.color).toBe('#1677ff');
       }
     });
   });

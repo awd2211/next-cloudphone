@@ -47,7 +47,7 @@ const Careers: React.FC = () => {
   // 公司文化价值观
   const cultureValues = [
     {
-      icon: <RocketOutlined style={{ fontSize: 48, color: '#1890ff' }} />,
+      icon: <RocketOutlined style={{ fontSize: 48, color: '#1677ff' }} />,
       title: '创新驱动',
       description: '鼓励创新思维，推动技术进步，让每个想法都有可能改变世界',
     },
@@ -159,7 +159,7 @@ const Careers: React.FC = () => {
                     <div
                       style={{
                         fontSize: 32,
-                        color: '#1890ff',
+                        color: '#1677ff',
                         marginRight: 16,
                         flexShrink: 0,
                       }}

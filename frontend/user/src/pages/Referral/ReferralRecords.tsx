@@ -10,6 +10,7 @@ import {
   Row,
   Col,
   Statistic,
+  theme,
 } from 'antd';
 import {
   LeftOutlined,
@@ -31,9 +32,11 @@ import {
 import WithdrawModal from '@/components/WithdrawModal';
 
 const { TabPane } = Tabs;
+const { useToken } = theme;
 
 const ReferralRecords = () => {
   const navigate = useNavigate();
+  const { token } = useToken();
   const [loading, setLoading] = useState(false);
   const [records, setRecords] = useState<ReferralRecord[]>([]);
   const [earnings, setEarnings] = useState<any[]>([]);
@@ -166,7 +169,7 @@ const ReferralRecords = () => {
       dataIndex: 'reward',
       key: 'reward',
       render: (amount: number) => (
-        <span style={{ color: '#cf1322', fontWeight: 'bold' }}>¥{amount.toFixed(2)}</span>
+        <span style={{ color: token.colorError, fontWeight: 'bold' }}>¥{amount.toFixed(2)}</span>
       ),
     },
     {
@@ -194,7 +197,7 @@ const ReferralRecords = () => {
       dataIndex: 'amount',
       key: 'amount',
       render: (amount: number) => (
-        <span style={{ color: '#cf1322', fontWeight: 'bold' }}>+¥{amount.toFixed(2)}</span>
+        <span style={{ color: token.colorError, fontWeight: 'bold' }}>+¥{amount.toFixed(2)}</span>
       ),
     },
     {
@@ -240,7 +243,7 @@ const ReferralRecords = () => {
                 value={stats?.confirmedInvites || 0}
                 suffix="人"
                 prefix={<CheckCircleOutlined />}
-                valueStyle={{ color: '#3f8600' }}
+                valueStyle={{ color: token.colorSuccess }}
               />
             </Card>
           </Col>
@@ -251,7 +254,7 @@ const ReferralRecords = () => {
                 value={stats?.totalRewards || 0}
                 prefix="¥"
                 precision={2}
-                valueStyle={{ color: '#cf1322' }}
+                valueStyle={{ color: token.colorError }}
               />
             </Card>
           </Col>
@@ -262,7 +265,7 @@ const ReferralRecords = () => {
                 value={stats?.availableBalance || 0}
                 prefix="¥"
                 precision={2}
-                valueStyle={{ color: '#faad14' }}
+                valueStyle={{ color: token.colorWarning }}
               />
               <Button
                 type="primary"

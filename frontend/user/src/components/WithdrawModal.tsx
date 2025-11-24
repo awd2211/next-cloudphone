@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Modal, Form, Input, InputNumber, message, Radio, Alert, Space } from 'antd';
+import { Modal, Form, Input, InputNumber, message, Radio, Alert, Space, theme } from 'antd';
 import { DollarOutlined, AlipayOutlined, WechatOutlined, BankOutlined } from '@ant-design/icons';
 import { applyWithdraw } from '@/services/referral';
+
+const { useToken } = theme;
 
 interface WithdrawModalProps {
   visible: boolean;
@@ -16,6 +18,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
   onCancel,
   onSuccess,
 }) => {
+  const { token } = useToken();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [method, setMethod] = useState<'alipay' | 'wechat' | 'bank'>('alipay');
@@ -65,7 +68,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
     <Modal
       title={
         <Space>
-          <DollarOutlined style={{ color: '#1890ff' }} />
+          <DollarOutlined style={{ color: token.colorPrimary }} />
           <span>申请提现</span>
         </Space>
       }
@@ -220,7 +223,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
       {amount > 0 && (
         <div
           style={{
-            background: '#f5f5f5',
+            background: token.colorBgLayout,
             padding: 16,
             borderRadius: 4,
             marginTop: 16,
@@ -232,11 +235,11 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
           </div>
           <div style={{ marginBottom: 8 }}>
             <span>手续费 (1%):</span>
-            <span style={{ float: 'right', color: '#ff4d4f' }}>-¥{fee.toFixed(2)}</span>
+            <span style={{ float: 'right', color: token.colorError }}>-¥{fee.toFixed(2)}</span>
           </div>
           <div style={{ borderTop: '1px solid #d9d9d9', paddingTop: 8, marginTop: 8 }}>
             <span style={{ fontWeight: 'bold' }}>实际到账:</span>
-            <span style={{ float: 'right', fontWeight: 'bold', color: '#52c41a', fontSize: 18 }}>
+            <span style={{ float: 'right', fontWeight: 'bold', color: token.colorSuccess, fontSize: 18 }}>
               ¥{actualAmount.toFixed(2)}
             </span>
           </div>

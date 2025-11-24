@@ -153,19 +153,43 @@ export const rescheduleDevice = (deviceId: string): Promise<void> =>
 // ========== 集群统计 ==========
 
 export interface ClusterStats {
-  totalNodes: number;
-  activeNodes: number;
-  totalCapacity: {
+  nodes: {
+    total: number;
+    online: number;
+    offline: number;
+  };
+  capacity: {
+    cpuCores: number;
+    memoryMB: number;
+    storageGB: number;
+    maxDevices: number;
+  };
+  usage: {
+    cpuCores: number;
+    memoryMB: number;
+    storageGB: number;
+    devices: number;
+  };
+  utilization: {
+    cpu: number;
+    memory: number;
+    storage: number;
+    devices: number;
+  };
+  // 兼容旧的访问方式 (computed properties for backwards compatibility)
+  totalNodes?: number;
+  activeNodes?: number;
+  totalCapacity?: {
     cpu: number;
     memory: number;
     storage: number;
   };
-  totalUsage: {
+  totalUsage?: {
     cpu: number;
     memory: number;
     storage: number;
   };
-  utilizationRate: {
+  utilizationRate?: {
     cpu: number;
     memory: number;
     storage: number;
@@ -174,7 +198,7 @@ export interface ClusterStats {
 
 // 获取集群统计
 export const getClusterStats = (): Promise<ClusterStats> =>
-  api.get<ClusterStats>('/scheduler/stats');
+  api.get<ClusterStats>('/scheduler/resources/cluster-stats');
 
 // 获取节点资源使用趋势
 export const getNodeUsageTrend = (

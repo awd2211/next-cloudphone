@@ -1,9 +1,10 @@
 import React from 'react';
-import { Card, Typography, Button, Space } from 'antd';
+import { Card, Typography, Button, Space, theme } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 import type { ReferralConfig } from '@/services/referral';
 
 const { Title, Paragraph } = Typography;
+const { useToken } = theme;
 
 interface InviteCodeTabProps {
   config: ReferralConfig | null;
@@ -18,6 +19,8 @@ interface InviteCodeTabProps {
  * - 清晰的视觉层次设计
  */
 export const InviteCodeTab: React.FC<InviteCodeTabProps> = React.memo(({ config, onCopyCode }) => {
+  const { token } = useToken();
+
   return (
     <Card>
       <Title level={4}>我的邀请码</Title>
@@ -26,7 +29,7 @@ export const InviteCodeTab: React.FC<InviteCodeTabProps> = React.memo(({ config,
       {/* 邀请码显示区域 */}
       <div
         style={{
-          background: '#f5f5f5',
+          background: token.colorBgLayout,
           padding: '24px',
           borderRadius: 8,
           textAlign: 'center',
@@ -37,7 +40,7 @@ export const InviteCodeTab: React.FC<InviteCodeTabProps> = React.memo(({ config,
           style={{
             fontSize: 48,
             fontWeight: 'bold',
-            color: '#1890ff',
+            color: token.colorPrimary,
             letterSpacing: 4,
           }}
         >

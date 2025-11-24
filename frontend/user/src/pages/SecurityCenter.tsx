@@ -83,7 +83,7 @@ const SecurityCenter: React.FC = () => {
         <Card
           title={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <SafetyOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+              <SafetyOutlined style={{ fontSize: '24px', color: '#1677ff' }} />
               <span style={{ fontSize: '20px', fontWeight: 600 }}>安全中心</span>
             </div>
           }

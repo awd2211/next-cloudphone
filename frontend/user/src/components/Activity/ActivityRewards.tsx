@@ -1,6 +1,8 @@
 import React from 'react';
-import { Card, Space } from 'antd';
+import { Card, Space, theme } from 'antd';
 import { GiftOutlined } from '@ant-design/icons';
+
+const { useToken } = theme;
 
 interface ActivityRewardsProps {
   rewards?: string[];
@@ -15,6 +17,8 @@ interface ActivityRewardsProps {
  * - 卡片列表展示
  */
 export const ActivityRewards: React.FC<ActivityRewardsProps> = React.memo(({ rewards }) => {
+  const { token } = useToken();
+
   if (!rewards || rewards.length === 0) return null;
 
   return (
@@ -24,7 +28,7 @@ export const ActivityRewards: React.FC<ActivityRewardsProps> = React.memo(({ rew
         {rewards.map((reward, index) => (
           <Card key={index} size="small">
             <Space>
-              <GiftOutlined style={{ fontSize: 20, color: '#faad14' }} />
+              <GiftOutlined style={{ fontSize: 20, color: token.colorWarning }} />
               <span>{reward}</span>
             </Space>
           </Card>

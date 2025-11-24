@@ -10,6 +10,7 @@ import {
   Popconfirm,
   Alert,
   Statistic,
+  theme,
 } from 'antd';
 import {
   DeleteOutlined,
@@ -20,6 +21,7 @@ import { InstalledAppCard } from './InstalledAppCard';
 import type { InstalledAppInfo } from '@/services/app';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface InstalledAppListProps {
   apps: InstalledAppInfo[];
@@ -62,6 +64,7 @@ export const InstalledAppList: React.FC<InstalledAppListProps> = React.memo(
     onUpdate,
     onRefresh,
   }) => {
+    const { token } = useToken();
     const [showSystemApps, setShowSystemApps] = useState(false);
 
     // 筛选应用
@@ -84,21 +87,21 @@ export const InstalledAppList: React.FC<InstalledAppListProps> = React.memo(
             <Statistic
               title="用户应用"
               value={stats.user}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
           </Col>
           <Col span={6}>
             <Statistic
               title="系统应用"
               value={stats.system}
-              valueStyle={{ color: '#8c8c8c' }}
+              valueStyle={{ color: token.colorTextSecondary }}
             />
           </Col>
           <Col span={6}>
             <Statistic
               title="可更新"
               value={stats.updatable}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: token.colorSuccess }}
             />
           </Col>
         </Row>
@@ -107,7 +110,7 @@ export const InstalledAppList: React.FC<InstalledAppListProps> = React.memo(
         <div
           style={{
             padding: '12px 16px',
-            background: '#fafafa',
+            background: token.colorBgLayout,
             borderRadius: '8px',
             marginBottom: 16,
             display: 'flex',

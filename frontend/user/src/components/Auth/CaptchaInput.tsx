@@ -1,6 +1,8 @@
 import React from 'react';
-import { Row, Col, Input, Form } from 'antd';
+import { Row, Col, Input, Form, theme } from 'antd';
 import { SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
+
+const { useToken } = theme;
 
 interface CaptchaInputProps {
   captchaSvg: string;
@@ -17,6 +19,8 @@ export const CaptchaInput: React.FC<CaptchaInputProps> = React.memo(({
   captchaLoading,
   onRefresh,
 }) => {
+  const { token } = useToken();
+
   return (
     <Form.Item
       name="captcha"
@@ -39,17 +43,17 @@ export const CaptchaInput: React.FC<CaptchaInputProps> = React.memo(({
             onClick={onRefresh}
             style={{
               height: 40,
-              border: '1px solid #d9d9d9',
+              border: `1px solid ${token.colorBorder}`,
               borderRadius: 6,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: '#f5f5f5',
+              backgroundColor: token.colorBgLayout,
             }}
           >
             {captchaLoading ? (
-              <ReloadOutlined spin style={{ fontSize: 20, color: '#1890ff' }} />
+              <ReloadOutlined spin style={{ fontSize: 20, color: token.colorPrimary }} />
             ) : (
               <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
             )}

@@ -32,7 +32,7 @@ export const couponTypeConfig = {
   },
   full_discount: {
     icon: <PercentageOutlined />,
-    color: '#1890ff',
+    color: '#1677ff',
     text: '满减券',
     getValueText: (value: number) => `¥${value}`,
   },

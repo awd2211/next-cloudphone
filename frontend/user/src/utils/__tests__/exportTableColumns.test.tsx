@@ -180,7 +180,7 @@ describe('exportTableColumns 导出任务表格列配置', () => {
           {} as ExportTask,
           0
         ) as any;
-        expect(result.props.color).toBe('#1890ff');
+        expect(result.props.color).toBe('#1677ff');
       }
     });
 
@@ -258,7 +258,7 @@ describe('exportTableColumns 导出任务表格列配置', () => {
           {} as ExportTask,
           0
         ) as any;
-        expect(result.props.color).toBe('#1890ff');
+        expect(result.props.color).toBe('#1677ff');
       }
     });
 

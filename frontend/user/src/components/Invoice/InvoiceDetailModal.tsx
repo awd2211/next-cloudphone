@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Modal, Descriptions, Tag, Typography, Divider, Button } from 'antd';
+import { Modal, Descriptions, Tag, Typography, Divider, Button, theme } from 'antd';
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import type { Invoice } from '@/services/billing';
 
 const { Text, Title } = Typography;
+const { useToken } = theme;
 
 interface InvoiceDetailModalProps {
   visible: boolean;
@@ -30,6 +31,7 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = React.memo(
   onCancel,
   onDownload,
 }) => {
+  const { token } = useToken();
   // 状态配置
   const statusConfig = useMemo(() => ({
     pending: {
@@ -67,7 +69,7 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = React.memo(
           <Divider />
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <CheckCircleOutlined
-              style={{ fontSize: '48px', color: '#52c41a', marginBottom: '16px' }}
+              style={{ fontSize: '48px', color: token.colorSuccess, marginBottom: '16px' }}
             />
             <div>
               <Title level={5}>发票已开具</Title>
@@ -84,7 +86,7 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = React.memo(
           <Divider />
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <ClockCircleOutlined
-              style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }}
+              style={{ fontSize: '48px', color: token.colorPrimary, marginBottom: '16px' }}
             />
             <div>
               <Title level={5}>审核中</Title>
@@ -101,7 +103,7 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = React.memo(
           <Divider />
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <CloseCircleOutlined
-              style={{ fontSize: '48px', color: '#ff4d4f', marginBottom: '16px' }}
+              style={{ fontSize: '48px', color: token.colorError, marginBottom: '16px' }}
             />
             <div>
               <Title level={5}>申请被拒绝</Title>
@@ -169,7 +171,7 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = React.memo(
               </Descriptions.Item>
             )}
             <Descriptions.Item label="发票金额" span={2}>
-              <Text strong style={{ color: '#1890ff', fontSize: '18px' }}>
+              <Text strong style={{ color: token.colorPrimary, fontSize: '18px' }}>
                 ¥{invoice.amount.toFixed(2)}
               </Text>
             </Descriptions.Item>

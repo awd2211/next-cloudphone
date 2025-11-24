@@ -295,6 +295,266 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
   }
 
+  @OnEvent('message.edited')
+  async handleMessageEdited(payload: { message: any; conversationId: string; originalContent: string }) {
+    // 广播消息编辑事件到会话房间
+    this.server.to(`conversation:${payload.conversationId}`).emit('message_edited', {
+      messageId: payload.message.id,
+      content: payload.message.content,
+      editedAt: payload.message.editedAt,
+      isEdited: true,
+    });
+
+    this.logger.debug(`Message ${payload.message.id} edited, broadcasting to conversation ${payload.conversationId}`);
+  }
+
+  @OnEvent('message.revoked')
+  async handleMessageRevoked(payload: { message: any; conversationId: string; revokedBy: string; reason?: string }) {
+    // 广播消息撤回事件到会话房间
+    this.server.to(`conversation:${payload.conversationId}`).emit('message_revoked', {
+      messageId: payload.message.id,
+      revokedBy: payload.revokedBy,
+      revokedAt: payload.message.deletedAt,
+      reason: payload.reason,
+    });
+
+    this.logger.debug(`Message ${payload.message.id} revoked, broadcasting to conversation ${payload.conversationId}`);
+  }
+
+  // ========== 监听/插话事件 ==========
+
+  @OnEvent('supervision.started')
+  async handleSupervisionStarted(payload: {
+    conversationId: string;
+    supervisorId: string;
+    supervisorName: string;
+    mode: string;
+  }) {
+    // 通知客服有主管开始监听
+    this.server.to(`conversation:${payload.conversationId}`).emit('supervision_started', {
+      conversationId: payload.conversationId,
+      supervisorName: payload.supervisorName,
+      mode: payload.mode,
+    });
+
+    this.logger.debug(`Supervisor ${payload.supervisorName} started ${payload.mode} on conversation ${payload.conversationId}`);
+  }
+
+  @OnEvent('supervision.stopped')
+  async handleSupervisionStopped(payload: { conversationId: string; supervisorId: string }) {
+    // 通知客服主管停止监听
+    this.server.to(`conversation:${payload.conversationId}`).emit('supervision_stopped', {
+      conversationId: payload.conversationId,
+      supervisorId: payload.supervisorId,
+    });
+
+    this.logger.debug(`Supervisor stopped supervision on conversation ${payload.conversationId}`);
+  }
+
+  @OnEvent('supervision.mode_changed')
+  async handleSupervisionModeChanged(payload: {
+    conversationId: string;
+    supervisorId: string;
+    supervisorName: string;
+    mode: string;
+    agentId?: string;
+  }) {
+    // 通知客服监听模式变更
+    if (payload.agentId) {
+      this.server.to(`user:${payload.agentId}`).emit('supervision_mode_changed', {
+        conversationId: payload.conversationId,
+        supervisorName: payload.supervisorName,
+        mode: payload.mode,
+      });
+    }
+
+    this.logger.debug(`Supervision mode changed to ${payload.mode} on conversation ${payload.conversationId}`);
+  }
+
+  @OnEvent('supervision.whisper')
+  async handleSupervisionWhisper(payload: { message: any; conversationId: string; agentId: string }) {
+    // 悄悄话只发给客服
+    this.server.to(`user:${payload.agentId}`).emit('whisper_message', {
+      message: payload.message,
+      conversationId: payload.conversationId,
+    });
+
+    this.logger.debug(`Whisper message sent to agent ${payload.agentId} in conversation ${payload.conversationId}`);
+  }
+
+  // ========== SLA 告警事件 ==========
+
+  @OnEvent('sla.alert_created')
+  async handleSlaAlertCreated(payload: { alert: any; rule: any }) {
+    // 广播 SLA 告警给整个租户的主管和管理员
+    this.server.to(`tenant:${payload.alert.tenantId}`).emit('sla_alert', {
+      alert: payload.alert,
+      rule: {
+        id: payload.rule.id,
+        name: payload.rule.name,
+        metricType: payload.rule.metricType,
+        severity: payload.rule.severity,
+      },
+    });
+
+    this.logger.warn(`SLA Alert broadcasted: ${payload.rule.name} (${payload.alert.severity})`);
+  }
+
+  @OnEvent('sla.send_notification')
+  async handleSlaSendNotification(payload: { alert: any; rule: any; recipients: string[] }) {
+    // 发送实时通知给指定角色
+    this.server.to(`tenant:${payload.alert.tenantId}`).emit('sla_notification', {
+      type: 'sla_violation',
+      title: `SLA 告警: ${payload.rule.name}`,
+      message: payload.alert.message,
+      severity: payload.alert.severity,
+      alertId: payload.alert.id,
+    });
+  }
+
+  // ========== 机器人事件 ==========
+
+  @OnEvent('bot.message')
+  async handleBotMessage(payload: {
+    conversationId: string;
+    botId: string;
+    content: string;
+    responseType: string;
+    quickReplies?: string[];
+  }) {
+    // 广播机器人消息到会话房间
+    this.server.to(`conversation:${payload.conversationId}`).emit('bot_message', {
+      conversationId: payload.conversationId,
+      content: payload.content,
+      type: payload.responseType,
+      quickReplies: payload.quickReplies,
+      timestamp: new Date(),
+    });
+
+    this.logger.debug(`Bot message sent to conversation ${payload.conversationId}`);
+  }
+
+  @OnEvent('bot.transfer')
+  async handleBotTransfer(payload: {
+    conversationId: string;
+    botConversationId: string;
+    reason: string;
+    userId: string;
+    preferredAgentId?: string;
+    skillGroup?: string;
+  }) {
+    // 通知用户正在转人工
+    this.server.to(`conversation:${payload.conversationId}`).emit('bot_transfer', {
+      conversationId: payload.conversationId,
+      reason: payload.reason,
+      timestamp: new Date(),
+    });
+
+    // 通知所有在线客服有新会话需要处理
+    // 根据 skillGroup 或 preferredAgentId 进行定向通知
+    if (payload.preferredAgentId) {
+      this.server.to(`user:${payload.preferredAgentId}`).emit('bot_transfer_request', {
+        conversationId: payload.conversationId,
+        userId: payload.userId,
+        reason: payload.reason,
+      });
+    }
+
+    this.logger.log(`Bot transfer initiated for conversation ${payload.conversationId}, reason: ${payload.reason}`);
+  }
+
+  // ========== 协同会话事件 ==========
+
+  @SubscribeMessage('join_collaboration')
+  async handleJoinCollaboration(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { conversationId: string },
+  ) {
+    // 加入协同内部消息房间
+    await client.join(`collab:${data.conversationId}`);
+    this.logger.debug(`${client.username} joined collaboration room ${data.conversationId}`);
+    return { success: true };
+  }
+
+  @SubscribeMessage('leave_collaboration')
+  async handleLeaveCollaboration(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { conversationId: string },
+  ) {
+    await client.leave(`collab:${data.conversationId}`);
+    this.logger.debug(`${client.username} left collaboration room ${data.conversationId}`);
+    return { success: true };
+  }
+
+  @OnEvent('collaboration.invited')
+  async handleCollaborationInvited(payload: {
+    collaboration: any;
+    inviterId: string;
+    agent: any;
+    conversation: any;
+  }) {
+    // 通知被邀请的客服
+    this.server.to(`user:${payload.collaboration.agentId}`).emit('collaboration_invite', {
+      collaborationId: payload.collaboration.id,
+      conversationId: payload.conversation.id,
+      invitedBy: payload.inviterId,
+      role: payload.collaboration.role,
+      reason: payload.collaboration.inviteReason,
+    });
+
+    this.logger.log(`Collaboration invite sent to agent ${payload.collaboration.agentId}`);
+  }
+
+  @OnEvent('collaboration.joined')
+  async handleCollaborationJoined(payload: { collaboration: any }) {
+    // 通知会话中的所有客服有新协同者加入
+    this.server.to(`collab:${payload.collaboration.conversationId}`).emit('collaborator_joined', {
+      collaborationId: payload.collaboration.id,
+      agentId: payload.collaboration.agentId,
+      agentName: payload.collaboration.agent?.displayName,
+      role: payload.collaboration.role,
+    });
+
+    this.logger.log(`Agent ${payload.collaboration.agentId} joined collaboration`);
+  }
+
+  @OnEvent('collaboration.declined')
+  async handleCollaborationDeclined(payload: { collaboration: any; reason?: string }) {
+    // 通知邀请者协同被拒绝
+    if (payload.collaboration.invitedBy) {
+      this.server.to(`user:${payload.collaboration.invitedBy}`).emit('collaboration_declined', {
+        collaborationId: payload.collaboration.id,
+        agentId: payload.collaboration.agentId,
+        reason: payload.reason,
+      });
+    }
+
+    this.logger.log(`Collaboration invitation declined by agent ${payload.collaboration.agentId}`);
+  }
+
+  @OnEvent('collaboration.left')
+  async handleCollaborationLeft(payload: { collaboration: any; reason?: string }) {
+    // 通知会话中的所有客服有协同者退出
+    this.server.to(`collab:${payload.collaboration.conversationId}`).emit('collaborator_left', {
+      collaborationId: payload.collaboration.id,
+      agentId: payload.collaboration.agentId,
+      agentName: payload.collaboration.agent?.displayName,
+      reason: payload.reason,
+    });
+
+    this.logger.log(`Agent ${payload.collaboration.agentId} left collaboration`);
+  }
+
+  @OnEvent('collaboration.internal_message')
+  async handleInternalMessage(payload: { message: any; conversationId: string }) {
+    // 广播内部消息到协同房间（只有客服能看到）
+    this.server.to(`collab:${payload.conversationId}`).emit('internal_message', {
+      message: payload.message,
+    });
+
+    this.logger.debug(`Internal message sent in conversation ${payload.conversationId}`);
+  }
+
   // ========== 工具方法 ==========
 
   async getOnlineAgents(tenantId: string): Promise<string[]> {

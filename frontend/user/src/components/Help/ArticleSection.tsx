@@ -1,10 +1,11 @@
 import React from 'react';
-import { Card, Row, Col, List, Space, Tag, Button, Empty, Typography } from 'antd';
+import { Card, Row, Col, List, Space, Tag, Button, Empty, Typography, theme } from 'antd';
 import { FireOutlined, ClockCircleOutlined, EyeOutlined, LikeOutlined, RightOutlined } from '@ant-design/icons';
 import type { HelpArticle } from '@/services/help';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface ArticleSectionProps {
   popularArticles: HelpArticle[];
@@ -22,6 +23,7 @@ export const ArticleSection: React.FC<ArticleSectionProps> = React.memo(({
   onArticleClick,
   onViewAllClick,
 }) => {
+  const { token } = useToken();
   return (
     <div style={{ marginBottom: 48 }}>
       <style>
@@ -106,7 +108,7 @@ export const ArticleSection: React.FC<ArticleSectionProps> = React.memo(({
                     boxShadow: '0 4px 12px rgba(255, 77, 79, 0.2)',
                   }}
                 >
-                  <FireOutlined style={{ color: '#ff4d4f', fontSize: 20 }} />
+                  <FireOutlined style={{ color: token.colorError, fontSize: 20 }} />
                 </div>
                 <span style={{ fontWeight: 600, fontSize: 16 }}>热门文章</span>
               </Space>
@@ -189,11 +191,11 @@ export const ArticleSection: React.FC<ArticleSectionProps> = React.memo(({
                 <div
                   className="article-icon-container"
                   style={{
-                    background: 'linear-gradient(135deg, #1890ff15, #1890ff25)',
+                    background: 'linear-gradient(135deg, #1677ff15, #1677ff25)',
                     boxShadow: '0 4px 12px rgba(24, 144, 255, 0.2)',
                   }}
                 >
-                  <ClockCircleOutlined style={{ color: '#1890ff', fontSize: 20 }} />
+                  <ClockCircleOutlined style={{ color: token.colorPrimary, fontSize: 20 }} />
                 </div>
                 <span style={{ fontWeight: 600, fontSize: 16 }}>最新文章</span>
               </Space>

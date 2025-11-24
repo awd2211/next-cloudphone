@@ -11,6 +11,7 @@ import {
   Statistic,
   Spin,
   Empty,
+  theme,
 } from 'antd';
 import {
   TrophyOutlined,
@@ -24,6 +25,7 @@ import { useNavigate } from 'react-router-dom';
 import { getCaseStudies, type CaseStudy } from '@/services/cms';
 
 const { Title, Paragraph, Text } = Typography;
+const { useToken } = theme;
 
 /**
  * 客户案例页
@@ -57,6 +59,7 @@ const industryNames: Record<string, string> = {
 
 const CaseStudies: React.FC = () => {
   const navigate = useNavigate();
+  const { token } = useToken();
   const [activeIndustry, setActiveIndustry] = useState('all');
   const [cases, setCases] = useState<CaseStudy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +106,7 @@ const CaseStudies: React.FC = () => {
   ];
 
   return (
-    <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 80 }}>
+    <div style={{ background: token.colorBgLayout, minHeight: '100vh', paddingBottom: 80 }}>
       {/* Hero Section */}
       <div
         style={{
@@ -141,7 +144,7 @@ const CaseStudies: React.FC = () => {
                   value={stat.value}
                   suffix={stat.suffix}
                   precision={stat.precision}
-                  valueStyle={{ color: '#1890ff', fontSize: 36, fontWeight: 'bold' }}
+                  valueStyle={{ color: token.colorPrimary, fontSize: 36, fontWeight: 'bold' }}
                 />
               </Col>
             ))}
@@ -179,7 +182,7 @@ const CaseStudies: React.FC = () => {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
             <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
-            <p style={{ marginTop: 16, color: '#666' }}>正在加载案例...</p>
+            <p style={{ marginTop: 16, color: token.colorTextSecondary }}>正在加载案例...</p>
           </div>
         ) : filteredCases.length === 0 ? (
           <Empty description="暂无客户案例" style={{ padding: '60px 0' }} />
@@ -222,12 +225,12 @@ const CaseStudies: React.FC = () => {
 
                         <div>
                           <Title level={5}>挑战</Title>
-                          <Paragraph style={{ color: '#666' }}>{caseItem.challenge}</Paragraph>
+                          <Paragraph style={{ color: token.colorTextSecondary }}>{caseItem.challenge}</Paragraph>
                         </div>
 
                         <div>
                           <Title level={5}>解决方案</Title>
-                          <Paragraph style={{ color: '#666' }}>{caseItem.solution}</Paragraph>
+                          <Paragraph style={{ color: token.colorTextSecondary }}>{caseItem.solution}</Paragraph>
                         </div>
 
                         {caseItem.results && Object.keys(caseItem.results).length > 0 && (
@@ -239,12 +242,12 @@ const CaseStudies: React.FC = () => {
                                   <Col span={8} key={i}>
                                     <Card
                                       size="small"
-                                      style={{ textAlign: 'center', background: '#f0f7ff' }}
+                                      style={{ textAlign: 'center', background: token.colorPrimaryBg }}
                                     >
                                       <Statistic
                                         title={result.metric || result.label}
                                         value={result.value}
-                                        valueStyle={{ color: '#1890ff', fontSize: 24 }}
+                                        valueStyle={{ color: token.colorPrimary, fontSize: 24 }}
                                       />
                                       <Text type="secondary" style={{ fontSize: 12 }}>
                                         {result.description || result.desc}
@@ -257,12 +260,12 @@ const CaseStudies: React.FC = () => {
                                   <Col span={8} key={i}>
                                     <Card
                                       size="small"
-                                      style={{ textAlign: 'center', background: '#f0f7ff' }}
+                                      style={{ textAlign: 'center', background: token.colorPrimaryBg }}
                                     >
                                       <Statistic
                                         title={key}
                                         value={String(value)}
-                                        valueStyle={{ color: '#1890ff', fontSize: 24 }}
+                                        valueStyle={{ color: token.colorPrimary, fontSize: 24 }}
                                       />
                                     </Card>
                                   </Col>
@@ -274,7 +277,7 @@ const CaseStudies: React.FC = () => {
 
                         {caseItem.testimonial && (
                           <Card
-                            style={{ background: '#fafafa', borderLeft: '4px solid #1890ff' }}
+                            style={{ background: token.colorBgLayout, borderLeft: `4px solid ${token.colorPrimary}` }}
                           >
                             <Space direction="vertical" size="small" style={{ width: '100%' }}>
                               <div>

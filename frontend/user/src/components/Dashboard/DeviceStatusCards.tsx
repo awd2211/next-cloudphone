@@ -1,10 +1,11 @@
 import { memo, useMemo } from 'react';
-import { Row, Col, Card, Statistic, Alert, Space, Button, Typography } from 'antd';
+import { Row, Col, Card, Statistic, Alert, Space, Button, Typography, theme } from 'antd';
 import { SyncOutlined, StopOutlined, CloseCircleOutlined, MobileOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { DashboardData } from '@/hooks/useDashboard';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface DeviceStatusCardsProps {
   data: DashboardData;
@@ -12,29 +13,30 @@ interface DeviceStatusCardsProps {
 
 export const DeviceStatusCards = memo<DeviceStatusCardsProps>(({ data }) => {
   const navigate = useNavigate();
+  const { token } = useToken();
 
   const deviceStatusData = useMemo(
     () => [
       {
         status: '运行中',
         count: data.devices.running,
-        color: '#52c41a',
+        color: token.colorSuccess,
         icon: <SyncOutlined spin />,
       },
       {
         status: '已停止',
         count: data.devices.stopped,
-        color: '#faad14',
+        color: token.colorWarning,
         icon: <StopOutlined />,
       },
       {
         status: '异常',
         count: data.devices.error,
-        color: '#ff4d4f',
+        color: token.colorError,
         icon: <CloseCircleOutlined />,
       },
     ],
-    [data.devices]
+    [data.devices, token]
   );
 
   return (

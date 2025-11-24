@@ -14,7 +14,10 @@ import {
   Progress,
   Tooltip,
   message,
+  theme,
 } from 'antd';
+
+const { useToken } = theme;
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   GlobalOutlined,
@@ -43,6 +46,7 @@ import type { ProxyRecord } from '@/services/proxy';
  * 4. 查看代理使用统计
  */
 const MyProxies: React.FC = () => {
+  const { token } = useToken();
   const [acquireModalVisible, setAcquireModalVisible] = useState(false);
   const [acquireForm] = Form.useForm();
 
@@ -210,7 +214,7 @@ const MyProxies: React.FC = () => {
               title="当前代理数"
               value={stats?.total || 0}
               prefix={<GlobalOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
           </Card>
         </Col>
@@ -220,7 +224,7 @@ const MyProxies: React.FC = () => {
               title="活跃代理"
               value={stats?.active || 0}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: token.colorSuccess }}
             />
           </Card>
         </Col>
@@ -230,7 +234,7 @@ const MyProxies: React.FC = () => {
               title="已过期"
               value={stats?.expired || 0}
               prefix={<ThunderboltOutlined />}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: token.colorWarning }}
             />
           </Card>
         </Col>
@@ -241,7 +245,7 @@ const MyProxies: React.FC = () => {
               value={stats?.totalBandwidthUsed || 0}
               suffix="MB"
               prefix={<ThunderboltOutlined />}
-              valueStyle={{ color: '#722ed1' }}
+              valueStyle={{ color: token['purple-6'] ?? '#722ed1' }}
               precision={0}
             />
           </Card>

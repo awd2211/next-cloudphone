@@ -45,7 +45,7 @@ describe('couponConfig 工具函数', () => {
     it('满减券配置应该正确', () => {
       const config = couponTypeConfig.full_discount;
       expect(config.text).toBe('满减券');
-      expect(config.color).toBe('#1890ff');
+      expect(config.color).toBe('#1677ff');
       expect(config.getValueText(20)).toBe('¥20');
     });
   });
@@ -145,7 +145,7 @@ describe('couponConfig 工具函数', () => {
       const config = getCouponTypeConfig(coupon);
       expect(config.text).toBe('满减券');
       expect(config.valueText).toBe('¥20');
-      expect(config.color).toBe('#1890ff');
+      expect(config.color).toBe('#1677ff');
     });
   });
 

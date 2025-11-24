@@ -47,9 +47,9 @@ export class AuditInterceptor implements NestInterceptor {
             newValue: this.sanitizeData(response),
             metadata: {
               duration,
-              method,
-              url,
             },
+            method,
+            requestPath: url,
             ipAddress: ip,
             userAgent: headers['user-agent'],
             success: true,
@@ -71,10 +71,10 @@ export class AuditInterceptor implements NestInterceptor {
             description: this.generateDescription(action, method, url, false),
             metadata: {
               duration,
-              method,
-              url,
               error: error.message,
             },
+            method,
+            requestPath: url,
             ipAddress: ip,
             userAgent: headers['user-agent'],
             success: false,
@@ -122,13 +122,15 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   private getResourceType(url: string): string {
+    if (url.includes('/auth')) return 'auth';
     if (url.includes('/users')) return 'user';
     if (url.includes('/quotas')) return 'quota';
     if (url.includes('/balance')) return 'balance';
     if (url.includes('/devices')) return 'device';
     if (url.includes('/roles')) return 'role';
     if (url.includes('/api-keys')) return 'api-key';
-    return 'unknown';
+    if (url.includes('/password')) return 'password';
+    return 'system';
   }
 
   private getResourceId(url: string, response?: any): string | undefined {

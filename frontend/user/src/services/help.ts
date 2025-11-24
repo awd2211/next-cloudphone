@@ -181,7 +181,7 @@ export interface PopularTag {
 // ==================== 占位数据 ====================
 
 const MOCK_CATEGORIES: HelpCategory[] = [
-  { id: '1', name: '快速入门', description: '新用户指南', icon: 'rocket', order: 1, articleCount: 5, color: '#1890ff' },
+  { id: '1', name: '快速入门', description: '新用户指南', icon: 'rocket', order: 1, articleCount: 5, color: '#1677ff' },
   { id: '2', name: '设备管理', description: '云手机设备相关', icon: 'mobile', order: 2, articleCount: 8, color: '#52c41a' },
   { id: '3', name: '账户与计费', description: '账户和付款相关', icon: 'wallet', order: 3, articleCount: 6, color: '#faad14' },
   { id: '4', name: '常见问题', description: '用户常见问题解答', icon: 'question-circle', order: 4, articleCount: 12, color: '#722ed1' },

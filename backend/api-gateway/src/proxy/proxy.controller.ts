@@ -436,22 +436,22 @@ export class ProxyController {
   }
 
   /**
-   * 设备组管理路由（精确匹配）- 路由到 proxy-service
+   * 设备组管理路由（精确匹配）- 路由到 device-service
    * 注意：必须在 devices/*path 之前定义，以确保优先匹配
    */
   @UseGuards(JwtAuthGuard)
   @All('devices/groups')
   async proxyDeviceGroupsExact(@Req() req: Request, @Res() res: Response) {
-    return this.handleProxy('proxy-service', req, res);
+    return this.handleProxy('devices', req, res);
   }
 
   /**
-   * 设备组管理路由（通配符）- 路由到 proxy-service
+   * 设备组管理路由（通配符）- 路由到 device-service
    */
   @UseGuards(JwtAuthGuard)
   @All('devices/groups/*path')
   async proxyDeviceGroups(@Req() req: Request, @Res() res: Response) {
-    return this.handleProxy('proxy-service', req, res);
+    return this.handleProxy('devices', req, res);
   }
 
   /**
@@ -1342,6 +1342,13 @@ export class ProxyController {
    * - /livechat/device-assist/* - 设备协助
    * - /livechat/tickets/*     - 会话转工单
    * - /livechat/media/*       - 媒体上传
+   * - /livechat/knowledge-base/* - 知识库管理
+   * - /livechat/blacklist/*   - 黑名单管理
+   * - /livechat/supervision/* - 会话监听/插话
+   * - /livechat/sla/*         - SLA 预警管理
+   * - /livechat/bot/*         - 智能机器人管理
+   * - /livechat/survey/*      - 满意度调查管理
+   * - /livechat/visitor/*     - 访客画像管理
    */
   @UseGuards(JwtAuthGuard)
   @All('livechat')

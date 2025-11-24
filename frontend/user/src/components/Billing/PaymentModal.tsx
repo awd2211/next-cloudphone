@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { Modal, Space, Card, Tag, Select } from 'antd';
+import { Modal, Space, Card, Tag, Select, theme } from 'antd';
 import { WalletOutlined } from '@ant-design/icons';
 import { formatAmount, BillType, PaymentMethod, type Bill } from '@/services/billing';
 
 const { Option } = Select;
+const { useToken } = theme;
 
 interface PaymentModalProps {
   visible: boolean;
@@ -26,6 +27,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = React.memo(({
   onConfirm,
   onCancel,
 }) => {
+  const { token } = useToken();
+
   // 账单类型配置
   const billTypeConfig: Record<BillType, { label: string; color: string }> = useMemo(() => ({
     [BillType.SUBSCRIPTION]: { label: '订阅费', color: 'blue' },
@@ -76,7 +79,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = React.memo(({
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>应付金额：</span>
-                <span style={{ fontSize: 20, fontWeight: 'bold', color: '#1890ff' }}>
+                <span style={{ fontSize: 20, fontWeight: 'bold', color: token.colorPrimary }}>
                   {formatAmount(bill.finalAmount)}
                 </span>
               </div>

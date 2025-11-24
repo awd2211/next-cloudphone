@@ -1,11 +1,13 @@
 import React from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic, theme } from 'antd';
 import {
   FileTextOutlined,
   DollarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons';
+
+const { useToken } = theme;
 
 interface BillStats {
   total: number;
@@ -23,6 +25,8 @@ interface BillStatsCardsProps {
  * 展示总账单数、总金额、已支付、未支付统计
  */
 export const BillStatsCards: React.FC<BillStatsCardsProps> = React.memo(({ stats }) => {
+  const { token } = useToken();
+
   if (!stats) return null;
 
   return (
@@ -43,7 +47,7 @@ export const BillStatsCards: React.FC<BillStatsCardsProps> = React.memo(({ stats
             value={stats.totalAmount}
             precision={2}
             prefix={<DollarOutlined />}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
           />
         </Card>
       </Col>
@@ -54,7 +58,7 @@ export const BillStatsCards: React.FC<BillStatsCardsProps> = React.memo(({ stats
             value={stats.paidAmount}
             precision={2}
             prefix={<CheckCircleOutlined />}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: token.colorSuccess }}
           />
         </Card>
       </Col>
@@ -65,7 +69,7 @@ export const BillStatsCards: React.FC<BillStatsCardsProps> = React.memo(({ stats
             value={stats.unpaidAmount}
             precision={2}
             prefix={<ClockCircleOutlined />}
-            valueStyle={{ color: '#faad14' }}
+            valueStyle={{ color: token.colorWarning }}
           />
         </Card>
       </Col>

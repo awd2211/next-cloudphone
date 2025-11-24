@@ -25,7 +25,7 @@ export const ReplyItem: React.FC<ReplyItemProps> = React.memo(({ reply }) => {
           icon={<UserOutlined />}
           src={reply.userAvatar}
           style={{
-            backgroundColor: reply.isStaff ? '#1890ff' : '#52c41a',
+            backgroundColor: reply.isStaff ? '#1677ff' : '#52c41a',
           }}
         />
       }

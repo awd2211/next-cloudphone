@@ -353,7 +353,7 @@ describe('useDeviceMonitor Hook', () => {
         { timeout: 3000 }
       );
 
-      expect(result.current.cpuChartConfig.color).toBe('#1890ff');
+      expect(result.current.cpuChartConfig.color).toBe('#1677ff');
     });
 
     it('应该使用useMemo缓存', async () => {

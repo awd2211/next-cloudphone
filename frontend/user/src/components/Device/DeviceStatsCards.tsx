@@ -1,5 +1,7 @@
 import React from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic, theme } from 'antd';
+
+const { useToken } = theme;
 
 interface DeviceStats {
   total: number;
@@ -12,6 +14,8 @@ interface DeviceStatsCardsProps {
 }
 
 export const DeviceStatsCards: React.FC<DeviceStatsCardsProps> = React.memo(({ stats }) => {
+  const { token } = useToken();
+
   if (!stats) return null;
 
   return (
@@ -26,7 +30,7 @@ export const DeviceStatsCards: React.FC<DeviceStatsCardsProps> = React.memo(({ s
           <Statistic
             title="运行中"
             value={stats.running || 0}
-            valueStyle={{ color: '#3f8600' }}
+            valueStyle={{ color: token.colorSuccess }}
           />
         </Card>
       </Col>
@@ -35,7 +39,7 @@ export const DeviceStatsCards: React.FC<DeviceStatsCardsProps> = React.memo(({ s
           <Statistic
             title="已停止"
             value={stats.stopped || 0}
-            valueStyle={{ color: '#cf1322' }}
+            valueStyle={{ color: token.colorError }}
           />
         </Card>
       </Col>

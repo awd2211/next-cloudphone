@@ -1,6 +1,8 @@
 import React from 'react';
-import { Card, Row, Col, Statistic } from 'antd';
+import { Card, Row, Col, Statistic, theme } from 'antd';
 import { GiftOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+
+const { useToken } = theme;
 
 interface StatsCardsProps {
   stats: {
@@ -19,6 +21,8 @@ interface StatsCardsProps {
  * - 4 个统计卡片展示
  */
 export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats }) => {
+  const { token } = useToken();
+
   return (
     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
       <Col xs={12} sm={6}>
@@ -31,7 +35,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats }) => {
           <Statistic
             title="可用"
             value={stats.available}
-            valueStyle={{ color: '#3f8600' }}
+            valueStyle={{ color: token.colorSuccess }}
             prefix={<CheckCircleOutlined />}
           />
         </Card>
@@ -46,7 +50,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats }) => {
           <Statistic
             title="已过期"
             value={stats.expired}
-            valueStyle={{ color: '#cf1322' }}
+            valueStyle={{ color: token.colorError }}
             prefix={<CloseCircleOutlined />}
           />
         </Card>

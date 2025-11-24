@@ -10,6 +10,7 @@ import {
   DatePicker,
   Select,
   Button,
+  theme,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -25,6 +26,7 @@ import { getLoginHistory, LoginHistoryRecord } from '@/services/auth';
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
+const { useToken } = theme;
 
 /**
  * 登录历史组件
@@ -36,6 +38,7 @@ const { RangePicker } = DatePicker;
  * 4. 显示设备、浏览器、IP地址等信息
  */
 export const LoginHistory: React.FC = React.memo(() => {
+  const { token } = useToken();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<LoginHistoryRecord[]>([]);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
@@ -77,9 +80,9 @@ export const LoginHistory: React.FC = React.memo(() => {
   const getDeviceIcon = (device: string) => {
     const lowerDevice = device.toLowerCase();
     if (lowerDevice.includes('mobile') || lowerDevice.includes('android') || lowerDevice.includes('ios')) {
-      return <MobileOutlined style={{ color: '#1890ff' }} />;
+      return <MobileOutlined style={{ color: token.colorPrimary }} />;
     }
-    return <LaptopOutlined style={{ color: '#52c41a' }} />;
+    return <LaptopOutlined style={{ color: token.colorSuccess }} />;
   };
 
   const columns: ColumnsType<LoginHistoryRecord> = [
@@ -140,7 +143,7 @@ export const LoginHistory: React.FC = React.memo(() => {
       width: 180,
       render: (location: string) => (
         <Space size={4}>
-          <EnvironmentOutlined style={{ color: '#8c8c8c' }} />
+          <EnvironmentOutlined style={{ color: token.colorTextSecondary }} />
           <Text>{location || '未知'}</Text>
         </Space>
       ),

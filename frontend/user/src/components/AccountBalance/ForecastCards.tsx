@@ -1,15 +1,18 @@
 import { memo } from 'react';
-import { Row, Col, Card, Space, Statistic, Alert, Button, Typography } from 'antd';
+import { Row, Col, Card, Space, Statistic, Alert, Button, Typography, theme } from 'antd';
 import { WalletOutlined, BellOutlined, DollarOutlined } from '@ant-design/icons';
 import type { BalanceData } from '@/hooks/useAccountBalance';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface ForecastCardsProps {
   balanceData: BalanceData;
 }
 
 export const ForecastCards = memo<ForecastCardsProps>(({ balanceData }) => {
+  const { token } = useToken();
+
   return (
     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
       {/* 消费预测 */}
@@ -30,26 +33,26 @@ export const ForecastCards = memo<ForecastCardsProps>(({ balanceData }) => {
               <Col span={12}>
                 <Card
                   size="small"
-                  style={{ background: '#f0f7ff', textAlign: 'center' }}
+                  style={{ background: token.colorPrimaryBg, textAlign: 'center' }}
                 >
                   <Statistic
                     title="预计本月总消费"
                     value={(balanceData.avgDailyConsumption * 30).toFixed(2)}
                     prefix="¥"
-                    valueStyle={{ color: '#1890ff', fontSize: 20 }}
+                    valueStyle={{ color: token.colorPrimary, fontSize: 20 }}
                   />
                 </Card>
               </Col>
               <Col span={12}>
                 <Card
                   size="small"
-                  style={{ background: '#f0f7ff', textAlign: 'center' }}
+                  style={{ background: token.colorPrimaryBg, textAlign: 'center' }}
                 >
                   <Statistic
                     title="预计余额可用天数"
                     value={balanceData.forecastDaysLeft}
                     suffix="天"
-                    valueStyle={{ color: '#1890ff', fontSize: 20 }}
+                    valueStyle={{ color: token.colorPrimary, fontSize: 20 }}
                   />
                 </Card>
               </Col>
@@ -84,21 +87,21 @@ export const ForecastCards = memo<ForecastCardsProps>(({ balanceData }) => {
                 <Card
                   size="small"
                   style={{
-                    background: '#f6ffed',
+                    background: token.colorSuccessBg,
                     textAlign: 'center',
                     cursor: 'pointer',
                   }}
                   hoverable
                   onClick={() => (window.location.href = '/recharge')}
                 >
-                  <Text strong style={{ color: '#52c41a', fontSize: 16 }}>
+                  <Text strong style={{ color: token.colorSuccess, fontSize: 16 }}>
                     推荐充值
                   </Text>
                   <div
                     style={{
                       fontSize: 24,
                       fontWeight: 'bold',
-                      color: '#52c41a',
+                      color: token.colorSuccess,
                       margin: '8px 0',
                     }}
                   >
@@ -113,21 +116,21 @@ export const ForecastCards = memo<ForecastCardsProps>(({ balanceData }) => {
                 <Card
                   size="small"
                   style={{
-                    background: '#fff7e6',
+                    background: token.colorWarningBg,
                     textAlign: 'center',
                     cursor: 'pointer',
                   }}
                   hoverable
                   onClick={() => (window.location.href = '/recharge')}
                 >
-                  <Text strong style={{ color: '#faad14', fontSize: 16 }}>
+                  <Text strong style={{ color: token.colorWarning, fontSize: 16 }}>
                     最低充值
                   </Text>
                   <div
                     style={{
                       fontSize: 24,
                       fontWeight: 'bold',
-                      color: '#faad14',
+                      color: token.colorWarning,
                       margin: '8px 0',
                     }}
                   >

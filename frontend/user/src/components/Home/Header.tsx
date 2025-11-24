@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Button, Space, Drawer, Dropdown, Card, Row, Col, Typography } from 'antd';
+import { Menu, Button, Space, Drawer, Dropdown, Card, Row, Col, Typography, theme } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
+
+const { useToken } = theme;
 import {
   LoginOutlined,
   UserAddOutlined,
@@ -61,6 +63,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   onRegister,
   onDashboard,
 }) => {
+  const { token } = useToken();
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -88,7 +91,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
   // 产品下拉菜单内容 - 优化版
   const productMenuContent = (
-    <div style={{ width: 1080, padding: '24px', background: '#fff', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.08)' }}>
+    <div style={{ width: 1080, padding: '24px', background: token.colorBgContainer, borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.08)' }}>
       <style>
         {`
           @keyframes slideInUp {
@@ -157,7 +160,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                 style={{
                   border: 'none',
-                  background: '#fafafa',
+                  background: token.colorBgLayout,
                   animation: `slideInUp 0.4s ease-out ${idx * 0.1}s backwards`,
                 }}
               >
@@ -212,7 +215,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                 style={{
                   border: 'none',
-                  background: '#fafafa',
+                  background: token.colorBgLayout,
                   animation: `slideInUp 0.4s ease-out ${idx * 0.1 + 0.2}s backwards`,
                 }}
               >
@@ -265,7 +268,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                 style={{
                   border: 'none',
-                  background: '#fafafa',
+                  background: token.colorBgLayout,
                   animation: `slideInUp 0.4s ease-out ${idx * 0.1 + 0.4}s backwards`,
                 }}
               >
@@ -320,7 +323,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
                 style={{
                   border: 'none',
-                  background: '#fafafa',
+                  background: token.colorBgLayout,
                   animation: `slideInUp 0.4s ease-out ${idx * 0.1 + 0.4}s backwards`,
                 }}
               >
@@ -358,7 +361,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
   // 帮助菜单下拉内容
   const helpMenuContent = (
-    <div style={{ width: 720, padding: '24px', background: '#fff', borderRadius: 12 }}>
+    <div style={{ width: 720, padding: '24px', background: token.colorBgContainer, borderRadius: 12 }}>
       <style>
         {`
           .help-card {
@@ -367,7 +370,6 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
             border: none;
-            background: #fafafa;
           }
           .help-card:hover {
             transform: translateY(-4px) scale(1.02);
@@ -397,13 +399,13 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         <Col span={12}>
           <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #f0f0f0' }}>
             <Space>
-              <div style={{ width: 6, height: 20, background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)', borderRadius: 3 }} />
+              <div style={{ width: 6, height: 20, background: 'linear-gradient(135deg, #1677ff 0%, #096dd9 100%)', borderRadius: 3 }} />
               <Text strong style={{ fontSize: 15, color: '#1e293b' }}>快速入口</Text>
             </Space>
           </div>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
             {[
-              { icon: <FileTextOutlined />, title: '帮助文档', desc: '详细的产品使用文档', color: '#1890ff', bg: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)', path: '/help/articles' },
+              { icon: <FileTextOutlined />, title: '帮助文档', desc: '详细的产品使用文档', color: '#1677ff', bg: 'linear-gradient(135deg, #1677ff 0%, #096dd9 100%)', path: '/help/articles' },
               { icon: <QuestionCircleOutlined />, title: '常见问题', desc: '快速找到问题答案', color: '#52c41a', bg: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)', path: '/help/faqs' },
               { icon: <PlayCircleOutlined />, title: '视频教程', desc: '通过视频学习功能', color: '#faad14', bg: 'linear-gradient(135deg, #faad14 0%, #d48806 100%)', path: '/help/tutorials' },
             ].map((item, idx) => (
@@ -527,8 +529,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   background: '#fafafa',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#1890ff10';
-                  e.currentTarget.style.color = '#1890ff';
+                  e.currentTarget.style.background = '#1677ff10';
+                  e.currentTarget.style.color = '#1677ff';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = '#fafafa';

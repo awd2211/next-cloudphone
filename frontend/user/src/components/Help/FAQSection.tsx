@@ -1,7 +1,9 @@
 import React from 'react';
-import { Card, List, Space, Button, Typography } from 'antd';
+import { Card, List, Space, Button, Typography, theme } from 'antd';
 import { QuestionCircleOutlined, EyeOutlined, LikeOutlined, RightOutlined } from '@ant-design/icons';
 import type { FAQ } from '@/services/help';
+
+const { useToken } = theme;
 
 interface FAQSectionProps {
   popularFAQs: FAQ[];
@@ -17,6 +19,7 @@ export const FAQSection: React.FC<FAQSectionProps> = React.memo(({
   onFAQClick,
   onViewAllClick,
 }) => {
+  const { token } = useToken();
   if (popularFAQs.length === 0) return null;
 
   return (
@@ -145,7 +148,7 @@ export const FAQSection: React.FC<FAQSectionProps> = React.memo(({
                 boxShadow: '0 4px 12px rgba(82, 196, 26, 0.2)',
               }}
             >
-              <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: 20 }} />
+              <QuestionCircleOutlined style={{ color: token.colorSuccess, fontSize: 20 }} />
             </div>
             <span style={{ fontWeight: 600, fontSize: 16 }}>热门问答</span>
           </Space>

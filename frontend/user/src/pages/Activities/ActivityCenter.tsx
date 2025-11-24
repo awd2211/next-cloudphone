@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Space, Button, Pagination, message } from 'antd';
+import { Card, Space, Button, Pagination, message, theme } from 'antd';
+
+const { useToken } = theme;
 import { GiftOutlined, RightOutlined } from '@ant-design/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
@@ -27,6 +29,7 @@ import { getListData } from '@/types';
  * 5. 跳转到活动详情和我的优惠券
  */
 const ActivityCenter: React.FC = () => {
+  const { token } = useToken();
   const navigate = useNavigate();
 
   // 本地状态
@@ -95,7 +98,7 @@ const ActivityCenter: React.FC = () => {
         <Card
           title={
             <Space>
-              <GiftOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              <GiftOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
               <span style={{ fontSize: 24, fontWeight: 'bold' }}>活动中心</span>
             </Space>
           }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Button, Space, Drawer } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Button, Space, Drawer, theme } from 'antd';
 import {
   HomeOutlined,
   MobileOutlined,
@@ -23,6 +23,10 @@ import {
 import type { MenuProps } from 'antd';
 import NotificationCenter from '@/components/NotificationCenter';
 import LiveChatWidget from '@/components/LiveChatWidget';
+import { ThemeSwitch } from '@/components/ThemeSwitch';
+import { useTheme } from '@/hooks/useTheme';
+
+const { useToken } = theme;
 
 const { Header, Content, Footer } = Layout;
 
@@ -35,6 +39,10 @@ const MainLayout = () => {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   });
+
+  // 获取主题状态和 Ant Design token
+  const { mode, actualTheme, setMode, toggleTheme, isDark } = useTheme();
+  const { token } = useToken();
 
   // 检测屏幕尺寸
   useEffect(() => {
@@ -171,9 +179,13 @@ const MainLayout = () => {
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          background: '#fff',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+          background: token.colorBgContainer,
+          boxShadow: isDark
+            ? '0 2px 8px rgba(0, 0, 0, 0.45)'
+            : '0 2px 8px rgba(0, 0, 0, 0.06)',
           padding: isMobile ? '0 16px' : '0 50px',
+          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+          transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
         }}
       >
         <div
@@ -183,6 +195,7 @@ const MainLayout = () => {
             marginRight: isMobile ? 16 : 48,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
+            color: token.colorText,
           }}
           onClick={() => navigate('/')}
         >
@@ -192,11 +205,16 @@ const MainLayout = () => {
         {/* 桌面端菜单 */}
         {!isMobile && (
           <Menu
-            theme="light"
+            theme={isDark ? 'dark' : 'light'}
             mode="horizontal"
             selectedKeys={[location.pathname]}
             items={menuItems}
-            style={{ flex: 1, minWidth: 0, border: 'none' }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              border: 'none',
+              background: 'transparent',
+            }}
           />
         )}
 
@@ -204,13 +222,27 @@ const MainLayout = () => {
         {isMobile && <div style={{ flex: 1 }} />}
 
         <Space size={isMobile ? 'middle' : 'large'}>
+          {/* 主题切换按钮 */}
+          <ThemeSwitch
+            mode={mode}
+            actualTheme={actualTheme}
+            onModeChange={setMode}
+            onToggle={toggleTheme}
+            variant={isMobile ? 'icon-only' : 'dropdown'}
+            size={isMobile ? 'small' : 'middle'}
+          />
+
           {user ? (
             <>
               {!isMobile && <NotificationCenter />}
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
                 <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                   <Avatar icon={<UserOutlined />} style={{ marginRight: isMobile ? 0 : 8 }} />
-                  {!isMobile && <span>{user.username}</span>}
+                  {!isMobile && (
+                    <span style={{ color: token.colorText }}>
+                      {user.username}
+                    </span>
+                  )}
                 </div>
               </Dropdown>
             </>
@@ -227,7 +259,7 @@ const MainLayout = () => {
 
           {isMobile && (
             <MenuOutlined
-              style={{ fontSize: 20, cursor: 'pointer' }}
+              style={{ fontSize: 20, cursor: 'pointer', color: token.colorText }}
               onClick={() => setDrawerVisible(true)}
             />
           )}
@@ -260,8 +292,11 @@ const MainLayout = () => {
       <Footer
         style={{
           textAlign: 'center',
-          background: '#f0f2f5',
+          background: isDark ? token.colorBgElevated : '#f0f2f5',
           padding: isMobile ? '12px' : '24px 50px',
+          color: token.colorTextSecondary,
+          borderTop: `1px solid ${token.colorBorderSecondary}`,
+          transition: 'background-color 0.3s ease, color 0.3s ease',
         }}
       >
         云手机平台 ©{new Date().getFullYear()}

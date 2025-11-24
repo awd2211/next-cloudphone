@@ -609,7 +609,7 @@ describe('useAccountBalance Hook (React Query版本)', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.lineChartConfig.color).toBe('#1890ff');
+        expect(result.current.lineChartConfig.color).toBe('#1677ff');
       });
     });
 

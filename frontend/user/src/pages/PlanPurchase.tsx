@@ -11,7 +11,10 @@ import {
   Modal,
   QRCode,
   Spin,
+  theme,
 } from 'antd';
+
+const { useToken } = theme;
 import { ArrowLeftOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getPlan } from '@/services/plan';
@@ -20,6 +23,7 @@ import type { Plan, Order, Payment } from '@/types';
 import dayjs from 'dayjs';
 
 const PlanPurchaseContent = () => {
+  const { token } = useToken();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -174,7 +178,7 @@ const PlanPurchaseContent = () => {
               {plan.type === 'one-time' && '一次性'}
             </Descriptions.Item>
             <Descriptions.Item label="价格">
-              <span style={{ fontSize: 24, color: '#1890ff', fontWeight: 'bold' }}>
+              <span style={{ fontSize: 24, color: token.colorPrimary, fontWeight: 'bold' }}>
                 ¥{plan.price.toFixed(2)}
               </span>
             </Descriptions.Item>
@@ -198,7 +202,7 @@ const PlanPurchaseContent = () => {
           <Descriptions column={1} bordered style={{ marginBottom: 24 }}>
             <Descriptions.Item label="订单号">{order.orderNo}</Descriptions.Item>
             <Descriptions.Item label="订单金额">
-              <span style={{ fontSize: 20, color: '#f5222d', fontWeight: 'bold' }}>
+              <span style={{ fontSize: 20, color: token.colorError, fontWeight: 'bold' }}>
                 ¥{order.amount.toFixed(2)}
               </span>
             </Descriptions.Item>
@@ -275,9 +279,9 @@ const PlanPurchaseContent = () => {
       {currentStep === 2 && (
         <Card>
           <div style={{ textAlign: 'center', padding: '48px 0' }}>
-            <CheckCircleOutlined style={{ fontSize: 72, color: '#52c41a', marginBottom: 24 }} />
+            <CheckCircleOutlined style={{ fontSize: 72, color: token.colorSuccess, marginBottom: 24 }} />
             <h2 style={{ fontSize: 28, marginBottom: 16 }}>购买成功！</h2>
-            <p style={{ fontSize: 16, color: '#666', marginBottom: 32 }}>
+            <p style={{ fontSize: 16, color: token.colorTextSecondary, marginBottom: 32 }}>
               感谢您的购买，您现在可以开始使用云手机了
             </p>
             <Space size="large">
@@ -314,7 +318,7 @@ const PlanPurchaseContent = () => {
             </p>
             <p style={{ color: '#999' }}>金额: ¥{order?.amount.toFixed(2)}</p>
             {polling && (
-              <p style={{ color: '#1890ff', marginTop: 16 }}>
+              <p style={{ color: token.colorPrimary, marginTop: 16 }}>
                 <Spin size="small" style={{ marginRight: 8 }} />
                 等待支付中...
               </p>

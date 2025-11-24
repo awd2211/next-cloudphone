@@ -1,9 +1,10 @@
 import React from 'react';
-import { Card, Table, Typography } from 'antd';
+import { Card, Table, Typography, theme } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { formatAmount, type Bill, type BillItem } from '@/services/billing';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface BillItemsTableProps {
   bill: Bill;
@@ -17,6 +18,8 @@ interface BillItemsTableProps {
  * - 表格列定义和 Summary 集成在组件内
  */
 export const BillItemsTable: React.FC<BillItemsTableProps> = React.memo(({ bill }) => {
+  const { token } = useToken();
+
   // 账单项表格列
   const columns: ColumnsType<BillItem> = [
     { title: '项目名称', dataIndex: 'name', key: 'name' },
@@ -96,7 +99,7 @@ export const BillItemsTable: React.FC<BillItemsTableProps> = React.memo(({ bill 
                 </Text>
               </Table.Summary.Cell>
               <Table.Summary.Cell index={1}>
-                <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
+                <Text strong style={{ fontSize: 18, color: token.colorPrimary }}>
                   {formatAmount(bill.finalAmount)}
                 </Text>
               </Table.Summary.Cell>

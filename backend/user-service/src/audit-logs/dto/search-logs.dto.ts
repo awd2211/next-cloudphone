@@ -87,6 +87,32 @@ export class SearchLogsDto {
   @IsBoolean()
   success?: boolean;
 
+  @ApiPropertyOptional({
+    description: '状态（前端格式）',
+    enum: ['success', 'failed', 'warning'],
+    example: 'success',
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({
+    description: 'HTTP 方法',
+    enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    example: 'POST',
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  @IsString()
+  method?: string;
+
+  @ApiPropertyOptional({ description: '搜索关键词（描述、操作）', example: '登录' })
+  @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  @IsString()
+  search?: string;
+
   @ApiPropertyOptional({ description: '页码', example: 1, default: 1 })
   @IsOptional()
   @Type(() => Number)

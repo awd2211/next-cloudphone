@@ -7,3 +7,4 @@ export * from './status';
 export * from './timing';
 export * from './routes';
 export * from './messages';
+export * from './colors';

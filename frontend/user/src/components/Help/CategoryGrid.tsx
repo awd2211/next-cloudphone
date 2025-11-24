@@ -88,7 +88,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = React.memo(({
       <Row gutter={[20, 20]}>
         {categories.map((category, index) => {
           const icon = categoryIcons[category.icon] || <BookOutlined />;
-          const color = categoryColors[category.icon] || '#1890ff';
+          const color = categoryColors[category.icon] || '#1677ff';
 
           return (
             <Col key={category.id} xs={24} sm={12} lg={8}>

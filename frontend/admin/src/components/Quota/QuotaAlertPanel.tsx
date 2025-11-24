@@ -16,19 +16,22 @@ interface QuotaAlertPanelProps {
  * 显示配额告警信息
  */
 export const QuotaAlertPanel = memo<QuotaAlertPanelProps>(({ alerts }) => {
-  if (alerts.length === 0) return null;
+  // 防御性检查：确保 alerts 是数组
+  const safeAlerts = Array.isArray(alerts) ? alerts : [];
+
+  if (safeAlerts.length === 0) return null;
 
   return (
     <Alert
       message={
         <Space>
           <WarningOutlined />
-          <span>配额告警 ({alerts.length})</span>
+          <span>配额告警 ({safeAlerts.length})</span>
         </Space>
       }
       description={
         <div>
-          {alerts.slice(0, 3).map((alert, index) => (
+          {safeAlerts.slice(0, 3).map((alert, index) => (
             <div key={index} style={{ marginBottom: 8 }}>
               <Tag color="orange">{alert.quotaType}</Tag>
               <span>用户 {alert.userId}: </span>
@@ -37,9 +40,9 @@ export const QuotaAlertPanel = memo<QuotaAlertPanelProps>(({ alerts }) => {
               </span>
             </div>
           ))}
-          {alerts.length > 3 && (
+          {safeAlerts.length > 3 && (
             <Button type="link" size="small">
-              查看全部 {alerts.length} 条告警
+              查看全部 {safeAlerts.length} 条告警
             </Button>
           )}
         </div>

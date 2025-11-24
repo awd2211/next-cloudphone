@@ -15,6 +15,7 @@ import {
   Statistic,
   Alert,
   Spin,
+  theme,
 } from 'antd';
 import {
   CheckOutlined,
@@ -31,6 +32,7 @@ import { plans as defaultPlans, comparisonData, faqData } from '@/utils/pricingD
 import { getPricingPlans, type PricingPlan } from '@/services/cms';
 
 const { Title, Paragraph, Text } = Typography;
+const { useToken } = theme;
 
 // 定义前端 Plan 类型
 interface Plan {
@@ -79,6 +81,7 @@ const transformCMSPlan = (cmsPlan: PricingPlan): Plan => ({
 });
 
 const Pricing: React.FC = () => {
+  const { token } = useToken();
   const {
     billingCycle,
     setBillingCycle,
@@ -129,7 +132,7 @@ const Pricing: React.FC = () => {
         width: 150,
         render: (value: any) => {
           if (value === true) {
-            return <CheckOutlined style={{ color: '#52c41a', fontSize: 18 }} />;
+            return <CheckOutlined style={{ color: token.colorSuccess, fontSize: 18 }} />;
           } else if (value === false) {
             return <CloseOutlined style={{ color: '#d9d9d9', fontSize: 18 }} />;
           }
@@ -141,7 +144,7 @@ const Pricing: React.FC = () => {
   );
 
   return (
-    <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 80 }}>
+    <div style={{ background: token.colorBgLayout, minHeight: '100vh', paddingBottom: 80 }}>
       <PricingHero billingCycle={billingCycle} onBillingCycleChange={setBillingCycle} />
 
       {/* 套餐卡片 */}
@@ -149,7 +152,7 @@ const Pricing: React.FC = () => {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
             <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
-            <p style={{ marginTop: 16, color: '#666' }}>正在加载定价方案...</p>
+            <p style={{ marginTop: 16, color: token.colorTextSecondary }}>正在加载定价方案...</p>
           </div>
         ) : (
         <Row gutter={[24, 24]}>
@@ -160,7 +163,7 @@ const Pricing: React.FC = () => {
                 style={{
                   height: '100%',
                   borderRadius: 12,
-                  border: plan.highlighted ? '3px solid #1890ff' : '1px solid #f0f0f0',
+                  border: plan.highlighted ? `3px solid ${token.colorPrimary}` : `1px solid ${token.colorBorderSecondary}`,
                   position: 'relative',
                   boxShadow: plan.highlighted
                     ? '0 8px 24px rgba(24, 144, 255, 0.2)'
@@ -259,7 +262,7 @@ const Pricing: React.FC = () => {
       <div style={{ maxWidth: 1400, margin: '80px auto', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <Title level={2}>功能详细对比</Title>
-          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+          <Paragraph style={{ fontSize: 16, color: token.colorTextSecondary }}>
             查看不同套餐的完整功能清单
           </Paragraph>
         </div>
@@ -280,7 +283,7 @@ const Pricing: React.FC = () => {
         <Card
           title={
             <Space>
-              <CalculatorOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              <CalculatorOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
               <Text strong style={{ fontSize: 18 }}>
                 价格计算器
               </Text>
@@ -316,7 +319,7 @@ const Pricing: React.FC = () => {
               </Space>
             </Col>
             <Col xs={24} md={12}>
-              <Card style={{ background: '#f0f7ff', border: '1px solid #1890ff' }}>
+              <Card style={{ background: token.colorPrimaryBg, border: `1px solid ${token.colorPrimary}` }}>
                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary">预估费用</Text>
@@ -325,7 +328,7 @@ const Pricing: React.FC = () => {
                         value={calculatePrice()}
                         prefix="¥"
                         suffix={billingCycle === 'monthly' ? '/月' : '/年'}
-                        valueStyle={{ color: '#1890ff', fontSize: 36 }}
+                        valueStyle={{ color: token.colorPrimary, fontSize: 36 }}
                       />
                     </div>
                   </div>
@@ -351,7 +354,7 @@ const Pricing: React.FC = () => {
       <div style={{ maxWidth: 1200, margin: '80px auto', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <Title level={2}>常见问题</Title>
-          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+          <Paragraph style={{ fontSize: 16, color: token.colorTextSecondary }}>
             关于定价和计费的常见问题解答
           </Paragraph>
         </div>
@@ -365,7 +368,7 @@ const Pricing: React.FC = () => {
               key: index.toString(),
               label: (
                 <Space>
-                  <QuestionCircleOutlined style={{ color: '#1890ff' }} />
+                  <QuestionCircleOutlined style={{ color: token.colorPrimary }} />
                   <Text strong>{faq.question}</Text>
                 </Space>
               ),

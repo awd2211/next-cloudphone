@@ -27,7 +27,7 @@ export const categoryIcons: Record<string, React.ReactNode> = {
 
 // 分类颜色映射
 export const categoryColors: Record<string, string> = {
-  'getting-started': '#1890ff',
+  'getting-started': '#1677ff',
   account: '#52c41a',
   device: '#faad14',
   app: '#13c2c2',
@@ -48,7 +48,7 @@ export interface QuickLink {
 export const quickLinks: QuickLink[] = [
   {
     icon: <FileTextOutlined style={{ fontSize: 48 }} />,
-    iconColor: '#1890ff',
+    iconColor: '#1677ff',
     title: '帮助文档',
     description: '查看详细的产品使用文档',
     path: '/help/articles',

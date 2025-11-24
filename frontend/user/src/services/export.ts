@@ -109,7 +109,7 @@ const MOCK_DATA_TYPE_CONFIGS: Record<ExportDataType, DataTypeConfig> = {
     label: '订单数据',
     description: '导出您的所有订单记录',
     icon: 'shopping-cart',
-    color: '#1890ff',
+    color: '#1677ff',
     availableFormats: [ExportFormat.CSV, ExportFormat.EXCEL, ExportFormat.PDF],
     maxRecords: 10000,
     estimatedSize: '约 1-5 MB',

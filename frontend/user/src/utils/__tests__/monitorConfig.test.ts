@@ -119,12 +119,12 @@ describe('monitorConfig', () => {
     ];
 
     it('应该创建CPU使用率图表配置', () => {
-      const config = createChartConfig(mockData, 'cpuUsage', '#1890ff', 'CPU');
+      const config = createChartConfig(mockData, 'cpuUsage', '#1677ff', 'CPU');
 
       expect(config).toHaveProperty('data', mockData);
       expect(config).toHaveProperty('xField', 'time');
       expect(config).toHaveProperty('yField', 'cpuUsage');
-      expect(config).toHaveProperty('color', '#1890ff');
+      expect(config).toHaveProperty('color', '#1677ff');
       expect(config).toHaveProperty('height', 200);
       expect(config).toHaveProperty('smooth', true);
     });
@@ -137,21 +137,21 @@ describe('monitorConfig', () => {
     });
 
     it('Y轴应该配置为0-100范围', () => {
-      const config = createChartConfig(mockData, 'cpuUsage', '#1890ff', 'CPU');
+      const config = createChartConfig(mockData, 'cpuUsage', '#1677ff', 'CPU');
 
       expect(config.yAxis).toHaveProperty('min', 0);
       expect(config.yAxis).toHaveProperty('max', 100);
     });
 
     it('Y轴标签应该显示百分号', () => {
-      const config = createChartConfig(mockData, 'cpuUsage', '#1890ff', 'CPU');
+      const config = createChartConfig(mockData, 'cpuUsage', '#1677ff', 'CPU');
 
       expect(config.yAxis.label.formatter('50')).toBe('50%');
       expect(config.yAxis.label.formatter('100')).toBe('100%');
     });
 
     it('tooltip应该格式化数值为百分比', () => {
-      const config = createChartConfig(mockData, 'cpuUsage', '#1890ff', 'CPU');
+      const config = createChartConfig(mockData, 'cpuUsage', '#1677ff', 'CPU');
 
       const formatted = config.tooltip.formatter(mockData[0]);
       expect(formatted).toEqual({
@@ -161,7 +161,7 @@ describe('monitorConfig', () => {
     });
 
     it('tooltip应该处理缺失的字段', () => {
-      const config = createChartConfig(mockData, 'cpuUsage', '#1890ff', 'CPU');
+      const config = createChartConfig(mockData, 'cpuUsage', '#1677ff', 'CPU');
 
       const formatted = config.tooltip.formatter({ time: '10:00' } as any);
       expect(formatted).toEqual({

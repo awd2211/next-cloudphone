@@ -21,7 +21,7 @@ const { TextArea } = Input;
 // 默认联系方式（CMS 加载失败时使用）
 const defaultContactMethods = [
   {
-    icon: <PhoneOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+    icon: <PhoneOutlined style={{ fontSize: 32, color: '#1677ff' }} />,
     title: '电话咨询',
     content: '400-123-4567',
     description: '工作日 9:00-18:00',
@@ -39,7 +39,7 @@ const defaultContactMethods = [
     description: '扫码添加客服微信',
   },
   {
-    icon: <QqOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+    icon: <QqOutlined style={{ fontSize: 32, color: '#1677ff' }} />,
     title: 'QQ 群',
     content: '123456789',
     description: '加入开发者交流群',
@@ -92,7 +92,7 @@ const Contact: React.FC = () => {
   const contactMethods = siteSettings
     ? [
         {
-          icon: <PhoneOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+          icon: <PhoneOutlined style={{ fontSize: 32, color: '#1677ff' }} />,
           title: '电话咨询',
           content: siteSettings.contact.phone,
           description: '工作日 9:00-18:00',
@@ -110,7 +110,7 @@ const Contact: React.FC = () => {
           description: '扫码添加客服微信',
         },
         {
-          icon: <QqOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+          icon: <QqOutlined style={{ fontSize: 32, color: '#1677ff' }} />,
           title: 'QQ 群',
           content: siteSettings.contact.qq_group,
           description: '加入开发者交流群',
@@ -179,7 +179,7 @@ const Contact: React.FC = () => {
                   >
                     <div style={{ marginBottom: 16 }}>{method.icon}</div>
                     <h3 style={{ fontSize: 18, marginBottom: 12 }}>{method.title}</h3>
-                    <p style={{ fontSize: 16, fontWeight: 600, color: '#1890ff', marginBottom: 8 }}>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: '#1677ff', marginBottom: 8 }}>
                       {method.content}
                     </p>
                     <p style={{ fontSize: 14, color: '#666' }}>{method.description}</p>
@@ -287,7 +287,7 @@ const Contact: React.FC = () => {
               {/* 办公地址 */}
               <Card>
                 <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                  <EnvironmentOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+                  <EnvironmentOutlined style={{ fontSize: 48, color: '#1677ff' }} />
                   <h3 style={{ fontSize: 20, marginTop: 16, marginBottom: 16 }}>办公地址</h3>
                 </div>
                 {offices.map((office, index) => (

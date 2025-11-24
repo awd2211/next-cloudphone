@@ -56,7 +56,8 @@ const AppList = () => {
   // 统计数据
   const stats = useMemo(() => ({
     total: statsData?.total || total,
-    categories: statsData?.categories || 0,
+    // categories 是对象 { categoryName: count }，取 key 数量
+    categories: statsData?.categories ? Object.keys(statsData.categories).length : 0,
     totalSize: statsData?.totalSize || 0,
   }), [statsData, total]);
 

@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { Row, Col, Card, Statistic, Progress, Tag, Typography, Button } from 'antd';
+import { Row, Col, Card, Statistic, Progress, Tag, Typography, Button, theme } from 'antd';
 import {
   MobileOutlined,
   AppstoreOutlined,
@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import type { DashboardData } from '@/hooks/useDashboard';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface CoreMetricsCardsProps {
   data: DashboardData;
@@ -20,6 +21,7 @@ interface CoreMetricsCardsProps {
 export const CoreMetricsCards = memo<CoreMetricsCardsProps>(
   ({ data, deviceUsageRate, spendingTrendPercent }) => {
     const navigate = useNavigate();
+    const { token } = useToken();
 
     const trendTag = useMemo(() => {
       return spendingTrendPercent > 0 ? (
@@ -43,11 +45,11 @@ export const CoreMetricsCards = memo<CoreMetricsCardsProps>(
               value={data.devices.total}
               suffix={`/ ${data.devices.quota}`}
               prefix={<MobileOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
             <Progress
               percent={deviceUsageRate}
-              strokeColor={deviceUsageRate > 80 ? '#ff4d4f' : '#1890ff'}
+              strokeColor={deviceUsageRate > 80 ? token.colorError : token.colorPrimary}
               showInfo={false}
               style={{ marginTop: 8 }}
             />
@@ -64,7 +66,7 @@ export const CoreMetricsCards = memo<CoreMetricsCardsProps>(
               title="已安装应用"
               value={data.apps.installed}
               prefix={<AppstoreOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: token.colorSuccess }}
             />
             <div style={{ marginTop: 8 }}>
               <Text type="secondary" style={{ fontSize: 12 }}>
@@ -82,7 +84,7 @@ export const CoreMetricsCards = memo<CoreMetricsCardsProps>(
               value={data.billing.balance}
               prefix="¥"
               precision={2}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: token.colorWarning }}
             />
             <div style={{ marginTop: 8 }}>
               <Button size="small" type="link" onClick={() => navigate('/recharge')}>
@@ -100,7 +102,7 @@ export const CoreMetricsCards = memo<CoreMetricsCardsProps>(
               value={data.billing.thisMonth}
               prefix="¥"
               precision={2}
-              valueStyle={{ color: '#ff4d4f' }}
+              valueStyle={{ color: token.colorError }}
               suffix={<span style={{ fontSize: 14 }}>{trendTag}</span>}
             />
             <div style={{ marginTop: 8 }}>

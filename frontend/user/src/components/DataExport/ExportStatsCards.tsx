@@ -1,11 +1,13 @@
 import React from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic, theme } from 'antd';
 import {
   FileTextOutlined,
   SyncOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { formatFileSize, type ExportStats } from '@/services/export';
+
+const { useToken } = theme;
 
 interface ExportStatsCardsProps {
   stats: ExportStats | null;
@@ -16,6 +18,8 @@ interface ExportStatsCardsProps {
  * 展示总任务数、处理中、已完成和总大小
  */
 export const ExportStatsCards: React.FC<ExportStatsCardsProps> = React.memo(({ stats }) => {
+  const { token } = useToken();
+
   if (!stats) return null;
 
   return (
@@ -30,7 +34,7 @@ export const ExportStatsCards: React.FC<ExportStatsCardsProps> = React.memo(({ s
           <Statistic
             title="处理中"
             value={stats.processing + stats.pending}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
             prefix={<SyncOutlined spin={stats.processing > 0} />}
           />
         </Card>
@@ -40,7 +44,7 @@ export const ExportStatsCards: React.FC<ExportStatsCardsProps> = React.memo(({ s
           <Statistic
             title="已完成"
             value={stats.completed}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: token.colorSuccess }}
             prefix={<CheckCircleOutlined />}
           />
         </Card>

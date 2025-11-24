@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Progress, List, Tag, Space, Typography, Alert } from 'antd';
+import { Modal, Progress, List, Tag, Space, Typography, Alert, theme } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 export interface BatchOperationResult {
   deviceId: string;
@@ -35,6 +36,8 @@ interface BatchOperationModalProps {
  */
 export const BatchOperationModal: React.FC<BatchOperationModalProps> = React.memo(
   ({ open, title, operationType, results, onClose }) => {
+    const { token } = useToken();
+
     // 统计
     const total = results.length;
     const completed = results.filter(
@@ -51,13 +54,13 @@ export const BatchOperationModal: React.FC<BatchOperationModalProps> = React.mem
     const getStatusIcon = (status: BatchOperationResult['status']) => {
       switch (status) {
         case 'success':
-          return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
+          return <CheckCircleOutlined style={{ color: token.colorSuccess }} />;
         case 'failed':
-          return <CloseCircleOutlined style={{ color: '#ff4d4f' }} />;
+          return <CloseCircleOutlined style={{ color: token.colorError }} />;
         case 'processing':
-          return <LoadingOutlined style={{ color: '#1890ff' }} />;
+          return <LoadingOutlined style={{ color: token.colorPrimary }} />;
         default:
-          return <InfoCircleOutlined style={{ color: '#d9d9d9' }} />;
+          return <InfoCircleOutlined style={{ color: token.colorBorder }} />;
       }
     };
 
@@ -111,7 +114,7 @@ export const BatchOperationModal: React.FC<BatchOperationModalProps> = React.mem
             <Progress
               percent={progress}
               status={isCompleted ? (failed > 0 ? 'exception' : 'success') : 'active'}
-              strokeColor={failed > 0 && isCompleted ? '#ff4d4f' : '#1890ff'}
+              strokeColor={failed > 0 && isCompleted ? token.colorError : token.colorPrimary}
             />
           </div>
 

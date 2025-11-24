@@ -287,9 +287,9 @@ export const useAccountBalance = () => {
         size: 3,
         shape: 'circle',
       },
-      color: '#1890ff',
+      color: '#1677ff',
       areaStyle: {
-        fill: 'l(270) 0:#ffffff 0.5:#d9e8ff 1:#1890ff',
+        fill: 'l(270) 0:#ffffff 0.5:#d9e8ff 1:#1677ff',
         fillOpacity: 0.3,
       },
     }),

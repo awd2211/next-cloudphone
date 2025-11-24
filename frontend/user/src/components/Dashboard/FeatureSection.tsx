@@ -1,30 +1,34 @@
 import React from 'react';
-import { Row, Col, Card } from 'antd';
+import { Row, Col, Card, theme } from 'antd';
 import { ThunderboltOutlined, SafetyOutlined, DollarOutlined } from '@ant-design/icons';
+
+const { useToken } = theme;
 
 /**
  * 特性介绍区域组件
  * 展示平台的核心特性
  */
 export const FeatureSection: React.FC = React.memo(() => {
+  const { token } = useToken();
+
   const features = [
     {
-      icon: <ThunderboltOutlined style={{ fontSize: 48, color: '#1890ff' }} />,
+      icon: <ThunderboltOutlined style={{ fontSize: 48, color: token.colorPrimary }} />,
       title: '高性能',
       description: '高性能云服务器，流畅运行 Android 系统',
-      backgroundColor: '#e6f7ff',
+      backgroundColor: token.colorPrimaryBg,
     },
     {
-      icon: <SafetyOutlined style={{ fontSize: 48, color: '#52c41a' }} />,
+      icon: <SafetyOutlined style={{ fontSize: 48, color: token.colorSuccess }} />,
       title: '安全可靠',
       description: '数据隔离存储，7x24 小时监控保障',
-      backgroundColor: '#f6ffed',
+      backgroundColor: token.colorSuccessBg,
     },
     {
-      icon: <DollarOutlined style={{ fontSize: 48, color: '#faad14' }} />,
+      icon: <DollarOutlined style={{ fontSize: 48, color: token.colorWarning }} />,
       title: '价格实惠',
       description: '灵活的套餐选择，按需付费更省钱',
-      backgroundColor: '#fff7e6',
+      backgroundColor: token.colorWarningBg,
     },
   ];
 
@@ -56,7 +60,7 @@ export const FeatureSection: React.FC = React.memo(() => {
                 {feature.icon}
               </div>
               <h3 style={{ fontSize: 20, marginBottom: 12 }}>{feature.title}</h3>
-              <p style={{ color: '#666' }}>{feature.description}</p>
+              <p style={{ color: token.colorTextSecondary }}>{feature.description}</p>
             </Card>
           </Col>
         ))}

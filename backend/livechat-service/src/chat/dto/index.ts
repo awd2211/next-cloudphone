@@ -135,3 +135,22 @@ export class TransferConversationDto {
   @IsString()
   reason?: string;
 }
+
+/**
+ * 编辑消息 DTO
+ */
+export class EditMessageDto {
+  @ApiProperty({ description: '新的消息内容' })
+  @IsString()
+  content: string;
+}
+
+/**
+ * 撤回消息 DTO
+ */
+export class RevokeMessageDto {
+  @ApiPropertyOptional({ description: '撤回原因' })
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}

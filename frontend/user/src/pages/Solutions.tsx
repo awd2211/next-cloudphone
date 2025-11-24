@@ -9,6 +9,7 @@ import {
   Tag,
   List,
   Statistic,
+  theme,
 } from 'antd';
 import {
   RocketOutlined,
@@ -24,6 +25,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Paragraph, Text } = Typography;
+const { useToken } = theme;
 
 /**
  * 解决方案页
@@ -36,12 +38,13 @@ const { Title, Paragraph, Text } = Typography;
  */
 const Solutions: React.FC = () => {
   const navigate = useNavigate();
+  const { token } = useToken();
 
   // 解决方案列表
   const solutions = [
     {
       key: 'game',
-      icon: <RocketOutlined style={{ fontSize: 48, color: '#1890ff' }} />,
+      icon: <RocketOutlined style={{ fontSize: 48, color: token.colorPrimary }} />,
       title: '游戏多开挂机',
       subtitle: '工作室批量运营解决方案',
       description:
@@ -69,7 +72,7 @@ const Solutions: React.FC = () => {
     },
     {
       key: 'testing',
-      icon: <BugOutlined style={{ fontSize: 48, color: '#52c41a' }} />,
+      icon: <BugOutlined style={{ fontSize: 48, color: token.colorSuccess }} />,
       title: 'App自动化测试',
       subtitle: '提升测试效率的专业方案',
       description:
@@ -97,7 +100,7 @@ const Solutions: React.FC = () => {
     },
     {
       key: 'automation',
-      icon: <RobotOutlined style={{ fontSize: 48, color: '#faad14' }} />,
+      icon: <RobotOutlined style={{ fontSize: 48, color: token.colorWarning }} />,
       title: '数据采集爬虫',
       subtitle: '智能数据获取解决方案',
       description:
@@ -125,7 +128,7 @@ const Solutions: React.FC = () => {
     },
     {
       key: 'marketing',
-      icon: <ShareAltOutlined style={{ fontSize: 48, color: '#722ed1' }} />,
+      icon: <ShareAltOutlined style={{ fontSize: 48, color: token['purple-6'] ?? '#722ed1' }} />,
       title: '社交营销推广',
       subtitle: '批量账号管理运营方案',
       description:
@@ -154,7 +157,7 @@ const Solutions: React.FC = () => {
   ];
 
   return (
-    <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 80 }}>
+    <div style={{ background: token.colorBgLayout, minHeight: '100vh', paddingBottom: 80 }}>
       {/* Hero Section */}
       <div
         style={{
@@ -217,7 +220,7 @@ const Solutions: React.FC = () => {
           key={solution.key}
           id={solution.key}
           style={{
-            background: index % 2 === 0 ? 'white' : '#f0f2f5',
+            background: index % 2 === 0 ? token.colorBgContainer : token.colorBgLayout,
             padding: '80px 24px',
           }}
         >
@@ -238,7 +241,7 @@ const Solutions: React.FC = () => {
 
                   <div>
                     <Title level={4}>
-                      <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                      <CheckCircleOutlined style={{ color: token.colorSuccess, marginRight: 8 }} />
                       您面临的挑战
                     </Title>
                     <List
@@ -268,7 +271,7 @@ const Solutions: React.FC = () => {
                   <Space direction="vertical" size="large" style={{ width: '100%' }}>
                     <div>
                       <Title level={4}>
-                        <ThunderboltOutlined style={{ color: '#faad14', marginRight: 8 }} />
+                        <ThunderboltOutlined style={{ color: token.colorWarning, marginRight: 8 }} />
                         我们的解决方案
                       </Title>
                       <List
@@ -276,7 +279,7 @@ const Solutions: React.FC = () => {
                         dataSource={solution.solutions}
                         renderItem={(item) => (
                           <List.Item>
-                            <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                            <CheckCircleOutlined style={{ color: token.colorSuccess, marginRight: 8 }} />
                             <Text>{item}</Text>
                           </List.Item>
                         )}
@@ -285,7 +288,7 @@ const Solutions: React.FC = () => {
 
                     <div>
                       <Title level={4}>
-                        <LineChartOutlined style={{ color: '#1890ff', marginRight: 8 }} />
+                        <LineChartOutlined style={{ color: token.colorPrimary, marginRight: 8 }} />
                         效果数据
                       </Title>
                       <Row gutter={[16, 16]}>
@@ -295,7 +298,7 @@ const Solutions: React.FC = () => {
                               <Statistic
                                 title={benefit.label}
                                 value={benefit.value}
-                                valueStyle={{ color: '#1890ff', fontSize: 24 }}
+                                valueStyle={{ color: token.colorPrimary, fontSize: 24 }}
                               />
                               <Text type="secondary" style={{ fontSize: 12 }}>
                                 {benefit.desc}
@@ -308,7 +311,7 @@ const Solutions: React.FC = () => {
 
                     <div>
                       <Title level={4}>
-                        <ApiOutlined style={{ color: '#722ed1', marginRight: 8 }} />
+                        <ApiOutlined style={{ color: token['purple-6'] ?? '#722ed1', marginRight: 8 }} />
                         技术栈
                       </Title>
                       <Space wrap>
@@ -322,7 +325,7 @@ const Solutions: React.FC = () => {
 
                     <div>
                       <Title level={4}>
-                        <SafetyOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                        <SafetyOutlined style={{ color: token.colorSuccess, marginRight: 8 }} />
                         推荐套餐
                       </Title>
                       <Tag color="blue" style={{ fontSize: 16, padding: '8px 16px' }}>

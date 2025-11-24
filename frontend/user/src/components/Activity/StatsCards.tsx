@@ -1,6 +1,8 @@
 import React from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic, theme } from 'antd';
 import { ThunderboltOutlined, GiftOutlined, TrophyOutlined } from '@ant-design/icons';
+
+const { useToken } = theme;
 
 interface StatsCardsProps {
   stats: {
@@ -21,6 +23,8 @@ interface StatsCardsProps {
  * - 响应式布局
  */
 export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats }) => {
+  const { token } = useToken();
+
   if (!stats) return null;
 
   return (
@@ -31,7 +35,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats }) => {
             title="进行中活动"
             value={stats.ongoingActivities}
             prefix={<ThunderboltOutlined />}
-            valueStyle={{ color: '#3f8600' }}
+            valueStyle={{ color: token.colorSuccess }}
           />
         </Card>
       </Col>
@@ -42,7 +46,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats }) => {
             value={stats.availableCoupons}
             suffix={`/ ${stats.myCoupons}`}
             prefix={<GiftOutlined />}
-            valueStyle={{ color: '#cf1322' }}
+            valueStyle={{ color: token.colorError }}
           />
         </Card>
       </Col>
@@ -61,7 +65,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats }) => {
             title="获得奖励"
             value={stats.totalRewards}
             prefix={<GiftOutlined />}
-            valueStyle={{ color: '#faad14' }}
+            valueStyle={{ color: token.colorWarning }}
           />
         </Card>
       </Col>

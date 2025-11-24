@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FloatButton, Modal, Button, Space, Typography, List, Card } from 'antd';
+import { FloatButton, Modal, Button, Space, Typography, List, Card, theme } from 'antd';
 import {
   CustomerServiceOutlined,
   QuestionCircleOutlined,
@@ -11,6 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text, Paragraph } = Typography;
+const { useToken } = theme;
 
 interface QuickAction {
   icon: React.ReactNode;
@@ -21,6 +22,7 @@ interface QuickAction {
 }
 
 const LiveChatWidget: React.FC = () => {
+  const { token } = useToken();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
 
@@ -34,7 +36,7 @@ const LiveChatWidget: React.FC = () => {
         setVisible(false);
         navigate('/tickets');
       },
-      color: '#1890ff',
+      color: token.colorPrimary,
     },
     {
       icon: <QuestionCircleOutlined style={{ fontSize: 24 }} />,
@@ -44,7 +46,7 @@ const LiveChatWidget: React.FC = () => {
         setVisible(false);
         navigate('/help/faqs');
       },
-      color: '#52c41a',
+      color: token.colorSuccess,
     },
     {
       icon: <FileTextOutlined style={{ fontSize: 24 }} />,
@@ -54,7 +56,7 @@ const LiveChatWidget: React.FC = () => {
         setVisible(false);
         navigate('/help/articles');
       },
-      color: '#faad14',
+      color: token.colorWarning,
     },
     {
       icon: <BookOutlined style={{ fontSize: 24 }} />,
@@ -64,7 +66,7 @@ const LiveChatWidget: React.FC = () => {
         setVisible(false);
         navigate('/help/tutorials');
       },
-      color: '#722ed1',
+      color: token['purple-6'] ?? '#722ed1',
     },
   ];
 
@@ -88,7 +90,7 @@ const LiveChatWidget: React.FC = () => {
       <Modal
         title={
           <Space>
-            <CustomerServiceOutlined style={{ color: '#1890ff' }} />
+            <CustomerServiceOutlined style={{ color: token.colorPrimary }} />
             <span>在线客服</span>
           </Space>
         }
@@ -100,7 +102,7 @@ const LiveChatWidget: React.FC = () => {
       >
         <Space direction="vertical" style={{ width: '100%' }} size="large">
           {/* 欢迎信息 */}
-          <Card style={{ background: '#f0f7ff', border: 'none' }}>
+          <Card style={{ background: token.colorPrimaryBg, border: 'none' }}>
             <Space direction="vertical">
               <Title level={4} style={{ margin: 0 }}>
                 👋 您好，我能帮您什么？
@@ -146,10 +148,10 @@ const LiveChatWidget: React.FC = () => {
           />
 
           {/* 工作时间提示 */}
-          <Card size="small" style={{ background: '#fafafa', border: 'none' }}>
+          <Card size="small" style={{ background: token.colorBgLayout, border: 'none' }}>
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
               <Space>
-                <CustomerServiceOutlined style={{ color: '#52c41a' }} />
+                <CustomerServiceOutlined style={{ color: token.colorSuccess }} />
                 <Text strong style={{ fontSize: 12 }}>
                   人工客服工作时间
                 </Text>
@@ -164,7 +166,7 @@ const LiveChatWidget: React.FC = () => {
           </Card>
 
           {/* 联系方式 */}
-          <Card size="small" style={{ background: '#fafafa', border: 'none' }}>
+          <Card size="small" style={{ background: token.colorBgLayout, border: 'none' }}>
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
               <Text strong style={{ fontSize: 12 }}>
                 其他联系方式

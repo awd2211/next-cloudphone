@@ -1,35 +1,21 @@
-import { useState, useEffect } from 'react';
-import { Card, Row, Col, Button, InputNumber, message, Steps, Modal, QRCode, Spin } from 'antd';
+import { useState } from 'react';
+import { Card, Row, Col, Button, InputNumber, message, Steps, theme } from 'antd';
+
+const { useToken } = theme;
 import {
   DollarOutlined,
-  WechatOutlined,
-  AlipayOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { createPayment, queryPaymentStatus } from '@/services/order';
-import type { Payment } from '@/types';
+import { useRecharge } from '@/hooks/queries/useBalance';
 
 const RechargeContent = () => {
+  const { token } = useToken();
   const [amount, setAmount] = useState<number>(100);
   const [currentStep, setCurrentStep] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<'wechat' | 'alipay'>('wechat');
-  const [loading, setLoading] = useState(false);
-  const [payment, setPayment] = useState<Payment | null>(null);
-  const [qrModalVisible, setQrModalVisible] = useState(false);
-  const [polling, setPolling] = useState(false);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const rechargeMutation = useRecharge();
 
   const quickAmounts = [50, 100, 200, 500, 1000, 2000];
-
-  // 组件卸载时清理定时器
-  useEffect(() => {
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
-    };
-  }, [pollingInterval]);
 
   const handleNext = () => {
     if (currentStep === 0) {
@@ -42,60 +28,27 @@ const RechargeContent = () => {
   };
 
   const handleRecharge = async () => {
-    setLoading(true);
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      message.error('用户未登录，请重新登录');
+      return;
+    }
+
     try {
-      // 创建充值订单（这里简化处理，实际应该先创建充值订单）
-      const orderId = 'recharge-' + Date.now(); // 临时订单ID
-
-      const newPayment = await createPayment({
-        orderId,
-        method: paymentMethod,
+      await rechargeMutation.mutateAsync({
+        userId,
+        amount,
+        description: '用户充值',
       });
-
-      setPayment(newPayment);
-      setQrModalVisible(true);
-      startPolling(newPayment.paymentNo);
+      setCurrentStep(2);
     } catch (error) {
-      message.error('创建支付失败');
-    } finally {
-      setLoading(false);
+      // 错误已在 useRecharge hook 中处理
     }
-  };
-
-  const startPolling = (paymentNo: string) => {
-    // 清理之前的轮询
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-    }
-
-    setPolling(true);
-    const interval = setInterval(async () => {
-      try {
-        const result = await queryPaymentStatus(paymentNo);
-        if (result.status === 'success') {
-          clearInterval(interval);
-          setPollingInterval(null);
-          setPolling(false);
-          setQrModalVisible(false);
-          message.success('充值成功');
-          setCurrentStep(2);
-        } else if (result.status === 'failed' || result.status === 'cancelled') {
-          clearInterval(interval);
-          setPollingInterval(null);
-          setPolling(false);
-          setQrModalVisible(false);
-          message.error('支付失败');
-        }
-      } catch (error) {
-        // 继续轮询
-      }
-    }, 3000);
-    setPollingInterval(interval);
   };
 
   const steps = [
     { title: '选择金额', description: '输入充值金额' },
-    { title: '选择支付方式', description: '完成支付' },
+    { title: '确认充值', description: '确认信息' },
     { title: '完成', description: '充值成功' },
   ];
 
@@ -150,55 +103,28 @@ const RechargeContent = () => {
       )}
 
       {currentStep === 1 && (
-        <Card title="选择支付方式">
+        <Card title="确认充值信息">
           <div style={{ marginBottom: 24 }}>
             <div
               style={{
                 padding: 24,
-                background: '#f0f2f5',
+                background: token.colorBgLayout,
                 borderRadius: 8,
                 marginBottom: 24,
+                textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>充值金额</div>
-              <div style={{ fontSize: 32, fontWeight: 'bold', color: '#f5222d' }}>
+              <div style={{ fontSize: 14, color: token.colorTextSecondary, marginBottom: 8 }}>充值金额</div>
+              <div style={{ fontSize: 32, fontWeight: 'bold', color: token.colorError }}>
                 ¥{amount.toFixed(2)}
               </div>
             </div>
 
-            <div style={{ marginBottom: 16, fontSize: 16, fontWeight: 'bold' }}>选择支付方式：</div>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Card
-                  hoverable
-                  style={{
-                    border: paymentMethod === 'wechat' ? '2px solid #1890ff' : '1px solid #d9d9d9',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setPaymentMethod('wechat')}
-                >
-                  <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                    <WechatOutlined style={{ fontSize: 48, color: '#09bb07' }} />
-                    <div style={{ marginTop: 16, fontSize: 18, fontWeight: 'bold' }}>微信支付</div>
-                  </div>
-                </Card>
-              </Col>
-              <Col span={12}>
-                <Card
-                  hoverable
-                  style={{
-                    border: paymentMethod === 'alipay' ? '2px solid #1890ff' : '1px solid #d9d9d9',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setPaymentMethod('alipay')}
-                >
-                  <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                    <AlipayOutlined style={{ fontSize: 48, color: '#1677ff' }} />
-                    <div style={{ marginTop: 16, fontSize: 18, fontWeight: 'bold' }}>支付宝</div>
-                  </div>
-                </Card>
-              </Col>
-            </Row>
+            <div style={{ padding: '16px 24px', background: token.colorWarningBg, borderRadius: 8 }}>
+              <p style={{ margin: 0, color: token.colorWarningText }}>
+                提示：充值金额将直接添加到您的账户余额中，可用于支付平台内的各项服务费用。
+              </p>
+            </div>
           </div>
 
           <div style={{ textAlign: 'right' }}>
@@ -210,9 +136,9 @@ const RechargeContent = () => {
               size="large"
               icon={<DollarOutlined />}
               onClick={handleRecharge}
-              loading={loading}
+              loading={rechargeMutation.isPending}
             >
-              立即充值
+              确认充值
             </Button>
           </div>
         </Card>
@@ -221,9 +147,9 @@ const RechargeContent = () => {
       {currentStep === 2 && (
         <Card>
           <div style={{ textAlign: 'center', padding: '48px 0' }}>
-            <CheckCircleOutlined style={{ fontSize: 72, color: '#52c41a', marginBottom: 24 }} />
+            <CheckCircleOutlined style={{ fontSize: 72, color: token.colorSuccess, marginBottom: 24 }} />
             <h2 style={{ fontSize: 28, marginBottom: 16 }}>充值成功！</h2>
-            <p style={{ fontSize: 16, color: '#666', marginBottom: 32 }}>
+            <p style={{ fontSize: 16, color: token.colorTextSecondary, marginBottom: 32 }}>
               ¥{amount.toFixed(2)} 已充值到您的账户
             </p>
             <Button type="primary" size="large" onClick={() => (window.location.href = '/profile')}>
@@ -233,36 +159,6 @@ const RechargeContent = () => {
         </Card>
       )}
 
-      {/* 支付二维码弹窗 */}
-      <Modal
-        title={`${paymentMethod === 'wechat' ? '微信' : '支付宝'}扫码支付`}
-        open={qrModalVisible}
-        onCancel={() => {
-          setQrModalVisible(false);
-          if (pollingInterval) {
-            clearInterval(pollingInterval);
-            setPollingInterval(null);
-          }
-          setPolling(false);
-        }}
-        footer={null}
-      >
-        {payment?.paymentUrl && (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <QRCode value={payment.paymentUrl} size={256} />
-            <p style={{ marginTop: 24, fontSize: 16 }}>
-              请使用{paymentMethod === 'wechat' ? '微信' : '支付宝'}扫码支付
-            </p>
-            <p style={{ color: '#999' }}>金额: ¥{amount.toFixed(2)}</p>
-            {polling && (
-              <p style={{ color: '#1890ff', marginTop: 16 }}>
-                <Spin size="small" style={{ marginRight: 8 }} />
-                等待支付中...
-              </p>
-            )}
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };

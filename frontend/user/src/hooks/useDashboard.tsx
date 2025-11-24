@@ -90,7 +90,7 @@ export const useDashboard = () => {
       title: '安装应用',
       description: '在设备 "测试机-002" 上安装了 "微信"',
       time: dayjs().subtract(15, 'minute'),
-      icon: <AppstoreOutlined style={{ color: '#1890ff' }} />,
+      icon: <AppstoreOutlined style={{ color: '#1677ff' }} />,
       status: 'success',
     },
     {
@@ -99,7 +99,7 @@ export const useDashboard = () => {
       title: '创建设备',
       description: '创建了新设备 "测试机-025"',
       time: dayjs().subtract(1, 'hour'),
-      icon: <PlusOutlined style={{ color: '#1890ff' }} />,
+      icon: <PlusOutlined style={{ color: '#1677ff' }} />,
       status: 'success',
     },
     {

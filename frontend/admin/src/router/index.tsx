@@ -113,6 +113,7 @@ const CmsCaseStudies = lazy(() => import('@/pages/CMS/CaseStudies'));
 const CmsPricingPlans = lazy(() => import('@/pages/CMS/PricingPlans'));
 
 // LiveChat 在线客服管理
+const LiveChatWorkspace = lazy(() => import('@/pages/LiveChat/Workspace'));
 const LiveChatAgentList = lazy(() => import('@/pages/LiveChat/Agents/List'));
 const LiveChatGroupList = lazy(() => import('@/pages/LiveChat/Groups/List'));
 const LiveChatQueueConfig = lazy(() => import('@/pages/LiveChat/Queues/List'));
@@ -120,6 +121,10 @@ const LiveChatCannedResponses = lazy(() => import('@/pages/LiveChat/CannedRespon
 const LiveChatSensitiveWords = lazy(() => import('@/pages/LiveChat/SensitiveWords/List'));
 const LiveChatConversations = lazy(() => import('@/pages/LiveChat/Conversations/List'));
 const LiveChatAnalytics = lazy(() => import('@/pages/LiveChat/Analytics/Dashboard'));
+const LiveChatKnowledgeBase = lazy(() => import('@/pages/LiveChat/KnowledgeBase/List'));
+const LiveChatBlacklist = lazy(() => import('@/pages/LiveChat/Blacklist/List'));
+const LiveChatMonitor = lazy(() => import('@/pages/LiveChat/QualityReview/Dashboard'));
+const LiveChatBot = lazy(() => import('@/pages/LiveChat/Bot'));
 
 // ✅ 导入优化的页面加载骨架屏
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
@@ -300,6 +305,10 @@ export const router = createBrowserRouter([
       },
       // --- 在线客服 ---
       {
+        path: 'operations/livechat/workspace',
+        element: withSuspense(LiveChatWorkspace), // 客服工作台，不需要管理员权限
+      },
+      {
         path: 'operations/livechat/conversations',
         element: withAdminRoute(LiveChatConversations),
       },
@@ -326,6 +335,22 @@ export const router = createBrowserRouter([
       {
         path: 'operations/livechat/analytics',
         element: withAdminRoute(LiveChatAnalytics),
+      },
+      {
+        path: 'operations/livechat/knowledge-base',
+        element: withAdminRoute(LiveChatKnowledgeBase),
+      },
+      {
+        path: 'operations/livechat/blacklist',
+        element: withAdminRoute(LiveChatBlacklist),
+      },
+      {
+        path: 'operations/livechat/monitor',
+        element: withAdminRoute(LiveChatMonitor),
+      },
+      {
+        path: 'operations/livechat/bot',
+        element: withAdminRoute(LiveChatBot),
       },
       // --- CMS 内容管理 ---
       {

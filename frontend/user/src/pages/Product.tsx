@@ -1,11 +1,12 @@
 import React from 'react';
-import { Card, Row, Col, Typography, Button, Space, Divider, Tag, Timeline, Statistic, Table, Avatar } from 'antd';
+import { Card, Row, Col, Typography, Button, Space, Divider, Tag, Timeline, Statistic, Table, Avatar, theme } from 'antd';
 import { CheckCircleOutlined, StarFilled, CloseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { coreFeatures, useCases, platformStats, techStack, roadmapItems } from '@/utils/productData';
 import { SEO } from '@/components';
 
 const { Title, Paragraph, Text } = Typography;
+const { useToken } = theme;
 
 /**
  * 产品介绍页（优化版）
@@ -23,6 +24,7 @@ const { Title, Paragraph, Text } = Typography;
  */
 const Product: React.FC = () => {
   const navigate = useNavigate();
+  const { token } = useToken();
 
   // 竞品对比数据
   const competitorComparison = [
@@ -87,7 +89,7 @@ const Product: React.FC = () => {
   ];
 
   return (
-    <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 80 }}>
+    <div style={{ background: token.colorBgLayout, minHeight: '100vh', paddingBottom: 80 }}>
       <SEO
         title="产品介绍 - CloudPhone.run 云手机平台"
         description="CloudPhone.run 云手机平台采用先进的容器化技术，提供稳定、高效、可扩展的云端 Android 设备管理服务。支持应用测试、自动化运营、游戏托管等多种场景。"
@@ -136,7 +138,7 @@ const Product: React.FC = () => {
                   title={<Text type="secondary" style={{ fontSize: 14 }}>{stat.title}</Text>}
                   value={stat.value}
                   suffix={stat.suffix}
-                  valueStyle={{ color: '#1890ff', fontSize: 32, fontWeight: 700 }}
+                  valueStyle={{ color: token.colorPrimary, fontSize: 32, fontWeight: 700 }}
                 />
               </Col>
             ))}
@@ -148,7 +150,7 @@ const Product: React.FC = () => {
       <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <Title level={2}>核心功能</Title>
-          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+          <Paragraph style={{ fontSize: 16, color: token.colorTextSecondary }}>
             企业级云手机解决方案，满足各种应用场景
           </Paragraph>
         </div>
@@ -159,7 +161,7 @@ const Product: React.FC = () => {
                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                   <div>{feature.icon}</div>
                   <Title level={4}>{feature.title}</Title>
-                  <Paragraph style={{ color: '#666', marginBottom: 16 }}>
+                  <Paragraph style={{ color: token.colorTextSecondary, marginBottom: 16 }}>
                     {feature.description}
                   </Paragraph>
                   <Space wrap>
@@ -178,7 +180,7 @@ const Product: React.FC = () => {
       <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <Title level={2}>应用场景</Title>
-          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+          <Paragraph style={{ fontSize: 16, color: token.colorTextSecondary }}>
             广泛应用于自动化测试、游戏托管、移动办公等领域
           </Paragraph>
         </div>
@@ -195,12 +197,12 @@ const Product: React.FC = () => {
                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                   <div>{useCase.icon}</div>
                   <Title level={4}>{useCase.title}</Title>
-                  <Paragraph style={{ color: '#666' }}>{useCase.description}</Paragraph>
+                  <Paragraph style={{ color: token.colorTextSecondary }}>{useCase.description}</Paragraph>
                   <Divider style={{ margin: '8px 0' }} />
                   <Space direction="vertical" size="small">
                     {useCase.benefits.map((benefit) => (
                       <div key={benefit} style={{ display: 'flex', alignItems: 'center' }}>
-                        <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                        <CheckCircleOutlined style={{ color: token.colorSuccess, marginRight: 8 }} />
                         <Text>{benefit}</Text>
                       </div>
                     ))}
@@ -216,7 +218,7 @@ const Product: React.FC = () => {
       <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <Title level={2}>产品演示</Title>
-          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+          <Paragraph style={{ fontSize: 16, color: token.colorTextSecondary }}>
             观看视频，快速了解 CloudPhone.run 云手机平台
           </Paragraph>
         </div>
@@ -237,9 +239,9 @@ const Product: React.FC = () => {
               title="CloudPhone.run 产品演示"
             />
           </div>
-          <div style={{ padding: 24, background: '#fafafa', textAlign: 'center' }}>
+          <div style={{ padding: 24, background: token.colorBgLayout, textAlign: 'center' }}>
             <Space>
-              <PlayCircleOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              <PlayCircleOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
               <Text>点击播放，了解 CloudPhone.run 如何帮助您提升效率</Text>
             </Space>
           </div>
@@ -250,7 +252,7 @@ const Product: React.FC = () => {
       <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <Title level={2}>为什么选择 CloudPhone.run？</Title>
-          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+          <Paragraph style={{ fontSize: 16, color: token.colorTextSecondary }}>
             与竞品对比，CloudPhone.run 的优势一目了然
           </Paragraph>
         </div>
@@ -285,7 +287,7 @@ const Product: React.FC = () => {
                 key: 'ultrathink',
                 render: (text) => (
                   <Space>
-                    <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+                    <CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: 18 }} />
                     <Text>{text}</Text>
                   </Space>
                 ),
@@ -296,7 +298,7 @@ const Product: React.FC = () => {
                 key: 'competitor1',
                 render: (text) => (
                   <Space>
-                    <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 18 }} />
+                    <CloseCircleOutlined style={{ color: token.colorError, fontSize: 18 }} />
                     <Text type="secondary">{text}</Text>
                   </Space>
                 ),
@@ -307,7 +309,7 @@ const Product: React.FC = () => {
                 key: 'competitor2',
                 render: (text) => (
                   <Space>
-                    <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 18 }} />
+                    <CloseCircleOutlined style={{ color: token.colorError, fontSize: 18 }} />
                     <Text type="secondary">{text}</Text>
                   </Space>
                 ),
@@ -321,7 +323,7 @@ const Product: React.FC = () => {
       <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <Title level={2}>客户评价</Title>
-          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+          <Paragraph style={{ fontSize: 16, color: token.colorTextSecondary }}>
             听听我们的客户怎么说
           </Paragraph>
         </div>
@@ -339,7 +341,7 @@ const Product: React.FC = () => {
                   {/* 评分 */}
                   <div>
                     {Array.from({ length: testimonial.rating }).map((_, i) => (
-                      <StarFilled key={i} style={{ color: '#faad14', fontSize: 18 }} />
+                      <StarFilled key={i} style={{ color: token.colorWarning, fontSize: 18 }} />
                     ))}
                   </div>
 
@@ -378,7 +380,7 @@ const Product: React.FC = () => {
       <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <Title level={2}>技术架构</Title>
-          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+          <Paragraph style={{ fontSize: 16, color: token.colorTextSecondary }}>
             采用业界领先的容器化技术和微服务架构
           </Paragraph>
         </div>
@@ -388,7 +390,7 @@ const Product: React.FC = () => {
               <Col xs={12} sm={8} md={6} key={index}>
                 <Card
                   size="small"
-                  style={{ textAlign: 'center', background: '#fafafa', border: 'none' }}
+                  style={{ textAlign: 'center', background: token.colorBgLayout, border: 'none' }}
                 >
                   <Space direction="vertical" size="small">
                     <Text strong style={{ fontSize: 16 }}>{tech.name}</Text>
@@ -405,7 +407,7 @@ const Product: React.FC = () => {
       <div style={{ maxWidth: 1200, margin: '0 auto 80px', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <Title level={2}>产品路线图</Title>
-          <Paragraph style={{ fontSize: 16, color: '#666' }}>
+          <Paragraph style={{ fontSize: 16, color: token.colorTextSecondary }}>
             持续迭代，不断为用户带来更好的体验
           </Paragraph>
         </div>

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, Row, Col, Statistic } from 'antd';
+import { Card, Row, Col, Statistic, theme } from 'antd';
 import {
   FileTextOutlined,
   CheckCircleOutlined,
@@ -7,6 +7,8 @@ import {
   CloseCircleOutlined,
 } from '@ant-design/icons';
 import type { Invoice } from '@/services/billing';
+
+const { useToken } = theme;
 
 interface InvoiceStatsCardsProps {
   invoices: Invoice[];
@@ -17,6 +19,8 @@ interface InvoiceStatsCardsProps {
  * 展示发票总数、待开具、已开具、已拒绝的统计信息
  */
 export const InvoiceStatsCards: React.FC<InvoiceStatsCardsProps> = React.memo(({ invoices }) => {
+  const { token } = useToken();
+
   const stats = useMemo(() => ({
     total: invoices.length,
     pending: invoices.filter((inv) => inv.status === 'pending').length,
@@ -34,7 +38,7 @@ export const InvoiceStatsCards: React.FC<InvoiceStatsCardsProps> = React.memo(({
           <Statistic
             title="待开具"
             value={stats.pending}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
             prefix={<ClockCircleOutlined />}
           />
         </Col>
@@ -42,7 +46,7 @@ export const InvoiceStatsCards: React.FC<InvoiceStatsCardsProps> = React.memo(({
           <Statistic
             title="已开具"
             value={stats.issued}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: token.colorSuccess }}
             prefix={<CheckCircleOutlined />}
           />
         </Col>
@@ -50,7 +54,7 @@ export const InvoiceStatsCards: React.FC<InvoiceStatsCardsProps> = React.memo(({
           <Statistic
             title="已拒绝"
             value={stats.rejected}
-            valueStyle={{ color: '#ff4d4f' }}
+            valueStyle={{ color: token.colorError }}
             prefix={<CloseCircleOutlined />}
           />
         </Col>

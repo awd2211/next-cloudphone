@@ -1,10 +1,11 @@
 import React from 'react';
-import { Modal, Space, Select, Typography } from 'antd';
+import { Modal, Space, Select, Typography, theme } from 'antd';
 import { formatAmount, PaymentMethod, type Bill } from '@/services/billing';
 import { paymentMethodConfig } from '@/utils/billingConfig';
 
 const { Text } = Typography;
 const { Option } = Select;
+const { useToken } = theme;
 
 interface PaymentModalProps {
   visible: boolean;
@@ -24,6 +25,8 @@ interface PaymentModalProps {
  */
 export const PaymentModal: React.FC<PaymentModalProps> = React.memo(
   ({ visible, bill, paymentMethod, onPaymentMethodChange, onOk, onCancel }) => {
+    const { token } = useToken();
+
     return (
       <Modal
         title="支付账单"
@@ -36,7 +39,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = React.memo(
           {/* 应付金额 */}
           <div>
             <Text>应付金额：</Text>
-            <Text strong style={{ fontSize: 24, color: '#1890ff' }}>
+            <Text strong style={{ fontSize: 24, color: token.colorPrimary }}>
               {formatAmount(bill.finalAmount)}
             </Text>
           </div>

@@ -877,23 +877,48 @@ export const SchedulerNodeSchema = z.object({
 });
 
 export const ClusterStatsSchema = z.object({
-  totalNodes: z.number().int().nonnegative(),
-  activeNodes: z.number().int().nonnegative(),
+  // 新 API 格式
+  nodes: z.object({
+    total: z.number().int().nonnegative(),
+    online: z.number().int().nonnegative(),
+    offline: z.number().int().nonnegative(),
+  }).optional(),
+  capacity: z.object({
+    cpuCores: z.number().int(),
+    memoryMB: z.number().int(),
+    storageGB: z.number().int(),
+    maxDevices: z.number().int(),
+  }).optional(),
+  usage: z.object({
+    cpuCores: z.number().int(),
+    memoryMB: z.number().int(),
+    storageGB: z.number().int(),
+    devices: z.number().int(),
+  }).optional(),
+  utilization: z.object({
+    cpu: z.number(),
+    memory: z.number(),
+    storage: z.number(),
+    devices: z.number(),
+  }).optional(),
+  // 旧 API 格式（兼容）
+  totalNodes: z.number().int().nonnegative().optional(),
+  activeNodes: z.number().int().nonnegative().optional(),
   totalCapacity: z.object({
     cpu: z.number().int(),
     memory: z.number().int(),
     storage: z.number().int(),
-  }),
+  }).optional(),
   totalUsage: z.object({
     cpu: z.number().int(),
     memory: z.number().int(),
     storage: z.number().int(),
-  }),
+  }).optional(),
   utilizationRate: z.object({
     cpu: z.number(),
     memory: z.number(),
     storage: z.number(),
-  }),
+  }).optional(),
 });
 
 export const SchedulingStrategySchema = z.object({
@@ -1568,10 +1593,12 @@ export const QuotaAlertSchema = z.object({
 
 /**
  * Quota Alerts Response Schema
+ * 注意：API 实际返回 { data: QuotaAlert[], total: number }，不含 success 字段
  */
 export const QuotaAlertsResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.boolean().optional(), // 可选，兼容两种格式
   data: z.array(QuotaAlertSchema).optional(),
+  total: z.number().int().nonnegative().optional(),
 });
 
 /**

@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { Row, Col, Card, Statistic, Tag, Progress, Space, Typography } from 'antd';
+import { Row, Col, Card, Statistic, Tag, Progress, Space, Typography, theme } from 'antd';
 import {
   ArrowUpOutlined,
   ArrowDownOutlined,
@@ -9,6 +9,7 @@ import {
 import type { BalanceData } from '@/hooks/useAccountBalance';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface BalanceMetricsProps {
   balanceData: BalanceData;
@@ -26,6 +27,8 @@ export const BalanceMetrics = memo<BalanceMetricsProps>(
     monthConsumptionPercent,
     isLowBalance,
   }) => {
+    const { token } = useToken();
+
     const balanceTag = useMemo(
       () =>
         balanceChange > 0 ? (
@@ -50,7 +53,7 @@ export const BalanceMetrics = memo<BalanceMetricsProps>(
               value={balanceData.current}
               precision={2}
               prefix="¥"
-              valueStyle={{ color: isLowBalance ? '#ff4d4f' : '#1890ff', fontSize: 32 }}
+              valueStyle={{ color: isLowBalance ? token.colorError : token.colorPrimary, fontSize: 32 }}
               suffix={<Space style={{ fontSize: 14 }}>{balanceTag}</Space>}
             />
             <Text
@@ -71,11 +74,11 @@ export const BalanceMetrics = memo<BalanceMetricsProps>(
               value={balanceData.monthConsumption}
               precision={2}
               prefix="¥"
-              valueStyle={{ color: '#ff4d4f', fontSize: 28 }}
+              valueStyle={{ color: token.colorError, fontSize: 28 }}
             />
             <Progress
               percent={parseFloat(monthConsumptionPercent)}
-              strokeColor="#ff4d4f"
+              strokeColor={token.colorError}
               showInfo={false}
               style={{ marginTop: 8 }}
             />
@@ -96,7 +99,7 @@ export const BalanceMetrics = memo<BalanceMetricsProps>(
               value={balanceData.avgDailyConsumption}
               precision={2}
               prefix="¥"
-              valueStyle={{ color: '#722ed1', fontSize: 28 }}
+              valueStyle={{ color: token['purple-6'] ?? '#722ed1', fontSize: 28 }}
             />
             <Text
               type="secondary"
@@ -114,9 +117,9 @@ export const BalanceMetrics = memo<BalanceMetricsProps>(
               <Text type="secondary">余额预警</Text>
               <Space>
                 {balanceData.alertEnabled ? (
-                  <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 32 }} />
+                  <CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: 32 }} />
                 ) : (
-                  <BellOutlined style={{ color: '#d9d9d9', fontSize: 32 }} />
+                  <BellOutlined style={{ color: token.colorBorder, fontSize: 32 }} />
                 )}
                 <div>
                   <Text strong style={{ fontSize: 20 }}>

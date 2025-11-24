@@ -217,7 +217,7 @@ describe('helpConfig 配置', () => {
 
   describe('颜色配置验证', () => {
     it('getting-started应该是蓝色', () => {
-      expect(categoryColors['getting-started']).toBe('#1890ff');
+      expect(categoryColors['getting-started']).toBe('#1677ff');
     });
 
     it('account应该是绿色', () => {

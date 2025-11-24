@@ -69,9 +69,16 @@ export function useQuotaAlerts(threshold: number = 80) {
     queryKey: quotaKeys.alerts(threshold),
     queryFn: async () => {
       const response = await getQuotaAlerts(threshold);
-      // ✅ Zod 验证
-      const validated = QuotaAlertsResponseSchema.parse(response);
-      return validated.success && validated.data ? validated.data : [];
+      // ✅ Zod 验证 (safeParse 避免抛出错误)
+      const result = QuotaAlertsResponseSchema.safeParse(response);
+      if (result.success && result.data.data) {
+        return result.data.data;
+      }
+      // 如果验证失败，尝试直接使用 response.data
+      if (Array.isArray(response?.data)) {
+        return response.data;
+      }
+      return [];
     },
     staleTime: 60 * 1000, // 60 秒内数据视为新鲜
     gcTime: 5 * 60 * 1000,

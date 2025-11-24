@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Button, Space, Tabs, message } from 'antd';
+import { Card, Button, Space, Tabs, message, theme } from 'antd';
+
+const { useToken } = theme;
 import { TeamOutlined, CopyOutlined, LinkOutlined, QrcodeOutlined, GiftOutlined, RightOutlined } from '@ant-design/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
@@ -30,6 +32,7 @@ const { TabPane } = Tabs;
  * 4. 查看邀请记录
  */
 const ReferralCenter: React.FC = () => {
+  const { token } = useToken();
   const navigate = useNavigate();
   const [posterUrl, setPosterUrl] = useState<string>('');
 
@@ -100,7 +103,7 @@ const ReferralCenter: React.FC = () => {
         <Card
           title={
             <Space>
-              <TeamOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              <TeamOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
               <span style={{ fontSize: 24, fontWeight: 'bold' }}>邀请返利中心</span>
             </Space>
           }

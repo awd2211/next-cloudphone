@@ -1,6 +1,8 @@
 import React from 'react';
-import { Row, Col, Card, Statistic } from 'antd';
+import { Row, Col, Card, Statistic, theme } from 'antd';
 import { formatSize, type Snapshot } from '@/utils/snapshotConfig';
+
+const { useToken } = theme;
 
 interface StatsCardsProps {
   snapshots: Snapshot[];
@@ -15,6 +17,7 @@ interface StatsCardsProps {
  * - 响应式布局
  */
 export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ snapshots }) => {
+  const { token } = useToken();
   const totalCount = snapshots.length;
   const activeCount = snapshots.filter((s) => s.status === 'active').length;
   const totalSize = snapshots.reduce((sum, snapshot) => sum + snapshot.size, 0);
@@ -32,7 +35,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ snapshots }) 
             title="可用快照"
             value={activeCount}
             suffix="个"
-            valueStyle={{ color: '#3f8600' }}
+            valueStyle={{ color: token.colorSuccess }}
           />
         </Card>
       </Col>

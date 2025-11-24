@@ -30,7 +30,7 @@ interface ExportTableActionsProps {
 
 // 数据类型配置
 const dataTypeConfig: Record<ExportDataType, { label: string; color: string }> = {
-  [ExportDataType.ORDERS]: { label: '订单数据', color: '#1890ff' },
+  [ExportDataType.ORDERS]: { label: '订单数据', color: '#1677ff' },
   [ExportDataType.DEVICES]: { label: '设备数据', color: '#52c41a' },
   [ExportDataType.TICKETS]: { label: '工单数据', color: '#faad14' },
   [ExportDataType.BILLING]: { label: '账单数据', color: '#eb2f96' },
@@ -42,7 +42,7 @@ const dataTypeConfig: Record<ExportDataType, { label: string; color: string }> =
 // 格式配置
 const formatConfig: Record<ExportFormat, { label: string; icon: React.ReactNode; color: string }> = {
   [ExportFormat.CSV]: { label: 'CSV', icon: <FileTextOutlined />, color: '#52c41a' },
-  [ExportFormat.EXCEL]: { label: 'Excel', icon: <FileExcelOutlined />, color: '#1890ff' },
+  [ExportFormat.EXCEL]: { label: 'Excel', icon: <FileExcelOutlined />, color: '#1677ff' },
   [ExportFormat.PDF]: { label: 'PDF', icon: <FilePdfOutlined />, color: '#f5222d' },
   [ExportFormat.JSON]: { label: 'JSON', icon: <FileTextOutlined />, color: '#faad14' },
 };

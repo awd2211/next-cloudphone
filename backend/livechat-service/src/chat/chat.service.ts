@@ -6,7 +6,7 @@ import { EventBusService } from '@cloudphone/shared';
 import { Conversation, ConversationStatus, ConversationPriority } from '../entities/conversation.entity';
 import { Message, MessageSender, MessageStatus, MessageType } from '../entities/message.entity';
 import { EncryptionService } from '../encryption/encryption.service';
-import { CreateConversationDto, SendMessageDto, UpdateConversationDto } from './dto';
+import { CreateConversationDto, SendMessageDto, UpdateConversationDto, EditMessageDto, RevokeMessageDto } from './dto';
 
 @Injectable()
 export class ChatService {
@@ -325,6 +325,205 @@ export class ChatService {
       .andWhere('senderId != :userId', { userId })
       .andWhere('status != :status', { status: MessageStatus.READ })
       .execute();
+  }
+
+  // ========== 消息编辑/撤回 ==========
+
+  /**
+   * 编辑消息
+   * 限制：只能编辑自己发送的消息，且在2分钟内
+   */
+  async editMessage(
+    messageId: string,
+    dto: EditMessageDto,
+    userId: string,
+    tenantId: string,
+  ): Promise<Message> {
+    const message = await this.messageRepo.findOne({
+      where: { id: messageId },
+      relations: ['conversation'],
+    });
+
+    if (!message) {
+      throw new NotFoundException(`Message ${messageId} not found`);
+    }
+
+    // 验证租户权限
+    if (message.conversation.tenantId !== tenantId) {
+      throw new BadRequestException('无权编辑此消息');
+    }
+
+    // 只能编辑自己的消息
+    if (message.senderId !== userId) {
+      throw new BadRequestException('只能编辑自己发送的消息');
+    }
+
+    // 检查消息是否已被删除
+    if (message.isDeleted) {
+      throw new BadRequestException('无法编辑已撤回的消息');
+    }
+
+    // 检查时间限制（2分钟内可编辑）
+    const editTimeLimit = 2 * 60 * 1000; // 2 minutes in ms
+    const now = Date.now();
+    const messageTime = message.createdAt.getTime();
+    if (now - messageTime > editTimeLimit) {
+      throw new BadRequestException('消息发送超过2分钟，无法编辑');
+    }
+
+    // 保存原始内容到 metadata
+    const originalContent = message.content;
+    const editHistory = (message.metadata?.editHistory || []) as Array<{
+      content: string;
+      editedAt: string;
+    }>;
+    editHistory.push({
+      content: originalContent,
+      editedAt: new Date().toISOString(),
+    });
+
+    // 更新消息内容
+    message.content = dto.content;
+    message.isEdited = true;
+    message.editedAt = new Date();
+    message.metadata = {
+      ...message.metadata,
+      editHistory,
+    };
+
+    // 如果启用加密，重新加密内容
+    if (this.encryptionService.isEnabled()) {
+      const encrypted = this.encryptionService.encrypt(dto.content);
+      message.contentEncrypted = encrypted.encrypted;
+    }
+
+    const saved = await this.messageRepo.save(message);
+
+    // 本地事件（用于 WebSocket 广播）
+    this.eventEmitter.emit('message.edited', {
+      message: saved,
+      conversationId: message.conversationId,
+      originalContent,
+    });
+
+    // RabbitMQ 跨服务事件
+    await this.eventBus.publish('cloudphone.events', 'livechat.message_edited', {
+      messageId: saved.id,
+      conversationId: saved.conversationId,
+      senderId: saved.senderId,
+      tenantId,
+      editedAt: saved.editedAt,
+    });
+
+    this.logger.log(`Message ${messageId} edited by user ${userId}`);
+
+    return this.decryptMessage(saved);
+  }
+
+  /**
+   * 撤回消息
+   * 限制：只能撤回自己发送的消息，且在2分钟内
+   * 客服主管可以撤回任何消息（无时间限制）
+   */
+  async revokeMessage(
+    messageId: string,
+    dto: RevokeMessageDto,
+    userId: string,
+    tenantId: string,
+    isSupervisor = false,
+  ): Promise<Message> {
+    const message = await this.messageRepo.findOne({
+      where: { id: messageId },
+      relations: ['conversation'],
+    });
+
+    if (!message) {
+      throw new NotFoundException(`Message ${messageId} not found`);
+    }
+
+    // 验证租户权限
+    if (message.conversation.tenantId !== tenantId) {
+      throw new BadRequestException('无权撤回此消息');
+    }
+
+    // 检查消息是否已被删除
+    if (message.isDeleted) {
+      throw new BadRequestException('消息已被撤回');
+    }
+
+    // 非主管只能撤回自己的消息，且有时间限制
+    if (!isSupervisor) {
+      if (message.senderId !== userId) {
+        throw new BadRequestException('只能撤回自己发送的消息');
+      }
+
+      // 检查时间限制（2分钟内可撤回）
+      const revokeTimeLimit = 2 * 60 * 1000; // 2 minutes in ms
+      const now = Date.now();
+      const messageTime = message.createdAt.getTime();
+      if (now - messageTime > revokeTimeLimit) {
+        throw new BadRequestException('消息发送超过2分钟，无法撤回');
+      }
+    }
+
+    // 软删除消息
+    message.isDeleted = true;
+    message.deletedAt = new Date();
+    message.metadata = {
+      ...message.metadata,
+      revokedBy: userId,
+      revokeReason: dto.reason,
+      originalContent: message.content, // 保留原内容用于审计
+    };
+
+    // 清除敏感内容
+    message.content = '[消息已撤回]';
+    message.contentEncrypted = undefined;
+
+    const saved = await this.messageRepo.save(message);
+
+    // 本地事件（用于 WebSocket 广播）
+    this.eventEmitter.emit('message.revoked', {
+      message: saved,
+      conversationId: message.conversationId,
+      revokedBy: userId,
+      reason: dto.reason,
+    });
+
+    // RabbitMQ 跨服务事件
+    await this.eventBus.publish('cloudphone.events', 'livechat.message_revoked', {
+      messageId: saved.id,
+      conversationId: saved.conversationId,
+      senderId: message.senderId,
+      revokedBy: userId,
+      tenantId,
+      revokedAt: saved.deletedAt,
+      reason: dto.reason,
+    });
+
+    this.logger.log(`Message ${messageId} revoked by user ${userId}`);
+
+    return saved;
+  }
+
+  /**
+   * 获取消息详情（包括编辑历史）
+   */
+  async getMessageDetail(messageId: string, tenantId: string): Promise<Message> {
+    const message = await this.messageRepo.findOne({
+      where: { id: messageId },
+      relations: ['conversation'],
+    });
+
+    if (!message) {
+      throw new NotFoundException(`Message ${messageId} not found`);
+    }
+
+    if (message.conversation.tenantId !== tenantId) {
+      throw new BadRequestException('无权查看此消息');
+    }
+
+    return this.decryptMessage(message);
   }
 
   // ========== 辅助方法 ==========

@@ -1,9 +1,11 @@
 import React from 'react';
-import { Card, Tag, Space, Button } from 'antd';
+import { Card, Tag, Space, Button, theme } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import type { Coupon } from '@/services/activity';
 import { CouponStatus } from '@/services/activity';
 import { getCouponTypeConfig, statusConfig } from '@/utils/couponConfig';
+
+const { useToken } = theme;
 
 interface CouponCardProps {
   coupon: Coupon;
@@ -21,6 +23,7 @@ interface CouponCardProps {
  */
 export const CouponCard: React.FC<CouponCardProps> = React.memo(
   ({ coupon, onShowDetail, onUseCoupon }) => {
+    const { token } = useToken();
     const isAvailable = coupon.status === CouponStatus.AVAILABLE;
     const isUsed = coupon.status === CouponStatus.USED;
 
@@ -47,7 +50,7 @@ export const CouponCard: React.FC<CouponCardProps> = React.memo(
               transform: 'translate(-50%, -50%) rotate(-30deg)',
               fontSize: 48,
               fontWeight: 'bold',
-              color: isUsed ? '#52c41a' : '#ff4d4f',
+              color: isUsed ? token.colorSuccess : token.colorError,
               opacity: 0.2,
               zIndex: 1,
               whiteSpace: 'nowrap',
@@ -87,20 +90,20 @@ export const CouponCard: React.FC<CouponCardProps> = React.memo(
 
           {/* 使用条件 */}
           {coupon.minAmount && (
-            <div style={{ fontSize: 12, color: '#999', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 8 }}>
               满 ¥{coupon.minAmount} 可用
             </div>
           )}
 
           {/* 活动来源 */}
           {coupon.activityTitle && (
-            <div style={{ fontSize: 12, color: '#1890ff', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: token.colorPrimary, marginBottom: 8 }}>
               来自: {coupon.activityTitle}
             </div>
           )}
 
           {/* 有效期 */}
-          <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 12 }}>
             <ClockCircleOutlined style={{ marginRight: 4 }} />
             {new Date(coupon.startTime).toLocaleDateString()} -{' '}
             {new Date(coupon.endTime).toLocaleDateString()}
@@ -109,7 +112,7 @@ export const CouponCard: React.FC<CouponCardProps> = React.memo(
           {/* 优惠券码 */}
           <div
             style={{
-              background: '#f5f5f5',
+              background: token.colorBgLayout,
               padding: '8px 12px',
               borderRadius: 4,
               fontSize: 14,
@@ -122,7 +125,7 @@ export const CouponCard: React.FC<CouponCardProps> = React.memo(
 
           {/* 使用记录 */}
           {isUsed && coupon.usedAt && (
-            <div style={{ fontSize: 12, color: '#52c41a' }}>
+            <div style={{ fontSize: 12, color: token.colorSuccess }}>
               使用时间: {new Date(coupon.usedAt).toLocaleString()}
             </div>
           )}

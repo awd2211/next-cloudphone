@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Modal, Form, Select, Alert, Space, Typography } from 'antd';
+import { Modal, Form, Select, Alert, Space, Typography, theme } from 'antd';
 import { DatePicker } from 'antd';
 import { ExportOutlined, FileTextOutlined, FileExcelOutlined, FilePdfOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd/es/form';
@@ -8,6 +8,7 @@ import { ExportDataType, ExportFormat } from '@/services/export';
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface ExportCreateModalProps {
   visible: boolean;
@@ -26,24 +27,26 @@ export const ExportCreateModal: React.FC<ExportCreateModalProps> = React.memo(({
   onOk,
   onCancel,
 }) => {
+  const { token } = useToken();
+
   // 数据类型配置
   const dataTypeConfig = useMemo(() => ({
-    [ExportDataType.ORDERS]: { label: '订单数据', description: '导出所有订单记录，包括订单详情、支付信息等', color: '#1890ff' },
-    [ExportDataType.DEVICES]: { label: '设备数据', description: '导出设备列表和配置信息', color: '#52c41a' },
-    [ExportDataType.TICKETS]: { label: '工单数据', description: '导出工单记录和回复内容', color: '#faad14' },
-    [ExportDataType.BILLING]: { label: '账单数据', description: '导出账单记录和充值历史', color: '#eb2f96' },
-    [ExportDataType.USAGE]: { label: '使用记录', description: '导出设备使用时长和流量记录', color: '#13c2c2' },
-    [ExportDataType.MESSAGES]: { label: '消息通知', description: '导出所有消息通知记录', color: '#722ed1' },
-    [ExportDataType.TRANSACTIONS]: { label: '交易记录', description: '导出所有交易流水记录', color: '#fa8c16' },
-  }), []);
+    [ExportDataType.ORDERS]: { label: '订单数据', description: '导出所有订单记录，包括订单详情、支付信息等', color: token.colorPrimary },
+    [ExportDataType.DEVICES]: { label: '设备数据', description: '导出设备列表和配置信息', color: token.colorSuccess },
+    [ExportDataType.TICKETS]: { label: '工单数据', description: '导出工单记录和回复内容', color: token.colorWarning },
+    [ExportDataType.BILLING]: { label: '账单数据', description: '导出账单记录和充值历史', color: token.colorError },
+    [ExportDataType.USAGE]: { label: '使用记录', description: '导出设备使用时长和流量记录', color: token.colorInfo },
+    [ExportDataType.MESSAGES]: { label: '消息通知', description: '导出所有消息通知记录', color: token.purple },
+    [ExportDataType.TRANSACTIONS]: { label: '交易记录', description: '导出所有交易流水记录', color: token.orange },
+  }), [token]);
 
   // 格式配置
   const formatConfig = useMemo(() => ({
-    [ExportFormat.CSV]: { label: 'CSV', icon: <FileTextOutlined />, color: '#52c41a' },
-    [ExportFormat.EXCEL]: { label: 'Excel', icon: <FileExcelOutlined />, color: '#1890ff' },
-    [ExportFormat.PDF]: { label: 'PDF', icon: <FilePdfOutlined />, color: '#f5222d' },
-    [ExportFormat.JSON]: { label: 'JSON', icon: <FileTextOutlined />, color: '#faad14' },
-  }), []);
+    [ExportFormat.CSV]: { label: 'CSV', icon: <FileTextOutlined />, color: token.colorSuccess },
+    [ExportFormat.EXCEL]: { label: 'Excel', icon: <FileExcelOutlined />, color: token.colorPrimary },
+    [ExportFormat.PDF]: { label: 'PDF', icon: <FilePdfOutlined />, color: token.colorError },
+    [ExportFormat.JSON]: { label: 'JSON', icon: <FileTextOutlined />, color: token.colorWarning },
+  }), [token]);
 
   return (
     <Modal

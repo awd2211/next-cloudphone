@@ -13,7 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@ne
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, CurrentUserData } from '../auth/decorators/current-user.decorator';
 import { ChatService } from './chat.service';
-import { CreateConversationDto, SendMessageDto, UpdateConversationDto } from './dto';
+import { CreateConversationDto, SendMessageDto, UpdateConversationDto, EditMessageDto, RevokeMessageDto } from './dto';
 import { ConversationStatus } from '../entities/conversation.entity';
 import { MessageSender } from '../entities/message.entity';
 
@@ -142,6 +142,40 @@ export class ChatController {
   ) {
     await this.chatService.markConversationRead(id, user.userId);
     return { success: true };
+  }
+
+  @Put('messages/:messageId')
+  @ApiOperation({ summary: '编辑消息' })
+  @ApiResponse({ status: 200, description: '消息编辑成功' })
+  async editMessage(
+    @Param('messageId', ParseUUIDPipe) messageId: string,
+    @Body() dto: EditMessageDto,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.chatService.editMessage(messageId, dto, user.userId, user.tenantId);
+  }
+
+  @Post('messages/:messageId/revoke')
+  @ApiOperation({ summary: '撤回消息' })
+  @ApiResponse({ status: 200, description: '消息撤回成功' })
+  async revokeMessage(
+    @Param('messageId', ParseUUIDPipe) messageId: string,
+    @Body() dto: RevokeMessageDto,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    // 检查用户是否是主管（有 supervisor 角色）
+    const isSupervisor = user.roles.includes('supervisor') || user.roles.includes('admin');
+    return this.chatService.revokeMessage(messageId, dto, user.userId, user.tenantId, isSupervisor);
+  }
+
+  @Get('messages/:messageId')
+  @ApiOperation({ summary: '获取消息详情' })
+  @ApiResponse({ status: 200, description: '返回消息详情' })
+  async getMessageDetail(
+    @Param('messageId', ParseUUIDPipe) messageId: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.chatService.getMessageDetail(messageId, user.tenantId);
   }
 
   // ========== 客服接口 ==========

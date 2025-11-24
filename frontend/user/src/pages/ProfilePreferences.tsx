@@ -23,6 +23,7 @@ import {
 } from '@ant-design/icons';
 import { getUserInfo, updateUserPreferences } from '@/services/user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useTheme, type ThemeMode } from '@/hooks/useTheme';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -41,6 +42,9 @@ const ProfilePreferences = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [initialValues, setInitialValues] = useState<UserPreferences | null>(null);
+
+  // 获取主题控制
+  const { mode, setMode } = useTheme();
 
   const refetch = useCallback(() => {
     loadPreferences();
@@ -68,9 +72,12 @@ const ProfilePreferences = () => {
       const res = await getUserInfo();
       const user = res;
 
+      // 优先使用本地存储的主题设置
+      const localTheme = mode;
+
       const preferences: UserPreferences = {
         language: (user as any).language || 'zh-CN',
-        theme: (user as any).theme || 'light',
+        theme: localTheme || (user as any).theme || 'auto',
         emailNotifications: (user as any).preferences?.emailNotifications ?? true,
         smsNotifications: (user as any).preferences?.smsNotifications ?? false,
         systemNotifications: (user as any).preferences?.systemNotifications ?? true,
@@ -104,16 +111,12 @@ const ProfilePreferences = () => {
         },
       });
 
-      message.success('偏好设置已保存');
-
-      // 如果语言或主题改变，提示刷新页面
-      if (
-        initialValues &&
-        (values.language !== initialValues.language || values.theme !== initialValues.theme)
-      ) {
-        message.info('语言或主题设置已更改，建议刷新页面以应用更改', 3);
+      // 同步主题到本地 - 立即应用主题更改
+      if (values.theme && ['light', 'dark', 'auto'].includes(values.theme)) {
+        setMode(values.theme as ThemeMode);
       }
 
+      message.success('偏好设置已保存，主题已立即应用');
       setInitialValues(values);
     } catch (error: any) {
       message.error(error.message || '保存失败');
@@ -125,6 +128,13 @@ const ProfilePreferences = () => {
   const handleReset = () => {
     if (initialValues) {
       form.setFieldsValue(initialValues);
+    }
+  };
+
+  // 主题选择变化时预览效果
+  const handleThemeChange = (value: string) => {
+    if (['light', 'dark', 'auto'].includes(value)) {
+      setMode(value as ThemeMode);
     }
   };
 
@@ -147,7 +157,7 @@ const ProfilePreferences = () => {
           onFinish={handleSubmit}
           initialValues={{
             language: 'zh-CN',
-            theme: 'light',
+            theme: mode,
             emailNotifications: true,
             smsNotifications: false,
             systemNotifications: true,
@@ -171,8 +181,12 @@ const ProfilePreferences = () => {
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label="主题模式" name="theme" tooltip="选择浅色或深色主题">
-                <Select size="large">
+              <Form.Item
+                label="主题模式"
+                name="theme"
+                tooltip="选择浅色或深色主题，更改后会立即生效"
+              >
+                <Select size="large" onChange={handleThemeChange}>
                   <Option value="light">
                     <BgColorsOutlined /> 浅色模式
                   </Option>
@@ -186,6 +200,14 @@ const ProfilePreferences = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          <Alert
+            message="主题设置会立即生效"
+            description="选择主题后会立即预览效果，点击保存后将同步到您的账户"
+            type="info"
+            showIcon
+            style={{ marginBottom: 24 }}
+          />
 
           <Divider />
 
@@ -255,8 +277,8 @@ const ProfilePreferences = () => {
         <Card style={{ marginTop: 24 }} bordered={false}>
           <Title level={5}>关于偏好设置</Title>
           <ul>
-            <li>语言和主题设置会立即应用到您的账户</li>
-            <li>部分设置可能需要刷新页面后生效</li>
+            <li>主题设置会立即应用并保存到本地，同时同步到您的账户</li>
+            <li>语言设置可能需要刷新页面后生效</li>
             <li>通知偏好不会影响安全相关的关键通知</li>
             <li>即使关闭营销邮件，您仍会收到账单和系统通知</li>
           </ul>

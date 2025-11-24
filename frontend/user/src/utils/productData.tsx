@@ -17,7 +17,7 @@ import {
 
 export const coreFeatures = [
   {
-    icon: <MobileOutlined style={{ fontSize: 48, color: '#1890ff' }} />,
+    icon: <MobileOutlined style={{ fontSize: 48, color: '#1677ff' }} />,
     title: '真实Android环境',
     description:
       '基于Redroid容器技术，提供完整的Android系统环境，100%兼容原生应用，支持Android 7-13多版本。',
@@ -62,7 +62,7 @@ export const coreFeatures = [
 
 export const useCases = [
   {
-    icon: <RocketOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+    icon: <RocketOutlined style={{ fontSize: 32, color: '#1677ff' }} />,
     title: 'App自动化测试',
     description:
       '在云端批量创建测试设备，执行UI自动化测试、兼容性测试、性能测试，大幅提升测试效率。',

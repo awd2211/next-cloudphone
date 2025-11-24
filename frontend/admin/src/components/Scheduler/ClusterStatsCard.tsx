@@ -18,6 +18,19 @@ export const ClusterStatsCard = memo<ClusterStatsCardProps>(({ clusterStats }) =
     return 'success';
   };
 
+  // 适配新 API 格式
+  const totalNodes = clusterStats?.nodes?.total ?? clusterStats?.totalNodes ?? 0;
+  const activeNodes = clusterStats?.nodes?.online ?? clusterStats?.activeNodes ?? 0;
+  const cpuUtilization = clusterStats?.utilization?.cpu ?? clusterStats?.utilizationRate?.cpu ?? 0;
+  const memoryUtilization = clusterStats?.utilization?.memory ?? clusterStats?.utilizationRate?.memory ?? 0;
+  const storageUtilization = clusterStats?.utilization?.storage ?? clusterStats?.utilizationRate?.storage ?? 0;
+  const cpuUsage = clusterStats?.usage?.cpuCores ?? clusterStats?.totalUsage?.cpu ?? 0;
+  const cpuCapacity = clusterStats?.capacity?.cpuCores ?? clusterStats?.totalCapacity?.cpu ?? 0;
+  const memoryUsageMB = clusterStats?.usage?.memoryMB ?? (clusterStats?.totalUsage?.memory ?? 0);
+  const memoryCapacityMB = clusterStats?.capacity?.memoryMB ?? (clusterStats?.totalCapacity?.memory ?? 0);
+  const storageUsageGB = clusterStats?.usage?.storageGB ?? ((clusterStats?.totalUsage?.storage ?? 0) / 1024);
+  const storageCapacityGB = clusterStats?.capacity?.storageGB ?? ((clusterStats?.totalCapacity?.storage ?? 0) / 1024);
+
   return (
     <Card
       title={
@@ -30,14 +43,14 @@ export const ClusterStatsCard = memo<ClusterStatsCardProps>(({ clusterStats }) =
         <Col span={6}>
           <Statistic
             title="总节点数"
-            value={clusterStats?.totalNodes || 0}
+            value={totalNodes}
             prefix={<CloudServerOutlined />}
           />
         </Col>
         <Col span={18}>
           <Statistic
             title="活跃节点"
-            value={clusterStats?.activeNodes || 0}
+            value={activeNodes}
             valueStyle={{ color: '#52c41a' }}
             prefix={<CheckCircleOutlined />}
           />
@@ -48,35 +61,35 @@ export const ClusterStatsCard = memo<ClusterStatsCardProps>(({ clusterStats }) =
         <Col span={8}>
           <Card size="small" title="CPU 使用率">
             <Progress
-              percent={Math.round(clusterStats?.utilizationRate.cpu || 0)}
-              status={getProgressStatus(clusterStats?.utilizationRate.cpu || 0)}
+              percent={Math.round(cpuUtilization)}
+              status={getProgressStatus(cpuUtilization)}
             />
             <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
-              {clusterStats?.totalUsage.cpu || 0} / {clusterStats?.totalCapacity.cpu || 0} 核
+              {cpuUsage} / {cpuCapacity} 核
             </div>
           </Card>
         </Col>
         <Col span={8}>
           <Card size="small" title="内存使用率">
             <Progress
-              percent={Math.round(clusterStats?.utilizationRate.memory || 0)}
-              status={getProgressStatus(clusterStats?.utilizationRate.memory || 0)}
+              percent={Math.round(memoryUtilization)}
+              status={getProgressStatus(memoryUtilization)}
             />
             <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
-              {((clusterStats?.totalUsage.memory || 0) / 1024).toFixed(1)} /{' '}
-              {((clusterStats?.totalCapacity.memory || 0) / 1024).toFixed(1)} GB
+              {(memoryUsageMB / 1024).toFixed(1)} /{' '}
+              {(memoryCapacityMB / 1024).toFixed(1)} GB
             </div>
           </Card>
         </Col>
         <Col span={8}>
           <Card size="small" title="存储使用率">
             <Progress
-              percent={Math.round(clusterStats?.utilizationRate.storage || 0)}
-              status={getProgressStatus(clusterStats?.utilizationRate.storage || 0)}
+              percent={Math.round(storageUtilization)}
+              status={getProgressStatus(storageUtilization)}
             />
             <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
-              {((clusterStats?.totalUsage.storage || 0) / 1024).toFixed(1)} /{' '}
-              {((clusterStats?.totalCapacity.storage || 0) / 1024).toFixed(1)} GB
+              {storageUsageGB.toFixed(1)} /{' '}
+              {storageCapacityGB.toFixed(1)} GB
             </div>
           </Card>
         </Col>

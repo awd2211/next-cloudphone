@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Statistic } from 'antd';
+import { Card, Row, Col, Statistic, theme } from 'antd';
 import {
   BellOutlined,
   ClockCircleOutlined,
@@ -7,6 +7,8 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import type { NotificationStats } from '@/services/notification';
+
+const { useToken } = theme;
 
 interface MessageStatsCardsProps {
   stats: NotificationStats | null;
@@ -17,6 +19,8 @@ interface MessageStatsCardsProps {
  * 展示全部、未读、今日、本周消息统计
  */
 export const MessageStatsCards: React.FC<MessageStatsCardsProps> = React.memo(({ stats }) => {
+  const { token } = useToken();
+
   return (
     <Row gutter={16} style={{ marginBottom: 24 }}>
       <Col xs={24} sm={12} lg={6}>
@@ -29,7 +33,7 @@ export const MessageStatsCards: React.FC<MessageStatsCardsProps> = React.memo(({
           <Statistic
             title="未读消息"
             value={stats?.unread || 0}
-            valueStyle={{ color: '#faad14' }}
+            valueStyle={{ color: token.colorWarning }}
             prefix={<ExclamationCircleOutlined />}
           />
         </Card>
@@ -39,7 +43,7 @@ export const MessageStatsCards: React.FC<MessageStatsCardsProps> = React.memo(({
           <Statistic
             title="今日消息"
             value={stats?.today || 0}
-            valueStyle={{ color: '#1890ff' }}
+            valueStyle={{ color: token.colorPrimary }}
             prefix={<ClockCircleOutlined />}
           />
         </Card>
@@ -49,7 +53,7 @@ export const MessageStatsCards: React.FC<MessageStatsCardsProps> = React.memo(({
           <Statistic
             title="本周消息"
             value={stats?.thisWeek || 0}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: token.colorSuccess }}
             prefix={<CheckCircleOutlined />}
           />
         </Card>

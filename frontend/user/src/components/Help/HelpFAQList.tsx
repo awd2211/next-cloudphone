@@ -97,7 +97,7 @@ export const HelpFAQList: React.FC<HelpFAQListProps> = React.memo(({
                     width: 32,
                     height: 32,
                     borderRadius: '50%',
-                    background: '#1890ff',
+                    background: '#1677ff',
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',

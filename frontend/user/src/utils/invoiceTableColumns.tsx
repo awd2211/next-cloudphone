@@ -89,7 +89,7 @@ export const createInvoiceTableColumns = (
     width: 120,
     align: 'right',
     render: (amount: number) => (
-      <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
+      <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>
         ¥{amount.toFixed(2)}
       </Text>
     ),

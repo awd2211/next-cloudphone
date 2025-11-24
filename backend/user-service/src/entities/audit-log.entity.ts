@@ -114,6 +114,12 @@ export class AuditLog {
   @Column({ type: 'varchar', nullable: true })
   requestId: string; // 请求追踪 ID
 
+  @Column({ type: 'varchar', nullable: true })
+  method: string; // HTTP 方法 (GET/POST/PUT/DELETE/PATCH)
+
+  @Column({ type: 'varchar', nullable: true })
+  requestPath: string; // 请求路径
+
   @Column({ type: 'boolean', default: true })
   success: boolean; // 操作是否成功
 

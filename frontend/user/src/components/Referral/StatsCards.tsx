@@ -1,7 +1,9 @@
 import React from 'react';
-import { Row, Col, Card, Statistic, Button } from 'antd';
+import { Row, Col, Card, Statistic, Button, theme } from 'antd';
 import { TeamOutlined, GiftOutlined } from '@ant-design/icons';
 import type { ReferralStats } from '@/services/referral';
+
+const { useToken } = theme;
 
 interface StatsCardsProps {
   stats: ReferralStats | null;
@@ -16,6 +18,8 @@ interface StatsCardsProps {
  * - Props 解构清晰
  */
 export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats, onViewRecords }) => {
+  const { token } = useToken();
+
   return (
     <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
       {/* 累计邀请 */}
@@ -38,7 +42,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats, onView
             value={stats?.confirmedInvites || 0}
             suffix="人"
             prefix={<GiftOutlined />}
-            valueStyle={{ color: '#3f8600' }}
+            valueStyle={{ color: token.colorSuccess }}
           />
         </Card>
       </Col>
@@ -51,7 +55,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats, onView
             value={stats?.totalRewards || 0}
             prefix="¥"
             precision={2}
-            valueStyle={{ color: '#cf1322' }}
+            valueStyle={{ color: token.colorError }}
           />
         </Card>
       </Col>
@@ -64,7 +68,7 @@ export const StatsCards: React.FC<StatsCardsProps> = React.memo(({ stats, onView
             value={stats?.availableBalance || 0}
             prefix="¥"
             precision={2}
-            valueStyle={{ color: '#faad14' }}
+            valueStyle={{ color: token.colorWarning }}
           />
           <Button
             type="link"

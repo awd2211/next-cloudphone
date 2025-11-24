@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Timeline, Statistic, Spin } from 'antd';
+import { Card, Row, Col, Timeline, Statistic, Spin, theme } from 'antd';
 import {
   RocketOutlined,
   TeamOutlined,
@@ -9,12 +9,15 @@ import {
 } from '@ant-design/icons';
 import { getSiteSettings, type SiteSettings } from '@/services/cms';
 
+const { useToken } = theme;
+
 /**
  * CloudPhone.run 关于我们页面
  * 展示公司信息、团队、里程碑等
  * Header 和 Footer 由 PublicLayout 提供
  */
 const About: React.FC = () => {
+  const { token } = useToken();
   const [loading, setLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
@@ -82,7 +85,7 @@ const About: React.FC = () => {
                   value={10000}
                   prefix={<TeamOutlined />}
                   suffix="+"
-                  valueStyle={{ color: '#3f8600' }}
+                  valueStyle={{ color: token.colorSuccess }}
                 />
               </Card>
             </Col>
@@ -93,7 +96,7 @@ const About: React.FC = () => {
                   value={50000}
                   prefix={<GlobalOutlined />}
                   suffix="+"
-                  valueStyle={{ color: '#1890ff' }}
+                  valueStyle={{ color: token.colorPrimary }}
                 />
               </Card>
             </Col>
@@ -104,7 +107,7 @@ const About: React.FC = () => {
                   value={500}
                   prefix={<TrophyOutlined />}
                   suffix="+"
-                  valueStyle={{ color: '#faad14' }}
+                  valueStyle={{ color: token.colorWarning }}
                 />
               </Card>
             </Col>
@@ -115,7 +118,7 @@ const About: React.FC = () => {
                   value={99.9}
                   prefix={<RocketOutlined />}
                   suffix="%"
-                  valueStyle={{ color: '#cf1322' }}
+                  valueStyle={{ color: token.colorError }}
                 />
               </Card>
             </Col>
@@ -198,27 +201,27 @@ const About: React.FC = () => {
             <Row gutter={[24, 24]}>
               <Col xs={24} md={8}>
                 <div style={{ textAlign: 'center', padding: '24px' }}>
-                  <RocketOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 16 }} />
+                  <RocketOutlined style={{ fontSize: 48, color: token.colorPrimary, marginBottom: 16 }} />
                   <h3 style={{ fontSize: 20, marginBottom: 12 }}>创新驱动</h3>
-                  <p style={{ color: '#666' }}>
+                  <p style={{ color: token.colorTextSecondary }}>
                     持续技术创新，为用户提供最前沿的云手机解决方案
                   </p>
                 </div>
               </Col>
               <Col xs={24} md={8}>
                 <div style={{ textAlign: 'center', padding: '24px' }}>
-                  <TeamOutlined style={{ fontSize: 48, color: '#52c41a', marginBottom: 16 }} />
+                  <TeamOutlined style={{ fontSize: 48, color: token.colorSuccess, marginBottom: 16 }} />
                   <h3 style={{ fontSize: 20, marginBottom: 12 }}>用户至上</h3>
-                  <p style={{ color: '#666' }}>
+                  <p style={{ color: token.colorTextSecondary }}>
                     始终以用户需求为中心，提供优质的产品和服务
                   </p>
                 </div>
               </Col>
               <Col xs={24} md={8}>
                 <div style={{ textAlign: 'center', padding: '24px' }}>
-                  <TrophyOutlined style={{ fontSize: 48, color: '#faad14', marginBottom: 16 }} />
+                  <TrophyOutlined style={{ fontSize: 48, color: token.colorWarning, marginBottom: 16 }} />
                   <h3 style={{ fontSize: 20, marginBottom: 12 }}>追求卓越</h3>
-                  <p style={{ color: '#666' }}>
+                  <p style={{ color: token.colorTextSecondary }}>
                     精益求精，打造行业领先的云手机平台
                   </p>
                 </div>

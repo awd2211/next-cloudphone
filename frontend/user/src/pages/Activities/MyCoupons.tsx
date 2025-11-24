@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Button, Spin, Space, message, Pagination } from 'antd';
+import { Card, Button, Spin, Space, message, Pagination, theme } from 'antd';
+
+const { useToken } = theme;
 import { GiftOutlined, LeftOutlined } from '@ant-design/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
@@ -26,6 +28,7 @@ import { getListData } from '@/types';
  * 5. 使用优惠券（跳转到对应页面）
  */
 const MyCoupons: React.FC = () => {
+  const { token } = useToken();
   const navigate = useNavigate();
 
   // 本地状态
@@ -128,7 +131,7 @@ const MyCoupons: React.FC = () => {
         <Card
           title={
             <Space>
-              <GiftOutlined style={{ fontSize: 20, color: '#1890ff' }} />
+              <GiftOutlined style={{ fontSize: 20, color: token.colorPrimary }} />
               <span style={{ fontSize: 20 }}>我的优惠券</span>
             </Space>
           }

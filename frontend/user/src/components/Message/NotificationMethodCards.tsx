@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Space, Switch, Typography, Alert } from 'antd';
+import { Card, Row, Col, Space, Switch, Typography, Alert, theme } from 'antd';
 import {
   MessageOutlined,
   MailOutlined,
@@ -10,6 +10,7 @@ import {
 import type { FormInstance } from 'antd/es/form';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface NotificationMethodCardsProps {
   form: FormInstance;
@@ -22,28 +23,30 @@ interface NotificationMethodCardsProps {
 export const NotificationMethodCards: React.FC<NotificationMethodCardsProps> = React.memo(({
   form,
 }) => {
+  const { token } = useToken();
+
   const methods = [
     {
       name: 'emailEnabled',
-      icon: <MailOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+      icon: <MailOutlined style={{ fontSize: 32, color: token.colorPrimary }} />,
       title: '邮件通知',
       description: '重要消息邮件提醒',
     },
     {
       name: 'smsEnabled',
-      icon: <MobileOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+      icon: <MobileOutlined style={{ fontSize: 32, color: token.colorSuccess }} />,
       title: '短信通知',
       description: '紧急事件短信提醒',
     },
     {
       name: 'pushEnabled',
-      icon: <BellOutlined style={{ fontSize: 32, color: '#faad14' }} />,
+      icon: <BellOutlined style={{ fontSize: 32, color: token.colorWarning }} />,
       title: '推送通知',
       description: '浏览器推送提醒',
     },
     {
       name: 'soundEnabled',
-      icon: <SoundOutlined style={{ fontSize: 32, color: '#722ed1' }} />,
+      icon: <SoundOutlined style={{ fontSize: 32, color: token['purple-6'] ?? '#722ed1' }} />,
       title: '声音提醒',
       description: '新消息声音提示',
     },
@@ -67,7 +70,7 @@ export const NotificationMethodCards: React.FC<NotificationMethodCardsProps> = R
               hoverable
               style={{
                 textAlign: 'center',
-                borderColor: form.getFieldValue(method.name) ? '#1890ff' : undefined,
+                borderColor: form.getFieldValue(method.name) ? token.colorPrimary : undefined,
               }}
             >
               <Space direction="vertical" size="small">

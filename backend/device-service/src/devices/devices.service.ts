@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Inject,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource, FindOptionsWhere, In } from 'typeorm';
@@ -3416,5 +3417,188 @@ export class DevicesService {
       utilizationRate: Math.round(utilizationRate * 100) / 100,
       statusDistribution,
     };
+  }
+
+  // ==================== 设备分组管理 ====================
+
+  /**
+   * 获取设备分组列表
+   * 从设备的 metadata.groupName 字段聚合分组信息
+   */
+  async getDeviceGroups(): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    deviceCount: number;
+    tags?: string[];
+    createdAt: string;
+  }>> {
+    const devices = await this.devicesRepository.find({
+      select: ['id', 'metadata', 'createdAt'],
+    });
+
+    // 聚合分组信息
+    const groupMap = new Map<string, {
+      deviceCount: number;
+      description?: string;
+      tags?: string[];
+      earliestCreatedAt: Date;
+    }>();
+
+    devices.forEach((device) => {
+      const groupName = device.metadata?.groupName;
+      if (!groupName) return; // 跳过未分组的设备
+
+      const existing = groupMap.get(groupName);
+      if (existing) {
+        existing.deviceCount++;
+        if (device.createdAt < existing.earliestCreatedAt) {
+          existing.earliestCreatedAt = device.createdAt;
+        }
+      } else {
+        groupMap.set(groupName, {
+          deviceCount: 1,
+          description: device.metadata?.groupDescription,
+          tags: device.metadata?.groupTags,
+          earliestCreatedAt: device.createdAt,
+        });
+      }
+    });
+
+    // 转换为数组格式
+    const groups = Array.from(groupMap.entries()).map(([name, data]) => ({
+      id: this.generateGroupId(name),
+      name,
+      description: data.description,
+      deviceCount: data.deviceCount,
+      tags: data.tags,
+      createdAt: data.earliestCreatedAt.toISOString(),
+    }));
+
+    // 按设备数量降序排序
+    return groups.sort((a, b) => b.deviceCount - a.deviceCount);
+  }
+
+  /**
+   * 创建设备分组
+   * 由于分组是基于 metadata 的虚拟概念，这里只是返回新分组信息
+   */
+  async createDeviceGroup(data: {
+    name: string;
+    description?: string;
+    tags?: string[];
+  }): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    deviceCount: number;
+    tags?: string[];
+    createdAt: string;
+  }> {
+    // 检查分组名称是否已存在
+    const existingDevices = await this.devicesRepository.findOne({
+      where: {
+        metadata: { groupName: data.name } as any,
+      },
+    });
+
+    if (existingDevices) {
+      throw new BadRequestException('分组名称已存在');
+    }
+
+    return {
+      id: this.generateGroupId(data.name),
+      name: data.name,
+      description: data.description,
+      deviceCount: 0,
+      tags: data.tags,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * 更新设备分组
+   * 更新分组内所有设备的 metadata
+   */
+  async updateDeviceGroup(
+    groupId: string,
+    data: { name?: string; description?: string; tags?: string[] }
+  ): Promise<{ message: string; affectedDevices: number }> {
+    // 从 ID 还原分组名称
+    const originalName = this.decodeGroupId(groupId);
+
+    // 查找该分组的所有设备
+    const devices = await this.devicesRepository
+      .createQueryBuilder('device')
+      .where("device.metadata->>'groupName' = :groupName", { groupName: originalName })
+      .getMany();
+
+    if (devices.length === 0) {
+      throw new NotFoundException('分组不存在或没有设备');
+    }
+
+    // 更新所有设备的 metadata
+    for (const device of devices) {
+      device.metadata = {
+        ...device.metadata,
+        ...(data.name && { groupName: data.name }),
+        ...(data.description !== undefined && { groupDescription: data.description }),
+        ...(data.tags !== undefined && { groupTags: data.tags }),
+      };
+    }
+
+    await this.devicesRepository.save(devices);
+
+    return {
+      message: `分组更新成功`,
+      affectedDevices: devices.length,
+    };
+  }
+
+  /**
+   * 删除设备分组
+   * 将分组内所有设备的 groupName 清空
+   */
+  async deleteDeviceGroup(groupId: string): Promise<{ message: string; affectedDevices: number }> {
+    const originalName = this.decodeGroupId(groupId);
+
+    // 查找该分组的所有设备
+    const devices = await this.devicesRepository
+      .createQueryBuilder('device')
+      .where("device.metadata->>'groupName' = :groupName", { groupName: originalName })
+      .getMany();
+
+    if (devices.length === 0) {
+      throw new NotFoundException('分组不存在或没有设备');
+    }
+
+    // 清空分组信息
+    for (const device of devices) {
+      const { groupName, groupDescription, groupTags, ...restMetadata } = device.metadata || {};
+      device.metadata = restMetadata;
+    }
+
+    await this.devicesRepository.save(devices);
+
+    return {
+      message: `分组删除成功，${devices.length} 个设备已移出分组`,
+      affectedDevices: devices.length,
+    };
+  }
+
+  /**
+   * 生成分组 ID（基于名称的 base64 编码）
+   */
+  private generateGroupId(name: string): string {
+    return Buffer.from(name).toString('base64').replace(/=/g, '');
+  }
+
+  /**
+   * 解码分组 ID 为名称
+   */
+  private decodeGroupId(id: string): string {
+    // 补齐 base64 padding
+    const paddedId = id + '='.repeat((4 - (id.length % 4)) % 4);
+    return Buffer.from(paddedId, 'base64').toString('utf8');
   }
 }

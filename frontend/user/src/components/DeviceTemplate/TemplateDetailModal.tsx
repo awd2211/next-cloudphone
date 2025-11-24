@@ -1,11 +1,13 @@
 import React from 'react';
-import { Modal, Descriptions, Button, Tag, Space } from 'antd';
+import { Modal, Descriptions, Button, Tag, Space, theme } from 'antd';
 import { ThunderboltOutlined, StarFilled } from '@ant-design/icons';
 import {
   type DeviceTemplate,
   formatMemoryMB,
   formatDateTime,
 } from '@/utils/templateConfig';
+
+const { useToken } = theme;
 
 interface TemplateDetailModalProps {
   visible: boolean;
@@ -24,6 +26,8 @@ interface TemplateDetailModalProps {
  */
 export const TemplateDetailModal: React.FC<TemplateDetailModalProps> = React.memo(
   ({ visible, template, onUseTemplate, onClose }) => {
+    const { token } = useToken();
+
     return (
       <Modal
         title="模板详情"
@@ -54,7 +58,7 @@ export const TemplateDetailModal: React.FC<TemplateDetailModalProps> = React.mem
               <Space>
                 {template.name}
                 {template.isSystem && <Tag color="blue">系统模板</Tag>}
-                {template.isFavorite && <StarFilled style={{ color: '#faad14' }} />}
+                {template.isFavorite && <StarFilled style={{ color: token.colorWarning }} />}
               </Space>
             </Descriptions.Item>
 

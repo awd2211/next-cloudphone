@@ -84,11 +84,11 @@ export class SchedulingStrategy {
   priority: number;
 
   // 创建时间
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   // 更新时间
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   /**

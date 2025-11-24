@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Card, Select, Empty, Alert, Space, Typography, Spin, message } from 'antd';
+import { Card, Select, Empty, Alert, Space, Typography, Spin, message, theme } from 'antd';
+
+const { useToken } = theme;
 import { MobileOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useInstalledApps, useUninstallApp, useBatchUninstallApps, useUpdateApp, useMyDevices } from '@/hooks/queries';
@@ -21,6 +23,8 @@ const { Title, Text } = Typography;
  * 5. 更新应用
  */
 const InstalledApps: React.FC = () => {
+  const { token } = useToken();
+
   // 本地状态
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [selectedPackageNames, setSelectedPackageNames] = useState<string[]>([]);
@@ -135,7 +139,7 @@ const InstalledApps: React.FC = () => {
           }}
         >
           <Space>
-            <AppstoreOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+            <AppstoreOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
             <Title level={2} style={{ margin: 0 }}>
               已安装应用管理
             </Title>

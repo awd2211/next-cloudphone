@@ -229,6 +229,76 @@ export class DevicesController {
     return this.devicesService.getUsageStats();
   }
 
+  @Get('groups')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取设备分组列表',
+    description: '获取所有设备分组及其统计信息，从设备的 metadata.groupName 字段聚合',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: '分组ID（基于名称生成）' },
+          name: { type: 'string', description: '分组名称' },
+          description: { type: 'string', description: '分组描述' },
+          deviceCount: { type: 'number', description: '设备数量' },
+          tags: { type: 'array', items: { type: 'string' }, description: '标签' },
+          createdAt: { type: 'string', description: '创建时间' },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async getDeviceGroups() {
+    return this.devicesService.getDeviceGroups();
+  }
+
+  @Post('groups')
+  @RequirePermission('device.manage')
+  @ApiOperation({
+    summary: '创建设备分组',
+    description: '创建新的设备分组（分组信息存储在设备的 metadata 中）',
+  })
+  @ApiResponse({ status: 201, description: '创建成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async createDeviceGroup(
+    @Body() body: { name: string; description?: string; tags?: string[] }
+  ) {
+    return this.devicesService.createDeviceGroup(body);
+  }
+
+  @Patch('groups/:id')
+  @RequirePermission('device.manage')
+  @ApiOperation({
+    summary: '更新设备分组',
+    description: '更新设备分组的名称、描述或标签',
+  })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async updateDeviceGroup(
+    @Param('id') id: string,
+    @Body() body: { name?: string; description?: string; tags?: string[] }
+  ) {
+    return this.devicesService.updateDeviceGroup(id, body);
+  }
+
+  @Delete('groups/:id')
+  @RequirePermission('device.manage')
+  @ApiOperation({
+    summary: '删除设备分组',
+    description: '删除设备分组（分组内的设备将变为未分组状态）',
+  })
+  @ApiResponse({ status: 200, description: '删除成功' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  async deleteDeviceGroup(@Param('id') id: string) {
+    return this.devicesService.deleteDeviceGroup(id);
+  }
+
   @Get('available')
   @RequirePermission('device.read')
   @ApiOperation({

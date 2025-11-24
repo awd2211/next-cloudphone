@@ -126,7 +126,7 @@ export function useDeviceMonitor(id: string | undefined) {
       yField: 'cpuUsage',
       height: 200,
       smooth: true,
-      color: '#1890ff',
+      color: '#1677ff',
       yAxis: {
         min: 0,
         max: 100,

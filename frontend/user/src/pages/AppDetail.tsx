@@ -19,7 +19,10 @@ import {
   Space,
   Avatar,
   Tabs,
+  theme,
 } from 'antd';
+
+const { useToken } = theme;
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   DownloadOutlined,
@@ -36,6 +39,7 @@ const { Title, Paragraph, Text } = Typography;
 const { TabPane } = Tabs;
 
 const AppDetail = () => {
+  const { token } = useToken();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [app, setApp] = useState<Application | null>(null);
@@ -187,7 +191,7 @@ const AppDetail = () => {
                 <Avatar
                   size={150}
                   icon={<AppstoreOutlined />}
-                  style={{ backgroundColor: '#1890ff' }}
+                  style={{ backgroundColor: token.colorPrimary }}
                 />
               )}
               <div style={{ marginTop: 24 }}>
@@ -212,7 +216,7 @@ const AppDetail = () => {
                 <Tag color={getCategoryColor(app.category)}>{getCategoryLabel(app.category)}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="包名">
-                <Text copyable style={{ fontSize: 12, color: '#666' }}>
+                <Text copyable style={{ fontSize: 12, color: token.colorTextSecondary }}>
                   {app.packageName}
                 </Text>
               </Descriptions.Item>
@@ -232,7 +236,7 @@ const AppDetail = () => {
                 <Text type="secondary">{new Date(app.createdAt).toLocaleDateString()}</Text>
               </Space>
               <Space>
-                <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                <CheckCircleOutlined style={{ color: token.colorSuccess }} />
                 <Text type="secondary">已审核</Text>
               </Space>
             </Space>

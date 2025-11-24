@@ -349,7 +349,7 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
       case 'excellent':
         return { color: '#52c41a', text: '优秀', icon: 4 };
       case 'good':
-        return { color: '#1890ff', text: '良好', icon: 3 };
+        return { color: '#1677ff', text: '良好', icon: 3 };
       case 'fair':
         return { color: '#faad14', text: '一般', icon: 2 };
       case 'poor':

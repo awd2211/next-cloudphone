@@ -182,11 +182,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: '生成成功' })
   @ApiResponse({ status: 401, description: '未授权' })
   async generate2FA(@Req() req: any) {
-    const result = await this.twoFactorService.generate2FASecret(req.user.id);
-    return {
-      data: result,
-      message: '2FA密钥生成成功',
-    };
+    return this.twoFactorService.generate2FASecret(req.user.id);
   }
 
   /**

@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
-import { Card, Tag, Button } from 'antd';
+import { Card, Tag, Button, theme } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
 import type { Plan } from '@/types';
+
+const { useToken } = theme;
 
 interface PlanCardProps {
   plan: Plan;
@@ -18,6 +20,8 @@ export const PlanCard: React.FC<PlanCardProps> = React.memo(({
   loading = false,
   onPurchase,
 }) => {
+  const { token } = useToken();
+
   // 套餐类型文本映射
   const planTypeText = useMemo(() => {
     const typeMap: Record<string, string> = {
@@ -65,11 +69,11 @@ export const PlanCard: React.FC<PlanCardProps> = React.memo(({
           {plan.name}
         </h3>
         <div style={{ marginBottom: 8 }}>
-          <span style={{ fontSize: 36, fontWeight: 'bold', color: '#1890ff' }}>
+          <span style={{ fontSize: 36, fontWeight: 'bold', color: token.colorPrimary }}>
             ¥{plan.price}
           </span>
           {plan.type !== 'one-time' && (
-            <span style={{ fontSize: 14, color: '#999' }}>/{plan.duration}天</span>
+            <span style={{ fontSize: 14, color: token.colorTextSecondary }}>/{plan.duration}天</span>
           )}
         </div>
       </div>
@@ -77,7 +81,7 @@ export const PlanCard: React.FC<PlanCardProps> = React.memo(({
       {/* 套餐详情 */}
       <div style={{ flex: 1, marginBottom: 24 }}>
         {plan.description && (
-          <p style={{ color: '#666', textAlign: 'center', marginBottom: 16 }}>
+          <p style={{ color: token.colorTextSecondary, textAlign: 'center', marginBottom: 16 }}>
             {plan.description}
           </p>
         )}
@@ -91,7 +95,7 @@ export const PlanCard: React.FC<PlanCardProps> = React.memo(({
               fontSize: 14,
             }}
           >
-            <CheckOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+            <CheckOutlined style={{ color: token.colorSuccess, marginRight: 8 }} />
             <span>最多 {plan.deviceLimit} 个云手机</span>
           </div>
           <div
@@ -102,7 +106,7 @@ export const PlanCard: React.FC<PlanCardProps> = React.memo(({
               fontSize: 14,
             }}
           >
-            <CheckOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+            <CheckOutlined style={{ color: token.colorSuccess, marginRight: 8 }} />
             <span>有效期 {plan.duration} 天</span>
           </div>
           {plan.features && plan.features.length > 0 && (
@@ -117,7 +121,7 @@ export const PlanCard: React.FC<PlanCardProps> = React.memo(({
                     fontSize: 14,
                   }}
                 >
-                  <CheckOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                  <CheckOutlined style={{ color: token.colorSuccess, marginRight: 8 }} />
                   <span>{feature}</span>
                 </div>
               ))}
