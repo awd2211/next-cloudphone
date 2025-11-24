@@ -74,31 +74,34 @@ export class CloudDeviceTokenService {
     }
 
     try {
-      // 获取新的连接信息（包含新 Token）
-      const result = await this.aliyunClient.getConnectionInfo(device.externalId);
+      // 获取新的连接票据（V2 SDK 使用 batchGetConnectionTicket）
+      const result = await this.aliyunClient.batchGetConnectionTicket({
+        instanceIds: [device.externalId]
+      });
 
-      if (!result.success || !result.data) {
-        throw new Error(result.errorMessage || 'Failed to get connection info');
+      if (!result.success || !result.data || result.data.length === 0) {
+        throw new Error(result.errorMessage || 'Failed to get connection ticket');
       }
 
-      const connectionInfo = result.data;
+      const connectionTicket = result.data[0];
 
-      // 更新设备的 connectionInfo
+      // V2 SDK 使用 Connection Ticket (30秒有效期)
+      // Ticket 用于前端建立 WebRTC 连接
       device.connectionInfo = {
         ...device.connectionInfo,
         webrtc: {
-          streamUrl: connectionInfo.streamUrl,
-          token: connectionInfo.token,
-          expireTime: connectionInfo.expireTime,
-          stunServers: connectionInfo.stunServers,
-          turnServers: connectionInfo.turnServers,
+          ticket: connectionTicket.ticket,
+          taskId: connectionTicket.taskId,
+          taskStatus: connectionTicket.taskStatus,
+          // V2 SDK 的 ticket 有效期约 30 秒
+          expireTime: new Date(Date.now() + 30 * 1000).toISOString(),
         },
       };
 
       await this.devicesRepository.save(device);
 
       this.logger.debug(
-        `Refreshed token for Aliyun device ${device.id} (${device.name}), expires at ${connectionInfo.expireTime}`
+        `Refreshed connection ticket for Aliyun device ${device.id} (${device.name}), ticket: ${connectionTicket.ticket.substring(0, 20)}...`
       );
     } catch (error) {
       this.logger.error(`Failed to refresh token for Aliyun device ${device.id}`, error.stack);

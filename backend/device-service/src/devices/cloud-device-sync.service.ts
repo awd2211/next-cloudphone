@@ -95,16 +95,18 @@ export class CloudDeviceSyncService {
       return;
     }
 
-    // 从阿里云获取设备详情
-    const result = await this.aliyunClient.describeInstance(device.externalId);
+    // 从阿里云获取设备详情 (V2 SDK 使用 describeInstances)
+    const result = await this.aliyunClient.describeInstances({
+      instanceIds: [device.externalId]
+    });
 
-    if (!result.success || !result.data) {
+    if (!result.success || !result.data || result.data.instances.length === 0) {
       this.logger.warn(`Failed to get Aliyun device ${device.externalId}: ${result.errorMessage}`);
       return;
     }
 
-    const instance = result.data;
-    const cloudStatus = this.mapAliyunStatus(instance.status);
+    const instanceInfo = result.data.instances[0];
+    const cloudStatus = this.mapAliyunStatus(instanceInfo.status as any);
 
     // 如果状态不一致，更新本地状态
     if (cloudStatus && device.status !== cloudStatus) {
