@@ -206,6 +206,12 @@ const BasicLayout = () => {
           label: '物理设备',
           onClick: () => navigate('/admin/business/devices/physical'),
         },
+        {
+          key: '/admin/business/devices/providers',
+          icon: <CloudServerOutlined />,
+          label: '云手机提供商',
+          onClick: () => navigate('/admin/business/devices/providers'),
+        },
       ],
     },
     {
