@@ -23,7 +23,10 @@
     "migration:show": "npm run typeorm -- migration:show -d src/config/typeorm-cli.config.ts"
   },
   "dependencies": {
+    "@alicloud/eds-aic20230930": "^4.14.0",
+    "@alicloud/openapi-client": "^0.4.15",
     "@alicloud/pop-core": "^1.8.0",
+    "@alicloud/tea-util": "^1.4.11",
     "@cloudphone/shared": "workspace:*",
     "@golevelup/nestjs-discovery": "^5.0.0",
     "@golevelup/nestjs-rabbitmq": "^6.0.2",

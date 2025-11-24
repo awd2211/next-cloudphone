@@ -180,6 +180,17 @@ export interface PopularTag {
 
 // ==================== 占位数据 ====================
 
+/**
+ * 帮助分类默认配置 - 颜色映射
+ *
+ * 这些颜色作为默认/fallback 值使用，对应 Ant Design 主题色：
+ * - #1677ff → colorPrimary (主色/快速入门)
+ * - #52c41a → colorSuccess (成功色/设备管理)
+ * - #faad14 → colorWarning (警告色/账户计费)
+ * - #722ed1 → 紫色 (常见问题)
+ *
+ * 如需主题适配，组件层面应通过 useToken() 获取实际主题色并覆盖这些默认值
+ */
 const MOCK_CATEGORIES: HelpCategory[] = [
   { id: '1', name: '快速入门', description: '新用户指南', icon: 'rocket', order: 1, articleCount: 5, color: '#1677ff' },
   { id: '2', name: '设备管理', description: '云手机设备相关', icon: 'mobile', order: 2, articleCount: 8, color: '#52c41a' },

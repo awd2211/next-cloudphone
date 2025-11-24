@@ -352,6 +352,7 @@ const ProviderConfig: React.FC = memo(() => {
                   <Select.Option value="brightdata">Bright Data</Select.Option>
                   <Select.Option value="oxylabs">Oxylabs</Select.Option>
                   <Select.Option value="iproyal">IPRoyal</Select.Option>
+                  <Select.Option value="ipidea">IPIDEA (家宽代理)</Select.Option>
                   <Select.Option value="smartproxy">SmartProxy</Select.Option>
                 </Select>
               </Form.Item>
@@ -393,14 +394,23 @@ const ProviderConfig: React.FC = memo(() => {
             rules={[{ required: true, message: '请输入配置信息' }]}
           >
             <Input.TextArea
-              rows={6}
-              placeholder={`示例：
+              rows={8}
+              placeholder={`通用示例：
 {
   "apiKey": "your-api-key",
   "username": "your-username",
   "password": "your-password",
   "apiUrl": "https://api.provider.com",
   "zone": "residential"
+}
+
+IPIDEA 示例：
+{
+  "apiKey": "your-appkey",
+  "username": "认证账户用户名",
+  "password": "认证账户密码",
+  "gateway": "e255c08e04856698.lqz.na.ipidea.online",
+  "port": 2336
 }`}
             />
           </Form.Item>

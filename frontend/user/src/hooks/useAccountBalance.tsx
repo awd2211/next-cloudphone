@@ -1,9 +1,11 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Form } from 'antd';
+import { Form, theme } from 'antd';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import { Typography, Tag } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, DollarOutlined } from '@ant-design/icons';
+
+const { useToken } = theme;
 import {
   useUserBalance,
   useBalanceTransactions,
@@ -57,6 +59,7 @@ export interface BalanceData {
  * - ✅ 保留所有 UI 逻辑和优化
  */
 export const useAccountBalance = () => {
+  const { token } = useToken();
   const [form] = Form.useForm();
   const [alertSettingsVisible, setAlertSettingsVisible] = useState(false);
 
@@ -223,7 +226,7 @@ export const useAccountBalance = () => {
           <Text
             strong
             style={{
-              color: amount > 0 ? '#52c41a' : '#ff4d4f',
+              color: amount > 0 ? token.colorSuccess : token.colorError,
               fontSize: 15,
             }}
           >
@@ -287,9 +290,9 @@ export const useAccountBalance = () => {
         size: 3,
         shape: 'circle',
       },
-      color: '#1677ff',
+      color: token.colorPrimary,
       areaStyle: {
-        fill: 'l(270) 0:#ffffff 0.5:#d9e8ff 1:#1677ff',
+        fill: `l(270) 0:${token.colorBgContainer} 0.5:${token.colorPrimaryBg} 1:${token.colorPrimary}`,
         fillOpacity: 0.3,
       },
     }),

@@ -52,6 +52,8 @@ export interface ProxyListParams {
   protocol?: string;
   provider?: string;
   country?: string;
+  state?: string;      // 州/省 (如: california)
+  city?: string;       // 城市
   minQuality?: number;
   maxLatency?: number;
 }

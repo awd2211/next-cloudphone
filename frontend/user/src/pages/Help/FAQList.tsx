@@ -13,6 +13,7 @@ import {
   Typography,
   Pagination,
   message,
+  theme,
 } from 'antd';
 import {
   QuestionCircleOutlined,
@@ -36,6 +37,7 @@ const { Panel } = Collapse;
 const { Title, Text, Paragraph } = Typography;
 const { Search } = Input;
 const { Option } = Select;
+const { useToken } = theme;
 
 // FAQ 分类配置
 const faqCategoryConfig: Record<FAQCategory, { label: string; color: string }> = {
@@ -49,6 +51,7 @@ const faqCategoryConfig: Record<FAQCategory, { label: string; color: string }> =
 };
 
 const FAQList: React.FC = () => {
+  const { token } = useToken();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -154,7 +157,7 @@ const FAQList: React.FC = () => {
         <Card style={{ marginBottom: 24 }}>
         <Space direction="vertical" style={{ width: '100%' }} size="large">
           <div style={{ textAlign: 'center' }}>
-            <QuestionCircleOutlined style={{ fontSize: 48, color: '#52c41a', marginBottom: 16 }} />
+            <QuestionCircleOutlined style={{ fontSize: 48, color: token.colorSuccess, marginBottom: 16 }} />
             <Title level={2} style={{ marginBottom: 8 }}>
               常见问题
             </Title>
@@ -245,7 +248,7 @@ const FAQList: React.FC = () => {
                             <span>{faq.views}</span>
                           </Space>
                           <Space size="small">
-                            <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                            <CheckCircleOutlined style={{ color: token.colorSuccess }} />
                             <span>{faq.helpfulCount}</span>
                           </Space>
                         </Space>
@@ -257,7 +260,7 @@ const FAQList: React.FC = () => {
                       <div
                         style={{
                           padding: '16px',
-                          background: '#f5f5f5',
+                          background: token.colorBgLayout,
                           borderRadius: '4px',
                           marginBottom: '16px',
                           lineHeight: '1.8',
@@ -328,7 +331,7 @@ const FAQList: React.FC = () => {
       </Card>
 
         {/* 底部提示 */}
-        <Card style={{ marginTop: 24, textAlign: 'center', background: '#fafafa' }}>
+        <Card style={{ marginTop: 24, textAlign: 'center', background: token.colorBgLayout }}>
           <Space direction="vertical">
             <Text>还没有找到答案？</Text>
             <Space>

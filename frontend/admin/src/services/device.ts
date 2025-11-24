@@ -157,3 +157,56 @@ export const scanNetworkDevices = (params: { subnet: string }) =>
 
 export const registerPhysicalDevice = (data: { serialNumber: string; name?: string }) =>
   api.post('/admin/physical-devices/register', data);
+
+// ========== 阿里云云手机 ECP 相关 API ==========
+
+export interface AliyunConnectionTicketResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    instanceId: string;
+    ticket: string;
+    taskId: string;
+    taskStatus: string;
+    expiresAt: string;
+  };
+}
+
+export interface AliyunAdbInfo {
+  adbServletAddress: string;
+  adbEnabled: boolean;
+}
+
+/**
+ * 获取阿里云云手机连接凭证
+ * 凭证有效期 30 秒，需要及时使用
+ */
+export const getAliyunConnectionTicket = (deviceId: string) =>
+  api.get<AliyunConnectionTicketResponse>(`/devices/${deviceId}/connection-ticket`);
+
+/**
+ * 开启阿里云云手机 ADB 连接
+ */
+export const enableAliyunAdb = (deviceId: string) =>
+  api.post<void>(`/devices/${deviceId}/adb/enable`);
+
+/**
+ * 关闭阿里云云手机 ADB 连接
+ */
+export const disableAliyunAdb = (deviceId: string) =>
+  api.post<void>(`/devices/${deviceId}/adb/disable`);
+
+/**
+ * 获取阿里云云手机 ADB 连接信息
+ */
+export const getAliyunAdbInfo = (deviceId: string) =>
+  api.get<AliyunAdbInfo>(`/devices/${deviceId}/adb/info`);
+
+/**
+ * 测试获取阿里云云手机连接凭证
+ * 直接使用阿里云实例 ID 获取连接凭证（无需在系统中创建设备）
+ */
+export const testAliyunConnectionTicket = (instanceId: string) =>
+  api.post<AliyunConnectionTicketResponse>('/devices/test-aliyun-connection-ticket', {
+    instanceId,
+  });

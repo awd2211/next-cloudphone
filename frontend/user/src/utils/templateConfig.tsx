@@ -10,6 +10,7 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons';
 import { Space, Tag, Button, Tooltip, Popconfirm, Typography } from 'antd';
+import type { GlobalToken } from 'antd';
 
 const { Text } = Typography;
 import type { ColumnsType } from 'antd/es/table';
@@ -117,34 +118,39 @@ export const dpiOptions = [
 // ===== 统计配置 =====
 
 /**
- * 统计卡片配置
+ * 获取统计卡片配置（支持主题 token）
  */
-export const statsCardConfig = [
+export const getStatsCardConfigWithToken = (token?: GlobalToken) => [
   {
     key: 'total',
     title: '全部模板',
     icon: <AppstoreOutlined />,
-    color: '#1677ff',
+    color: token?.colorPrimary || '#1677ff',
   },
   {
     key: 'system',
     title: '系统模板',
     icon: <MobileOutlined />,
-    color: '#52c41a',
+    color: token?.colorSuccess || '#52c41a',
   },
   {
     key: 'custom',
     title: '自定义模板',
     icon: <CopyOutlined />,
-    color: '#722ed1',
+    color: token?.purple || '#722ed1',
   },
   {
     key: 'favorite',
     title: '已收藏',
     icon: <StarFilled />,
-    color: '#faad14',
+    color: token?.colorWarning || '#faad14',
   },
 ];
+
+/**
+ * 统计卡片配置（兼容旧代码）
+ */
+export const statsCardConfig = getStatsCardConfigWithToken();
 
 // ===== 提示信息配置 =====
 

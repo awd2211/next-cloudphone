@@ -1,7 +1,8 @@
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Tabs, message } from 'antd';
-import { WebRTCPlayerLazy, ADBConsoleLazy } from '@/components/LazyComponents';
+import { WebRTCPlayerLazy, ADBConsoleLazy, AliyunCloudPhonePlayerLazy } from '@/components/LazyComponents';
+import { DeviceProviderType } from '@/types/device';
 import { AppOperationModal } from '@/components/DeviceAppOperations';
 import {
   CreateSnapshotModal,
@@ -126,9 +127,21 @@ const DeviceDetail = () => {
       children: (
         <Card>
           {device?.status === 'running' ? (
-            <ErrorBoundary boundaryName="WebRTCPlayer">
-              <WebRTCPlayerLazy deviceId={id!} />
-            </ErrorBoundary>
+            device?.providerType === DeviceProviderType.ALIYUN_ECP && device?.providerInstanceId ? (
+              // 阿里云云手机使用专用播放器
+              <ErrorBoundary boundaryName="AliyunCloudPhonePlayer">
+                <AliyunCloudPhonePlayerLazy
+                  deviceId={id!}
+                  instanceId={device.providerInstanceId}
+                  regionId={device.providerRegion || 'cn-hangzhou'}
+                />
+              </ErrorBoundary>
+            ) : (
+              // Redroid 和其他设备使用 WebRTC
+              <ErrorBoundary boundaryName="WebRTCPlayer">
+                <WebRTCPlayerLazy deviceId={id!} />
+              </ErrorBoundary>
+            )
           ) : (
             <div style={{ textAlign: 'center', padding: '100px 0', color: '#999' }}>
               设备未运行，无法显示屏幕
@@ -191,6 +204,9 @@ const DeviceDetail = () => {
   ], [
     id,
     device?.status,
+    device?.providerType,
+    device?.providerInstanceId,
+    device?.providerRegion,
     installedApps,
     setUploadModalVisible,
     handleUninstallApp,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Row, Col, message, Spin } from 'antd';
+import { Card, Form, Input, Button, Row, Col, message, Spin, theme } from 'antd';
 import {
   PhoneOutlined,
   MailOutlined,
@@ -13,33 +13,34 @@ import { useNavigate } from 'react-router-dom';
 import { getSiteSettings, type SiteSettings } from '@/services/cms';
 
 const { TextArea } = Input;
+const { useToken } = theme;
 
 /**
  * 联系我们页面
  * 提供联系表单、联系方式和办公地址
  */
-// 默认联系方式（CMS 加载失败时使用）
-const defaultContactMethods = [
+// 默认联系方式图标配置函数
+const getDefaultContactMethods = (token: any) => [
   {
-    icon: <PhoneOutlined style={{ fontSize: 32, color: '#1677ff' }} />,
+    icon: <PhoneOutlined style={{ fontSize: 32, color: token.colorPrimary }} />,
     title: '电话咨询',
     content: '400-123-4567',
     description: '工作日 9:00-18:00',
   },
   {
-    icon: <MailOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+    icon: <MailOutlined style={{ fontSize: 32, color: token.colorSuccess }} />,
     title: '邮箱联系',
     content: 'support@cloudphone.run',
     description: '我们会在24小时内回复',
   },
   {
-    icon: <WechatOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+    icon: <WechatOutlined style={{ fontSize: 32, color: token.colorSuccess }} />,
     title: '微信客服',
     content: 'CloudPhone_Support',
     description: '扫码添加客服微信',
   },
   {
-    icon: <QqOutlined style={{ fontSize: 32, color: '#1677ff' }} />,
+    icon: <QqOutlined style={{ fontSize: 32, color: token.colorPrimary }} />,
     title: 'QQ 群',
     content: '123456789',
     description: '加入开发者交流群',
@@ -66,6 +67,7 @@ const defaultOffices = [
 ];
 
 const Contact: React.FC = () => {
+  const { token } = useToken();
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -92,31 +94,31 @@ const Contact: React.FC = () => {
   const contactMethods = siteSettings
     ? [
         {
-          icon: <PhoneOutlined style={{ fontSize: 32, color: '#1677ff' }} />,
+          icon: <PhoneOutlined style={{ fontSize: 32, color: token.colorPrimary }} />,
           title: '电话咨询',
           content: siteSettings.contact.phone,
           description: '工作日 9:00-18:00',
         },
         {
-          icon: <MailOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+          icon: <MailOutlined style={{ fontSize: 32, color: token.colorSuccess }} />,
           title: '邮箱联系',
           content: siteSettings.contact.email,
           description: '我们会在24小时内回复',
         },
         {
-          icon: <WechatOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+          icon: <WechatOutlined style={{ fontSize: 32, color: token.colorSuccess }} />,
           title: '微信客服',
           content: siteSettings.contact.wechat,
           description: '扫码添加客服微信',
         },
         {
-          icon: <QqOutlined style={{ fontSize: 32, color: '#1677ff' }} />,
+          icon: <QqOutlined style={{ fontSize: 32, color: token.colorPrimary }} />,
           title: 'QQ 群',
           content: siteSettings.contact.qq_group,
           description: '加入开发者交流群',
         },
       ]
-    : defaultContactMethods;
+    : getDefaultContactMethods(token);
 
   // 办公地址
   const offices = siteSettings?.company?.offices ?? defaultOffices;
@@ -143,7 +145,7 @@ const Contact: React.FC = () => {
   return (
     <div>
       {/* 页面内容 */}
-      <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 300px)' }}>
+      <div style={{ background: token.colorBgLayout, minHeight: 'calc(100vh - 300px)' }}>
         {/* Hero Section */}
         <div
           style={{
@@ -163,7 +165,7 @@ const Contact: React.FC = () => {
           {loading ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
               <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
-              <p style={{ marginTop: 16, color: '#666' }}>正在加载联系信息...</p>
+              <p style={{ marginTop: 16, color: token.colorTextSecondary }}>正在加载联系信息...</p>
             </div>
           ) : (
           <>
@@ -179,10 +181,10 @@ const Contact: React.FC = () => {
                   >
                     <div style={{ marginBottom: 16 }}>{method.icon}</div>
                     <h3 style={{ fontSize: 18, marginBottom: 12 }}>{method.title}</h3>
-                    <p style={{ fontSize: 16, fontWeight: 600, color: '#1677ff', marginBottom: 8 }}>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: token.colorPrimary, marginBottom: 8 }}>
                       {method.content}
                     </p>
-                    <p style={{ fontSize: 14, color: '#666' }}>{method.description}</p>
+                    <p style={{ fontSize: 14, color: token.colorTextSecondary }}>{method.description}</p>
                   </Card>
                 </Col>
               ))}
@@ -269,7 +271,7 @@ const Contact: React.FC = () => {
               {/* 工作时间 */}
               <Card style={{ marginBottom: 24 }}>
                 <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                  <ClockCircleOutlined style={{ fontSize: 48, color: '#faad14' }} />
+                  <ClockCircleOutlined style={{ fontSize: 48, color: token.colorWarning }} />
                   <h3 style={{ fontSize: 20, marginTop: 16, marginBottom: 16 }}>营业时间</h3>
                 </div>
                 <div style={{ fontSize: 15, lineHeight: 2 }}>
@@ -287,7 +289,7 @@ const Contact: React.FC = () => {
               {/* 办公地址 */}
               <Card>
                 <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                  <EnvironmentOutlined style={{ fontSize: 48, color: '#1677ff' }} />
+                  <EnvironmentOutlined style={{ fontSize: 48, color: token.colorPrimary }} />
                   <h3 style={{ fontSize: 20, marginTop: 16, marginBottom: 16 }}>办公地址</h3>
                 </div>
                 {offices.map((office, index) => (
@@ -302,7 +304,7 @@ const Contact: React.FC = () => {
                     <h4 style={{ fontSize: 16, marginBottom: 8, fontWeight: 600 }}>
                       {office.city}
                     </h4>
-                    <p style={{ color: '#666', marginBottom: 4, fontSize: 14 }}>
+                    <p style={{ color: token.colorTextSecondary, marginBottom: 4, fontSize: 14 }}>
                       {office.address}
                     </p>
                     <p style={{ color: '#999', fontSize: 14 }}>电话：{office.phone}</p>
@@ -313,9 +315,9 @@ const Contact: React.FC = () => {
           </Row>
 
           {/* 常见问题链接 */}
-          <Card style={{ marginTop: 60, textAlign: 'center', background: '#f9f9f9' }}>
+          <Card style={{ marginTop: 60, textAlign: 'center', background: token.colorBgLayout }}>
             <h3 style={{ fontSize: 20, marginBottom: 16 }}>访问帮助中心</h3>
-            <p style={{ color: '#666', marginBottom: 24 }}>
+            <p style={{ color: token.colorTextSecondary, marginBottom: 24 }}>
               您也可以在帮助中心查找常见问题的答案
             </p>
             <Button

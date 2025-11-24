@@ -14,6 +14,7 @@ import {
   Typography,
   Pagination,
   message,
+  theme,
 } from 'antd';
 import {
   PlayCircleOutlined,
@@ -35,6 +36,7 @@ import {
 const { Title, Text, Paragraph } = Typography;
 const { Search } = Input;
 const { Option } = Select;
+const { useToken } = theme;
 
 // 难度配置
 const difficultyConfig: Record<TutorialDifficulty, { label: string; color: string }> = {
@@ -44,6 +46,7 @@ const difficultyConfig: Record<TutorialDifficulty, { label: string; color: strin
 };
 
 const TutorialList: React.FC = () => {
+  const { token } = useToken();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
@@ -118,7 +121,7 @@ const TutorialList: React.FC = () => {
         <Card style={{ marginBottom: 24 }}>
           <Space direction="vertical" style={{ width: '100%' }} size="large">
             <div style={{ textAlign: 'center' }}>
-              <BookOutlined style={{ fontSize: 48, color: '#faad14', marginBottom: 16 }} />
+              <BookOutlined style={{ fontSize: 48, color: token.colorWarning, marginBottom: 16 }} />
             <Title level={2} style={{ marginBottom: 8 }}>
               视频教程
             </Title>
@@ -292,7 +295,7 @@ const TutorialList: React.FC = () => {
                           </Space>
                         </Space>
                         <Space size="small">
-                          <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                          <CheckCircleOutlined style={{ color: token.colorSuccess }} />
                           <span>{tutorial.completedCount} 人完成</span>
                         </Space>
                       </Space>
@@ -334,7 +337,7 @@ const TutorialList: React.FC = () => {
       )}
 
         {/* 底部提示 */}
-        <Card style={{ marginTop: 24, textAlign: 'center', background: '#fafafa' }}>
+        <Card style={{ marginTop: 24, textAlign: 'center', background: token.colorBgLayout }}>
           <Space direction="vertical">
             <Text>需要更多帮助？</Text>
             <Space>

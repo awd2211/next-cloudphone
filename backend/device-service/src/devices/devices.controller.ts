@@ -763,6 +763,29 @@ export class DevicesController {
 
   // ADB 相关接口
 
+  @Post('test-adb-connection')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '测试 ADB 连接',
+    description: '测试远程 ADB 连接是否可用（不需要已有设备）',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        host: { type: 'string', example: '8.218.72.201', description: '主机地址' },
+        port: { type: 'number', example: 100, description: '端口号' },
+      },
+      required: ['host', 'port'],
+    },
+  })
+  @ApiResponse({ status: 200, description: '连接测试结果' })
+  async testAdbConnection(
+    @Body() dto: { host: string; port: number },
+  ): Promise<{ success: boolean; message: string; deviceInfo?: any }> {
+    return this.devicesService.testAdbConnection(dto.host, dto.port);
+  }
+
   @Post(':id/shell')
   @RequirePermission('device.control')
   @ApiOperation({
@@ -1388,5 +1411,142 @@ export class DevicesController {
   @ApiResponse({ status: 404, description: '设备不存在' })
   async getSmsMessages(@Param('id') deviceId: string): Promise<SmsMessageDto[]> {
     return this.devicesService.getSmsMessages(deviceId);
+  }
+
+  // ==================== 阿里云云手机连接管理 (V2 API) ====================
+
+  @Get(':id/connection-ticket')
+  @RequirePermission('device.control')
+  @ApiOperation({
+    summary: '获取阿里云云手机连接凭证',
+    description: '获取用于 Web SDK 投屏连接的 ticket（有效期 30 秒）。仅适用于阿里云云手机设备。',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({
+    status: 200,
+    description: '连接凭证获取成功',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            instanceId: { type: 'string', description: '阿里云实例 ID' },
+            ticket: { type: 'string', description: '连接凭证（30秒有效期）' },
+            taskId: { type: 'string', description: '任务 ID' },
+            taskStatus: { type: 'string', description: '任务状态' },
+            expiresAt: { type: 'string', description: '过期时间 (ISO 8601)' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: '设备不是阿里云云手机或未运行' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 404, description: '设备不存在' })
+  async getAliyunConnectionTicket(@Param('id') deviceId: string) {
+    return this.devicesService.getAliyunConnectionTicket(deviceId);
+  }
+
+  @Post(':id/adb/enable')
+  @RequirePermission('device.control')
+  @ApiOperation({
+    summary: '开启阿里云云手机 ADB 连接',
+    description: '开启设备的 ADB 远程调试功能（仅阿里云云手机支持）',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: 'ADB 开启成功' })
+  @ApiResponse({ status: 400, description: '设备不是阿里云云手机或不支持此操作' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 404, description: '设备不存在' })
+  async enableAliyunAdb(@Param('id') deviceId: string) {
+    await this.devicesService.enableAliyunAdb(deviceId);
+    return { message: 'ADB 连接已开启' };
+  }
+
+  @Post(':id/adb/disable')
+  @RequirePermission('device.control')
+  @ApiOperation({
+    summary: '关闭阿里云云手机 ADB 连接',
+    description: '关闭设备的 ADB 远程调试功能（仅阿里云云手机支持）',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({ status: 200, description: 'ADB 关闭成功' })
+  @ApiResponse({ status: 400, description: '设备不是阿里云云手机或不支持此操作' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 404, description: '设备不存在' })
+  async disableAliyunAdb(@Param('id') deviceId: string) {
+    await this.devicesService.disableAliyunAdb(deviceId);
+    return { message: 'ADB 连接已关闭' };
+  }
+
+  @Get(':id/adb/info')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '获取阿里云云手机 ADB 连接信息',
+    description: '获取设备的 ADB 连接地址和状态（仅阿里云云手机支持）',
+  })
+  @ApiParam({ name: 'id', description: '设备 ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'ADB 信息获取成功',
+    schema: {
+      type: 'object',
+      properties: {
+        adbServletAddress: { type: 'string', description: 'ADB 连接地址' },
+        adbEnabled: { type: 'boolean', description: 'ADB 是否已开启' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: '设备不是阿里云云手机或不支持此操作' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 404, description: '设备不存在' })
+  async getAliyunAdbInfo(@Param('id') deviceId: string) {
+    return this.devicesService.getAliyunAdbInfo(deviceId);
+  }
+
+  @Post('test-aliyun-connection-ticket')
+  @RequirePermission('device.read')
+  @ApiOperation({
+    summary: '测试获取阿里云云手机连接凭证',
+    description: '直接使用阿里云实例 ID 获取连接凭证，用于测试投屏功能（无需在系统中创建设备）',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        instanceId: {
+          type: 'string',
+          description: '阿里云云手机实例 ID（如 acp-xxx）',
+          example: 'acp-123456789',
+        },
+      },
+      required: ['instanceId'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: '返回连接凭证',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        data: {
+          type: 'object',
+          properties: {
+            instanceId: { type: 'string' },
+            ticket: { type: 'string' },
+            taskId: { type: 'string' },
+            taskStatus: { type: 'string' },
+            expiresAt: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  async testAliyunConnectionTicket(@Body() dto: { instanceId: string }) {
+    return this.devicesService.testAliyunConnectionTicket(dto.instanceId);
   }
 }

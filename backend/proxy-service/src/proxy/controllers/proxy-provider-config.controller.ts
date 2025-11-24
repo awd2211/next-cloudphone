@@ -251,6 +251,9 @@ export class ProxyProviderConfigController {
         case 'smartproxy':
           testResult = await this.testSmartProxyConnection(config);
           break;
+        case 'ipidea':
+          testResult = await this.testIPIDEAConnection(config);
+          break;
         default:
           throw new Error(`Unsupported provider type: ${providerDto.type}`);
       }
@@ -447,6 +450,65 @@ export class ProxyProviderConfigController {
       return {
         success: false,
         message: `Connection failed: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * 测试IPIDEA连接 (家宽代理)
+   *
+   * IPIDEA 使用隧道代理模式，用户名格式为:
+   * {account}-zone-custom-region-{country}-st-{state}-city-{city}
+   *
+   * 配置参数:
+   * - gateway: 用户专属网关地址 (如: e255c08e04856698.lqz.na.ipidea.online)
+   * - port: 代理端口 (默认 2336)
+   * - username: 认证用户名
+   * - password: 认证密码
+   */
+  private async testIPIDEAConnection(config: any): Promise<{
+    success: boolean;
+    proxyCount?: number;
+    message?: string;
+  }> {
+    try {
+      const { HttpsProxyAgent } = await import('https-proxy-agent');
+
+      // IPIDEA 隧道代理配置
+      const gateway = config.gateway || 'proxy.ipidea.net';
+      const port = config.port || 2336;
+
+      // 构建用户名 (基础格式)
+      let username = config.username || '';
+      if (!username.includes('-zone-custom')) {
+        username += '-zone-custom';
+      }
+
+      const proxyUrl = `http://${username}:${config.password}@${gateway}:${port}`;
+      const agent = new HttpsProxyAgent(proxyUrl);
+
+      const response = await fetch('https://api.ipify.org?format=json', {
+        // @ts-ignore
+        agent,
+        signal: AbortSignal.timeout(15000), // IPIDEA 可能需要更长时间
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          success: true,
+          message: `Connected successfully via IPIDEA. Proxy IP: ${data.ip}`,
+        };
+      } else {
+        return {
+          success: false,
+          message: `HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `IPIDEA connection failed: ${error.message}`,
       };
     }
   }

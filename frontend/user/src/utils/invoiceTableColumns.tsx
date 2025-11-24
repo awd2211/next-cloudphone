@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Tag, Space, Typography } from 'antd';
 import { FileTextOutlined, DownloadOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import type { GlobalToken } from 'antd';
 import dayjs from 'dayjs';
 import type { Invoice } from '@/services/billing';
 
@@ -11,6 +12,7 @@ interface InvoiceTableActionsProps {
   onViewDetail: (invoice: Invoice) => void;
   onDownload: (id: string, invoiceNo: string) => void;
   downloading: boolean;
+  token?: GlobalToken;
 }
 
 // 状态配置
@@ -89,7 +91,7 @@ export const createInvoiceTableColumns = (
     width: 120,
     align: 'right',
     render: (amount: number) => (
-      <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>
+      <Text strong style={{ color: actions.token?.colorPrimary || '#1677ff', fontSize: '16px' }}>
         ¥{amount.toFixed(2)}
       </Text>
     ),

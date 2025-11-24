@@ -13,6 +13,7 @@ import {
   message,
   Image,
   Alert,
+  theme,
 } from 'antd';
 import {
   ClockCircleOutlined,
@@ -35,6 +36,7 @@ import {
 
 const { Title, Text, Paragraph } = Typography;
 const { Step } = Steps;
+const { useToken } = theme;
 
 // 难度配置
 const difficultyConfig: Record<TutorialDifficulty, { label: string; color: string }> = {
@@ -44,6 +46,7 @@ const difficultyConfig: Record<TutorialDifficulty, { label: string; color: strin
 };
 
 const TutorialDetail: React.FC = () => {
+  const { token } = useToken();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -195,7 +198,7 @@ const TutorialDetail: React.FC = () => {
                 <span>{tutorial.views} 次浏览</span>
               </Space>
               <Space size="small">
-                <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                <CheckCircleOutlined style={{ color: token.colorSuccess }} />
                 <span>{tutorial.completedCount} 人完成</span>
               </Space>
             </Space>
@@ -318,7 +321,7 @@ const TutorialDetail: React.FC = () => {
                   </Text>
                   <pre
                     style={{
-                      background: '#f5f5f5',
+                      background: token.colorBgLayout,
                       padding: '16px',
                       borderRadius: '4px',
                       overflow: 'auto',

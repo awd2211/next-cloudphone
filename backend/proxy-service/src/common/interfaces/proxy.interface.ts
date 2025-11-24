@@ -143,6 +143,9 @@ export interface GetProxyOptions {
   /** 国家代码 */
   country?: string;
 
+  /** 州/省名称 (如: california, florida) */
+  state?: string;
+
   /** 城市名称 */
   city?: string;
 
@@ -154,6 +157,12 @@ export interface GetProxyOptions {
 
   /** 会话类型 */
   session?: 'rotating' | 'sticky';
+
+  /** 粘性会话持续时间（分钟，最长120分钟） */
+  sessionDuration?: number;
+
+  /** ASN/ISP 运营商代码 (如: AS33659) */
+  asn?: string;
 
   /** 超时时间（毫秒） */
   timeout?: number;

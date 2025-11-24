@@ -119,3 +119,46 @@ export const batchInstallApp = (data: BatchInstallAppDto) =>
     applicationId: data.appId,
     deviceIds: data.deviceIds,
   });
+
+// ========== 阿里云云手机连接 ==========
+
+export interface AliyunConnectionTicketResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    instanceId: string;
+    ticket: string;
+    taskId: string;
+    taskStatus: string;
+    expiresAt: string;
+  };
+}
+
+/**
+ * 获取阿里云云手机连接凭证
+ *
+ * 凭证有效期 30 秒，需要及时使用
+ */
+export const getAliyunConnectionTicket = (deviceId: string) =>
+  api.get<AliyunConnectionTicketResponse>(`/devices/${deviceId}/connection-ticket`);
+
+/**
+ * 开启阿里云云手机ADB连接
+ */
+export const enableAliyunAdb = (deviceId: string) =>
+  api.post<void>(`/devices/${deviceId}/adb/enable`);
+
+/**
+ * 关闭阿里云云手机ADB连接
+ */
+export const disableAliyunAdb = (deviceId: string) =>
+  api.post<void>(`/devices/${deviceId}/adb/disable`);
+
+/**
+ * 获取阿里云云手机ADB连接信息
+ */
+export const getAliyunAdbInfo = (deviceId: string) =>
+  api.get<{
+    adbServletAddress: string;
+    adbEnabled: boolean;
+  }>(`/devices/${deviceId}/adb/info`);

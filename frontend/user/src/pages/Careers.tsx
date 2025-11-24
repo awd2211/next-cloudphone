@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Button, Tag, Spin, Empty } from 'antd';
+import { Card, Row, Col, Button, Tag, Spin, Empty, theme } from 'antd';
 import {
   TeamOutlined,
   RocketOutlined,
@@ -14,6 +14,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { getJobPositions, type JobPosition } from '@/services/cms';
 
+const { useToken } = theme;
+
 /**
  * CloudPhone.run 招聘/加入我们页面
  * 展示公司文化、福利待遇和招聘职位
@@ -21,6 +23,7 @@ import { getJobPositions, type JobPosition } from '@/services/cms';
  * Header 和 Footer 由 PublicLayout 提供
  */
 const Careers: React.FC = () => {
+  const { token } = useToken();
   const navigate = useNavigate();
   const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,22 +50,22 @@ const Careers: React.FC = () => {
   // 公司文化价值观
   const cultureValues = [
     {
-      icon: <RocketOutlined style={{ fontSize: 48, color: '#1677ff' }} />,
+      icon: <RocketOutlined style={{ fontSize: 48, color: token.colorPrimary }} />,
       title: '创新驱动',
       description: '鼓励创新思维，推动技术进步，让每个想法都有可能改变世界',
     },
     {
-      icon: <TeamOutlined style={{ fontSize: 48, color: '#52c41a' }} />,
+      icon: <TeamOutlined style={{ fontSize: 48, color: token.colorSuccess }} />,
       title: '团队协作',
       description: '开放的沟通氛围，扁平化的组织结构，让每个人都能发挥价值',
     },
     {
-      icon: <HeartOutlined style={{ fontSize: 48, color: '#eb2f96' }} />,
+      icon: <HeartOutlined style={{ fontSize: 48, color: token.magenta }} />,
       title: '热爱工作',
       description: '追求卓越，享受过程，在工作中找到乐趣和成就感',
     },
     {
-      icon: <TrophyOutlined style={{ fontSize: 48, color: '#faad14' }} />,
+      icon: <TrophyOutlined style={{ fontSize: 48, color: token.colorWarning }} />,
       title: '追求卓越',
       description: '高标准严要求，持续学习成长，打造行业领先的产品',
     },
@@ -111,7 +114,7 @@ const Careers: React.FC = () => {
   return (
     <div>
       {/* 页面内容 */}
-      <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 300px)' }}>
+      <div style={{ background: token.colorBgLayout, minHeight: 'calc(100vh - 300px)' }}>
         {/* Hero Section */}
         <div
           style={{
@@ -131,7 +134,7 @@ const Careers: React.FC = () => {
           {/* 为什么选择我们 */}
           <div style={{ textAlign: 'center', marginBottom: 60 }}>
             <h2 style={{ fontSize: 32, marginBottom: 16 }}>为什么选择我们</h2>
-            <p style={{ fontSize: 16, color: '#666', marginBottom: 48 }}>
+            <p style={{ fontSize: 16, color: token.colorTextSecondary, marginBottom: 48 }}>
               我们提供优秀的工作环境、有竞争力的薪酬福利和广阔的职业发展空间
             </p>
 
@@ -142,7 +145,7 @@ const Careers: React.FC = () => {
                   <Card hoverable style={{ height: '100%', textAlign: 'center' }}>
                     <div style={{ marginBottom: 16 }}>{value.icon}</div>
                     <h3 style={{ fontSize: 18, marginBottom: 12 }}>{value.title}</h3>
-                    <p style={{ color: '#666', fontSize: 14 }}>{value.description}</p>
+                    <p style={{ color: token.colorTextSecondary, fontSize: 14 }}>{value.description}</p>
                   </Card>
                 </Col>
               ))}
@@ -159,7 +162,7 @@ const Careers: React.FC = () => {
                     <div
                       style={{
                         fontSize: 32,
-                        color: '#1677ff',
+                        color: token.colorPrimary,
                         marginRight: 16,
                         flexShrink: 0,
                       }}
@@ -168,7 +171,7 @@ const Careers: React.FC = () => {
                     </div>
                     <div>
                       <h3 style={{ fontSize: 16, marginBottom: 8 }}>{benefit.title}</h3>
-                      <p style={{ color: '#666', fontSize: 14, margin: 0 }}>
+                      <p style={{ color: token.colorTextSecondary, fontSize: 14, margin: 0 }}>
                         {benefit.description}
                       </p>
                     </div>
@@ -186,7 +189,7 @@ const Careers: React.FC = () => {
             {loading ? (
               <div style={{ textAlign: 'center', padding: '60px 0' }}>
                 <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
-                <p style={{ marginTop: 16, color: '#666' }}>正在加载职位...</p>
+                <p style={{ marginTop: 16, color: token.colorTextSecondary }}>正在加载职位...</p>
               </div>
             ) : jobPositions.length === 0 ? (
               <Empty
@@ -212,7 +215,7 @@ const Careers: React.FC = () => {
                     >
                       <div style={{ marginBottom: 16 }}>
                         <h3 style={{ fontSize: 20, marginBottom: 8 }}>{job.title}</h3>
-                        <div style={{ color: '#666', fontSize: 14 }}>
+                        <div style={{ color: token.colorTextSecondary, fontSize: 14 }}>
                           <span style={{ marginRight: 16 }}>{job.department}</span>
                           <span style={{ marginRight: 16 }}>
                             <EnvironmentOutlined /> {job.location}
@@ -226,7 +229,7 @@ const Careers: React.FC = () => {
                             </Tag>
                           </span>
                           {job.salaryRange && (
-                            <span style={{ color: '#f5222d', fontWeight: 600 }}>
+                            <span style={{ color: token.colorError, fontWeight: 600 }}>
                               {job.salaryRange}
                             </span>
                           )}
@@ -235,10 +238,10 @@ const Careers: React.FC = () => {
 
                       {job.requirements && job.requirements.length > 0 && (
                         <div style={{ marginBottom: 16 }}>
-                          <h4 style={{ fontSize: 14, marginBottom: 8, color: '#333' }}>
+                          <h4 style={{ fontSize: 14, marginBottom: 8, color: token.colorText }}>
                             岗位要求：
                           </h4>
-                          <ul style={{ margin: 0, paddingLeft: 20, color: '#666', fontSize: 14 }}>
+                          <ul style={{ margin: 0, paddingLeft: 20, color: token.colorTextSecondary, fontSize: 14 }}>
                             {job.requirements.map((req, reqIndex) => (
                               <li key={reqIndex} style={{ marginBottom: 4 }}>
                                 {req}

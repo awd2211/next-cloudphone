@@ -140,10 +140,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
       <Row gutter={24}>
         {/* 第一栏：核心功能 */}
         <Col span={6}>
-          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #f0f0f0' }}>
+          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `2px solid ${token.colorBorderSecondary}` }}>
             <Space>
               <div style={{ width: 6, height: 20, background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', borderRadius: 3 }} />
-              <Text strong style={{ fontSize: 15, color: '#1e293b' }}>核心功能</Text>
+              <Text strong style={{ fontSize: 15, color: token.colorText }}>核心功能</Text>
             </Space>
           </div>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -184,7 +184,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     {item.icon}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4, color: '#1e293b', fontSize: 14 }}>{item.title}</div>
+                    <div style={{ fontWeight: 600, marginBottom: 4, color: token.colorText, fontSize: 14 }}>{item.title}</div>
                     <Text type="secondary" style={{ fontSize: 12, lineHeight: '1.4' }}>{item.desc}</Text>
                   </div>
                 </Space>
@@ -195,10 +195,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
         {/* 第二栏：行业方案 */}
         <Col span={6}>
-          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #f0f0f0' }}>
+          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `2px solid ${token.colorBorderSecondary}` }}>
             <Space>
               <div style={{ width: 6, height: 20, background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', borderRadius: 3 }} />
-              <Text strong style={{ fontSize: 15, color: '#1e293b' }}>行业方案</Text>
+              <Text strong style={{ fontSize: 15, color: token.colorText }}>行业方案</Text>
             </Space>
           </div>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -239,7 +239,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     {item.icon}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4, color: '#1e293b', fontSize: 14 }}>{item.title}</div>
+                    <div style={{ fontWeight: 600, marginBottom: 4, color: token.colorText, fontSize: 14 }}>{item.title}</div>
                     <Text type="secondary" style={{ fontSize: 12, lineHeight: '1.4' }}>{item.desc}</Text>
                   </div>
                 </Space>
@@ -250,10 +250,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
         {/* 第三栏：增值服务 */}
         <Col span={6}>
-          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #f0f0f0' }}>
+          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `2px solid ${token.colorBorderSecondary}` }}>
             <Space>
               <div style={{ width: 6, height: 20, background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', borderRadius: 3 }} />
-              <Text strong style={{ fontSize: 15, color: '#1e293b' }}>增值服务</Text>
+              <Text strong style={{ fontSize: 15, color: token.colorText }}>增值服务</Text>
             </Space>
           </div>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -292,7 +292,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     {item.icon}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4, color: '#1e293b', fontSize: 14 }}>{item.title}</div>
+                    <div style={{ fontWeight: 600, marginBottom: 4, color: token.colorText, fontSize: 14 }}>{item.title}</div>
                     <Text type="secondary" style={{ fontSize: 12, lineHeight: '1.4' }}>{item.desc}</Text>
                   </div>
                 </Space>
@@ -303,10 +303,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
         {/* 第四栏：产品优势 */}
         <Col span={6}>
-          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #f0f0f0' }}>
+          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `2px solid ${token.colorBorderSecondary}` }}>
             <Space>
               <div style={{ width: 6, height: 20, background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', borderRadius: 3 }} />
-              <Text strong style={{ fontSize: 15, color: '#1e293b' }}>产品优势</Text>
+              <Text strong style={{ fontSize: 15, color: token.colorText }}>产品优势</Text>
             </Space>
           </div>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -347,7 +347,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     {item.icon}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4, color: '#1e293b', fontSize: 14 }}>{item.title}</div>
+                    <div style={{ fontWeight: 600, marginBottom: 4, color: token.colorText, fontSize: 14 }}>{item.title}</div>
                     <Text type="secondary" style={{ fontSize: 12, lineHeight: '1.4' }}>{item.desc}</Text>
                   </div>
                 </Space>
@@ -397,17 +397,17 @@ export const Header: React.FC<HeaderProps> = React.memo(({
       <Row gutter={24}>
         {/* 第一栏：快速入口 */}
         <Col span={12}>
-          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #f0f0f0' }}>
+          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `2px solid ${token.colorBorderSecondary}` }}>
             <Space>
-              <div style={{ width: 6, height: 20, background: 'linear-gradient(135deg, #1677ff 0%, #096dd9 100%)', borderRadius: 3 }} />
-              <Text strong style={{ fontSize: 15, color: '#1e293b' }}>快速入口</Text>
+              <div style={{ width: 6, height: 20, background: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorPrimaryActive} 100%)`, borderRadius: 3 }} />
+              <Text strong style={{ fontSize: 15, color: token.colorText }}>快速入口</Text>
             </Space>
           </div>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
             {[
-              { icon: <FileTextOutlined />, title: '帮助文档', desc: '详细的产品使用文档', color: '#1677ff', bg: 'linear-gradient(135deg, #1677ff 0%, #096dd9 100%)', path: '/help/articles' },
-              { icon: <QuestionCircleOutlined />, title: '常见问题', desc: '快速找到问题答案', color: '#52c41a', bg: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)', path: '/help/faqs' },
-              { icon: <PlayCircleOutlined />, title: '视频教程', desc: '通过视频学习功能', color: '#faad14', bg: 'linear-gradient(135deg, #faad14 0%, #d48806 100%)', path: '/help/tutorials' },
+              { icon: <FileTextOutlined />, title: '帮助文档', desc: '详细的产品使用文档', color: token.colorPrimary, bg: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorPrimaryActive} 100%)`, path: '/help/articles' },
+              { icon: <QuestionCircleOutlined />, title: '常见问题', desc: '快速找到问题答案', color: token.colorSuccess, bg: `linear-gradient(135deg, ${token.colorSuccess} 0%, ${token.colorSuccessActive} 100%)`, path: '/help/faqs' },
+              { icon: <PlayCircleOutlined />, title: '视频教程', desc: '通过视频学习功能', color: token.colorWarning, bg: `linear-gradient(135deg, ${token.colorWarning} 0%, ${token.colorWarningActive} 100%)`, path: '/help/tutorials' },
             ].map((item, idx) => (
               <Card
                 key={idx}
@@ -438,7 +438,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     {item.icon}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4, color: '#1e293b', fontSize: 14 }}>{item.title}</div>
+                    <div style={{ fontWeight: 600, marginBottom: 4, color: token.colorText, fontSize: 14 }}>{item.title}</div>
                     <Text type="secondary" style={{ fontSize: 12, lineHeight: '1.4' }}>{item.desc}</Text>
                   </div>
                 </Space>
@@ -449,10 +449,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
         {/* 第二栏：热门帮助 */}
         <Col span={12}>
-          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #f0f0f0' }}>
+          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `2px solid ${token.colorBorderSecondary}` }}>
             <Space>
               <div style={{ width: 6, height: 20, background: 'linear-gradient(135deg, #722ed1 0%, #531dab 100%)', borderRadius: 3 }} />
-              <Text strong style={{ fontSize: 15, color: '#1e293b' }}>获取支持</Text>
+              <Text strong style={{ fontSize: 15, color: token.colorText }}>获取支持</Text>
             </Space>
           </div>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -490,7 +490,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     {item.icon}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4, color: '#1e293b', fontSize: 14 }}>{item.title}</div>
+                    <div style={{ fontWeight: 600, marginBottom: 4, color: token.colorText, fontSize: 14 }}>{item.title}</div>
                     <Text type="secondary" style={{ fontSize: 12, lineHeight: '1.4' }}>{item.desc}</Text>
                   </div>
                 </Space>
@@ -504,7 +504,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
       <div style={{
         marginTop: 24,
         paddingTop: 20,
-        borderTop: '1px solid #e8e8e8',
+        borderTop: `1px solid ${token.colorBorder}`,
       }}>
         <Row gutter={12}>
           {[
@@ -522,19 +522,19 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   justifyContent: 'center',
                   padding: '8px 12px',
                   fontSize: 12,
-                  color: '#64748b',
+                  color: token.colorTextSecondary,
                   textDecoration: 'none',
                   borderRadius: 6,
                   transition: 'all 0.3s',
-                  background: '#fafafa',
+                  background: token.colorFillQuaternary,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#1677ff10';
-                  e.currentTarget.style.color = '#1677ff';
+                  e.currentTarget.style.background = token.colorPrimaryBg;
+                  e.currentTarget.style.color = token.colorPrimary;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#fafafa';
-                  e.currentTarget.style.color = '#64748b';
+                  e.currentTarget.style.background = token.colorFillQuaternary;
+                  e.currentTarget.style.color = token.colorTextSecondary;
                 }}
               >
                 <span style={{ marginRight: 4 }}>{link.text}</span>

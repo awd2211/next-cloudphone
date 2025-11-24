@@ -2121,6 +2121,82 @@ export class DevicesService {
 
   // ADB 相关方法
 
+  /**
+   * 测试远程 ADB 连接
+   * 用于验证云手机设备的 ADB 连接是否可用
+   */
+  async testAdbConnection(host: string, port: number): Promise<{
+    success: boolean;
+    message: string;
+    deviceInfo?: {
+      model?: string;
+      androidVersion?: string;
+      serialNumber?: string;
+    };
+  }> {
+    const connectionString = `${host}:${port}`;
+    this.logger.log(`Testing ADB connection to ${connectionString}`);
+
+    try {
+      // 使用 adbkit 连接测试
+      const client = this.adbService.getClient();
+
+      // 尝试连接
+      const connectResult = await client.connect(host, port);
+      this.logger.log(`ADB connect result: ${connectResult}`);
+
+      // 获取设备信息
+      const devices = await client.listDevices();
+      const device = devices.find((d: any) => d.id === connectionString || d.id.includes(host));
+
+      if (device) {
+        // 尝试获取设备详细信息
+        let deviceInfo: any = {};
+
+        try {
+          const props = await client.getProperties(device.id);
+          deviceInfo = {
+            model: props['ro.product.model'] || props['ro.product.name'],
+            androidVersion: props['ro.build.version.release'],
+            serialNumber: props['ro.serialno'] || device.id,
+          };
+        } catch (propError) {
+          this.logger.warn(`Could not get device properties: ${propError.message}`);
+        }
+
+        return {
+          success: true,
+          message: `成功连接到设备 ${connectionString}`,
+          deviceInfo,
+        };
+      }
+
+      // 设备已连接但未在列表中
+      return {
+        success: true,
+        message: `连接成功，设备 ${connectionString} 已响应`,
+      };
+    } catch (error) {
+      this.logger.error(`ADB connection test failed: ${error.message}`);
+
+      let message = '连接失败';
+      if (error.message.includes('ECONNREFUSED')) {
+        message = '连接被拒绝，请检查端口是否开放';
+      } else if (error.message.includes('ETIMEDOUT') || error.message.includes('timeout')) {
+        message = '连接超时，请检查网络和防火墙设置';
+      } else if (error.message.includes('ENOTFOUND')) {
+        message = '无法解析主机地址';
+      } else {
+        message = `连接失败: ${error.message}`;
+      }
+
+      return {
+        success: false,
+        message,
+      };
+    }
+  }
+
   async executeShellCommand(id: string, command: string, timeout?: number): Promise<string> {
     await this.findOne(id); // 验证设备存在
     return await this.adbService.executeShellCommand(id, command, timeout);
@@ -3600,5 +3676,282 @@ export class DevicesService {
     // 补齐 base64 padding
     const paddedId = id + '='.repeat((4 - (id.length % 4)) % 4);
     return Buffer.from(paddedId, 'base64').toString('utf8');
+  }
+
+  // ==================== 阿里云云手机连接管理 (V2 API) ====================
+
+  /**
+   * 获取阿里云云手机连接凭证
+   * 用于 Web SDK 投屏连接
+   *
+   * @param deviceId 设备 ID
+   * @returns 连接凭证信息，包含 ticket（30秒有效期）
+   */
+  async getAliyunConnectionTicket(deviceId: string): Promise<{
+    success: boolean;
+    message?: string;
+    data?: {
+      instanceId: string;
+      ticket: string;
+      taskId: string;
+      taskStatus: string;
+      expiresAt: string;
+    };
+  }> {
+    try {
+      // 1. 检查设备是否存在且为阿里云云手机
+      const device = await this.findOne(deviceId);
+
+      if (device.providerType !== DeviceProviderType.ALIYUN_ECP) {
+        return {
+          success: false,
+          message: '此功能仅适用于阿里云云手机设备',
+        };
+      }
+
+      if (device.status !== DeviceStatus.RUNNING) {
+        return {
+          success: false,
+          message: '设备必须处于运行状态才能获取连接凭证',
+        };
+      }
+
+      // 2. 获取 Provider 并调用 getConnectionInfo
+      const provider = this.providerFactory.getProvider(device.providerType) as any;
+
+      // 检查 provider 是否有 getConnectionInfo 方法
+      if (typeof provider.getConnectionInfo !== 'function') {
+        return {
+          success: false,
+          message: '当前 Provider 不支持连接凭证功能',
+        };
+      }
+
+      const connectionInfo = await provider.getConnectionInfo(device.externalId || device.id);
+
+      // 提取阿里云连接信息
+      const aliyunEcp = connectionInfo.aliyunEcp;
+      if (!aliyunEcp) {
+        return {
+          success: false,
+          message: '无法获取阿里云连接信息',
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          instanceId: aliyunEcp.instanceId,
+          ticket: aliyunEcp.webrtcToken,
+          taskId: '',
+          taskStatus: 'SUCCESS',
+          expiresAt: aliyunEcp.tokenExpiresAt.toISOString(),
+        },
+      };
+    } catch (error) {
+      this.logger.error(`获取阿里云连接凭证失败: deviceId=${deviceId}, error=${error.message}`);
+      return {
+        success: false,
+        message: `获取连接凭证失败: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * 直接测试获取阿里云云手机连接凭证
+   *
+   * 此方法用于测试页面，不需要在数据库中创建设备
+   * 直接使用阿里云实例 ID 获取连接凭证
+   *
+   * @param instanceId 阿里云云手机实例 ID
+   * @returns 连接凭证信息
+   */
+  async testAliyunConnectionTicket(instanceId: string): Promise<{
+    success: boolean;
+    message?: string;
+    data?: {
+      instanceId: string;
+      ticket: string;
+      taskId: string;
+      taskStatus: string;
+      expiresAt: string;
+    };
+  }> {
+    try {
+      // 直接获取阿里云 Provider
+      const provider = this.providerFactory.getProvider(DeviceProviderType.ALIYUN_ECP) as any;
+
+      if (!provider) {
+        return {
+          success: false,
+          message: '阿里云云手机 Provider 未配置',
+        };
+      }
+
+      // 检查 provider 是否有 getConnectionInfo 方法
+      if (typeof provider.getConnectionInfo !== 'function') {
+        return {
+          success: false,
+          message: '当前 Provider 不支持连接凭证功能',
+        };
+      }
+
+      // 直接调用 provider 的 getConnectionInfo 方法（传入 instanceId）
+      const connectionInfo = await provider.getConnectionInfo(instanceId);
+
+      // 提取阿里云连接信息
+      const aliyunEcp = connectionInfo.aliyunEcp;
+      if (!aliyunEcp) {
+        return {
+          success: false,
+          message: '无法获取阿里云连接信息',
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          instanceId: aliyunEcp.instanceId,
+          ticket: aliyunEcp.webrtcToken,
+          taskId: '',
+          taskStatus: 'SUCCESS',
+          expiresAt: aliyunEcp.tokenExpiresAt.toISOString(),
+        },
+      };
+    } catch (error) {
+      this.logger.error(`测试获取阿里云连接凭证失败: instanceId=${instanceId}, error=${error.message}`);
+      return {
+        success: false,
+        message: `获取连接凭证失败: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * 开启阿里云云手机 ADB 连接
+   *
+   * @param deviceId 设备 ID
+   */
+  async enableAliyunAdb(deviceId: string): Promise<void> {
+    try {
+      // 1. 检查设备是否存在且为阿里云云手机
+      const device = await this.findOne(deviceId);
+
+      if (device.providerType !== DeviceProviderType.ALIYUN_ECP) {
+        throw new BusinessException(
+          BusinessErrorCode.OPERATION_FAILED,
+          '此功能仅适用于阿里云云手机设备',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 2. 获取 Provider 并调用 enableAdb
+      const provider = this.providerFactory.getProvider(device.providerType) as any;
+
+      if (typeof provider.enableAdb !== 'function') {
+        throw new BusinessException(
+          BusinessErrorCode.OPERATION_FAILED,
+          '当前 Provider 不支持 ADB 管理功能',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      await provider.enableAdb(device.externalId || device.id);
+
+      this.logger.log(`阿里云 ADB 已开启: deviceId=${deviceId}`);
+    } catch (error) {
+      this.logger.error(`开启阿里云 ADB 失败: deviceId=${deviceId}, error=${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `开启 ADB 失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * 关闭阿里云云手机 ADB 连接
+   *
+   * @param deviceId 设备 ID
+   */
+  async disableAliyunAdb(deviceId: string): Promise<void> {
+    try {
+      // 1. 检查设备是否存在且为阿里云云手机
+      const device = await this.findOne(deviceId);
+
+      if (device.providerType !== DeviceProviderType.ALIYUN_ECP) {
+        throw new BusinessException(
+          BusinessErrorCode.OPERATION_FAILED,
+          '此功能仅适用于阿里云云手机设备',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 2. 获取 Provider 并调用 disableAdb
+      const provider = this.providerFactory.getProvider(device.providerType) as any;
+
+      if (typeof provider.disableAdb !== 'function') {
+        throw new BusinessException(
+          BusinessErrorCode.OPERATION_FAILED,
+          '当前 Provider 不支持 ADB 管理功能',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      await provider.disableAdb(device.externalId || device.id);
+
+      this.logger.log(`阿里云 ADB 已关闭: deviceId=${deviceId}`);
+    } catch (error) {
+      this.logger.error(`关闭阿里云 ADB 失败: deviceId=${deviceId}, error=${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `关闭 ADB 失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * 获取阿里云云手机 ADB 连接信息
+   *
+   * @param deviceId 设备 ID
+   * @returns ADB 连接信息
+   */
+  async getAliyunAdbInfo(deviceId: string): Promise<{
+    adbServletAddress: string;
+    adbEnabled: boolean;
+  }> {
+    try {
+      // 1. 检查设备是否存在且为阿里云云手机
+      const device = await this.findOne(deviceId);
+
+      if (device.providerType !== DeviceProviderType.ALIYUN_ECP) {
+        throw new BusinessException(
+          BusinessErrorCode.OPERATION_FAILED,
+          '此功能仅适用于阿里云云手机设备',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 2. 获取 Provider 并调用 getAdbInfo
+      const provider = this.providerFactory.getProvider(device.providerType) as any;
+
+      if (typeof provider.getAdbInfo !== 'function') {
+        throw new BusinessException(
+          BusinessErrorCode.OPERATION_FAILED,
+          '当前 Provider 不支持 ADB 信息查询功能',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      return await provider.getAdbInfo(device.externalId || device.id);
+    } catch (error) {
+      this.logger.error(`获取阿里云 ADB 信息失败: deviceId=${deviceId}, error=${error.message}`);
+      throw new BusinessException(
+        BusinessErrorCode.OPERATION_FAILED,
+        `获取 ADB 信息失败: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

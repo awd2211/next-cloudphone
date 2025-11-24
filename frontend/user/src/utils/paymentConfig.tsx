@@ -5,7 +5,7 @@ import {
   CreditCardOutlined,
   BankOutlined,
 } from '@ant-design/icons';
-import type { FormInstance } from 'antd';
+import type { FormInstance, GlobalToken } from 'antd';
 
 /**
  * 支付方式配置文件
@@ -38,28 +38,36 @@ export interface PaymentTypeConfig {
   displayName: string;
 }
 
-export const paymentTypeConfig: Record<PaymentType, PaymentTypeConfig> = {
+/**
+ * 获取支付方式类型配置（支持主题 token）
+ */
+export const getPaymentTypeConfigWithToken = (token?: GlobalToken): Record<PaymentType, PaymentTypeConfig> => ({
   alipay: {
     icon: <AlipayCircleOutlined />,
-    color: '#1677ff',
+    color: token?.colorPrimary || '#1677ff',
     displayName: '支付宝',
   },
   wechat: {
     icon: <WechatOutlined />,
-    color: '#07c160',
+    color: '#07c160', // 微信品牌色保持不变
     displayName: '微信支付',
   },
   bank_card: {
     icon: <BankOutlined />,
-    color: '#faad14',
+    color: token?.colorWarning || '#faad14',
     displayName: '银行卡',
   },
   credit_card: {
     icon: <CreditCardOutlined />,
-    color: '#722ed1',
+    color: token?.purple || '#722ed1',
     displayName: '信用卡',
   },
-};
+});
+
+/**
+ * 支付方式类型配置（兼容旧代码）
+ */
+export const paymentTypeConfig = getPaymentTypeConfigWithToken();
 
 // ===== 动态表单字段配置 =====
 export interface FormFieldConfig {
@@ -219,8 +227,9 @@ export const getPaymentTypeName = (type: PaymentType): string => {
 /**
  * 获取支付方式颜色
  */
-export const getPaymentColor = (type: PaymentType): string => {
-  return paymentTypeConfig[type]?.color || '#000000';
+export const getPaymentColor = (type: PaymentType, token?: GlobalToken): string => {
+  const config = token ? getPaymentTypeConfigWithToken(token) : paymentTypeConfig;
+  return config[type]?.color || '#000000';
 };
 
 /**

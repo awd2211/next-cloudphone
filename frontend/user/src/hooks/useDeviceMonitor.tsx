@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { theme } from 'antd';
 import { getDeviceStats, getDevice } from '@/services/device';
 import type { Device } from '@/types';
 import { AUTO_REFRESH_INTERVAL, MAX_HISTORY_DATA } from '@/utils/monitorConfig';
+
+const { useToken } = theme;
 
 interface DeviceStats {
   cpuUsage: number;
@@ -33,6 +36,7 @@ interface HistoryData {
  * 6. ✅ 集中管理所有状态
  */
 export function useDeviceMonitor(id: string | undefined) {
+  const { token } = useToken();
   const navigate = useNavigate();
 
   // ===== 状态管理 =====
@@ -126,7 +130,7 @@ export function useDeviceMonitor(id: string | undefined) {
       yField: 'cpuUsage',
       height: 200,
       smooth: true,
-      color: '#1677ff',
+      color: token.colorPrimary,
       yAxis: {
         min: 0,
         max: 100,
@@ -150,7 +154,7 @@ export function useDeviceMonitor(id: string | undefined) {
         }),
       },
     };
-  }, [historyData]);
+  }, [historyData, token.colorPrimary]);
 
   /**
    * 内存图表配置
@@ -162,7 +166,7 @@ export function useDeviceMonitor(id: string | undefined) {
       yField: 'memoryUsage',
       height: 200,
       smooth: true,
-      color: '#52c41a',
+      color: token.colorSuccess,
       yAxis: {
         min: 0,
         max: 100,
@@ -186,7 +190,7 @@ export function useDeviceMonitor(id: string | undefined) {
         }),
       },
     };
-  }, [historyData]);
+  }, [historyData, token.colorSuccess]);
 
   // ===== 副作用：初始加载和自动刷新 =====
   useEffect(() => {

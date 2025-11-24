@@ -78,6 +78,40 @@ export const WebRTCPlayerLazy = withLazyLoad(
 );
 
 /**
+ * 阿里云云手机播放器组件
+ * 使用无影 Web SDK 连接阿里云云手机
+ */
+export const LazyAliyunCloudPhonePlayer = lazy(() =>
+  import('@/components/AliyunCloudPhonePlayer').catch(() => {
+    console.warn('[LazyLoad] Failed to load AliyunCloudPhonePlayer');
+    return {
+      default: () => <div>阿里云播放器加载失败</div>,
+    };
+  })
+);
+
+export const AliyunCloudPhonePlayerLazy = withLazyLoad(
+  LazyAliyunCloudPhonePlayer,
+  <div
+    style={{
+      padding: '48px',
+      textAlign: 'center',
+      background: '#000',
+      borderRadius: '8px',
+      minHeight: '400px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    <div>
+      <Spin size="large" />
+      <div style={{ color: '#fff', marginTop: '16px' }}>加载阿里云播放器中...</div>
+    </div>
+  </div>
+);
+
+/**
  * ADB 控制台组件 (~150KB 终端库)
  * 只在需要执行 ADB 命令时加载
  */

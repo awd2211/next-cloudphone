@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Typography, Divider, Alert, Table, Steps } from 'antd';
+import { Card, Typography, Divider, Alert, Table, Steps, theme } from 'antd';
 import {
   DollarOutlined,
   ClockCircleOutlined,
@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 
 const { Title, Paragraph, Text } = Typography;
+const { useToken } = theme;
 
 /**
  * 退款政策页面
@@ -20,6 +21,8 @@ const { Title, Paragraph, Text } = Typography;
  * 4. 特殊情况处理
  */
 const RefundPolicy: React.FC = () => {
+  const { token } = useToken();
+
   // 退款条件表格
   const refundConditionsColumns = [
     {
@@ -33,9 +36,9 @@ const RefundPolicy: React.FC = () => {
       key: 'refundable',
       render: (refundable: boolean) =>
         refundable ? (
-          <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '18px' }} />
+          <CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: '18px' }} />
         ) : (
-          <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: '18px' }} />
+          <CloseCircleOutlined style={{ color: token.colorError, fontSize: '18px' }} />
         ),
     },
     {
@@ -178,7 +181,7 @@ const RefundPolicy: React.FC = () => {
             </ul>
           </Paragraph>
           <Paragraph>
-            <WarningOutlined style={{ color: '#faad14', marginRight: '4px' }} />
+            <WarningOutlined style={{ color: token.colorWarning, marginRight: '4px' }} />
             <Text strong>注意：</Text>
             以下情况不适用于本退款政策：
             <ul>
@@ -396,27 +399,27 @@ const RefundPolicy: React.FC = () => {
           <Paragraph>
             <ul>
               <li>
-                <CloseCircleOutlined style={{ color: '#ff4d4f', marginRight: '4px' }} />
+                <CloseCircleOutlined style={{ color: token.colorError, marginRight: '4px' }} />
                 违反服务条款被停止服务
               </li>
               <li>
-                <CloseCircleOutlined style={{ color: '#ff4d4f', marginRight: '4px' }} />
+                <CloseCircleOutlined style={{ color: token.colorError, marginRight: '4px' }} />
                 利用平台从事违法违规活动
               </li>
               <li>
-                <CloseCircleOutlined style={{ color: '#ff4d4f', marginRight: '4px' }} />
+                <CloseCircleOutlined style={{ color: token.colorError, marginRight: '4px' }} />
                 恶意退款（多次购买后申请退款）
               </li>
               <li>
-                <CloseCircleOutlined style={{ color: '#ff4d4f', marginRight: '4px' }} />
+                <CloseCircleOutlined style={{ color: token.colorError, marginRight: '4px' }} />
                 超过退款申请期限（购买后30天）
               </li>
               <li>
-                <CloseCircleOutlined style={{ color: '#ff4d4f', marginRight: '4px' }} />
+                <CloseCircleOutlined style={{ color: token.colorError, marginRight: '4px' }} />
                 活动、促销期间购买的特价套餐
               </li>
               <li>
-                <CloseCircleOutlined style={{ color: '#ff4d4f', marginRight: '4px' }} />
+                <CloseCircleOutlined style={{ color: token.colorError, marginRight: '4px' }} />
                 赠送的余额、代金券
               </li>
             </ul>

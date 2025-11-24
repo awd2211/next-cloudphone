@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, Tag, Space, Progress, Popconfirm } from 'antd';
+import type { GlobalToken } from 'antd';
 import {
   DownloadOutlined,
   DeleteOutlined,
@@ -26,26 +27,33 @@ interface ExportTableActionsProps {
   onDownload: (task: ExportTask) => void;
   onDelete: (id: string) => void;
   onRetry: (id: string) => void;
+  token?: GlobalToken;
 }
 
-// 数据类型配置
-const dataTypeConfig: Record<ExportDataType, { label: string; color: string }> = {
-  [ExportDataType.ORDERS]: { label: '订单数据', color: '#1677ff' },
-  [ExportDataType.DEVICES]: { label: '设备数据', color: '#52c41a' },
-  [ExportDataType.TICKETS]: { label: '工单数据', color: '#faad14' },
-  [ExportDataType.BILLING]: { label: '账单数据', color: '#eb2f96' },
-  [ExportDataType.USAGE]: { label: '使用记录', color: '#13c2c2' },
-  [ExportDataType.MESSAGES]: { label: '消息通知', color: '#722ed1' },
-  [ExportDataType.TRANSACTIONS]: { label: '交易记录', color: '#fa8c16' },
-};
+// 获取数据类型配置（支持主题 token）
+const getDataTypeConfigWithToken = (token?: GlobalToken): Record<ExportDataType, { label: string; color: string }> => ({
+  [ExportDataType.ORDERS]: { label: '订单数据', color: token?.colorPrimary || '#1677ff' },
+  [ExportDataType.DEVICES]: { label: '设备数据', color: token?.colorSuccess || '#52c41a' },
+  [ExportDataType.TICKETS]: { label: '工单数据', color: token?.colorWarning || '#faad14' },
+  [ExportDataType.BILLING]: { label: '账单数据', color: token?.magenta || '#eb2f96' },
+  [ExportDataType.USAGE]: { label: '使用记录', color: token?.cyan || '#13c2c2' },
+  [ExportDataType.MESSAGES]: { label: '消息通知', color: token?.purple || '#722ed1' },
+  [ExportDataType.TRANSACTIONS]: { label: '交易记录', color: token?.orange || '#fa8c16' },
+});
 
-// 格式配置
-const formatConfig: Record<ExportFormat, { label: string; icon: React.ReactNode; color: string }> = {
-  [ExportFormat.CSV]: { label: 'CSV', icon: <FileTextOutlined />, color: '#52c41a' },
-  [ExportFormat.EXCEL]: { label: 'Excel', icon: <FileExcelOutlined />, color: '#1677ff' },
-  [ExportFormat.PDF]: { label: 'PDF', icon: <FilePdfOutlined />, color: '#f5222d' },
-  [ExportFormat.JSON]: { label: 'JSON', icon: <FileTextOutlined />, color: '#faad14' },
-};
+// 数据类型配置（兼容旧代码）
+const dataTypeConfig = getDataTypeConfigWithToken();
+
+// 获取格式配置（支持主题 token）
+const getFormatConfigWithToken = (token?: GlobalToken): Record<ExportFormat, { label: string; icon: React.ReactNode; color: string }> => ({
+  [ExportFormat.CSV]: { label: 'CSV', icon: <FileTextOutlined />, color: token?.colorSuccess || '#52c41a' },
+  [ExportFormat.EXCEL]: { label: 'Excel', icon: <FileExcelOutlined />, color: token?.colorPrimary || '#1677ff' },
+  [ExportFormat.PDF]: { label: 'PDF', icon: <FilePdfOutlined />, color: token?.colorError || '#f5222d' },
+  [ExportFormat.JSON]: { label: 'JSON', icon: <FileTextOutlined />, color: token?.colorWarning || '#faad14' },
+});
+
+// 格式配置（兼容旧代码）
+const formatConfig = getFormatConfigWithToken();
 
 // 状态配置
 const statusConfig: Record<ExportStatus, { label: string; icon: React.ReactNode; color: string }> = {
@@ -75,7 +83,8 @@ export const createExportTableColumns = (
     key: 'dataType',
     width: 120,
     render: (type: ExportDataType) => {
-      const config = dataTypeConfig[type];
+      const typeConfig = actions.token ? getDataTypeConfigWithToken(actions.token) : dataTypeConfig;
+      const config = typeConfig[type];
       return (
         <Tag color={config.color} icon={<FileTextOutlined />}>
           {config.label}
@@ -89,7 +98,8 @@ export const createExportTableColumns = (
     key: 'format',
     width: 100,
     render: (format: ExportFormat) => {
-      const config = formatConfig[format];
+      const fmtConfig = actions.token ? getFormatConfigWithToken(actions.token) : formatConfig;
+      const config = fmtConfig[format];
       return (
         <Tag color={config.color} icon={config.icon}>
           {config.label}

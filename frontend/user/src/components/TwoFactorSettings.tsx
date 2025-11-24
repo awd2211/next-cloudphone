@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Modal, Button, Steps, Input, message, Card, Alert, Space } from 'antd';
+import { Modal, Button, Steps, Input, message, Card, Alert, Space, theme } from 'antd';
 import { SafetyOutlined, QrcodeOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { generate2FASecret, enable2FA, disable2FA } from '@/services/twoFactor';
 import type { TwoFactorSecret } from '@/services/twoFactor';
+
+const { useToken } = theme;
 
 interface TwoFactorSettingsProps {
   isEnabled: boolean;
@@ -10,6 +12,7 @@ interface TwoFactorSettingsProps {
 }
 
 const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps) => {
+  const { token } = useToken();
   const [modalVisible, setModalVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -205,9 +208,9 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
 
         {currentStep === 2 && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <CheckCircleOutlined style={{ fontSize: 64, color: '#52c41a' }} />
+            <CheckCircleOutlined style={{ fontSize: 64, color: token.colorSuccess }} />
             <h2 style={{ marginTop: 24 }}>双因素认证已成功启用！</h2>
-            <p style={{ color: '#666' }}>下次登录时，系统会要求您输入验证码</p>
+            <p style={{ color: token.colorTextSecondary }}>下次登录时，系统会要求您输入验证码</p>
           </div>
         )}
       </Modal>

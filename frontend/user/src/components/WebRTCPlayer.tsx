@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Card, Button, Space, message, Spin, Alert, Statistic, Row, Col, Badge } from 'antd';
+import { Card, Button, Space, message, Spin, Alert, Statistic, Row, Col, Badge, theme } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -9,6 +9,8 @@ import {
   SignalFilled,
 } from '@ant-design/icons';
 import { createSession, closeSession } from '@/services/media';
+
+const { useToken } = theme;
 
 interface WebRTCPlayerProps {
   deviceId: string;
@@ -30,6 +32,7 @@ interface ConnectionStats {
 type NetworkQuality = 'excellent' | 'good' | 'fair' | 'poor';
 
 const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
+  const { token: antToken } = useToken();
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -347,13 +350,13 @@ const WebRTCPlayer = ({ deviceId, showStats = true }: WebRTCPlayerProps) => {
   const getQualityConfig = (quality: NetworkQuality) => {
     switch (quality) {
       case 'excellent':
-        return { color: '#52c41a', text: '优秀', icon: 4 };
+        return { color: antToken.colorSuccess, text: '优秀', icon: 4 };
       case 'good':
-        return { color: '#1677ff', text: '良好', icon: 3 };
+        return { color: antToken.colorPrimary, text: '良好', icon: 3 };
       case 'fair':
-        return { color: '#faad14', text: '一般', icon: 2 };
+        return { color: antToken.colorWarning, text: '一般', icon: 2 };
       case 'poor':
-        return { color: '#ff4d4f', text: '较差', icon: 1 };
+        return { color: antToken.colorError, text: '较差', icon: 1 };
     }
   };
 

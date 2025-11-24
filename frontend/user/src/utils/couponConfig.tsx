@@ -7,36 +7,42 @@ import {
 } from '@ant-design/icons';
 import type { Coupon } from '@/services/activity';
 import { CouponStatus } from '@/services/activity';
+import type { GlobalToken } from 'antd';
 
 /**
- * 优惠券类型配置
+ * 获取优惠券类型配置（支持主题 token）
  */
-export const couponTypeConfig = {
+export const getCouponTypeConfigWithToken = (token?: GlobalToken) => ({
   discount: {
     icon: <PercentageOutlined />,
-    color: '#ff4d4f',
+    color: token?.colorError || '#ff4d4f',
     text: '折扣券',
     getValueText: (value: number) => `${value}折`,
   },
   cash: {
     icon: <DollarOutlined />,
-    color: '#faad14',
+    color: token?.colorWarning || '#faad14',
     text: '代金券',
     getValueText: (value: number) => `¥${value}`,
   },
   gift: {
     icon: <GiftOutlined />,
-    color: '#52c41a',
+    color: token?.colorSuccess || '#52c41a',
     text: '礼品券',
     getValueText: (_value: number, name: string) => name,
   },
   full_discount: {
     icon: <PercentageOutlined />,
-    color: '#1677ff',
+    color: token?.colorPrimary || '#1677ff',
     text: '满减券',
     getValueText: (value: number) => `¥${value}`,
   },
-} as const;
+});
+
+/**
+ * 优惠券类型配置（兼容旧代码）
+ */
+export const couponTypeConfig = getCouponTypeConfigWithToken();
 
 /**
  * 优惠券状态配置
@@ -69,8 +75,9 @@ export const statusConfig: Record<
 /**
  * 获取优惠券类型配置
  */
-export const getCouponTypeConfig = (coupon: Coupon) => {
-  const config = couponTypeConfig[coupon.type as keyof typeof couponTypeConfig];
+export const getCouponTypeConfig = (coupon: Coupon, token?: GlobalToken) => {
+  const typeConfig = token ? getCouponTypeConfigWithToken(token) : couponTypeConfig;
+  const config = typeConfig[coupon.type as keyof typeof typeConfig];
   return {
     ...config,
     valueText: config.getValueText(coupon.value, coupon.name),

@@ -90,6 +90,9 @@ const NetworkPolicyConfiguration = lazy(() => import('@/pages/NetworkPolicy/Conf
 const SMSManagement = lazy(() => import('@/pages/SMS/SMSManagement'));
 const SMSProviderConfig = lazy(() => import('@/pages/SMS/ProviderConfig'));
 
+// 测试工具
+const AdbConnectionTest = lazy(() => import('@/pages/Test/AdbConnectionTest'));
+
 // 代理IP管理
 const ProxyManagement = lazy(() => import('@/pages/Proxy/ProxyManagement'));
 const ProxyProviderConfig = lazy(() => import('@/pages/Proxy/ProviderConfig'));
@@ -534,6 +537,11 @@ export const router = createBrowserRouter([
       {
         path: 'system/logs/audit',
         element: withSuspense(AuditLog),
+      },
+      // --- 测试工具 ---
+      {
+        path: 'system/test/adb-connection',
+        element: withAdminRoute(AdbConnectionTest),
       },
       // --- 用户相关 ---
       {

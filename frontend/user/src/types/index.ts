@@ -113,6 +113,9 @@ export interface Plan {
   isActive: boolean;
 }
 
+// 设备提供商类型
+export type DeviceProviderType = 'redroid' | 'huawei_cph' | 'alibaba_ecp' | 'physical';
+
 // 设备相关
 export interface Device {
   id: string;
@@ -125,6 +128,9 @@ export interface Device {
   storageMB: number;
   ipAddress?: string;
   vncPort?: number;
+  providerType?: DeviceProviderType;
+  providerInstanceId?: string; // 云手机实例ID (阿里云/华为)
+  providerRegion?: string; // 云手机区域
   createdAt: string;
   lastStartedAt?: string;
   lastStoppedAt?: string;

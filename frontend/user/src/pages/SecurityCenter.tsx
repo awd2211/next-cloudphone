@@ -1,11 +1,13 @@
 import React from 'react';
-import { Tabs, Card, message } from 'antd';
+import { Tabs, Card, message, theme } from 'antd';
 import {
   LockOutlined,
   SafetyOutlined,
   HistoryOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+
+const { useToken } = theme;
 import { PasswordManagement } from '@/components/Security/PasswordManagement';
 import { TwoFactorManagement } from '@/components/Security/TwoFactorManagement';
 import { LoginHistory } from '@/components/Security/LoginHistory';
@@ -22,6 +24,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
  * 4. 会话管理 - 管理活跃会话
  */
 const SecurityCenter: React.FC = () => {
+  const { token } = useToken();
+
   // 快捷键支持：Ctrl+R 刷新页面
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -83,7 +87,7 @@ const SecurityCenter: React.FC = () => {
         <Card
           title={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <SafetyOutlined style={{ fontSize: '24px', color: '#1677ff' }} />
+              <SafetyOutlined style={{ fontSize: '24px', color: token.colorPrimary }} />
               <span style={{ fontSize: '20px', fontWeight: 600 }}>安全中心</span>
             </div>
           }

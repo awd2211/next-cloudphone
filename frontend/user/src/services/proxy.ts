@@ -39,6 +39,8 @@ export interface ProxyListParams {
   status?: string;
   protocol?: string;
   country?: string;
+  state?: string;    // 州/省 (如: california)
+  city?: string;     // 城市
 }
 
 export interface ProxyListResponse {

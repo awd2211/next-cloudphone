@@ -104,6 +104,21 @@ export interface DataTypeConfig {
 
 // ==================== 占位数据 ====================
 
+/**
+ * 数据类型配置 - 默认颜色映射
+ *
+ * 这些颜色作为默认/fallback 值使用，对应 Ant Design 主题色：
+ * - #1677ff → colorPrimary (主色)
+ * - #52c41a → colorSuccess (成功色)
+ * - #faad14 → colorWarning (警告色)
+ * - #ff4d4f → colorError (错误色)
+ * - #722ed1 → 紫色 (工单)
+ * - #13c2c2 → 青色 (使用记录)
+ * - #eb2f96 → 粉色 (消息)
+ * - #fa541c → 橙红色 (交易)
+ *
+ * 如需主题适配，组件层面应通过 useToken() 获取实际主题色并覆盖这些默认值
+ */
 const MOCK_DATA_TYPE_CONFIGS: Record<ExportDataType, DataTypeConfig> = {
   [ExportDataType.ORDERS]: {
     label: '订单数据',

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { theme } from 'antd';
 import dayjs from 'dayjs';
 import {
   RocketOutlined,
@@ -7,6 +8,8 @@ import {
   DollarOutlined,
   StopOutlined,
 } from '@ant-design/icons';
+
+const { useToken } = theme;
 
 export interface DashboardData {
   devices: {
@@ -45,6 +48,7 @@ export interface Activity {
 }
 
 export const useDashboard = () => {
+  const { token } = useToken();
   const [loading, setLoading] = useState(false);
 
   // 模拟数据（实际应从API获取）
@@ -81,7 +85,7 @@ export const useDashboard = () => {
       title: '启动设备',
       description: '设备 "测试机-001" 已启动',
       time: dayjs().subtract(5, 'minute'),
-      icon: <RocketOutlined style={{ color: '#52c41a' }} />,
+      icon: <RocketOutlined style={{ color: token.colorSuccess }} />,
       status: 'success',
     },
     {
@@ -90,7 +94,7 @@ export const useDashboard = () => {
       title: '安装应用',
       description: '在设备 "测试机-002" 上安装了 "微信"',
       time: dayjs().subtract(15, 'minute'),
-      icon: <AppstoreOutlined style={{ color: '#1677ff' }} />,
+      icon: <AppstoreOutlined style={{ color: token.colorPrimary }} />,
       status: 'success',
     },
     {
@@ -99,7 +103,7 @@ export const useDashboard = () => {
       title: '创建设备',
       description: '创建了新设备 "测试机-025"',
       time: dayjs().subtract(1, 'hour'),
-      icon: <PlusOutlined style={{ color: '#1677ff' }} />,
+      icon: <PlusOutlined style={{ color: token.colorPrimary }} />,
       status: 'success',
     },
     {
@@ -108,7 +112,7 @@ export const useDashboard = () => {
       title: '账户充值',
       description: '充值 ¥500.00',
       time: dayjs().subtract(2, 'hour'),
-      icon: <DollarOutlined style={{ color: '#52c41a' }} />,
+      icon: <DollarOutlined style={{ color: token.colorSuccess }} />,
       status: 'success',
     },
     {
@@ -117,7 +121,7 @@ export const useDashboard = () => {
       title: '停止设备',
       description: '设备 "测试机-010" 已停止',
       time: dayjs().subtract(3, 'hour'),
-      icon: <StopOutlined style={{ color: '#faad14' }} />,
+      icon: <StopOutlined style={{ color: token.colorWarning }} />,
       status: 'warning',
     },
   ]);

@@ -42,6 +42,8 @@ export interface Device {
   adbPort?: number;
   containerId?: string;
   externalId?: string;
+  providerInstanceId?: string; // 云手机实例ID (阿里云/华为)
+  providerRegion?: string; // 云手机区域
   providerConfig?: Record<string, any>;
   createdAt: string;
   updatedAt: string;

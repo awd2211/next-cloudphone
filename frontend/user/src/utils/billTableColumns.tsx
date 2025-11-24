@@ -1,6 +1,7 @@
 import { Button, Tag, Space, Popconfirm, Tooltip } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import type { GlobalToken } from 'antd';
 import dayjs from 'dayjs';
 import {
   formatAmount,
@@ -47,6 +48,7 @@ interface BillTableActionsProps {
   onPay: (bill: Bill) => void;
   onCancel: (id: string) => void;
   onDownload: (bill: Bill) => void;
+  token?: GlobalToken;
 }
 
 /**
@@ -90,7 +92,7 @@ export const createBillTableColumns = (
     width: 120,
     sorter: true,
     render: (amount: number) => (
-      <span style={{ fontWeight: 500, color: '#1677ff' }}>
+      <span style={{ fontWeight: 500, color: actions.token?.colorPrimary || '#1677ff' }}>
         {formatAmount(amount)}
       </span>
     ),

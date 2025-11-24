@@ -34,7 +34,7 @@ importers:
         version: 4.0.2(@nestjs/common@11.1.8)(rxjs@7.8.2)
       '@nestjs/core':
         specifier: ^11.1.7
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/jwt':
         specifier: ^11.0.1
         version: 11.0.1(@nestjs/common@11.1.8)
@@ -140,7 +140,7 @@ importers:
         version: 11.0.10(@types/node@24.10.0)
       '@nestjs/testing':
         specifier: ^11.1.7
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-express@11.1.8)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)
       '@types/bcrypt':
         specifier: ^6.0.0
         version: 6.0.0
@@ -215,7 +215,7 @@ importers:
         version: 4.0.2(@nestjs/common@11.1.8)(rxjs@7.8.2)
       '@nestjs/core':
         specifier: ^11.1.7
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/jwt':
         specifier: ^11.0.1
         version: 11.0.1(@nestjs/common@11.1.8)
@@ -306,7 +306,7 @@ importers:
         version: 11.0.9(typescript@5.9.3)
       '@nestjs/testing':
         specifier: ^11.1.7
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-express@11.1.8)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)
       '@types/adm-zip':
         specifier: ^0.5.7
         version: 0.5.7
@@ -363,7 +363,7 @@ importers:
         version: 4.0.2(@nestjs/common@11.1.8)(rxjs@7.8.2)
       '@nestjs/core':
         specifier: ^11.1.7
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/jwt':
         specifier: ^11.0.1
         version: 11.0.1(@nestjs/common@11.1.8)
@@ -478,7 +478,7 @@ importers:
         version: 11.0.9(typescript@5.9.3)
       '@nestjs/testing':
         specifier: ^11.1.7
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-express@11.1.8)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)
       '@types/express':
         specifier: ^5.0.3
         version: 5.0.5
@@ -512,9 +512,18 @@ importers:
 
   backend/device-service:
     dependencies:
+      '@alicloud/eds-aic20230930':
+        specifier: ^4.14.0
+        version: 4.14.0
+      '@alicloud/openapi-client':
+        specifier: ^0.4.15
+        version: 0.4.15
       '@alicloud/pop-core':
         specifier: ^1.8.0
         version: 1.8.0
+      '@alicloud/tea-util':
+        specifier: ^1.4.11
+        version: 1.4.11
       '@cloudphone/shared':
         specifier: workspace:*
         version: link:../shared
@@ -689,7 +698,7 @@ importers:
         version: 11.0.9(typescript@5.9.3)
       '@nestjs/testing':
         specifier: ^11.1.7
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-express@11.1.8)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)
       '@types/amqplib':
         specifier: ^0.10.7
         version: 0.10.8
@@ -873,7 +882,7 @@ importers:
         version: 11.0.9(typescript@5.9.3)
       '@nestjs/testing':
         specifier: ^11.1.7
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-express@11.1.8)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)
       '@types/crypto-js':
         specifier: ^4.2.2
         version: 4.2.2
@@ -1081,7 +1090,7 @@ importers:
         version: 11.0.9(typescript@5.9.3)
       '@nestjs/testing':
         specifier: ^11.1.7
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-express@11.1.8)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)
       '@types/amqplib':
         specifier: ^0.10.7
         version: 0.10.8
@@ -1376,7 +1385,7 @@ importers:
         version: 4.0.2(@nestjs/common@11.1.8)(rxjs@7.8.2)
       '@nestjs/core':
         specifier: '*'
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/schedule':
         specifier: ^6.0.1
         version: 6.0.1(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)
@@ -1482,7 +1491,7 @@ importers:
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.7
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-express@11.1.8)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)
       '@nestjs/typeorm':
         specifier: ^11.0.0
         version: 11.0.0(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.20)
@@ -1621,7 +1630,7 @@ importers:
         version: 11.0.9(typescript@5.9.3)
       '@nestjs/testing':
         specifier: ^11.1.8
-        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-express@11.1.8)
+        version: 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)
       '@types/express':
         specifier: ^4.17.17
         version: 4.17.25
@@ -2334,6 +2343,145 @@ packages:
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
     dev: true
 
+  /@alicloud/credentials@2.4.4:
+    resolution: {integrity: sha512-/eRAGSKcniLIFQ1UCpDhB/IrHUZisQ1sc65ws/c2avxUMpXwH1rWAohb76SVAUJhiF4mwvLzLJM1Mn1XL4Xe/Q==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+      httpx: 2.3.3
+      ini: 1.3.8
+      kitx: 2.2.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/darabonba-array@0.1.2:
+    resolution: {integrity: sha512-ZPuQ+bJyjrd8XVVm55kl+ypk7OQoi1ZH/DiToaAEQaGvgEjrTcvQkg71//vUX/6cvbLIF5piQDvhrLb+lUEIPQ==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/darabonba-encode-util@0.0.1:
+    resolution: {integrity: sha512-Sl5vCRVAYMqwmvXpJLM9hYoCHOMsQlGxaWSGhGWulpKk/NaUBArtoO1B0yHruJf1C5uHhEJIaylYcM48icFHgw==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+      moment: 2.30.1
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/darabonba-encode-util@0.0.2:
+    resolution: {integrity: sha512-mlsNctkeqmR0RtgE1Rngyeadi5snLOAHBCWEtYf68d7tyKskosXDTNeZ6VCD/UfrUu4N51ItO8zlpfXiOgeg3A==}
+    dependencies:
+      moment: 2.30.1
+    dev: false
+
+  /@alicloud/darabonba-map@0.0.1:
+    resolution: {integrity: sha512-2ep+G3YDvuI+dRYVlmER1LVUQDhf9kEItmVB/bbEu1pgKzelcocCwAc79XZQjTcQGFgjDycf3vH87WLDGLFMlw==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/darabonba-signature-util@0.0.4:
+    resolution: {integrity: sha512-I1TtwtAnzLamgqnAaOkN0IGjwkiti//0a7/auyVThdqiC/3kyafSAn6znysWOmzub4mrzac2WiqblZKFcN5NWg==}
+    dependencies:
+      '@alicloud/darabonba-encode-util': 0.0.1
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/darabonba-string@1.0.3:
+    resolution: {integrity: sha512-NyWwrU8cAIesWk3uHL1Q7pTDTqLkCI/0PmJXC4/4A0MFNAZ9Ouq0iFBsRqvfyUujSSM+WhYLuTfakQXiVLkTMA==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/eds-aic20230930@4.14.0:
+    resolution: {integrity: sha512-dMWui4DUfH67f9vR1GDcaijaSO28Dn0JJGXIqk6t4O+A+IqNL7tEePUyx9u0F6/eQ9OFiSvHPfvS459ZeIPjnA==}
+    dependencies:
+      '@alicloud/openapi-core': 1.0.6
+      '@darabonba/typescript': 1.0.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/endpoint-util@0.0.1:
+    resolution: {integrity: sha512-+pH7/KEXup84cHzIL6UJAaPqETvln4yXlD9JzlrqioyCSaWxbug5FUobsiI6fuUOpw5WwoB3fWAtGbFnJ1K3Yg==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+      kitx: 2.2.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/gateway-pop@0.0.6:
+    resolution: {integrity: sha512-KF4I+JvfYuLKc3fWeWYIZ7lOVJ9jRW0sQXdXidZn1DKZ978ncfGf7i0LBfONGk4OxvNb/HD3/0yYhkgZgPbKtA==}
+    dependencies:
+      '@alicloud/credentials': 2.4.4
+      '@alicloud/darabonba-array': 0.1.2
+      '@alicloud/darabonba-encode-util': 0.0.2
+      '@alicloud/darabonba-map': 0.0.1
+      '@alicloud/darabonba-signature-util': 0.0.4
+      '@alicloud/darabonba-string': 1.0.3
+      '@alicloud/endpoint-util': 0.0.1
+      '@alicloud/gateway-spi': 0.0.8
+      '@alicloud/openapi-util': 0.3.2
+      '@alicloud/tea-typescript': 1.8.0
+      '@alicloud/tea-util': 1.4.11
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/gateway-spi@0.0.8:
+    resolution: {integrity: sha512-KM7fu5asjxZPmrz9sJGHJeSU+cNQNOxW+SFmgmAIrITui5hXL2LB+KNRuzWmlwPjnuA2X3/keq9h6++S9jcV5g==}
+    dependencies:
+      '@alicloud/credentials': 2.4.4
+      '@alicloud/tea-typescript': 1.8.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/openapi-client@0.4.15:
+    resolution: {integrity: sha512-4VE0/k5ZdQbAhOSTqniVhuX1k5DUeUMZv74degn3wIWjLY6Bq+hxjaGsaHYlLZ2gA5wUrs8NcI5TE+lIQS3iiA==}
+    dependencies:
+      '@alicloud/credentials': 2.4.4
+      '@alicloud/gateway-spi': 0.0.8
+      '@alicloud/openapi-util': 0.3.2
+      '@alicloud/tea-typescript': 1.8.0
+      '@alicloud/tea-util': 1.4.9
+      '@alicloud/tea-xml': 0.0.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/openapi-core@1.0.6:
+    resolution: {integrity: sha512-E5meOaZmdMHgvrSuSVRjMkrvttvW1aDfnzUnO+fjloYak/o/S6F8C3NXfPuhVVO/1GRfP6vf/4Vxo+tuus1UwA==}
+    requiresBuild: true
+    dependencies:
+      '@alicloud/credentials': 2.4.4
+      '@alicloud/gateway-pop': 0.0.6
+      '@alicloud/gateway-spi': 0.0.8
+      '@darabonba/typescript': 1.0.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/openapi-util@0.3.2:
+    resolution: {integrity: sha512-EC2JvxdcOgMlBAEG0+joOh2IB1um8CPz9EdYuRfTfd1uP8Yc9D8QRUWVGjP6scnj6fWSOaHFlit9H6PrJSyFow==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+      '@alicloud/tea-util': 1.4.11
+      kitx: 2.2.0
+      sm3: 1.0.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
   /@alicloud/pop-core@1.8.0:
     resolution: {integrity: sha512-ef6vIVigtr9n8Lw6Ld2GZ9jVUD0+ReHviaQaMqZDPI2HwdpVvrq1Rvn2tBnFToe0tdTpovz9N7XFSf/C274OtA==}
     engines: {node: '>=8.0.0'}
@@ -2343,6 +2491,44 @@ packages:
       json-bigint: 1.0.0
       kitx: 1.3.0
       xml2js: 0.5.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/tea-typescript@1.8.0:
+    resolution: {integrity: sha512-CWXWaquauJf0sW30mgJRVu9aaXyBth5uMBCUc+5vKTK1zlgf3hIqRUjJZbjlwHwQ5y9anwcu18r48nOZb7l2QQ==}
+    dependencies:
+      '@types/node': 12.20.55
+      httpx: 2.3.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/tea-util@1.4.11:
+    resolution: {integrity: sha512-HyPEEQ8F0WoZegiCp7sVdrdm6eBOB+GCvGl4182u69LDFktxfirGLcAx3WExUr1zFWkq2OSmBroTwKQ4w/+Yww==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+      '@darabonba/typescript': 1.0.3
+      kitx: 2.2.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/tea-util@1.4.9:
+    resolution: {integrity: sha512-S0wz76rGtoPKskQtRTGqeuqBHFj8BqUn0Vh+glXKun2/9UpaaaWmuJwcmtImk6bJZfLYEShDF/kxDmDJoNYiTw==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+      kitx: 2.2.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@alicloud/tea-xml@0.0.3:
+    resolution: {integrity: sha512-+/9GliugjrLglsXVrd1D80EqqKgGpyA0eQ6+1ZdUOYCaRguaSwz44trX3PaxPu/HhIPJg9PsGQQ3cSLXWZjbAA==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+      '@types/xml2js': 0.4.14
+      xml2js: 0.6.2
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -4852,6 +5038,19 @@ packages:
     engines: {node: '>=10'}
     dev: false
 
+  /@darabonba/typescript@1.0.3:
+    resolution: {integrity: sha512-/y2y6wf5TsxD7pCPIm0OvTC+5qV0Tk7HQYxwpIuWRLXQLB0CRDvr6qk4bR6rTLO/JglJa8z2uCGZsaLYpQNqFQ==}
+    dependencies:
+      '@alicloud/tea-typescript': 1.8.0
+      httpx: 2.3.3
+      lodash: 4.17.21
+      moment: 2.30.1
+      moment-timezone: 0.5.48
+      xml2js: 0.6.2
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
   /@dnd-kit/accessibility@3.1.1(react@19.2.0):
     resolution: {integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==}
     peerDependencies:
@@ -5452,7 +5651,7 @@ packages:
     dependencies:
       '@golevelup/nestjs-discovery': 5.0.0(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)
       '@nestjs/common': 11.1.8(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       amqp-connection-manager: 4.1.15(amqplib@0.10.9)
       amqplib: 0.10.9
       lodash: 4.17.21
@@ -7102,7 +7301,7 @@ packages:
         optional: true
     dependencies:
       '@nestjs/common': 11.1.8(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       tslib: 2.8.1
     dev: false
 
@@ -7120,7 +7319,7 @@ packages:
     dependencies:
       '@nestjs/bull-shared': 11.0.4(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)
       '@nestjs/common': 11.1.8(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       bull: 4.16.5
       tslib: 2.8.1
     dev: false
@@ -7158,7 +7357,7 @@ packages:
         optional: true
     dependencies:
       '@nestjs/common': 11.1.8(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/microservices@11.1.8)(@nestjs/platform-express@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       cache-manager: 5.7.6
       rxjs: 7.8.2
     dev: false
@@ -7523,6 +7722,7 @@ packages:
       rxjs: 7.8.2
       tslib: 2.8.1
       uid: 2.0.2
+    dev: false
 
   /@nestjs/core@11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(reflect-metadata@0.1.14)(rxjs@7.8.2):
     resolution: {integrity: sha512-7riWfmTmMhCJHZ5ZiaG+crj4t85IPCq/wLRuOUSigBYyFT2JZj0lVHtAdf4Davp9ouNI8GINBDt9h9b5Gz9nTw==}
@@ -7819,6 +8019,7 @@ packages:
       - bufferutil
       - supports-color
       - utf-8-validate
+    dev: false
 
   /@nestjs/schedule@4.1.2(@nestjs/common@10.4.20)(@nestjs/core@10.4.20):
     resolution: {integrity: sha512-hCTQ1lNjIA5EHxeu8VvQu2Ed2DBLS1GSC6uKPYlBiQe6LL9a7zfE9iVSK+zuK8E2odsApteEBmfAQchc8Hx0Gg==}
@@ -8191,29 +8392,6 @@ packages:
       tslib: 2.8.1
     dev: true
 
-  /@nestjs/testing@11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-express@11.1.8):
-    resolution: {integrity: sha512-E6K+0UTKztcPxJzLnQa7S34lFjZbrj3Z1r7c5y5WDrL1m5HD1H4AeyBhicHgdaFmxjLAva2bq0sYKy/S7cdeYA==}
-    peerDependencies:
-      '@nestjs/common': '*'
-      '@nestjs/core': '*'
-      '@nestjs/microservices': '*'
-      '@nestjs/platform-express': '*'
-    peerDependenciesMeta:
-      '@nestjs/common':
-        optional: true
-      '@nestjs/core':
-        optional: true
-      '@nestjs/microservices':
-        optional: true
-      '@nestjs/platform-express':
-        optional: true
-    dependencies:
-      '@nestjs/common': 11.1.8(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/platform-express': 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)
-      tslib: 2.8.1
-    dev: true
-
   /@nestjs/throttler@6.4.0(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(reflect-metadata@0.2.2):
     resolution: {integrity: sha512-osL67i0PUuwU5nqSuJjtUJZMkxAnYB4VldgYUMGzvYRJDCqGRFMWbsbzm/CkUtPLRL30I8T74Xgt/OQxnYokiA==}
     peerDependencies:
@@ -8318,6 +8496,7 @@ packages:
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
       tslib: 2.8.1
+    dev: false
 
   /@noble/hashes@1.8.0:
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
@@ -10680,6 +10859,7 @@ packages:
 
   /@socket.io/component-emitter@3.1.2:
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
+    dev: false
 
   /@socket.io/redis-adapter@8.3.0(socket.io-adapter@2.5.5):
     resolution: {integrity: sha512-ly0cra+48hDmChxmIpnESKrc94LjRL80TEmZVscuQ/WWkRP81nNj8W8cCGMqbI4L6NCuAaPRSzZF1a9GlAxxnA==}
@@ -11211,6 +11391,7 @@ packages:
     resolution: {integrity: sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==}
     dependencies:
       '@types/node': 24.10.1
+    dev: false
 
   /@types/crypto-js@4.2.2:
     resolution: {integrity: sha512-sDOLlVbHhXpAUAL0YHDUUwDZf3iN4Bwi4W6a0W0b+QcAezUbRtH4FVb+9J4h+XFPW7l/gQ9F8qC7P+Ec4k8QVQ==}
@@ -11531,6 +11712,10 @@ packages:
       form-data: 4.0.5
     dev: false
 
+  /@types/node@12.20.55:
+    resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
+    dev: false
+
   /@types/node@14.18.63:
     resolution: {integrity: sha512-fAtCfv4jJg+ExtXhvCkCqUKZ+4ok/JQk01qDKhL5BDDoS3AxKXhV5/MAVUZyQnSEd2GT92fkgZl0pz0Q0AzcIQ==}
     dev: false
@@ -11549,6 +11734,12 @@ packages:
     resolution: {integrity: sha512-ZsJzA5thDQMSQO788d7IocwwQbI8B5OPzmqNvpf3NY/+MHDAS759Wo0gd2WQeXYt5AAAQjzcrTVC6SKCuYgoCQ==}
     dependencies:
       undici-types: 6.21.0
+
+  /@types/node@22.19.1:
+    resolution: {integrity: sha512-LCCV0HdSZZZb34qifBsyWlUmok6W7ouER+oQIGBScS8EsZsQbrtFTUrDX4hOl+CS6p7cnNC4td+qrSVGSCTUfQ==}
+    dependencies:
+      undici-types: 6.21.0
+    dev: false
 
   /@types/node@24.10.0:
     resolution: {integrity: sha512-qzQZRBqkFsYyaSWXuEHc2WR9c0a0CXwiE5FWUvn7ZM+vdy1uZLfCunD38UzhuB7YN/J11ndbDBcTmOdxJo9Q7A==}
@@ -11762,6 +11953,12 @@ packages:
   /@types/whatwg-mimetype@3.0.2:
     resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
     dev: true
+
+  /@types/xml2js@0.4.14:
+    resolution: {integrity: sha512-4YnrRemBShWRO2QjvUin8ESA41rH+9nQGLUGZV/1IDhi3SL9OhdpNC/MrulTWuptXKwhx/aDxE7toV0f/ypIXQ==}
+    dependencies:
+      '@types/node': 24.10.1
+    dev: false
 
   /@types/yargs-parser@21.0.3:
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -13554,6 +13751,7 @@ packages:
   /base64id@2.0.0:
     resolution: {integrity: sha512-lGe34o6EHj9y3Kts9R4ZYs/Gr+6N7MCaMlIFA3F1R2O5/m7K06AxfSeO5530PEERE6/WyEg3lsuyw4GHlPZHog==}
     engines: {node: ^4.5.0 || >= 5.9}
+    dev: false
 
   /baseline-browser-mapping@2.8.25:
     resolution: {integrity: sha512-2NovHVesVF5TXefsGX1yzx1xgr7+m9JQenvz6FQY3qd+YXkKkYiv+vTCc7OriP9mcDZpTC5mAOYN4ocd29+erA==}
@@ -14927,6 +15125,7 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.3
+    dev: false
 
   /debug@4.4.3(supports-color@5.5.0):
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -15313,6 +15512,7 @@ packages:
   /engine.io-parser@5.2.3:
     resolution: {integrity: sha512-HqD3yTBfnBxIrbnM1DoD6Pcq8NECnh8d4As1Qgh0z5Gg3jRRIqijury0CL3ghu/edArpUYiYqQiDUQBIs4np3Q==}
     engines: {node: '>=10.0.0'}
+    dev: false
 
   /engine.io@6.6.4:
     resolution: {integrity: sha512-ZCkIjSYNDyGn0R6ewHDtXgns/Zre/NT6Agvq1/WobF7JXgFff4SeDroKiCO3fNJreU9YG429Sc81o4w5ok/W5g==}
@@ -15331,6 +15531,7 @@ packages:
       - bufferutil
       - supports-color
       - utf-8-validate
+    dev: false
 
   /enhanced-resolve@5.18.3:
     resolution: {integrity: sha512-d4lC8xfavMeBjzGr2vECC3fsGXziXZQyJxD868h2M/mBI3PwAuODxAkLkq5HYuvrPYcUtiLzsTo8U3PgX3Ocww==}
@@ -16998,6 +17199,10 @@ packages:
 
   /inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
+
+  /ini@1.3.8:
+    resolution: {integrity: sha512-JV/yugV2uzW5iMRSiZAyDtQd+nxtUnjeLt0acNdw98kKLrvuRVyB80tsREOE7yvGVgalhZ6RNXCmEHkUKBKxew==}
+    dev: false
 
   /inline-style-parser@0.2.7:
     resolution: {integrity: sha512-Nb2ctOyNR8DqQoR0OwRG95uNWIC0C1lCgf5Naz5H6Ji72KZ8OcFZLz2P5sNgwlyoJ8Yif11oMuYs5pBQa86csA==}
@@ -18689,6 +18894,12 @@ packages:
     resolution: {integrity: sha512-fhBqFlXd0GkKTB+8ayLfpzPUw+LHxZlPAukPNBD1Om7JMeInT+/PxCAf1yLagvD+VKoyWhXtJR68xQkX/a0wOQ==}
     dev: false
 
+  /kitx@2.2.0:
+    resolution: {integrity: sha512-tBMwe6AALTBQJb0woQDD40734NKzb0Kzi3k7wQj9ar3AbP9oqhoVrdXPh7rk2r00/glIgd0YbToIUJsnxWMiIg==}
+    dependencies:
+      '@types/node': 22.19.1
+    dev: false
+
   /kleur@3.0.3:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
@@ -20006,6 +20217,7 @@ packages:
   /object-hash@3.0.0:
     resolution: {integrity: sha512-RSn9F68PjH9HqtltsSnqYC1XXoWe9Bju5+213R98cNGttag9q9yAOTzdbsqvIa7aNm5WffBZFpWYr2aWrklWAw==}
     engines: {node: '>= 6'}
+    dev: false
 
   /object-inspect@1.13.4:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
@@ -22404,6 +22616,10 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
+  /sm3@1.0.3:
+    resolution: {integrity: sha512-KyFkIfr8QBlFG3uc3NaljaXdYcsbRy1KrSfc4tsQV8jW68jAktGeOcifu530Vx/5LC+PULHT0Rv8LiI8Gw+c1g==}
+    dev: false
+
   /snake-case@3.0.4:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
     dependencies:
@@ -22429,6 +22645,7 @@ packages:
       - bufferutil
       - supports-color
       - utf-8-validate
+    dev: false
 
   /socket.io-client@4.8.1:
     resolution: {integrity: sha512-hJVXfu3E28NmzGk8o1sHhN3om52tRvwYeidbj7xKy2eIIse5IoKX3USlS6Tqt3BHAtflLIkCQBkzVrEEfWUyYQ==}
@@ -22452,6 +22669,7 @@ packages:
       debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
+    dev: false
 
   /socket.io@4.8.1:
     resolution: {integrity: sha512-oZ7iUCxph8WYRHHcjBEc9unw3adt5CmSNlppj/5Q4k2RIrhl8Z5yY2Xr4j9zj0+wzVZ0bxmYoGSzKJnRl6A4yg==}
@@ -22468,6 +22686,7 @@ packages:
       - bufferutil
       - supports-color
       - utf-8-validate
+    dev: false
 
   /sonic-boom@3.8.1:
     resolution: {integrity: sha512-y4Z8LCDBuum+PBP3lSV7RHrXscqksve/bi0as7mhwVnBW+/wUqKT/2Kb7um8yqcFy0duYbbPxzt89Zy2nOCaxg==}
@@ -24828,6 +25047,7 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+    dev: false
 
   /ws@8.18.3:
     resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}

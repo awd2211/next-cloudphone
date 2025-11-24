@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Timeline, Collapse } from 'antd';
+import { Card, Row, Col, Timeline, Collapse, theme } from 'antd';
 import {
   SafetyOutlined,
   LockOutlined,
@@ -11,16 +11,19 @@ import {
 } from '@ant-design/icons';
 
 const { Panel } = Collapse;
+const { useToken } = theme;
 
 /**
  * 安全保障页面
  * 展示平台安全措施、合规认证、数据保护等信息
  */
 const Security: React.FC = () => {
+  const { token } = useToken();
+
   // 安全特性
   const securityFeatures = [
     {
-      icon: <LockOutlined style={{ fontSize: 48, color: '#1677ff' }} />,
+      icon: <LockOutlined style={{ fontSize: 48, color: token.colorPrimary }} />,
       title: '数据加密',
       description: '采用 AES-256 加密算法，传输使用 TLS 1.3 协议',
       details: [
@@ -31,7 +34,7 @@ const Security: React.FC = () => {
       ],
     },
     {
-      icon: <SafetyOutlined style={{ fontSize: 48, color: '#52c41a' }} />,
+      icon: <SafetyOutlined style={{ fontSize: 48, color: token.colorSuccess }} />,
       title: '访问控制',
       description: '多层次访问控制，确保数据访问安全',
       details: [
@@ -42,7 +45,7 @@ const Security: React.FC = () => {
       ],
     },
     {
-      icon: <CloudServerOutlined style={{ fontSize: 48, color: '#722ed1' }} />,
+      icon: <CloudServerOutlined style={{ fontSize: 48, color: token.purple }} />,
       title: '基础设施安全',
       description: '企业级云基础设施，多重安全防护',
       details: [
@@ -53,7 +56,7 @@ const Security: React.FC = () => {
       ],
     },
     {
-      icon: <AuditOutlined style={{ fontSize: 48, color: '#faad14' }} />,
+      icon: <AuditOutlined style={{ fontSize: 48, color: token.colorWarning }} />,
       title: '审计与监控',
       description: '完整的操作日志和审计追踪',
       details: [
@@ -64,7 +67,7 @@ const Security: React.FC = () => {
       ],
     },
     {
-      icon: <FileProtectOutlined style={{ fontSize: 48, color: '#eb2f96' }} />,
+      icon: <FileProtectOutlined style={{ fontSize: 48, color: token.magenta }} />,
       title: '数据备份',
       description: '自动化备份，确保数据安全可恢复',
       details: [
@@ -75,7 +78,7 @@ const Security: React.FC = () => {
       ],
     },
     {
-      icon: <EyeOutlined style={{ fontSize: 48, color: '#13c2c2' }} />,
+      icon: <EyeOutlined style={{ fontSize: 48, color: token.cyan }} />,
       title: '隐私保护',
       description: '严格遵守数据隐私法规',
       details: [
@@ -93,25 +96,25 @@ const Security: React.FC = () => {
       title: 'ISO 27001',
       description: '信息安全管理体系认证',
       status: '已认证',
-      color: '#1677ff',
+      color: token.colorPrimary,
     },
     {
       title: 'ISO 9001',
       description: '质量管理体系认证',
       status: '已认证',
-      color: '#52c41a',
+      color: token.colorSuccess,
     },
     {
       title: '等保三级',
       description: '信息系统安全等级保护',
       status: '已认证',
-      color: '#722ed1',
+      color: token.purple,
     },
     {
       title: 'SOC 2 Type II',
       description: '安全、可用性和机密性认证',
       status: '进行中',
-      color: '#faad14',
+      color: token.colorWarning,
     },
   ];
 
@@ -183,7 +186,7 @@ const Security: React.FC = () => {
   return (
     <div>
       {/* 页面内容 */}
-      <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 300px)' }}>
+      <div style={{ background: token.colorBgLayout, minHeight: 'calc(100vh - 300px)' }}>
         {/* Hero Section */}
         <div
           style={{
@@ -216,10 +219,10 @@ const Security: React.FC = () => {
                     <h3 style={{ fontSize: 18, marginBottom: 12, textAlign: 'center' }}>
                       {feature.title}
                     </h3>
-                    <p style={{ color: '#666', marginBottom: 16, textAlign: 'center' }}>
+                    <p style={{ color: token.colorTextSecondary, marginBottom: 16, textAlign: 'center' }}>
                       {feature.description}
                     </p>
-                    <ul style={{ margin: 0, paddingLeft: 20, color: '#666', fontSize: 14 }}>
+                    <ul style={{ margin: 0, paddingLeft: 20, color: token.colorTextSecondary, fontSize: 14 }}>
                       {feature.details.map((detail, detailIndex) => (
                         <li key={detailIndex} style={{ marginBottom: 8 }}>
                           {detail}
@@ -260,7 +263,7 @@ const Security: React.FC = () => {
                       <ApiOutlined />
                     </div>
                     <h3 style={{ fontSize: 18, marginBottom: 8 }}>{cert.title}</h3>
-                    <p style={{ color: '#666', fontSize: 14, marginBottom: 12 }}>
+                    <p style={{ color: token.colorTextSecondary, fontSize: 14, marginBottom: 12 }}>
                       {cert.description}
                     </p>
                     <div
@@ -293,7 +296,7 @@ const Security: React.FC = () => {
                 children: (
                   <div>
                     <h3 style={{ fontSize: 16, marginBottom: 8 }}>{step.title}</h3>
-                    <p style={{ color: '#666', margin: 0 }}>{step.description}</p>
+                    <p style={{ color: token.colorTextSecondary, margin: 0 }}>{step.description}</p>
                   </div>
                 ),
               }))}
@@ -307,7 +310,7 @@ const Security: React.FC = () => {
             </h2>
             <Collapse
               defaultActiveKey={['0']}
-              style={{ background: '#fafafa', border: 'none' }}
+              style={{ background: token.colorBgLayout, border: 'none' }}
             >
               {bestPractices.map((practice, index) => (
                 <Panel
@@ -319,7 +322,7 @@ const Security: React.FC = () => {
                   key={index}
                   style={{ marginBottom: 16, background: 'white' }}
                 >
-                  <ul style={{ margin: 0, paddingLeft: 20, color: '#666' }}>
+                  <ul style={{ margin: 0, paddingLeft: 20, color: token.colorTextSecondary }}>
                     {practice.items.map((item, itemIndex) => (
                       <li key={itemIndex} style={{ marginBottom: 12, lineHeight: 1.6 }}>
                         {item}
@@ -340,12 +343,12 @@ const Security: React.FC = () => {
             }}
           >
             <h3 style={{ fontSize: 20, marginBottom: 16 }}>发现安全问题？</h3>
-            <p style={{ color: '#666', marginBottom: 24 }}>
+            <p style={{ color: token.colorTextSecondary, marginBottom: 24 }}>
               如果您发现任何安全漏洞或问题，请立即联系我们的安全团队
             </p>
             <p style={{ fontSize: 16, marginBottom: 24 }}>
               <strong>安全邮箱：</strong>{' '}
-              <a href="mailto:security@cloudphone.run" style={{ color: '#1677ff' }}>
+              <a href="mailto:security@cloudphone.run" style={{ color: token.colorPrimary }}>
                 security@cloudphone.run
               </a>
             </p>

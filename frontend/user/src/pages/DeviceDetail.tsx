@@ -113,6 +113,9 @@ const DeviceDetail = () => {
         <DevicePlayerCard
           deviceId={device.id}
           isRunning={device.status === 'running'}
+          providerType={device.providerType}
+          providerInstanceId={device.providerInstanceId}
+          providerRegion={device.providerRegion}
         />
       </div>
     </ErrorBoundary>

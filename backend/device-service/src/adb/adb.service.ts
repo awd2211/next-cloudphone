@@ -85,6 +85,14 @@ export class AdbService implements OnModuleInit {
   }
 
   /**
+   * 获取 ADB 客户端实例
+   * 用于直接操作 ADB 连接
+   */
+  getClient() {
+    return this.client;
+  }
+
+  /**
    * 服务启动时清理所有孤儿录屏进程
    * 防止服务重启后遗留的录屏进程继续占用资源
    */
