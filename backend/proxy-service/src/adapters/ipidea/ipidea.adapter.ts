@@ -174,10 +174,14 @@ export class IPIDEAAdapter extends BaseProxyAdapter {
     const proxies: ProxyInfo[] = [];
     const protocol = options?.protocol || 'http';
 
-    // 使用配置的网关地址，或默认网关
-    const gateway = this.config.extra?.gateway ||
+    // ✅ 修复: 支持从配置根级别或 extra 中读取 gateway 和 port
+    // 优先使用根级别配置（与前端示例一致），其次是 extra，最后是默认值
+    const configGateway = (this.config as any).gateway || this.config.extra?.gateway;
+    const configPort = (this.config as any).port || this.config.extra?.port;
+
+    const gateway = configGateway ||
       (protocol === 'socks5' ? this.PROXY_GATEWAY.socks5 : this.PROXY_GATEWAY.http);
-    const port = this.config.extra?.port || this.DEFAULT_PORTS.http;
+    const port = configPort || this.DEFAULT_PORTS.http;
 
     for (let i = 0; i < count; i++) {
       // 构建用户名，包含定位和会话参数
@@ -257,8 +261,15 @@ export class IPIDEAAdapter extends BaseProxyAdapter {
    */
   private createProxyFromAccount(account: any, options?: GetProxyOptions): ProxyInfo {
     const protocol = options?.protocol || 'http';
-    const gateway = protocol === 'socks5' ? this.PROXY_GATEWAY.socks5 : this.PROXY_GATEWAY.http;
-    const port = protocol === 'socks5' ? this.DEFAULT_PORTS.socks5 : this.DEFAULT_PORTS.http;
+
+    // ✅ 修复: 支持从配置根级别或 extra 中读取 gateway 和 port
+    const configGateway = (this.config as any).gateway || this.config.extra?.gateway;
+    const configPort = (this.config as any).port || this.config.extra?.port;
+
+    const gateway = configGateway ||
+      (protocol === 'socks5' ? this.PROXY_GATEWAY.socks5 : this.PROXY_GATEWAY.http);
+    const port = configPort ||
+      (protocol === 'socks5' ? this.DEFAULT_PORTS.socks5 : this.DEFAULT_PORTS.http);
 
     const proxyId = `ipidea-${account.account || account.id}`;
 
