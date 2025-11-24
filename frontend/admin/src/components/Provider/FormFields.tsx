@@ -75,34 +75,37 @@ export const HuaweiFormFields: React.FC = React.memo(() => {
 });
 HuaweiFormFields.displayName = 'HuaweiFormFields';
 
-// 阿里云配置字段
+// 阿里云配置字段（基于 2023-09-30 API）
 export const AliyunFormFields: React.FC = React.memo(() => {
   const fields = FORM_FIELDS.aliyun;
   return (
     <>
-      <Form.Item name="accessKeyId" label={fields.accessKeyId.label} rules={[{ required: fields.accessKeyId.required }]}>
-        <Input placeholder={fields.accessKeyId.placeholder} />
+      <Form.Item name="accessKeyId" label="AccessKey ID" rules={[{ required: true, message: '请输入 AccessKey ID' }]} tooltip="阿里云账号的 AccessKey ID">
+        <Input placeholder="请输入阿里云 AccessKey ID" />
       </Form.Item>
-      <Form.Item name="accessKeySecret" label={fields.accessKeySecret.label} rules={[{ required: fields.accessKeySecret.required }]}>
-        <Input.Password placeholder={fields.accessKeySecret.placeholder} />
+      <Form.Item name="accessKeySecret" label="AccessKey Secret" rules={[{ required: true, message: '请输入 AccessKey Secret' }]} tooltip="阿里云账号的 AccessKey Secret">
+        <Input.Password placeholder="请输入阿里云 AccessKey Secret" />
       </Form.Item>
-      <Form.Item name="region" label={fields.region.label} rules={[{ required: fields.region.required }]}>
-        <Input placeholder={fields.region.placeholder} />
+      <Form.Item name="regionId" label="区域 (Region ID)" rules={[{ required: true, message: '请输入区域' }]} tooltip="如 cn-hangzhou, ap-southeast-1">
+        <Input placeholder="例如: cn-hangzhou" />
       </Form.Item>
-      <Form.Item name="endpoint" label={fields.endpoint.label}>
-        <Input placeholder={fields.endpoint.placeholder} />
+      <Form.Item name="endpoint" label="API 端点" tooltip="可选，留空使用默认端点">
+        <Input placeholder="例如: eds-aic.cn-hangzhou.aliyuncs.com" />
       </Form.Item>
-      <Form.Item name="defaultImageId" label="默认镜像 ID">
-        <Input />
+      <Form.Item name="timeout" label="超时时间 (ms)" initialValue={30000} tooltip="API 请求超时时间，单位：毫秒">
+        <InputNumber min={5000} max={60000} step={1000} style={{ width: '100%' }} />
       </Form.Item>
-      <Form.Item name="defaultInstanceType" label={fields.defaultInstanceType.label}>
-        <Input placeholder={fields.defaultInstanceType.placeholder} />
+      <Form.Item name="defaultOfficeSiteId" label="默认网络 ID" tooltip="默认的 Office Site ID（网络 ID）">
+        <Input placeholder="请输入默认网络 ID" />
       </Form.Item>
-      <Form.Item name="enableSync" label="启用自动同步" valuePropName="checked">
-        <Switch />
+      <Form.Item name="defaultVSwitchId" label="默认虚拟交换机 ID" tooltip="默认的 VSwitch ID">
+        <Input placeholder="请输入虚拟交换机 ID" />
       </Form.Item>
-      <Form.Item name="syncInterval" label={fields.syncInterval.label}>
-        <InputNumber min={fields.syncInterval.min} max={fields.syncInterval.max} style={{ width: '100%' }} />
+      <Form.Item name="defaultKeyPairId" label="默认密钥对 ID" tooltip="用于 ADB 连接的密钥对">
+        <Input placeholder="请输入密钥对 ID" />
+      </Form.Item>
+      <Form.Item name="defaultImageId" label="默认镜像 ID" tooltip="默认的 Android 镜像 ID">
+        <Input placeholder="请输入镜像 ID" />
       </Form.Item>
     </>
   );

@@ -4,12 +4,12 @@
 
 import { MoneyAmount } from './index';
 
-// 提供商类型枚举
+// 提供商类型枚举（与后端 DeviceProviderType 保持一致）
 export enum DeviceProvider {
-  DOCKER = 'docker', // 本地 Redroid 容器
-  PHYSICAL = 'physical', // 物理 Android 设备
-  HUAWEI = 'huawei', // 华为云 CPH
-  ALIYUN = 'aliyun', // 阿里云 ECP
+  DOCKER = 'redroid', // 本地 Redroid 容器（后端: REDROID）
+  PHYSICAL = 'physical', // 物理 Android 设备（后端: PHYSICAL）
+  HUAWEI = 'huawei_cph', // 华为云 CPH（后端: HUAWEI_CPH）
+  ALIYUN = 'aliyun_ecp', // 阿里云 ECP（后端: ALIYUN_ECP）
 }
 
 // 提供商显示名称

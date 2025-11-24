@@ -1166,7 +1166,7 @@ export const DeviceMeteringSchema = z.object({
  * Provider Health Data Schema
  */
 export const ProviderHealthDataSchema = z.object({
-  provider: z.enum(['docker', 'huawei', 'aliyun', 'physical']),
+  provider: z.enum(['redroid', 'huawei_cph', 'aliyun_ecp', 'physical']),
   healthy: z.boolean(),
   message: z.string().optional(),
   lastCheck: z.string(),
