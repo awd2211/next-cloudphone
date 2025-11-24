@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -9,7 +9,7 @@ import {
   ProxyAlertRule,
   ProxyAlertHistory,
 } from '../entities';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusLocalService } from '../../events/event-bus-local.service';
 
 /**
  * 代理告警管理服务
@@ -34,7 +34,7 @@ export class ProxyAlertService {
     @InjectRepository(ProxyAlertHistory)
     private historyRepo: Repository<ProxyAlertHistory>,
     private configService: ConfigService,
-    private eventBusService: EventBusService,
+    @Optional() private eventBusService: EventBusLocalService,
   ) {
     this.initializeEmailTransporter();
   }

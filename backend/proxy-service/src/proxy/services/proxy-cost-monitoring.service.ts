@@ -2,7 +2,8 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThan } from 'typeorm';
 import { CronExpression } from '@nestjs/schedule';
-import { ClusterSafeCron, DistributedLockService, EventBusService } from '@cloudphone/shared';
+import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
+import { EventBusLocalService } from '../../events/event-bus-local.service';
 import {
   ProxyCostRecord,
   ProxyCostBudget,
@@ -37,7 +38,7 @@ export class ProxyCostMonitoringService {
     private summaryRepo: Repository<ProxyCostDailySummary>,
     private poolManager: ProxyPoolManager,
     @Optional() private readonly lockService: DistributedLockService, // ✅ Optional: proxy-service 暂未配置 Redis 分布式锁模块
-    @Optional() private readonly eventBus: EventBusService, // ✅ Optional: proxy-service 不参与事件架构
+    @Optional() private readonly eventBus: EventBusLocalService, // ✅ Optional: proxy-service 不参与事件架构
     @Optional() @InjectRedis() private readonly redis: Redis, // ✅ Optional: 仅用于阻止用户功能，不影响核心成本记录
   ) {}
 

@@ -1,5 +1,5 @@
 /**
- * AliyunCloudPhonePlayer - 阿里云云手机投屏组件 (管理员版)
+ * AliyunCloudPhonePlayer - 阿里云云手机投屏组件 (统一版)
  *
  * 使用阿里云无影 Web SDK 连接云手机实例
  *
@@ -11,8 +11,12 @@
  * 2. 前端使用 ticket 初始化 Web SDK 连接
  * 3. SDK自动处理 WebRTC 连接和视频渲染
  *
+ * 支持两种模式：
+ * - 正常模式: 用于设备详情页，需要 deviceId
+ * - 测试模式: 用于测试页面，只需要 instanceId 和 regionId
+ *
  * 注意：
- * - 需要在页面中引入阿里云 Web SDK: https://g.alicdn.com/aliyun-ecp/websdk/1.4.1/aliyun-ecp-websdk.js
+ * - 需要在页面中引入阿里云 Web SDK: /WuyingWebSDK.js (从官方 Demo 提取并本地托管)
  * - 连接需要 HTTPS 环境
  * - ticket 有效期 30 秒，需要及时使用
  */
@@ -30,7 +34,7 @@ import {
   SoundOutlined,
   KeyOutlined,
 } from '@ant-design/icons';
-import { getAliyunConnectionTicket } from '@/services/device';
+import { getAliyunConnectionTicket, testAliyunConnectionTicket } from '@/services/device';
 
 const { useToken } = theme;
 
@@ -85,11 +89,19 @@ interface UiConfig {
 }
 
 interface AliyunCloudPhonePlayerProps {
-  deviceId: string;
+  /** 设备 ID (正常模式必需，测试模式可选) */
+  deviceId?: string;
+  /** 阿里云实例 ID */
   instanceId: string;
+  /** 阿里云地域 ID (测试模式必需) */
   regionId?: string;
+  /** 测试模式: true=测试页面使用, false=正式设备详情页使用 */
+  testMode?: boolean;
+  /** 连接成功回调 */
   onConnected?: () => void;
+  /** 断开连接回调 */
   onDisconnected?: () => void;
+  /** 错误回调 */
   onError?: (error: string) => void;
 }
 
@@ -99,10 +111,18 @@ const AliyunCloudPhonePlayer = ({
   deviceId,
   instanceId,
   regionId = 'cn-hangzhou',
+  testMode = false,
   onConnected,
   onDisconnected,
   onError,
 }: AliyunCloudPhonePlayerProps) => {
+  // 验证必需参数
+  if (!testMode && !deviceId) {
+    throw new Error('正常模式下 deviceId 是必需的');
+  }
+  if (testMode && !regionId) {
+    throw new Error('测试模式下 regionId 是必需的');
+  }
   const { token: antToken } = useToken();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const sessionRef = useRef<AliyunSession | null>(null);
@@ -124,7 +144,8 @@ const AliyunCloudPhonePlayer = ({
       }
 
       const script = document.createElement('script');
-      script.src = 'https://g.alicdn.com/aliyun-ecp/websdk/1.4.1/aliyun-ecp-websdk.js';
+      // 使用本地托管的 SDK 文件（从阿里云官方 Demo 提取）
+      script.src = '/WuyingWebSDK.js';
       script.async = true;
       script.onload = () => {
         console.log('Aliyun Web SDK loaded');
@@ -151,8 +172,15 @@ const AliyunCloudPhonePlayer = ({
       setStatus('connecting');
       setError(null);
 
-      // 获取连接凭证 (ticket)
-      const ticketResponse = await getAliyunConnectionTicket(deviceId);
+      // 根据模式获取连接凭证 (ticket)
+      let ticketResponse;
+      if (testMode) {
+        // 测试模式: 使用测试 API
+        ticketResponse = await testAliyunConnectionTicket(instanceId, regionId!);
+      } else {
+        // 正常模式: 使用设备 API
+        ticketResponse = await getAliyunConnectionTicket(deviceId!);
+      }
 
       if (!ticketResponse.success || !ticketResponse.data?.ticket) {
         throw new Error(ticketResponse.message || '获取连接凭证失败');
@@ -231,7 +259,7 @@ const AliyunCloudPhonePlayer = ({
       message.error(errorMsg);
       onError?.(errorMsg);
     }
-  }, [sdkLoaded, deviceId, instanceId, regionId, onConnected, onDisconnected, onError]);
+  }, [sdkLoaded, testMode, deviceId, instanceId, regionId, onConnected, onDisconnected, onError]);
 
   // 断开连接
   const disconnect = useCallback(() => {
@@ -352,7 +380,7 @@ const AliyunCloudPhonePlayer = ({
       title={
         <Space>
           <MobileOutlined />
-          阿里云云手机
+          {testMode ? '阿里云云手机 (测试)' : '阿里云云手机'}
           <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
         </Space>
       }

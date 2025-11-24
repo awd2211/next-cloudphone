@@ -20,6 +20,12 @@ import { ProxyAlertController } from './controllers/proxy-alert.controller';
 import { ProxyUsageReportController } from './controllers/proxy-usage-report.controller';
 import { ProxyAuditLogController } from './controllers/proxy-audit-log.controller';
 
+// IPIDEA 专用控制器
+import { IPIDEAController } from './controllers/ipidea.controller';
+
+// Kookeey 专用控制器
+import { KookeeyController } from './controllers/kookeey.controller';
+
 // 核心功能服务（7个核心功能）
 import { ProxyIntelligenceService } from './services/proxy-intelligence.service';
 import { ProxyQualityService } from './services/proxy-quality.service';
@@ -35,6 +41,12 @@ import { ProxyAlertService } from './services/proxy-alert.service';
 import { ProxyUsageReportService } from './services/proxy-usage-report.service';
 import { ProxyAuditLogService } from './services/proxy-audit-log.service';
 import { ProxyProviderConfigService } from './services/proxy-provider-config.service';
+
+// IPIDEA 专用服务
+import { IPIDEAService } from './services/ipidea.service';
+
+// Kookeey 专用服务
+import { KookeeyService } from './services/kookeey.service';
 
 // Pool模块
 import { PoolModule } from '../pool/pool.module';
@@ -174,6 +186,10 @@ import {
     ProxyAlertController,
     ProxyUsageReportController,
     ProxyAuditLogController,
+    // IPIDEA 专用控制器
+    IPIDEAController,
+    // Kookeey 专用控制器
+    KookeeyController,
   ],
   providers: [
     // 基础服务
@@ -192,6 +208,10 @@ import {
     ProxyUsageReportService,
     ProxyAuditLogService,
     ProxyProviderConfigService, // ✅ 新增：提供商配置服务（带缓存优化）
+    // IPIDEA 专用服务
+    IPIDEAService,
+    // Kookeey 专用服务
+    KookeeyService,
   ],
   exports: [
     // 导出所有服务供其他模块使用
@@ -208,6 +228,8 @@ import {
     ProxyUsageReportService,
     ProxyAuditLogService,
     ProxyProviderConfigService, // ✅ 新增：导出提供商配置服务
+    IPIDEAService, // ✅ 导出 IPIDEA 服务
+    KookeeyService, // ✅ 导出 Kookeey 服务
   ],
 })
 export class ProxyModule {}

@@ -34,7 +34,7 @@ import { api } from '@/utils/api';
 const { Title, Text, Paragraph } = Typography;
 
 // 懒加载阿里云测试播放器组件（使用测试 API，无需数据库设备）
-const AliyunCloudPhoneTestPlayer = lazy(() => import('@/components/AliyunCloudPhoneTestPlayer'));
+const AliyunCloudPhonePlayer = lazy(() => import('@/components/AliyunCloudPhonePlayer'));
 
 interface ConnectionInfo {
   networkId: string;
@@ -496,7 +496,8 @@ const AdbConnectionTest: React.FC = () => {
                       <div style={{ marginTop: 16 }}>正在加载播放器...</div>
                     </div>
                   }>
-                    <AliyunCloudPhoneTestPlayer
+                    <AliyunCloudPhonePlayer
+                      testMode={true}
                       instanceId={form.getFieldValue('instanceId') || presetInfo.instanceId}
                       regionId={form.getFieldValue('regionId') || presetInfo.regionId}
                       onConnected={() => message.success('屏幕投屏连接成功')}

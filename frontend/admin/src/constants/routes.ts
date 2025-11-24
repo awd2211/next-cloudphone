@@ -79,6 +79,12 @@ export const ROUTES = {
   SETTINGS_PROFILE: '/settings/profile',
   SETTINGS_SECURITY: '/settings/security',
   SETTINGS_API_KEYS: '/settings/api-keys',
+
+  // 提供商配置
+  PROVIDER_CONFIGS: '/provider-configs',
+  PROVIDER_CONFIG_LIST: '/provider-configs',
+  PROVIDER_CONFIG_CREATE: '/provider-configs/create',
+  PROVIDER_CONFIG_EDIT: '/provider-configs/edit/:id',
 } as const;
 
 /**

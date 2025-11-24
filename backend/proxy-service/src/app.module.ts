@@ -10,7 +10,6 @@ import { APP_GUARD, APP_FILTER, Reflector } from '@nestjs/core';
 // ✅ 导入共享模块
 import {
   ConsulModule,
-  EventBusModule,
   AppCacheModule,
   createLoggerConfig,
   RequestIdMiddleware,
@@ -23,6 +22,7 @@ import { HealthModule } from './health/health.module';
 import { AdaptersModule } from './adapters/adapters.module';
 import { PoolModule } from './pool/pool.module';
 import { ProxyModule } from './proxy/proxy.module';
+import { EventBusLocalModule } from './events/event-bus-local.module';
 /**
  * 🚧 预留模块（按需实现）
  * - StatisticsModule: 代理使用统计分析（当前由 ProxyUsageReportService 处理）
@@ -66,9 +66,9 @@ import { ProxyProviderConfigController } from './proxy/controllers/proxy-provide
     // ✅ Consul 服务注册与发现
     ConsulModule,
 
-    // ✅ EventBusModule - 用于发布代理相关事件
+    // ✅ EventBusLocalModule - 本地 RabbitMQ 配置
     // 事件类型：proxy.health_changed, proxy.cost_alert, proxy.pool_low 等
-    EventBusModule.forRoot(),
+    EventBusLocalModule,
 
     // ✅ Redis 缓存 (ProxyPoolManager 需要)
     AppCacheModule,

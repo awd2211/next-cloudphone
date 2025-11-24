@@ -27,6 +27,7 @@ import {
   ReloadOutlined,
   ExperimentOutlined,
   DollarOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import {
   useProxyProviders,
@@ -107,12 +108,22 @@ const ProviderConfig: React.FC = memo(() => {
       title: '供应商',
       key: 'provider',
       width: 200,
-      render: (_, record) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{record.name}</div>
-          <Tag color="blue">{record.type.toUpperCase()}</Tag>
-        </div>
-      ),
+      render: (_, record) => {
+        const typeColors: Record<string, string> = {
+          ipidea: 'blue',
+          kookeey: 'cyan',
+          brightdata: 'green',
+          oxylabs: 'orange',
+          iproyal: 'purple',
+          smartproxy: 'magenta',
+        };
+        return (
+          <div>
+            <div style={{ fontWeight: 500 }}>{record.name}</div>
+            <Tag color={typeColors[record.type] || 'default'}>{record.type.toUpperCase()}</Tag>
+          </div>
+        );
+      },
     },
     {
       title: '优先级',
@@ -208,6 +219,16 @@ const ProviderConfig: React.FC = memo(() => {
               loading={toggleMutation.isPending}
             />
           </Tooltip>
+          {(record.type === 'ipidea' || record.type === 'kookeey') && (
+            <Tooltip title={`${record.type.toUpperCase()} 管理`}>
+              <Button
+                type="link"
+                size="small"
+                icon={<SettingOutlined />}
+                onClick={() => window.open(`/#/proxy/${record.type}/${record.id}`, '_blank')}
+              />
+            </Tooltip>
+          )}
           <Popconfirm
             title="确认删除此供应商配置？"
             onConfirm={() => deleteMutation.mutate(record.id)}
@@ -349,10 +370,11 @@ const ProviderConfig: React.FC = memo(() => {
                 rules={[{ required: true, message: '请选择供应商类型' }]}
               >
                 <Select placeholder="选择类型" disabled={!!editingProvider}>
+                  <Select.Option value="ipidea">IPIDEA (推荐)</Select.Option>
+                  <Select.Option value="kookeey">Kookeey (家宽代理)</Select.Option>
                   <Select.Option value="brightdata">Bright Data</Select.Option>
                   <Select.Option value="oxylabs">Oxylabs</Select.Option>
                   <Select.Option value="iproyal">IPRoyal</Select.Option>
-                  <Select.Option value="ipidea">IPIDEA (家宽代理)</Select.Option>
                   <Select.Option value="smartproxy">SmartProxy</Select.Option>
                 </Select>
               </Form.Item>
@@ -394,7 +416,7 @@ const ProviderConfig: React.FC = memo(() => {
             rules={[{ required: true, message: '请输入配置信息' }]}
           >
             <Input.TextArea
-              rows={8}
+              rows={10}
               placeholder={`通用示例：
 {
   "apiKey": "your-api-key",
@@ -410,7 +432,15 @@ IPIDEA 示例：
   "username": "认证账户用户名",
   "password": "认证账户密码",
   "gateway": "e255c08e04856698.lqz.na.ipidea.online",
-  "port": 2336
+  "port": 2336,
+  "apiUrl": "https://api.ipidea.net"
+}
+
+Kookeey 示例：
+{
+  "accessId": "12345",
+  "token": "your-secret-token",
+  "apiUrl": "https://kookeey.com"
 }`}
             />
           </Form.Item>

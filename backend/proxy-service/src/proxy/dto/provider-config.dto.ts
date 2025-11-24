@@ -15,6 +15,7 @@ export enum ProxyProviderType {
   IPROYAL = 'iproyal',
   SMARTPROXY = 'smartproxy',
   IPIDEA = 'ipidea',  // 家宽代理
+  KOOKEEY = 'kookeey',  // 家宽代理
 }
 
 export class CreateProxyProviderDto {

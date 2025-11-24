@@ -27,31 +27,46 @@ export class StatsService {
    * ✅ 已添加缓存 (TTL: 60秒) - 性能提升 100x+
    */
   async getDashboardStats() {
-    return this.cacheService.wrap(
-      CacheKeys.DASHBOARD_STATS,
-      async () => {
-        const [totalUsers, activeDevices, todayRevenue, monthRevenue, todayOrders, pendingOrders] =
-          await Promise.all([
-            this.getTotalUsersCount(),
-            this.getOnlineDevicesCount(),
-            this.getTodayRevenue(),
-            this.getMonthRevenue(),
-            this.getTodayOrdersCount(),
-            this.getPendingOrdersCount(),
-          ]);
+    try {
+      return await this.cacheService.wrap(
+        CacheKeys.DASHBOARD_STATS,
+        async () => {
+          const [totalUsers, activeDevices, todayRevenue, monthRevenue, todayOrders, pendingOrders] =
+            await Promise.all([
+              this.getTotalUsersCount(),
+              this.getOnlineDevicesCount(),
+              this.getTodayRevenue(),
+              this.getMonthRevenue(),
+              this.getTodayOrdersCount(),
+              this.getPendingOrdersCount(),
+            ]);
 
-        return {
-          totalUsers,
-          activeDevices,
-          todayRevenue,
-          monthRevenue,
-          todayOrders,
-          pendingOrders,
-          lastUpdated: new Date().toISOString(),
-        };
-      },
-      CacheTTL.DASHBOARD_STATS,
-    );
+          return {
+            totalUsers,
+            activeDevices,
+            todayRevenue,
+            monthRevenue,
+            todayOrders,
+            pendingOrders,
+            lastUpdated: new Date().toISOString(),
+          };
+        },
+        CacheTTL.DASHBOARD_STATS,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to get dashboard stats: ${error.message}`, error.stack);
+      // 返回默认数据，避免500错误
+      return {
+        totalUsers: 0,
+        activeDevices: 0,
+        todayRevenue: 0,
+        monthRevenue: 0,
+        todayOrders: 0,
+        pendingOrders: 0,
+        lastUpdated: new Date().toISOString(),
+        error: 'Failed to fetch stats',
+      };
+    }
   }
 
   /**

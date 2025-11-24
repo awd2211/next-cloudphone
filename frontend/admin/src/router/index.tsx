@@ -96,6 +96,7 @@ const AdbConnectionTest = lazy(() => import('@/pages/Test/AdbConnectionTest'));
 // 代理IP管理
 const ProxyManagement = lazy(() => import('@/pages/Proxy/ProxyManagement'));
 const ProxyProviderConfig = lazy(() => import('@/pages/Proxy/ProviderConfig'));
+const IPIDEAManagementPage = lazy(() => import('@/pages/Proxy/IPIDEAManagement'));
 
 // 统计仪表板
 const StatsDashboard = lazy(() => import('@/pages/Stats/Dashboard'));
@@ -127,7 +128,13 @@ const LiveChatAnalytics = lazy(() => import('@/pages/LiveChat/Analytics/Dashboar
 const LiveChatKnowledgeBase = lazy(() => import('@/pages/LiveChat/KnowledgeBase/List'));
 const LiveChatBlacklist = lazy(() => import('@/pages/LiveChat/Blacklist/List'));
 const LiveChatMonitor = lazy(() => import('@/pages/LiveChat/QualityReview/Dashboard'));
+const LiveChatQualityReviewList = lazy(() => import('@/pages/LiveChat/QualityReview/List'));
 const LiveChatBot = lazy(() => import('@/pages/LiveChat/Bot'));
+
+// 提供商配置管理
+const ProviderConfigList = lazy(() => import('@/pages/ProviderConfig/List'));
+const ProviderConfigForm = lazy(() => import('@/pages/ProviderConfig/Form'));
+const ProviderConfiguration = lazy(() => import('@/pages/Provider/Configuration'));
 
 // ✅ 导入优化的页面加载骨架屏
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
@@ -256,6 +263,15 @@ export const router = createBrowserRouter([
         path: 'business/devices/physical',
         element: withAdminRoute(PhysicalDeviceList),
       },
+      {
+        path: 'business/devices/providers',
+        element: withAdminRoute(ProviderConfiguration),
+      },
+      // 菜单路径别名
+      {
+        path: 'devices/providers',
+        element: withAdminRoute(ProviderConfiguration),
+      },
       // --- 用户中心 ---
       {
         path: 'business/users',
@@ -350,6 +366,10 @@ export const router = createBrowserRouter([
       {
         path: 'operations/livechat/monitor',
         element: withAdminRoute(LiveChatMonitor),
+      },
+      {
+        path: 'operations/livechat/quality-review',
+        element: withAdminRoute(LiveChatQualityReviewList),
       },
       {
         path: 'operations/livechat/bot',
@@ -456,6 +476,15 @@ export const router = createBrowserRouter([
         path: 'devops/proxy/providers',
         element: withSuspense(ProxyProviderConfig),
       },
+      // IPIDEA/Kookeey 专用管理页面
+      {
+        path: 'proxy/ipidea/:id',
+        element: withSuspense(IPIDEAManagementPage),
+      },
+      {
+        path: 'proxy/kookeey/:id',
+        element: withSuspense(IPIDEAManagementPage), // 暂时使用 IPIDEA 管理页面模板
+      },
       {
         path: 'devops/sms',
         element: withSuspense(SMSManagement),
@@ -512,6 +541,19 @@ export const router = createBrowserRouter([
       {
         path: 'system/config/api-keys',
         element: withSuspense(ApiKeyList),
+      },
+      // 提供商配置
+      {
+        path: 'system/config/providers',
+        element: withAdminRoute(ProviderConfigList),
+      },
+      {
+        path: 'system/config/providers/create',
+        element: withAdminRoute(ProviderConfigForm),
+      },
+      {
+        path: 'system/config/providers/edit/:id',
+        element: withAdminRoute(ProviderConfigForm),
       },
       // --- 监控与日志 ---
       {

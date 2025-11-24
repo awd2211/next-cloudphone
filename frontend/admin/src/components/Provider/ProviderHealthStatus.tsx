@@ -15,11 +15,14 @@ interface ProviderHealthStatusProps {
 }
 
 const ProviderHealthStatus: React.FC<ProviderHealthStatusProps> = React.memo(({ health }) => {
+  // 确保 health 是数组
+  const healthArray = Array.isArray(health) ? health : [];
+
   return (
     <Card title="提供商配置" style={{ marginBottom: '24px' }}>
       <Row gutter={16}>
         {Object.values(DeviceProvider).map((provider) => {
-          const status = health.find((h) => h.provider === provider);
+          const status = healthArray.find((h) => h.provider === provider);
           return (
             <Col span={6} key={provider}>
               <Card>

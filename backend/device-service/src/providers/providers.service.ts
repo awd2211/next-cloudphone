@@ -1,9 +1,16 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, Not } from 'typeorm';
 import { DeviceProviderFactory } from './device-provider.factory';
 import { DeviceProviderType, CaptureFormat } from './provider.types';
-import { QueryCloudSyncDto, UpdateProviderConfigDto, CloudBillingReconciliationDto } from './dto/provider.dto';
+import {
+  QueryCloudSyncDto,
+  UpdateProviderConfigDto,
+  CloudBillingReconciliationDto,
+  ListProviderConfigsDto,
+  CreateProviderConfigDto,
+  UpdateProviderConfigByIdDto,
+} from './dto/provider.dto';
 import { ProviderConfig, CloudSyncRecord, CloudBillingReconciliation } from '../entities/provider-config.entity';
 import { Device } from '../entities/device.entity';
 
@@ -947,5 +954,402 @@ export class ProvidersService implements OnModuleInit {
       createdAt: reconciliation.createdAt,
       updatedAt: reconciliation.updatedAt,
     };
+  }
+
+  // ==================== 多账号配置管理方法 ====================
+
+  /**
+   * 列出所有提供商配置（支持过滤）
+   */
+  async listProviderConfigs(query: ListProviderConfigsDto) {
+    const { providerType, tenantId, enabled, page = 1, pageSize = 10 } = query;
+
+    const queryBuilder = this.configRepo.createQueryBuilder('config');
+
+    // 添加过滤条件
+    if (providerType) {
+      queryBuilder.andWhere('config.providerType = :providerType', { providerType });
+    }
+
+    if (tenantId) {
+      queryBuilder.andWhere('config.tenantId = :tenantId', { tenantId });
+    }
+
+    if (enabled !== undefined) {
+      queryBuilder.andWhere('config.enabled = :enabled', { enabled });
+    }
+
+    // 排序：优先级高的在前，默认配置在前
+    queryBuilder.orderBy('config.isDefault', 'DESC');
+    queryBuilder.addOrderBy('config.priority', 'ASC');
+    queryBuilder.addOrderBy('config.createdAt', 'DESC');
+
+    // 分页
+    const [data, total] = await queryBuilder
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 根据 ID 获取单个提供商配置
+   */
+  async getProviderConfigById(id: string) {
+    const config = await this.configRepo.findOne({ where: { id } });
+
+    if (!config) {
+      throw new NotFoundException(`Provider configuration with ID ${id} not found`);
+    }
+
+    return config;
+  }
+
+  /**
+   * 创建新的提供商配置
+   */
+  async createProviderConfig(createDto: CreateProviderConfigDto) {
+    const { name, providerType, tenantId, enabled, priority, maxDevices, config, description, isDefault } = createDto;
+
+    // 检查提供商类型是否支持
+    if (!this.providerFactory.isProviderAvailable(providerType)) {
+      throw new BadRequestException(`Provider type ${providerType} is not available`);
+    }
+
+    // 检查同名配置是否已存在
+    const existingConfig = await this.configRepo.findOne({
+      where: { name, providerType, tenantId: tenantId || undefined },
+    });
+
+    if (existingConfig) {
+      throw new ConflictException(
+        `A configuration with name "${name}" already exists for provider ${providerType}`,
+      );
+    }
+
+    // 如果设置为默认配置，需要将该类型的其他默认配置取消
+    if (isDefault) {
+      await this.unsetDefaultConfigs(providerType, tenantId);
+    }
+
+    // 创建新配置
+    const newConfig = this.configRepo.create({
+      name,
+      providerType,
+      tenantId,
+      enabled: enabled ?? true,
+      priority: priority ?? 1,
+      maxDevices: maxDevices ?? 100,
+      config,
+      description,
+      isDefault: isDefault ?? false,
+    });
+
+    const savedConfig = await this.configRepo.save(newConfig);
+
+    // 如果启用，更新内存缓存
+    if (savedConfig.enabled && savedConfig.isDefault) {
+      this.providerConfigs.set(providerType, {
+        type: providerType,
+        enabled: savedConfig.enabled,
+        priority: savedConfig.priority,
+        maxDevices: savedConfig.maxDevices,
+        config: savedConfig.config,
+      });
+    }
+
+    this.logger.log(`Created new provider configuration: ${name} (${providerType})`);
+
+    return savedConfig;
+  }
+
+  /**
+   * 通过 ID 更新提供商配置
+   */
+  async updateProviderConfigById(id: string, updateDto: UpdateProviderConfigByIdDto) {
+    const config = await this.configRepo.findOne({ where: { id } });
+
+    if (!config) {
+      throw new NotFoundException(`Provider configuration with ID ${id} not found`);
+    }
+
+    // 如果更新为默认配置，需要将该类型的其他默认配置取消
+    if (updateDto.isDefault === true && !config.isDefault) {
+      await this.unsetDefaultConfigs(config.providerType, config.tenantId);
+    }
+
+    // 检查名称冲突（如果更改了名称）
+    if (updateDto.name && updateDto.name !== config.name) {
+      const existingConfig = await this.configRepo.findOne({
+        where: {
+          name: updateDto.name,
+          providerType: config.providerType,
+          tenantId: config.tenantId || undefined,
+          id: Not(id),
+        },
+      });
+
+      if (existingConfig) {
+        throw new ConflictException(
+          `A configuration with name "${updateDto.name}" already exists for provider ${config.providerType}`,
+        );
+      }
+    }
+
+    // 合并配置
+    if (updateDto.config) {
+      config.config = {
+        ...config.config,
+        ...updateDto.config,
+      };
+    }
+
+    // 更新其他字段
+    if (updateDto.name !== undefined) config.name = updateDto.name;
+    if (updateDto.tenantId !== undefined) config.tenantId = updateDto.tenantId;
+    if (updateDto.enabled !== undefined) config.enabled = updateDto.enabled;
+    if (updateDto.priority !== undefined) config.priority = updateDto.priority;
+    if (updateDto.maxDevices !== undefined) config.maxDevices = updateDto.maxDevices;
+    if (updateDto.description !== undefined) config.description = updateDto.description;
+    if (updateDto.isDefault !== undefined) config.isDefault = updateDto.isDefault;
+
+    const updatedConfig = await this.configRepo.save(config);
+
+    // 更新内存缓存（如果是默认配置且启用）
+    if (updatedConfig.enabled && updatedConfig.isDefault) {
+      this.providerConfigs.set(updatedConfig.providerType, {
+        type: updatedConfig.providerType,
+        enabled: updatedConfig.enabled,
+        priority: updatedConfig.priority,
+        maxDevices: updatedConfig.maxDevices,
+        config: updatedConfig.config,
+      });
+    } else if (!updatedConfig.enabled || !updatedConfig.isDefault) {
+      // 如果禁用或取消默认，需要从缓存中移除或加载新的默认配置
+      await this.reloadDefaultConfigForProvider(updatedConfig.providerType);
+    }
+
+    this.logger.log(`Updated provider configuration: ${updatedConfig.name} (ID: ${id})`);
+
+    return updatedConfig;
+  }
+
+  /**
+   * 删除提供商配置
+   */
+  async deleteProviderConfig(id: string) {
+    const config = await this.configRepo.findOne({ where: { id } });
+
+    if (!config) {
+      throw new NotFoundException(`Provider configuration with ID ${id} not found`);
+    }
+
+    // 检查是否有设备正在使用此配置
+    const devicesUsingConfig = await this.deviceRepo.count({
+      where: { providerType: config.providerType },
+    });
+
+    if (devicesUsingConfig > 0 && config.isDefault) {
+      throw new BadRequestException(
+        `Cannot delete default configuration: ${devicesUsingConfig} device(s) are using this provider type`,
+      );
+    }
+
+    await this.configRepo.remove(config);
+
+    // 如果删除的是默认配置，需要重新加载该提供商的配置
+    if (config.isDefault) {
+      await this.reloadDefaultConfigForProvider(config.providerType);
+    }
+
+    this.logger.log(`Deleted provider configuration: ${config.name} (ID: ${id})`);
+
+    return {
+      success: true,
+      message: `Configuration ${config.name} deleted successfully`,
+    };
+  }
+
+  /**
+   * 测试特定配置的连接
+   */
+  async testProviderConfigById(id: string) {
+    const config = await this.configRepo.findOne({ where: { id } });
+
+    if (!config) {
+      throw new NotFoundException(`Provider configuration with ID ${id} not found`);
+    }
+
+    if (!config.enabled) {
+      throw new BadRequestException(`Configuration ${config.name} is disabled`);
+    }
+
+    this.logger.log(`Testing connection for configuration: ${config.name} (${config.providerType})`);
+    const startTime = Date.now();
+
+    try {
+      let testResult: { success: boolean; message: string; details?: any };
+
+      switch (config.providerType) {
+        case DeviceProviderType.REDROID:
+          testResult = await this.testRedroidConnection(config.config);
+          break;
+
+        case DeviceProviderType.PHYSICAL:
+          testResult = await this.testPhysicalConnection(config.config);
+          break;
+
+        case DeviceProviderType.HUAWEI_CPH:
+        case DeviceProviderType.ALIYUN_ECP:
+          testResult = await this.testCloudProviderConnection(config.providerType, config.config);
+          break;
+
+        default:
+          testResult = { success: true, message: 'Provider is available' };
+      }
+
+      const latency = Date.now() - startTime;
+
+      // 更新测试状态
+      config.lastTestedAt = new Date();
+      config.testStatus = testResult.success ? 'success' : 'failed';
+      config.testMessage = testResult.message;
+      await this.configRepo.save(config);
+
+      return {
+        success: testResult.success,
+        configId: id,
+        configName: config.name,
+        provider: config.providerType,
+        message: testResult.message,
+        details: {
+          latency,
+          timestamp: new Date().toISOString(),
+          ...testResult.details,
+        },
+      };
+    } catch (error) {
+      // 更新测试状态为失败
+      config.lastTestedAt = new Date();
+      config.testStatus = 'failed';
+      config.testMessage = error.message;
+      await this.configRepo.save(config);
+
+      return {
+        success: false,
+        configId: id,
+        configName: config.name,
+        provider: config.providerType,
+        message: `Connection test failed: ${error.message}`,
+        error: error.message,
+        details: {
+          latency: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+  }
+
+  /**
+   * 设置为默认配置
+   */
+  async setDefaultProviderConfig(id: string) {
+    const config = await this.configRepo.findOne({ where: { id } });
+
+    if (!config) {
+      throw new NotFoundException(`Provider configuration with ID ${id} not found`);
+    }
+
+    if (!config.enabled) {
+      throw new BadRequestException(`Cannot set disabled configuration as default`);
+    }
+
+    if (config.isDefault) {
+      return {
+        success: true,
+        message: `Configuration ${config.name} is already the default`,
+        config,
+      };
+    }
+
+    // 取消该类型的其他默认配置
+    await this.unsetDefaultConfigs(config.providerType, config.tenantId);
+
+    // 设置为默认
+    config.isDefault = true;
+    const updatedConfig = await this.configRepo.save(config);
+
+    // 更新内存缓存
+    this.providerConfigs.set(config.providerType, {
+      type: config.providerType,
+      enabled: config.enabled,
+      priority: config.priority,
+      maxDevices: config.maxDevices,
+      config: config.config,
+    });
+
+    this.logger.log(`Set ${config.name} as default configuration for ${config.providerType}`);
+
+    return {
+      success: true,
+      message: `Configuration ${config.name} set as default successfully`,
+      config: updatedConfig,
+    };
+  }
+
+  // ==================== 私有辅助方法 ====================
+
+  /**
+   * 取消指定类型的所有默认配置
+   */
+  private async unsetDefaultConfigs(providerType: DeviceProviderType, tenantId?: string) {
+    const whereConditions: any = {
+      providerType,
+      isDefault: true,
+    };
+
+    if (tenantId) {
+      whereConditions.tenantId = tenantId;
+    }
+
+    const defaultConfigs = await this.configRepo.find({ where: whereConditions });
+
+    for (const config of defaultConfigs) {
+      config.isDefault = false;
+      await this.configRepo.save(config);
+    }
+  }
+
+  /**
+   * 重新加载指定提供商的默认配置到内存缓存
+   */
+  private async reloadDefaultConfigForProvider(providerType: DeviceProviderType) {
+    const defaultConfig = await this.configRepo.findOne({
+      where: {
+        providerType,
+        isDefault: true,
+        enabled: true,
+      },
+    });
+
+    if (defaultConfig) {
+      this.providerConfigs.set(providerType, {
+        type: providerType,
+        enabled: defaultConfig.enabled,
+        priority: defaultConfig.priority,
+        maxDevices: defaultConfig.maxDevices,
+        config: defaultConfig.config,
+      });
+    } else {
+      // 如果没有默认配置，从缓存中移除
+      this.providerConfigs.delete(providerType);
+    }
   }
 }

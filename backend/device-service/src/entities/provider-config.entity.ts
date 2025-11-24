@@ -11,19 +11,28 @@ import { DeviceProviderType } from '../providers/provider.types';
 /**
  * 提供商配置实体
  * 用于持久化存储各设备提供商的配置信息
+ *
+ * 支持多账号：同一 providerType 可以有多个配置
  */
 @Entity('provider_configs')
 export class ProviderConfig {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ type: 'varchar', length: 200 })
+  @Index()
+  name: string; // 配置名称（如 "阿里云-主账号"、"华为云-测试账号"）
+
   @Column({
     type: 'enum',
     enum: DeviceProviderType,
-    unique: true,
   })
   @Index()
   providerType: DeviceProviderType;
+
+  @Column({ type: 'varchar', length: 200, nullable: true, name: 'tenant_id' })
+  @Index()
+  tenantId: string; // 租户ID（多租户支持）
 
   @Column({ default: true })
   enabled: boolean;
@@ -35,10 +44,22 @@ export class ProviderConfig {
   maxDevices: number;
 
   @Column({ type: 'jsonb', default: {} })
-  config: Record<string, any>;
+  config: Record<string, any>; // 提供商特定配置（AccessKey、Region等）
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   description: string;
+
+  @Column({ type: 'boolean', default: false, name: 'is_default' })
+  isDefault: boolean; // 是否为该类型的默认配置
+
+  @Column({ type: 'timestamp', nullable: true, name: 'last_tested_at' })
+  lastTestedAt: Date; // 最后测试时间
+
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'test_status' })
+  testStatus: string; // 测试状态：success, failed, unknown
+
+  @Column({ type: 'text', nullable: true, name: 'test_message' })
+  testMessage: string; // 测试结果消息
 
   @CreateDateColumn()
   createdAt: Date;
