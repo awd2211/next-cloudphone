@@ -24,7 +24,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from '@/lib/axios';
+import axios from '@/utils/request';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Search } = Input;
