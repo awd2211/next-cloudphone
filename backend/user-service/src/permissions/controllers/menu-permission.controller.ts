@@ -207,8 +207,8 @@ export class MenuPermissionController {
   })
   @ApiResponse({ status: 403, description: '权限不足' })
   @RequirePermissions('permission:menu:list')
-  getAllMenus() {
-    const menus = this.menuPermissionService.getAllMenus();
+  async getAllMenus() {
+    const menus = await this.menuPermissionService.getAllMenus();
 
     return {
       data: menus,
@@ -337,7 +337,7 @@ export class MenuPermissionController {
   })
   @ApiResponse({ status: 400, description: '路径参数不能为空' })
   @SkipPermission()
-  getBreadcrumb(@Query('path') path: string) {
+  async getBreadcrumb(@Query('path') path: string) {
     if (!path) {
       return {
         success: false,
@@ -345,7 +345,7 @@ export class MenuPermissionController {
       };
     }
 
-    const breadcrumb = this.menuPermissionService.buildBreadcrumb(path);
+    const breadcrumb = await this.menuPermissionService.buildBreadcrumb(path);
 
     return {
       data: breadcrumb,

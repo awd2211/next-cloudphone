@@ -236,19 +236,23 @@ export class MenuPermissionService {
         return [];
       }
 
+      // 从数据库加载菜单配置
+      const allMenus = await this.loadMenusFromDatabase();
+
+      this.logger.debug(`[getUserMenus] 从数据库加载了 ${allMenus.length} 个根菜单`);
+
       // 超级管理员返回所有菜单
       if (user.isSuperAdmin) {
-        return this.sortMenus(this.ALL_MENUS);
+        this.logger.debug(`[getUserMenus] 用户 ${user.username} 是超级管理员，返回所有菜单`);
+        return this.sortMenus(allMenus);
       }
 
-      // 获取用户权限
-      const permissions = await this.getUserPermissions(user);
-      const permissionNames = permissions.map((p) => p.name);
+      // 获取用户有权访问的菜单（通过角色-菜单关联）
+      const userMenus = await this.getUserMenusByRoles(user.roles.map(r => r.id));
 
-      // 过滤菜单
-      const filteredMenus = this.filterMenusByPermissions(this.ALL_MENUS, permissionNames);
+      this.logger.debug(`[getUserMenus] 用户 ${user.username} 有权访问 ${userMenus.length} 个菜单`);
 
-      return this.sortMenus(filteredMenus);
+      return this.sortMenus(userMenus);
     } catch (error) {
       this.logger.error(`获取用户菜单失败: ${error.message}`, error.stack);
       return [];
@@ -302,11 +306,6 @@ export class MenuPermissionService {
    * @returns 是否有权限
    */
   async checkMenuAccess(userId: string, menuPath: string): Promise<boolean> {
-    const menu = this.findMenuByPath(this.ALL_MENUS, menuPath);
-    if (!menu || !menu.permission) {
-      return true; // 无需权限的菜单
-    }
-
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['roles'],
@@ -321,16 +320,20 @@ export class MenuPermissionService {
       return true;
     }
 
-    const permissions = await this.getUserPermissions(user);
-    return permissions.some((p) => p.name === menu.permission && p.isActive);
+    // 从数据库查询用户有权访问的菜单
+    const userMenus = await this.getUserMenusByRoles(user.roles.map(r => r.id));
+    const menu = this.findMenuByPath(userMenus, menuPath);
+
+    return menu !== null;
   }
 
   /**
    * 获取菜单树（包含权限信息）
    * @returns 完整菜单树
    */
-  getAllMenus(): MenuItem[] {
-    return this.sortMenus(this.ALL_MENUS);
+  async getAllMenus(): Promise<MenuItem[]> {
+    const menus = await this.loadMenusFromDatabase();
+    return this.sortMenus(menus);
   }
 
   /**
@@ -458,6 +461,35 @@ export class MenuPermissionService {
   }
 
   /**
+   * 根据角色ID获取用户菜单
+   * @param roleIds 角色ID列表
+   * @returns 菜单列表
+   */
+  private async getUserMenusByRoles(roleIds: string[]): Promise<MenuItem[]> {
+    if (!roleIds || roleIds.length === 0) {
+      return [];
+    }
+
+    // 查询角色关联的菜单
+    const menuRoles = await this.menuRepository.query(
+      `
+      SELECT DISTINCT m.*
+      FROM menus m
+      INNER JOIN menu_roles mr ON m.id = mr."menuId"
+      WHERE mr."roleId" = ANY($1)
+        AND m."isActive" = true
+        AND m.visible = true
+      ORDER BY m.sort ASC
+      `,
+      [roleIds]
+    );
+
+    this.logger.debug(`[getUserMenusByRoles] 查询到 ${menuRoles.length} 个菜单`);
+
+    return this.buildMenuTree(menuRoles);
+  }
+
+  /**
    * 从数据库加载菜单配置
    */
   async loadMenusFromDatabase(): Promise<MenuItem[]> {
@@ -526,9 +558,10 @@ export class MenuPermissionService {
    * @param menuPath 当前菜单路径
    * @returns 面包屑路径
    */
-  buildBreadcrumb(menuPath: string): MenuItem[] {
+  async buildBreadcrumb(menuPath: string): Promise<MenuItem[]> {
     const breadcrumb: MenuItem[] = [];
-    this.findBreadcrumbPath(this.ALL_MENUS, menuPath, breadcrumb);
+    const allMenus = await this.loadMenusFromDatabase();
+    this.findBreadcrumbPath(allMenus, menuPath, breadcrumb);
     return breadcrumb;
   }
 
