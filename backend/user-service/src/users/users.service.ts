@@ -276,10 +276,21 @@ export class UsersService {
     limit: number = 10,
     tenantId?: string,
     options?: { includeRoles?: boolean; filters?: any }
-  ): Promise<{ data: any[]; total: number; page: number; limit: number }> {
-    // 如果有高级过滤器，使用新的方法
+  ): Promise<{
+    data: any[];
+    total: number;
+    page: number;
+    limit: number;
+    stats: { activeUsers: number; inactiveUsers: number; suspendedUsers: number; deletedUsers: number };
+  }> {
+    // 如果有高级过滤器，使用新的方法（注意：需要确保也返回stats）
     if (options?.filters) {
-      return this.findAllWithFilters(options.filters, options);
+      const filterResult = await this.findAllWithFilters(options.filters, options);
+      // 为过滤结果添加默认stats
+      return {
+        ...filterResult,
+        stats: { activeUsers: 0, inactiveUsers: 0, suspendedUsers: 0, deletedUsers: 0 },
+      };
     }
 
     // ✅ 优化: 限制最大页面大小
@@ -297,6 +308,7 @@ export class UsersService {
           total: number;
           page: number;
           limit: number;
+          stats: { activeUsers: number; inactiveUsers: number; suspendedUsers: number; deletedUsers: number };
         }>(cacheKey, { layer: CacheLayer.L2_ONLY });
 
         if (cached) {
@@ -319,31 +331,61 @@ export class UsersService {
     // 优化：选择性加载关系和字段，减少数据传输（性能提升 40-60%）
     const relations = includeRoles ? ['roles'] : [];
 
-    const [data, total] = await this.usersRepository.findAndCount({
-      where,
-      skip,
-      take: safeLimit,
-      relations,
-      select: [
-        'id',
-        'username',
-        'email',
-        'fullName',
-        'avatar',
-        'phone',
-        'status',
-        'tenantId',
-        'departmentId',
-        'isSuperAdmin',
-        'lastLoginAt',
-        'lastLoginIp',
-        'createdAt',
-        'updatedAt',
-      ], // 排除 password、metadata 等敏感或大字段
-      order: { createdAt: 'DESC' },
+    // ✅ 优化: 并行查询分页数据和统计数据
+    const [paginatedResult, statusStats] = await Promise.all([
+      this.usersRepository.findAndCount({
+        where,
+        skip,
+        take: safeLimit,
+        relations,
+        select: [
+          'id',
+          'username',
+          'email',
+          'fullName',
+          'avatar',
+          'phone',
+          'status',
+          'tenantId',
+          'departmentId',
+          'isSuperAdmin',
+          'lastLoginAt',
+          'lastLoginIp',
+          'createdAt',
+          'updatedAt',
+        ], // 排除 password、metadata 等敏感或大字段
+        order: { createdAt: 'DESC' },
+      }),
+      // 统计各状态的用户数量
+      this.usersRepository
+        .createQueryBuilder('user')
+        .select('user.status', 'status')
+        .addSelect('COUNT(*)', 'count')
+        .where(tenantId ? 'user.tenantId = :tenantId' : '1=1', { tenantId })
+        .groupBy('user.status')
+        .getRawMany(),
+    ]);
+
+    const [data, total] = paginatedResult;
+
+    // 构建状态统计
+    const statusMap: Record<string, number> = {};
+    statusStats.forEach((item: { status: string; count: string }) => {
+      statusMap[item.status] = parseInt(item.count, 10);
     });
 
-    const result = { data, total, page, limit: safeLimit };
+    const result = {
+      data,
+      total,
+      page,
+      limit: safeLimit,
+      stats: {
+        activeUsers: statusMap[UserStatus.ACTIVE] || 0,
+        inactiveUsers: statusMap[UserStatus.INACTIVE] || 0,
+        suspendedUsers: statusMap[UserStatus.SUSPENDED] || 0,
+        deletedUsers: statusMap[UserStatus.DELETED] || 0,
+      },
+    };
 
     // ✅ 优化: 写入缓存 (30秒 TTL)
     if (this.cacheService) {
