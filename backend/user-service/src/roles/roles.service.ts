@@ -64,7 +64,13 @@ export class RolesService {
     limit: number = 10,
     tenantId?: string,
     options?: { includePermissions?: boolean }
-  ): Promise<{ data: Role[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    data: Role[];
+    total: number;
+    page: number;
+    limit: number;
+    stats: { systemRoles: number; customRoles: number };
+  }> {
     // ✅ 优化: 限制单次查询最大数量
     const safeLimit = Math.min(limit || 20, 100);
     const skip = (page - 1) * safeLimit;
@@ -81,6 +87,7 @@ export class RolesService {
           total: number;
           page: number;
           limit: number;
+          stats: { systemRoles: number; customRoles: number };
         }>(cacheKey, { layer: CacheLayer.L2_ONLY });
 
         if (cached) {
@@ -101,15 +108,34 @@ export class RolesService {
     // ✅ 优化: 按需加载 permissions 关系
     const relations = includePerms ? ['permissions'] : [];
 
-    const [data, total] = await this.rolesRepository.findAndCount({
-      where,
-      skip,
-      take: safeLimit,
-      relations,
-      order: { createdAt: 'DESC' },
-    });
+    // 并行查询：分页数据 + 统计数据
+    const [paginatedResult, systemRolesCount] = await Promise.all([
+      this.rolesRepository.findAndCount({
+        where,
+        skip,
+        take: safeLimit,
+        relations,
+        order: { createdAt: 'DESC' },
+      }),
+      // 统计系统角色数量
+      this.rolesRepository.count({
+        where: { ...where, isSystem: true },
+      }),
+    ]);
 
-    const result = { data, total, page, limit: safeLimit };
+    const [data, total] = paginatedResult;
+    const customRoles = total - systemRolesCount;
+
+    const result = {
+      data,
+      total,
+      page,
+      limit: safeLimit,
+      stats: {
+        systemRoles: systemRolesCount,
+        customRoles,
+      },
+    };
 
     // ✅ 优化: 写入缓存 (30秒 TTL)
     if (this.cacheService) {

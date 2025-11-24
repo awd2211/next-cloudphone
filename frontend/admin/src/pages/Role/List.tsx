@@ -60,12 +60,21 @@ const RoleList = () => {
   const roles = data?.data || [];
   const total = data?.total || 0;
 
-  // ✅ 统计数据计算
+  // ✅ 使用后端返回的统计数据（准确的全局统计）
   const stats = useMemo(() => {
+    // 优先使用后端返回的 stats，否则回退到当前页计算（兼容旧版本）
+    if (data?.stats) {
+      return {
+        total,
+        systemRoles: data.stats.systemRoles,
+        customRoles: data.stats.customRoles,
+      };
+    }
+    // 兼容模式：从当前页数据计算（不准确）
     const systemRoles = roles.filter((r) => r.isSystem).length;
     const customRoles = roles.filter((r) => !r.isSystem).length;
     return { total, systemRoles, customRoles };
-  }, [roles, total]);
+  }, [data?.stats, roles, total]);
 
   // ✅ 事件处理函数
   const handleCreate = useCallback(() => {
