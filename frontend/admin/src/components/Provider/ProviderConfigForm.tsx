@@ -33,7 +33,9 @@ interface ProviderConfigFormProps {
 
 const ProviderConfigForm: React.FC<ProviderConfigFormProps> = React.memo(
   ({ provider, form, health, loading, testLoading, onSave, onTest, children }) => {
-    const status = health.find((h) => h.provider === provider);
+    // 确保 health 是数组
+    const healthArray = Array.isArray(health) ? health : [];
+    const status = healthArray.find((h) => h.provider === provider);
     const alertConfig = ALERT_MESSAGES[provider];
 
     const healthStatus = status?.healthy ? (
