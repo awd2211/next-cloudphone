@@ -3,8 +3,8 @@ module.exports = {
     {
       name: 'api-gateway',
       version: '1.0.0',
-      script: process.env.NODE_ENV === 'production' ? 'dist/main.js' : 'pnpm',
-      args: process.env.NODE_ENV === 'production' ? undefined : 'run dev',
+      // ✅ 修复: 开发模式直接运行编译后的文件，避免 watch 模式在 cluster 中卡住
+      script: 'dist/main.js',
       cwd: './backend/api-gateway',
 
       // Node.js 参数 - 增加请求头大小限制
@@ -16,7 +16,7 @@ module.exports = {
       exec_mode: 'cluster', // 始终使用集群模式
 
       autorestart: true,
-      watch: false, // 使用NestJS内置的热重载,不需要PM2监视
+      watch: false, // ✅ 开发模式下手动重新构建，避免 watch 模式问题
 
       // 资源限制
       max_memory_restart: '1G',
