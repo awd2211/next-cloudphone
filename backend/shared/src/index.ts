@@ -11,6 +11,14 @@ export * from './response';
 export { EventBusService } from './events/event-bus.service';
 export { EventBusModule } from './events/event-bus.module';
 export * from './events/schemas';
+export { IdempotentConsumer } from './events/idempotent-consumer';
+export {
+  BaseConsumer,
+  ConsumerError,
+  ConsumerErrorType,
+  DefaultErrorHandlingStrategy,
+} from './events/base-consumer';
+export type { ErrorHandlingStrategy } from './events/base-consumer';
 
 // ========== Provider 类型定义 ==========
 export * from './types/provider.types';
@@ -65,6 +73,14 @@ export type { JwtConfigOptions } from './config/jwt.config';
 
 // ========== 缓存模块 ==========
 export { AppCacheModule } from './cache/cache.module';
+export { UnifiedCacheService, CacheLayer } from './cache/unified-cache.service';
+export type { UnifiedCacheConfig, CacheOptions, CacheStats } from './cache/unified-cache.service';
+export { UnifiedCacheModule } from './cache/unified-cache.module';
+
+// ========== 加密服务 ==========
+export { UnifiedEncryptionService, EncryptionAlgorithm } from './encryption/unified-encryption.service';
+export type { EncryptedData, MaskType, UnifiedEncryptionConfig } from './encryption/unified-encryption.service';
+export { UnifiedEncryptionModule } from './encryption/unified-encryption.module';
 
 // ========== 缓存装饰器 ==========
 export {
@@ -119,6 +135,13 @@ export type { TracingConfig } from './tracing/tracing.setup';
 // ========== 健康检查 ==========
 export { HealthCheckService } from './health/health-check.service';
 export type { HealthCheckResult, ComponentHealth } from './health/health-check.service';
+export { BaseHealthController } from './health/base-health.controller';
+export type {
+  DependencyHealth,
+  DependencyChecker,
+  SystemInfo,
+  HealthCheckResult as BaseHealthCheckResult,
+} from './health/base-health.controller';
 
 // ========== 输入验证和安全 ==========
 export {
