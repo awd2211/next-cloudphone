@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger as NestLogger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
@@ -103,13 +103,14 @@ async function bootstrap() {
   await app.listen(port);
 
   // ========== 注册到 Consul ==========
+  const bootstrapLogger = new NestLogger('Bootstrap');
 
   try {
     const consulService = app.get(ConsulService);
     await consulService.registerService('notification-service', port, ['v1', 'notifications']);
-    console.log(`✅ Service registered to Consul`);
+    bootstrapLogger.log(`✅ Service registered to Consul`);
   } catch (error) {
-    console.warn(`⚠️  Failed to register to Consul: ${error.message}`);
+    bootstrapLogger.warn(`⚠️  Failed to register to Consul: ${error.message}`);
   }
 
   // ========== 服务启动日志 ==========

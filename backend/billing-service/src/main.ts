@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger as NestLogger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
@@ -111,26 +111,27 @@ async function bootstrap() {
   await app.listen(port);
 
   // ========== 注册到 Consul ==========
+  const logger = new NestLogger('Bootstrap');
 
   try {
     const consulService = app.get(ConsulService);
     await consulService.registerService('billing-service', port, ['v1', 'billing']);
-    console.log(`✅ Service registered to Consul`);
+    logger.log(`✅ Service registered to Consul`);
   } catch (error) {
-    console.warn(`⚠️  Failed to register to Consul: ${error.message}`);
+    logger.warn(`⚠️  Failed to register to Consul: ${error.message}`);
   }
 
   // ========== 服务启动日志 ==========
 
-  console.log(`🚀 Billing Service is running on: http://localhost:${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/docs`);
-  console.log(`🔗 API Base URL: http://localhost:${port}`);
-  console.log(`🔗 RabbitMQ: ${configService.get('RABBITMQ_URL', 'amqp://localhost:5672')}`);
-  console.log(
+  logger.log(`🚀 Billing Service is running on: http://localhost:${port}`);
+  logger.log(`📚 API Documentation: http://localhost:${port}/docs`);
+  logger.log(`🔗 API Base URL: http://localhost:${port}`);
+  logger.log(`🔗 RabbitMQ: ${configService.get('RABBITMQ_URL', 'amqp://localhost:5672')}`);
+  logger.log(
     `🔗 Consul: http://${configService.get('CONSUL_HOST', 'localhost')}:${configService.get('CONSUL_PORT', 8500)}`
   );
-  console.log(`🔒 Helmet security: ENABLED`);
-  console.log(`🔄 Graceful shutdown: ENABLED`);
+  logger.log(`🔒 Helmet security: ENABLED`);
+  logger.log(`🔄 Graceful shutdown: ENABLED`);
 }
 
 bootstrap();

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { ConsumeMessage } from 'amqplib';
 import { NotificationGateway } from '../../gateway/notification.gateway';
-import { BaseConsumer } from './base-consumer';
+import { BaseConsumer } from '@cloudphone/shared';
 import { Retry } from '../../common/decorators/retry.decorator';
 
 /**

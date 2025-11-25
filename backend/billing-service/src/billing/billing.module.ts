@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SagaModule, HttpClientModule } from '@cloudphone/shared';
+import { SagaModule, HttpClientModule, EventOutboxModule } from '@cloudphone/shared';
 import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
 import { PricingEngineService } from './pricing-engine.service';
@@ -20,6 +20,7 @@ import { BalanceModule } from '../balance/balance.module';
     MetricsModule, // ✅ 添加业务指标模块
     HttpClientModule, // ✅ 添加 HTTP 客户端模块（用于服务间调用）
     BalanceModule, // ✅ 添加余额模块（用于退款）
+    EventOutboxModule, // ✅ 添加事件发件箱模块（事务性事件发布）
   ],
   controllers: [BillingController, AdminUsageController],
   providers: [BillingService, PricingEngineService, PurchasePlanSagaV2, AdminUsageService],
