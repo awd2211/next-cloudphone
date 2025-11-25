@@ -7,7 +7,6 @@ import {
   DockerFormFields,
   HuaweiFormFields,
   AliyunFormFields,
-  PhysicalFormFields,
 } from '@/components/Provider';
 import {
   useProviderHealth,
@@ -21,16 +20,14 @@ const ProviderConfiguration: React.FC = () => {
   const [dockerForm] = Form.useForm();
   const [huaweiForm] = Form.useForm();
   const [aliyunForm] = Form.useForm();
-  const [physicalForm] = Form.useForm();
 
   const forms = useMemo(
     () => ({
       docker: dockerForm,
       huawei: huaweiForm,
       aliyun: aliyunForm,
-      physical: physicalForm,
     }),
-    [dockerForm, huaweiForm, aliyunForm, physicalForm]
+    [dockerForm, huaweiForm, aliyunForm]
   );
 
   // ✅ 测试加载状态（UI层）
@@ -39,11 +36,10 @@ const ProviderConfiguration: React.FC = () => {
   // ✅ 数据获取（React Query）
   const { data: health = [] } = useProviderHealth();
 
-  // 预加载所有配置（可选）
+  // 预加载所有云手机提供商配置（物理设备在设备中心单独管理）
   useProviderConfig(DeviceProvider.DOCKER);
   useProviderConfig(DeviceProvider.HUAWEI);
   useProviderConfig(DeviceProvider.ALIYUN);
-  useProviderConfig(DeviceProvider.PHYSICAL);
 
   // ✅ Mutations
   const updateConfigMutation = useUpdateProviderConfig();
@@ -126,24 +122,6 @@ const ProviderConfiguration: React.FC = () => {
     [forms.aliyun, health, loading, testLoading, handleSave, handleTest]
   );
 
-  // 物理设备配置
-  const renderPhysicalConfig = useCallback(
-    () => (
-      <ProviderConfigForm
-        provider={DeviceProvider.PHYSICAL}
-        form={forms.physical}
-        health={health as any}
-        loading={loading}
-        testLoading={testLoading[DeviceProvider.PHYSICAL] || false}
-        onSave={(values) => handleSave(DeviceProvider.PHYSICAL, values)}
-        onTest={() => handleTest(DeviceProvider.PHYSICAL)}
-      >
-        <PhysicalFormFields />
-      </ProviderConfigForm>
-    ),
-    [forms.physical, health, loading, testLoading, handleSave, handleTest]
-  );
-
   return (
     <div style={{ padding: '24px' }}>
       <ProviderHealthStatus health={health as any} />
@@ -165,11 +143,6 @@ const ProviderConfiguration: React.FC = () => {
             key: 'aliyun',
             label: `${ProviderIcons[DeviceProvider.ALIYUN]} ${ProviderNames[DeviceProvider.ALIYUN]}`,
             children: renderAliyunConfig(),
-          },
-          {
-            key: 'physical',
-            label: `${ProviderIcons[DeviceProvider.PHYSICAL]} ${ProviderNames[DeviceProvider.PHYSICAL]}`,
-            children: renderPhysicalConfig(),
           },
         ]}
       />

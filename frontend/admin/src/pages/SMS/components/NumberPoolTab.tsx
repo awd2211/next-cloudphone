@@ -10,15 +10,20 @@ import {
   message,
   Tooltip,
   Badge,
+  Form,
+  InputNumber,
+  Switch,
 } from 'antd';
 import {
   ReloadOutlined,
   DeleteOutlined,
   SearchOutlined,
   EyeOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import { useNumberPool, useReleaseSMSNumber as useReleaseNumber, type PhoneNumber } from '@/hooks/queries/useSMS';
-import { getSMSNumberHistory } from '@/services/sms';
+import { getSMSNumberHistory, requestSMSNumber } from '@/services/sms';
+import { getCountries, getProducts, type FiveSimCountry, type FiveSimProduct } from '@/services/fivesim';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
@@ -47,6 +52,15 @@ const NumberPoolTab: React.FC = memo(() => {
   });
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<VirtualNumber | null>(null);
+
+  // 下单相关状态
+  const [requestModalVisible, setRequestModalVisible] = useState(false);
+  const [requestForm] = Form.useForm();
+  const [countries, setCountries] = useState<FiveSimCountry[]>([]);
+  const [products, setProducts] = useState<Record<string, FiveSimProduct>>({});
+  const [loadingCountries, setLoadingCountries] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // 使用新的 React Query Hooks
   const { data, isLoading, refetch } = useNumberPool({
@@ -79,6 +93,75 @@ const NumberPoolTab: React.FC = memo(() => {
       message.error('获取短信详情失败');
     }
   }, []);
+
+  // 加载国家列表
+  const loadCountries = useCallback(async () => {
+    setLoadingCountries(true);
+    try {
+      const data = await getCountries();
+      setCountries(data);
+    } catch (error) {
+      message.error('获取国家列表失败');
+    } finally {
+      setLoadingCountries(false);
+    }
+  }, []);
+
+  // 加载产品列表
+  const loadProducts = useCallback(async (country: string) => {
+    setLoadingProducts(true);
+    try {
+      const data = await getProducts(country);
+      setProducts(data || {});
+    } catch (error) {
+      message.error('获取服务列表失败');
+      setProducts({});
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  // 打开下单弹窗
+  const handleOpenRequestModal = useCallback(() => {
+    setRequestModalVisible(true);
+    loadCountries();
+    requestForm.resetFields();
+    setProducts({});
+  }, [loadCountries, requestForm]);
+
+  // 国家选择变化
+  const handleCountryChange = useCallback((country: string) => {
+    requestForm.setFieldValue('service', undefined);
+    loadProducts(country);
+  }, [loadProducts, requestForm]);
+
+  // 提交下单
+  const handleRequestNumber = useCallback(async () => {
+    try {
+      const values = await requestForm.validateFields();
+      setSubmitting(true);
+
+      await requestSMSNumber({
+        service: values.service,
+        country: values.country,
+        deviceId: values.deviceId,
+        provider: values.provider || '5sim',
+        usePool: values.usePool || false,
+      });
+
+      message.success('号码请求成功！');
+      setRequestModalVisible(false);
+      refetch();
+    } catch (error: any) {
+      if (error.errorFields) {
+        // 表单验证失败
+        return;
+      }
+      message.error(error.message || '请求号码失败');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [requestForm, refetch]);
 
   // ✅ 使用 useCallback 缓存辅助函数
   const getStatusConfig = useCallback((status: string) => {
@@ -237,6 +320,9 @@ const NumberPoolTab: React.FC = memo(() => {
           <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
             刷新
           </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenRequestModal}>
+            请求号码
+          </Button>
         </Space>
       </div>
 
@@ -295,6 +381,93 @@ const NumberPoolTab: React.FC = memo(() => {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* 请求号码弹窗 */}
+      <Modal
+        title="请求虚拟号码"
+        open={requestModalVisible}
+        onOk={handleRequestNumber}
+        onCancel={() => setRequestModalVisible(false)}
+        confirmLoading={submitting}
+        okText="下单"
+        cancelText="取消"
+        width={500}
+      >
+        <Form form={requestForm} layout="vertical">
+          <Form.Item
+            label="平台"
+            name="provider"
+            initialValue="5sim"
+          >
+            <Select>
+              <Select.Option value="5sim">5SIM</Select.Option>
+              <Select.Option value="sms-activate">SMS-Activate</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="国家"
+            name="country"
+            rules={[{ required: true, message: '请选择国家' }]}
+          >
+            <Select
+              showSearch
+              placeholder="选择国家"
+              loading={loadingCountries}
+              onChange={handleCountryChange}
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {countries.map((c) => (
+                <Select.Option key={c.iso} value={c.iso}>
+                  {c.name} ({c.iso}) +{c.prefix}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="服务"
+            name="service"
+            rules={[{ required: true, message: '请选择服务' }]}
+          >
+            <Select
+              showSearch
+              placeholder="请先选择国家"
+              loading={loadingProducts}
+              disabled={Object.keys(products).length === 0}
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {Object.entries(products).map(([name, info]) => (
+                <Select.Option key={name} value={name}>
+                  {name} - ¥{info.cost?.toFixed(2)} ({info.count}可用)
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="设备ID"
+            name="deviceId"
+            rules={[{ required: true, message: '请输入设备ID' }]}
+          >
+            <Input placeholder="输入关联的设备ID" />
+          </Form.Item>
+
+          <Form.Item
+            label="使用号码池"
+            name="usePool"
+            valuePropName="checked"
+          >
+            <Switch checkedChildren="是" unCheckedChildren="否" />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

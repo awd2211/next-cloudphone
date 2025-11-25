@@ -6,4 +6,5 @@ export {
   AliyunFormFields,
   PhysicalFormFields,
 } from './FormFields';
+export { HuaweiSpecSelector, HUAWEI_SPECS } from './HuaweiSpecSelector';
 export * from './constants';

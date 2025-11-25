@@ -19,15 +19,14 @@ import axios from '@/utils/request';
 const { Option } = Select;
 const { TextArea } = Input;
 
-// 提供商类型配置
+// 云手机提供商类型配置（物理设备在设备中心单独管理）
 const PROVIDER_TYPES = [
   { value: 'redroid', label: 'Redroid (Docker容器)' },
-  { value: 'physical', label: '物理设备' },
   { value: 'huawei_cph', label: '华为云手机' },
   { value: 'aliyun_ecp', label: '阿里云手机' },
 ];
 
-// 不同提供商的配置字段
+// 不同云手机提供商的配置字段
 const PROVIDER_CONFIG_FIELDS: Record<string, any> = {
   redroid: [
     { name: 'dockerHost', label: 'Docker Host', placeholder: 'unix:///var/run/docker.sock', required: true },
@@ -35,12 +34,6 @@ const PROVIDER_CONFIG_FIELDS: Record<string, any> = {
     { name: 'defaultImage', label: '默认镜像', placeholder: 'redroid/redroid:latest' },
     { name: 'adbPortStart', label: 'ADB 起始端口', type: 'number', placeholder: '5555' },
     { name: 'adbPortEnd', label: 'ADB 结束端口', type: 'number', placeholder: '5655' },
-  ],
-  physical: [
-    { name: 'adbHost', label: 'ADB Host', placeholder: 'localhost', required: true },
-    { name: 'adbPort', label: 'ADB Port', type: 'number', placeholder: '5037' },
-    { name: 'scrcpyEnabled', label: '启用 scrcpy', type: 'boolean' },
-    { name: 'autoDiscovery', label: '自动发现', type: 'boolean' },
   ],
   huawei_cph: [
     { name: 'region', label: '区域', placeholder: 'cn-north-4', required: true },

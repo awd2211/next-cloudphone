@@ -30,18 +30,16 @@ import type { ColumnsType } from 'antd/es/table';
 const { Search } = Input;
 const { Option } = Select;
 
-// 提供商类型枚举
+// 云手机提供商类型枚举（物理设备在设备中心单独管理）
 const PROVIDER_TYPES = {
   redroid: 'Redroid',
-  physical: '物理设备',
   huawei_cph: '华为云手机',
   aliyun_ecp: '阿里云手机',
 };
 
-// 提供商类型颜色映射
+// 云手机提供商类型颜色映射
 const PROVIDER_TYPE_COLORS: Record<string, string> = {
   redroid: 'blue',
-  physical: 'green',
   huawei_cph: 'orange',
   aliyun_ecp: 'purple',
 };

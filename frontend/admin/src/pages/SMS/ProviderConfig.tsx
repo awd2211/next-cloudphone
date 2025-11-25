@@ -72,10 +72,39 @@ const ProviderConfig: React.FC = memo(() => {
 
   const handleEdit = useCallback((provider: SMSProviderConfig) => {
     setEditingProvider(provider);
+    // ✅ 只设置 UpdateProviderConfigDto 中允许的字段，避免发送无效字段导致 400 错误
     form.setFieldsValue({
-      ...provider,
-      // 不设置apiKey，保持为空
-      apiKey: undefined,
+      // 基本信息
+      provider: provider.provider,
+      displayName: provider.displayName,
+      apiEndpoint: provider.apiEndpoint,
+      // apiKey 不设置，编辑时留空表示不修改
+
+      // 配置参数
+      balanceThreshold: provider.balanceThreshold,
+      priority: provider.priority,
+      rateLimitPerMinute: provider.rateLimitPerMinute,
+      rateLimitPerSecond: provider.rateLimitPerSecond,
+      concurrentRequestsLimit: provider.concurrentRequestsLimit,
+      enabled: provider.enabled,
+
+      // 智能路由权重
+      costWeight: provider.costWeight,
+      speedWeight: provider.speedWeight,
+      successRateWeight: provider.successRateWeight,
+
+      // 告警配置
+      alertEnabled: provider.alertEnabled,
+      alertChannels: provider.alertChannels,
+      alertRecipients: provider.alertRecipients,
+
+      // Webhook 配置
+      webhookEnabled: provider.webhookEnabled,
+      webhookUrl: provider.webhookUrl,
+      webhookSecret: provider.webhookSecret,
+
+      // 元数据
+      metadata: provider.metadata,
     });
     setIsModalOpen(true);
   }, [form]);
@@ -84,14 +113,18 @@ const ProviderConfig: React.FC = memo(() => {
     try {
       const values = await form.validateFields();
 
-      // 如果是编辑且未填写API密钥，则不发送该字段
-      if (editingProvider && !values.apiKey) {
-        delete values.apiKey;
-      }
-
       if (editingProvider) {
+        // ✅ 编辑模式：只发送 UpdateProviderConfigDto 允许的字段
+        // provider 字段不在 UpdateProviderConfigDto 中，需要排除
+        const { provider: _provider, ...updateData } = values;
+
+        // 如果未填写API密钥，则不发送该字段
+        if (!updateData.apiKey) {
+          delete updateData.apiKey;
+        }
+
         updateMutation.mutate(
-          { providerId: editingProvider.id, data: values },
+          { providerId: editingProvider.id, data: updateData },
           {
             onSuccess: () => {
               setIsModalOpen(false);
@@ -101,6 +134,7 @@ const ProviderConfig: React.FC = memo(() => {
           }
         );
       } else {
+        // 创建模式：发送所有字段
         createMutation.mutate(values, {
           onSuccess: () => {
             setIsModalOpen(false);

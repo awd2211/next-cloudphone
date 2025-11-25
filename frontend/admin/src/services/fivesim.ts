@@ -107,6 +107,55 @@ export interface ReuseNumberRequest {
 }
 
 /**
+ * 价格查询参数接口
+ */
+export interface FiveSimPriceQueryParams {
+  country?: string;
+  product?: string;
+}
+
+/**
+ * 运营商价格详情接口
+ */
+export interface FiveSimOperatorPrice {
+  cost: number;
+  count: number;
+  rate?: number;
+}
+
+/**
+ * 价格信息接口（按国家/产品/运营商分组）
+ */
+export type FiveSimPriceInfo = Record<string, Record<string, Record<string, FiveSimOperatorPrice>>>;
+
+/**
+ * 系统通知接口
+ */
+export interface FiveSimNotification {
+  id: number;
+  text: string;
+  type: string; // 'info' | 'warning' | 'error'
+  created_at: string;
+}
+
+/**
+ * 设置价格上限请求接口
+ */
+export interface SetMaxPriceRequest {
+  country: string;
+  product: string;
+  price: number;
+}
+
+/**
+ * 删除价格上限请求接口
+ */
+export interface DeleteMaxPriceRequest {
+  country: string;
+  product: string;
+}
+
+/**
  * 获取订单列表
  */
 export async function getOrders(params?: FiveSimOrderQueryParams): Promise<FiveSimOrder[]> {
@@ -156,6 +205,25 @@ export async function getOperators(country: string): Promise<FiveSimOperator[]> 
 }
 
 /**
+ * 产品/服务信息接口
+ */
+export interface FiveSimProduct {
+  /** 产品名称 */
+  name: string;
+  /** 价格 */
+  cost: number;
+  /** 可用数量 */
+  count: number;
+}
+
+/**
+ * 获取指定国家的可用服务列表
+ */
+export async function getProducts(country: string): Promise<Record<string, FiveSimProduct>> {
+  return request.get(`/sms/5sim/countries/${country}/products`);
+}
+
+/**
  * 标记号码为不可用
  */
 export async function banNumber(orderId: string): Promise<{ success: boolean; message: string }> {
@@ -174,4 +242,34 @@ export async function reuseNumber(data: ReuseNumberRequest): Promise<RentNumberR
  */
 export async function clearCache(): Promise<{ success: boolean; message: string }> {
   return request.post('/sms/5sim/cache/clear');
+}
+
+/**
+ * 获取价格信息
+ * @param params 可选的国家和产品筛选参数
+ */
+export async function getPrices(params?: FiveSimPriceQueryParams): Promise<FiveSimPriceInfo> {
+  return request.get('/sms/5sim/prices', { params });
+}
+
+/**
+ * 获取系统通知
+ * @param language 语言代码（默认 'en'）
+ */
+export async function getNotifications(language: string = 'en'): Promise<FiveSimNotification[]> {
+  return request.get('/sms/5sim/notifications', { params: { language } });
+}
+
+/**
+ * 设置价格上限
+ */
+export async function setMaxPrice(data: SetMaxPriceRequest): Promise<{ success: boolean; message: string }> {
+  return request.post('/sms/5sim/max-prices', data);
+}
+
+/**
+ * 删除价格上限
+ */
+export async function deleteMaxPrice(data: DeleteMaxPriceRequest): Promise<{ success: boolean; message: string }> {
+  return request.post('/sms/5sim/max-prices/delete', data);
 }

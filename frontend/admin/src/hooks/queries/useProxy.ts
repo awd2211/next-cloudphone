@@ -12,6 +12,7 @@ import {
   // 供应商管理
   getProxyProviders,
   getProxyProvider,
+  getProxyProviderConfig,
   createProxyProvider,
   updateProxyProvider,
   deleteProxyProvider,
@@ -66,6 +67,7 @@ export const proxyKeys = {
   usageReport: (params?: any) => [...proxyKeys.all, 'usage-report', params] as const,
   providers: () => [...proxyKeys.all, 'providers'] as const,
   provider: (id: string) => [...proxyKeys.providers(), id] as const,
+  providerConfig: (id: string) => [...proxyKeys.providers(), id, 'config'] as const,
   providerRanking: () => [...proxyKeys.providers(), 'ranking'] as const,
 };
 
@@ -264,6 +266,17 @@ export const useProxyProvider = (id: string, options?: { enabled?: boolean }) =>
   return useQuery<ProxyProvider>({
     queryKey: proxyKeys.provider(id),
     queryFn: () => getProxyProvider(id),
+    enabled: options?.enabled !== false && !!id,
+  });
+};
+
+/**
+ * 获取供应商的解密配置（用于编辑）
+ */
+export const useProxyProviderConfig = (id: string, options?: { enabled?: boolean }) => {
+  return useQuery<Record<string, any>>({
+    queryKey: proxyKeys.providerConfig(id),
+    queryFn: () => getProxyProviderConfig(id),
     enabled: options?.enabled !== false && !!id,
   });
 };

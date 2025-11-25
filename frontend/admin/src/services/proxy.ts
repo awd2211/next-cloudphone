@@ -202,6 +202,12 @@ export const getProxyProvider = (providerId: string): Promise<ProxyProvider> =>
   api.get<ProxyProvider>(`/proxy/providers/${providerId}`);
 
 /**
+ * 获取供应商的解密配置（用于编辑）
+ */
+export const getProxyProviderConfig = (providerId: string): Promise<Record<string, any>> =>
+  api.get<Record<string, any>>(`/proxy/providers/${providerId}/config`);
+
+/**
  * 创建代理供应商
  */
 export const createProxyProvider = (data: CreateProxyProviderDto): Promise<ProxyProvider> =>

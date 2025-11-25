@@ -230,6 +230,33 @@ export const resendSMS = (id: string): Promise<any> =>
 // ==================== 号码池管理 ====================
 
 /**
+ * 请求号码参数
+ */
+export interface RequestSMSNumberParams {
+  /** 服务名称（如 telegram, whatsapp） */
+  service: string;
+  /** 国家代码（2位ISO，如 RU, US） */
+  country?: string;
+  /** 设备ID */
+  deviceId: string;
+  /** 用户ID */
+  userId?: string;
+  /** 指定平台（如 5sim, sms-activate） */
+  provider?: string;
+  /** 是否使用号码池 */
+  usePool?: boolean;
+  /** 强制使用指定平台（不自动降级） */
+  forceProvider?: boolean;
+}
+
+/**
+ * 请求号码（下单购买）
+ * 从 SMS 平台购买虚拟号码用于接收短信
+ */
+export const requestSMSNumber = (data: RequestSMSNumberParams): Promise<SMSNumber> =>
+  api.post<SMSNumber>('/sms/numbers', data);
+
+/**
  * 获取号码列表
  */
 export const getSMSNumbers = (params?: SMSNumberListParams): Promise<SMSNumberListResponse> =>

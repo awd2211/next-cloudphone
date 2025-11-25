@@ -6,12 +6,15 @@ import {
   BarChartOutlined,
   DashboardOutlined,
   ReloadOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
 import NumberPoolTab from './components/NumberPoolTab';
 import ProviderMonitorTab from './components/ProviderMonitorTab';
 import StatisticsTab from './components/StatisticsTab';
 import RealtimeMonitorTab from './components/RealtimeMonitorTab';
+import FiveSimAdvancedTab from './components/FiveSimAdvancedTab';
+import SmsActivateAdvancedTab from './components/SmsActivateAdvancedTab';
 
 /**
  * SMS 管理主页面 - 综合管理平台
@@ -37,6 +40,8 @@ const SMSManagement: React.FC = () => {
     providers: '平台监控',
     statistics: '统计分析',
     realtime: '实时监控',
+    fivesim: '5sim高级功能',
+    smsactivate: 'SMS-Activate高级功能',
   };
 
   // 刷新当前 Tab
@@ -99,6 +104,26 @@ const SMSManagement: React.FC = () => {
         </span>
       ),
       children: <RealtimeMonitorTab key={`realtime-${refreshKey}`} />,
+    },
+    {
+      key: 'fivesim',
+      label: (
+        <span>
+          <ApiOutlined />
+          5sim高级功能
+        </span>
+      ),
+      children: <FiveSimAdvancedTab key={`fivesim-${refreshKey}`} />,
+    },
+    {
+      key: 'smsactivate',
+      label: (
+        <span>
+          <ApiOutlined />
+          SMS-Activate
+        </span>
+      ),
+      children: <SmsActivateAdvancedTab key={`smsactivate-${refreshKey}`} />,
     },
   ];
 

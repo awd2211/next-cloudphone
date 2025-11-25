@@ -81,6 +81,10 @@ export const useProviderConfig = (provider: any) => {
     queryKey: providerKeys.config(provider),
     queryFn: () => providerService.getProviderConfig(provider),
     enabled: !!provider,
+    retry: false, // 不重试，避免多次 404 错误
+    meta: {
+      suppressErrorMessage: true, // 抑制错误提示
+    },
   });
 };
 
@@ -130,8 +134,13 @@ export const useUpdateProviderConfig = () => {
       queryClient.invalidateQueries({ queryKey: providerKeys.config(provider) });
       message.success('配置更新成功');
     },
-    onError: () => {
-      message.error('配置更新失败');
+    onError: (error: any) => {
+      const isNotImplemented = error?.response?.status === 404 || error?.response?.status === 501;
+      if (isNotImplemented) {
+        message.warning('该功能暂未实现，敬请期待');
+      } else {
+        message.error('配置更新失败');
+      }
     },
   });
 };
@@ -145,8 +154,13 @@ export const useTestProviderConnection = () => {
     onSuccess: () => {
       message.success('连接测试成功');
     },
-    onError: () => {
-      message.error('连接测试失败');
+    onError: (error: any) => {
+      const isNotImplemented = error?.response?.status === 404 || error?.response?.status === 501;
+      if (isNotImplemented) {
+        message.warning('该功能暂未实现，敬请期待');
+      } else {
+        message.error('连接测试失败');
+      }
     },
   });
 };
