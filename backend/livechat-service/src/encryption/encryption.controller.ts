@@ -10,6 +10,7 @@ import {
   Ip,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthenticatedRequest } from '../auth/jwt.strategy';
 import { EncryptionService } from './encryption.service';
 import {
   CreateKeyDto,
@@ -33,7 +34,7 @@ export class EncryptionController {
 
   @Post('keys')
   @ApiOperation({ summary: '创建加密密钥' })
-  async createKey(@Request() req, @Body() dto: CreateKeyDto) {
+  async createKey(@Request() req: AuthenticatedRequest, @Body() dto: CreateKeyDto) {
     return this.encryptionService.createKey(
       req.user.tenantId,
       dto,
@@ -43,20 +44,20 @@ export class EncryptionController {
 
   @Get('keys')
   @ApiOperation({ summary: '获取密钥列表' })
-  async getKeys(@Request() req, @Query() query: QueryKeysDto) {
+  async getKeys(@Request() req: AuthenticatedRequest, @Query() query: QueryKeysDto) {
     return this.encryptionService.getKeys(req.user.tenantId, query);
   }
 
   @Get('keys/:id')
   @ApiOperation({ summary: '获取密钥详情' })
-  async getKey(@Request() req, @Param('id') id: string) {
+  async getKey(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.encryptionService.getKey(req.user.tenantId, id);
   }
 
   @Post('keys/:id/rotate')
   @ApiOperation({ summary: '轮换密钥' })
   async rotateKey(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: RotateKeyDto,
   ) {
@@ -71,7 +72,7 @@ export class EncryptionController {
   @Post('keys/:id/revoke')
   @ApiOperation({ summary: '撤销密钥' })
   async revokeKey(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: RevokeKeyDto,
   ) {
@@ -89,7 +90,7 @@ export class EncryptionController {
   @Post('encrypt')
   @ApiOperation({ summary: '加密数据' })
   async encryptData(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: EncryptDataDto,
     @Ip() ip: string,
   ) {
@@ -104,7 +105,7 @@ export class EncryptionController {
   @Post('decrypt')
   @ApiOperation({ summary: '解密数据' })
   async decryptData(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: DecryptDataDto,
     @Ip() ip: string,
   ) {
@@ -121,7 +122,7 @@ export class EncryptionController {
   @Post('session/init')
   @ApiOperation({ summary: '初始化会话加密' })
   async initSessionEncryption(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: InitSessionEncryptionDto,
   ) {
     return this.encryptionService.initSessionEncryption(
@@ -134,7 +135,7 @@ export class EncryptionController {
   @Post('session/exchange')
   @ApiOperation({ summary: '交换会话密钥' })
   async exchangeSessionKey(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: SessionKeyExchangeDto,
   ) {
     return this.encryptionService.exchangeSessionKey(
@@ -147,7 +148,7 @@ export class EncryptionController {
   @Get('session/:conversationId')
   @ApiOperation({ summary: '获取会话加密信息' })
   async getSessionEncryption(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
   ) {
     return this.encryptionService.getSessionEncryption(
@@ -160,7 +161,7 @@ export class EncryptionController {
 
   @Get('audit-logs')
   @ApiOperation({ summary: '获取加密审计日志' })
-  async getAuditLogs(@Request() req, @Query() query: QueryAuditLogsDto) {
+  async getAuditLogs(@Request() req: AuthenticatedRequest, @Query() query: QueryAuditLogsDto) {
     return this.encryptionService.getAuditLogs(req.user.tenantId, query);
   }
 
@@ -168,7 +169,7 @@ export class EncryptionController {
 
   @Get('stats')
   @ApiOperation({ summary: '获取加密统计信息' })
-  async getStats(@Request() req) {
+  async getStats(@Request() req: AuthenticatedRequest) {
     return this.encryptionService.getStats(req.user.tenantId);
   }
 

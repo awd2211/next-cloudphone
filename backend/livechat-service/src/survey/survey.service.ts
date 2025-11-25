@@ -255,11 +255,11 @@ export class SurveyService {
 
     const now = new Date();
     response.answers = answers;
-    response.overallRating = overallRating;
-    response.npsScore = npsScore;
-    response.categoryRatings = Object.keys(categoryRatings).length > 0 ? categoryRatings : null;
-    response.selectedTags = selectedTags.length > 0 ? selectedTags : null;
-    response.comment = dto.comment;
+    response.overallRating = overallRating ?? 0;
+    response.npsScore = npsScore ?? 0;
+    response.categoryRatings = Object.keys(categoryRatings).length > 0 ? categoryRatings : {};
+    response.selectedTags = selectedTags.length > 0 ? selectedTags : [];
+    response.comment = dto.comment ?? '';
     response.status = SurveyResponseStatus.COMPLETED;
     response.completedAt = now;
     response.completionTimeSeconds = Math.floor((now.getTime() - response.sentAt.getTime()) / 1000);

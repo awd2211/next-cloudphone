@@ -10,6 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthenticatedRequest } from '../auth/jwt.strategy';
 import { SchedulingService } from './scheduling.service';
 import {
   CreateShiftTemplateDto,
@@ -37,7 +38,7 @@ export class SchedulingController {
   @Post('shifts')
   @ApiOperation({ summary: '创建班次模板' })
   async createShiftTemplate(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: CreateShiftTemplateDto,
   ) {
     return this.schedulingService.createShiftTemplate(req.user.tenantId, dto);
@@ -46,7 +47,7 @@ export class SchedulingController {
   @Put('shifts/:id')
   @ApiOperation({ summary: '更新班次模板' })
   async updateShiftTemplate(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateShiftTemplateDto,
   ) {
@@ -56,7 +57,7 @@ export class SchedulingController {
   @Delete('shifts/:id')
   @ApiOperation({ summary: '删除班次模板' })
   async deleteShiftTemplate(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
     await this.schedulingService.deleteShiftTemplate(req.user.tenantId, id);
@@ -66,7 +67,7 @@ export class SchedulingController {
   @Get('shifts')
   @ApiOperation({ summary: '获取班次模板列表' })
   async getShiftTemplates(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query() query: QueryShiftTemplatesDto,
   ) {
     return this.schedulingService.getShiftTemplates(req.user.tenantId, query);
@@ -75,7 +76,7 @@ export class SchedulingController {
   @Get('shifts/:id')
   @ApiOperation({ summary: '获取班次模板详情' })
   async getShiftTemplate(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
     return this.schedulingService.getShiftTemplate(req.user.tenantId, id);
@@ -86,7 +87,7 @@ export class SchedulingController {
   @Post('schedules')
   @ApiOperation({ summary: '创建排班' })
   async createSchedule(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: CreateScheduleDto,
   ) {
     const createdBy = req.user.sub;
@@ -96,7 +97,7 @@ export class SchedulingController {
   @Post('schedules/batch')
   @ApiOperation({ summary: '批量创建排班' })
   async batchCreateSchedules(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: BatchCreateScheduleDto,
   ) {
     const createdBy = req.user.sub;
@@ -106,7 +107,7 @@ export class SchedulingController {
   @Put('schedules/:id')
   @ApiOperation({ summary: '更新排班' })
   async updateSchedule(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateScheduleDto,
   ) {
@@ -116,7 +117,7 @@ export class SchedulingController {
   @Delete('schedules/:id')
   @ApiOperation({ summary: '删除排班' })
   async deleteSchedule(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
     await this.schedulingService.deleteSchedule(req.user.tenantId, id);
@@ -126,7 +127,7 @@ export class SchedulingController {
   @Get('schedules')
   @ApiOperation({ summary: '获取排班列表' })
   async getSchedules(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query() query: QuerySchedulesDto,
   ) {
     return this.schedulingService.getSchedules(req.user.tenantId, query);
@@ -135,7 +136,7 @@ export class SchedulingController {
   @Get('schedules/calendar')
   @ApiOperation({ summary: '获取排班日历视图' })
   async getScheduleCalendar(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('groupId') groupId?: string,
@@ -151,7 +152,7 @@ export class SchedulingController {
   @Post('schedules/leave')
   @ApiOperation({ summary: '请假申请' })
   async requestLeave(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: RequestLeaveDto,
   ) {
     const agentId = req.user.agentId || req.user.sub;
@@ -161,7 +162,7 @@ export class SchedulingController {
   @Post('schedules/leave/approve')
   @ApiOperation({ summary: '审批请假' })
   async approveLeave(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: ApproveLeaveDto,
   ) {
     const approvedBy = req.user.sub;
@@ -171,7 +172,7 @@ export class SchedulingController {
   @Post('schedules/check')
   @ApiOperation({ summary: '签到/签退' })
   async checkInOut(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: CheckInOutDto,
   ) {
     const agentId = req.user.agentId || req.user.sub;
@@ -183,7 +184,7 @@ export class SchedulingController {
   @Post('recurring')
   @ApiOperation({ summary: '创建周期性排班规则' })
   async createRecurringSchedule(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: CreateRecurringScheduleDto,
   ) {
     const createdBy = req.user.sub;
@@ -193,7 +194,7 @@ export class SchedulingController {
   @Put('recurring/:id')
   @ApiOperation({ summary: '更新周期性排班规则' })
   async updateRecurringSchedule(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateRecurringScheduleDto,
   ) {
@@ -203,7 +204,7 @@ export class SchedulingController {
   @Delete('recurring/:id')
   @ApiOperation({ summary: '删除周期性排班规则' })
   async deleteRecurringSchedule(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
     await this.schedulingService.deleteRecurringSchedule(req.user.tenantId, id);
@@ -213,7 +214,7 @@ export class SchedulingController {
   @Get('recurring')
   @ApiOperation({ summary: '获取周期性排班规则列表' })
   async getRecurringSchedules(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query('agentId') agentId?: string,
   ) {
     return this.schedulingService.getRecurringSchedules(req.user.tenantId, agentId);
@@ -224,7 +225,7 @@ export class SchedulingController {
   @Get('stats/agent/:agentId')
   @ApiOperation({ summary: '获取客服排班统计' })
   async getAgentScheduleStats(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('agentId') agentId: string,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
@@ -240,7 +241,7 @@ export class SchedulingController {
   @Get('stats/daily')
   @ApiOperation({ summary: '获取每日排班概览' })
   async getDailyOverview(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query('date') date: string,
   ) {
     return this.schedulingService.getDailyOverview(req.user.tenantId, date);

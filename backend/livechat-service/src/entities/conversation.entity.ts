@@ -13,6 +13,7 @@ import { Message } from './message.entity';
 import { Agent } from './agent.entity';
 import { SatisfactionRating } from './satisfaction-rating.entity';
 import { QualityReview } from './quality-review.entity';
+import { VisitorProfile } from './visitor-profile.entity';
 
 export enum ConversationStatus {
   WAITING = 'waiting', // 等待分配
@@ -59,6 +60,20 @@ export class Conversation {
 
   @Column({ name: 'user_avatar', nullable: true })
   userAvatar: string;
+
+  @Column({ name: 'visitor_id', nullable: true })
+  @Index()
+  visitorId: string;
+
+  // 注意：visitor 关系不使用外键约束，因为 visitorId 在 visitor_profiles 表中
+  // 只在组合索引 (tenantId, visitorId) 中唯一
+  // 查询时需要同时使用 tenantId 和 visitorId
+  @ManyToOne(() => VisitorProfile, (visitor) => visitor.conversations, {
+    nullable: true,
+    createForeignKeyConstraints: false, // 禁用外键约束
+  })
+  @JoinColumn({ name: 'visitor_id', referencedColumnName: 'visitorId' })
+  visitor: VisitorProfile;
 
   @Column({ name: 'agent_id', nullable: true })
   agentId: string;

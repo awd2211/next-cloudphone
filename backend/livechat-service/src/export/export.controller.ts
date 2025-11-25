@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
+import { AuthenticatedRequest } from '../auth/jwt.strategy';
 import { ExportService } from './export.service';
 import {
   CreateExportTaskDto,
@@ -30,7 +31,7 @@ export class ExportController {
   @Post('tasks')
   @ApiOperation({ summary: '创建导出任务' })
   async createExportTask(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: CreateExportTaskDto,
   ) {
     const createdBy = req.user.sub;
@@ -40,7 +41,7 @@ export class ExportController {
   @Get('tasks')
   @ApiOperation({ summary: '获取导出任务列表' })
   async getExportTasks(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query() query: QueryExportTasksDto,
   ) {
     return this.exportService.getExportTasks(req.user.tenantId, query);
@@ -49,7 +50,7 @@ export class ExportController {
   @Get('tasks/:id')
   @ApiOperation({ summary: '获取导出任务详情' })
   async getExportTask(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
     return this.exportService.getExportTask(req.user.tenantId, id);
@@ -58,7 +59,7 @@ export class ExportController {
   @Get('tasks/:id/progress')
   @ApiOperation({ summary: '获取导出任务进度' })
   async getTaskProgress(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
     return this.exportService.getTaskProgress(req.user.tenantId, id);
@@ -67,7 +68,7 @@ export class ExportController {
   @Post('tasks/:id/cancel')
   @ApiOperation({ summary: '取消导出任务' })
   async cancelExportTask(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
     await this.exportService.cancelExportTask(req.user.tenantId, id);
@@ -77,7 +78,7 @@ export class ExportController {
   @Delete('tasks/:id')
   @ApiOperation({ summary: '删除导出任务' })
   async deleteExportTask(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
     await this.exportService.deleteExportTask(req.user.tenantId, id);
@@ -89,7 +90,7 @@ export class ExportController {
   @Get('download/:id')
   @ApiOperation({ summary: '下载导出文件' })
   async downloadExportFile(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -125,7 +126,7 @@ export class ExportController {
 
   @Get('stats')
   @ApiOperation({ summary: '获取导出统计' })
-  async getExportStats(@Request() req) {
+  async getExportStats(@Request() req: AuthenticatedRequest) {
     return this.exportService.getExportStats(req.user.tenantId);
   }
 }

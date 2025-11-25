@@ -354,7 +354,7 @@ export class EncryptionService {
 
     try {
       // 获取或创建密钥
-      let key: EncryptionKey;
+      let key: EncryptionKey | null = null;
       if (dto.keyId) {
         key = await this.keyRepository.findOne({
           where: { id: dto.keyId, tenantId, status: KeyStatus.ACTIVE },
@@ -379,6 +379,11 @@ export class EncryptionService {
       } else {
         // 使用默认数据密钥
         key = await this.getOrCreateDataKey(tenantId, performedBy);
+      }
+
+      // TypeScript 类型收窄：此时 key 一定存在
+      if (!key) {
+        throw new Error('Failed to obtain encryption key');
       }
 
       // 解密密钥材料
@@ -482,7 +487,10 @@ export class EncryptionService {
         (key.metadata as any)?.authTag,
       );
 
-      // 解密数据
+      // 解密数据 (iv 是必须的，如果没有则抛出错误)
+      if (!dto.iv) {
+        throw new BadRequestException('IV is required for decryption');
+      }
       const plaintext = this.decryptWithKey(
         dto.ciphertext,
         Buffer.from(rawKey, 'base64'),
@@ -833,7 +841,7 @@ export class EncryptionService {
       },
     );
 
-    if (result.affected > 0) {
+    if (result.affected && result.affected > 0) {
       this.logger.log(`Expired ${result.affected} keys`);
     }
   }
@@ -871,6 +879,10 @@ export class EncryptionService {
   decrypt(encryptedData: string, iv?: string, authTag?: string): string {
     if (!this.enabled || !encryptedData) {
       return encryptedData;
+    }
+
+    if (!iv) {
+      throw new Error('IV is required for decryption');
     }
 
     try {

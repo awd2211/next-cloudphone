@@ -283,6 +283,50 @@ export class ChatService {
     return saved;
   }
 
+  /**
+   * 发送系统消息
+   * 用于发送自动生成的系统通知（如工单创建、转接等）
+   */
+  async sendSystemMessage(conversationId: string, tenantId: string, content: string): Promise<Message> {
+    const conversation = await this.getConversation(conversationId, tenantId);
+
+    let contentEncrypted: string | undefined;
+    let isEncrypted = false;
+
+    // 系统消息也加密
+    if (this.encryptionService.isEnabled()) {
+      const encrypted = this.encryptionService.encrypt(content);
+      contentEncrypted = encrypted.encrypted;
+      isEncrypted = true;
+    }
+
+    const message = this.messageRepo.create({
+      conversationId,
+      type: MessageType.SYSTEM,
+      sender: MessageSender.SYSTEM,
+      senderId: 'system',
+      senderName: '系统',
+      content,
+      contentEncrypted,
+      isEncrypted,
+      status: MessageStatus.SENT,
+    });
+
+    const saved = await this.messageRepo.save(message);
+
+    // 更新会话统计
+    conversation.lastMessageAt = new Date();
+    conversation.messageCount += 1;
+    await this.conversationRepo.save(conversation);
+
+    // 本地事件 (用于 WebSocket 广播)
+    this.eventEmitter.emit('message.sent', { message: saved, conversation });
+
+    this.logger.log(`System message sent to conversation ${conversationId}`);
+
+    return saved;
+  }
+
   async getMessages(conversationId: string, tenantId: string, limit = 50, before?: Date): Promise<Message[]> {
     await this.getConversation(conversationId, tenantId); // 验证权限
 
@@ -478,7 +522,7 @@ export class ChatService {
 
     // 清除敏感内容
     message.content = '[消息已撤回]';
-    message.contentEncrypted = undefined;
+    message.contentEncrypted = '';
 
     const saved = await this.messageRepo.save(message);
 

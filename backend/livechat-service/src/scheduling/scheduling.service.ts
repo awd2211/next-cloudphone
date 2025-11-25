@@ -428,7 +428,7 @@ export class SchedulingService {
 
     schedule.status = ScheduleStatus.LEAVE;
     schedule.leaveType = dto.leaveType;
-    schedule.leaveReason = dto.reason;
+    schedule.leaveReason = dto.reason ?? '';
 
     const saved = await this.scheduleRepository.save(schedule);
 
@@ -458,8 +458,8 @@ export class SchedulingService {
       schedule.leaveApprovedAt = new Date();
     } else {
       schedule.status = ScheduleStatus.SCHEDULED;
-      schedule.leaveType = undefined;
-      schedule.leaveReason = dto.reason;
+      schedule.leaveType = null as any;
+      schedule.leaveReason = dto.reason ?? '';
     }
 
     const saved = await this.scheduleRepository.save(schedule);
@@ -561,13 +561,15 @@ export class SchedulingService {
       throw new NotFoundException('Shift template not found');
     }
 
-    const recurring = this.recurringScheduleRepository.create({
+    const recurringData = {
       tenantId,
       ...dto,
       effectiveFrom: new Date(dto.effectiveFrom),
-      effectiveUntil: dto.effectiveUntil ? new Date(dto.effectiveUntil) : null,
+      effectiveUntil: dto.effectiveUntil ? new Date(dto.effectiveUntil) : undefined,
       createdBy,
-    });
+    };
+
+    const recurring = this.recurringScheduleRepository.create(recurringData as any) as unknown as RecurringSchedule;
 
     return this.recurringScheduleRepository.save(recurring);
   }

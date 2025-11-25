@@ -1,29 +1,26 @@
 import { Global, Module } from '@nestjs/common';
-import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { redisStore } from 'cache-manager-redis-yet';
-import { CacheService } from './cache.service';
+import { UnifiedCacheModule } from '@cloudphone/shared';
 
+/**
+ * LiveChat Service 缓存模块
+ *
+ * 已迁移至 @cloudphone/shared 的 UnifiedCacheService
+ * 提供两层缓存（L1 内存 + L2 Redis）架构
+ *
+ * 缓存键生成器迁移至 cache-keys.ts 的 LiveChatCacheKeys
+ */
 @Global()
 @Module({
   imports: [
-    NestCacheModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        store: await redisStore({
-          socket: {
-            host: configService.get('REDIS_HOST', 'localhost'),
-            port: configService.get('REDIS_PORT', 6379),
-          },
-          password: configService.get('REDIS_PASSWORD') || undefined,
-          database: configService.get('REDIS_CACHE_DB', 1),
-        }),
-        ttl: 300000, // 5 minutes default TTL
-      }),
-      inject: [ConfigService],
+    UnifiedCacheModule.forRoot({
+      keyPrefix: 'livechat:',
+      defaultTTL: 300,
+      enableL1Cache: true,
+      l1MaxSize: 500,
+      l1TTL: 60,
+      hotDataPrefixes: ['agent:', 'conversation:'],
     }),
   ],
-  providers: [CacheService],
-  exports: [NestCacheModule, CacheService],
+  exports: [UnifiedCacheModule],
 })
 export class CacheModule {}

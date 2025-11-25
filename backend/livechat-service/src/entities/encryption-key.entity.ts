@@ -69,6 +69,10 @@ export class EncryptionKey {
   @Column({ nullable: true })
   iv: string;
 
+  // GCM 认证标签 (用于 AES-GCM 模式)
+  @Column({ name: 'auth_tag', nullable: true })
+  authTag: string;
+
   // 密钥版本
   @Column({ default: 1 })
   version: number;
@@ -133,6 +137,7 @@ export class EncryptionKey {
       rotationIntervalDays: number;
     };
     usageCount?: number;
+    authTag?: string;  // GCM 认证标签 (用于兼容旧代码)
   };
 
   @CreateDateColumn({ type: 'timestamp with time zone' })

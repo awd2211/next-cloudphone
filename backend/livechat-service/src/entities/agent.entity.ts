@@ -42,6 +42,9 @@ export class Agent {
   @Column()
   name: string;
 
+  @Column({ name: 'display_name', nullable: true })
+  displayName: string;
+
   @Column({ unique: true })
   email: string;
 
@@ -104,6 +107,9 @@ export class Agent {
 
   @Column({ name: 'avg_rating', type: 'decimal', precision: 3, scale: 2, nullable: true })
   avgRating: number;
+
+  @Column({ name: 'rating', type: 'decimal', precision: 3, scale: 2, nullable: true })
+  rating: number;
 
   @Column({ name: 'rating_count', default: 0 })
   ratingCount: number;

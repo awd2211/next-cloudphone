@@ -7,10 +7,7 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, LessThan, MoreThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Cache } from 'cache-manager';
-import { Inject } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, UnifiedCacheService } from '@cloudphone/shared';
 
 import { Blacklist, BlacklistType, BlacklistStatus } from '../entities/blacklist.entity';
 import {
@@ -29,8 +26,7 @@ export class BlacklistService {
     @InjectRepository(Blacklist)
     private blacklistRepo: Repository<Blacklist>,
 
-    @Inject(CACHE_MANAGER)
-    private cacheManager: Cache,
+    private cacheService: UnifiedCacheService,
 
     private eventBus: EventBusService,
   ) {}
@@ -40,7 +36,7 @@ export class BlacklistService {
    */
   async isBlacklisted(dto: CheckBlacklistDto, tenantId: string): Promise<boolean> {
     const cacheKey = `blacklist:${tenantId}:${dto.type}:${dto.value}`;
-    const cached = await this.cacheManager.get<boolean>(cacheKey);
+    const cached = await this.cacheService.get<boolean>(cacheKey);
     if (cached !== undefined && cached !== null) {
       return cached;
     }
@@ -55,9 +51,9 @@ export class BlacklistService {
     });
 
     // 检查是否已过期
-    const isBlacklisted = entry && (entry.isPermanent || !entry.expiresAt || entry.expiresAt > new Date());
+    const isBlacklisted = !!(entry && (entry.isPermanent || !entry.expiresAt || entry.expiresAt > new Date()));
 
-    await this.cacheManager.set(cacheKey, isBlacklisted, 60000); // 1分钟缓存
+    await this.cacheService.set(cacheKey, isBlacklisted, 60); // 1分钟缓存
     return isBlacklisted;
   }
 
@@ -217,7 +213,7 @@ export class BlacklistService {
     entry.status = BlacklistStatus.REVOKED;
     entry.revokedBy = userId;
     entry.revokedAt = new Date();
-    entry.revokeReason = dto.reason;
+    entry.revokeReason = dto.reason ?? '';
 
     const saved = await this.blacklistRepo.save(entry);
 
@@ -312,7 +308,7 @@ export class BlacklistService {
    * 清除缓存
    */
   private async clearCache(tenantId: string, type: BlacklistType, value: string): Promise<void> {
-    await this.cacheManager.del(`blacklist:${tenantId}:${type}:${value}`);
+    await this.cacheService.del(`blacklist:${tenantId}:${type}:${value}`);
   }
 
   /**

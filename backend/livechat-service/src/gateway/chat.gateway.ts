@@ -16,7 +16,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { CacheService } from '../cache/cache.service';
+import { LiveChatCacheKeys } from '../cache/cache-keys';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -43,7 +43,6 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   constructor(
     private jwtService: JwtService,
     @InjectRedis() private redis: Redis,
-    private cacheService: CacheService,
     private eventEmitter: EventEmitter2,
     private configService: ConfigService,
   ) {}
@@ -138,10 +137,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
       // 记录在线状态
       if (client.isAgent) {
-        await this.redis.sadd(this.cacheService.onlineAgentsKey(client.tenantId!), client.userId!);
-        await this.redis.set(this.cacheService.agentStatusKey(client.userId!), 'online', 'EX', 3600);
+        await this.redis.sadd(LiveChatCacheKeys.onlineAgentsKey(client.tenantId!), client.userId!);
+        await this.redis.set(LiveChatCacheKeys.agentStatusKey(client.userId!), 'online', 'EX', 3600);
       } else {
-        await this.redis.sadd(this.cacheService.onlineUsersKey(client.tenantId!), client.userId!);
+        await this.redis.sadd(LiveChatCacheKeys.onlineUsersKey(client.tenantId!), client.userId!);
       }
 
       this.logger.log(`Client connected: ${client.id} (${client.username}, isAgent: ${client.isAgent})`);
@@ -163,10 +162,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   async handleDisconnect(client: AuthenticatedSocket) {
     if (client.userId && client.tenantId) {
       if (client.isAgent) {
-        await this.redis.srem(this.cacheService.onlineAgentsKey(client.tenantId), client.userId);
-        await this.redis.del(this.cacheService.agentStatusKey(client.userId));
+        await this.redis.srem(LiveChatCacheKeys.onlineAgentsKey(client.tenantId), client.userId);
+        await this.redis.del(LiveChatCacheKeys.agentStatusKey(client.userId));
       } else {
-        await this.redis.srem(this.cacheService.onlineUsersKey(client.tenantId), client.userId);
+        await this.redis.srem(LiveChatCacheKeys.onlineUsersKey(client.tenantId), client.userId);
       }
 
       this.logger.log(`Client disconnected: ${client.id} (${client.username})`);
@@ -203,13 +202,13 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     // 设置打字状态 TTL 5秒
     if (data.isTyping) {
       await this.redis.set(
-        this.cacheService.userTypingKey(data.conversationId, client.userId!),
+        LiveChatCacheKeys.userTypingKey(data.conversationId, client.userId!),
         '1',
         'EX',
         5,
       );
     } else {
-      await this.redis.del(this.cacheService.userTypingKey(data.conversationId, client.userId!));
+      await this.redis.del(LiveChatCacheKeys.userTypingKey(data.conversationId, client.userId!));
     }
 
     // 广播给会话中的其他人
@@ -233,7 +232,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
 
     await this.redis.set(
-      this.cacheService.agentStatusKey(client.userId!),
+      LiveChatCacheKeys.agentStatusKey(client.userId!),
       data.status,
       'EX',
       3600,
@@ -558,18 +557,18 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   // ========== 工具方法 ==========
 
   async getOnlineAgents(tenantId: string): Promise<string[]> {
-    return this.redis.smembers(this.cacheService.onlineAgentsKey(tenantId));
+    return this.redis.smembers(LiveChatCacheKeys.onlineAgentsKey(tenantId));
   }
 
   async getOnlineUsers(tenantId: string): Promise<string[]> {
-    return this.redis.smembers(this.cacheService.onlineUsersKey(tenantId));
+    return this.redis.smembers(LiveChatCacheKeys.onlineUsersKey(tenantId));
   }
 
   async isUserOnline(tenantId: string, userId: string): Promise<boolean> {
-    return (await this.redis.sismember(this.cacheService.onlineUsersKey(tenantId), userId)) === 1;
+    return (await this.redis.sismember(LiveChatCacheKeys.onlineUsersKey(tenantId), userId)) === 1;
   }
 
   async getAgentStatus(agentId: string): Promise<string | null> {
-    return this.redis.get(this.cacheService.agentStatusKey(agentId));
+    return this.redis.get(LiveChatCacheKeys.agentStatusKey(agentId));
   }
 }

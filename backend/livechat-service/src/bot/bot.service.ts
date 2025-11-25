@@ -675,7 +675,7 @@ export class BotService {
     }
 
     botConversation.satisfactionScore = dto.score;
-    botConversation.userFeedback = dto.feedback;
+    botConversation.userFeedback = dto.feedback ?? '';
     await this.botConversationRepository.save(botConversation);
   }
 

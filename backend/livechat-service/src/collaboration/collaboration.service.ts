@@ -138,7 +138,7 @@ export class CollaborationService {
 
     } else {
       collaboration.status = CollaborationStatus.DECLINED;
-      collaboration.leftReason = dto.reason;
+      collaboration.leftReason = dto.reason ?? '';
 
       // 发送拒绝事件
       this.eventEmitter.emit('collaboration.declined', {
@@ -170,7 +170,7 @@ export class CollaborationService {
 
     collaboration.status = CollaborationStatus.LEFT;
     collaboration.leftAt = new Date();
-    collaboration.leftReason = dto.reason;
+    collaboration.leftReason = dto.reason ?? '';
 
     await this.collaborationRepository.save(collaboration);
 

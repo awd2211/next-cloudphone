@@ -15,6 +15,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { AuthenticatedRequest } from '../auth/jwt.strategy';
 import { VisitorService } from './visitor.service';
 import {
   CreateVisitorProfileDto,
@@ -38,7 +39,7 @@ export class VisitorController {
   @Post('profiles')
   @ApiOperation({ summary: '创建/更新访客画像' })
   async createOrUpdateProfile(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: CreateVisitorProfileDto,
     @Ip() ip: string,
   ) {
@@ -49,7 +50,7 @@ export class VisitorController {
   @UseGuards(RolesGuard)
   @Roles('admin', 'supervisor', 'agent')
   @ApiOperation({ summary: '获取访客画像列表' })
-  async getProfiles(@Request() req, @Query() query: QueryVisitorProfilesDto) {
+  async getProfiles(@Request() req: AuthenticatedRequest, @Query() query: QueryVisitorProfilesDto) {
     return this.visitorService.getProfiles(req.user.tenantId, query);
   }
 
@@ -57,13 +58,13 @@ export class VisitorController {
   @UseGuards(RolesGuard)
   @Roles('admin', 'supervisor', 'agent')
   @ApiOperation({ summary: '获取访客画像详情' })
-  async getProfile(@Request() req, @Param('id') id: string) {
+  async getProfile(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.visitorService.getProfile(req.user.tenantId, id);
   }
 
   @Get('profiles/by-visitor/:visitorId')
   @ApiOperation({ summary: '通过访客ID获取画像' })
-  async getProfileByVisitorId(@Request() req, @Param('visitorId') visitorId: string) {
+  async getProfileByVisitorId(@Request() req: AuthenticatedRequest, @Param('visitorId') visitorId: string) {
     return this.visitorService.getProfileByVisitorId(req.user.tenantId, visitorId);
   }
 
@@ -72,7 +73,7 @@ export class VisitorController {
   @Roles('admin', 'supervisor', 'agent')
   @ApiOperation({ summary: '更新访客画像' })
   async updateProfile(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateVisitorProfileDto,
   ) {
@@ -84,7 +85,7 @@ export class VisitorController {
   @Roles('admin', 'supervisor', 'agent')
   @ApiOperation({ summary: '添加标签' })
   async addTags(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: AddTagsDto,
   ) {
@@ -96,7 +97,7 @@ export class VisitorController {
   @Roles('admin', 'supervisor', 'agent')
   @ApiOperation({ summary: '移除标签' })
   async removeTags(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: RemoveTagsDto,
   ) {
@@ -107,7 +108,7 @@ export class VisitorController {
   @UseGuards(RolesGuard)
   @Roles('admin', 'supervisor', 'agent')
   @ApiOperation({ summary: '获取访客时间线' })
-  async getTimeline(@Request() req, @Param('id') id: string) {
+  async getTimeline(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.visitorService.getVisitorTimeline(req.user.tenantId, id);
   }
 
@@ -115,7 +116,7 @@ export class VisitorController {
 
   @Post('events/track')
   @ApiOperation({ summary: '记录访客事件' })
-  async trackEvent(@Request() req, @Body() dto: TrackEventDto, @Ip() ip: string) {
+  async trackEvent(@Request() req: AuthenticatedRequest, @Body() dto: TrackEventDto, @Ip() ip: string) {
     return this.visitorService.trackEvent(req.user.tenantId, dto, ip);
   }
 
@@ -123,7 +124,7 @@ export class VisitorController {
   @UseGuards(RolesGuard)
   @Roles('admin', 'supervisor')
   @ApiOperation({ summary: '获取访客事件列表' })
-  async getEvents(@Request() req, @Query() query: QueryVisitorEventsDto) {
+  async getEvents(@Request() req: AuthenticatedRequest, @Query() query: QueryVisitorEventsDto) {
     return this.visitorService.getEvents(req.user.tenantId, query);
   }
 
@@ -133,7 +134,7 @@ export class VisitorController {
   @UseGuards(RolesGuard)
   @Roles('admin', 'supervisor')
   @ApiOperation({ summary: '获取访客统计数据' })
-  async getStats(@Request() req) {
+  async getStats(@Request() req: AuthenticatedRequest) {
     return this.visitorService.getStats(req.user.tenantId);
   }
 }

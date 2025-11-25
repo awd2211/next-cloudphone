@@ -6,10 +6,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, In, IsNull, Not, ILike } from 'typeorm';
-import { Cache } from 'cache-manager';
-import { Inject } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { EventBusService } from '@cloudphone/shared';
+import { EventBusService, UnifiedCacheService } from '@cloudphone/shared';
 
 import {
   KnowledgeCategory,
@@ -45,8 +42,7 @@ export class KnowledgeBaseService {
     @InjectRepository(KnowledgeUsage)
     private usageRepo: Repository<KnowledgeUsage>,
 
-    @Inject(CACHE_MANAGER)
-    private cacheManager: Cache,
+    private cacheService: UnifiedCacheService,
 
     private eventBus: EventBusService,
   ) {}
@@ -58,7 +54,7 @@ export class KnowledgeBaseService {
    */
   async getCategories(tenantId: string, includeInactive = false): Promise<KnowledgeCategory[]> {
     const cacheKey = `kb:categories:${tenantId}:${includeInactive}`;
-    const cached = await this.cacheManager.get<KnowledgeCategory[]>(cacheKey);
+    const cached = await this.cacheService.get<KnowledgeCategory[]>(cacheKey);
     if (cached) return cached;
 
     const where: any = { tenantId };
@@ -74,7 +70,7 @@ export class KnowledgeBaseService {
     // 构建树形结构
     const tree = this.buildCategoryTree(categories);
 
-    await this.cacheManager.set(cacheKey, tree, 300000); // 5分钟缓存
+    await this.cacheService.set(cacheKey, tree, 300); // 5分钟缓存
     return tree;
   }
 
@@ -504,7 +500,7 @@ export class KnowledgeBaseService {
    */
   async getPopularArticles(tenantId: string, limit = 10): Promise<KnowledgeArticle[]> {
     const cacheKey = `kb:popular:${tenantId}:${limit}`;
-    const cached = await this.cacheManager.get<KnowledgeArticle[]>(cacheKey);
+    const cached = await this.cacheService.get<KnowledgeArticle[]>(cacheKey);
     if (cached) return cached;
 
     const articles = await this.articleRepo.find({
@@ -522,7 +518,7 @@ export class KnowledgeBaseService {
       take: limit,
     });
 
-    await this.cacheManager.set(cacheKey, articles, 300000); // 5分钟
+    await this.cacheService.set(cacheKey, articles, 300); // 5分钟
     return articles;
   }
 
@@ -647,7 +643,7 @@ export class KnowledgeBaseService {
    * 清除分类缓存
    */
   private async clearCategoryCache(tenantId: string): Promise<void> {
-    await this.cacheManager.del(`kb:categories:${tenantId}:true`);
-    await this.cacheManager.del(`kb:categories:${tenantId}:false`);
+    await this.cacheService.del(`kb:categories:${tenantId}:true`);
+    await this.cacheService.del(`kb:categories:${tenantId}:false`);
   }
 }

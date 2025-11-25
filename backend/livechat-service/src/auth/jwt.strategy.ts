@@ -14,6 +14,27 @@ export interface JwtPayload {
   exp?: number;
 }
 
+/**
+ * 认证用户信息（由 JwtStrategy.validate() 返回）
+ */
+export interface AuthUser {
+  sub: string;        // 用户 ID (兼容旧代码)
+  userId: string;     // 用户 ID
+  username: string;
+  email: string;
+  tenantId: string;
+  roles: string[];
+  isSuperAdmin: boolean;
+  agentId?: string;   // 客服 ID（如果用户是客服）
+}
+
+/**
+ * 认证请求类型（扩展 Express Request）
+ */
+export interface AuthenticatedRequest extends Request {
+  user: AuthUser;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
@@ -28,12 +49,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload) {
+  async validate(payload: JwtPayload): Promise<AuthUser> {
     if (!payload.sub) {
       throw new UnauthorizedException('Invalid token payload');
     }
 
     return {
+      sub: payload.sub,           // 兼容旧代码
       userId: payload.sub,
       username: payload.username,
       email: payload.email,

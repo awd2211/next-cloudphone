@@ -10,6 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthenticatedRequest } from '../auth/jwt.strategy';
 import { CollaborationService } from './collaboration.service';
 import {
   InviteCollaboratorDto,
@@ -33,7 +34,7 @@ export class CollaborationController {
   @Post('invite')
   @ApiOperation({ summary: '邀请客服协同' })
   async inviteCollaborator(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: InviteCollaboratorDto,
   ) {
     const tenantId = req.user.tenantId;
@@ -44,7 +45,7 @@ export class CollaborationController {
   @Post('respond')
   @ApiOperation({ summary: '响应协同邀请' })
   async respondToInvitation(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: RespondInvitationDto,
   ) {
     const tenantId = req.user.tenantId;
@@ -55,7 +56,7 @@ export class CollaborationController {
   @Post('leave')
   @ApiOperation({ summary: '退出协同' })
   async leaveCollaboration(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: LeaveCollaborationDto,
   ) {
     const tenantId = req.user.tenantId;
@@ -66,7 +67,7 @@ export class CollaborationController {
   @Put('role')
   @ApiOperation({ summary: '更新协同角色' })
   async updateCollaboratorRole(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: UpdateCollaboratorRoleDto,
   ) {
     const tenantId = req.user.tenantId;
@@ -77,7 +78,7 @@ export class CollaborationController {
   @Get('conversation/:conversationId')
   @ApiOperation({ summary: '获取会话协同者列表' })
   async getCollaborators(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
   ) {
     const tenantId = req.user.tenantId;
@@ -87,7 +88,7 @@ export class CollaborationController {
   @Get('my')
   @ApiOperation({ summary: '获取我的协同列表' })
   async getMyCollaborations(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query() query: QueryCollaborationsDto,
   ) {
     const tenantId = req.user.tenantId;
@@ -97,7 +98,7 @@ export class CollaborationController {
 
   @Get('pending')
   @ApiOperation({ summary: '获取待处理的邀请' })
-  async getPendingInvitations(@Request() req) {
+  async getPendingInvitations(@Request() req: AuthenticatedRequest) {
     const tenantId = req.user.tenantId;
     const agentId = req.user.agentId || req.user.sub;
     return this.collaborationService.getPendingInvitations(tenantId, agentId);
@@ -108,7 +109,7 @@ export class CollaborationController {
   @Post('messages')
   @ApiOperation({ summary: '发送内部消息' })
   async sendInternalMessage(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: SendInternalMessageDto,
   ) {
     const tenantId = req.user.tenantId;
@@ -119,7 +120,7 @@ export class CollaborationController {
   @Get('messages')
   @ApiOperation({ summary: '获取内部消息' })
   async getInternalMessages(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query() query: QueryInternalMessagesDto,
   ) {
     const tenantId = req.user.tenantId;
@@ -130,7 +131,7 @@ export class CollaborationController {
   @Post('messages/read')
   @ApiOperation({ summary: '标记消息已读' })
   async markMessagesAsRead(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: MarkMessagesReadDto,
   ) {
     const tenantId = req.user.tenantId;
@@ -144,7 +145,7 @@ export class CollaborationController {
   @Get('check/:conversationId')
   @ApiOperation({ summary: '检查是否为协同者' })
   async checkCollaborator(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
   ) {
     const tenantId = req.user.tenantId;

@@ -191,13 +191,15 @@ export class TrainingService {
       throw new BadRequestException('Already enrolled in this course');
     }
 
-    const enrollment = this.enrollmentRepository.create({
+    const enrollmentData = {
       tenantId,
       agentId,
       courseId: dto.courseId,
       enrollmentSource: 'self',
-      dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-    });
+      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+    };
+
+    const enrollment = this.enrollmentRepository.create(enrollmentData as any) as unknown as TrainingEnrollment;
 
     return this.enrollmentRepository.save(enrollment);
   }
@@ -228,14 +230,16 @@ export class TrainingService {
         continue;
       }
 
-      const enrollment = this.enrollmentRepository.create({
+      const enrollmentData = {
         tenantId,
         agentId,
         courseId: dto.courseId,
         enrollmentSource: 'assigned',
         assignedBy,
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-      });
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+      };
+
+      const enrollment = this.enrollmentRepository.create(enrollmentData as any);
 
       await this.enrollmentRepository.save(enrollment);
       enrolled++;

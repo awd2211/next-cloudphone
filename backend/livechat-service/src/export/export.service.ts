@@ -628,8 +628,8 @@ export class ExportService {
     for (const task of expiredTasks) {
       // TODO: Delete file from MinIO
       task.status = ExportTaskStatus.EXPIRED;
-      task.filePath = null;
-      task.downloadUrl = null;
+      task.filePath = '';
+      task.downloadUrl = '';
       await this.exportTaskRepository.save(task);
     }
 
