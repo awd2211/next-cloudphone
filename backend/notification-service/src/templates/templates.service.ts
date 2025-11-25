@@ -13,7 +13,7 @@ import * as sanitizeHtml from 'sanitize-html';
 import { convert as htmlToText } from 'html-to-text';
 import { NotificationTemplate } from '../entities/notification-template.entity';
 import { CreateTemplateDto, UpdateTemplateDto, QueryTemplateDto, RenderTemplateDto } from './dto';
-import { CacheService } from '../cache/cache.service';
+import { UnifiedCacheService } from '@cloudphone/shared';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 /**
@@ -91,7 +91,7 @@ export class TemplatesService {
   constructor(
     @InjectRepository(NotificationTemplate)
     private templateRepository: Repository<NotificationTemplate>,
-    private cacheService: CacheService
+    private cacheService: UnifiedCacheService
   ) {
     // 🔒 安全初始化：创建独立的沙箱 Handlebars 实例
     this.sandboxedHandlebars = Handlebars.create();

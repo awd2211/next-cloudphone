@@ -13,7 +13,7 @@ import { Order, OrderStatus, PaymentMethod } from './entities/order.entity';
 import { Plan } from './entities/plan.entity';
 import { UsageRecord, UsageType } from './entities/usage-record.entity';
 import { PurchasePlanSagaV2 } from '../sagas/purchase-plan-v2.saga';
-import { CacheService } from '../cache/cache.service';
+import { UnifiedCacheService } from '@cloudphone/shared';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 import { trace, SpanStatusCode } from '@opentelemetry/api';
 import { BalanceService } from '../balance/balance.service';
@@ -31,7 +31,7 @@ export class BillingService {
     @InjectRepository(UsageRecord)
     private usageRecordRepository: Repository<UsageRecord>,
     private readonly purchasePlanSaga: PurchasePlanSagaV2,
-    @Optional() private cacheService: CacheService,
+    @Optional() private cacheService: UnifiedCacheService,
     private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
     private readonly balanceService: BalanceService // ✅ 用于退款到用户余额
   ) {}

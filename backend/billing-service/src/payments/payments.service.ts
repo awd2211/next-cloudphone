@@ -11,7 +11,7 @@ import { Repository, LessThan, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { CronExpression } from '@nestjs/schedule';
 import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
-import { CacheService } from '../cache/cache.service';
+import { UnifiedCacheService } from '@cloudphone/shared';
 import { Payment, PaymentMethod, PaymentStatus } from './entities/payment.entity';
 import { Order, OrderStatus } from '../billing/entities/order.entity';
 import { WeChatPayProvider } from './providers/wechat-pay.provider';
@@ -50,7 +50,7 @@ export class PaymentsService {
     @InjectDataSource()
     private dataSource: DataSource,
     private readonly lockService: DistributedLockService, // ✅ K8s cluster safety
-    @Optional() private cacheService: CacheService // ✅ 缓存服务
+    @Optional() private cacheService: UnifiedCacheService // ✅ 缓存服务
   ) {}
 
   /**

@@ -5,7 +5,7 @@ import { Order, OrderStatus } from '../billing/entities/order.entity';
 import { Plan } from '../billing/entities/plan.entity';
 import { HttpClientService } from '@cloudphone/shared';
 import { ConfigService } from '@nestjs/config';
-import { CacheService } from '../cache/cache.service';
+import { UnifiedCacheService } from '@cloudphone/shared';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class StatsService {
     private planRepository: Repository<Plan>,
     private readonly httpClient: HttpClientService,
     private readonly configService: ConfigService,
-    private readonly cacheService: CacheService, // ✅ 注入缓存服务
+    private readonly cacheService: UnifiedCacheService, // ✅ 注入缓存服务
   ) {}
 
   /**

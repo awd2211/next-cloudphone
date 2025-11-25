@@ -17,7 +17,7 @@ import {
 } from '@cloudphone/shared';
 import { EmailService } from '../email/email.service';
 import { SmsService } from '../sms/sms.service';
-import { CacheService } from '../cache/cache.service';
+import { UnifiedCacheService } from '@cloudphone/shared';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 import { TemplatesService } from '../templates/templates.service';
 import { trace, SpanStatusCode } from '@opentelemetry/api';
@@ -31,7 +31,7 @@ export class NotificationsService {
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
     private readonly gateway: NotificationGateway,
-    private cacheService: CacheService,
+    private cacheService: UnifiedCacheService,
     private readonly preferencesService: NotificationPreferencesService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,

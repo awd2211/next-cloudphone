@@ -40,9 +40,9 @@ import {
   ProxyClientService, // ✅ 导入代理客户端服务
   HttpClientService, // ✅ 导入 HTTP 客户端服务（用于调用 SMS Receive Service）
   DistributedLockService,
+  UnifiedCacheService,
 } from '@cloudphone/shared';
 import { QuotaClientService } from '../quota/quota-client.service';
-import { CacheService } from '../cache/cache.service';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 import { DeviceProviderFactory } from '../providers/device-provider.factory';
 import {
@@ -124,7 +124,7 @@ export class DevicesService {
     @Optional() private proxyStats: ProxyStatsService, // ✅ 代理统计服务
     @Optional() private proxySelection: ProxySelectionService, // ✅ 智能代理选择服务
     @Optional() private httpClient: HttpClientService, // ✅ HTTP 客户端服务（用于调用 SMS Receive Service）
-    private cacheService: CacheService,
+    private cacheService: UnifiedCacheService,
     private moduleRef: ModuleRef, // ✅ 用于延迟获取服务
     private sagaOrchestrator: SagaOrchestratorService,
     @InjectDataSource()

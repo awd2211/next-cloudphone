@@ -7,7 +7,7 @@ import {
   NotificationChannel,
 } from '../entities/notification-preference.entity';
 import { DEFAULT_NOTIFICATION_PREFERENCES } from './default-preferences';
-import { CacheService } from '../cache/cache.service';
+import { UnifiedCacheService } from '@cloudphone/shared';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 /**
@@ -23,7 +23,7 @@ export class NotificationPreferencesService {
   constructor(
     @InjectRepository(NotificationPreference)
     private readonly preferencesRepository: Repository<NotificationPreference>,
-    private readonly cacheService: CacheService
+    private readonly cacheService: UnifiedCacheService
   ) {}
 
   /**

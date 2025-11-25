@@ -4,7 +4,7 @@ import { Repository, MoreThan, LessThan, Between } from 'typeorm';
 import { UsageRecord } from '../billing/entities/usage-record.entity';
 import { UserBalance } from '../balance/entities/user-balance.entity';
 import { WarningConfigEntity } from './entities/warning-config.entity';
-import { CacheService } from '../cache/cache.service';
+import { UnifiedCacheService } from '@cloudphone/shared';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 /**
@@ -75,7 +75,7 @@ export class DashboardService {
     private balanceRepository: Repository<UserBalance>,
     @InjectRepository(WarningConfigEntity)
     private warningConfigRepository: Repository<WarningConfigEntity>,
-    private readonly cacheService: CacheService, // ✅ 注入缓存服务
+    private readonly cacheService: UnifiedCacheService, // ✅ 注入缓存服务
   ) {}
 
   /**

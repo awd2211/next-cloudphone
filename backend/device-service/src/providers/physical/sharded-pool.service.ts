@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CacheService } from '../../cache/cache.service';
+import { UnifiedCacheService } from '@cloudphone/shared';
 import { AdbService } from '../../adb/adb.service';
 import {
   PhysicalDeviceInfo,
@@ -49,7 +49,7 @@ export class ShardedPoolService {
   private roundRobinCounter = 0;
 
   constructor(
-    private cacheService: CacheService,
+    private cacheService: UnifiedCacheService,
     private adbService: AdbService,
     private configService: ConfigService
   ) {

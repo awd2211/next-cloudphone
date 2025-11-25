@@ -12,8 +12,7 @@ import { DevicesService } from '../devices/devices.service';
 import { BatchOperationsService } from '../devices/batch-operations.service';
 import { CreateDeviceDto } from '../devices/dto/create-device.dto';
 import { BatchCreateDeviceDto } from '../devices/dto/batch-operation.dto';
-import { BusinessErrors } from '@cloudphone/shared';
-import { CacheService } from '../cache/cache.service';
+import { BusinessErrors, UnifiedCacheService } from '@cloudphone/shared';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 
 @Injectable()
@@ -25,7 +24,7 @@ export class TemplatesService {
     private templateRepository: Repository<DeviceTemplate>,
     private devicesService: DevicesService,
     private batchOperationsService: BatchOperationsService,
-    @Optional() private cacheService: CacheService
+    @Optional() private cacheService: UnifiedCacheService
   ) {}
 
   /**

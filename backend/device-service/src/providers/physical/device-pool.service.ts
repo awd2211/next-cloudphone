@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { CacheService } from '../../cache/cache.service';
+import { UnifiedCacheService } from '@cloudphone/shared';
 import {
   PhysicalDeviceInfo,
   PooledDevice,
@@ -29,7 +29,7 @@ export class DevicePoolService {
   private readonly DEVICE_KEY_PREFIX = 'physical_device';
 
   constructor(
-    private cacheService: CacheService,
+    private cacheService: UnifiedCacheService,
     private adbService: AdbService
   ) {}
 

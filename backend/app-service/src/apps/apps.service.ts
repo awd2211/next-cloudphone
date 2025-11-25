@@ -37,8 +37,8 @@ import {
   CursorPaginationDto,
   CursorPaginatedResponse,
   ProxyClientService, // ✅ 导入代理客户端
+  UnifiedCacheService, // ✅ 统一缓存服务
 } from '@cloudphone/shared';
-import { CacheService } from '../cache/cache.service';
 import { CacheKeys, CacheTTL, CacheInvalidation } from '../cache/cache-keys';
 import { trace, SpanStatusCode } from '@opentelemetry/api';
 
@@ -63,7 +63,7 @@ export class AppsService {
     private sagaOrchestrator: SagaOrchestratorService,
     @InjectDataSource()
     private dataSource: DataSource,
-    private cacheService: CacheService,  // ✅ Redis 缓存服务
+    private cacheService: UnifiedCacheService,  // ✅ Redis 缓存服务
     private proxyClient: ProxyClientService // ✅ 代理客户端服务
   ) {}
 

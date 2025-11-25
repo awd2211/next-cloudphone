@@ -7,7 +7,7 @@ import {
   TransactionType,
   TransactionStatus,
 } from './entities/balance-transaction.entity';
-import { CacheService } from '../cache/cache.service';
+import { UnifiedCacheService } from '@cloudphone/shared';
 import { CacheKeys, CacheTTL } from '../cache/cache-keys';
 import { transformDecimalFields, transformDecimalFieldsInArray } from '../common/utils/decimal.utils';
 
@@ -71,7 +71,7 @@ export class BalanceService {
     @InjectRepository(BalanceTransaction)
     private transactionRepository: Repository<BalanceTransaction>,
     private dataSource: DataSource,
-    private cacheService: CacheService
+    private cacheService: UnifiedCacheService
   ) {}
 
   // UserBalance 实体的 decimal 字段
