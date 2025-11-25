@@ -1036,7 +1036,7 @@ async function createTestAccounts(
       });
 
       await userRepo.save(user);
-      console.log(`  ✅ ${account.username} / ${account.password} (${role.name})`);
+      console.log(`  ✅ ${account.username} / ****** (${role.name})`);
     } else {
       console.log(`  ⏭️  ${account.username} 已存在`);
     }

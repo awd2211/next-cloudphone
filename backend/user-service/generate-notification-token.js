@@ -13,7 +13,13 @@ const payload = {
   ],
 };
 
-const token = jwt.sign(payload, 'dev-secret-key-change-in-production', {
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('ERROR: JWT_SECRET environment variable is required');
+  process.exit(1);
+}
+
+const token = jwt.sign(payload, JWT_SECRET, {
   expiresIn: '24h',
   issuer: 'cloudphone-platform',
   audience: 'cloudphone-users',

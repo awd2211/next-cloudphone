@@ -325,14 +325,6 @@ export class AuthService {
         isSuperAdmin: user.isSuperAdmin || false, // 添加超级管理员标识
       };
 
-      // 🐛 DEBUG: 检查整个 user 对象结构
-      this.logger.log(`🐛 DEBUG user keys: ${JSON.stringify(Object.keys(user))}`);
-      this.logger.log(`🐛 DEBUG user.roles: ${JSON.stringify(user.roles?.map(r => ({ name: r.name, hasPermissions: 'permissions' in r, permCount: r.permissions?.length || 0 })))}`);
-
-      // 🐛 DEBUG: 检查 payload 是否包含 permissions
-      this.logger.log(`🐛 DEBUG Payload keys BEFORE sign: ${JSON.stringify(Object.keys(payload))}`);
-      this.logger.log(`🐛 DEBUG Payload JSON BEFORE sign: ${JSON.stringify(payload)}`);
-
       // ✅ 根据 "记住我" 设置不同的 Token 过期时间
       // - 勾选 "记住我": Token 有效期 7 天 (604800 秒)
       // - 未勾选: Token 有效期 24 小时 (86400 秒)
@@ -342,16 +334,6 @@ export class AuthService {
       this.logger.log(`Token expiration: ${expiresInLabel} (${expiresInSeconds}s, remember: ${loginDto.remember || false})`);
 
       const token = this.jwtService.sign(payload, { expiresIn: expiresInSeconds });
-
-      // 🐛 DEBUG: 解码 Token 检查实际内容
-      const decoded = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-      this.logger.log(`🐛 DEBUG Decoded token keys: ${JSON.stringify(Object.keys(decoded))}`);
-      if ('permissions' in decoded) {
-        this.logger.error(`🐛 BUG FOUND: Token contains ${decoded.permissions?.length || 0} permissions!!!`);
-        this.logger.error(`🐛 First 5 permissions: ${JSON.stringify(decoded.permissions.slice(0, 5))}`);
-      } else {
-        this.logger.log(`✅ SUCCESS: Token does NOT contain permissions!`);
-      }
 
       // ✅ 记录登录成功
       this.userMetrics.recordLoginSuccess(username);
