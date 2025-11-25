@@ -24,6 +24,11 @@ export enum PaymentMethod {
 }
 
 @Entity('orders')
+@Index('idx_order_user_status', ['userId', 'status']) // 按用户和状态查询订单
+@Index('idx_order_user_created', ['userId', 'createdAt']) // 用户订单列表分页排序
+@Index('idx_order_status_created', ['status', 'createdAt']) // 按状态筛选和时间范围查询
+@Index('idx_order_tenant_status_created', ['tenantId', 'status', 'createdAt']) // 租户维度的订单查询
+@Index('idx_order_tenant_user', ['tenantId', 'userId']) // 租户内用户订单查询
 export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;

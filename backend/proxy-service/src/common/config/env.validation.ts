@@ -83,30 +83,31 @@ export const envValidationSchema = Joi.object({
   COST_PROTECTION_THRESHOLD: Joi.number().min(0).max(1).default(0.95),
 
   // ===== IPRoyal 配置 =====
-  IPROYAL_USERNAME: Joi.string().optional(),
-  IPROYAL_PASSWORD: Joi.string().optional(),
-  IPROYAL_API_URL: Joi.string().uri().default('https://resi-api.iproyal.com/v1'),
+  IPROYAL_USERNAME: Joi.string().allow('').optional(),
+  IPROYAL_PASSWORD: Joi.string().allow('').optional(),
+  IPROYAL_API_KEY: Joi.string().allow('').optional(),
+  IPROYAL_API_URL: Joi.string().uri().allow('').default('https://resi-api.iproyal.com/v1'),
 
   // ===== Bright Data 配置 =====
-  BRIGHTDATA_API_KEY: Joi.string().optional(),
-  BRIGHTDATA_ZONE: Joi.string().default('residential'),
-  BRIGHTDATA_USERNAME: Joi.string().optional(),
-  BRIGHTDATA_PASSWORD: Joi.string().optional(),
-  BRIGHTDATA_API_URL: Joi.string().uri().default('https://api.brightdata.com'),
+  BRIGHTDATA_API_KEY: Joi.string().allow('').optional(),
+  BRIGHTDATA_ZONE: Joi.string().allow('').default('residential'),
+  BRIGHTDATA_USERNAME: Joi.string().allow('').optional(),
+  BRIGHTDATA_PASSWORD: Joi.string().allow('').optional(),
+  BRIGHTDATA_API_URL: Joi.string().uri().allow('').default('https://api.brightdata.com'),
   BRIGHTDATA_COST_PER_GB: Joi.number().min(0).default(10),
 
   // ===== Oxylabs 配置 =====
-  OXYLABS_USERNAME: Joi.string().optional(),
-  OXYLABS_PASSWORD: Joi.string().optional(),
-  OXYLABS_API_URL: Joi.string().uri().default('https://api.oxylabs.io'),
+  OXYLABS_USERNAME: Joi.string().allow('').optional(),
+  OXYLABS_PASSWORD: Joi.string().allow('').optional(),
+  OXYLABS_API_URL: Joi.string().uri().allow('').default('https://api.oxylabs.io'),
   OXYLABS_PROXY_TYPE: Joi.string().valid('residential', 'datacenter').default('residential'),
   OXYLABS_COST_PER_GB: Joi.number().min(0).default(12),
 
   // ===== IPIDEA 配置 =====
-  IPIDEA_API_KEY: Joi.string().optional(),
-  IPIDEA_USERNAME: Joi.string().optional(),
-  IPIDEA_PASSWORD: Joi.string().optional(),
-  IPIDEA_API_URL: Joi.string().uri().default('https://api.ipidea.net'),
+  IPIDEA_API_KEY: Joi.string().allow('').optional(),
+  IPIDEA_USERNAME: Joi.string().allow('').optional(),
+  IPIDEA_PASSWORD: Joi.string().allow('').optional(),
+  IPIDEA_API_URL: Joi.string().uri().allow('').default('https://api.ipidea.net'),
   IPIDEA_PROXY_TYPE: Joi.string()
     .valid('residential', 'datacenter', 'mobile', 'isp')
     .default('residential'),
@@ -115,11 +116,17 @@ export const envValidationSchema = Joi.object({
   IPIDEA_PORT: Joi.number().port().default(2336),
 
   // ===== Kookeey 配置 =====
-  KOOKEEY_API_KEY: Joi.string().optional(),
-  KOOKEEY_USERNAME: Joi.string().optional(),
-  KOOKEEY_PASSWORD: Joi.string().optional(),
-  KOOKEEY_API_URL: Joi.string().uri().optional(),
+  KOOKEEY_API_KEY: Joi.string().allow('').optional(),
+  KOOKEEY_USERNAME: Joi.string().allow('').optional(),
+  KOOKEEY_PASSWORD: Joi.string().allow('').optional(),
+  KOOKEEY_API_URL: Joi.string().uri().allow('').optional(),
   KOOKEEY_COST_PER_GB: Joi.number().min(0).default(5),
+
+  // ===== SmartProxy 配置 =====
+  SMARTPROXY_USERNAME: Joi.string().allow('').optional(),
+  SMARTPROXY_PASSWORD: Joi.string().allow('').optional(),
+  SMARTPROXY_API_URL: Joi.string().uri().allow('').optional(),
+  SMARTPROXY_COST_PER_GB: Joi.number().min(0).default(4),
 
   // ===== 日志配置 =====
   LOG_LEVEL: Joi.string().valid('debug', 'info', 'warn', 'error', 'fatal').default('info'),

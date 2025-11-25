@@ -544,32 +544,44 @@ export class QueueService {
       if (expiredEntries.length > 0) {
         this.logger.log(`Found ${expiredEntries.length} expired queue entries`);
 
+        // ✅ 批量更新所有过期条目（优化：避免逐条保存的长事务）
         for (const entry of expiredEntries) {
           entry.status = QueueStatus.EXPIRED;
           entry.expiredAt = now;
           entry.expiryReason = 'Maximum wait time exceeded';
-
-          await this.queueRepository.save(entry);
-
-          // 发送过期通知
-          await this.notificationClient.sendBatchNotifications([
-            {
-              userId: entry.userId,
-              type: NotificationType.QUEUE_EXPIRED,
-              title: '⏰ 队列等待超时',
-              message: '很抱歉，等待时间已超过限制，请重新加入队列',
-              channels: ['websocket'],
-              data: {
-                queueId: entry.id,
-              },
-            },
-          ]);
         }
+
+        // 批量保存，减少数据库往返
+        await this.queueRepository.save(expiredEntries);
 
         // 重新计算剩余条目的位置
         await this.recalculateAllPositions();
 
         this.logger.log(`Marked ${expiredEntries.length} queue entries as expired`);
+
+        // ✅ 异步发送通知（不阻塞数据库事务）
+        // 使用 setImmediate 确保通知在事务提交后发送
+        setImmediate(async () => {
+          try {
+            const notifications = expiredEntries.map((entry) => ({
+              userId: entry.userId,
+              type: NotificationType.QUEUE_EXPIRED,
+              title: '⏰ 队列等待超时',
+              message: '很抱歉，等待时间已超过限制，请重新加入队列',
+              channels: ['websocket'] as const,
+              data: {
+                queueId: entry.id,
+              },
+            }));
+
+            // 批量发送通知
+            await this.notificationClient.sendBatchNotifications(notifications);
+            this.logger.debug(`Sent ${notifications.length} expiration notifications`);
+          } catch (notifyError) {
+            // 通知失败不影响主流程
+            this.logger.warn(`Failed to send expiration notifications: ${notifyError.message}`);
+          }
+        });
       }
     } catch (error) {
       this.logger.error(`Error in markExpiredQueueEntries: ${error.message}`, error.stack);
