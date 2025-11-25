@@ -26,7 +26,7 @@ const app = express();
 app.use(express.json());
 
 // 环境变量
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 30012;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 const PARSE_MODE = (process.env.PARSE_MODE || 'HTML') as 'HTML' | 'Markdown';

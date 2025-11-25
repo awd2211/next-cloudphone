@@ -13,8 +13,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 配置
-TELEGRAM_PORT=5002
-LARK_PORT=5001
+TELEGRAM_PORT=30012
+LARK_PORT=30011
 ALERTMANAGER_PORT=9093
 
 echo -e "${BLUE}═══════════════════════════════════════════════${NC}"

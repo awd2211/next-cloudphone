@@ -26,7 +26,7 @@ const app = express();
 app.use(express.json());
 
 // 环境变量
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 30011;
 const LARK_WEBHOOK_URL = process.env.LARK_WEBHOOK_URL || '';
 const LARK_SECRET = process.env.LARK_SECRET || '';
 

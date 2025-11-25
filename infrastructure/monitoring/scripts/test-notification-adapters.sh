@@ -15,8 +15,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 配置
-LARK_WEBHOOK_PORT=5001
-TELEGRAM_WEBHOOK_PORT=5002
+LARK_WEBHOOK_PORT=30011
+TELEGRAM_WEBHOOK_PORT=30012
 TEST_ALERT_FILE="../test-alert.json"
 
 echo -e "${BLUE}==============================================================================${NC}"
