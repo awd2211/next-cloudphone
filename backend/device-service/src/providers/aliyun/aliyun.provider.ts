@@ -313,10 +313,36 @@ export class AliyunProvider implements IDeviceProvider {
 
   /**
    * 获取设备指标
+   *
+   * 使用 DescribeMetricLast API 获取真实的监控数据
    */
   async getMetrics(deviceId: string): Promise<DeviceMetrics> {
-    // 新版API支持监控指标，但需要额外实现
-    // 这里返回基础结构
+    this.logger.log(`Getting metrics for device ${deviceId}`);
+
+    try {
+      const result = await this.ecpClient.getDeviceMetrics(deviceId);
+
+      if (result.success && result.data) {
+        return {
+          cpuUsage: result.data.cpuUsage,
+          memoryUsage: result.data.memoryUsage,
+          memoryUsed: 0, // 阿里云 API 只返回使用率，不返回绝对值
+          storageUsed: 0,
+          storageUsage: result.data.diskUsage,
+          networkRx: result.data.networkIn,
+          networkTx: result.data.networkOut,
+          batteryLevel: 100, // 云手机不需要电池
+          timestamp: new Date(result.data.timestamp),
+        };
+      }
+
+      // 如果获取失败，记录日志并返回默认值
+      this.logger.warn(`Failed to get metrics for ${deviceId}: ${result.errorMessage}`);
+    } catch (error) {
+      this.logger.error(`Error getting metrics for ${deviceId}: ${error.message}`);
+    }
+
+    // 返回默认值
     return {
       cpuUsage: 0,
       memoryUsage: 0,
@@ -444,14 +470,35 @@ export class AliyunProvider implements IDeviceProvider {
       throw new InternalServerErrorException(`Failed to create screenshot: ${result.errorMessage}`);
     }
 
-    // 截图是异步的，需要通过任务查询获取结果
-    // 这里返回空Buffer，实际使用需要轮询任务状态获取截图URL
-    this.logger.log(`Screenshot task created: ${result.data.taskId}`);
+    const taskId = result.data.taskId;
+    this.logger.log(`Screenshot task created: ${taskId}, waiting for completion...`);
 
-    throw new NotImplementedException(
-      `Screenshot is async. Task ID: ${result.data.taskId}. ` +
-        'Poll DescribeTasks API to get the screenshot URL.'
-    );
+    // 等待截图任务完成并获取 URL
+    const screenshotResult = await this.ecpClient.waitForScreenshotResult(taskId);
+
+    if (!screenshotResult.success || !screenshotResult.data) {
+      throw new InternalServerErrorException(
+        `Failed to get screenshot: ${screenshotResult.errorMessage || 'Unknown error'}`
+      );
+    }
+
+    // 下载截图并返回 Buffer
+    const screenshotUrl = screenshotResult.data.url;
+    this.logger.log(`Screenshot URL: ${screenshotUrl}, downloading...`);
+
+    try {
+      // 使用 fetch 下载截图
+      const response = await fetch(screenshotUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to download screenshot: HTTP ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch (downloadError) {
+      this.logger.error(`Failed to download screenshot from ${screenshotUrl}: ${downloadError.message}`);
+      throw new InternalServerErrorException(`Failed to download screenshot: ${downloadError.message}`);
+    }
   }
 
   /**

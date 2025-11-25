@@ -1,4 +1,5 @@
-import { Module, OnModuleInit, Logger, Inject, Optional } from '@nestjs/common';
+import { Module, OnModuleInit, Logger } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DeviceProviderFactory } from './device-provider.factory';
 import { RedroidModule } from './redroid/redroid.module';
@@ -30,6 +31,10 @@ import { Device } from '../entities/device.entity';
  * 导出：
  * - DeviceProviderFactory: Provider 工厂类
  * - ProvidersService: 提供商管理服务
+ *
+ * 架构说明：
+ * - 使用 ModuleRef 延迟获取 providers，避免循环依赖
+ * - HuaweiProvider 依赖 ProvidersService，使用 forwardRef 解决
  */
 @Module({
   imports: [
@@ -47,28 +52,34 @@ export class ProvidersModule implements OnModuleInit {
   private readonly logger = new Logger(ProvidersModule.name);
 
   constructor(
+    private readonly moduleRef: ModuleRef,
     private readonly providerFactory: DeviceProviderFactory,
-    private readonly redroidProvider: RedroidProvider,
-    private readonly physicalProvider: PhysicalProvider, // ✅ Phase 2A
-    private readonly huaweiProvider: HuaweiProvider, // ✅ Phase 3
-    private readonly aliyunProvider: AliyunProvider // ✅ Phase 4 - 2023-09-30 API
   ) {}
 
   /**
    * 模块初始化时自动注册所有 Providers
+   *
+   * 使用 ModuleRef.get() 延迟获取 providers，
+   * 这样可以避免构造函数注入时的循环依赖问题
    */
-  onModuleInit() {
+  async onModuleInit() {
+    // 延迟获取各个 provider，避免循环依赖
+    const redroidProvider = this.moduleRef.get(RedroidProvider, { strict: false });
+    const physicalProvider = this.moduleRef.get(PhysicalProvider, { strict: false });
+    const huaweiProvider = this.moduleRef.get(HuaweiProvider, { strict: false });
+    const aliyunProvider = this.moduleRef.get(AliyunProvider, { strict: false });
+
     // 注册 Redroid Provider
-    this.providerFactory.registerProvider(this.redroidProvider);
+    this.providerFactory.registerProvider(redroidProvider);
 
     // ✅ Phase 2A: 注册 Physical Provider
-    this.providerFactory.registerProvider(this.physicalProvider);
+    this.providerFactory.registerProvider(physicalProvider);
 
     // ✅ Phase 3: 注册 Huawei Provider
-    this.providerFactory.registerProvider(this.huaweiProvider);
+    this.providerFactory.registerProvider(huaweiProvider);
 
     // ✅ Phase 4: 注册 Aliyun Provider (2023-09-30 API - Instance Group model)
-    this.providerFactory.registerProvider(this.aliyunProvider);
+    this.providerFactory.registerProvider(aliyunProvider);
     this.logger.log('Registered AliyunProvider (2023-09-30 API) - Instance Group model');
 
     this.logger.log(

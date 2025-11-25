@@ -1023,6 +1023,9 @@ export class ProvidersService implements OnModuleInit {
       throw new BadRequestException(`Provider type ${providerType} is not available`);
     }
 
+    // ✅ 验证配置完整性
+    this.validateProviderConfig(providerType, config);
+
     // 检查同名配置是否已存在
     const existingConfig = await this.configRepo.findOne({
       where: { name, providerType, tenantId: tenantId || undefined },
@@ -1109,6 +1112,11 @@ export class ProvidersService implements OnModuleInit {
         ...config.config,
         ...updateDto.config,
       };
+    }
+
+    // ✅ 验证更新后的配置完整性
+    if (updateDto.config) {
+      this.validateProviderConfig(config.providerType, config.config);
     }
 
     // 更新其他字段
@@ -1305,6 +1313,146 @@ export class ProvidersService implements OnModuleInit {
   }
 
   // ==================== 私有辅助方法 ====================
+
+  /**
+   * 验证提供商配置的完整性和正确性
+   *
+   * @param providerType 提供商类型
+   * @param config 配置对象
+   * @throws BadRequestException 如果配置不完整或不正确
+   */
+  private validateProviderConfig(providerType: DeviceProviderType, config: any): void {
+    if (!config) {
+      throw new BadRequestException(`Configuration is required for provider ${providerType}`);
+    }
+
+    switch (providerType) {
+      case DeviceProviderType.HUAWEI_CPH:
+        this.validateHuaweiCphConfig(config);
+        break;
+
+      case DeviceProviderType.ALIYUN_ECP:
+        this.validateAliyunEcpConfig(config);
+        break;
+
+      case DeviceProviderType.REDROID:
+        this.validateRedroidConfig(config);
+        break;
+
+      case DeviceProviderType.PHYSICAL:
+        this.validatePhysicalConfig(config);
+        break;
+
+      default:
+        // 未知提供商类型，不进行验证
+        this.logger.warn(`No validation rules for provider type: ${providerType}`);
+    }
+  }
+
+  /**
+   * 验证华为云手机配置
+   */
+  private validateHuaweiCphConfig(config: any): void {
+    const errors: string[] = [];
+
+    // 必需字段验证
+    if (!config.projectId && !config.project_id) {
+      errors.push('projectId is required for Huawei CPH');
+    }
+
+    if (!config.accessKeyId && !config.access_key_id) {
+      errors.push('accessKeyId is required for Huawei CPH');
+    }
+
+    if (!config.secretAccessKey && !config.secret_access_key && !config.accessKeySecret) {
+      errors.push('secretAccessKey is required for Huawei CPH');
+    }
+
+    if (!config.region) {
+      errors.push('region is required for Huawei CPH');
+    }
+
+    // 格式验证
+    if (config.region && !config.region.match(/^[a-z]{2}-[a-z]+-\d+$/)) {
+      errors.push('Invalid region format. Expected format: cn-north-4, cn-south-1, etc.');
+    }
+
+    // 抛出所有验证错误
+    if (errors.length > 0) {
+      throw new BadRequestException(
+        `Invalid Huawei CPH configuration:\n${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}`,
+      );
+    }
+
+    // 可选字段的警告
+    if (!config.defaultServerId && !config.default_server_id) {
+      this.logger.warn('Huawei CPH: defaultServerId not configured. You must specify serverId when creating devices.');
+    }
+
+    if (!config.defaultImageId && !config.default_image_id) {
+      this.logger.warn('Huawei CPH: defaultImageId not configured. You must specify imageId when creating devices.');
+    }
+  }
+
+  /**
+   * 验证阿里云配置
+   */
+  private validateAliyunEcpConfig(config: any): void {
+    const errors: string[] = [];
+
+    if (!config.accessKeyId && !config.access_key_id) {
+      errors.push('accessKeyId is required for Aliyun ECP');
+    }
+
+    if (!config.accessKeySecret && !config.secret_access_key) {
+      errors.push('accessKeySecret is required for Aliyun ECP');
+    }
+
+    if (!config.region) {
+      errors.push('region is required for Aliyun ECP');
+    }
+
+    if (errors.length > 0) {
+      throw new BadRequestException(
+        `Invalid Aliyun ECP configuration:\n${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}`,
+      );
+    }
+  }
+
+  /**
+   * 验证 Redroid 配置
+   */
+  private validateRedroidConfig(config: any): void {
+    const errors: string[] = [];
+
+    if (!config.dockerHost) {
+      errors.push('dockerHost is required for Redroid');
+    }
+
+    if (config.dockerHost && !config.dockerHost.match(/^(unix:\/\/|tcp:\/\/|http:\/\/|https:\/\/)/)) {
+      errors.push('Invalid dockerHost format. Expected: unix://, tcp://, http://, or https://');
+    }
+
+    if (errors.length > 0) {
+      throw new BadRequestException(
+        `Invalid Redroid configuration:\n${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}`,
+      );
+    }
+  }
+
+  /**
+   * 验证物理设备配置
+   */
+  private validatePhysicalConfig(config: any): void {
+    // 物理设备配置较为灵活，只做基本验证
+    if (config.adbHost && !config.adbHost.match(/^[a-zA-Z0-9\.\-]+$/)) {
+      throw new BadRequestException('Invalid adbHost format for Physical device provider');
+    }
+
+    if (config.adbPort && (config.adbPort < 1 || config.adbPort > 65535)) {
+      throw new BadRequestException('Invalid adbPort. Must be between 1 and 65535');
+    }
+  }
 
   /**
    * 取消指定类型的所有默认配置

@@ -1284,39 +1284,123 @@ export class AliyunEcpClient implements OnModuleInit {
    * 获取最新监控数据
    *
    * API: DescribeMetricLast
+   *
+   * 支持的指标名称:
+   * - cpu_utilization: CPU 使用率
+   * - memory_utilization: 内存使用率
+   * - disk_utilization: 磁盘使用率
+   * - network_in: 网络入流量
+   * - network_out: 网络出流量
+   *
+   * @param instanceIds 实例 ID 列表
+   * @param metricNames 指标名称列表
    */
   @Retry({ maxAttempts: 3, baseDelayMs: 1000, retryableErrors: [NetworkError, TimeoutError] })
   @RateLimit({ key: 'aliyun-api', capacity: 30, refillRate: 15 })
   async describeMetricLast(params: {
     instanceIds: string[];
-    metricName: string;
+    metricNames: string[];
   }): Promise<OperationResult<Array<{
     instanceId: string;
-    metricName: string;
-    value: number;
-    timestamp: number;
+    metrics: Array<{
+      metricName: string;
+      average: number;
+      maximum: number;
+      minimum: number;
+      timestamp: number;
+    }>;
   }>>> {
     this.ensureClient();
 
     try {
-      // 注意：具体API参数需要根据实际SDK确认
-      // 这里提供一个通用实现框架
-      this.logger.log(`Getting metric ${params.metricName} for ${params.instanceIds.length} instances`);
+      this.logger.log(`Getting metrics [${params.metricNames.join(', ')}] for ${params.instanceIds.length} instances`);
 
-      // 由于监控API可能有不同的调用方式，这里返回模拟数据结构
-      // 实际实现需要根据SDK文档调整
+      const request = new $EdsAic20230930.DescribeMetricLastRequest({
+        androidInstanceIds: params.instanceIds,
+        metricNames: params.metricNames,
+      });
+
+      const response = await this.client.describeMetricLastWithOptions(request, this.runtime);
+      const body = extractBody(response);
+
+      // 解析响应数据
+      const result = (body.metricTotalModel || []).map((model: {
+        androidInstanceId?: string;
+        metricModelList?: Array<{
+          metricName?: string;
+          dataPoints?: Array<{
+            average?: number;
+            maximum?: number;
+            minimum?: number;
+            timestamp?: number;
+          }>;
+        }>;
+      }) => ({
+        instanceId: model.androidInstanceId || '',
+        metrics: (model.metricModelList || []).map((m) => {
+          // 取最新的数据点
+          const latestPoint = m.dataPoints?.[m.dataPoints.length - 1];
+          return {
+            metricName: m.metricName || '',
+            average: latestPoint?.average || 0,
+            maximum: latestPoint?.maximum || 0,
+            minimum: latestPoint?.minimum || 0,
+            timestamp: latestPoint?.timestamp || Date.now(),
+          };
+        }),
+      }));
+
       return {
         success: true,
-        data: params.instanceIds.map((id) => ({
-          instanceId: id,
-          metricName: params.metricName,
-          value: 0,
-          timestamp: Date.now(),
-        })),
+        data: result,
+        requestId: body.requestId,
       };
     } catch (error) {
       return this.handleError(error, 'DescribeMetricLast');
     }
+  }
+
+  /**
+   * 获取设备的完整指标数据
+   *
+   * 便捷方法，获取常用的所有指标
+   */
+  async getDeviceMetrics(instanceId: string): Promise<OperationResult<{
+    cpuUsage: number;
+    memoryUsage: number;
+    diskUsage: number;
+    networkIn: number;
+    networkOut: number;
+    timestamp: number;
+  }>> {
+    const result = await this.describeMetricLast({
+      instanceIds: [instanceId],
+      metricNames: ['cpu_utilization', 'memory_utilization', 'disk_utilization', 'network_in', 'network_out'],
+    });
+
+    if (!result.success || !result.data || result.data.length === 0) {
+      return {
+        success: false,
+        errorCode: result.errorCode || 'METRICS_NOT_FOUND',
+        errorMessage: result.errorMessage || 'Failed to get metrics',
+      };
+    }
+
+    const instanceMetrics = result.data[0];
+    const metricsMap = new Map(instanceMetrics.metrics.map((m) => [m.metricName, m]));
+
+    return {
+      success: true,
+      data: {
+        cpuUsage: metricsMap.get('cpu_utilization')?.average || 0,
+        memoryUsage: metricsMap.get('memory_utilization')?.average || 0,
+        diskUsage: metricsMap.get('disk_utilization')?.average || 0,
+        networkIn: metricsMap.get('network_in')?.average || 0,
+        networkOut: metricsMap.get('network_out')?.average || 0,
+        timestamp: metricsMap.get('cpu_utilization')?.timestamp || Date.now(),
+      },
+      requestId: result.requestId,
+    };
   }
 
   // ============================================================
@@ -1423,6 +1507,10 @@ export class AliyunEcpClient implements OnModuleInit {
     progress: number;
     gmtCreate: string;
     gmtFinished?: string;
+    result?: string;
+    errorCode?: string;
+    errorMsg?: string;
+    instanceId?: string;
   }>>> {
     this.ensureClient();
 
@@ -1445,6 +1533,10 @@ export class AliyunEcpClient implements OnModuleInit {
         progress?: number;
         gmtCreate?: string;
         gmtFinished?: string;
+        result?: string;
+        errorCode?: string;
+        errorMsg?: string;
+        instanceId?: string;
       }) => ({
         taskId: t.taskId || '',
         taskType: t.taskType || '',
@@ -1452,6 +1544,10 @@ export class AliyunEcpClient implements OnModuleInit {
         progress: t.progress || 0,
         gmtCreate: t.gmtCreate || '',
         gmtFinished: t.gmtFinished,
+        result: t.result,
+        errorCode: t.errorCode,
+        errorMsg: t.errorMsg,
+        instanceId: t.instanceId,
       })) || [];
 
       return {
@@ -1462,6 +1558,95 @@ export class AliyunEcpClient implements OnModuleInit {
     } catch (error) {
       return this.handleError(error, 'DescribeTasks');
     }
+  }
+
+  /**
+   * 等待截图任务完成并返回截图 URL
+   *
+   * @param taskId 任务 ID
+   * @param maxAttempts 最大轮询次数 (默认 30)
+   * @param intervalMs 轮询间隔毫秒 (默认 2000)
+   * @returns 截图 URL
+   */
+  async waitForScreenshotResult(
+    taskId: string,
+    maxAttempts: number = 30,
+    intervalMs: number = 2000
+  ): Promise<OperationResult<{ url: string; instanceId?: string }>> {
+    this.logger.log(`Waiting for screenshot task ${taskId} to complete...`);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const result = await this.describeTasks({ taskIds: [taskId] });
+
+      if (!result.success || !result.data || result.data.length === 0) {
+        this.logger.warn(`Failed to query task ${taskId}, attempt ${attempt}/${maxAttempts}`);
+        await this.sleep(intervalMs);
+        continue;
+      }
+
+      const task = result.data[0];
+      this.logger.debug(`Task ${taskId} status: ${task.status}, progress: ${task.progress}%`);
+
+      // 任务完成状态
+      if (task.status === 'Finished' || task.status === 'Success') {
+        // 解析结果中的截图 URL
+        if (task.result) {
+          try {
+            const resultData = JSON.parse(task.result);
+            // 阿里云截图结果可能的格式：
+            // { "url": "https://..." } 或 { "screenshotUrl": "https://..." } 或 { "OssUrl": "https://..." }
+            const url = resultData.url || resultData.screenshotUrl || resultData.OssUrl || resultData.ossUrl;
+            if (url) {
+              this.logger.log(`Screenshot task ${taskId} completed, URL: ${url}`);
+              return {
+                success: true,
+                data: { url, instanceId: task.instanceId },
+              };
+            }
+          } catch (parseError) {
+            // 如果 result 本身就是 URL
+            if (task.result.startsWith('http')) {
+              return {
+                success: true,
+                data: { url: task.result, instanceId: task.instanceId },
+              };
+            }
+            this.logger.warn(`Failed to parse task result: ${task.result}`);
+          }
+        }
+
+        return {
+          success: false,
+          errorCode: 'SCREENSHOT_URL_NOT_FOUND',
+          errorMessage: `Task completed but screenshot URL not found in result: ${task.result}`,
+        };
+      }
+
+      // 任务失败
+      if (task.status === 'Failed' || task.status === 'Error') {
+        return {
+          success: false,
+          errorCode: task.errorCode || 'SCREENSHOT_FAILED',
+          errorMessage: task.errorMsg || `Screenshot task failed: ${task.result}`,
+        };
+      }
+
+      // 继续等待
+      await this.sleep(intervalMs);
+    }
+
+    return {
+      success: false,
+      errorCode: 'SCREENSHOT_TIMEOUT',
+      errorMessage: `Screenshot task ${taskId} did not complete within ${maxAttempts * intervalMs / 1000} seconds`,
+    };
+  }
+
+  /**
+   * 睡眠辅助函数
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // ============================================================

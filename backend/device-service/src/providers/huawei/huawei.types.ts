@@ -338,3 +338,36 @@ export interface HuaweiBatchJobStatus {
     errorMessage?: string;
   }>;
 }
+
+/**
+ * 云手机列表查询请求
+ *
+ * API: GET /v1/{project_id}/cloud-phone/phones
+ */
+export interface HuaweiListPhonesRequest {
+  /** 偏移量 (默认 0) */
+  offset?: number;
+
+  /** 每页数量 (默认 100, 最大 100) */
+  limit?: number;
+
+  /** 云手机名称 (模糊匹配) */
+  phoneName?: string;
+
+  /** 服务器 ID */
+  serverId?: string;
+
+  /** 云手机状态筛选 */
+  status?: HuaweiPhoneStatus;
+}
+
+/**
+ * 云手机列表查询响应
+ */
+export interface HuaweiListPhonesResponse {
+  /** 总数量 */
+  count: number;
+
+  /** 云手机列表 */
+  phones: HuaweiPhoneInstance[];
+}

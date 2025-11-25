@@ -3,7 +3,10 @@ import {
   Logger,
   NotImplementedException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import { HttpService } from '@nestjs/axios';
 import { IDeviceProvider } from '../device-provider.interface';
 import {
   DeviceProviderType,
@@ -23,20 +26,21 @@ import {
   DeviceMetrics,
 } from '../provider.types';
 import { HuaweiCphClient } from './huawei-cph.client';
-import { HuaweiPhoneStatus } from './huawei.types';
+import { HuaweiPhoneStatus, HuaweiCphConfig } from './huawei.types';
 
 /**
  * HuaweiProvider
  *
  * 华为云手机 CPH Provider 实现
  *
- * Phase 3: 基础实现
+ * Phase 1: 动态配置支持
  *
  * 特点：
  * - 云手机实例管理
  * - WebRTC 投屏
  * - 云端 ADB 控制
  * - 按需创建/销毁
+ * - **多账号配置支持 (NEW)**
  *
  * 限制：
  * - 触控控制需要通过华为 WebRTC 协议
@@ -48,7 +52,25 @@ export class HuaweiProvider implements IDeviceProvider {
   private readonly logger = new Logger(HuaweiProvider.name);
   readonly providerType = DeviceProviderType.HUAWEI_CPH;
 
-  constructor(private cphClient: HuaweiCphClient) {}
+  // 延迟加载的 ProvidersService 引用
+  private _providersService: any;
+
+  constructor(
+    private readonly moduleRef: ModuleRef,
+    private httpService: HttpService,
+  ) {}
+
+  /**
+   * 延迟获取 ProvidersService，避免循环依赖
+   */
+  private get providersService(): any {
+    if (!this._providersService) {
+      // 使用 ModuleRef 延迟获取 ProvidersService
+      const { ProvidersService } = require('../providers.service');
+      this._providersService = this.moduleRef.get(ProvidersService, { strict: false });
+    }
+    return this._providersService;
+  }
 
   /**
    * 创建华为云手机实例
@@ -56,6 +78,12 @@ export class HuaweiProvider implements IDeviceProvider {
   async create(config: DeviceCreateConfig): Promise<ProviderDevice> {
     try {
       this.logger.log(`Creating Huawei phone for user ${config.userId}`);
+
+      // 获取配置 ID (优先从 providerSpecificConfig 中获取)
+      const configId = config.providerSpecificConfig?.configId;
+
+      // 获取华为云客户端 (会自动选择指定配置或默认配置)
+      const cphClient = await this.getClientWithConfig(configId);
 
       // 解析分辨率
       let resolution = '1080x1920';
@@ -70,14 +98,10 @@ export class HuaweiProvider implements IDeviceProvider {
 
       // 创建云手机
       // 从 providerSpecificConfig 中获取华为特定配置
-      const imageId =
-        config.providerSpecificConfig?.imageId || process.env.HUAWEI_DEFAULT_IMAGE_ID || 'default';
-      const serverId =
-        config.providerSpecificConfig?.serverId ||
-        process.env.HUAWEI_DEFAULT_SERVER_ID ||
-        'default';
+      const imageId = config.providerSpecificConfig?.imageId || '';
+      const serverId = config.providerSpecificConfig?.serverId || '';
 
-      const result = await this.cphClient.createPhone({
+      const result = await cphClient.createPhone({
         phoneName: config.name || `huawei-${config.userId}-${Date.now()}`,
         specId,
         imageId,
@@ -97,7 +121,8 @@ export class HuaweiProvider implements IDeviceProvider {
       const instance = result.data;
 
       // 返回标准化的 ProviderDevice
-      return {
+      // 在 providerConfig 中保存使用的配置 ID
+      const providerDevice: ProviderDevice = {
         id: instance.instanceId,
         name: instance.instanceName,
         status: this.mapHuaweiStatusToProviderStatus(instance.status),
@@ -119,7 +144,11 @@ export class HuaweiProvider implements IDeviceProvider {
           dpi: 480,
         },
         createdAt: new Date(instance.createTime),
+        // 保存配置 ID 到 providerConfig (将被存储到 device 表的 provider_config 字段)
+        providerConfig: configId ? { configId } : undefined,
       };
+
+      return providerDevice;
     } catch (error) {
       this.logger.error(`Failed to create Huawei phone: ${error.message}`);
       throw error;
@@ -128,9 +157,12 @@ export class HuaweiProvider implements IDeviceProvider {
 
   /**
    * 启动云手机
+   *
+   * 注意: 此方法使用默认配置,因为设备已经创建,只需要有权限的账号即可操作
    */
   async start(deviceId: string): Promise<void> {
-    const result = await this.cphClient.startPhone(deviceId);
+    const cphClient = await this.getClientWithConfig(); // 使用默认配置
+    const result = await cphClient.startPhone(deviceId);
     if (!result.success) {
       throw new InternalServerErrorException(
         `Failed to start Huawei phone: ${result.errorMessage}`
@@ -140,9 +172,12 @@ export class HuaweiProvider implements IDeviceProvider {
 
   /**
    * 停止云手机
+   *
+   * 注意: 此方法使用默认配置
    */
   async stop(deviceId: string): Promise<void> {
-    const result = await this.cphClient.stopPhone(deviceId);
+    const cphClient = await this.getClientWithConfig(); // 使用默认配置
+    const result = await cphClient.stopPhone(deviceId);
     if (!result.success) {
       throw new InternalServerErrorException(`Failed to stop Huawei phone: ${result.errorMessage}`);
     }
@@ -150,9 +185,12 @@ export class HuaweiProvider implements IDeviceProvider {
 
   /**
    * 销毁云手机
+   *
+   * 注意: 此方法使用默认配置
    */
   async destroy(deviceId: string): Promise<void> {
-    const result = await this.cphClient.deletePhone(deviceId);
+    const cphClient = await this.getClientWithConfig(); // 使用默认配置
+    const result = await cphClient.deletePhone(deviceId);
     if (!result.success) {
       throw new InternalServerErrorException(
         `Failed to delete Huawei phone: ${result.errorMessage}`
@@ -162,9 +200,12 @@ export class HuaweiProvider implements IDeviceProvider {
 
   /**
    * 获取状态
+   *
+   * 注意: 此方法使用默认配置
    */
   async getStatus(deviceId: string): Promise<DeviceProviderStatus> {
-    const result = await this.cphClient.getPhone(deviceId);
+    const cphClient = await this.getClientWithConfig(); // 使用默认配置
+    const result = await cphClient.getPhone(deviceId);
     if (!result.success || !result.data) {
       return DeviceProviderStatus.ERROR;
     }
@@ -174,9 +215,12 @@ export class HuaweiProvider implements IDeviceProvider {
 
   /**
    * 获取连接信息
+   *
+   * 注意: 此方法使用默认配置
    */
   async getConnectionInfo(deviceId: string): Promise<ConnectionInfo> {
-    const result = await this.cphClient.getConnectionInfo(deviceId);
+    const cphClient = await this.getClientWithConfig(); // 使用默认配置
+    const result = await cphClient.getConnectionInfo(deviceId);
 
     if (!result.success || !result.data) {
       throw new InternalServerErrorException(
@@ -200,9 +244,12 @@ export class HuaweiProvider implements IDeviceProvider {
 
   /**
    * 获取设备属性
+   *
+   * 注意: 此方法使用默认配置
    */
   async getProperties(deviceId: string): Promise<DeviceProperties> {
-    const result = await this.cphClient.getPhone(deviceId);
+    const cphClient = await this.getClientWithConfig(); // 使用默认配置
+    const result = await cphClient.getPhone(deviceId);
 
     if (!result.success || !result.data) {
       throw new InternalServerErrorException('Failed to get phone details');
@@ -267,9 +314,12 @@ export class HuaweiProvider implements IDeviceProvider {
 
   /**
    * 重启设备
+   *
+   * 注意: 此方法使用默认配置
    */
   async rebootDevice(deviceId: string): Promise<void> {
-    const result = await this.cphClient.rebootPhone(deviceId);
+    const cphClient = await this.getClientWithConfig(); // 使用默认配置
+    const result = await cphClient.rebootPhone(deviceId);
     if (!result.success) {
       throw new InternalServerErrorException(
         `Failed to reboot Huawei phone: ${result.errorMessage}`
@@ -301,6 +351,8 @@ export class HuaweiProvider implements IDeviceProvider {
    * 使用华为云 OBS 批量安装 APK
    * APK 必须先上传到 OBS 存储桶
    *
+   * 注意: 此方法使用默认配置
+   *
    * @param deviceId 设备 ID
    * @param options 安装选项
    * @returns Job ID 用于查询安装进度
@@ -309,12 +361,14 @@ export class HuaweiProvider implements IDeviceProvider {
     this.logger.log(`Installing app on Huawei phone ${deviceId}: ${options.apkPath}`);
 
     try {
+      const cphClient = await this.getClientWithConfig(); // 使用默认配置
+
       // 从 apkPath 解析 OBS 路径
       // 期望格式: obs://{bucketName}/{objectPath} 或 /{bucketName}/{objectPath}
       const { bucketName, objectPath } = this.parseObsPath(options.apkPath);
 
       // 调用 SDK 批量安装方法
-      const result = await this.cphClient.installApk([deviceId], bucketName, objectPath);
+      const result = await cphClient.installApk([deviceId], bucketName, objectPath);
 
       if (!result.success || !result.data) {
         throw new InternalServerErrorException(
@@ -333,13 +387,16 @@ export class HuaweiProvider implements IDeviceProvider {
   /**
    * 卸载应用
    *
+   * 注意: 此方法使用默认配置
+   *
    * @param deviceId 设备 ID
    * @param packageName 应用包名
    */
   async uninstallApp(deviceId: string, packageName: string): Promise<void> {
     this.logger.log(`Uninstalling app from Huawei phone ${deviceId}: ${packageName}`);
 
-    const result = await this.cphClient.uninstallApk([deviceId], packageName);
+    const cphClient = await this.getClientWithConfig(); // 使用默认配置
+    const result = await cphClient.uninstallApk([deviceId], packageName);
 
     if (!result.success) {
       throw new InternalServerErrorException(
@@ -352,13 +409,17 @@ export class HuaweiProvider implements IDeviceProvider {
    * 获取已安装应用列表
    *
    * 通过 ADB 命令执行 pm list packages
+   *
+   * 注意: 此方法使用默认配置
    */
   async getInstalledApps(deviceId: string): Promise<string[]> {
     this.logger.log(`Getting installed apps for Huawei phone ${deviceId}`);
 
     try {
+      const cphClient = await this.getClientWithConfig(); // 使用默认配置
+
       // 执行 ADB 命令列出已安装包
-      const result = await this.cphClient.executeAdbCommand(
+      const result = await cphClient.executeAdbCommand(
         deviceId,
         'pm list packages',
         60
@@ -394,6 +455,7 @@ export class HuaweiProvider implements IDeviceProvider {
    * - 只支持 tar 格式
    * - 文件大小限制 6GB
    * - 默认解压到 /data/local/tmp
+   * - 此方法使用默认配置
    *
    * @param deviceId 设备 ID
    * @param options 文件传输选项
@@ -402,6 +464,8 @@ export class HuaweiProvider implements IDeviceProvider {
     this.logger.log(`Pushing file to Huawei phone ${deviceId}: ${options.localPath}`);
 
     try {
+      const cphClient = await this.getClientWithConfig(); // 使用默认配置
+
       // 从 localPath 解析 OBS 路径
       const { bucketName, objectPath } = this.parseObsPath(options.localPath);
 
@@ -413,7 +477,7 @@ export class HuaweiProvider implements IDeviceProvider {
       }
 
       // 调用 SDK 推送文件
-      const result = await this.cphClient.pushFile(
+      const result = await cphClient.pushFile(
         [deviceId],
         bucketName,
         objectPath,
@@ -436,6 +500,8 @@ export class HuaweiProvider implements IDeviceProvider {
    *
    * 使用华为云导出数据到 OBS
    *
+   * 注意: 此方法使用默认配置
+   *
    * @param deviceId 设备 ID
    * @param options 文件传输选项
    */
@@ -443,11 +509,13 @@ export class HuaweiProvider implements IDeviceProvider {
     this.logger.log(`Pulling file from Huawei phone ${deviceId}: ${options.remotePath}`);
 
     try {
+      const cphClient = await this.getClientWithConfig(); // 使用默认配置
+
       // 从 localPath 解析 OBS 目标路径
       const { bucketName, objectPath } = this.parseObsPath(options.localPath);
 
       // 调用 SDK 导出数据
-      const result = await this.cphClient.exportData(
+      const result = await cphClient.exportData(
         deviceId,
         options.remotePath,
         bucketName,
@@ -486,6 +554,8 @@ export class HuaweiProvider implements IDeviceProvider {
    *
    * 使用华为云 ADB 命令执行功能
    *
+   * 注意: 此方法使用默认配置
+   *
    * @param deviceId 设备 ID
    * @param command Shell 命令
    * @returns 命令输出
@@ -494,8 +564,10 @@ export class HuaweiProvider implements IDeviceProvider {
     this.logger.log(`Executing shell command on Huawei phone ${deviceId}: ${command}`);
 
     try {
+      const cphClient = await this.getClientWithConfig(); // 使用默认配置
+
       // 执行同步 ADB 命令
-      const result = await this.cphClient.executeAdbCommand(deviceId, command, 60);
+      const result = await cphClient.executeAdbCommand(deviceId, command, 60);
 
       if (!result.success || !result.data) {
         throw new InternalServerErrorException(
@@ -511,6 +583,83 @@ export class HuaweiProvider implements IDeviceProvider {
   }
 
   // ==================== 私有辅助方法 ====================
+
+  /**
+   * 获取华为云配置并创建临时 HuaweiCphClient 实例
+   *
+   * 配置获取优先级:
+   * 1. 如果提供了 configId,使用指定配置
+   * 2. 否则使用该提供商类型的默认配置
+   * 3. 如果都没有,抛出异常
+   *
+   * @param configId 可选的配置 ID
+   * @returns HuaweiCphClient 实例
+   */
+  private async getClientWithConfig(configId?: string): Promise<HuaweiCphClient> {
+    let providerConfig: any;
+
+    try {
+      if (configId) {
+        // 使用指定配置
+        providerConfig = await this.providersService.getProviderConfigById(configId);
+        this.logger.log(`Using specified Huawei CPH config: ${providerConfig.name} (${configId})`);
+      } else {
+        // 使用默认配置
+        providerConfig = await this.providersService.getProviderConfig(DeviceProviderType.HUAWEI_CPH);
+        this.logger.log(`Using default Huawei CPH config`);
+      }
+
+      // 检查配置是否启用
+      if (!providerConfig.enabled && providerConfig.enabled !== undefined) {
+        throw new BadRequestException(`Huawei CPH configuration is disabled`);
+      }
+
+      // 从配置中提取华为云凭证
+      const config = providerConfig.config || {};
+
+      // 构建 HuaweiCphConfig
+      const cphConfig: HuaweiCphConfig = {
+        projectId: config.projectId || config.project_id || '',
+        accessKeyId: config.accessKeyId || config.access_key_id || '',
+        secretAccessKey: config.secretAccessKey || config.secret_access_key || config.accessKeySecret || '',
+        region: config.region || 'cn-north-4',
+        endpoint: config.endpoint || config.apiEndpoint || `https://cph.${config.region || 'cn-north-4'}.myhuaweicloud.com`,
+        defaultServerId: config.defaultServerId || config.default_server_id || '',
+        defaultImageId: config.defaultImageId || config.default_image_id || '',
+      };
+
+      // 验证必要配置
+      if (!cphConfig.accessKeyId || !cphConfig.secretAccessKey) {
+        throw new BadRequestException(
+          `Huawei CPH configuration is incomplete: missing accessKeyId or secretAccessKey`,
+        );
+      }
+
+      if (!cphConfig.projectId) {
+        this.logger.warn(`Huawei CPH projectId not configured, some operations may fail`);
+      }
+
+      // 创建临时客户端实例
+      return new HuaweiCphClient(cphConfig, this.httpService);
+    } catch (error) {
+      this.logger.error(`Failed to get Huawei CPH client: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 从设备的 providerConfig 中提取配置 ID
+   *
+   * @param deviceProviderConfig 设备的 providerConfig 字段
+   * @returns 配置 ID 或 undefined
+   */
+  private extractConfigId(deviceProviderConfig: Record<string, any> | null): string | undefined {
+    if (!deviceProviderConfig) {
+      return undefined;
+    }
+
+    return deviceProviderConfig.configId || deviceProviderConfig.config_id;
+  }
 
   /**
    * 解析 OBS 路径
@@ -547,9 +696,24 @@ export class HuaweiProvider implements IDeviceProvider {
 
   /**
    * 根据配置选择规格
+   *
+   * 优先级：
+   * 1. 使用前端传递的 specId (providerSpecificConfig.specId)
+   * 2. 如果没有指定 specId，根据 CPU 和内存自动选择规格
    */
   private selectSpecByConfig(config: DeviceCreateConfig): string {
-    // 根据 CPU 和内存选择合适的规格
+    // ✅ 优先使用前端传递的 specId
+    const specId = config.providerSpecificConfig?.specId;
+    if (specId) {
+      this.logger.log(`Using user-selected specId: ${specId}`);
+      return specId;
+    }
+
+    // ✅ Fallback: 根据 CPU 和内存自动选择规格
+    this.logger.log(
+      `No specId specified, auto-selecting based on cpuCores=${config.cpuCores}, memoryMB=${config.memoryMB}`
+    );
+
     if (config.cpuCores >= 8 && config.memoryMB >= 8192) {
       return 'cloudphone.rx1.8xlarge'; // 8核16G
     } else if (config.cpuCores >= 4 && config.memoryMB >= 4096) {

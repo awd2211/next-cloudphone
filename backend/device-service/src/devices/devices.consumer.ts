@@ -50,6 +50,7 @@ export class DevicesConsumer {
     queue: 'device-service.app-install',
     queueOptions: {
       durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
     },
   })
   async handleAppInstall(event: AppInstallRequestedEvent) {
@@ -108,6 +109,7 @@ export class DevicesConsumer {
     queue: 'device-service.app-uninstall',
     queueOptions: {
       durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
     },
   })
   async handleAppUninstall(event: AppUninstallRequestedEvent) {
@@ -158,6 +160,7 @@ export class DevicesConsumer {
     queue: 'device-service.device-allocate',
     queueOptions: {
       durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
     },
   })
   async handleDeviceAllocate(event: DeviceAllocateRequestedEvent) {
@@ -205,6 +208,7 @@ export class DevicesConsumer {
     queue: 'device-service.device-release',
     queueOptions: {
       durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
     },
   })
   async handleDeviceRelease(event: { deviceId: string; reason?: string }) {

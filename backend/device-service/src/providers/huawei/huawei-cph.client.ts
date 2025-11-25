@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
   HuaweiCphConfig,
   HuaweiPhoneInstance,
@@ -9,12 +8,16 @@ import {
   HuaweiOperationResult,
   HuaweiAdbCommandResponse,
   HuaweiBatchJobStatus,
+  HuaweiListPhonesRequest,
+  HuaweiListPhonesResponse,
 } from './huawei.types';
 import { Retry, NetworkError, TimeoutError } from '../../common/retry.decorator';
 import { RateLimit } from '../../common/rate-limit.decorator';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
-import * as crypto from 'crypto';
+// 使用华为云官方 SDK 的签名实现
+import { AKSKSigner } from '@huaweicloud/huaweicloud-sdk-core/auth/AKSKSigner';
+import { BasicCredentials } from '@huaweicloud/huaweicloud-sdk-core/auth/BasicCredentials';
 
 /**
  * HuaweiCphClient
@@ -35,27 +38,20 @@ export class HuaweiCphClient {
   private config: HuaweiCphConfig;
 
   constructor(
-    private configService: ConfigService,
+    config: HuaweiCphConfig,
     private httpService: HttpService
   ) {
-    this.config = {
-      projectId: this.configService.get('HUAWEI_PROJECT_ID', ''),
-      accessKeyId: this.configService.get('HUAWEI_ACCESS_KEY_ID', ''),
-      secretAccessKey: this.configService.get('HUAWEI_SECRET_ACCESS_KEY', ''),
-      region: this.configService.get('HUAWEI_REGION', 'cn-north-4'),
-      endpoint: this.configService.get(
-        'HUAWEI_ENDPOINT',
-        'https://cph.cn-north-4.myhuaweicloud.com'
-      ),
-      defaultServerId: this.configService.get('HUAWEI_DEFAULT_SERVER_ID', ''),
-      defaultImageId: this.configService.get('HUAWEI_DEFAULT_IMAGE_ID', ''),
-    };
+    // 使用传入的配置，不再依赖 ConfigService
+    this.config = config;
 
     this.logger.log(`HuaweiCphClient initialized for region: ${this.config.region}`);
 
     // 验证必要配置
     if (!this.config.accessKeyId || !this.config.secretAccessKey) {
       this.logger.warn('Huawei Cloud credentials not configured. SDK will not work properly.');
+    }
+    if (!this.config.projectId) {
+      this.logger.warn('Huawei Cloud project ID not configured.');
     }
   }
 
@@ -175,6 +171,96 @@ export class HuaweiCphClient {
       return {
         success: false,
         errorCode: 'GET_FAILED',
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  /**
+   * 获取云手机列表
+   *
+   * API: GET /v1/{project_id}/cloud-phone/phones
+   *
+   * @param request 查询参数 (可选)
+   *   - offset: 偏移量 (默认 0)
+   *   - limit: 每页数量 (默认 100, 最大 100)
+   *   - phoneName: 云手机名称 (模糊匹配)
+   *   - serverId: 服务器 ID 筛选
+   *   - status: 云手机状态筛选
+   */
+  @Retry({
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    retryableErrors: [NetworkError, TimeoutError],
+  })
+  @RateLimit({
+    key: 'huawei-api',
+    capacity: 15,
+    refillRate: 8,
+  })
+  async listPhones(
+    request?: HuaweiListPhonesRequest
+  ): Promise<HuaweiOperationResult<HuaweiListPhonesResponse>> {
+    try {
+      // 构建查询参数
+      const queryParams = new URLSearchParams();
+      if (request?.offset !== undefined) {
+        queryParams.append('offset', String(request.offset));
+      }
+      if (request?.limit !== undefined) {
+        queryParams.append('limit', String(Math.min(request.limit, 100)));
+      }
+      if (request?.phoneName) {
+        queryParams.append('phone_name', request.phoneName);
+      }
+      if (request?.serverId) {
+        queryParams.append('server_id', request.serverId);
+      }
+      if (request?.status) {
+        queryParams.append('status', this.reverseMapStatus(request.status));
+      }
+
+      const queryString = queryParams.toString();
+      const path = `/v1/${this.config.projectId}/cloud-phone/phones${queryString ? `?${queryString}` : ''}`;
+
+      const response = await this.makeRequest<{ phones: any[]; count: number }>('GET', path);
+
+      if (!response.success || !response.data) {
+        return {
+          success: false,
+          errorCode: response.errorCode,
+          errorMessage: response.errorMessage,
+          requestId: response.requestId,
+        };
+      }
+
+      // 转换为标准格式
+      const phones: HuaweiPhoneInstance[] = (response.data.phones || []).map((phone: any) => ({
+        instanceId: phone.phone_id,
+        instanceName: phone.phone_name,
+        specId: phone.phone_model_name,
+        status: this.mapStatus(phone.status),
+        serverId: phone.server_id,
+        createTime: phone.create_time,
+        updateTime: phone.update_time,
+        publicIp: phone.access_infos?.[0]?.intranet_ip,
+        privateIp: phone.access_infos?.[0]?.internet_ip,
+        property: phone.extend_param,
+      }));
+
+      return {
+        success: true,
+        data: {
+          count: response.data.count || phones.length,
+          phones,
+        },
+        requestId: response.requestId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to list Huawei phones: ${error.message}`);
+      return {
+        success: false,
+        errorCode: 'LIST_FAILED',
         errorMessage: error.message,
       };
     }
@@ -445,88 +531,65 @@ export class HuaweiCphClient {
   }
 
   /**
-   * 生成华为云API请求头(包含签名)
+   * 生成华为云 API 请求头 (包含签名)
    *
-   * 华为云使用 AK/SK 签名认证
+   * 使用华为云官方 SDK 的 AKSKSigner 进行签名
    * 文档: https://support.huaweicloud.com/devg-apisign/api-sign-algorithm.html
    */
   private generateHeaders(method: string, path: string, body?: any): Record<string, string> {
-    const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
     const contentType = 'application/json';
+    const host = new URL(this.config.endpoint).host;
 
-    const headers: Record<string, string> = {
+    // 基础请求头
+    const baseHeaders: Record<string, string> = {
       'Content-Type': contentType,
-      'X-Sdk-Date': timestamp,
-      Host: new URL(this.config.endpoint).host,
     };
 
-    // 如果配置了 AK/SK,生成签名
-    if (this.config.accessKeyId && this.config.secretAccessKey) {
-      const signature = this.signRequest(method, path, headers, body);
-      headers['Authorization'] = signature;
+    // 如果没有配置 AK/SK，只返回基础头
+    if (!this.config.accessKeyId || !this.config.secretAccessKey) {
+      this.logger.warn('Huawei Cloud credentials not configured, skipping signature');
+      return baseHeaders;
     }
 
-    return headers;
-  }
+    // 解析查询参数
+    const queryParams: Record<string, string> = {};
+    if (path.includes('?')) {
+      const [, queryString] = path.split('?');
+      queryString.split('&').forEach((pair) => {
+        const [key, value] = pair.split('=');
+        if (key) {
+          queryParams[decodeURIComponent(key)] = decodeURIComponent(value || '');
+        }
+      });
+    }
 
-  /**
-   * 华为云 AK/SK 签名算法
-   *
-   * 简化实现,生产环境应使用官方SDK的签名逻辑
-   */
-  private signRequest(
-    method: string,
-    path: string,
-    headers: Record<string, string>,
-    body?: any
-  ): string {
+    // 构建符合 AKSKSigner 要求的请求对象
+    const request = {
+      endpoint: this.config.endpoint + path.split('?')[0],
+      method: method.toUpperCase(),
+      headers: baseHeaders,
+      queryParams,
+      data: body,
+    };
+
+    // 使用官方 SDK 的 BasicCredentials 类构建凭证
+    const credential = new BasicCredentials({
+      ak: this.config.accessKeyId,
+      sk: this.config.secretAccessKey,
+      projectId: this.config.projectId,
+    });
+
     try {
-      const algorithm = 'SDK-HMAC-SHA256';
-      const timestamp = headers['X-Sdk-Date'];
-
-      // 1. 规范化请求
-      const canonicalHeaders = Object.keys(headers)
-        .sort()
-        .map((key) => `${key.toLowerCase()}:${headers[key]}`)
-        .join('\n');
-
-      const signedHeaders = Object.keys(headers)
-        .sort()
-        .map((key) => key.toLowerCase())
-        .join(';');
-
-      const bodyHash = body
-        ? crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex')
-        : crypto.createHash('sha256').update('').digest('hex');
-
-      const canonicalRequest = [
-        method.toUpperCase(),
-        path,
-        '', // query string
-        canonicalHeaders,
-        '',
-        signedHeaders,
-        bodyHash,
-      ].join('\n');
-
-      // 2. 计算签名
-      const canonicalRequestHash = crypto
-        .createHash('sha256')
-        .update(canonicalRequest)
-        .digest('hex');
-
-      const stringToSign = [algorithm, timestamp, canonicalRequestHash].join('\n');
-
-      const signature = crypto
-        .createHmac('sha256', this.config.secretAccessKey)
-        .update(stringToSign)
-        .digest('hex');
-
-      // 3. 返回 Authorization 头
-      return `${algorithm} Access=${this.config.accessKeyId}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+      // 使用官方 SDK 签名
+      const signedHeaders = AKSKSigner.sign(request, credential);
+      return signedHeaders;
     } catch (error) {
-      this.logger.error(`Failed to sign request: ${error.message}`);
-      return '';
+      this.logger.error(`Failed to sign request with official SDK: ${error.message}`);
+      // 返回基础头作为降级
+      return {
+        ...baseHeaders,
+        Host: host,
+      };
     }
   }
 
@@ -546,6 +609,25 @@ export class HuaweiCphClient {
     };
 
     return statusMap[status] || HuaweiPhoneStatus.ERROR;
+  }
+
+  /**
+   * 反向映射标准状态到华为云状态码
+   */
+  private reverseMapStatus(status: HuaweiPhoneStatus): string {
+    const reverseStatusMap: Record<HuaweiPhoneStatus, string> = {
+      [HuaweiPhoneStatus.CREATING]: '0',
+      [HuaweiPhoneStatus.RUNNING]: '1',
+      [HuaweiPhoneStatus.STOPPING]: '2',
+      [HuaweiPhoneStatus.STOPPED]: '3',
+      [HuaweiPhoneStatus.REBOOTING]: '4',
+      [HuaweiPhoneStatus.DELETING]: '5',
+      [HuaweiPhoneStatus.ERROR]: '-1',
+      [HuaweiPhoneStatus.FROZEN]: '-2',
+      [HuaweiPhoneStatus.DELETED]: '6',
+    };
+
+    return reverseStatusMap[status] || '-1';
   }
 
   /**
