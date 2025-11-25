@@ -456,7 +456,18 @@ export class ProxyProviderConfigController {
   }
 
   /**
-   * 测试SmartProxy连接
+   * 测试 SmartProxy (Decodo) 连接
+   *
+   * SmartProxy 已更名为 Decodo，使用网关模式:
+   * - 端点: gate.decodo.com:7000
+   * - 用户名格式: user-{username}-country-{cc}
+   *
+   * 官方文档: https://help.decodo.com/docs/residential-proxy-quick-start
+   *
+   * 配置参数:
+   * - username: 代理用户名
+   * - password: 代理密码
+   * - defaultCountry (可选): 默认国家代码
    */
   private async testSmartProxyConnection(config: any): Promise<{
     success: boolean;
@@ -466,17 +477,29 @@ export class ProxyProviderConfigController {
     try {
       const { HttpsProxyAgent } = await import('https-proxy-agent');
 
-      const proxyUrl = `http://${config.username}:${config.password}@gate.smartproxy.com:7000`;
+      // SmartProxy 网关端点 (现更名为 Decodo)
+      const host = 'gate.decodo.com';
+      const port = 7000;
+
+      // 构建用户名 (格式: user-{username})
+      let username = config.username || '';
+      if (!username.startsWith('user-')) {
+        username = `user-${username}`;
+      }
+
+      const proxyUrl = `http://${username}:${config.password}@${host}:${port}`;
+      this.logger.log(`Testing SmartProxy proxy: ${host}:${port}`);
+
       const agent = new HttpsProxyAgent(proxyUrl);
 
       const response = await axios.get('https://api.ipify.org?format=json', {
         httpsAgent: agent,
-        timeout: 10000,
+        timeout: 15000,
       });
 
       return {
         success: true,
-        message: `Connected successfully. Proxy IP: ${response.data.ip}`,
+        message: `Connected successfully via SmartProxy (Decodo). Proxy IP: ${response.data.ip}`,
       };
     } catch (error) {
       return {

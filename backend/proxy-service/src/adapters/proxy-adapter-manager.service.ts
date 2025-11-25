@@ -10,6 +10,7 @@ import { BrightDataAdapter } from './brightdata/brightdata.adapter';
 import { OxylabsAdapter } from './oxylabs/oxylabs.adapter';
 import { IPIDEAAdapter } from './ipidea/ipidea.adapter';
 import { KookeeyAdapter } from './kookeey/kookeey.adapter';
+import { SmartProxyAdapter } from './smartproxy/smartproxy.adapter';
 
 /**
  * 代理适配器管理器服务
@@ -132,6 +133,9 @@ export class ProxyAdapterManagerService implements OnModuleInit {
         break;
       case 'kookeey':
         adapter = new KookeeyAdapter();
+        break;
+      case 'smartproxy':
+        adapter = new SmartProxyAdapter();
         break;
       default:
         this.logger.warn(`Unknown provider type: ${provider.type}, skipping...`);

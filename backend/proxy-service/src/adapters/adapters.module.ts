@@ -5,6 +5,7 @@ import { IPRoyalAdapter } from './iproyal/iproyal.adapter';
 import { BrightDataAdapter } from './brightdata/brightdata.adapter';
 import { OxylabsAdapter } from './oxylabs/oxylabs.adapter';
 import { IPIDEAAdapter } from './ipidea/ipidea.adapter';
+import { SmartProxyAdapter } from './smartproxy/smartproxy.adapter';
 import { ProxyAdapterManagerService } from './proxy-adapter-manager.service';
 import { ProxyProvider } from '../entities/proxy-provider.entity';
 
@@ -32,6 +33,7 @@ import { ProxyProvider } from '../entities/proxy-provider.entity';
     BrightDataAdapter,
     OxylabsAdapter,
     IPIDEAAdapter,
+    SmartProxyAdapter,
 
     // 动态适配器管理器（从数据库加载配置）
     ProxyAdapterManagerService,
@@ -175,6 +177,7 @@ import { ProxyProvider } from '../entities/proxy-provider.entity';
     BrightDataAdapter,
     OxylabsAdapter,
     IPIDEAAdapter,
+    SmartProxyAdapter,
     ProxyAdapterManagerService,
     'PROXY_PROVIDERS',
   ],
