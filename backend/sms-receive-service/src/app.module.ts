@@ -27,6 +27,9 @@ import {
 // Providers
 import { SmsActivateAdapter } from './providers/sms-activate.adapter';
 import { FiveSimAdapter } from './providers/5sim.adapter';
+import { SmsManAdapter } from './providers/sms-man.adapter';
+import { SmspvaAdapter } from './providers/smspva.adapter';
+import { OnlineSimAdapter } from './providers/onlinesim.adapter';
 
 // Services
 import { NumberManagementService } from './services/number-management.service';
@@ -39,6 +42,9 @@ import { VerificationCodeExtractorService } from './services/verification-code-e
 import { VerificationCodeCacheService } from './services/verification-code-cache.service';
 import { FiveSimService } from './services/5sim.service';
 import { SmsActivateService } from './services/sms-activate.service';
+import { SmsManService } from './services/sms-man.service';
+import { SmspvaService } from './services/smspva.service';
+import { OnlineSimService } from './services/onlinesim.service';
 
 // Controllers
 import { NumbersController } from './controllers/numbers.controller';
@@ -50,6 +56,9 @@ import { AuditLogsController } from './controllers/audit-logs.controller';
 import { IntelligenceController } from './controllers/intelligence.controller';
 import { FiveSimController } from './controllers/5sim.controller';
 import { SmsActivateController } from './controllers/sms-activate.controller';
+import { SmsManController } from './controllers/sms-man.controller';
+import { SmspvaController } from './controllers/smspva.controller';
+import { OnlineSimController } from './controllers/onlinesim.controller';
 
 // Modules
 import { HealthModule } from './health/health.module';
@@ -116,6 +125,9 @@ import { validate } from './common/config/env.validation';
     AuditLogsController,     // /sms/audit-logs/*
     FiveSimController,       // /sms/5sim/* (5sim高级功能)
     SmsActivateController,   // /sms/sms-activate/* (sms-activate高级功能)
+    SmsManController,        // /sms/sms-man/* (SMS-Man高级功能)
+    SmspvaController,        // /sms/smspva/* (SMSPVA高级功能)
+    OnlineSimController,     // /sms/onlinesim/* (OnlineSim高级功能)
     IntelligenceController,  // /sms/code-recognition/*, /sms/intelligence/*, /sms/numbers/geo/*
     NumbersController,       // /sms/numbers/*
     StatisticsController,    // /sms/statistics/*
@@ -137,6 +149,9 @@ import { validate } from './common/config/env.validation';
     // Adapters
     SmsActivateAdapter,
     FiveSimAdapter,
+    SmsManAdapter,
+    SmspvaAdapter,
+    OnlineSimAdapter,
 
     // Services
     PlatformSelectorService,
@@ -149,6 +164,9 @@ import { validate } from './common/config/env.validation';
     VerificationCodeCacheService,
     FiveSimService,
     SmsActivateService,
+    SmsManService,
+    SmspvaService,
+    OnlineSimService,
   ],
 })
 export class AppModule {}
