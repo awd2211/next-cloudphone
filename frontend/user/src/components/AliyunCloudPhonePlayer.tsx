@@ -278,7 +278,7 @@ const AliyunCloudPhonePlayer = ({
     }
   }, []);
 
-  // 切换触摸
+  // 切换触摸 (预留功能)
   const toggleTouch = useCallback((enabled: boolean) => {
     if (sessionRef.current) {
       sessionRef.current.setTouchEnabled(enabled);
@@ -287,7 +287,7 @@ const AliyunCloudPhonePlayer = ({
     }
   }, []);
 
-  // 执行ADB命令
+  // 执行ADB命令 (预留功能)
   const sendAdbCommand = useCallback((command: string) => {
     if (sessionRef.current) {
       sessionRef.current.sendLyncMessage('lync_adb_shell', JSON.stringify({
@@ -346,6 +346,9 @@ const AliyunCloudPhonePlayer = ({
         return '未连接';
     }
   };
+
+  // 预留功能，供未来 UI 扩展使用
+  void touchEnabled; void toggleTouch; void sendAdbCommand;
 
   return (
     <Card
