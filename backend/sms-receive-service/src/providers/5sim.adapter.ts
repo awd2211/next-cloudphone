@@ -13,7 +13,7 @@ import {
 /**
  * 5sim API响应接口
  */
-interface FiveSimOrder {
+export interface FiveSimOrder {
   id: number;
   phone: string;
   operator: string;
@@ -29,13 +29,13 @@ interface FiveSimOrder {
   expires: string;
 }
 
-interface FiveSimProfile {
+export interface FiveSimProfile {
   email: string;
   balance: number;
   rating: number;
 }
 
-interface FiveSimPayment {
+export interface FiveSimPayment {
   id: number;
   type: string;
   provider: string;
@@ -44,7 +44,7 @@ interface FiveSimPayment {
   created_at: string;
 }
 
-interface FiveSimSmsMessage {
+export interface FiveSimSmsMessage {
   id: number;
   created_at: string;
   date: string;
@@ -53,13 +53,13 @@ interface FiveSimSmsMessage {
   code: string;
 }
 
-interface FiveSimCountry {
+export interface FiveSimCountry {
   name: string;
   iso: string;
   prefix: string;
 }
 
-interface FiveSimOperator {
+export interface FiveSimOperator {
   name: string;
   prices: Record<string, number>;
 }
@@ -746,4 +746,163 @@ export class FiveSimAdapter implements ISmsProvider {
       );
     }
   }
+
+  /**
+   * 获取特定国家和产品的价格
+   * @param country 国家代码或名称
+   * @param product 产品/服务代码（可选）
+   */
+  async getPrices(country?: string, product?: string): Promise<FiveSimPriceInfo> {
+    try {
+      const url = `${this.baseUrl}/guest/prices`;
+      const params: Record<string, string> = {};
+
+      if (country) {
+        params.country = this.countryMapping[country.toUpperCase()] || country.toLowerCase();
+      }
+      if (product) {
+        params.product = this.serviceMapping[product.toLowerCase()] || product;
+      }
+
+      const response = await firstValueFrom(
+        this.httpService.get<FiveSimPriceInfo>(url, {
+          headers: { Accept: 'application/json' },
+          params,
+          timeout: 10000,
+        }),
+      );
+
+      this.logger.log(`Retrieved prices for country=${country || 'all'}, product=${product || 'all'}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to get prices: ${error.message}`);
+      throw new ProviderError(
+        error.message || 'Failed to get prices',
+        this.providerName,
+        'GET_PRICES_FAILED',
+        true,
+      );
+    }
+  }
+
+  /**
+   * 获取5sim系统通知/公告
+   * @param language 语言代码 (en, ru, cn 等)
+   */
+  async getNotifications(language: string = 'en'): Promise<FiveSimNotification[]> {
+    try {
+      const url = `${this.baseUrl}/guest/flash/${language}`;
+      const response = await firstValueFrom(
+        this.httpService.get<FiveSimNotification[]>(url, {
+          headers: { Accept: 'application/json' },
+          timeout: 5000,
+        }),
+      );
+
+      this.logger.log(`Retrieved ${response.data?.length || 0} notifications for language: ${language}`);
+      return response.data || [];
+    } catch (error) {
+      this.logger.error(`Failed to get notifications: ${error.message}`);
+      throw new ProviderError(
+        error.message || 'Failed to get notifications',
+        this.providerName,
+        'GET_NOTIFICATIONS_FAILED',
+        true,
+      );
+    }
+  }
+
+  /**
+   * 设置价格上限
+   * @param country 国家代码
+   * @param product 产品代码
+   * @param price 价格上限
+   */
+  async setMaxPrice(country: string, product: string, price: number): Promise<void> {
+    try {
+      const countryName = this.countryMapping[country.toUpperCase()] || country.toLowerCase();
+      const productName = this.serviceMapping[product.toLowerCase()] || product;
+
+      const url = `${this.baseUrl}/user/max-prices`;
+      await firstValueFrom(
+        this.httpService.post(
+          url,
+          { [countryName]: { [productName]: price } },
+          {
+            headers: {
+              ...this.getHeaders(),
+              'Content-Type': 'application/json',
+            },
+            timeout: 5000,
+          },
+        ),
+      );
+
+      this.logger.log(`Set max price for ${countryName}/${productName}: ${price}`);
+    } catch (error) {
+      this.logger.error(`Failed to set max price: ${error.message}`);
+      throw new ProviderError(
+        error.message || 'Failed to set max price',
+        this.providerName,
+        'SET_MAX_PRICE_FAILED',
+        true,
+      );
+    }
+  }
+
+  /**
+   * 删除价格上限
+   * @param country 国家代码
+   * @param product 产品代码
+   */
+  async deleteMaxPrice(country: string, product: string): Promise<void> {
+    try {
+      const countryName = this.countryMapping[country.toUpperCase()] || country.toLowerCase();
+      const productName = this.serviceMapping[product.toLowerCase()] || product;
+
+      const url = `${this.baseUrl}/user/max-prices`;
+      await firstValueFrom(
+        this.httpService.delete(url, {
+          headers: this.getHeaders(),
+          data: { [countryName]: { [productName]: null } },
+          timeout: 5000,
+        }),
+      );
+
+      this.logger.log(`Deleted max price for ${countryName}/${productName}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete max price: ${error.message}`);
+      throw new ProviderError(
+        error.message || 'Failed to delete max price',
+        this.providerName,
+        'DELETE_MAX_PRICE_FAILED',
+        true,
+      );
+    }
+  }
+}
+
+/**
+ * 价格信息接口
+ */
+export interface FiveSimPriceInfo {
+  [country: string]: {
+    [product: string]: {
+      [operator: string]: {
+        cost: number;
+        count: number;
+        rate?: number;
+      };
+    };
+  };
+}
+
+/**
+ * 系统通知接口
+ */
+export interface FiveSimNotification {
+  id: number;
+  text: string;
+  type: string; // 'info' | 'warning' | 'error'
+  created_at: string;
 }

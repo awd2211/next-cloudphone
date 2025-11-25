@@ -37,6 +37,8 @@ import { ABTestManagerService } from './services/ab-test-manager.service';
 import { NumberPoolManagerService } from './services/number-pool-manager.service';
 import { VerificationCodeExtractorService } from './services/verification-code-extractor.service';
 import { VerificationCodeCacheService } from './services/verification-code-cache.service';
+import { FiveSimService } from './services/5sim.service';
+import { SmsActivateService } from './services/sms-activate.service';
 
 // Controllers
 import { NumbersController } from './controllers/numbers.controller';
@@ -46,11 +48,14 @@ import { ProviderConfigController } from './controllers/provider-config.controll
 import { AlertsController } from './controllers/alerts.controller';
 import { AuditLogsController } from './controllers/audit-logs.controller';
 import { IntelligenceController } from './controllers/intelligence.controller';
+import { FiveSimController } from './controllers/5sim.controller';
+import { SmsActivateController } from './controllers/sms-activate.controller';
 
 // Modules
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { getDatabaseConfig } from './common/config/database.config';
+import { validate } from './common/config/env.validation';
 
 @Module({
   imports: [
@@ -58,6 +63,7 @@ import { getDatabaseConfig } from './common/config/database.config';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate, // ✅ 添加环境变量验证
     }),
 
     // Throttler 限流模块
@@ -108,6 +114,8 @@ import { getDatabaseConfig } from './common/config/database.config';
     // 具体路径的控制器必须在参数路由控制器之前声明
     AlertsController,        // /sms/alerts/*
     AuditLogsController,     // /sms/audit-logs/*
+    FiveSimController,       // /sms/5sim/* (5sim高级功能)
+    SmsActivateController,   // /sms/sms-activate/* (sms-activate高级功能)
     IntelligenceController,  // /sms/code-recognition/*, /sms/intelligence/*, /sms/numbers/geo/*
     NumbersController,       // /sms/numbers/*
     StatisticsController,    // /sms/statistics/*
@@ -139,6 +147,8 @@ import { getDatabaseConfig } from './common/config/database.config';
     NumberPoolManagerService,
     VerificationCodeExtractorService,
     VerificationCodeCacheService,
+    FiveSimService,
+    SmsActivateService,
   ],
 })
 export class AppModule {}
