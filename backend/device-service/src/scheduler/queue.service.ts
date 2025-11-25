@@ -568,7 +568,7 @@ export class QueueService {
               type: NotificationType.QUEUE_EXPIRED,
               title: '⏰ 队列等待超时',
               message: '很抱歉，等待时间已超过限制，请重新加入队列',
-              channels: ['websocket'] as const,
+              channels: ['websocket'],
               data: {
                 queueId: entry.id,
               },

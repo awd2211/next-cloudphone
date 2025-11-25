@@ -173,6 +173,22 @@ export {
 } from './database/transaction.decorator';
 export type { TransactionOptions } from './database/transaction.decorator';
 
+// ========== 基础实体类 ==========
+export {
+  BaseEntity,
+  SoftDeleteEntity,
+  TenantEntity,
+  AuditableEntity,
+  VersionedEntity,
+  EntityStatus,
+  createPaginatedResult,
+} from './database/base.entity';
+export type {
+  TimeRangeQuery,
+  PaginationParams,
+  PaginatedResult,
+} from './database/base.entity';
+
 // ========== 分页工具 ==========
 export { CursorPaginationDto, CursorPagination } from './pagination/cursor-pagination';
 export type { CursorPaginatedResponse } from './pagination/cursor-pagination';
