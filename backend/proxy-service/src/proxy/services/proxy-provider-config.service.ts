@@ -91,6 +91,25 @@ export class ProxyProviderConfigService {
   }
 
   /**
+   * 获取供应商的解密配置（用于编辑）
+   * 注意：此方法返回敏感信息，前端应妥善处理
+   */
+  async getProviderConfig(id: string): Promise<Record<string, any>> {
+    const provider = await this.providerRepo.findOne({ where: { id } });
+
+    if (!provider) {
+      throw new NotFoundException(`Proxy provider with ID ${id} not found`);
+    }
+
+    if (!provider.config || Object.keys(provider.config).length === 0) {
+      return {};
+    }
+
+    // 解密并返回配置
+    return this.decryptConfig(provider.config);
+  }
+
+  /**
    * 创建新的代理供应商配置
    * ✅ 添加缓存失效
    */

@@ -40,6 +40,7 @@ import { ProxyHealth } from './entities/proxy-health.entity';
 import { ProxySession } from './entities/proxy-session.entity';
 import { CostRecord } from './entities/cost-record.entity';
 import { getDatabaseConfig } from './common/config/database.config';
+import { validate } from './common/config/env.validation';
 
 // Controllers
 import { ProxyProviderConfigController } from './proxy/controllers/proxy-provider-config.controller';
@@ -51,6 +52,7 @@ import { ProxyProviderConfigController } from './proxy/controllers/proxy-provide
       isGlobal: true,
       envFilePath: ['.env', '.env.local'],
       cache: true,
+      validate, // ✅ 添加环境变量验证
     }),
 
     // ===== Pino 日志模块 =====

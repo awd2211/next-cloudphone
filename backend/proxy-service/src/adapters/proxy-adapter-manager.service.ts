@@ -9,6 +9,7 @@ import { IPRoyalAdapter } from './iproyal/iproyal.adapter';
 import { BrightDataAdapter } from './brightdata/brightdata.adapter';
 import { OxylabsAdapter } from './oxylabs/oxylabs.adapter';
 import { IPIDEAAdapter } from './ipidea/ipidea.adapter';
+import { KookeeyAdapter } from './kookeey/kookeey.adapter';
 
 /**
  * 代理适配器管理器服务
@@ -128,6 +129,9 @@ export class ProxyAdapterManagerService implements OnModuleInit {
         break;
       case 'ipidea':
         adapter = new IPIDEAAdapter();
+        break;
+      case 'kookeey':
+        adapter = new KookeeyAdapter();
         break;
       default:
         this.logger.warn(`Unknown provider type: ${provider.type}, skipping...`);

@@ -23,12 +23,21 @@ import {
 @Injectable()
 export class KookeeyAdapter extends BaseProxyAdapter {
   private proxyCache: Map<string, ProxyInfo> = new Map();
+
+  // API 认证 (可选)
   private accessId: string;
   private token: string;
 
+  // 代理直连认证 (推荐)
+  private accountId: string;
+  private username: string;
+  private password: string;
+  private gateway: string;
+  private proxyPort: number;
+
   // 默认配置
-  private readonly DEFAULT_PORT = 8000;
-  private readonly DEFAULT_PROXY_HOST = 'proxy.kookeey.com';
+  private readonly DEFAULT_PORT = 18705;
+  private readonly DEFAULT_PROXY_HOST = 'gate-hk.kkoip.com';
 
   constructor() {
     super('Kookeey');
@@ -36,23 +45,45 @@ export class KookeeyAdapter extends BaseProxyAdapter {
 
   /**
    * 初始化 Kookeey 适配器
+   *
+   * 支持两种认证模式：
+   * 1. 代理直连认证 (推荐): accountId + username + password + gateway
+   * 2. API 签名认证 (可选): accessId + token
    */
   async initialize(config: ProviderConfig): Promise<void> {
     await super.initialize(config);
 
     // 从 config.extra 中提取 Kookeey 特定配置
     const kookeeyConfig = config.extra as any;
+
+    // 代理直连认证配置 (优先使用)
+    this.accountId = kookeeyConfig?.accountId;
+    this.username = kookeeyConfig?.username;
+    this.password = kookeeyConfig?.password;
+    this.gateway = kookeeyConfig?.gateway || this.DEFAULT_PROXY_HOST;
+    this.proxyPort = kookeeyConfig?.port || this.DEFAULT_PORT;
+
+    // API 签名认证配置 (可选)
     this.accessId = kookeeyConfig?.accessId || config.apiKey;
     this.token = kookeeyConfig?.token;
 
-    if (!this.accessId || !this.token) {
-      throw new Error('Kookeey requires accessId and token');
+    // 检查是否有代理直连认证配置
+    const hasDirectAuth = this.accountId && this.username && this.password;
+    // 检查是否有 API 认证配置
+    const hasApiAuth = this.accessId && this.token;
+
+    if (!hasDirectAuth && !hasApiAuth) {
+      throw new Error('Kookeey requires either (accountId + username + password) for direct proxy auth, or (accessId + token) for API auth');
     }
 
-    // 测试连接
-    const connected = await this.testConnection();
-    if (!connected) {
-      this.logger.warn('Failed to connect to Kookeey API during initialization');
+    // 如果有 API 认证配置，测试连接
+    if (hasApiAuth) {
+      const connected = await this.testConnection();
+      if (!connected) {
+        this.logger.warn('Failed to connect to Kookeey API during initialization');
+      }
+    } else {
+      this.logger.log('Kookeey initialized with direct proxy authentication (no API access)');
     }
   }
 
@@ -112,14 +143,20 @@ export class KookeeyAdapter extends BaseProxyAdapter {
   }
 
   /**
-   * 测试 Kookeey API 连接
-   * 使用 /stock 接口测试连接
+   * 测试 Kookeey 连接
+   * - 直连模式：测试代理连接是否可用
+   * - API 模式：使用 /stock 接口测试连接
    */
   async testConnection(): Promise<boolean> {
     try {
       this.ensureInitialized();
 
-      // 使用库存查询接口测试连接（假设 group=1 存在）
+      // 如果是直连模式，测试代理连接
+      if (this.accountId && this.username && this.password && !this.token) {
+        return this.testDirectConnection();
+      }
+
+      // API 模式：使用库存查询接口测试连接
       const url = this.buildRequestUrl('/stock', { g: 1 });
       const response = await this.httpClient.get(url);
 
@@ -137,8 +174,69 @@ export class KookeeyAdapter extends BaseProxyAdapter {
   }
 
   /**
+   * 测试直连代理连接
+   * 通过代理访问一个测试 URL 来验证连接
+   */
+  private async testDirectConnection(): Promise<boolean> {
+    try {
+      const testUrl = 'http://httpbin.org/ip';
+      const proxyUsername = this.buildProxyUsername({ country: 'US', sessionDuration: 1 });
+
+      this.logger.debug(`Testing direct connection via proxy: ${this.gateway}:${this.proxyPort}`);
+
+      // 使用 axios 通过代理请求
+      const response = await this.httpClient.get(testUrl, {
+        proxy: {
+          host: this.gateway,
+          port: this.proxyPort,
+          auth: {
+            username: proxyUsername,
+            password: this.password,
+          },
+        },
+        timeout: 10000,
+      });
+
+      if (response.status === 200 && response.data.origin) {
+        this.logger.log(`Kookeey direct proxy connection successful. Exit IP: ${response.data.origin}`);
+        return true;
+      }
+
+      this.logger.warn('Kookeey direct proxy test returned unexpected response');
+      return false;
+    } catch (error) {
+      this.logger.error(`Kookeey direct connection test failed: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 生成代理认证用户名
+   * 格式: {accountId}-{username}:{password}-{country}-{sessionId}-{duration}
+   *
+   * @param options - 代理选项
+   * @returns 认证用户名字符串
+   */
+  private buildProxyUsername(options?: GetProxyOptions): string {
+    // 基础认证: accountId-username
+    let authUser = `${this.accountId}-${this.username}`;
+
+    // 可选参数
+    const country = options?.country?.toUpperCase() || 'US';
+    const sessionId = Math.random().toString(36).substring(2, 10);
+    const duration = options?.sessionDuration ? `${options.sessionDuration}m` : '5m';
+
+    // 完整格式: accountId-username:password-country-sessionId-duration
+    // 注意: 实际用户名部分不包含密码，密码单独传递
+    // 返回格式: accountId-username-country-sessionId-duration
+    return `${authUser}-${country}-${sessionId}-${duration}`;
+  }
+
+  /**
    * 获取代理列表
-   * Kookeey 使用提取接口获取代理 IP
+   * 支持两种模式：
+   * 1. 直连认证模式：使用配置的 gateway/accountId/username/password 构建代理
+   * 2. API 模式：通过 Kookeey API 获取代理 IP
    *
    * @param options - 获取代理选项
    * @returns 代理信息列表
@@ -146,6 +244,60 @@ export class KookeeyAdapter extends BaseProxyAdapter {
   async getProxyList(options?: GetProxyOptions): Promise<ProxyInfo[]> {
     this.ensureInitialized();
 
+    // 如果有直连认证配置，使用直连模式
+    if (this.accountId && this.username && this.password) {
+      return this.getProxyListDirect(options);
+    }
+
+    // 否则使用 API 模式
+    return this.getProxyListFromApi(options);
+  }
+
+  /**
+   * 直连认证模式获取代理
+   * 直接使用配置的认证信息构建代理
+   */
+  private async getProxyListDirect(options?: GetProxyOptions): Promise<ProxyInfo[]> {
+    const limit = options?.limit || 10;
+    const proxies: ProxyInfo[] = [];
+
+    for (let i = 0; i < limit; i++) {
+      const proxyUsername = this.buildProxyUsername(options);
+      const proxyInfo: ProxyInfo = {
+        id: `kookeey-direct-${Date.now()}-${i}`,
+        host: this.gateway,
+        port: this.proxyPort,
+        username: proxyUsername,
+        password: this.password,
+        protocol: 'http',
+        provider: 'kookeey',
+        location: {
+          country: options?.country?.toUpperCase() || 'US',
+          city: options?.city,
+        },
+        quality: 90, // 直连模式默认高质量
+        latency: 100, // 预估延迟
+        inUse: false,
+        costPerGB: this.config.costPerGB,
+        createdAt: new Date(),
+        expiresAt: options?.sessionDuration
+          ? new Date(Date.now() + options.sessionDuration * 60 * 1000)
+          : new Date(Date.now() + 5 * 60 * 1000), // 默认 5 分钟
+      };
+
+      this.proxyCache.set(proxyInfo.id, proxyInfo);
+      proxies.push(proxyInfo);
+    }
+
+    this.logger.log(`Generated ${proxies.length} direct proxies from Kookeey`);
+    return proxies;
+  }
+
+  /**
+   * API 模式获取代理
+   * 通过 Kookeey API 提取代理 IP
+   */
+  private async getProxyListFromApi(options?: GetProxyOptions): Promise<ProxyInfo[]> {
     try {
       const limit = options?.limit || 10;
       const groupId = 1; // 默认分组ID (Kookeey specific, could be added to metadata)
@@ -217,10 +369,10 @@ export class KookeeyAdapter extends BaseProxyAdapter {
         return proxyInfo;
       });
 
-      this.logger.log(`Retrieved ${proxies.length} proxies from Kookeey`);
+      this.logger.log(`Retrieved ${proxies.length} proxies from Kookeey API`);
       return proxies;
     } catch (error) {
-      this.logger.error(`Failed to get proxy list: ${error.message}`);
+      this.logger.error(`Failed to get proxy list from API: ${error.message}`);
       throw error;
     }
   }

@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger as NestLogger } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -77,16 +77,18 @@ async function bootstrap() {
       '/health'
     );
 
+    const logger = new NestLogger('Bootstrap');
     if (serviceId) {
-      console.log(`✅ Service registered to Consul: ${serviceId}`);
+      logger.log(`✅ Service registered to Consul: ${serviceId}`);
     } else {
-      console.warn('⚠️  Consul registration failed (service will continue without service discovery)');
+      logger.warn('⚠️  Consul registration failed (service will continue without service discovery)');
     }
   } catch (error) {
-    console.warn(`⚠️  Consul not available: ${error.message} (service will continue without service discovery)`);
+    const logger = new NestLogger('Bootstrap');
+    logger.warn(`⚠️  Consul not available: ${error.message} (service will continue without service discovery)`);
   }
 
-  console.log(`
+  new NestLogger('Bootstrap').log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
 ║   🚀 Proxy Service is running!                              ║

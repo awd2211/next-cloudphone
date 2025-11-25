@@ -74,36 +74,59 @@ export class OxylabsAdapter extends BaseProxyAdapter {
    * - 住宅代理：pr.oxylabs.io:7777
    * - 数据中心代理：dc.oxylabs.io:8001
    * - 通过用户名参数控制地理位置和会话
+   *
+   * 用户名参数格式：
+   * customer-{username}-cc-{country}-st-{state}-city-{city}-sessid-{id}-sesstime-{minutes}
+   *
+   * 参数说明：
+   * - cc: 国家代码 (ISO 3166-1 alpha-2，如 US, DE, JP)
+   * - st: 州/省 (格式: us_california, us_illinois)
+   * - city: 城市 (格式: los_angeles, new_york)
+   * - sessid: 会话ID (字母数字字符串，保持同一IP)
+   * - sesstime: 会话时长 (1-1440分钟，默认10分钟)
    */
   async getProxyList(options?: GetProxyOptions): Promise<ProxyInfo[]> {
     this.ensureInitialized();
 
     try {
-      const startTime = Date.now();
-
       // 根据代理类型选择主机和端口
       const host = this.proxyType === 'residential'
         ? 'pr.oxylabs.io'
         : 'dc.oxylabs.io';
       const port = this.proxyType === 'residential' ? 7777 : 8001;
 
+      // 从配置读取默认参数
+      const cfg = this.config as any;
+      const defaultCountry = cfg.defaultCountry || cfg.extra?.defaultCountry;
+      const defaultState = cfg.defaultState || cfg.extra?.defaultState;
+      const defaultCity = cfg.defaultCity || cfg.extra?.defaultCity;
+      const defaultSessionMode = cfg.sessionMode || cfg.extra?.sessionMode;
+      const defaultSessionDuration = cfg.sessionDuration || cfg.extra?.sessionDuration || 10;
+
       // 构建用户名参数
       let username = `customer-${this.config.username}`;
 
-      // 添加国家参数
-      if (options?.country) {
-        username += `-cc-${options.country.toLowerCase()}`;
+      // 获取实际使用的参数（options 优先，其次配置默认值）
+      const country = options?.country || defaultCountry;
+      const state = options?.state || defaultState;
+      const city = options?.city || defaultCity;
+      const sessionMode = options?.session || defaultSessionMode;
+      const sessionDuration = options?.sessionDuration || defaultSessionDuration;
+
+      // 添加州参数 (st-us_california 格式)
+      // 注意：州参数和国家参数是互斥的，州已包含国家信息
+      if (state) {
+        const stateSlug = state.toLowerCase().replace(/\s+/g, '_');
+        username += `-st-${stateSlug}`;
+      } else if (country) {
+        // 添加国家参数 (cc-US 格式)
+        username += `-cc-${country.toUpperCase()}`;
       }
 
       // 添加城市参数（仅住宅代理支持）
-      if (options?.city && this.proxyType === 'residential') {
-        const citySlug = options.city.toLowerCase().replace(/\s+/g, '_');
+      if (city && this.proxyType === 'residential') {
+        const citySlug = city.toLowerCase().replace(/\s+/g, '_');
         username += `-city-${citySlug}`;
-      }
-
-      // 添加会话类型
-      if (options?.session === 'sticky') {
-        username += `-sesstime-10`; // 10分钟会话
       }
 
       // 生成代理列表
@@ -111,16 +134,47 @@ export class OxylabsAdapter extends BaseProxyAdapter {
       const proxies: ProxyInfo[] = [];
 
       for (let i = 0; i < limit; i++) {
-        const sessionId = this.generateSessionId();
-        const proxyInfo = this.createProxyInfo(
+        let proxyUsername = username;
+
+        // 添加会话参数（粘性会话）
+        if (sessionMode === 'sticky') {
+          const sessId = this.generateSessionId();
+          proxyUsername += `-sessid-${sessId}`;
+          // 会话时长限制在 1-1440 分钟
+          const sessTime = Math.min(Math.max(sessionDuration, 1), 1440);
+          proxyUsername += `-sesstime-${sessTime}`;
+        }
+
+        const proxyId = `oxylabs-${Date.now()}-${i}`;
+
+        const proxy: ProxyInfo = {
+          id: proxyId,
           host,
           port,
-          username,
-          sessionId,
-          options,
-        );
-        proxies.push(proxyInfo);
-        this.proxyCache.set(proxyInfo.id, proxyInfo);
+          username: proxyUsername,
+          password: this.config.password,
+          protocol: (options?.protocol || 'http') as 'http' | 'https' | 'socks5',
+          provider: 'oxylabs',
+          location: {
+            country: country?.toUpperCase() || 'ANY',
+            state: state,
+            city: city,
+          },
+          quality: 92, // Oxylabs 质量很高
+          latency: 0,
+          inUse: false,
+          failureCount: 0,
+          costPerGB: this.config.costPerGB,
+          metadata: {
+            proxyType: this.proxyType,
+            gateway: true,
+            sessionMode: sessionMode,
+          },
+          createdAt: new Date(),
+        };
+
+        proxies.push(proxy);
+        this.proxyCache.set(proxy.id, proxy);
       }
 
       this.logger.log(`Generated ${proxies.length} Oxylabs proxy configurations`);
@@ -263,48 +317,6 @@ export class OxylabsAdapter extends BaseProxyAdapter {
       return this.getDefaultRegions();
     }
   }
-
-  /**
-   * 创建代理信息对象
-   */
-  private createProxyInfo(
-    host: string,
-    port: number,
-    baseUsername: string,
-    sessionId: string,
-    options?: GetProxyOptions,
-  ): ProxyInfo {
-    const proxyId = `oxylabs-${sessionId}`;
-
-    // 构建完整的用户名（包含会话ID）
-    const username = `${baseUsername}-session-${sessionId}`;
-
-    return {
-      id: proxyId,
-      host,
-      port,
-      username,
-      password: this.config.password,
-      protocol: (options?.protocol || 'http') as 'http' | 'https' | 'socks5',
-      provider: 'oxylabs',
-      location: {
-        country: options?.country || 'US',
-        city: options?.city,
-      },
-      quality: 92, // Oxylabs 质量很高
-      latency: 0,
-      inUse: false,
-      failureCount: 0,
-      costPerGB: this.config.costPerGB,
-      sessionId,
-      metadata: {
-        proxyType: this.proxyType,
-        gateway: true,
-      },
-      createdAt: new Date(),
-    };
-  }
-
   /**
    * 生成会话ID
    */

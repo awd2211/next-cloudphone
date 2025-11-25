@@ -183,6 +183,15 @@ export class IPIDEAAdapter extends BaseProxyAdapter {
       (protocol === 'socks5' ? this.PROXY_GATEWAY.socks5 : this.PROXY_GATEWAY.http);
     const port = configPort || this.DEFAULT_PORTS.http;
 
+    // ✅ 从配置读取默认参数（前端高级配置）
+    const cfg = this.config as any;
+    const defaultRegion = cfg.defaultRegion || cfg.extra?.defaultRegion;
+    const defaultState = cfg.defaultState || cfg.extra?.defaultState;
+    const defaultCity = cfg.defaultCity || cfg.extra?.defaultCity;
+    const defaultSessionMode = cfg.sessionMode || cfg.extra?.sessionMode;
+    const defaultSessionDuration = cfg.sessionDuration || cfg.extra?.sessionDuration;
+    const defaultAsn = cfg.defaultAsn || cfg.extra?.defaultAsn;
+
     for (let i = 0; i < count; i++) {
       // 构建用户名，包含定位和会话参数
       // 基础格式: {account}-zone-custom
@@ -194,33 +203,39 @@ export class IPIDEAAdapter extends BaseProxyAdapter {
       }
 
       // 添加国家/地区参数 (region-{country})
-      if (options?.country) {
-        username += `-region-${options.country.toLowerCase()}`;
+      // 优先使用 options，其次使用配置中的默认值
+      const country = options?.country || defaultRegion;
+      if (country) {
+        username += `-region-${country.toLowerCase()}`;
       }
 
       // 添加州/省参数 (st-{state})
-      if (options?.state) {
-        username += `-st-${options.state.toLowerCase().replace(/\s+/g, '')}`;
+      const state = options?.state || defaultState;
+      if (state) {
+        username += `-st-${state.toLowerCase().replace(/\s+/g, '')}`;
       }
 
       // 添加城市参数 (city-{city})
-      if (options?.city) {
-        username += `-city-${options.city.toLowerCase().replace(/\s+/g, '')}`;
+      const city = options?.city || defaultCity;
+      if (city) {
+        username += `-city-${city.toLowerCase().replace(/\s+/g, '')}`;
       }
 
       // 添加会话参数（粘性会话）
-      if (options?.session === 'sticky') {
+      const sessionMode = options?.session || defaultSessionMode;
+      if (sessionMode === 'sticky') {
         const sessionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         username += `-session-${sessionId}`;
 
         // 添加会话时长（默认30分钟，最长120分钟）
-        const sessTime = Math.min(options?.sessionDuration || 30, 120);
+        const sessTime = Math.min(options?.sessionDuration || defaultSessionDuration || 30, 120);
         username += `-sessTime-${sessTime}`;
       }
 
       // 添加 ASN/ISP 参数
-      if (options?.asn) {
-        username += `-asn-${options.asn}`;
+      const asn = options?.asn || defaultAsn;
+      if (asn) {
+        username += `-asn-${asn}`;
       }
 
       const proxyId = `ipidea-tunnel-${i}-${Date.now()}`;
@@ -234,8 +249,9 @@ export class IPIDEAAdapter extends BaseProxyAdapter {
         protocol: protocol as 'http' | 'https' | 'socks5',
         provider: 'ipidea',
         location: {
-          country: options?.country || 'ANY',
-          city: options?.city,
+          country: country?.toUpperCase() || 'ANY',
+          state: state,
+          city: city,
         },
         quality: 85, // IPIDEA 默认质量
         latency: 0,

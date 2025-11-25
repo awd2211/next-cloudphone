@@ -10,6 +10,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
+    "dev": "NODE_OPTIONS='--max-http-header-size=32768' nest start --watch --entryFile proxy-service/src/main",
     "start:dev": "nest start --watch",
     "start:debug": "NODE_OPTIONS='--max-http-header-size=32768' nest start --debug --watch",
     "start:prod": "node --max-http-header-size=32768 dist/main",

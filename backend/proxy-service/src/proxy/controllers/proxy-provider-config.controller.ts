@@ -15,6 +15,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import axios from 'axios';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ProxyProvider } from '../../entities/proxy-provider.entity';
 import {
@@ -141,6 +142,22 @@ export class ProxyProviderConfigController {
   }
 
   /**
+   * 获取供应商的解密配置（用于编辑）
+   * 注意：此端点返回敏感信息，仅供编辑表单使用
+   */
+  @Get(':id/config')
+  @ApiOperation({ summary: '获取供应商的解密配置（用于编辑）' })
+  @ApiResponse({
+    status: 200,
+    description: '成功返回解密的供应商配置',
+  })
+  @ApiResponse({ status: 404, description: '供应商配置不存在' })
+  async getProviderConfig(@Param('id') id: string): Promise<Record<string, any>> {
+    this.logger.log(`Fetching decrypted config for provider: ${id}`);
+    return this.providerConfigService.getProviderConfig(id);
+  }
+
+  /**
    * 创建新的代理供应商配置
    */
   @Post()
@@ -254,6 +271,9 @@ export class ProxyProviderConfigController {
         case 'ipidea':
           testResult = await this.testIPIDEAConnection(config);
           break;
+        case 'kookeey':
+          testResult = await this.testKookeeyConnection(config);
+          break;
         default:
           throw new Error(`Unsupported provider type: ${providerDto.type}`);
       }
@@ -293,6 +313,12 @@ export class ProxyProviderConfigController {
 
   /**
    * 测试Bright Data连接
+   *
+   * 官方文档: https://docs.brightdata.com/proxy-networks/config-options
+   * 代理端点: brd.superproxy.io:33335
+   * 用户名格式: brd-customer-{id}-zone-{zone} (用户在控制台获取完整用户名)
+   *
+   * 使用 axios + HttpsProxyAgent 替代 fetch (Node.js fetch 不支持 agent 选项)
    */
   private async testBrightDataConnection(config: any): Promise<{
     success: boolean;
@@ -300,42 +326,45 @@ export class ProxyProviderConfigController {
     message?: string;
   }> {
     try {
-      const proxyUrl = `http://${config.username}:${config.password}@${config.zone || 'brd-customer-hl_xxxxx'}.zproxy.lum-superproxy.io:22225`;
-
-      const https = await import('https');
       const { HttpsProxyAgent } = await import('https-proxy-agent');
+
+      // BrightData 超级代理端点 (官方文档: 33335)
+      const host = 'brd.superproxy.io';
+      const port = 33335;
+
+      // 用户名应该已经是完整格式: brd-customer-xxx-zone-xxx
+      const username = config.username;
+      const password = config.password;
+
+      const proxyUrl = `http://${username}:${password}@${host}:${port}`;
+      this.logger.log(`Testing BrightData proxy: ${host}:${port}`);
 
       const agent = new HttpsProxyAgent(proxyUrl);
 
-      const response = await fetch('https://api.ipify.org?format=json', {
-        // @ts-ignore
-        agent,
-        signal: AbortSignal.timeout(10000),
+      const response = await axios.get('https://api.ipify.org?format=json', {
+        httpsAgent: agent,
+        timeout: 15000,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          success: true,
-          message: `Connected successfully. Proxy IP: ${data.ip}`,
-          proxyCount: undefined,
-        };
-      } else {
-        return {
-          success: false,
-          message: `HTTP ${response.status}: ${response.statusText}`,
-        };
-      }
+      return {
+        success: true,
+        message: `Connected successfully via Bright Data. Proxy IP: ${response.data.ip}`,
+      };
     } catch (error) {
       return {
         success: false,
-        message: `Connection failed: ${error.message}`,
+        message: `Bright Data connection failed: ${error.message}`,
       };
     }
   }
 
   /**
    * 测试Oxylabs连接
+   *
+   * Oxylabs 代理端点：
+   * - 住宅代理: pr.oxylabs.io:7777
+   * - 数据中心: dc.oxylabs.io:8001
+   * - 用户名需要 customer- 前缀
    */
   private async testOxylabsConnection(config: any): Promise<{
     success: boolean;
@@ -345,37 +374,48 @@ export class ProxyProviderConfigController {
     try {
       const { HttpsProxyAgent } = await import('https-proxy-agent');
 
-      const proxyUrl = `http://${config.username}:${config.password}@pr.oxylabs.io:7777`;
+      // 确定代理类型和端点
+      const proxyType = config.proxyType || 'residential';
+      const host = proxyType === 'residential' ? 'pr.oxylabs.io' : 'dc.oxylabs.io';
+      const port = proxyType === 'residential' ? 7777 : 8001;
+
+      // 构建用户名（需要 customer- 前缀）
+      let username = config.username;
+      if (!username.startsWith('customer-')) {
+        username = `customer-${username}`;
+      }
+
+      const proxyUrl = `http://${username}:${config.password}@${host}:${port}`;
       const agent = new HttpsProxyAgent(proxyUrl);
 
-      const response = await fetch('https://api.ipify.org?format=json', {
-        // @ts-ignore
-        agent,
-        signal: AbortSignal.timeout(10000),
+      const response = await axios.get('https://api.ipify.org?format=json', {
+        httpsAgent: agent,
+        timeout: 15000,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          success: true,
-          message: `Connected successfully. Proxy IP: ${data.ip}`,
-        };
-      } else {
-        return {
-          success: false,
-          message: `HTTP ${response.status}: ${response.statusText}`,
-        };
-      }
+      return {
+        success: true,
+        message: `Connected successfully via Oxylabs (${proxyType}). Proxy IP: ${response.data.ip}`,
+      };
     } catch (error) {
       return {
         success: false,
-        message: `Connection failed: ${error.message}`,
+        message: `Oxylabs connection failed: ${error.message}`,
       };
     }
   }
 
   /**
    * 测试IPRoyal连接
+   *
+   * 官方文档: https://docs.iproyal.com/proxies/residential/proxy
+   * 代理端点: geo.iproyal.com:12321
+   *
+   * 认证格式 (网关模式):
+   * - 用户名: 账户用户名
+   * - 密码: password_country-xx_city-xx_session-xxxxxxxx_lifetime-10m
+   *
+   * 注意: 位置参数在密码中传递，不是用户名
    */
   private async testIPRoyalConnection(config: any): Promise<{
     success: boolean;
@@ -385,31 +425,32 @@ export class ProxyProviderConfigController {
     try {
       const { HttpsProxyAgent } = await import('https-proxy-agent');
 
-      const proxyUrl = `http://${config.username}:${config.password}@geo.iproyal.com:12321`;
+      // IPRoyal 网关端点
+      const host = 'geo.iproyal.com';
+      const port = 12321;
+
+      const username = config.username;
+      // 密码可能已包含参数，直接使用
+      const password = config.password;
+
+      const proxyUrl = `http://${username}:${password}@${host}:${port}`;
+      this.logger.log(`Testing IPRoyal proxy: ${host}:${port}`);
+
       const agent = new HttpsProxyAgent(proxyUrl);
 
-      const response = await fetch('https://api.ipify.org?format=json', {
-        // @ts-ignore
-        agent,
-        signal: AbortSignal.timeout(10000),
+      const response = await axios.get('https://api.ipify.org?format=json', {
+        httpsAgent: agent,
+        timeout: 15000,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          success: true,
-          message: `Connected successfully. Proxy IP: ${data.ip}`,
-        };
-      } else {
-        return {
-          success: false,
-          message: `HTTP ${response.status}: ${response.statusText}`,
-        };
-      }
+      return {
+        success: true,
+        message: `Connected successfully via IPRoyal. Proxy IP: ${response.data.ip}`,
+      };
     } catch (error) {
       return {
         success: false,
-        message: `Connection failed: ${error.message}`,
+        message: `IPRoyal connection failed: ${error.message}`,
       };
     }
   }
@@ -428,24 +469,15 @@ export class ProxyProviderConfigController {
       const proxyUrl = `http://${config.username}:${config.password}@gate.smartproxy.com:7000`;
       const agent = new HttpsProxyAgent(proxyUrl);
 
-      const response = await fetch('https://api.ipify.org?format=json', {
-        // @ts-ignore
-        agent,
-        signal: AbortSignal.timeout(10000),
+      const response = await axios.get('https://api.ipify.org?format=json', {
+        httpsAgent: agent,
+        timeout: 10000,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          success: true,
-          message: `Connected successfully. Proxy IP: ${data.ip}`,
-        };
-      } else {
-        return {
-          success: false,
-          message: `HTTP ${response.status}: ${response.statusText}`,
-        };
-      }
+      return {
+        success: true,
+        message: `Connected successfully. Proxy IP: ${response.data.ip}`,
+      };
     } catch (error) {
       return {
         success: false,
@@ -485,30 +517,90 @@ export class ProxyProviderConfigController {
       }
 
       const proxyUrl = `http://${username}:${config.password}@${gateway}:${port}`;
+      this.logger.log(`Testing IPIDEA proxy: ${gateway}:${port} with user ${username}`);
+
       const agent = new HttpsProxyAgent(proxyUrl);
 
-      const response = await fetch('https://api.ipify.org?format=json', {
-        // @ts-ignore
-        agent,
-        signal: AbortSignal.timeout(15000), // IPIDEA 可能需要更长时间
+      const response = await axios.get('https://api.ipify.org?format=json', {
+        httpsAgent: agent,
+        timeout: 15000, // IPIDEA 可能需要更长时间
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          success: true,
-          message: `Connected successfully via IPIDEA. Proxy IP: ${data.ip}`,
-        };
-      } else {
-        return {
-          success: false,
-          message: `HTTP ${response.status}: ${response.statusText}`,
-        };
-      }
+      return {
+        success: true,
+        message: `Connected successfully via IPIDEA. Proxy IP: ${response.data.ip}`,
+      };
     } catch (error) {
       return {
         success: false,
         message: `IPIDEA connection failed: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * 测试Kookeey (KKOIP) 连接
+   *
+   * Kookeey 代理格式:
+   * {gateway}:{port}:{accountId}-{username}:{password}-{country}-{sessionId}-{duration}
+   * 示例: gate-hk.kkoip.com:18705:2375007-cfa06e52:24e06433-US-80067216-5m
+   *
+   * 配置参数:
+   * - gateway: 代理网关地址 (如: gate-hk.kkoip.com)
+   * - port: 代理端口 (默认 18705)
+   * - accountId: 账号 ID
+   * - username: 认证用户名
+   * - password: 认证密码
+   */
+  private async testKookeeyConnection(config: any): Promise<{
+    success: boolean;
+    proxyCount?: number;
+    message?: string;
+  }> {
+    try {
+      const { HttpsProxyAgent } = await import('https-proxy-agent');
+
+      // Kookeey 代理配置
+      const gateway = config.gateway || 'gate-hk.kkoip.com';
+      const port = config.port || 18705;
+      const accountId = config.accountId || '';
+      const username = config.username || '';
+      const password = config.password || '';
+
+      if (!accountId || !username || !password) {
+        return {
+          success: false,
+          message: 'Missing required Kookeey config: accountId, username, or password',
+        };
+      }
+
+      // 构建代理认证用户名: {accountId}-{username}
+      const proxyUser = `${accountId}-${username}`;
+
+      // 构建代理认证密码: {password}-{country}-{sessionId}-{duration}
+      const country = 'US'; // 测试时使用美国 IP
+      const sessionId = Math.random().toString(36).substring(2, 10);
+      const duration = '5m'; // 5分钟会话
+      const proxyPass = `${password}-${country}-${sessionId}-${duration}`;
+
+      const proxyUrl = `http://${proxyUser}:${proxyPass}@${gateway}:${port}`;
+      this.logger.log(`Testing Kookeey proxy: ${gateway}:${port} with user ${proxyUser}`);
+
+      const agent = new HttpsProxyAgent(proxyUrl);
+
+      const response = await axios.get('https://api.ipify.org?format=json', {
+        httpsAgent: agent,
+        timeout: 15000, // 15秒超时
+      });
+
+      return {
+        success: true,
+        message: `Connected successfully via Kookeey. Proxy IP: ${response.data.ip}`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Kookeey connection failed: ${error.message}`,
       };
     }
   }
