@@ -71,6 +71,23 @@ export const envValidationSchema = Joi.object({
   FIVESIM_API_KEY: Joi.string().optional(),
   FIVESIM_BASE_URL: Joi.string().uri().default('https://5sim.net/v1'),
 
+  // SMS-Man
+  SMS_MAN_API_KEY: Joi.string().optional(),
+  SMS_MAN_BASE_URL: Joi.string()
+    .uri()
+    .default('https://api.sms-man.com/stubs/handler_api.php'),
+
+  // SMSPVA
+  SMSPVA_API_KEY: Joi.string().optional(),
+  SMSPVA_BASE_URL: Joi.string().uri().default('https://beta.smspva.com/api/'),
+
+  // OnlineSim
+  ONLINESIM_API_KEY: Joi.string().optional(),
+  ONLINESIM_BASE_URL: Joi.string().uri().default('https://onlinesim.io/api/'),
+
+  // API 密钥加密密钥（用于解密数据库中存储的 API 密钥）
+  ENCRYPTION_KEY: Joi.string().min(16).default('default-key-change-in-production'),
+
   // ===== 号码池配置 =====
   NUMBER_POOL_MIN_SIZE: Joi.number().min(0).default(100),
   NUMBER_POOL_TARGET_SIZE: Joi.number().min(0).default(200),
