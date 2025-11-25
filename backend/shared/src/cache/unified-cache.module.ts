@@ -1,5 +1,5 @@
 import { Module, Global, DynamicModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UnifiedCacheService, UnifiedCacheConfig } from './unified-cache.service';
 
 /**
@@ -66,7 +66,7 @@ export class UnifiedCacheModule {
           useFactory: (configService, customConfig) => {
             return new UnifiedCacheService(configService, customConfig);
           },
-          inject: ['ConfigService', 'UNIFIED_CACHE_CONFIG'],
+          inject: [ConfigService, 'UNIFIED_CACHE_CONFIG'],
         },
       ],
       exports: [UnifiedCacheService],
@@ -95,7 +95,7 @@ export class UnifiedCacheModule {
           useFactory: (configService, customConfig) => {
             return new UnifiedCacheService(configService, customConfig);
           },
-          inject: ['ConfigService', 'UNIFIED_CACHE_CONFIG'],
+          inject: [ConfigService, 'UNIFIED_CACHE_CONFIG'],
         },
       ],
       exports: [UnifiedCacheService],

@@ -5,6 +5,9 @@ module.exports = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
+  moduleNameMapper: {
+    '^uuid$': '<rootDir>/__mocks__/uuid.ts',
+  },
   collectCoverageFrom: [
     '**/*.(t|j)s',
     '!**/*.spec.ts',

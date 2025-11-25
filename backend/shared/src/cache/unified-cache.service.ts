@@ -233,8 +233,14 @@ export class UnifiedCacheService implements OnModuleDestroy {
 
   /**
    * 设置缓存值
+   * @param key 缓存键
+   * @param value 缓存值
+   * @param optionsOrTTL 缓存选项对象或 TTL 数字（秒）- 支持旧 API 向后兼容
    */
-  async set<T>(key: string, value: T, options: CacheOptions = {}): Promise<boolean> {
+  async set<T>(key: string, value: T, optionsOrTTL: CacheOptions | number = {}): Promise<boolean> {
+    // 支持旧 API: set(key, value, ttl) 向后兼容
+    const options: CacheOptions = typeof optionsOrTTL === 'number' ? { ttl: optionsOrTTL } : optionsOrTTL;
+
     const fullKey = this.buildKey(key);
     const layer = options.layer ?? (this.config.enableL1Cache ? CacheLayer.L1_AND_L2 : CacheLayer.L2_ONLY);
 
@@ -408,6 +414,35 @@ export class UnifiedCacheService implements OnModuleDestroy {
   }
 
   /**
+   * SCAN 方法 - 获取匹配模式的所有键（使用 SCAN 安全迭代）
+   * @param pattern 匹配模式（如 "device:*"）
+   * @param count 每次扫描返回的键数量，默认 100
+   * @returns 匹配的键数组
+   */
+  async scan(pattern: string, count: number = 100): Promise<string[]> {
+    const fullPattern = this.buildKey(pattern);
+    const matchedKeys: string[] = [];
+
+    try {
+      // L2 SCAN (Redis)
+      if (this.redis) {
+        let cursor = '0';
+        do {
+          const [newCursor, keys] = await this.redis.scan(cursor, 'MATCH', fullPattern, 'COUNT', count);
+          cursor = newCursor;
+          matchedKeys.push(...keys);
+        } while (cursor !== '0');
+      }
+
+      this.logger.debug(`SCAN pattern: ${pattern} found ${matchedKeys.length} keys`);
+      return matchedKeys;
+    } catch (error) {
+      this.logger.error(`Cache scan error [${pattern}]: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
    * 延迟双删 (解决数据库-缓存一致性问题)
    */
   async delayedDoubleDel(key: string, delayMs: number = 500): Promise<void> {
@@ -569,6 +604,26 @@ export class UnifiedCacheService implements OnModuleDestroy {
    */
   getRedisClient(): Redis | null {
     return this.redis;
+  }
+
+  // ==================== 兼容方法 (便于迁移) ====================
+
+  /**
+   * wrap 方法 - 与旧 CacheService.wrap() 兼容
+   * @deprecated 使用 getOrSet() 替代
+   */
+  async wrap<T>(key: string, fn: () => Promise<T>, ttl?: number): Promise<T> {
+    const result = await this.getOrSet(key, fn, ttl ? { ttl } : {});
+    // wrap() 总是执行工厂函数，因此不会返回 null
+    return result as T;
+  }
+
+  /**
+   * reset 方法 - flush 的别名
+   * @deprecated 使用 flush() 替代
+   */
+  async reset(): Promise<void> {
+    return this.flush();
   }
 
   // ==================== 私有辅助方法 ====================

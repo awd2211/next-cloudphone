@@ -1,5 +1,5 @@
 import { Module, Global, DynamicModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UnifiedEncryptionService, UnifiedEncryptionConfig } from './unified-encryption.service';
 
 /**
@@ -63,7 +63,7 @@ export class UnifiedEncryptionModule {
           useFactory: (configService, customConfig) => {
             return new UnifiedEncryptionService(configService, customConfig);
           },
-          inject: ['ConfigService', 'UNIFIED_ENCRYPTION_CONFIG'],
+          inject: [ConfigService, 'UNIFIED_ENCRYPTION_CONFIG'],
         },
       ],
       exports: [UnifiedEncryptionService],
@@ -92,7 +92,7 @@ export class UnifiedEncryptionModule {
           useFactory: (configService, customConfig) => {
             return new UnifiedEncryptionService(configService, customConfig);
           },
-          inject: ['ConfigService', 'UNIFIED_ENCRYPTION_CONFIG'],
+          inject: [ConfigService, 'UNIFIED_ENCRYPTION_CONFIG'],
         },
       ],
       exports: [UnifiedEncryptionService],

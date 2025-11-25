@@ -362,6 +362,51 @@ export class HttpClientService {
   }
 
   /**
+   * PATCH 请求
+   */
+  async patch<T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+    options?: HttpClientOptions
+  ): Promise<T> {
+    this.logger.debug(`PATCH ${url}`);
+
+    const observable = this.httpService.patch<T>(url, data, config).pipe(
+      timeout(options?.timeout || 10000),
+      retry({
+        count: options?.retries || 3,
+        delay: (error, retryCount) => {
+          // ✅ 使用智能重试判断
+          if (!this.isRetryableError(error, options)) {
+            this.logger.warn(`Non-retryable error for PATCH ${url}, aborting retry`);
+            throw error;
+          }
+
+          // ✅ 使用指数退避计算延迟
+          const delay = this.calculateRetryDelay(retryCount, options);
+          this.logger.warn(
+            `Retry ${retryCount}/${options?.retries || 3} for PATCH ${url} after ${delay}ms (error: ${error.message})`
+          );
+          return timer(delay);
+        },
+      }),
+      tap(() => this.logger.debug(`PATCH ${url} succeeded`)),
+      catchError((error) => {
+        this.logger.error(`PATCH ${url} failed after retries: ${error.message}`);
+        return throwError(() => error);
+      })
+    );
+
+    try {
+      const response = await this.toPromise(observable);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * DELETE 请求
    */
   async delete<T = any>(
@@ -683,6 +728,25 @@ export class HttpClientService {
     return this.requestWithCircuitBreaker(
       serviceName,
       () => this.delete<T>(url, config, options),
+      {
+        fallbackValue: options?.fallbackValue,
+      }
+    );
+  }
+
+  /**
+   * ✅ 新增：带断路器的PATCH请求
+   */
+  async patchWithCircuitBreaker<T = any>(
+    serviceName: string,
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+    options?: Omit<HttpClientOptions, 'circuitBreaker'>
+  ): Promise<T> {
+    return this.requestWithCircuitBreaker(
+      serviceName,
+      () => this.patch<T>(url, data, config, options),
       {
         fallbackValue: options?.fallbackValue,
       }
