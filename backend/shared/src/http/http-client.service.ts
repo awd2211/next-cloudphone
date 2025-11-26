@@ -5,10 +5,12 @@ import { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'a
 import { Observable, throwError, timer } from 'rxjs';
 import { catchError, retry, timeout, tap } from 'rxjs/operators';
 import CircuitBreaker from 'opossum';
+import { context, propagation, trace, SpanKind, SpanStatusCode } from '@opentelemetry/api';
 
 // 扩展 Axios 配置类型以支持自定义属性
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   _startTime?: number;
+  _otelSpan?: any; // OpenTelemetry Span
 }
 
 export interface HttpClientOptions {
@@ -80,23 +82,69 @@ export class HttpClientService {
       keepAliveMsecs: 1000,
     });
 
-    // ✅ 请求拦截器：记录开始时间
+    // ✅ 请求拦截器：记录开始时间 + OpenTelemetry Context 传播
     axiosInstance.interceptors.request.use(
       (config: ExtendedAxiosRequestConfig) => {
         config._startTime = Date.now();
+
+        // ✅ OpenTelemetry: 创建客户端 span
+        const tracer = trace.getTracer('cloudphone-http-client');
+        const url = config.url || 'unknown';
+        const method = config.method?.toUpperCase() || 'GET';
+
+        const span = tracer.startSpan(`HTTP ${method} ${this.extractServiceName(url)}`, {
+          kind: SpanKind.CLIENT,
+          attributes: {
+            'http.method': method,
+            'http.url': url,
+            'http.target': new URL(url, 'http://localhost').pathname,
+          },
+        });
+
+        config._otelSpan = span;
+
+        // ✅ 注入 W3C Trace Context 到请求头
+        const headers = config.headers || {};
+        propagation.inject(trace.setSpan(context.active(), span), headers);
+        config.headers = headers;
+
         return config;
       },
       (error) => Promise.reject(error)
     );
 
-    // ✅ 响应拦截器：记录统计数据
+    // ✅ 响应拦截器：记录统计数据 + 结束 OpenTelemetry span
     axiosInstance.interceptors.response.use(
       (response) => {
         this.recordMetrics(response.config, true);
+
+        // ✅ 结束 OpenTelemetry span（成功）
+        const config = response.config as ExtendedAxiosRequestConfig;
+        if (config._otelSpan) {
+          config._otelSpan.setAttribute('http.status_code', response.status);
+          config._otelSpan.setStatus({ code: SpanStatusCode.OK });
+          config._otelSpan.end();
+        }
+
         return response;
       },
       (error) => {
         this.recordMetrics(error.config, false);
+
+        // ✅ 结束 OpenTelemetry span（失败）
+        const config = error.config as ExtendedAxiosRequestConfig;
+        if (config?._otelSpan) {
+          if (error.response) {
+            config._otelSpan.setAttribute('http.status_code', error.response.status);
+          }
+          config._otelSpan.recordException(error);
+          config._otelSpan.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message,
+          });
+          config._otelSpan.end();
+        }
+
         return Promise.reject(error);
       }
     );

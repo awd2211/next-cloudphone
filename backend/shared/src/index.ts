@@ -130,7 +130,25 @@ export type { MetricConfig } from './monitoring/business-metrics';
 
 // ========== 分布式追踪 ==========
 export { initTracing, shutdownTracing, getTracingSDK } from './tracing/tracing.setup';
-export type { TracingConfig } from './tracing/tracing.setup';
+export type { TracingConfig, SamplingStrategy } from './tracing/tracing.setup';
+
+// ========== RabbitMQ 消息追踪 ==========
+export {
+  extractTraceContext,
+  createConsumerSpan,
+  withTracing,
+  runInTraceContext,
+  getTraceIdFromMessage,
+  stripTraceContext,
+} from './tracing/rabbitmq-tracing';
+export type { TracedMessage } from './tracing/rabbitmq-tracing';
+
+// ========== 请求追踪工具 ==========
+export {
+  getCurrentTraceContext,
+  createChildSpan,
+  endSpan,
+} from './middlewares/request-tracing.middleware';
 
 // ========== 健康检查 ==========
 export { HealthCheckService } from './health/health-check.service';

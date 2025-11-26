@@ -1,6 +1,7 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { context, propagation, trace, SpanKind, SpanStatusCode } from '@opentelemetry/api';
 
 /**
  * 简化的事件接口（用于事件发布）
@@ -9,6 +10,7 @@ import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 export interface SimpleEvent {
   type?: string;
   timestamp?: string | Date;
+  _trace?: Record<string, string>; // ✅ OpenTelemetry trace context
   [key: string]: unknown;
 }
 
@@ -53,6 +55,8 @@ export class EventBusService {
 
   /**
    * 发布事件到 RabbitMQ（类型安全版本）
+   * ✅ 支持 OpenTelemetry context 传播
+   *
    * @param exchange 交换机名称
    * @param routingKey 路由键
    * @param message 消息内容
@@ -68,18 +72,49 @@ export class EventBusService {
       throw new Error('AmqpConnection not available. Make sure RabbitMQModule is imported.');
     }
 
+    // ✅ 创建发布 span
+    const tracer = trace.getTracer('cloudphone-event-bus');
+    const span = tracer.startSpan(`AMQP publish ${routingKey}`, {
+      kind: SpanKind.PRODUCER,
+      attributes: {
+        'messaging.system': 'rabbitmq',
+        'messaging.destination': exchange,
+        'messaging.destination_kind': 'exchange',
+        'messaging.rabbitmq.routing_key': routingKey,
+        'messaging.message_type': message.type || routingKey,
+      },
+    });
+
     try {
-      await this.amqpConnection.publish(exchange, routingKey, message, {
+      // ✅ 注入 trace context 到消息
+      const traceHeaders: Record<string, string> = {};
+      propagation.inject(trace.setSpan(context.active(), span), traceHeaders);
+
+      // ✅ 将 trace context 添加到消息体
+      const messageWithTrace: T = {
+        ...message,
+        _trace: traceHeaders,
+      };
+
+      await this.amqpConnection.publish(exchange, routingKey, messageWithTrace, {
         persistent: options?.persistent ?? true,
         timestamp: options?.timestamp ?? Date.now(),
         priority: options?.priority,
         expiration: options?.expiration ? String(options.expiration) : undefined,
       });
 
+      span.setStatus({ code: SpanStatusCode.OK });
       this.logger.debug(`Event published: ${routingKey} to ${exchange}`);
     } catch (error) {
+      span.recordException(error as Error);
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: (error as Error).message,
+      });
       this.logger.error(`Failed to publish event: ${routingKey}`, error);
       throw error;
+    } finally {
+      span.end();
     }
   }
 

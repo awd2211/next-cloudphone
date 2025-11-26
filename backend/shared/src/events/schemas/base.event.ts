@@ -23,6 +23,12 @@ export interface BaseEvent {
 
   /** 事件负载数据 */
   payload: Record<string, any>;
+
+  /** 分布式追踪上下文（由 EventBusService 自动注入） */
+  _trace?: Record<string, string>;
+
+  /** 允许额外的自定义字段 */
+  [key: string]: unknown;
 }
 
 /**
