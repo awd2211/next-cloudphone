@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Modal, Form, Input, Select, Descriptions, Alert } from 'antd';
 import type { FormInstance } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const { Option } = Select;
 
@@ -106,7 +107,7 @@ export const RegisterPhysicalDeviceModal = memo<RegisterPhysicalDeviceModalProps
             description={
               <div>
                 <p>1. 在设备上开启 ADB over TCP/IP:</p>
-                <pre style={{ background: '#f5f5f5', padding: '8px', borderRadius: '4px' }}>
+                <pre style={{ background: NEUTRAL_LIGHT.bg.layout, padding: '8px', borderRadius: '4px' }}>
                   adb tcpip 5555
                 </pre>
                 <p>2. 查看设备 IP 地址（设置 → 关于手机 → 状态信息）</p>

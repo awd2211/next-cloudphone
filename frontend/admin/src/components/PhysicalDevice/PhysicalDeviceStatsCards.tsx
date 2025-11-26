@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Card, Row, Col, Statistic, Progress } from 'antd';
 import { WifiOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface PhysicalDeviceStatsCardsProps {
   total: number;
@@ -21,7 +22,7 @@ export const PhysicalDeviceStatsCards = memo<PhysicalDeviceStatsCardsProps>(
             <Statistic
               title="在线设备"
               value={online}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
               prefix={<CheckCircleOutlined />}
             />
           </Col>
@@ -29,7 +30,7 @@ export const PhysicalDeviceStatsCards = memo<PhysicalDeviceStatsCardsProps>(
             <Statistic
               title="离线设备"
               value={offline}
-              valueStyle={{ color: '#999' }}
+              valueStyle={{ color: NEUTRAL_LIGHT.text.tertiary }}
               prefix={<CloseCircleOutlined />}
             />
           </Col>

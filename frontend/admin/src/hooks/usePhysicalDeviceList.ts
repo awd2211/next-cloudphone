@@ -48,7 +48,7 @@ export const usePhysicalDeviceList = () => {
    * 扫描网络设备
    */
   const handleScan = useCallback(
-    async (values: { subnet: string }) => {
+    async (values: { networkCidr: string }) => {
       const results = await scanMutation.mutateAsync(values);
       setScanResults(results as ScanResult[]);
     },

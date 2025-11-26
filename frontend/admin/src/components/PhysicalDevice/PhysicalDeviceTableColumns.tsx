@@ -5,6 +5,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { PhysicalDevice } from '@/types';
 import { statusConfig } from './physicalDeviceUtils';
 import { createTimeColumn } from '@/utils/tableColumns';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface PhysicalDeviceTableColumnsProps {
   onDelete: (id: string) => void;
@@ -53,7 +54,7 @@ export const usePhysicalDeviceTableColumns = ({
           <Space direction="vertical" size={0}>
             {record.manufacturer && <span>{record.manufacturer}</span>}
             {record.model && (
-              <span style={{ fontSize: '12px', color: '#999' }}>{record.model}</span>
+              <span style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>{record.model}</span>
             )}
             {record.androidVersion && (
               <Tag color="blue">

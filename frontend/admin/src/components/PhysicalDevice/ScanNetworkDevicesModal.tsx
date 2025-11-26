@@ -4,6 +4,7 @@ import { ScanOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { statusConfig } from './physicalDeviceUtils';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface ScanResult {
   serialNumber: string;
@@ -20,7 +21,7 @@ interface ScanNetworkDevicesModalProps {
   scanResults: ScanResult[];
   isScanning: boolean;
   onCancel: () => void;
-  onScan: (values: { subnet: string }) => void;
+  onScan: (values: { networkCidr: string }) => void;
   onRegister: (device: ScanResult) => void;
 }
 
@@ -48,7 +49,7 @@ export const ScanNetworkDevicesModal = memo<ScanNetworkDevicesModalProps>(
         render: (_, record) => (
           <Space direction="vertical" size={0}>
             <span>{record.manufacturer || '-'}</span>
-            <span style={{ fontSize: '12px', color: '#999' }}>{record.model || '-'}</span>
+            <span style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>{record.model || '-'}</span>
           </Space>
         ),
       },
@@ -98,7 +99,7 @@ export const ScanNetworkDevicesModal = memo<ScanNetworkDevicesModalProps>(
 
         <Form form={form} onFinish={onScan} layout="inline" style={{ marginBottom: '16px' }}>
           <Form.Item
-            name="subnet"
+            name="networkCidr"
             rules={[{ required: true, message: '请输入子网段' }]}
             initialValue="192.168.1.0/24"
             style={{ flex: 1 }}
@@ -129,7 +130,7 @@ export const ScanNetworkDevicesModal = memo<ScanNetworkDevicesModalProps>(
         )}
 
         {!isScanning && scanResults.length === 0 && form.isFieldsTouched() && (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+          <div style={{ textAlign: 'center', padding: '40px', color: NEUTRAL_LIGHT.text.tertiary }}>
             <QuestionCircleOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
             <div>未发现任何设备</div>
           </div>

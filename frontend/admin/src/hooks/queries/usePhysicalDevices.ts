@@ -39,7 +39,13 @@ export function usePhysicalDevices(params?: { page?: number; pageSize?: number }
 // Mutations
 export function useScanNetworkDevices() {
   return useMutation({
-    mutationFn: (params: { subnet: string }) => scanNetworkDevices(params),
+    mutationFn: (params: {
+      networkCidr: string;
+      portStart?: number;
+      portEnd?: number;
+      concurrency?: number;
+      timeoutMs?: number;
+    }) => scanNetworkDevices(params),
     onSuccess: (results: any) => {
       if (results.length === 0) {
         message.info('未发现任何设备，请检查网络配置');
