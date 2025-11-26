@@ -16,6 +16,7 @@ import { useQuotaStatistics } from '@/hooks/queries/useQuotas';
 import { createQuotaColumns } from './columns';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
 import { LoadingState } from '@/components/Feedback/LoadingState';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const QuotaListContent: React.FC = () => {
   // 配额列表管理
@@ -106,7 +107,7 @@ const QuotaListContent: React.FC = () => {
           </Tag>
         </h2>
         <Space>
-          <span style={{ fontSize: 12, color: '#999' }}>Ctrl+N 新建</span>
+          <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>Ctrl+N 新建</span>
         </Space>
       </div>
 

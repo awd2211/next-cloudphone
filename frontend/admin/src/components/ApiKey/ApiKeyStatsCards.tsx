@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Row, Col, Card, Statistic, theme } from 'antd';
 import { ApiOutlined, CheckCircleOutlined, ClockCircleOutlined, BarChartOutlined } from '@ant-design/icons';
 import type { ApiKeyStatistics } from '@/types';
+import { SEMANTIC, CHART_COLORS } from '@/theme';
 
 interface ApiKeyStatsCardsProps {
   statistics: ApiKeyStatistics | null;
@@ -29,7 +30,7 @@ export const ApiKeyStatsCards = memo<ApiKeyStatsCardsProps>(({ statistics }) => 
             title="激活中"
             value={statistics.active}
             prefix={<CheckCircleOutlined />}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: SEMANTIC.success.main }}
           />
         </Card>
       </Col>
@@ -39,7 +40,7 @@ export const ApiKeyStatsCards = memo<ApiKeyStatsCardsProps>(({ statistics }) => 
             title="总使用次数"
             value={statistics.totalUsage}
             prefix={<BarChartOutlined />}
-            valueStyle={{ color: '#722ed1' }}
+            valueStyle={{ color: CHART_COLORS[3] }}
           />
         </Card>
       </Col>
@@ -49,7 +50,7 @@ export const ApiKeyStatsCards = memo<ApiKeyStatsCardsProps>(({ statistics }) => 
             title="今日使用"
             value={statistics.recentUsage.day}
             prefix={<ClockCircleOutlined />}
-            valueStyle={{ color: '#fa8c16' }}
+            valueStyle={{ color: SEMANTIC.warning.main }}
           />
         </Card>
       </Col>

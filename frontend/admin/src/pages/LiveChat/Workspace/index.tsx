@@ -73,6 +73,7 @@ import {
   type CannedResponse,
 } from '@/services/livechat';
 import { useSocketIO } from '@/hooks/useSocketIO';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT, CHART_COLORS } from '@/theme';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -83,10 +84,10 @@ const { Text, Paragraph } = Typography;
 
 // 状态配置
 const statusConfig: Record<AgentStatus, { color: string; text: string; badge: 'success' | 'warning' | 'default' | 'error' }> = {
-  online: { color: '#52c41a', text: '在线', badge: 'success' },
-  busy: { color: '#faad14', text: '忙碌', badge: 'warning' },
-  away: { color: '#d9d9d9', text: '离开', badge: 'default' },
-  offline: { color: '#ff4d4f', text: '离线', badge: 'error' },
+  online: { color: SEMANTIC.success.main, text: '在线', badge: 'success' },
+  busy: { color: SEMANTIC.warning.main, text: '忙碌', badge: 'warning' },
+  away: { color: NEUTRAL_LIGHT.border.primary, text: '离开', badge: 'default' },
+  offline: { color: SEMANTIC.error.main, text: '离线', badge: 'error' },
 };
 
 const AgentWorkspace: React.FC = () => {
@@ -424,14 +425,14 @@ const AgentWorkspace: React.FC = () => {
   }
 
   return (
-    <Layout style={{ height: 'calc(100vh - 120px)', background: '#fff' }}>
+    <Layout style={{ height: 'calc(100vh - 120px)', background: NEUTRAL_LIGHT.bg.container }}>
       {/* 左侧会话列表 */}
-      <Sider width={320} style={{ background: '#f5f5f5', borderRight: '1px solid #e8e8e8' }}>
+      <Sider width={320} style={{ background: NEUTRAL_LIGHT.bg.layout, borderRight: `1px solid ${NEUTRAL_LIGHT.border.primary}` }}>
         {/* 客服信息和状态 */}
-        <div style={{ padding: 16, background: '#fff', borderBottom: '1px solid #e8e8e8' }}>
+        <div style={{ padding: 16, background: NEUTRAL_LIGHT.bg.container, borderBottom: `1px solid ${NEUTRAL_LIGHT.border.primary}` }}>
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
             <Space>
-              <Avatar icon={<CustomerServiceOutlined />} style={{ backgroundColor: '#1890ff' }} />
+              <Avatar icon={<CustomerServiceOutlined />} style={{ backgroundColor: PRIMARY.main }} />
               <div>
                 <Text strong>{currentAgent?.displayName || '客服'}</Text>
                 <br />
@@ -486,8 +487,8 @@ const AgentWorkspace: React.FC = () => {
                   style={{
                     padding: '12px 16px',
                     cursor: 'pointer',
-                    background: selectedConversation?.id === conversation.id ? '#e6f7ff' : 'transparent',
-                    borderBottom: '1px solid #f0f0f0',
+                    background: selectedConversation?.id === conversation.id ? PRIMARY.bg : 'transparent',
+                    borderBottom: `1px solid ${NEUTRAL_LIGHT.border.secondary}`,
                   }}
                 >
                   <List.Item.Meta
@@ -535,7 +536,7 @@ const AgentWorkspace: React.FC = () => {
             <div
               style={{
                 padding: '12px 16px',
-                borderBottom: '1px solid #e8e8e8',
+                borderBottom: `1px solid ${NEUTRAL_LIGHT.border.primary}`,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -580,7 +581,7 @@ const AgentWorkspace: React.FC = () => {
                 flex: 1,
                 overflow: 'auto',
                 padding: 16,
-                background: '#f5f5f5',
+                background: NEUTRAL_LIGHT.bg.layout,
               }}
             >
               {messagesLoading ? (
@@ -604,7 +605,7 @@ const AgentWorkspace: React.FC = () => {
                         icon={msg.sender === 'visitor' ? <UserOutlined /> : <CustomerServiceOutlined />}
                         style={{
                           marginRight: 8,
-                          backgroundColor: msg.sender === 'visitor' ? '#1890ff' : '#722ed1',
+                          backgroundColor: msg.sender === 'visitor' ? PRIMARY.main : CHART_COLORS[3],
                         }}
                       />
                     )}
@@ -615,8 +616,8 @@ const AgentWorkspace: React.FC = () => {
                           style={{
                             padding: '8px 12px',
                             borderRadius: 8,
-                            background: '#fff',
-                            border: '2px solid #1890ff',
+                            background: NEUTRAL_LIGHT.bg.container,
+                            border: `2px solid ${PRIMARY.main}`,
                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                           }}
                         >
@@ -645,8 +646,8 @@ const AgentWorkspace: React.FC = () => {
                           style={{
                             padding: '8px 12px',
                             borderRadius: 8,
-                            background: msg.isDeleted ? '#f5f5f5' : (msg.sender === 'agent' ? '#1890ff' : '#fff'),
-                            color: msg.isDeleted ? '#999' : (msg.sender === 'agent' ? '#fff' : '#000'),
+                            background: msg.isDeleted ? NEUTRAL_LIGHT.bg.layout : (msg.sender === 'agent' ? PRIMARY.main : NEUTRAL_LIGHT.bg.container),
+                            color: msg.isDeleted ? NEUTRAL_LIGHT.text.tertiary : (msg.sender === 'agent' ? NEUTRAL_LIGHT.bg.container : NEUTRAL_LIGHT.text.primary),
                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                             fontStyle: msg.isDeleted ? 'italic' : 'normal',
                           }}
@@ -690,7 +691,7 @@ const AgentWorkspace: React.FC = () => {
                               position: 'absolute',
                               top: -8,
                               right: -8,
-                              background: '#fff',
+                              background: NEUTRAL_LIGHT.bg.container,
                               borderRadius: '50%',
                               boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                               opacity: 0.8,
@@ -703,7 +704,7 @@ const AgentWorkspace: React.FC = () => {
                     {msg.sender === 'agent' && (
                       <Avatar
                         icon={<CustomerServiceOutlined />}
-                        style={{ marginLeft: 8, backgroundColor: '#52c41a' }}
+                        style={{ marginLeft: 8, backgroundColor: SEMANTIC.success.main }}
                       />
                     )}
                   </div>
@@ -713,7 +714,7 @@ const AgentWorkspace: React.FC = () => {
             </div>
 
             {/* 输入区域 */}
-            <div style={{ padding: 16, borderTop: '1px solid #e8e8e8' }}>
+            <div style={{ padding: 16, borderTop: `1px solid ${NEUTRAL_LIGHT.border.primary}` }}>
               {/* 快捷回复 */}
               {showCannedResponses && (
                 <Card
@@ -797,7 +798,7 @@ const AgentWorkspace: React.FC = () => {
 
       {/* 右侧访客信息（可选） */}
       {selectedConversation && (
-        <Sider width={280} style={{ background: '#fff', borderLeft: '1px solid #e8e8e8', padding: 16 }}>
+        <Sider width={280} style={{ background: NEUTRAL_LIGHT.bg.container, borderLeft: `1px solid ${NEUTRAL_LIGHT.border.primary}`, padding: 16 }}>
           <div style={{ textAlign: 'center', marginBottom: 16 }}>
             <Avatar size={64} icon={<UserOutlined />} />
             <div style={{ marginTop: 8 }}>

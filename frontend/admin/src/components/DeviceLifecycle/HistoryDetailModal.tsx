@@ -15,6 +15,7 @@ import {
   Statistic,
   Timeline,
 } from 'antd';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import { LifecycleStatusTag } from '@/components/Lifecycle';
 import type { LifecycleExecutionHistory } from '@/types';
 import dayjs from 'dayjs';
@@ -77,7 +78,7 @@ export const HistoryDetailModal = memo<HistoryDetailModalProps>(
                       <Statistic
                         title="成功"
                         value={selectedHistory.details.succeeded}
-                        valueStyle={{ color: '#52c41a' }}
+                        valueStyle={{ color: SEMANTIC.success.main }}
                       />
                     </Card>
                   </Col>
@@ -86,7 +87,7 @@ export const HistoryDetailModal = memo<HistoryDetailModalProps>(
                       <Statistic
                         title="失败"
                         value={selectedHistory.details.failed}
-                        valueStyle={{ color: '#ff4d4f' }}
+                        valueStyle={{ color: SEMANTIC.error.main }}
                       />
                     </Card>
                   </Col>
@@ -95,7 +96,7 @@ export const HistoryDetailModal = memo<HistoryDetailModalProps>(
                       <Statistic
                         title="跳过"
                         value={selectedHistory.details.skipped}
-                        valueStyle={{ color: '#8c8c8c' }}
+                        valueStyle={{ color: NEUTRAL_LIGHT.text.tertiary }}
                       />
                     </Card>
                   </Col>

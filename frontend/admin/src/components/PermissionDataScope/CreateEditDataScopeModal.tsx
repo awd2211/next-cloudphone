@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Modal, Form, Select, InputNumber, Input, Switch, type FormInstance } from 'antd';
 import type { Role } from '@/types';
 import type { DataScope } from '@/hooks/useDataScope';
+import { NEUTRAL_LIGHT } from '@/theme';
 import { ScopeType } from '@/hooks/useDataScope';
 import { resourceTypes } from './constants';
 
@@ -62,7 +63,7 @@ export const CreateEditDataScopeModal = memo<CreateEditDataScopeModalProps>(
                   <div>
                     <div>{type.label}</div>
                     {type.description && (
-                      <div style={{ fontSize: 12, color: '#999' }}>{type.description}</div>
+                      <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>{type.description}</div>
                     )}
                   </div>
                 </Select.Option>

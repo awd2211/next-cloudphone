@@ -9,6 +9,7 @@ import {
 import type { DataScope } from '@/hooks/useDataScope';
 import type { Role } from '@/types';
 import { resourceTypes } from './constants';
+import { SEMANTIC } from '@/theme';
 
 interface DataScopeStatisticsModalProps {
   visible: boolean;
@@ -145,7 +146,7 @@ export const DataScopeStatisticsModal = memo<DataScopeStatisticsModalProps>(
               <Statistic
                 title="启用配置"
                 value={statistics.activeConfigs}
-                valueStyle={{ color: '#3f8600' }}
+                valueStyle={{ color: SEMANTIC.success.dark }}
                 prefix={<CheckCircleOutlined />}
               />
             </Card>
@@ -155,7 +156,7 @@ export const DataScopeStatisticsModal = memo<DataScopeStatisticsModalProps>(
               <Statistic
                 title="禁用配置"
                 value={statistics.inactiveConfigs}
-                valueStyle={{ color: '#cf1322' }}
+                valueStyle={{ color: SEMANTIC.error.dark }}
                 prefix={<CloseCircleOutlined />}
               />
             </Card>

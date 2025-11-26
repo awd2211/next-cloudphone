@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Tag, Progress, Table, } from 'antd';
+import { PRIMARY } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 import type { UserMetering, DeviceMetering } from './constants';
 import { getProgressStatus } from './constants';
@@ -64,7 +65,7 @@ export const useUserMeteringColumns = (): ColumnsType<UserMetering> => {
         align: 'right',
         sorter: (a, b) => a.cost - b.cost,
         render: (cost: number) => (
-          <span style={{ color: '#1890ff', fontWeight: 500 }}>¥{cost.toFixed(2)}</span>
+          <span style={{ color: PRIMARY.main, fontWeight: 500 }}>¥{cost.toFixed(2)}</span>
         ),
       },
     ],
@@ -162,7 +163,7 @@ export const useUserTableSummary = ({ data }: UseUserTableSummaryProps) => {
             <Table.Summary.Cell index={4}>-</Table.Summary.Cell>
             <Table.Summary.Cell index={5}>-</Table.Summary.Cell>
             <Table.Summary.Cell index={6} align="right">
-              <strong style={{ color: '#1890ff' }}>¥{totalCost.toFixed(2)}</strong>
+              <strong style={{ color: PRIMARY.main }}>¥{totalCost.toFixed(2)}</strong>
             </Table.Summary.Cell>
           </Table.Summary.Row>
         </Table.Summary>

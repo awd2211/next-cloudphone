@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
 import type { NotificationTemplate } from './TemplateActions';
+import { PRIMARY, NEUTRAL_LIGHT, NEUTRAL_DARK } from '@/theme';
 
 const { Paragraph, Text } = Typography;
 
@@ -37,9 +38,9 @@ interface TemplatePreviewModalProps {
 const MarkdownContent = memo<{ content: string }>(({ content }) => (
   <div className="markdown-preview" style={{
     padding: 16,
-    background: '#fafafa',
+    background: NEUTRAL_LIGHT.bg.layout,
     borderRadius: 8,
-    border: '1px solid #f0f0f0'
+    border: `1px solid ${NEUTRAL_LIGHT.border.secondary}`
   }}>
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -54,13 +55,13 @@ const MarkdownContent = memo<{ content: string }>(({ content }) => (
         ol: ({ children }) => <ol style={{ paddingLeft: 20, marginBottom: 8 }}>{children}</ol>,
         li: ({ children }) => <li style={{ marginBottom: 4 }}>{children}</li>,
         a: ({ href, children }) => (
-          <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#1890ff' }}>
+          <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: PRIMARY.main }}>
             {children}
           </a>
         ),
         code: ({ children }) => (
           <code style={{
-            background: '#f5f5f5',
+            background: NEUTRAL_LIGHT.bg.layout,
             padding: '2px 6px',
             borderRadius: 4,
             fontFamily: 'monospace'
@@ -70,7 +71,7 @@ const MarkdownContent = memo<{ content: string }>(({ content }) => (
         ),
         pre: ({ children }) => (
           <pre style={{
-            background: '#f5f5f5',
+            background: NEUTRAL_LIGHT.bg.layout,
             padding: 12,
             borderRadius: 8,
             overflow: 'auto',
@@ -81,10 +82,10 @@ const MarkdownContent = memo<{ content: string }>(({ content }) => (
         ),
         blockquote: ({ children }) => (
           <blockquote style={{
-            borderLeft: '4px solid #1890ff',
+            borderLeft: `4px solid ${PRIMARY.main}`,
             paddingLeft: 16,
             margin: '8px 0',
-            color: '#666'
+            color: NEUTRAL_LIGHT.text.secondary
           }}>
             {children}
           </blockquote>
@@ -100,16 +101,16 @@ const MarkdownContent = memo<{ content: string }>(({ content }) => (
         ),
         th: ({ children }) => (
           <th style={{
-            border: '1px solid #d9d9d9',
+            border: `1px solid ${NEUTRAL_LIGHT.border.primary}`,
             padding: 8,
-            background: '#fafafa',
+            background: NEUTRAL_LIGHT.bg.layout,
             textAlign: 'left'
           }}>
             {children}
           </th>
         ),
         td: ({ children }) => (
-          <td style={{ border: '1px solid #d9d9d9', padding: 8 }}>
+          <td style={{ border: `1px solid ${NEUTRAL_LIGHT.border.primary}`, padding: 8 }}>
             {children}
           </td>
         ),
@@ -130,9 +131,9 @@ const HtmlContent = memo<{ content: string }>(({ content }) => (
     className="html-preview"
     style={{
       padding: 16,
-      background: '#fafafa',
+      background: NEUTRAL_LIGHT.bg.layout,
       borderRadius: 8,
-      border: '1px solid #f0f0f0'
+      border: `1px solid ${NEUTRAL_LIGHT.border.secondary}`
     }}
     dangerouslySetInnerHTML={{ __html: content }}
   />
@@ -147,9 +148,9 @@ const PlainTextContent = memo<{ content: string }>(({ content }) => (
   <Paragraph style={{
     whiteSpace: 'pre-wrap',
     padding: 16,
-    background: '#fafafa',
+    background: NEUTRAL_LIGHT.bg.layout,
     borderRadius: 8,
-    border: '1px solid #f0f0f0',
+    border: `1px solid ${NEUTRAL_LIGHT.border.secondary}`,
     margin: 0
   }}>
     {content}
@@ -252,8 +253,8 @@ export const TemplatePreviewModal = memo<TemplatePreviewModalProps>(
             </Text>
             <pre style={{
               padding: 16,
-              background: '#1f1f1f',
-              color: '#e6e6e6',
+              background: NEUTRAL_DARK.bg.container,
+              color: NEUTRAL_DARK.text.primary,
               borderRadius: 8,
               overflow: 'auto',
               fontSize: 13,

@@ -39,6 +39,7 @@ import {
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
 import { LoadingState } from '@/components/Feedback/LoadingState';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import {
@@ -186,7 +187,7 @@ const AnalyticsDashboard: React.FC = () => {
       sorter: (a, b) => a.avgRating - b.avgRating,
       render: (rating: number, record) => (
         <Tooltip title={`${record.totalRatings} 次评价`}>
-          <span style={{ color: rating >= 4 ? '#52c41a' : rating >= 3 ? '#faad14' : '#ff4d4f' }}>
+          <span style={{ color: rating >= 4 ? SEMANTIC.success.main : rating >= 3 ? SEMANTIC.warning.main : SEMANTIC.error.main }}>
             ⭐ {rating.toFixed(1)}
           </span>
         </Tooltip>
@@ -214,7 +215,7 @@ const AnalyticsDashboard: React.FC = () => {
               <Progress
                 percent={percent}
                 showInfo={false}
-                strokeColor={rating >= 4 ? '#52c41a' : rating >= 3 ? '#faad14' : '#ff4d4f'}
+                strokeColor={rating >= 4 ? SEMANTIC.success.main : rating >= 3 ? SEMANTIC.warning.main : SEMANTIC.error.main}
               />
             </div>
           );
@@ -233,7 +234,7 @@ const AnalyticsDashboard: React.FC = () => {
           const hourData = peakHours.find((h) => h.hour === i);
           const count = hourData?.count || 0;
           const intensity = count / maxCount;
-          const bgColor = `rgba(24, 144, 255, ${Math.max(0.1, intensity)})`;
+          const bgColor = `${PRIMARY.main}${Math.round(Math.max(0.1, intensity) * 255).toString(16).padStart(2, '0')}`;
 
           return (
             <Tooltip key={i} title={`${i}:00 - ${count} 个会话`}>
@@ -247,9 +248,9 @@ const AnalyticsDashboard: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: 12,
-                  color: intensity > 0.5 ? '#fff' : '#333',
+                  color: intensity > 0.5 ? NEUTRAL_LIGHT.bg.container : NEUTRAL_LIGHT.text.primary,
                   cursor: 'pointer',
-                  border: i === topPeakHour.hour ? '2px solid #ff4d4f' : 'none',
+                  border: i === topPeakHour.hour ? `2px solid ${SEMANTIC.error.main}` : 'none',
                 }}
               >
                 {i}
@@ -351,7 +352,7 @@ const AnalyticsDashboard: React.FC = () => {
               value={((overview?.resolutionRate || 0) * 100).toFixed(1)}
               suffix="%"
               valueStyle={{
-                color: (overview?.resolutionRate || 0) >= 0.8 ? '#52c41a' : '#faad14',
+                color: (overview?.resolutionRate || 0) >= 0.8 ? SEMANTIC.success.main : SEMANTIC.warning.main,
               }}
               prefix={<CheckCircleOutlined />}
             />
@@ -364,7 +365,7 @@ const AnalyticsDashboard: React.FC = () => {
               value={Math.round(overview?.avgResponseTime || 0)}
               suffix="秒"
               valueStyle={{
-                color: (overview?.avgResponseTime || 0) <= 60 ? '#52c41a' : '#faad14',
+                color: (overview?.avgResponseTime || 0) <= 60 ? SEMANTIC.success.main : SEMANTIC.warning.main,
               }}
               prefix={<ClockCircleOutlined />}
             />
@@ -377,7 +378,7 @@ const AnalyticsDashboard: React.FC = () => {
               value={(overview?.avgRating || 0).toFixed(1)}
               suffix="/ 5"
               valueStyle={{
-                color: (overview?.avgRating || 0) >= 4 ? '#52c41a' : '#faad14',
+                color: (overview?.avgRating || 0) >= 4 ? SEMANTIC.success.main : SEMANTIC.warning.main,
               }}
               prefix={<StarOutlined />}
             />
@@ -467,7 +468,7 @@ const AnalyticsDashboard: React.FC = () => {
             loading={peakLoading}
           >
             {renderPeakHoursHeatmap()}
-            <div style={{ marginTop: 12, fontSize: 12, color: '#999' }}>
+            <div style={{ marginTop: 12, fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
               提示: 颜色越深表示会话越多，红框表示最高峰时段
             </div>
           </Card>

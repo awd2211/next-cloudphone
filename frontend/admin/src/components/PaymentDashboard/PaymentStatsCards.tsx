@@ -2,6 +2,7 @@ import React from 'react';
 import { Row, Col, Card, Statistic , theme } from 'antd';
 import { DollarOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import type { PaymentStatistics } from '@/services/payment-admin';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface PaymentStatsCardsProps {
   statistics: PaymentStatistics | null;
@@ -20,7 +21,7 @@ export const PaymentStatsCards: React.FC<PaymentStatsCardsProps> = React.memo(
               title="总交易量"
               value={statistics.overview.totalTransactions}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -33,7 +34,7 @@ export const PaymentStatsCards: React.FC<PaymentStatsCardsProps> = React.memo(
               precision={2}
               suffix="%"
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -47,7 +48,7 @@ export const PaymentStatsCards: React.FC<PaymentStatsCardsProps> = React.memo(
               prefix="¥"
               valueStyle={{ color: token.colorPrimary }}
               suffix={
-                <span style={{ fontSize: '14px', color: '#666' }}>
+                <span style={{ fontSize: '14px', color: NEUTRAL_LIGHT.text.tertiary }}>
                   <br />
                   <small>净收入: ¥{statistics.revenue.netRevenue}</small>
                 </span>
@@ -63,9 +64,9 @@ export const PaymentStatsCards: React.FC<PaymentStatsCardsProps> = React.memo(
               value={parseFloat(statistics.revenue.totalRefunded)}
               precision={2}
               prefix="¥"
-              valueStyle={{ color: '#cf1322' }}
+              valueStyle={{ color: SEMANTIC.error.main }}
               suffix={
-                <span style={{ fontSize: '14px', color: '#666' }}>
+                <span style={{ fontSize: '14px', color: NEUTRAL_LIGHT.text.tertiary }}>
                   <br />
                   <small>{statistics.overview.refundedTransactions} 笔</small>
                 </span>

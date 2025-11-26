@@ -30,6 +30,7 @@ import React, { useRef, useCallback } from 'react';
 import { List, ListImperativeAPI, RowComponentProps } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Spin } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import './VirtualTable.css';
 
 /**
@@ -114,7 +115,7 @@ export function VirtualTable<T extends Record<string, any>>({
   const renderHeader = () => (
     <div
       className="virtual-table-header"
-      style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', background: '#fafafa' }}
+      style={{ display: 'flex', borderBottom: `1px solid ${NEUTRAL_LIGHT.border.secondary}`, background: NEUTRAL_LIGHT.bg.elevated }}
     >
       {columns.map((column) => (
         <div
@@ -173,7 +174,7 @@ export function VirtualTable<T extends Record<string, any>>({
         onClick={() => handleRowClick?.(record, index)}
         {...ariaAttributes}
       >
-        <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f0' }}>
+        <div style={{ display: 'flex', borderBottom: `1px solid ${NEUTRAL_LIGHT.border.secondary}` }}>
           {rowColumns.map((column) => {
             const value = record?.[column.key];
             const content = column.render && record ? column.render(value, record, index) : value;
@@ -206,7 +207,7 @@ export function VirtualTable<T extends Record<string, any>>({
     return (
       <div
         className="virtual-table-empty"
-        style={{ textAlign: 'center', padding: '48px 0', color: '#999' }}
+        style={{ textAlign: 'center', padding: '48px 0', color: NEUTRAL_LIGHT.text.tertiary }}
       >
         {emptyText}
       </div>
@@ -216,7 +217,7 @@ export function VirtualTable<T extends Record<string, any>>({
   return (
     <div
       className="virtual-table-container"
-      style={{ border: '1px solid #f0f0f0', borderRadius: 4 }}
+      style={{ border: `1px solid ${NEUTRAL_LIGHT.border.secondary}`, borderRadius: 4 }}
     >
       {renderHeader()}
 
@@ -242,7 +243,7 @@ export function VirtualTable<T extends Record<string, any>>({
       </div>
 
       {isLoading && data.length > 0 && (
-        <div style={{ textAlign: 'center', padding: '12px', borderTop: '1px solid #f0f0f0' }}>
+        <div style={{ textAlign: 'center', padding: '12px', borderTop: `1px solid ${NEUTRAL_LIGHT.border.secondary}` }}>
           <Spin size="small" />
           <span style={{ marginLeft: 8 }}>加载中...</span>
         </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Tabs, Typography, Button } from 'antd';
 import { GRAFANA_DASHBOARDS } from '@/config/prometheus';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const { TabPane } = Tabs;
 const { Paragraph, Text } = Typography;
@@ -32,7 +33,7 @@ export const DashboardTabs: React.FC<DashboardTabsProps> = ({ activeTab, onTabCh
 
               <div
                 style={{
-                  background: '#f5f5f5',
+                  background: NEUTRAL_LIGHT.bg.layout,
                   padding: 16,
                   borderRadius: 4,
                   textAlign: 'center',

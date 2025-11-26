@@ -20,6 +20,7 @@ import {
 } from '@ant-design/icons';
 import { useDraggableTable } from '@/components/DraggableTable';
 import { useContextMenu } from '@/components/ContextMenu';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 // 示例数据类型
 interface ExampleDevice {
@@ -158,7 +159,7 @@ const DraggableTableExample: React.FC = memo(() => {
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <div>
               <strong>1. 拖拽排序：</strong>
-              <p style={{ marginTop: 8, marginBottom: 0, color: '#666' }}>
+              <p style={{ marginTop: 8, marginBottom: 0, color: NEUTRAL_LIGHT.text.secondary }}>
                 按住最左侧的 <HolderOutlined style={{ fontSize: 16, margin: '0 4px' }} />{' '}
                 图标拖拽行，可以调整顺序
               </p>
@@ -166,7 +167,7 @@ const DraggableTableExample: React.FC = memo(() => {
 
             <div>
               <strong>2. 右键菜单：</strong>
-              <p style={{ marginTop: 8, marginBottom: 0, color: '#666' }}>
+              <p style={{ marginTop: 8, marginBottom: 0, color: NEUTRAL_LIGHT.text.secondary }}>
                 在表格行上点击鼠标右键，显示快捷操作菜单（根据设备状态动态显示不同的菜单项）
               </p>
             </div>

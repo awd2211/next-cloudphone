@@ -1,5 +1,6 @@
 import React, { Component, type ReactNode } from 'react';
 import { Result, Button } from 'antd';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface Props {
   children: ReactNode;
@@ -157,7 +158,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <div
                 style={{
                   textAlign: 'left',
-                  background: '#fff',
+                  background: NEUTRAL_LIGHT.bg.container,
                   padding: '20px',
                   borderRadius: '4px',
                   marginTop: '20px',
@@ -165,13 +166,13 @@ export class ErrorBoundary extends Component<Props, State> {
                   overflow: 'auto',
                 }}
               >
-                <h3 style={{ color: '#ff4d4f' }}>错误详情（仅开发环境可见）：</h3>
+                <h3 style={{ color: SEMANTIC.error.main }}>错误详情（仅开发环境可见）：</h3>
                 <p>
                   <strong>错误消息：</strong>
                 </p>
                 <pre
                   style={{
-                    background: '#f5f5f5',
+                    background: NEUTRAL_LIGHT.bg.layout,
                     padding: '10px',
                     borderRadius: '4px',
                     overflow: 'auto',
@@ -185,7 +186,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </p>
                 <pre
                   style={{
-                    background: '#f5f5f5',
+                    background: NEUTRAL_LIGHT.bg.layout,
                     padding: '10px',
                     borderRadius: '4px',
                     fontSize: '12px',
@@ -203,7 +204,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     </p>
                     <pre
                       style={{
-                        background: '#f5f5f5',
+                        background: NEUTRAL_LIGHT.bg.layout,
                         padding: '10px',
                         borderRadius: '4px',
                         fontSize: '12px',

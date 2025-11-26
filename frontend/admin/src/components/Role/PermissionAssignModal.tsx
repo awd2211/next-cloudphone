@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Modal, Transfer, Tree, Tabs } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import type { Role, Permission } from '@/types';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface TransferItem {
   key: string;
@@ -92,7 +93,7 @@ export const PermissionAssignModal: React.FC<PermissionAssignModalProps> = React
               label: '树形视图',
               children: (
                 <div>
-                  <p style={{ marginBottom: 16, color: '#666' }}>
+                  <p style={{ marginBottom: 16, color: NEUTRAL_LIGHT.text.secondary }}>
                     已选择 <strong>{selectedPermissions.length}</strong> 个权限
                   </p>
                   <Tree
@@ -104,7 +105,7 @@ export const PermissionAssignModal: React.FC<PermissionAssignModalProps> = React
                     style={{
                       maxHeight: 400,
                       overflow: 'auto',
-                      border: '1px solid #d9d9d9',
+                      border: `1px solid ${NEUTRAL_LIGHT.border.primary}`,
                       padding: 16,
                       borderRadius: 4,
                     }}

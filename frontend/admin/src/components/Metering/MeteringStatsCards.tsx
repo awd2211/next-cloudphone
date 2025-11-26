@@ -6,6 +6,7 @@ import {
   ClockCircleOutlined,
 } from '@ant-design/icons';
 import type { MeteringOverview } from './constants';
+import { SEMANTIC } from '@/theme';
 
 interface MeteringStatsCardsProps {
   overview: MeteringOverview | null;
@@ -27,7 +28,7 @@ export const MeteringStatsCards: React.FC<MeteringStatsCardsProps> = React.memo(
             <Statistic
               title="活跃用户"
               value={overview?.activeUsers || 0}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
               prefix={<UserOutlined />}
             />
           </Col>

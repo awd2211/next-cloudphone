@@ -5,6 +5,7 @@ import {
   MobileOutlined,
   ShoppingOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC } from '@/theme';
 
 interface AnalyticsStatsCardsProps {
   revenueData: {
@@ -27,7 +28,7 @@ export const AnalyticsStatsCards: React.FC<AnalyticsStatsCardsProps> = React.mem
               value={revenueData.totalRevenue || 0}
               precision={2}
               prefix="¥"
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.dark }}
               suffix={
                 <span style={{ fontSize: 14 }}>
                   <ArrowUpOutlined /> 12%
@@ -70,7 +71,7 @@ export const AnalyticsStatsCards: React.FC<AnalyticsStatsCardsProps> = React.mem
               value={revenueData.avgOrderValue || 0}
               precision={2}
               prefix="¥"
-              valueStyle={{ color: '#cf1322' }}
+              valueStyle={{ color: SEMANTIC.error.dark }}
             />
           </Card>
         </Col>

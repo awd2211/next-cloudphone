@@ -4,6 +4,7 @@ import { ReloadOutlined } from '@ant-design/icons';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
 import * as quotaService from '@/services/quota';
+import { SEMANTIC } from '@/theme';
 import dayjs, { Dayjs } from 'dayjs';
 import { useValidatedQuery } from '@/hooks/utils';
 import { QuotaStatisticsResponseSchema } from '@/schemas/api.schemas';
@@ -86,9 +87,9 @@ const QuotaUsageTrend: React.FC<QuotaUsageTrendProps> = memo(({
   // 指标配置
   const metricOptions = [
     { label: '设备数', value: 'devices', color: token.colorPrimary },
-    { label: 'CPU(核)', value: 'cpuCores', color: '#52c41a' },
-    { label: '内存(GB)', value: 'memoryGB', color: '#faad14' },
-    { label: '存储(GB)', value: 'storageGB', color: '#f5222d' },
+    { label: 'CPU(核)', value: 'cpuCores', color: SEMANTIC.success.main },
+    { label: '内存(GB)', value: 'memoryGB', color: SEMANTIC.warning.main },
+    { label: '存储(GB)', value: 'storageGB', color: SEMANTIC.error.main },
     { label: '带宽(Mbps)', value: 'bandwidthMbps', color: '#722ed1' },
     { label: '流量(GB)', value: 'trafficGB', color: '#13c2c2' },
   ];

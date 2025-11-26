@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Row, Col, Card, Statistic , theme } from 'antd';
+import { SEMANTIC } from '@/theme';
 
 interface FieldPermissionStatsCardsProps {
   statistics: {
@@ -33,7 +34,7 @@ export const FieldPermissionStatsCards = memo<FieldPermissionStatsCardsProps>(({
           <Statistic
             title="启用中"
             value={statistics.active}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: SEMANTIC.success.main }}
           />
         </Card>
       </Col>
@@ -42,7 +43,7 @@ export const FieldPermissionStatsCards = memo<FieldPermissionStatsCardsProps>(({
           <Statistic
             title="已禁用"
             value={statistics.inactive}
-            valueStyle={{ color: '#ff4d4f' }}
+            valueStyle={{ color: SEMANTIC.error.main }}
           />
         </Card>
       </Col>
@@ -51,7 +52,7 @@ export const FieldPermissionStatsCards = memo<FieldPermissionStatsCardsProps>(({
           <Statistic
             title="创建操作"
             value={statistics.byOperation.create}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: SEMANTIC.success.main }}
           />
         </Card>
       </Col>

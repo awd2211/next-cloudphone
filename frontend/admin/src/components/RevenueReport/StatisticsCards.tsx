@@ -1,6 +1,7 @@
 import React from 'react';
 import { Row, Col, Card, Statistic, theme } from 'antd';
 import { ShoppingOutlined } from '@ant-design/icons';
+import { SEMANTIC } from '@/theme';
 
 interface StatisticsCardsProps {
   loading: boolean;
@@ -26,7 +27,7 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
             value={totalRevenue}
             prefix="¥"
             precision={2}
-            valueStyle={{ color: '#cf1322' }}
+            valueStyle={{ color: SEMANTIC.error.dark }}
           />
         </Card>
       </Col>
@@ -47,7 +48,7 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
             value={avgOrderValue}
             prefix="¥"
             precision={2}
-            valueStyle={{ color: '#3f8600' }}
+            valueStyle={{ color: SEMANTIC.success.dark }}
           />
         </Card>
       </Col>

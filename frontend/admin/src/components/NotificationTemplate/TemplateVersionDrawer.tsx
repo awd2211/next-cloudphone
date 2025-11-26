@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Drawer, Timeline, Space, Tag, Button } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import type { NotificationTemplate, NotificationTemplateVersion } from '@/types';
 import dayjs from 'dayjs';
 
@@ -31,7 +32,7 @@ export const TemplateVersionDrawer = memo<TemplateVersionDrawerProps>(
                   <strong>v{version.version}</strong>
                   {version.version === template?.version && <Tag color="green">当前版本</Tag>}
                 </Space>
-                <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
+                <div style={{ marginTop: '8px', fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>
                   {dayjs(version.createdAt).format('YYYY-MM-DD HH:mm:ss')}
                   {version.createdBy && ` · ${version.createdBy}`}
                 </div>

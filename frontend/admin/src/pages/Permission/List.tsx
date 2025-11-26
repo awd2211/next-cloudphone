@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Space, Button, Modal, Form, Input, Popconfirm, Select, Card, Row, Col, theme, Statistic, Tag, message } from 'antd';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, KeyOutlined, SafetyOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 import type { Permission } from '@/types';
 import {
@@ -198,7 +199,7 @@ const PermissionList = () => {
           { text: '管理', value: 'manage' },
         ],
         onFilter: (value, record) => record.action === value,
-        render: (text: string) => <span style={{ color: '#52c41a' }}>{text}</span>,
+        render: (text: string) => <span style={{ color: SEMANTIC.success.main }}>{text}</span>,
       },
       {
         title: '描述',
@@ -272,7 +273,7 @@ const PermissionList = () => {
               Ctrl+R 刷新
             </Tag>
           </h2>
-          <span style={{ fontSize: 12, color: '#999' }}>Ctrl+N 新建</span>
+          <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>Ctrl+N 新建</span>
         </div>
 
         {/* 统计卡片 */}
@@ -287,7 +288,7 @@ const PermissionList = () => {
               <Statistic
                 title="资源类型数"
                 value={stats.resourceCount}
-                valueStyle={{ color: '#1890ff' }}
+                valueStyle={{ color: PRIMARY.main }}
                 prefix={<AppstoreOutlined />}
               />
             </Card>
@@ -297,7 +298,7 @@ const PermissionList = () => {
               <Statistic
                 title="操作类型数"
                 value={stats.actionCount}
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
                 prefix={<SafetyOutlined />}
               />
             </Card>

@@ -4,6 +4,7 @@ import { SafetyOutlined, QrcodeOutlined, CheckCircleOutlined } from '@ant-design
 import { generate2FASecret, enable2FA, disable2FA } from '@/services/twoFactor';
 import { useValidatedQuery } from '@/hooks/utils';
 import { TwoFactorSecretSchema } from '@/schemas/api.schemas';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface TwoFactorSettingsProps {
   isEnabled: boolean;
@@ -163,8 +164,8 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
             <div
               style={{
                 padding: 20,
-                background: '#fff',
-                border: '1px solid #d9d9d9',
+                background: NEUTRAL_LIGHT.bg.container,
+                border: `1px solid ${NEUTRAL_LIGHT.border.primary}`,
                 borderRadius: 8,
                 marginBottom: 16,
               }}
@@ -210,9 +211,9 @@ const TwoFactorSettings = ({ isEnabled, onStatusChange }: TwoFactorSettingsProps
 
         {currentStep === 2 && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <CheckCircleOutlined style={{ fontSize: 64, color: '#52c41a' }} />
+            <CheckCircleOutlined style={{ fontSize: 64, color: SEMANTIC.success.main }} />
             <h2 style={{ marginTop: 24 }}>双因素认证已成功启用！</h2>
-            <p style={{ color: '#666' }}>下次登录时，系统会要求您输入验证码</p>
+            <p style={{ color: NEUTRAL_LIGHT.text.secondary }}>下次登录时，系统会要求您输入验证码</p>
           </div>
         )}
       </Modal>

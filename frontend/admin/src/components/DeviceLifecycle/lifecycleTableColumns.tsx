@@ -3,6 +3,7 @@
  */
 import { Space, Tooltip, Tag, Progress, Button } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { NEUTRAL_LIGHT } from '@/theme';
 import type { LifecycleRule, LifecycleExecutionHistory } from '@/types';
 import {
   LifecycleTypeTag,
@@ -40,7 +41,7 @@ export const createRuleColumns = (handlers: RuleColumnHandlers): ColumnsType<Lif
       <Space direction="vertical" size={0}>
         <strong>{name}</strong>
         {record.description && (
-          <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.description}</span>
+          <span style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>{record.description}</span>
         )}
       </Space>
     ),

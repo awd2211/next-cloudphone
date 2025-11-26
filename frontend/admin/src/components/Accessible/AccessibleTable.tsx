@@ -1,18 +1,21 @@
 /**
  * 无障碍增强的 Table 组件
  *
- * 在 Ant Design Table 基础上添加完整的 ARIA 支持
+ * 在 Ant Design Table 基础上添加完整的 ARIA 支持和可拖动列宽功能：
  * - 表格区域标签
  * - 排序按钮的 ARIA 属性
  * - 分页导航的 ARIA 属性
  * - 加载状态的屏幕阅读器提示
  * - 空状态的语义化处理
+ * - 可拖动调整列宽（默认启用）
+ * - 列宽自动持久化到 localStorage
  */
 
 import { Table, TableProps, Empty } from 'antd';
 import type { ColumnType } from 'antd/es/table';
 import { ariaLabels, VisuallyHidden } from '@/utils/accessibility';
 import { useMemo } from 'react';
+import { useResizableColumns } from '@/components/ResizableTable';
 
 export interface AccessibleTableProps<T> extends TableProps<T> {
   /**
@@ -34,6 +37,29 @@ export interface AccessibleTableProps<T> extends TableProps<T> {
    * 是否显示行号列（带 ARIA 标签）
    */
   showRowNumber?: boolean;
+
+  /**
+   * 是否启用可拖动调整列宽（默认 true）
+   */
+  resizable?: boolean;
+
+  /**
+   * 列宽持久化的 localStorage 键名
+   * 不提供时自动根据 ariaLabel 生成
+   */
+  columnWidthsKey?: string;
+
+  /**
+   * 可拖动列宽的配置
+   */
+  resizableOptions?: {
+    /** 默认列宽 */
+    defaultWidth?: number;
+    /** 最小列宽 */
+    minWidth?: number;
+    /** 最大列宽 */
+    maxWidth?: number;
+  };
 }
 
 /**
@@ -58,6 +84,13 @@ function enhanceColumnWithAria<T>(column: ColumnType<T>): ColumnType<T> {
 }
 
 /**
+ * 根据 ariaLabel 生成存储键
+ */
+function generateStorageKey(ariaLabel: string): string {
+  return `table-widths-${ariaLabel.replace(/\s+/g, '-').toLowerCase()}`;
+}
+
+/**
  * 无障碍增强的 Table 组件
  *
  * 使用示例：
@@ -69,6 +102,7 @@ function enhanceColumnWithAria<T>(column: ColumnType<T>): ColumnType<T> {
  *   loading={isLoading}
  *   loadingText="正在加载用户列表"
  *   emptyText="暂无用户数据"
+ *   resizable={true}  // 默认启用
  * />
  * ```
  */
@@ -77,10 +111,14 @@ function AccessibleTable<T extends object>({
   loadingText = '正在加载数据',
   emptyText = '暂无数据',
   showRowNumber = false,
+  resizable = true,
+  columnWidthsKey,
+  resizableOptions,
   columns = [],
   loading,
   locale,
   pagination,
+  components: externalComponents,
   ...restProps
 }: AccessibleTableProps<T>) {
   // 增强列的 ARIA 属性
@@ -116,6 +154,22 @@ function AccessibleTable<T extends object>({
 
     return cols;
   }, [columns, showRowNumber, pagination]);
+
+  // 可拖动列宽处理
+  const storageKey = columnWidthsKey || generateStorageKey(ariaLabel);
+  const {
+    columns: resizableColumns,
+    components: resizableComponents,
+  } = useResizableColumns({
+    columns: enhancedColumns,
+    storageKey,
+    defaultWidth: resizableOptions?.defaultWidth ?? 120,
+    minWidth: resizableOptions?.minWidth ?? 50,
+    maxWidth: resizableOptions?.maxWidth ?? 600,
+  });
+
+  // 根据 resizable 选项决定使用哪些列和组件
+  const finalColumns = resizable ? resizableColumns : enhancedColumns;
 
   // 增强分页的 ARIA 属性
   const enhancedPagination = useMemo(() => {
@@ -177,6 +231,25 @@ function AccessibleTable<T extends object>({
     [locale, emptyText]
   );
 
+  // 合并所有 components
+  const mergedComponents = useMemo(() => ({
+    ...externalComponents,
+    // 可拖动列宽的 header.cell
+    ...(resizable && resizableComponents),
+    table: (props: any) => (
+      <table
+        {...props}
+        role="table"
+        aria-label={ariaLabel}
+        aria-busy={loading}
+      />
+    ),
+    header: {
+      ...(resizable ? resizableComponents?.header : {}),
+      ...externalComponents?.header,
+    },
+  }), [externalComponents, resizable, resizableComponents, ariaLabel, loading]);
+
   return (
     <div {...ariaLabels.table.wrapper(ariaLabel)}>
       {/* 加载状态的屏幕阅读器提示 */}
@@ -190,21 +263,11 @@ function AccessibleTable<T extends object>({
 
       <Table<T>
         {...restProps}
-        columns={enhancedColumns}
+        columns={finalColumns}
         loading={loading}
         locale={enhancedLocale}
         pagination={enhancedPagination}
-        // 添加表格容器的 ARIA 属性
-        components={{
-          table: (props) => (
-            <table
-              {...props}
-              role="table"
-              aria-label={ariaLabel}
-              aria-busy={loading}
-            />
-          ),
-        }}
+        components={mergedComponents}
       />
     </div>
   );

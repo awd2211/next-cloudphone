@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Form, Input, message, Alert, Space } from 'antd';
 import { RollbackOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface RestoreSnapshotModalProps {
   visible: boolean;
@@ -85,7 +86,7 @@ const RestoreSnapshotModal: React.FC<RestoreSnapshotModalProps> = ({
             <div>• ⚠️ 覆盖设备当前的所有数据和配置</div>
             <div>• ⚠️ 导致设备自动重启</div>
             <div>• ⚠️ 丢失快照创建后的所有变更</div>
-            <div style={{ marginTop: 8, color: '#ff4d4f' }}>
+            <div style={{ marginTop: 8, color: SEMANTIC.error.main }}>
               ⚠️ 此操作不可撤销,请谨慎操作!
             </div>
           </div>
@@ -120,7 +121,7 @@ const RestoreSnapshotModal: React.FC<RestoreSnapshotModalProps> = ({
         >
           <Input
             placeholder="例如: snapshot-123456"
-            prefix={<RollbackOutlined style={{ color: '#999' }} />}
+            prefix={<RollbackOutlined style={{ color: NEUTRAL_LIGHT.text.tertiary }} />}
             disabled={!!snapshotId}
           />
         </Form.Item>

@@ -48,14 +48,15 @@ import {
   getCurrencyName,
   SUPPORTED_CURRENCIES,
 } from '@/components/PaymentConfig/constants';
+import { PAYMENT_PLATFORM_COLORS, SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
-// Provider 图标颜色
+// Provider 图标颜色 - 使用统一主题
 const PROVIDER_COLORS: Record<PaymentProviderType, string> = {
-  stripe: '#635bff',
-  paypal: '#003087',
+  stripe: PAYMENT_PLATFORM_COLORS.stripe,
+  paypal: PAYMENT_PLATFORM_COLORS.paypal,
   paddle: '#3d4f5f',
-  wechat: '#07c160',
-  alipay: '#1677ff',
+  wechat: PAYMENT_PLATFORM_COLORS.wechat,
+  alipay: PAYMENT_PLATFORM_COLORS.alipay,
 };
 
 const PaymentConfigPage: React.FC = () => {
@@ -357,7 +358,7 @@ const PaymentConfigContent: React.FC = () => {
                       {providerConfig.lastTestMessage && providerConfig.lastTestSuccess === false && (
                         <>
                           <Divider style={{ margin: '8px 0' }} />
-                          <div style={{ color: '#ff4d4f', fontSize: 12 }}>
+                          <div style={{ color: SEMANTIC.error.main, fontSize: 12 }}>
                             {providerConfig.lastTestMessage}
                           </div>
                         </>
@@ -417,7 +418,7 @@ const PaymentConfigContent: React.FC = () => {
                           width: 10,
                           height: 10,
                           borderRadius: '50%',
-                          backgroundColor: '#52c41a',
+                          backgroundColor: SEMANTIC.success.main,
                           display: 'inline-block',
                         }}
                       />
@@ -431,7 +432,7 @@ const PaymentConfigContent: React.FC = () => {
                     />
                   }
                   style={{
-                    borderLeft: '3px solid #52c41a',
+                    borderLeft: `3px solid ${SEMANTIC.success.main}`,
                   }}
                 >
                   <Descriptions column={1} size="small">
@@ -451,7 +452,7 @@ const PaymentConfigContent: React.FC = () => {
                       </Space>
                     </Descriptions.Item>
                     <Descriptions.Item label="说明">
-                      <span style={{ color: '#666', fontSize: 12 }}>
+                      <span style={{ color: NEUTRAL_LIGHT.text.secondary, fontSize: 12 }}>
                         用户可使用账户余额进行支付，无需配置第三方 API
                       </span>
                     </Descriptions.Item>
@@ -487,7 +488,7 @@ const PaymentConfigContent: React.FC = () => {
                     size="small"
                     bodyStyle={{ padding: '8px 12px' }}
                     style={{
-                      borderColor: isCurrencyEnabled(currency) ? '#52c41a' : undefined,
+                      borderColor: isCurrencyEnabled(currency) ? SEMANTIC.success.main : undefined,
                     }}
                   >
                     <Space style={{ width: '100%', justifyContent: 'space-between' }}>

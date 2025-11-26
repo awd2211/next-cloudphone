@@ -1,3 +1,5 @@
+import { SEMANTIC, PRIMARY } from '@/theme';
+
 export interface CacheStats {
   l1Hits: number;
   l2Hits: number;
@@ -48,7 +50,7 @@ export const getHitRateStatus = (rate: number): 'success' | 'normal' | 'exceptio
 };
 
 export const getHitRateColor = (rate: number): string => {
-  if (rate >= 80) return '#52c41a';
-  if (rate >= 50) return '#1890ff';
-  return '#ff4d4f';
+  if (rate >= 80) return SEMANTIC.success.main;
+  if (rate >= 50) return PRIMARY.main;
+  return SEMANTIC.error.main;
 };

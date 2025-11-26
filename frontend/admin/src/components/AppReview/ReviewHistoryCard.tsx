@@ -7,6 +7,7 @@ import {
   FileTextOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC } from '@/theme';
 import dayjs from 'dayjs';
 import type { AppReviewRecord } from '@/types';
 import { getReviewActionLabel } from '@/utils/appReview';
@@ -34,11 +35,11 @@ export const ReviewHistoryCard: React.FC<ReviewHistoryCardProps> = React.memo(
             items={reviewHistory.map((record) => ({
               dot:
                 record.action === 'approve' ? (
-                  <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                  <CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />
                 ) : record.action === 'reject' ? (
-                  <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
+                  <CloseCircleOutlined style={{ color: SEMANTIC.error.main }} />
                 ) : (
-                  <FileTextOutlined style={{ color: '#faad14' }} />
+                  <FileTextOutlined style={{ color: SEMANTIC.warning.main }} />
                 ),
               children: (
                 <div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, Typography } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const { Title, Paragraph } = Typography;
 
@@ -8,7 +9,7 @@ export const UsageGuide: React.FC = () => {
     <Card title="使用说明" bordered={false}>
       <Title level={5}>如何启动监控系统</Title>
       <Paragraph>
-        <pre style={{ background: '#f5f5f5', padding: 16, borderRadius: 4 }}>
+        <pre style={{ background: NEUTRAL_LIGHT.bg.layout, padding: 16, borderRadius: 4 }}>
           {`# 启动监控栈
 cd infrastructure/monitoring
 ./start-monitoring.sh

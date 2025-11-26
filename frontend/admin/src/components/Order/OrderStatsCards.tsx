@@ -6,6 +6,7 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
+import { PRIMARY, SEMANTIC } from '@/theme';
 
 interface OrderStatsCardsProps {
   total: number;
@@ -24,7 +25,7 @@ export const OrderStatsCards = memo<OrderStatsCardsProps>(
               title="总订单数"
               value={total}
               prefix={<ShoppingOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: PRIMARY.main }}
             />
           </Card>
         </Col>
@@ -34,7 +35,7 @@ export const OrderStatsCards = memo<OrderStatsCardsProps>(
               title="待支付"
               value={pending}
               prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: SEMANTIC.warning.main }}
             />
           </Card>
         </Col>
@@ -44,7 +45,7 @@ export const OrderStatsCards = memo<OrderStatsCardsProps>(
               title="已支付"
               value={paid}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -54,7 +55,7 @@ export const OrderStatsCards = memo<OrderStatsCardsProps>(
               title="已取消"
               value={cancelled}
               prefix={<CloseCircleOutlined />}
-              valueStyle={{ color: '#f5222d' }}
+              valueStyle={{ color: SEMANTIC.error.main }}
             />
           </Card>
         </Col>

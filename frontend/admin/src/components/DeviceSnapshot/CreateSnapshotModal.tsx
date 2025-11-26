@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Form, Input, message, Alert, Space } from 'antd';
 import { CameraOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const { TextArea } = Input;
 
@@ -109,7 +110,7 @@ const CreateSnapshotModal: React.FC<CreateSnapshotModalProps> = ({
         >
           <Input
             placeholder="例如: backup-before-upgrade"
-            prefix={<CameraOutlined style={{ color: '#999' }} />}
+            prefix={<CameraOutlined style={{ color: NEUTRAL_LIGHT.text.tertiary }} />}
             maxLength={100}
             showCount
           />

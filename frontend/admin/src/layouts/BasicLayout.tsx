@@ -73,6 +73,21 @@ const BasicLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // 统一的菜单点击处理函数，避免内联函数导致的重复渲染问题
+  const handleMenuClick = useCallback(
+    ({ key }: { key: string }) => {
+      // 只处理以 /admin 开头的路由 key
+      if (key.startsWith('/admin')) {
+        navigate(key);
+        // 移动端点击后关闭抽屉
+        if (isMobile) {
+          setMobileDrawerVisible(false);
+        }
+      }
+    },
+    [navigate, isMobile]
+  );
+
   // ==================== 全局快捷键支持 ====================
 
   // ==================== 全局搜索 (Cmd+K) ====================
@@ -128,7 +143,6 @@ const BasicLayout = () => {
       key: '/admin/dashboard',
       icon: <DashboardOutlined />,
       label: '工作台',
-      onClick: () => navigate('/admin/dashboard'),
     },
     {
       key: 'data-overview',
@@ -139,25 +153,21 @@ const BasicLayout = () => {
           key: '/admin/overview/analytics',
           icon: <PieChartOutlined />,
           label: '数据分析',
-          onClick: () => navigate('/admin/overview/analytics'),
         },
         {
           key: '/admin/overview/stats',
           icon: <LineChartOutlined />,
           label: '统计仪表板',
-          onClick: () => navigate('/admin/overview/stats'),
         },
         {
           key: '/admin/overview/reports/revenue',
           icon: <DollarOutlined />,
           label: '收入报表',
-          onClick: () => navigate('/admin/overview/reports/revenue'),
         },
         {
           key: '/admin/overview/reports/analytics',
           icon: <BarChartOutlined />,
           label: '分析报表',
-          onClick: () => navigate('/admin/overview/reports/analytics'),
         },
       ],
     },
@@ -180,37 +190,31 @@ const BasicLayout = () => {
           key: '/admin/business/devices',
           icon: <MobileOutlined />,
           label: '设备列表',
-          onClick: () => navigate('/admin/business/devices'),
         },
         {
           key: '/admin/business/devices/groups',
           icon: <TeamOutlined />,
           label: '设备分组',
-          onClick: () => navigate('/admin/business/devices/groups'),
         },
         {
           key: '/admin/business/devices/templates',
           icon: <AppstoreOutlined />,
           label: '设备模板',
-          onClick: () => navigate('/admin/business/devices/templates'),
         },
         {
           key: '/admin/business/devices/snapshots',
           icon: <CreditCardOutlined />,
           label: '设备快照',
-          onClick: () => navigate('/admin/business/devices/snapshots'),
         },
         {
           key: '/admin/business/devices/physical',
           icon: <SettingOutlined />,
           label: '物理设备',
-          onClick: () => navigate('/admin/business/devices/physical'),
         },
         {
           key: '/admin/business/devices/providers',
           icon: <CloudServerOutlined />,
           label: '云手机提供商',
-          onClick: () => navigate('/admin/business/devices/providers'),
         },
       ],
     },
@@ -223,13 +227,11 @@ const BasicLayout = () => {
           key: '/admin/business/apps',
           icon: <AppstoreOutlined />,
           label: '应用列表',
-          onClick: () => navigate('/admin/business/apps'),
         },
         {
           key: '/admin/business/apps/review',
           icon: <AuditOutlined />,
           label: '应用审核',
-          onClick: () => navigate('/admin/business/apps/review'),
         },
       ],
     },
@@ -242,13 +244,11 @@ const BasicLayout = () => {
           key: '/admin/business/users',
           icon: <UserOutlined />,
           label: '用户列表',
-          onClick: () => navigate('/admin/business/users'),
         },
         {
           key: '/admin/business/users/quotas',
           icon: <DashboardFilled />,
           label: '配额管理',
-          onClick: () => navigate('/admin/business/users/quotas'),
         },
       ],
     },
@@ -271,25 +271,21 @@ const BasicLayout = () => {
           key: '/admin/operations/orders',
           icon: <ShoppingOutlined />,
           label: '订单管理',
-          onClick: () => navigate('/admin/operations/orders'),
         },
         {
           key: '/admin/operations/plans',
           icon: <GoldOutlined />,
           label: '套餐管理',
-          onClick: () => navigate('/admin/operations/plans'),
         },
         {
           key: '/admin/operations/usage',
           icon: <ClockCircleOutlined />,
           label: '使用记录',
-          onClick: () => navigate('/admin/operations/usage'),
         },
         {
           key: '/admin/operations/metering',
           icon: <FundOutlined />,
           label: '计量仪表板',
-          onClick: () => navigate('/admin/operations/metering'),
         },
       ],
     },
@@ -297,7 +293,6 @@ const BasicLayout = () => {
       key: '/admin/operations/tickets',
       icon: <CustomerServiceOutlined />,
       label: '工单服务',
-      onClick: () => navigate('/admin/operations/tickets'),
     },
     {
       key: 'livechat-menu',
@@ -308,49 +303,41 @@ const BasicLayout = () => {
           key: '/admin/operations/livechat/workspace',
           icon: <CustomerServiceOutlined />,
           label: '客服工作台',
-          onClick: () => navigate('/admin/operations/livechat/workspace'),
         },
         {
           key: '/admin/operations/livechat/conversations',
           icon: <MessageOutlined />,
           label: '会话监控',
-          onClick: () => navigate('/admin/operations/livechat/conversations'),
         },
         {
           key: '/admin/operations/livechat/agents',
           icon: <CustomerServiceOutlined />,
           label: '客服管理',
-          onClick: () => navigate('/admin/operations/livechat/agents'),
         },
         {
           key: '/admin/operations/livechat/groups',
           icon: <TeamOutlined />,
           label: '客服分组',
-          onClick: () => navigate('/admin/operations/livechat/groups'),
         },
         {
           key: '/admin/operations/livechat/queues',
           icon: <ControlOutlined />,
           label: '排队配置',
-          onClick: () => navigate('/admin/operations/livechat/queues'),
         },
         {
           key: '/admin/operations/livechat/canned-responses',
           icon: <ThunderboltOutlined />,
           label: '快捷回复',
-          onClick: () => navigate('/admin/operations/livechat/canned-responses'),
         },
         {
           key: '/admin/operations/livechat/sensitive-words',
           icon: <SafetyCertificateOutlined />,
           label: '敏感词管理',
-          onClick: () => navigate('/admin/operations/livechat/sensitive-words'),
         },
         {
           key: '/admin/operations/livechat/analytics',
           icon: <BarChartOutlined />,
           label: '数据统计',
-          onClick: () => navigate('/admin/operations/livechat/analytics'),
         },
       ],
     },
@@ -363,37 +350,31 @@ const BasicLayout = () => {
           key: '/admin/operations/cms/page-contents',
           icon: <GlobalOutlined />,
           label: '官网内容',
-          onClick: () => navigate('/admin/operations/cms/page-contents'),
         },
         {
           key: '/admin/operations/cms/settings',
           icon: <SettingOutlined />,
           label: '网站设置',
-          onClick: () => navigate('/admin/operations/cms/settings'),
         },
         {
           key: '/admin/operations/cms/jobs',
           icon: <TeamOutlined />,
           label: '招聘职位',
-          onClick: () => navigate('/admin/operations/cms/jobs'),
         },
         {
           key: '/admin/operations/cms/legal',
           icon: <SafetyOutlined />,
           label: '法律文档',
-          onClick: () => navigate('/admin/operations/cms/legal'),
         },
         {
           key: '/admin/operations/cms/cases',
           icon: <ProfileOutlined />,
           label: '客户案例',
-          onClick: () => navigate('/admin/operations/cms/cases'),
         },
         {
           key: '/admin/operations/cms/pricing',
           icon: <DollarOutlined />,
           label: '定价方案',
-          onClick: () => navigate('/admin/operations/cms/pricing'),
         },
       ],
     },
@@ -416,25 +397,21 @@ const BasicLayout = () => {
           key: '/admin/finance/billing/balance',
           icon: <AccountBookOutlined />,
           label: '余额概览',
-          onClick: () => navigate('/admin/finance/billing/balance'),
         },
         {
           key: '/admin/finance/billing/transactions',
           icon: <TransactionOutlined />,
           label: '交易记录',
-          onClick: () => navigate('/admin/finance/billing/transactions'),
         },
         {
           key: '/admin/finance/billing/invoices',
           icon: <FileTextOutlined />,
           label: '账单发票',
-          onClick: () => navigate('/admin/finance/billing/invoices'),
         },
         {
           key: '/admin/finance/billing/rules',
           icon: <FormOutlined />,
           label: '计费规则',
-          onClick: () => navigate('/admin/finance/billing/rules'),
         },
       ],
     },
@@ -447,37 +424,31 @@ const BasicLayout = () => {
           key: '/admin/finance/payments/dashboard',
           icon: <PieChartOutlined />,
           label: '支付概览',
-          onClick: () => navigate('/admin/finance/payments/dashboard'),
         },
         {
           key: '/admin/finance/payments',
           icon: <UnorderedListOutlined />,
           label: '支付记录',
-          onClick: () => navigate('/admin/finance/payments'),
         },
         {
           key: '/admin/finance/payments/refunds',
           icon: <MoneyCollectOutlined />,
           label: '退款管理',
-          onClick: () => navigate('/admin/finance/payments/refunds'),
         },
         {
           key: '/admin/finance/payments/exceptions',
           icon: <ExceptionOutlined />,
           label: '异常监控',
-          onClick: () => navigate('/admin/finance/payments/exceptions'),
         },
         {
           key: '/admin/finance/payments/webhooks',
           icon: <LinkOutlined />,
           label: 'Webhook 日志',
-          onClick: () => navigate('/admin/finance/payments/webhooks'),
         },
         {
           key: '/admin/finance/payments/config',
           icon: <ControlOutlined />,
           label: '支付配置',
-          onClick: () => navigate('/admin/finance/payments/config'),
         },
       ],
     },
@@ -500,19 +471,16 @@ const BasicLayout = () => {
           key: '/admin/devops/devices/lifecycle',
           icon: <ClockCircleOutlined />,
           label: '生命周期',
-          onClick: () => navigate('/admin/devops/devices/lifecycle'),
         },
         {
           key: '/admin/devops/devices/failover',
           icon: <ThunderboltOutlined />,
           label: '故障转移',
-          onClick: () => navigate('/admin/devops/devices/failover'),
         },
         {
           key: '/admin/devops/devices/state-recovery',
           icon: <SyncOutlined />,
           label: '状态恢复',
-          onClick: () => navigate('/admin/devops/devices/state-recovery'),
         },
       ],
     },
@@ -525,25 +493,21 @@ const BasicLayout = () => {
           key: '/admin/devops/proxy',
           icon: <GlobalOutlined />,
           label: '代理监控',
-          onClick: () => navigate('/admin/devops/proxy'),
         },
         {
           key: '/admin/devops/proxy/providers',
           icon: <SettingOutlined />,
           label: '代理配置',
-          onClick: () => navigate('/admin/devops/proxy/providers'),
         },
         {
           key: '/admin/devops/sms',
           icon: <MessageOutlined />,
           label: 'SMS 监控',
-          onClick: () => navigate('/admin/devops/sms'),
         },
         {
           key: '/admin/devops/sms/providers',
           icon: <SettingOutlined />,
           label: 'SMS 配置',
-          onClick: () => navigate('/admin/devops/sms/providers'),
         },
       ],
     },
@@ -556,13 +520,11 @@ const BasicLayout = () => {
           key: '/admin/devops/resources/gpu',
           icon: <DesktopOutlined />,
           label: 'GPU 资源',
-          onClick: () => navigate('/admin/devops/resources/gpu'),
         },
         {
           key: '/admin/devops/scheduler',
           icon: <ClusterOutlined />,
           label: '调度管理',
-          onClick: () => navigate('/admin/devops/scheduler'),
         },
       ],
     },
@@ -585,25 +547,21 @@ const BasicLayout = () => {
           key: '/admin/system/access/roles',
           icon: <TeamOutlined />,
           label: '角色管理',
-          onClick: () => navigate('/admin/system/access/roles'),
         },
         {
           key: '/admin/system/access/permissions',
           icon: <LockOutlined />,
           label: '权限管理',
-          onClick: () => navigate('/admin/system/access/permissions'),
         },
         {
           key: '/admin/system/access/data-scope',
           icon: <EyeOutlined />,
           label: '数据范围',
-          onClick: () => navigate('/admin/system/access/data-scope'),
         },
         {
           key: '/admin/system/access/field-permission',
           icon: <FileProtectOutlined />,
           label: '字段权限',
-          onClick: () => navigate('/admin/system/access/field-permission'),
         },
       ],
     },
@@ -616,19 +574,16 @@ const BasicLayout = () => {
           key: '/admin/system/config/settings',
           icon: <SettingOutlined />,
           label: '基础设置',
-          onClick: () => navigate('/admin/system/config/settings'),
         },
         {
           key: '/admin/system/config/notifications/templates',
           icon: <BellOutlined />,
           label: '通知模板',
-          onClick: () => navigate('/admin/system/config/notifications/templates'),
         },
         {
           key: '/admin/system/config/api-keys',
           icon: <ApiOutlined />,
           label: 'API 密钥',
-          onClick: () => navigate('/admin/system/config/api-keys'),
         },
       ],
     },
@@ -636,7 +591,6 @@ const BasicLayout = () => {
       key: '/admin/system/logs/audit',
       icon: <ProfileOutlined />,
       label: '审计日志',
-      onClick: () => navigate('/admin/system/logs/audit'),
     },
     {
       key: 'system-monitor-menu',
@@ -647,31 +601,26 @@ const BasicLayout = () => {
           key: '/admin/system/monitor/cache',
           icon: <DatabaseOutlined />,
           label: '缓存监控',
-          onClick: () => navigate('/admin/system/monitor/cache'),
         },
         {
           key: '/admin/system/monitor/queue',
           icon: <UnorderedListOutlined />,
           label: '队列监控',
-          onClick: () => navigate('/admin/system/monitor/queue'),
         },
         {
           key: '/admin/system/monitor/events',
           icon: <ThunderboltOutlined />,
           label: '事件监控',
-          onClick: () => navigate('/admin/system/monitor/events'),
         },
         {
           key: '/admin/system/monitor/consul',
           icon: <CloudOutlined />,
           label: 'Consul 服务',
-          onClick: () => navigate('/admin/system/monitor/consul'),
         },
         {
           key: '/admin/system/monitor/prometheus',
           icon: <BarChartOutlined />,
           label: 'Prometheus',
-          onClick: () => navigate('/admin/system/monitor/prometheus'),
         },
       ],
     },
@@ -730,7 +679,7 @@ const BasicLayout = () => {
         selectedKeys={[location.pathname]}
         mode="inline"
         items={menuItems}
-        onClick={() => isMobile && setMobileDrawerVisible(false)}
+        onClick={handleMenuClick}
       />
     </>
   );

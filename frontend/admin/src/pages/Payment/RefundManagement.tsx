@@ -9,6 +9,7 @@ import {
   DollarOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import { usePermission } from '@/hooks';
 import { useRefundManagement } from '@/hooks/useRefundManagement';
 import {
@@ -146,7 +147,7 @@ const RefundManagementContent: React.FC = () => {
               Ctrl+R 刷新
             </Tag>
           </h2>
-          <span style={{ fontSize: 12, color: '#999' }}>快捷键: Ctrl+K 搜索</span>
+          <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>快捷键: Ctrl+K 搜索</span>
         </div>
 
         {/* 统计卡片 */}
@@ -165,8 +166,8 @@ const RefundManagementContent: React.FC = () => {
               <Statistic
                 title="待处理"
                 value={stats.pendingCount}
-                prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-                valueStyle={{ color: '#faad14' }}
+                prefix={<ClockCircleOutlined style={{ color: SEMANTIC.warning.main }} />}
+                valueStyle={{ color: SEMANTIC.warning.main }}
               />
             </Card>
           </Col>
@@ -175,8 +176,8 @@ const RefundManagementContent: React.FC = () => {
               <Statistic
                 title="已批准"
                 value={stats.approvedCount}
-                prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                valueStyle={{ color: '#52c41a' }}
+                prefix={<CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />}
+                valueStyle={{ color: SEMANTIC.success.main }}
               />
             </Card>
           </Col>
@@ -185,8 +186,8 @@ const RefundManagementContent: React.FC = () => {
               <Statistic
                 title="已拒绝"
                 value={stats.rejectedCount}
-                prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                valueStyle={{ color: '#ff4d4f' }}
+                prefix={<CloseCircleOutlined style={{ color: SEMANTIC.error.main }} />}
+                valueStyle={{ color: SEMANTIC.error.main }}
               />
             </Card>
           </Col>

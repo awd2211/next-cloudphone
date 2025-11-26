@@ -7,7 +7,7 @@
  * 3. maskEmail 函数在模块级别定义（避免重复创建）
  */
 import { memo } from 'react';
-import { Space, Button } from 'antd';
+import { Button, Tooltip } from 'antd';
 import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 
 interface UserEmailCellProps {
@@ -28,17 +28,31 @@ const maskEmail = (email: string | undefined): string => {
 
 export const UserEmailCell = memo<UserEmailCellProps>(
   ({ email, isVisible, onToggleVisibility }) => {
+    const displayEmail = isVisible ? email : maskEmail(email);
+
     return (
-      <Space>
-        <span>{isVisible ? email : maskEmail(email)}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+        <Tooltip title={isVisible ? email : undefined} placement="topLeft">
+          <span
+            style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            {displayEmail}
+          </span>
+        </Tooltip>
         <Button
           type="link"
           size="small"
           icon={isVisible ? <EyeInvisibleOutlined /> : <EyeOutlined />}
           onClick={onToggleVisibility}
-          style={{ padding: 0 }}
+          style={{ padding: 0, flexShrink: 0 }}
         />
-      </Space>
+      </div>
     );
   }
 );

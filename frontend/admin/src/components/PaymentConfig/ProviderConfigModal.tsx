@@ -27,6 +27,7 @@ import type {
 } from '@/services/payment-admin';
 import { updateProviderConfig } from '@/services/payment-admin';
 import { getProviderName } from './constants';
+import { SEMANTIC } from '@/theme';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -309,12 +310,12 @@ export const ProviderConfigModal: React.FC<ProviderConfigModalProps> = ({
               <Space>
                 {config.hasSecretKey ? (
                   <>
-                    <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                    <CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />
                     <Text>密钥已配置</Text>
                   </>
                 ) : (
                   <>
-                    <CloseCircleOutlined style={{ color: '#faad14' }} />
+                    <CloseCircleOutlined style={{ color: SEMANTIC.warning.main }} />
                     <Text>密钥未配置</Text>
                   </>
                 )}

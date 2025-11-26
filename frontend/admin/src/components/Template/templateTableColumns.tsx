@@ -7,6 +7,7 @@ import {
   LockOutlined,
   UnlockOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 import type { DeviceTemplate } from '@/types';
 import { createTimeColumn } from '@/utils/tableColumns';
@@ -30,7 +31,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Dev
         <span style={{ fontWeight: 500 }}>{text}</span>
         {!record.isPublic && (
           <Tooltip title="私有模板">
-            <LockOutlined style={{ color: '#faad14' }} />
+            <LockOutlined style={{ color: SEMANTIC.warning.main }} />
           </Tooltip>
         )}
       </Space>
@@ -69,7 +70,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Dev
     render: (_, record) => (
       <Space direction="vertical" size={0}>
         <span>Android {record.androidVersion}</span>
-        <span style={{ fontSize: '12px', color: '#999' }}>
+        <span style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>
           {record.cpuCores} 核 / {record.memoryMB}MB / {record.storageMB}MB
         </span>
       </Space>
@@ -100,7 +101,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Dev
     width: 100,
     align: 'center',
     sorter: (a, b) => a.usageCount - b.usageCount,
-    render: (count) => <Badge count={count} showZero style={{ backgroundColor: '#52c41a' }} />,
+    render: (count) => <Badge count={count} showZero style={{ backgroundColor: SEMANTIC.success.main }} />,
   },
   {
     title: '可见性',

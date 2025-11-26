@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Space, Button, Popconfirm, Badge, Tag } from 'antd';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import { EditOutlined, DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -39,7 +40,7 @@ export const useDeviceGroupTableColumns = ({
           <Space direction="vertical" size={0}>
             <strong>{name}</strong>
             {record.description && (
-              <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.description}</span>
+              <span style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>{record.description}</span>
             )}
           </Space>
         ),
@@ -52,7 +53,7 @@ export const useDeviceGroupTableColumns = ({
         align: 'center',
         sorter: (a, b) => a.deviceCount - b.deviceCount,
         render: (count: number) => (
-          <Badge count={count} showZero style={{ backgroundColor: '#52c41a' }} />
+          <Badge count={count} showZero style={{ backgroundColor: SEMANTIC.success.main }} />
         ),
       },
       {

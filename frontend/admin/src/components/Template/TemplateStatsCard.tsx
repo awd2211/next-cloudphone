@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Card, Row, Col, Statistic , theme } from 'antd';
+import { SEMANTIC } from '@/theme';
 
 interface TemplateStatsCardProps {
   stats?: {
@@ -22,14 +23,14 @@ export const TemplateStatsCard = memo<TemplateStatsCardProps>(({ stats }) => {
           <Statistic
             title="公开模板"
             value={stats?.publicTemplates || 0}
-            valueStyle={{ color: '#3f8600' }}
+            valueStyle={{ color: SEMANTIC.success.dark }}
           />
         </Col>
         <Col span={6}>
           <Statistic
             title="私有模板"
             value={stats?.privateTemplates || 0}
-            valueStyle={{ color: '#cf1322' }}
+            valueStyle={{ color: SEMANTIC.error.dark }}
           />
         </Col>
         <Col span={6}>

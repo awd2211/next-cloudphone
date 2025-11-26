@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Form, Input, Select, message, Space, Alert } from 'antd';
 import { PlayCircleOutlined, StopOutlined, DeleteOutlined } from '@ant-design/icons';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface AppOperationModalProps {
   visible: boolean;
@@ -65,19 +66,19 @@ const AppOperationModal: React.FC<AppOperationModalProps> = ({
       title: '启动应用',
       icon: <PlayCircleOutlined />,
       description: '启动设备上已安装的应用',
-      color: '#52c41a',
+      color: SEMANTIC.success.main,
     },
     stop: {
       title: '停止应用',
       icon: <StopOutlined />,
       description: '强制停止正在运行的应用',
-      color: '#faad14',
+      color: SEMANTIC.warning.main,
     },
     'clear-data': {
       title: '清除应用数据',
       icon: <DeleteOutlined />,
       description: '清除应用的所有数据和缓存 (不会卸载应用)',
-      color: '#ff4d4f',
+      color: SEMANTIC.error.main,
     },
   };
 
@@ -115,7 +116,7 @@ const AppOperationModal: React.FC<AppOperationModalProps> = ({
               {
                 label: (
                   <Space>
-                    <PlayCircleOutlined style={{ color: '#52c41a' }} />
+                    <PlayCircleOutlined style={{ color: SEMANTIC.success.main }} />
                     启动应用
                   </Space>
                 ),
@@ -124,7 +125,7 @@ const AppOperationModal: React.FC<AppOperationModalProps> = ({
               {
                 label: (
                   <Space>
-                    <StopOutlined style={{ color: '#faad14' }} />
+                    <StopOutlined style={{ color: SEMANTIC.warning.main }} />
                     停止应用
                   </Space>
                 ),
@@ -133,7 +134,7 @@ const AppOperationModal: React.FC<AppOperationModalProps> = ({
               {
                 label: (
                   <Space>
-                    <DeleteOutlined style={{ color: '#ff4d4f' }} />
+                    <DeleteOutlined style={{ color: SEMANTIC.error.main }} />
                     清除应用数据
                   </Space>
                 ),
@@ -166,7 +167,7 @@ const AppOperationModal: React.FC<AppOperationModalProps> = ({
         >
           <Input
             placeholder="例如: com.tencent.mm"
-            prefix={<span style={{ color: '#999' }}>📦</span>}
+            prefix={<span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>📦</span>}
           />
         </Form.Item>
 

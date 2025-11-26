@@ -54,20 +54,21 @@ import {
   type SlaStats,
 } from '@/services/livechat';
 import { useSocketIO } from '@/hooks/useSocketIO';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 
 const { Title, Text } = Typography;
 
 // 状态颜色配置
 const statusColors: Record<string, string> = {
-  online: '#52c41a',
-  busy: '#faad14',
-  away: '#d9d9d9',
-  offline: '#ff4d4f',
+  online: SEMANTIC.success.main,
+  busy: SEMANTIC.warning.main,
+  away: NEUTRAL_LIGHT.border.primary,
+  offline: SEMANTIC.error.main,
 };
 
 const severityColors: Record<string, string> = {
-  warning: '#faad14',
-  critical: '#ff4d4f',
+  warning: SEMANTIC.warning.main,
+  critical: SEMANTIC.error.main,
 };
 
 const LiveChatDashboard: React.FC = () => {
@@ -235,7 +236,7 @@ const LiveChatDashboard: React.FC = () => {
               title="今日会话"
               value={overview?.totalConversations || 0}
               prefix={<MessageOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: PRIMARY.main }}
             />
           </Card>
         </Col>
@@ -245,7 +246,7 @@ const LiveChatDashboard: React.FC = () => {
               title="排队等待"
               value={queueStats?.waitingCount || 0}
               prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: (queueStats?.waitingCount || 0) > 10 ? '#ff4d4f' : '#52c41a' }}
+              valueStyle={{ color: (queueStats?.waitingCount || 0) > 10 ? SEMANTIC.error.main : SEMANTIC.success.main }}
             />
             {(queueStats?.waitingCount || 0) > 10 && (
               <Text type="danger" style={{ fontSize: 12 }}>
@@ -261,7 +262,7 @@ const LiveChatDashboard: React.FC = () => {
               value={Math.round(overview?.avgResponseTime || 0)}
               suffix="秒"
               prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: (overview?.avgResponseTime || 0) > 60 ? '#faad14' : '#52c41a' }}
+              valueStyle={{ color: (overview?.avgResponseTime || 0) > 60 ? SEMANTIC.warning.main : SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -272,7 +273,7 @@ const LiveChatDashboard: React.FC = () => {
               value={(overview?.avgRating || 0).toFixed(1)}
               suffix="/ 5"
               prefix={<SmileOutlined />}
-              valueStyle={{ color: (overview?.avgRating || 0) >= 4 ? '#52c41a' : '#faad14' }}
+              valueStyle={{ color: (overview?.avgRating || 0) >= 4 ? SEMANTIC.success.main : SEMANTIC.warning.main }}
             />
           </Card>
         </Col>
@@ -285,7 +286,7 @@ const LiveChatDashboard: React.FC = () => {
             <Card
               title={
                 <Space>
-                  <BellOutlined style={{ color: '#ff4d4f' }} />
+                  <BellOutlined style={{ color: SEMANTIC.error.main }} />
                   <span>SLA 告警 ({activeAlerts.length})</span>
                 </Space>
               }
@@ -347,14 +348,14 @@ const LiveChatDashboard: React.FC = () => {
                 <Statistic
                   title="在线"
                   value={onlineAgents.length}
-                  valueStyle={{ color: '#52c41a', fontSize: 24 }}
+                  valueStyle={{ color: SEMANTIC.success.main, fontSize: 24 }}
                 />
               </Col>
               <Col span={8}>
                 <Statistic
                   title="忙碌"
                   value={busyAgents.length}
-                  valueStyle={{ color: '#faad14', fontSize: 24 }}
+                  valueStyle={{ color: SEMANTIC.warning.main, fontSize: 24 }}
                 />
               </Col>
               <Col span={8}>
@@ -362,7 +363,7 @@ const LiveChatDashboard: React.FC = () => {
                   title="负载"
                   value={loadPercent}
                   suffix="%"
-                  valueStyle={{ color: loadPercent > 80 ? '#ff4d4f' : '#1890ff', fontSize: 24 }}
+                  valueStyle={{ color: loadPercent > 80 ? SEMANTIC.error.main : PRIMARY.main, fontSize: 24 }}
                 />
               </Col>
             </Row>
@@ -370,7 +371,7 @@ const LiveChatDashboard: React.FC = () => {
             <Progress
               percent={loadPercent}
               status={loadPercent > 80 ? 'exception' : 'active'}
-              strokeColor={loadPercent > 80 ? '#ff4d4f' : loadPercent > 60 ? '#faad14' : '#52c41a'}
+              strokeColor={loadPercent > 80 ? SEMANTIC.error.main : loadPercent > 60 ? SEMANTIC.warning.main : SEMANTIC.success.main}
             />
 
             <List
@@ -421,7 +422,7 @@ const LiveChatDashboard: React.FC = () => {
                   title="活跃告警"
                   value={slaStats?.activeAlerts || 0}
                   valueStyle={{
-                    color: (slaStats?.activeAlerts || 0) > 0 ? '#ff4d4f' : '#52c41a',
+                    color: (slaStats?.activeAlerts || 0) > 0 ? SEMANTIC.error.main : SEMANTIC.success.main,
                     fontSize: 24,
                   }}
                   prefix={(slaStats?.activeAlerts || 0) > 0 ? <WarningOutlined /> : <CheckCircleOutlined />}
@@ -431,14 +432,14 @@ const LiveChatDashboard: React.FC = () => {
                 <Statistic
                   title="警告"
                   value={slaStats?.warningAlerts || 0}
-                  valueStyle={{ color: '#faad14', fontSize: 24 }}
+                  valueStyle={{ color: SEMANTIC.warning.main, fontSize: 24 }}
                 />
               </Col>
               <Col span={8}>
                 <Statistic
                   title="今日解决"
                   value={slaStats?.resolvedToday || 0}
-                  valueStyle={{ color: '#52c41a', fontSize: 24 }}
+                  valueStyle={{ color: SEMANTIC.success.main, fontSize: 24 }}
                 />
               </Col>
             </Row>
@@ -487,8 +488,8 @@ const LiveChatDashboard: React.FC = () => {
                   suffix="人"
                   valueStyle={{
                     fontSize: 32,
-                    color: (queueStats?.waitingCount || 0) > 20 ? '#ff4d4f' :
-                           (queueStats?.waitingCount || 0) > 10 ? '#faad14' : '#52c41a',
+                    color: (queueStats?.waitingCount || 0) > 20 ? SEMANTIC.error.main :
+                           (queueStats?.waitingCount || 0) > 10 ? SEMANTIC.warning.main : SEMANTIC.success.main,
                   }}
                 />
               </Col>
@@ -507,7 +508,7 @@ const LiveChatDashboard: React.FC = () => {
                   suffix="分钟"
                   valueStyle={{
                     fontSize: 32,
-                    color: (queueStats?.maxWaitTime || 0) > 300 ? '#ff4d4f' : undefined,
+                    color: (queueStats?.maxWaitTime || 0) > 300 ? SEMANTIC.error.main : undefined,
                   }}
                 />
               </Col>

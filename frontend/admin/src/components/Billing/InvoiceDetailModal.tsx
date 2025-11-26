@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Button, Descriptions, Divider, Table } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import { Invoice, invoiceItemColumns, getStatusTag } from './InvoiceTableColumns';
+import { SEMANTIC } from '@/theme';
 
 interface InvoiceDetailModalProps {
   visible: boolean;
@@ -48,7 +49,7 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = React.memo(
             {getStatusTag(invoice.status)}
           </Descriptions.Item>
           <Descriptions.Item label="账单金额" span={2}>
-            <span style={{ fontSize: 18, fontWeight: 600, color: '#ff4d4f' }}>
+            <span style={{ fontSize: 18, fontWeight: 600, color: SEMANTIC.error.main }}>
               ¥{invoice.amount.toFixed(2)}
             </span>
           </Descriptions.Item>

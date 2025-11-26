@@ -20,6 +20,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { NEUTRAL_LIGHT } from '@/theme';
 import SiteSettingsTab from './components/SiteSettingsTab';
 import PageContentsTab from './components/PageContentsTab';
 import JobPositionsTab from './components/JobPositionsTab';
@@ -176,7 +177,7 @@ const CmsManagementContent: React.FC = () => {
       title={cardTitle}
       bordered={false}
       extra={
-        <span style={{ color: '#999', fontSize: 12 }}>
+        <span style={{ color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
           当前: {currentTabConfig?.title}
         </span>
       }

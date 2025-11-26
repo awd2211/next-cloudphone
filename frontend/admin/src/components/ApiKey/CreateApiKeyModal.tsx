@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Modal, Form, Input, Select, Typography, DatePicker } from 'antd';
 import { KeyOutlined } from '@ant-design/icons';
+import { SEMANTIC } from '@/theme';
 import { AVAILABLE_SCOPES, ENVIRONMENT_OPTIONS } from './constants';
 import { validateScope, isDateInFuture } from '@/utils/validators';
 
@@ -111,8 +112,8 @@ export const CreateApiKeyModal = memo<CreateApiKeyModalProps>(
 
           <div
             style={{
-              background: '#fff7e6',
-              border: '1px solid #ffd591',
+              background: SEMANTIC.warning.bg,
+              border: `1px solid ${SEMANTIC.warning.light}`,
               borderRadius: 4,
               padding: 12,
             }}

@@ -6,6 +6,7 @@ import {
   DashboardOutlined,
 } from '@ant-design/icons';
 import type { ClusterStats } from '@/services/scheduler';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface ClusterStatsCardProps {
   clusterStats: ClusterStats | null;
@@ -51,7 +52,7 @@ export const ClusterStatsCard = memo<ClusterStatsCardProps>(({ clusterStats }) =
           <Statistic
             title="活跃节点"
             value={activeNodes}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: SEMANTIC.success.main }}
             prefix={<CheckCircleOutlined />}
           />
         </Col>
@@ -64,7 +65,7 @@ export const ClusterStatsCard = memo<ClusterStatsCardProps>(({ clusterStats }) =
               percent={Math.round(cpuUtilization)}
               status={getProgressStatus(cpuUtilization)}
             />
-            <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
+            <div style={{ marginTop: '8px', fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>
               {cpuUsage} / {cpuCapacity} 核
             </div>
           </Card>
@@ -75,7 +76,7 @@ export const ClusterStatsCard = memo<ClusterStatsCardProps>(({ clusterStats }) =
               percent={Math.round(memoryUtilization)}
               status={getProgressStatus(memoryUtilization)}
             />
-            <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
+            <div style={{ marginTop: '8px', fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>
               {(memoryUsageMB / 1024).toFixed(1)} /{' '}
               {(memoryCapacityMB / 1024).toFixed(1)} GB
             </div>
@@ -87,7 +88,7 @@ export const ClusterStatsCard = memo<ClusterStatsCardProps>(({ clusterStats }) =
               percent={Math.round(storageUtilization)}
               status={getProgressStatus(storageUtilization)}
             />
-            <div style={{ marginTop: '8px', fontSize: '12px', color: '#8c8c8c' }}>
+            <div style={{ marginTop: '8px', fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>
               {storageUsageGB.toFixed(1)} /{' '}
               {storageCapacityGB.toFixed(1)} GB
             </div>

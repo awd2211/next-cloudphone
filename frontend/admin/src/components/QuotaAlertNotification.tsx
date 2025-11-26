@@ -3,6 +3,7 @@ import { notification, Badge, Popover, List, Tag, Button, Divider } from 'antd';
 import { BellOutlined, WarningOutlined } from '@ant-design/icons';
 import type { QuotaAlert } from '@/types';
 import * as quotaService from '@/services/quota';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface QuotaAlertNotificationProps {
   /**
@@ -94,7 +95,7 @@ const QuotaAlertNotification: React.FC<QuotaAlertNotificationProps> = ({
       ),
       placement: 'topRight',
       duration: 6,
-      icon: <WarningOutlined style={{ color: '#faad14' }} />,
+      icon: <WarningOutlined style={{ color: SEMANTIC.warning.main }} />,
     });
   };
 
@@ -139,7 +140,7 @@ const QuotaAlertNotification: React.FC<QuotaAlertNotificationProps> = ({
       <Divider style={{ margin: '8px 0' }} />
 
       {alerts.length === 0 ? (
-        <div style={{ padding: 16, textAlign: 'center', color: '#999' }}>暂无告警</div>
+        <div style={{ padding: 16, textAlign: 'center', color: NEUTRAL_LIGHT.text.tertiary }}>暂无告警</div>
       ) : (
         <List
           dataSource={alerts.slice(0, maxDisplayCount)}
@@ -149,7 +150,7 @@ const QuotaAlertNotification: React.FC<QuotaAlertNotificationProps> = ({
               key={index}
               style={{
                 padding: '12px 16px',
-                borderBottom: index < alerts.length - 1 ? '1px solid #f0f0f0' : 'none',
+                borderBottom: index < alerts.length - 1 ? `1px solid ${NEUTRAL_LIGHT.border.secondary}` : 'none',
               }}
             >
               <div style={{ width: '100%' }}>
@@ -157,10 +158,10 @@ const QuotaAlertNotification: React.FC<QuotaAlertNotificationProps> = ({
                   <Tag color={getSeverityColor(alert.severity)}>
                     {getQuotaTypeText(alert.quotaType)}
                   </Tag>
-                  <span style={{ color: '#666', fontSize: 12 }}>用户: {alert.userId}</span>
+                  <span style={{ color: NEUTRAL_LIGHT.text.secondary, fontSize: 12 }}>用户: {alert.userId}</span>
                 </div>
-                <div style={{ fontSize: 13, color: '#333' }}>{alert.message}</div>
-                <div style={{ marginTop: 4, fontSize: 12, color: '#999' }}>
+                <div style={{ fontSize: 13, color: NEUTRAL_LIGHT.text.primary }}>{alert.message}</div>
+                <div style={{ marginTop: 4, fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
                   使用率: {alert.usagePercent}%
                 </div>
               </div>

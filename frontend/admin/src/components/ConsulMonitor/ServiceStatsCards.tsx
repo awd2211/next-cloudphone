@@ -6,6 +6,7 @@ import {
   WarningOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC } from '@/theme';
 
 export interface ServiceStatsCardsProps {
   totalServices: number;
@@ -31,7 +32,7 @@ export const ServiceStatsCards = memo<ServiceStatsCardsProps>(
             <Statistic
               title="健康服务"
               value={healthyServices}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
               prefix={<CheckCircleOutlined />}
             />
           </Card>
@@ -41,7 +42,7 @@ export const ServiceStatsCards = memo<ServiceStatsCardsProps>(
             <Statistic
               title="警告服务"
               value={warningServices}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: SEMANTIC.warning.main }}
               prefix={<WarningOutlined />}
             />
           </Card>
@@ -51,7 +52,7 @@ export const ServiceStatsCards = memo<ServiceStatsCardsProps>(
             <Statistic
               title="异常服务"
               value={unhealthyServices}
-              valueStyle={{ color: '#cf1322' }}
+              valueStyle={{ color: SEMANTIC.error.main }}
               prefix={<CloseCircleOutlined />}
             />
           </Card>

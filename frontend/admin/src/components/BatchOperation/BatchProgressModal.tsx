@@ -16,6 +16,7 @@ import {
   ClockCircleOutlined,
 } from '@ant-design/icons';
 import { memo, useMemo } from 'react';
+import { SEMANTIC, NEUTRAL_LIGHT, PRIMARY } from '@/theme';
 
 const { Text, Paragraph } = Typography;
 
@@ -52,13 +53,13 @@ export interface BatchProgressModalProps {
 const getStatusIcon = (status: BatchOperationItem['status']) => {
   switch (status) {
     case 'success':
-      return <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16 }} />;
+      return <CheckCircleOutlined style={{ color: SEMANTIC.success.main, fontSize: 16 }} />;
     case 'error':
-      return <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 16 }} />;
+      return <CloseCircleOutlined style={{ color: SEMANTIC.error.main, fontSize: 16 }} />;
     case 'processing':
-      return <LoadingOutlined style={{ color: '#1890ff', fontSize: 16 }} />;
+      return <LoadingOutlined style={{ color: PRIMARY.main, fontSize: 16 }} />;
     case 'pending':
-      return <ClockCircleOutlined style={{ color: '#d9d9d9', fontSize: 16 }} />;
+      return <ClockCircleOutlined style={{ color: NEUTRAL_LIGHT.border.primary, fontSize: 16 }} />;
   }
 };
 
@@ -155,30 +156,30 @@ export const BatchProgressModal = memo<BatchProgressModalProps>(
             status={stats.errorCount > 0 && stats.isCompleted ? 'exception' : 'active'}
             strokeColor={
               stats.errorCount > 0 && stats.isCompleted
-                ? '#ff4d4f'
-                : { '0%': '#108ee9', '100%': '#87d068' }
+                ? SEMANTIC.error.main
+                : { '0%': PRIMARY.main, '100%': SEMANTIC.success.main }
             }
           />
 
           {/* 统计信息 */}
           <Space size="large" style={{ marginTop: 16 }}>
             <Text>
-              <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 4 }} />
+              <CheckCircleOutlined style={{ color: SEMANTIC.success.main, marginRight: 4 }} />
               成功: {stats.successCount}
             </Text>
             <Text>
-              <CloseCircleOutlined style={{ color: '#ff4d4f', marginRight: 4 }} />
+              <CloseCircleOutlined style={{ color: SEMANTIC.error.main, marginRight: 4 }} />
               失败: {stats.errorCount}
             </Text>
             {stats.processingCount > 0 && (
               <Text>
-                <LoadingOutlined style={{ color: token.colorPrimary, marginRight: 4 }} />
+                <LoadingOutlined style={{ color: PRIMARY.main, marginRight: 4 }} />
                 处理中: {stats.processingCount}
               </Text>
             )}
             {stats.pendingCount > 0 && (
               <Text>
-                <ClockCircleOutlined style={{ color: '#d9d9d9', marginRight: 4 }} />
+                <ClockCircleOutlined style={{ color: NEUTRAL_LIGHT.border.primary, marginRight: 4 }} />
                 等待中: {stats.pendingCount}
               </Text>
             )}
@@ -194,7 +195,7 @@ export const BatchProgressModal = memo<BatchProgressModalProps>(
                 key={item.id}
                 style={{
                   padding: '12px 0',
-                  borderBottom: '1px solid #f0f0f0',
+                  borderBottom: `1px solid ${NEUTRAL_LIGHT.border.secondary}`,
                 }}
               >
                 <List.Item.Meta
@@ -243,12 +244,12 @@ export const BatchProgressModal = memo<BatchProgressModalProps>(
             style={{
               marginTop: 16,
               padding: 12,
-              background: stats.errorCount > 0 ? '#fff2e8' : '#f6ffed',
-              border: `1px solid ${stats.errorCount > 0 ? '#ffbb96' : '#b7eb8f'}`,
+              background: stats.errorCount > 0 ? SEMANTIC.warning.bg : SEMANTIC.success.bg,
+              border: `1px solid ${stats.errorCount > 0 ? SEMANTIC.warning.border : SEMANTIC.success.border}`,
               borderRadius: 4,
             }}
           >
-            <Text strong style={{ color: stats.errorCount > 0 ? '#fa8c16' : '#52c41a' }}>
+            <Text strong style={{ color: stats.errorCount > 0 ? SEMANTIC.warning.main : SEMANTIC.success.main }}>
               {stats.errorCount > 0
                 ? `批量操作完成，成功 ${stats.successCount} 项，失败 ${stats.errorCount} 项`
                 : `批量操作成功完成，共处理 ${stats.successCount} 项`}

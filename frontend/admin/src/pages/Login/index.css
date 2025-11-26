@@ -476,7 +476,7 @@
 
 .success-icon {
   font-size: 80px;
-  color: #52c41a;
+  color: var(--color-success);
   animation: successPulse 1s ease-in-out infinite;
 }
 

@@ -4,6 +4,7 @@ import { BellOutlined } from '@ant-design/icons';
 import type { Notification } from '@/services/notification';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationCenter } from '@/hooks/queries/useNotificationCenter';
+import { NEUTRAL_LIGHT, PRIMARY } from '@/theme';
 
 const NotificationCenter: React.FC = memo(() => {
   const navigate = useNavigate();
@@ -43,15 +44,15 @@ const NotificationCenter: React.FC = memo(() => {
         width: 360,
         maxHeight: 480,
         overflow: 'auto',
-        background: '#fff',
+        background: NEUTRAL_LIGHT.bg.container,
         borderRadius: 8,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        boxShadow: `0 2px 8px ${NEUTRAL_LIGHT.bg.mask}`,
       }}
     >
       <div
         style={{
           padding: '12px 16px',
-          borderBottom: '1px solid #f0f0f0',
+          borderBottom: `1px solid ${NEUTRAL_LIGHT.border.secondary}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -59,7 +60,7 @@ const NotificationCenter: React.FC = memo(() => {
       >
         <span style={{ fontWeight: 600, fontSize: 16 }}>通知中心</span>
         {unreadCount > 0 && (
-          <span style={{ color: '#999', fontSize: 14 }}>{unreadCount} 条未读</span>
+          <span style={{ color: NEUTRAL_LIGHT.text.tertiary, fontSize: 14 }}>{unreadCount} 条未读</span>
         )}
       </div>
 
@@ -77,8 +78,8 @@ const NotificationCenter: React.FC = memo(() => {
               style={{
                 padding: '12px 16px',
                 cursor: 'pointer',
-                background: item.isRead ? '#fff' : '#f0f7ff',
-                borderBottom: '1px solid #f0f0f0',
+                background: item.isRead ? NEUTRAL_LIGHT.bg.container : PRIMARY.bg,
+                borderBottom: `1px solid ${NEUTRAL_LIGHT.border.secondary}`,
               }}
               onClick={() => handleNotificationClick(item)}
             >
@@ -98,7 +99,7 @@ const NotificationCenter: React.FC = memo(() => {
                 description={
                   <>
                     <div style={{ marginBottom: 4 }}>{item.content}</div>
-                    <div style={{ fontSize: 12, color: '#999' }}>
+                    <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
                       {new Date(item.createdAt).toLocaleString()}
                     </div>
                   </>
@@ -109,7 +110,7 @@ const NotificationCenter: React.FC = memo(() => {
         />
       )}
 
-      <div style={{ padding: '8px 16px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+      <div style={{ padding: '8px 16px', borderTop: `1px solid ${NEUTRAL_LIGHT.border.secondary}`, textAlign: 'center' }}>
         <Button type="link" onClick={handleViewAll}>
           查看全部通知
         </Button>

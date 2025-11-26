@@ -9,6 +9,7 @@ import { Popover, Descriptions, Tag  } from 'antd';
 import { memo, ReactNode } from 'react';
 import type { Device } from '@/types';
 import { DeviceStatusTag } from './DeviceStatusTag';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface DeviceQuickPreviewProps {
   /** 设备数据 */
@@ -124,7 +125,7 @@ export const DeviceQuickPreview = memo<DeviceQuickPreviewProps>(
               <div>
                 <div>{device.user.username}</div>
                 {device.user.email && (
-                  <div style={{ fontSize: '12px', color: '#666' }}>{device.user.email}</div>
+                  <div style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.secondary }}>{device.user.email}</div>
                 )}
               </div>
             </Descriptions.Item>

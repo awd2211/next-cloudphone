@@ -5,6 +5,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { GPUDevice } from '@/types';
 import { getStatusTag, getAllocationModeTag, getTemperatureColor } from './utils';
 import { GPU_TABLE_SCROLL_X, UTILIZATION_WARNING } from './constants';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 export interface GPUDevicesTableProps {
   gpus: GPUDevice[];
@@ -28,7 +29,7 @@ export const GPUDevicesTable = memo<GPUDevicesTableProps>(
           render: (_, record) => (
             <Space direction="vertical" size={0}>
               <a onClick={() => onViewDetail(record)}>{record.name}</a>
-              <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.model}</span>
+              <span style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>{record.model}</span>
             </Space>
           ),
         },

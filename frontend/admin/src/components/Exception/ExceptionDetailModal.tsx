@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import type { PaymentDetail } from '@/services/payment-admin';
 import { PaymentMethodTag, PaymentStatusTag } from '@/components/Refund';
 import { getExceptionType } from './ExceptionTypeTag';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface ExceptionDetailModalProps {
   visible: boolean;
@@ -55,7 +56,7 @@ export const ExceptionDetailModal: React.FC<ExceptionDetailModalProps> = React.m
             <Descriptions.Item label="客户ID">{payment.customerId || '-'}</Descriptions.Item>
             <Descriptions.Item label="创建时间" span={2}>
               {dayjs(payment.createdAt).format('YYYY-MM-DD HH:mm:ss')}
-              <span style={{ marginLeft: 8, color: '#666' }}>({hoursSinceCreated} 小时前)</span>
+              <span style={{ marginLeft: 8, color: NEUTRAL_LIGHT.text.secondary }}>({hoursSinceCreated} 小时前)</span>
             </Descriptions.Item>
             <Descriptions.Item label="更新时间" span={2}>
               {dayjs(payment.updatedAt).format('YYYY-MM-DD HH:mm:ss')}

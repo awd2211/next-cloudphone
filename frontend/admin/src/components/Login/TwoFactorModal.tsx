@@ -1,5 +1,6 @@
 import { Modal, Input } from 'antd';
 import { SafetyOutlined } from '@ant-design/icons';
+import { NEUTRAL_LIGHT } from '@/theme';
 import { memo, useCallback } from 'react';
 import { ErrorAlert, type ErrorInfo } from '@/components/ErrorAlert';
 
@@ -50,7 +51,7 @@ export const TwoFactorModal = memo<TwoFactorModalProps>(
             />
           )}
 
-          <p style={{ marginBottom: 16, color: '#666' }}>
+          <p style={{ marginBottom: 16, color: NEUTRAL_LIGHT.text.secondary }}>
             请输入验证器应用中显示的6位验证码
           </p>
           <Input

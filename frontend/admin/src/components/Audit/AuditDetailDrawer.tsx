@@ -9,6 +9,7 @@ import {
   getActionLabel,
   getActionCategory,
 } from './utils';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const { Text } = Typography;
 
@@ -54,19 +55,19 @@ export const AuditDetailDrawer = memo<AuditDetailDrawerProps>(({ visible, log, o
           </Descriptions.Item>
           <Descriptions.Item label="用户ID">{log.userId}</Descriptions.Item>
           <Descriptions.Item label="目标用户ID">
-            {log.targetUserId || <span style={{ color: '#999' }}>-</span>}
+            {log.targetUserId || <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>-</span>}
           </Descriptions.Item>
           <Descriptions.Item label="资源类型">
             <Tag color="geekblue">{log.resourceType}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="资源ID">
-            {log.resourceId || <span style={{ color: '#999' }}>-</span>}
+            {log.resourceId || <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>-</span>}
           </Descriptions.Item>
           <Descriptions.Item label="IP地址">
-            {log.ipAddress || <span style={{ color: '#999' }}>-</span>}
+            {log.ipAddress || <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>-</span>}
           </Descriptions.Item>
           <Descriptions.Item label="请求ID">
-            {log.requestId || <span style={{ color: '#999' }}>-</span>}
+            {log.requestId || <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>-</span>}
           </Descriptions.Item>
           <Descriptions.Item label="描述" span={2}>
             {log.description}
@@ -78,21 +79,21 @@ export const AuditDetailDrawer = memo<AuditDetailDrawerProps>(({ visible, log, o
           )}
           {log.oldValue && Object.keys(log.oldValue).length > 0 && (
             <Descriptions.Item label="旧值" span={2}>
-              <pre style={{ background: '#f5f5f5', padding: 8, borderRadius: 4 }}>
+              <pre style={{ background: NEUTRAL_LIGHT.bg.layout, padding: 8, borderRadius: 4 }}>
                 {JSON.stringify(log.oldValue, null, 2)}
               </pre>
             </Descriptions.Item>
           )}
           {log.newValue && Object.keys(log.newValue).length > 0 && (
             <Descriptions.Item label="新值" span={2}>
-              <pre style={{ background: '#f5f5f5', padding: 8, borderRadius: 4 }}>
+              <pre style={{ background: NEUTRAL_LIGHT.bg.layout, padding: 8, borderRadius: 4 }}>
                 {JSON.stringify(log.newValue, null, 2)}
               </pre>
             </Descriptions.Item>
           )}
           {log.metadata && Object.keys(log.metadata).length > 0 && (
             <Descriptions.Item label="元数据" span={2}>
-              <pre style={{ background: '#f5f5f5', padding: 8, borderRadius: 4 }}>
+              <pre style={{ background: NEUTRAL_LIGHT.bg.layout, padding: 8, borderRadius: 4 }}>
                 {JSON.stringify(log.metadata, null, 2)}
               </pre>
             </Descriptions.Item>

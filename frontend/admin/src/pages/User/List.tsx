@@ -1,7 +1,8 @@
-import { useEffect, useCallback, useState, useMemo } from 'react';
-import { useUsers, useUserStats } from '@/hooks/queries';
+import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
+import { useUsers, useUserStats, usePrefetchNextPage } from '@/hooks/queries';
 import { useRoles } from '@/hooks/queries';
 import { useUserListState } from '@/hooks/useUserListState';
+import { useDebouncedCallback } from 'use-debounce';
 import {
   UserTable,
   UserFilterPanel,
@@ -22,12 +23,16 @@ import {
   SettingOutlined,
   HistoryOutlined,
 } from '@ant-design/icons';
+import { NEUTRAL_LIGHT } from '@/theme';
 import type { MenuProps } from 'antd';
 
 const { Text } = Typography;
 
 // 默认显示的列
 const DEFAULT_VISIBLE_COLUMNS = ['id', 'username', 'email', 'phone', 'balance', 'roles', 'status', 'createdAt', 'action'];
+
+// localStorage 存储键
+const STORAGE_KEY_VISIBLE_COLUMNS = 'user-list-visible-columns';
 
 // 所有可用列配置
 const ALL_COLUMNS = [
@@ -41,6 +46,37 @@ const ALL_COLUMNS = [
   { key: 'createdAt', label: '创建时间' },
   { key: 'action', label: '操作' },
 ];
+
+/**
+ * 从 localStorage 加载列设置
+ */
+const loadVisibleColumns = (): string[] => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_VISIBLE_COLUMNS);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // 确保 action 列始终存在
+      if (!parsed.includes('action')) {
+        parsed.push('action');
+      }
+      return parsed;
+    }
+  } catch {
+    // 忽略解析错误
+  }
+  return DEFAULT_VISIBLE_COLUMNS;
+};
+
+/**
+ * 保存列设置到 localStorage
+ */
+const saveVisibleColumns = (columns: string[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY_VISIBLE_COLUMNS, JSON.stringify(columns));
+  } catch {
+    // 忽略存储错误
+  }
+};
 
 /**
  * 用户列表页面（优化版 v4）
@@ -64,14 +100,30 @@ const UserList = () => {
   // ===== 新增状态 =====
   const [quickSearchVisible, setQuickSearchVisible] = useState(false);
   const [quickSearchValue, setQuickSearchValue] = useState('');
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(DEFAULT_VISIBLE_COLUMNS);
+  // 列设置持久化：从 localStorage 加载初始值
+  const [visibleColumns, setVisibleColumnsState] = useState<string[]>(loadVisibleColumns);
   const [activityDrawerVisible, setActivityDrawerVisible] = useState(false);
   const [selectedUserForActivity, setSelectedUserForActivity] = useState<User | null>(null);
+
+  // 列设置变更时同步到 localStorage
+  const setVisibleColumns = useCallback((columns: string[]) => {
+    setVisibleColumnsState(columns);
+    saveVisibleColumns(columns);
+  }, []);
 
   // ===== 数据查询 =====
   const { data, isLoading, error, refetch } = useUsers(state.params);
   const { data: rolesData } = useRoles({ page: 1, pageSize: 100 });
   const { data: statsData, isLoading: statsLoading } = useUserStats();
+
+  // 预加载下一页数据（提升翻页体验）
+  usePrefetchNextPage({
+    currentPage: state.page,
+    pageSize: state.pageSize,
+    total: data?.total || 0,
+    queryKey: 'users',
+    params: state.params,
+  });
 
   const users = data?.data || [];
   const total = data?.total || 0;
@@ -115,14 +167,25 @@ const UserList = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [quickSearchVisible, refetch, state]);
 
-  // ===== 快速搜索处理 =====
+  // ===== 快速搜索处理（带防抖）=====
+  // 防抖搜索：300ms 后才触发实际搜索，减少请求
+  const debouncedSearch = useDebouncedCallback((value: string) => {
+    if (value.trim()) {
+      state.handleFilterChange('username', value.trim());
+    }
+  }, 300);
+
   const handleQuickSearch = useCallback((value: string) => {
     setQuickSearchValue(value);
-    if (value.trim()) {
-      state.handleFilterChange({ keyword: value.trim() });
-    }
+    debouncedSearch(value);
     setQuickSearchVisible(false);
-  }, [state]);
+  }, [debouncedSearch]);
+
+  // 实时输入时的防抖搜索（用于输入框）
+  const handleQuickSearchInput = useCallback((value: string) => {
+    setQuickSearchValue(value);
+    debouncedSearch(value);
+  }, [debouncedSearch]);
 
   // ===== 查看用户活动 =====
   const handleViewActivity = useCallback((user: User) => {
@@ -130,28 +193,31 @@ const UserList = () => {
     setActivityDrawerVisible(true);
   }, []);
 
-  // ===== 列设置菜单 =====
+  // ===== 列设置菜单（Memoized）=====
   // 注意：'action' 列是必需的，不能被隐藏
-  const columnSettingsItems: MenuProps['items'] = ALL_COLUMNS.map(col => ({
-    key: col.key,
-    label: (
-      <Checkbox
-        checked={visibleColumns.includes(col.key)}
-        disabled={col.key === 'action'} // 操作列不能被隐藏
-        onChange={(e) => {
-          if (e.target.checked) {
-            setVisibleColumns([...visibleColumns, col.key]);
-          } else {
-            // 不允许隐藏操作列
-            if (col.key === 'action') return;
-            setVisibleColumns(visibleColumns.filter(k => k !== col.key));
-          }
-        }}
-      >
-        {col.label}{col.key === 'action' ? ' (必需)' : ''}
-      </Checkbox>
-    ),
-  }));
+  const columnSettingsItems: MenuProps['items'] = useMemo(() =>
+    ALL_COLUMNS.map(col => ({
+      key: col.key,
+      label: (
+        <Checkbox
+          checked={visibleColumns.includes(col.key)}
+          disabled={col.key === 'action'} // 操作列不能被隐藏
+          onChange={(e) => {
+            if (e.target.checked) {
+              setVisibleColumns([...visibleColumns, col.key]);
+            } else {
+              // 不允许隐藏操作列
+              if (col.key === 'action') return;
+              setVisibleColumns(visibleColumns.filter(k => k !== col.key));
+            }
+          }}
+        >
+          {col.label}{col.key === 'action' ? ' (必需)' : ''}
+        </Checkbox>
+      ),
+    })),
+    [visibleColumns, setVisibleColumns]
+  );
 
   // ===== 业务逻辑 =====
   const operations = useUserOperations({
@@ -229,11 +295,11 @@ const UserList = () => {
                 size="large"
                 placeholder="搜索用户名、邮箱、手机号..."
                 value={quickSearchValue}
-                onChange={(e) => setQuickSearchValue(e.target.value)}
+                onChange={(e) => handleQuickSearchInput(e.target.value)}
                 onSearch={handleQuickSearch}
                 enterButton="搜索"
               />
-              <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+              <div style={{ marginTop: 8, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
                 按 Enter 搜索，Escape 关闭
               </div>
             </Card>

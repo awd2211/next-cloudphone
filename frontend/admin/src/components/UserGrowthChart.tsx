@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
 import { Empty, theme } from 'antd';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface UserGrowthData {
   date: string;
@@ -42,7 +43,7 @@ const UserGrowthChart = memo(({ data, loading }: UserGrowthChartProps) => {
       axisPointer: {
         type: 'cross',
         crossStyle: {
-          color: '#999',
+          color: NEUTRAL_LIGHT.text.tertiary,
         },
       },
     },
@@ -101,7 +102,7 @@ const UserGrowthChart = memo(({ data, loading }: UserGrowthChartProps) => {
         data: totalUsers,
         smooth: true,
         itemStyle: {
-          color: '#52c41a',
+          color: SEMANTIC.success.main,
         },
         lineStyle: {
           width: 3,
@@ -116,11 +117,11 @@ const UserGrowthChart = memo(({ data, loading }: UserGrowthChartProps) => {
             colorStops: [
               {
                 offset: 0,
-                color: 'rgba(82, 196, 26, 0.3)',
+                color: `${SEMANTIC.success.main}4D`,  // 30% opacity
               },
               {
                 offset: 1,
-                color: 'rgba(82, 196, 26, 0.05)',
+                color: `${SEMANTIC.success.main}0D`,  // 5% opacity
               },
             ],
           },

@@ -9,6 +9,7 @@ import {
   getActionLabel,
   getActionCategory
 } from './utils';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const TABLE_SCROLL_X = 1800; // 表格横向滚动宽度
 
@@ -85,7 +86,7 @@ export const AuditTable = memo<AuditTableProps>(({ logs, loading, onViewDetail }
         width: 120,
         ellipsis: true,
         sorter: (a: AuditLog, b: AuditLog) => (a.resourceId || '').localeCompare(b.resourceId || ''),
-        render: (id?: string) => id || <span style={{ color: '#999' }}>-</span>,
+        render: (id?: string) => id || <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>-</span>,
       },
       {
         title: '描述',
@@ -99,7 +100,7 @@ export const AuditTable = memo<AuditTableProps>(({ logs, loading, onViewDetail }
         dataIndex: 'ipAddress',
         key: 'ipAddress',
         width: 130,
-        render: (ip?: string) => ip || <span style={{ color: '#999' }}>-</span>,
+        render: (ip?: string) => ip || <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>-</span>,
       },
       {
         title: '状态',

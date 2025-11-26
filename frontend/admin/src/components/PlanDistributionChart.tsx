@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
 import { Empty } from 'antd';
+import { CHART_COLORS } from '@/theme';
 
 interface PlanDistributionData {
   planName: string;
@@ -13,9 +14,6 @@ interface PlanDistributionChartProps {
   data: PlanDistributionData[];
   loading?: boolean;
 }
-
-// ✅ 提取颜色数组为常量
-const CHART_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272'];
 
 const PlanDistributionChart = memo(({ data, loading }: PlanDistributionChartProps) => {
   // ✅ 使用 useMemo 缓存 option

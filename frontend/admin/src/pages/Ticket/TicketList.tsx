@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import { useTickets } from '@/hooks/queries/useTickets';
 import type { Ticket, TicketStatus, TicketPriority, TicketCategory } from '@/types';
 
@@ -292,7 +293,7 @@ const TicketListPage: React.FC = () => {
                 Ctrl+R 刷新
               </Tag>
             </h2>
-            <span style={{ fontSize: 12, color: '#999' }}>Ctrl+K 搜索</span>
+            <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>Ctrl+K 搜索</span>
           </div>
 
           {/* 统计卡片 */}
@@ -307,7 +308,7 @@ const TicketListPage: React.FC = () => {
                 <Statistic
                   title="待处理"
                   value={stats.openCount}
-                  valueStyle={{ color: '#1890ff' }}
+                  valueStyle={{ color: PRIMARY.main }}
                   prefix={<ClockCircleOutlined />}
                 />
               </Card>
@@ -317,7 +318,7 @@ const TicketListPage: React.FC = () => {
                 <Statistic
                   title="紧急/高优先级"
                   value={stats.urgentCount}
-                  valueStyle={{ color: '#ff4d4f' }}
+                  valueStyle={{ color: SEMANTIC.error.main }}
                   prefix={<ExclamationCircleOutlined />}
                 />
               </Card>
@@ -327,7 +328,7 @@ const TicketListPage: React.FC = () => {
                 <Statistic
                   title="已解决"
                   value={stats.resolvedCount}
-                  valueStyle={{ color: '#52c41a' }}
+                  valueStyle={{ color: SEMANTIC.success.main }}
                   prefix={<CheckCircleOutlined />}
                 />
               </Card>
@@ -454,7 +455,7 @@ const TicketListPage: React.FC = () => {
             autoFocus
             allowClear
           />
-          <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+          <div style={{ marginTop: 8, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
             按 Enter 搜索，按 Escape 关闭
           </div>
         </Modal>

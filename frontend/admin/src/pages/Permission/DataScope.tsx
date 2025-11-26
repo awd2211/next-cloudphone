@@ -12,6 +12,7 @@ import { useDataScopeConfig } from '@/hooks/useDataScopeConfig';
 import type { DataScope } from '@/hooks/useDataScope';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
 import { LoadingState } from '@/components/Feedback/LoadingState';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 /**
  * 数据范围配置页面
@@ -100,7 +101,7 @@ const DataScopeConfig: React.FC = () => {
             </Tag>
           </h2>
         </div>
-        <p style={{ color: '#666', marginBottom: 24 }}>
+        <p style={{ color: NEUTRAL_LIGHT.text.secondary, marginBottom: 24 }}>
           配置不同角色对各类资源的数据访问范围，支持全部数据、租户数据、部门数据、本人数据等多种范围类型
         </p>
 

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Space, Button, Popconfirm, Tag, Switch } from 'antd';
 import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { NEUTRAL_LIGHT } from '@/theme';
 import type { DataScope, ScopeType } from '@/hooks/useDataScope';
 import type { Role } from '@/types';
 import { resourceTypes } from './constants';
@@ -66,7 +67,7 @@ export const useDataScopeTableColumns = ({
           return (
             <div>
               <Tag color="green">{scopeType_?.label || scopeType}</Tag>
-              <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.secondary, marginTop: 4 }}>
                 {getScopeDescription(record)}
               </div>
             </div>

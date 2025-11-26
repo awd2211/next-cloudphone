@@ -7,6 +7,7 @@ import {
   CloseCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import {
   useAdminPayments,
   useSyncPaymentStatus,
@@ -207,7 +208,7 @@ const PaymentListContent = () => {
               Ctrl+R 刷新
             </Tag>
           </h2>
-          <span style={{ fontSize: 12, color: '#999' }}>快捷键: Ctrl+K 搜索</span>
+          <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>快捷键: Ctrl+K 搜索</span>
         </div>
 
         {/* 统计卡片 */}
@@ -226,8 +227,8 @@ const PaymentListContent = () => {
               <Statistic
                 title="成功支付"
                 value={stats.successCount}
-                prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                valueStyle={{ color: '#52c41a' }}
+                prefix={<CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />}
+                valueStyle={{ color: SEMANTIC.success.main }}
               />
             </Card>
           </Col>
@@ -236,8 +237,8 @@ const PaymentListContent = () => {
               <Statistic
                 title="待处理"
                 value={stats.pendingCount}
-                prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-                valueStyle={{ color: '#faad14' }}
+                prefix={<ClockCircleOutlined style={{ color: SEMANTIC.warning.main }} />}
+                valueStyle={{ color: SEMANTIC.warning.main }}
               />
             </Card>
           </Col>
@@ -247,8 +248,8 @@ const PaymentListContent = () => {
                 title="支付金额"
                 value={stats.totalAmount}
                 precision={2}
-                prefix={<CloseCircleOutlined style={{ color: '#1890ff' }} />}
-                valueStyle={{ color: '#1890ff' }}
+                prefix={<DollarOutlined style={{ color: PRIMARY.main }} />}
+                valueStyle={{ color: PRIMARY.main }}
                 suffix="元"
               />
             </Card>

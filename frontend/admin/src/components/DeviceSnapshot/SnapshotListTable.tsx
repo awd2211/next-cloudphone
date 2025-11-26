@@ -6,6 +6,7 @@ import {
   ReloadOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons';
+import { NEUTRAL_LIGHT } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 import { createTimeColumn } from '@/utils/tableColumns';
 
@@ -183,7 +184,7 @@ const SnapshotListTable: React.FC<SnapshotListTableProps> = memo(({ deviceId, on
             刷新
           </Button>
           <Tooltip title="快照列表显示该设备的所有备份快照">
-            <InfoCircleOutlined style={{ color: '#999' }} />
+            <InfoCircleOutlined style={{ color: NEUTRAL_LIGHT.text.tertiary }} />
           </Tooltip>
         </Space>
       </div>

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Card, Row, Col, Statistic } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface DataScopeStatsCardsProps {
   total: number;
@@ -20,12 +21,12 @@ export const DataScopeStatsCards = memo<DataScopeStatsCardsProps>(
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="已启用" value={active} valueStyle={{ color: '#52c41a' }} />
+            <Statistic title="已启用" value={active} valueStyle={{ color: SEMANTIC.success.main }} />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="已禁用" value={inactive} valueStyle={{ color: '#999' }} />
+            <Statistic title="已禁用" value={inactive} valueStyle={{ color: NEUTRAL_LIGHT.text.tertiary }} />
           </Card>
         </Col>
         <Col span={6}>

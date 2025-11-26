@@ -6,6 +6,7 @@ import {
   StopOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { PRIMARY, SEMANTIC } from '@/theme';
 
 interface UserStatsCardsProps {
   total: number;
@@ -24,7 +25,7 @@ export const UserStatsCards = memo<UserStatsCardsProps>(
               title="总用户数"
               value={total}
               prefix={<UserOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: PRIMARY.main }}
             />
           </Card>
         </Col>
@@ -34,7 +35,7 @@ export const UserStatsCards = memo<UserStatsCardsProps>(
               title="活跃用户"
               value={active}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -44,7 +45,7 @@ export const UserStatsCards = memo<UserStatsCardsProps>(
               title="禁用用户"
               value={inactive}
               prefix={<StopOutlined />}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: SEMANTIC.warning.main }}
             />
           </Card>
         </Col>
@@ -54,7 +55,7 @@ export const UserStatsCards = memo<UserStatsCardsProps>(
               title="封禁用户"
               value={banned}
               prefix={<WarningOutlined />}
-              valueStyle={{ color: '#f5222d' }}
+              valueStyle={{ color: SEMANTIC.error.main }}
             />
           </Card>
         </Col>

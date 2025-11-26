@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
 import { Empty } from 'antd';
+import { DEVICE_STATUS_COLORS, NEUTRAL_LIGHT } from '@/theme';
 
 interface DeviceStatusData {
   status: string;
@@ -13,12 +14,12 @@ interface DeviceStatusChartProps {
   loading?: boolean;
 }
 
-// ✅ 提取状态映射为常量
+// ✅ 使用统一颜色系统
 const STATUS_MAP: Record<string, { name: string; color: string }> = {
-  idle: { name: '空闲', color: '#d9d9d9' },
-  running: { name: '运行中', color: '#52c41a' },
-  stopped: { name: '已停止', color: '#ff4d4f' },
-  error: { name: '错误', color: '#faad14' },
+  idle: { name: '空闲', color: NEUTRAL_LIGHT.border.primary },
+  running: { name: '运行中', color: DEVICE_STATUS_COLORS.running },
+  stopped: { name: '已停止', color: DEVICE_STATUS_COLORS.stopped },
+  error: { name: '错误', color: DEVICE_STATUS_COLORS.error },
 };
 
 const DeviceStatusChart = memo(({ data, loading }: DeviceStatusChartProps) => {
@@ -37,7 +38,7 @@ const DeviceStatusChart = memo(({ data, loading }: DeviceStatusChartProps) => {
       value: item.count,
       name: STATUS_MAP[item.status]?.name || item.status,
       itemStyle: {
-        color: STATUS_MAP[item.status]?.color || '#d9d9d9',
+        color: STATUS_MAP[item.status]?.color || NEUTRAL_LIGHT.border.primary,
       },
     }));
 

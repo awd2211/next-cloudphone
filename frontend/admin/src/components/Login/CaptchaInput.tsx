@@ -1,6 +1,7 @@
 import { Row, Col, Input , theme } from 'antd';
 import { SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
 import { memo } from 'react';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface CaptchaInputProps {
   captchaSvg: string;
@@ -35,13 +36,13 @@ export const CaptchaInput = memo<CaptchaInputProps>(
             onClick={onRefresh}
             style={{
               height: 40,
-              border: '1px solid #d9d9d9',
+              border: `1px solid ${NEUTRAL_LIGHT.border.primary}`,
               borderRadius: 6,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: '#f5f5f5',
+              backgroundColor: NEUTRAL_LIGHT.bg.layout,
               position: 'relative',
             }}
           >

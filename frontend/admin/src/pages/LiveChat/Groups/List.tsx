@@ -45,6 +45,7 @@ import {
   deleteAgentGroup,
   type AgentGroup,
 } from '@/services/livechat';
+import { PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 
 const { TextArea } = Input;
 
@@ -244,7 +245,7 @@ const GroupListPage: React.FC = () => {
               Ctrl+R 刷新
             </Tag>
           </h2>
-          <span style={{ fontSize: 12, color: '#999' }}>Ctrl+N 新建</span>
+          <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>Ctrl+N 新建</span>
         </div>
 
         <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -255,7 +256,7 @@ const GroupListPage: React.FC = () => {
           </Col>
           <Col span={12}>
             <Card size="small">
-              <Statistic title="默认分组" value={stats.defaultCount} valueStyle={{ color: '#1890ff' }} />
+              <Statistic title="默认分组" value={stats.defaultCount} valueStyle={{ color: PRIMARY.main }} />
             </Card>
           </Col>
         </Row>

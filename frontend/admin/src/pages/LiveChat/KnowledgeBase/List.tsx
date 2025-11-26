@@ -76,6 +76,7 @@ import {
   type ArticleVisibility,
   type SearchArticlesParams,
 } from '@/services/knowledgeBase';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -231,7 +232,7 @@ const KnowledgeBasePage: React.FC = () => {
         title: (
           <Space>
             <span>{cat.name}</span>
-            <Badge count={cat.articleCount} size="small" style={{ backgroundColor: '#52c41a' }} />
+            <Badge count={cat.articleCount} size="small" style={{ backgroundColor: SEMANTIC.success.main }} />
             {!cat.isActive && <Tag color="default">已禁用</Tag>}
           </Space>
         ),
@@ -349,8 +350,8 @@ const KnowledgeBasePage: React.FC = () => {
       render: (title, record) => (
         <Space direction="vertical" size={0}>
           <Space>
-            {record.isPinned && <PushpinOutlined style={{ color: '#ff4d4f' }} />}
-            {record.isFeatured && <StarOutlined style={{ color: '#faad14' }} />}
+            {record.isPinned && <PushpinOutlined style={{ color: SEMANTIC.error.main }} />}
+            {record.isFeatured && <StarOutlined style={{ color: SEMANTIC.warning.main }} />}
             <Text
               strong
               ellipsis
@@ -492,7 +493,7 @@ const KnowledgeBasePage: React.FC = () => {
           </Col>
           <Col span={6}>
             <Card size="small">
-              <Statistic title="已发布" value={stats?.articleStats?.published || 0} valueStyle={{ color: '#52c41a' }} prefix={<CheckCircleOutlined />} />
+              <Statistic title="已发布" value={stats?.articleStats?.published || 0} valueStyle={{ color: SEMANTIC.success.main }} prefix={<CheckCircleOutlined />} />
             </Card>
           </Col>
           <Col span={6}>
@@ -822,12 +823,12 @@ const KnowledgeBasePage: React.FC = () => {
                 {previewArticle.category && <Tag icon={<FolderOutlined />}>{previewArticle.category.name}</Tag>}
               </Space>
               {previewArticle.summary && (
-                <p style={{ color: '#666', fontStyle: 'italic' }}>{previewArticle.summary}</p>
+                <p style={{ color: NEUTRAL_LIGHT.text.secondary, fontStyle: 'italic' }}>{previewArticle.summary}</p>
               )}
               <div
                 style={{
                   whiteSpace: 'pre-wrap',
-                  background: '#f5f5f5',
+                  background: NEUTRAL_LIGHT.bg.layout,
                   padding: 16,
                   borderRadius: 8,
                   maxHeight: 400,
@@ -842,7 +843,7 @@ const KnowledgeBasePage: React.FC = () => {
                   {previewArticle.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
                 </div>
               )}
-              <div style={{ marginTop: 16, color: '#999', fontSize: 12 }}>
+              <div style={{ marginTop: 16, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
                 <Space split={<span>·</span>}>
                   <span>作者：{previewArticle.authorName || '未知'}</span>
                   <span>浏览：{previewArticle.viewCount}</span>

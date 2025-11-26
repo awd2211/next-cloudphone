@@ -8,6 +8,7 @@ import {
   AppstoreOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC } from '@/theme';
 
 interface OverviewData {
   totalUsers?: number;
@@ -31,7 +32,7 @@ export const StatsOverviewCards: React.FC<StatsOverviewCardsProps> = React.memo(
         <span
           style={{
             fontSize: 14,
-            color: rate > 0 ? '#3f8600' : '#cf1322',
+            color: rate > 0 ? SEMANTIC.success.dark : SEMANTIC.error.dark,
           }}
         >
           {rate > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}

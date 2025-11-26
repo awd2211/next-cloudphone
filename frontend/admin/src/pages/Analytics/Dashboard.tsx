@@ -7,6 +7,7 @@ import {
   DollarOutlined,
 } from '@ant-design/icons';
 import ReactECharts from '@/components/ReactECharts';
+import { SEMANTIC } from '@/theme';
 
 const AnalyticsDashboard: React.FC = () => {
   const { token } = theme.useToken();
@@ -87,7 +88,7 @@ const AnalyticsDashboard: React.FC = () => {
               title="总用户数"
               value={1328}
               prefix={<UserOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.dark }}
               suffix={<ArrowUpOutlined />}
             />
           </Card>
@@ -99,7 +100,7 @@ const AnalyticsDashboard: React.FC = () => {
               value={82450}
               precision={2}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.dark }}
             />
           </Card>
         </Col>
@@ -113,7 +114,7 @@ const AnalyticsDashboard: React.FC = () => {
             <Statistic
               title="待处理工单"
               value={15}
-              valueStyle={{ color: '#cf1322' }}
+              valueStyle={{ color: SEMANTIC.error.dark }}
               suffix={<ArrowDownOutlined />}
             />
           </Card>

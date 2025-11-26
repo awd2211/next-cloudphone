@@ -3,6 +3,7 @@ import { Space, Button, Select, Dropdown } from 'antd';
 import { PlusOutlined, DownloadOutlined, BarChartOutlined, MoreOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import type { Role } from '@/types';
+import { NEUTRAL_LIGHT } from '@/theme';
 import { resourceTypes } from './constants';
 
 interface DataScopeFilterBarProps {
@@ -103,7 +104,7 @@ export const DataScopeFilterBar = memo<DataScopeFilterBarProps>(
             </Dropdown>
           )}
 
-          <span style={{ color: '#666', marginLeft: 8 }}>
+          <span style={{ color: NEUTRAL_LIGHT.text.secondary, marginLeft: 8 }}>
             共 {totalCount} 条配置
           </span>
         </Space>

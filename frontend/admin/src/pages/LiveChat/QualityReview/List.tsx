@@ -55,6 +55,7 @@ import {
   type Agent,
   type Conversation,
 } from '@/services/livechat';
+import { SEMANTIC } from '@/theme';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -139,7 +140,7 @@ const QualityReviewPage: React.FC = () => {
 
   // 评分展示
   const renderScore = (score: number) => {
-    const color = score >= 90 ? '#52c41a' : score >= 70 ? '#faad14' : '#ff4d4f';
+    const color = score >= 90 ? SEMANTIC.success.main : score >= 70 ? SEMANTIC.warning.main : SEMANTIC.error.main;
     return (
       <span style={{ color, fontWeight: 'bold', fontSize: 16 }}>
         {score}
@@ -287,7 +288,7 @@ const QualityReviewPage: React.FC = () => {
               <Statistic
                 title="已完成"
                 value={stats.completed}
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
                 prefix={<CheckCircleOutlined />}
               />
             </Card>
@@ -297,7 +298,7 @@ const QualityReviewPage: React.FC = () => {
               <Statistic
                 title="待处理"
                 value={stats.pending}
-                valueStyle={{ color: '#faad14' }}
+                valueStyle={{ color: SEMANTIC.warning.main }}
                 prefix={<ClockCircleOutlined />}
               />
             </Card>
@@ -307,7 +308,7 @@ const QualityReviewPage: React.FC = () => {
               <Statistic
                 title="平均分"
                 value={stats.avgScore.toFixed(1)}
-                valueStyle={{ color: stats.avgScore >= 80 ? '#52c41a' : '#faad14' }}
+                valueStyle={{ color: stats.avgScore >= 80 ? SEMANTIC.success.main : SEMANTIC.warning.main }}
                 prefix={<StarOutlined />}
               />
             </Card>
@@ -494,10 +495,10 @@ const QualityReviewPage: React.FC = () => {
                       size="small"
                       strokeColor={
                         (selectedReview.categories?.[category.key as keyof typeof selectedReview.categories] || 0) >= 80
-                          ? '#52c41a'
+                          ? SEMANTIC.success.main
                           : (selectedReview.categories?.[category.key as keyof typeof selectedReview.categories] || 0) >= 60
-                          ? '#faad14'
-                          : '#ff4d4f'
+                          ? SEMANTIC.warning.main
+                          : SEMANTIC.error.main
                       }
                     />
                   </div>

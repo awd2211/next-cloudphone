@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, memo, useCallback, useMemo } from 'react';
 import { Input, Button, Space, message } from 'antd';
 import { SendOutlined, ClearOutlined } from '@ant-design/icons';
 import { executeShellCommand } from '@/services/device';
+import { TERMINAL_COLORS, NEUTRAL_LIGHT } from '@/theme';
 
 interface ADBConsoleProps {
   deviceId: string;
@@ -108,8 +109,8 @@ const ADBConsole = memo(({ deviceId }: ADBConsoleProps) => {
         ref={consoleRef}
         style={{
           height: 400,
-          backgroundColor: '#1e1e1e',
-          color: '#d4d4d4',
+          backgroundColor: TERMINAL_COLORS.bg,
+          color: TERMINAL_COLORS.text,
           padding: 16,
           fontFamily: 'Consolas, Monaco, "Courier New", monospace',
           fontSize: 14,
@@ -120,17 +121,17 @@ const ADBConsole = memo(({ deviceId }: ADBConsoleProps) => {
         }}
       >
         {messages.length === 0 && (
-          <div style={{ color: '#666' }}>欢迎使用 ADB 控制台。输入命令并按回车执行。</div>
+          <div style={{ color: TERMINAL_COLORS.placeholder }}>欢迎使用 ADB 控制台。输入命令并按回车执行。</div>
         )}
         {messages.map((msg, index) => (
           <div key={index} style={{ marginBottom: 8 }}>
-            <span style={{ color: '#666', marginRight: 8 }}>
+            <span style={{ color: TERMINAL_COLORS.timestamp, marginRight: 8 }}>
               [{formatTimestamp(msg.timestamp)}]
             </span>
             {msg.type === 'input' && (
               <span>
-                <span style={{ color: '#4ec9b0' }}>$ </span>
-                <span style={{ color: '#ce9178' }}>{msg.content}</span>
+                <span style={{ color: TERMINAL_COLORS.prompt }}>$ </span>
+                <span style={{ color: TERMINAL_COLORS.command }}>{msg.content}</span>
               </span>
             )}
             {msg.type === 'output' && (
@@ -139,13 +140,13 @@ const ADBConsole = memo(({ deviceId }: ADBConsoleProps) => {
                   margin: 0,
                   whiteSpace: 'pre-wrap',
                   wordWrap: 'break-word',
-                  color: '#d4d4d4',
+                  color: TERMINAL_COLORS.text,
                 }}
               >
                 {msg.content}
               </pre>
             )}
-            {msg.type === 'error' && <span style={{ color: '#f48771' }}>{msg.content}</span>}
+            {msg.type === 'error' && <span style={{ color: TERMINAL_COLORS.error }}>{msg.content}</span>}
           </div>
         ))}
       </div>
@@ -157,7 +158,7 @@ const ADBConsole = memo(({ deviceId }: ADBConsoleProps) => {
           onKeyPress={handleKeyPress}
           placeholder="输入 ADB shell 命令..."
           disabled={loading}
-          prefix={<span style={{ color: '#999' }}>adb shell</span>}
+          prefix={<span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>adb shell</span>}
         />
         <Button type="primary" icon={<SendOutlined />} onClick={handleExecute} loading={loading}>
           执行
@@ -167,7 +168,7 @@ const ADBConsole = memo(({ deviceId }: ADBConsoleProps) => {
         </Button>
       </Space.Compact>
 
-      <div style={{ marginTop: 16, color: '#666', fontSize: 12 }}>
+      <div style={{ marginTop: 16, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
         <p style={{ margin: 0 }}>提示：</p>
         <ul style={{ margin: '8px 0', paddingLeft: 20 }}>
           <li>命令会在设备上以 adb shell 方式执行</li>

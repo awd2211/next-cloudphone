@@ -4,6 +4,7 @@
  */
 import { memo } from 'react';
 import { Space } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface AppNameDisplayProps {
   name: string;
@@ -18,7 +19,7 @@ export const AppNameDisplay = memo<AppNameDisplayProps>(({ name, packageName }) 
   return (
     <Space direction="vertical" size={0}>
       <span style={{ fontWeight: 500 }}>{name}</span>
-      <span style={{ fontSize: '12px', color: '#999' }}>{packageName}</span>
+      <span style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>{packageName}</span>
     </Space>
   );
 });

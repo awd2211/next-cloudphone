@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Button, Space } from 'antd';
 import { PlayCircleOutlined, PauseCircleOutlined, DeleteOutlined } from '@ant-design/icons';
+import { NEUTRAL_LIGHT } from '@/theme';
 import { APP_OPERATIONS_TIPS } from './constants';
 
 interface AppOperationsTabProps {
@@ -32,7 +33,7 @@ export const AppOperationsTab: React.FC<AppOperationsTabProps> = React.memo(
             清除应用数据
           </Button>
         </Space>
-        <div style={{ marginTop: 16, color: '#999' }}>
+        <div style={{ marginTop: 16, color: NEUTRAL_LIGHT.text.tertiary }}>
           <p>💡 提示:</p>
           <ul>
             {APP_OPERATIONS_TIPS.map((tip, index) => (

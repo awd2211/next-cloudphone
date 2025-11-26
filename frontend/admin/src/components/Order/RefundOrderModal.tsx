@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Modal, Form, InputNumber, Input } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import type { Order } from '@/types';
 
 export interface RefundOrderModalProps {
@@ -55,7 +56,7 @@ export const RefundOrderModal = memo<RefundOrderModalProps>(
               onChange={(value) => onAmountChange(Number(value) || 0)}
               prefix="¥"
             />
-            <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+            <div style={{ marginTop: 8, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
               最多可退款 ¥{order ? Number(order.amount).toFixed(2) : '0.00'}
             </div>
           </Form.Item>

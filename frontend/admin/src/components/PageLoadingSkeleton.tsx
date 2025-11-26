@@ -1,4 +1,5 @@
 import { Card, Skeleton, Space } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 /**
  * 页面加载骨架屏 - 用于路由懒加载的 Suspense fallback
@@ -42,7 +43,7 @@ export const PageLoadingSkeleton = () => {
             key={index}
             style={{
               padding: '12px 0',
-              borderBottom: '1px solid #f0f0f0',
+              borderBottom: `1px solid ${NEUTRAL_LIGHT.border.secondary}`,
             }}
           >
             <Skeleton active paragraph={{ rows: 1 }} />
@@ -109,7 +110,7 @@ export const TableLoadingSkeleton = ({ rows = 10 }: { rows?: number }) => {
           key={index}
           style={{
             padding: '12px 0',
-            borderBottom: index < rows - 1 ? '1px solid #f0f0f0' : 'none',
+            borderBottom: index < rows - 1 ? `1px solid ${NEUTRAL_LIGHT.border.secondary}` : 'none',
           }}
         >
           <Skeleton active paragraph={{ rows: 1 }} />

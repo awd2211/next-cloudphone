@@ -6,6 +6,7 @@ import { memo } from 'react';
 import { Row, Col, Card, Statistic, Space, Badge } from 'antd';
 import { LineChartOutlined, BellOutlined } from '@ant-design/icons';
 import type { Quota, QuotaAlert } from '@/types';
+import { SEMANTIC } from '@/theme';
 
 interface QuotaStatisticsRowProps {
   quotas: Quota[];
@@ -29,7 +30,7 @@ export const QuotaStatisticsRow = memo<QuotaStatisticsRowProps>(({ quotas, alert
           <Statistic
             title="正常状态"
             value={quotas.filter((q) => q.status === 'active').length}
-            valueStyle={{ color: '#3f8600' }}
+            valueStyle={{ color: SEMANTIC.success.dark }}
           />
         </Card>
       </Col>
@@ -38,7 +39,7 @@ export const QuotaStatisticsRow = memo<QuotaStatisticsRowProps>(({ quotas, alert
           <Statistic
             title="超限配额"
             value={quotas.filter((q) => q.status === 'exceeded').length}
-            valueStyle={{ color: '#cf1322' }}
+            valueStyle={{ color: SEMANTIC.error.dark }}
           />
         </Card>
       </Col>
@@ -53,7 +54,7 @@ export const QuotaStatisticsRow = memo<QuotaStatisticsRowProps>(({ quotas, alert
             }
             value={alerts.length}
             prefix={<BellOutlined />}
-            valueStyle={{ color: alerts.length > 0 ? '#faad14' : undefined }}
+            valueStyle={{ color: alerts.length > 0 ? SEMANTIC.warning.main : undefined }}
           />
         </Card>
       </Col>

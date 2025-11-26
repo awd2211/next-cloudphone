@@ -34,6 +34,7 @@ export const EditUserModal = memo<EditUserModalProps>(
         onCancel={onCancel}
         onOk={() => form.submit()}
         width={600}
+        forceRender
       >
         <Form form={form} onFinish={onFinish} layout="vertical">
           <Form.Item label="用户名">

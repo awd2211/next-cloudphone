@@ -27,6 +27,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { HolderOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface DraggableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   'data-row-key': string;
@@ -68,7 +69,7 @@ const DraggableRow = ({ children, ...props }: DraggableRowProps) => {
                   touchAction: 'none',
                   cursor: 'move',
                   fontSize: 16,
-                  color: '#999',
+                  color: NEUTRAL_LIGHT.text.tertiary,
                 }}
               />
             ),

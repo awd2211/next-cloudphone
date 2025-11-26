@@ -20,6 +20,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const { Text } = Typography;
 
@@ -221,7 +222,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = memo(({ visib
           ref={inputRef}
           size="large"
           placeholder="搜索设备、用户、应用... (输入关键词)"
-          prefix={<SearchOutlined style={{ color: '#999' }} />}
+          prefix={<SearchOutlined style={{ color: NEUTRAL_LIGHT.text.tertiary }} />}
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -242,7 +243,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = memo(({ visib
                 style={{
                   padding: '12px 24px',
                   cursor: 'pointer',
-                  backgroundColor: index === selectedIndex ? '#f0f0f0' : 'transparent',
+                  backgroundColor: index === selectedIndex ? NEUTRAL_LIGHT.bg.spotlight : 'transparent',
                   borderLeft: index === selectedIndex ? '3px solid token.colorPrimary' : '3px solid transparent',
                 }}
                 onMouseEnter={() => setSelectedIndex(index)}
@@ -254,7 +255,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = memo(({ visib
                         width: 32,
                         height: 32,
                         borderRadius: 4,
-                        backgroundColor: '#f5f5f5',
+                        backgroundColor: NEUTRAL_LIGHT.bg.layout,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -284,7 +285,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = memo(({ visib
             style={{ padding: '40px 0' }}
           />
         ) : (
-          <div style={{ padding: '40px 24px', textAlign: 'center', color: '#999' }}>
+          <div style={{ padding: '40px 24px', textAlign: 'center', color: NEUTRAL_LIGHT.text.tertiary }}>
             <Text type="secondary">
               {!query ? '输入关键词开始搜索...' : '搜索中...'}
             </Text>
@@ -296,12 +297,12 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = memo(({ visib
       <div
         style={{
           padding: '8px 16px',
-          borderTop: '1px solid #f0f0f0',
-          backgroundColor: '#fafafa',
+          borderTop: `1px solid ${NEUTRAL_LIGHT.border.secondary}`,
+          backgroundColor: NEUTRAL_LIGHT.bg.layout,
           display: 'flex',
           justifyContent: 'space-between',
           fontSize: 12,
-          color: '#999',
+          color: NEUTRAL_LIGHT.text.tertiary,
         }}
       >
         <Space size={16}>

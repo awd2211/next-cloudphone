@@ -33,6 +33,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import {
   useApiKeys,
   useCreateApiKey,
@@ -163,7 +164,7 @@ const ApiKeyListContent: React.FC = () => {
             width: 600,
             content: (
               <div>
-                <p style={{ color: '#ff4d4f', fontWeight: 600, marginTop: 16 }}>
+                <p style={{ color: SEMANTIC.error.main, fontWeight: 600, marginTop: 16 }}>
                   请立即保存以下密钥，关闭后将无法再次查看完整 Secret！
                 </p>
                 <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}>
@@ -406,9 +407,9 @@ const ApiKeyListContent: React.FC = () => {
               Ctrl+R 刷新
             </Tag>
           </h2>
-          <span style={{ fontSize: 12, color: '#999' }}>Ctrl+N 新建</span>
+          <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>Ctrl+N 新建</span>
         </div>
-        <p style={{ color: '#666', marginBottom: 24 }}>
+        <p style={{ color: NEUTRAL_LIGHT.text.secondary, marginBottom: 24 }}>
           管理系统API密钥，用于程序化访问平台资源
         </p>
 
@@ -424,7 +425,7 @@ const ApiKeyListContent: React.FC = () => {
               <Statistic
                 title="已启用"
                 value={stats.activeCount}
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
                 prefix={<CheckCircleOutlined />}
               />
             </Card>
@@ -434,7 +435,7 @@ const ApiKeyListContent: React.FC = () => {
               <Statistic
                 title="已停用"
                 value={stats.inactiveCount}
-                valueStyle={{ color: '#ff4d4f' }}
+                valueStyle={{ color: SEMANTIC.error.main }}
                 prefix={<StopOutlined />}
               />
             </Card>

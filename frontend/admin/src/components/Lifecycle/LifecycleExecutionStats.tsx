@@ -4,6 +4,7 @@
  */
 import { memo } from 'react';
 import { Space } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import dayjs from 'dayjs';
 
 interface LifecycleExecutionStatsProps {
@@ -21,7 +22,7 @@ export const LifecycleExecutionStats = memo<LifecycleExecutionStatsProps>(
       <Space direction="vertical" size={0}>
         <span>已执行: {executionCount} 次</span>
         {lastExecutedAt && (
-          <span style={{ fontSize: '12px', color: '#8c8c8c' }}>
+          <span style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>
             上次: {dayjs(lastExecutedAt).format('MM-DD HH:mm')}
           </span>
         )}

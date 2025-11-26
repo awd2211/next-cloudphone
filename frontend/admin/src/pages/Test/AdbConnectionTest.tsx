@@ -30,6 +30,7 @@ import {
   DesktopOutlined,
 } from '@ant-design/icons';
 import { api } from '@/utils/api';
+import { SEMANTIC } from '@/theme';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -337,9 +338,9 @@ const AdbConnectionTest: React.FC = () => {
                   message={
                     <Space>
                       {testResult.success ? (
-                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                        <CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />
                       ) : (
-                        <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
+                        <CloseCircleOutlined style={{ color: SEMANTIC.error.main }} />
                       )}
                       {testResult.success ? '连接成功' : '连接失败'}
                     </Space>

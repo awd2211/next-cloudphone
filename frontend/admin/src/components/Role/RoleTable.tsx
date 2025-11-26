@@ -10,6 +10,7 @@ import {
 import type { ColumnsType, TableRowSelection } from 'antd/es/table';
 import type { Role, Permission } from '@/types';
 import { createTimeColumn } from '@/utils/tableColumns';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface RoleTableProps {
   roles: Role[];
@@ -84,7 +85,7 @@ export const RoleTable: React.FC<RoleTableProps> = React.memo(
               <span style={{ fontWeight: 500 }}>{name}</span>
               {record.isSystem && (
                 <Tooltip title="系统内置角色，不可删除">
-                  <LockOutlined style={{ color: '#faad14' }} />
+                  <LockOutlined style={{ color: SEMANTIC.warning.main }} />
                 </Tooltip>
               )}
             </Space>
@@ -125,7 +126,7 @@ export const RoleTable: React.FC<RoleTableProps> = React.memo(
           width: 350,
           render: (permissions: Permission[]) => {
             if (!permissions || permissions.length === 0) {
-              return <span style={{ color: '#999' }}>暂无权限</span>;
+              return <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>暂无权限</span>;
             }
             return (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>

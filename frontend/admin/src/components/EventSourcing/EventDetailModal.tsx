@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Modal, Descriptions, Tag } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import type { UserEvent } from '@/types';
 import dayjs from 'dayjs';
 
@@ -34,7 +35,7 @@ export const EventDetailModal = memo<EventDetailModalProps>(
                 style={{
                   maxHeight: '400px',
                   overflow: 'auto',
-                  background: '#f5f5f5',
+                  background: NEUTRAL_LIGHT.bg.layout,
                   padding: '12px',
                   borderRadius: '4px',
                   margin: 0,

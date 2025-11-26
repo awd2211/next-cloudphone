@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Space, Button, Tooltip, Tag, Badge, Typography, Popconfirm } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import {
   EyeOutlined,
   EditOutlined,
@@ -123,7 +124,7 @@ export const useApiKeyColumns = ({
           date ? (
             new Date(date).toLocaleString('zh-CN')
           ) : (
-            <span style={{ color: '#999' }}>从未使用</span>
+            <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>从未使用</span>
           ),
       },
       {
@@ -137,7 +138,7 @@ export const useApiKeyColumns = ({
           return timeA - timeB;
         },
         render: (date?: string) => {
-          if (!date) return <span style={{ color: '#999' }}>永不过期</span>;
+          if (!date) return <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>永不过期</span>;
           const expired = new Date(date) < new Date();
           return (
             <Text type={expired ? 'danger' : undefined}>

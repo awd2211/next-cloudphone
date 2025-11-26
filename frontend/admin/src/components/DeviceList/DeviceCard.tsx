@@ -10,6 +10,7 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import LazyImage from '../LazyImage';
+import { NEUTRAL_LIGHT } from '@/theme';
 import { startDevice, stopDevice, deleteDevice } from '@/services/device';
 
 interface Device {
@@ -179,7 +180,7 @@ const DeviceCard: React.FC<DeviceCardProps> = memo(({ device, onClick, onDeviceC
             </Tag>
             {device.deviceType && <Tag>{device.deviceType}</Tag>}
           </Space>
-          <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+          <div style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.secondary, marginTop: '4px' }}>
             {device.cpu || 2} 核 · {device.memory || 2048} MB
             {device.gpuEnabled && ' · GPU'}
           </div>

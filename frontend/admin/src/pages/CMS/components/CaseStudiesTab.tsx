@@ -18,6 +18,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, StarOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import * as cmsService from '@/services/cms';
+import { SEMANTIC } from '@/theme';
 import type { CaseStudy } from '@/services/cms';
 
 const { TextArea } = Input;
@@ -142,7 +143,7 @@ const CaseStudiesTab: React.FC = () => {
       key: 'isFeatured',
       width: 80,
       render: (featured: boolean) =>
-        featured ? <StarOutlined style={{ color: '#faad14' }} /> : null,
+        featured ? <StarOutlined style={{ color: SEMANTIC.warning.main }} /> : null,
     },
     {
       title: '状态',

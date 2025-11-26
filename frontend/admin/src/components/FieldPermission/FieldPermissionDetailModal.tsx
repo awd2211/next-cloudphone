@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Modal, Descriptions, Tag, Space, Button } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import type { FieldPermission, OperationType } from '@/types';
 
 interface FieldPermissionDetailModalProps {
@@ -60,7 +61,7 @@ export const FieldPermissionDetailModal = memo<FieldPermissionDetailModalProps>(
               ))}
             </Space>
           ) : (
-            <span style={{ color: '#999' }}>无</span>
+            <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>无</span>
           )}
         </Descriptions.Item>
         <Descriptions.Item label="只读字段" span={2}>
@@ -73,7 +74,7 @@ export const FieldPermissionDetailModal = memo<FieldPermissionDetailModalProps>(
               ))}
             </Space>
           ) : (
-            <span style={{ color: '#999' }}>无</span>
+            <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>无</span>
           )}
         </Descriptions.Item>
         <Descriptions.Item label="可写字段" span={2}>
@@ -86,7 +87,7 @@ export const FieldPermissionDetailModal = memo<FieldPermissionDetailModalProps>(
               ))}
             </Space>
           ) : (
-            <span style={{ color: '#999' }}>无</span>
+            <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>无</span>
           )}
         </Descriptions.Item>
         <Descriptions.Item label="必填字段" span={2}>
@@ -99,7 +100,7 @@ export const FieldPermissionDetailModal = memo<FieldPermissionDetailModalProps>(
               ))}
             </Space>
           ) : (
-            <span style={{ color: '#999' }}>无</span>
+            <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>无</span>
           )}
         </Descriptions.Item>
         {detailPermission.fieldAccessMap &&
@@ -128,7 +129,7 @@ export const FieldPermissionDetailModal = memo<FieldPermissionDetailModalProps>(
             </Descriptions.Item>
           )}
         <Descriptions.Item label="描述" span={2}>
-          {detailPermission.description || <span style={{ color: '#999' }}>无</span>}
+          {detailPermission.description || <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>无</span>}
         </Descriptions.Item>
         <Descriptions.Item label="创建时间">
           {new Date(detailPermission.createdAt).toLocaleString('zh-CN')}

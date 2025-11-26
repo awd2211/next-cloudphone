@@ -18,6 +18,7 @@ import { useRole, RoleGuard } from '@/hooks/useRole';
 import { useDashboard } from '@/hooks/useDashboard';
 import { StatCard, DataErrorAlert } from '@/components/Dashboard';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
+import { SEMANTIC } from '@/theme';
 
 /**
  * 仪表盘页面 (优化版 v2)
@@ -80,7 +81,7 @@ const Dashboard = () => {
       title: isAdmin ? '总设备数' : '我的设备',
       value: stats?.totalDevices || 0,
       icon: <MobileOutlined />,
-      color: '#3f8600',
+      color: SEMANTIC.success.main,
       visible: true,
     },
     {
@@ -108,7 +109,7 @@ const Dashboard = () => {
       value: stats?.todayRevenue || 0,
       prefix: '¥',
       precision: 2,
-      color: '#cf1322',
+      color: SEMANTIC.error.main,
       visible: isAdmin,
     },
     {
@@ -116,21 +117,21 @@ const Dashboard = () => {
       value: stats?.monthRevenue || 0,
       prefix: '¥',
       precision: 2,
-      color: '#cf1322',
+      color: SEMANTIC.error.main,
       visible: isAdmin,
     },
     {
       title: '今日订单',
       value: stats?.todayOrders || 0,
       icon: <ShoppingOutlined />,
-      color: '#faad14',
+      color: SEMANTIC.warning.main,
       visible: isAdmin,
     },
     {
       title: '本月订单',
       value: stats?.monthOrders || 0,
       icon: <ShoppingOutlined />,
-      color: '#faad14',
+      color: SEMANTIC.warning.main,
       visible: isAdmin,
     },
   ], [stats, isAdmin, token.colorPrimary]);

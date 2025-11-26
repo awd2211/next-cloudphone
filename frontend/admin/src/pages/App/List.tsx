@@ -11,6 +11,7 @@ import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { ErrorAlert, type ErrorInfo } from '@/components/ErrorAlert';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
 import { LoadingState } from '@/components/Feedback/LoadingState';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 
 /**
  * 应用列表页面（优化版 v2 - 添加 ErrorBoundary + LoadingState + 统计卡片 + 快捷键）
@@ -205,7 +206,7 @@ const AppList = () => {
               fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
             />
           ) : (
-            <div style={{ width: 40, height: 40, background: '#f0f0f0' }} />
+            <div style={{ width: 40, height: 40, background: NEUTRAL_LIGHT.bg.layout }} />
           ),
       },
       {
@@ -288,7 +289,7 @@ const AppList = () => {
             </Tag>
           </h2>
           <Space>
-            <span style={{ fontSize: 12, color: '#999' }}>
+            <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
               快捷键：Ctrl+K 搜索 | Ctrl+N 上传
             </span>
           </Space>
@@ -310,7 +311,7 @@ const AppList = () => {
               <Statistic
                 title="分类数量"
                 value={stats.categories}
-                valueStyle={{ color: '#1890ff' }}
+                valueStyle={{ color: PRIMARY.main }}
               />
             </Card>
           </Col>
@@ -321,7 +322,7 @@ const AppList = () => {
                 value={(stats.totalSize / 1024 / 1024 / 1024).toFixed(2)}
                 suffix="GB"
                 prefix={<CloudUploadOutlined />}
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
               />
             </Card>
           </Col>
@@ -396,7 +397,7 @@ const AppList = () => {
             autoFocus
             allowClear
           />
-          <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+          <div style={{ marginTop: 8, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
             按 Enter 搜索，按 Escape 关闭
           </div>
         </Modal>

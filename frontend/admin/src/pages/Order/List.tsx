@@ -16,6 +16,7 @@ import { exportToExcel, exportToCSV } from '@/utils/export';
 import dayjs from 'dayjs';
 import type { MenuProps } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import {
   OrderToolbar,
   OrderFilterBar,
@@ -263,7 +264,7 @@ const OrderList = () => {
             </Tag>
           </h2>
           <Space>
-            <span style={{ fontSize: 12, color: '#999' }}>
+            <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
               快捷键：Ctrl+K 搜索
             </span>
           </Space>
@@ -286,7 +287,7 @@ const OrderList = () => {
                 title="已支付"
                 value={stats.paid}
                 prefix={<CheckCircleOutlined />}
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
               />
             </Card>
           </Col>
@@ -296,7 +297,7 @@ const OrderList = () => {
                 title="待支付"
                 value={stats.pending}
                 prefix={<ClockCircleOutlined />}
-                valueStyle={{ color: '#faad14' }}
+                valueStyle={{ color: SEMANTIC.warning.main }}
               />
             </Card>
           </Col>
@@ -306,7 +307,7 @@ const OrderList = () => {
                 title="已取消"
                 value={stats.cancelled}
                 prefix={<CloseCircleOutlined />}
-                valueStyle={{ color: '#ff4d4f' }}
+                valueStyle={{ color: SEMANTIC.error.main }}
               />
             </Card>
           </Col>
@@ -318,7 +319,7 @@ const OrderList = () => {
                 prefix={<DollarOutlined />}
                 precision={2}
                 suffix="元"
-                valueStyle={{ color: '#1890ff' }}
+                valueStyle={{ color: PRIMARY.main }}
               />
             </Card>
           </Col>
@@ -389,7 +390,7 @@ const OrderList = () => {
             autoFocus
             allowClear
           />
-          <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+          <div style={{ marginTop: 8, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
             按 Enter 搜索，按 Escape 关闭
           </div>
         </Modal>

@@ -10,6 +10,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import type { BillingRule } from '@/types';
 import { typeMap } from './billingRuleUtils';
+import { NEUTRAL_LIGHT } from '@/theme';
 import dayjs from 'dayjs';
 import { createTimeColumn } from '@/utils/tableColumns';
 
@@ -61,7 +62,7 @@ export const useBillingRuleTableColumns = ({
         width: 200,
         ellipsis: true,
         render: (formula: string) => (
-          <code style={{ fontSize: '12px', color: '#595959' }}>{formula}</code>
+          <code style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.secondary }}>{formula}</code>
         ),
       },
       {

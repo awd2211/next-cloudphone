@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Tag, Badge } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { SEMANTIC } from '@/theme';
 
 export interface Transaction {
   id: string;
@@ -61,7 +62,7 @@ export const useTransactionTableColumns = (): ColumnsType<Transaction> => {
         key: 'amount',
         width: 130,
         render: (amount: number) => (
-          <span style={{ color: amount > 0 ? '#52c41a' : '#ff4d4f', fontWeight: 600 }}>
+          <span style={{ color: amount > 0 ? SEMANTIC.success.main : SEMANTIC.error.main, fontWeight: 600 }}>
             {amount > 0 ? '+' : ''}¥{Math.abs(amount || 0).toFixed(2)}
           </span>
         ),

@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Card, Space, Select, Button } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const { Option } = Select;
 
@@ -21,7 +22,7 @@ export const FilterBar: React.FC<FilterBarProps> = memo(({
       <Space style={{ width: '100%', justifyContent: 'space-between' }}>
         <div>
           <h2 style={{ margin: 0 }}>Webhook 日志</h2>
-          <p style={{ margin: '8px 0 0', color: '#666' }}>查看和监控支付平台的 Webhook 事件</p>
+          <p style={{ margin: '8px 0 0', color: NEUTRAL_LIGHT.text.secondary }}>查看和监控支付平台的 Webhook 事件</p>
         </div>
         <Space>
           <Select

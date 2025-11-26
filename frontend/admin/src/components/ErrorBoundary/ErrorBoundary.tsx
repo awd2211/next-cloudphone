@@ -14,6 +14,7 @@
 
 import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { Result, Button } from 'antd';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface Props {
   /** 子组件 */
@@ -130,7 +131,7 @@ function DefaultErrorFallback({ error, onReset, showDetails }: DefaultErrorFallb
         ]}
       >
         {showDetails && (
-          <div style={{ textAlign: 'left', padding: '20px', background: '#f5f5f5', borderRadius: '4px' }}>
+          <div style={{ textAlign: 'left', padding: '20px', background: NEUTRAL_LIGHT.bg.layout, borderRadius: '4px' }}>
             <h4>错误详情（仅开发环境可见）：</h4>
             <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '12px' }}>
               {error.stack}
@@ -155,7 +156,7 @@ export function LightErrorBoundary({ children, fallbackMessage = '组件加载�
   return (
     <ErrorBoundary
       fallback={
-        <div style={{ padding: '20px', textAlign: 'center', color: '#ff4d4f' }}>
+        <div style={{ padding: '20px', textAlign: 'center', color: SEMANTIC.error.main }}>
           <p>{fallbackMessage}</p>
         </div>
       }

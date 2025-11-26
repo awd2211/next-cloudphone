@@ -6,6 +6,7 @@
 
 import { memo } from 'react';
 import { Drawer, Space, Button, Checkbox, Radio, Divider, Typography } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import {
   SettingOutlined,
   EyeOutlined,
@@ -171,7 +172,7 @@ export const DashboardSettings = memo<DashboardSettingsProps>(
             <Checkbox checked={draggable} onChange={(e) => onSetDraggable(e.target.checked)}>
               <Text strong>启用拖拽排序</Text>
             </Checkbox>
-            <div style={{ marginTop: 8, color: '#8c8c8c', fontSize: 12 }}>
+            <div style={{ marginTop: 8, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
               {draggable
                 ? '拖动卡片标题左侧的 ≡ 图标可以重新排序'
                 : '禁用拖拽后卡片位置固定'}

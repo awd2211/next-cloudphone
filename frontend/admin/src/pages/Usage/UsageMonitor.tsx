@@ -31,6 +31,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoadingState } from '@/components/Feedback/LoadingState';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 const { Search } = Input;
 const { RangePicker } = DatePicker;
@@ -363,7 +364,7 @@ const UsageMonitorContent = () => {
         {/* 标题 */}
         <Card>
           <h2 style={{ margin: 0 }}>用户设备使用监控</h2>
-          <p style={{ color: '#666', marginTop: 8, marginBottom: 0 }}>
+          <p style={{ color: NEUTRAL_LIGHT.text.secondary, marginTop: 8, marginBottom: 0 }}>
             实时监控用户设备使用情况，包括使用时长、资源消耗和费用统计
             <Tooltip title="Ctrl+R 刷新数据">
               <Tag color="blue" style={{ marginLeft: 8 }}>
@@ -381,7 +382,7 @@ const UsageMonitorContent = () => {
                 title="总使用时长"
                 value={formatDuration(stats.totalDuration)}
                 prefix={<ClockCircleOutlined />}
-                valueStyle={{ color: '#3f8600' }}
+                valueStyle={{ color: SEMANTIC.success.dark }}
               />
             </Card>
           </Col>
@@ -412,7 +413,7 @@ const UsageMonitorContent = () => {
                 value={stats.totalCost.toFixed(2)}
                 prefix="¥"
                 precision={2}
-                valueStyle={{ color: '#cf1322' }}
+                valueStyle={{ color: SEMANTIC.error.dark }}
               />
             </Card>
           </Col>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, Button } from 'antd';
 import { SnapshotListTable } from '@/components/DeviceSnapshot';
 import { SNAPSHOT_TIPS } from './constants';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface SnapshotsTabProps {
   deviceId: string;
@@ -19,7 +20,7 @@ export const SnapshotsTab: React.FC<SnapshotsTabProps> = React.memo(
           </Button>
         </div>
         <SnapshotListTable deviceId={deviceId} onRestore={onRestore} />
-        <div style={{ marginTop: 16, color: '#999' }}>
+        <div style={{ marginTop: 16, color: NEUTRAL_LIGHT.text.tertiary }}>
           <p>💡 提示:</p>
           <ul>
             {SNAPSHOT_TIPS.map((tip, index) => (

@@ -1,5 +1,6 @@
 import { lazy, Suspense, ComponentType, ReactNode } from 'react';
 import { Spin } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 /**
  * 通用懒加载包装器
@@ -130,13 +131,13 @@ export const ADBConsoleLazy = withLazyLoad(
     style={{
       padding: '24px',
       textAlign: 'center',
-      border: '1px solid #d9d9d9',
+      border: `1px solid ${NEUTRAL_LIGHT.border.primary}`,
       borderRadius: '4px',
-      background: '#fafafa',
+      background: NEUTRAL_LIGHT.bg.elevated,
     }}
   >
     <Spin />
-    <div style={{ marginTop: '12px', color: '#666' }}>加载控制台中...</div>
+    <div style={{ marginTop: '12px', color: NEUTRAL_LIGHT.text.secondary }}>加载控制台中...</div>
   </div>
 );
 

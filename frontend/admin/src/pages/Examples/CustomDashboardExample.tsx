@@ -19,6 +19,7 @@ import {
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { DashboardGrid, DraggableCard, DashboardSettings } from '@/components/CustomDashboard';
 import type { DashboardCard } from '@/hooks/useDashboardLayout';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 
 const { Text, Title } = Typography;
 
@@ -50,7 +51,7 @@ const renderCardContent = (card: DashboardCard) => {
               title="增长率"
               value={11.28}
               precision={2}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.dark }}
               prefix={<RiseOutlined />}
               suffix="%"
             />
@@ -90,10 +91,10 @@ const renderCardContent = (card: DashboardCard) => {
         <List
           size="small"
           dataSource={[
-            { icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />, text: '用户 user001 创建了设备', time: '刚刚' },
-            { icon: <ClockCircleOutlined style={{ color: '#1890ff' }} />, text: '设备 device123 已启动', time: '2分钟前' },
-            { icon: <WarningOutlined style={{ color: '#faad14' }} />, text: '设备 device456 启动失败', time: '5分钟前' },
-            { icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />, text: '用户 user002 充值 ¥100', time: '10分钟前' },
+            { icon: <CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />, text: '用户 user001 创建了设备', time: '刚刚' },
+            { icon: <ClockCircleOutlined style={{ color: PRIMARY.main }} />, text: '设备 device123 已启动', time: '2分钟前' },
+            { icon: <WarningOutlined style={{ color: SEMANTIC.warning.main }} />, text: '设备 device456 启动失败', time: '5分钟前' },
+            { icon: <CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />, text: '用户 user002 充值 ¥100', time: '10分钟前' },
           ]}
           renderItem={(item) => (
             <List.Item style={{ padding: '8px 0' }}>
@@ -254,28 +255,28 @@ const CustomDashboardExample = () => {
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <div>
             <Text strong>拖拽排序:</Text>
-            <div style={{ marginTop: 4, color: '#595959' }}>
+            <div style={{ marginTop: 4, color: NEUTRAL_LIGHT.text.secondary }}>
               鼠标悬停在卡片标题左侧的 ≡ 图标上,按住鼠标拖动可以重新排列卡片顺序
             </div>
           </div>
 
           <div>
             <Text strong>显示/隐藏卡片:</Text>
-            <div style={{ marginTop: 4, color: '#595959' }}>
+            <div style={{ marginTop: 4, color: NEUTRAL_LIGHT.text.secondary }}>
               点击右上角"设置仪表盘"按钮,在侧边栏中勾选或取消勾选卡片
             </div>
           </div>
 
           <div>
             <Text strong>调整列数:</Text>
-            <div style={{ marginTop: 4, color: '#595959' }}>
+            <div style={{ marginTop: 4, color: NEUTRAL_LIGHT.text.secondary }}>
               在设置面板中可以选择 1-4 列的网格布局,适应不同屏幕尺寸
             </div>
           </div>
 
           <div>
             <Text strong>持久化存储:</Text>
-            <div style={{ marginTop: 4, color: '#595959' }}>
+            <div style={{ marginTop: 4, color: NEUTRAL_LIGHT.text.secondary }}>
               所有配置自动保存到 LocalStorage,刷新页面后仍然保持
             </div>
           </div>

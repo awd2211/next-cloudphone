@@ -53,6 +53,7 @@ import {
   type QueueConfig,
   type RoutingStrategy,
 } from '@/services/livechat';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -326,7 +327,7 @@ const QueueConfigPage: React.FC = () => {
               title="当前等待人数"
               value={stats?.waitingCount || 0}
               prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: stats?.waitingCount! > 10 ? '#ff4d4f' : '#52c41a' }}
+              valueStyle={{ color: stats?.waitingCount! > 10 ? SEMANTIC.error.main : SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -346,7 +347,7 @@ const QueueConfigPage: React.FC = () => {
               title="最长等待时间"
               value={stats?.maxWaitTime || 0}
               suffix="秒"
-              valueStyle={{ color: stats?.maxWaitTime! > 300 ? '#ff4d4f' : undefined }}
+              valueStyle={{ color: stats?.maxWaitTime! > 300 ? SEMANTIC.error.main : undefined }}
             />
           </Card>
         </Col>
@@ -430,7 +431,7 @@ const QueueConfigPage: React.FC = () => {
                 <Option key={strategy.value} value={strategy.value}>
                   <div>
                     <div>{strategy.label}</div>
-                    <div style={{ fontSize: 12, color: '#999' }}>{strategy.description}</div>
+                    <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>{strategy.description}</div>
                   </div>
                 </Option>
               ))}

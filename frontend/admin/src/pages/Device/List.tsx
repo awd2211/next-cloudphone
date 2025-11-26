@@ -28,6 +28,7 @@ import { BatchProgressModal } from '@/components/BatchOperation/BatchProgressMod
 // ✅ 错误边界和加载状态
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
 import { LoadingState } from '@/components/Feedback/LoadingState';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 // ✅ P2 & P3 优化组件
 import { useFilterState } from '@/hooks/useFilterState';
@@ -422,7 +423,7 @@ const DeviceList = () => {
           title={
             <Space>
               <span>设备列表</span>
-              <span style={{ fontSize: 12, color: '#999' }}>
+              <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
                 快捷键：Ctrl+K 搜索 | Ctrl+N 新建 | Ctrl+R 刷新
               </span>
             </Space>
@@ -480,7 +481,7 @@ const DeviceList = () => {
             autoFocus
             allowClear
           />
-          <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+          <div style={{ marginTop: 8, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
             按 Enter 搜索，按 Escape 关闭
           </div>
         </Modal>

@@ -3,6 +3,7 @@ import { Card, Row, Col, Statistic , theme } from 'antd';
 import { DatabaseOutlined } from '@ant-design/icons';
 import type { CacheStats } from './constants';
 import { getHitRateColor } from './constants';
+import { SEMANTIC } from '@/theme';
 
 interface CacheStatsCardsProps {
   stats: CacheStats | null;
@@ -37,7 +38,7 @@ export const CacheStatsCards: React.FC<CacheStatsCardsProps> = React.memo(({ sta
             <Statistic
               title="未命中数"
               value={stats?.misses || 0}
-              valueStyle={{ color: '#ff4d4f' }}
+              valueStyle={{ color: SEMANTIC.error.main }}
             />
           </Card>
         </Col>

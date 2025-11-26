@@ -8,6 +8,7 @@
 import { Modal, Typography, Alert, Checkbox, Input } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { useState } from 'react';
+import { SEMANTIC } from '@/theme';
 
 const { Text } = Typography;
 
@@ -130,7 +131,7 @@ export const dangerConfirm = (options: DangerConfirmOptions): Promise<boolean> =
           {requiresTyping && (
             <div style={{ marginBottom: 16 }}>
               <Text strong>
-                请输入 "<span style={{ color: '#ff4d4f' }}>{requiresTyping}</span>" 以确认删除：
+                请输入 "<span style={{ color: SEMANTIC.error.main }}>{requiresTyping}</span>" 以确认删除：
               </Text>
               <Input
                 placeholder={requiresTyping}
@@ -169,7 +170,7 @@ export const dangerConfirm = (options: DangerConfirmOptions): Promise<boolean> =
     Modal.confirm({
       title: (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ExclamationCircleOutlined style={{ color: '#ff4d4f', fontSize: 22 }} />
+          <ExclamationCircleOutlined style={{ color: SEMANTIC.error.main, fontSize: 22 }} />
           <span>{title}</span>
         </div>
       ),

@@ -53,6 +53,7 @@ import {
   type AgentGroup,
   type AgentStatus,
 } from '@/services/livechat';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 const { Option } = Select;
 
@@ -221,11 +222,11 @@ const AgentListPage: React.FC = () => {
           <Avatar
             src={record.avatar}
             icon={<UserOutlined />}
-            style={{ backgroundColor: record.isOnline ? '#52c41a' : '#d9d9d9' }}
+            style={{ backgroundColor: record.isOnline ? SEMANTIC.success.main : NEUTRAL_LIGHT.border.primary }}
           />
           <div>
             <div style={{ fontWeight: 500 }}>{record.displayName}</div>
-            <div style={{ fontSize: 12, color: '#999' }}>ID: {record.userId?.slice(0, 8)}...</div>
+            <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>ID: {record.userId?.slice(0, 8)}...</div>
           </div>
         </Space>
       ),
@@ -291,7 +292,7 @@ const AgentListPage: React.FC = () => {
         const totalRatings = record.totalRatings ?? 0;
         return (
           <Tooltip title={`${totalRatings} 次评价`}>
-            <span style={{ color: displayRating >= 4 ? '#52c41a' : displayRating >= 3 ? '#faad14' : '#ff4d4f' }}>
+            <span style={{ color: displayRating >= 4 ? SEMANTIC.success.main : displayRating >= 3 ? SEMANTIC.warning.main : SEMANTIC.error.main }}>
               ⭐ {displayRating.toFixed(1)}
             </span>
           </Tooltip>
@@ -354,7 +355,7 @@ const AgentListPage: React.FC = () => {
             </Tag>
           </h2>
           <Space>
-            <span style={{ fontSize: 12, color: '#999' }}>
+            <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
               快捷键：Ctrl+K 搜索 | Ctrl+N 新建
             </span>
           </Space>
@@ -376,7 +377,7 @@ const AgentListPage: React.FC = () => {
             <Statistic
               title="在线"
               value={stats.online}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -385,7 +386,7 @@ const AgentListPage: React.FC = () => {
             <Statistic
               title="忙碌"
               value={stats.busy}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: SEMANTIC.warning.main }}
             />
           </Card>
         </Col>
@@ -394,7 +395,7 @@ const AgentListPage: React.FC = () => {
             <Statistic
               title="离线"
               value={stats.offline}
-              valueStyle={{ color: '#999' }}
+              valueStyle={{ color: NEUTRAL_LIGHT.text.tertiary }}
             />
           </Card>
         </Col>
@@ -528,7 +529,7 @@ const AgentListPage: React.FC = () => {
           autoFocus
           allowClear
         />
-        <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+        <div style={{ marginTop: 8, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
           按 Enter 搜索，按 Escape 关闭
         </div>
       </Modal>

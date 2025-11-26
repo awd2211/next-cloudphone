@@ -9,6 +9,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import { usePermission } from '@/hooks';
 import { FilterBar, LogsTable, DetailModal } from '@/components/WebhookLogs';
 import { useWebhookLogs } from '@/hooks/useWebhookLogs';
@@ -130,7 +131,7 @@ const WebhookLogsContent: React.FC = () => {
               Ctrl+R 刷新
             </Tag>
           </h2>
-          <span style={{ fontSize: 12, color: '#999' }}>实时查看支付回调日志</span>
+          <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>实时查看支付回调日志</span>
         </div>
 
         {/* 统计卡片 */}
@@ -149,8 +150,8 @@ const WebhookLogsContent: React.FC = () => {
               <Statistic
                 title="处理成功"
                 value={stats.successCount}
-                prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                valueStyle={{ color: '#52c41a' }}
+                prefix={<CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />}
+                valueStyle={{ color: SEMANTIC.success.main }}
               />
             </Card>
           </Col>
@@ -159,8 +160,8 @@ const WebhookLogsContent: React.FC = () => {
               <Statistic
                 title="处理失败"
                 value={stats.failedCount}
-                prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                valueStyle={{ color: '#ff4d4f' }}
+                prefix={<CloseCircleOutlined style={{ color: SEMANTIC.error.main }} />}
+                valueStyle={{ color: SEMANTIC.error.main }}
               />
             </Card>
           </Col>
@@ -169,8 +170,8 @@ const WebhookLogsContent: React.FC = () => {
               <Statistic
                 title="待处理"
                 value={stats.pendingCount}
-                prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-                valueStyle={{ color: '#faad14' }}
+                prefix={<ClockCircleOutlined style={{ color: SEMANTIC.warning.main }} />}
+                valueStyle={{ color: SEMANTIC.warning.main }}
               />
             </Card>
           </Col>

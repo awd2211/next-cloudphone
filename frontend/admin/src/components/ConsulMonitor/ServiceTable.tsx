@@ -4,6 +4,7 @@ import { ApiOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { ServiceHealth } from './types';
 import { getStatusTag } from './utils';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 const { Text } = Typography;
 
@@ -47,7 +48,7 @@ export const ServiceTable = memo<ServiceTableProps>(({ services, loading, onView
         width: 120,
         align: 'center',
         sorter: (a, b) => a.healthyCount - b.healthyCount,
-        render: (count: number) => <Text style={{ color: '#52c41a' }}>{count}</Text>,
+        render: (count: number) => <Text style={{ color: SEMANTIC.success.main }}>{count}</Text>,
       },
       {
         title: '异常实例',
@@ -57,7 +58,7 @@ export const ServiceTable = memo<ServiceTableProps>(({ services, loading, onView
         align: 'center',
         sorter: (a, b) => a.unhealthyCount - b.unhealthyCount,
         render: (count: number) => (
-          <Text style={{ color: count > 0 ? '#ff4d4f' : '#999' }}>{count}</Text>
+          <Text style={{ color: count > 0 ? SEMANTIC.error.main : NEUTRAL_LIGHT.text.tertiary }}>{count}</Text>
         ),
       },
       {

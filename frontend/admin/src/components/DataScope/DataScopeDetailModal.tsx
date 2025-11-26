@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Modal, Descriptions, Tag } from 'antd';
 import type { DataScope, ScopeType } from '@/types';
 import { getScopeTypeColor } from './dataScopeUtils';
+import { NEUTRAL_LIGHT } from '@/theme';
 import dayjs from 'dayjs';
 
 interface DataScopeDetailModalProps {
@@ -54,7 +55,7 @@ export const DataScopeDetailModal = memo<DataScopeDetailModalProps>(
                   style={{
                     maxHeight: '200px',
                     overflow: 'auto',
-                    background: '#f5f5f5',
+                    background: NEUTRAL_LIGHT.bg.layout,
                     padding: '8px',
                     borderRadius: '4px',
                     margin: 0,

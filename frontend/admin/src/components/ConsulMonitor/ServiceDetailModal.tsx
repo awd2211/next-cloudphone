@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Modal, Button, Descriptions, Typography, Table, Tag, Space } from 'antd';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import type { ServiceHealth } from './types';
 import { getStatusTag } from './utils';
 
@@ -36,10 +37,10 @@ export const ServiceDetailModal = memo<ServiceDetailModalProps>(({ visible, serv
           </Descriptions.Item>
           <Descriptions.Item label="实例总数">{service.instances.length}</Descriptions.Item>
           <Descriptions.Item label="健康实例">
-            <Text style={{ color: '#52c41a' }}>{service.healthyCount}</Text>
+            <Text style={{ color: SEMANTIC.success.main }}>{service.healthyCount}</Text>
           </Descriptions.Item>
           <Descriptions.Item label="异常实例">
-            <Text style={{ color: service.unhealthyCount > 0 ? '#ff4d4f' : '#999' }}>
+            <Text style={{ color: service.unhealthyCount > 0 ? SEMANTIC.error.main : NEUTRAL_LIGHT.text.tertiary }}>
               {service.unhealthyCount}
             </Text>
           </Descriptions.Item>

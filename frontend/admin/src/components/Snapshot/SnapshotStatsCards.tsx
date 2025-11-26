@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Card, Row, Col, Statistic, Progress , theme } from 'antd';
 import { DatabaseOutlined } from '@ant-design/icons';
 import { formatSize, calculateStorageUsage } from './utils';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 export interface SnapshotStatsCardsProps {
   totalSnapshots: number;
@@ -27,7 +28,7 @@ export const SnapshotStatsCards = memo<SnapshotStatsCardsProps>(
             <Statistic
               title="总存储大小"
               value={formatSize(totalSize)}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Col>
           <Col span={6}>
@@ -39,7 +40,7 @@ export const SnapshotStatsCards = memo<SnapshotStatsCardsProps>(
           </Col>
           <Col span={6}>
             <div>
-              <div style={{ marginBottom: '8px', fontSize: '14px', color: 'rgba(0, 0, 0, 0.45)' }}>
+              <div style={{ marginBottom: '8px', fontSize: '14px', color: NEUTRAL_LIGHT.text.secondary }}>
                 存储使用率
               </div>
               <Progress percent={Math.round(storageUsage)} status="active" />

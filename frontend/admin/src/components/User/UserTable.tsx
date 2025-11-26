@@ -13,7 +13,7 @@ import {
 import { createTimeColumn } from '@/utils/tableColumns';
 import AccessibleTable from '@/components/Accessible/AccessibleTable';
 import { Avatar, Space, Tooltip, Button } from 'antd';
-import { UserOutlined, HistoryOutlined } from '@ant-design/icons';
+import { HistoryOutlined } from '@ant-design/icons';
 
 // 根据用户名生成头像颜色
 const getAvatarColor = (username: string): string => {
@@ -95,23 +95,30 @@ export const UserTable = memo<UserTableProps>(
           title: '用户名',
           dataIndex: 'username',
           key: 'username',
+          width: 140,
           sorter: (a, b) => a.username.localeCompare(b.username),
           render: (username: string) => (
-            <Space>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
               <Avatar
                 size="small"
-                style={{ backgroundColor: getAvatarColor(username), verticalAlign: 'middle' }}
+                style={{ backgroundColor: getAvatarColor(username), flexShrink: 0 }}
               >
                 {getInitials(username)}
               </Avatar>
-              <span>{username}</span>
-            </Space>
+              <Tooltip title={username}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {username}
+                </span>
+              </Tooltip>
+            </div>
           ),
         },
         {
           title: '邮箱',
           dataIndex: 'email',
           key: 'email',
+          width: 200,
+          ellipsis: true,
           sorter: (a, b) => (a.email || '').localeCompare(b.email || ''),
           render: (email: string, record: User) => (
             <UserEmailCell
@@ -125,6 +132,7 @@ export const UserTable = memo<UserTableProps>(
           title: '手机号',
           dataIndex: 'phone',
           key: 'phone',
+          width: 130,
           sorter: (a, b) => (a.phone || '').localeCompare(b.phone || ''),
         },
         {
@@ -202,6 +210,7 @@ export const UserTable = memo<UserTableProps>(
         ariaLabel="用户列表"
         loadingText="正在加载用户列表"
         emptyText="暂无用户数据，点击右上角创建用户"
+        columnWidthsKey="user-table-column-widths"
         columns={columns}
         dataSource={users}
         rowKey="id"

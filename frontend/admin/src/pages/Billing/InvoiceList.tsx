@@ -9,6 +9,7 @@ import {
   SearchOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import { InvoiceDetailModal, type Invoice } from '@/components/Billing';
 import { useInvoiceList } from '@/hooks/useInvoiceList';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
@@ -106,7 +107,7 @@ const InvoiceList: React.FC = () => {
             </Tag>
           </h2>
           <Space>
-            <span style={{ fontSize: 12, color: '#999' }}>
+            <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
               快捷键：Ctrl+K 搜索
             </span>
           </Space>
@@ -129,7 +130,7 @@ const InvoiceList: React.FC = () => {
                 title="已支付"
                 value={stats.paid}
                 prefix={<CheckCircleOutlined />}
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
               />
             </Card>
           </Col>
@@ -139,7 +140,7 @@ const InvoiceList: React.FC = () => {
                 title="待支付"
                 value={stats.unpaid}
                 prefix={<ClockCircleOutlined />}
-                valueStyle={{ color: '#faad14' }}
+                valueStyle={{ color: SEMANTIC.warning.main }}
               />
             </Card>
           </Col>
@@ -151,7 +152,7 @@ const InvoiceList: React.FC = () => {
                 prefix={<DollarOutlined />}
                 precision={2}
                 suffix="元"
-                valueStyle={{ color: '#ff4d4f' }}
+                valueStyle={{ color: SEMANTIC.error.main }}
               />
             </Card>
           </Col>
@@ -226,7 +227,7 @@ const InvoiceList: React.FC = () => {
             autoFocus
             allowClear
           />
-          <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+          <div style={{ marginTop: 8, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
             按 Enter 搜索，按 Escape 关闭
           </div>
         </Modal>

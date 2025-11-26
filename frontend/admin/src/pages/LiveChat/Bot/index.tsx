@@ -63,6 +63,7 @@ import {
   getBotConversations,
   getBotStats,
 } from '@/services/livechat';
+import { SEMANTIC, PRIMARY } from '@/theme';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -193,7 +194,7 @@ const BotManagement: React.FC = () => {
       key: 'name',
       render: (name, record) => (
         <Space>
-          <RobotOutlined style={{ color: '#1890ff' }} />
+          <RobotOutlined style={{ color: PRIMARY.main }} />
           <span>{name}</span>
           {record.isDefault && <Tag color="blue">默认</Tag>}
         </Space>
@@ -506,7 +507,7 @@ const BotManagement: React.FC = () => {
                         title="机器人解决"
                         value={statsData.botResolvedCount}
                         prefix={<CheckCircleOutlined />}
-                        valueStyle={{ color: '#52c41a' }}
+                        valueStyle={{ color: SEMANTIC.success.main }}
                       />
                     </Card>
                   </Col>
@@ -516,7 +517,7 @@ const BotManagement: React.FC = () => {
                         title="转人工数"
                         value={statsData.transferredCount}
                         prefix={<SyncOutlined />}
-                        valueStyle={{ color: '#faad14' }}
+                        valueStyle={{ color: SEMANTIC.warning.main }}
                       />
                     </Card>
                   </Col>
@@ -528,7 +529,7 @@ const BotManagement: React.FC = () => {
                         precision={1}
                         suffix="%"
                         valueStyle={{
-                          color: statsData.resolutionRate >= 50 ? '#52c41a' : '#ff4d4f',
+                          color: statsData.resolutionRate >= 50 ? SEMANTIC.success.main : SEMANTIC.error.main,
                         }}
                       />
                     </Card>
@@ -556,7 +557,7 @@ const BotManagement: React.FC = () => {
                     renderItem={(item, index) => (
                       <List.Item>
                         <Space style={{ width: '100%' }}>
-                          <Badge count={index + 1} style={{ backgroundColor: '#1890ff' }} />
+                          <Badge count={index + 1} style={{ backgroundColor: PRIMARY.main }} />
                           <Text>{item.intentName}</Text>
                           <Progress
                             percent={Math.round(

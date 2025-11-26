@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Modal, Alert, Descriptions } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface ReplayResultModalProps {
   visible: boolean;
@@ -29,7 +30,7 @@ export const ReplayResultModal = memo<ReplayResultModalProps>(({ visible, result
                 style={{
                   maxHeight: '500px',
                   overflow: 'auto',
-                  background: '#f5f5f5',
+                  background: NEUTRAL_LIGHT.bg.layout,
                   padding: '12px',
                   borderRadius: '4px',
                   margin: 0,

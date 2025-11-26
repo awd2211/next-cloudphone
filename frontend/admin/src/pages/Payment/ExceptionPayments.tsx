@@ -9,6 +9,7 @@ import {
   DollarOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import { usePermission } from '@/hooks';
 import { useExceptionPayments } from '@/hooks/useExceptionPayments';
 import {
@@ -125,7 +126,7 @@ const ExceptionPaymentsContent: React.FC = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <h2 style={{ marginBottom: 0 }}>
-              <WarningOutlined style={{ color: '#faad14', marginRight: 8 }} />
+              <WarningOutlined style={{ color: SEMANTIC.warning.main, marginRight: 8 }} />
               异常支付管理
             </h2>
             <Tag
@@ -137,7 +138,7 @@ const ExceptionPaymentsContent: React.FC = () => {
               Ctrl+R 刷新
             </Tag>
           </div>
-          <span style={{ fontSize: 12, color: '#999' }}>
+          <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
             共 {total} 条异常记录
           </span>
         </div>
@@ -149,8 +150,8 @@ const ExceptionPaymentsContent: React.FC = () => {
               <Statistic
                 title="异常总数"
                 value={stats.total}
-                prefix={<ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />}
-                valueStyle={{ color: '#ff4d4f' }}
+                prefix={<ExclamationCircleOutlined style={{ color: SEMANTIC.error.main }} />}
+                valueStyle={{ color: SEMANTIC.error.main }}
               />
             </Card>
           </Col>
@@ -159,8 +160,8 @@ const ExceptionPaymentsContent: React.FC = () => {
               <Statistic
                 title="待处理"
                 value={stats.pendingCount}
-                prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-                valueStyle={{ color: '#faad14' }}
+                prefix={<ClockCircleOutlined style={{ color: SEMANTIC.warning.main }} />}
+                valueStyle={{ color: SEMANTIC.warning.main }}
               />
             </Card>
           </Col>
@@ -169,8 +170,8 @@ const ExceptionPaymentsContent: React.FC = () => {
               <Statistic
                 title="超时/失败"
                 value={stats.timeoutCount + stats.errorCount}
-                prefix={<WarningOutlined style={{ color: '#ff7875' }} />}
-                valueStyle={{ color: '#ff7875' }}
+                prefix={<WarningOutlined style={{ color: SEMANTIC.error.main }} />}
+                valueStyle={{ color: SEMANTIC.error.main }}
               />
             </Card>
           </Col>
@@ -180,8 +181,8 @@ const ExceptionPaymentsContent: React.FC = () => {
                 title="异常金额"
                 value={stats.totalAmount}
                 precision={2}
-                prefix={<DollarOutlined style={{ color: '#1890ff' }} />}
-                valueStyle={{ color: '#1890ff' }}
+                prefix={<DollarOutlined style={{ color: PRIMARY.main }} />}
+                valueStyle={{ color: PRIMARY.main }}
                 suffix="元"
               />
             </Card>

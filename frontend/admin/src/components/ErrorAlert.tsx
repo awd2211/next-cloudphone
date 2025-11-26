@@ -1,5 +1,6 @@
 import React from 'react';
 import { Alert, Button, Space, Typography, Collapse, Tag } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import {
   ReloadOutlined,
   QuestionCircleOutlined,
@@ -227,13 +228,13 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
                       </Text>
                     ),
                     children: (
-                      <div style={{ fontSize: 12, color: '#666' }}>
+                      <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
                         {parsedError.technicalMessage && (
                           <div style={{ marginBottom: 8 }}>
                             <Text strong>技术消息：</Text>
                             <pre
                               style={{
-                                background: '#f5f5f5',
+                                background: NEUTRAL_LIGHT.bg.layout,
                                 padding: 8,
                                 borderRadius: 4,
                                 margin: '4px 0 0 0',
@@ -251,7 +252,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
                             <Text strong>详细信息：</Text>
                             <pre
                               style={{
-                                background: '#f5f5f5',
+                                background: NEUTRAL_LIGHT.bg.layout,
                                 padding: 8,
                                 borderRadius: 4,
                                 margin: '4px 0 0 0',
@@ -278,7 +279,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
 
           {/* 文档和支持链接、重试按钮 */}
           {(hasDocumentation || canRetry) && (
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${NEUTRAL_LIGHT.border.primary}` }}>
               <Space size="middle">
                 {canRetry && (
                   <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={onRetry}>

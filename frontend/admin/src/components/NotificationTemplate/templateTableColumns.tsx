@@ -8,6 +8,7 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 import type { NotificationTemplate } from '@/types';
 import { getTypeTag, getContentTypeTag } from './templateUtils';
@@ -36,7 +37,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Not
       <Space direction="vertical" size={0}>
         <strong>{name}</strong>
         {record.description && (
-          <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.description}</span>
+          <span style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>{record.description}</span>
         )}
       </Space>
     ),
@@ -79,7 +80,7 @@ export const createTemplateColumns = (handlers: ColumnHandlers): ColumnsType<Not
     width: 80,
     align: 'center',
     sorter: (a, b) => a.version - b.version,
-    render: (ver) => <Badge count={`v${ver}`} style={{ backgroundColor: '#52c41a' }} />,
+    render: (ver) => <Badge count={`v${ver}`} style={{ backgroundColor: SEMANTIC.success.main }} />,
   },
   {
     title: '状态',

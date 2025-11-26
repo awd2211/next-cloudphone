@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Descriptions } from 'antd';
 import type { AuditLog } from '@/services/log';
 import dayjs from 'dayjs';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface LogDetailModalProps {
   visible: boolean;
@@ -48,7 +49,7 @@ export const LogDetailModal: React.FC<LogDetailModalProps> = React.memo(
                   style={{
                     maxHeight: 200,
                     overflow: 'auto',
-                    background: '#f5f5f5',
+                    background: NEUTRAL_LIGHT.bg.layout,
                     padding: 8,
                   }}
                 >

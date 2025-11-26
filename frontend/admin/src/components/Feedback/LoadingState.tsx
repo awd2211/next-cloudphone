@@ -8,6 +8,7 @@ import { Spin, Skeleton, Empty, Progress, Result, Button } from 'antd';
 import { ReactNode, CSSProperties } from 'react';
 import { ReloadOutlined } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 /**
  * 加载类型
@@ -243,7 +244,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({
               percent={progress}
               style={{ marginBottom: '16px' }}
             />
-            <div style={{ color: '#666' }}>加载中...</div>
+            <div style={{ color: NEUTRAL_LIGHT.text.secondary }}>加载中...</div>
           </motion.div>
         );
       }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, Row, Col, Badge, Descriptions, Tag, Button, Divider } from 'antd';
+import { SEMANTIC } from '@/theme';
 import { CheckCircleOutlined, CloseCircleOutlined, ApiOutlined } from '@ant-design/icons';
 import type { PaymentConfig } from '@/services/payment-admin';
 import { getProviderName } from './constants';
@@ -53,7 +54,7 @@ export const PaymentProviderCards: React.FC<PaymentProviderCardsProps> = React.m
                   </Descriptions.Item>
                   {!providerConfig.connected.success && (
                     <Descriptions.Item label="错误信息">
-                      <span style={{ color: '#ff4d4f', fontSize: '12px' }}>
+                      <span style={{ color: SEMANTIC.error.main, fontSize: '12px' }}>
                         {providerConfig.connected.message}
                       </span>
                     </Descriptions.Item>

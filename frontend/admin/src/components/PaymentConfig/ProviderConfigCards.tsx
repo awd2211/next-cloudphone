@@ -33,6 +33,7 @@ import type {
 } from '@/services/payment-admin';
 import { getProviderName } from './constants';
 import { ProviderConfigModal } from './ProviderConfigModal';
+import { SEMANTIC } from '@/theme';
 
 interface ProviderConfigCardsProps {
   hasEditPermission: boolean;
@@ -239,7 +240,7 @@ export const ProviderConfigCards: React.FC<ProviderConfigCardsProps> = React.mem
                   {config.lastTestMessage && config.lastTestSuccess === false && (
                     <>
                       <Divider style={{ margin: '8px 0' }} />
-                      <div style={{ color: '#ff4d4f', fontSize: 12 }}>
+                      <div style={{ color: SEMANTIC.error.main, fontSize: 12 }}>
                         {config.lastTestMessage}
                       </div>
                     </>

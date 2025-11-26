@@ -7,6 +7,7 @@ import {
   DollarOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC } from '@/theme';
 import ReactECharts from '@/components/ReactECharts';
 import { useBalanceOverview } from '@/hooks/useBalanceOverview';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
@@ -97,7 +98,7 @@ const BalanceOverviewContent: React.FC = () => {
                 value={balanceData.currentBalance}
                 precision={2}
                 prefix="¥"
-                valueStyle={{ color: '#3f8600' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
                 suffix={<WalletOutlined />}
               />
             </Card>
@@ -109,7 +110,7 @@ const BalanceOverviewContent: React.FC = () => {
                 value={balanceData.frozenBalance}
                 precision={2}
                 prefix="¥"
-                valueStyle={{ color: '#faad14' }}
+                valueStyle={{ color: SEMANTIC.warning.main }}
               />
             </Card>
           </Col>
@@ -120,7 +121,7 @@ const BalanceOverviewContent: React.FC = () => {
                 value={balanceData.monthlyRecharge}
                 precision={2}
                 prefix="¥"
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
                 suffix={<ArrowUpOutlined />}
               />
             </Card>
@@ -132,7 +133,7 @@ const BalanceOverviewContent: React.FC = () => {
                 value={balanceData.monthlyConsumption}
                 precision={2}
                 prefix="¥"
-                valueStyle={{ color: '#cf1322' }}
+                valueStyle={{ color: SEMANTIC.error.main }}
                 suffix={<ArrowDownOutlined />}
               />
             </Card>

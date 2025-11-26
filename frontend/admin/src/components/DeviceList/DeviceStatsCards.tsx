@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Card, Statistic, Row, Col } from 'antd';
+import { PRIMARY, SEMANTIC } from '@/theme';
 
 interface DeviceStats {
   total?: number;
@@ -24,7 +25,7 @@ export const DeviceStatsCards = memo<DeviceStatsCardsProps>(({ stats }) => {
           <Statistic
             title="设备总数"
             value={stats?.total || 0}
-            valueStyle={{ color: '#3f8600' }}
+            valueStyle={{ color: PRIMARY.main }}
           />
         </Card>
       </Col>
@@ -33,13 +34,13 @@ export const DeviceStatsCards = memo<DeviceStatsCardsProps>(({ stats }) => {
           <Statistic
             title="运行中"
             value={stats?.running || 0}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: SEMANTIC.success.main }}
           />
         </Card>
       </Col>
       <Col span={6}>
         <Card>
-          <Statistic title="空闲" value={stats?.idle || 0} valueStyle={{ color: '#faad14' }} />
+          <Statistic title="空闲" value={stats?.idle || 0} valueStyle={{ color: SEMANTIC.warning.main }} />
         </Card>
       </Col>
       <Col span={6}>
@@ -47,7 +48,7 @@ export const DeviceStatsCards = memo<DeviceStatsCardsProps>(({ stats }) => {
           <Statistic
             title="已停止"
             value={stats?.stopped || 0}
-            valueStyle={{ color: '#ff4d4f' }}
+            valueStyle={{ color: SEMANTIC.error.main }}
           />
         </Card>
       </Col>

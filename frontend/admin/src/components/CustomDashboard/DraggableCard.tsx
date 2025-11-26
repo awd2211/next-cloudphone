@@ -6,6 +6,7 @@
 
 import { memo, CSSProperties } from 'react';
 import { Card , theme } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { HolderOutlined } from '@ant-design/icons';
@@ -69,7 +70,7 @@ export const DraggableCard = memo<DraggableCardProps>(
                     cursor: 'grab',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    color: '#8c8c8c',
+                    color: NEUTRAL_LIGHT.text.tertiary,
                     transition: 'color 0.2s ease',
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
@@ -77,7 +78,7 @@ export const DraggableCard = memo<DraggableCardProps>(
                     (e.currentTarget as HTMLElement).style.color = token.colorPrimary;
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.color = '#8c8c8c';
+                    (e.currentTarget as HTMLElement).style.color = NEUTRAL_LIGHT.text.tertiary;
                   }}
                 >
                   <HolderOutlined />

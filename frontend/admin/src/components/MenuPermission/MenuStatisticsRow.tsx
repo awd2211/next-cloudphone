@@ -11,6 +11,7 @@ import {
   DashboardOutlined,
 } from '@ant-design/icons';
 import type { MenuCacheStats } from '@/types';
+import { SEMANTIC } from '@/theme';
 
 interface MenuStatisticsRowProps {
   totalMenuCount: number;
@@ -48,7 +49,7 @@ export const MenuStatisticsRow = memo<MenuStatisticsRowProps>(
               title="公开菜单"
               value={totalMenuCount - menusWithPermission}
               prefix={<InfoCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -61,7 +62,7 @@ export const MenuStatisticsRow = memo<MenuStatisticsRowProps>(
               precision={1}
               prefix={<DashboardOutlined />}
               valueStyle={{
-                color: cacheStats && cacheStats.hitRate > 80 ? '#52c41a' : '#faad14',
+                color: cacheStats && cacheStats.hitRate > 80 ? SEMANTIC.success.main : SEMANTIC.warning.main,
               }}
             />
           </Card>

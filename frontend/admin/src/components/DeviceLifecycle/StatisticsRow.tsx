@@ -10,6 +10,7 @@ import {
   HistoryOutlined,
 } from '@ant-design/icons';
 import type { LifecycleStats } from '@/types';
+import { SEMANTIC } from '@/theme';
 
 interface StatisticsRowProps {
   stats: LifecycleStats | null;
@@ -36,7 +37,7 @@ export const StatisticsRow = memo<StatisticsRowProps>(({ stats }) => {
           <Statistic
             title="活跃规则"
             value={stats?.activeRules || 0}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: SEMANTIC.success.main }}
             prefix={<CheckCircleOutlined />}
           />
         </Card>
@@ -57,7 +58,7 @@ export const StatisticsRow = memo<StatisticsRowProps>(({ stats }) => {
             value={stats?.successRate || 0}
             precision={1}
             suffix="%"
-            valueStyle={{ color: (stats?.successRate || 0) > 90 ? '#52c41a' : '#faad14' }}
+            valueStyle={{ color: (stats?.successRate || 0) > 90 ? SEMANTIC.success.main : SEMANTIC.warning.main }}
           />
         </Card>
       </Col>

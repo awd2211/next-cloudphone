@@ -8,6 +8,7 @@ import React, { memo } from 'react';
 import { Modal, Form, Input, InputNumber, Select, DatePicker, Switch, message } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import type { EditField } from '@/hooks/useBatchEdit';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const { TextArea } = Input;
 
@@ -159,7 +160,7 @@ export const BatchEditModal = memo(
         width={600}
         maskClosable={false}
       >
-        <div style={{ marginBottom: 16, color: '#8c8c8c', fontSize: 14 }}>
+        <div style={{ marginBottom: 16, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 14 }}>
           提示: 只需填写要修改的字段,未填写的字段不会被修改
         </div>
 

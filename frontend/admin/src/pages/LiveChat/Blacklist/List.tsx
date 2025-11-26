@@ -63,6 +63,7 @@ import {
   type BlacklistStatus,
   type SearchBlacklistParams,
 } from '@/services/blacklist';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -286,7 +287,7 @@ const BlacklistPage: React.FC = () => {
       key: 'blockCount',
       width: 100,
       sorter: true,
-      render: (count) => <Badge count={count} showZero overflowCount={9999} style={{ backgroundColor: count > 0 ? '#ff4d4f' : '#d9d9d9' }} />,
+      render: (count) => <Badge count={count} showZero overflowCount={9999} style={{ backgroundColor: count > 0 ? SEMANTIC.error.main : NEUTRAL_LIGHT.border.primary }} />,
     },
     {
       title: '原因',
@@ -356,7 +357,7 @@ const BlacklistPage: React.FC = () => {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={6}>
             <Card size="small">
-              <Statistic title="生效中" value={stats?.total || 0} valueStyle={{ color: '#ff4d4f' }} prefix={<StopOutlined />} />
+              <Statistic title="生效中" value={stats?.total || 0} valueStyle={{ color: SEMANTIC.error.main }} prefix={<StopOutlined />} />
             </Card>
           </Col>
           <Col span={6}>
@@ -371,7 +372,7 @@ const BlacklistPage: React.FC = () => {
           </Col>
           <Col span={6}>
             <Card size="small">
-              <Statistic title="总拦截次数" value={stats?.totalBlocks || 0} valueStyle={{ color: '#faad14' }} prefix={<ExclamationCircleOutlined />} />
+              <Statistic title="总拦截次数" value={stats?.totalBlocks || 0} valueStyle={{ color: SEMANTIC.warning.main }} prefix={<ExclamationCircleOutlined />} />
             </Card>
           </Col>
         </Row>

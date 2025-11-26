@@ -18,6 +18,7 @@ import {
   Empty,
   Typography,
 } from 'antd';
+import { SEMANTIC, PRIMARY } from '@/theme';
 import {
   SaveOutlined,
   FolderOpenOutlined,
@@ -304,7 +305,7 @@ export const FilterPresetManager = memo(
                   style={{
                     padding: '12px 0',
                     backgroundColor:
-                      activePresetId === preset.id ? '#f0f5ff' : 'transparent',
+                      activePresetId === preset.id ? PRIMARY.bg : 'transparent',
                     borderRadius: 4,
                   }}
                   actions={[
@@ -322,7 +323,7 @@ export const FilterPresetManager = memo(
                       size="small"
                       icon={preset.isDefault ? <StarFilled /> : <StarOutlined />}
                       onClick={() => handleSetDefault(preset.id)}
-                      style={{ color: preset.isDefault ? '#faad14' : undefined }}
+                      style={{ color: preset.isDefault ? SEMANTIC.warning.main : undefined }}
                     />,
                     <Popconfirm
                       key="delete"

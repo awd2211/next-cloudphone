@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Row, Col, Card, Statistic , theme } from 'antd';
 import { DatabaseOutlined } from '@ant-design/icons';
 import type { QueueSummary } from '@/types';
+import { SEMANTIC } from '@/theme';
 
 interface QueueStatsCardsProps {
   summary: QueueSummary | null;
@@ -27,7 +28,7 @@ export const QueueStatsCards = memo<QueueStatsCardsProps>(({ summary }) => {
           <Statistic
             title="等待任务"
             value={summary.totalWaiting || 0}
-            valueStyle={{ color: '#faad14' }}
+            valueStyle={{ color: SEMANTIC.warning.main }}
           />
         </Card>
       </Col>
@@ -45,7 +46,7 @@ export const QueueStatsCards = memo<QueueStatsCardsProps>(({ summary }) => {
           <Statistic
             title="失败任务"
             value={summary.totalFailed || 0}
-            valueStyle={{ color: '#ff4d4f' }}
+            valueStyle={{ color: SEMANTIC.error.main }}
           />
         </Card>
       </Col>

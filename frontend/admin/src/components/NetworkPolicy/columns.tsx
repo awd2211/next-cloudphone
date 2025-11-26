@@ -4,6 +4,7 @@ import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { NetworkPolicy } from './types';
 import { getDirectionTag, getActionTag, formatDestination, formatBandwidth } from './utils';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface UseNetworkPolicyColumnsOptions {
   onEdit: (policy: NetworkPolicy) => void;
@@ -31,7 +32,7 @@ export const useNetworkPolicyColumns = ({
           <Space direction="vertical" size={0}>
             <strong>{name}</strong>
             {record.description && (
-              <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.description}</span>
+              <span style={{ fontSize: '12px', color: NEUTRAL_LIGHT.text.tertiary }}>{record.description}</span>
             )}
           </Space>
         ),

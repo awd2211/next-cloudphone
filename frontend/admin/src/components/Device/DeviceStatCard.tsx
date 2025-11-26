@@ -8,6 +8,7 @@
  */
 import { memo, ReactNode } from 'react';
 import { Card, Statistic  } from 'antd';
+import { PRIMARY } from '@/theme';
 
 interface DeviceStatCardProps {
   title: string;
@@ -20,7 +21,7 @@ interface DeviceStatCardProps {
 }
 
 export const DeviceStatCard = memo<DeviceStatCardProps>(
-  ({ title, value, icon, color = '#1890ff', loading = false, suffix, prefix }) => {
+  ({ title, value, icon, color = PRIMARY.main, loading = false, suffix, prefix }) => {
     return (
       <Card loading={loading}>
         <Statistic

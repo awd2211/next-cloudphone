@@ -3,6 +3,7 @@ import { Modal, Space, Descriptions, Card, Typography } from 'antd';
 import dayjs from 'dayjs';
 import type { WebhookLog } from '@/types/webhook';
 import { getProviderTag, getStatusTag } from '@/utils/webhook';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 const { Paragraph } = Typography;
 
@@ -39,7 +40,7 @@ export const DetailModal: React.FC<DetailModalProps> = memo(({ visible, log, onC
 
         {log.errorMessage && (
           <Card title="错误信息" size="small">
-            <Paragraph copyable style={{ margin: 0, color: '#ff4d4f', whiteSpace: 'pre-wrap' }}>
+            <Paragraph copyable style={{ margin: 0, color: SEMANTIC.error.main, whiteSpace: 'pre-wrap' }}>
               {log.errorMessage}
             </Paragraph>
           </Card>
@@ -50,7 +51,7 @@ export const DetailModal: React.FC<DetailModalProps> = memo(({ visible, log, onC
             copyable
             style={{
               margin: 0,
-              background: '#f5f5f5',
+              background: NEUTRAL_LIGHT.bg.layout,
               padding: '12px',
               borderRadius: '4px',
               maxHeight: '300px',
@@ -69,7 +70,7 @@ export const DetailModal: React.FC<DetailModalProps> = memo(({ visible, log, onC
               copyable
               style={{
                 margin: 0,
-                background: '#f5f5f5',
+                background: NEUTRAL_LIGHT.bg.layout,
                 padding: '12px',
                 borderRadius: '4px',
                 maxHeight: '300px',

@@ -17,6 +17,7 @@ import {
   AppDetailModal,
   ReviewHistoryModal,
 } from '@/components/AppReview';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import { useAppReviewList } from '@/hooks/useAppReviewList';
 
 // 错误边界和加载状态
@@ -111,14 +112,14 @@ const AppReviewListContent = () => {
             <AuditOutlined />
             应用审核管理
           </h2>
-          <p style={{ margin: '4px 0 0', color: '#666', fontSize: '14px' }}>
+          <p style={{ margin: '4px 0 0', color: NEUTRAL_LIGHT.text.secondary, fontSize: '14px' }}>
             审核和管理应用市场中的应用提交
           </p>
         </div>
         <Tooltip title="快捷键: Ctrl+R">
           <span
             onClick={handleRefresh}
-            style={{ cursor: 'pointer', color: '#1890ff', display: 'flex', alignItems: 'center', gap: '4px' }}
+            style={{ cursor: 'pointer', color: PRIMARY.main, display: 'flex', alignItems: 'center', gap: '4px' }}
           >
             <ReloadOutlined spin={loading} />
             刷新
@@ -143,8 +144,8 @@ const AppReviewListContent = () => {
             <Statistic
               title="待审核"
               value={stats.pending}
-              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14' }}
+              prefix={<ClockCircleOutlined style={{ color: SEMANTIC.warning.main }} />}
+              valueStyle={{ color: SEMANTIC.warning.main }}
             />
           </Card>
         </Col>
@@ -153,8 +154,8 @@ const AppReviewListContent = () => {
             <Statistic
               title="已批准"
               value={stats.approved}
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a' }}
+              prefix={<CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -163,8 +164,8 @@ const AppReviewListContent = () => {
             <Statistic
               title="已拒绝"
               value={stats.rejected}
-              prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-              valueStyle={{ color: '#ff4d4f' }}
+              prefix={<CloseCircleOutlined style={{ color: SEMANTIC.error.main }} />}
+              valueStyle={{ color: SEMANTIC.error.main }}
             />
           </Card>
         </Col>
@@ -174,8 +175,8 @@ const AppReviewListContent = () => {
               title="通过率"
               value={approvalRate}
               suffix="%"
-              prefix={<FileTextOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff' }}
+              prefix={<FileTextOutlined style={{ color: PRIMARY.main }} />}
+              valueStyle={{ color: PRIMARY.main }}
             />
           </Card>
         </Col>
@@ -217,7 +218,7 @@ const AppReviewListContent = () => {
               tab={
                 <span>
                   <CheckCircleOutlined />
-                  已批准 <Badge count={stats.approved} style={{ marginLeft: 8, backgroundColor: '#52c41a' }} />
+                  已批准 <Badge count={stats.approved} style={{ marginLeft: 8, backgroundColor: SEMANTIC.success.main }} />
                 </span>
               }
               key="approved"
@@ -237,7 +238,7 @@ const AppReviewListContent = () => {
               tab={
                 <span>
                   <CloseCircleOutlined />
-                  已拒绝 <Badge count={stats.rejected} style={{ marginLeft: 8, backgroundColor: '#ff4d4f' }} />
+                  已拒绝 <Badge count={stats.rejected} style={{ marginLeft: 8, backgroundColor: SEMANTIC.error.main }} />
                 </span>
               }
               key="rejected"

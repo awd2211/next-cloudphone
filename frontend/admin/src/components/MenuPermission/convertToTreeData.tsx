@@ -7,6 +7,7 @@ import { LockOutlined } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import type { MenuItem } from '@/types';
 import { getMenuIcon } from './menuIconHelper';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 /**
  * 转换菜单为Tree节点
@@ -33,7 +34,7 @@ export const convertToTreeData = (items: MenuItem[]): DataNode[] => {
               公开
             </Tag>
           )}
-          <span style={{ fontSize: 12, color: '#999' }}>{item.path}</span>
+          <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>{item.path}</span>
         </Space>
       ),
       children: item.children ? convertToTreeData(item.children) : undefined,

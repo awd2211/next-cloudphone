@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, List, Avatar, Tag, Space } from 'antd';
 import { UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { NEUTRAL_LIGHT, SEMANTIC } from '@/theme';
 import type { TicketReply } from '@/types/ticket';
 
 interface ReplyListProps {
@@ -17,11 +18,11 @@ export const ReplyList: React.FC<ReplyListProps> = ({ replies }) => {
           <List.Item
             key={reply.id}
             style={{
-              backgroundColor: reply.isInternal ? '#fff7e6' : '#fff',
+              backgroundColor: reply.isInternal ? SEMANTIC.warning.bg : NEUTRAL_LIGHT.bg.container,
               padding: 16,
               marginBottom: 8,
               borderRadius: 4,
-              border: reply.isInternal ? '1px solid #ffd591' : '1px solid #f0f0f0',
+              border: reply.isInternal ? `1px solid ${SEMANTIC.warning.light}` : `1px solid ${NEUTRAL_LIGHT.border.secondary}`,
             }}
           >
             <List.Item.Meta

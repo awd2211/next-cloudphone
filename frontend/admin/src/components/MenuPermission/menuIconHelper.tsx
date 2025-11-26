@@ -8,6 +8,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import type { GlobalToken } from 'antd';
+import { SEMANTIC, PRIMARY } from '@/theme';
 
 /**
  * 获取菜单图标
@@ -15,13 +16,13 @@ import type { GlobalToken } from 'antd';
  * @param token Ant Design token (从 theme.useToken() 获取)
  */
 export const getMenuIcon = (iconName?: string, token?: GlobalToken) => {
-  const primaryColor = token?.colorPrimary || '#1890ff';
+  const primaryColor = token?.colorPrimary || PRIMARY.main;
 
   if (!iconName) return <AppstoreOutlined style={{ fontSize: 14, color: primaryColor }} />;
 
   const iconMap: Record<string, React.ReactNode> = {
     DashboardOutlined: <DashboardOutlined style={{ fontSize: 14, color: primaryColor }} />,
-    AppstoreOutlined: <AppstoreOutlined style={{ fontSize: 14, color: '#52c41a' }} />,
+    AppstoreOutlined: <AppstoreOutlined style={{ fontSize: 14, color: SEMANTIC.success.main }} />,
     UserOutlined: <UserOutlined style={{ fontSize: 14, color: '#722ed1' }} />,
     default: <AppstoreOutlined style={{ fontSize: 14, color: primaryColor }} />,
   };

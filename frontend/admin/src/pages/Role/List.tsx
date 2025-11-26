@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, message, Row, Col, Statistic, Tag } from 'antd';
 import { TeamOutlined, SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import type { Role } from '@/types';
 import {
   useRoles,
@@ -214,7 +215,7 @@ const RoleList = () => {
               Ctrl+R 刷新
             </Tag>
           </h2>
-          <span style={{ fontSize: 12, color: '#999' }}>Ctrl+N 新建</span>
+          <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>Ctrl+N 新建</span>
         </div>
 
         {/* 统计卡片 */}
@@ -229,7 +230,7 @@ const RoleList = () => {
               <Statistic
                 title="系统角色"
                 value={stats.systemRoles}
-                valueStyle={{ color: '#1890ff' }}
+                valueStyle={{ color: PRIMARY.main }}
                 prefix={<SafetyOutlined />}
               />
             </Card>
@@ -239,7 +240,7 @@ const RoleList = () => {
               <Statistic
                 title="自定义角色"
                 value={stats.customRoles}
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
               />
             </Card>
           </Col>

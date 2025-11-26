@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Modal, Alert, Typography, Space, Divider } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -46,7 +47,7 @@ export const NewKeyDisplayModal = memo<NewKeyDisplayModalProps>(({
           <Paragraph
             copyable={{ text: newKeyData.key }}
             style={{
-              background: '#f5f5f5',
+              background: NEUTRAL_LIGHT.bg.layout,
               padding: '12px',
               borderRadius: '4px',
               fontFamily: 'monospace',
@@ -63,7 +64,7 @@ export const NewKeyDisplayModal = memo<NewKeyDisplayModalProps>(({
           <Paragraph
             copyable
             style={{
-              background: '#f5f5f5',
+              background: NEUTRAL_LIGHT.bg.layout,
               padding: '12px',
               borderRadius: '4px',
               fontFamily: 'monospace',

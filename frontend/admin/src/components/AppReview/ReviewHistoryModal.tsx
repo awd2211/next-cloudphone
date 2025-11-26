@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Modal, Button, Timeline } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import type { Application, AppReviewRecord } from '@/types';
 import dayjs from 'dayjs';
 
@@ -62,7 +63,7 @@ export const ReviewHistoryModal = memo<ReviewHistoryModalProps>(
                   </p>
                   <p>操作人：{record.reviewedBy || '-'}</p>
                   {record.comment && <p>备注：{record.comment}</p>}
-                  <p style={{ color: '#999', fontSize: '12px' }}>
+                  <p style={{ color: NEUTRAL_LIGHT.text.tertiary, fontSize: '12px' }}>
                     {dayjs(record.createdAt).format('YYYY-MM-DD HH:mm:ss')}
                   </p>
                 </Timeline.Item>

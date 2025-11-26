@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Card, Row, Col, Statistic , theme } from 'antd';
 import { ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { SEMANTIC } from '@/theme';
 
 interface AppReviewStatsCardProps {
   pending: number;
@@ -26,7 +27,7 @@ export const AppReviewStatsCard = memo<AppReviewStatsCardProps>(
             <Statistic
               title="已批准"
               value={approved}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
               prefix={<CheckCircleOutlined />}
             />
           </Col>
@@ -34,7 +35,7 @@ export const AppReviewStatsCard = memo<AppReviewStatsCardProps>(
             <Statistic
               title="已拒绝"
               value={rejected}
-              valueStyle={{ color: '#ff4d4f' }}
+              valueStyle={{ color: SEMANTIC.error.main }}
               prefix={<CloseCircleOutlined />}
             />
           </Col>

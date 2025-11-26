@@ -3,6 +3,7 @@ import { List, Button, Space, Tag, Badge, Popconfirm } from 'antd';
 import { BellOutlined, CheckOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { Notification } from '@/services/notification';
 import dayjs from 'dayjs';
+import { NEUTRAL_LIGHT, SEMANTIC } from '@/theme';
 
 interface NotificationListItemProps {
   item: Notification;
@@ -17,11 +18,11 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = React.m
       <List.Item
         key={item.id}
         style={{
-          background: item.isRead ? '#fff' : '#f0f9ff',
+          background: item.isRead ? NEUTRAL_LIGHT.bg.container : SEMANTIC.info.bg,
           padding: '16px',
           marginBottom: 8,
           borderRadius: 4,
-          border: '1px solid #e8e8e8',
+          border: `1px solid ${NEUTRAL_LIGHT.border.secondary}`,
         }}
         actions={[
           !item.isRead && (
@@ -60,8 +61,8 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = React.m
           }
           description={
             <div>
-              <p style={{ margin: '8px 0', color: '#666' }}>{item.content}</p>
-              <div style={{ fontSize: 12, color: '#999' }}>
+              <p style={{ margin: '8px 0', color: NEUTRAL_LIGHT.text.secondary }}>{item.content}</p>
+              <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
                 {dayjs(item.createdAt).fromNow()}
                 {item.readAt && (
                   <span style={{ marginLeft: 16 }}>

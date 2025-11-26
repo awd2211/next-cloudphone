@@ -64,6 +64,7 @@ import {
   type Agent,
   type ConversationStatus,
 } from '@/services/livechat';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT, CHART_COLORS } from '@/theme';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -238,15 +239,15 @@ const ConversationsPage: React.FC = () => {
   // 消息发送者头像
   const renderSenderAvatar = (sender: string) => {
     if (sender === 'visitor') {
-      return <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />;
+      return <Avatar icon={<UserOutlined />} style={{ backgroundColor: PRIMARY.main }} />;
     }
     if (sender === 'agent') {
-      return <Avatar icon={<CustomerServiceOutlined />} style={{ backgroundColor: '#52c41a' }} />;
+      return <Avatar icon={<CustomerServiceOutlined />} style={{ backgroundColor: SEMANTIC.success.main }} />;
     }
     if (sender === 'ai') {
-      return <Avatar style={{ backgroundColor: '#722ed1' }}>AI</Avatar>;
+      return <Avatar style={{ backgroundColor: CHART_COLORS[3] }}>AI</Avatar>;
     }
-    return <Avatar style={{ backgroundColor: '#d9d9d9' }}>系统</Avatar>;
+    return <Avatar style={{ backgroundColor: NEUTRAL_LIGHT.border.primary }}>系统</Avatar>;
   };
 
   // 表格列定义
@@ -418,7 +419,7 @@ const ConversationsPage: React.FC = () => {
             <Statistic
               title="等待中"
               value={waitingStats?.count || stats.waiting}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: SEMANTIC.warning.main }}
               prefix={<ClockCircleOutlined />}
             />
           </Card>
@@ -428,7 +429,7 @@ const ConversationsPage: React.FC = () => {
             <Statistic
               title="进行中"
               value={activeStats?.count || stats.active}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: PRIMARY.main }}
               prefix={<MessageOutlined />}
             />
           </Card>
@@ -438,7 +439,7 @@ const ConversationsPage: React.FC = () => {
             <Statistic
               title="已解决"
               value={stats.resolved}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
               prefix={<CheckCircleOutlined />}
             />
           </Card>
@@ -570,7 +571,7 @@ const ConversationsPage: React.FC = () => {
                     style={{
                       background:
                         msg.sender === 'visitor'
-                          ? '#f5f5f5'
+                          ? NEUTRAL_LIGHT.bg.layout
                           : msg.sender === 'ai'
                           ? '#f9f0ff'
                           : 'transparent',

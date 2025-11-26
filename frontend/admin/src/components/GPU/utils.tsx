@@ -4,6 +4,7 @@
 import { Tag } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { STATUS_CONFIG, ALLOCATION_MODE_CONFIG } from './constants';
+import { SEMANTIC } from '@/theme';
 
 /**
  * 获取状态标签
@@ -32,7 +33,7 @@ export const getAllocationModeTag = (mode: string) => {
  * 获取温度颜色
  */
 export const getTemperatureColor = (temp: number): string => {
-  if (temp > 80) return '#ff4d4f';
-  if (temp > 70) return '#faad14';
-  return '#52c41a';
+  if (temp > 80) return SEMANTIC.error.main;
+  if (temp > 70) return SEMANTIC.warning.main;
+  return SEMANTIC.success.main;
 };

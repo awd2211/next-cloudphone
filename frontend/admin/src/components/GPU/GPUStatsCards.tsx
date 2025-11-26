@@ -7,6 +7,7 @@ import {
   FireOutlined,
 } from '@ant-design/icons';
 import type { GPUStats } from '@/types';
+import { SEMANTIC } from '@/theme';
 
 export interface GPUStatsCardsProps {
   stats: GPUStats | null;
@@ -32,7 +33,7 @@ export const GPUStatsCards = memo<GPUStatsCardsProps>(({ stats }) => {
           <Statistic
             title="在线 GPU"
             value={stats?.onlineGPUs || 0}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: SEMANTIC.success.main }}
             prefix={<CheckCircleOutlined />}
           />
         </Card>
@@ -44,7 +45,7 @@ export const GPUStatsCards = memo<GPUStatsCardsProps>(({ stats }) => {
             value={stats?.avgUtilization || 0}
             precision={1}
             suffix="%"
-            valueStyle={{ color: (stats?.avgUtilization || 0) > 80 ? '#ff4d4f' : '#52c41a' }}
+            valueStyle={{ color: (stats?.avgUtilization || 0) > 80 ? SEMANTIC.error.main : SEMANTIC.success.main }}
             prefix={<DashboardOutlined />}
           />
         </Card>
@@ -56,7 +57,7 @@ export const GPUStatsCards = memo<GPUStatsCardsProps>(({ stats }) => {
             value={stats?.avgTemperature || 0}
             precision={1}
             suffix="°C"
-            valueStyle={{ color: (stats?.avgTemperature || 0) > 75 ? '#ff4d4f' : '#52c41a' }}
+            valueStyle={{ color: (stats?.avgTemperature || 0) > 75 ? SEMANTIC.error.main : SEMANTIC.success.main }}
             prefix={<FireOutlined />}
           />
         </Card>

@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import { getQuotaSummary } from '@/services/quota';
 import { useRealtimeQuota } from '@/hooks/queries/useRealtimeQuota';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 interface QuotaSummary {
   total: number;
@@ -87,10 +88,10 @@ const QuotaRealTimeMonitor: React.FC = () => {
 
   // 获取使用率颜色
   const getUsageColor = (percent: number) => {
-    if (percent >= 95) return '#ff4d4f'; // 红色
-    if (percent >= 80) return '#faad14'; // 橙色
+    if (percent >= 95) return SEMANTIC.error.main; // 红色
+    if (percent >= 80) return SEMANTIC.warning.main; // 橙色
     if (percent >= 60) return token.colorPrimary; // 蓝色
-    return '#52c41a'; // 绿色
+    return SEMANTIC.success.main; // 绿色
   };
 
   return (
@@ -133,7 +134,7 @@ const QuotaRealTimeMonitor: React.FC = () => {
           <Statistic
             title="活跃配额"
             value={summary.byStatus.active || 0}
-            valueStyle={{ color: '#3f8600' }}
+            valueStyle={{ color: SEMANTIC.success.dark }}
             prefix={<CheckCircleOutlined />}
             suffix="个"
           />
@@ -142,7 +143,7 @@ const QuotaRealTimeMonitor: React.FC = () => {
           <Statistic
             title="超额配额"
             value={summary.byStatus.exceeded || 0}
-            valueStyle={{ color: '#cf1322' }}
+            valueStyle={{ color: SEMANTIC.error.dark }}
             prefix={<WarningOutlined />}
             suffix="个"
           />
@@ -153,7 +154,7 @@ const QuotaRealTimeMonitor: React.FC = () => {
               title="配额健康度"
               value={healthScore}
               suffix="%"
-              valueStyle={{ color: healthStatus.color === 'success' ? '#3f8600' : '#cf1322' }}
+              valueStyle={{ color: healthStatus.color === 'success' ? SEMANTIC.success.dark : SEMANTIC.error.dark }}
             />
             <Badge
               status={healthStatus.color as any}
@@ -246,7 +247,7 @@ const QuotaRealTimeMonitor: React.FC = () => {
             <Statistic
               title="活跃"
               value={summary.byStatus.active || 0}
-              valueStyle={{ color: '#3f8600', fontSize: 18 }}
+              valueStyle={{ color: SEMANTIC.success.dark, fontSize: 18 }}
             />
           </Card>
         </Col>
@@ -255,7 +256,7 @@ const QuotaRealTimeMonitor: React.FC = () => {
             <Statistic
               title="超额"
               value={summary.byStatus.exceeded || 0}
-              valueStyle={{ color: '#cf1322', fontSize: 18 }}
+              valueStyle={{ color: SEMANTIC.error.dark, fontSize: 18 }}
             />
           </Card>
         </Col>
@@ -264,7 +265,7 @@ const QuotaRealTimeMonitor: React.FC = () => {
             <Statistic
               title="已过期"
               value={summary.byStatus.expired || 0}
-              valueStyle={{ color: '#8c8c8c', fontSize: 18 }}
+              valueStyle={{ color: NEUTRAL_LIGHT.text.tertiary, fontSize: 18 }}
             />
           </Card>
         </Col>
@@ -273,7 +274,7 @@ const QuotaRealTimeMonitor: React.FC = () => {
             <Statistic
               title="已暂停"
               value={summary.byStatus.suspended || 0}
-              valueStyle={{ color: '#faad14', fontSize: 18 }}
+              valueStyle={{ color: SEMANTIC.warning.main, fontSize: 18 }}
             />
           </Card>
         </Col>

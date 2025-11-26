@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, memo, CSSProperties } from 'react';
 import { Skeleton } from 'antd';
 import { PictureOutlined } from '@ant-design/icons';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 export interface LazyImageProps {
   /** 图片地址 */
@@ -151,7 +152,7 @@ export const LazyImage = memo<LazyImageProps>(
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#f0f0f0',
+          backgroundColor: NEUTRAL_LIGHT.border.secondary,
           ...style,
         }}
       >
@@ -168,8 +169,8 @@ export const LazyImage = memo<LazyImageProps>(
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#f5f5f5',
-          color: '#999',
+          backgroundColor: NEUTRAL_LIGHT.bg.layout,
+          color: NEUTRAL_LIGHT.text.tertiary,
           fontSize: 32,
           ...style,
         }}

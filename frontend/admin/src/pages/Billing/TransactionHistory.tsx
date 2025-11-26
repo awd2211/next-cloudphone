@@ -11,6 +11,7 @@ import {
   CloseCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC } from '@/theme';
 import { TransactionFilterBar, type Transaction } from '@/components/Billing';
 import { useTransactionHistory } from '@/hooks/useTransactionHistory';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
@@ -100,7 +101,7 @@ const TransactionHistoryContent: React.FC = () => {
                 value={statistics.totalIncome}
                 precision={2}
                 prefix="¥"
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
                 suffix={<ArrowUpOutlined />}
               />
             </Card>
@@ -112,7 +113,7 @@ const TransactionHistoryContent: React.FC = () => {
                 value={statistics.totalExpense}
                 precision={2}
                 prefix="¥"
-                valueStyle={{ color: '#ff4d4f' }}
+                valueStyle={{ color: SEMANTIC.error.main }}
                 suffix={<ArrowDownOutlined />}
               />
             </Card>
@@ -122,7 +123,7 @@ const TransactionHistoryContent: React.FC = () => {
               <Statistic
                 title="成功"
                 value={statistics.successCount}
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
                 prefix={<CheckCircleOutlined />}
               />
             </Card>
@@ -132,7 +133,7 @@ const TransactionHistoryContent: React.FC = () => {
               <Statistic
                 title="处理中"
                 value={statistics.pendingCount}
-                valueStyle={{ color: '#faad14' }}
+                valueStyle={{ color: SEMANTIC.warning.main }}
                 prefix={<ClockCircleOutlined />}
               />
             </Card>
@@ -142,7 +143,7 @@ const TransactionHistoryContent: React.FC = () => {
               <Statistic
                 title="失败"
                 value={statistics.failedCount}
-                valueStyle={{ color: '#ff4d4f' }}
+                valueStyle={{ color: SEMANTIC.error.main }}
                 prefix={<CloseCircleOutlined />}
               />
             </Card>

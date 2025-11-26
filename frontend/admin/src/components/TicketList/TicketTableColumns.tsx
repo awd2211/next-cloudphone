@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { Space, Tag, Badge, Button, Tooltip } from 'antd';
+import { SEMANTIC } from '@/theme';
 import { EyeOutlined, MessageOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -101,7 +102,7 @@ export const useTicketTableColumns = ({ onViewDetail }: UseTicketTableColumnsPro
         align: 'center',
         sorter: (a, b) => a.replyCount - b.replyCount,
         render: (count: number) => (
-          <Badge count={count} showZero style={{ backgroundColor: '#52c41a' }} />
+          <Badge count={count} showZero style={{ backgroundColor: SEMANTIC.success.main }} />
         ),
       },
       {

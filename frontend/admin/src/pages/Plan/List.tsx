@@ -14,6 +14,7 @@ import { usePlanList } from '@/hooks/usePlanList';
 import type { Plan } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
 import { LoadingState } from '@/components/Feedback/LoadingState';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 /**
  * 套餐列表页面（优化版 v2 - 添加 ErrorBoundary + LoadingState + 统计卡片 + 快捷键）
@@ -118,7 +119,7 @@ const PlanList: React.FC = () => {
             </Tag>
           </h2>
           <Space>
-            <span style={{ fontSize: 12, color: '#999' }}>
+            <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
               快捷键：Ctrl+K 搜索 | Ctrl+N 新建
             </span>
           </Space>
@@ -141,7 +142,7 @@ const PlanList: React.FC = () => {
                 title="已启用"
                 value={stats.active}
                 prefix={<CheckCircleOutlined />}
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
               />
             </Card>
           </Col>
@@ -151,7 +152,7 @@ const PlanList: React.FC = () => {
                 title="已停用"
                 value={stats.inactive}
                 prefix={<CloseCircleOutlined />}
-                valueStyle={{ color: '#ff4d4f' }}
+                valueStyle={{ color: SEMANTIC.error.main }}
               />
             </Card>
           </Col>
@@ -226,7 +227,7 @@ const PlanList: React.FC = () => {
             autoFocus
             allowClear
           />
-          <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+          <div style={{ marginTop: 8, color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
             按 Enter 搜索，按 Escape 关闭
           </div>
         </Modal>

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Row, Col, Card, Statistic , theme } from 'antd';
 import type { AuditLogStatistics } from '@/types';
+import { SEMANTIC, CHART_COLORS } from '@/theme';
 
 export interface AuditStatsCardsProps {
   statistics: AuditLogStatistics | null;
@@ -29,7 +30,7 @@ export const AuditStatsCards = memo<AuditStatsCardsProps>(({ statistics }) => {
             value={statistics?.successRate || 0}
             suffix="%"
             precision={2}
-            valueStyle={{ color: '#52c41a' }}
+            valueStyle={{ color: SEMANTIC.success.main }}
           />
         </Card>
       </Col>
@@ -38,7 +39,7 @@ export const AuditStatsCards = memo<AuditStatsCardsProps>(({ statistics }) => {
           <Statistic
             title="今日活动"
             value={statistics?.recentActivity.day || 0}
-            valueStyle={{ color: '#faad14' }}
+            valueStyle={{ color: SEMANTIC.warning.main }}
           />
         </Card>
       </Col>
@@ -47,7 +48,7 @@ export const AuditStatsCards = memo<AuditStatsCardsProps>(({ statistics }) => {
           <Statistic
             title="本周活动"
             value={statistics?.recentActivity.week || 0}
-            valueStyle={{ color: '#13c2c2' }}
+            valueStyle={{ color: SEMANTIC.info.main }}
           />
         </Card>
       </Col>

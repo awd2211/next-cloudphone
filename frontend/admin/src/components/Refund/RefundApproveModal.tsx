@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input } from 'antd';
+import { NEUTRAL_LIGHT } from '@/theme';
 import type { PaymentDetail } from '@/services/payment-admin';
 
 interface RefundApproveModalProps {
@@ -49,7 +50,7 @@ export const RefundApproveModal: React.FC<RefundApproveModalProps> = React.memo(
             <Input.TextArea rows={3} placeholder="可选的管理员备注（批准原因、处理说明等）" />
           </Form.Item>
 
-          <div style={{ color: '#999', fontSize: '12px' }}>
+          <div style={{ color: NEUTRAL_LIGHT.text.tertiary, fontSize: '12px' }}>
             ⚠️ 批准后将立即向支付平台发起退款请求，请确认无误后操作。
           </div>
         </Form>

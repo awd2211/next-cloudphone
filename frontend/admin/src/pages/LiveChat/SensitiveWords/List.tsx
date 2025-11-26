@@ -53,6 +53,7 @@ import {
   checkSensitiveWords,
   type SensitiveWord,
 } from '@/services/livechat';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -345,7 +346,7 @@ const SensitiveWordsPage: React.FC = () => {
             <Statistic
               title="已启用"
               value={stats.active}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -354,7 +355,7 @@ const SensitiveWordsPage: React.FC = () => {
             <Statistic
               title="高危"
               value={stats.high}
-              valueStyle={{ color: '#ff4d4f' }}
+              valueStyle={{ color: SEMANTIC.error.main }}
               prefix={<ExclamationCircleOutlined />}
             />
           </Card>
@@ -364,7 +365,7 @@ const SensitiveWordsPage: React.FC = () => {
             <Statistic
               title="中等"
               value={stats.medium}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: SEMANTIC.warning.main }}
             />
           </Card>
         </Col>
@@ -381,8 +382,8 @@ const SensitiveWordsPage: React.FC = () => {
             style={{ cursor: 'pointer' }}
           >
             <div style={{ textAlign: 'center' }}>
-              <SafetyCertificateOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-              <div style={{ marginTop: 4, color: '#1890ff' }}>测试检测</div>
+              <SafetyCertificateOutlined style={{ fontSize: 24, color: PRIMARY.main }} />
+              <div style={{ marginTop: 4, color: PRIMARY.main }}>测试检测</div>
             </div>
           </Card>
         </Col>
@@ -468,7 +469,7 @@ const SensitiveWordsPage: React.FC = () => {
                     <Option key={level.value} value={level.value}>
                       <Space>
                         <Tag color={level.color}>{level.label}</Tag>
-                        <span style={{ fontSize: 12, color: '#999' }}>
+                        <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
                           {level.description}
                         </span>
                       </Space>

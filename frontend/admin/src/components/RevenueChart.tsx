@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import ReactECharts from '@/components/ReactECharts';
 import type { ECOption } from '@/utils/echarts';
 import { Empty, theme } from 'antd';
+import { PRIMARY, SEMANTIC } from '@/theme';
 
 interface RevenueData {
   date: string;
@@ -91,11 +92,11 @@ const RevenueChart = memo(({ data, loading }: RevenueChartProps) => {
             colorStops: [
               {
                 offset: 0,
-                color: 'rgba(24, 144, 255, 0.3)',
+                color: `${PRIMARY.main}4D`,  // 30% opacity
               },
               {
                 offset: 1,
-                color: 'rgba(24, 144, 255, 0.05)',
+                color: `${PRIMARY.main}0D`,  // 5% opacity
               },
             ],
           },
@@ -108,7 +109,7 @@ const RevenueChart = memo(({ data, loading }: RevenueChartProps) => {
         yAxisIndex: 1,
         data: normalizedData.map((item: RevenueData) => item.orders),
         itemStyle: {
-          color: '#52c41a',
+          color: SEMANTIC.success.main,
         },
       },
     ],

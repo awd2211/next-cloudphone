@@ -19,6 +19,7 @@ import {
 import { useDeviceDetail } from '@/hooks/useDeviceDetail';
 import { ErrorBoundary } from '@/components/ErrorHandling/ErrorBoundary';
 import { LoadingState } from '@/components/Feedback/LoadingState';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 /**
  * 设备详情页面 (优化版 v2)
@@ -143,7 +144,7 @@ const DeviceDetail = () => {
               </ErrorBoundary>
             )
           ) : (
-            <div style={{ textAlign: 'center', padding: '100px 0', color: '#999' }}>
+            <div style={{ textAlign: 'center', padding: '100px 0', color: NEUTRAL_LIGHT.text.tertiary }}>
               设备未运行，无法显示屏幕
             </div>
           )}
