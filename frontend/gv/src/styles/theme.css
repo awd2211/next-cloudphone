@@ -1,0 +1,89 @@
+/* 政务风格主题 */
+:root {
+  --gov-primary: #1677ff;
+  --gov-primary-dark: #0958d9;
+  --gov-secondary: #c41d1d;
+  --gov-bg-dark: #001529;
+  --gov-bg-light: #f0f2f5;
+  --gov-text-primary: #262626;
+  --gov-text-secondary: #595959;
+  --gov-border: #d9d9d9;
+  --gov-success: #52c41a;
+  --gov-warning: #faad14;
+  --gov-error: #ff4d4f;
+}
+
+/* 头部栏样式 */
+.gov-header {
+  background: linear-gradient(135deg, #001529 0%, #002140 100%);
+  border-bottom: 3px solid var(--gov-secondary);
+}
+
+/* 侧边栏样式 */
+.gov-sider {
+  background: var(--gov-bg-dark);
+}
+
+/* 页面标题样式 */
+.page-header {
+  background: #fff;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--gov-border);
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gov-text-primary);
+  margin: 0;
+}
+
+/* 统计卡片样式 */
+.stat-card {
+  background: #fff;
+  border-radius: 4px;
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.stat-card .ant-statistic-title {
+  font-size: 14px;
+  color: var(--gov-text-secondary);
+}
+
+.stat-card .ant-statistic-content {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+/* 表格样式增强 */
+.gov-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+  color: var(--gov-text-primary);
+}
+
+/* 状态标签样式 */
+.status-online {
+  color: var(--gov-success);
+}
+
+.status-offline {
+  color: var(--gov-text-secondary);
+}
+
+.status-error {
+  color: var(--gov-error);
+}
+
+/* 按钮样式 */
+.btn-gov-primary {
+  background: var(--gov-primary);
+  border-color: var(--gov-primary);
+}
+
+.btn-gov-danger {
+  background: var(--gov-secondary);
+  border-color: var(--gov-secondary);
+}

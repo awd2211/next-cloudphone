@@ -1,0 +1,887 @@
+/* ============================================
+   GV 境外移动集群察打一体平台 - 全局样式
+   ============================================ */
+
+/* 基础重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f2f5;
+  color: #262626;
+  line-height: 1.5715;
+}
+
+/* ============================================
+   滚动条样式
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Firefox 滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+/* ============================================
+   文本选择样式
+   ============================================ */
+::selection {
+  background-color: rgba(22, 119, 255, 0.2);
+  color: inherit;
+}
+
+/* ============================================
+   链接样式
+   ============================================ */
+a {
+  color: #1677ff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: #4096ff;
+}
+
+/* ============================================
+   代码样式
+   ============================================ */
+code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #d63384;
+}
+
+pre {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  background: #f5f5f5;
+  padding: 12px 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ============================================
+   政务风格标题
+   ============================================ */
+.gov-title {
+  color: #001529;
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+.gov-title-red {
+  color: #c41d1d;
+  font-weight: 700;
+  letter-spacing: 3px;
+}
+
+/* ============================================
+   卡片效果
+   ============================================ */
+.gov-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 8px;
+}
+
+.gov-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+/* 统计卡片悬停发光效果 */
+.stat-card-glow:hover {
+  box-shadow: 0 0 20px rgba(22, 119, 255, 0.2);
+}
+
+/* ============================================
+   动画定义
+   ============================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   动画类
+   ============================================ */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* 骨架屏动画 */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e8e8e8 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ============================================
+   状态颜色类
+   ============================================ */
+.status-running {
+  color: #52c41a;
+}
+
+.status-stopped {
+  color: #8c8c8c;
+}
+
+.status-error {
+  color: #ff4d4f;
+}
+
+.status-warning {
+  color: #faad14;
+}
+
+.status-info {
+  color: #1677ff;
+}
+
+/* 状态背景 */
+.status-bg-running {
+  background-color: #f6ffed;
+  border-color: #b7eb8f;
+}
+
+.status-bg-stopped {
+  background-color: #fafafa;
+  border-color: #d9d9d9;
+}
+
+.status-bg-error {
+  background-color: #fff2f0;
+  border-color: #ffccc7;
+}
+
+.status-bg-warning {
+  background-color: #fffbe6;
+  border-color: #ffe58f;
+}
+
+/* ============================================
+   渐变背景
+   ============================================ */
+.gradient-primary {
+  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
+}
+
+.gradient-danger {
+  background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%);
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+}
+
+.gradient-dark {
+  background: linear-gradient(135deg, #001529 0%, #003366 50%, #001529 100%);
+}
+
+.gradient-gov {
+  background: linear-gradient(135deg, #001529 0%, #002140 100%);
+}
+
+/* ============================================
+   文本工具类
+   ============================================ */
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-ellipsis-2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-bold {
+  font-weight: 600;
+}
+
+.text-light {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.text-primary {
+  color: #1677ff;
+}
+
+.text-danger {
+  color: #ff4d4f;
+}
+
+.text-success {
+  color: #52c41a;
+}
+
+.text-warning {
+  color: #faad14;
+}
+
+/* ============================================
+   间距工具类
+   ============================================ */
+.mb-0 { margin-bottom: 0; }
+.mb-4 { margin-bottom: 4px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+
+.mt-0 { margin-top: 0; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+
+.p-0 { padding: 0; }
+.p-8 { padding: 8px; }
+.p-12 { padding: 12px; }
+.p-16 { padding: 16px; }
+.p-24 { padding: 24px; }
+
+/* ============================================
+   Flex 工具类
+   ============================================ */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.flex-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.gap-4 { gap: 4px; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+
+/* ============================================
+   阴影效果
+   ============================================ */
+.shadow-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.shadow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.shadow-lg {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.shadow-xl {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   圆角工具类
+   ============================================ */
+.rounded-sm { border-radius: 2px; }
+.rounded { border-radius: 4px; }
+.rounded-md { border-radius: 6px; }
+.rounded-lg { border-radius: 8px; }
+.rounded-xl { border-radius: 12px; }
+.rounded-full { border-radius: 9999px; }
+
+/* ============================================
+   Ant Design 组件覆盖样式
+   ============================================ */
+
+/* 页面内容区域 */
+.ant-layout-content {
+  position: relative;
+}
+
+/* 卡片标题样式 */
+.ant-card-head-title {
+  font-weight: 600;
+}
+
+/* 表格样式增强 */
+.ant-table-thead > tr > th {
+  font-weight: 600;
+  background: #fafafa !important;
+}
+
+.ant-table-row:hover > td {
+  background: #f5f7fa !important;
+}
+
+/* 选中行高亮 */
+.ant-table-row-selected > td {
+  background: #e6f4ff !important;
+}
+
+/* 表格分页居中 */
+.ant-table-pagination {
+  margin-top: 16px;
+}
+
+/* 模态框标题 */
+.ant-modal-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* 抽屉标题 */
+.ant-drawer-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* 菜单样式 */
+.ant-menu-dark .ant-menu-item-selected {
+  background-color: #1677ff !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* 标签页样式 */
+.ant-tabs-tab {
+  font-weight: 500;
+}
+
+/* 表单标签 */
+.ant-form-item-label > label {
+  font-weight: 500;
+  color: #262626;
+}
+
+/* 必填星号颜色 */
+.ant-form-item-required::before {
+  color: #c41d1d !important;
+}
+
+/* 统计数值样式 */
+.ant-statistic-content-value {
+  font-weight: 600;
+}
+
+/* 徽章脉冲动画 */
+.ant-badge-status-processing::after {
+  animation: antStatusProcessing 1.2s infinite ease-in-out;
+}
+
+/* 按钮过渡效果 */
+.ant-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ant-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.35);
+}
+
+/* 输入框聚焦效果 */
+.ant-input:focus,
+.ant-input-focused,
+.ant-select-focused .ant-select-selector {
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.1) !important;
+}
+
+/* 警告框样式 */
+.ant-alert {
+  border-radius: 6px;
+}
+
+/* 消息提示样式 */
+.ant-message-notice-content {
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* 分割线 */
+.ant-divider-horizontal.ant-divider-with-text {
+  font-weight: 500;
+  color: #595959;
+}
+
+/* Tooltip 样式 */
+.ant-tooltip-inner {
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+/* Progress 条样式 */
+.ant-progress-inner {
+  border-radius: 4px;
+}
+
+/* 空状态样式 */
+.ant-empty-description {
+  color: #8c8c8c;
+}
+
+/* ============================================
+   响应式隐藏类
+   ============================================ */
+@media (max-width: 576px) {
+  .hidden-xs {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .hidden-sm {
+    display: none !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .hidden-md {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .hidden-lg {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   打印样式
+   ============================================ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  .ant-layout-sider,
+  .ant-layout-header {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   自定义组件样式
+   ============================================ */
+
+/* 实时状态指示器 */
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-indicator.online {
+  background-color: #52c41a;
+  box-shadow: 0 0 8px rgba(82, 196, 26, 0.6);
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.offline {
+  background-color: #d9d9d9;
+}
+
+.status-indicator.error {
+  background-color: #ff4d4f;
+  box-shadow: 0 0 8px rgba(255, 77, 79, 0.6);
+}
+
+/* 数据卡片网格 */
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* 操作区域 */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+/* 页面标题区 */
+.page-title-section {
+  margin-bottom: 24px;
+}
+
+.page-title-section h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #262626;
+  margin: 0 0 4px 0;
+}
+
+.page-title-section .subtitle {
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+/* 数值高亮 */
+.highlight-number {
+  font-size: 32px;
+  font-weight: 700;
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+/* 小数值标签 */
+.mini-stat {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #595959;
+}
+
+.mini-stat.up {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.mini-stat.down {
+  background: #fff2f0;
+  color: #ff4d4f;
+}
+
+/* ============================================
+   深色模式支持
+   ============================================ */
+
+/* 深色模式 - 使用 data-theme 属性 */
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+[data-theme='dark'] body {
+  background-color: #0a0a0a;
+  color: #e6e6e6;
+}
+
+/* 深色模式滚动条 */
+[data-theme='dark'] ::-webkit-scrollbar-track {
+  background: #1f1f1f;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}
+
+[data-theme='dark'] * {
+  scrollbar-color: #4a4a4a #1f1f1f;
+}
+
+/* 深色模式代码块 */
+[data-theme='dark'] code {
+  background: #2a2a2a;
+  color: #f472b6;
+}
+
+[data-theme='dark'] pre {
+  background: #1f1f1f;
+}
+
+/* 深色模式状态背景 */
+[data-theme='dark'] .status-bg-running {
+  background-color: rgba(82, 196, 26, 0.15);
+  border-color: rgba(82, 196, 26, 0.5);
+}
+
+[data-theme='dark'] .status-bg-stopped {
+  background-color: rgba(140, 140, 140, 0.15);
+  border-color: rgba(140, 140, 140, 0.5);
+}
+
+[data-theme='dark'] .status-bg-error {
+  background-color: rgba(255, 77, 79, 0.15);
+  border-color: rgba(255, 77, 79, 0.5);
+}
+
+[data-theme='dark'] .status-bg-warning {
+  background-color: rgba(250, 173, 20, 0.15);
+  border-color: rgba(250, 173, 20, 0.5);
+}
+
+/* 深色模式骨架屏 */
+[data-theme='dark'] .skeleton {
+  background: linear-gradient(
+    90deg,
+    #2a2a2a 25%,
+    #3a3a3a 50%,
+    #2a2a2a 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* 深色模式文字 */
+[data-theme='dark'] .text-light {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* 深色模式阴影 */
+[data-theme='dark'] .shadow-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .shadow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .shadow-md {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='dark'] .shadow-lg {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='dark'] .shadow-xl {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
+}
+
+/* 深色模式操作区域 */
+[data-theme='dark'] .action-bar {
+  background: #1f1f1f;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 深色模式页面标题 */
+[data-theme='dark'] .page-title-section h1 {
+  color: #e6e6e6;
+}
+
+/* 深色模式小数值标签 */
+[data-theme='dark'] .mini-stat {
+  background: #2a2a2a;
+  color: #a0a0a0;
+}
+
+[data-theme='dark'] .mini-stat.up {
+  background: rgba(82, 196, 26, 0.2);
+  color: #73d13d;
+}
+
+[data-theme='dark'] .mini-stat.down {
+  background: rgba(255, 77, 79, 0.2);
+  color: #ff7875;
+}
+
+/* 深色模式 Ant Design 覆盖 */
+[data-theme='dark'] .ant-table-thead > tr > th {
+  background: #1f1f1f !important;
+}
+
+[data-theme='dark'] .ant-table-row:hover > td {
+  background: #262626 !important;
+}
+
+[data-theme='dark'] .ant-table-row-selected > td {
+  background: rgba(22, 119, 255, 0.2) !important;
+}
+
+[data-theme='dark'] .ant-form-item-label > label {
+  color: #e6e6e6;
+}
+
+/* 深色模式过渡效果 */
+body,
+.ant-layout,
+.ant-layout-header,
+.ant-layout-content,
+.ant-card,
+.ant-table,
+.ant-modal-content,
+.ant-drawer-content {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* 跟随系统主题 */
+@media (prefers-color-scheme: dark) {
+  [data-theme='system'] {
+    color-scheme: dark;
+  }
+
+  [data-theme='system'] body {
+    background-color: #0a0a0a;
+    color: #e6e6e6;
+  }
+}
