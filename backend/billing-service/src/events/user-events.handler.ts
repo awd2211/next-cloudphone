@@ -37,6 +37,10 @@ export class BillingUserEventsHandler {
     exchange: 'cloudphone.events',
     routingKey: 'user.updated',
     queue: 'billing-service.user-updated',
+    queueOptions: {
+      durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
+    },
   })
   async handleUserUpdated(event: UserUpdatedEvent) {
     this.logger.log(`收到用户更新事件: ${event.userId}`);

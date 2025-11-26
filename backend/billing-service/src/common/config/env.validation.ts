@@ -107,7 +107,7 @@ export const envValidationSchema = Joi.object({
   LOG_FORMAT: Joi.string().valid('json', 'dev', 'pretty').default('json'),
 
   // ===== RabbitMQ 配置 =====
-  RABBITMQ_URL: Joi.string().uri().optional(),
+  RABBITMQ_URL: Joi.string().uri({ scheme: ['amqp', 'amqps'] }).optional(),
   RABBITMQ_EXCHANGE: Joi.string().default('cloudphone.events'),
 
   // ===== Consul 配置 =====

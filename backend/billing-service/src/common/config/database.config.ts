@@ -60,7 +60,8 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
     database: 'cloudphone_billing', // ✅ 强制使用 cloudphone_billing 数据库
 
     // 实体配置
-    entities: [`${__dirname}/../../**/*.entity{.ts,.js}`],
+    // ✅ HMR 兼容：自动加载 forFeature() 注册的实体（包括 @cloudphone/shared 中的 EventOutbox）
+    autoLoadEntities: true,
     synchronize: false, // ✅ 使用迁移脚本管理数据库架构
     logging: isDevelopment ? 'all' : ['error', 'warn', 'schema'],
 

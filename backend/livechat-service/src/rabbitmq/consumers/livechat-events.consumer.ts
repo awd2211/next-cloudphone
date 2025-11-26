@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { runInTraceContext } from '@cloudphone/shared';
 
 @Injectable()
 export class LivechatEventsConsumer {
@@ -18,16 +19,18 @@ export class LivechatEventsConsumer {
     },
   })
   async handleDeviceEvent(event: any) {
-    this.logger.debug(`Received device event: ${event.type}`);
+    return runInTraceContext(event, async () => {
+      this.logger.debug(`Received device event: ${event.type}`);
 
-    // 设备状态变更时，可以通知相关的会话
-    if (event.type === 'device.error' || event.type === 'device.stopped') {
-      this.eventEmitter.emit('device.status_changed', {
-        deviceId: event.deviceId,
-        status: event.status,
-        userId: event.userId,
-      });
-    }
+      // 设备状态变更时，可以通知相关的会话
+      if (event.type === 'device.error' || event.type === 'device.stopped') {
+        this.eventEmitter.emit('device.status_changed', {
+          deviceId: event.deviceId,
+          status: event.status,
+          userId: event.userId,
+        });
+      }
+    });
   }
 
   @RabbitSubscribe({
@@ -40,14 +43,16 @@ export class LivechatEventsConsumer {
     },
   })
   async handleUserEvent(event: any) {
-    this.logger.debug(`Received user event: ${event.type}`);
+    return runInTraceContext(event, async () => {
+      this.logger.debug(`Received user event: ${event.type}`);
 
-    // 处理用户相关事件
-    if (event.type === 'user.vip_upgraded') {
-      this.eventEmitter.emit('user.vip_changed', {
-        userId: event.userId,
-        vipLevel: event.vipLevel,
-      });
-    }
+      // 处理用户相关事件
+      if (event.type === 'user.vip_upgraded') {
+        this.eventEmitter.emit('user.vip_changed', {
+          userId: event.userId,
+          vipLevel: event.vipLevel,
+        });
+      }
+    });
   }
 }

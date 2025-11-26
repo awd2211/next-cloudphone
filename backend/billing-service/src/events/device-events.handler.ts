@@ -54,6 +54,10 @@ export class BillingDeviceEventsHandler {
     exchange: 'cloudphone.events',
     routingKey: 'device.updated',
     queue: 'billing-service.device-updated',
+    queueOptions: {
+      durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
+    },
   })
   async handleDeviceUpdated(event: DeviceUpdatedEvent) {
     this.logger.log(`收到设备更新事件: ${event.deviceId}`);
@@ -78,6 +82,10 @@ export class BillingDeviceEventsHandler {
     exchange: 'cloudphone.events',
     routingKey: 'device.started',
     queue: 'billing-service.device-started',
+    queueOptions: {
+      durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
+    },
   })
   async handleDeviceStarted(event: DeviceStartedEvent) {
     this.logger.log(`收到设备启动事件: ${event.deviceId}, 用户: ${event.userId}`);
@@ -103,6 +111,10 @@ export class BillingDeviceEventsHandler {
     exchange: 'cloudphone.events',
     routingKey: 'device.stopped',
     queue: 'billing-service.device-stopped',
+    queueOptions: {
+      durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
+    },
   })
   async handleDeviceStopped(event: DeviceStoppedEvent) {
     this.logger.log(
@@ -184,6 +196,10 @@ export class BillingDeviceEventsHandler {
     exchange: 'cloudphone.events',
     routingKey: 'device.deleted',
     queue: 'billing-service.device-deleted',
+    queueOptions: {
+      durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
+    },
   })
   async handleDeviceDeleted(event: { deviceId: string; userId: string }) {
     this.logger.log(`收到设备删除事件: ${event.deviceId}`);

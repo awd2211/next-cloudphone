@@ -7,7 +7,7 @@ import {
   PaymentProviderType,
   PaymentProviderMode,
 } from '../entities/payment-provider-config.entity';
-import { EncryptionService } from './encryption.service';
+import { UnifiedEncryptionService } from '@cloudphone/shared';
 
 /**
  * 支付配置 DTO（前端输入）
@@ -114,7 +114,7 @@ export class PaymentConfigService {
   constructor(
     @InjectRepository(PaymentProviderConfig)
     private readonly configRepository: Repository<PaymentProviderConfig>,
-    private readonly encryptionService: EncryptionService,
+    private readonly encryptionService: UnifiedEncryptionService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -347,7 +347,7 @@ export class PaymentConfigService {
         response.hasSecretKey = !!(config.stripeTestSecretKeyEncrypted || config.stripeLiveSecretKeyEncrypted);
         if (config.stripeTestSecretKeyEncrypted) {
           response.secretKeyMasked = this.encryptionService.mask(
-            this.encryptionService.decrypt(config.stripeTestSecretKeyEncrypted)
+            this.encryptionService.decryptFromString(config.stripeTestSecretKeyEncrypted)
           );
         }
         break;
@@ -387,44 +387,44 @@ export class PaymentConfigService {
 
     // 通用字段
     if (config.secretKeyEncrypted) {
-      decrypted.secretKey = this.encryptionService.decrypt(config.secretKeyEncrypted);
+      decrypted.secretKey = this.encryptionService.decryptFromString(config.secretKeyEncrypted);
     }
     if (config.webhookSecretEncrypted) {
-      decrypted.webhookSecret = this.encryptionService.decrypt(config.webhookSecretEncrypted);
+      decrypted.webhookSecret = this.encryptionService.decryptFromString(config.webhookSecretEncrypted);
     }
 
     // Stripe
     if (config.stripeTestSecretKeyEncrypted) {
-      decrypted.stripeTestSecretKey = this.encryptionService.decrypt(config.stripeTestSecretKeyEncrypted);
+      decrypted.stripeTestSecretKey = this.encryptionService.decryptFromString(config.stripeTestSecretKeyEncrypted);
     }
     if (config.stripeLiveSecretKeyEncrypted) {
-      decrypted.stripeLiveSecretKey = this.encryptionService.decrypt(config.stripeLiveSecretKeyEncrypted);
+      decrypted.stripeLiveSecretKey = this.encryptionService.decryptFromString(config.stripeLiveSecretKeyEncrypted);
     }
 
     // PayPal
     if (config.paypalSandboxSecretEncrypted) {
-      decrypted.paypalSandboxSecret = this.encryptionService.decrypt(config.paypalSandboxSecretEncrypted);
+      decrypted.paypalSandboxSecret = this.encryptionService.decryptFromString(config.paypalSandboxSecretEncrypted);
     }
     if (config.paypalLiveSecretEncrypted) {
-      decrypted.paypalLiveSecret = this.encryptionService.decrypt(config.paypalLiveSecretEncrypted);
+      decrypted.paypalLiveSecret = this.encryptionService.decryptFromString(config.paypalLiveSecretEncrypted);
     }
 
     // Paddle
     if (config.paddleApiKeyEncrypted) {
-      decrypted.paddleApiKey = this.encryptionService.decrypt(config.paddleApiKeyEncrypted);
+      decrypted.paddleApiKey = this.encryptionService.decryptFromString(config.paddleApiKeyEncrypted);
     }
 
     // 微信
     if (config.wechatApiV3KeyEncrypted) {
-      decrypted.wechatApiV3Key = this.encryptionService.decrypt(config.wechatApiV3KeyEncrypted);
+      decrypted.wechatApiV3Key = this.encryptionService.decryptFromString(config.wechatApiV3KeyEncrypted);
     }
     if (config.wechatPrivateKeyEncrypted) {
-      decrypted.wechatPrivateKey = this.encryptionService.decrypt(config.wechatPrivateKeyEncrypted);
+      decrypted.wechatPrivateKey = this.encryptionService.decryptFromString(config.wechatPrivateKeyEncrypted);
     }
 
     // 支付宝
     if (config.alipayPrivateKeyEncrypted) {
-      decrypted.alipayPrivateKey = this.encryptionService.decrypt(config.alipayPrivateKeyEncrypted);
+      decrypted.alipayPrivateKey = this.encryptionService.decryptFromString(config.alipayPrivateKeyEncrypted);
     }
 
     return decrypted;
@@ -438,16 +438,16 @@ export class PaymentConfigService {
       config.stripeTestPublicKey = dto.stripeTestPublicKey;
     }
     if (dto.stripeTestSecretKey) {
-      config.stripeTestSecretKeyEncrypted = this.encryptionService.encrypt(dto.stripeTestSecretKey);
+      config.stripeTestSecretKeyEncrypted = this.encryptionService.encryptToString(dto.stripeTestSecretKey);
     }
     if (dto.stripeLivePublicKey !== undefined) {
       config.stripeLivePublicKey = dto.stripeLivePublicKey;
     }
     if (dto.stripeLiveSecretKey) {
-      config.stripeLiveSecretKeyEncrypted = this.encryptionService.encrypt(dto.stripeLiveSecretKey);
+      config.stripeLiveSecretKeyEncrypted = this.encryptionService.encryptToString(dto.stripeLiveSecretKey);
     }
     if (dto.stripeWebhookSecret) {
-      config.webhookSecretEncrypted = this.encryptionService.encrypt(dto.stripeWebhookSecret);
+      config.webhookSecretEncrypted = this.encryptionService.encryptToString(dto.stripeWebhookSecret);
     }
   }
 
@@ -459,13 +459,13 @@ export class PaymentConfigService {
       config.paypalSandboxClientId = dto.paypalSandboxClientId;
     }
     if (dto.paypalSandboxSecret) {
-      config.paypalSandboxSecretEncrypted = this.encryptionService.encrypt(dto.paypalSandboxSecret);
+      config.paypalSandboxSecretEncrypted = this.encryptionService.encryptToString(dto.paypalSandboxSecret);
     }
     if (dto.paypalLiveClientId !== undefined) {
       config.paypalLiveClientId = dto.paypalLiveClientId;
     }
     if (dto.paypalLiveSecret) {
-      config.paypalLiveSecretEncrypted = this.encryptionService.encrypt(dto.paypalLiveSecret);
+      config.paypalLiveSecretEncrypted = this.encryptionService.encryptToString(dto.paypalLiveSecret);
     }
     if (dto.paypalWebhookId !== undefined) {
       config.paypalWebhookId = dto.paypalWebhookId;
@@ -477,10 +477,10 @@ export class PaymentConfigService {
    */
   private updatePaddleConfig(config: PaymentProviderConfig, dto: PaymentProviderConfigDto): void {
     if (dto.paddleApiKey) {
-      config.paddleApiKeyEncrypted = this.encryptionService.encrypt(dto.paddleApiKey);
+      config.paddleApiKeyEncrypted = this.encryptionService.encryptToString(dto.paddleApiKey);
     }
     if (dto.paddleWebhookSecret) {
-      config.webhookSecretEncrypted = this.encryptionService.encrypt(dto.paddleWebhookSecret);
+      config.webhookSecretEncrypted = this.encryptionService.encryptToString(dto.paddleWebhookSecret);
     }
   }
 
@@ -498,10 +498,10 @@ export class PaymentConfigService {
       config.wechatSerialNo = dto.wechatSerialNo;
     }
     if (dto.wechatApiV3Key) {
-      config.wechatApiV3KeyEncrypted = this.encryptionService.encrypt(dto.wechatApiV3Key);
+      config.wechatApiV3KeyEncrypted = this.encryptionService.encryptToString(dto.wechatApiV3Key);
     }
     if (dto.wechatPrivateKey) {
-      config.wechatPrivateKeyEncrypted = this.encryptionService.encrypt(dto.wechatPrivateKey);
+      config.wechatPrivateKeyEncrypted = this.encryptionService.encryptToString(dto.wechatPrivateKey);
     }
     if (dto.wechatPublicKey !== undefined) {
       config.wechatPublicKey = dto.wechatPublicKey;
@@ -516,7 +516,7 @@ export class PaymentConfigService {
       config.alipayAppId = dto.alipayAppId;
     }
     if (dto.alipayPrivateKey) {
-      config.alipayPrivateKeyEncrypted = this.encryptionService.encrypt(dto.alipayPrivateKey);
+      config.alipayPrivateKeyEncrypted = this.encryptionService.encryptToString(dto.alipayPrivateKey);
     }
     if (dto.alipayPublicKey !== undefined) {
       config.alipayPublicKey = dto.alipayPublicKey;

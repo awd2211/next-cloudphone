@@ -10,7 +10,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProxyModule } from './proxy/proxy.module';
 // import { SearchModule } from './search/search.module'; // Temporarily disabled
-import { ConsulModule, createLoggerConfig, RequestIdMiddleware } from '@cloudphone/shared';
+import { ConsulModule, createLoggerConfig, RequestIdMiddleware, RequestTracingMiddleware } from '@cloudphone/shared';
 import { HealthController } from './health.controller';
 import { MetricsModule } from './metrics/metrics.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -90,6 +90,8 @@ import { validate } from './common/config/env.validation';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    // ✅ 应用分布式追踪中间件（必须在 RequestIdMiddleware 之前）
+    consumer.apply(RequestTracingMiddleware).forRoutes('*');
     // 应用 Request ID 中间件到所有路由
     consumer.apply(RequestIdMiddleware).forRoutes('*');
   }

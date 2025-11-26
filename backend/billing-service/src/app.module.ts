@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { HttpThrottlerGuard } from './common/guards/http-throttler.guard';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
@@ -35,6 +36,7 @@ import {
   ProxyClientModule, // ✅ 导入代理客户端模块
   DistributedLockModule, // ✅ K8s集群安全：分布式锁模块
   AllExceptionsFilter, // ✅ 统一异常过滤器
+  RequestTracingMiddleware, // ✅ 分布式追踪中间件
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 import { getDatabaseConfig } from './common/config/database.config';
@@ -89,13 +91,20 @@ import { getDatabaseConfig } from './common/config/database.config';
       useClass: AllExceptionsFilter,
     },
     // 全局 Throttler 守卫（限流保护）
+    // 使用自定义的 HttpThrottlerGuard，只在 HTTP 上下文中应用限流
+    // 避免在 RabbitMQ 消费者等非 HTTP 上下文中触发错误
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: HttpThrottlerGuard,
     },
     AppService,
     BillingDeviceEventsHandler, // ✅ V2: 直接注册消费者
     BillingUserEventsHandler, // ✅ V2: 直接注册消费者
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // ✅ 分布式追踪中间件
+    consumer.apply(RequestTracingMiddleware).forRoutes('*');
+  }
+}

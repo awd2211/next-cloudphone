@@ -2,7 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { PurchasePlanSaga } from './purchase-plan.saga';
-import { DeviceAllocatedEvent } from '@cloudphone/shared';
+import { DeviceAllocatedEvent, runInTraceContext } from '@cloudphone/shared';
 
 @Injectable()
 export class SagaConsumer {
@@ -19,13 +19,16 @@ export class SagaConsumer {
     queue: 'billing-service.saga-device-allocate',
     queueOptions: {
       durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
     },
   })
   async handleDeviceAllocated(event: DeviceAllocatedEvent) {
-    this.logger.log(
-      `Received device allocation result for saga ${event.sagaId}: success=${event.success}, deviceId=${event.deviceId}`
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `Received device allocation result for saga ${event.sagaId}: success=${event.success}, deviceId=${event.deviceId}`
+      );
 
-    await this.purchasePlanSaga.handleDeviceAllocated(event.sagaId, event.deviceId, event.success);
+      await this.purchasePlanSaga.handleDeviceAllocated(event.sagaId, event.deviceId, event.success);
+    });
   }
 }

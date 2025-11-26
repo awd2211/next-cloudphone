@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
@@ -13,6 +13,7 @@ import {
   DistributedLockModule,
   AllExceptionsFilter,
   EventBusModule,
+  RequestTracingMiddleware, // ✅ 分布式追踪中间件
 } from '@cloudphone/shared';
 
 // 功能模块
@@ -244,4 +245,9 @@ import { getDatabaseConfig } from './common/config/database.config';
     TicketEventsConsumer,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // ✅ 分布式追踪中间件
+    consumer.apply(RequestTracingMiddleware).forRoutes('*');
+  }
+}

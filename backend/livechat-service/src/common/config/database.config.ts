@@ -8,7 +8,8 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
   username: configService.get('DB_USERNAME', 'postgres'),
   password: configService.get('DB_PASSWORD', 'postgres'),
   database: configService.get('DB_DATABASE', 'cloudphone_livechat'),
-  entities: [__dirname + '/../../entities/*.entity{.ts,.js}'],
+  // ✅ HMR 兼容：自动加载 forFeature() 注册的实体
+  autoLoadEntities: true,
   synchronize: configService.get('NODE_ENV') === 'development',
   logging: configService.get('NODE_ENV') === 'development' ? ['error', 'warn'] : false,
   // 连接池优化

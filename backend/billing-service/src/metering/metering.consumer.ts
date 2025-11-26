@@ -2,7 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { MeteringService } from './metering.service';
-import { DeviceStartedEvent, DeviceStoppedEvent } from '@cloudphone/shared';
+import { DeviceStartedEvent, DeviceStoppedEvent, runInTraceContext } from '@cloudphone/shared';
 
 @Injectable()
 export class MeteringConsumer {
@@ -19,23 +19,26 @@ export class MeteringConsumer {
     queue: 'billing-service.device-started',
     queueOptions: {
       durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
     },
   })
   async handleDeviceStarted(event: DeviceStartedEvent) {
-    this.logger.log(`Device started event received: ${event.deviceId}, starting usage metering`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`Device started event received: ${event.deviceId}, starting usage metering`);
 
-    try {
-      // 开始计量
-      await this.meteringService.startUsageTracking({
-        deviceId: event.deviceId,
-        userId: event.userId,
-        tenantId: event.tenantId,
-      });
+      try {
+        // 开始计量
+        await this.meteringService.startUsageTracking({
+          deviceId: event.deviceId,
+          userId: event.userId,
+          tenantId: event.tenantId,
+        });
 
-      this.logger.log(`Usage metering started for device ${event.deviceId}`);
-    } catch (error) {
-      this.logger.error(`Failed to start metering for device ${event.deviceId}:`, error.message);
-    }
+        this.logger.log(`Usage metering started for device ${event.deviceId}`);
+      } catch (error) {
+        this.logger.error(`Failed to start metering for device ${event.deviceId}:`, error.message);
+      }
+    });
   }
 
   /**
@@ -47,20 +50,23 @@ export class MeteringConsumer {
     queue: 'billing-service.device-stopped',
     queueOptions: {
       durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
     },
   })
   async handleDeviceStopped(event: DeviceStoppedEvent) {
-    this.logger.log(
-      `Device stopped event received: ${event.deviceId}, stopping usage metering. Duration: ${event.duration}s`
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `Device stopped event received: ${event.deviceId}, stopping usage metering. Duration: ${event.duration}s`
+      );
 
-    try {
-      // 结束计量
-      await this.meteringService.stopUsageTracking(event.deviceId, event.duration);
+      try {
+        // 结束计量
+        await this.meteringService.stopUsageTracking(event.deviceId, event.duration);
 
-      this.logger.log(`Usage metering stopped for device ${event.deviceId}`);
-    } catch (error) {
-      this.logger.error(`Failed to stop metering for device ${event.deviceId}:`, error.message);
-    }
+        this.logger.log(`Usage metering stopped for device ${event.deviceId}`);
+      } catch (error) {
+        this.logger.error(`Failed to stop metering for device ${event.deviceId}:`, error.message);
+      }
+    });
   }
 }

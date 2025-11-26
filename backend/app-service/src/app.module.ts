@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
@@ -17,6 +17,7 @@ import {
   EventOutboxModule,
   ProxyClientModule, // ✅ 导入代理客户端模块
   AllExceptionsFilter, // ✅ 统一异常过滤器
+  RequestTracingMiddleware, // ✅ 分布式追踪中间件
 } from '@cloudphone/shared';
 import { validate } from './common/config/env.validation';
 import { getDatabaseConfig } from './common/config/database.config';
@@ -72,4 +73,9 @@ import { DeviceApplication } from './entities/device-application.entity'; // ✅
     AppsConsumer, // ✅ V2: 直接注册消费者
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // ✅ 分布式追踪中间件
+    consumer.apply(RequestTracingMiddleware).forRoutes('*');
+  }
+}
