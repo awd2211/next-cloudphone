@@ -68,7 +68,7 @@ export class ProviderConfigController {
       order: { priority: 'ASC', createdAt: 'DESC' },
     });
 
-    // 计算成功率
+    // 计算成功率，添加 hasApiKey 字段
     return providers.map((provider) => ({
       ...provider,
       successRate:
@@ -77,6 +77,8 @@ export class ProviderConfigController {
           : 0,
       // 不返回实际的API密钥，只返回是否加密的状态
       apiKey: undefined,
+      // 标记是否已配置API密钥
+      hasApiKey: !!(provider.apiKey && provider.apiKey.length > 0),
     })) as ProviderConfigResponseDto[];
   }
 
@@ -149,6 +151,7 @@ export class ProviderConfigController {
           ? Number(((provider.totalSuccess / provider.totalRequests) * 100).toFixed(2))
           : 0,
       apiKey: undefined, // 不返回实际密钥
+      hasApiKey: !!(provider.apiKey && provider.apiKey.length > 0),
     } as ProviderConfigResponseDto;
   }
 
@@ -196,6 +199,7 @@ export class ProviderConfigController {
       ...saved,
       successRate: 0,
       apiKey: undefined,
+      hasApiKey: true, // 新创建的配置一定有API密钥
     } as ProviderConfigResponseDto;
   }
 
@@ -238,6 +242,7 @@ export class ProviderConfigController {
           ? Number(((updated.totalSuccess / updated.totalRequests) * 100).toFixed(2))
           : 0,
       apiKey: undefined,
+      hasApiKey: !!(updated.apiKey && updated.apiKey.length > 0),
     } as ProviderConfigResponseDto;
   }
 
@@ -292,6 +297,7 @@ export class ProviderConfigController {
           ? Number(((updated.totalSuccess / updated.totalRequests) * 100).toFixed(2))
           : 0,
       apiKey: undefined,
+      hasApiKey: !!(updated.apiKey && updated.apiKey.length > 0),
     } as ProviderConfigResponseDto;
   }
 
@@ -621,6 +627,7 @@ export class ProviderConfigController {
       ...updated,
       successRate: 0,
       apiKey: undefined,
+      hasApiKey: !!(updated.apiKey && updated.apiKey.length > 0),
     } as ProviderConfigResponseDto;
   }
 

@@ -86,3 +86,12 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+// Webpack HMR 支持
+declare const module: any;
+if (module.hot) {
+  module.hot.accept();
+  module.hot.dispose(() => {
+    // 在热更新前执行清理
+  });
+}

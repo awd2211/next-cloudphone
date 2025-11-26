@@ -526,10 +526,18 @@ export class FiveSimAdapter implements ISmsProvider {
   }): Promise<FiveSimOrder[]> {
     try {
       const url = `${this.baseUrl}/user/orders`;
+      // 5sim API 要求 category 参数，默认为 activation
+      const queryParams = {
+        category: params?.category || 'activation',
+        ...(params?.limit !== undefined && { limit: params.limit }),
+        ...(params?.offset !== undefined && { offset: params.offset }),
+        ...(params?.order !== undefined && { order: params.order }),
+        ...(params?.reverse !== undefined && { reverse: params.reverse }),
+      };
       const response = await firstValueFrom(
         this.httpService.get<{ Data: FiveSimOrder[] }>(url, {
           headers: this.getHeaders(),
-          params: params || {},
+          params: queryParams,
           timeout: 10000,
         }),
       );

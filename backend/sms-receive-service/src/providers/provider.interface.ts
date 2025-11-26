@@ -108,6 +108,8 @@ export interface ProviderCapabilities {
  * 平台错误类型
  */
 export class ProviderError extends Error {
+  public readonly httpStatus: number;
+
   constructor(
     message: string,
     public readonly provider: string,
@@ -116,6 +118,38 @@ export class ProviderError extends Error {
   ) {
     super(message);
     this.name = 'ProviderError';
+    // 根据错误代码设置 HTTP 状态码
+    this.httpStatus = this.getHttpStatus(code);
+  }
+
+  private getHttpStatus(code?: string): number {
+    // 业务逻辑错误返回 422 (Unprocessable Entity)
+    const businessErrors = [
+      'NO_NUMBERS',
+      'NO_BALANCE',
+      'WRONG_SERVICE',
+      'WRONG_OPERATOR',
+      'INVALID_PHONE',
+    ];
+
+    // 认证/授权错误返回 401/403
+    const authErrors = ['BAD_KEY', 'BANNED', 'ACCOUNT_INACTIVE', 'WRONG_SECURITY'];
+
+    // 资源不存在返回 404
+    const notFoundErrors = ['NO_ACTIVATION'];
+
+    // 请求格式错误返回 400
+    const badRequestErrors = ['BAD_ACTION', 'BAD_STATUS', 'CANT_CANCEL'];
+
+    if (code) {
+      if (businessErrors.includes(code)) return 422;
+      if (authErrors.includes(code)) return 401;
+      if (notFoundErrors.includes(code)) return 404;
+      if (badRequestErrors.includes(code)) return 400;
+    }
+
+    // 默认返回 500
+    return 500;
   }
 }
 

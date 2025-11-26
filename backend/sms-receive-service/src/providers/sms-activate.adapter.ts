@@ -234,26 +234,26 @@ export class SmsActivateAdapter implements ISmsProvider {
 
       const data = response.data;
 
-      // 检查错误响应
-      if (typeof data === 'string') {
-        const errorCodes = [
-          'BAD_KEY',
-          'ERROR_SQL',
-          'BAD_ACTION',
-          'NO_NUMBERS',
-          'NO_BALANCE',
-          'WRONG_SERVICE',
-          'BAD_STATUS',
-          'NO_ACTIVATION',
-          'BANNED',
-          'NO_CONNECTION',
-          'ACCOUNT_INACTIVE',
-          'INVALID_PHONE',
-          'WRONG_SECURITY',
-          'CANT_CANCEL',
-          'WRONG_OPERATOR',
-        ];
+      const errorCodes = [
+        'BAD_KEY',
+        'ERROR_SQL',
+        'BAD_ACTION',
+        'NO_NUMBERS',
+        'NO_BALANCE',
+        'WRONG_SERVICE',
+        'BAD_STATUS',
+        'NO_ACTIVATION',
+        'BANNED',
+        'NO_CONNECTION',
+        'ACCOUNT_INACTIVE',
+        'INVALID_PHONE',
+        'WRONG_SECURITY',
+        'CANT_CANCEL',
+        'WRONG_OPERATOR',
+      ];
 
+      // 检查字符串格式的错误响应
+      if (typeof data === 'string') {
         for (const errorCode of errorCodes) {
           if (data.startsWith(errorCode)) {
             throw new ProviderError(
@@ -264,6 +264,18 @@ export class SmsActivateAdapter implements ISmsProvider {
             );
           }
         }
+      }
+
+      // 检查 JSON 格式的错误响应 (例如: {"status":"error","message":"NO_NUMBERS"})
+      if (typeof data === 'object' && data !== null && data.status === 'error') {
+        const errorCode = data.message || 'UNKNOWN_ERROR';
+        const errorMessage = data.errorMsg || data.message || 'Unknown error';
+        throw new ProviderError(
+          errorMessage,
+          this.providerName,
+          errorCode,
+          ['NO_NUMBERS', 'NO_BALANCE'].includes(errorCode),
+        );
       }
 
       return data as T;
@@ -320,14 +332,26 @@ export class SmsActivateAdapter implements ISmsProvider {
   async getBalanceAndCashBack(): Promise<SmsActivateBalanceAndCashBack> {
     const data = await this.request<string>('getBalanceAndCashBack');
 
-    // 响应格式: ACCESS_BALANCE_CASHBACK:123.45:10.00
-    if (typeof data === 'string' && data.startsWith('ACCESS_BALANCE_CASHBACK:')) {
-      const parts = data.split(':');
-      return {
-        balance: parseFloat(parts[1]),
-        cashBack: parseFloat(parts[2] || '0'),
-        currency: 'RUB',
-      };
+    if (typeof data === 'string') {
+      // 响应格式 1: ACCESS_BALANCE_CASHBACK:123.45:10.00 (有返现功能)
+      if (data.startsWith('ACCESS_BALANCE_CASHBACK:')) {
+        const parts = data.split(':');
+        return {
+          balance: parseFloat(parts[1]),
+          cashBack: parseFloat(parts[2] || '0'),
+          currency: 'RUB',
+        };
+      }
+
+      // 响应格式 2: ACCESS_BALANCE:123.45 (没有返现功能或余额为0)
+      if (data.startsWith('ACCESS_BALANCE:')) {
+        const parts = data.split(':');
+        return {
+          balance: parseFloat(parts[1]),
+          cashBack: 0,
+          currency: 'RUB',
+        };
+      }
     }
 
     throw new ProviderError(

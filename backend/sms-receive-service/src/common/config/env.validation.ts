@@ -50,7 +50,7 @@ export const envValidationSchema = Joi.object({
   JWT_EXPIRES_IN: Joi.string().default('24h'),
 
   // ===== RabbitMQ 配置 =====
-  RABBITMQ_URL: Joi.string().uri().required(),
+  RABBITMQ_URL: Joi.string().uri({ scheme: ['amqp', 'amqps'] }).required(),
   RABBITMQ_EXCHANGE: Joi.string().default('cloudphone.events'),
   RABBITMQ_QUEUE_PREFIX: Joi.string().default('sms-receive-service'),
 

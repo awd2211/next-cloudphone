@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
@@ -12,6 +12,7 @@ import {
   createLoggerConfig,
   DistributedLockModule,
   AllExceptionsFilter,
+  RequestTracingMiddleware, // ✅ 分布式追踪中间件
 } from '@cloudphone/shared';
 
 // Entities
@@ -65,6 +66,9 @@ import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { getDatabaseConfig } from './common/config/database.config';
 import { validate } from './common/config/env.validation';
+
+// Filters
+import { ProviderErrorFilter } from './common/filters/provider-error.filter';
 
 @Module({
   imports: [
@@ -136,10 +140,15 @@ import { validate } from './common/config/env.validation';
   ],
 
   providers: [
-    // 全局异常过滤器（统一错误处理）
+    // ProviderError 异常过滤器（优先处理平台错误）
+    // 注意：过滤器的优先级是相反的，后注册的先执行
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: ProviderErrorFilter,
     },
     // 全局 Throttler 守卫（限流保护）
     {
@@ -169,4 +178,9 @@ import { validate } from './common/config/env.validation';
     OnlineSimService,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // ✅ 分布式追踪中间件
+    consumer.apply(RequestTracingMiddleware).forRoutes('*');
+  }
+}

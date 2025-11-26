@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNumber, IsOptional, IsEnum, IsBoolean, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
 /**
  * 5sim 订单查询参数 DTO
@@ -21,6 +22,7 @@ export class FiveSimOrderQueryDto {
     maximum: 100,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   @Max(100)
@@ -32,6 +34,7 @@ export class FiveSimOrderQueryDto {
     minimum: 0,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   offset?: number;
@@ -169,6 +172,7 @@ export class RentNumberDto {
     default: 24,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   @Max(8760)
@@ -319,6 +323,7 @@ export class FiveSimSetMaxPriceDto {
     example: 20.0,
     minimum: 0.01,
   })
+  @Type(() => Number)
   @IsNumber()
   @Min(0.01)
   price: number;

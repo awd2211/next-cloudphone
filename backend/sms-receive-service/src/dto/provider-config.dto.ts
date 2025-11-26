@@ -261,6 +261,9 @@ export class ProviderConfigResponseDto {
   @ApiProperty({ description: 'API密钥已加密', example: true })
   apiKeyEncrypted: boolean;
 
+  @ApiProperty({ description: 'API密钥是否已配置', example: true })
+  hasApiKey: boolean;
+
   @ApiPropertyOptional({ description: '当前余额' })
   balance?: number;
 
