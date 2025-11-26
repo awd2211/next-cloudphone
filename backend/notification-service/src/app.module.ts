@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
@@ -8,7 +8,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HttpThrottlerGuard } from './common/guards/http-throttler.guard';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
-import { createLoggerConfig, ConsulModule, DistributedLockModule, AllExceptionsFilter } from '@cloudphone/shared';
+import { createLoggerConfig, ConsulModule, DistributedLockModule, AllExceptionsFilter, RequestTracingMiddleware } from '@cloudphone/shared';
 import { HealthController } from './health/health.controller';
 import { TasksService } from './tasks/tasks.service';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -27,6 +27,8 @@ import { MediaEventsConsumer } from './rabbitmq/consumers/media-events.consumer'
 import { SystemEventsConsumer } from './rabbitmq/consumers/system-events.consumer';
 import { DlxConsumer } from './rabbitmq/consumers/dlx.consumer';
 import { QuotaEventsConsumer } from './rabbitmq/consumers/quota-events.consumer'; // ✅ 配额事件消费者
+import { ProxyEventsConsumer } from './rabbitmq/consumers/proxy-events.consumer'; // ✅ 代理事件消费者 (2025-11-26)
+import { SmsEventsConsumer } from './rabbitmq/consumers/sms-events.consumer'; // ✅ 短信事件消费者 (2025-11-26)
 import { AuthModule } from './auth/auth.module';
 import { CacheModule } from './cache/cache.module'; // ✅ 使用自定义的 @Global() CacheModule
 import { Notification } from './entities/notification.entity';
@@ -136,7 +138,14 @@ import { EventBusModule } from '@cloudphone/shared'; // ✅ V2: 导入 EventBusM
     MediaEventsConsumer,
     SystemEventsConsumer,
     QuotaEventsConsumer, // ✅ 配额事件消费者（修复注册缺失）
+    ProxyEventsConsumer, // ✅ 代理事件消费者 (2025-11-26)
+    SmsEventsConsumer, // ✅ 短信事件消费者 (2025-11-26)
     DlxConsumer,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // ✅ 分布式追踪中间件
+    consumer.apply(RequestTracingMiddleware).forRoutes('*');
+  }
+}

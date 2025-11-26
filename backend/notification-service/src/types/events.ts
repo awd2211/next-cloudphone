@@ -376,6 +376,119 @@ export interface SystemUpdateEvent extends BaseEvent {
   };
 }
 
+// ========== Proxy Events ==========
+// ✅ 2025-11-26: 新增代理服务事件（之前完全缺失消费者）
+
+export interface ProxyCostAlertEvent extends BaseEvent {
+  eventType: 'proxy.cost_alert';
+  payload: {
+    userId: string;
+    username?: string;
+    userRole?: string;
+    userEmail?: string;
+    tenantId: string;
+    providerId: string;
+    providerName: string;
+    alertType: 'budget_warning' | 'budget_exceeded' | 'daily_limit' | 'monthly_limit';
+    currentCost: number;
+    threshold: number;
+    period: string;
+    detectedAt: string;
+  };
+}
+
+export interface ProxyUsageStoppedEvent extends BaseEvent {
+  eventType: 'proxy.usage_stopped';
+  payload: {
+    userId: string;
+    username?: string;
+    userRole?: string;
+    userEmail?: string;
+    tenantId: string;
+    providerId: string;
+    providerName: string;
+    reason: 'budget_exceeded' | 'quota_exhausted' | 'account_suspended';
+    stoppedAt: string;
+  };
+}
+
+export interface ProxyAlertTriggeredEvent extends BaseEvent {
+  eventType: 'proxy.alert_triggered';
+  payload: {
+    alertId: string;
+    alertName: string;
+    alertType: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    providerId?: string;
+    providerName?: string;
+    message: string;
+    threshold?: number;
+    currentValue?: number;
+    triggeredAt: string;
+  };
+}
+
+export interface ProxyAlertResolvedEvent extends BaseEvent {
+  eventType: 'proxy.alert_resolved';
+  payload: {
+    alertId: string;
+    alertName: string;
+    alertType: string;
+    providerId?: string;
+    providerName?: string;
+    resolvedAt: string;
+    resolution?: string;
+  };
+}
+
+// ========== SMS Events ==========
+// ✅ 2025-11-26: 新增短信服务事件（之前部分缺失消费者）
+
+export interface SmsNumberExpiredEvent extends BaseEvent {
+  eventType: 'sms.number.expired';
+  payload: {
+    userId: string;
+    username?: string;
+    userRole?: string;
+    userEmail?: string;
+    tenantId: string;
+    phoneNumber: string;
+    country: string;
+    provider: string;
+    expiredAt: string;
+    renewalAvailable: boolean;
+  };
+}
+
+export interface SmsNumberFromPoolEvent extends BaseEvent {
+  eventType: 'sms.number.from_pool';
+  payload: {
+    userId: string;
+    tenantId: string;
+    phoneNumber: string;
+    country: string;
+    provider: string;
+    assignedAt: string;
+    expiresAt: string;
+  };
+}
+
+export interface SmsMessageReceivedEvent extends BaseEvent {
+  eventType: 'sms.message.received';
+  payload: {
+    userId: string;
+    username?: string;
+    userRole?: string;
+    userEmail?: string;
+    tenantId: string;
+    phoneNumber: string;
+    sender: string;
+    message: string;
+    receivedAt: string;
+    provider: string;
+  };
+}
+
 // ========== Event Types Enum ==========
 
 export const NotificationEventTypes = {
@@ -424,4 +537,15 @@ export const NotificationEventTypes = {
   // System
   SYSTEM_MAINTENANCE: 'system.maintenance',
   SYSTEM_UPDATE: 'system.update',
+
+  // Proxy (新增 2025-11-26)
+  PROXY_COST_ALERT: 'proxy.cost_alert',
+  PROXY_USAGE_STOPPED: 'proxy.usage_stopped',
+  PROXY_ALERT_TRIGGERED: 'proxy.alert_triggered',
+  PROXY_ALERT_RESOLVED: 'proxy.alert_resolved',
+
+  // SMS (新增 2025-11-26)
+  SMS_NUMBER_EXPIRED: 'sms.number.expired',
+  SMS_NUMBER_FROM_POOL: 'sms.number.from_pool',
+  SMS_MESSAGE_RECEIVED: 'sms.message.received',
 } as const;

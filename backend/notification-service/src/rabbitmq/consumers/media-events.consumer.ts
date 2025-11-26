@@ -15,7 +15,10 @@ export class MediaEventsConsumer {
     exchange: 'cloudphone.events',
     routingKey: NotificationEventTypes.FILE_UPLOADED,
     queue: 'notification-service.media.file_uploaded',
-    queueOptions: { durable: true },
+    queueOptions: {
+      durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
+    },
   })
   async handleFileUploaded(event: FileUploadedEvent, msg: ConsumeMessage) {
     this.logger.log(`文件上传完成: ${event.payload.fileName}`);

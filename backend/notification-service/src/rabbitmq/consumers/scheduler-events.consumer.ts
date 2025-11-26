@@ -14,7 +14,10 @@ export class SchedulerEventsConsumer {
     exchange: 'cloudphone.events',
     routingKey: NotificationEventTypes.SCHEDULED_TASK_COMPLETED,
     queue: 'notification-service.scheduler.task_completed',
-    queueOptions: { durable: true },
+    queueOptions: {
+      durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
+    },
   })
   async handleTaskCompleted(event: ScheduledTaskCompletedEvent, msg: ConsumeMessage) {
     this.logger.log(`定时任务完成: ${event.payload.taskName}`);

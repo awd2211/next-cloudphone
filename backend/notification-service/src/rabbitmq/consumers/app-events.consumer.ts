@@ -11,6 +11,7 @@ import { NotificationsService } from '../../notifications/notifications.service'
 import { TemplatesService } from '../../templates/templates.service';
 import { NotificationCategory } from '../../entities/notification.entity';
 import { NotificationGateway } from '../../gateway/notification.gateway';
+import { runInTraceContext } from '@cloudphone/shared';
 
 /**
  * App Service 事件消费者
@@ -46,46 +47,48 @@ export class AppEventsConsumer {
     },
   })
   async handleAppInstalled(event: AppInstalledEvent, msg: ConsumeMessage) {
-    this.logger.log(`应用安装成功: ${event.payload.appName} - Role: ${event.payload.userRole}`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`应用安装成功: ${event.payload.appName} - Role: ${event.payload.userRole}`);
 
-    try {
-      // ✅ 使用角色化通知系统
-      await this.notificationsService.createRoleBasedNotification(
-        event.payload.userId,
-        event.payload.userRole,  // ✅ 用户角色 from payload
-        'app.installed' as any,
-        {
-          appId: event.payload.appId,
-          appName: event.payload.appName,
-          deviceId: event.payload.deviceId,
-          deviceName: event.payload.deviceName || '云手机',
-          installedAt: event.payload.installedAt || new Date().toISOString(),
-          version: event.payload.version,
-        },
-        {
-          userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
-        }
-      );
+      try {
+        // ✅ 使用角色化通知系统
+        await this.notificationsService.createRoleBasedNotification(
+          event.payload.userId,
+          event.payload.userRole,  // ✅ 用户角色 from payload
+          'app.installed' as any,
+          {
+            appId: event.payload.appId,
+            appName: event.payload.appName,
+            deviceId: event.payload.deviceId,
+            deviceName: event.payload.deviceName || '云手机',
+            installedAt: event.payload.installedAt || new Date().toISOString(),
+            version: event.payload.version,
+          },
+          {
+            userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
+          }
+        );
 
-      // ✅ WebSocket 实时推送
-      this.gateway.sendToUser(event.payload.userId, {
-        type: 'app.installed',
-        data: {
-          userId: event.payload.userId,
-          appId: event.payload.appId,
-          appName: event.payload.appName,
-          deviceId: event.payload.deviceId,
-          deviceName: event.payload.deviceName,
-          version: event.payload.version,
-          installedAt: event.payload.installedAt || new Date().toISOString(),
-        },
-      });
+        // ✅ WebSocket 实时推送
+        this.gateway.sendToUser(event.payload.userId, {
+          type: 'app.installed',
+          data: {
+            userId: event.payload.userId,
+            appId: event.payload.appId,
+            appName: event.payload.appName,
+            deviceId: event.payload.deviceId,
+            deviceName: event.payload.deviceName,
+            version: event.payload.version,
+            installedAt: event.payload.installedAt || new Date().toISOString(),
+          },
+        });
 
-      this.logger.log(`应用安装通知已发送并推送: ${event.payload.userId}`);
-    } catch (error) {
-      this.logger.error(`处理应用安装事件失败: ${error.message}`);
-      throw error;
-    }
+        this.logger.log(`应用安装通知已发送并推送: ${event.payload.userId}`);
+      } catch (error) {
+        this.logger.error(`处理应用安装事件失败: ${error.message}`);
+        throw error;
+      }
+    });
   }
 
   @RabbitSubscribe({
@@ -99,46 +102,48 @@ export class AppEventsConsumer {
     },
   })
   async handleAppInstallFailed(event: AppInstallFailedEvent, msg: ConsumeMessage) {
-    this.logger.warn(`应用安装失败: ${event.payload.appName} - Role: ${event.payload.userRole}`);
+    return runInTraceContext(event, async () => {
+      this.logger.warn(`应用安装失败: ${event.payload.appName} - Role: ${event.payload.userRole}`);
 
-    try {
-      // ✅ 使用角色化通知系统
-      await this.notificationsService.createRoleBasedNotification(
-        event.payload.userId,
-        event.payload.userRole,  // ✅ 用户角色 from payload
-        'app.install_failed' as any,
-        {
-          appId: event.payload.appId,
-          appName: event.payload.appName,
-          deviceId: event.payload.deviceId,
-          deviceName: event.payload.deviceName || '云手机',
-          reason: event.payload.reason,
-          failedAt: event.payload.failedAt || new Date().toISOString(),
-        },
-        {
-          userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
-        }
-      );
+      try {
+        // ✅ 使用角色化通知系统
+        await this.notificationsService.createRoleBasedNotification(
+          event.payload.userId,
+          event.payload.userRole,  // ✅ 用户角色 from payload
+          'app.install_failed' as any,
+          {
+            appId: event.payload.appId,
+            appName: event.payload.appName,
+            deviceId: event.payload.deviceId,
+            deviceName: event.payload.deviceName || '云手机',
+            reason: event.payload.reason,
+            failedAt: event.payload.failedAt || new Date().toISOString(),
+          },
+          {
+            userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
+          }
+        );
 
-      // ✅ WebSocket 实时推送
-      this.gateway.sendToUser(event.payload.userId, {
-        type: 'app.install_failed',
-        data: {
-          userId: event.payload.userId,
-          appId: event.payload.appId,
-          appName: event.payload.appName,
-          deviceId: event.payload.deviceId,
-          deviceName: event.payload.deviceName,
-          reason: event.payload.reason,
-          failedAt: event.payload.failedAt || new Date().toISOString(),
-        },
-      });
+        // ✅ WebSocket 实时推送
+        this.gateway.sendToUser(event.payload.userId, {
+          type: 'app.install_failed',
+          data: {
+            userId: event.payload.userId,
+            appId: event.payload.appId,
+            appName: event.payload.appName,
+            deviceId: event.payload.deviceId,
+            deviceName: event.payload.deviceName,
+            reason: event.payload.reason,
+            failedAt: event.payload.failedAt || new Date().toISOString(),
+          },
+        });
 
-      this.logger.log(`应用安装失败通知已发送并推送: ${event.payload.userId}`);
-    } catch (error) {
-      this.logger.error(`处理应用安装失败事件失败: ${error.message}`);
-      throw error;
-    }
+        this.logger.log(`应用安装失败通知已发送并推送: ${event.payload.userId}`);
+      } catch (error) {
+        this.logger.error(`处理应用安装失败事件失败: ${error.message}`);
+        throw error;
+      }
+    });
   }
 
   @RabbitSubscribe({
@@ -152,45 +157,47 @@ export class AppEventsConsumer {
     },
   })
   async handleAppUpdated(event: AppUpdatedEvent, msg: ConsumeMessage) {
-    this.logger.log(`应用更新成功: ${event.payload.appName} - Role: ${event.payload.userRole}`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`应用更新成功: ${event.payload.appName} - Role: ${event.payload.userRole}`);
 
-    try {
-      // ✅ 使用角色化通知系统
-      await this.notificationsService.createRoleBasedNotification(
-        event.payload.userId,
-        event.payload.userRole,  // ✅ 用户角色 from payload
-        'app.updated' as any,
-        {
-          appId: event.payload.appId,
-          appName: event.payload.appName,
-          deviceId: event.payload.deviceId,
-          newVersion: event.payload.newVersion,
-          oldVersion: event.payload.oldVersion || '未知',
-          updatedAt: event.payload.updatedAt || new Date().toISOString(),
-        },
-        {
-          userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
-        }
-      );
+      try {
+        // ✅ 使用角色化通知系统
+        await this.notificationsService.createRoleBasedNotification(
+          event.payload.userId,
+          event.payload.userRole,  // ✅ 用户角色 from payload
+          'app.updated' as any,
+          {
+            appId: event.payload.appId,
+            appName: event.payload.appName,
+            deviceId: event.payload.deviceId,
+            newVersion: event.payload.newVersion,
+            oldVersion: event.payload.oldVersion || '未知',
+            updatedAt: event.payload.updatedAt || new Date().toISOString(),
+          },
+          {
+            userEmail: event.payload.userEmail,  // ✅ 用户邮箱 from payload
+          }
+        );
 
-      // ✅ WebSocket 实时推送
-      this.gateway.sendToUser(event.payload.userId, {
-        type: 'app.updated',
-        data: {
-          userId: event.payload.userId,
-          appId: event.payload.appId,
-          appName: event.payload.appName,
-          deviceId: event.payload.deviceId,
-          oldVersion: event.payload.oldVersion,
-          newVersion: event.payload.newVersion,
-          updatedAt: event.payload.updatedAt || new Date().toISOString(),
-        },
-      });
+        // ✅ WebSocket 实时推送
+        this.gateway.sendToUser(event.payload.userId, {
+          type: 'app.updated',
+          data: {
+            userId: event.payload.userId,
+            appId: event.payload.appId,
+            appName: event.payload.appName,
+            deviceId: event.payload.deviceId,
+            oldVersion: event.payload.oldVersion,
+            newVersion: event.payload.newVersion,
+            updatedAt: event.payload.updatedAt || new Date().toISOString(),
+          },
+        });
 
-      this.logger.log(`应用更新通知已发送并推送: ${event.payload.userId}`);
-    } catch (error) {
-      this.logger.error(`处理应用更新事件失败: ${error.message}`);
-      throw error;
-    }
+        this.logger.log(`应用更新通知已发送并推送: ${event.payload.userId}`);
+      } catch (error) {
+        this.logger.error(`处理应用更新事件失败: ${error.message}`);
+        throw error;
+      }
+    });
   }
 }

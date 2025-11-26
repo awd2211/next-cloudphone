@@ -4,6 +4,7 @@ import {
   ErrorNotificationService,
   ErrorEvent,
 } from '../../notifications/error-notification.service';
+import { runInTraceContext } from '@cloudphone/shared';
 
 /**
  * 系统错误事件消费者
@@ -36,17 +37,19 @@ export class ErrorEventsConsumer {
     },
   })
   async handleCriticalError(event: ErrorEvent): Promise<void> {
-    this.logger.error(
-      `收到严重错误事件: ${event.errorCode} - ${event.serviceName}`,
-      event.stackTrace
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.error(
+        `收到严重错误事件: ${event.errorCode} - ${event.serviceName}`,
+        event.stackTrace
+      );
 
-    try {
-      await this.errorNotificationService.handleErrorEvent(event);
-    } catch (error) {
-      this.logger.error('处理严重错误事件失败:', error.stack);
-      throw error; // 重新抛出，让消息进入DLX
-    }
+      try {
+        await this.errorNotificationService.handleErrorEvent(event);
+      } catch (error) {
+        this.logger.error('处理严重错误事件失败:', error.stack);
+        throw error; // 重新抛出，让消息进入DLX
+      }
+    });
   }
 
   /**
@@ -63,14 +66,16 @@ export class ErrorEventsConsumer {
     },
   })
   async handleHighError(event: ErrorEvent): Promise<void> {
-    this.logger.warn(`收到高优先级错误事件: ${event.errorCode} - ${event.serviceName}`);
+    return runInTraceContext(event, async () => {
+      this.logger.warn(`收到高优先级错误事件: ${event.errorCode} - ${event.serviceName}`);
 
-    try {
-      await this.errorNotificationService.handleErrorEvent(event);
-    } catch (error) {
-      this.logger.error('处理高优先级错误事件失败:', error.stack);
-      throw error;
-    }
+      try {
+        await this.errorNotificationService.handleErrorEvent(event);
+      } catch (error) {
+        this.logger.error('处理高优先级错误事件失败:', error.stack);
+        throw error;
+      }
+    });
   }
 
   /**
@@ -87,14 +92,16 @@ export class ErrorEventsConsumer {
     },
   })
   async handleMediumError(event: ErrorEvent): Promise<void> {
-    this.logger.log(`收到中等优先级错误事件: ${event.errorCode} - ${event.serviceName}`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`收到中等优先级错误事件: ${event.errorCode} - ${event.serviceName}`);
 
-    try {
-      await this.errorNotificationService.handleErrorEvent(event);
-    } catch (error) {
-      this.logger.error('处理中等优先级错误事件失败:', error.stack);
-      throw error;
-    }
+      try {
+        await this.errorNotificationService.handleErrorEvent(event);
+      } catch (error) {
+        this.logger.error('处理中等优先级错误事件失败:', error.stack);
+        throw error;
+      }
+    });
   }
 
   /**
@@ -111,14 +118,16 @@ export class ErrorEventsConsumer {
     },
   })
   async handleLowError(event: ErrorEvent): Promise<void> {
-    this.logger.debug(`收到低优先级错误事件: ${event.errorCode} - ${event.serviceName}`);
+    return runInTraceContext(event, async () => {
+      this.logger.debug(`收到低优先级错误事件: ${event.errorCode} - ${event.serviceName}`);
 
-    try {
-      await this.errorNotificationService.handleErrorEvent(event);
-    } catch (error) {
-      this.logger.error('处理低优先级错误事件失败:', error.stack);
-      throw error;
-    }
+      try {
+        await this.errorNotificationService.handleErrorEvent(event);
+      } catch (error) {
+        this.logger.error('处理低优先级错误事件失败:', error.stack);
+        throw error;
+      }
+    });
   }
 
   /**
@@ -134,9 +143,11 @@ export class ErrorEventsConsumer {
     },
   })
   async handleAllErrors(event: ErrorEvent): Promise<void> {
-    // 只记录日志，不触发通知（通知已由具体的优先级队列处理）
-    this.logger.debug(
-      `系统错误统计: ${event.errorCode} - ${event.serviceName} (${event.errorMessage})`
-    );
+    return runInTraceContext(event, async () => {
+      // 只记录日志，不触发通知（通知已由具体的优先级队列处理）
+      this.logger.debug(
+        `系统错误统计: ${event.errorCode} - ${event.serviceName} (${event.errorMessage})`
+      );
+    });
   }
 }

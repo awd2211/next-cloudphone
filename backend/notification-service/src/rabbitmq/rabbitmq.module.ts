@@ -11,6 +11,8 @@ import { SystemEventsConsumer } from './consumers/system-events.consumer';
 import { ErrorEventsConsumer } from './consumers/error-events.consumer';
 import { DlxConsumer } from './consumers/dlx.consumer';
 import { QuotaEventsConsumer } from './consumers/quota-events.consumer';
+import { ProxyEventsConsumer } from './consumers/proxy-events.consumer';
+import { SmsEventsConsumer } from './consumers/sms-events.consumer';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailModule } from '../email/email.module';
 import { TemplatesModule } from '../templates/templates.module';
@@ -68,6 +70,8 @@ import { TemplatesModule } from '../templates/templates.module';
     ErrorEventsConsumer,
     DlxConsumer,
     QuotaEventsConsumer,
+    ProxyEventsConsumer,    // 2025-11-26: 新增代理事件消费者
+    SmsEventsConsumer,      // 2025-11-26: 新增短信事件消费者
   ],
   exports: [RabbitMQModule],
 })

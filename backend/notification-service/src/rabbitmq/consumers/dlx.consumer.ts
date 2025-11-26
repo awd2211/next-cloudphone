@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { ConsumeMessage } from 'amqplib';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { runInTraceContext } from '@cloudphone/shared';
 
 /**
  * 失败消息类型定义
@@ -36,7 +37,9 @@ export class DlxConsumer {
     },
   })
   async handleUserEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
-    await this.handleFailedMessage('user', msg, amqpMsg);
+    return runInTraceContext(msg, async () => {
+      await this.handleFailedMessage('user', msg, amqpMsg);
+    });
   }
 
   /**
@@ -51,7 +54,9 @@ export class DlxConsumer {
     },
   })
   async handleDeviceEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
-    await this.handleFailedMessage('device', msg, amqpMsg);
+    return runInTraceContext(msg, async () => {
+      await this.handleFailedMessage('device', msg, amqpMsg);
+    });
   }
 
   /**
@@ -66,7 +71,9 @@ export class DlxConsumer {
     },
   })
   async handleAppEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
-    await this.handleFailedMessage('app', msg, amqpMsg);
+    return runInTraceContext(msg, async () => {
+      await this.handleFailedMessage('app', msg, amqpMsg);
+    });
   }
 
   /**
@@ -81,7 +88,111 @@ export class DlxConsumer {
     },
   })
   async handleBillingEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
-    await this.handleFailedMessage('billing', msg, amqpMsg);
+    return runInTraceContext(msg, async () => {
+      await this.handleFailedMessage('billing', msg, amqpMsg);
+    });
+  }
+
+  /**
+   * 处理代理事件失败 (2025-11-26 新增)
+   */
+  @RabbitSubscribe({
+    exchange: 'cloudphone.notifications.dlx',
+    routingKey: 'proxy.*.failed',
+    queue: 'notification-service.dlx.proxy',
+    queueOptions: {
+      durable: true,
+    },
+  })
+  async handleProxyEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
+    return runInTraceContext(msg, async () => {
+      await this.handleFailedMessage('proxy', msg, amqpMsg);
+    });
+  }
+
+  /**
+   * 处理短信事件失败 (2025-11-26 新增)
+   */
+  @RabbitSubscribe({
+    exchange: 'cloudphone.notifications.dlx',
+    routingKey: 'sms.*.failed',
+    queue: 'notification-service.dlx.sms',
+    queueOptions: {
+      durable: true,
+    },
+  })
+  async handleSmsEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
+    return runInTraceContext(msg, async () => {
+      await this.handleFailedMessage('sms', msg, amqpMsg);
+    });
+  }
+
+  /**
+   * 处理配额事件失败 (2025-11-26 新增)
+   */
+  @RabbitSubscribe({
+    exchange: 'cloudphone.dlx',
+    routingKey: 'quota.*.failed',
+    queue: 'notification-service.dlx.quota',
+    queueOptions: {
+      durable: true,
+    },
+  })
+  async handleQuotaEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
+    return runInTraceContext(msg, async () => {
+      await this.handleFailedMessage('quota', msg, amqpMsg);
+    });
+  }
+
+  /**
+   * 处理调度器事件失败 (2025-11-26 新增)
+   */
+  @RabbitSubscribe({
+    exchange: 'cloudphone.dlx',
+    routingKey: 'scheduler.*.failed',
+    queue: 'notification-service.dlx.scheduler',
+    queueOptions: {
+      durable: true,
+    },
+  })
+  async handleSchedulerEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
+    return runInTraceContext(msg, async () => {
+      await this.handleFailedMessage('scheduler', msg, amqpMsg);
+    });
+  }
+
+  /**
+   * 处理媒体事件失败 (2025-11-26 新增)
+   */
+  @RabbitSubscribe({
+    exchange: 'cloudphone.dlx',
+    routingKey: 'media.*.failed',
+    queue: 'notification-service.dlx.media',
+    queueOptions: {
+      durable: true,
+    },
+  })
+  async handleMediaEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
+    return runInTraceContext(msg, async () => {
+      await this.handleFailedMessage('media', msg, amqpMsg);
+    });
+  }
+
+  /**
+   * 处理系统事件失败 (2025-11-26 新增)
+   */
+  @RabbitSubscribe({
+    exchange: 'cloudphone.dlx',
+    routingKey: 'system.*.failed',
+    queue: 'notification-service.dlx.system',
+    queueOptions: {
+      durable: true,
+    },
+  })
+  async handleSystemEventFailure(msg: FailedMessage, amqpMsg: ConsumeMessage) {
+    return runInTraceContext(msg, async () => {
+      await this.handleFailedMessage('system', msg, amqpMsg);
+    });
   }
 
   /**
