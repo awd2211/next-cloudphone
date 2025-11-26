@@ -26,6 +26,7 @@ import { CacheModule } from './cache/cache.module';
 import { ProvidersModule } from './providers/providers.module';
 import { PhysicalDevicesModule } from './physical-devices/physical-devices.module';
 import { ProxyModule } from './proxy/proxy.module';
+import { WebSocketModule } from './websocket/websocket.module';
 
 import {
   ConsulModule,
@@ -34,6 +35,7 @@ import {
   EventBusModule,
   EventOutbox,
   RequestIdMiddleware,
+  RequestTracingMiddleware, // ✅ 分布式追踪中间件
   SagaModule,
   DistributedLockModule, // ✅ K8s 集群安全：分布式锁模块
   AllExceptionsFilter, // ✅ 统一异常过滤器
@@ -89,6 +91,7 @@ import { SmsEventsConsumer } from './rabbitmq/consumers/sms-events.consumer';
     SagaModule, // Saga 编排模块（用于分布式事务）
     DistributedLockModule.forRoot(), // ✅ K8s 集群安全：Redis 分布式锁（防止定时任务重复执行）
     ProxyModule, // ✅ 代理管理模块（统计、健康检查、客户端）
+    WebSocketModule, // ✅ WebSocket 模块（设备状态实时推送）
   ],
   controllers: [HealthController],
   providers: [
@@ -107,6 +110,8 @@ import { SmsEventsConsumer } from './rabbitmq/consumers/sms-events.consumer';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    // ✅ 分布式追踪中间件（必须在 RequestIdMiddleware 之前）
+    consumer.apply(RequestTracingMiddleware).forRoutes('*');
     // 应用 Request ID 中间件到所有路由
     consumer.apply(RequestIdMiddleware).forRoutes('*');
   }
