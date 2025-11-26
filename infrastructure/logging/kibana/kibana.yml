@@ -7,9 +7,10 @@ server.port: 5601
 
 # Elasticsearch 连接
 elasticsearch.hosts: [ "http://elasticsearch:9200" ]
+elasticsearch.serviceAccountToken: "AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjpsSzYxLTRneFRUMnFuNjE1NThsQnRn"
 
-# 安全配置 (开发环境)
-xpack.security.enabled: false
+# 安全配置 (启用认证)
+xpack.security.enabled: true
 xpack.encryptedSavedObjects.encryptionKey: "min-32-byte-long-strong-encryption-key-for-kibana"
 
 # 监控

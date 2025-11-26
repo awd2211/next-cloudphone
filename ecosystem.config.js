@@ -438,17 +438,49 @@ module.exports = {
       merge_logs: true,
     },
 
-    // ==================== Media Service (Go) ====================
+    // ==================== Frontend GV (政府演示平台) ====================
     {
-      name: 'media-service',
+      name: 'frontend-gv',
       version: '1.0.0',
-      script: './media-service',
-      cwd: './backend/media-service',
+      script: 'pnpm',
+      args: 'run dev',
+      cwd: './frontend/gv',
 
       instances: 1,
       exec_mode: 'fork',
 
       autorestart: true,
+      watch: false,
+
+      max_memory_restart: '512M',
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000,
+
+      env: {
+        NODE_ENV: 'development',
+        PORT: 50405,
+      },
+
+      error_file: './logs/frontend-gv-error.log',
+      out_file: './logs/frontend-gv-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+    },
+
+    // ==================== Media Service (Go) ====================
+    {
+      name: 'media-service',
+      version: '1.0.0',
+      // 开发模式: 使用 Air 热重载
+      // 生产模式: 直接运行编译好的二进制文件
+      script: isDev ? process.env.HOME + '/go/bin/air' : './media-service',
+      cwd: './backend/media-service',
+
+      instances: 1,
+      exec_mode: 'fork',
+
+      autorestart: !isDev, // 开发模式下 Air 自己管理重启
       watch: false,
 
       max_memory_restart: '512M',

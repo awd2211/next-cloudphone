@@ -21,11 +21,12 @@ services:
       # 内存配置 (根据服务器资源调整)
       - ES_JAVA_OPTS=-Xms2g -Xmx2g
 
-      # 安全配置 (开发环境简化配置)
-      - xpack.security.enabled=false
+      # 安全配置 (启用认证)
+      - xpack.security.enabled=true
       - xpack.security.enrollment.enabled=false
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
+      - ELASTIC_PASSWORD=Cp@Elastic2024xSecure
 
       # 性能优化
       - bootstrap.memory_lock=true
@@ -53,7 +54,7 @@ services:
     restart: unless-stopped
 
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f -u elastic:Cp@Elastic2024xSecure http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -111,9 +112,8 @@ services:
     environment:
       - SERVERNAME=kibana
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=kibana_system
-      - ELASTICSEARCH_PASSWORD=
-      - xpack.security.enabled=false
+      - ELASTICSEARCH_SERVICEACCOUNTTOKEN=AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjpsSzYxLTRneFRUMnFuNjE1NThsQnRn
+      - xpack.security.enabled=true
       - xpack.encryptedSavedObjects.encryptionKey=min-32-byte-long-strong-encryption-key-for-kibana
 
     ports:

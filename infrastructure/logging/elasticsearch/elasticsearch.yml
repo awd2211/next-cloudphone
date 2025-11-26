@@ -27,8 +27,11 @@ indices.queries.cache.size: 10%
 # 索引生命周期管理
 indices.lifecycle.poll_interval: 10m
 
-# 安全配置 (开发环境)
-xpack.security.enabled: false
+# 安全配置 (启用认证)
+xpack.security.enabled: true
+xpack.security.enrollment.enabled: false
+xpack.security.http.ssl.enabled: false
+xpack.security.transport.ssl.enabled: false
 xpack.monitoring.collection.enabled: true
 
 # CORS 配置 (允许 Kibana 访问)

@@ -233,6 +233,9 @@ docker compose -f docker-compose.dev.yml down -v
    - Quota enforcement via QuotaGuard
    - Port management for ADB connections
    - WebSocket support for real-time device updates
+   - **云厂商支持**:
+     - ✅ **已完成**: Redroid (本地容器), Aliyun ECP (阿里云手机), Huawei CloudPhone (华为云手机)
+     - 🚧 **后端已实现/前端配置页缺失**: AWS DeviceFarm, Tencent Cloud, Baidu Cloud, BrowserStack, Genymotion, Physical Devices
 
 4. **app-service** (Port 30003) - APK Management
    - APK upload/download (MinIO integration)
@@ -260,17 +263,26 @@ docker compose -f docker-compose.dev.yml down -v
      - Performance benchmarks established
      - See `backend/notification-service/test/` for documentation
 
-7. **scheduler-service** (Port 30004) - Python/FastAPI
-   - Resource scheduling and orchestration
-   - Cron job management
-   - Task queue processing
+7. **proxy-service** (Port 30007) - 多供应商代理池管理
+   - 代理池自动刷新 (启动3秒后自动填充，每10分钟定时刷新)
+   - 多供应商适配器: Kookeey, IPIDEA, BrightData, IPRoyal, Oxylabs, Smartproxy
+   - 代理质量评估和智能选择
+   - 供应商排名和成本优化
+   - 按地理位置、协议类型筛选代理
+   - 数据库配置 (管理后台配置 API Key 和供应商参数)
 
-8. **media-service** - Go/Gin (Port 30009)
+8. **sms-receive-service** (Port 30008) - 短信接收服务
+   - 虚拟号码租用和短信接收
+   - 多供应商适配器: 5sim, SMS-Activate, SMS-Man, SmsPVA, OnlineSim
+   - 订单管理和号码生命周期
+   - 价格查询和国家/运营商支持
+
+9. **media-service** - Go/Gin (Port 30009)
    - WebRTC streaming for device screens
    - Screen recording
    - Multi-encoder support (H264, VP8, VP9)
 
-9. **livechat-service** (Port 30010) - 在线客服系统
+10. **livechat-service** (Port 30010) - 在线客服系统
    - WebSocket 实时聊天 (Socket.IO)
    - 智能排队分配 (5种路由策略: Round Robin, Least Busy, Skill-based, Priority, Random)
    - AI 智能客服 (OpenAI 集成)
@@ -288,6 +300,9 @@ docker compose -f docker-compose.dev.yml down -v
   - Component lazy loading (WebRTCPlayer, ADBConsole, Charts)
   - useMemo/useCallback for performance optimization
 - **user** (Port 5174) - User portal (Ant Design)
+- **gv** (Port 5175) - Government Cloud Phone Demo
+  - React 19 + Ant Design 5 + TanStack Query
+  - 政务云手机演示平台
 
 ### Shared Module (@cloudphone/shared)
 
@@ -607,6 +622,8 @@ curl http://localhost:30002/health  # Device Service
 curl http://localhost:30003/health  # App Service
 curl http://localhost:30005/health  # Billing Service
 curl http://localhost:30006/health  # Notification Service
+curl http://localhost:30007/health  # Proxy Service
+curl http://localhost:30008/health  # SMS Receive Service
 curl http://localhost:30010/health  # LiveChat Service
 
 # Check all services with script
@@ -746,6 +763,9 @@ async proxyYourRoute(@Req() req: Request, @Res() res: Response) {
 - `"apps"` → app-service
 - `"billing"` → billing-service
 - `"notifications"` → notification-service
+- `"proxy"` → proxy-service
+- `"sms"` → sms-receive-service
+- `"livechat"` → livechat-service
 
 ### Publishing Events
 
@@ -1103,6 +1123,26 @@ pm2 monit
 max_memory_restart: '2G'
 ```
 
+### Proxy Service Issues
+
+**代理池为空:**
+1. 检查供应商配置：`curl http://localhost:30007/proxy/providers`
+2. 服务启动后会自动刷新代理池（3秒延迟），查看日志确认
+3. 手动刷新：`curl -X POST http://localhost:30007/proxy/admin/refresh-pool`
+4. 检查适配器初始化日志：`pm2 logs proxy-service --lines 50`
+
+**供应商连接失败:**
+1. 确认 API Key 已在管理后台配置
+2. 检查供应商 API 状态
+3. 查看错误日志了解具体原因
+
+### SMS Receive Service Issues
+
+**号码获取失败:**
+1. 检查供应商 API Key 配置
+2. 确认账户余额充足
+3. 查看 `pm2 logs sms-receive-service` 了解错误详情
+
 ## Important Notes
 
 - **Always use pnpm**, not npm or yarn (pnpm workspace features are required)
@@ -1111,7 +1151,7 @@ max_memory_restart: '2G'
 - **PM2 is used in development**, Kubernetes/Docker in production
 - **Event naming**: Follow `{service}.{entity}.{action}` pattern strictly
 - **Shared code**: Put common utilities in `@cloudphone/shared` and rebuild before using
-- **Port conflicts**: Services have fixed ports (30000-30006), ensure they're free
+- **Port conflicts**: Services have fixed ports (30000-30010), ensure they're free
 - **Service startup order**: Infrastructure → Shared module build → Backend services → Frontend
 - **Testing**: Always run tests before committing (`pnpm test`)
 - **Security**: Never commit `.env` files, always use `.env.example` as template
@@ -1124,7 +1164,11 @@ max_memory_restart: '2G'
 - Consul UI: http://localhost:8500
 - RabbitMQ Management: http://localhost:15672 (admin/admin123)
 - MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
-- LiveChat Swagger: http://localhost:30010/docs
+
+**Swagger/OpenAPI:**
+- Proxy Service: http://localhost:30007/docs
+- SMS Receive Service: http://localhost:30008/docs
+- LiveChat Service: http://localhost:30010/docs
 
 **Documentation:**
 - Architecture: `docs/ARCHITECTURE.md`
