@@ -126,9 +126,10 @@ export class AliyunEcpClient implements OnModuleInit {
   private config: AliyunEcpConfig;
   private client: EdsAic20230930;
   private runtime: $Util.RuntimeOptions;
+  private configSource: 'env' | 'database' = 'env';
 
   constructor() {
-    // 从环境变量加载配置
+    // 先从环境变量加载默认配置（可被数据库配置覆盖）
     this.config = {
       accessKeyId: process.env.ALIYUN_ACCESS_KEY_ID || '',
       accessKeySecret: process.env.ALIYUN_ACCESS_KEY_SECRET || '',
@@ -146,6 +147,53 @@ export class AliyunEcpClient implements OnModuleInit {
       connectTimeout: this.config.timeout,
       readTimeout: this.config.timeout,
     });
+  }
+
+  /**
+   * 从数据库配置更新客户端配置
+   * 这允许网页配置覆盖环境变量配置
+   *
+   * @param dbConfig 数据库中的提供商配置
+   */
+  async updateConfigFromDatabase(dbConfig: {
+    accessKeyId?: string;
+    accessKeySecret?: string;
+    region?: string;
+    apiEndpoint?: string;
+    timeout?: number;
+    defaultOfficeSiteId?: string;
+    defaultVSwitchId?: string;
+    defaultKeyPairId?: string;
+    defaultImageId?: string;
+  }): Promise<void> {
+    // 只有在数据库配置有有效凭证时才覆盖
+    if (dbConfig.accessKeyId && dbConfig.accessKeySecret) {
+      this.logger.log('Updating AliyunEcpClient config from database');
+
+      this.config = {
+        accessKeyId: dbConfig.accessKeyId,
+        accessKeySecret: dbConfig.accessKeySecret,
+        regionId: dbConfig.region || this.config.regionId,
+        endpoint: dbConfig.apiEndpoint?.replace('https://', '') || this.config.endpoint,
+        timeout: dbConfig.timeout || this.config.timeout,
+        defaultOfficeSiteId: dbConfig.defaultOfficeSiteId || this.config.defaultOfficeSiteId,
+        defaultVSwitchId: dbConfig.defaultVSwitchId || this.config.defaultVSwitchId,
+        defaultKeyPairId: dbConfig.defaultKeyPairId || this.config.defaultKeyPairId,
+        defaultImageId: dbConfig.defaultImageId || this.config.defaultImageId,
+      };
+
+      this.configSource = 'database';
+
+      // 重新初始化客户端
+      await this.initializeClient();
+    }
+  }
+
+  /**
+   * 获取当前配置来源
+   */
+  getConfigSource(): 'env' | 'database' {
+    return this.configSource;
   }
 
   async onModuleInit() {

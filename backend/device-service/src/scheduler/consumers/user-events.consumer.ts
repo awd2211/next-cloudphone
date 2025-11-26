@@ -6,6 +6,7 @@ import { DeviceAllocation, AllocationStatus } from '../../entities/device-alloca
 import { Device } from '../../entities/device.entity';
 import { AllocationService } from '../allocation.service';
 import { NotificationClientService } from '../notification-client.service';
+import { runInTraceContext } from '@cloudphone/shared';
 
 /**
  * User 事件消费者
@@ -43,9 +44,10 @@ export class UserEventsConsumer {
     },
   })
   async handleUserDeleted(event: { userId: string; timestamp: string }): Promise<void> {
-    this.logger.log(`📥 Received user.deleted event: ${event.userId}`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`📥 Received user.deleted event: ${event.userId}`);
 
-    try {
+      try {
       // 查找该用户的所有活跃分配
       const activeAllocations = await this.allocationRepository.find({
         where: {
@@ -87,6 +89,7 @@ export class UserEventsConsumer {
       );
       throw error;
     }
+    });
   }
 
   /**
@@ -107,9 +110,10 @@ export class UserEventsConsumer {
     reason: string;
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(`📥 Received user.suspended event: ${event.userId} (${event.reason})`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`📥 Received user.suspended event: ${event.userId} (${event.reason})`);
 
-    try {
+      try {
       const activeAllocations = await this.allocationRepository.find({
         where: {
           userId: event.userId,
@@ -166,6 +170,7 @@ export class UserEventsConsumer {
       this.logger.error(`Failed to handle user.suspended event: ${error.message}`, error.stack);
       throw error;
     }
+    });
   }
 
   /**
@@ -187,11 +192,12 @@ export class UserEventsConsumer {
     newQuota: { maxDevices: number; maxCpu: number; maxMemory: number };
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(
-      `📥 Received user.quota_updated event: ${event.userId} (devices: ${event.oldQuota.maxDevices} → ${event.newQuota.maxDevices})`
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `📥 Received user.quota_updated event: ${event.userId} (devices: ${event.oldQuota.maxDevices} → ${event.newQuota.maxDevices})`
+      );
 
-    try {
+      try {
       // 如果设备配额降低，检查是否需要释放设备
       if (event.newQuota.maxDevices < event.oldQuota.maxDevices) {
         const activeAllocations = await this.allocationRepository.find({
@@ -248,6 +254,7 @@ export class UserEventsConsumer {
       this.logger.error(`Failed to handle user.quota_updated event: ${error.message}`, error.stack);
       // Don't throw - quota updates are informational
     }
+    });
   }
 
   /**
@@ -270,11 +277,12 @@ export class UserEventsConsumer {
     limit: number;
     timestamp: string;
   }): Promise<void> {
-    this.logger.warn(
-      `📥 Received user.quota_exceeded event: ${event.userId} (${event.quotaType}: ${event.current}/${event.limit})`
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.warn(
+        `📥 Received user.quota_exceeded event: ${event.userId} (${event.quotaType}: ${event.current}/${event.limit})`
+      );
 
-    try {
+      try {
       if (event.quotaType === 'devices') {
         const activeAllocations = await this.allocationRepository.find({
           where: {
@@ -310,6 +318,7 @@ export class UserEventsConsumer {
       );
       throw error;
     }
+    });
   }
 
   /**
@@ -326,9 +335,11 @@ export class UserEventsConsumer {
     },
   })
   async handleUserActivated(event: { userId: string; timestamp: string }): Promise<void> {
-    this.logger.log(`📥 Received user.activated event: ${event.userId}`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`📥 Received user.activated event: ${event.userId}`);
 
-    // Currently just logging - could trigger welcome notifications
-    // or restore previous allocations if needed
+      // Currently just logging - could trigger welcome notifications
+      // or restore previous allocations if needed
+    });
   }
 }

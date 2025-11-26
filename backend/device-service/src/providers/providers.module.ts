@@ -10,6 +10,17 @@ import { HuaweiModule } from './huawei/huawei.module';
 import { HuaweiProvider } from './huawei/huawei.provider';
 import { AliyunModule } from './aliyun/aliyun.module';
 import { AliyunProvider } from './aliyun/aliyun.provider';
+import { AliyunEcpClient } from './aliyun/aliyun-ecp.client';
+import { TencentModule } from './tencent/tencent.module';
+import { TencentProvider } from './tencent/tencent.provider';
+import { BaiduModule } from './baidu/baidu.module';
+import { BaiduProvider } from './baidu/baidu.provider';
+import { AwsModule } from './aws/aws.module';
+import { AwsProvider } from './aws/aws.provider';
+import { GenymotionModule } from './genymotion/genymotion.module';
+import { GenymotionProvider } from './genymotion/genymotion.provider';
+import { BrowserStackModule } from './browserstack/browserstack.module';
+import { BrowserStackProvider } from './browserstack/browserstack.provider';
 import { ProvidersService } from './providers.service';
 import { ProvidersController } from './providers.controller';
 import { ProviderConfig, CloudSyncRecord, CloudBillingReconciliation } from '../entities/provider-config.entity';
@@ -25,6 +36,11 @@ import { Device } from '../entities/device.entity';
  * - PhysicalProvider (Phase 2A) ✅
  * - HuaweiProvider (Phase 3) ✅
  * - AliyunProvider (Phase 4 - 使用 2023-09-30 API) ✅
+ * - TencentProvider (云游戏 GS) ✅
+ * - BaiduProvider (百度云手机 BAC) ✅
+ * - AwsProvider (AWS Device Farm) ✅
+ * - GenymotionProvider (Genymotion Cloud) ✅
+ * - BrowserStackProvider (BrowserStack App Live) ✅
  * - ProvidersService (管理服务) ✅
  * - ProvidersController (REST API) ✅
  *
@@ -43,6 +59,11 @@ import { Device } from '../entities/device.entity';
     PhysicalModule, // ✅ Physical Provider (Phase 2A)
     HuaweiModule, // ✅ Huawei Provider (Phase 3)
     AliyunModule, // ✅ Aliyun Provider (Phase 4)
+    TencentModule, // ✅ Tencent GS Provider (云游戏)
+    BaiduModule, // ✅ Baidu BAC Provider (百度云手机)
+    AwsModule, // ✅ AWS Device Farm Provider
+    GenymotionModule, // ✅ Genymotion Cloud Provider
+    BrowserStackModule, // ✅ BrowserStack App Live Provider
   ],
   controllers: [ProvidersController],
   providers: [DeviceProviderFactory, ProvidersService],
@@ -68,6 +89,11 @@ export class ProvidersModule implements OnModuleInit {
     const physicalProvider = this.moduleRef.get(PhysicalProvider, { strict: false });
     const huaweiProvider = this.moduleRef.get(HuaweiProvider, { strict: false });
     const aliyunProvider = this.moduleRef.get(AliyunProvider, { strict: false });
+    const tencentProvider = this.moduleRef.get(TencentProvider, { strict: false });
+    const baiduProvider = this.moduleRef.get(BaiduProvider, { strict: false });
+    const awsProvider = this.moduleRef.get(AwsProvider, { strict: false });
+    const genymotionProvider = this.moduleRef.get(GenymotionProvider, { strict: false });
+    const browserstackProvider = this.moduleRef.get(BrowserStackProvider, { strict: false });
 
     // 注册 Redroid Provider
     this.providerFactory.registerProvider(redroidProvider);
@@ -81,6 +107,22 @@ export class ProvidersModule implements OnModuleInit {
     // ✅ Phase 4: 注册 Aliyun Provider (2023-09-30 API - Instance Group model)
     this.providerFactory.registerProvider(aliyunProvider);
     this.logger.log('Registered AliyunProvider (2023-09-30 API) - Instance Group model');
+
+    // ✅ Phase 5: 注册扩展云提供商
+    this.providerFactory.registerProvider(tencentProvider);
+    this.logger.log('Registered TencentProvider (云游戏 GS)');
+
+    this.providerFactory.registerProvider(baiduProvider);
+    this.logger.log('Registered BaiduProvider (百度云手机 BAC)');
+
+    this.providerFactory.registerProvider(awsProvider);
+    this.logger.log('Registered AwsProvider (AWS Device Farm)');
+
+    this.providerFactory.registerProvider(genymotionProvider);
+    this.logger.log('Registered GenymotionProvider (Genymotion Cloud)');
+
+    this.providerFactory.registerProvider(browserstackProvider);
+    this.logger.log('Registered BrowserStackProvider (BrowserStack App Live)');
 
     this.logger.log(
       `Registered ${this.providerFactory.getProviderCount()} providers: ${this.providerFactory

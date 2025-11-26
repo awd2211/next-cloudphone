@@ -6,6 +6,7 @@ import { DeviceAllocation, AllocationStatus } from '../../entities/device-alloca
 import { Device } from '../../entities/device.entity';
 import { AllocationService } from '../allocation.service';
 import { NotificationClientService } from '../notification-client.service';
+import { runInTraceContext } from '@cloudphone/shared';
 
 /**
  * Billing 事件消费者
@@ -54,11 +55,12 @@ export class BillingEventsConsumer {
     reason: string;
     timestamp: string;
   }): Promise<void> {
-    this.logger.warn(
-      `📥 Received billing.payment_failed event: ${event.userId} (${event.amount} - ${event.reason})`
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.warn(
+        `📥 Received billing.payment_failed event: ${event.userId} (${event.amount} - ${event.reason})`
+      );
 
-    try {
+      try {
       // 增加失败计数
       const currentCount = this.paymentFailureCount.get(event.userId) || 0;
       const newCount = currentCount + 1;
@@ -141,6 +143,7 @@ export class BillingEventsConsumer {
       );
       // Don't throw - payment failures are informational
     }
+    });
   }
 
   /**
@@ -162,34 +165,36 @@ export class BillingEventsConsumer {
     threshold: number;
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(
-      `📥 Received billing.balance_low event: ${event.userId} (balance: ${event.currentBalance}, threshold: ${event.threshold})`
-    );
-
-    try {
-      // 发送余额不足预警通知
-      await this.notificationClient.sendBatchNotifications([
-        {
-          userId: event.userId,
-          type: 'billing_alert' as any,
-          title: '💰 余额不足提醒',
-          message: `您的账户余额为 ¥${event.currentBalance}，已低于预警值 ¥${event.threshold}。请及时充值以保证服务正常使用。`,
-          data: {
-            currentBalance: event.currentBalance,
-            threshold: event.threshold,
-          },
-          channels: ['websocket', 'email'],
-        },
-      ]);
-
-      this.logger.log(`✅ Sent balance low notification to user ${event.userId}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to handle billing.balance_low event: ${error.message}`,
-        error.stack
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `📥 Received billing.balance_low event: ${event.userId} (balance: ${event.currentBalance}, threshold: ${event.threshold})`
       );
-      // Don't throw - balance warnings are informational
-    }
+
+      try {
+        // 发送余额不足预警通知
+        await this.notificationClient.sendBatchNotifications([
+          {
+            userId: event.userId,
+            type: 'billing_alert' as any,
+            title: '💰 余额不足提醒',
+            message: `您的账户余额为 ¥${event.currentBalance}，已低于预警值 ¥${event.threshold}。请及时充值以保证服务正常使用。`,
+            data: {
+              currentBalance: event.currentBalance,
+              threshold: event.threshold,
+            },
+            channels: ['websocket', 'email'],
+          },
+        ]);
+
+        this.logger.log(`✅ Sent balance low notification to user ${event.userId}`);
+      } catch (error) {
+        this.logger.error(
+          `Failed to handle billing.balance_low event: ${error.message}`,
+          error.stack
+        );
+        // Don't throw - balance warnings are informational
+      }
+    });
   }
 
   /**
@@ -211,11 +216,12 @@ export class BillingEventsConsumer {
     overdueDays: number;
     timestamp: string;
   }): Promise<void> {
-    this.logger.warn(
-      `📥 Received billing.overdue event: ${event.userId} (amount: ${event.overdueAmount}, days: ${event.overdueDays})`
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.warn(
+        `📥 Received billing.overdue event: ${event.userId} (amount: ${event.overdueAmount}, days: ${event.overdueDays})`
+      );
 
-    try {
+      try {
       // 查找该用户的所有活跃分配
       const activeAllocations = await this.allocationRepository.find({
         where: {
@@ -291,6 +297,7 @@ export class BillingEventsConsumer {
       this.logger.error(`Failed to handle billing.overdue event: ${error.message}`, error.stack);
       throw error; // Important event - throw to DLX
     }
+    });
   }
 
   /**
@@ -312,40 +319,42 @@ export class BillingEventsConsumer {
     newBalance: number;
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(
-      `📥 Received billing.payment_success event: ${event.userId} (amount: ${event.amount}, new balance: ${event.newBalance})`
-    );
-
-    try {
-      // 重置支付失败计数
-      if (this.paymentFailureCount.has(event.userId)) {
-        this.paymentFailureCount.delete(event.userId);
-        this.logger.log(`Reset payment failure count for user ${event.userId}`);
-      }
-
-      // 发送支付成功通知
-      await this.notificationClient.sendBatchNotifications([
-        {
-          userId: event.userId,
-          type: 'billing_alert' as any,
-          title: '✅ 支付成功',
-          message: `支付 ¥${event.amount} 成功，当前余额 ¥${event.newBalance}。服务已恢复正常。`,
-          data: {
-            amount: event.amount,
-            newBalance: event.newBalance,
-          },
-          channels: ['websocket'],
-        },
-      ]);
-
-      this.logger.log(`✅ Sent payment success notification to user ${event.userId}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to handle billing.payment_success event: ${error.message}`,
-        error.stack
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `📥 Received billing.payment_success event: ${event.userId} (amount: ${event.amount}, new balance: ${event.newBalance})`
       );
-      // Don't throw - payment success is informational
-    }
+
+      try {
+        // 重置支付失败计数
+        if (this.paymentFailureCount.has(event.userId)) {
+          this.paymentFailureCount.delete(event.userId);
+          this.logger.log(`Reset payment failure count for user ${event.userId}`);
+        }
+
+        // 发送支付成功通知
+        await this.notificationClient.sendBatchNotifications([
+          {
+            userId: event.userId,
+            type: 'billing_alert' as any,
+            title: '✅ 支付成功',
+            message: `支付 ¥${event.amount} 成功，当前余额 ¥${event.newBalance}。服务已恢复正常。`,
+            data: {
+              amount: event.amount,
+              newBalance: event.newBalance,
+            },
+            channels: ['websocket'],
+          },
+        ]);
+
+        this.logger.log(`✅ Sent payment success notification to user ${event.userId}`);
+      } catch (error) {
+        this.logger.error(
+          `Failed to handle billing.payment_success event: ${error.message}`,
+          error.stack
+        );
+        // Don't throw - payment success is informational
+      }
+    });
   }
 
   /**
@@ -367,35 +376,37 @@ export class BillingEventsConsumer {
     newBalance: number;
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(
-      `📥 Received billing.recharged event: ${event.userId} (amount: ${event.amount}, new balance: ${event.newBalance})`
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `📥 Received billing.recharged event: ${event.userId} (amount: ${event.amount}, new balance: ${event.newBalance})`
+      );
 
-    try {
-      // 重置支付失败计数
-      if (this.paymentFailureCount.has(event.userId)) {
-        this.paymentFailureCount.delete(event.userId);
-        this.logger.log(`Reset payment failure count after recharge for user ${event.userId}`);
-      }
+      try {
+        // 重置支付失败计数
+        if (this.paymentFailureCount.has(event.userId)) {
+          this.paymentFailureCount.delete(event.userId);
+          this.logger.log(`Reset payment failure count after recharge for user ${event.userId}`);
+        }
 
-      // 发送充值成功通知
-      await this.notificationClient.sendBatchNotifications([
-        {
-          userId: event.userId,
-          type: 'billing_alert' as any,
-          title: '💳 充值成功',
-          message: `充值 ¥${event.amount} 成功，当前余额 ¥${event.newBalance}。感谢您的支持！`,
-          data: {
-            amount: event.amount,
-            newBalance: event.newBalance,
+        // 发送充值成功通知
+        await this.notificationClient.sendBatchNotifications([
+          {
+            userId: event.userId,
+            type: 'billing_alert' as any,
+            title: '💳 充值成功',
+            message: `充值 ¥${event.amount} 成功，当前余额 ¥${event.newBalance}。感谢您的支持！`,
+            data: {
+              amount: event.amount,
+              newBalance: event.newBalance,
+            },
+            channels: ['websocket'],
           },
-          channels: ['websocket'],
-        },
-      ]);
-    } catch (error) {
-      this.logger.error(`Failed to handle billing.recharged event: ${error.message}`, error.stack);
-      // Don't throw - recharge is informational
-    }
+        ]);
+      } catch (error) {
+        this.logger.error(`Failed to handle billing.recharged event: ${error.message}`, error.stack);
+        // Don't throw - recharge is informational
+      }
+    });
   }
 
   /**

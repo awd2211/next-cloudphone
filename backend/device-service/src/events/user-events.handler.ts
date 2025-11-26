@@ -45,6 +45,7 @@ export class UserEventsHandler {
     queue: 'device-service.user-updated',
     queueOptions: {
       durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
     },
   })
   async handleUserUpdated(event: UserUpdatedEvent) {
@@ -78,6 +79,7 @@ export class UserEventsHandler {
     queue: 'device-service.user-deleted',
     queueOptions: {
       durable: true,
+      deadLetterExchange: 'cloudphone.dlx',
     },
   })
   async handleUserDeleted(event: UserDeletedEvent) {

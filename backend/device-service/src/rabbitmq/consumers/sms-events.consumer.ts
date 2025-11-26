@@ -4,6 +4,7 @@ import { ConsumeMessage } from 'amqplib';
 import { AdbService } from '../../adb/adb.service';
 import { DevicesService } from '../../devices/devices.service';
 import { DeviceStatus } from '../../entities/device.entity';
+import { runInTraceContext } from '@cloudphone/shared';
 
 /**
  * SMS 事件定义
@@ -72,11 +73,12 @@ export class SmsEventsConsumer {
     },
   })
   async handleSmsMessageReceived(event: SmsMessageReceivedEvent, msg: ConsumeMessage) {
-    this.logger.log(
-      `收到短信验证码事件: device=${event.deviceId}, code=${event.verificationCode}, phone=${event.phoneNumber}, service=${event.service || 'unknown'}`,
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `收到短信验证码事件: device=${event.deviceId}, code=${event.verificationCode}, phone=${event.phoneNumber}, service=${event.service || 'unknown'}`,
+      );
 
-    try {
+      try {
       // 1. 查找设备
       const device = await this.devicesService.findOne(event.deviceId);
 
@@ -123,6 +125,7 @@ export class SmsEventsConsumer {
       );
       throw error; // 抛出错误，让消息进入 DLX
     }
+    });
   }
 
   /**
@@ -143,38 +146,40 @@ export class SmsEventsConsumer {
     },
   })
   async handleSmsNumberRequested(event: SmsNumberRequestedEvent, msg: ConsumeMessage) {
-    this.logger.log(
-      `收到虚拟号码请求事件: device=${event.deviceId}, country=${event.country}, service=${event.service || 'any'}`,
-    );
-
-    try {
-      // 1. 查找设备
-      const device = await this.devicesService.findOne(event.deviceId);
-
-      if (!device) {
-        this.logger.warn(`设备不存在: ${event.deviceId}`);
-        return;
-      }
-
-      // 2. 更新设备元数据（记录请求信息）
-      await this.devicesService.updateDeviceMetadata(event.deviceId, {
-        smsNumberRequest: {
-          requestId: event.requestId,
-          country: event.country,
-          service: event.service,
-          status: 'pending',
-          requestedAt: event.requestedAt,
-        },
-      });
-
-      this.logger.log(`虚拟号码请求已记录: deviceId=${event.deviceId}, requestId=${event.requestId}`);
-    } catch (error) {
-      this.logger.error(
-        `处理虚拟号码请求事件失败: deviceId=${event.deviceId}, error=${error.message}`,
-        error.stack,
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `收到虚拟号码请求事件: device=${event.deviceId}, country=${event.country}, service=${event.service || 'any'}`,
       );
-      throw error;
-    }
+
+      try {
+        // 1. 查找设备
+        const device = await this.devicesService.findOne(event.deviceId);
+
+        if (!device) {
+          this.logger.warn(`设备不存在: ${event.deviceId}`);
+          return;
+        }
+
+        // 2. 更新设备元数据（记录请求信息）
+        await this.devicesService.updateDeviceMetadata(event.deviceId, {
+          smsNumberRequest: {
+            requestId: event.requestId,
+            country: event.country,
+            service: event.service,
+            status: 'pending',
+            requestedAt: event.requestedAt,
+          },
+        });
+
+        this.logger.log(`虚拟号码请求已记录: deviceId=${event.deviceId}, requestId=${event.requestId}`);
+      } catch (error) {
+        this.logger.error(
+          `处理虚拟号码请求事件失败: deviceId=${event.deviceId}, error=${error.message}`,
+          error.stack,
+        );
+        throw error;
+      }
+    });
   }
 
   /**
@@ -195,37 +200,39 @@ export class SmsEventsConsumer {
     },
   })
   async handleSmsNumberCancelled(event: SmsNumberCancelledEvent, msg: ConsumeMessage) {
-    this.logger.log(
-      `收到虚拟号码取消事件: device=${event.deviceId}, phone=${event.phoneNumber}, reason=${event.reason || 'unknown'}`,
-    );
-
-    try {
-      // 1. 查找设备
-      const device = await this.devicesService.findOne(event.deviceId);
-
-      if (!device) {
-        this.logger.warn(`设备不存在: ${event.deviceId}`);
-        return;
-      }
-
-      // 2. 更新设备元数据（标记号码已取消）
-      await this.devicesService.updateDeviceMetadata(event.deviceId, {
-        smsNumberRequest: {
-          requestId: event.requestId,
-          phoneNumber: event.phoneNumber,
-          status: 'cancelled',
-          reason: event.reason,
-          cancelledAt: event.cancelledAt,
-        },
-      });
-
-      this.logger.log(`虚拟号码取消已记录: deviceId=${event.deviceId}, phone=${event.phoneNumber}`);
-    } catch (error) {
-      this.logger.error(
-        `处理虚拟号码取消事件失败: deviceId=${event.deviceId}, error=${error.message}`,
-        error.stack,
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `收到虚拟号码取消事件: device=${event.deviceId}, phone=${event.phoneNumber}, reason=${event.reason || 'unknown'}`,
       );
-      throw error;
-    }
+
+      try {
+        // 1. 查找设备
+        const device = await this.devicesService.findOne(event.deviceId);
+
+        if (!device) {
+          this.logger.warn(`设备不存在: ${event.deviceId}`);
+          return;
+        }
+
+        // 2. 更新设备元数据（标记号码已取消）
+        await this.devicesService.updateDeviceMetadata(event.deviceId, {
+          smsNumberRequest: {
+            requestId: event.requestId,
+            phoneNumber: event.phoneNumber,
+            status: 'cancelled',
+            reason: event.reason,
+            cancelledAt: event.cancelledAt,
+          },
+        });
+
+        this.logger.log(`虚拟号码取消已记录: deviceId=${event.deviceId}, phone=${event.phoneNumber}`);
+      } catch (error) {
+        this.logger.error(
+          `处理虚拟号码取消事件失败: deviceId=${event.deviceId}, error=${error.message}`,
+          error.stack,
+        );
+        throw error;
+      }
+    });
   }
 }

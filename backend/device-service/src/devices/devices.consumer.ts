@@ -5,6 +5,7 @@ import {
   AppInstallRequestedEvent,
   AppUninstallRequestedEvent,
   DeviceAllocateRequestedEvent,
+  runInTraceContext,
 } from '@cloudphone/shared';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -54,9 +55,10 @@ export class DevicesConsumer {
     },
   })
   async handleAppInstall(event: AppInstallRequestedEvent) {
-    this.logger.log(`Received app install request: ${event.appId} for device ${event.deviceId}`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`Received app install request: ${event.appId} for device ${event.deviceId}`);
 
-    try {
+      try {
       // 1. 🔒 下载 APK 到临时文件（带安全验证）
       // 注意：event 中应包含 sha256 字段用于校验
       const checksum = (event as any).sha256 || null;
@@ -98,6 +100,7 @@ export class DevicesConsumer {
         timestamp: new Date().toISOString(),
       });
     }
+    });
   }
 
   /**
@@ -113,42 +116,44 @@ export class DevicesConsumer {
     },
   })
   async handleAppUninstall(event: AppUninstallRequestedEvent) {
-    this.logger.log(
-      `Received app uninstall request: ${event.packageName} from device ${event.deviceId}`
-    );
-
-    try {
-      // 通过 ADB 卸载
-      await this.adbService.uninstallApp(event.deviceId, event.packageName);
-
-      // 发布卸载成功事件
-      await this.devicesService.publishAppUninstallCompleted({
-        deviceId: event.deviceId,
-        appId: event.appId,
-        packageName: event.packageName,
-        status: 'success',
-        timestamp: new Date().toISOString(),
-      });
-
+    return runInTraceContext(event, async () => {
       this.logger.log(
-        `App ${event.packageName} uninstalled successfully from device ${event.deviceId}`
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to uninstall app ${event.packageName} from device ${event.deviceId}:`,
-        error.message
+        `Received app uninstall request: ${event.packageName} from device ${event.deviceId}`
       );
 
-      // 发布卸载失败事件
-      await this.devicesService.publishAppUninstallCompleted({
-        deviceId: event.deviceId,
-        appId: event.appId,
-        packageName: event.packageName,
-        status: 'failed',
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      });
-    }
+      try {
+        // 通过 ADB 卸载
+        await this.adbService.uninstallApp(event.deviceId, event.packageName);
+
+        // 发布卸载成功事件
+        await this.devicesService.publishAppUninstallCompleted({
+          deviceId: event.deviceId,
+          appId: event.appId,
+          packageName: event.packageName,
+          status: 'success',
+          timestamp: new Date().toISOString(),
+        });
+
+        this.logger.log(
+          `App ${event.packageName} uninstalled successfully from device ${event.deviceId}`
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to uninstall app ${event.packageName} from device ${event.deviceId}:`,
+          error.message
+        );
+
+        // 发布卸载失败事件
+        await this.devicesService.publishAppUninstallCompleted({
+          deviceId: event.deviceId,
+          appId: event.appId,
+          packageName: event.packageName,
+          status: 'failed',
+          error: error.message,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
   }
 
   /**
@@ -164,39 +169,41 @@ export class DevicesConsumer {
     },
   })
   async handleDeviceAllocate(event: DeviceAllocateRequestedEvent) {
-    this.logger.log(
-      `Received device allocate request for order ${event.orderId}, sagaId: ${event.sagaId}`
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `Received device allocate request for order ${event.orderId}, sagaId: ${event.sagaId}`
+      );
 
-    try {
-      // 分配一个可用设备
-      const device = await this.devicesService.allocateDevice(event.userId, event.planId);
+      try {
+        // 分配一个可用设备
+        const device = await this.devicesService.allocateDevice(event.userId, event.planId);
 
-      // 发布设备分配成功事件
-      await this.devicesService.publishDeviceAllocated({
-        sagaId: event.sagaId,
-        deviceId: device.id,
-        orderId: event.orderId,
-        userId: event.userId,
-        success: true,
-        timestamp: new Date().toISOString(),
-      });
+        // 发布设备分配成功事件
+        await this.devicesService.publishDeviceAllocated({
+          sagaId: event.sagaId,
+          deviceId: device.id,
+          orderId: event.orderId,
+          userId: event.userId,
+          success: true,
+          timestamp: new Date().toISOString(),
+        });
 
-      this.logger.log(`Device ${device.id} allocated for order ${event.orderId}`);
-    } catch (error) {
-      this.logger.error(`Failed to allocate device for order ${event.orderId}:`, error.message);
+        this.logger.log(`Device ${device.id} allocated for order ${event.orderId}`);
+      } catch (error) {
+        this.logger.error(`Failed to allocate device for order ${event.orderId}:`, error.message);
 
-      // 发布设备分配失败事件
-      await this.devicesService.publishDeviceAllocated({
-        sagaId: event.sagaId,
-        deviceId: null,
-        orderId: event.orderId,
-        userId: event.userId,
-        success: false,
-        timestamp: new Date().toISOString(),
-        error: error.message,
-      });
-    }
+        // 发布设备分配失败事件
+        await this.devicesService.publishDeviceAllocated({
+          sagaId: event.sagaId,
+          deviceId: null,
+          orderId: event.orderId,
+          userId: event.userId,
+          success: false,
+          timestamp: new Date().toISOString(),
+          error: error.message,
+        });
+      }
+    });
   }
 
   /**
@@ -212,14 +219,16 @@ export class DevicesConsumer {
     },
   })
   async handleDeviceRelease(event: { deviceId: string; reason?: string }) {
-    this.logger.log(`Received device release request: ${event.deviceId}`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`Received device release request: ${event.deviceId}`);
 
-    try {
-      await this.devicesService.releaseDevice(event.deviceId, event.reason);
-      this.logger.log(`Device ${event.deviceId} released successfully`);
-    } catch (error) {
-      this.logger.error(`Failed to release device ${event.deviceId}:`, error.message);
-    }
+      try {
+        await this.devicesService.releaseDevice(event.deviceId, event.reason);
+        this.logger.log(`Device ${event.deviceId} released successfully`);
+      } catch (error) {
+        this.logger.error(`Failed to release device ${event.deviceId}:`, error.message);
+      }
+    });
   }
 
   /**

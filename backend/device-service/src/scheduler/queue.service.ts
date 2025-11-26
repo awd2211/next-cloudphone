@@ -669,6 +669,7 @@ export class QueueService {
 
   /**
    * 重新计算所有等待中条目的位置和预估时间
+   * ✅ 优化：使用批量更新减少数据库往返
    */
   private async recalculateAllPositions(): Promise<void> {
     const waitingEntries = await this.queueRepository.find({
@@ -679,6 +680,11 @@ export class QueueService {
       },
     });
 
+    if (waitingEntries.length === 0) {
+      return;
+    }
+
+    // ✅ 批量更新所有条目的位置信息（避免逐条保存的长事务）
     for (let i = 0; i < waitingEntries.length; i++) {
       const entry = waitingEntries[i];
       const position = i + 1;
@@ -686,9 +692,12 @@ export class QueueService {
 
       entry.queuePosition = position;
       entry.estimatedWaitMinutes = estimatedWaitMinutes;
-
-      await this.queueRepository.save(entry);
     }
+
+    // ✅ 单次批量保存，减少 N 次数据库往返为 1 次
+    await this.queueRepository.save(waitingEntries);
+
+    this.logger.debug(`Updated positions for ${waitingEntries.length} queue entries`);
   }
 
   /**

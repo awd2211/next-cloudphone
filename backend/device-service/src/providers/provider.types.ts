@@ -18,6 +18,21 @@ export enum DeviceProviderType {
 
   /** 物理设备 (网络 ADB + SCRCPY) */
   PHYSICAL = 'physical',
+
+  /** 腾讯云云游戏 GS (Game Streaming) */
+  TENCENT_GS = 'tencent_gs',
+
+  /** 百度智能云云手机 BAC (ARM Cloud Mobile) */
+  BAIDU_BAC = 'baidu_bac',
+
+  /** AWS Device Farm */
+  AWS_DEVICE_FARM = 'aws_device_farm',
+
+  /** Genymotion Cloud (SaaS) */
+  GENYMOTION = 'genymotion',
+
+  /** BrowserStack App Live */
+  BROWSERSTACK = 'browserstack',
 }
 
 /**
@@ -113,6 +128,76 @@ export interface ConnectionInfo {
     host: string;
     port: number;
     password?: string;
+  };
+
+  /** 腾讯云云游戏连接信息 */
+  tencentGs?: {
+    /** 实例 ID */
+    instanceId: string;
+    /** 会话 ID */
+    sessionId: string;
+    /** WebRTC 连接地址 */
+    webrtcUrl?: string;
+    /** 客户端会话信息 */
+    clientSession?: string;
+    /** 请求 ID */
+    requestId?: string;
+  };
+
+  /** 百度云手机连接信息 */
+  baiduBac?: {
+    /** 实例 ID */
+    instanceId: string;
+    /** Server Token */
+    serverToken: string;
+    /** 连接地址 */
+    connectUrl: string;
+    /** 过期时间 */
+    expiresAt: Date;
+  };
+
+  /** AWS Device Farm 连接信息 */
+  awsDeviceFarm?: {
+    /** ARN (Amazon Resource Name) */
+    arn: string;
+    /** Run ARN */
+    runArn?: string;
+    /** 远程访问会话 ARN */
+    remoteAccessSessionArn?: string;
+    /** 端点 URL */
+    endpoint?: string;
+    /** Host 地址 */
+    hostAddress?: string;
+  };
+
+  /** Genymotion Cloud 连接信息 */
+  genymotion?: {
+    /** 实例 UUID */
+    instanceUuid: string;
+    /** ADB 序列号 */
+    adbSerial: string;
+    /** 实例状态 */
+    state: string;
+    /** 连接 URL (VNC/Web) */
+    connectUrl?: string;
+  };
+
+  /** BrowserStack 连接信息 */
+  browserstack?: {
+    /** App URL */
+    appUrl: string;
+    /** App ID */
+    appId?: string;
+    /** 会话 ID */
+    sessionId?: string;
+    /** 设备名称 */
+    device: string;
+    /** OS 版本 */
+    osVersion: string;
+    /** 公共 URL (访问测试界面) */
+    publicUrl?: string;
+    /** App Live 访问 URL */
+    liveUrl?: string;
   };
 
   /** 自定义连接参数 */

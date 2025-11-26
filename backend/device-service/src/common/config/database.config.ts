@@ -3,6 +3,41 @@ import { ConfigService } from '@nestjs/config';
 import * as os from 'os';
 import { EventOutbox } from '@cloudphone/shared';
 
+// ✅ HMR 兼容：显式导入所有实体（Webpack HMR 模式下 glob 模式无法工作）
+import { Device } from '../../entities/device.entity';
+import { DeviceSnapshot } from '../../entities/device-snapshot.entity';
+import { DeviceTemplate } from '../../entities/device-template.entity';
+import { Node } from '../../entities/node.entity';
+import { DeviceAllocation } from '../../entities/device-allocation.entity';
+import { DeviceReservation } from '../../entities/device-reservation.entity';
+import { AllocationQueue } from '../../entities/allocation-queue.entity';
+import { ProxyUsage } from '../../entities/proxy-usage.entity';
+import { ResourceUsageHistory } from '../../entities/resource-usage-history.entity';
+import { LifecycleExecutionHistory } from '../../entities/lifecycle-execution-history.entity';
+import { LifecycleRule } from '../../entities/lifecycle-rule.entity';
+import { SchedulingStrategy } from '../../entities/scheduling-strategy.entity';
+import { ProviderConfig, CloudSyncRecord, CloudBillingReconciliation } from '../../entities/provider-config.entity';
+
+// 所有实体数组（用于 TypeORM 配置）
+const entities = [
+  Device,
+  DeviceSnapshot,
+  DeviceTemplate,
+  Node,
+  DeviceAllocation,
+  DeviceReservation,
+  AllocationQueue,
+  ProxyUsage,
+  ResourceUsageHistory,
+  LifecycleExecutionHistory,
+  LifecycleRule,
+  SchedulingStrategy,
+  ProviderConfig,
+  CloudSyncRecord,
+  CloudBillingReconciliation,
+  EventOutbox,
+];
+
 /**
  * 动态计算最佳连接池大小
  * 公式：(CPU 核心数 × 2) + 有效磁盘数
@@ -62,7 +97,10 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
     database: 'cloudphone_device', // ✅ 强制使用 cloudphone_device 数据库
 
     // 实体配置
-    entities: [`${__dirname}/../../**/*.entity{.ts,.js}`, EventOutbox],
+    // ✅ HMR 兼容：使用显式导入的实体数组（Webpack 打包后 glob 模式无法工作）
+    entities,
+    // ✅ 自动加载 forFeature() 注册的实体（HMR 兼容的替代方案）
+    autoLoadEntities: true,
     // ✅ 使用 Atlas 管理数据库架构，禁用 synchronize
     synchronize: false,
     logging: isDevelopment ? 'all' : ['error', 'warn', 'schema'],

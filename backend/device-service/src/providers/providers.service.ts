@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit, ConflictException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, Not } from 'typeorm';
 import { DeviceProviderFactory } from './device-provider.factory';
@@ -13,6 +13,7 @@ import {
 } from './dto/provider.dto';
 import { ProviderConfig, CloudSyncRecord, CloudBillingReconciliation } from '../entities/provider-config.entity';
 import { Device } from '../entities/device.entity';
+import { AliyunEcpClient } from './aliyun/aliyun-ecp.client';
 
 /**
  * 提供商管理服务
@@ -35,6 +36,8 @@ export class ProvidersService implements OnModuleInit {
     private billingReconciliationRepo: Repository<CloudBillingReconciliation>,
     @InjectRepository(Device)
     private deviceRepo: Repository<Device>,
+    @Optional()
+    private readonly aliyunEcpClient?: AliyunEcpClient,
   ) {}
 
   async onModuleInit() {
@@ -58,11 +61,35 @@ export class ProvidersService implements OnModuleInit {
           maxDevices: config.maxDevices,
           config: config.config,
         });
+
+        // 如果是阿里云 ECP，更新客户端配置
+        if (config.providerType === DeviceProviderType.ALIYUN_ECP && this.aliyunEcpClient) {
+          await this.updateAliyunClientConfig(config.config);
+        }
       }
       this.logger.log(`Loaded ${dbConfigs.length} provider configurations from database`);
     } else {
       // 初始化默认配置并保存到数据库
       await this.initializeDefaultConfigs();
+    }
+  }
+
+  /**
+   * 更新阿里云 ECP 客户端配置
+   * 当数据库配置包含有效凭证时，覆盖环境变量配置
+   */
+  private async updateAliyunClientConfig(dbConfig: any) {
+    if (!this.aliyunEcpClient) {
+      return;
+    }
+
+    try {
+      await this.aliyunEcpClient.updateConfigFromDatabase(dbConfig);
+      this.logger.log(
+        `Aliyun ECP client config updated from database (source: ${this.aliyunEcpClient.getConfigSource()})`,
+      );
+    } catch (error) {
+      this.logger.warn(`Failed to update Aliyun ECP client config: ${error.message}`);
     }
   }
 
@@ -450,16 +477,51 @@ export class ProvidersService implements OnModuleInit {
     providerType: DeviceProviderType,
     config: any,
   ): Promise<Array<{ instanceId: string; status: string; metadata: any }>> {
-    // 模拟云端设备数据
-    // 实际应该调用 Huawei SDK 或 Aliyun SDK
-    this.logger.log(`Fetching devices from ${providerType} with config: ${JSON.stringify(config)}`);
+    this.logger.log(`Fetching devices from ${providerType}`);
 
-    // 返回模拟数据（实际应调用云 API）
-    return [
-      { instanceId: `${providerType}-001`, status: 'running', metadata: {} },
-      { instanceId: `${providerType}-002`, status: 'running', metadata: {} },
-      { instanceId: `${providerType}-003`, status: 'stopped', metadata: {} },
-    ];
+    // 阿里云 ECP - 使用真实 API
+    if (providerType === DeviceProviderType.ALIYUN_ECP && this.aliyunEcpClient) {
+      try {
+        const result = await this.aliyunEcpClient.describeInstances({
+          pageSize: 100,
+        });
+
+        if (result.success && result.data) {
+          this.logger.log(`Fetched ${result.data.instances.length} instances from Aliyun ECP`);
+          return result.data.instances.map((instance) => ({
+            instanceId: instance.instanceId,
+            status: instance.status,
+            metadata: {
+              instanceName: instance.instanceName,
+              instanceGroupId: instance.instanceGroupId,
+              androidVersion: instance.androidVersion,
+              resolution: instance.resolution,
+              regionId: instance.regionId,
+              networkInterfaceIp: instance.networkInterfaceIp,
+              publicIp: instance.publicIp,
+              adbServletAddress: instance.adbServletAddress,
+              gmtCreate: instance.gmtCreate,
+            },
+          }));
+        } else {
+          this.logger.warn(`Failed to fetch Aliyun ECP instances: ${result.errorMessage || 'Unknown error'}`);
+          return [];
+        }
+      } catch (error) {
+        this.logger.error(`Error fetching Aliyun ECP instances: ${error.message}`);
+        throw error;
+      }
+    }
+
+    // 华为云 CPH - 暂时返回空数组（待实现）
+    if (providerType === DeviceProviderType.HUAWEI_CPH) {
+      this.logger.warn('Huawei CPH sync not implemented yet');
+      return [];
+    }
+
+    // 其他提供商暂不支持同步
+    this.logger.warn(`Provider ${providerType} does not support cloud sync`);
+    return [];
   }
 
   /**
@@ -555,6 +617,11 @@ export class ProvidersService implements OnModuleInit {
       description: dbConfig.description,
     };
     this.providerConfigs.set(providerType, updatedConfig);
+
+    // 如果是阿里云 ECP，同步更新客户端配置
+    if (providerType === DeviceProviderType.ALIYUN_ECP) {
+      await this.updateAliyunClientConfig(mergedConfig);
+    }
 
     this.logger.log(`Updated configuration for provider ${providerType} in database`);
 

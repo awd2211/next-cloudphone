@@ -28,6 +28,12 @@ export enum DeviceProviderType {
   HUAWEI_CPH = 'huawei_cph',
   ALIYUN_ECP = 'aliyun_ecp',
   PHYSICAL = 'physical',
+  // Phase 5: 扩展云提供商
+  TENCENT_GS = 'tencent_gs',
+  BAIDU_BAC = 'baidu_bac',
+  AWS_DEVICE_FARM = 'aws_device_farm',
+  GENYMOTION = 'genymotion',
+  BROWSERSTACK = 'browserstack',
 }
 
 @Entity('devices')

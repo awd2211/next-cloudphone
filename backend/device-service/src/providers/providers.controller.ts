@@ -87,7 +87,7 @@ export class ProvidersController {
   async getProviderHealth() {
     this.logger.log('Fetching provider health status');
     const healthStatus = await this.providersService.getProviderHealth();
-    return { data: healthStatus };
+    return healthStatus;
   }
 
   /**

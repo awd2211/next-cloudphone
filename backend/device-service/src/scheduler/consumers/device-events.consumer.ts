@@ -6,6 +6,7 @@ import { Device } from '../../entities/device.entity';
 import { DeviceAllocation, AllocationStatus } from '../../entities/device-allocation.entity';
 import { AllocationService } from '../allocation.service';
 import { NotificationClientService } from '../notification-client.service';
+import { runInTraceContext } from '@cloudphone/shared';
 
 /**
  * Device 事件消费者
@@ -47,9 +48,10 @@ export class DeviceEventsConsumer {
     reason: string;
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(`📥 Received device.failed event: ${event.deviceId}`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`📥 Received device.failed event: ${event.deviceId}`);
 
-    try {
+      try {
       // 查找该设备的活跃分配
       const activeAllocation = await this.allocationRepository.findOne({
         where: {
@@ -96,6 +98,7 @@ export class DeviceEventsConsumer {
       );
       throw error; // Re-throw to send to DLX
     }
+    });
   }
 
   /**
@@ -116,9 +119,10 @@ export class DeviceEventsConsumer {
     userId: string;
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(`📥 Received device.deleted event: ${event.deviceId}`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`📥 Received device.deleted event: ${event.deviceId}`);
 
-    try {
+      try {
       // 查找所有该设备的活跃分配（理论上应该只有一个）
       const activeAllocations = await this.allocationRepository.find({
         where: {
@@ -161,6 +165,7 @@ export class DeviceEventsConsumer {
       );
       throw error;
     }
+    });
   }
 
   /**
@@ -182,11 +187,12 @@ export class DeviceEventsConsumer {
     newStatus: string;
     timestamp: string;
   }): Promise<void> {
-    this.logger.debug(
-      `📥 Received device.status_changed event: ${event.deviceId} (${event.oldStatus} → ${event.newStatus})`
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.debug(
+        `📥 Received device.status_changed event: ${event.deviceId} (${event.oldStatus} → ${event.newStatus})`
+      );
 
-    try {
+      try {
       // 如果设备从 running 变为 stopped/error，释放分配
       if (
         event.oldStatus === 'running' &&
@@ -217,6 +223,7 @@ export class DeviceEventsConsumer {
       );
       // Don't throw - status changes are informational
     }
+    });
   }
 
   /**
@@ -238,11 +245,12 @@ export class DeviceEventsConsumer {
     estimatedDuration?: number;
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(
-      `📥 Received device.maintenance event: ${event.deviceId} (${event.maintenanceType})`
-    );
+    return runInTraceContext(event, async () => {
+      this.logger.log(
+        `📥 Received device.maintenance event: ${event.deviceId} (${event.maintenanceType})`
+      );
 
-    try {
+      try {
       const activeAllocation = await this.allocationRepository.findOne({
         where: {
           deviceId: event.deviceId,
@@ -279,6 +287,7 @@ export class DeviceEventsConsumer {
       this.logger.error(`Failed to handle device.maintenance event: ${error.message}`, error.stack);
       throw error;
     }
+    });
   }
 
   /**
@@ -300,9 +309,11 @@ export class DeviceEventsConsumer {
     deviceType: string;
     timestamp: string;
   }): Promise<void> {
-    this.logger.log(`📥 Received device.created event: ${event.deviceId} (${event.deviceType})`);
+    return runInTraceContext(event, async () => {
+      this.logger.log(`📥 Received device.created event: ${event.deviceId} (${event.deviceType})`);
 
-    // Currently just logging, could trigger autoscaling decisions
-    // or update device pool statistics
+      // Currently just logging, could trigger autoscaling decisions
+      // or update device pool statistics
+    });
   }
 }
