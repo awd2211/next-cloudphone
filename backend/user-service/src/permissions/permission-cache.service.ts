@@ -233,18 +233,26 @@ export class PermissionCacheService implements OnModuleInit {
 
   /**
    * 使角色相关的所有用户缓存失效
+   *
+   * 优化：使用 JOIN 查询只获取拥有该角色的用户，而不是加载所有用户
+   *
    * @param roleId 角色ID
    */
   async invalidateCacheByRole(roleId: string): Promise<void> {
-    const users = await this.userRepository.find({
-      relations: ['roles'],
-    });
+    // 使用 JOIN 查询直接从数据库获取拥有该角色的用户
+    // 这比加载所有用户再过滤要高效得多
+    const affectedUsers = await this.userRepository
+      .createQueryBuilder('user')
+      .innerJoin('user.roles', 'role', 'role.id = :roleId', { roleId })
+      .select(['user.id'])
+      .getMany();
 
-    const affectedUsers = users.filter((user) => user.roles?.some((r) => r.id === roleId));
-
-    const invalidationPromises = affectedUsers.map((user) => this.invalidateCache(user.id));
-
-    await Promise.all(invalidationPromises);
+    // 批量并发失效缓存，但限制并发数避免 Redis 压力过大
+    const chunkSize = 50;
+    for (let i = 0; i < affectedUsers.length; i += chunkSize) {
+      const chunk = affectedUsers.slice(i, i + chunkSize);
+      await Promise.all(chunk.map((user) => this.invalidateCache(user.id)));
+    }
 
     this.logger.debug(
       `已清除角色 ${roleId} 相关的所有权限缓存 (共 ${affectedUsers.length} 个用户)`
@@ -252,7 +260,10 @@ export class PermissionCacheService implements OnModuleInit {
 
     // ✅ 推送角色级别的 WebSocket 通知
     if (this.gateway) {
-      await this.gateway.notifyRolePermissionChanged(roleId, `角色权限已更新，影响 ${affectedUsers.length} 个用户`);
+      await this.gateway.notifyRolePermissionChanged(
+        roleId,
+        `角色权限已更新，影响 ${affectedUsers.length} 个用户`
+      );
     }
   }
 

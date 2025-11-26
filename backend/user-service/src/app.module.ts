@@ -33,7 +33,7 @@ import { SensitiveDataInterceptor } from './common/interceptors/sensitive-data.i
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CircuitBreakerService } from './common/services/circuit-breaker.service';
 import { AuditLogService } from './common/services/audit-log.service';
-import { EncryptionService } from './common/services/encryption.service';
+import { UnifiedEncryptionModule } from '@cloudphone/shared';
 import { DatabaseMonitorService } from './common/services/database-monitor.service';
 import { PartitionManagerService } from './common/services/partition-manager.service';
 import { QueryOptimizationService } from './common/services/query-optimization.service';
@@ -48,6 +48,7 @@ import {
   EventBusModule,
   DistributedLockModule, // ✅ K8s 集群安全：分布式锁模块
   AppCacheModule, // ✅ Redis 缓存模块（提供 CACHE_MANAGER）
+  RequestTracingMiddleware, // ✅ 分布式追踪中间件
 } from '@cloudphone/shared';
 import { CacheWarmupService } from './cache/cache-warmup.service';
 import { CacheService } from './cache/cache.service';
@@ -95,6 +96,7 @@ import { validate } from './common/config/env.validation';
     ConsulModule, // ✅ 已修复 DiscoveryService 依赖问题
     EventBusModule.forRoot(), // ✅ 事件总线（用于错误通知）
     DistributedLockModule.forRoot(), // ✅ K8s 集群安全：Redis 分布式锁（防止定时任务重复执行）
+    UnifiedEncryptionModule.forRoot({ keyEnvName: 'ENCRYPTION_KEY' }), // ✅ 统一加密服务
     // SecurityModule,  // ⚠️ 暂时禁用 CSRF 保护以便开发测试
     // ScheduleModule 放在最后，避免依赖问题
     ScheduleModule.forRoot(),
@@ -124,7 +126,6 @@ import { validate } from './common/config/env.validation';
     // 全局服务
     CircuitBreakerService,
     AuditLogService,
-    EncryptionService,
     DatabaseMonitorService,
     PartitionManagerService, // 分区管理（Phase 2 优化）
     QueryOptimizationService, // 查询优化（Phase 3 优化）
@@ -140,6 +141,8 @@ import { validate } from './common/config/env.validation';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    // ✅ 分布式追踪中间件（必须在其他中间件之前）
+    consumer.apply(RequestTracingMiddleware).forRoutes('*');
     // 请求追踪（优雅关闭支持）
     consumer.apply(RequestTrackerMiddleware).forRoutes('*');
     // IP 黑名单过滤

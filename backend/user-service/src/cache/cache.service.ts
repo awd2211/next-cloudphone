@@ -29,6 +29,7 @@ export interface CacheConfig {
     randomTTLRange: number;
     nullValueTTL: number;
     hotDataPrefixes: string[];
+    hotDataTTL: number; // 热点数据 TTL（秒），默认 3600（1小时）
   };
 }
 
@@ -60,7 +61,11 @@ export class CacheService implements OnModuleDestroy {
     l2Hits: 0,
     misses: 0,
     sets: 0,
+    singleflightHits: 0, // singleflight 合并请求次数
   };
+
+  // Singleflight: 正在进行中的请求 (防止缓存击穿)
+  private readonly inFlight = new Map<string, Promise<any>>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -91,6 +96,7 @@ export class CacheService implements OnModuleDestroy {
           'config:',
           'device:',
         ]),
+        hotDataTTL: this.configService.get('cache.strategy.hotDataTTL', 3600), // 1 小时
       },
     };
 
@@ -218,9 +224,11 @@ export class CacheService implements OnModuleDestroy {
       ttl += randomOffset;
     }
 
-    // 热点数据永不过期
-    if (this.isHotData(key)) {
-      ttl = 0; // 0 表示永不过期
+    // 热点数据使用较长的 TTL（默认 1 小时）而不是永不过期
+    // 这避免了潜在的内存泄漏，同时仍能有效缓存热点数据
+    // 如果明确设置了 ttl，则使用用户指定的值
+    if (this.isHotData(key) && !options.ttl) {
+      ttl = this.config.strategy.hotDataTTL || 3600; // 1 小时
     }
 
     try {
@@ -252,6 +260,131 @@ export class CacheService implements OnModuleDestroy {
       return true;
     } catch (error) {
       this.logger.error(`Error setting cache key ${key}: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 批量获取缓存值 (减少网络往返)
+   * @param keys 键列表
+   * @param options 缓存选项
+   * @returns 键值映射 (未命中的键不包含在结果中)
+   */
+  async mget<T>(keys: string[], options: CacheOptions = {}): Promise<Map<string, T>> {
+    if (keys.length === 0) {
+      return new Map();
+    }
+
+    const layer = options.layer || CacheLayer.L1_AND_L2;
+    const result = new Map<string, T>();
+    const missingKeys: string[] = [];
+
+    try {
+      // L1: 本地缓存批量查询
+      if (layer === CacheLayer.L1_ONLY || layer === CacheLayer.L1_AND_L2) {
+        for (const key of keys) {
+          const localValue = this.localCache.get<string>(key);
+          if (localValue !== undefined) {
+            this.stats.l1Hits++;
+            if (localValue !== NULL_VALUE) {
+              result.set(key, this.deserialize<T>(localValue));
+            }
+          } else {
+            missingKeys.push(key);
+          }
+        }
+      } else {
+        missingKeys.push(...keys);
+      }
+
+      // L2: Redis 批量查询 (仅查询 L1 未命中的键)
+      if (missingKeys.length > 0 && (layer === CacheLayer.L2_ONLY || layer === CacheLayer.L1_AND_L2)) {
+        const redisValues = await this.redis.mget(...missingKeys);
+
+        for (let i = 0; i < missingKeys.length; i++) {
+          const key = missingKeys[i];
+          const value = redisValues[i];
+
+          if (value !== null) {
+            this.stats.l2Hits++;
+
+            // 回填 L1 缓存
+            if (layer === CacheLayer.L1_AND_L2) {
+              this.localCache.set(key, value, options.ttl || this.config.local.stdTTL);
+            }
+
+            if (value !== NULL_VALUE) {
+              result.set(key, this.deserialize<T>(value));
+            }
+          } else {
+            this.stats.misses++;
+          }
+        }
+      }
+
+      this.logger.debug(`mget: ${keys.length} keys, ${result.size} hits`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Error in mget: ${error.message}`);
+      return result;
+    }
+  }
+
+  /**
+   * 批量设置缓存值 (减少网络往返)
+   * @param entries 键值对列表
+   * @param options 缓存选项
+   * @returns 是否全部成功
+   */
+  async mset<T>(entries: Array<{ key: string; value: T }>, options: CacheOptions = {}): Promise<boolean> {
+    if (entries.length === 0) {
+      return true;
+    }
+
+    const layer = options.layer || CacheLayer.L1_AND_L2;
+    let ttl = options.ttl || this.config.local.stdTTL;
+
+    // 随机 TTL 防止缓存雪崩
+    if (options.randomTTL) {
+      const randomOffset = Math.floor(Math.random() * this.config.strategy.randomTTLRange);
+      ttl += randomOffset;
+    }
+
+    try {
+      // L1: 本地缓存批量设置
+      if (layer === CacheLayer.L1_ONLY || layer === CacheLayer.L1_AND_L2) {
+        for (const { key, value } of entries) {
+          const serializedValue = value === null || value === undefined ? NULL_VALUE : this.serialize(value);
+          if (ttl && ttl > 0) {
+            this.localCache.set(key, serializedValue, ttl);
+          } else {
+            this.localCache.set(key, serializedValue);
+          }
+          this.stats.sets++;
+        }
+      }
+
+      // L2: Redis 批量设置 (使用 pipeline 提高效率)
+      if (layer === CacheLayer.L2_ONLY || layer === CacheLayer.L1_AND_L2) {
+        const pipeline = this.redis.pipeline();
+
+        for (const { key, value } of entries) {
+          const serializedValue = value === null || value === undefined ? NULL_VALUE : this.serialize(value);
+          if (ttl > 0) {
+            pipeline.setex(key, ttl, serializedValue);
+          } else {
+            pipeline.set(key, serializedValue);
+          }
+          this.stats.sets++;
+        }
+
+        await pipeline.exec();
+      }
+
+      this.logger.debug(`mset: ${entries.length} entries (ttl: ${ttl}s)`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Error in mset: ${error.message}`);
       return false;
     }
   }
@@ -342,39 +475,76 @@ export class CacheService implements OnModuleDestroy {
   }
 
   /**
-   * 获取或设置 (缓存穿透防护)
+   * 获取或设置 (缓存穿透防护 + Singleflight 防止缓存击穿)
+   *
+   * Singleflight 模式：当多个请求同时缓存未命中时，
+   * 只有第一个请求会执行 factory 函数，其他请求等待并共享结果。
+   * 这避免了缓存击穿导致数据库瞬间压力过大。
+   *
+   * @param key 缓存键
+   * @param factory 数据获取函数
+   * @param options 缓存选项
+   * @returns 缓存值或 null
    */
   async getOrSet<T>(
     key: string,
     factory: () => Promise<T>,
     options: CacheOptions = {}
   ): Promise<T | null> {
-    // 先尝试获取缓存
+    // 1. 先尝试获取缓存
     const cached = await this.get<T>(key, options);
     if (cached !== null) {
       return cached;
     }
 
-    try {
-      // 执行工厂函数获取数据
-      const value = await factory();
-
-      // 缓存空值防护
-      if (value === null || value === undefined) {
-        if (options.nullValueCache !== false) {
-          await this.set(key, null, {
-            ...options,
-            ttl: this.config.strategy.nullValueTTL,
-          });
-        }
+    // 2. Singleflight: 检查是否有正在进行的请求
+    const existing = this.inFlight.get(key);
+    if (existing) {
+      this.stats.singleflightHits++;
+      this.logger.debug(`Singleflight hit: waiting for existing request for key ${key}`);
+      try {
+        return await existing;
+      } catch {
+        // 原始请求失败，也返回 null
         return null;
       }
+    }
 
-      // 设置缓存
-      await this.set(key, value, options);
-      return value;
-    } catch (error) {
-      this.logger.error(`Error in getOrSet for key ${key}: ${error.message}`);
+    // 3. 创建新请求并注册到 inFlight
+    const fetchPromise = (async () => {
+      try {
+        // 执行工厂函数获取数据
+        const value = await factory();
+
+        // 缓存空值防护
+        if (value === null || value === undefined) {
+          if (options.nullValueCache !== false) {
+            await this.set(key, null, {
+              ...options,
+              ttl: this.config.strategy.nullValueTTL,
+            });
+          }
+          return null;
+        }
+
+        // 设置缓存
+        await this.set(key, value, options);
+        return value;
+      } catch (error) {
+        this.logger.error(`Error in getOrSet for key ${key}: ${error.message}`);
+        throw error; // 重新抛出让等待的请求也能感知错误
+      } finally {
+        // 无论成功还是失败，都要从 inFlight 中移除
+        this.inFlight.delete(key);
+      }
+    })();
+
+    // 注册到 inFlight
+    this.inFlight.set(key, fetchPromise);
+
+    try {
+      return await fetchPromise;
+    } catch {
       return null;
     }
   }
@@ -408,6 +578,10 @@ export class CacheService implements OnModuleDestroy {
         hits: this.stats.l2Hits,
         hitRate: `${l2HitRate.toFixed(2)}%`,
       },
+      singleflight: {
+        hits: this.stats.singleflightHits,
+        inFlight: this.inFlight.size,
+      },
       total: {
         hits: this.stats.l1Hits + this.stats.l2Hits,
         misses: this.stats.misses,
@@ -426,7 +600,97 @@ export class CacheService implements OnModuleDestroy {
       l2Hits: 0,
       misses: 0,
       sets: 0,
+      singleflightHits: 0,
     };
+  }
+
+  /**
+   * 原子获取分布式锁（使用 Redis SET NX EX 命令）
+   * @param lockKey 锁键名
+   * @param ttl 锁过期时间（秒）
+   * @param lockValue 锁值（用于安全释放锁）
+   * @returns 是否成功获取锁
+   */
+  async acquireLock(lockKey: string, ttl: number, lockValue?: string): Promise<{ acquired: boolean; value: string }> {
+    const value = lockValue || `${Date.now()}:${process.pid}:${Math.random().toString(36).slice(2)}`;
+    try {
+      // 使用 SET NX EX 命令原子性地设置锁
+      // NX: 仅当键不存在时设置
+      // EX: 设置过期时间（秒）
+      const result = await this.redis.set(lockKey, value, 'EX', ttl, 'NX');
+      const acquired = result === 'OK';
+
+      if (acquired) {
+        this.logger.debug(`Lock acquired: ${lockKey} (ttl: ${ttl}s)`);
+      } else {
+        this.logger.debug(`Lock already held: ${lockKey}`);
+      }
+
+      return { acquired, value };
+    } catch (error) {
+      this.logger.error(`Error acquiring lock ${lockKey}: ${error.message}`);
+      return { acquired: false, value };
+    }
+  }
+
+  /**
+   * 安全释放分布式锁（仅当锁值匹配时释放）
+   * 使用 Lua 脚本保证原子性
+   * @param lockKey 锁键名
+   * @param lockValue 锁值（必须与获取时的值匹配）
+   * @returns 是否成功释放锁
+   */
+  async releaseLock(lockKey: string, lockValue: string): Promise<boolean> {
+    // Lua 脚本：仅当锁值匹配时删除键
+    const script = `
+      if redis.call("get", KEYS[1]) == ARGV[1] then
+        return redis.call("del", KEYS[1])
+      else
+        return 0
+      end
+    `;
+
+    try {
+      const result = await this.redis.eval(script, 1, lockKey, lockValue);
+      const released = result === 1;
+
+      if (released) {
+        this.logger.debug(`Lock released: ${lockKey}`);
+      } else {
+        this.logger.debug(`Lock not released (value mismatch or expired): ${lockKey}`);
+      }
+
+      return released;
+    } catch (error) {
+      this.logger.error(`Error releasing lock ${lockKey}: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 延长锁的过期时间（看门狗机制）
+   * @param lockKey 锁键名
+   * @param lockValue 锁值（必须匹配）
+   * @param ttl 新的过期时间（秒）
+   * @returns 是否成功延长
+   */
+  async extendLock(lockKey: string, lockValue: string, ttl: number): Promise<boolean> {
+    // Lua 脚本：仅当锁值匹配时延长过期时间
+    const script = `
+      if redis.call("get", KEYS[1]) == ARGV[1] then
+        return redis.call("expire", KEYS[1], ARGV[2])
+      else
+        return 0
+      end
+    `;
+
+    try {
+      const result = await this.redis.eval(script, 1, lockKey, lockValue, ttl);
+      return result === 1;
+    } catch (error) {
+      this.logger.error(`Error extending lock ${lockKey}: ${error.message}`);
+      return false;
+    }
   }
 
   // 私有辅助方法

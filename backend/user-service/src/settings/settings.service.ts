@@ -2,7 +2,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Setting, SettingCategory } from './entities/setting.entity';
-import { EncryptionService } from '../common/services/encryption.service';
+import { UnifiedEncryptionService } from '@cloudphone/shared';
 import { CacheService } from '../cache/cache.service';
 
 @Injectable()
@@ -12,8 +12,8 @@ export class SettingsService {
   constructor(
     @InjectRepository(Setting)
     private readonly settingRepository: Repository<Setting>,
-    private readonly encryptionService: EncryptionService,
-    @Optional() private readonly cacheService: CacheService
+    private readonly encryptionService: UnifiedEncryptionService,
+    @Optional() private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -50,7 +50,7 @@ export class SettingsService {
       let value = setting.value;
       if (setting.isEncrypted) {
         try {
-          value = this.encryptionService.decrypt(value);
+          value = this.encryptionService.decryptFromString(value);
         } catch (error) {
           this.logger.error(`Failed to decrypt setting: ${setting.key}`, error);
         }
@@ -106,7 +106,7 @@ export class SettingsService {
       let value = setting.value;
       if (setting.isEncrypted) {
         try {
-          value = this.encryptionService.decrypt(value);
+          value = this.encryptionService.decryptFromString(value);
         } catch (error) {
           this.logger.error(`Failed to decrypt setting: ${setting.key}`, error);
         }
@@ -145,7 +145,7 @@ export class SettingsService {
     let value = setting.value;
     if (setting.isEncrypted) {
       try {
-        value = this.encryptionService.decrypt(value);
+        value = this.encryptionService.decryptFromString(value);
       } catch (error) {
         this.logger.error(`Failed to decrypt setting: ${setting.key}`, error);
         return null;
@@ -175,7 +175,7 @@ export class SettingsService {
 
     // 如果需要加密
     if (options?.isEncrypted) {
-      valueStr = this.encryptionService.encrypt(valueStr);
+      valueStr = this.encryptionService.encryptToString(valueStr);
     }
 
     if (setting) {

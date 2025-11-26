@@ -89,6 +89,9 @@ export class EventStoreService {
 
   /**
    * 批量保存事件（优化版：使用事务和批量插入）
+   *
+   * 事件只在事务成功提交后才发布到 EventBus，确保数据一致性。
+   *
    * @param events 事件列表
    * @param metadata 元数据
    */
@@ -101,44 +104,49 @@ export class EventStoreService {
     if (events.length === 0) return [];
 
     // 使用事务确保原子性
-    return await this.eventRepository.manager.transaction(async (transactionalEntityManager) => {
-      // 检查版本冲突
-      const aggregateIds = [...new Set(events.map((e) => e.aggregateId))];
-      const existingEvents = await transactionalEntityManager.find(UserEvent, {
-        where: aggregateIds.map((aggregateId) => ({
-          aggregateId,
-          version: events.find((e) => e.aggregateId === aggregateId)?.version,
-        })),
-      });
+    const savedEvents = await this.eventRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        // 检查版本冲突
+        const aggregateIds = [...new Set(events.map((e) => e.aggregateId))];
+        const existingEvents = await transactionalEntityManager.find(UserEvent, {
+          where: aggregateIds.map((aggregateId) => ({
+            aggregateId,
+            version: events.find((e) => e.aggregateId === aggregateId)?.version,
+          })),
+        });
 
-      if (existingEvents.length > 0) {
-        throw new ConflictException(
-          `Event version conflict detected for ${existingEvents.length} events`
+        if (existingEvents.length > 0) {
+          throw new ConflictException(
+            `Event version conflict detected for ${existingEvents.length} events`
+          );
+        }
+
+        // 批量创建事件实体
+        const eventEntities = events.map((event) =>
+          this.eventRepository.create({
+            aggregateId: event.aggregateId,
+            eventType: event.getEventType(),
+            eventData: event.getEventData(),
+            version: event.version,
+            metadata,
+            createdAt: event.occurredAt,
+          })
         );
+
+        // 批量保存
+        const saved = await transactionalEntityManager.save(UserEvent, eventEntities);
+
+        this.logger.log(`Batch saved ${saved.length} events`);
+
+        return saved;
       }
+    );
 
-      // 批量创建事件实体
-      const eventEntities = events.map((event) =>
-        this.eventRepository.create({
-          aggregateId: event.aggregateId,
-          eventType: event.getEventType(),
-          eventData: event.getEventData(),
-          version: event.version,
-          metadata,
-          createdAt: event.occurredAt,
-        })
-      );
+    // 事务成功提交后，发布事件到 EventBus
+    // 这确保只有已持久化的事件才会被发布
+    await Promise.all(events.map((event) => this.eventBus.publish(event)));
 
-      // 批量保存
-      const savedEvents = await transactionalEntityManager.save(UserEvent, eventEntities);
-
-      this.logger.log(`Batch saved ${savedEvents.length} events`);
-
-      // 并行发布事件到 EventBus
-      await Promise.all(events.map((event) => this.eventBus.publish(event)));
-
-      return savedEvents;
-    });
+    return savedEvents;
   }
 
   /**
@@ -202,14 +210,33 @@ export class EventStoreService {
   }
 
   /**
-   * 在事务中保存事件（Issue #4 修复）
+   * 在事务中保存事件（Issue #4 修复 + 时序优化）
    *
-   * 此方法确保事件保存在同一个事务中，并且只在事务成功提交后才发布到 EventBus
+   * 此方法确保事件保存在同一个事务中。
+   * 重要：返回的 publishAfterCommit 回调必须在事务成功提交后调用！
+   * 这确保只有持久化成功的事件才会被发布到 EventBus，避免数据不一致。
    *
    * @param manager EntityManager - 事务管理器
    * @param event 领域事件
    * @param metadata 事件元数据
-   * @returns Promise<UserEvent> - 保存的事件实体
+   * @returns Promise<SaveEventResult> - 包含保存的事件实体和发布回调
+   *
+   * @example
+   * ```typescript
+   * const queryRunner = dataSource.createQueryRunner();
+   * await queryRunner.startTransaction();
+   * try {
+   *   const { savedEvent, publishAfterCommit } = await eventStore.saveEventInTransaction(
+   *     queryRunner.manager, event, metadata
+   *   );
+   *   // ... 其他事务操作
+   *   await queryRunner.commitTransaction();
+   *   publishAfterCommit(); // 仅在事务提交成功后发布！
+   * } catch (error) {
+   *   await queryRunner.rollbackTransaction();
+   *   throw error; // 事件不会被发布
+   * }
+   * ```
    */
   async saveEventInTransaction(
     manager: EntityManager,
@@ -222,7 +249,7 @@ export class EventStoreService {
       correlationId?: string;
       causationId?: string;
     }
-  ): Promise<UserEvent> {
+  ): Promise<{ savedEvent: UserEvent; publishAfterCommit: () => void }> {
     try {
       const eventRepository = manager.getRepository(UserEvent);
 
@@ -257,17 +284,16 @@ export class EventStoreService {
         `Event saved in transaction: ${event.getEventType()} for aggregate ${event.aggregateId}, version ${event.version}`
       );
 
-      // 重要：在事务中不立即发布事件到 EventBus
-      // 我们需要确保事务成功提交后再发布
-      // 使用 setImmediate 延迟到事件循环的下一个tick
-      setImmediate(() => {
+      // 返回发布回调，调用方必须在事务提交成功后调用
+      // 这确保只有已提交的事件才会被发布，避免数据不一致
+      const publishAfterCommit = () => {
         this.eventBus.publish(event);
         this.logger.log(
-          `Event published to EventBus: ${event.getEventType()} for aggregate ${event.aggregateId}`
+          `Event published to EventBus after commit: ${event.getEventType()} for aggregate ${event.aggregateId}`
         );
-      });
+      };
 
-      return savedEvent;
+      return { savedEvent, publishAfterCommit };
     } catch (error) {
       this.logger.error(
         `Failed to save event in transaction: ${event.getEventType()} for aggregate ${event.aggregateId}`,

@@ -669,10 +669,6 @@ export class UsersService {
             'role.id',
             'role.name',
             'role.displayName',
-            'permission.id',
-            'permission.name',
-            'permission.resource',
-            'permission.action',
           ])
           .getOne();
 
@@ -703,22 +699,71 @@ export class UsersService {
   }
 
   /**
-   * 批量查询用户（根据ID列表）
-   * 用于服务间调用，返回基本信息
+   * 批量查询用户（根据ID列表）- 优化版
+   *
+   * 优化策略:
+   * 1. 使用 mget 批量从缓存获取
+   * 2. 只查询缓存未命中的用户
+   * 3. 使用 mset 批量缓存查询结果
+   *
+   * 性能提升: 减少 Redis 和数据库的网络往返次数
+   * - 旧版: N 次缓存查询 + 1 次数据库查询 + N 次缓存写入
+   * - 新版: 1 次 mget + 1 次数据库查询(仅未命中) + 1 次 mset
    */
   async findByIds(ids: string[]): Promise<User[]> {
     if (!ids || ids.length === 0) {
       return [];
     }
 
-    try {
-      // 使用 In 查询批量获取用户
-      const users = await this.usersRepository.find({
-        where: { id: In(ids) },
-        select: ['id', 'username', 'email', 'fullName', 'avatar', 'status'],
-      });
+    // 去重
+    const uniqueIds = [...new Set(ids)];
+    const result: User[] = [];
+    const missingIds: string[] = [];
 
-      return users;
+    try {
+      // 1. 批量从缓存获取
+      if (this.cacheService) {
+        const cacheKeys = uniqueIds.map((id) => `user:${id}`);
+        const cached = await this.cacheService.mget<User>(cacheKeys);
+
+        // 分离命中和未命中
+        for (const id of uniqueIds) {
+          const cacheKey = `user:${id}`;
+          const user = cached.get(cacheKey);
+          if (user) {
+            result.push(user);
+          } else {
+            missingIds.push(id);
+          }
+        }
+
+        this.logger.debug(
+          `findByIds: ${cached.size} cache hits, ${missingIds.length} cache misses`
+        );
+      } else {
+        missingIds.push(...uniqueIds);
+      }
+
+      // 2. 查询缓存未命中的用户
+      if (missingIds.length > 0) {
+        const users = await this.usersRepository.find({
+          where: { id: In(missingIds) },
+          select: ['id', 'username', 'email', 'fullName', 'avatar', 'status'],
+        });
+
+        result.push(...users);
+
+        // 3. 批量缓存查询结果
+        if (this.cacheService && users.length > 0) {
+          const cacheEntries = users.map((user) => ({
+            key: `user:${user.id}`,
+            value: user,
+          }));
+          await this.cacheService.mset(cacheEntries, { ttl: 300 });
+        }
+      }
+
+      return result;
     } catch (error) {
       this.logger.error(`Failed to batch find users: ${error.message}`, error.stack);
       return [];
@@ -983,6 +1028,85 @@ export class UsersService {
     }
   }
 
+  /**
+   * 批量删除用户（软删除）
+   *
+   * 优化特性：
+   * - 单个事务批量更新
+   * - 批量缓存失效
+   * - 批量事件发布
+   * - 分块处理防止内存溢出
+   *
+   * @param ids 要删除的用户ID列表
+   * @returns 成功删除的用户数量和失败的ID列表
+   */
+  async batchRemove(ids: string[]): Promise<{ deleted: number; failed: string[] }> {
+    if (ids.length === 0) {
+      return { deleted: 0, failed: [] };
+    }
+
+    const failed: string[] = [];
+    let deletedCount = 0;
+
+    // 分块处理，避免单次操作过多
+    const chunkSize = 100;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+
+      // 查找存在的用户
+      const users = await this.usersRepository.find({
+        where: { id: In(chunk), status: Not(UserStatus.DELETED) },
+        select: ['id', 'username', 'email', 'tenantId'],
+      });
+
+      if (users.length === 0) {
+        // 所有ID都不存在或已删除
+        failed.push(...chunk);
+        continue;
+      }
+
+      const foundIds = new Set(users.map((u) => u.id));
+      const notFoundIds = chunk.filter((id) => !foundIds.has(id));
+      failed.push(...notFoundIds);
+
+      // 批量软删除（单次 UPDATE）
+      await this.usersRepository.update(
+        { id: In(users.map((u) => u.id)) },
+        { status: UserStatus.DELETED }
+      );
+
+      deletedCount += users.length;
+
+      // 批量清除缓存
+      if (this.cacheService) {
+        const cacheKeys = users.map((u) => `user:${u.id}`);
+        await this.cacheService.del(cacheKeys);
+      }
+
+      // 批量发布事件
+      if (this.eventBus) {
+        await Promise.all(
+          users.map((user) =>
+            this.eventBus.publishUserEvent('deleted', {
+              userId: user.id,
+              username: user.username,
+              email: user.email,
+              tenantId: user.tenantId,
+              batchOperation: true,
+            })
+          )
+        );
+      }
+    }
+
+    // 清除用户列表缓存
+    await this.clearUserListCache();
+
+    this.logger.log(`Batch delete completed: ${deletedCount} deleted, ${failed.length} failed`);
+
+    return { deleted: deletedCount, failed };
+  }
+
   async updateLoginInfo(id: string, ip: string): Promise<void> {
     await this.usersRepository.update(id, {
       lastLoginAt: new Date(),
@@ -1080,8 +1204,8 @@ export class UsersService {
 
     // 使用分布式锁防止缓存击穿（多个请求同时查询数据库）
     if (this.cacheService) {
-      // 尝试获取锁
-      const lockAcquired = await this.acquireLock(lockKey, lockTTL);
+      // 尝试获取锁（原子操作）
+      const { acquired: lockAcquired, lockValue } = await this.acquireLock(lockKey, lockTTL);
 
       if (lockAcquired) {
         try {
@@ -1096,8 +1220,8 @@ export class UsersService {
           const stats = await this.calculateStats(tenantId, cacheKey, timer);
           return stats;
         } finally {
-          // 释放锁
-          await this.releaseLock(lockKey);
+          // 安全释放锁（仅当锁值匹配时释放）
+          await this.releaseLock(lockKey, lockValue);
         }
       } else {
         // 未获取到锁，等待后重试（最多3次）
@@ -1194,27 +1318,19 @@ export class UsersService {
   }
 
   /**
-   * 获取分布式锁（使用 Redis SETNX）
+   * 获取分布式锁（使用 Redis SET NX EX 原子命令）
+   * @returns 锁结果，包含是否获取成功和锁值（用于安全释放）
    */
-  private async acquireLock(lockKey: string, ttl: number): Promise<boolean> {
-    try {
-      // 使用 Redis 的 SET NX EX 命令实现分布式锁
-      // 注意：cacheService 内部使用 Redis，我们需要直接访问 Redis 实例
-      // 这里简化实现，实际应该从 cacheService 获取 Redis 实例
-      const lockValue = Date.now().toString();
+  private async acquireLock(lockKey: string, ttl: number): Promise<{ acquired: boolean; lockValue: string }> {
+    const result = await this.cacheService.acquireLock(lockKey, ttl);
+    return { acquired: result.acquired, lockValue: result.value };
+  }
 
-      // 尝试设置锁（如果不存在则设置，并设置过期时间）
-      // 这里我们使用 cacheService.set 的原子性来实现
-      const existing = await this.cacheService.get(lockKey);
-      if (existing) {
-        return false; // 锁已被占用
-      }
-
-      await this.cacheService.set(lockKey, lockValue, { ttl, layer: CacheLayer.L2_ONLY });
-      return true;
-    } catch (error) {
-      return false;
-    }
+  /**
+   * 安全释放分布式锁（仅当锁值匹配时释放）
+   */
+  private async releaseLock(lockKey: string, lockValue: string): Promise<boolean> {
+    return this.cacheService.releaseLock(lockKey, lockValue);
   }
 
   /**
@@ -1886,17 +2002,6 @@ export class UsersService {
     }
 
     return result;
-  }
-
-  /**
-   * 释放分布式锁
-   */
-  private async releaseLock(lockKey: string): Promise<void> {
-    try {
-      await this.cacheService.del(lockKey);
-    } catch (error) {
-      // 忽略释放锁的错误（锁会自动过期）
-    }
   }
 
   /**

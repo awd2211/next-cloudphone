@@ -504,24 +504,57 @@ export class AuthService {
 
   /**
    * 验证用户（供 JWT Strategy 使用）
+   *
+   * 优化：添加短 TTL 缓存（60秒），减少数据库压力
+   * - 每次请求都会调用此方法，是高频操作
+   * - 使用 singleflight 防止并发穿透
+   * - TTL 较短以确保用户状态变化能及时生效
    */
   async validateUser(userId: string) {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['roles'],
-    });
+    const cacheKey = `auth:validate:${userId}`;
+    const CACHE_TTL = 60; // 60秒，平衡性能与实时性
 
-    if (!user || user.status !== UserStatus.ACTIVE) {
-      return null;
-    }
+    // 使用 getOrSet 结合 singleflight 模式
+    const cachedUser = await this.cacheService.getOrSet<{
+      id: string;
+      username: string;
+      email: string;
+      roles: string[];
+      tenantId: string;
+      isSuperAdmin: boolean;
+    } | null>(
+      cacheKey,
+      async () => {
+        const user = await this.userRepository.findOne({
+          where: { id: userId },
+          relations: ['roles'],
+        });
 
-    return {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      roles: user.roles?.map((r) => r.name) || [],
-      tenantId: user.tenantId,
-      isSuperAdmin: user.isSuperAdmin,
-    };
+        if (!user || user.status !== UserStatus.ACTIVE) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          roles: user.roles?.map((r) => r.name) || [],
+          tenantId: user.tenantId,
+          isSuperAdmin: user.isSuperAdmin,
+        };
+      },
+      { ttl: CACHE_TTL, nullValueCache: true } // 缓存 null 防止无效用户频繁查询
+    );
+
+    return cachedUser;
+  }
+
+  /**
+   * 清除用户验证缓存（当用户状态改变时调用）
+   */
+  async invalidateUserValidationCache(userId: string): Promise<void> {
+    const cacheKey = `auth:validate:${userId}`;
+    await this.cacheService.del(cacheKey);
+    this.logger.debug(`Invalidated validation cache for user ${userId}`);
   }
 }

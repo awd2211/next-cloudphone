@@ -59,7 +59,8 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
     database: 'cloudphone_user',  // ✅ 强制使用 cloudphone_user 数据库
 
     // 实体配置
-    entities: [`${__dirname}/../../**/*.entity{.ts,.js}`],
+    // ✅ HMR 兼容：自动加载 forFeature() 注册的实体
+    autoLoadEntities: true,
     // ✅ 使用迁移脚本管理数据库架构，禁用 synchronize
     synchronize: false,
     logging: isDevelopment ? 'all' : ['error', 'warn', 'schema'],

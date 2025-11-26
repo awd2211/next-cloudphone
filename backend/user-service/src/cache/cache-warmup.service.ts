@@ -68,6 +68,7 @@ export class CacheWarmupService implements OnModuleInit {
 
   /**
    * 预热角色数据
+   * 优化：使用 mset 批量设置，减少 Redis 网络往返
    */
   private async warmupRoles() {
     try {
@@ -76,12 +77,26 @@ export class CacheWarmupService implements OnModuleInit {
         take: 100, // 最多预热100个角色
       });
 
-      for (const role of roles) {
-        const cacheKey = `role:${role.id}`;
-        await this.cacheService.set(cacheKey, role, { ttl: 600 }); // 10分钟
+      if (roles.length === 0) {
+        this.logger.log(`  ⏭️  No roles to warmup`);
+        return;
       }
 
-      this.logger.log(`  ✅ Warmed up ${roles.length} roles`);
+      // 使用 mset 批量设置缓存
+      const entries = roles.map((role) => ({
+        key: `role:${role.id}`,
+        value: role,
+      }));
+
+      await this.cacheService.mset(entries, { ttl: 600 }); // 10分钟
+
+      // 同时缓存默认 'user' 角色（高频查询）
+      const defaultUserRole = roles.find((r) => r.name === 'user');
+      if (defaultUserRole) {
+        await this.cacheService.set('role:default:user', defaultUserRole, { ttl: 3600 }); // 1小时
+      }
+
+      this.logger.log(`  ✅ Warmed up ${roles.length} roles (batch mset)`);
     } catch (error) {
       this.logger.warn(`Failed to warmup roles: ${error.message}`);
     }
@@ -89,6 +104,7 @@ export class CacheWarmupService implements OnModuleInit {
 
   /**
    * 预热权限数据
+   * 优化：使用 mset 批量设置，减少 Redis 网络往返
    */
   private async warmupPermissions() {
     try {
@@ -96,12 +112,20 @@ export class CacheWarmupService implements OnModuleInit {
         take: 200, // 最多预热200个权限
       });
 
-      for (const permission of permissions) {
-        const cacheKey = `permission:${permission.id}`;
-        await this.cacheService.set(cacheKey, permission, { ttl: 600 });
+      if (permissions.length === 0) {
+        this.logger.log(`  ⏭️  No permissions to warmup`);
+        return;
       }
 
-      this.logger.log(`  ✅ Warmed up ${permissions.length} permissions`);
+      // 使用 mset 批量设置缓存
+      const entries = permissions.map((permission) => ({
+        key: `permission:${permission.id}`,
+        value: permission,
+      }));
+
+      await this.cacheService.mset(entries, { ttl: 600 }); // 10分钟
+
+      this.logger.log(`  ✅ Warmed up ${permissions.length} permissions (batch mset)`);
     } catch (error) {
       this.logger.warn(`Failed to warmup permissions: ${error.message}`);
     }

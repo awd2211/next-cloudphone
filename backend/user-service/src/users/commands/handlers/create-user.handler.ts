@@ -69,14 +69,20 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
       );
 
       // 在事务中保存事件
-      // EventStoreService 会保存事件并发布到 EventBus
-      // EventBus 会触发 UserCreatedEventHandler
-      await this.eventStore.saveEventInTransaction(queryRunner.manager, event);
+      // 重要：publishAfterCommit 必须在事务提交成功后调用
+      const { publishAfterCommit } = await this.eventStore.saveEventInTransaction(
+        queryRunner.manager,
+        event
+      );
 
       // 提交事务
       await queryRunner.commitTransaction();
 
-      // 事务提交成功，返回用户
+      // 事务提交成功后，发布事件到 EventBus
+      // 这确保只有已持久化的事件才会触发 UserCreatedEventHandler
+      publishAfterCommit();
+
+      // 返回用户
       return user;
     } catch (error) {
       // 发生错误，回滚事务

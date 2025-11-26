@@ -13,6 +13,7 @@ import { Role } from '../entities/role.entity';
 import { Quota, QuotaStatus, QuotaLimits } from '../entities/quota.entity';
 import { RegisterDto } from './dto/register.dto';
 import { UserMetricsService } from '../metrics/user-metrics.service';
+import { CacheService } from '../cache/cache.service';
 
 /**
  * 用户注册 Saga 状态
@@ -85,6 +86,10 @@ export class UserRegistrationSaga {
     maxUsageHoursPerMonth: 100, // 每月最多 100 小时
   };
 
+  // 默认角色缓存键和 TTL (角色数据稳定，缓存 1 小时)
+  private readonly DEFAULT_ROLE_CACHE_KEY = 'role:default:user';
+  private readonly DEFAULT_ROLE_CACHE_TTL = 3600; // 1 小时
+
   constructor(
     private readonly sagaOrchestrator: SagaOrchestratorService,
     @InjectRepository(User)
@@ -96,6 +101,7 @@ export class UserRegistrationSaga {
     private readonly eventBus: EventBusService,
     private readonly dataSource: DataSource,
     private readonly userMetrics: UserMetricsService,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -252,10 +258,17 @@ export class UserRegistrationSaga {
   ): Promise<Partial<UserRegistrationSagaState>> {
     this.logger.log(`[ASSIGN_DEFAULT_ROLE] Assigning default role to user ${state.userId}`);
 
-    // 查找默认角色（"user" 角色）
-    const defaultRole = await this.roleRepository.findOne({
-      where: { name: 'user' },
-    });
+    // 优化：使用缓存获取默认角色（singleflight 防止并发穿透）
+    const defaultRole = await this.cacheService.getOrSet<Role | null>(
+      this.DEFAULT_ROLE_CACHE_KEY,
+      async () => {
+        const role = await this.roleRepository.findOne({
+          where: { name: 'user' },
+        });
+        return role;
+      },
+      { ttl: this.DEFAULT_ROLE_CACHE_TTL, nullValueCache: false }
+    );
 
     if (!defaultRole) {
       throw new Error('Default role "user" not found in system');
