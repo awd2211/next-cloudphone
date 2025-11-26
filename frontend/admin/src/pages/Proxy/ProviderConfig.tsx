@@ -20,6 +20,7 @@ import {
   Alert,
   message,
 } from 'antd';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import {
   PlusOutlined,
   EditOutlined,
@@ -266,8 +267,8 @@ const ProviderConfig: React.FC = memo(() => {
       render: (_, record) => (
         <div style={{ fontSize: 12 }}>
           <div>总计: {record.totalRequests}</div>
-          <div style={{ color: '#52c41a' }}>成功: {record.successRequests}</div>
-          <div style={{ color: '#ff4d4f' }}>失败: {record.failedRequests}</div>
+          <div style={{ color: SEMANTIC.success.main }}>成功: {record.successRequests}</div>
+          <div style={{ color: SEMANTIC.error.main }}>失败: {record.failedRequests}</div>
         </div>
       ),
     },
@@ -279,7 +280,7 @@ const ProviderConfig: React.FC = memo(() => {
       sorter: (a: ProxyProvider, b: ProxyProvider) => a.successRate - b.successRate,
       render: (rate: number) => (
         <span style={{
-          color: rate >= 90 ? '#52c41a' : rate >= 70 ? '#faad14' : '#ff4d4f',
+          color: rate >= 90 ? SEMANTIC.success.main : rate >= 70 ? SEMANTIC.warning.main : SEMANTIC.error.main,
           fontWeight: 500,
         }}>
           {rate.toFixed(1)}%
@@ -547,7 +548,7 @@ const ProviderConfig: React.FC = memo(() => {
               title="已启用"
               value={enabledProviders}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -558,7 +559,7 @@ const ProviderConfig: React.FC = memo(() => {
               value={avgSuccessRate.toFixed(1)}
               suffix="%"
               valueStyle={{
-                color: avgSuccessRate >= 90 ? '#3f8600' : avgSuccessRate >= 70 ? '#faad14' : '#cf1322',
+                color: avgSuccessRate >= 90 ? SEMANTIC.success.main : avgSuccessRate >= 70 ? SEMANTIC.warning.main : SEMANTIC.error.main,
               }}
             />
           </Card>
@@ -671,7 +672,7 @@ const ProviderConfig: React.FC = memo(() => {
           {selectedRowKeys.length > 0 && (
             <>
               <Divider type="vertical" />
-              <span style={{ marginLeft: 8, color: '#999' }}>
+              <span style={{ marginLeft: 8, color: NEUTRAL_LIGHT.text.tertiary }}>
                 已选择 {selectedRowKeys.length} 项
               </span>
               <Button

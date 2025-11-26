@@ -8,6 +8,7 @@ import {
   ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useSMSRealtimeStats } from '@/hooks/queries/useSMS';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
@@ -118,7 +119,7 @@ const RealtimeMonitorTab: React.FC = memo(() => {
       key: 'avgResponseTime',
       width: 150,
       render: (time: number) => (
-        <span style={{ color: time > 60 ? '#ff4d4f' : '#52c41a' }}>
+        <span style={{ color: time > 60 ? SEMANTIC.error.main : SEMANTIC.success.main }}>
           {time.toFixed(1)}s
         </span>
       ),
@@ -145,7 +146,7 @@ const RealtimeMonitorTab: React.FC = memo(() => {
   return (
     <div>
       {/* 更新时间 */}
-      <div style={{ marginBottom: 16, textAlign: 'right', color: '#999' }}>
+      <div style={{ marginBottom: 16, textAlign: 'right', color: NEUTRAL_LIGHT.text.tertiary }}>
         最后更新: {realtimeData ? dayjs(realtimeData.timestamp).format('YYYY-MM-DD HH:mm:ss') : '-'}
       </div>
 
@@ -156,7 +157,7 @@ const RealtimeMonitorTab: React.FC = memo(() => {
             <Card>
               <Statistic
                 title="总活跃号码"
-                value={realtimeData?.activeNumbers.total || 0}
+                value={realtimeData?.activeNumbers?.total ?? 0}
                 prefix={<PhoneOutlined />}
                 valueStyle={{ color: token.colorPrimary }}
               />
@@ -166,11 +167,11 @@ const RealtimeMonitorTab: React.FC = memo(() => {
             <Card>
               <Statistic
                 title="按平台分布"
-                value={Object.keys(realtimeData?.activeNumbers.byProvider || {}).length}
+                value={Object.keys(realtimeData?.activeNumbers?.byProvider || {}).length}
                 suffix="个平台"
               />
               <div style={{ marginTop: 8, fontSize: 12 }}>
-                {Object.entries(realtimeData?.activeNumbers.byProvider || {}).map(
+                {Object.entries(realtimeData?.activeNumbers?.byProvider || {}).map(
                   ([provider, count]) => (
                     <div key={provider}>
                       {provider}: {count}
@@ -184,11 +185,11 @@ const RealtimeMonitorTab: React.FC = memo(() => {
             <Card>
               <Statistic
                 title="按状态分布"
-                value={Object.keys(realtimeData?.activeNumbers.byStatus || {}).length}
+                value={Object.keys(realtimeData?.activeNumbers?.byStatus || {}).length}
                 suffix="种状态"
               />
               <div style={{ marginTop: 8, fontSize: 12 }}>
-                {Object.entries(realtimeData?.activeNumbers.byStatus || {}).map(
+                {Object.entries(realtimeData?.activeNumbers?.byStatus || {}).map(
                   ([status, count]) => (
                     <div key={status}>
                       {status}: {count}
@@ -217,22 +218,22 @@ const RealtimeMonitorTab: React.FC = memo(() => {
                 <Col span={8}>
                   <Statistic
                     title="请求"
-                    value={realtimeData?.recentActivity.last5Minutes.requests || 0}
+                    value={realtimeData?.recentActivity?.last5Minutes?.requests ?? 0}
                     valueStyle={{ fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="成功"
-                    value={realtimeData?.recentActivity.last5Minutes.successes || 0}
-                    valueStyle={{ color: '#3f8600', fontSize: 20 }}
+                    value={realtimeData?.recentActivity?.last5Minutes?.successes ?? 0}
+                    valueStyle={{ color: SEMANTIC.success.main, fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="失败"
-                    value={realtimeData?.recentActivity.last5Minutes.failures || 0}
-                    valueStyle={{ color: '#cf1322', fontSize: 20 }}
+                    value={realtimeData?.recentActivity?.last5Minutes?.failures ?? 0}
+                    valueStyle={{ color: SEMANTIC.error.main, fontSize: 20 }}
                   />
                 </Col>
               </Row>
@@ -257,22 +258,22 @@ const RealtimeMonitorTab: React.FC = memo(() => {
                 <Col span={8}>
                   <Statistic
                     title="请求"
-                    value={realtimeData?.recentActivity.last15Minutes.requests || 0}
+                    value={realtimeData?.recentActivity?.last15Minutes?.requests ?? 0}
                     valueStyle={{ fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="成功"
-                    value={realtimeData?.recentActivity.last15Minutes.successes || 0}
-                    valueStyle={{ color: '#3f8600', fontSize: 20 }}
+                    value={realtimeData?.recentActivity?.last15Minutes?.successes ?? 0}
+                    valueStyle={{ color: SEMANTIC.success.main, fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="失败"
-                    value={realtimeData?.recentActivity.last15Minutes.failures || 0}
-                    valueStyle={{ color: '#cf1322', fontSize: 20 }}
+                    value={realtimeData?.recentActivity?.last15Minutes?.failures ?? 0}
+                    valueStyle={{ color: SEMANTIC.error.main, fontSize: 20 }}
                   />
                 </Col>
               </Row>
@@ -297,22 +298,22 @@ const RealtimeMonitorTab: React.FC = memo(() => {
                 <Col span={8}>
                   <Statistic
                     title="请求"
-                    value={realtimeData?.recentActivity.lastHour.requests || 0}
+                    value={realtimeData?.recentActivity?.lastHour?.requests ?? 0}
                     valueStyle={{ fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="成功"
-                    value={realtimeData?.recentActivity.lastHour.successes || 0}
-                    valueStyle={{ color: '#3f8600', fontSize: 20 }}
+                    value={realtimeData?.recentActivity?.lastHour?.successes ?? 0}
+                    valueStyle={{ color: SEMANTIC.success.main, fontSize: 20 }}
                   />
                 </Col>
                 <Col span={8}>
                   <Statistic
                     title="失败"
-                    value={realtimeData?.recentActivity.lastHour.failures || 0}
-                    valueStyle={{ color: '#cf1322', fontSize: 20 }}
+                    value={realtimeData?.recentActivity?.lastHour?.failures ?? 0}
+                    valueStyle={{ color: SEMANTIC.error.main, fontSize: 20 }}
                   />
                 </Col>
               </Row>

@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from '@/utils/request';
 import type { ColumnsType } from 'antd/es/table';
+import { SEMANTIC } from '@/theme';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -164,7 +165,7 @@ export default function ProviderConfigList() {
           {text}
           {record.isDefault && (
             <Tooltip title="默认配置">
-              <StarFilled style={{ color: '#faad14' }} />
+              <StarFilled style={{ color: SEMANTIC.warning.main }} />
             </Tooltip>
           )}
         </Space>

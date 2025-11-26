@@ -146,4 +146,24 @@ export const ALERT_MESSAGES = {
     message: '物理设备配置',
     description: '配置物理 Android 设备连接参数',
   },
+  [DeviceProvider.AWS]: {
+    message: 'AWS Device Farm 配置',
+    description: '配置 AWS Device Farm 服务 API 凭证，支持真机设备云测试',
+  },
+  [DeviceProvider.TENCENT]: {
+    message: '腾讯云游戏配置',
+    description: '配置腾讯云游戏 (GS) 服务 API 凭证和参数',
+  },
+  [DeviceProvider.BAIDU]: {
+    message: '百度 AICloud 配置',
+    description: '配置百度 AICloud 云手机服务 API 凭证和参数',
+  },
+  [DeviceProvider.BROWSERSTACK]: {
+    message: 'BrowserStack 配置',
+    description: '配置 BrowserStack 真机云测试平台账户凭证',
+  },
+  [DeviceProvider.GENYMOTION]: {
+    message: 'Genymotion Cloud 配置',
+    description: '配置 Genymotion Cloud Android 模拟器云服务凭证',
+  },
 };

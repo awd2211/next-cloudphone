@@ -18,6 +18,7 @@ import {
   Col,
   Statistic,
 } from 'antd';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import {
   PlusOutlined,
   EditOutlined,
@@ -166,7 +167,7 @@ const ProviderConfig: React.FC = memo(() => {
       render: (_, record) => (
         <div>
           <div style={{ fontWeight: 500 }}>{record.displayName}</div>
-          <div style={{ fontSize: 12, color: '#999' }}>{record.provider}</div>
+          <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>{record.provider}</div>
         </div>
       ),
     },
@@ -189,10 +190,20 @@ const ProviderConfig: React.FC = memo(() => {
           <div style={{ fontWeight: 500 }}>
             ${record.balance?.toFixed(2) || 'N/A'}
           </div>
-          <div style={{ fontSize: 12, color: record.balance && record.balanceThreshold && record.balance < record.balanceThreshold ? '#ff4d4f' : '#999' }}>
+          <div style={{ fontSize: 12, color: record.balance && record.balanceThreshold && record.balance < record.balanceThreshold ? SEMANTIC.error.main : NEUTRAL_LIGHT.text.tertiary }}>
             阈值: ${record.balanceThreshold || 'N/A'}
           </div>
         </div>
+      ),
+    },
+    {
+      title: 'API密钥',
+      key: 'hasApiKey',
+      width: 100,
+      render: (_, record) => (
+        <Tag color={record.hasApiKey ? 'success' : 'error'}>
+          {record.hasApiKey ? '已配置' : '未配置'}
+        </Tag>
       ),
     },
     {
@@ -209,8 +220,8 @@ const ProviderConfig: React.FC = memo(() => {
       render: (_, record) => (
         <div style={{ fontSize: 12 }}>
           <div>总计: {record.totalRequests}</div>
-          <div style={{ color: '#52c41a' }}>成功: {record.totalSuccess}</div>
-          <div style={{ color: '#ff4d4f' }}>失败: {record.totalFailures}</div>
+          <div style={{ color: SEMANTIC.success.main }}>成功: {record.totalSuccess}</div>
+          <div style={{ color: SEMANTIC.error.main }}>失败: {record.totalFailures}</div>
         </div>
       ),
     },
@@ -222,7 +233,7 @@ const ProviderConfig: React.FC = memo(() => {
       sorter: (a: SMSProviderConfig, b: SMSProviderConfig) => (a.successRate || 0) - (b.successRate || 0),
       render: (rate: number) => (
         <span style={{
-          color: rate >= 90 ? '#52c41a' : rate >= 70 ? '#faad14' : '#ff4d4f',
+          color: rate >= 90 ? SEMANTIC.success.main : rate >= 70 ? SEMANTIC.warning.main : SEMANTIC.error.main,
           fontWeight: 500,
         }}>
           {rate.toFixed(1)}%
@@ -332,7 +343,7 @@ const ProviderConfig: React.FC = memo(() => {
               title="已启用"
               value={enabledProviders}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -343,7 +354,7 @@ const ProviderConfig: React.FC = memo(() => {
               value={avgSuccessRate.toFixed(1)}
               suffix="%"
               valueStyle={{
-                color: avgSuccessRate >= 90 ? '#3f8600' : avgSuccessRate >= 70 ? '#faad14' : '#cf1322',
+                color: avgSuccessRate >= 90 ? SEMANTIC.success.main : avgSuccessRate >= 70 ? SEMANTIC.warning.main : SEMANTIC.error.main,
               }}
             />
           </Card>
@@ -435,7 +446,9 @@ const ProviderConfig: React.FC = memo(() => {
                 >
                   <Select.Option value="sms-activate">SMS-Activate</Select.Option>
                   <Select.Option value="5sim">5sim</Select.Option>
-                  <Select.Option value="smspool">SMSPool</Select.Option>
+                  <Select.Option value="sms-man">SMS-Man</Select.Option>
+                  <Select.Option value="smspva">SMSPVA</Select.Option>
+                  <Select.Option value="onlinesim">OnlineSim</Select.Option>
                 </Select>
               </Form.Item>
             </Col>

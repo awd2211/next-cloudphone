@@ -18,6 +18,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { useSMSStatistics } from '@/hooks/queries/useSMS';
+import { SEMANTIC } from '@/theme';
 import dayjs, { Dayjs } from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -104,14 +105,14 @@ const StatisticsTab: React.FC = memo(() => {
       dataIndex: 'successes',
       key: 'successes',
       width: 100,
-      render: (value: number) => <span style={{ color: '#52c41a' }}>{value}</span>,
+      render: (value: number) => <span style={{ color: SEMANTIC.success.main }}>{value}</span>,
     },
     {
       title: '失败数',
       dataIndex: 'failures',
       key: 'failures',
       width: 100,
-      render: (value: number) => <span style={{ color: '#ff4d4f' }}>{value}</span>,
+      render: (value: number) => <span style={{ color: SEMANTIC.error.main }}>{value}</span>,
     },
     {
       title: '成功率',
@@ -237,7 +238,7 @@ const StatisticsTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="总请求数"
-              value={statisticsData?.overview.totalRequests || 0}
+              value={statisticsData?.overview?.totalRequests ?? 0}
             />
           </Card>
         </Col>
@@ -245,9 +246,9 @@ const StatisticsTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="成功请求"
-              value={statisticsData?.overview.successfulRequests || 0}
+              value={statisticsData?.overview?.successfulRequests ?? 0}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -255,9 +256,9 @@ const StatisticsTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="失败请求"
-              value={statisticsData?.overview.failedRequests || 0}
+              value={statisticsData?.overview?.failedRequests ?? 0}
               prefix={<CloseCircleOutlined />}
-              valueStyle={{ color: '#cf1322' }}
+              valueStyle={{ color: SEMANTIC.error.main }}
             />
           </Card>
         </Col>
@@ -265,15 +266,15 @@ const StatisticsTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="成功率"
-              value={statisticsData?.overview.successRate.toFixed(1) || 0}
+              value={statisticsData?.overview?.successRate?.toFixed(1) ?? '0.0'}
               suffix="%"
               valueStyle={{
                 color:
-                  (statisticsData?.overview.successRate || 0) >= 90
-                    ? '#3f8600'
-                    : (statisticsData?.overview.successRate || 0) >= 70
-                    ? '#faad14'
-                    : '#cf1322',
+                  (statisticsData?.overview?.successRate ?? 0) >= 90
+                    ? SEMANTIC.success.main
+                    : (statisticsData?.overview?.successRate ?? 0) >= 70
+                    ? SEMANTIC.warning.main
+                    : SEMANTIC.error.main,
               }}
             />
           </Card>
@@ -282,7 +283,7 @@ const StatisticsTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="平均成本"
-              value={statisticsData?.overview.averageCost.toFixed(4) || 0}
+              value={statisticsData?.overview?.averageCost?.toFixed(4) ?? '0.0000'}
               prefix="$"
             />
           </Card>
@@ -291,7 +292,7 @@ const StatisticsTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="总成本"
-              value={statisticsData?.overview.totalCost.toFixed(4) || 0}
+              value={statisticsData?.overview?.totalCost?.toFixed(4) ?? '0.0000'}
               prefix={<DollarOutlined />}
               valueStyle={{ color: token.colorPrimary }}
             />

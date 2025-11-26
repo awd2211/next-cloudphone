@@ -33,6 +33,7 @@ import {
   WarningOutlined,
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
+import { SEMANTIC } from '@/theme';
 import type { ProxyProvider } from '@/hooks/queries/useProxy';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -484,14 +485,14 @@ const ImportExportModal: React.FC<ImportExportModalProps> = ({
                       <Statistic
                         title="有效"
                         value={statistics.valid}
-                        valueStyle={{ color: '#52c41a' }}
+                        valueStyle={{ color: SEMANTIC.success.main }}
                         prefix={<CheckCircleOutlined />}
                       />
                       {statistics.warnings > 0 && (
                         <Statistic
                           title="警告"
                           value={statistics.warnings}
-                          valueStyle={{ color: '#faad14' }}
+                          valueStyle={{ color: SEMANTIC.warning.main }}
                           prefix={<WarningOutlined />}
                         />
                       )}
@@ -499,7 +500,7 @@ const ImportExportModal: React.FC<ImportExportModalProps> = ({
                         <Statistic
                           title="错误"
                           value={statistics.errors}
-                          valueStyle={{ color: '#ff4d4f' }}
+                          valueStyle={{ color: SEMANTIC.error.main }}
                           prefix={<CloseCircleOutlined />}
                         />
                       )}

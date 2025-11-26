@@ -34,6 +34,7 @@ import {
   CopyOutlined,
   SendOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC, PRIMARY } from '@/theme';
 import * as smsActivateAPI from '@/services/smsactivate';
 
 const { Title, Text } = Typography;
@@ -611,7 +612,7 @@ const SmsActivateAdvancedTab: React.FC = () => {
                 value={balanceInfo.balance}
                 prefix="₽"
                 precision={2}
-                valueStyle={{ color: '#3f8600' }}
+                valueStyle={{ color: SEMANTIC.success.main }}
               />
             </Col>
             <Col span={8}>
@@ -620,7 +621,7 @@ const SmsActivateAdvancedTab: React.FC = () => {
                 value={balanceInfo.cashBack}
                 prefix="₽"
                 precision={2}
-                valueStyle={{ color: '#1890ff' }}
+                valueStyle={{ color: PRIMARY.main }}
               />
             </Col>
             <Col span={8}>

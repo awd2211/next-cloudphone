@@ -8,13 +8,24 @@ import {
   Tag,
   Progress,
   Button,
+  Spin,
 } from 'antd';
+import { SEMANTIC, PRIMARY, NEUTRAL_LIGHT } from '@/theme';
 import {
   ReloadOutlined,
   CheckCircleOutlined,
   ThunderboltOutlined,
+  CloudOutlined,
+  ApiOutlined,
+  DashboardOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
-import { useProxyProviderRanking, type ProxyProviderRanking } from '@/hooks/queries/useProxy';
+import {
+  useProxyProviderRanking,
+  useProxyProviders,
+  useProxyStats,
+  type ProxyProviderRanking,
+} from '@/hooks/queries/useProxy';
 import type { ColumnsType } from 'antd/es/table';
 
 /**
@@ -27,8 +38,21 @@ import type { ColumnsType } from 'antd/es/table';
  */
 // ✅ 使用 memo 包装组件，避免不必要的重渲染
 const ProviderMonitorTab: React.FC = memo(() => {
-  // 使用新的 React Query Hook
-  const { data: providers = [], isLoading, refetch } = useProxyProviderRanking();
+  // 使用 React Query Hooks
+  // 1. 获取已配置的供应商列表（用于 "活跃供应商" 统计）
+  const { data: configuredProviders = [] } = useProxyProviders();
+  // 2. 获取供应商排名数据（用于排名表格）
+  const { data: rankingData = [], isLoading: isRankingLoading, refetch } = useProxyProviderRanking();
+  // 3. 获取代理池实际统计数据（用于总览统计卡片）
+  const { data: poolStats, isLoading: isStatsLoading } = useProxyStats();
+
+  // 计算活跃供应商数量（已启用且有配置）
+  const activeProviderCount = useMemo(() => {
+    return configuredProviders.filter(p => p.enabled && p.hasConfig).length;
+  }, [configuredProviders]);
+
+  // 组合加载状态
+  const isLoading = isRankingLoading || isStatsLoading;
 
   // ✅ 使用 useMemo 缓存列定义
   const columns: ColumnsType<ProxyProviderRanking> = useMemo(() => [
@@ -51,7 +75,7 @@ const ProviderMonitorTab: React.FC = memo(() => {
       render: (provider: string, record) => (
         <div>
           <div style={{ fontWeight: 500 }}>{provider}</div>
-          <div style={{ fontSize: 12, color: '#999' }}>
+          <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
             综合评分: {record.score.toFixed(1)}
           </div>
         </div>
@@ -64,7 +88,7 @@ const ProviderMonitorTab: React.FC = memo(() => {
       render: (_, record) => (
         <div>
           <div>总数: {record.totalProxies}</div>
-          <div style={{ fontSize: 12, color: '#52c41a' }}>
+          <div style={{ fontSize: 12, color: SEMANTIC.success.main }}>
             可用: {record.availableProxies}
           </div>
         </div>
@@ -132,28 +156,44 @@ const ProviderMonitorTab: React.FC = memo(() => {
     },
   ], []);
 
-  // ✅ 使用 useMemo 缓存总览统计计算
-  const { totalProxies, totalAvailable, avgScore, bestProvider } = useMemo(() => {
-    const total = providers.reduce((sum: number, p: any) => sum + p.totalProxies, 0);
-    const available = providers.reduce((sum: number, p: any) => sum + p.availableProxies, 0);
-    const avg = providers.length > 0
-      ? providers.reduce((sum: number, p: any) => sum + p.score, 0) / providers.length
-      : 0;
-    const best = providers.length > 0 ? providers[0] : null;
-    return { totalProxies: total, totalAvailable: available, avgScore: avg, bestProvider: best };
-  }, [providers]);
+  // ✅ 使用 useMemo 缓存总览统计计算 - 优先使用 poolStats 的真实数据
+  const { totalProxies, totalAvailable, inUse, unhealthy, avgQuality, avgLatency, bestProvider } = useMemo(() => {
+    // 从池统计 API 获取真实数据
+    // 后端字段名: averageQuality, averageLatency (驼峰命名)
+    const total = poolStats?.total ?? 0;
+    const available = poolStats?.available ?? 0;
+    const used = poolStats?.inUse ?? 0;
+    const bad = poolStats?.unhealthy ?? poolStats?.unavailable ?? 0;
+    // 兼容两种字段名
+    const quality = poolStats?.averageQuality ?? poolStats?.avgQuality ?? 0;
+    const latency = poolStats?.averageLatency ?? poolStats?.avgLatency ?? 0;
+
+    // 排名数据用于显示最佳供应商
+    const best = rankingData.length > 0 ? rankingData[0] : null;
+
+    return {
+      totalProxies: total,
+      totalAvailable: available,
+      inUse: used,
+      unhealthy: bad,
+      avgQuality: quality,
+      avgLatency: latency,
+      bestProvider: best
+    };
+  }, [poolStats, rankingData]);
 
   return (
+    <Spin spinning={isLoading}>
     <div>
-      {/* 总览统计 */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      {/* 总览统计 - 第一行 */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
               title="活跃供应商"
-              value={providers.length}
+              value={activeProviderCount}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -161,8 +201,8 @@ const ProviderMonitorTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="总代理数"
-              value={totalProxies}
-              prefix={<ThunderboltOutlined />}
+              value={totalProxies.toLocaleString()}
+              prefix={<CloudOutlined />}
             />
           </Card>
         </Col>
@@ -170,20 +210,68 @@ const ProviderMonitorTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="可用代理"
-              value={totalAvailable}
-              valueStyle={{ color: '#52c41a' }}
+              value={totalAvailable.toLocaleString()}
+              prefix={<ApiOutlined />}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="平均评分"
-              value={avgScore.toFixed(1)}
+              title="使用中"
+              value={inUse.toLocaleString()}
+              prefix={<ThunderboltOutlined />}
+              valueStyle={{ color: PRIMARY.main }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 总览统计 - 第二行 */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="不可用"
+              value={unhealthy}
+              valueStyle={{ color: unhealthy > 0 ? SEMANTIC.error.main : SEMANTIC.success.main }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="平均质量"
+              value={avgQuality}
               suffix="/100"
+              prefix={<DashboardOutlined />}
               valueStyle={{
-                color: avgScore >= 80 ? '#3f8600' : avgScore >= 60 ? '#faad14' : '#cf1322',
+                color: avgQuality >= 80 ? SEMANTIC.success.main : avgQuality >= 60 ? SEMANTIC.warning.main : SEMANTIC.error.main,
               }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="平均延迟"
+              value={avgLatency}
+              suffix="ms"
+              prefix={<ClockCircleOutlined />}
+              valueStyle={{
+                color: avgLatency <= 100 ? SEMANTIC.success.main : avgLatency <= 200 ? SEMANTIC.warning.main : SEMANTIC.error.main,
+              }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="可用率"
+              value={totalProxies > 0 ? ((totalAvailable / totalProxies) * 100).toFixed(1) : 0}
+              suffix="%"
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -222,13 +310,19 @@ const ProviderMonitorTab: React.FC = memo(() => {
       {/* 供应商排名表格 */}
       <Table
         columns={columns}
-        dataSource={providers}
+        dataSource={rankingData}
         rowKey="provider"
-        loading={isLoading}
+        loading={isRankingLoading}
         pagination={false}
         scroll={{ x: 1200 }}
+        locale={{
+          emptyText: activeProviderCount > 0
+            ? '暂无排名数据，请先刷新代理池以生成评分'
+            : '暂无供应商配置，请先添加供应商',
+        }}
       />
     </div>
+    </Spin>
   );
 });
 

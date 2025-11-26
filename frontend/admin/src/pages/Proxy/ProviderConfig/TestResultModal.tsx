@@ -19,6 +19,7 @@ import {
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { ProxyProvider } from '@/hooks/queries/useProxy';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 
 export interface TestResult {
   success: boolean;
@@ -110,9 +111,9 @@ const TestResultModal: React.FC<TestResultModalProps> = ({
             subTitle={testResult.message || (testResult.success ? '代理服务器响应正常' : '请检查配置或网络')}
             icon={
               testResult.success ? (
-                <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                <CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />
               ) : (
-                <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
+                <CloseCircleOutlined style={{ color: SEMANTIC.error.main }} />
               )
             }
           />
@@ -186,13 +187,13 @@ const TestResultModal: React.FC<TestResultModalProps> = ({
                     <div>
                       <div style={{ marginBottom: 4 }}>
                         <Tag color={item.success ? 'success' : 'error'}>{item.success ? '成功' : '失败'}</Tag>
-                        <span style={{ color: '#999', fontSize: 12 }}>
+                        <span style={{ color: NEUTRAL_LIGHT.text.tertiary, fontSize: 12 }}>
                           {new Date(item.testedAt).toLocaleString('zh-CN')}
                         </span>
                       </div>
-                      <div style={{ fontSize: 12, color: '#666' }}>{item.message}</div>
+                      <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.secondary }}>{item.message}</div>
                       {item.proxyIp && (
-                        <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary, marginTop: 4 }}>
                           IP: {item.proxyIp}
                         </div>
                       )}

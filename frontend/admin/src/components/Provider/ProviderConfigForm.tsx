@@ -36,7 +36,11 @@ const ProviderConfigForm: React.FC<ProviderConfigFormProps> = React.memo(
     // 确保 health 是数组
     const healthArray = Array.isArray(health) ? health : [];
     const status = healthArray.find((h) => h.provider === provider);
-    const alertConfig = ALERT_MESSAGES[provider];
+    // 防御性检查：确保 alertConfig 存在
+    const alertConfig = ALERT_MESSAGES[provider] || {
+      message: '提供商配置',
+      description: '配置云手机提供商 API 凭证和参数',
+    };
 
     const healthStatus = status?.healthy ? (
       <Badge status="success" text="健康" />

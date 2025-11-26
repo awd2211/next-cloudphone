@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Tabs, Form } from 'antd';
 import { DeviceProvider, ProviderNames, ProviderIcons } from '@/types/provider';
 import {
@@ -7,6 +7,11 @@ import {
   DockerFormFields,
   HuaweiFormFields,
   AliyunFormFields,
+  AwsFormFields,
+  TencentFormFields,
+  BaiduFormFields,
+  BrowserStackFormFields,
+  GenymotionFormFields,
 } from '@/components/Provider';
 import {
   useProviderHealth,
@@ -20,14 +25,24 @@ const ProviderConfiguration: React.FC = () => {
   const [dockerForm] = Form.useForm();
   const [huaweiForm] = Form.useForm();
   const [aliyunForm] = Form.useForm();
+  const [awsForm] = Form.useForm();
+  const [tencentForm] = Form.useForm();
+  const [baiduForm] = Form.useForm();
+  const [browserStackForm] = Form.useForm();
+  const [genymotionForm] = Form.useForm();
 
   const forms = useMemo(
     () => ({
       docker: dockerForm,
       huawei: huaweiForm,
       aliyun: aliyunForm,
+      aws: awsForm,
+      tencent: tencentForm,
+      baidu: baiduForm,
+      browserstack: browserStackForm,
+      genymotion: genymotionForm,
     }),
-    [dockerForm, huaweiForm, aliyunForm]
+    [dockerForm, huaweiForm, aliyunForm, awsForm, tencentForm, baiduForm, browserStackForm, genymotionForm]
   );
 
   // ✅ 测试加载状态（UI层）
@@ -36,19 +51,95 @@ const ProviderConfiguration: React.FC = () => {
   // ✅ 数据获取（React Query）
   const { data: health = [] } = useProviderHealth();
 
-  // 预加载所有云手机提供商配置（物理设备在设备中心单独管理）
-  useProviderConfig(DeviceProvider.DOCKER);
-  useProviderConfig(DeviceProvider.HUAWEI);
-  useProviderConfig(DeviceProvider.ALIYUN);
+  // 获取所有云手机提供商配置
+  const { data: dockerConfig } = useProviderConfig(DeviceProvider.DOCKER);
+  const { data: huaweiConfig } = useProviderConfig(DeviceProvider.HUAWEI);
+  const { data: aliyunConfig } = useProviderConfig(DeviceProvider.ALIYUN);
+  const { data: awsConfig } = useProviderConfig(DeviceProvider.AWS);
+  const { data: tencentConfig } = useProviderConfig(DeviceProvider.TENCENT);
+  const { data: baiduConfig } = useProviderConfig(DeviceProvider.BAIDU);
+  const { data: browserStackConfig } = useProviderConfig(DeviceProvider.BROWSERSTACK);
+  const { data: genymotionConfig } = useProviderConfig(DeviceProvider.GENYMOTION);
+
+  // ✅ 当配置数据加载完成后，填充表单
+  useEffect(() => {
+    if (dockerConfig?.config) {
+      dockerForm.setFieldsValue(dockerConfig.config);
+    }
+  }, [dockerConfig, dockerForm]);
+
+  useEffect(() => {
+    if (huaweiConfig?.config) {
+      huaweiForm.setFieldsValue(huaweiConfig.config);
+    }
+  }, [huaweiConfig, huaweiForm]);
+
+  useEffect(() => {
+    if (aliyunConfig?.config) {
+      // 映射后端字段名到前端表单字段名（只保留必要字段）
+      const formValues = {
+        accessKeyId: aliyunConfig.config.accessKeyId,
+        accessKeySecret: aliyunConfig.config.accessKeySecret,
+        regionId: aliyunConfig.config.regionId || aliyunConfig.config.region,
+        endpoint: aliyunConfig.config.endpoint || aliyunConfig.config.apiEndpoint?.replace('https://', ''),
+      };
+      aliyunForm.setFieldsValue(formValues);
+    }
+  }, [aliyunConfig, aliyunForm]);
+
+  useEffect(() => {
+    if (awsConfig?.config) {
+      awsForm.setFieldsValue(awsConfig.config);
+    }
+  }, [awsConfig, awsForm]);
+
+  useEffect(() => {
+    if (tencentConfig?.config) {
+      tencentForm.setFieldsValue(tencentConfig.config);
+    }
+  }, [tencentConfig, tencentForm]);
+
+  useEffect(() => {
+    if (baiduConfig?.config) {
+      baiduForm.setFieldsValue(baiduConfig.config);
+    }
+  }, [baiduConfig, baiduForm]);
+
+  useEffect(() => {
+    if (browserStackConfig?.config) {
+      browserStackForm.setFieldsValue(browserStackConfig.config);
+    }
+  }, [browserStackConfig, browserStackForm]);
+
+  useEffect(() => {
+    if (genymotionConfig?.config) {
+      genymotionForm.setFieldsValue(genymotionConfig.config);
+    }
+  }, [genymotionConfig, genymotionForm]);
 
   // ✅ Mutations
   const updateConfigMutation = useUpdateProviderConfig();
   const testConnectionMutation = useTestProviderConnection();
 
-  // ✅ 保存配置
+  // ✅ 保存配置（带字段映射）
   const handleSave = useCallback(
     async (provider: DeviceProvider, values: any) => {
-      await updateConfigMutation.mutateAsync({ provider, config: values });
+      let configToSave = values;
+
+      // 阿里云需要字段映射：前端字段名 -> 后端字段名
+      if (provider === DeviceProvider.ALIYUN) {
+        configToSave = {
+          accessKeyId: values.accessKeyId,
+          accessKeySecret: values.accessKeySecret,
+          region: values.regionId,
+          regionId: values.regionId,
+          apiEndpoint: values.endpoint ? `https://${values.endpoint.replace('https://', '')}` : undefined,
+          endpoint: values.endpoint?.replace('https://', ''),
+        };
+      }
+
+      // 后端 API 期望格式: { enabled?, priority?, maxDevices?, config?: Record<string, any> }
+      await updateConfigMutation.mutateAsync({ provider, config: { config: configToSave } });
     },
     [updateConfigMutation]
   );
@@ -122,6 +213,96 @@ const ProviderConfiguration: React.FC = () => {
     [forms.aliyun, health, loading, testLoading, handleSave, handleTest]
   );
 
+  // AWS Device Farm 配置
+  const renderAwsConfig = useCallback(
+    () => (
+      <ProviderConfigForm
+        provider={DeviceProvider.AWS}
+        form={forms.aws}
+        health={health as any}
+        loading={loading}
+        testLoading={testLoading[DeviceProvider.AWS] || false}
+        onSave={(values) => handleSave(DeviceProvider.AWS, values)}
+        onTest={() => handleTest(DeviceProvider.AWS)}
+      >
+        <AwsFormFields />
+      </ProviderConfigForm>
+    ),
+    [forms.aws, health, loading, testLoading, handleSave, handleTest]
+  );
+
+  // 腾讯云配置
+  const renderTencentConfig = useCallback(
+    () => (
+      <ProviderConfigForm
+        provider={DeviceProvider.TENCENT}
+        form={forms.tencent}
+        health={health as any}
+        loading={loading}
+        testLoading={testLoading[DeviceProvider.TENCENT] || false}
+        onSave={(values) => handleSave(DeviceProvider.TENCENT, values)}
+        onTest={() => handleTest(DeviceProvider.TENCENT)}
+      >
+        <TencentFormFields />
+      </ProviderConfigForm>
+    ),
+    [forms.tencent, health, loading, testLoading, handleSave, handleTest]
+  );
+
+  // 百度云配置
+  const renderBaiduConfig = useCallback(
+    () => (
+      <ProviderConfigForm
+        provider={DeviceProvider.BAIDU}
+        form={forms.baidu}
+        health={health as any}
+        loading={loading}
+        testLoading={testLoading[DeviceProvider.BAIDU] || false}
+        onSave={(values) => handleSave(DeviceProvider.BAIDU, values)}
+        onTest={() => handleTest(DeviceProvider.BAIDU)}
+      >
+        <BaiduFormFields />
+      </ProviderConfigForm>
+    ),
+    [forms.baidu, health, loading, testLoading, handleSave, handleTest]
+  );
+
+  // BrowserStack 配置
+  const renderBrowserStackConfig = useCallback(
+    () => (
+      <ProviderConfigForm
+        provider={DeviceProvider.BROWSERSTACK}
+        form={forms.browserstack}
+        health={health as any}
+        loading={loading}
+        testLoading={testLoading[DeviceProvider.BROWSERSTACK] || false}
+        onSave={(values) => handleSave(DeviceProvider.BROWSERSTACK, values)}
+        onTest={() => handleTest(DeviceProvider.BROWSERSTACK)}
+      >
+        <BrowserStackFormFields />
+      </ProviderConfigForm>
+    ),
+    [forms.browserstack, health, loading, testLoading, handleSave, handleTest]
+  );
+
+  // Genymotion 配置
+  const renderGenymotionConfig = useCallback(
+    () => (
+      <ProviderConfigForm
+        provider={DeviceProvider.GENYMOTION}
+        form={forms.genymotion}
+        health={health as any}
+        loading={loading}
+        testLoading={testLoading[DeviceProvider.GENYMOTION] || false}
+        onSave={(values) => handleSave(DeviceProvider.GENYMOTION, values)}
+        onTest={() => handleTest(DeviceProvider.GENYMOTION)}
+      >
+        <GenymotionFormFields />
+      </ProviderConfigForm>
+    ),
+    [forms.genymotion, health, loading, testLoading, handleSave, handleTest]
+  );
+
   return (
     <div style={{ padding: '24px' }}>
       <ProviderHealthStatus health={health as any} />
@@ -143,6 +324,31 @@ const ProviderConfiguration: React.FC = () => {
             key: 'aliyun',
             label: `${ProviderIcons[DeviceProvider.ALIYUN]} ${ProviderNames[DeviceProvider.ALIYUN]}`,
             children: renderAliyunConfig(),
+          },
+          {
+            key: 'aws',
+            label: `${ProviderIcons[DeviceProvider.AWS]} ${ProviderNames[DeviceProvider.AWS]}`,
+            children: renderAwsConfig(),
+          },
+          {
+            key: 'tencent',
+            label: `${ProviderIcons[DeviceProvider.TENCENT]} ${ProviderNames[DeviceProvider.TENCENT]}`,
+            children: renderTencentConfig(),
+          },
+          {
+            key: 'baidu',
+            label: `${ProviderIcons[DeviceProvider.BAIDU]} ${ProviderNames[DeviceProvider.BAIDU]}`,
+            children: renderBaiduConfig(),
+          },
+          {
+            key: 'browserstack',
+            label: `${ProviderIcons[DeviceProvider.BROWSERSTACK]} ${ProviderNames[DeviceProvider.BROWSERSTACK]}`,
+            children: renderBrowserStackConfig(),
+          },
+          {
+            key: 'genymotion',
+            label: `${ProviderIcons[DeviceProvider.GENYMOTION]} ${ProviderNames[DeviceProvider.GENYMOTION]}`,
+            children: renderGenymotionConfig(),
           },
         ]}
       />

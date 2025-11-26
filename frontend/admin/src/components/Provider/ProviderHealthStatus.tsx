@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, Row, Col, Statistic } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { DeviceProvider, ProviderNames, ProviderIcons } from '@/types/provider';
+import { SEMANTIC } from '@/theme';
 
 interface HealthData {
   provider: DeviceProvider;
@@ -29,7 +30,7 @@ const ProviderHealthStatus: React.FC<ProviderHealthStatusProps> = React.memo(({ 
                 <Statistic
                   title={`${ProviderIcons[provider]} ${ProviderNames[provider]}`}
                   value={status?.healthy ? '正常' : '异常'}
-                  valueStyle={{ color: status?.healthy ? '#3f8600' : '#cf1322' }}
+                  valueStyle={{ color: status?.healthy ? SEMANTIC.success.main : SEMANTIC.error.main }}
                   prefix={status?.healthy ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
                 />
               </Card>

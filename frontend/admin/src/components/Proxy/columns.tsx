@@ -1,5 +1,6 @@
 import { Tag, Badge, Space, Button, Tooltip, Progress, theme } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 import {
   STATUS_LABELS,
@@ -37,7 +38,7 @@ export const useProxyColumns = ({
     render: (host: string, record) => (
       <div>
         <div style={{ fontWeight: 500 }}>{host}:{record.port}</div>
-        <div style={{ fontSize: 12, color: '#999' }}>
+        <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
           {PROTOCOL_LABELS[record.protocol]}
         </div>
       </div>
@@ -53,7 +54,7 @@ export const useProxyColumns = ({
       <div>
         <div>{country}</div>
         {record.city && (
-          <div style={{ fontSize: 12, color: '#999' }}>{record.city}</div>
+          <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>{record.city}</div>
         )}
       </div>
     ),
@@ -99,12 +100,12 @@ export const useProxyColumns = ({
             status={level.color as any}
             strokeColor={
               level.color === 'success'
-                ? '#52c41a'
+                ? SEMANTIC.success.main
                 : level.color === 'processing'
                 ? token.colorPrimary
                 : level.color === 'warning'
-                ? '#faad14'
-                : '#ff4d4f'
+                ? SEMANTIC.warning.main
+                : SEMANTIC.error.main
             }
           />
           <div style={{ fontSize: 12, marginTop: 4 }}>
@@ -121,7 +122,7 @@ export const useProxyColumns = ({
     width: 100,
     sorter: (a, b) => a.latency - b.latency,
     render: (latency: number) => (
-      <span style={{ color: latency > 1000 ? '#ff4d4f' : '#52c41a' }}>
+      <span style={{ color: latency > 1000 ? SEMANTIC.error.main : SEMANTIC.success.main }}>
         {latency}ms
       </span>
     ),
@@ -140,10 +141,10 @@ export const useProxyColumns = ({
           <div style={{ fontSize: 12 }}>
             总计: {record.totalRequests} | 成功率: {successRate}%
           </div>
-          <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
-            <CheckCircleOutlined style={{ color: '#52c41a' }} />{' '}
+          <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary, marginTop: 4 }}>
+            <CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />{' '}
             {record.successfulRequests}{' '}
-            <CloseCircleOutlined style={{ color: '#ff4d4f', marginLeft: 8 }} />{' '}
+            <CloseCircleOutlined style={{ color: SEMANTIC.error.main, marginLeft: 8 }} />{' '}
             {record.failedRequests}
           </div>
         </div>
@@ -157,7 +158,7 @@ export const useProxyColumns = ({
     render: (_, record) => (
       <div>
         <div>{record.totalBandwidth.toFixed(2)} GB</div>
-        <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary, marginTop: 4 }}>
           ${(record.totalBandwidth * record.costPerGB).toFixed(2)}
         </div>
       </div>

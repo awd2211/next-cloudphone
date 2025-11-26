@@ -19,6 +19,7 @@ import {
   DollarOutlined,
 } from '@ant-design/icons';
 import { useSMSProviderComparison as useProviderComparison } from '@/hooks/queries/useSMS';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 
 // 本地类型定义（组件期望的数据结构）
@@ -36,10 +37,17 @@ interface ProviderStat {
   consecutiveFailures: number;
   lastFailure?: string;
   configuredWeights: {
-    cost: number;
-    speed: number;
-    successRate: number;
+    cost: number | string;
+    speed: number | string;
+    successRate: number | string;
   };
+}
+
+// API 返回的数据结构
+interface ProviderComparisonResponse {
+  timestamp: string;
+  providers: ProviderStat[];
+  recommendation: string;
 }
 
 /**
@@ -57,8 +65,11 @@ const ProviderMonitorTab: React.FC = memo(() => {
   // 使用新的 React Query Hook
   const { data, isLoading, refetch } = useProviderComparison();
 
-  // 类型断言：假设 API 返回的数据符合组件期望的结构
-  const providers = data as unknown as ProviderStat[] | undefined;
+  // 正确解析 API 返回的数据结构
+  // API 返回 { timestamp, providers: [...], recommendation } 格式
+  const response = data as unknown as ProviderComparisonResponse | undefined;
+  const providers = response?.providers;
+  const apiRecommendation = response?.recommendation;
 
   // ✅ 使用 useCallback 缓存辅助函数
   const getHealthBadge = useCallback((isHealthy: boolean, consecutiveFailures: number) => {
@@ -121,7 +132,7 @@ const ProviderMonitorTab: React.FC = memo(() => {
       width: 120,
       sorter: (a, b) => a.averageResponseTime - b.averageResponseTime,
       render: (time) => (
-        <span style={{ color: time > 60 ? '#ff4d4f' : '#52c41a' }}>
+        <span style={{ color: time > 60 ? SEMANTIC.error.main : SEMANTIC.success.main }}>
           {time.toFixed(1)}s
         </span>
       ),
@@ -141,10 +152,10 @@ const ProviderMonitorTab: React.FC = memo(() => {
       render: (_, record) => (
         <div>
           <div>总数: {record.totalRequests}</div>
-          <div style={{ fontSize: 12, color: '#52c41a' }}>
+          <div style={{ fontSize: 12, color: SEMANTIC.success.main }}>
             成功: {record.successCount}
           </div>
-          <div style={{ fontSize: 12, color: '#ff4d4f' }}>
+          <div style={{ fontSize: 12, color: SEMANTIC.error.main }}>
             失败: {record.failureCount}
           </div>
         </div>
@@ -191,8 +202,8 @@ const ProviderMonitorTab: React.FC = memo(() => {
       ? (totalStats.successCount / totalStats.totalRequests) * 100
       : 0, [totalStats]);
 
-  // 获取推荐信息 (假设返回的第一个 provider 包含 recommendation 字段)
-  const recommendation = useMemo(() => providers?.[0] ? (providers[0] as any).recommendation : null, [providers]);
+  // 使用 API 返回的推荐信息
+  const recommendation = apiRecommendation;
 
   return (
     <div>
@@ -204,7 +215,7 @@ const ProviderMonitorTab: React.FC = memo(() => {
               title="活跃平台数"
               value={providers?.filter((p: any) => p.enabled).length || 0}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -225,7 +236,7 @@ const ProviderMonitorTab: React.FC = memo(() => {
               suffix="%"
               prefix={<CheckCircleOutlined />}
               valueStyle={{
-                color: avgSuccessRate >= 90 ? '#3f8600' : avgSuccessRate >= 70 ? '#faad14' : '#cf1322',
+                color: avgSuccessRate >= 90 ? SEMANTIC.success.main : avgSuccessRate >= 70 ? SEMANTIC.warning.main : SEMANTIC.error.main,
               }}
             />
           </Card>

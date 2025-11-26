@@ -29,6 +29,7 @@ import {
   WarningOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 
 const { TabPane } = Tabs;
@@ -230,7 +231,7 @@ const IPIDEAManagementPage: React.FC = () => {
       key: 'flowRemaining',
       render: (remaining?: number) =>
         remaining ? (
-          <span style={{ color: remaining < 1000 ? '#ff4d4f' : '#52c41a' }}>
+          <span style={{ color: remaining < 1000 ? SEMANTIC.error.main : SEMANTIC.success.main }}>
             {(remaining / 1024).toFixed(2)} GB
           </span>
         ) : (
@@ -278,7 +279,7 @@ const IPIDEAManagementPage: React.FC = () => {
                 precision={2}
                 suffix="GB"
                 prefix={<ThunderboltOutlined />}
-                valueStyle={{ color: (flowStats?.flowLeftGB || 0) < 1 ? '#cf1322' : '#3f8600' }}
+                valueStyle={{ color: (flowStats?.flowLeftGB || 0) < 1 ? SEMANTIC.error.main : SEMANTIC.success.main }}
               />
               {flowStats?.usagePercentage && (
                 <Progress
@@ -377,11 +378,11 @@ const IPIDEAManagementPage: React.FC = () => {
                 <Col span={6} key={region.country}>
                   <Card size="small">
                     <div style={{ fontWeight: 'bold' }}>{region.countryName}</div>
-                    <div style={{ fontSize: 12, color: '#666' }}>
+                    <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.secondary }}>
                       代码: {region.country}
                     </div>
                     {region.costPerGB && (
-                      <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                      <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.secondary, marginTop: 4 }}>
                         成本: ${region.costPerGB}/GB
                       </div>
                     )}

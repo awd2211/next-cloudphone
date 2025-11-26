@@ -16,6 +16,7 @@ import {
   CloseCircleOutlined,
 } from '@ant-design/icons';
 import { useProxyUsageReport } from '@/hooks/queries/useProxy';
+import { SEMANTIC, NEUTRAL_LIGHT } from '@/theme';
 import dayjs, { Dayjs } from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -91,7 +92,7 @@ const UsageReportTab: React.FC = memo(() => {
       render: (_: unknown, record: UsageReport['topDevices'][0]) => (
         <div>
           <div style={{ fontWeight: 500 }}>{record.deviceName}</div>
-          <div style={{ fontSize: 12, color: '#999' }}>{record.deviceId}</div>
+          <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>{record.deviceId}</div>
         </div>
       ),
     },
@@ -134,7 +135,7 @@ const UsageReportTab: React.FC = memo(() => {
       render: (_: unknown, record: UsageReport['topUsers'][0]) => (
         <div>
           <div style={{ fontWeight: 500 }}>{record.username}</div>
-          <div style={{ fontSize: 12, color: '#999' }}>{record.userId}</div>
+          <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>{record.userId}</div>
         </div>
       ),
     },
@@ -210,7 +211,7 @@ const UsageReportTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="总请求数"
-              value={usageReport?.overview.totalRequests || 0}
+              value={usageReport?.overview?.totalRequests ?? 0}
               prefix={<ThunderboltOutlined />}
             />
           </Card>
@@ -219,9 +220,9 @@ const UsageReportTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="成功请求"
-              value={usageReport?.overview.successfulRequests || 0}
+              value={usageReport?.overview?.successfulRequests ?? 0}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -229,9 +230,9 @@ const UsageReportTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="失败请求"
-              value={usageReport?.overview.failedRequests || 0}
+              value={usageReport?.overview?.failedRequests ?? 0}
               prefix={<CloseCircleOutlined />}
-              valueStyle={{ color: '#cf1322' }}
+              valueStyle={{ color: SEMANTIC.error.main }}
             />
           </Card>
         </Col>
@@ -239,15 +240,15 @@ const UsageReportTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="成功率"
-              value={usageReport?.overview.successRate.toFixed(1) || 0}
+              value={usageReport?.overview?.successRate?.toFixed(1) ?? '0.0'}
               suffix="%"
               valueStyle={{
                 color:
-                  (usageReport?.overview.successRate || 0) >= 90
-                    ? '#3f8600'
-                    : (usageReport?.overview.successRate || 0) >= 70
-                    ? '#faad14'
-                    : '#cf1322',
+                  (usageReport?.overview?.successRate ?? 0) >= 90
+                    ? SEMANTIC.success.main
+                    : (usageReport?.overview?.successRate ?? 0) >= 70
+                    ? SEMANTIC.warning.main
+                    : SEMANTIC.error.main,
               }}
             />
           </Card>
@@ -256,7 +257,7 @@ const UsageReportTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="总流量"
-              value={usageReport?.overview.totalBandwidth.toFixed(2) || 0}
+              value={usageReport?.overview?.totalBandwidth?.toFixed(2) ?? '0.00'}
               suffix="GB"
             />
           </Card>
@@ -265,7 +266,7 @@ const UsageReportTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="活跃设备数"
-              value={usageReport?.overview.uniqueDevices || 0}
+              value={usageReport?.overview?.uniqueDevices ?? 0}
             />
           </Card>
         </Col>
@@ -273,7 +274,7 @@ const UsageReportTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="活跃用户数"
-              value={usageReport?.overview.uniqueUsers || 0}
+              value={usageReport?.overview?.uniqueUsers ?? 0}
             />
           </Card>
         </Col>

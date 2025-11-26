@@ -5,6 +5,11 @@ export {
   HuaweiFormFields,
   AliyunFormFields,
   PhysicalFormFields,
+  AwsFormFields,
+  TencentFormFields,
+  BaiduFormFields,
+  BrowserStackFormFields,
+  GenymotionFormFields,
 } from './FormFields';
 export { HuaweiSpecSelector, HUAWEI_SPECS } from './HuaweiSpecSelector';
 export * from './constants';

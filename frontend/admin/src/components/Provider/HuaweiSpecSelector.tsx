@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Card, Radio, Space, Typography, Descriptions, Alert } from 'antd';
 import { CloudServerOutlined, ThunderboltOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { PRIMARY } from '@/theme';
 
 const { Text } = Typography;
 
@@ -117,7 +118,7 @@ export const HuaweiSpecSelector: React.FC<HuaweiSpecSelectorProps> = React.memo(
                   hoverable={!disabled}
                   style={{
                     marginLeft: '30px',
-                    borderColor: value === spec.id ? '#1890ff' : undefined,
+                    borderColor: value === spec.id ? PRIMARY.main : undefined,
                     borderWidth: value === spec.id ? 2 : 1,
                   }}
                   bodyStyle={{ padding: '16px' }}

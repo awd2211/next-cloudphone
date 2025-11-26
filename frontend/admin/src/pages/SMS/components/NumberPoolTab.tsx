@@ -23,6 +23,7 @@ import {
 } from '@ant-design/icons';
 import { useNumberPool, useReleaseSMSNumber as useReleaseNumber, type PhoneNumber } from '@/hooks/queries/useSMS';
 import { getSMSNumberHistory, requestSMSNumber } from '@/services/sms';
+import { NEUTRAL_LIGHT } from '@/theme';
 import { getCountries, getProducts, type FiveSimCountry, type FiveSimProduct } from '@/services/fivesim';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -186,7 +187,7 @@ const NumberPoolTab: React.FC = memo(() => {
       render: (phone, record) => (
         <div>
           <div style={{ fontWeight: 500 }}>{phone}</div>
-          <div style={{ fontSize: 12, color: '#999' }}>
+          <div style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary }}>
             {record.countryName} ({record.countryCode})
           </div>
         </div>
@@ -336,7 +337,7 @@ const NumberPoolTab: React.FC = memo(() => {
         pagination={{
           current: filters.page,
           pageSize: filters.pageSize,
-          total: data?.meta.total || 0,
+          total: data?.meta?.total ?? 0,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total) => `共 ${total} 个号码`,
@@ -377,7 +378,7 @@ const NumberPoolTab: React.FC = memo(() => {
                 ))}
               </ul>
             ) : (
-              <p style={{ color: '#999' }}>暂无短信</p>
+              <p style={{ color: NEUTRAL_LIGHT.text.tertiary }}>暂无短信</p>
             )}
           </div>
         )}

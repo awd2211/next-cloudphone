@@ -15,6 +15,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { useProxyCostReport } from '@/hooks/queries/useProxy';
+import { SEMANTIC } from '@/theme';
 import dayjs, { Dayjs } from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -206,7 +207,7 @@ const CostMonitorTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="总成本"
-              value={costReport?.overview.totalCost.toFixed(2) || 0}
+              value={costReport?.overview?.totalCost?.toFixed(2) ?? '0.00'}
               prefix={<DollarOutlined />}
               valueStyle={{ color: token.colorPrimary }}
             />
@@ -216,7 +217,7 @@ const CostMonitorTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="总流量"
-              value={costReport?.overview.totalBandwidth.toFixed(2) || 0}
+              value={costReport?.overview?.totalBandwidth?.toFixed(2) ?? '0.00'}
               suffix="GB"
             />
           </Card>
@@ -225,7 +226,7 @@ const CostMonitorTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="平均成本/GB"
-              value={costReport?.overview.avgCostPerGB.toFixed(2) || 0}
+              value={costReport?.overview?.avgCostPerGB?.toFixed(2) ?? '0.00'}
               prefix="$"
             />
           </Card>
@@ -234,7 +235,7 @@ const CostMonitorTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="平均成本/请求"
-              value={costReport?.overview.avgCostPerRequest.toFixed(4) || 0}
+              value={costReport?.overview?.avgCostPerRequest?.toFixed(4) ?? '0.0000'}
               prefix="$"
             />
           </Card>
@@ -243,9 +244,9 @@ const CostMonitorTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="预计月度成本"
-              value={costReport?.overview.projectedMonthlyCost.toFixed(2) || 0}
+              value={costReport?.overview?.projectedMonthlyCost?.toFixed(2) ?? '0.00'}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: SEMANTIC.warning.main }}
             />
           </Card>
         </Col>

@@ -14,6 +14,7 @@ import {
   Statistic,
   theme,
 } from 'antd';
+import { SEMANTIC, NEUTRAL_LIGHT, CHART_COLORS } from '@/theme';
 import {
   ReloadOutlined,
   DeleteOutlined,
@@ -23,13 +24,18 @@ import {
   DollarOutlined,
   GlobalOutlined,
   SyncOutlined,
+  SearchOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import {
   useProxyList,
   useProxyStats,
+  useProxyProviders,
   useReleaseProxy,
   useTestProxy,
   useRefreshProxyPool,
+  useParseProxyInfo,
+  useParseAllProxyInfo,
   type ProxyRecord,
   // type ProxyStats, // Removed: not used in this component
 } from '@/hooks/queries/useProxy';
@@ -69,9 +75,12 @@ const ProxyPoolTab: React.FC = memo(() => {
   });
 
   const { data: stats } = useProxyStats();
+  const { data: providers } = useProxyProviders();
   const releaseMutation = useReleaseProxy();
   const testMutation = useTestProxy();
   const refreshMutation = useRefreshProxyPool();
+  const parseInfoMutation = useParseProxyInfo();
+  const parseAllInfoMutation = useParseAllProxyInfo();
 
   // ✅ 使用 useCallback 包装事件处理函数
   const handleReleaseProxy = useCallback((record: ProxyRecord) => {
@@ -85,6 +94,18 @@ const ProxyPoolTab: React.FC = memo(() => {
   const handleTestProxy = useCallback((record: ProxyRecord) => {
     testMutation.mutate(record.id);
   }, [testMutation]);
+
+  const handleParseInfo = useCallback((record: ProxyRecord) => {
+    parseInfoMutation.mutate(record.id);
+  }, [parseInfoMutation]);
+
+  const handleParseAllInfo = useCallback(() => {
+    Modal.confirm({
+      title: '批量解析代理信息',
+      content: '这将解析所有代理的类型和位置信息（从配置解析，无需网络请求，即时完成）。确定要继续吗？',
+      onOk: () => parseAllInfoMutation.mutate(),
+    });
+  }, [parseAllInfoMutation]);
 
   // ✅ 使用 useCallback 缓存辅助函数
   const getQualityLevel = useCallback((quality: number) => {
@@ -121,14 +142,46 @@ const ProxyPoolTab: React.FC = memo(() => {
       ),
     },
     {
-      title: '位置',
+      title: '代理类型',
+      key: 'proxyType',
+      width: 100,
+      render: (_, record) => {
+        const proxyRecord = record as ProxyRecord & { ispType?: string; proxyTypeDisplay?: string };
+        const typeColors: Record<string, string> = {
+          residential: 'green',
+          datacenter: 'blue',
+          mobile: 'orange',
+          isp: 'purple',
+          unknown: 'default',
+        };
+        const typeDisplay = proxyRecord.proxyTypeDisplay || {
+          residential: '住宅',
+          datacenter: '数据中心',
+          mobile: '移动',
+          isp: 'ISP',
+          unknown: '未知',
+        }[proxyRecord.ispType || 'unknown'] || '未知';
+
+        return (
+          <Tag color={typeColors[proxyRecord.ispType || 'unknown'] || 'default'}>
+            {typeDisplay}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: '位置信息',
       key: 'location',
       width: 150,
       render: (_, record) => (
         <div>
-          <div>{record.country}</div>
-          {record.city && (
-            <div style={{ fontSize: 12, color: '#999' }}>{record.city}</div>
+          <Tag color="green" icon={<EnvironmentOutlined />}>
+            {record.exitCountryName || record.exitCountry || record.country || '未知'}
+          </Tag>
+          {(record.exitCity || record.city) && (
+            <div style={{ fontSize: 11, color: NEUTRAL_LIGHT.text.tertiary, marginTop: 2 }}>
+              {record.exitCity || record.city}
+            </div>
           )}
         </div>
       ),
@@ -144,13 +197,14 @@ const ProxyPoolTab: React.FC = memo(() => {
       dataIndex: 'quality',
       key: 'quality',
       width: 150,
-      sorter: (a, b) => a.quality - b.quality,
-      render: (quality: number) => {
-        const level = getQualityLevel(quality);
+      sorter: (a, b) => (Number(a.quality) || 0) - (Number(b.quality) || 0),
+      render: (quality: number | string) => {
+        const numQuality = typeof quality === 'number' ? quality : parseFloat(String(quality)) || 0;
+        const level = getQualityLevel(numQuality);
         return (
-          <Tooltip title={`质量评分: ${quality}/100`}>
+          <Tooltip title={`质量评分: ${numQuality}/100`}>
             <Progress
-              percent={quality}
+              percent={numQuality}
               size="small"
               status={level.color as any}
             />
@@ -163,12 +217,16 @@ const ProxyPoolTab: React.FC = memo(() => {
       dataIndex: 'latency',
       key: 'latency',
       width: 100,
-      sorter: (a, b) => (a.latency || 0) - (b.latency || 0),
-      render: (latency: number) => (
-        <span style={{ color: latency > 1000 ? '#ff4d4f' : '#52c41a' }}>
-          {latency}ms
-        </span>
-      ),
+      sorter: (a, b) => (Number(a.latency) || 0) - (Number(b.latency) || 0),
+      render: (latency: number | string) => {
+        const numLatency = typeof latency === 'number' ? latency : parseFloat(String(latency));
+        if (!numLatency || isNaN(numLatency)) return '-';
+        return (
+          <span style={{ color: numLatency > 1000 ? SEMANTIC.error.main : SEMANTIC.success.main }}>
+            {numLatency}ms
+          </span>
+        );
+      },
     },
     {
       title: '状态',
@@ -187,8 +245,8 @@ const ProxyPoolTab: React.FC = memo(() => {
       render: (_, record) => (
         <div style={{ fontSize: 12 }}>
           <div>总计: {record.totalRequests}</div>
-          <div style={{ color: '#52c41a' }}>成功: {record.successfulRequests}</div>
-          <div style={{ color: '#ff4d4f' }}>失败: {record.failedRequests}</div>
+          <div style={{ color: SEMANTIC.success.main }}>成功: {record.successfulRequests}</div>
+          <div style={{ color: SEMANTIC.error.main }}>失败: {record.failedRequests}</div>
         </div>
       ),
     },
@@ -197,16 +255,22 @@ const ProxyPoolTab: React.FC = memo(() => {
       dataIndex: 'totalBandwidth',
       key: 'totalBandwidth',
       width: 100,
-      sorter: (a, b) => (a.totalBandwidth || 0) - (b.totalBandwidth || 0),
-      render: (bandwidth: number) => bandwidth ? `${bandwidth.toFixed(2)} MB` : '-',
+      sorter: (a, b) => (Number(a.totalBandwidth) || 0) - (Number(b.totalBandwidth) || 0),
+      render: (bandwidth: number | string) => {
+        const numBandwidth = typeof bandwidth === 'number' ? bandwidth : parseFloat(String(bandwidth));
+        return numBandwidth && !isNaN(numBandwidth) ? `${numBandwidth.toFixed(2)} MB` : '-';
+      },
     },
     {
       title: '成本',
       dataIndex: 'costPerGB',
       key: 'costPerGB',
       width: 100,
-      sorter: (a, b) => (a.costPerGB || 0) - (b.costPerGB || 0),
-      render: (cost: number) => cost ? `$${cost.toFixed(2)}/GB` : '-',
+      sorter: (a, b) => (Number(a.costPerGB) || 0) - (Number(b.costPerGB) || 0),
+      render: (cost: number | string) => {
+        const numCost = typeof cost === 'number' ? cost : parseFloat(String(cost));
+        return numCost && !isNaN(numCost) ? `$${numCost.toFixed(2)}/GB` : '-';
+      },
     },
     {
       title: '最后使用',
@@ -219,10 +283,19 @@ const ProxyPoolTab: React.FC = memo(() => {
     {
       title: '操作',
       key: 'action',
-      width: 180,
+      width: 200,
       fixed: 'right',
       render: (_, record) => (
         <Space>
+          <Tooltip title="解析代理信息">
+            <Button
+              type="link"
+              size="small"
+              icon={<SearchOutlined />}
+              onClick={() => handleParseInfo(record)}
+              loading={parseInfoMutation.isPending}
+            />
+          </Tooltip>
           <Tooltip title="测试代理">
             <Button
               type="link"
@@ -247,7 +320,7 @@ const ProxyPoolTab: React.FC = memo(() => {
         </Space>
       ),
     },
-  ], [getQualityLevel, getStatusConfig, handleTestProxy, handleReleaseProxy, testMutation.isPending, releaseMutation.isPending]);
+  ], [getQualityLevel, getStatusConfig, handleTestProxy, handleReleaseProxy, handleParseInfo, testMutation.isPending, releaseMutation.isPending, parseInfoMutation.isPending]);
 
   return (
     <div>
@@ -269,7 +342,7 @@ const ProxyPoolTab: React.FC = memo(() => {
               title="可用代理"
               value={stats?.available || 0}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: SEMANTIC.success.main }}
             />
           </Card>
         </Col>
@@ -287,9 +360,9 @@ const ProxyPoolTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="不可用"
-              value={stats?.unavailable || 0}
+              value={stats?.unhealthy ?? stats?.unavailable ?? 0}
               prefix={<CloseCircleOutlined />}
-              valueStyle={{ color: '#ff4d4f' }}
+              valueStyle={{ color: SEMANTIC.error.main }}
             />
           </Card>
         </Col>
@@ -297,10 +370,10 @@ const ProxyPoolTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="平均质量"
-              value={stats?.avgQuality?.toFixed(1) || 0}
+              value={(stats?.averageQuality ?? stats?.avgQuality ?? 0).toFixed?.(1) || 0}
               suffix="/100"
               prefix={<ThunderboltOutlined />}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: SEMANTIC.warning.main }}
             />
           </Card>
         </Col>
@@ -308,10 +381,10 @@ const ProxyPoolTab: React.FC = memo(() => {
           <Card>
             <Statistic
               title="平均延迟"
-              value={stats?.avgLatency?.toFixed(0) || 0}
+              value={(stats?.averageLatency ?? stats?.avgLatency ?? 0).toFixed?.(0) || 0}
               suffix="ms"
               prefix={<ThunderboltOutlined />}
-              valueStyle={{ color: '#722ed1' }}
+              valueStyle={{ color: CHART_COLORS.purple }}
             />
           </Card>
         </Col>
@@ -321,7 +394,7 @@ const ProxyPoolTab: React.FC = memo(() => {
               title="总流量"
               value={stats?.totalBandwidth?.toFixed(2) || 0}
               suffix="GB"
-              valueStyle={{ color: '#13c2c2' }}
+              valueStyle={{ color: CHART_COLORS.cyan }}
             />
           </Card>
         </Col>
@@ -331,7 +404,7 @@ const ProxyPoolTab: React.FC = memo(() => {
               title="总成本"
               value={stats?.totalCost?.toFixed(2) || 0}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: '#eb2f96' }}
+              valueStyle={{ color: CHART_COLORS.magenta }}
             />
           </Card>
         </Col>
@@ -358,9 +431,11 @@ const ProxyPoolTab: React.FC = memo(() => {
             value={filters.provider}
             onChange={(value) => setFilters({ ...filters, provider: value, page: 1 })}
           >
-            <Select.Option value="brightdata">Bright Data</Select.Option>
-            <Select.Option value="smartproxy">SmartProxy</Select.Option>
-            <Select.Option value="oxylabs">Oxylabs</Select.Option>
+            {providers?.filter(p => p.enabled).map((provider) => (
+              <Select.Option key={provider.id} value={provider.type}>
+                {provider.name}
+              </Select.Option>
+            ))}
           </Select>
           <Select
             style={{ width: 120 }}
@@ -400,6 +475,13 @@ const ProxyPoolTab: React.FC = memo(() => {
           >
             刷新代理池
           </Button>
+          <Button
+            icon={<SearchOutlined />}
+            onClick={handleParseAllInfo}
+            loading={parseAllInfoMutation.isPending}
+          >
+            批量解析信息
+          </Button>
         </Space>
       </div>
 
@@ -409,7 +491,7 @@ const ProxyPoolTab: React.FC = memo(() => {
         dataSource={listData?.data || []}
         rowKey="id"
         loading={isLoading}
-        scroll={{ x: 1600 }}
+        scroll={{ x: 1800 }}
         pagination={{
           current: filters.page,
           pageSize: filters.pageSize,

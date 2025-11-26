@@ -539,7 +539,7 @@ const FiveSimAdvancedTab: React.FC = () => {
                   value={priceCountry || undefined}
                   onChange={(v) => setPriceCountry(v || '')}
                 >
-                  {countries.map((c) => (
+                  {countries.filter((c) => c?.name && c?.iso).map((c) => (
                     <Option key={c.iso} value={c.name.toLowerCase()}>
                       {c.name}
                     </Option>
@@ -751,10 +751,10 @@ const FiveSimAdvancedTab: React.FC = () => {
               placeholder="选择国家"
               optionFilterProp="children"
               filterOption={(input, option) =>
-                (option?.children as string).toLowerCase().includes(input.toLowerCase())
+                (option?.children as string)?.toLowerCase()?.includes(input.toLowerCase()) ?? false
               }
             >
-              {countries.map((country) => (
+              {countries.filter((c) => c?.name && c?.iso).map((country) => (
                 <Option key={country.iso} value={country.name.toLowerCase()}>
                   {country.name} ({country.iso.toUpperCase()}) +{country.prefix}
                 </Option>
@@ -828,10 +828,10 @@ const FiveSimAdvancedTab: React.FC = () => {
               placeholder="选择国家"
               optionFilterProp="children"
               filterOption={(input, option) =>
-                (option?.children as string).toLowerCase().includes(input.toLowerCase())
+                (option?.children as string)?.toLowerCase()?.includes(input.toLowerCase()) ?? false
               }
             >
-              {countries.map((country) => (
+              {countries.filter((c) => c?.name && c?.iso).map((country) => (
                 <Option key={country.iso} value={country.name.toLowerCase()}>
                   {country.name} ({country.iso.toUpperCase()})
                 </Option>

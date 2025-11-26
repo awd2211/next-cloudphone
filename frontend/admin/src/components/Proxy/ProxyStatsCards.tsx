@@ -9,6 +9,7 @@ import {
   CloudServerOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
+import { SEMANTIC, CHART_COLORS } from '@/theme';
 
 interface ProxyStatsCardsProps {
   total: number;
@@ -48,8 +49,8 @@ const ProxyStatsCards: React.FC<ProxyStatsCardsProps> = memo(({
     {
       title: '可用代理',
       value: available,
-      icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
-      color: '#52c41a',
+      icon: <CheckCircleOutlined style={{ color: SEMANTIC.success.main }} />,
+      color: SEMANTIC.success.main,
     },
     {
       title: '使用中',
@@ -60,39 +61,39 @@ const ProxyStatsCards: React.FC<ProxyStatsCardsProps> = memo(({
     {
       title: '不可用',
       value: unavailable,
-      icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />,
-      color: '#ff4d4f',
+      icon: <CloseCircleOutlined style={{ color: SEMANTIC.error.main }} />,
+      color: SEMANTIC.error.main,
     },
     {
       title: '平均质量',
       value: avgQuality,
       suffix: '/100',
-      icon: <ThunderboltOutlined style={{ color: '#faad14' }} />,
-      color: '#faad14',
+      icon: <ThunderboltOutlined style={{ color: SEMANTIC.warning.main }} />,
+      color: SEMANTIC.warning.main,
       precision: 1,
     },
     {
       title: '平均延迟',
       value: avgLatency,
       suffix: 'ms',
-      icon: <ThunderboltOutlined style={{ color: '#722ed1' }} />,
-      color: '#722ed1',
+      icon: <ThunderboltOutlined style={{ color: CHART_COLORS[4] }} />,  // 紫色
+      color: CHART_COLORS[4],
       precision: 0,
     },
     {
       title: '总流量',
       value: totalBandwidth,
       suffix: 'GB',
-      icon: <CloudServerOutlined style={{ color: '#13c2c2' }} />,
-      color: '#13c2c2',
+      icon: <CloudServerOutlined style={{ color: CHART_COLORS[5] }} />,  // 青色
+      color: CHART_COLORS[5],
       precision: 2,
     },
     {
       title: '总成本',
       value: totalCost,
       prefix: '$',
-      icon: <DollarOutlined style={{ color: '#eb2f96' }} />,
-      color: '#eb2f96',
+      icon: <DollarOutlined style={{ color: CHART_COLORS[6] }} />,  // 粉色
+      color: CHART_COLORS[6],
       precision: 2,
     },
   ], [total, available, inUse, unavailable, avgQuality, avgLatency, totalBandwidth, totalCost, token.colorPrimary]);

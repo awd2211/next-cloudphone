@@ -6,6 +6,7 @@ import {
   DollarOutlined,
   BarChartOutlined,
 } from '@ant-design/icons';
+import { NEUTRAL_LIGHT } from '@/theme';
 import ProxyPoolTab from './components/ProxyPoolTab';
 import ProviderMonitorTab from './components/ProviderMonitorTab';
 import CostMonitorTab from './components/CostMonitorTab';
@@ -115,7 +116,7 @@ const ProxyManagementContent: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <GlobalOutlined style={{ marginRight: 8 }} />
             <span>代理IP服务管理</span>
-            <span style={{ fontSize: 12, color: '#999', marginLeft: 16 }}>
+            <span style={{ fontSize: 12, color: NEUTRAL_LIGHT.text.tertiary, marginLeft: 16 }}>
               快捷键：Ctrl+R 刷新
             </span>
           </div>

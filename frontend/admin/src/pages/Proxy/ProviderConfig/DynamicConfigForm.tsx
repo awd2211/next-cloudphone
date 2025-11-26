@@ -14,6 +14,7 @@ import { QuestionCircleOutlined, EyeInvisibleOutlined, EyeOutlined } from '@ant-
 import type { FormInstance } from 'antd';
 import { getProviderFields } from './fieldConfigs';
 import type { ProviderType, FieldConfig } from './types';
+import { NEUTRAL_LIGHT } from '@/theme';
 
 interface DynamicConfigFormProps {
   form: FormInstance;
@@ -47,7 +48,7 @@ const DynamicConfigForm: React.FC<DynamicConfigFormProps> = ({
 
   if (!providerType) {
     return (
-      <div style={{ padding: '40px 0', textAlign: 'center', color: '#999' }}>
+      <div style={{ padding: '40px 0', textAlign: 'center', color: NEUTRAL_LIGHT.text.tertiary }}>
         请先选择提供商类型
       </div>
     );
@@ -57,7 +58,7 @@ const DynamicConfigForm: React.FC<DynamicConfigFormProps> = ({
 
   if (fields.length === 0) {
     return (
-      <div style={{ padding: '40px 0', textAlign: 'center', color: '#999' }}>
+      <div style={{ padding: '40px 0', textAlign: 'center', color: NEUTRAL_LIGHT.text.tertiary }}>
         该提供商类型暂无配置字段
       </div>
     );
@@ -84,7 +85,7 @@ const DynamicConfigForm: React.FC<DynamicConfigFormProps> = ({
       <span>
         {label}{' '}
         <Tooltip title={tooltip}>
-          <QuestionCircleOutlined style={{ color: '#999', cursor: 'help' }} />
+          <QuestionCircleOutlined style={{ color: NEUTRAL_LIGHT.text.tertiary, cursor: 'help' }} />
         </Tooltip>
       </span>
     ) : (
