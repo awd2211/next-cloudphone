@@ -36,6 +36,7 @@ const PhysicalDeviceList: React.FC = () => {
     handleCloseRegisterModal,
     isScanning,
     isRegistering,
+    scanProgress,
   } = usePhysicalDeviceList();
 
   return (
@@ -93,6 +94,7 @@ const PhysicalDeviceList: React.FC = () => {
         form={scanForm}
         scanResults={scanResults}
         isScanning={isScanning}
+        scanProgress={scanProgress}
         onCancel={handleCloseScanModal}
         onScan={handleScan}
         onRegister={openRegisterModal}

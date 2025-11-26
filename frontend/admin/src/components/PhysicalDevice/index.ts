@@ -5,6 +5,7 @@ export { PhysicalDeviceToolbar } from './PhysicalDeviceToolbar';
 // 设备扫描和注册
 export { ScanNetworkDevicesModal } from './ScanNetworkDevicesModal';
 export { RegisterPhysicalDeviceModal } from './RegisterPhysicalDeviceModal';
+export { ScreenMirrorModal } from './ScreenMirrorModal';
 
 // 快速注册向导
 export { QuickRegisterWizard, type RegisterDeviceValues } from './QuickRegisterWizard';

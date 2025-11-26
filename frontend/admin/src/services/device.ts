@@ -4,6 +4,9 @@
  */
 import { api } from '@/utils/api';
 import request from '@/utils/request';
+
+// 长时间运行的操作超时设置（3 分钟）
+const LONG_RUNNING_TIMEOUT = 180000;
 import type {
   Device,
   CreateDeviceDto,
@@ -152,6 +155,10 @@ export const refreshCloudDevice = (id: string): Promise<void> =>
 export const getPhysicalDevices = (params?: { page?: number; pageSize?: number }) =>
   api.get('/admin/physical-devices', { params });
 
+/**
+ * 扫描网络设备 - 使用长超时时间
+ * 扫描大网段可能需要数分钟，使用 3 分钟超时
+ */
 export const scanNetworkDevices = (params: {
   networkCidr: string;
   portStart?: number;
@@ -159,7 +166,40 @@ export const scanNetworkDevices = (params: {
   concurrency?: number;
   timeoutMs?: number;
 }) =>
-  api.post('/admin/physical-devices/scan', params);
+  request.post('/admin/physical-devices/scan', params, {
+    timeout: LONG_RUNNING_TIMEOUT,
+  }).then((response: any) => {
+    // 解包后端响应
+    if (response?.success && response?.data) {
+      return response.data;
+    }
+    return response;
+  });
+
+/**
+ * 扫描网络设备 - 支持实时进度更新 (SSE)
+ * 返回一个 EventSource 用于接收实时扫描进度
+ */
+export const scanNetworkDevicesStream = (params: {
+  networkCidr: string;
+  portStart?: number;
+  portEnd?: number;
+  concurrency?: number;
+  timeoutMs?: number;
+}): EventSource => {
+  const queryString = new URLSearchParams({
+    networkCidr: params.networkCidr,
+    portStart: String(params.portStart || 5555),
+    portEnd: String(params.portEnd || 5555),
+    concurrency: String(params.concurrency || 30),
+    timeoutMs: String(params.timeoutMs || 2000),
+  }).toString();
+
+  // SSE 通过 Vite 代理转发到 device-service
+  // EventSource API 不支持自定义 headers，所以使用服务端代理
+  // /device-sse 路径会被 Vite 代理到 localhost:30002
+  return new EventSource(`/device-sse/admin/physical-devices/scan/stream?${queryString}`);
+};
 
 export const registerPhysicalDevice = (data: { serialNumber: string; name?: string }) =>
   api.post('/admin/physical-devices/register', data);

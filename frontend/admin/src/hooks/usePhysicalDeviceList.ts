@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Form } from 'antd';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { Form, message } from 'antd';
 import {
   usePhysicalDevices,
   useScanNetworkDevices,
@@ -7,6 +7,7 @@ import {
   useDeletePhysicalDevice,
 } from './queries/usePhysicalDevices';
 import { usePhysicalDeviceTableColumns } from '@/components/PhysicalDevice/PhysicalDeviceTableColumns';
+import { scanNetworkDevicesStream } from '@/services/device';
 
 interface PhysicalDevice {
   id: string;
@@ -24,6 +25,44 @@ export interface ScanResult {
   status: 'online' | 'offline';
 }
 
+/** 扫描统计信息 */
+export interface ScanStatistics {
+  totalIps: number;
+  scannedIps: number;
+  hostsAlive?: number;
+  portsOpen: number;
+  adbConnected: number;
+  devicesFound: number;
+  errors: number;
+  startTime: number;
+}
+
+/** 扫描阶段 */
+export type ScanPhase = 'alive_check' | 'adb_check';
+
+export interface ScanProgress {
+  scannedIps: number;
+  totalIps: number;
+  foundDevices: number;
+  currentIp?: string;
+  status?: 'scanning' | 'completed' | 'error';
+  /** 扫描阶段 */
+  phase?: ScanPhase;
+  /** 存活主机数（阶段2使用） */
+  aliveHosts?: number;
+  /** 已检查主机数（阶段2使用） */
+  checkedHosts?: number;
+  /** 详细统计信息 */
+  statistics?: ScanStatistics;
+}
+
+/** 扫描参数 */
+export interface ScanParams {
+  networkCidr: string;
+  concurrency?: number;
+  timeoutMs?: number;
+}
+
 export const usePhysicalDeviceList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -31,8 +70,11 @@ export const usePhysicalDeviceList = () => {
   const [registerModalVisible, setRegisterModalVisible] = useState(false);
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<ScanResult | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState<ScanProgress | undefined>(undefined);
   const [scanForm] = Form.useForm();
   const [registerForm] = Form.useForm();
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   // React Query hooks
   const params = useMemo(() => ({ page, pageSize }), [page, pageSize]);
@@ -45,14 +87,121 @@ export const usePhysicalDeviceList = () => {
   const total = data?.total || 0;
 
   /**
-   * 扫描网络设备
+   * 扫描网络设备（使用 SSE 实时流）
+   * 两阶段扫描：1) 探测存活主机 2) 检查 ADB 端口
    */
   const handleScan = useCallback(
-    async (values: { networkCidr: string }) => {
-      const results = await scanMutation.mutateAsync(values);
-      setScanResults(results as ScanResult[]);
+    (values: ScanParams) => {
+      // 清理之前的 EventSource
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+
+      setIsScanning(true);
+      setScanResults([]);
+      setScanProgress({
+        scannedIps: 0,
+        totalIps: 0,
+        foundDevices: 0,
+        status: 'scanning',
+        phase: 'alive_check',
+      });
+
+      const eventSource = scanNetworkDevicesStream({
+        networkCidr: values.networkCidr,
+        concurrency: values.concurrency || 50,
+        timeoutMs: values.timeoutMs || 5000,
+      });
+
+      eventSourceRef.current = eventSource;
+
+      eventSource.onmessage = (event) => {
+        try {
+          const rawData = JSON.parse(event.data);
+          // NestJS SSE 将数据包装在 data 字段中，需要解包
+          const data = rawData.data || rawData;
+
+          // 更新进度（包含两阶段信息）
+          setScanProgress({
+            scannedIps: data.scannedIps || 0,
+            totalIps: data.totalIps || 0,
+            foundDevices: data.foundDevices || 0,
+            currentIp: data.currentIp,
+            status: data.status,
+            // 两阶段扫描相关字段
+            phase: data.phase,
+            aliveHosts: data.aliveHosts,
+            checkedHosts: data.checkedHosts,
+            statistics: data.statistics,
+          });
+
+          // 如果发现新设备，添加到结果列表
+          if (data.newDevice) {
+            const device = data.newDevice;
+            const result: ScanResult = {
+              serialNumber: device.id || device.properties?.serialNumber || '',
+              model: device.properties?.model,
+              manufacturer: device.properties?.manufacturer,
+              androidVersion: device.properties?.androidVersion,
+              ipAddress: device.ipAddress,
+              status: 'online',
+            };
+            setScanResults((prev) => {
+              // 避免重复
+              if (prev.some((d) => d.serialNumber === result.serialNumber)) {
+                return prev;
+              }
+              return [...prev, result];
+            });
+          }
+
+          // 扫描完成
+          if (data.status === 'completed') {
+            setIsScanning(false);
+            eventSource.close();
+
+            // 如果有最终设备列表，使用它
+            if (data.devices && Array.isArray(data.devices)) {
+              const finalResults: ScanResult[] = data.devices.map((device: any) => ({
+                serialNumber: device.id || device.properties?.serialNumber || '',
+                model: device.properties?.model,
+                manufacturer: device.properties?.manufacturer,
+                androidVersion: device.properties?.androidVersion,
+                ipAddress: device.ipAddress,
+                status: 'online' as const,
+              }));
+              setScanResults(finalResults);
+            }
+
+            if (data.foundDevices > 0) {
+              message.success(`扫描完成，发现 ${data.foundDevices} 个设备`);
+            } else {
+              message.info('扫描完成，未发现设备');
+            }
+          }
+
+          // 扫描错误
+          if (data.status === 'error') {
+            setIsScanning(false);
+            eventSource.close();
+            message.error(`扫描失败: ${data.error || '未知错误'}`);
+          }
+        } catch (e) {
+          console.error('Failed to parse SSE message:', e);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('SSE error:', error);
+        setIsScanning(false);
+        eventSource.close();
+        // 如果已经有结果，不显示错误（可能是正常关闭）
+        if (scanProgress?.status !== 'completed') {
+          message.error('扫描连接失败，请重试');
+        }
+      };
     },
-    [scanMutation]
+    [scanProgress?.status]
   );
 
   /**
@@ -105,9 +254,16 @@ export const usePhysicalDeviceList = () => {
    * 关闭扫描模态框
    */
   const handleCloseScanModal = useCallback(() => {
+    // 关闭 EventSource
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
     setScanModalVisible(false);
     scanForm.resetFields();
     setScanResults([]);
+    setScanProgress(undefined);
+    setIsScanning(false);
   }, [scanForm]);
 
   /**
@@ -169,7 +325,9 @@ export const usePhysicalDeviceList = () => {
     handleCloseScanModal,
     handleCloseRegisterModal,
     // 加载状态
-    isScanning: scanMutation.isPending,
+    isScanning,
     isRegistering: registerMutation.isPending,
+    // 扫描进度（SSE 实时更新）
+    scanProgress,
   };
 };
