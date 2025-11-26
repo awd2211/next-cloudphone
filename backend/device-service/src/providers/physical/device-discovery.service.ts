@@ -125,25 +125,25 @@ export class DeviceDiscoveryService {
   }
 
   /**
-   * 带超时的 ADB 连接
+   * 带超时的 ADB 连接（安全版本）
+   * 使用 AdbService.safeConnect 方法，先测试端口再连接，避免 ECONNRESET 导致进程崩溃
    */
   private async connectWithTimeout(ip: string, port: number, timeoutMs: number): Promise<boolean> {
-    const serial = `${ip}:${port}`;
+    try {
+      // 使用安全连接方法，先测试端口是否开放
+      const connected = await this.adbService.safeConnect(ip, port, timeoutMs);
+      if (!connected) {
+        return false;
+      }
 
-    return new Promise((resolve) => {
-      const timer = setTimeout(() => resolve(false), timeoutMs);
-
-      this.adbService
-        .connectToDevice('temp', ip, port)
-        .then(() => {
-          clearTimeout(timer);
-          resolve(true);
-        })
-        .catch(() => {
-          clearTimeout(timer);
-          resolve(false);
-        });
-    });
+      // 如果端口测试成功，再尝试完整的 ADB 连接
+      const serial = `${ip}:${port}`;
+      await this.adbService.connectToDevice(serial, ip, port);
+      return true;
+    } catch (error) {
+      // 连接失败是预期的（大部分 IP 不会有 ADB 服务）
+      return false;
+    }
   }
 
   /**

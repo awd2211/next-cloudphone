@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import * as Adb from 'adbkit';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as net from 'net';
 import { BusinessErrors, BusinessException, BusinessErrorCode } from '@cloudphone/shared';
 
 /**
@@ -79,9 +80,35 @@ export class AdbService implements OnModuleInit {
         port: adbPort,
       });
       this.logger.log(`ADB Client initialized: ${adbHost}:${adbPort}`);
+
+      // 添加全局错误处理，防止未处理的 error 事件导致进程崩溃
+      this.setupGlobalErrorHandlers();
     } catch (error) {
       this.logger.error('Failed to initialize ADB client', error);
     }
+  }
+
+  /**
+   * 设置全局错误处理器
+   * 防止 adbkit 内部的 Connection/Socket 发出未处理的 error 事件导致进程崩溃
+   */
+  private setupGlobalErrorHandlers(): void {
+    // 监听进程级别的未处理错误（作为最后的防线）
+    process.on('uncaughtException', (error: Error) => {
+      // 只处理 adbkit 相关的 ECONNRESET/ECONNREFUSED 错误
+      if (
+        error.message.includes('ECONNRESET') ||
+        error.message.includes('ECONNREFUSED') ||
+        error.message.includes('ETIMEDOUT') ||
+        error.message.includes('EHOSTUNREACH')
+      ) {
+        this.logger.warn(`ADB connection error (handled): ${error.message}`);
+        // 不重新抛出，让进程继续运行
+      } else {
+        // 其他错误需要重新抛出
+        throw error;
+      }
+    });
   }
 
   /**
@@ -253,6 +280,93 @@ export class AdbService implements OnModuleInit {
   }
 
   /**
+   * 测试端口是否开放（使用原生 net 模块，不触发 adbkit 错误事件）
+   * 用于网络扫描时快速检测端口是否可达
+   *
+   * @param host 主机地址
+   * @param port 端口
+   * @param timeoutMs 超时时间（毫秒）
+   * @returns 端口是否开放
+   */
+  async testPortOpen(host: string, port: number, timeoutMs: number = 2000): Promise<boolean> {
+    return new Promise((resolve) => {
+      const socket = new net.Socket();
+      let resolved = false;
+
+      const cleanup = () => {
+        if (!resolved) {
+          resolved = true;
+          socket.destroy();
+        }
+      };
+
+      // 设置超时
+      socket.setTimeout(timeoutMs);
+
+      // 成功连接
+      socket.on('connect', () => {
+        cleanup();
+        resolve(true);
+      });
+
+      // 任何错误都表示端口不可达
+      socket.on('error', () => {
+        cleanup();
+        resolve(false);
+      });
+
+      // 超时
+      socket.on('timeout', () => {
+        cleanup();
+        resolve(false);
+      });
+
+      // 连接关闭
+      socket.on('close', () => {
+        if (!resolved) {
+          resolved = true;
+          resolve(false);
+        }
+      });
+
+      // 尝试连接
+      socket.connect(port, host);
+    });
+  }
+
+  /**
+   * 安全地尝试 ADB 连接（用于网络扫描）
+   * 先测试端口是否开放，再尝试 ADB 连接
+   *
+   * @param host 主机地址
+   * @param port ADB 端口
+   * @param timeoutMs 超时时间（毫秒）
+   * @returns 是否连接成功
+   */
+  async safeConnect(host: string, port: number, timeoutMs: number = 3000): Promise<boolean> {
+    try {
+      // 第一步：测试端口是否开放
+      const portOpen = await this.testPortOpen(host, port, timeoutMs);
+      if (!portOpen) {
+        return false;
+      }
+
+      // 第二步：尝试 ADB 连接
+      await Promise.race([
+        this.client.connect(host, port),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('ADB connect timeout')), timeoutMs)
+        ),
+      ]);
+
+      return true;
+    } catch (error) {
+      // 连接失败是预期的（大部分 IP 不会有 ADB 服务）
+      return false;
+    }
+  }
+
+  /**
    * 连接到设备
    */
   async connectToDevice(deviceId: string, host: string, port: number): Promise<void> {
@@ -265,8 +379,19 @@ export class AdbService implements OnModuleInit {
         return;
       }
 
-      // 连接设备
-      await this.client.connect(host, port);
+      // 先测试端口是否开放
+      const portOpen = await this.testPortOpen(host, port, 2000);
+      if (!portOpen) {
+        throw new Error(`Port ${port} is not open on ${host}`);
+      }
+
+      // 连接设备（带超时）
+      await Promise.race([
+        this.client.connect(host, port),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('ADB connect timeout')), 10000)
+        ),
+      ]);
       this.connections.set(deviceId, { host, port, address });
 
       this.logger.log(`Connected to device ${deviceId} at ${address}`);
