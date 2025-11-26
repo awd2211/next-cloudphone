@@ -2,11 +2,19 @@
  * 主题切换 Hook
  *
  * 管理全局主题状态 (亮色/暗色),支持 localStorage 持久化
+ * 使用统一的颜色系统确保全局一致性
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { theme as antdTheme } from 'antd';
 import type { ThemeConfig } from 'antd';
+import {
+  PRIMARY,
+  SEMANTIC,
+  NEUTRAL_LIGHT,
+  NEUTRAL_DARK,
+  getNeutralColors,
+} from '@/theme/colors';
 
 const { darkAlgorithm, defaultAlgorithm } = antdTheme;
 
@@ -49,6 +57,13 @@ const getActualTheme = (mode: ThemeMode): 'light' | 'dark' => {
   return mode;
 };
 
+/** 主题颜色配置 */
+export interface ThemeColors {
+  primary: typeof PRIMARY;
+  semantic: typeof SEMANTIC;
+  neutral: typeof NEUTRAL_LIGHT;
+}
+
 export interface UseThemeResult {
   /** 当前主题模式 (light/dark/auto) */
   mode: ThemeMode;
@@ -67,6 +82,9 @@ export interface UseThemeResult {
 
   /** Ant Design 主题配置 */
   antdTheme: ThemeConfig;
+
+  /** 当前主题颜色配置 */
+  colors: ThemeColors;
 }
 
 /**
@@ -144,31 +162,76 @@ export const useTheme = (): UseThemeResult => {
     }
   }, [actualTheme]);
 
+  // 获取当前主题的中性色
+  const neutral = useMemo(() => getNeutralColors(actualTheme === 'dark'), [actualTheme]);
+
+  // 主题颜色配置 - 供组件使用
+  const colors: ThemeColors = useMemo(() => ({
+    primary: PRIMARY,
+    semantic: SEMANTIC,
+    neutral,
+  }), [neutral]);
+
   // Ant Design 主题配置
-  const antdTheme: ThemeConfig = {
+  const antdThemeConfig: ThemeConfig = useMemo(() => ({
     algorithm: actualTheme === 'dark' ? darkAlgorithm : defaultAlgorithm,
     token: {
-      colorPrimary: '#1890ff', // 使用 Ant Design 默认主色
+      // 主色调 - 使用 Ant Design 5.x 标准主色
+      colorPrimary: PRIMARY.main,
+      colorLink: PRIMARY.main,
+      colorLinkHover: PRIMARY.light,
+      colorLinkActive: PRIMARY.dark,
+
+      // 语义化颜色
+      colorSuccess: SEMANTIC.success.main,
+      colorWarning: SEMANTIC.warning.main,
+      colorError: SEMANTIC.error.main,
+      colorInfo: SEMANTIC.info.main,
+
+      // 圆角
       borderRadius: 6,
-      // 暗色主题特殊配置
-      ...(actualTheme === 'dark' && {
-        colorBgContainer: '#1f1f1f',
-        colorBgElevated: '#262626',
-        colorBgLayout: '#141414',
-      }),
+
+      // 文字颜色
+      colorText: neutral.text.primary,
+      colorTextSecondary: neutral.text.secondary,
+      colorTextTertiary: neutral.text.tertiary,
+      colorTextQuaternary: neutral.text.quaternary,
+
+      // 背景颜色
+      colorBgContainer: neutral.bg.container,
+      colorBgElevated: neutral.bg.elevated,
+      colorBgLayout: neutral.bg.layout,
+      colorBgSpotlight: neutral.bg.spotlight,
+      colorBgMask: neutral.bg.mask,
+
+      // 边框颜色
+      colorBorder: neutral.border.primary,
+      colorBorderSecondary: neutral.border.secondary,
+
+      // 填充颜色
+      colorFill: neutral.fill.primary,
+      colorFillSecondary: neutral.fill.secondary,
+      colorFillTertiary: neutral.fill.tertiary,
+      colorFillQuaternary: neutral.fill.quaternary,
     },
     components: {
       Layout: {
-        headerBg: actualTheme === 'dark' ? '#1f1f1f' : '#001529',
-        siderBg: actualTheme === 'dark' ? '#1f1f1f' : '#001529',
-        bodyBg: actualTheme === 'dark' ? '#141414' : '#f0f2f5',
+        headerBg: actualTheme === 'dark' ? neutral.bg.container : '#001529',
+        siderBg: actualTheme === 'dark' ? neutral.bg.container : '#001529',
+        bodyBg: neutral.bg.layout,
       },
       Menu: {
-        darkItemBg: actualTheme === 'dark' ? '#1f1f1f' : '#001529',
-        darkSubMenuItemBg: actualTheme === 'dark' ? '#141414' : '#000c17',
+        darkItemBg: actualTheme === 'dark' ? neutral.bg.container : '#001529',
+        darkSubMenuItemBg: actualTheme === 'dark' ? neutral.bg.layout : '#000c17',
+      },
+      Table: {
+        headerBg: neutral.bg.spotlight,
+      },
+      Card: {
+        colorBgContainer: neutral.bg.container,
       },
     },
-  };
+  }), [actualTheme, neutral]);
 
   return {
     mode,
@@ -176,6 +239,7 @@ export const useTheme = (): UseThemeResult => {
     isDark: actualTheme === 'dark',
     setMode,
     toggleTheme,
-    antdTheme,
+    antdTheme: antdThemeConfig,
+    colors,
   };
 };

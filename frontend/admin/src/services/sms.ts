@@ -120,6 +120,9 @@ export interface SMSProvider {
   totalSuccess?: number;
   totalFailures?: number;
   successRate?: number;
+  healthStatus?: string;
+  hasApiKey?: boolean;
+  apiKeyEncrypted?: boolean;
 }
 
 export interface SMSProviderComparison {

@@ -6,14 +6,43 @@
 
 /* ==================== 亮色主题 (默认) ==================== */
 :root[data-theme='light'] {
+  /* 背景色 */
   --bg-primary: #ffffff;
   --bg-secondary: #f0f2f5;
   --bg-tertiary: #fafafa;
+
+  /* 文字色 */
   --text-primary: #000000d9;
   --text-secondary: #00000073;
   --text-tertiary: #00000040;
+
+  /* 边框和阴影 */
   --border-color: #d9d9d9;
   --shadow-color: rgba(0, 0, 0, 0.1);
+
+  /* 语义化颜色 - 成功 */
+  --color-success: #52c41a;
+  --color-success-dark: #3f8600;
+  --color-success-light: #f6ffed;
+  --color-success-border: #b7eb8f;
+
+  /* 语义化颜色 - 错误 */
+  --color-error: #ff4d4f;
+  --color-error-dark: #cf1322;
+  --color-error-light: #fff2f0;
+  --color-error-border: #ffccc7;
+
+  /* 语义化颜色 - 警告 */
+  --color-warning: #faad14;
+  --color-warning-dark: #d48806;
+  --color-warning-light: #fffbe6;
+  --color-warning-border: #ffe58f;
+
+  /* 语义化颜色 - 信息/主要 */
+  --color-info: #1890ff;
+  --color-info-dark: #096dd9;
+  --color-info-light: #e6f7ff;
+  --color-info-border: #91d5ff;
 }
 
 /* ==================== 暗色主题 ==================== */
@@ -27,6 +56,30 @@ html.dark {
   --text-tertiary: #ffffff40;
   --border-color: #434343;
   --shadow-color: rgba(0, 0, 0, 0.45);
+
+  /* 语义化颜色 - 成功 (暗色主题) */
+  --color-success: #49aa19;
+  --color-success-dark: #6abe39;
+  --color-success-light: #162312;
+  --color-success-border: #274916;
+
+  /* 语义化颜色 - 错误 (暗色主题) */
+  --color-error: #d32029;
+  --color-error-dark: #e84749;
+  --color-error-light: #2a1215;
+  --color-error-border: #58181c;
+
+  /* 语义化颜色 - 警告 (暗色主题) */
+  --color-warning: #d89614;
+  --color-warning-dark: #e8b339;
+  --color-warning-light: #2b2111;
+  --color-warning-border: #594214;
+
+  /* 语义化颜色 - 信息/主要 (暗色主题) */
+  --color-info: #177ddc;
+  --color-info-dark: #3c9ae8;
+  --color-info-light: #111d2c;
+  --color-info-border: #15395b;
 }
 
 /* ==================== 平滑过渡 ==================== */

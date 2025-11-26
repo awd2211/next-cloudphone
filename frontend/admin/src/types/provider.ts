@@ -10,6 +10,12 @@ export enum DeviceProvider {
   PHYSICAL = 'physical', // 物理 Android 设备（后端: PHYSICAL）
   HUAWEI = 'huawei_cph', // 华为云 CPH（后端: HUAWEI_CPH）
   ALIYUN = 'aliyun_ecp', // 阿里云 ECP（后端: ALIYUN_ECP）
+  // Phase 5: 扩展云提供商
+  TENCENT = 'tencent_gs', // 腾讯云云游戏（后端: TENCENT_GS）
+  BAIDU = 'baidu_bac', // 百度云手机（后端: BAIDU_BAC）
+  AWS = 'aws_device_farm', // AWS Device Farm（后端: AWS_DEVICE_FARM）
+  GENYMOTION = 'genymotion', // Genymotion Cloud（后端: GENYMOTION）
+  BROWSERSTACK = 'browserstack', // BrowserStack App Live（后端: BROWSERSTACK）
 }
 
 // 提供商显示名称
@@ -18,6 +24,11 @@ export const ProviderNames: Record<DeviceProvider, string> = {
   [DeviceProvider.PHYSICAL]: '物理设备',
   [DeviceProvider.HUAWEI]: '华为云 CPH',
   [DeviceProvider.ALIYUN]: '阿里云 ECP',
+  [DeviceProvider.TENCENT]: '腾讯云云游戏',
+  [DeviceProvider.BAIDU]: '百度云手机',
+  [DeviceProvider.AWS]: 'AWS Device Farm',
+  [DeviceProvider.GENYMOTION]: 'Genymotion Cloud',
+  [DeviceProvider.BROWSERSTACK]: 'BrowserStack',
 };
 
 // 提供商颜色
@@ -26,6 +37,11 @@ export const ProviderColors: Record<DeviceProvider, string> = {
   [DeviceProvider.PHYSICAL]: 'green',
   [DeviceProvider.HUAWEI]: 'orange',
   [DeviceProvider.ALIYUN]: 'purple',
+  [DeviceProvider.TENCENT]: 'cyan',
+  [DeviceProvider.BAIDU]: 'red',
+  [DeviceProvider.AWS]: 'gold',
+  [DeviceProvider.GENYMOTION]: 'lime',
+  [DeviceProvider.BROWSERSTACK]: 'magenta',
 };
 
 // 提供商图标
@@ -34,6 +50,11 @@ export const ProviderIcons: Record<DeviceProvider, string> = {
   [DeviceProvider.PHYSICAL]: '📱',
   [DeviceProvider.HUAWEI]: '☁️',
   [DeviceProvider.ALIYUN]: '☁️',
+  [DeviceProvider.TENCENT]: '🎮',
+  [DeviceProvider.BAIDU]: '🤖',
+  [DeviceProvider.AWS]: '🔶',
+  [DeviceProvider.GENYMOTION]: '🖥️',
+  [DeviceProvider.BROWSERSTACK]: '🧪',
 };
 
 // ADB 连接信息

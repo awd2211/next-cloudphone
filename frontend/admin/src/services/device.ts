@@ -152,7 +152,13 @@ export const refreshCloudDevice = (id: string): Promise<void> =>
 export const getPhysicalDevices = (params?: { page?: number; pageSize?: number }) =>
   api.get('/admin/physical-devices', { params });
 
-export const scanNetworkDevices = (params: { subnet: string }) =>
+export const scanNetworkDevices = (params: {
+  networkCidr: string;
+  portStart?: number;
+  portEnd?: number;
+  concurrency?: number;
+  timeoutMs?: number;
+}) =>
   api.post('/admin/physical-devices/scan', params);
 
 export const registerPhysicalDevice = (data: { serialNumber: string; name?: string }) =>

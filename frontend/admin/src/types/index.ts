@@ -1213,7 +1213,11 @@ export interface PhysicalDevice {
 }
 
 export interface ScanNetworkDto {
-  subnet: string;
+  networkCidr: string;
+  portStart?: number;
+  portEnd?: number;
+  concurrency?: number;
+  timeoutMs?: number;
 }
 
 export interface RegisterPhysicalDeviceDto {

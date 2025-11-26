@@ -5,8 +5,11 @@
  * 使用 React Query + Zod 进行数据获取和验证
  * ✅ 完全类型安全
  * ✅ 支持无限滚动（useInfiniteUsers）
+ * ✅ 支持下一页预加载（usePrefetchNextPage）
+ * ✅ 支持乐观更新（useToggleUserStatus）
  */
 
+import React from 'react';
 import {
   useQuery,
   useMutation,
@@ -191,7 +194,12 @@ export const useDeleteUser = () => {
 };
 
 /**
- * 启用/禁用用户 Mutation
+ * 启用/禁用用户 Mutation（带乐观更新）
+ *
+ * 乐观更新策略：
+ * 1. 立即更新 UI（用户感知快）
+ * 2. 后台发送请求
+ * 3. 失败时回滚到之前的状态
  */
 export const useToggleUserStatus = () => {
   const queryClient = useQueryClient();
@@ -199,14 +207,55 @@ export const useToggleUserStatus = () => {
   return useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
       userService.updateUser(id, { status: (enabled ? 'active' : 'inactive') as UserStatus }),
-    onSuccess: (_, { id }) => {
+
+    // 乐观更新：在请求发送前立即更新缓存
+    onMutate: async ({ id, enabled }) => {
+      // 取消正在进行的相关查询，防止覆盖乐观更新
+      await queryClient.cancelQueries({ queryKey: userKeys.lists() });
+
+      // 保存之前的数据用于回滚
+      const previousLists = queryClient.getQueriesData({ queryKey: userKeys.lists() });
+
+      // 乐观更新所有包含该用户的列表缓存
+      queryClient.setQueriesData(
+        { queryKey: userKeys.lists() },
+        (old: PaginatedResponse<User> | undefined) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: old.data.map((user) =>
+              user.id === id
+                ? { ...user, status: (enabled ? 'active' : 'inactive') as UserStatus }
+                : user
+            ),
+          };
+        }
+      );
+
+      // 返回上下文，包含回滚数据
+      return { previousLists };
+    },
+
+    // 请求失败时回滚
+    onError: (error: Error, _variables, context) => {
+      // 恢复之前的数据
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      message.error(`更新失败: ${error.message}`);
+    },
+
+    // 请求成功后刷新数据（确保与服务器同步）
+    onSettled: (_, __, { id }) => {
       queryClient.invalidateQueries({ queryKey: userKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
       queryClient.invalidateQueries({ queryKey: userKeys.infinite() });
-      message.success('状态更新成功');
     },
-    onError: (error: Error) => {
-      message.error(`更新失败: ${error.message}`);
+
+    onSuccess: () => {
+      message.success('状态更新成功');
     },
   });
 };
@@ -245,4 +294,55 @@ export const useBatchDeleteUsers = () => {
       message.error(`批量删除失败: ${error.message}`);
     },
   });
+};
+
+// ============================================================================
+// Prefetch Hooks
+// ============================================================================
+
+interface PrefetchNextPageOptions {
+  currentPage: number;
+  pageSize: number;
+  total: number;
+  queryKey: string;
+  params?: PaginationParams;
+}
+
+/**
+ * 预加载下一页数据
+ *
+ * 自动在后台预加载下一页数据，提升翻页体验
+ * 仅当下一页存在且未缓存时才会预加载
+ */
+export const usePrefetchNextPage = ({
+  currentPage,
+  pageSize,
+  total,
+  params,
+}: PrefetchNextPageOptions) => {
+  const queryClient = useQueryClient();
+
+  // 计算总页数和下一页
+  const totalPages = Math.ceil(total / pageSize);
+  const nextPage = currentPage + 1;
+  const hasNextPage = nextPage <= totalPages;
+
+  // 在 currentPage 变化时预加载下一页
+  React.useEffect(() => {
+    if (!hasNextPage) return;
+
+    const nextPageParams = { ...params, page: nextPage, pageSize };
+    const nextPageKey = userKeys.list(nextPageParams);
+
+    // 检查是否已缓存
+    const cached = queryClient.getQueryData(nextPageKey);
+    if (cached) return;
+
+    // 预加载下一页（静默，不显示 loading）
+    queryClient.prefetchQuery({
+      queryKey: nextPageKey,
+      queryFn: () => userService.getUsers(nextPageParams),
+      staleTime: 30 * 1000,
+    });
+  }, [currentPage, hasNextPage, nextPage, pageSize, params, queryClient]);
 };

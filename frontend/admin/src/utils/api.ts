@@ -57,10 +57,11 @@ export interface PaginatedResponse<T> {
  * 智能解包响应数据
  * 检测后端包装格式并提取数据
  *
- * 处理三种响应格式：
+ * 处理四种响应格式：
  * 1. 普通响应: { success, data: T } → 返回 T
  * 2. 顶层分页响应: { success, data: T[], total, page, pageSize } → 返回 { data: T[], total, page, pageSize }
  * 3. 嵌套分页响应: { success, data: { items: T[], total, page, pageSize } } → 返回 { data: T[], total, page, pageSize }
+ * 4. Meta分页响应: { success, data: T[], meta: { total, page, limit } } → 返回 { data: T[], meta: { total, page, limit } }
  */
 function unwrap<T>(response: ApiResponse<T> | T): T {
   // 检测是否为后端包装格式
@@ -71,8 +72,22 @@ function unwrap<T>(response: ApiResponse<T> | T): T {
     (response as ApiResponse<T>).success === true &&
     'data' in response
   ) {
-    const apiResponse = response as ApiResponse<T> & { total?: number; page?: number; pageSize?: number; totalPages?: number };
+    const apiResponse = response as ApiResponse<T> & {
+      total?: number;
+      page?: number;
+      pageSize?: number;
+      totalPages?: number;
+      meta?: { total: number; page: number; limit: number };
+    };
     const data = apiResponse.data as any;
+
+    // 检测 meta 分页响应格式: { success, data: [], meta: { total, page, limit } }
+    if ('meta' in apiResponse && apiResponse.meta && typeof apiResponse.meta.total === 'number') {
+      return {
+        data: apiResponse.data,
+        meta: apiResponse.meta,
+      } as T;
+    }
 
     // 检测嵌套分页响应格式: { data: { items: [], total, page, pageSize } }
     if (

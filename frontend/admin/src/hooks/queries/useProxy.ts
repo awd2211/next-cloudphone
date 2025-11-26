@@ -24,6 +24,9 @@ import {
   exportProxyUsageReport,
   getProxyCostReport,
   exportProxyCostReport,
+  // 代理信息解析
+  parseProxyInfo,
+  parseAllProxyInfo,
   // 类型
   type ProxyListParams,
   type ProxyListResponse,
@@ -34,6 +37,7 @@ import {
   type ProxyProviderRanking,
   type CreateProxyProviderDto,
   type ProxyUsageReport,
+  type ProxyParsedInfo,
 } from '@/services/proxy';
 
 /**
@@ -54,6 +58,7 @@ export type {
   ProxyProviderRanking,
   CreateProxyProviderDto,
   ProxyUsageReport,
+  ProxyParsedInfo,
 };
 
 // ==================== Query Keys ====================
@@ -378,6 +383,49 @@ export const useTestProxyProvider = () => {
     },
     onError: (error: any) => {
       message.error(error?.response?.data?.message || error?.message || '测试失败');
+    },
+  });
+};
+
+// ==================== 代理信息解析 Hooks ====================
+
+/**
+ * 解析单个代理信息（从 URL/配置解析，不进行网络检测）
+ */
+export const useParseProxyInfo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: parseProxyInfo,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: proxyKeys.lists() });
+      const typeDisplay = data?.parsedInfo?.proxyType || '未知';
+      const country = data?.parsedInfo?.countryName || data?.parsedInfo?.country || '未知';
+      message.success(`解析完成: ${typeDisplay} · ${country}`);
+    },
+    onError: (error: any) => {
+      message.error(error?.response?.data?.message || error?.message || '信息解析失败');
+    },
+  });
+};
+
+/**
+ * 批量解析所有代理信息（即时解析，不进行网络检测）
+ */
+export const useParseAllProxyInfo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: parseAllProxyInfo,
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: proxyKeys.lists() });
+      const typeStats = data?.byType
+        ? Object.entries(data.byType).map(([k, v]) => `${k}: ${v}`).join(', ')
+        : '';
+      message.success(`批量解析完成，共 ${data?.parsed || 0} 个代理。${typeStats}`);
+    },
+    onError: (error: any) => {
+      message.error(error?.response?.data?.message || error?.message || '批量解析失败');
     },
   });
 };

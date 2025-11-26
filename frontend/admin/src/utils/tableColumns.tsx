@@ -2,6 +2,7 @@ import React from 'react';
 import { ColumnsType } from 'antd/es/table';
 import { Tag, Button, Space, Tooltip } from 'antd';
 import dayjs from 'dayjs';
+import { NEUTRAL_LIGHT, SEMANTIC } from '@/theme';
 
 /**
  * 时间列配置工厂
@@ -129,7 +130,7 @@ export function createActionsColumn<T = any>(
       );
 
       if (visibleActions.length === 0) {
-        return <span style={{ color: '#999' }}>-</span>;
+        return <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>-</span>;
       }
 
       return (
@@ -237,7 +238,7 @@ export function createTagsColumn<T = any>(
     width,
     render: (tags: string[]) => {
       if (!tags || tags.length === 0) {
-        return <span style={{ color: '#999' }}>-</span>;
+        return <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>-</span>;
       }
 
       const visibleTags = tags.slice(0, maxTags);
@@ -299,7 +300,7 @@ export function createNumberColumn<T = any>(
     } : undefined,
     render: (value: number) => {
       if (value === null || value === undefined) {
-        return <span style={{ color: '#999' }}>-</span>;
+        return <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>-</span>;
       }
       const formatted = precision > 0
         ? value.toFixed(precision)
@@ -338,12 +339,12 @@ export function createPercentColumn<T = any>(
     sorter: sorter ? (a: any, b: any) => (a[dataIndex] ?? 0) - (b[dataIndex] ?? 0) : undefined,
     render: (value: number) => {
       if (value === null || value === undefined) {
-        return <span style={{ color: '#999' }}>-</span>;
+        return <span style={{ color: NEUTRAL_LIGHT.text.tertiary }}>-</span>;
       }
 
       let color = undefined;
       if (colorRange) {
-        const { min, max, lowColor = '#52c41a', highColor = '#f5222d' } = colorRange;
+        const { min, max, lowColor = SEMANTIC.success.main, highColor = SEMANTIC.error.main } = colorRange;
         if (value <= min) {
           color = lowColor;
         } else if (value >= max) {

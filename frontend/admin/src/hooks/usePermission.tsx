@@ -60,7 +60,22 @@ export function usePermission() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const userRoles = user?.roles as Role[] | undefined;
+  // 支持两种 roles 格式：字符串数组 ["admin"] 或 Role 对象数组 [{name: "admin", ...}]
+  const rawRoles = user?.roles;
+  const userRoles = useMemo(() => {
+    if (!rawRoles || !Array.isArray(rawRoles)) return undefined;
+    // 检查第一个元素是否是字符串
+    if (rawRoles.length > 0 && typeof rawRoles[0] === 'string') {
+      // 如果是字符串数组，转换为 Role 对象数组
+      return (rawRoles as string[]).map(name => ({
+        id: name,
+        name,
+        permissions: [],
+        dataScopes: [],
+      })) as Role[];
+    }
+    return rawRoles as Role[];
+  }, [rawRoles]);
 
   /**
    * 获取用户所有权限名称列表

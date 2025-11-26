@@ -32,17 +32,34 @@ export interface ProxyRecord {
   failedRequests?: number;
   totalBandwidth?: number; // Total bandwidth used in MB
   costPerGB?: number; // Cost per GB in USD
+  // 真实出口 IP 信息
+  exitIp?: string;
+  exitCountry?: string;
+  exitCountryName?: string;
+  exitCity?: string;
+  exitIsp?: string;
+  ipCheckedAt?: string;
+  // 代理类型信息
+  ispType?: 'residential' | 'datacenter' | 'mobile' | 'isp' | 'unknown';
+  proxyTypeDisplay?: string; // 代理类型显示名称（如 "住宅代理"）
+  metadata?: Record<string, any>;
 }
 
 export interface ProxyStats {
   total: number;
   available: number;
   inUse: number;
-  unavailable: number;
-  avgQuality: number;
-  avgLatency: number;
-  totalBandwidth: number;
-  totalCost: number;
+  unavailable?: number;  // 兼容旧字段
+  unhealthy?: number;    // 后端实际返回字段
+  avgQuality?: number;   // 可能不存在
+  avgLatency?: number;   // 可能不存在
+  averageQuality?: number;  // 后端实际字段名
+  averageLatency?: number;  // 后端实际字段名
+  totalBandwidth?: number;
+  totalCost?: number;
+  providerBreakdown?: Record<string, number>;  // 后端返回的供应商分布
+  countryBreakdown?: Record<string, number>;   // 后端返回的国家分布
+  lastRefresh?: string;  // 最后刷新时间
 }
 
 export interface ProxyListParams {
@@ -147,9 +164,17 @@ export interface CreateProxyProviderDto {
 
 /**
  * 获取代理列表
+ * 注意：后端使用 offset 而不是 page，这里进行转换
  */
-export const getProxyList = (params?: ProxyListParams): Promise<ProxyListResponse> =>
-  api.get<ProxyListResponse>('/proxy/list', { params });
+export const getProxyList = (params?: ProxyListParams): Promise<ProxyListResponse> => {
+  // 将 page 转换为 offset (后端期望 offset 而不是 page)
+  const { page, limit = 20, ...rest } = params || {};
+  const offset = page ? (page - 1) * limit : undefined;
+
+  return api.get<ProxyListResponse>('/proxy/list', {
+    params: { ...rest, limit, offset }
+  });
+};
 
 /**
  * 获取代理池统计
@@ -412,6 +437,43 @@ export const getProxyPerformancePrediction = (proxyId: string, params?: {
  */
 export const getOptimalPoolConfig = (): Promise<any> =>
   api.get('/proxy/intelligence/optimal-config');
+
+// ==================== 代理信息解析 ====================
+
+/**
+ * 代理信息解析结果
+ */
+export interface ProxyParsedInfo {
+  proxyType: 'residential' | 'datacenter' | 'mobile' | 'isp' | 'unknown';
+  country?: string;
+  countryName?: string;
+  city?: string;
+  state?: string;
+  provider: string;
+  sessionType?: 'rotating' | 'sticky';
+  source: 'url' | 'config' | 'metadata';
+}
+
+/**
+ * 解析单个代理信息（从 URL/配置解析，不进行网络检测）
+ */
+export const parseProxyInfo = (proxyId: string): Promise<{
+  proxyId: string;
+  parsedInfo: ProxyParsedInfo;
+}> =>
+  api.get(`/proxy/parse-info/${proxyId}`);
+
+/**
+ * 批量解析所有代理信息（即时解析，不进行网络检测）
+ */
+export const parseAllProxyInfo = (): Promise<{
+  total: number;
+  parsed: number;
+  byType: Record<string, number>;
+  byCountry: Record<string, number>;
+  byProvider: Record<string, number>;
+}> =>
+  api.post('/proxy/admin/parse-all-info');
 
 // ==================== 审计日志 ====================
 

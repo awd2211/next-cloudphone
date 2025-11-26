@@ -3,6 +3,12 @@ export enum DeviceProviderType {
   PHYSICAL = 'PHYSICAL',
   HUAWEI_CPH = 'HUAWEI_CPH',
   ALIYUN_ECP = 'ALIYUN_ECP',
+  // Phase 5: 扩展云提供商
+  TENCENT_GS = 'TENCENT_GS',
+  BAIDU_BAC = 'BAIDU_BAC',
+  AWS_DEVICE_FARM = 'AWS_DEVICE_FARM',
+  GENYMOTION = 'GENYMOTION',
+  BROWSERSTACK = 'BROWSERSTACK',
 }
 
 export enum DeviceStatus {
@@ -18,6 +24,11 @@ export const ProviderDisplayNamesCN: Record<DeviceProviderType, string> = {
   [DeviceProviderType.PHYSICAL]: '物理 Android 设备',
   [DeviceProviderType.HUAWEI_CPH]: '华为云手机',
   [DeviceProviderType.ALIYUN_ECP]: '阿里云手机',
+  [DeviceProviderType.TENCENT_GS]: '腾讯云云游戏',
+  [DeviceProviderType.BAIDU_BAC]: '百度云手机',
+  [DeviceProviderType.AWS_DEVICE_FARM]: 'AWS Device Farm',
+  [DeviceProviderType.GENYMOTION]: 'Genymotion Cloud',
+  [DeviceProviderType.BROWSERSTACK]: 'BrowserStack',
 };
 
 export const StatusDisplayNamesCN: Record<DeviceStatus, string> = {
