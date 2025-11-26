@@ -20,8 +20,9 @@ type Config struct {
 	TURNServers []TURNServer
 
 	// ICE 配置
-	ICEPortMin uint16
-	ICEPortMax uint16
+	ICEPortMin  uint16
+	ICEPortMax  uint16
+	NAT1To1IPs  []string // NAT 1:1 映射 IP（用于跨 NAT/Docker 网络的 ICE 候选）
 
 	// 设备服务配置
 	DeviceServiceURL string
@@ -81,6 +82,7 @@ func Load() *Config {
 
 		ICEPortMin: uint16(getEnvInt("ICE_PORT_MIN", 50000)),
 		ICEPortMax: uint16(getEnvInt("ICE_PORT_MAX", 50100)),
+		NAT1To1IPs: getEnvStringSlice("NAT_1TO1_IPS", []string{}), // 可选：指定公网/LAN IP
 
 		// Consul 配置
 		ConsulHost:    getEnv("CONSUL_HOST", "localhost"),
@@ -119,6 +121,7 @@ func Load() *Config {
 		zap.Strings("stun_servers", cfg.STUNServers),
 		zap.Uint16("ice_port_min", cfg.ICEPortMin),
 		zap.Uint16("ice_port_max", cfg.ICEPortMax),
+		zap.Strings("nat_1to1_ips", cfg.NAT1To1IPs),
 		zap.String("video_codec", cfg.VideoCodec),
 		zap.Int("max_bitrate", cfg.MaxBitrate),
 		zap.String("capture_mode", cfg.CaptureMode),
@@ -148,6 +151,23 @@ func getEnvBool(key string, defaultValue bool) bool {
 	if value := os.Getenv(key); value != "" {
 		if boolValue, err := strconv.ParseBool(value); err == nil {
 			return boolValue
+		}
+	}
+	return defaultValue
+}
+
+func getEnvStringSlice(key string, defaultValue []string) []string {
+	if value := os.Getenv(key); value != "" {
+		parts := strings.Split(value, ",")
+		result := make([]string, 0, len(parts))
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				result = append(result, trimmed)
+			}
+		}
+		if len(result) > 0 {
+			return result
 		}
 	}
 	return defaultValue

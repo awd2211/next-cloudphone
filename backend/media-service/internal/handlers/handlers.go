@@ -1,7 +1,12 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
 
 	"github.com/cloudphone/media-service/internal/logger"
 	"github.com/cloudphone/media-service/internal/models"
@@ -327,4 +332,97 @@ func (h *Handler) HandleHealth(c *gin.Context) {
 		"status":  "ok",
 		"service": "media-service",
 	})
+}
+
+// CloudflareTurnResponse Cloudflare TURN API 响应
+type CloudflareTurnResponse struct {
+	IceServers []IceServer `json:"iceServers"`
+}
+
+// IceServer ICE 服务器配置
+type IceServer struct {
+	URLs       []string `json:"urls"`
+	Username   string   `json:"username,omitempty"`
+	Credential string   `json:"credential,omitempty"`
+}
+
+// HandleGetTurnCredentials 获取 Cloudflare TURN 凭证
+func (h *Handler) HandleGetTurnCredentials(c *gin.Context) {
+	ctx := c.Request.Context()
+	ctx, span := tracer.Start(ctx, "webrtc.get_turn_credentials")
+	defer span.End()
+
+	// 从环境变量获取 Cloudflare 凭证
+	keyID := os.Getenv("CLOUDFLARE_TURN_KEY_ID")
+	apiToken := os.Getenv("CLOUDFLARE_TURN_API_TOKEN")
+	ttl := os.Getenv("CLOUDFLARE_TURN_TTL")
+
+	if keyID == "" || apiToken == "" {
+		span.SetStatus(codes.Error, "cloudflare credentials not configured")
+		logger.Error("cloudflare_turn_not_configured")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "TURN service not configured"})
+		return
+	}
+
+	if ttl == "" {
+		ttl = "86400" // 默认 24 小时
+	}
+
+	// 调用 Cloudflare API
+	url := fmt.Sprintf("https://rtc.live.cloudflare.com/v1/turn/keys/%s/credentials/generate-ice-servers", keyID)
+
+	reqBody, _ := json.Marshal(map[string]interface{}{
+		"ttl": 86400,
+	})
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBody))
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to create request")
+		logger.Error("failed_to_create_turn_request", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to call cloudflare api")
+		logger.Error("failed_to_call_cloudflare_turn_api", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get TURN credentials"})
+		return
+	}
+	defer resp.Body.Close()
+
+	// Cloudflare API 返回 201 Created 而不是 200 OK
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		span.SetStatus(codes.Error, "cloudflare api returned error")
+		logger.Error("cloudflare_turn_api_error",
+			zap.Int("status_code", resp.StatusCode),
+			zap.String("body", string(body)),
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get TURN credentials from Cloudflare"})
+		return
+	}
+
+	var turnResp CloudflareTurnResponse
+	if err := json.NewDecoder(resp.Body).Decode(&turnResp); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to decode response")
+		logger.Error("failed_to_decode_turn_response", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse TURN credentials"})
+		return
+	}
+
+	span.SetStatus(codes.Ok, "turn credentials retrieved")
+	logger.Info("turn_credentials_generated",
+		zap.Int("ice_servers_count", len(turnResp.IceServers)),
+	)
+
+	c.JSON(http.StatusOK, turnResp)
 }

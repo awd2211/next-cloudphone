@@ -56,6 +56,13 @@ func (m *Manager) CreateSession(deviceID, userID string) (*models.Session, error
 		return nil, fmt.Errorf("failed to set ICE port range: %w", err)
 	}
 
+	// 设置 NAT 1:1 IP 映射（解决 Docker/NAT 网络下 ICE 候选 IP 问题）
+	// 当配置了 NAT_1TO1_IPS 时，ICE 候选将使用这些 IP 而不是本地接口 IP
+	if len(m.config.NAT1To1IPs) > 0 {
+		settingEngine.SetNAT1To1IPs(m.config.NAT1To1IPs, webrtc.ICECandidateTypeHost)
+		log.Printf("NAT 1:1 IPs configured: %v", m.config.NAT1To1IPs)
+	}
+
 	// 创建 MediaEngine
 	mediaEngine := &webrtc.MediaEngine{}
 

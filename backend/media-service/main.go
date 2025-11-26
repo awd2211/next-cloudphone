@@ -199,6 +199,9 @@ func main() {
 
 		// 统计信息
 		api.GET("/stats", handler.HandleStats)
+
+		// Cloudflare TURN 凭证
+		api.GET("/turn-credentials", handler.HandleGetTurnCredentials)
 	}
 
 	// 创建 HTTP 服务器
