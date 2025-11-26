@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { HttpModule } from '@nestjs/axios';
 
 // 基础控制器和服务
 import { ProxyController } from './controllers/proxy.controller';
@@ -26,6 +27,9 @@ import { IPIDEAController } from './controllers/ipidea.controller';
 // Kookeey 专用控制器
 import { KookeeyController } from './controllers/kookeey.controller';
 
+// 代理供应商配置控制器
+import { ProxyProviderConfigController } from './controllers/proxy-provider-config.controller';
+
 // 核心功能服务（7个核心功能）
 import { ProxyIntelligenceService } from './services/proxy-intelligence.service';
 import { ProxyQualityService } from './services/proxy-quality.service';
@@ -47,6 +51,9 @@ import { IPIDEAService } from './services/ipidea.service';
 
 // Kookeey 专用服务
 import { KookeeyService } from './services/kookeey.service';
+
+// IP 检测服务
+import { ProxyIpDetectionService } from './services/proxy-ip-detection.service';
 
 // Pool模块
 import { PoolModule } from '../pool/pool.module';
@@ -124,6 +131,10 @@ import {
   imports: [
     ConfigModule,
     ScheduleModule.forRoot(), // 支持定时任务（报告生成、日志清理等）
+    HttpModule.register({
+      timeout: 15000,
+      maxRedirects: 3,
+    }), // IP 检测需要 HTTP 客户端
     TypeOrmModule.forFeature([
       // 基础实体
       ProxyProvider,
@@ -173,23 +184,32 @@ import {
     PoolModule,
   ],
   controllers: [
-    // 基础控制器
+    // ⚠️ 控制器注册顺序很重要！NestJS 按注册顺序匹配路由
+    // 更具体的路径必须放在前面，参数化路由（如 :id）放在最后
+
+    // 1. 核心功能控制器 - 具体路径优先
+    ProxyProviderRankingController,  // /proxy/providers/ranking, /proxy/providers/statistics
+    ProxyProviderConfigController,   // /proxy/providers/:id/config, /proxy/providers/:id/test
+    ProxyStickySessionController,    // /proxy/sessions/*
+    ProxyCostMonitoringController,   // /proxy/cost/*
+    ProxyGeoMatchingController,      // /proxy/geo/*
+
+    // 2. 增强功能控制器
+    ProxyDeviceGroupController,      // /devices/groups/*
+    ProxyAlertController,            // /proxy/alerts/*
+    ProxyUsageReportController,      // /proxy/reports/*
+    ProxyAuditLogController,         // /proxy/audit-logs/*
+
+    // 3. 供应商专用控制器
+    IPIDEAController,                // /proxy/ipidea/*
+    KookeeyController,               // /proxy/kookeey/*
+
+    // 4. 智能推荐控制器 - 使用 /proxy 基础路径但有具体子路径
+    ProxyIntelligenceController,     // /proxy/intelligence/*, /proxy/recommend
+
+    // 5. ⚠️ 基础控制器必须放在最后！
+    // 因为它有 @Get(':proxyId') 路由会匹配任何 /proxy/* 路径
     ProxyController,
-    // 核心功能控制器（5个）
-    ProxyIntelligenceController,
-    ProxyStickySessionController,
-    ProxyCostMonitoringController,
-    ProxyGeoMatchingController,
-    ProxyProviderRankingController,
-    // 增强功能控制器（4个）
-    ProxyDeviceGroupController,
-    ProxyAlertController,
-    ProxyUsageReportController,
-    ProxyAuditLogController,
-    // IPIDEA 专用控制器
-    IPIDEAController,
-    // Kookeey 专用控制器
-    KookeeyController,
   ],
   providers: [
     // 基础服务
@@ -212,6 +232,8 @@ import {
     IPIDEAService,
     // Kookeey 专用服务
     KookeeyService,
+    // IP 检测服务
+    ProxyIpDetectionService,
   ],
   exports: [
     // 导出所有服务供其他模块使用
@@ -230,6 +252,7 @@ import {
     ProxyProviderConfigService, // ✅ 新增：导出提供商配置服务
     IPIDEAService, // ✅ 导出 IPIDEA 服务
     KookeeyService, // ✅ 导出 Kookeey 服务
+    ProxyIpDetectionService, // ✅ 导出 IP 检测服务
   ],
 })
 export class ProxyModule {}

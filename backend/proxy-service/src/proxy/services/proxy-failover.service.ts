@@ -216,9 +216,8 @@ export class ProxyFailoverService {
     excludeProxyId: string,
     strategy: string,
   ): Promise<any> {
-    const candidates = this.poolManager
-      .listProxies({}, true, 20)
-      .filter((p) => p.id !== excludeProxyId);
+    const { proxies } = this.poolManager.listProxies({}, true, 20);
+    const candidates = proxies.filter((p) => p.id !== excludeProxyId);
 
     if (candidates.length === 0) {
       return null;

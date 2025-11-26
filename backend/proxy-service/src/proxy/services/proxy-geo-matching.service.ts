@@ -109,7 +109,7 @@ export class ProxyGeoMatchingService {
     const { targetCountry, targetCity, ispType, limit = 10 } = params;
 
     // 从代理池获取候选代理
-    const allProxies = this.poolManager.listProxies({}, true, 100);
+    const { proxies: allProxies } = this.poolManager.listProxies({}, true, 100);
 
     // 计算匹配分数
     const scoredProxies = allProxies

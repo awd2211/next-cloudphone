@@ -10,7 +10,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "dev": "NODE_OPTIONS='--max-http-header-size=32768' nest start --watch --entryFile proxy-service/src/main",
+    "dev": "NODE_OPTIONS='--max-http-header-size=32768' nest build --webpack --webpackPath webpack-hmr.config.js --watch",
     "start:dev": "nest start --watch",
     "start:debug": "NODE_OPTIONS='--max-http-header-size=32768' nest start --debug --watch",
     "start:prod": "node --max-http-header-size=32768 dist/main",
@@ -60,6 +60,7 @@
     "redis": "^4.6.7",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socks-proxy-agent": "^8.0.5",
     "typeorm": "^0.3.17"
   },
   "devDependencies": {

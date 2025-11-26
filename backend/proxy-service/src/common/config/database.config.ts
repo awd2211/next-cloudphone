@@ -61,7 +61,8 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
     database: 'cloudphone_proxy', // ✅ 强制使用 cloudphone_proxy 数据库
 
     // 实体配置
-    entities: [`${__dirname}/../../**/*.entity{.ts,.js}`],
+    // ✅ HMR 兼容：自动加载 forFeature() 注册的实体
+    autoLoadEntities: true,
     synchronize: false, // 生产环境禁用，表已通过迁移脚本创建
     logging: isDevelopment ? 'all' : ['error', 'warn', 'schema'],
 

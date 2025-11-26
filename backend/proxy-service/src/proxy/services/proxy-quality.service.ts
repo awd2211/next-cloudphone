@@ -220,7 +220,7 @@ export class ProxyQualityService {
    * 计算所有代理的质量评分
    */
   async calculateAllQualityScores(): Promise<number> {
-    const proxies = this.poolManager.listProxies();
+    const { proxies } = this.poolManager.listProxies();
     let count = 0;
 
     for (const proxy of proxies) {

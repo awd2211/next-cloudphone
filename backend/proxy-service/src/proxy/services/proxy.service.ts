@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Optional, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CronExpression } from '@nestjs/schedule';
 import { ClusterSafeCron, DistributedLockService } from '@cloudphone/shared';
@@ -17,6 +17,7 @@ import {
   PoolStatsResponseDto,
   HealthResponseDto,
   ApiResponse,
+  PaginatedApiResponse,
 } from '../dto';
 
 /**
@@ -30,7 +31,7 @@ import {
  * 5. 统计信息聚合
  */
 @Injectable()
-export class ProxyService {
+export class ProxyService implements OnModuleInit {
   private readonly logger = new Logger(ProxyService.name);
   private readonly startTime = Date.now();
 
@@ -43,6 +44,23 @@ export class ProxyService {
     @Optional() private readonly lockService: DistributedLockService, // ✅ Optional: proxy-service 暂未配置 Redis 分布式锁模块
   ) {
     this.logger.log('ProxyService initialized');
+  }
+
+  /**
+   * 服务启动时自动刷新代理池
+   * 确保服务启动后立即有可用的代理
+   */
+  async onModuleInit() {
+    // 延迟启动刷新，等待所有适配器初始化完成
+    setTimeout(async () => {
+      try {
+        this.logger.log('Startup pool refresh triggered');
+        const added = await this.poolManager.refreshPool();
+        this.logger.log(`Startup pool refresh completed, added ${added} proxies`);
+      } catch (error) {
+        this.logger.error(`Startup pool refresh failed: ${error.message}`, error.stack);
+      }
+    }, 3000); // 延迟3秒等待适配器初始化
   }
 
   /**
@@ -363,15 +381,15 @@ export class ProxyService {
   async listProxies(
     criteria?: ProxyCriteria,
     availableOnly: boolean = false,
-    limit?: number,
+    limit: number = 20,
     offset: number = 0,
-  ): Promise<ApiResponse<ProxyResponseDto[]>> {
+  ): Promise<PaginatedApiResponse<ProxyResponseDto>> {
     try {
       this.logger.debug(
         `Listing proxies - availableOnly: ${availableOnly}, limit: ${limit}, offset: ${offset}`,
       );
 
-      const proxies = this.poolManager.listProxies(
+      const { proxies, total } = this.poolManager.listProxies(
         criteria,
         availableOnly,
         limit,
@@ -382,12 +400,16 @@ export class ProxyService {
         ProxyResponseDto.fromProxyInfo(proxy),
       );
 
-      this.logger.log(`Listed ${responses.length} proxies`);
+      // 计算页码（从 offset 反推）
+      const page = Math.floor(offset / limit) + 1;
 
-      return ApiResponse.success(responses);
+      this.logger.log(`Listed ${responses.length} proxies (total: ${total}, page: ${page})`);
+
+      return ApiResponse.paginated(responses, total, page, limit);
     } catch (error) {
       this.logger.error(`Failed to list proxies: ${error.message}`, error.stack);
-      return ApiResponse.error(error.message, 'LIST_PROXIES_FAILED');
+      // 返回空分页响应而不是错误
+      return ApiResponse.paginated([], 0, 1, limit);
     }
   }
 
@@ -425,6 +447,53 @@ export class ProxyService {
         error.stack,
       );
       return ApiResponse.error(error.message, 'ASSIGN_PROXY_FAILED');
+    }
+  }
+
+  /**
+   * 更新代理的解析信息（位置、类型等）
+   * @param proxyId - 代理ID
+   * @param exitInfo - 解析的信息
+   */
+  async updateProxyExitInfo(
+    proxyId: string,
+    exitInfo: {
+      exitIp?: string;
+      exitCountry?: string;
+      exitCountryName?: string;
+      exitCity?: string;
+      exitIsp?: string;
+      ispType?: string;
+    },
+  ): Promise<boolean> {
+    try {
+      const proxy = this.poolManager.getProxyByIdFromPool(proxyId);
+
+      if (!proxy) {
+        this.logger.warn(`Cannot update exit info: proxy not found ${proxyId}`);
+        return false;
+      }
+
+      // 更新代理的解析信息
+      if (exitInfo.exitIp !== undefined) proxy.exitIp = exitInfo.exitIp;
+      if (exitInfo.exitCountry !== undefined) proxy.exitCountry = exitInfo.exitCountry;
+      if (exitInfo.exitCountryName !== undefined) proxy.exitCountryName = exitInfo.exitCountryName;
+      if (exitInfo.exitCity !== undefined) proxy.exitCity = exitInfo.exitCity;
+      if (exitInfo.exitIsp !== undefined) proxy.exitIsp = exitInfo.exitIsp;
+      if (exitInfo.ispType !== undefined) proxy.ispType = exitInfo.ispType;
+      proxy.ipCheckedAt = new Date();
+
+      this.logger.debug(
+        `Updated proxy info for ${proxyId}: type=${exitInfo.ispType}, country=${exitInfo.exitCountry}`,
+      );
+
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update proxy exit info: ${error.message}`,
+        error.stack,
+      );
+      return false;
     }
   }
 }

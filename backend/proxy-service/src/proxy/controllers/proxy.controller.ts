@@ -19,6 +19,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { ProxyService } from '../services/proxy.service';
+import { ProxyIpDetectionService } from '../services/proxy-ip-detection.service';
 import {
   AcquireProxyDto,
   ReportSuccessDto,
@@ -27,6 +28,7 @@ import {
   PoolStatsResponseDto,
   HealthResponseDto,
   ApiResponse,
+  PaginatedApiResponse,
   ListProxiesDto,
   AssignProxyDto,
 } from '../dto';
@@ -54,7 +56,10 @@ import { trace, SpanStatusCode } from '@opentelemetry/api';
 export class ProxyController {
   private readonly tracer = trace.getTracer('proxy-service');
 
-  constructor(private readonly proxyService: ProxyService) {}
+  constructor(
+    private readonly proxyService: ProxyService,
+    private readonly ipDetectionService: ProxyIpDetectionService,
+  ) {}
 
   /**
    * 获取代理
@@ -129,8 +134,8 @@ export class ProxyController {
   })
   async listProxies(
     @Query() dto: ListProxiesDto,
-  ): Promise<ApiResponse<ProxyResponseDto[]>> {
-    const criteria = dto.country || dto.city || dto.state || dto.protocol || dto.minQuality || dto.maxLatency || dto.maxCostPerGB || dto.provider
+  ): Promise<PaginatedApiResponse<ProxyResponseDto>> {
+    const criteria = dto.country || dto.city || dto.state || dto.protocol || dto.minQuality || dto.maxLatency || dto.maxCostPerGB || dto.provider || dto.status
       ? {
           country: dto.country,
           city: dto.city,
@@ -140,13 +145,14 @@ export class ProxyController {
           maxLatency: dto.maxLatency,
           maxCostPerGB: dto.maxCostPerGB,
           provider: dto.provider,
+          status: dto.status,
         }
       : undefined;
 
     return this.proxyService.listProxies(
       criteria,
       dto.availableOnly ?? false,
-      dto.limit,
+      dto.limit ?? 20,
       dto.offset ?? 0,
     );
   }
@@ -414,6 +420,156 @@ export class ProxyController {
   async getActiveCount(): Promise<ApiResponse<{ count: number }>> {
     const count = this.proxyService.getActiveProxiesCount();
     return ApiResponse.success({ count });
+  }
+
+  /**
+   * 解析单个代理的信息（从URL/配置解析，非网络检测）
+   */
+  @RequirePermission('proxy.read')
+  @Get('parse-info/:proxyId')
+  @ApiOperation({
+    summary: '解析代理信息',
+    description: '从代理URL和配置中解析位置、类型等信息（即时返回，无网络请求）',
+  })
+  @ApiParam({
+    name: 'proxyId',
+    description: '代理ID',
+    example: 'ipidea-1234567890-abc',
+  })
+  @SwaggerApiResponse({
+    status: 200,
+    description: '成功解析代理信息',
+  })
+  async parseProxyInfo(
+    @Param('proxyId') proxyId: string,
+  ): Promise<ApiResponse<{
+    proxyId: string;
+    proxyType: string;
+    proxyTypeDisplay: string;
+    country?: string;
+    countryName?: string;
+    city?: string;
+    state?: string;
+    provider: string;
+    sessionType?: string;
+    source: string;
+  }>> {
+    const proxyResult = await this.proxyService.getProxyById(proxyId);
+
+    if (!proxyResult.success || !proxyResult.data) {
+      return ApiResponse.error('代理不存在');
+    }
+
+    // 将 ProxyResponseDto 转换为 ProxyInfo 格式
+    const proxyInfo = {
+      id: proxyResult.data.id,
+      host: proxyResult.data.host,
+      port: proxyResult.data.port,
+      username: proxyResult.data.username,
+      password: proxyResult.data.password,
+      protocol: proxyResult.data.protocol as any,
+      provider: proxyResult.data.provider,
+      location: proxyResult.data.location,
+      quality: proxyResult.data.quality,
+      latency: proxyResult.data.latency,
+      inUse: false,
+      costPerGB: proxyResult.data.costPerGB,
+      createdAt: proxyResult.data.createdAt,
+      ispType: proxyResult.data.ispType,
+      metadata: proxyResult.data.metadata,
+    };
+
+    const parsed = this.ipDetectionService.parseProxyInfo(proxyInfo);
+
+    return ApiResponse.success({
+      proxyId,
+      proxyType: parsed.proxyType,
+      proxyTypeDisplay: this.ipDetectionService.getProxyTypeDisplayName(parsed.proxyType),
+      country: parsed.country,
+      countryName: parsed.countryName,
+      city: parsed.city,
+      state: parsed.state,
+      provider: parsed.provider,
+      sessionType: parsed.sessionType,
+      source: parsed.source,
+    });
+  }
+
+  /**
+   * 批量解析代理信息并更新到代理池
+   */
+  @RequirePermission('proxy.refresh')
+  @Post('admin/parse-all-info')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '批量解析所有代理信息',
+    description: '从URL和配置解析所有代理的位置和类型信息（即时完成，无网络请求）',
+  })
+  @SwaggerApiResponse({
+    status: 200,
+    description: '批量解析完成',
+  })
+  async parseAllProxyInfo(): Promise<ApiResponse<{
+    total: number;
+    parsed: number;
+    byType: Record<string, number>;
+    byCountry: Record<string, number>;
+  }>> {
+    // 获取所有代理
+    const listResult = await this.proxyService.listProxies(undefined, false, 5000, 0);
+
+    if (!listResult.success || !listResult.data) {
+      return ApiResponse.error('获取代理列表失败');
+    }
+
+    const proxies = listResult.data.map(dto => ({
+      id: dto.id,
+      host: dto.host,
+      port: dto.port,
+      username: dto.username,
+      password: dto.password,
+      protocol: dto.protocol as any,
+      provider: dto.provider,
+      location: dto.location,
+      quality: dto.quality,
+      latency: dto.latency,
+      inUse: false,
+      costPerGB: dto.costPerGB,
+      createdAt: dto.createdAt,
+      ispType: dto.ispType,
+      metadata: dto.metadata,
+    }));
+
+    const results = this.ipDetectionService.parseProxyInfoBatch(proxies);
+
+    // 统计信息
+    const byType: Record<string, number> = {};
+    const byCountry: Record<string, number> = {};
+
+    for (const [proxyId, info] of results) {
+      // 统计代理类型
+      byType[info.proxyType] = (byType[info.proxyType] || 0) + 1;
+
+      // 统计国家
+      if (info.country) {
+        byCountry[info.country] = (byCountry[info.country] || 0) + 1;
+      }
+
+      // 更新代理池中的信息
+      await this.proxyService.updateProxyExitInfo(proxyId, {
+        exitCountry: info.country,
+        exitCountryName: info.countryName,
+        exitCity: info.city,
+        ispType: info.proxyType,
+      });
+    }
+
+    return ApiResponse.success({
+      total: proxies.length,
+      parsed: results.size,
+      byType,
+      byCountry,
+    });
   }
 
   /**

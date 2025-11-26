@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -13,6 +13,7 @@ import {
   AppCacheModule,
   createLoggerConfig,
   RequestIdMiddleware,
+  RequestTracingMiddleware, // ✅ 分布式追踪中间件
   DistributedLockModule,
   AllExceptionsFilter,
 } from '@cloudphone/shared';
@@ -42,8 +43,7 @@ import { CostRecord } from './entities/cost-record.entity';
 import { getDatabaseConfig } from './common/config/database.config';
 import { validate } from './common/config/env.validation';
 
-// Controllers
-import { ProxyProviderConfigController } from './proxy/controllers/proxy-provider-config.controller';
+// Controllers 已迁移到 ProxyModule
 
 @Module({
   imports: [
@@ -118,7 +118,7 @@ import { ProxyProviderConfigController } from './proxy/controllers/proxy-provide
     // MonitoringModule,  // → ProxyAlertService + ProxyHealthCheckService
     // EventsModule,      // → 独立服务，不参与事件架构
   ],
-  controllers: [ProxyProviderConfigController],
+  controllers: [], // 所有控制器已迁移到 ProxyModule
   providers: [
     // 全局异常过滤器（统一错误处理）
     {
@@ -133,4 +133,11 @@ import { ProxyProviderConfigController } from './proxy/controllers/proxy-provide
     // },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // ✅ 分布式追踪中间件（必须在 RequestIdMiddleware 之前）
+    consumer.apply(RequestTracingMiddleware).forRoutes('*');
+    // 请求 ID 中间件
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}

@@ -102,6 +102,26 @@ export interface ProxyInfo {
 
   /** 失败请求数 */
   failedRequests?: number;
+
+  // ========== 真实出口 IP 信息 ==========
+
+  /** 真实出口 IP 地址 */
+  exitIp?: string;
+
+  /** 真实出口国家代码 (ISO 3166-1 alpha-2) */
+  exitCountry?: string;
+
+  /** 真实出口国家名称 */
+  exitCountryName?: string;
+
+  /** 真实出口城市 */
+  exitCity?: string;
+
+  /** 真实出口 ISP */
+  exitIsp?: string;
+
+  /** IP 检测时间 */
+  ipCheckedAt?: Date;
 }
 
 /**
@@ -134,6 +154,9 @@ export interface ProxyCriteria {
 
   /** 最大每GB成本 */
   maxCostPerGB?: number;
+
+  /** 代理状态 (available, in_use, unavailable) */
+  status?: string;
 }
 
 /**

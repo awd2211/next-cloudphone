@@ -350,7 +350,7 @@ export class ProxyIntelligenceService {
     const blacklist = dto.history?.recentFailures || [];
 
     // 从代理池获取
-    const proxies = this.poolManager.listProxies(
+    const { proxies } = this.poolManager.listProxies(
       criteria,
       true, // 仅可用代理
       50, // 最多50个候选

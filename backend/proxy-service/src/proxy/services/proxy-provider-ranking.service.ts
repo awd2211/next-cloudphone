@@ -41,10 +41,14 @@ export class ProxyProviderRankingService {
   async calculateProviderScore(provider: string): Promise<ProxyProviderScore> {
     this.logger.log(`Calculating score for provider: ${provider}`);
 
-    // 从代理池获取该提供商的所有代理
-    const providerProxies = this.poolManager
-      .listProxies({}, false, 1000)
-      .filter((p) => p.provider === provider);
+    // 从代理池获取该提供商的所有代理（使用 provider 过滤条件）
+    const { proxies: providerProxies, total } = this.poolManager.listProxies(
+      { provider }, // 直接按提供商过滤
+      false,
+      10000, // 增加限制以获取所有该提供商的代理
+    );
+
+    this.logger.log(`Found ${providerProxies.length} proxies for provider: ${provider} (total: ${total})`);
 
     if (providerProxies.length === 0) {
       throw new Error(`No proxies found for provider: ${provider}`);
@@ -117,8 +121,14 @@ export class ProxyProviderRankingService {
 
     await this.scoreRepo.save(scoreRecord);
 
-    // 保存历史记录
-    await this.saveScoreHistory(provider, totalScore, stats);
+    // 保存历史记录（包含评分详情）
+    await this.saveScoreHistory(provider, totalScore, stats, {
+      successRateScore,
+      latencyScore,
+      costScore,
+      stabilityScore,
+      availabilityScore,
+    });
 
     this.logger.log(
       `Provider ${provider} score: ${totalScore.toFixed(2)} (Success: ${successRateScore.toFixed(1)}, Latency: ${latencyScore.toFixed(1)}, Cost: ${costScore.toFixed(1)})`,
@@ -235,15 +245,57 @@ export class ProxyProviderRankingService {
     provider: string,
     score: number,
     stats: any,
+    scoreDetails?: {
+      successRateScore?: number;
+      latencyScore?: number;
+      costScore?: number;
+      stabilityScore?: number;
+      availabilityScore?: number;
+    },
   ): Promise<void> {
     const history = this.historyRepo.create({
       provider,
       score,
+      totalScore: score,
+      // 评分详情
+      successRateScore: scoreDetails?.successRateScore || 0,
+      latencyScore: scoreDetails?.latencyScore || 0,
+      costScore: scoreDetails?.costScore || 0,
+      stabilityScore: scoreDetails?.stabilityScore || 0,
+      availabilityScore: scoreDetails?.availabilityScore || 0,
+      // 资源快照
       totalProxies: stats.totalProxies,
       activeProxies: stats.activeProxies,
+      healthyProxies: stats.activeProxies, // 使用 activeProxies 作为 healthyProxies
+      proxyAvailabilityRate: stats.totalProxies > 0
+        ? (stats.activeProxies / stats.totalProxies) * 100
+        : 0,
+      // 性能快照
       avgSuccessRate: stats.avgSuccessRate,
       avgLatency: stats.avgLatency,
+      latencyStdDev: 0, // 默认值
+      // 成本快照
+      avgCostPerGb: stats.avgCostPerGB,
       avgCostPerGB: stats.avgCostPerGB,
+      avgCostPerRequest: 0,
+      avgCostPerHour: 0,
+      // 使用统计快照
+      totalRequests: 0,
+      successfulRequests: 0,
+      failedRequests: 0,
+      totalDataTransferred: 0,
+      totalUsageHours: 0,
+      totalCost: 0,
+      // 可靠性快照
+      uptimePercentage: 100,
+      // 地理覆盖快照
+      totalLocations: 1,
+      countriesCount: 1,
+      // 趋势和记录信息
+      trend: 'stable',
+      recordedAt: new Date(),
+      recordType: 'scheduled',
+      sampleSize: stats.totalProxies,
     });
 
     await this.historyRepo.save(history);
@@ -261,15 +313,33 @@ export class ProxyProviderRankingService {
    * 获取提供商排名
    */
   async getProviderRankings(limit?: number): Promise<ProxyProviderScore[]> {
-    const queryBuilder = this.scoreRepo
-      .createQueryBuilder('score')
-      .orderBy('score.totalScore', 'DESC');
+    this.logger.log('[DEBUG] getProviderRankings called, limit=' + limit);
 
-    if (limit) {
-      queryBuilder.limit(limit);
+    try {
+      const queryBuilder = this.scoreRepo
+        .createQueryBuilder('score')
+        .orderBy('score.totalScore', 'DESC');
+
+      if (limit) {
+        queryBuilder.limit(limit);
+      }
+
+      const query = queryBuilder.getQuery();
+      this.logger.log('[DEBUG] Generated SQL: ' + query);
+
+      const results = await queryBuilder.getMany();
+      this.logger.log('[DEBUG] Results count: ' + results.length);
+
+      if (results.length > 0) {
+        this.logger.log('[DEBUG] First result provider: ' + results[0].provider);
+      }
+
+      return results;
+    } catch (error) {
+      this.logger.error('[DEBUG] Error in getProviderRankings: ' + error.message);
+      this.logger.error('[DEBUG] Stack: ' + error.stack);
+      throw error;
     }
-
-    return queryBuilder.getMany();
   }
 
   /**
@@ -396,7 +466,7 @@ export class ProxyProviderRankingService {
     this.logger.log('Starting provider score update');
 
     // 获取所有提供商
-    const allProxies = this.poolManager.listProxies({}, false, 10000);
+    const { proxies: allProxies } = this.poolManager.listProxies({}, false, 10000);
     const providers = [...new Set(allProxies.map((p) => p.provider))];
 
     let successCount = 0;

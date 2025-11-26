@@ -487,9 +487,8 @@ export class ProxyDeviceGroupService {
     const needed = recommendedProxies - currentProxies;
 
     // 从代理池获取可用代理
-    const availableProxies = this.poolManager
-      .listProxies({}, true, needed)
-      .slice(0, needed);
+    const { proxies: availableProxies } = this.poolManager
+      .listProxies({}, true, needed);
 
     if (availableProxies.length === 0) {
       return {

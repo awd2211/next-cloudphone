@@ -47,8 +47,9 @@ export class ProxyProviderRankingController {
 
   /**
    * 获取提供商排名
+   * 注意：必须放在 :provider 参数路由之前
    */
-  @Get('rankings')
+  @Get('ranking')
   @RequirePermission('proxy.provider.read')
   @ApiOperation({
     summary: '提供商排名',
@@ -67,29 +68,41 @@ export class ProxyProviderRankingController {
   })
   async getProviderRankings(
     @Query('limit') limit?: number,
-  ): Promise<ProxyApiResponse<ProviderRankingResponseDto[]>> {
+  ): Promise<ProxyApiResponse<any>> {
     const scores = await this.providerRankingService.getProviderRankings(
       limit ? parseInt(limit.toString()) : undefined,
     );
 
-    const rankings = scores.map((score, index) => ({
-      ranking: index + 1,
-      provider: score as any,
-    }));
+    // 如果数据库没有评分数据，先触发计算
+    if (scores.length === 0) {
+      await this.providerRankingService.updateAllProviderScores();
+      const updatedScores = await this.providerRankingService.getProviderRankings();
+      return ProxyApiResponse.success(this.formatRankingResponse(updatedScores));
+    }
 
-    return ProxyApiResponse.success(rankings);
+    return ProxyApiResponse.success(this.formatRankingResponse(scores));
   }
 
   /**
-   * 获取提供商排名 (前端兼容别名)
-   * 注意：必须放在 :provider 参数路由之前
+   * 格式化排名响应以匹配前端期望的格式
+   * 注意：PostgreSQL decimal 类型返回字符串，需要转换为数字以支持前端 .toFixed() 调用
    */
-  @Get('ranking')
-  @RequirePermission('proxy.provider.ranking')
-  @ApiOperation({ summary: '获取提供商排名 (别名)' })
-  async getProviderRankingAlias(): Promise<ProxyApiResponse<any>> {
-    // 返回前端兼容的静态响应
-    return ProxyApiResponse.success([]);
+  private formatRankingResponse(scores: any[]): any[] {
+    return scores.map((score, index) => ({
+      provider: score.provider,
+      score: Number(score.totalScore) || 0,
+      rank: index + 1,
+      qualityScore: Number(score.stabilityScore) || 0,  // 使用稳定性评分作为质量评分
+      latencyScore: Number(score.latencyScore) || 0,
+      costScore: Number(score.costScore) || 0,
+      availabilityScore: Number(score.availabilityScore) || 0,
+      totalProxies: Number(score.totalProxies) || 0,
+      availableProxies: Number(score.activeProxies) || 0,
+      avgQuality: Number(score.avgSuccessRate) || 0,  // 使用成功率作为平均质量
+      avgLatency: Number(score.avgLatency) || 0,
+      avgCostPerGB: Number(score.avgCostPerGB) || 0,
+      successRate: Number(score.avgSuccessRate) || 0,
+    }));
   }
 
   /**

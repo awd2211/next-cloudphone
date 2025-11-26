@@ -12,6 +12,7 @@ import {
   IProxyProvider,
 } from '../common/interfaces';
 import { ProxyUsage } from '../entities/proxy-usage.entity';
+import { ProxyAdapterManagerService } from '../adapters/proxy-adapter-manager.service';
 
 /**
  * 代理池管理器
@@ -43,9 +44,6 @@ export class ProxyPoolManager {
     }
   > = new Map();
 
-  // 供应商适配器列表
-  private providers: IProxyProvider[] = [];
-
   // 负载均衡策略
   private loadBalancingStrategy: LoadBalancingStrategy;
 
@@ -58,24 +56,27 @@ export class ProxyPoolManager {
   private roundRobinIndex = 0;
 
   constructor(
-    @Inject('PROXY_PROVIDERS') providers: IProxyProvider[],
+    private readonly adapterManager: ProxyAdapterManagerService,
     @Inject(CACHE_MANAGER) private cache: Cache,
     @InjectRepository(ProxyUsage)
     private usageRepository: Repository<ProxyUsage>,
     private configService: ConfigService,
   ) {
-    this.providers = providers;
     this.poolMinSize = this.configService.get('POOL_MIN_SIZE', 1000);
     this.poolTargetSize = this.configService.get('POOL_TARGET_SIZE', 2000);
     this.poolMaxSize = this.configService.get('POOL_MAX_SIZE', 5000);
     this.loadBalancingStrategy = LoadBalancingStrategy.QUALITY_BASED;
 
     this.logger.log(
-      `ProxyPoolManager initialized with ${this.providers.length} provider(s)`,
-    );
-    this.logger.log(
       `Pool size: min=${this.poolMinSize}, target=${this.poolTargetSize}, max=${this.poolMaxSize}`,
     );
+  }
+
+  /**
+   * 获取当前活跃的供应商适配器（延迟获取，确保 onModuleInit 已执行）
+   */
+  private get providers(): IProxyProvider[] {
+    return this.adapterManager.getActiveAdapters();
   }
 
   /**
@@ -396,7 +397,29 @@ export class ProxyPoolManager {
       return false;
     }
 
+    // 状态过滤
+    if (criteria.status) {
+      const proxyStatus = this.getProxyStatus(proxy);
+      if (proxyStatus !== criteria.status) {
+        return false;
+      }
+    }
+
     return true;
+  }
+
+  /**
+   * 获取代理的状态字符串
+   */
+  private getProxyStatus(proxy: ProxyInfo): string {
+    if (proxy.inUse) {
+      return 'in_use';
+    }
+    // 质量为0或失败次数过高视为不可用
+    if (proxy.quality === 0 || (proxy.failureCount && proxy.failureCount >= 5)) {
+      return 'unavailable';
+    }
+    return 'available';
   }
 
   /**
@@ -500,14 +523,14 @@ export class ProxyPoolManager {
    * @param availableOnly - 是否只返回可用代理
    * @param limit - 返回数量限制
    * @param offset - 偏移量
-   * @returns 代理列表
+   * @returns 代理列表及筛选后总数
    */
   listProxies(
     criteria?: ProxyCriteria,
     availableOnly: boolean = false,
     limit?: number,
     offset: number = 0,
-  ): ProxyInfo[] {
+  ): { proxies: ProxyInfo[]; total: number } {
     let proxies = Array.from(this.proxyPool.values());
 
     // 如果指定只返回可用代理
@@ -520,6 +543,9 @@ export class ProxyPoolManager {
       proxies = proxies.filter((proxy) => this.matchesCriteria(proxy, criteria));
     }
 
+    // 保存筛选后的总数（分页前）
+    const total = proxies.length;
+
     // 应用偏移和限制
     if (limit !== undefined) {
       proxies = proxies.slice(offset, offset + limit);
@@ -528,10 +554,10 @@ export class ProxyPoolManager {
     }
 
     this.logger.debug(
-      `Listed ${proxies.length} proxies (total pool: ${this.proxyPool.size}, availableOnly: ${availableOnly})`,
+      `Listed ${proxies.length} proxies (total filtered: ${total}, total pool: ${this.proxyPool.size}, availableOnly: ${availableOnly})`,
     );
 
-    return proxies;
+    return { proxies, total };
   }
 
   /**

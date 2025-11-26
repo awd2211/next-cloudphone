@@ -94,6 +94,15 @@ export class ListProxiesDto {
   provider?: string;
 
   @ApiProperty({
+    description: '代理状态 (available, in_use, unavailable, testing)',
+    example: 'available',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiProperty({
     description: '是否只返回可用代理',
     example: true,
     required: false,
