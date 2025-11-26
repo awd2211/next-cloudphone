@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 /**
  * 网络扫描 DTO
@@ -18,6 +19,7 @@ export class ScanNetworkDto {
     default: 5555,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1024)
   @Max(65535)
@@ -29,6 +31,7 @@ export class ScanNetworkDto {
     default: 5565,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1024)
   @Max(65535)
@@ -40,6 +43,7 @@ export class ScanNetworkDto {
     default: 50,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(200)
@@ -51,6 +55,7 @@ export class ScanNetworkDto {
     default: 2000,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(500)
   @Max(10000)

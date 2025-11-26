@@ -693,6 +693,16 @@ export class ProxyController {
 
   /**
    * 流媒体服务路由（WebRTC 相关）
+   * /api/media/* - media-service 的 API 路径
+   */
+  @UseGuards(JwtAuthGuard)
+  @All('api/media/*path')
+  async proxyMediaApi(@Req() req: Request, @Res() res: Response) {
+    return this.handleProxy('media', req, res);
+  }
+
+  /**
+   * 流媒体服务路由（旧路径，保持兼容）
    */
   @UseGuards(JwtAuthGuard)
   @All('media/*path')

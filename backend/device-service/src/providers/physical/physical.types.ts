@@ -135,6 +135,75 @@ export interface DeviceAllocationRequest {
 }
 
 /**
+ * 扫描统计信息
+ */
+export interface ScanStatistics {
+  /** 总 IP 数 */
+  totalIps: number;
+  /** 已扫描 IP 数 */
+  scannedIps: number;
+  /** 存活主机数 */
+  hostsAlive?: number;
+  /** ADB 端口开放数 */
+  portsOpen: number;
+  /** ADB 连接成功数 */
+  adbConnected: number;
+  /** 发现设备数 */
+  devicesFound: number;
+  /** 错误数 */
+  errors: number;
+  /** 开始时间（毫秒时间戳） */
+  startTime: number;
+  /** 最后错误 IP */
+  lastErrorIp?: string;
+  /** 最后错误信息 */
+  lastErrorMessage?: string;
+}
+
+/**
+ * 扫描阶段
+ */
+export type ScanPhase = 'alive_check' | 'adb_check';
+
+/**
+ * 扫描进度信息
+ */
+export interface ScanProgress {
+  /** 已扫描 IP 数量 */
+  scannedIps: number;
+
+  /** 总 IP 数量 */
+  totalIps: number;
+
+  /** 已发现设备数量 */
+  foundDevices: number;
+
+  /** 当前正在扫描的 IP（或 IP 范围） */
+  currentIp?: string;
+
+  /** 扫描状态 */
+  status: 'scanning' | 'completed' | 'error';
+
+  /** 扫描阶段 */
+  phase?: ScanPhase;
+
+  /** 存活主机数（阶段2使用） */
+  aliveHosts?: number;
+
+  /** 已检查主机数（阶段2使用） */
+  checkedHosts?: number;
+
+  /** 新发现的设备（用于实时推送） */
+  newDevice?: PhysicalDeviceInfo;
+
+  /** 详细统计信息 */
+  statistics?: ScanStatistics;
+
+  /** 错误信息 */
+  error?: string;
+}
+
+/**
  * 健康检查结果
  */
 export interface HealthCheckResult {

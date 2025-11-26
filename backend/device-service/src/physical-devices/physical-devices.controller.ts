@@ -9,8 +9,11 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
+  Sse,
+  MessageEvent,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Observable, Subject } from 'rxjs';
 import { DeviceDiscoveryService } from '../providers/physical/device-discovery.service';
 import { DevicePoolService } from '../providers/physical/device-pool.service';
 import { ScanNetworkDto } from './dto/scan-network.dto';
@@ -21,6 +24,7 @@ import {
   PhysicalDeviceInfo,
   PooledDevice,
   DevicePoolStatus,
+  ScanProgress,
 } from '../providers/physical/physical.types';
 
 /**
@@ -62,6 +66,68 @@ export class PhysicalDevicesController {
     });
 
     return devices;
+  }
+
+  /**
+   * 网络扫描发现设备（SSE 实时流）
+   * 使用 Server-Sent Events 实时推送扫描进度
+   */
+  @Sse('scan/stream')
+  @ApiOperation({
+    summary: '网络扫描发现物理设备（实时流）',
+    description: '使用 SSE 实时推送扫描进度，支持实时显示发现的设备',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '返回 SSE 事件流',
+  })
+  scanNetworkStream(@Query() scanDto: ScanNetworkDto): Observable<MessageEvent> {
+    const subject = new Subject<MessageEvent>();
+
+    // 异步执行扫描
+    this.discoveryService
+      .scanNetworkWithProgress(
+        {
+          networkCidr: scanDto.networkCidr,
+          portRange: {
+            start: scanDto.portStart || 5555,
+            end: scanDto.portEnd || 5565,
+          },
+          concurrency: scanDto.concurrency || 50,
+          timeoutMs: scanDto.timeoutMs || 2000,
+        },
+        (progress: ScanProgress) => {
+          // 推送进度事件
+          subject.next({
+            data: progress,
+          } as MessageEvent);
+        }
+      )
+      .then((devices) => {
+        // 扫描完成，发送最终结果
+        subject.next({
+          data: {
+            status: 'completed',
+            scannedIps: devices.length > 0 ? 510 : 0, // 估算值
+            totalIps: 510,
+            foundDevices: devices.length,
+            devices,
+          },
+        } as MessageEvent);
+        subject.complete();
+      })
+      .catch((error) => {
+        // 发送错误事件
+        subject.next({
+          data: {
+            status: 'error',
+            error: error.message,
+          },
+        } as MessageEvent);
+        subject.complete();
+      });
+
+    return subject.asObservable();
   }
 
   /**
