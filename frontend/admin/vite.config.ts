@@ -166,7 +166,19 @@ export default defineConfig({
     // 允许自定义域名访问
     allowedHosts: ['console.cloudphone.run', 'localhost', '127.0.0.1'],
     proxy: {
-      // 所有 /api 请求统一代理到 API Gateway
+      // Media Service API - 保留完整路径（因为 media-service 期望 /api/media/*）
+      '/api/media': {
+        target: 'http://localhost:30000',
+        changeOrigin: true,
+        // 不移除 /api 前缀，因为 media-service 需要它
+      },
+      // Device Service SSE - 直接代理到 device-service（EventSource 不支持自定义 headers）
+      '/device-sse': {
+        target: 'http://localhost:30002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/device-sse/, ''),
+      },
+      // 所有其他 /api 请求统一代理到 API Gateway
       '/api': {
         target: 'http://localhost:30000',
         changeOrigin: true,

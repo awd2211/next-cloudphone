@@ -492,9 +492,19 @@ module.exports = {
         NODE_ENV: 'development',
         PORT: 30009,
         GIN_MODE: 'debug',
-        JWT_SECRET: 'dev-secret-key-change-in-production',
+        JWT_SECRET: 'cloudphone-jwt-secret-2024-dev-JcA75jDlzHC5H4BllW6McBXGvSfQmDF',
         JAEGER_ENDPOINT: 'localhost:4318',
         TRACING_ENABLED: 'true',
+        // WebRTC ICE 配置 - 使用 GCP 公网 IP 让外部浏览器可以连接
+        NAT_1TO1_IPS: '35.200.52.221',
+        ICE_PORT_MIN: 50000,
+        ICE_PORT_MAX: 50100,
+        STUN_SERVERS: 'stun:stun.cloudflare.com:3478',
+        DEVICE_SERVICE_URL: 'http://localhost:30002',
+        // Cloudflare TURN 服务配置
+        CLOUDFLARE_TURN_KEY_ID: '208d210a671c59b96587a74799f0bee6',
+        CLOUDFLARE_TURN_API_TOKEN: 'd52954807d1163a6910bd74b21d152e85e35827f07382a3ea80a6269409de182',
+        CLOUDFLARE_TURN_TTL: '86400',
       },
 
       env_production: {
