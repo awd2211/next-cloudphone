@@ -105,7 +105,7 @@ export class ProxyService {
           name: 'Media Service',
           consulName: 'media-service',
           healthCheck: '/health',
-          timeout: 5000,
+          timeout: 15000, // 增加超时：ICE gathering 需要约 5-10 秒
         },
       ],
       [

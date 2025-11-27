@@ -11,9 +11,12 @@ import {
   Patch,
   Sse,
   MessageEvent,
+  UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { Observable, Subject } from 'rxjs';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { JwtService } from '@nestjs/jwt';
+import { Observable, Subject, of } from 'rxjs';
 import { DeviceDiscoveryService } from '../providers/physical/device-discovery.service';
 import { DevicePoolService } from '../providers/physical/device-pool.service';
 import { ScanNetworkDto } from './dto/scan-network.dto';
@@ -36,9 +39,12 @@ import {
 @ApiBearerAuth()
 @Controller('admin/physical-devices')
 export class PhysicalDevicesController {
+  private readonly logger = new Logger(PhysicalDevicesController.name);
+
   constructor(
     private readonly discoveryService: DeviceDiscoveryService,
-    private readonly poolService: DevicePoolService
+    private readonly poolService: DevicePoolService,
+    private readonly jwtService: JwtService
   ) {}
 
   /**
@@ -70,12 +76,23 @@ export class PhysicalDevicesController {
 
   /**
    * 网络扫描发现设备（SSE 实时流）
+   *
    * 使用 Server-Sent Events 实时推送扫描进度
+   *
+   * 安全说明：
+   * - 由于 EventSource API 不支持自定义 HTTP 头，无法使用标准的 Authorization 头
+   * - 因此通过 URL 查询参数 `token` 传递 JWT Token
+   * - Token 会在服务端验证，无效则返回认证失败事件
    */
   @Sse('scan/stream')
   @ApiOperation({
     summary: '网络扫描发现物理设备（实时流）',
-    description: '使用 SSE 实时推送扫描进度，支持实时显示发现的设备',
+    description: '使用 SSE 实时推送扫描进度。需要通过 token 查询参数传递 JWT（因为 EventSource 不支持自定义头）',
+  })
+  @ApiQuery({
+    name: 'token',
+    required: true,
+    description: 'JWT 认证 Token（必需，因为 EventSource 不支持 Authorization 头）',
   })
   @ApiResponse({
     status: 200,
@@ -83,6 +100,59 @@ export class PhysicalDevicesController {
   })
   scanNetworkStream(@Query() scanDto: ScanNetworkDto): Observable<MessageEvent> {
     const subject = new Subject<MessageEvent>();
+
+    // 验证 Token
+    if (!scanDto.token) {
+      this.logger.warn('[SSE AUTH] Missing token in scan/stream request');
+      subject.next({
+        data: {
+          status: 'error',
+          error: '认证失败：缺少 Token',
+          code: 'UNAUTHORIZED',
+        },
+      } as MessageEvent);
+      subject.complete();
+      return subject.asObservable();
+    }
+
+    try {
+      // 验证 JWT Token
+      const payload = this.jwtService.verify(scanDto.token);
+      this.logger.log(`[SSE AUTH] Token verified for user: ${payload.username || payload.sub}`);
+    } catch (error) {
+      this.logger.warn(`[SSE AUTH] Invalid token: ${error.message}`);
+      subject.next({
+        data: {
+          status: 'error',
+          error: '认证失败：Token 无效或已过期',
+          code: 'UNAUTHORIZED',
+        },
+      } as MessageEvent);
+      subject.complete();
+      return subject.asObservable();
+    }
+
+    // 记录最后一次进度更新，用于最终结果
+    let lastProgress: ScanProgress | null = null;
+
+    // 心跳机制：每 25 秒发送一次心跳，防止代理/浏览器因空闲超时断开连接
+    const heartbeatInterval = setInterval(() => {
+      try {
+        subject.next({
+          data: {
+            type: 'heartbeat',
+            timestamp: Date.now(),
+          },
+        } as MessageEvent);
+      } catch {
+        // Subject 已关闭，忽略
+      }
+    }, 25000);
+
+    // 清理心跳定时器的函数
+    const cleanup = () => {
+      clearInterval(heartbeatInterval);
+    };
 
     // 异步执行扫描
     this.discoveryService
@@ -94,9 +164,11 @@ export class PhysicalDevicesController {
             end: scanDto.portEnd || 5565,
           },
           concurrency: scanDto.concurrency || 50,
-          timeoutMs: scanDto.timeoutMs || 2000,
+          timeoutMs: scanDto.timeoutMs || 5000,
         },
         (progress: ScanProgress) => {
+          // 保存最后一次进度
+          lastProgress = progress;
           // 推送进度事件
           subject.next({
             data: progress,
@@ -104,20 +176,26 @@ export class PhysicalDevicesController {
         }
       )
       .then((devices) => {
+        cleanup();
         // 扫描完成，发送最终结果
+        // 使用实际扫描的统计数据，而不是硬编码值
+        const finalStats = lastProgress?.statistics;
         subject.next({
           data: {
             status: 'completed',
-            scannedIps: devices.length > 0 ? 510 : 0, // 估算值
-            totalIps: 510,
+            scannedIps: finalStats?.scannedIps || finalStats?.totalIps || 0,
+            totalIps: finalStats?.totalIps || 0,
             foundDevices: devices.length,
+            hostsAlive: finalStats?.hostsAlive || 0,
             devices,
           },
         } as MessageEvent);
         subject.complete();
       })
       .catch((error) => {
+        cleanup();
         // 发送错误事件
+        this.logger.error(`[SSE SCAN ERROR] ${error.message}`, error.stack);
         subject.next({
           data: {
             status: 'error',

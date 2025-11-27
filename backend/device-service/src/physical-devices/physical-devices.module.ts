@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PhysicalDevicesController } from './physical-devices.controller';
 import { PhysicalModule } from '../providers/physical/physical.module';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * PhysicalDevicesModule
@@ -8,7 +9,7 @@ import { PhysicalModule } from '../providers/physical/physical.module';
  * 物理设备池管理模块
  *
  * 提供管理 API：
- * - 网络扫描发现设备
+ * - 网络扫描发现设备（含 SSE 实时流 + Token 认证）
  * - 手动注册设备
  * - 查询设备列表
  * - 健康检查
@@ -17,6 +18,7 @@ import { PhysicalModule } from '../providers/physical/physical.module';
 @Module({
   imports: [
     PhysicalModule, // 提供 DevicePoolService 和 DeviceDiscoveryService
+    AuthModule, // 提供 JwtService 用于 SSE 端点的 Token 验证
   ],
   controllers: [PhysicalDevicesController],
 })

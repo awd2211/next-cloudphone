@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import * as net from 'net';
 import { AdbService } from '../../adb/adb.service';
 import {
   PhysicalDeviceInfo,
@@ -9,7 +8,11 @@ import {
   ScanStatistics,
 } from './physical.types';
 
-const execAsync = promisify(exec);
+/**
+ * 严格的 IPv4 地址验证正则
+ * 匹配 0.0.0.0 到 255.255.255.255
+ */
+const STRICT_IPV4_REGEX = /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)$/;
 
 /**
  * 物理设备发现服务
@@ -88,8 +91,9 @@ export class DeviceDiscoveryService {
     this.logger.log(`[PHASE 1] Detecting alive hosts...`);
     const aliveHosts: string[] = [];
 
-    // 使用快速超时进行存活检测（1秒）
-    const aliveCheckTimeout = Math.min(timeoutMs, 1500);
+    // 存活检测超时：使用用户指定超时的一半，但至少 3 秒，最多 5 秒
+    // 这样可以在保持扫描效率的同时，确保不漏掉响应较慢的设备
+    const aliveCheckTimeout = Math.max(3000, Math.min(Math.floor(timeoutMs / 2), 5000));
 
     for (let i = 0; i < ipAddresses.length; i += concurrency) {
       const batch = ipAddresses.slice(i, i + concurrency);
@@ -218,29 +222,91 @@ export class DeviceDiscoveryService {
 
   /**
    * 快速检测主机是否存活
-   * 使用 ICMP ping 命令检测主机是否在线（比 TCP 端口探测更高效）
+   *
+   * 使用 TCP 端口探测代替 ICMP ping，原因：
+   * 1. 安全性：避免命令注入风险（shell ping 需要拼接用户输入）
+   * 2. 兼容性：不需要 root 权限（ICMP 通常需要）
+   * 3. 准确性：直接测试 ADB 常用端口，更精准
+   *
+   * 探测策略：尝试连接常用端口 (5555, 5554, 22, 80)
+   * 只要有任一端口响应，即认为主机存活
    *
    * @param ip IP 地址
    * @param timeoutMs 超时时间（毫秒）
    * @returns 主机是否存活
    */
   private async isHostAlive(ip: string, timeoutMs: number): Promise<boolean> {
-    // 将毫秒转换为秒（ping 命令使用秒作为超时单位）
-    const timeoutSec = Math.max(1, Math.ceil(timeoutMs / 1000));
-
-    try {
-      // 使用系统 ping 命令进行 ICMP 探测
-      // -c 1: 只发送一个包
-      // -W 1: 超时时间（秒）
-      // -n: 不解析域名
-      await execAsync(`ping -c 1 -W ${timeoutSec} -n ${ip}`, {
-        timeout: timeoutMs + 500, // 给 ping 命令额外的缓冲时间
-      });
-      return true;
-    } catch {
-      // ping 失败表示主机不存活（或超时）
+    // 安全检查：严格验证 IP 格式，防止注入攻击
+    if (!this.isValidIpAddress(ip)) {
+      this.logger.warn(`[SECURITY] Invalid IP address rejected: ${ip}`);
       return false;
     }
+
+    // 常见探测端口（ADB 端口优先）
+    // 对于 Android 设备，主要关注 5555 端口
+    const probePorts = [5555, 5554, 22, 80];
+
+    // 所有端口并行探测，使用相同的超时时间
+    // 这样可以最大化检测成功率，而不会因为某个端口响应慢影响其他端口
+    const results = await Promise.allSettled(
+      probePorts.map(port => this.tcpProbe(ip, port, timeoutMs))
+    );
+
+    return results.some(r => r.status === 'fulfilled' && r.value === true);
+  }
+
+  /**
+   * TCP 端口探测（纯 Node.js 实现，无命令注入风险）
+   *
+   * @param ip IP 地址
+   * @param port 端口号
+   * @param timeoutMs 超时时间
+   * @returns 端口是否可达
+   */
+  private tcpProbe(ip: string, port: number, timeoutMs: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const socket = new net.Socket();
+      let resolved = false;
+
+      const cleanup = () => {
+        if (!resolved) {
+          resolved = true;
+          socket.destroy();
+        }
+      };
+
+      socket.setTimeout(timeoutMs);
+
+      socket.on('connect', () => {
+        cleanup();
+        resolve(true);
+      });
+
+      socket.on('timeout', () => {
+        cleanup();
+        resolve(false);
+      });
+
+      socket.on('error', () => {
+        cleanup();
+        resolve(false);
+      });
+
+      socket.connect(port, ip);
+    });
+  }
+
+  /**
+   * 严格验证 IPv4 地址格式
+   *
+   * 这是防止命令注入的关键防线，即使上游已验证也要再次检查
+   *
+   * @param ip 待验证的 IP 地址
+   * @returns 是否为有效的 IPv4 地址
+   */
+  private isValidIpAddress(ip: string): boolean {
+    if (!ip || typeof ip !== 'string') return false;
+    return STRICT_IPV4_REGEX.test(ip);
   }
 
   /**
@@ -410,16 +476,22 @@ export class DeviceDiscoveryService {
   /**
    * 手动注册设备
    *
-   * @param ip IP 地址
+   * @param ip IP 地址（必须是有效的 IPv4 格式）
    * @param port ADB 端口
    * @param deviceGroup 设备分组
    * @returns 设备信息
+   * @throws Error 如果 IP 地址格式无效
    */
   async registerDevice(
     ip: string,
     port: number,
     deviceGroup?: string
   ): Promise<PhysicalDeviceInfo> {
+    // 安全检查：即使 DTO 已验证，服务层也要再次检查
+    if (!this.isValidIpAddress(ip)) {
+      throw new Error(`Invalid IP address format: ${ip}`);
+    }
+
     this.logger.log(`Manually registering device: ${ip}:${port}`);
 
     const serial = `${ip}:${port}`;
@@ -455,11 +527,17 @@ export class DeviceDiscoveryService {
   /**
    * 验证设备是否可用
    *
-   * @param ip IP 地址
+   * @param ip IP 地址（必须是有效的 IPv4 格式）
    * @param port ADB 端口
    * @returns 是否可用
    */
   async validateDevice(ip: string, port: number): Promise<boolean> {
+    // 安全检查：严格验证 IP 格式
+    if (!this.isValidIpAddress(ip)) {
+      this.logger.warn(`[SECURITY] Invalid IP address in validateDevice: ${ip}`);
+      return false;
+    }
+
     const serial = `${ip}:${port}`;
 
     try {
