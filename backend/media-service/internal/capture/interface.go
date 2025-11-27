@@ -13,6 +13,23 @@ type Frame struct {
 	Timestamp time.Time     // Capture timestamp
 	Format    FrameFormat   // Frame format
 	Duration  time.Duration // Frame duration for encoding
+	Keyframe  bool          // True if this is a keyframe (IDR for H.264)
+	release   func()        // Optional: callback to release pooled buffer
+}
+
+// Release returns the frame's data buffer to the pool (if pooled)
+// Should be called after the frame is no longer needed
+func (f *Frame) Release() {
+	if f.release != nil {
+		f.release()
+		f.release = nil
+		f.Data = nil
+	}
+}
+
+// SetRelease sets the release callback for pooled frames
+func (f *Frame) SetRelease(fn func()) {
+	f.release = fn
 }
 
 // FrameFormat represents the format of captured frames
@@ -64,6 +81,42 @@ type ScreenCapture interface {
 
 	// SetQuality dynamically adjusts capture quality
 	SetQuality(quality int) error
+
+	// GetSPSPPS returns the H.264 SPS and PPS NAL units (for WebRTC/recording)
+	// Returns nil if not available or not H.264 format
+	GetSPSPPS() (sps, pps []byte)
+}
+
+// AdaptiveBitrateCapture extends ScreenCapture with dynamic bitrate control
+// This interface is optional - use type assertion to check if capture supports it
+//
+// Example:
+//
+//	if abc, ok := capture.(AdaptiveBitrateCapture); ok {
+//	    abc.SetBitrate(2000000) // 2 Mbps
+//	}
+type AdaptiveBitrateCapture interface {
+	ScreenCapture
+
+	// SetBitrate dynamically adjusts the video bitrate (in bps)
+	// Returns error if bitrate adjustment is not supported
+	SetBitrate(bitrate int) error
+
+	// GetCurrentBitrate returns the current bitrate setting (in bps)
+	GetCurrentBitrate() int
+
+	// GetBitrateChanges returns the number of bitrate adjustments made
+	GetBitrateChanges() uint64
+}
+
+// KeyframeRequester extends ScreenCapture with on-demand keyframe requests
+// This interface is optional - use type assertion to check if capture supports it
+type KeyframeRequester interface {
+	ScreenCapture
+
+	// RequestKeyframe requests an immediate IDR/keyframe from the encoder
+	// Useful for new viewers joining a stream or after packet loss
+	RequestKeyframe() error
 }
 
 // CaptureStats contains statistics about the capture process

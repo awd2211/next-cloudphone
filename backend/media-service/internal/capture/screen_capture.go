@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"image/png"
 	"io"
 	"os/exec"
@@ -12,6 +14,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/image/draw"
 )
 
 // AndroidScreenCapture implements ScreenCapture for Android devices via ADB
@@ -186,6 +189,11 @@ func (c *AndroidScreenCapture) SetQuality(quality int) error {
 	return nil
 }
 
+// GetSPSPPS returns H.264 SPS/PPS NAL units (not available for screencap-based capture)
+func (c *AndroidScreenCapture) GetSPSPPS() (sps, pps []byte) {
+	return nil, nil
+}
+
 // captureLoop is the main capture loop
 func (c *AndroidScreenCapture) captureLoop(ctx context.Context) {
 	ticker := time.NewTicker(c.frameInterval)
@@ -235,24 +243,18 @@ func (c *AndroidScreenCapture) captureFrame() (*Frame, error) {
 	c.mu.RLock()
 	format := c.options.Format
 	deviceID := c.deviceID
+	targetWidth := c.options.Width
+	targetHeight := c.options.Height
+	quality := c.options.Quality
 	c.mu.RUnlock()
 
-	var cmd *exec.Cmd
-
-	switch format {
-	case FrameFormatPNG:
-		// Capture as PNG (higher quality, larger size)
-		cmd = exec.Command(c.adbPath, "-s", deviceID, "exec-out", "screencap", "-p")
-	case FrameFormatJPEG:
-		// Capture as JPEG (lower quality, smaller size)
-		// Note: ADB screencap doesn't directly support JPEG, so we use PNG and will convert if needed
-		cmd = exec.Command(c.adbPath, "-s", deviceID, "exec-out", "screencap", "-p")
-	default:
-		// Default to PNG
-		cmd = exec.Command(c.adbPath, "-s", deviceID, "exec-out", "screencap", "-p")
+	// Default quality for JPEG
+	if quality <= 0 || quality > 100 {
+		quality = 70 // Good balance between size and quality
 	}
 
-	// Execute command and read output
+	// Capture screenshot via ADB
+	cmd := exec.Command(c.adbPath, "-s", deviceID, "exec-out", "screencap", "-p")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute screencap: %w", err)
@@ -262,24 +264,90 @@ func (c *AndroidScreenCapture) captureFrame() (*Frame, error) {
 		return nil, fmt.Errorf("empty frame data")
 	}
 
-	// Create frame
-	frame := &Frame{
-		Data:      output,
-		Timestamp: time.Now(),
-		Format:    FrameFormatPNG, // ADB screencap outputs PNG
-		Duration:  c.frameInterval,
+	// Decode PNG
+	reader := bytes.NewReader(output)
+	srcImg, err := png.Decode(reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode PNG: %w", err)
 	}
 
-	// Parse PNG dimensions using standard library (修复手动解析的不健壮问题)
-	if len(output) > 0 {
-		reader := bytes.NewReader(output)
-		config, err := png.DecodeConfig(reader)
-		if err != nil {
-			c.logger.WithError(err).Warn("Failed to decode PNG config, dimensions unknown")
-		} else {
-			frame.Width = config.Width
-			frame.Height = config.Height
+	srcBounds := srcImg.Bounds()
+	srcWidth := srcBounds.Dx()
+	srcHeight := srcBounds.Dy()
+
+	// Determine if scaling is needed
+	needsScaling := (targetWidth > 0 && targetWidth < srcWidth) ||
+		(targetHeight > 0 && targetHeight < srcHeight)
+
+	var finalImg image.Image
+	var finalWidth, finalHeight int
+
+	if needsScaling {
+		// Calculate target dimensions maintaining aspect ratio
+		if targetWidth > 0 && targetHeight == 0 {
+			// Scale by width, maintain aspect ratio
+			targetHeight = srcHeight * targetWidth / srcWidth
+		} else if targetHeight > 0 && targetWidth == 0 {
+			// Scale by height, maintain aspect ratio
+			targetWidth = srcWidth * targetHeight / srcHeight
 		}
+
+		// Ensure we don't upscale
+		if targetWidth > srcWidth {
+			targetWidth = srcWidth
+		}
+		if targetHeight > srcHeight {
+			targetHeight = srcHeight
+		}
+
+		// Create scaled image using high-quality CatmullRom interpolation
+		dstRect := image.Rect(0, 0, targetWidth, targetHeight)
+		dstImg := image.NewRGBA(dstRect)
+		draw.CatmullRom.Scale(dstImg, dstRect, srcImg, srcBounds, draw.Over, nil)
+
+		finalImg = dstImg
+		finalWidth = targetWidth
+		finalHeight = targetHeight
+
+		c.logger.WithFields(logrus.Fields{
+			"original":     fmt.Sprintf("%dx%d", srcWidth, srcHeight),
+			"scaled":       fmt.Sprintf("%dx%d", targetWidth, targetHeight),
+			"scale_factor": fmt.Sprintf("%.2f", float64(targetWidth)/float64(srcWidth)),
+		}).Debug("Image scaled")
+	} else {
+		finalImg = srcImg
+		finalWidth = srcWidth
+		finalHeight = srcHeight
+	}
+
+	// Encode to output format
+	var outBuf bytes.Buffer
+	var outFormat FrameFormat
+
+	if format == FrameFormatJPEG || needsScaling {
+		// Use JPEG for smaller size (especially after scaling)
+		err = jpeg.Encode(&outBuf, finalImg, &jpeg.Options{Quality: quality})
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode JPEG: %w", err)
+		}
+		outFormat = FrameFormatJPEG
+	} else {
+		// Keep as PNG for lossless quality
+		err = png.Encode(&outBuf, finalImg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode PNG: %w", err)
+		}
+		outFormat = FrameFormatPNG
+	}
+
+	// Create frame
+	frame := &Frame{
+		Data:      outBuf.Bytes(),
+		Timestamp: time.Now(),
+		Format:    outFormat,
+		Duration:  c.frameInterval,
+		Width:     finalWidth,
+		Height:    finalHeight,
 	}
 
 	return frame, nil
@@ -448,6 +516,11 @@ func (c *AndroidScreenRecordCapture) SetFrameRate(fps int) error {
 // SetQuality adjusts quality (not supported for screenrecord)
 func (c *AndroidScreenRecordCapture) SetQuality(quality int) error {
 	return fmt.Errorf("quality adjustment not supported for screenrecord")
+}
+
+// GetSPSPPS returns H.264 SPS/PPS NAL units (not tracked for screenrecord)
+func (c *AndroidScreenRecordCapture) GetSPSPPS() (sps, pps []byte) {
+	return nil, nil
 }
 
 // readH264Stream reads H.264 NAL units from the stream
