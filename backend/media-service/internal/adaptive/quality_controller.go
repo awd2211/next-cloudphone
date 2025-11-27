@@ -1,6 +1,7 @@
 package adaptive
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -90,6 +91,20 @@ var (
 	}
 )
 
+// BitrateAdjuster is a callback interface for dynamic bitrate control
+// Implementations should apply the bitrate change to the underlying encoder/capture
+type BitrateAdjuster interface {
+	// SetBitrate adjusts the video bitrate (in bps)
+	SetBitrate(bitrate int) error
+}
+
+// BitrateAdjusterFunc is a function adapter for BitrateAdjuster
+type BitrateAdjusterFunc func(bitrate int) error
+
+func (f BitrateAdjusterFunc) SetBitrate(bitrate int) error {
+	return f(bitrate)
+}
+
 // QualityController manages adaptive quality adjustment
 type QualityController struct {
 	sessionID        string
@@ -111,6 +126,14 @@ type QualityController struct {
 	adaptationInterval time.Duration
 	lastAdaptation     time.Time
 	cooldownPeriod     time.Duration
+
+	// Bitrate adjustment callback
+	bitrateAdjuster BitrateAdjuster
+
+	// Statistics
+	adaptationCount  uint64 // Number of quality adaptations
+	bitrateUpCount   uint64 // Number of bitrate increases
+	bitrateDownCount uint64 // Number of bitrate decreases
 }
 
 // QualityControllerOptions contains options for creating a quality controller
@@ -325,6 +348,14 @@ func (qc *QualityController) calculateQualityScore(rtt time.Duration, loss float
 	return rttScore + lossScore + bandwidthScore
 }
 
+// SetBitrateAdjuster sets the callback for dynamic bitrate adjustment
+// This allows the quality controller to notify the capture/encoder when bitrate changes
+func (qc *QualityController) SetBitrateAdjuster(adjuster BitrateAdjuster) {
+	qc.mu.Lock()
+	defer qc.mu.Unlock()
+	qc.bitrateAdjuster = adjuster
+}
+
 // Adapt performs quality adaptation
 func (qc *QualityController) Adapt() (changed bool, newQuality QualitySettings) {
 	if !qc.ShouldAdapt() {
@@ -342,17 +373,41 @@ func (qc *QualityController) Adapt() (changed bool, newQuality QualitySettings) 
 		return false, qc.currentQuality
 	}
 
+	// Track direction of change for statistics
+	oldBitrate := qc.currentQuality.Bitrate
+
 	// Update quality
 	qc.currentQuality = optimal
 	qc.targetQuality = optimal
 	qc.lastAdaptation = time.Now()
+	qc.adaptationCount++
+
+	// Update statistics
+	if optimal.Bitrate > oldBitrate {
+		qc.bitrateUpCount++
+	} else {
+		qc.bitrateDownCount++
+	}
+
+	// Apply bitrate change via callback if available
+	if qc.bitrateAdjuster != nil {
+		if err := qc.bitrateAdjuster.SetBitrate(optimal.Bitrate); err != nil {
+			qc.logger.WithError(err).Warn("Failed to apply bitrate adjustment")
+		} else {
+			qc.logger.WithFields(logrus.Fields{
+				"session_id":  qc.sessionID,
+				"old_bitrate": oldBitrate,
+				"new_bitrate": optimal.Bitrate,
+			}).Debug("Bitrate adjustment applied via callback")
+		}
+	}
 
 	qc.logger.WithFields(logrus.Fields{
 		"session_id": qc.sessionID,
 		"new_level":  optimal.Level.String(),
 		"bitrate":    optimal.Bitrate,
 		"fps":        optimal.FrameRate,
-		"resolution": optimal.Width + "x" + optimal.Height,
+		"resolution": fmt.Sprintf("%dx%d", optimal.Width, optimal.Height),
 	}).Info("Quality adapted")
 
 	return true, optimal
@@ -423,4 +478,41 @@ func (qc *QualityController) GetNetworkHistory() []NetworkQuality {
 	history := make([]NetworkQuality, len(qc.networkHistory))
 	copy(history, qc.networkHistory)
 	return history
+}
+
+// QualityControllerStats contains statistics about quality adaptations
+type QualityControllerStats struct {
+	AdaptationCount  uint64 `json:"adaptation_count"`
+	BitrateUpCount   uint64 `json:"bitrate_up_count"`
+	BitrateDownCount uint64 `json:"bitrate_down_count"`
+	CurrentLevel     string `json:"current_level"`
+	CurrentBitrate   int    `json:"current_bitrate"`
+}
+
+// GetStats returns quality controller statistics
+func (qc *QualityController) GetStats() QualityControllerStats {
+	qc.mu.RLock()
+	defer qc.mu.RUnlock()
+
+	return QualityControllerStats{
+		AdaptationCount:  qc.adaptationCount,
+		BitrateUpCount:   qc.bitrateUpCount,
+		BitrateDownCount: qc.bitrateDownCount,
+		CurrentLevel:     qc.currentQuality.Level.String(),
+		CurrentBitrate:   qc.currentQuality.Bitrate,
+	}
+}
+
+// Reset resets the quality controller to initial state
+func (qc *QualityController) Reset() {
+	qc.mu.Lock()
+	defer qc.mu.Unlock()
+
+	qc.networkHistory = qc.networkHistory[:0]
+	qc.adaptationCount = 0
+	qc.bitrateUpCount = 0
+	qc.bitrateDownCount = 0
+	qc.lastAdaptation = time.Now()
+
+	qc.logger.WithField("session_id", qc.sessionID).Info("Quality controller reset")
 }

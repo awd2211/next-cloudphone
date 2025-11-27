@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 	"sync"
-	"time"
 
 	"github.com/cloudphone/media-service/internal/capture"
 	"github.com/sirupsen/logrus"
@@ -225,6 +224,20 @@ func (e *H264EncoderFFmpeg) GetBitrate() int {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.bitrate
+}
+
+// SetFrameRate dynamically adjusts the frame rate
+func (e *H264EncoderFFmpeg) SetFrameRate(fps int) error {
+	if fps <= 0 || fps > 60 {
+		return fmt.Errorf("invalid frame rate: %d (must be 1-60)", fps)
+	}
+
+	e.mu.Lock()
+	e.frameRate = fps
+	e.mu.Unlock()
+
+	e.logger.WithField("new_framerate", fps).Info("H.264 frame rate adjusted")
+	return nil
 }
 
 // detectHardwareEncoder detects available hardware encoders

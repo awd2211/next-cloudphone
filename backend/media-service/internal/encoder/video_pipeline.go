@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/cloudphone/media-service/internal/adaptive"
 	"github.com/cloudphone/media-service/internal/capture"
 	"github.com/sirupsen/logrus"
 )
@@ -29,6 +30,14 @@ type VideoPipeline struct {
 	targetFPS     int
 	targetBitrate int
 	adaptiveMode  bool
+
+	// Resolution scaling (0 = native resolution)
+	targetWidth  int
+	targetHeight int
+	quality      int // JPEG quality (1-100)
+
+	// Adaptive quality control
+	qualityController *adaptive.QualityController
 }
 
 // FrameWriter is an interface for writing encoded frames
@@ -62,6 +71,11 @@ type PipelineOptions struct {
 	TargetBitrate int
 	AdaptiveMode  bool
 	Logger        *logrus.Logger
+
+	// Resolution scaling options (for WiFi ADB performance optimization)
+	TargetWidth  int // Target width (0 = native resolution)
+	TargetHeight int // Target height (0 = native resolution)
+	Quality      int // JPEG quality (1-100, 0 = default 70)
 }
 
 // NewVideoPipeline creates a new video processing pipeline
@@ -94,7 +108,13 @@ func NewVideoPipeline(options PipelineOptions) (*VideoPipeline, error) {
 		options.Encoder = NewPassThroughEncoder()
 	}
 
-	return &VideoPipeline{
+	// Set default quality if not specified
+	quality := options.Quality
+	if quality <= 0 || quality > 100 {
+		quality = 70 // Good balance between size and quality
+	}
+
+	pipeline := &VideoPipeline{
 		sessionID:     options.SessionID,
 		deviceID:      options.DeviceID,
 		capture:       options.Capture,
@@ -104,7 +124,17 @@ func NewVideoPipeline(options PipelineOptions) (*VideoPipeline, error) {
 		targetBitrate: options.TargetBitrate,
 		adaptiveMode:  options.AdaptiveMode,
 		logger:        options.Logger,
-	}, nil
+		targetWidth:   options.TargetWidth,
+		targetHeight:  options.TargetHeight,
+		quality:       quality,
+	}
+
+	// Setup adaptive quality control if enabled
+	if options.AdaptiveMode {
+		pipeline.setupAdaptiveQuality()
+	}
+
+	return pipeline, nil
 }
 
 // Start begins the video processing pipeline
@@ -115,11 +145,20 @@ func (p *VideoPipeline) Start(ctx context.Context) error {
 
 	// Start capture if not already running
 	if !p.capture.IsRunning() {
+		// Use JPEG format when scaling for better compression
+		format := capture.FrameFormatPNG
+		if p.targetWidth > 0 || p.targetHeight > 0 {
+			format = capture.FrameFormatJPEG
+		}
+
 		captureOptions := capture.CaptureOptions{
 			DeviceID:   p.deviceID,
 			FrameRate:  p.targetFPS,
-			Format:     capture.FrameFormatPNG, // Start with PNG, can be optimized
-			BufferSize: 5,
+			Format:     format,
+			BufferSize: 5,            // 缓冲区大小
+			Width:      p.targetWidth,  // Resolution scaling for WiFi ADB optimization
+			Height:     p.targetHeight,
+			Quality:    p.quality,
 		}
 
 		if err := p.capture.Start(ctx, captureOptions); err != nil {
@@ -243,18 +282,25 @@ func (p *VideoPipeline) processingLoop(ctx context.Context) {
 				continue
 			}
 
+			// Capture frame size before processing (frame.Data may be released)
+			frameSize := uint64(len(frame.Data))
+
 			// Process frame
 			if err := p.processFrame(frame); err != nil {
 				p.logger.WithError(err).Warn("Failed to process frame")
 				atomic.AddUint64(&p.stats.EncodingErrors, 1)
+				frame.Release() // Return buffer to pool on error
 				continue
 			}
 
 			// Update counters
 			atomic.AddUint64(&p.stats.FramesProcessed, 1)
-			atomic.AddUint64(&p.stats.BytesProcessed, uint64(len(frame.Data)))
+			atomic.AddUint64(&p.stats.BytesProcessed, frameSize)
 			framesInLastSecond++
-			bytesInLastSecond += uint64(len(frame.Data))
+			bytesInLastSecond += frameSize
+
+			// Release frame buffer back to pool
+			frame.Release()
 
 			// Update FPS and bitrate stats every second
 			now := time.Now()
@@ -283,7 +329,8 @@ func (p *VideoPipeline) processFrame(frame *capture.Frame) error {
 
 	if p.encoder != nil {
 		// 创建带超时的编码
-		encodeCtx, encodeCancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+		// 500ms timeout to accommodate VP8 encoding via FFmpeg (~235ms typical)
+		encodeCtx, encodeCancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 		defer encodeCancel()
 
 		type encodeResult struct {
@@ -555,4 +602,65 @@ func (p *AudioPipeline) processAudioFrame(frame *capture.AudioFrame) error {
 	}
 
 	return nil
+}
+
+// setupAdaptiveQuality initializes the quality controller and wires it to the capture
+func (p *VideoPipeline) setupAdaptiveQuality() {
+	// Create quality controller
+	p.qualityController = adaptive.NewQualityController(adaptive.QualityControllerOptions{
+		SessionID: p.sessionID,
+		InitialQuality: adaptive.QualitySettings{
+			Level:     adaptive.QualityLevelHigh,
+			Bitrate:   p.targetBitrate,
+			FrameRate: p.targetFPS,
+			Width:     p.targetWidth,
+			Height:    p.targetHeight,
+		},
+		Logger: p.logger,
+	})
+
+	// Wire quality controller to capture if it supports adaptive bitrate
+	if abc, ok := p.capture.(capture.AdaptiveBitrateCapture); ok {
+		p.qualityController.SetBitrateAdjuster(adaptive.BitrateAdjusterFunc(abc.SetBitrate))
+		p.logger.WithField("session_id", p.sessionID).Info("Adaptive bitrate control enabled via scrcpy control socket")
+	} else {
+		p.logger.WithField("session_id", p.sessionID).Warn("Capture does not support adaptive bitrate, quality controller is read-only")
+	}
+}
+
+// UpdateNetworkQuality updates the quality controller with network metrics
+// This should be called when RTCP feedback is received from WebRTC
+func (p *VideoPipeline) UpdateNetworkQuality(rtt time.Duration, packetLoss float64, bandwidth uint64) {
+	if p.qualityController == nil {
+		return
+	}
+
+	p.qualityController.UpdateNetworkQuality(adaptive.NetworkQuality{
+		RTT:        rtt,
+		PacketLoss: packetLoss,
+		Bandwidth:  bandwidth,
+	})
+
+	// Attempt adaptation based on new metrics
+	if changed, newQuality := p.qualityController.Adapt(); changed {
+		p.logger.WithFields(logrus.Fields{
+			"session_id":  p.sessionID,
+			"new_level":   newQuality.Level.String(),
+			"new_bitrate": newQuality.Bitrate,
+		}).Info("Quality adapted based on network conditions")
+	}
+}
+
+// GetQualityController returns the quality controller for external monitoring
+func (p *VideoPipeline) GetQualityController() *adaptive.QualityController {
+	return p.qualityController
+}
+
+// RequestKeyframe requests an immediate IDR/keyframe if capture supports it
+// Useful for new viewers joining or after packet loss recovery
+func (p *VideoPipeline) RequestKeyframe() error {
+	if kr, ok := p.capture.(capture.KeyframeRequester); ok {
+		return kr.RequestKeyframe()
+	}
+	return fmt.Errorf("capture does not support keyframe requests")
 }

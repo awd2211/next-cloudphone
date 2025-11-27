@@ -391,3 +391,162 @@ func (e *SimpleVP8Encoder) SetFrameRate(fps int) error {
 func (e *SimpleVP8Encoder) Close() error {
 	return nil
 }
+
+// =============================================================================
+// VP8FrameEncoder - 输出原始 VP8 帧用于 WebRTC
+// =============================================================================
+
+// VP8FrameEncoder encodes PNG/JPEG images to raw VP8 frames suitable for WebRTC.
+// Unlike SimpleVP8Encoder which outputs webm container, this encoder outputs
+// raw VP8 frame data that can be directly used with pion/webrtc's WriteSample.
+//
+// 工作原理:
+// 1. 使用 FFmpeg 将 PNG/JPEG 编码为 IVF 格式（简单的 VP8 帧容器）
+// 2. 解析 IVF 输出，提取原始 VP8 帧数据
+// 3. 返回裸 VP8 帧，可直接用于 WebRTC VideoTrack
+type VP8FrameEncoder struct {
+	bitrate   int
+	frameRate int
+	logger    *logrus.Logger
+	mu        sync.Mutex
+}
+
+// NewVP8FrameEncoder creates a VP8 encoder that outputs raw frames for WebRTC
+func NewVP8FrameEncoder(bitrate, frameRate int, logger *logrus.Logger) VideoEncoder {
+	if logger == nil {
+		logger = logrus.New()
+	}
+	if bitrate <= 0 {
+		bitrate = 1000000 // 1 Mbps default
+	}
+	if frameRate <= 0 {
+		frameRate = 15 // Lower default for PNG capture mode
+	}
+
+	return &VP8FrameEncoder{
+		bitrate:   bitrate,
+		frameRate: frameRate,
+		logger:    logger,
+	}
+}
+
+// Encode encodes a PNG/JPEG frame to raw VP8 data
+func (e *VP8FrameEncoder) Encode(frame *capture.Frame) ([]byte, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if frame == nil || len(frame.Data) == 0 {
+		return nil, fmt.Errorf("empty frame")
+	}
+
+	// Use FFmpeg to encode PNG/JPEG to IVF format (raw VP8 frames)
+	// IVF is a simple container that's easy to parse
+	// NOTE: -pix_fmt yuv420p is critical for PNG with alpha channel (RGBA)
+	// Without it, libvpx fails with "Transparency encoding with auto_alt_ref does not work"
+	cmd := exec.Command("ffmpeg",
+		"-hide_banner",
+		"-loglevel", "error",
+		"-f", "png_pipe",       // Input is PNG pipe (more explicit than image2pipe)
+		"-i", "pipe:0",         // Read from stdin
+		"-c:v", "libvpx",       // VP8 codec
+		"-pix_fmt", "yuv420p",  // Convert to YUV420 (handles RGBA PNG)
+		"-b:v", fmt.Sprintf("%d", e.bitrate),
+		"-quality", "realtime", // Realtime encoding
+		"-cpu-used", "16",      // Maximum speed (0-16, higher = faster)
+		"-deadline", "realtime",
+		"-keyint_min", "30",    // Keyframe every 30 frames minimum
+		"-g", "30",             // GOP size
+		"-error-resilient", "1", // Error resilience for streaming
+		"-auto-alt-ref", "0",   // Disable alternate reference frames (required for RGBA input)
+		"-lag-in-frames", "0",  // No frame delay
+		"-frames:v", "1",       // Single frame
+		"-f", "ivf",            // IVF container (simple, easy to parse)
+		"pipe:1",               // Write to stdout
+	)
+
+	cmd.Stdin = bytes.NewReader(frame.Data)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		e.logger.WithError(err).WithField("stderr", stderr.String()).Error("VP8 encoding failed")
+		return nil, fmt.Errorf("VP8 encoding failed: %w", err)
+	}
+
+	// Parse IVF and extract raw VP8 frame
+	ivfData := stdout.Bytes()
+	vp8Frame, err := e.parseIVFFrame(ivfData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse IVF: %w", err)
+	}
+
+	return vp8Frame, nil
+}
+
+// parseIVFFrame parses IVF container and extracts the first VP8 frame
+// IVF format:
+// - 32 byte header
+// - For each frame:
+//   - 4 bytes: frame size (little-endian)
+//   - 8 bytes: timestamp
+//   - N bytes: frame data
+func (e *VP8FrameEncoder) parseIVFFrame(data []byte) ([]byte, error) {
+	// IVF header is 32 bytes
+	if len(data) < 32 {
+		return nil, fmt.Errorf("IVF data too short: %d bytes", len(data))
+	}
+
+	// Verify IVF signature "DKIF"
+	if string(data[0:4]) != "DKIF" {
+		return nil, fmt.Errorf("invalid IVF signature: %s", string(data[0:4]))
+	}
+
+	// Skip header (32 bytes) and get first frame
+	offset := 32
+
+	if len(data) < offset+12 {
+		return nil, fmt.Errorf("no frame data in IVF")
+	}
+
+	// Frame header: 4 bytes size + 8 bytes timestamp
+	frameSize := uint32(data[offset]) |
+		uint32(data[offset+1])<<8 |
+		uint32(data[offset+2])<<16 |
+		uint32(data[offset+3])<<24
+
+	// Skip frame header (12 bytes)
+	frameStart := offset + 12
+	frameEnd := frameStart + int(frameSize)
+
+	if len(data) < frameEnd {
+		return nil, fmt.Errorf("IVF frame truncated: expected %d bytes, got %d", frameEnd, len(data))
+	}
+
+	// Return raw VP8 frame data
+	return data[frameStart:frameEnd], nil
+}
+
+// SetBitrate updates the target bitrate
+func (e *VP8FrameEncoder) SetBitrate(bitrate int) error {
+	e.mu.Lock()
+	e.bitrate = bitrate
+	e.mu.Unlock()
+	e.logger.WithField("bitrate", bitrate).Debug("VP8FrameEncoder bitrate updated")
+	return nil
+}
+
+// SetFrameRate updates the target frame rate
+func (e *VP8FrameEncoder) SetFrameRate(fps int) error {
+	e.mu.Lock()
+	e.frameRate = fps
+	e.mu.Unlock()
+	e.logger.WithField("fps", fps).Debug("VP8FrameEncoder frame rate updated")
+	return nil
+}
+
+// Close releases encoder resources
+func (e *VP8FrameEncoder) Close() error {
+	return nil
+}

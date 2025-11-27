@@ -12,17 +12,22 @@ import (
 
 	"github.com/cloudphone/media-service/internal/config"
 	"github.com/cloudphone/media-service/internal/consul"
+	"github.com/cloudphone/media-service/internal/encoder"
 	"github.com/cloudphone/media-service/internal/handlers"
 	"github.com/cloudphone/media-service/internal/logger"
 	"github.com/cloudphone/media-service/internal/metrics"
 	"github.com/cloudphone/media-service/internal/middleware"
 	"github.com/cloudphone/media-service/internal/rabbitmq"
+	"github.com/cloudphone/media-service/internal/recording"
+	"github.com/cloudphone/media-service/internal/sfu"
 	"github.com/cloudphone/media-service/internal/tracing"
+	"github.com/cloudphone/media-service/internal/turn"
 	"github.com/cloudphone/media-service/internal/webrtc"
 	"github.com/cloudphone/media-service/internal/websocket"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 )
@@ -65,12 +70,49 @@ func main() {
 	// 设置 Gin 模式
 	gin.SetMode(cfg.GinMode)
 
-	// 创建 WebRTC 管理器 (使用分片锁优化)
-	webrtcManager := webrtc.NewShardedManager(cfg)
+	// 创建 TURN 服务 (Cloudflare TURN)
+	turnService := turn.NewService()
+	if turnService.IsConfigured() {
+		logger.Info("cloudflare_turn_configured",
+			zap.String("note", "TURN relay will be used for NAT traversal"),
+		)
+	} else {
+		logger.Warn("cloudflare_turn_not_configured",
+			zap.String("note", "Only STUN servers will be used, may fail behind strict NAT"),
+		)
+	}
+
+	// 创建 WebRTC 管理器 (统一实现，支持分片锁和 TURN)
+	webrtcManager := webrtc.NewManager(cfg,
+		webrtc.WithTURNService(turnService),
+		webrtc.WithNumShards(32), // 32 shards for high concurrency
+	)
 
 	// 创建 WebSocket Hub
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
+
+	// 创建视频管道管理器
+	pipelineLogger := logrus.New()
+	pipelineLogger.SetLevel(logrus.InfoLevel)
+	pipelineManager := encoder.NewPipelineManager(pipelineLogger)
+
+	// 获取 ADB 路径
+	adbPath := os.Getenv("ADB_PATH")
+	if adbPath == "" {
+		adbPath = "adb" // 默认使用 PATH 中的 adb
+	}
+
+	// 获取 scrcpy-server 路径
+	// scrcpy-server 提供高性能 H.264 硬件编码，相比 screencap PNG 模式性能提升 30 倍
+	scrcpyServerPath := os.Getenv("SCRCPY_SERVER_PATH")
+	useScrcpy := scrcpyServerPath != "" && os.Getenv("USE_SCRCPY") != "false"
+
+	logger.Info("video_pipeline_manager_created",
+		zap.String("adb_path", adbPath),
+		zap.String("scrcpy_server_path", scrcpyServerPath),
+		zap.Bool("use_scrcpy", useScrcpy),
+	)
 
 	// 启动会话清理定时器
 	go func() {
@@ -82,8 +124,87 @@ func main() {
 		}
 	}()
 
+	// 创建录像管理器（需要先于 handler 创建，以支持 CombinedFrameWriter）
+	recordingStoragePath := os.Getenv("RECORDING_STORAGE_PATH")
+	if recordingStoragePath == "" {
+		recordingStoragePath = "./recordings"
+	}
+	recordingManager, err := recording.NewManager(
+		recording.WithStoragePath(recordingStoragePath),
+		recording.WithNumShards(8),
+		recording.WithLogger(logger.Log),
+		recording.WithBaseURL("/api/media"),
+	)
+	if err != nil {
+		logger.Fatal("failed_to_create_recording_manager", zap.Error(err))
+	}
+
+	logger.Info("recording_manager_created",
+		zap.String("storage_path", recordingStoragePath),
+	)
+
+	// 创建组合帧写入器（支持边看边录）
+	// 这个写入器会同时将视频帧发送到 WebRTC 和录像文件
+	combinedFrameWriter := handlers.NewCombinedFrameWriter(
+		webrtcManager,    // 主写入器 (WebRTC)
+		recordingManager, // 录像管理器
+		logger.Log,       // 日志器
+	)
+
+	logger.Info("combined_frame_writer_created",
+		zap.Bool("recording_support", true),
+	)
+
 	// 创建 HTTP 处理器
-	handler := handlers.New(webrtcManager, wsHub)
+	// 通过 HandlerOption 配置 scrcpy 高性能捕获模式和录像支持
+	handlerOpts := []handlers.HandlerOption{
+		handlers.WithCombinedFrameWriter(combinedFrameWriter), // 启用录像支持
+	}
+	if useScrcpy {
+		handlerOpts = append(handlerOpts,
+			handlers.WithScrcpyServer(scrcpyServerPath),
+			handlers.WithUseScrcpy(true),
+		)
+	}
+	handler := handlers.New(webrtcManager, wsHub, pipelineManager, adbPath, handlerOpts...)
+
+	// 创建 SFU Manager（支持多人同屏观看）
+	sfuManager := sfu.NewManager(cfg,
+		sfu.WithTURNService(turnService),
+		sfu.WithNumShards(16),
+	)
+
+	// 创建 SFU 处理器
+	sfuHandlerOpts := []handlers.SFUHandlerOption{}
+	if useScrcpy {
+		sfuHandlerOpts = append(sfuHandlerOpts,
+			handlers.WithSFUScrcpyServer(scrcpyServerPath),
+			handlers.WithSFUUseScrcpy(true),
+		)
+	}
+	sfuHandler := handlers.NewSFUHandler(sfuManager, pipelineManager, adbPath, sfuHandlerOpts...)
+
+	logger.Info("sfu_manager_created",
+		zap.Bool("use_scrcpy", useScrcpy),
+	)
+
+	// 创建录像处理器（传入 CombinedFrameWriter 以支持边看边录）
+	recordingHandler := handlers.NewRecordingHandler(
+		recordingManager,
+		webrtcManager,
+		handlers.WithRecordingLogger(logger.Log),
+		handlers.WithCombinedFrameWriterForRecording(combinedFrameWriter),
+	)
+
+	// 启动 SFU 会话清理定时器
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			sfuManager.CleanupInactiveSessions(30 * time.Minute)
+		}
+	}()
 
 	// 创建 Gin 路由（不使用 Default，手动添加中间件）
 	router := gin.New()
@@ -186,10 +307,11 @@ func main() {
 	api := router.Group("/api/media")
 	api.Use(middleware.JWTMiddleware())
 	{
-		// WebRTC 会话管理
+		// WebRTC 会话管理 (1:1 模式)
 		api.POST("/sessions", handler.HandleCreateSession)
 		api.POST("/sessions/answer", handler.HandleSetAnswer)
 		api.POST("/sessions/ice-candidate", handler.HandleAddICECandidate)
+		api.POST("/sessions/ice-candidates", handler.HandleAddICECandidates) // 批量 ICE candidates（避免 429 错误）
 		api.GET("/sessions/:id", handler.HandleGetSession)
 		api.DELETE("/sessions/:id", handler.HandleCloseSession)
 		api.GET("/sessions", handler.HandleListSessions)
@@ -202,6 +324,45 @@ func main() {
 
 		// Cloudflare TURN 凭证
 		api.GET("/turn-credentials", handler.HandleGetTurnCredentials)
+
+		// ========== SFU 路由 (多人同屏观看) ==========
+		sfuGroup := api.Group("/sfu")
+		{
+			// 发布者管理
+			sfuGroup.POST("/publishers", sfuHandler.HandleCreatePublisher)
+			sfuGroup.POST("/publishers/answer", sfuHandler.HandleSetPublisherAnswer)
+			sfuGroup.POST("/publishers/ice-candidate", sfuHandler.HandleAddPublisherICECandidate)
+			sfuGroup.GET("/publishers/:id", sfuHandler.HandleGetPublisher)
+			sfuGroup.DELETE("/publishers/:id", sfuHandler.HandleClosePublisher)
+			sfuGroup.GET("/publishers", sfuHandler.HandleListPublishers)
+
+			// 订阅者管理
+			sfuGroup.POST("/subscribers", sfuHandler.HandleCreateSubscriber)
+			sfuGroup.POST("/subscribers/by-device", sfuHandler.HandleCreateSubscriberByDevice)
+			sfuGroup.POST("/subscribers/answer", sfuHandler.HandleSetSubscriberAnswer)
+			sfuGroup.POST("/subscribers/ice-candidate", sfuHandler.HandleAddSubscriberICECandidate)
+			sfuGroup.GET("/subscribers/:id", sfuHandler.HandleGetSubscriber)
+			sfuGroup.DELETE("/subscribers/:id", sfuHandler.HandleCloseSubscriber)
+
+			// SFU 统计
+			sfuGroup.GET("/stats", sfuHandler.HandleSFUStats)
+		}
+
+		// ========== 录像路由 (Recording) ==========
+		recordingGroup := api.Group("/recordings")
+		{
+			// 录像管理
+			recordingGroup.POST("", recordingHandler.HandleStartRecording)
+			recordingGroup.POST("/:id/stop", recordingHandler.HandleStopRecording)
+			recordingGroup.GET("/:id", recordingHandler.HandleGetRecording)
+			recordingGroup.GET("", recordingHandler.HandleListRecordings)
+			recordingGroup.GET("/:id/download", recordingHandler.HandleDownloadRecording)
+			recordingGroup.DELETE("/:id", recordingHandler.HandleDeleteRecording)
+
+			// 录像统计和清理
+			recordingGroup.GET("/stats", recordingHandler.HandleRecordingStats)
+			recordingGroup.POST("/cleanup", recordingHandler.HandleCleanupRecordings)
+		}
 	}
 
 	// 创建 HTTP 服务器
@@ -252,6 +413,14 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("server_shutdown_error", zap.Error(err))
 	}
+
+	// 停止所有活跃录像
+	logger.Info("stopping_all_recordings")
+	recordingManager.StopAll()
+
+	// 清理所有视频管道
+	logger.Info("cleaning_up_pipelines")
+	pipelineManager.Cleanup()
 
 	// 关闭所有 WebRTC 会话
 	logger.Info("closing_all_sessions")

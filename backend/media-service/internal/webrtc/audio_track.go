@@ -35,9 +35,11 @@ func (m *Manager) CreateAudioTrack(sessionID string) error {
 		return fmt.Errorf("failed to add audio track: %w", err)
 	}
 
-	m.mu.Lock()
+	// Update session with audio track using shard lock
+	shard := m.getShard(sessionID)
+	shard.mu.Lock()
 	session.AudioTrack = audioTrack
-	m.mu.Unlock()
+	shard.mu.Unlock()
 
 	return nil
 }

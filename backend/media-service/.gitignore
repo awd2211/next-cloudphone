@@ -1,10 +1,18 @@
 # Binaries
 media-service
+main
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+
+# Build output directories
+bin/
+tmp/
+
+# Recordings (generated files)
+recordings/
 
 # Test binary, built with `go test -c`
 *.test
