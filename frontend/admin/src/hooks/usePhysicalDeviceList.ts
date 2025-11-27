@@ -88,13 +88,22 @@ export const usePhysicalDeviceList = () => {
 
   /**
    * 扫描网络设备（使用 SSE 实时流）
-   * 两阶段扫描：1) 探测存活主机 2) 检查 ADB 端口
+   *
+   * 两阶段扫描：
+   * 1) 探测存活主机（TCP 端口探测）
+   * 2) 检查 ADB 端口
+   *
+   * 安全特性：
+   * - Token 通过 URL 参数传递（EventSource 不支持自定义头）
+   * - 后端验证 Token 有效性
+   * - 支持取消扫描
    */
   const handleScan = useCallback(
     (values: ScanParams) => {
       // 清理之前的 EventSource
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
+        eventSourceRef.current = null;
       }
 
       setIsScanning(true);
@@ -107,6 +116,7 @@ export const usePhysicalDeviceList = () => {
         phase: 'alive_check',
       });
 
+      // Token 会自动从 localStorage 获取
       const eventSource = scanNetworkDevicesStream({
         networkCidr: values.networkCidr,
         concurrency: values.concurrency || 50,
@@ -120,6 +130,20 @@ export const usePhysicalDeviceList = () => {
           const rawData = JSON.parse(event.data);
           // NestJS SSE 将数据包装在 data 字段中，需要解包
           const data = rawData.data || rawData;
+
+          // 忽略心跳消息（仅用于保持连接）
+          if (data.type === 'heartbeat') {
+            return;
+          }
+
+          // 认证失败处理
+          if (data.code === 'UNAUTHORIZED') {
+            setIsScanning(false);
+            eventSource.close();
+            eventSourceRef.current = null;
+            message.error(data.error || '认证失败，请重新登录');
+            return;
+          }
 
           // 更新进度（包含两阶段信息）
           setScanProgress({
@@ -159,6 +183,7 @@ export const usePhysicalDeviceList = () => {
           if (data.status === 'completed') {
             setIsScanning(false);
             eventSource.close();
+            eventSourceRef.current = null;
 
             // 如果有最终设备列表，使用它
             if (data.devices && Array.isArray(data.devices)) {
@@ -184,6 +209,7 @@ export const usePhysicalDeviceList = () => {
           if (data.status === 'error') {
             setIsScanning(false);
             eventSource.close();
+            eventSourceRef.current = null;
             message.error(`扫描失败: ${data.error || '未知错误'}`);
           }
         } catch (e) {
@@ -195,14 +221,30 @@ export const usePhysicalDeviceList = () => {
         console.error('SSE error:', error);
         setIsScanning(false);
         eventSource.close();
+        eventSourceRef.current = null;
         // 如果已经有结果，不显示错误（可能是正常关闭）
         if (scanProgress?.status !== 'completed') {
-          message.error('扫描连接失败，请重试');
+          message.error('扫描连接失败，请检查网络或重新登录');
         }
       };
     },
     [scanProgress?.status]
   );
+
+  /**
+   * 取消正在进行的扫描
+   */
+  const handleCancelScan = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    setIsScanning(false);
+    setScanProgress((prev) =>
+      prev ? { ...prev, status: 'cancelled' as any } : undefined
+    );
+    message.info('扫描已取消');
+  }, []);
 
   /**
    * 注册物理设备
@@ -320,6 +362,7 @@ export const usePhysicalDeviceList = () => {
     setScanModalVisible,
     // 操作函数
     handleScan,
+    handleCancelScan,
     handleRegister,
     openRegisterModal,
     handleCloseScanModal,

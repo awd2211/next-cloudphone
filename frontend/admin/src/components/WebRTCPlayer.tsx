@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState, memo } from 'react';
 import { message, Spin } from 'antd';
+import { buildWebRTCConfig } from '@/services/media';
 
 interface WebRTCPlayerProps {
   deviceId: string;
 }
 
-// ✅ 提取 WebRTC 配置为常量，避免每次渲染重建
-const WEBRTC_CONFIGURATION: RTCConfiguration = {
+// ✅ 默认 STUN 配置（用于 TURN 获取失败时的降级）
+const DEFAULT_WEBRTC_CONFIG: RTCConfiguration = {
   iceServers: [
+    { urls: 'stun:stun.cloudflare.com:3478' },
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
   ],
 };
 
@@ -136,9 +137,20 @@ const WebRTCPlayer = memo(({ deviceId }: WebRTCPlayerProps) => {
     };
   }, [deviceId]);
 
-  const initWebRTC = () => {
-    // 创建 RTCPeerConnection（使用顶层常量配置）
-    const pc = new RTCPeerConnection(WEBRTC_CONFIGURATION);
+  const initWebRTC = async () => {
+    // 获取动态 WebRTC 配置（包含 Cloudflare TURN 凭证）
+    let webrtcConfig: RTCConfiguration;
+    try {
+      console.log('[WebRTCPlayer] Fetching WebRTC config with TURN credentials...');
+      webrtcConfig = await buildWebRTCConfig();
+      console.log('[WebRTCPlayer] ICE servers:', webrtcConfig.iceServers?.length);
+    } catch (error) {
+      console.warn('[WebRTCPlayer] Failed to get TURN credentials, using default config:', error);
+      webrtcConfig = DEFAULT_WEBRTC_CONFIG;
+    }
+
+    // 创建 RTCPeerConnection（使用动态配置）
+    const pc = new RTCPeerConnection(webrtcConfig);
     peerConnectionRef.current = pc;
 
     // 处理接收到的流

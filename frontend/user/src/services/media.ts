@@ -32,6 +32,80 @@ export interface AddICECandidateDto {
   candidate: RTCIceCandidateInit;
 }
 
+// Cloudflare TURN 凭证响应
+export interface TurnCredentialsResponse {
+  iceServers: RTCIceServer[];
+}
+
+// TURN 凭证缓存
+let cachedTurnCredentials: TurnCredentialsResponse | null = null;
+let cacheExpireTime = 0;
+const CACHE_TTL_MS = 23 * 60 * 60 * 1000; // 23小时
+
+/**
+ * 获取 Cloudflare TURN 凭证（带缓存）
+ */
+export const getTurnCredentials = async (forceRefresh = false): Promise<TurnCredentialsResponse> => {
+  const now = Date.now();
+
+  if (!forceRefresh && cachedTurnCredentials && now < cacheExpireTime) {
+    console.log('[Media] Using cached TURN credentials');
+    return cachedTurnCredentials;
+  }
+
+  console.log('[Media] Fetching fresh TURN credentials from Cloudflare');
+
+  try {
+    const response = await api.get<TurnCredentialsResponse>('/media/turn-credentials');
+    cachedTurnCredentials = response;
+    cacheExpireTime = now + CACHE_TTL_MS;
+    return response;
+  } catch (error) {
+    console.error('[Media] Failed to get TURN credentials:', error);
+
+    if (cachedTurnCredentials) {
+      console.warn('[Media] Using expired cached TURN credentials as fallback');
+      return cachedTurnCredentials;
+    }
+
+    return {
+      iceServers: [
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        { urls: 'stun:stun.l.google.com:19302' },
+      ],
+    };
+  }
+};
+
+/**
+ * 构建完整的 WebRTC 配置（包含 TURN 凭证）
+ */
+export const buildWebRTCConfig = async (): Promise<RTCConfiguration> => {
+  const turnCredentials = await getTurnCredentials();
+
+  const defaultStunServers: RTCIceServer[] = [
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'stun:stun.l.google.com:19302' },
+  ];
+
+  const iceServers = turnCredentials.iceServers.length > 0
+    ? [...turnCredentials.iceServers, ...defaultStunServers]
+    : defaultStunServers;
+
+  return {
+    iceServers,
+    iceTransportPolicy: 'all',
+  };
+};
+
+/**
+ * 清除 TURN 凭证缓存
+ */
+export const clearTurnCredentialsCache = (): void => {
+  cachedTurnCredentials = null;
+  cacheExpireTime = 0;
+};
+
 // 创建 WebRTC 会话
 export const createSession = (data: CreateSessionDto) =>
   api.post<WebRTCSession>('/media/sessions', data);

@@ -30,6 +30,7 @@ const PhysicalDeviceList: React.FC = () => {
     setPageSize,
     setScanModalVisible,
     handleScan,
+    handleCancelScan,
     handleRegister,
     openRegisterModal,
     handleCloseScanModal,
@@ -97,6 +98,7 @@ const PhysicalDeviceList: React.FC = () => {
         scanProgress={scanProgress}
         onCancel={handleCloseScanModal}
         onScan={handleScan}
+        onCancelScan={handleCancelScan}
         onRegister={openRegisterModal}
       />
 

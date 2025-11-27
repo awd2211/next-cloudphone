@@ -178,25 +178,47 @@ export const scanNetworkDevices = (params: {
 
 /**
  * 扫描网络设备 - 支持实时进度更新 (SSE)
+ *
  * 返回一个 EventSource 用于接收实时扫描进度
+ *
+ * 安全说明：
+ * - EventSource API 不支持自定义 HTTP 头
+ * - 因此 JWT Token 需要通过 URL 查询参数传递
+ * - 后端会验证 token 参数，无效则返回认证错误事件
+ *
+ * @param params 扫描参数
+ * @param token JWT 认证 Token（从 localStorage 获取）
+ * @returns EventSource 实例
  */
-export const scanNetworkDevicesStream = (params: {
-  networkCidr: string;
-  portStart?: number;
-  portEnd?: number;
-  concurrency?: number;
-  timeoutMs?: number;
-}): EventSource => {
-  const queryString = new URLSearchParams({
+export const scanNetworkDevicesStream = (
+  params: {
+    networkCidr: string;
+    portStart?: number;
+    portEnd?: number;
+    concurrency?: number;
+    timeoutMs?: number;
+  },
+  token?: string
+): EventSource => {
+  // 获取 Token：优先使用传入的，否则从 localStorage 读取
+  const authToken = token || localStorage.getItem('token') || '';
+
+  const queryParams: Record<string, string> = {
     networkCidr: params.networkCidr,
     portStart: String(params.portStart || 5555),
-    portEnd: String(params.portEnd || 5555),
-    concurrency: String(params.concurrency || 30),
-    timeoutMs: String(params.timeoutMs || 2000),
-  }).toString();
+    portEnd: String(params.portEnd || 5565),
+    concurrency: String(params.concurrency || 50),
+    timeoutMs: String(params.timeoutMs || 5000),
+  };
+
+  // 添加 Token（SSE 端点需要通过查询参数认证）
+  if (authToken) {
+    queryParams.token = authToken;
+  }
+
+  const queryString = new URLSearchParams(queryParams).toString();
 
   // SSE 通过 Vite 代理转发到 device-service
-  // EventSource API 不支持自定义 headers，所以使用服务端代理
   // /device-sse 路径会被 Vite 代理到 localhost:30002
   return new EventSource(`/device-sse/admin/physical-devices/scan/stream?${queryString}`);
 };

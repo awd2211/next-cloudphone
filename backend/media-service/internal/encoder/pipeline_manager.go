@@ -500,3 +500,27 @@ type ShardStats struct {
 	VideoPipelines int    `json:"video_pipelines"`
 	AudioPipelines int    `json:"audio_pipelines"`
 }
+
+// RequestKeyframe requests an IDR/keyframe for a video pipeline
+// This is called by RTCPCollector when receiving PLI/FIR or detecting high packet loss
+func (pm *PipelineManager) RequestKeyframe(sessionID string) error {
+	shard := pm.getShard(sessionID)
+
+	shard.mu.RLock()
+	pipeline, exists := shard.videoPipelines[sessionID]
+	shard.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("video pipeline not found for session %s", sessionID)
+	}
+
+	return pipeline.RequestKeyframe()
+}
+
+// GetKeyframeRequester returns a function that can be used as RTCPCollector's keyframe requester
+// This creates a closure that captures the sessionID for the keyframe request
+func (pm *PipelineManager) GetKeyframeRequester(sessionID string) func() error {
+	return func() error {
+		return pm.RequestKeyframe(sessionID)
+	}
+}

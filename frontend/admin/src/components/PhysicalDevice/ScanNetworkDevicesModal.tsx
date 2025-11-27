@@ -1,6 +1,6 @@
 import { memo, useState, useCallback } from 'react';
-import { Modal, Alert, Form, Input, InputNumber, Button, Spin, Table, Tag, Space, Progress, Typography, Collapse, Statistic, Row, Col } from 'antd';
-import { ScanOutlined, QuestionCircleOutlined, CheckCircleOutlined, WifiOutlined, ApiOutlined, SettingOutlined, DesktopOutlined } from '@ant-design/icons';
+import { Modal, Alert, Form, Input, InputNumber, Button, Spin, Table, Tag, Space, Progress, Typography, Collapse, Statistic, Row, Col, Popconfirm } from 'antd';
+import { ScanOutlined, QuestionCircleOutlined, CheckCircleOutlined, WifiOutlined, ApiOutlined, SettingOutlined, DesktopOutlined, StopOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { statusConfig } from './physicalDeviceUtils';
@@ -59,11 +59,44 @@ interface ScanNetworkDevicesModalProps {
   scanProgress?: ScanProgress;
   onCancel: () => void;
   onScan: (values: ScanParams) => void;
+  onCancelScan?: () => void;
   onRegister: (device: ScanResult) => void;
 }
 
+/**
+ * 验证 CIDR 格式和范围
+ *
+ * 安全限制：
+ * - 必须是有效的 IPv4 CIDR 格式
+ * - 掩码最小 /20（最多 4094 个 IP），防止资源耗尽攻击
+ */
+const validateCidr = (value: string): { valid: boolean; message: string } => {
+  if (!value) {
+    return { valid: false, message: '请输入子网段' };
+  }
+
+  // 严格的 IPv4 CIDR 正则
+  const cidrRegex = /^((25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\/(3[0-2]|[12]?\d)$/;
+  if (!cidrRegex.test(value)) {
+    return { valid: false, message: '请输入有效的 CIDR 格式，如 192.168.1.0/24' };
+  }
+
+  // 检查掩码范围
+  const [, prefixLenStr] = value.split('/');
+  const prefixLen = parseInt(prefixLenStr, 10);
+
+  if (prefixLen < 20) {
+    return {
+      valid: false,
+      message: `子网范围过大 (/${prefixLen})，最小掩码为 /20（最多 4094 个 IP），请缩小扫描范围`,
+    };
+  }
+
+  return { valid: true, message: '' };
+};
+
 export const ScanNetworkDevicesModal = memo<ScanNetworkDevicesModalProps>(
-  ({ visible, form, scanResults, isScanning, scanProgress, onCancel, onScan, onRegister }) => {
+  ({ visible, form, scanResults, isScanning, scanProgress, onCancel, onScan, onCancelScan, onRegister }) => {
     // 屏幕映射状态
     const [mirrorDevice, setMirrorDevice] = useState<ScanResult | null>(null);
 
@@ -199,11 +232,20 @@ export const ScanNetworkDevicesModal = memo<ScanNetworkDevicesModalProps>(
             label="子网段"
             rules={[
               { required: true, message: '请输入子网段' },
-              { pattern: /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}$/, message: '请输入有效的 CIDR 格式' },
+              {
+                validator: (_, value) => {
+                  const result = validateCidr(value);
+                  if (result.valid) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error(result.message));
+                },
+              },
             ]}
             initialValue="192.168.102.0/23"
+            extra={<span style={{ fontSize: 12, color: '#8c8c8c' }}>支持 /20 ~ /32，最多扫描 4094 个 IP</span>}
           >
-            <Input placeholder="例如: 192.168.102.0/23" style={{ maxWidth: 300 }} />
+            <Input placeholder="例如: 192.168.1.0/24" style={{ maxWidth: 300 }} disabled={isScanning} />
           </Form.Item>
 
           <Collapse
@@ -241,9 +283,24 @@ export const ScanNetworkDevicesModal = memo<ScanNetworkDevicesModalProps>(
           />
 
           <Form.Item style={{ marginTop: 16, marginBottom: 0 }}>
-            <Button type="primary" htmlType="submit" icon={<ScanOutlined />} loading={isScanning}>
-              开始扫描
-            </Button>
+            <Space>
+              <Button type="primary" htmlType="submit" icon={<ScanOutlined />} loading={isScanning} disabled={isScanning}>
+                {isScanning ? '扫描中...' : '开始扫描'}
+              </Button>
+              {isScanning && onCancelScan && (
+                <Popconfirm
+                  title="取消扫描"
+                  description="确定要取消当前扫描吗？已发现的设备将保留。"
+                  onConfirm={onCancelScan}
+                  okText="确定"
+                  cancelText="继续扫描"
+                >
+                  <Button danger icon={<StopOutlined />}>
+                    取消扫描
+                  </Button>
+                </Popconfirm>
+              )}
+            </Space>
           </Form.Item>
         </Form>
 

@@ -21,6 +21,8 @@ import {
   DisconnectOutlined,
 } from '@ant-design/icons';
 import { NEUTRAL_LIGHT } from '@/theme';
+// 注意: 不再使用 buildWebRTCConfig，改为使用后端返回的 ICE 服务器配置
+// 确保前后端使用相同的 TURN 凭证
 
 const { Text } = Typography;
 
@@ -33,14 +35,6 @@ const KEYCODE = {
   VOLUME_DOWN: 25,
   MENU: 82,
 } as const;
-
-// WebRTC 配置
-const WEBRTC_CONFIG: RTCConfiguration = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-  ],
-};
 
 // 控制消息类型
 interface ControlMessage {
@@ -175,7 +169,7 @@ export const ScreenMirrorModal = memo<ScreenMirrorModalProps>(
       setConnectionState('connecting');
 
       try {
-        // 1. 创建 WebRTC session
+        // 1. 创建 WebRTC session（后端会返回 ICE 服务器配置，确保前后端使用相同的 TURN 凭证）
         const token = localStorage.getItem('token');
         const createRes = await fetch(`${mediaServiceUrl}/api/media/sessions`, {
           method: 'POST',
@@ -193,11 +187,26 @@ export const ScreenMirrorModal = memo<ScreenMirrorModalProps>(
           throw new Error(`Failed to create session: ${createRes.status}`);
         }
 
-        const { sessionId: sid, offer } = await createRes.json();
+        const { sessionId: sid, offer, iceServers } = await createRes.json();
         setSessionId(sid);
 
-        // 2. 创建 RTCPeerConnection
-        const pc = new RTCPeerConnection(WEBRTC_CONFIG);
+        // 使用后端返回的 ICE 服务器配置（确保 TURN 凭证与后端一致）
+        // 这是关键：双方必须使用相同的 TURN 凭证才能通过 relay 连接
+        const webrtcConfig: RTCConfiguration = {
+          iceServers: iceServers || [],
+          iceTransportPolicy: 'all', // 尝试所有类型：host, srflx, relay
+        };
+
+        console.log('[ScreenMirror] Using ICE servers from backend (same TURN credentials)');
+        console.log('[ScreenMirror] ICE servers count:', webrtcConfig.iceServers?.length);
+        const serverSummary = webrtcConfig.iceServers?.map(s => ({
+          urls: s.urls,
+          hasCredential: !!(s.username && s.credential),
+        }));
+        console.log('[ScreenMirror] ICE servers detail:', JSON.stringify(serverSummary, null, 2));
+
+        // 2. 创建 RTCPeerConnection（使用后端同步的 TURN 凭证）
+        const pc = new RTCPeerConnection(webrtcConfig);
         pcRef.current = pc;
 
         // 处理视频轨道
@@ -227,24 +236,61 @@ export const ScreenMirrorModal = memo<ScreenMirrorModalProps>(
           };
         };
 
-        // 处理 ICE candidates
-        pc.onicecandidate = async (event) => {
+        // 处理 ICE candidates - 使用批量发送避免触发速率限制
+        const pendingCandidates: RTCIceCandidate[] = [];
+        let iceSendTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const flushIceCandidates = async () => {
+          if (pendingCandidates.length === 0) return;
+
+          const candidatesToSend = [...pendingCandidates];
+          pendingCandidates.length = 0;
+
+          // 统计各类型 ICE candidates
+          const stats = { host: 0, srflx: 0, relay: 0, unknown: 0 };
+          candidatesToSend.forEach((c) => {
+            if (c.candidate.includes('typ host')) stats.host++;
+            else if (c.candidate.includes('typ srflx')) stats.srflx++;
+            else if (c.candidate.includes('typ relay')) stats.relay++;
+            else stats.unknown++;
+          });
+          console.log(`[ICE] Sending ${candidatesToSend.length} candidates:`, stats);
+          console.log('[ICE] Candidate details:', candidatesToSend.map(c => c.candidate));
+
+          try {
+            // 批量发送所有待处理的 ICE candidates
+            await fetch(`${mediaServiceUrl}/api/media/sessions/ice-candidates`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                sessionId: sid,
+                candidates: candidatesToSend,
+              }),
+            });
+          } catch (err) {
+            console.warn('Failed to send ICE candidates batch:', err);
+          }
+        };
+
+        pc.onicecandidate = (event) => {
           if (event.candidate) {
-            try {
-              await fetch(`${mediaServiceUrl}/api/media/sessions/ice-candidate`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                  sessionId: sid,
-                  candidate: event.candidate,
-                }),
-              });
-            } catch (err) {
-              console.warn('Failed to send ICE candidate:', err);
+            pendingCandidates.push(event.candidate);
+
+            // 使用防抖：等待 100ms 收集更多候选后批量发送
+            if (iceSendTimer) {
+              clearTimeout(iceSendTimer);
             }
+            iceSendTimer = setTimeout(flushIceCandidates, 100);
+          } else {
+            // ICE gathering 完成，立即发送剩余候选
+            console.log('[ICE] Gathering complete');
+            if (iceSendTimer) {
+              clearTimeout(iceSendTimer);
+            }
+            flushIceCandidates();
           }
         };
 
@@ -301,18 +347,23 @@ export const ScreenMirrorModal = memo<ScreenMirrorModalProps>(
         pcRef.current = null;
       }
 
-      // 关闭会话
+      // 关闭会话（静默忽略 404 - 会话可能已被清理）
       if (sessionId) {
         const token = localStorage.getItem('token');
         try {
-          await fetch(`${mediaServiceUrl}/api/media/sessions/${sessionId}`, {
+          const response = await fetch(`${mediaServiceUrl}/api/media/sessions/${sessionId}`, {
             method: 'DELETE',
             headers: {
               Authorization: `Bearer ${token}`,
             },
           });
+          // 404 表示会话已不存在，这是正常情况
+          if (!response.ok && response.status !== 404) {
+            console.warn('Failed to close session:', response.status);
+          }
         } catch (err) {
-          console.warn('Failed to close session:', err);
+          // 网络错误静默处理
+          console.debug('Session cleanup error (ignored):', err);
         }
       }
 

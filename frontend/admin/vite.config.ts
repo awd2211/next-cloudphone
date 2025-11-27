@@ -173,10 +173,22 @@ export default defineConfig({
         // 不移除 /api 前缀，因为 media-service 需要它
       },
       // Device Service SSE - 直接代理到 device-service（EventSource 不支持自定义 headers）
+      // 关键：设置超长超时以支持大网段扫描（最多 10 分钟）
       '/device-sse': {
         target: 'http://localhost:30002',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/device-sse/, ''),
+        // SSE 连接需要保持长时间打开
+        timeout: 600000, // 10 分钟超时
+        proxyTimeout: 600000,
+        // 配置为保持长连接
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            // SSE 需要禁用缓冲
+            proxyReq.setHeader('Cache-Control', 'no-cache');
+            proxyReq.setHeader('Connection', 'keep-alive');
+          });
+        },
       },
       // 所有其他 /api 请求统一代理到 API Gateway
       '/api': {
